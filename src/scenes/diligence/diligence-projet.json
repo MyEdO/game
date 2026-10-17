@@ -11,8 +11,30 @@
   "note": "EDO 01 l.5 · l.13"
  },
  "narratif": {
-  "affaires": [],
-  "indices": [],
+  "affaires": [
+   {
+    "id": "edo-ch1-affaire-heritage",
+    "titre": "Un héritage à Bögenhafen"
+   }
+  ],
+  "indices": [
+   {
+    "id": "edo-ch1-indice-heritage",
+    "affaireId": "edo-ch1-affaire-heritage",
+    "kind": "indice",
+    "titre": "L’héritage",
+    "stades": [
+     {
+      "id": "veste",
+      "documentId": "edo-document-3-heritage"
+     },
+     {
+      "id": "poche",
+      "documentId": "edo-document-4-affidavit"
+     }
+    ]
+   }
+  ],
   "presetsPnj": [
    {
     "id": "edo-fhluger-dagh",
@@ -2602,14 +2624,804 @@
   "etats": [
    {
     "id": "campagne-sosie-heros",
-    "label": "Le sosie de Kastor Lieberung",
+    "label": "Le sosie du mort",
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 26,
      "note": "EDO 02 l.91"
     },
     "forme": {
-     "kind": "heros"
+     "kind": "heros",
+     "identite": {
+      "ancres": [
+       "Kastor",
+       "Lieberung"
+      ],
+      "reperes": [
+       {
+        "id": "nom-complet",
+        "texte": "Kastor Aloysius Lieberung"
+       },
+       {
+        "id": "salutation",
+        "texte": "Cher Herr Lieberung"
+       },
+       {
+        "id": "heritier",
+        "texte": "le dernier parent vivant de feu le baronet Lieberung"
+       },
+       {
+        "id": "manoir",
+        "texte": "manoir de Lieberung"
+       },
+       {
+        "id": "civilite",
+        "texte": "Herr Lieberung"
+       },
+       {
+        "id": "nom",
+        "texte": "Kastor Lieberung"
+       }
+      ],
+      "lignes": [
+       {
+        "espece": "humain",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kastor Aloysius Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO Document 3"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO Document 3"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO Document 3"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO Document 3"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO Document 7"
+          }
+         },
+         "nom": {
+          "texte": "Kastor Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.116"
+          }
+         }
+        }
+       },
+       {
+        "espece": "humain",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kastelle Aloysia Lieberung",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.117 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Lieberung",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.117 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Lieberung",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.117 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO Document 3"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Lieberung",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.117"
+          }
+         },
+         "nom": {
+          "texte": "Kastelle Lieberung",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.117"
+          }
+         }
+        }
+       },
+       {
+        "espece": "halfling",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kipernius Theodosius Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.118 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.118 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.118 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.118 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.118"
+          }
+         },
+         "nom": {
+          "texte": "Krisper Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.118"
+          }
+         }
+        }
+       },
+       {
+        "espece": "halfling",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kallistabell Thomasina Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.119 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.119 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.119 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.119 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.119"
+          }
+         },
+         "nom": {
+          "texte": "Kally Havrebas",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.119"
+          }
+         }
+        }
+       },
+       {
+        "espece": "nain",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kazrik Lakkarsson",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.124"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Lakkarsson",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.124 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Lakkarsson",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.124 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Lakkarsson",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.124 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Lakkarsson",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.124"
+          }
+         },
+         "nom": {
+          "texte": "Kazrik Lakkarsson",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.124"
+          }
+         }
+        }
+       },
+       {
+        "espece": "nain",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kallar Linkassniz",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.125"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Linkassniz",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.125 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Linkass",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.125 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Linkass",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.125 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Linkassniz",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.125"
+          }
+         },
+         "nom": {
+          "texte": "Kallar Linkassniz",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.125"
+          }
+         }
+        }
+       },
+       {
+        "espece": "gnome",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kenwyn Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.127"
+          }
+         },
+         "nom": {
+          "texte": "Kenwyn Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.127"
+          }
+         }
+        }
+       },
+       {
+        "espece": "gnome",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kerra Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.127"
+          }
+         },
+         "nom": {
+          "texte": "Kerra Hawken",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.127"
+          }
+         }
+        }
+       },
+       {
+        "espece": "ogre",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kaspar Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.127"
+          }
+         },
+         "nom": {
+          "texte": "Kaspar Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.127"
+          }
+         }
+        }
+       },
+       {
+        "espece": "ogre",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Kunegunde Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.154 · l.127"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.127"
+          }
+         },
+         "nom": {
+          "texte": "Kunegunde Pansedefer",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.169 · l.190 · EDO 02 l.127"
+          }
+         }
+        }
+       },
+       {
+        "espece": "haut-elfe",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Calamor Souplebras",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.120"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.120 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.120 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.120 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.120"
+          }
+         },
+         "nom": {
+          "texte": "Calamor Souplebras",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.120"
+          }
+         }
+        }
+       },
+       {
+        "espece": "haut-elfe",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Calariane Souplebras",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.121"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.121 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.121 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.121 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Souplebras",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.121"
+          }
+         },
+         "nom": {
+          "texte": "Calariane Souplebras",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.121"
+          }
+         }
+        }
+       },
+       {
+        "espece": "elfe-sylvain",
+        "sexe": "M",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Karrawyr Feuilledetilleul",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.122"
+          }
+         },
+         "salutation": {
+          "texte": "Cher Herr Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.122 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "le dernier parent vivant de feu le baronet Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.122 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.122 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Herr Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.122"
+          }
+         },
+         "nom": {
+          "texte": "Karrawyr Feuilledetilleul",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.122"
+          }
+         }
+        }
+       },
+       {
+        "espece": "elfe-sylvain",
+        "sexe": "F",
+        "valeurs": {
+         "nom-complet": {
+          "texte": "Karrastra Feuilledetilleul",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.123"
+          }
+         },
+         "salutation": {
+          "texte": "Chère Frau Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.139 · l.123 · l.127"
+          }
+         },
+         "heritier": {
+          "texte": "la dernière parente vivante de feu le baronet Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.141 · l.123 · l.127"
+          }
+         },
+         "manoir": {
+          "texte": "manoir de Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.143 · l.123 · l.127"
+          }
+         },
+         "civilite": {
+          "texte": "Frau Feuilledetilleul",
+          "adapteDe": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 48,
+           "note": "EDO 04 l.190 · l.192 · EDO 02 l.123"
+          }
+         },
+         "nom": {
+          "texte": "Karrastra Feuilledetilleul",
+          "source": {
+           "book": "ennemi-dans-l-ombre",
+           "page": 27,
+           "note": "EDO 02 l.123"
+          }
+         }
+        }
+       }
+      ]
+     }
     }
    }
   ],
@@ -20846,6 +21658,36 @@
              "page": 26,
              "note": "EDO 02 l.91"
             }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "document",
+            "documentId": "edo-document-3-heritage"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "revealClue",
+            "indiceId": "edo-ch1-indice-heritage",
+            "stade": "veste"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "document",
+            "documentId": "edo-document-4-affidavit"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "revealClue",
+            "indiceId": "edo-ch1-indice-heritage",
+            "stade": "poche"
            }
           },
           {

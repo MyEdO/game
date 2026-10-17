@@ -79,7 +79,7 @@ export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; acto
     return (
       <ParchmentCard>
         {entry.lines.map((l, i) => (
-          <div key={i} className="modal-log"><Prose md={l} /></div>
+          <div key={i} className="modal-log"><Prose md={l} paquet /></div>
         ))}
       </ParchmentCard>
     );

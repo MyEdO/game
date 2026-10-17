@@ -32,14 +32,14 @@ function monte() {
 
 describe('DocumentModal — la source du document', () => {
   it('document sourcé : le badge « abréviation du livre p.page » sous le texte, dans le parchemin', () => {
-    useGame.setState({ document: { title: 'L’affiche', text: 'VOYAGEURS', source: { book: 'livre-de-base', page: 90 } } });
+    useGame.getState().remettreDocument({ title: 'L’affiche', text: 'VOYAGEURS', source: { book: 'livre-de-base', page: 90 } });
     monte();
     const badge = document.querySelector('.parchment-card .source-badge');
     expect(badge?.textContent).toBe(`${bookAbr('livre-de-base')} p.90`);
   });
 
   it('document sans source : aucun badge', () => {
-    useGame.setState({ document: { title: 'L’affiche', text: 'VOYAGEURS' } });
+    useGame.getState().remettreDocument({ title: 'L’affiche', text: 'VOYAGEURS' });
     monte();
     expect(document.querySelector('.parchment-card')).toBeTruthy();
     expect(document.querySelector('.source-badge')).toBeNull();

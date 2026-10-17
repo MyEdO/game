@@ -6,11 +6,12 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
+import { coupleDIdentite } from './identites';
 import type { BattleActionMode } from './actionRegistry';
 import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -507,6 +508,9 @@ export interface GameState extends RollFlowActionsMap {
    *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
    *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
   etats: Record<string, string>;
+  /** Espèce (`refChar`) et sexe du héros désigné par un état `heros`, FIGÉS au choix (`designerHerosChoisir`,
+   *  EDO 02 l.114) : la ligne d'identité qu'on lit (`identitesResolues`). Traversent les scènes ; vidés en nouvelle partie. */
+  identitesFigees: Record<string, { espece: RaceKey; sexe: Sexe }>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
@@ -779,8 +783,12 @@ export interface GameState extends RollFlowActionsMap {
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
-  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string; source?: SourceRef } | null;
+  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
+   *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
+   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par `closeDocument`. */
+  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Flow; remise: number } | null;
+  /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
+  remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 
@@ -1040,6 +1048,9 @@ export interface GameState extends RollFlowActionsMap {
    *  (l.80) reste figé sur Résistance et ignore cet appel. */
   corruptionSetSkill: (skill: 'resistance' | 'calme') => void;
   resolveCorruption: () => void;
+  /** Remet un document : l'estampille d'une remise neuve (`remise`). */
+  remettreDocument: (doc: Omit<NonNullable<GameState['document']>, 'remise'>) => void;
+  /** Ferme le document et rejoue sa `suite` ; inerte chez l'invité. */
   closeDocument: () => void;
 
   /** Réensemence le RNG de combat (déterminisme des tests + future coop réseau). */
@@ -2058,6 +2069,8 @@ export const useGame = create<GameState>((set, get) => ({
   lightLevel: null,
   flags: {},
   etats: {},
+  identitesFigees: {},
+  remisesDeDocument: 0,
   objectives: [],
   objectifsSoldes: [],
   chapitreDepuis: null,
@@ -2993,7 +3006,16 @@ export const useGame = create<GameState>((set, get) => ({
     if (!p) return;
     const vivants = get().party.filter((h) => !h.dead);
     if (heroId === undefined ? vivants.length > 0 : !vivants.some((h) => h.id === heroId)) return;
-    set((st) => ({ etats: heroId === undefined ? st.etats : { ...st.etats, [p.etat]: heroId }, pendingDesignationHeros: null }));
+    set((st) => {
+      if (heroId === undefined) return { pendingDesignationHeros: null };
+      const couple = coupleDIdentite(st.party.find((h) => h.id === heroId));
+      const { [p.etat]: _ancien, ...autres } = st.identitesFigees;
+      return {
+        etats: { ...st.etats, [p.etat]: heroId },
+        identitesFigees: couple ? { ...autres, [p.etat]: couple } : autres,
+        pendingDesignationHeros: null,
+      };
+    });
     reprendreLaSuite(get, set, p.suite);
   },
 
@@ -3103,7 +3125,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
     cloturer(get, set, issue, clotures);
   },
-  closeDocument: () => set({ document: null }),
+  remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+  // COOP : l'hôte ferme (patron `acquitterOuverture`) ; chez l'invité, la suite ne se joue jamais.
+  closeDocument: () => {
+    const doc = get().document;
+    if (!doc || get().net.mode === 'guest') return;
+    set({ document: null });
+    reprendreLaSuite(get, set, doc.suite);
+  },
 
   // PUITS UNIQUE du journal : c'est ici — et nulle part ailleurs — qu'un jet dont le joueur a SAISI la
   // valeur laisse sa trace écrite (arbitrage #939 : marqué PARTOUT, rangée ET journal).

@@ -66,7 +66,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
   });
 
   it('document ouvert : elle attend', () => {
-    temoin({ document: { title: 'Lettre', text: '…' } });
+    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
     expect(repond()).toBe(false);
   });
 
@@ -107,7 +107,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   });
 
   it('document PARTAGÉ ouvert : la réponse de l’invité attend', () => {
-    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…' } })).toBe('n1');
+    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…', remise: 1 } })).toBe('n1');
   });
 });
 

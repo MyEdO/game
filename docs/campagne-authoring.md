@@ -177,15 +177,31 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   `designationHeros`, décision de groupe, non annulable ; `invite` = la prose affichée, `adapteDe` pour
   un texte d'écran adapté du passage) ; le sélecteur `who: { etat }` des Conditions de groupe
   (`partyDead`, `skill`, `career`, `species`, `status`) vise alors ce seul héros — référence non
-  désignée → faux. Ex. `campagne-sosie-heros` (EDO 02 l.91), désigné à la fouille du cadavre de Kastor.
+  désignée → faux. Ex. `campagne-sosie-heros` (EDO 02 l.91, libellé neutre : le titre de la modale ne dévoile
+  pas le nom), désigné à la fouille du cadavre de Kastor ; son identité porte les 14 lignes espèce × sexe.
+  **Identité** (`forme.identite`, EDO 02 l.112-127) : des `ancres` (les noms du paquet), des `reperes`
+  (`{ id, texte }`, chaque texte est un fragment VERBATIM du paquet qui contient une ancre) et des
+  `lignes` (`{ espece: RaceKey, sexe, valeurs }`, un couple unique, `valeurs` keyées par id de repère,
+  chacune `{ texte, source | adapteDe }`, sans métacaractère Markdown ; `adapteDe` cite les passages adaptés, la
+  prose qui porte le repère et la ligne de table de l'espèce). Chaque repère doit être EFFECTIVEMENT substitué
+  quelque part dans le paquet : un repère toujours masqué par un plus long est refusé par la garde des paquets. La prose STOCKÉE reste verbatim :
+  à l'AFFICHAGE, chaque site de prose de paquet (`SITES_PROSE` › `paquet`, `src/ui/liage.ts` ; `<Prose
+  paquet>`, ou `mdToText(nommer(…))`) substitue chaque repère, en mot entier et en une passe, par la valeur
+  de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`GameState.identitesFigees`,
+  posé par `designerHerosChoisir`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
+  (`identitesResolues` / `nommer`, `src/state/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
+  ligne : verbatim. Un
+  site de catalogue (à `porteur`) ne nomme jamais. L'onglet **États** édite l'identité (ancres, repères
+  renommables — le renommage suit dans chaque ligne —, lignes et provenance de chaque valeur).
 
-**Un geste joueur ne coupe pas le Flow.** `designerHeros`, `extendedTest` et `forceDoor` sont des Effets
+**Un geste joueur ne coupe pas le Flow.** `designerHeros`, `document`, `extendedTest` et `forceDoor` sont des Effets
 SUSPENSIFS (`EffectHandler.suspensif`, `src/state/combatEffects.ts`) : comme un nœud `test`
 (`openSkillTest(..., after)`), leur pending porte la SUITE — le reste de la pile de `runFlow`, ou le reste
 du lot d'`applyEffects` — et sa clôture la rejoue (`reprendreLaSuite`) : choix du héros (ou, plus aucun
-vivant, clôture sans choix), Test étendu atteint, épuisé ou abandonné, porte cédée ou abandonnée. Une
+vivant, clôture sans choix), document fermé, Test étendu atteint, épuisé ou abandonné, porte cédée ou abandonnée. Une
 étape posée APRÈS le geste s'exécute donc APRÈS lui, jamais avant ni jamais perdue : la fouille de Kastor
-déroule journal (EDO 02 l.89), désignation (l.91), puis le drapeau de fouille qui ouvre la route.
+déroule journal (EDO 02 l.89), désignation (l.91), Document 3 et le stade « veste » de l'indice « L'héritage »
+(l.93), Document 4 et son stade « poche » (l.95), puis le drapeau de fouille qui ouvre la route.
 
 Les valeurs d'état vivent dans `GameState.etats` (snapshot de sauvegarde, vidées en nouvelle partie,
 jamais fusionnées à une transition). Au parse du projet, un état lu ou posé doit être DÉCLARÉ, son usage
@@ -328,14 +344,19 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
   (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
   (§ 9), provenance `source` (le passage qui pose l'état) OU `maison` (sa raison), exigée comme celle
-  d'un billet (`refuserSansProvenance`), `forme` ∈ `heros` | `enum { valeurs }`.
+  d'un billet (`refuserSansProvenance`), `forme` ∈ `heros { identite? }` | `enum { valeurs }`.
 - **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
   (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
   anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
   lisent. Un registre de plus = une ligne de cette table.
 - **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
   `narratif.documents` ; `apply` la résout (`documentById`) et ouvre la modale `DocumentModal`
-  (`store.document`). Un id inconnu n'ouvre rien (avertissement console).
+  (`store.document`, qui porte `documentId` : sa prose est nommée par les identités, § 9). L'Effet est
+  SUSPENSIF : la suite du Flow attend la fermeture (`closeDocument`), si bien que deux documents remis
+  à la suite se lisent l'un après l'autre (EDO 02 l.89-95). Toute remise passe par `remettreDocument`, qui
+  l'estampille (`document.remise`) ; le document traverse les scènes jusqu'à sa fermeture. En coop, seul
+  l'hôte ferme et rejoue la suite ; l'invité masque cette remise. Un id inconnu n'ouvre rien
+  (avertissement console), la suite se joue.
 - **Frontière RÉFÉRENCE vs NARRATIF.** Le narratif RÉFÉRENCE la règle globale (`src/data`) PAR ID
   (`base` → id de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
   du contenu EMBARQUÉ dans le JSON, révélé seulement en jeu. `narratifSchema`
