@@ -108,7 +108,7 @@ const STATE_FIELDS = {
   // startCombat), éteint explicitement au teardown (`resolveCargoRaid`). Transitoire — jamais persisté.
   cargoRaid: { init: false, resetOn: ['scene'] },
   pendingLoot: { init: null, resetOn: [] },
-  document: { init: null, resetOn: ['scene'] },
+  document: { init: null, resetOn: [] },
   previousScene: { init: null, resetOn: [] },
   // Écran Port : fermé au changement de scène (on quitte le lieu portuaire). Activités en mer :
   // transient de voyage (ne survit à rien d'autre que la confirmation → halte de nuit).

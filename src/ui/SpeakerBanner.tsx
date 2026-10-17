@@ -54,7 +54,7 @@ export const SpeakerBanner = forwardRef<HTMLDivElement, SpeakerBannerProps>(func
         )}
         <div className="dlg-body">
           {label && <div id={labelId} className="dlg-speaker">{label}</div>}
-          {children && <p id={textId} className="dlg-text">{children}</p>}
+          {children && <div id={textId} className="dlg-text">{children}</div>}
         </div>
       </div>
       {variant === 'dialogue' && choices && <div className="dlg-choices">{choices}</div>}

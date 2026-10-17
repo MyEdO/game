@@ -35,7 +35,7 @@ export function StakeNote({ stake }: { stake: StakeRef }) {
     <div className="rm-stake">
       {!enRangee && <Icon id="nav/dice" size="sm" />}
       <div>
-        <Prose md={text} />
+        <Prose md={text} paquet={stake.authored != null} />
       </div>
     </div>
   );

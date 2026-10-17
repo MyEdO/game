@@ -11,7 +11,8 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * #2427 ; fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
  */
 import { z } from 'zod';
-import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
+import { alternationDe } from '../../../lib/regex';
+import { sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
@@ -95,9 +96,66 @@ export const valeurDEtatSchema = nommerChamps(z.strictObject({
   label: z.string().min(1, 'libellé vide.'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} } });
 
+/** Métacaractères Markdown refusés dans un texte d'identité : il est substitué dans une prose AVANT son parse. */
+const METACARACTERES_MARKDOWN = /[\\`*_[\]<>#|~]/;
+const sansMarkdown = (sujet: string) => z.string().regex(/\S/, `${sujet} vide.`).refine((t) => !METACARACTERES_MARKDOWN.test(t), `${sujet} : métacaractère Markdown refusé (\\ \` * _ [ ] < > # | ~).`);
+
+/** Les `fragments` comme mots entiers (bornes Unicode), le plus long d'abord (`alternationDe`) : `nommer`
+ *  (`src/state/identites.ts`) et le contrôle d'ancre la partagent. */
+export function motifEnMot(fragments: readonly string[], drapeaux = 'u'): RegExp {
+  return new RegExp(`(?<!\\p{L})(?:${alternationDe(fragments)})(?!\\p{L})`, drapeaux);
+}
+
+/** Un REPÈRE d'identité : un fragment VERBATIM du paquet, à l'id STABLE que désigne chaque valeur (`repere`). */
+export const repereDIdentiteSchema = nommerChamps(z.strictObject({
+  id: z.string().min(1, 'id vide.'),
+  fragment: sansMarkdown('fragment du repère'),
+}), { id: { label: "identifiant", texte: { regime: "technique" } }, fragment: { label: "fragment du repère", texte: { regime: "technique", usage: "fragment verbatim du paquet remplacé à l’affichage" } } });
+
+/** La forme d'un repère (`repere`, id d'un repère de la même identité) pour une espèce et un sexe : copie
+ *  (`source`) ou adaptation (`adapteDe`) d'un passage. */
+export const valeurDIdentiteSchema = nommerChamps(z.strictObject({
+  repere: z.string().min(1, 'repère vide.'),
+  valeur: sansMarkdown('valeur'),
+  source: sourceRefSchema.optional(),
+  ...champAdapteDe(),
+})
+  .superRefine(refineAdapteDe)
+  .superRefine((v, ctx) => {
+    if (v.source === undefined && v.adapteDe === undefined) ctx.addIssue({ code: 'custom', path: ['source'], message: 'provenance manquante : la page copiée (source) ou le passage adapté (adapté de).' });
+  }), { repere: { label: "repère", texte: { regime: "technique" } }, valeur: { label: "valeur", texte: { regime: "designation" } }, source: { label: "source" }, ...META_ADAPTE_DE });
+
+/** Une ligne d'identité : la valeur de chaque repère pour une espèce (`RaceKey`) et un sexe. */
+export const ligneDIdentiteSchema = nommerChamps(z.strictObject({
+  espece: raceKeySchema,
+  sexe: sexeSchema,
+  valeurs: listeCle(valeurDIdentiteSchema, 'repere'),
+}), { espece: { label: "espèce" }, sexe: { label: "sexe" }, valeurs: { label: "valeurs" } });
+
+/** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : les repères du paquet et leur forme par espèce et sexe du héros désigné. */
+export const identiteSchema = nommerChamps(z.strictObject({
+  ancres: z.array(sansMarkdown('ancre')).min(1, 'aucune ancre : une identité en déclare au moins une.'),
+  reperes: listeCle(repereDIdentiteSchema, 'id', { min: { taille: 1, message: 'aucun repère : une identité en déclare au moins un.' } }),
+  lignes: listeCle(ligneDIdentiteSchema, { nom: 'espèce et sexe', de: (l) => (l.espece && l.sexe ? `${l.espece} ${l.sexe}` : undefined) }),
+})
+  .superRefine((id, ctx) => {
+    const ancres = motifEnMot(id.ancres);
+    id.reperes.forEach((r, i) => {
+      if (!ancres.test(r.fragment)) ctx.addIssue({ code: 'custom', path: ['reperes', i, 'fragment'], message: `repère « ${r.fragment} » sans ancre : il contient au moins l’une de « ${id.ancres.join(' », « ')} ».` });
+    });
+    const reperes = new Set(id.reperes.map((r) => r.id));
+    id.lignes.forEach((l, j) => {
+      const couverts = new Set(l.valeurs.map((v) => v.repere));
+      for (const r of reperes) if (!couverts.has(r)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs'], message: `repère « ${r} » sans valeur : une ligne couvre tous les repères.` });
+      l.valeurs.forEach((v, k) => {
+        if (!reperes.has(v.repere)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs', k, 'repere'], message: `repère inconnu « ${v.repere} ».` });
+      });
+    });
+  }), { ancres: { label: "ancres", texte: { regime: "technique", usage: "noms du paquet que portent les repères" } }, reperes: { label: "repères" }, lignes: { label: "lignes" } });
+
 /** Le schéma de chaque forme d'état (`./formes-d-etat.ts`) — table TOTALE : une forme sans schéma ne compile pas. */
 const SCHEMA_DE_FORME = {
-  heros: nommerChamps(z.strictObject({ kind: z.literal('heros') }), { kind: { label: "type"  } }),
+  heros: nommerChamps(z.strictObject({ kind: z.literal('heros'), identite: identiteSchema.optional() }), { kind: { label: "type"  }, identite: { label: "identité" } }),
   enum: nommerChamps(z.strictObject({
     kind: z.literal('enum'),
     valeurs: listeCle(valeurDEtatSchema, 'id', { min: { taille: 1, message: 'aucune valeur : un état énuméré en déclare au moins une.' } }),

@@ -38,7 +38,7 @@ export function LogDrawer({ battle, journal, initialOpen = false, onOpenHistory 
                 </div>
               ))
             : journal.slice(-30).map((l, i) => (
-                <div key={i} className="jr-line"><div className="jr-tx"><Prose md={l} compact /></div></div>
+                <div key={i} className="jr-line"><div className="jr-tx"><Prose md={l} compact paquet /></div></div>
               ))}
           {!battle && journal.length === 0 && <p className="empty">— rien à signaler —</p>}
         </div>

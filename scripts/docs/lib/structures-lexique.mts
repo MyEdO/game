@@ -121,7 +121,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le partage d’un SITE tranche entre référence cassée et document embarqué, mais les TELLS de document passent avant le ratio (`label` + `source`, ou `label` + ≥ 2 clés de charge utile) et l’égalité tranche pour le DOCUMENT ; un site à UNE seule valeur est un document, sauf si la clé est `…Id`/`…Ids`/`…Ref`.',
   'L’ORDRE DES PASSES est un angle mort déclaré : l’index est complété par les documents EMBARQUÉS (passe 3) AVANT que la résolution ne soit mesurée (passe 4) — un site comme `arene-projet.json › members {entityId}` ne résout que grâce à cet ordre.',
   'Une clé dont la valeur est un LITTÉRAL D’ENUM du schéma zod du document n’ouvre jamais de référence (discriminants `kind`/`type`/`class`/`op`…). Depuis #1466 L1a les DEUX racines sont au registre (`SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`, joints par BASENAME) : les discriminants des scènes sont fermés comme les autres. La fermeture reste bornée à ce que l’introspection atteint — un littéral sous une enveloppe qu’`enfantsDe` ne traverse pas y échappe.',
-  'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Trois familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534).',
+  'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Quatre familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`, `etat`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534) ; `stade` (effet `revealClue`), dont la cible est un stade de l’indice que nomme son `indiceId`, résolu par `projetSchema` (#686).',
   'Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.',
   'La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).',
   'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
@@ -564,8 +564,36 @@ export const CONCEPTS: readonly Concept[] = [
     datasets: DATASETS_DES_PROJETS,
     signatures: [
       { sig: 'kind', statut: 'cible', note: '`heros`' },
+      { sig: 'identite,kind', statut: 'cible', note: '`heros` à identité (`identiteSchema`), EDO 02 l.112-127' },
       { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
     ],
+  },
+  // Porte : `identiteSchema`, `ligneDIdentiteSchema`, `valeurDIdentiteSchema` (`src/data/schemas/defs-scenes/narratif.ts`),
+  // sous la forme `heros` d'un état. Noyaux MESURÉS sur les 2 racines (2026-10-17) : ces clés ne vivent que
+  // sous `narratif.etats[].forme.identite`. EDO 02 l.112-127.
+  {
+    id: 'identite-de-heros',
+    label: 'identité d’un état `heros` (ancres, repères, lignes)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [{ sig: 'ancres,lignes,reperes', statut: 'cible' }],
+    noyau: ['ancres', 'lignes', 'reperes'],
+  },
+  {
+    id: 'ligne-d-identite',
+    label: 'ligne d’identité (espèce × sexe → valeurs des repères)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [{ sig: 'espece,sexe,valeurs', statut: 'cible' }],
+    noyau: ['espece', 'sexe', 'valeurs'],
+  },
+  {
+    id: 'valeur-d-identite',
+    label: 'valeur d’un repère d’identité, et sa provenance',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
+    noyau: ['repere', 'valeur'],
   },
   // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
@@ -723,6 +751,21 @@ export const CONCEPTS: readonly Concept[] = [
     // de la charge d'une variante (`invite` ou `valeur`) l'écarte.
     coPresence: ['invite', 'valeur'],
   },
+  {
+    id: 'effet-narratif',
+    label: 'Effet qui REMET une entrée du narratif (`type` + `documentId` | `indiceId`)',
+    strate: 'Document',
+    // Porte : `documentSchema` et `revealClueSchema` (`src/data/schemas/defs-scenes/effets.ts`) ; `documentId`,
+    // `indiceId` et `stade` sont des RÉFÉRENCES SCOPÉES (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
+    // (2026-10-17) : la co-présence de `type` écarte les stades d'indice `{id, documentId}`. EDO 02 l.89-95.
+    signatures: [
+      { sig: 'documentId,type', statut: 'cible', note: '`document`' },
+      { sig: 'indiceId,stade,type', statut: 'cible', note: '`revealClue` à stade' },
+    ],
+    noyau: ['documentId', 'indiceId'],
+    noyauMin: 1,
+    coPresence: ['type'],
+  },
 ];
 
 /** Le concept ANCRÉ sur l'index des ids (attribut déclaré, jamais un test d'identité au call-site). */
@@ -775,10 +818,14 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * Les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `defs-scenes/registres-narratifs.ts`, table
  * source) nomment une entrée d'un registre du `narratif` du MÊME projet ; `projetSchema` en garde la
  * résolution (`refsNarrativesPendantes`, `raffineNarratif`, FK `presetId`).
+ *
+ * `stade` (`defs-scenes/effets.ts` : `revealClueSchema`) nomme un stade de l'indice que désigne le
+ * `indiceId` qui l'accompagne ; `projetSchema` en garde la résolution.
  */
 export const CLES_REFERENCE_SCOPEE: Readonly<Record<string, string>> = {
   entry: 'entryPoints',
   suite: 'worldMap.routes',
+  stade: 'narratif.indices[].stades',
   ...Object.fromEntries(Object.entries(REFERENCES_NARRATIVES).map(([cle, registre]) => [cle, `narratif.${registre}`])),
 };
 

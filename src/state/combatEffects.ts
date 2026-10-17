@@ -1316,10 +1316,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   document: {
     group: 'Narration', label: libelleEffet('document'), icon: 'file/document',
     make: () => ({ type: 'document', documentId: '' }),
-    apply: (e, env) => {
+    suspensif: true,
+    // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par `closeDocument` qui la rejoue.
+    apply: (e, env, suite) => {
       const doc = documentById(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.set({ document: { title: doc.titre, text: doc.prose, ...(doc.source ? { source: structuredClone(doc.source) } : {}) } }); // #2097
+      env.get().remettreDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
+      return 'suspend';
     },
   },
   revealClue: {

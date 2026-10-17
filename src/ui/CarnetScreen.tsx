@@ -52,11 +52,11 @@ function StadeLu({ stade, documents, attenue }: { stade: IndiceStade; documents:
   const doc = stade.documentId !== undefined ? documents.find((d) => d.id === stade.documentId) : undefined;
   return (
     <>
-      {stade.prose !== undefined && <Prose md={stade.prose} />}
+      {stade.prose !== undefined && <Prose md={stade.prose} paquet />}
       <StadeSource source={stade.source} />
       {doc && (
         <ParchmentCard title={doc.titre} attenue={attenue}>
-          <Prose md={doc.prose} />
+          <Prose md={doc.prose} paquet />
           <StadeSource source={doc.source} />
         </ParchmentCard>
       )}

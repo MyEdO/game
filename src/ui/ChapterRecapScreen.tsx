@@ -54,7 +54,7 @@ export function ChapterRecapScreen() {
         />
       ) : seance.gestes}
     >
-      {recap.sousTitre && <Prose md={recap.sousTitre} />}
+      {recap.sousTitre && <Prose md={recap.sousTitre} paquet />}
       <Band title={t('chap.chronique')} right={<XpBadge value={recap.px} />}>
         <ParchmentCard>
           {recap.chronique.length > 0

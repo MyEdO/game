@@ -650,3 +650,94 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'pendu', label: 'Condamné' }] });
   });
 });
+
+describe('NarratifEditor — identité d’un état `heros` (EDO 02 l.112-127, #686)', () => {
+  const sosie = (): NarratifBlock => ({
+    ...emptyNarratif(),
+    etats: [{ id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }],
+  });
+  /** Le champ d'une `label` dont le PREMIER texte est exactement `texte`. */
+  const champ = (texte: string): HTMLInputElement | HTMLSelectElement => {
+    const l = [...container.querySelectorAll('label')].find((e) => e.firstChild?.textContent === texte);
+    const el = l?.querySelector('input, select');
+    if (!el) throw new Error(`champ « ${texte} » introuvable`);
+    return el as HTMLInputElement | HTMLSelectElement;
+  };
+  const identite = () => {
+    const forme = last.etats[0].forme;
+    if (forme.kind !== 'heros' || !forme.identite) throw new Error('identité absente');
+    return forme.identite;
+  };
+  const HM = 'de « Kastor Lieberung » (Humain masculin)';
+
+  it('ajouter une identité, un repère et une ligne sourcée : le bloc PARSE', () => {
+    mount(sosie());
+    click(btn('États'));
+    click(btn('Ajouter une identité'));
+    expect(narratifSchema.safeParse(last).success, 'une identité neuve parse').toBe(true);
+    expect((field('Forme') as HTMLSelectElement).disabled, 'la forme d’un état à identité ne change pas').toBe(true);
+    setValue(champ('Ancre 1'), 'Kastor');
+    setValue(champ('Fragment du repère 1'), 'Kastor Lieberung');
+    click(btn('Ajouter une ligne'));
+    expect(identite().lignes).toEqual([{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: '' }] }]);
+    expect(container.textContent).toContain('provenance manquante');
+    setValue(champ(`Valeur ${HM}`), 'Kastor Lieberung');
+    provenance('Copie', HM);
+    setValue(livre(HM), 'ennemi-dans-l-ombre');
+    poserPage(HM, '27');
+    expect(identite().lignes[0].valeurs).toMatchObject([{ repere: 'repere-1', valeur: 'Kastor Lieberung', source: { book: 'ennemi-dans-l-ombre', page: 27 } }]);
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    expect(container.textContent).not.toContain('provenance manquante');
+  });
+
+  it('renommer un repère : sa valeur suit dans chaque ligne ; une valeur saisie interdit son retrait', () => {
+    mount({
+      ...sosie(),
+      etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
+        ancres: ['Kastor'],
+        reperes: [{ id: 'repere-1', fragment: 'Kastor Lieberung' }, { id: 'repere-2', fragment: 'Kastor' }],
+        lignes: [{ espece: 'nain', sexe: 'F', valeurs: [{ repere: 'repere-1', valeur: 'Kallar Linkassniz', source: { book: 'ennemi-dans-l-ombre', page: 27 } }, { repere: 'repere-2', valeur: '' }] }],
+      } } }],
+    });
+    click(btn('États'));
+    setValue(champ('Id du repère 1'), 'complet');
+    expect(identite().reperes[0].id).toBe('complet');
+    expect(identite().lignes[0].valeurs.map((v) => [v.repere, v.valeur])).toEqual([['complet', 'Kallar Linkassniz'], ['repere-2', '']]);
+    expect(btn('Supprimer le repère 1').getAttribute('aria-disabled'), 'une valeur saisie en dépend').toBe('true');
+    click(btn('Supprimer le repère 2'));
+    expect(identite().reperes.map((r) => r.id)).toEqual(['complet']);
+    expect(identite().lignes[0].valeurs.map((v) => v.repere)).toEqual(['complet']);
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('un repère au fragment vide ou en double se nomme par son id stable dans le libellé de ses valeurs', () => {
+    mount({
+      ...sosie(),
+      etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
+        ancres: ['Kastor'],
+        reperes: [{ id: 'a', fragment: 'Kastor' }, { id: 'b', fragment: 'Kastor' }, { id: 'c', fragment: '' }],
+        lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'a', valeur: '' }, { repere: 'b', valeur: '' }, { repere: 'c', valeur: '' }] }],
+      } } }],
+    });
+    click(btn('États'));
+    for (const id of ['a', 'b', 'c']) expect(() => champ(`Valeur de « ${id} » (Humain masculin)`)).not.toThrow();
+    expect(() => champ('Valeur de « Kastor » (Humain masculin)')).toThrow();
+  });
+
+  it('supprimer la ligne, puis l’identité : l’état redevient une forme `heros` nue qui PARSE', () => {
+    mount({
+      ...sosie(),
+      etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
+        ancres: ['Kastor'], reperes: [{ id: 'nom', fragment: 'Kastor' }],
+        lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'nom', valeur: 'Kastor', source: { book: 'ennemi-dans-l-ombre', page: 27 } }] }],
+      } } }],
+    });
+    click(btn('États'));
+    click(btn('Supprimer la ligne 1'));
+    expect(identite().lignes).toEqual([]);
+    click(btn('Retirer l’identité'));
+    expect(last.etats[0].forme).toEqual({ kind: 'heros' });
+    expect((field('Forme') as HTMLSelectElement).disabled).toBe(false);
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+});

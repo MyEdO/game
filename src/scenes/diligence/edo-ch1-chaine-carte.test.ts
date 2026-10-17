@@ -13,6 +13,9 @@ import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 
+/** Ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du geste se joue après. */
+const lireLesDocuments = (): void => { while (useGame.getState().document) useGame.getState().closeDocument(); };
+
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
 const DEPART = 'edo-ch1-depart';
@@ -110,6 +113,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags, 'l’arrivée au virage ne pose que sa marque `once`')
       .toEqual({ ...drapeauxAvantVirage, '__trigger_edo-ch1-arrivee-virage': true });
     useGame.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    lireLesDocuments();
     expect(get().flags[CORPS]).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
@@ -168,6 +172,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
       useGame.getState().moveParty({ x, y });
       expect(get().flags[p.flag], 'le pas seul ne pose rien').toBeFalsy();
       useGame.getState().jouerAction(p.entite, p.action);
+      lireLesDocuments();
       expect(get().flags[p.flag]).toBe(true);
     });
 

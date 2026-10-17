@@ -49,12 +49,12 @@ export function CampaignOpeningScreen() {
         </>
       }
     >
-      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} />}
+      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} paquet />}
       {ouv.surtitre && <p className="section-label">{ouv.surtitre}</p>}
       <RuleDivider />
       {ouv.chapitre && <p className="subtitle">{ouv.chapitre}</p>}
       <ParchmentCard seal={{ kind: 'cire' }}>
-        <Prose md={ouv.pitch} />
+        <Prose md={ouv.pitch} paquet />
       </ParchmentCard>
       <Band title={t('ouv.compagnie')}>
         <FigRow label={t('ouv.compagnie')}>
