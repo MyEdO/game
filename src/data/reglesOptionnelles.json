@@ -250,7 +250,7 @@
     "group": "Combat",
     "kind": "flag",
     "default": true,
-    "hint": "Sacrifier 1 PA pour annuler un Coup Critique sur une localisation blindée. Désactiver : le Critique est toujours subi (plus d’offre de déviation)."
+    "hint": "Sacrifier 1 PA de l’armure touchée pour ignorer la Blessure Critique subie à cette Localisation. Désactiver : toute Blessure Critique est subie (plus d’offre de déviation)."
   },
   {
     "id": "combat-aa-blessures",
