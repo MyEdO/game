@@ -26,6 +26,7 @@ import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { GENERATORS, ciblesLitterales } from '../docs/build-all.mjs'
@@ -144,16 +145,19 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
  *  machine-local ») : en conteneur distant, la sortie du hook le porte au contexte (#2710). */
 export const INDEX_MEMOIRE = '.claude/memory/MEMORY.md'
 
-export function memoireDuConteneur(env = process.env, racine = process.cwd()) {
+/** Le dépôt qui porte ce hook, et donc la mémoire qu'il imprime. */
+const RACINE_DU_DEPOT = fileURLToPath(new URL('../../', import.meta.url))
+
+export function memoireDuConteneur(env = process.env, racine = RACINE_DU_DEPOT) {
   const chemin = join(racine, INDEX_MEMOIRE)
   if (!estConteneurDistant(env) || !existsSync(chemin)) return ''
   return `[conteneur] mémoire du dépôt (\`${INDEX_MEMOIRE}\`, fiches sous \`.claude/memory/\`) :\n${readFileSync(chemin, 'utf8').trim()}\n`
 }
 
-export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
+export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), depot = RACINE_DU_DEPOT, entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
   const lignes = bootstrap(env, racine, run, gestes)
   if (lignes.length) output.write(`${lignes.join('\n')}\n`)
-  const memoire = memoireDuConteneur(env, racine)
+  const memoire = memoireDuConteneur(env, depot)
   if (memoire) output.write(memoire)
   produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
   return lignes

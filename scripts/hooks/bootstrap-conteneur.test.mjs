@@ -293,7 +293,7 @@ test('CÂBLAGE — en conteneur distant conforme, la sortie du SessionStart port
     writeFileSync(join(racine, INDEX_MEMOIRE), '# Index\n')
     const conforme = { ...GESTES_DU_CONTENEUR, estSuperficiel: () => false, dossierDesHooks: () => 'scripts/git-hooks', docsMesures: () => true }
     const lignes = bootstrapSessionStart({
-      env: { CLAUDE_CODE_REMOTE: 'true' }, racine, gestes: conforme, run: () => ({ ok: true, valeur: '', rapport: '' }),
+      env: { CLAUDE_CODE_REMOTE: 'true' }, racine, depot: racine, gestes: conforme, run: () => ({ ok: true, valeur: '', rapport: '' }),
       output: { write: (texte) => ecrit.push(texte) },
     })
     assert.deepEqual(lignes, [])
