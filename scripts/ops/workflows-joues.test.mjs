@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs';
 import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs';
 import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../guards/lib/jouer-workflow.mjs';
+import { z } from 'zod';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
 import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts';
 import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, famillesDeLaFiche, ficheDuRun } from '../raw/workflow-args.mjs';
@@ -77,8 +78,10 @@ const jetsDe = (premier, n) => Array.from({ length: n }, (_, i) => ({
 }));
 
 /** Le texte JSON d'un prompt entre deux marqueurs : ce que le script ENVOIE au juge. */
+/** L'anomalie d'un tirage hors suite, et le geste qu'elle demande au renvoi. */
+const TIRAGE_5_ATTENDU_0 = 'jet 1 : tirage 5, attendu 0 — relance sa commande au tirage 0 ; la résolution et la narration qui dépendent de ce jet suivent sa nouvelle sortie';
 const jsonEntre = (prompt, debut, fin) => JSON.parse(prompt.slice(prompt.indexOf(debut) + debut.length, prompt.indexOf(fin)));
-const journalEnvoye = (prompt) => jsonEntre(prompt, "JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions) :\n", '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
+const journalEnvoye = (prompt) => jsonEntre(prompt, "JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions, ni ses motifs) :\n", '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
 const declencheursEnvoyes = (prompt) => jsonEntre(prompt, 'DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :\n', '\n\nRends :');
 /** Ce qu'un objet d'un schéma admet : `additionalProperties`, les clés EXIGÉES, les clés décrites. */
 const clesDe = (objet) => [objet.additionalProperties, objet.required, Object.keys(objet.properties)];
@@ -239,8 +242,17 @@ test('table-simulee : sans `args.maxEchanges`, le plafond se DÉRIVE du dossier 
 
 test('table-simulee : un tirage hors suite est une anomalie journalisée', async () => {
   const { rendu, journal } = await jouerTable((numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: jetsDe(premier + 5, 1) }));
-  assert.deepEqual(rendu.journal.echanges[0].anomaliesDeTirage, ['jet 1 : tirage 5, attendu 0']);
+  assert.deepEqual(rendu.journal.echanges[0].anomaliesDeTirage, [TIRAGE_5_ATTENDU_0]);
   assert.ok(journal.some((l) => /1 anomalie\(s\) de tirage/.test(l)));
+});
+
+test('table-simulee : la commande d’un jet porte SON tirage, borné — « --tirage 12 » n’est pas « --tirage 1 »', async () => {
+  const commandeDe = (tirage) => `npx tsx scripts/ops/table-des.mts simple --seed "graine" --tirage ${tirage}`;
+  const mj = (commande) => (numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: [{ tirage: premier + 1, objet: 'o', commande: commande(premier + 1), sortie: '{}' }, ...jetsDe(premier, 1)].reverse() });
+  const juste = await jouerTable(mj(commandeDe));
+  assert.deepEqual(juste.rendu.journal.echanges[0].anomaliesDeTirage, [], 'témoin : chaque commande porte son tirage');
+  const fautif = await jouerTable(mj((t) => commandeDe(`${t}2`)));
+  assert.deepEqual(fautif.rendu.journal.echanges[0].anomaliesDeTirage, ['jet 2 : commande sans --seed "graine" ou sans --tirage 1']);
 });
 
 test('table-simulee : THÉÂTRE tant que les personas ADVERSES n’ont ni refus ni hors livre, SIGNAL sinon', async () => {
@@ -541,12 +553,18 @@ test('table-simulee : un rendu du MJ anomal se RENVOIE — prompt d’origine, s
     const renvoi = tetu.promptsParLabel.get(`Partie:mj:1:renvoi${essai}`);
     assert.ok(renvoi.startsWith(original), `renvoi ${essai} : le prompt d’origine, entier`);
     assert.match(renvoi, /SORTIE À CORRIGER[^]*"tirage": 5/, `renvoi ${essai} : la sortie fautive`);
-    assert.match(renvoi, /^- jet 1 : tirage 5, attendu 0$/m, `renvoi ${essai} : l’anomalie précise`);
+    assert.ok(renvoi.split('\n').includes(`- ${TIRAGE_5_ATTENDU_0}`), `renvoi ${essai} : l’anomalie précise, et le geste — relancer au bon tirage, la résolution et la narration suivent`);
     assert.equal(tetu.optionsParLabel.get(`Partie:mj:1:renvoi${essai}`).agentType, 'mj-de-table');
   }
   assert.ok(!tetu.promptsParLabel.has('Partie:mj:1:renvoi3'), 'pas de troisième renvoi');
-  assert.deepEqual([tetu.rendu.journal.echanges[0].renvois, tetu.rendu.journal.echanges[0].anomaliesDeTirage, tetu.rendu.agents.mj], [2, ['jet 1 : tirage 5, attendu 0'], 3]);
+  assert.deepEqual([tetu.rendu.journal.echanges[0].renvois, tetu.rendu.journal.echanges[0].anomaliesDeTirage, tetu.rendu.agents.mj], [2, [TIRAGE_5_ATTENDU_0], 3]);
   assert.equal(tetu.rendu.verdict, 'PARTIE ANOMALE', 'après deux renvois, l’anomalie reste un trou');
+
+  const perdu = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1:renvoi1'
+    ? Promise.reject(new Error('API morte'))
+    : repondreALaTable(horsSuite)(prompt, opts)));
+  assert.deepEqual([perdu.rendu.journal.echanges[0].renvois, perdu.rendu.journal.echanges[0].anomaliesDeTirage, perdu.rendu.journal.echanges[0].anomaliesDeRenvoi],
+    [1, [TIRAGE_5_ATTENDU_0], ['renvoi 1 sans rendu — échec : API morte']], 'un renvoi sans rendu garde le rendu précédent et NOMME sa cause');
 
   const corrige = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1'
     ? horsSuite(1, 0, opts.schema)
@@ -561,11 +579,19 @@ test('table-simulee : le juge lit le journal PROJETÉ — les sorties de la part
   const projete = journalEnvoye(prompt);
   assert.equal(rendu.journal.echanges[0].etatPrive, 'état', 'témoin : le journal rendu garde l’état privé (base de rejeu)');
   assert.ok(!JSON.stringify(projete).includes('"etatPrive"') && !prompt.includes('état privé du MJ :'), 'aucun état privé au juge');
+  assert.ok(Object.hasOwn(rendu.journal, 'notesFinales'), 'témoin : le journal rendu garde les notes finales');
+  assert.ok(!Object.hasOwn(projete, 'notesFinales'), 'aucune note finale au juge');
   for (const echange of projete.echanges) {
-    assert.ok(!Object.hasOwn(echange, 'notesFinales'));
     for (const r of echange.resolutions) assert.deepEqual(Object.keys(r).sort(), ['persona', 'pj', 'resolution'], 'la résolution, sans source, réf ni catégorie du MJ');
   }
   assert.equal(projete.echanges[0].narration, 'narration 1', 'la narration est une sortie : le juge la lit');
+  const MOTIF = 'MOTIF-DU-MJ-QUE-LE-JUGE-IGNORE';
+  const nonEchu = await jouerTable(mjAuxSorts(() => ({ statut: 'non-echu', motif: MOTIF })));
+  const auJuge = nonEchu.promptsParLabel.get('Analyse:analyse');
+  assert.ok(nonEchu.rendu.declencheursNonJoues.some((d) => d.motif === MOTIF), 'témoin : le rendu garde le motif du MJ');
+  assert.ok(!auJuge.includes(MOTIF), 'aucun motif du MJ au juge — ni au journal projeté, ni aux déclencheurs non joués');
+  assert.ok(!auJuge.includes('dernierStatut'), 'ni le dernier sort que le MJ leur a donné');
+  assert.deepEqual(declencheursEnvoyes(auJuge).map((d) => Object.keys(d).sort()), [['evenement', 'id', 'ref']]);
   assert.equal(optionsParLabel.get('Partie:mj:1').agentType, 'mj-de-table');
   assert.equal(optionsParLabel.get('Analyse:analyse').agentType, 'juge-de-source');
 });
@@ -846,6 +872,47 @@ test('dossier-de-chapitre : une correction inapplicable se RENVOIE au juge — p
     : completude(opts, opts.label === 'completude' ? doublon : { refsFausses: doublon.refsFausses.slice(0, 1) })));
   assert.deepEqual([corrige.rendu.verdict, corrige.rendu.agents.completude, corrige.rendu.declencheurs[0].ref], ['DOSSIER', 2, ['EDO 01 l.201']],
     'la sortie corrigée au premier renvoi lève l’anomalie, et s’applique');
+
+  const perdu = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.label === 'completude:renvoi1'
+    ? Promise.reject(new Error('API morte'))
+    : repondreAuDossier(doublon)(prompt, opts)));
+  assert.deepEqual([perdu.rendu.verdict, perdu.rendu.agents.completude, perdu.rendu.trous.anomaliesDeCorrection],
+    ['CORRECTIONS INAPPLICABLES', 2, ['réf fausse « declencheurs:d1 » : cible déjà corrigée', 'renvoi 1 sans rendu — échec : API morte']],
+    'un renvoi sans rendu garde le rendu précédent et NOMME sa cause au trou');
+});
+
+test('dossier-de-chapitre : le schéma du juge, VALIDÉ comme le harnais le valide, refuse toute cible hors fiche et toute valeur hors forme ; une fiche vide n’admet que des oublis', async () => {
+  const lectures = { ...LECTURES, 'pnj-lieux-textes': { pnj: [], lieux: [], textes: [] } };
+  const schemaDuJuge = async (lu) => (await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.phase === 'Lecture' ? lu(opts) : completude(opts))))
+    .optionsParLabel.get('Complétude:completude').schema;
+  const valide = (schema) => (corrige) => z.fromJSONSchema(JSON.parse(JSON.stringify(schema))).safeParse({ ...completude({ schema }), ...corrige }).success;
+  const peuple = valide(await schemaDuJuge((opts) => lectures[opts.label]));
+  const ref = (cible) => ({ refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.9'], motif: 'm', ...cible }] });
+  const contenu = (cible) => ({ contenusFaux: [{ famille: 'beats', id: 'b1', attribut: 'statut', valeur: 'optionnel', ref: 'EDO 01 l.9', ...cible }] });
+  const acceptes = {
+    'rien à corriger': {},
+    'une réf fausse sur un id de la fiche': ref({}),
+    'une cible corrigée deux fois (anomalie du SCRIPT, renvoyée)': { refsFausses: [...ref({}).refsFausses, ...ref({ ref: ['EDO 01 l.8'] }).refsFausses] },
+    'un statut de l’enum': contenu({}),
+  };
+  const refuses = {
+    'un id hors fiche': ref({ id: 'd9' }),
+    'un id d’une autre famille': ref({ id: 'b1' }),
+    'une famille vide': ref({ famille: 'pnj', id: 'pnj1' }),
+    'une réf blanche': ref({ ref: ['  '] }),
+    'aucune réf': ref({ ref: [] }),
+    'un attribut hors famille': contenu({ famille: 'declencheurs', id: 'd1' }),
+    'un statut hors enum': contenu({ valeur: 'capital' }),
+    'un média doublé': contenu({ attribut: 'mediasCandidats', valeur: ['dialogue', 'dialogue'] }),
+    'une valeur blanche': contenu({ famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: ' ' }),
+    'la réf comme attribut': contenu({ famille: 'declencheurs', id: 'd1', attribut: 'ref', valeur: ['EDO 01 l.9'] }),
+  };
+  for (const [cas, corrige] of Object.entries(acceptes)) assert.ok(peuple(corrige), `accepté : ${cas}`);
+  for (const [cas, corrige] of Object.entries(refuses)) assert.ok(!peuple(corrige), `refusé : ${cas}`);
+
+  const vide = valide(await schemaDuJuge((opts) => tableTotale(opts.schema.required, () => [])));
+  assert.ok(vide({ oublis: { ...tableTotale(FAMILLES_DE_DOSSIER, () => []), pnj: [{ nom: 'n', role: 'r', motivation: 'm', ref: ['EDO 01 l.1'] }] } }), 'fiche vide : un oubli passe');
+  assert.ok(!vide(ref({ famille: 'x', id: 'y' })), 'fiche vide : aucune réf fausse');
 });
 
 test('dossier-de-chapitre : un agent qui LÈVE est capturé — sa cause se nomme au trou, le reste du run se rend', async () => {

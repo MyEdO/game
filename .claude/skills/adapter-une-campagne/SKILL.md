@@ -126,7 +126,8 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    - Retour : `trous`, journal complet (anomalies de sosie, de tirage, de déclencheur ; `interrompue`,
      `plafondAtteint`), analyse (besoins `retenu`, fuites), déclencheurs non joués et écartés.
    - Verdicts : dérivés de `trous`, une liste par espèce, chaque agent sans rendu avec sa cause ; un agent
-     qui échoue ne coupe pas le run. `SIGNAL` ou `THÉÂTRE` (les adverses n'ont pas
+     qui échoue en partie ou à l'analyse ne coupe pas le run, en préparation (fiches des PJ, sosie) il
+     l'ARRÊTE, sa cause aux `manques`. `SIGNAL` ou `THÉÂTRE` (les adverses n'ont pas
      joué : le run ne prouve rien) quand toutes sont vides ; sinon la première espèce trouée le nomme —
      `INTERROMPU` (MJ sans rendu, à tout échange), `PARTIE INCOMPLÈTE` (joueur sans rendu), `PARTIE ANOMALE`
      (sosie à id vide qui cite un passage, tirage hors suite ou déclencheur non joué sans motif restés

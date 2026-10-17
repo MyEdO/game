@@ -52,7 +52,7 @@ Rends la sortie ENTIÈRE, corrigée.`
 /** `lancer(prompt, essai)` (essai 0 = l'appel, puis chaque renvoi), validé par `anomaliesDe(rendu)` : une
  *  sortie anomale est renvoyée `ESSAIS_DE_CORRECTION` fois au plus. Rend le dernier rendu, ses anomalies
  *  restantes, la cause d'un premier appel sans rendu, et le nombre de renvois joués ; un renvoi sans rendu
- *  garde le rendu précédent. */
+ *  garde le rendu précédent et nomme sa cause parmi les anomalies. */
 const appelValide = async (prompt, lancer, anomaliesDe) => {
   const premier = await capturer(() => lancer(prompt, 0))
   let { rendu } = premier
@@ -61,7 +61,10 @@ const appelValide = async (prompt, lancer, anomaliesDe) => {
   while (rendu && anomalies.length && renvois < ESSAIS_DE_CORRECTION) {
     renvois += 1
     const corrige = await capturer(() => lancer(renvoiDeCorrection(prompt, rendu, anomalies), renvois))
-    if (!corrige.rendu) break
+    if (!corrige.rendu) {
+      anomalies = [...anomalies, `renvoi ${renvois} sans rendu — ${corrige.cause}`]
+      break
+    }
     rendu = corrige.rendu
     anomalies = anomaliesDe(rendu)
   }
@@ -78,29 +81,20 @@ const LENTILLE_IMPERATIFS_ET_BEATS = {
   label: 'imperatifs-et-beats',
   familles: ['imperatifs', 'beats', 'pointsAuMJ', 'indices', 'secrets', 'declencheurs'],
   consigne: `LENTILLE — IMPÉRATIFS, BEATS, INDICES, SECRETS ET DÉCLENCHEURS.
-- imperatifs : ce que le livre rend indispensable.
-- beats : la suite des scènes du chapitre DANS L'ORDRE DU LIVRE (le script les numérote dans cet ordre), chacune avec son \`statut\` et ses \`mediasCandidats\` parmi ${valeursDe('beats', 'mediasCandidats')}.
-- pointsAuMJ : chaque passage que le livre laisse à la décision du MJ, typé parmi ${valeursDe('pointsAuMJ', 'type')}.
-- indices et secrets : ce que le MJ sait et que les joueurs peuvent découvrir.
-- declencheurs : chaque événement que le livre fait arriver à l'INITIATIVE d'un PNJ ou du monde, sans action des joueurs, et sa \`condition\`.`,
+- beats : DANS L'ORDRE DU LIVRE (le script les numérote dans cet ordre), \`mediasCandidats\` parmi ${valeursDe('beats', 'mediasCandidats')}.
+- pointsAuMJ : typé parmi ${valeursDe('pointsAuMJ', 'type')}.`,
 }
 const LENTILLE_PNJ_LIEUX_TEXTES = {
   label: 'pnj-lieux-textes',
   familles: ['pnj', 'lieux', 'textes'],
   consigne: `LENTILLE — PNJ, LIEUX, TEXTES.
-- pnj : chaque PNJ nommé ou décrit.
-- lieux : chaque lieu où une scène peut se jouer.
-- textes : chaque texte que le jeu devra montrer, sa \`nature\` parmi ${valeursDe('textes', 'nature')} (fiche \`user-doctrine-regle-5-campagne-repliques-et-narration-maison\`).`,
+- textes : \`nature\` parmi ${valeursDe('textes', 'nature')} (fiche \`user-doctrine-regle-5-campagne-repliques-et-narration-maison\`).`,
 }
 const LENTILLE_MECANIQUE = {
   label: 'mecanique',
   familles: ['tests', 'rencontres', 'dureeEtDifficulte', 'recompenses', 'etats'],
   consigne: `LENTILLE — MÉCANIQUE.
-- tests : chaque Test que le livre demande ou propose.
-- rencontres : chaque combat ou opposition.
-- dureeEtDifficulte : la durée et la difficulté visées.
-- recompenses : ce que les PJ gagnent.
-- etats : chaque état que le chapitre PRODUIT ou LIT, \`sens\` parmi ${valeursDe('etats', 'sens')}, \`portee\` parmi ${valeursDe('etats', 'portee')}.`,
+- etats : \`sens\` parmi ${valeursDe('etats', 'sens')}, \`portee\` parmi ${valeursDe('etats', 'portee')}.`,
 }
 const LENTILLE_MATIERE_COMPAGNONS = {
   label: 'matiere-compagnons',
