@@ -79,7 +79,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
   ['water-exposure.modifiers[].appliesTo[]', waterAppliesToSchema, {
     ingestion: 'Ingestion', immersion: 'Immersion',
   }],
-  ['vehicles.hull.rig', rigSchema, { avirons: 'Avirons', voile: 'Voile', mixte: 'Mixte (voile et avirons)' }],
+  ['rigDuNavire (gréement dérivé)', rigSchema, { avirons: 'Avirons', voile: 'Voile', mixte: 'Mixte (voile et avirons)' }],
   ['vehicles.deck.postes[].side', posteSideSchema, {
     proue: 'Proue', tribord: 'Tribord', poupe: 'Poupe', babord: 'Bâbord',
   }],

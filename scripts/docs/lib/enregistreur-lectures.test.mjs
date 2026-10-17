@@ -22,6 +22,8 @@ import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import fs from 'node:fs'
 import childProcess, { spawnSync } from 'node:child_process'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
+import { syncBuiltinESMExports } from 'node:module'
+import { servirPipe } from '../../test/pipeNomme.mjs'
 
 test('admission collecteur : glob ignoré propre et autre, FILE DIR LINK', () => {
   const racine = mkdtempSync(path.join(tmpdir(), 'admission-collecteur-'))
@@ -375,15 +377,20 @@ test('canaux bouchés : lstat, access, opendir, readdir à rappel, glob (synchro
     fs.lstatSync(path.join(racine, 'f.md'))
     await fs.promises.lstat(path.join(racine, 'a'))
     assert.throws(() => fs.accessSync(path.join(racine, 'absent.md')), { code: 'ENOENT' })
-    /* eslint-disable murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé */
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     fs.opendirSync(path.join(racine, 'o')).closeSync()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     await (await fs.promises.opendir(path.join(racine, 'p'))).close()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     await new Promise((fin, echec) => fs.readdir(path.join(racine, 'r'), (e) => (e ? echec(e) : fin())))
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(fs.globSync('a/**/*.md', { cwd: racine }).map((p) => p.split(path.sep).join('/')), ['a/b/x.md'])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])
-    /* eslint-enable murs/ordre-total */
     assert.throws(() => fs.readFileSync(path.join(racine, 'lu-absent.md')), { code: 'ENOENT' })
     assert.throws(() => fs.openSync(path.join(racine, 'ouvert-absent.md'), 'r'), { code: 'ENOENT' })
     await assert.rejects(fs.promises.readFile(path.join(racine, 'promis-absent.md')), { code: 'ENOENT' })
@@ -400,4 +407,83 @@ test('canaux bouchés : lstat, access, opendir, readdir à rappel, glob (synchro
     c.restaurer()
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+/** Enveloppe `statSync`, `lstatSync`, `existsSync` et `realpathSync.native` AVANT `installer()` (ils deviennent
+ *  son `brut`) : `vus` reçoit chaque appel dont le chemin satisfait `filtre`. */
+const compterSondesBrutes = (filtre) => {
+  const vus = []
+  const originaux = { statSync: fs.statSync, lstatSync: fs.lstatSync, existsSync: fs.existsSync, native: fs.realpathSync.native }
+  const compte = (nom, original) => function (p, ...a) { if (filtre(String(p))) vus.push(`${nom} ${p}`); return original.call(this, p, ...a) }
+  Object.assign(fs, { statSync: compte('stat', originaux.statSync), lstatSync: compte('lstat', originaux.lstatSync), existsSync: compte('exists', originaux.existsSync) })
+  fs.realpathSync.native = compte('realpath', originaux.native)
+  syncBuiltinESMExports()
+  return { vus, restaurer: () => {
+    Object.assign(fs, { statSync: originaux.statSync, lstatSync: originaux.lstatSync, existsSync: originaux.existsSync })
+    fs.realpathSync.native = originaux.native
+    syncBuiltinESMExports()
+  } }
+}
+
+// #2603
+test('lecture échouée HORS racine : aucune sonde stat brute sur son chemin ; SOUS racine, la sonde stat reste', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'echec-'))
+  const dehors = mkdtempSync(path.join(tmpdir(), 'echec-dehors-'))
+  const absentDehors = path.join(dehors, 'absent.md')
+  const absentDedans = path.join(racine, 'absent.md')
+  const compteur = compterSondesBrutes((p) => p === absentDehors || p === absentDedans)
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    assert.throws(() => fs.openSync(absentDehors, 'r'), { code: 'ENOENT' })
+    assert.throws(() => fs.openSync(absentDedans, 'r'), { code: 'ENOENT' })
+    assert.deepEqual(compteur.vus.filter((v) => v.startsWith('stat ')), [`stat ${absentDedans}`])
+    assert.ok(c.rendu().sondes.some((s) => s.chemin === 'absent.md' && s.type === 'stat' && !s.existe && s.code === 'ENOENT'))
+  } finally {
+    c?.restaurer()
+    compteur.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(dehors, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('pipe nommé ouvert sous l’enregistreur : seule la connexion de l’appelant, aucune sonde brute, absent compris', { skip: process.platform !== 'win32' }, async (t) => {
+  const { pipe, nom, connexionsHorsTemoin } = await servirPipe(t, 'wfrp-2603-enreg')
+  const absent = `${pipe}-absent`
+  const racine = mkdtempSync(path.join(tmpdir(), 'pipe-'))
+  const compteur = compterSondesBrutes((p) => p.includes(nom))
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    assert.throws(() => fs.openSync(absent, 'r+'), { code: 'ENOENT' })
+    fs.closeSync(fs.openSync(pipe, 'r+'))
+  } finally {
+    c?.restaurer()
+    compteur.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+  assert.deepEqual(compteur.vus, [])
+  assert.equal(await connexionsHorsTemoin(), 1, 'la seule connexion attendue est celle de l’appelant')
+})
+
+// #2603
+test('glob dont le dossier de départ est un pipe nommé : l’enregistreur n’ajoute aucune connexion à celles du glob seul', { skip: process.platform !== 'win32' }, async (t) => {
+  // eslint-disable-next-line murs/ordre-total -- le test APPELLE le glob pour compter ses connexions ; aucun ordre n'est consommé
+  const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })
+  const seul = await servirPipe(t, 'wfrp-2603-glob-seul')
+  globSurPipe(seul.pipe)
+  const attendu = await seul.connexionsHorsTemoin()
+  const mesure = await servirPipe(t, 'wfrp-2603-glob-mesure')
+  const racine = mkdtempSync(path.join(tmpdir(), 'glob-pipe-'))
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    globSurPipe(mesure.pipe)
+    assert.deepEqual(c.rendu().incomplet, [])
+  } finally {
+    c?.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+  assert.equal(await mesure.connexionsHorsTemoin(), attendu, 'connexions du glob sous l’enregistreur, comparées au glob seul')
 })

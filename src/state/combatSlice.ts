@@ -22,8 +22,9 @@ import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites,  aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
+import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
 import { discreetPrayerDifficulty } from '../engine/prayer';
@@ -59,7 +60,7 @@ import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
-import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { trappingById } from './campaignData';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -80,20 +81,20 @@ import { ficheDEntite } from './sceneNpc';
 import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned } from './shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
+import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
-import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
+import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './fireArc';
 import { facingToward } from './dir8';
 import { bearingPostes, mostArmedSide } from './shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
-import { isVehicle } from '../engine/vehicle';
+import { estNavire } from '../engine/coque';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { crewedFireWeapon, crewedReloadStep } from '../engine/crewedWeapon';
 import { exposedCrew } from '../engine/shipCritical';
@@ -166,18 +167,20 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   const battle = get().battle;
   if (!battle) return null;
   const partyIds = new Set(get().party.map((h) => h.id));
-  const contributors = crewTestContributors(ship, battle.combatants, testTypeId, partyIds);
+  const navigation = navigationDuNavire(get, ship);
+  const contributors = crewTestContributors(ship, battle.combatants, testTypeId, partyIds, navigation);
   if (!contributors.length) return null;
   const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential;
   const participants: ShipManeuverParticipant[] = contributors.map((a) => {
     const role = findCrewRoleById(a.roleId);
     // LDB 09 l.30 ; #2588 Q1.
-    const refus = role ? crewRoleValue(a.crew, role).refus : undefined;
+    const refus = role ? crewRoleValue(a.crew, role, navigation).refus : undefined;
     return temoinSiSansJet({
       id: a.crew.id,
       interactive: partyIds.has(a.crew.id),
       roleId: a.roleId,
       essential: a.roleId === essentialRoleId,
+      navigation,
       cumul: (battle.crewActed?.[ship.id] ?? []).includes(a.crew.id), // déjà engagé dans un Test ce Round → cumul +2 crans (l.53)
       ...(refus != null ? ligneSansJet(refus) : { result: null }),
     });
@@ -201,7 +204,7 @@ function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
   const battle = get().battle;
   const partyIds = new Set(get().party.map((h) => h.id));
   const chief = battle
-    ? shipCrewAssignments(ship, battle.combatants, 'batterie').find((a) => a.roleId === 'artilleur' && partyIds.has(a.crew.id))?.crew
+    ? shipCrewAssignments(ship, battle.combatants, 'batterie', navigationDuNavire(get, ship)).find((a) => a.roleId === 'artilleur' && partyIds.has(a.crew.id))?.crew
     : undefined;
   return chief
     ? t('cs.bordeeGunnersChief', { chief: chief.label, side, ship: ship.label })
@@ -209,47 +212,28 @@ function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
 }
 
 /**
- * APPLIQUE une bordée résolue (mutation) — corps PARTAGÉ par le confirm JOUEUR (`shipBatteryConfirm`, DR issu de la
- * modale des Artilleurs) ET l'auto-pilote NAVIRE (`shipAutoBattery`, DR issu du Test d'équipage headless). Un SEUL
- * chemin de dégâts : `resolveVolley` (munition + sous-effectif + Dégâts + Critiques, mêmes fns pures que le tir
- * individuel), Blessures sur la coque, Critiques de navire sur double, effets `onHit` et AIRE (Éclats), Recharge +
- * consommation de munition. `success` = le Test d'équipage a-t-il réussi (`crewTestSuccess`, MDG 14 l.13) : raté, les
- * pièces font feu et se déchargent mais la bordée MANQUE (aucun Dégât, aucun Critique, aucun effet `onHit`/d'AIRE).
- * Journalise les servants (l.39) puis la bordée. NE touche PAS au pending ni à `crewActed`
- * (propres à chaque appelant). Renvoie le nombre de pièces qui ont fait feu.
+ * APPLIQUE une bordée (MDG 14 l.128) — corps PARTAGÉ par le confirm JOUEUR (`shipBatteryConfirm`) ET l'auto-pilote
+ * NAVIRE (`shipAutoBattery`). Chaque pièce du bord qui porte a fait feu : elle se décharge (LDB 62 l.335) ; chaque
+ * coup, touché ou raté, passe ensuite par la couture du coup (`jouerLesTirsDeBordee` → `applyAttackResult`), qui
+ * le résout selon sa cible et consomme la munition. NE touche PAS au pending ni à `crewActed`. Rend `true` quand
+ * un coup a suspendu la résolution (ses suivants reprennent à la fermeture de sa fenêtre).
  */
-function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combatant, side: FireArc, dr: number, success: boolean): number {
+function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combatant, side: FireArc, dr: number, success: boolean): boolean {
   const battle = get().battle;
-  if (!battle) return 0;
-  const merScale = isMerScene(get().scene);
-  const postes = bearingPostes(ship, side);
-  const rig = findVehicleById(target.creatureId ?? '')?.hull?.rig ?? 'mixte';
+  if (!battle) return false;
   const crew = (ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-  const volley = resolveVolley(ship, postes, target, rig, dr, success, crew, battleRng(), { merScale }); // couche Mer : équipage abstrait sert les pièces
-  target.wounds.current = Math.max(0, target.wounds.current - volley.totalWounds); // mute la coque (pattern combat)
-  const critLines: string[] = [];
-  const targetCrew = (target.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-  const distTiles = ship.pos && target.pos ? chebyshev(ship.pos, target.pos) : 0;
-  if (success) for (const s of volley.shots) {
-    if (s.critical) applyCriticalToTarget(target, 'corps', true, 0, critLines, set, { ctx: { attackerId: ship.id, attackerKind: ship.kind, weapon: s.weaponName }, get });
-    if (s.wounds > 0) emitCombatEvent('onHit', { get, set, battle, self: ship, sink: (line) => critLines.push(line), triggerCtx: { victim: target, weapon: s.weapon, woundsDealt: s.wounds, location: 'corps', attackType: 'ranged', rng: battleRng() } });
-    const area = resolveWeaponArea(get, set,
-      { attacker: ship, primaryTarget: target, weapon: s.weapon, damage: s.damage, location: 'corps', distanceTiles: distTiles },
-      areaTargets(battle.combatants, sceneMetresPerTile(get().scene), () => targetCrew), battleRng());
-    critLines.push(...area.lines);
-  }
-  for (const s of volley.shots) { // HORS du garde `success` : une bordée MANQUÉE a quand même fait feu (l.128)
+  const shots = resolveVolley(ship, bearingPostes(ship, side), target, dr, success, crew, battleRng(), { merScale: isMerScene(get().scene) });
+  for (const s of shots) { // la PIÈCE a fait feu (l.128), touchée ou non
     const poste = ship.postes?.find((pp) => pp.item.uid === s.posteUid);
-    if (poste) unloadWeapon(undefined, undefined, poste); // couture UNIQUE : la PIÈCE a fait feu (le chef, lui, n'a pas tiré SON arme)
-    const chef = poste?.crewIds?.[0] ? inBattleId(battle, poste.crewIds![0]) : undefined;
-    if (chef && s.ammo) consumeAmmo(chef, s.ammo);
+    if (poste) unloadWeapon(undefined, undefined, poste);
   }
-  get().log(bordeeGunnersLine(get, ship, side)); // les servants s'expriment (l.39)
+  get().log(bordeeGunnersLine(get, ship, side)); // MDG 14 l.39
+  const n = shots.length;
+  const drTxt = dr >= 0 ? `+${dr}` : `${dr}`;
   get().log(success
-    ? t('cs.bordee', { side, ship: ship.label, target: target.label, dr: dr >= 0 ? `+${dr}` : `${dr}`, n: volley.shots.length, wounds: volley.totalWounds, cur: target.wounds.current, max: target.wounds.max })
-    : t('cs.bordeeManque', { side, ship: ship.label, target: target.label, dr: dr >= 0 ? `+${dr}` : `${dr}`, n: volley.shots.length }));
-  for (const l of critLines) get().log(l);
-  return volley.shots.length;
+    ? t('cs.bordee', { side, ship: ship.label, target: target.label, dr: drTxt, n })
+    : t('cs.bordeeManque', { side, ship: ship.label, target: target.label, dr: drTxt, n }));
+  return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res })) });
 }
 
 /**
@@ -263,8 +247,8 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'party' |
   const { battle, scene } = get();
   if (!battle || !scene) return;
   const surprisedKind = surprisedSide === 'party' ? 'hero' : 'enemy';
-  const ambushers = battle.combatants.filter((c) => isVehicle(c) && c.kind !== surprisedKind && c.pos);
-  const victims = battle.combatants.filter((c) => isVehicle(c) && c.kind === surprisedKind && c.pos);
+  const ambushers = battle.combatants.filter((c) => estNavire(c) && c.kind !== surprisedKind && c.pos);
+  const victims = battle.combatants.filter((c) => estNavire(c) && c.kind === surprisedKind && c.pos);
   if (!ambushers.length || !victims.length) return;
   const mpt = sceneMetresPerTile(scene);
   const gap = Math.max(1, Math.round(75 / mpt)); // ~portée moyenne du canon (MDG 12 l.401)
@@ -1403,7 +1387,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active || active.id !== id || aiDriven(get(), active) || !canTakeAction(active)) return;
       // À l'échelle MER, le NAVIRE est l'acteur (`id` = la coque, barreur = meilleur de l'équipage) ; au person-scale,
       // un héros-équipage prend la barre (`id` = le héros, navire dérivé via `shipOfCrew`).
-      const ship = isVehicle(active) ? active : shipOfCrew(battle.combatants, id);
+      const ship = estNavire(active) ? active : shipOfCrew(battle.combatants, id);
       if (!ship) return;
       const opened = openCrewTestPending(get, ship, 'manoeuvre');
       if (!opened) return; // aucun rôle tenu → le navire ne peut pas manœuvrer
@@ -1425,7 +1409,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const ship = inBattleId(battle, p.shipId);
       if (!ship) return;
       const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR); // Σ DR (essentiel ×2) + Moral + Manque de bras + sabotage
-      const result = deriveManeuverFromCrew(ship, total); // virage si le Test d'équipage est réussi (MDG 14 l.13)
+      const result = deriveManeuverFromCrew(ship, total, milieuDuVoyage(get().travelPlan)); // virage si le Test d'équipage est réussi (MDG 14 l.13)
       set({ pendingShipManeuver: null });
       applyShipManeuver(get, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue
       const bM = get().battle!;
@@ -1443,6 +1427,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const ship = inBattleId(battle, shipId);
       const target = inBattleId(battle, targetId);
       if (!ship || !target || !ship.pos || !target.pos) return;
+      if (!estNavire(ship)) return void refuserGeste(get, set, t('cs.bordeeSansNavire', { ship: ship.label })); // MDG 14 l.128
       // ARC et PORTÉE jugés AU COMMIT, par la MÊME mesure que le survol (`batteryBlock`) : sans elle, le
       // clic tirait hors de portée, et l'arc ne se disait qu'au journal — invisible en combat.
       const block = batteryBlock(get, ship, target);
@@ -1465,10 +1450,10 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!ship || !target) { set({ pendingShipBattery: null }); return; }
       const dr = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR); // DR PARTAGÉ (Σ, essentiel ×2, + Moral, + Manque de bras, + sabotage)
       set({ pendingShipBattery: null });
-      applyBatteryVolley(get, set, ship, target, p.side, dr, crewTestSuccess(dr)); // corps de bordée PARTAGÉ (mêmes fns pures) — cf. shipAutoBattery
+      const suspendu = applyBatteryVolley(get, set, ship, target, p.side, dr, crewTestSuccess(dr)); // corps de bordée PARTAGÉ — cf. shipAutoBattery
       const bB = get().battle!;
       set({ battle: { ...bB, action: null, preview: null, crewActed: withCrewActed(bB.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // Artilleurs engagés ce Round
-      checkBattleOver(get, set);
+      if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
     },
     shipBatteryCancel: () => set({ pendingShipBattery: null }),
@@ -1482,22 +1467,23 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle) return false;
       const ship = inBattleId(battle, shipId);
       const target = inBattleId(battle, targetId);
-      if (!ship || !target || !ship.pos || !target.pos) return false;
+      if (!ship || !target || !ship.pos || !target.pos || !estNavire(ship)) return false; // MDG 14 l.128
       const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       if (!bearingPostes(ship, side).length) return false; // aucune pièce chargée sur ce bord → rien à lâcher
-      const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie'); // équipage abstrait → rôles tenus (Artilleur ★)
+      const navigation = navigationDuNavire(get, ship);
+      const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie', navigation); // équipage abstrait → rôles tenus (Artilleur ★)
       const undercrew = shipUndercrew(get, ship, battle.combatants);
       const traits = hullNavalTraits(ship);
       const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie');
       // DR partagé calé sur le chemin JOUEUR (`maneuverCrewTotal`) : Σ contributions (essentiel ×2) + Moral +
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
-      const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), battleRng(), { extraDR: undercrew.dr + extraDR });
+      const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
       const dr = undercrew.capSuccesMinime ? capToSuccesMinime(crewTest.total) : crewTest.total;
-      applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
+      const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
       const bB = get().battle!;
       const gunners = assignments.map((a) => a.crew.id);
       set({ battle: { ...bB, crewActed: withCrewActed(bB.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
-      checkBattleOver(get, set);
+      if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
       return true;
     },
@@ -1512,7 +1498,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || aiDriven(get(), active) || !canTakeAction(active)) return;
-      const ship = isVehicle(active) && active.id === shipId ? active : shipOfCrew(battle.combatants, active.id);
+      const ship = estNavire(active) && active.id === shipId ? active : shipOfCrew(battle.combatants, active.id);
       if (!ship || ship.id !== shipId || !findCrewTestTypeById(testTypeId)) return;
       const opened = openCrewTestPending(get, ship, testTypeId);
       if (!opened) return; // aucun rôle tenu → pas de Test d'équipage
@@ -1823,7 +1809,9 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     confirmRoundStart: () => {
       set({ pendingRoundStart: null, preemptAiming: null }); // la pause se ferme → toute visée Tir rapide armée retombe
-      runPreemptShots(get, set); // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle
+      // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle. Rien ne suit
+      // ici : un tir qui tient la main emporte la boucle dans sa suite (`enchainement: 'tirRapide'`).
+      jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES
@@ -2594,7 +2582,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (differee && (suite ? suite.participants.length - (suite.cursor + 1) : 0) <= 0) {
         throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
       }
-      if (!differee && coup) jouerLApresCoup(get, set, coup);
+      // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
+      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
       get().cascadeNext();
     },
@@ -2797,8 +2786,8 @@ export function createCombatSlice(get: Get, set: Set) {
       // ALLIÉE (celle de campagne si connue, sinon la 1re coque alliée) → PASSAGERS (hors ordre ET hors rendu),
       // qui s'expriment par les Tests d'équipage (manœuvre / bordée) et n'ont pas de tour individuel person-scale.
       if (isMerScene(scene)) {
-        const allyHull = all.find((c) => isVehicle(c) && c.kind === 'hero' && (!vessel0 || c.creatureId === vessel0.vehicleId))
-          ?? all.find((c) => isVehicle(c) && c.kind === 'hero');
+        const allyHull = all.find((c) => estNavire(c) && c.kind === 'hero' && (!vessel0 || c.creatureId === vessel0.vehicleId))
+          ?? all.find((c) => estNavire(c) && c.kind === 'hero');
         if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...heroes.map((h) => h.id)])];
       }
       // Postes d'artillerie (MDG 12-13) : sert chaque poste de coque à son chef de pièce (mannedPoste +

@@ -15,7 +15,7 @@ import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
-import type { TravelMode } from '../engine/travel';
+import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
@@ -112,6 +112,27 @@ export type Praticabilite =
   | { when?: undefined; refus?: z.infer<typeof refusRouteSchema> }
   | { when: Condition; refus: z.infer<typeof refusRouteSchema> };
 
+/** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
+ *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
+export interface RouteBillet {
+  /** Sous par passager, par classe du véhicule, pour le trajet entier. */
+  prix: Partial<Record<string, number>>;
+  /** Routes suivantes couvertes, dans l'ordre du trajet, chacune partant du lieu d'arrivée de la précédente. */
+  suite?: string[];
+  /** Lieu de départ du billet — exigé sur une route sans `from` (à double sens). */
+  depuis?: string;
+  /** Le billet se marchande : Test opposé contre le PNJ `presetId` du narratif (EDO 01 l.142). */
+  marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
+  source?: SourceRef;
+  maison?: string;
+}
+
+/** Clé d'un billet : sa première route, son véhicule et son lieu de départ — un billet se marchande
+ *  UNE fois (EDO 01 l.142). */
+export function cleDeBillet(routeId: string, vehicule: string, depuis: string): string {
+  return `${routeId}|${vehicule}|${depuis}`;
+}
+
 /** Le tracé d'une route, hors praticabilité. */
 export interface MapRouteTrace {
   id: string;
@@ -126,9 +147,9 @@ export interface MapRouteTrace {
   km: number;
   /** Modes de voyage offerts sur cette route. */
   modes: TravelMode[];
-  /** Prix d'auteur (sous/PA par km par passager) pour un transport payant (`id` de `vehicles.json`)
-   *  — défaut : classe RAW. */
-  prices?: Partial<Record<Exclude<TravelMode, 'pied'>, number>>;
+  /** Billet d'auteur par véhicule (`id` de `vehicles.json`), posé sur la PREMIÈRE route du trajet
+   *  qu'il couvre (EDO 01 l.142). Absent pour un véhicule : billet implicite (`billetImplicite`). */
+  billets?: Partial<Record<Exclude<TravelMode, 'pied'>, RouteBillet>>;
   /** Déplacement d'auteur par mode (modèle rapide/lent : M ±1, LDB 51 l.178). À pied : force la vitesse. */
   speed?: Partial<Record<TravelMode, number>>;
   /** Seuil du d10 quotidien de péripétie RAW (LDB 51 l.208 « sur un résultat de 8 ») ; 0 = désactivé.

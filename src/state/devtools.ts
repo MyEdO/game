@@ -66,14 +66,15 @@ import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, e
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
-import { propulsionDuNavire } from '../engine/shipBuild';
+import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
+import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
 import { mirrorPools } from '../engine/advantagePool';
-import { actorIn, ecrireActeur, inBattleId } from './combatants';
+import { actorIn, ecrireActeur, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
 import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
 import { defenseSurfaced } from './netOwnership';
@@ -1760,8 +1761,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     shipCrit: (location = 'greement', opts: { hullId?: string; forcedCritRoll?: number } = {}) => {
       const s = g();
       const { hullId, forcedCritRoll } = opts;
-      const estCoque = (c: Combatant): boolean => !!findVehicleById(c.creatureId ?? '')?.hull;
-      const enJeu = (s.battle?.combatants ?? []).filter(estCoque);
+      const enJeu = (s.battle?.combatants ?? []).filter(estNavire);
       // Par DÉFAUT, la coque des HÉROS — jamais « la première trouvée » : en combat naval, la première
       // est souvent le navire ENNEMI, et la recette frappait le mauvais bord. L'ordre de recherche suit
       // ce que le jeu appelle « notre navire » : la coque du plan de voyage, puis celle qui porte un
@@ -1770,19 +1770,21 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         (c.crewIds ?? []).some((id) => (s.party.some((h) => h.id === id)) || inBattleId(s.battle, id)?.kind === 'hero');
       const coque = hullId
         ? (enJeu.find((c) => c.id === hullId) ?? (s.travelPlan?.vehicle?.id === hullId ? s.travelPlan.vehicle : undefined))
-        : (s.travelPlan?.vehicle ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
+        : ((s.travelPlan?.vehicle && estNavire(s.travelPlan.vehicle) ? s.travelPlan.vehicle : undefined) ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
       if (!coque) {
         if (hullId) return `✗ coque « ${hullId} » introuvable — en jeu : ${enJeu.map((c) => c.id).join(', ') || '(aucune)'}`;
         if (enJeu.length > 1) return `✗ PLUSIEURS coques et aucune n'est celle des héros — nomme-la : shipCrit('${location}', { hullId }) parmi ${enJeu.map((c) => c.id).join(', ')}`;
-        return '✗ aucune COQUE en jeu (lance un scénario naval, ou appareille)';
+        return '✗ aucune coque de NAVIRE en jeu (lance un scénario naval, ou appareille)';
       }
-      const gree = findVehicleById(coque.creatureId ?? '')?.hull?.rig ?? 'mixte';
+      const profil = profilNavalDe(coque);
+      if (!profil) return `✗ « ${coque.label} » n'est pas une coque de NAVIRE : aucun Critique de navire`;
+      const gree = garanti(rigDuNavire(profil), coque.creatureId, 'gréement du navire (schéma `vehicles`, MDG 12 l.131)');
       const table = findVehicleById(coque.creatureId ?? '')?.hull?.locationTable ?? 'navire';
       let de: number | undefined;
       for (let d = 1; d <= 100 && de === undefined; d++) if (shipHitLocation(gree, d, table) === location) de = d;
       if (de === undefined) return `✗ « ${location} » n'est pas une Localisation de ce gréement (${gree})`;
       const log: string[] = [];
-      applyHullCriticalToTarget(coque, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
+      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
       for (const l of log) useGame.getState().log(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
@@ -2389,8 +2391,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     forceOverspeed: (overM = 5) => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée en cours (travelPlan.sea)';
-      const baseM = plan.vehicle ? propulsionDuNavire(plan.vehicle.creatureId, plan.vehicle.upgrades)?.m ?? 0 : 0;
-      if (!baseM) return '✗ M de conception introuvable sur le navire de campagne';
+      if (!plan.vehicle) return '✗ aucun navire de campagne (travelPlan.vehicle)';
+      const baseM = garanti(propulsionDuNavire(plan.vehicle.creatureId, plan.vehicle.upgrades, milieuDuVoyage(plan)), plan.vehicle.creatureId, 'propulsion du navire').m;
       const effMToday = baseM + Math.max(1, overM);
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, effMToday, milesToday: Math.max(1, plan.sea.milesToday) } } });
       return `✓ survitesse armée : M ${baseM} → ${effMToday} (M+${effMToday - baseM}) — dérouler avec __wfrp.advanceSeaDay()`;

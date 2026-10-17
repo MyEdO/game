@@ -1,6 +1,7 @@
 import { useGame } from '../state/store';
 import { useOwns } from './ownership';
 import { maneuverCrewTotal, deriveManeuverFromCrew } from '../state/shipManeuver';
+import { milieuDuVoyage } from '../engine/shipBuild';
 import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
@@ -35,6 +36,7 @@ export function ShipManeuverModal() {
   const force = useGame((s) => s.shipManeuverForceSuccess);
   const confirm = useGame((s) => s.shipManeuverConfirm);
   const cancel = useGame((s) => s.shipManeuverCancel);
+  const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
   if (!ship) return null;
@@ -42,7 +44,7 @@ export function ShipManeuverModal() {
   const allRolled = p.participants.every((x) => x.result);
   const rollAll = rollAllUnrolledRows(p.participants, roll, (x) => !!x.interactive && owns(x.id));
   const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
-  const result = allRolled ? deriveManeuverFromCrew(ship, total) : null;
+  const result = allRolled ? deriveManeuverFromCrew(ship, total, milieu) : null;
   const turnOptions: RollOption[] = TURN_OPTIONS.map((o) => ({
     key: o.key, label: o.label, selected: p.turnSteps === o.steps,
     onSelect: () => setTurn(o.steps),

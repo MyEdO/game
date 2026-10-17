@@ -14,13 +14,14 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { codeDeLaPasse, lotDuPostMerge, reconstruireApresGit, touchedFiles } from './docs-rebuild.mjs'
 import {
-  attendreLaReconstruction, cheminsDeLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, demandesDe, passeDesDerives, REJEUX_SUR_SOURCE_MODIFIEE,
+  ATTENTE_DU_TENANT, attendreLaReconstruction, cheminsDeLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, demandesDe, passeDesDerives, REJEUX_SUR_SOURCE_MODIFIEE,
   servirLesDemandes,
 } from './reconstruction.mjs'
 import { pathspecsDeRequeteGit, selectionDesGenerateurs, touchesDocSources } from './selection-des-derives.mjs'
 import { couvertParPathspec } from '../guards/lib/lister.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
-import { estPidVivant } from '../test/verrou.mjs'
+import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('#2285 callback docs : refus complet et commit ordinaire silencieux', () => {
@@ -487,7 +488,7 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
 })
 
 /** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière, le verrou, la porte. */
-const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
+const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {
   const lock = JSON.stringify({ name: 'banc2187', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'banc2187', version: '1.0.0' } } })
@@ -788,6 +789,12 @@ const depotDeReconstruction = () => instanceDeDepot({ fichiers: { 'a.txt': 'a\n'
 /** L'état de la reconstruction de `racine`, lu sur disque. */
 const etatDe = (racine) => JSON.parse(readFileSync(cheminsDeLaReconstruction(racine).etat, 'utf8'))
 
+/** L'attente de tenant des bancs qui injectent `dormir` : une prise attend au plus 1 s, au lieu de l'échéance de `ATTENTE_DU_TENANT`. */
+const ATTENTE_DU_TENANT_DU_BANC = Object.freeze({ ...ATTENTE_DU_TENANT, echeanceMs: 1_000, pasMs: 10 })
+
+/** L'identité d'un pid factice : né à l'epoch, donc jamais postérieur à sa `date` d'inscription. */
+const IDENTITE_DU_BANC = Object.freeze({ lireCreation: () => 0, toleranceMs: 0 })
+
 // #2603
 test('(b) coalescence : 3 demandes pendant une passe donnent 2 passes, et `soldees === demandes`', () => {
   const racine = depotDeReconstruction()
@@ -883,9 +890,9 @@ test('(e) fenêtre de lancement : le hook a rendu la main, le détaché n’a pa
   const estVivant = (pid) => vivants.has(pid)
   try {
     assert.equal(demanderLaReconstruction(racine, { detacher: () => 4242 }), 1)
-    assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 50, pasMs: 10, estVivant }), { etat: 'en-cours' })
-    assert.equal(servirLesDemandes({ racine, passe: () => 0, estVivant }), 1)
-    const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 0, estVivant })
+    assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 50, pasMs: 10, estVivant, identite: IDENTITE_DU_BANC }), { etat: 'en-cours' })
+    assert.equal(servirLesDemandes({ racine, passe: () => 0, estVivant, identite: IDENTITE_DU_BANC }), 1)
+    const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 0, estVivant, identite: IDENTITE_DU_BANC })
     assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 1, 0])
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -904,6 +911,256 @@ test('(f) mort sans verdict : ni tenant ni lancé vivant, demande non soldée �
     assert.equal(codeDeLaPasse({ etat: 'soldee', code: 3 }), 3)
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('pid réutilisé : un lancé vivant né APRÈS sa `date` d’inscription est mort — verdict immédiat, sous la tolérance en cours, mesure indéterminée vivante', () => {
+  const racine = depotDeReconstruction()
+  const sommeils = []
+  const horloge = () => Date.parse('2026-10-16T10:00:00.000Z')
+  try {
+    demanderLaReconstruction(racine, { detacher: () => 4246, horloge })
+    const date = Date.parse(etatDe(racine).lances[0].date)
+    const attendre = (lireCreation) => attendreLaReconstruction(racine, 1, {
+      echeanceMs: 60_000, pasMs: 10, dormir: () => sommeils.push('dormi'), estVivant: (pid) => pid === 4246,
+      identite: { lireCreation, toleranceMs: 1_000 },
+    })
+    assert.deepEqual(attendre(() => date + 1_001), { etat: 'mort', code: CODE_MORT_SANS_VERDICT, log: join(cheminsDeLaReconstruction(racine).logs, '4246.log') })
+    assert.deepEqual(sommeils, [], 'verdict immédiat, sans attendre l’échéance')
+    let tours = 0
+    const enCours = (lireCreation) => attendreLaReconstruction(racine, 1, {
+      echeanceMs: 30, pasMs: 10, horloge: () => tours * 10, dormir: () => { tours += 1 }, estVivant: (pid) => pid === 4246,
+      identite: { lireCreation, toleranceMs: 1_000 },
+    })
+    assert.deepEqual(enCours(() => date + 1_000), { etat: 'en-cours' })
+    tours = 0
+    assert.deepEqual(enCours(() => null), { etat: 'en-cours' })
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('pid réutilisé : un verrou de reconstruction tenu par un pid vivant né après sa `creation` est libre — verdict mort ; sous la tolérance, en cours', () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  try {
+    demanderLaReconstruction(racine, { detacher: () => 4249 })
+    writeFileSync(chemins.verrou, JSON.stringify({ pid: 4250, creation: 1_000_000, date: new Date().toISOString() }))
+    const attendre = (creation) => attendreLaReconstruction(racine, 1, {
+      echeanceMs: 0, estVivant: (pid) => pid === 4250, identite: { lireCreation: () => creation, toleranceMs: 1_000 },
+    })
+    assert.equal(attendre(1_001_001).etat, 'mort')
+    assert.equal(attendre(1_001_000).etat, 'en-cours')
+    writeFileSync(chemins.verrou, JSON.stringify({ pid: 4250, date: new Date().toISOString() }))
+    assert.equal(attendre(1_001_001).etat, 'en-cours', 'tenant pris sans identité : `NAISSANCE_ABSENTE`, l’existence seule')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('pid réutilisé : le servant retire de `lances` le lancé vivant né après sa `date`, garde celui sous la tolérance', () => {
+  const racine = depotDeReconstruction()
+  try {
+    demanderLaReconstruction(racine, { detacher: () => 4247 })
+    demanderLaReconstruction(racine, { detacher: () => 4248 })
+    const naissances = Object.fromEntries(etatDe(racine).lances.map((l) => [l.pid, Date.parse(l.date)]))
+    const creations = { 4247: naissances[4247] + 501, 4248: naissances[4248] + 500 }
+    servirLesDemandes({
+      racine, passe: () => 0, estVivant: (pid) => pid === process.pid || pid in creations,
+      identite: { lireCreation: (pid) => creations[pid] ?? null, toleranceMs: 500 },
+    })
+    assert.deepEqual(etatDe(racine).lances.map((l) => l.pid), [4248])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('P1 : un second détaché meurt pendant que le premier attend l’opération — verrou libre, attente en cours, demande soldée après sous l’identité', () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  const vivants = new Set([process.pid])
+  const estVivant = (pid) => vivants.has(pid)
+  const pendant = []
+  let tours = 0
+  try {
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    const passes = servirLesDemandes({
+      racine, estVivant, identite: IDENTITE_DU_BANC, operation: () => (tours < 3 ? 'MERGE_HEAD' : null), attenteArbre: { echeanceMs: 60_000, pasMs: 10 },
+      attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      passe: () => {
+        assert.ok(Number.isFinite(tenantDe(chemins.verrou)?.creation), 'la reprise porte l’identité mesurée')
+        return 0
+      },
+      dormir: () => {
+        tours += 1
+        if (tours === 1) {
+          vivants.add(4244)
+          demanderLaReconstruction(racine, { detacher: () => 4244 })
+        }
+        if (tours === 2) vivants.delete(4244)
+        pendant.push([attendreLibre({ chemin: chemins.verrou }).etat, attendreLaReconstruction(racine, 2, { echeanceMs: 0, estVivant, identite: IDENTITE_DU_BANC }).etat])
+      },
+    })
+    assert.equal(passes, 1)
+    assert.deepEqual(pendant, [['libre', 'en-cours'], ['libre', 'en-cours'], ['libre', 'en-cours']])
+    const vu = attendreLaReconstruction(racine, 2, { echeanceMs: 0, estVivant, identite: IDENTITE_DU_BANC })
+    assert.deepEqual([vu.etat, vu.seq, vu.code], ['soldee', 2, 0])
+    assert.deepEqual(etatDe(racine).lances, [])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('P2 : un pid fantôme de `lances` ne prend jamais le verrou — aucune famine, la demande est soldée après l’opération', () => {
+  const racine = depotDeReconstruction()
+  const vivants = new Set([process.pid, 4245])
+  const estVivant = (pid) => vivants.has(pid)
+  let tours = 0
+  try {
+    demanderLaReconstruction(racine, { detacher: () => 4245 })
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    const passes = servirLesDemandes({
+      racine, estVivant, identite: IDENTITE_DU_BANC, operation: () => (tours < 2 ? 'MERGE_HEAD' : null), attenteArbre: { echeanceMs: 60_000, pasMs: 10 },
+      attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      passe: () => 0, dormir: () => { tours += 1 },
+    })
+    assert.equal(passes, 1)
+    const vu = attendreLaReconstruction(racine, 2, { echeanceMs: 0, estVivant, identite: IDENTITE_DU_BANC })
+    assert.deepEqual([vu.etat, vu.seq, vu.code], ['soldee', 2, 0])
+    assert.deepEqual(etatDe(racine).lances.map((l) => l.pid), [4245], 'le servant s’est retiré ; le fantôme, vu vivant, reste inscrit')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('l’opération finie pendant la reprise du verrou : relue après la reprise, la demande arrivée entre-temps est servie par une passe', async () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  const tenant = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30_000)'], { stdio: 'ignore' })
+  const sortie = once(tenant, 'exit')
+  let operation = 'MERGE_HEAD'
+  let tiers = null
+  let libere = false
+  let echeance = Infinity
+  const vuesALaPasse = []
+  try {
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    const passes = servirLesDemandes({
+      racine, attenteArbre: { echeanceMs: 300, pasMs: 20 }, attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      operation: () => operation,
+      passe: () => { vuesALaPasse.push(operation); return 0 },
+      dormir: (ms) => {
+        if (echeance === Infinity) echeance = Date.now() + 300
+        tiers ??= prendreVerrou({ chemin: chemins.verrou, libelle: 'tenant tiers', commande: 'tenant tiers', pid: /** @type {number} */ (tenant.pid) })
+        if (!libere && Date.now() > echeance + 50) {
+          operation = null
+          demanderLaReconstruction(racine, { detacher: () => process.pid })
+          tiers.liberer()
+          libere = true
+        }
+        attendreSync(ms)
+      },
+    })
+    assert.equal(tiers?.etat, 'pris', 'le tenant tiers a pris le verrou rendu pendant l’attente')
+    assert.ok(libere, 'l’opération a fini pendant la reprise')
+    assert.equal(passes, 1)
+    assert.deepEqual(vuesALaPasse, [null])
+    const etat = etatDe(racine)
+    assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [2, 2, 2, 0])
+    assert.doesNotMatch(readFileSync(join(chemins.logs, `${process.pid}.log`), 'utf8'), /toujours en cours/)
+  } finally {
+    if (tiers?.etat === 'pris' && !libere) tiers.liberer()
+    tenant.kill()
+    await sortie
+    rmSync(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
+  }
+})
+
+// #2603
+test('l’opération encore en cours à l’échéance de l’attente : la demande se solde de `CODE_DIFFERE` sans passe, verrou libre', () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  let tours = 0
+  let passes = 0
+  try {
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    servirLesDemandes({
+      racine, operation: () => 'MERGE_HEAD', attenteArbre: { echeanceMs: 200, pasMs: 20 }, attenteTenant: ATTENTE_DU_TENANT_DU_BANC,
+      passe: () => { passes += 1; return 0 },
+      dormir: (ms) => {
+        tours += 1
+        if (tours > 500) throw new Error('attente sans fin : l’échéance n’est jamais vue')
+        attendreSync(ms)
+      },
+    })
+    assert.equal(passes, 0, 'aucune passe jouée sous l’opération')
+    const etat = etatDe(racine)
+    assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [1, 1, 1, CODE_DIFFERE])
+    assert.deepEqual(etat.lances, [])
+    assert.equal(attendreLibre({ chemin: chemins.verrou }).etat, 'libre')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+/** Un détaché RÉEL de la reconstruction de `racine`, sous une échéance d'arbre de 120 s. */
+const detacheDuBanc = (racine) => spawn(process.execPath, ['--input-type=module', '-e', [
+  `import { servirLesDemandes } from ${JSON.stringify(pathToFileURL(join(RACINE, 'scripts/git-hooks/reconstruction.mjs')).href)}`,
+  'servirLesDemandes({ racine: process.cwd(), attenteArbre: { echeanceMs: 120_000, pasMs: 50 }, passe: () => 0 })',
+].join('\n')], { cwd: racine, stdio: 'ignore' })
+
+// #2603
+test('(g) deux détachés sous `MERGE_HEAD` : le second prend le verrou sans attendre l’échéance du premier ; le premier tué, le survivant solde après l’opération', async () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  const mergeHead = join(racine, '.git', 'MERGE_HEAD')
+  /** @type {{ enfant: import('node:child_process').ChildProcess, sortie: Promise<unknown> }[]} */
+  const detaches = []
+  const demander = () => demanderLaReconstruction(racine, { detacher: () => {
+    const enfant = detacheDuBanc(racine)
+    detaches.push({ enfant, sortie: once(enfant, 'exit') })
+    return /** @type {number} */ (enfant.pid)
+  } })
+  const journalDe = (pid) => {
+    const log = join(chemins.logs, `${pid}.log`)
+    return existsSync(log) ? readFileSync(log, 'utf8') : ''
+  }
+  const RENDU = /MERGE_HEAD en cours : verrou de l’arbre rendu pendant l’attente/
+  const attendreLeRendu = (pid) => {
+    const fin = Date.now() + 30_000
+    while (!RENDU.test(journalDe(pid)) && Date.now() < fin) attendreSync(50)
+    return journalDe(pid)
+  }
+  try {
+    writeFileSync(mergeHead, `${'0'.repeat(40)}\n`)
+    demander()
+    const [premier] = detaches
+    assert.match(attendreLeRendu(premier.enfant.pid), RENDU)
+    demander()
+    const [, second] = detaches
+    assert.match(attendreLeRendu(second.enfant.pid), RENDU, 'le second a pris le verrou pendant l’attente du premier')
+    assert.equal(attendreLibre({ chemin: chemins.verrou }).etat, 'libre', 'personne ne tient le verrou pendant l’opération')
+    assert.deepEqual(etatDe(racine).lances.map((l) => l.pid), [premier.enfant.pid, second.enfant.pid])
+    premier.enfant.kill()
+    await premier.sortie
+    rmSync(mergeHead)
+    const vu = attendreLaReconstruction(racine, 2, { echeanceMs: 60_000, pasMs: 50 })
+    assert.deepEqual([vu.etat, vu.seq, vu.code], ['soldee', 2, 0])
+    await second.sortie
+    assert.equal(second.enfant.exitCode, 0)
+    assert.deepEqual(etatDe(racine).lances, [])
+  } finally {
+    for (const { enfant, sortie } of detaches) {
+      if (enfant.exitCode === null && enfant.signalCode === null) enfant.kill()
+      await sortie
+    }
+    rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
   }
 })
 

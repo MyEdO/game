@@ -286,6 +286,23 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     expect(g().battle!.turn, 'le tour a AVANCÉ').not.toBe(0);
   });
 
+  it('riposte `onCharged` fermée AVANT l’échéance du télégraphe : le chargeur porte UN seul Test d’attaque (#1765)', () => {
+    setCadence('auto');
+    const { hero } = setupRiposte();
+    maybeRunEnemyTurn(g, useGame.setState);
+    for (let i = 0; i < 6 && !g().pendingDefense; i++) vi.advanceTimersToNextTimer();
+    expect(g().pendingDefense?.defenderId).toBe(hero.id);
+    const avant = g().battle!.log.length;
+    g().defenseRoll();
+    g().defenseConfirm();
+    jouerJusquAuBout();
+    vi.runAllTimers();
+    jouerJusquAuBout();
+    vi.runAllTimers();
+    const frappes = g().battle!.log.slice(avant).filter((l) => /^h (touche|rate)/.test(String(l.text)));
+    expect(frappes.length, 'le télégraphe échu après la fermeture ne frappe pas une 2ᵉ fois').toBe(1);
+  });
+
   it('aucun état INTERMÉDIAIRE ne pose le curseur sur une étape sans sa donnée (#1852 cond. 3)', () => {
     const { enemy, hero } = setup();
     maybeOpenDefense(g, useGame.setState, enemy, hero, sword);

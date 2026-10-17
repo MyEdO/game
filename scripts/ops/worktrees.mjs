@@ -26,8 +26,9 @@ import { rmdirSync } from 'node:fs'
 import { posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, refusDeGit, retirerWorktree, reussi, supprimerBranche, worktreesDe,
+  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, refusDeGit, retirerWorktree, reussi, supprimerBranche, worktreesDe,
 } from '../guards/lib/gitPorte.mjs'
+import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'

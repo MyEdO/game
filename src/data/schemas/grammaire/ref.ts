@@ -534,6 +534,32 @@ export function refusDeSpec(type: TypeEntite, id: string, spec: string): 'nonSpe
   return catalogueSpecs(type, id).includes(spec) ? null : 'horsCatalogue';
 }
 
+/** Message UNIQUE d'un refus de `refusDeSpec` : le nœud à spécialisation et `specDe` le lisent.
+ *  `admetChoix` : le porteur admet l'emplacement `choix`, que le refus `sentinelle` désigne alors. */
+function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus: NonNullable<ReturnType<typeof refusDeSpec>>, admetChoix: boolean): string {
+  const catalogue = TYPES[type].catalogue;
+  const espace = espaceDe(type);
+  switch (refus) {
+    case 'nonSpecialisable':
+      return `« ${id} » ne déclare aucune spécialisation au catalogue des ${catalogue} (${espace}) — « spec » et « choix » ne s'y appliquent pas.`;
+    case 'sentinelle':
+      return `« ${spec} » n'est pas une spécialisation mais un EMPLACEMENT non désigné de « ${id} » (catalogue des ${catalogue}, ${espace}) — ${admetChoix ? "s'écrit « choix »" : 'ce champ DÉSIGNE une spécialisation'}.`;
+    case 'horsCatalogue':
+      return `« ${spec} » est absente des spécialisations de « ${id} » au catalogue des ${catalogue} (${espace}).`;
+  }
+}
+
+/**
+ * Spécialisation NUE de l'entrée `id` de `type`, que le porteur fixe par sa règle (`id` CONSTANT,
+ * la donnée ne porte que la Spécialisation) : validée par `refusDeSpec`, ses trois refus nommés.
+ */
+export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
+  return z.string().min(1).superRefine((spec, ctx) => {
+    const refus = refusDeSpec(type, id, spec);
+    if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
+  });
+}
+
 /**
  * RÉGIME d'une référence à spécialisation — ce que le PORTEUR admet :
  *  - `specOuChoix` : exactement un de `spec` / `choix` (`specRef`, option d'un `pick`) ;
@@ -580,10 +606,7 @@ function noeudASpecialisation<T extends TypeEntite>(
         return;
       }
       if (!estSpecialisable(type, String(v.id))) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `« ${String(v.id)} » ne déclare aucune spécialisation au catalogue des ${catalogue} (${espace}) — « spec » et « choix » ne s'y appliquent pas.`,
-        });
+        ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, String(v.id), '', 'nonSpecialisable', true) });
         return;
       }
       if (aSpec && aChoix) {
@@ -596,14 +619,7 @@ function noeudASpecialisation<T extends TypeEntite>(
       const motif = refus.some(([, r]) => r === 'sentinelle') ? 'sentinelle' : 'horsCatalogue';
       for (const [c, r] of refus) {
         if (r !== motif) continue;
-        ctx.addIssue({
-          code: 'custom',
-          path: [aSpec ? 'spec' : 'choix'],
-          message:
-            r === 'sentinelle'
-              ? `« ${c} » n'est pas une spécialisation mais un EMPLACEMENT non désigné de « ${String(v.id)} » (catalogue des ${catalogue}, ${espace}) — s'écrit « choix ».`
-              : `« ${c} » est absente des spécialisations de « ${String(v.id)} » au catalogue des ${catalogue} (${espace}).`,
-        });
+        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, true) });
       }
     }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, spec: { label: "spécialisation", texte: { regime: 'designation' } }, choix: { label: "choix", texte: { regime: 'designation' } }, ...metasExtra(extra) });
 }

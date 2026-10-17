@@ -86,6 +86,11 @@ export function documentById(id: string): DocumentNarratif | undefined {
   return maps().documents.get(id);
 }
 
+/** Les états de campagne déclarés par la campagne chargée (`narratif.etats`) — couche-SEULEMENT. */
+export function etatsDeLaCampagne(): NarratifBlock['etats'] {
+  return useGame.getState().campaignNarratif?.etats ?? [];
+}
+
 /** Possession résolue par id STABLE, campagne-D'ABORD (`campaignNarratif.objets`) puis règle globale
  *  (`trappingDesObjetsPuisDuCatalogue`). Les ids narratifs ne collisionnent jamais avec le global (garde `narratifSchema`,
  *  #765) → chaîne déterministe. Signature IDENTIQUE à `findTrappingById` : sert de résolveur injecté aux

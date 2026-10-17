@@ -28,7 +28,7 @@ const get = useGame.getState;
 const set = useGame.setState;
 
 /** Coque de service : les ops de chute d'un Critique de navire dimensionnent leur hauteur dessus. */
-const coque = (): Combatant => ({ id: 'coque', creatureId: 'bateau-de-patrouille' } as unknown as Combatant);
+const coque = (): Combatant => ({ id: 'coque', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille' } as unknown as Combatant);
 
 function decor(): Combatant {
   seedBattleRng(1874);

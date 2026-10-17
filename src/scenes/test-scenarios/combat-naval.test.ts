@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { useGame } from '../../state/store';
+import { draineCascade } from '../../state/cascadeTestKit';
+import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { applyCriticalToTarget, firedAttackBlock } from '../../state/combatFlow';
@@ -155,5 +158,34 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
     // null = le tir PART : dans l'arc (cap Nord) + munition compatible + chargé. (Un cap 'E' le mettrait en
     // proue → reason 'arc' ; sans munition → 'noammo'.) → garde-fou contre les deux régressions.
     expect(firedAttackBlock(get, gunner, cogue, gunner.mannedPoste!.item.uid)).toBeNull();
+  });
+});
+
+/**
+ * PORTE JOUEUR : la barge amie lâche sa bordée sur un pirate-fluvial (MDG 14 l.128 « un ennemi »). Chaque
+ * pierrier est un coup de la couture du coup : la créature encaisse comme sous un tir ordinaire, sans
+ * aucun État naval (EDOC 07 l.332).
+ */
+describe('combat-naval — bordée de la barge sur un pirate, par la porte du joueur', () => {
+  it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
+    vi.useFakeTimers();
+    seedBattleRng(7);
+    lancerScenario(useGame.getState, useGame.setState, scen);
+    if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
+    const BARGE = 'enemy-enc-naval-4';
+    const PIRATE = 'enemy-enc-naval-1';
+    const pirate = () => useGame.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
+    const avant = pirate().wounds.current;
+    const logAvant = useGame.getState().battle!.log.length;
+    useGame.getState().battleShipBattery(BARGE, PIRATE);
+    const p = useGame.getState().pendingShipBattery;
+    expect(p, `bordée refusée : ${useGame.getState().refus?.texte}`).not.toBeNull();
+    for (const x of p!.participants) if (!x.result) useGame.getState().shipBatteryRoll(x.id);
+    expect(() => useGame.getState().shipBatteryConfirm()).not.toThrow();
+    draineCascade(useGame.getState);
+    const coups = useGame.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
+    expect(new Set(coups.map((e) => e.actorId)), 'un coup par pierrier servi, touché ou raté').toEqual(new Set(GUNNER_IDS));
+    expect(pirate().wounds.current).toBeLessThanOrEqual(avant);
+    expect(pirate().conditions.filter((c) => /navire|voie-d-eau|gréement/.test(c.id))).toEqual([]);
   });
 });

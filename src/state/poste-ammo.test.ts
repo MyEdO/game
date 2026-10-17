@@ -21,7 +21,7 @@ const ammoItem = (uid: string, name: string, qty: number, over: Partial<ItemInst
   ({ uid, label: name, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
 const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
   ({ side: 'tribord',
-    item: { uid: 'canon', name: 'Canon (moyen)', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
+    item: { uid: 'canon', label: 'Canon (moyen)', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
       damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'arme-d-equipe', value: 2 }, { id: 'recharge', value: 6 }] },
     crewIds: ['chef', 'aide'], ammo, ammoUid }) as unknown as ShipPoste;
 const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>
@@ -30,12 +30,12 @@ const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
 const mkHull = (poste: ShipPoste): Combatant =>
-  ({ id: 'ship', name: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
+  ({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
     postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [],
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: { current: 60, max: 60 }, advantage: 0, skills: [], talents: [], armour: { corps: 0 } }) as unknown as Combatant;
 const foeHull = (): Combatant =>
-  ({ id: 'target', name: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+  ({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: { current: 60, max: 60 }, advantage: 0, conditions: [], weapons: [], skills: [], talents: [], armour: { corps: 0 }, crewIds: [] }) as unknown as Combatant;
 
@@ -72,11 +72,11 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     const aide = mkCrew('aide');
     const hull = mkHull(poste);
     serveChef(chef, poste);
-    const volley = resolveVolley(hull, [poste], foeHull(), 'voile', 2, true, [chef, aide], makeRNG(5));
-    expect(volley.shots).toHaveLength(1);
-    expect(volley.shots[0].ammoName).toBe('Boulet et poudre');
-    expect(volley.shots[0].ammo!.uid).toBe('boulet');
-    expect(volley.shots[0].weapon.qualities.some((q) => q.id === 'percutante')).toBe(true); // munition bakée
+    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    expect(volley).toHaveLength(1);
+    expect(volley[0].ammo!.label).toBe('Boulet et poudre');
+    expect(volley[0].ammo!.uid).toBe('boulet');
+    expect(volley[0].weapon.qualities.some((q) => q.id === 'percutante')).toBe(true); // munition bakée
   });
 
   it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (shipBatteryConfirm)', () => {
@@ -202,8 +202,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
     // La SÉLECTION revient au boulet APRÈS le chargement : le coup déjà chargé ne change pas pour autant.
     poste.ammoUid = 'boulet';
-    const volley = resolveVolley(hull, [poste], foeHull(), 'voile', 2, true, [chef, aide], makeRNG(5));
-    expect(volley.shots[0].ammo!.uid).toBe('mitraille'); // ce qui part = ce qui a été CHARGÉ
+    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    expect(volley[0].ammo!.uid).toBe('mitraille'); // ce qui part = ce qui a été CHARGÉ
   });
 
   it('bascule de munition du CHEF (hotbar) : la bordée suivante ne part plus au boulet abandonné', () => {
@@ -221,8 +221,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
     expect(poste.loaded).toBe(false); // la pièce est muette tant qu'elle n'est pas rechargée
     expect(poste.loadedAmmoUid).toBeUndefined();
-    const volley = resolveVolley(hull, [poste], foeHull(), 'voile', 2, true, [chef, aide], makeRNG(5));
-    expect(volley.shots[0].ammo!.uid).not.toBe('boulet');
+    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    expect(volley[0].ammo!.uid).not.toBe('boulet');
   });
 
   // Le Test étendu de rechargement d'une pièce (LDB 62 l.335) est une DÉPENSE d'équipage : reprendre la

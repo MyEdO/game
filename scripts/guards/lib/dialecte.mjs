@@ -64,37 +64,30 @@ export function ast(fichier, options) {
 }
 
 /** La déclaration de PREMIER NIVEAU qui porte la ligne `ligne` (1-based) : le nom de la fonction, de la
- *  classe, de l'interface, de l'alias de type, ou de la première variable de l'instruction ; `''` hors
- *  de toute déclaration nommée. Clé d'un SITE d'exemption, stable à toute édition en amont (#2200).
+ *  classe, de l'interface, de l'alias de type, de l'`enum`, de l'espace de noms, ou du DÉCLARATEUR de
+ *  variable qui contient la ligne (`const a = 1, b = …` : `b` sur la ligne de `b`) ; `default` pour
+ *  une fonction ou une classe `export default` anonyme et pour `export default <expression>` ; `''`
+ *  hors de toute déclaration nommée (déstructuration comprise). Clé d'un SITE d'exemption, stable à
+ *  toute édition en amont (#2200) : une table qui la lit REFUSE la clé vide, qui vaudrait clé de fichier.
  *  @param {import('typescript/unstable/ast').SourceFile} sf @param {number} ligne @returns {string} */
 export function declarationQuiPorte(sf, ligne) {
   const ts = typescript();
+  const ligneDe = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
+  const porte = (n) => ligne >= ligneDe(n.getStart(sf)) && ligne <= ligneDe(n.getEnd());
   for (const st of sf.statements) {
-    const debut = sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1;
-    const fin = sf.getLineAndCharacterOfPosition(st.getEnd()).line + 1;
-    if (ligne < debut || ligne > fin) continue;
-    if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) return st.name.text;
-    if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) return st.name.text;
+    if (!porte(st)) continue;
     if (ts.isVariableStatement(st)) {
-      const d = st.declarationList.declarations[0];
-      if (ts.isIdentifier(d.name)) return d.name.text;
+      const { declarations } = st.declarationList;
+      const d = declarations.find(porte) ?? declarations[0];
+      return ts.isIdentifier(d.name) ? d.name.text : '';
     }
+    if (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) {
+      if (st.name) return st.name.text;
+      return st.modifiers?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword) ? 'default' : '';
+    }
+    if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st) || ts.isEnumDeclaration(st) || ts.isModuleDeclaration(st)) return st.name.text;
+    if (ts.isExportAssignment(st)) return 'default';
+    return '';
   }
   return '';
-}
-
-const cleDeLigne = (rel, ligne) => `${rel} :: ${ligne.trim()}`;
-
-/** Clé de CONTENU d'un site sans déclaration englobante (prose, ligne de commentaire) :
- *  `fichier :: <ligne trimée>` — le contenu, jamais la position (#2200).
- *  @param {string} rel @param {string} texte @param {number} ligne 1-based @returns {string} */
-export function cleDeContenu(rel, texte, ligne) {
-  return cleDeLigne(rel, texte.split('\n')[ligne - 1] ?? '');
-}
-
-/** Les lignes (1-based) de `texte` dont la clé de contenu est `cle` : aucune = exemption PÉRIMÉE,
- *  plusieurs = exemption AMBIGUË. @param {string} rel @param {string} texte @param {string} cle
- *  @returns {number[]} */
-export function lignesDuContenu(rel, texte, cle) {
-  return texte.split('\n').flatMap((l, i) => (cleDeLigne(rel, l) === cle ? [i + 1] : []));
 }

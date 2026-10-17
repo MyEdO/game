@@ -6,7 +6,7 @@ import { RULE_REF } from './ruleRefs';
 import { strandingPenalty } from './seaPerils';
 import {
   rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus,
-  riverControlKept, rowingAgilityFactor, riverDayKm, riverDriftKm, navPenaltyMods,
+  riverControlKept, riverDayKm, riverDriftKm, navPenaltyMods,
   capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes,
   riverCritical, resolveRiverImpact, rollBarrage, echouageDamage, findRiverPeril, RIVER_PERILS,
 } from './riverNavigation';
@@ -63,12 +63,6 @@ describe('Navigation & rame (l.11-17)', () => {
     expect(riverControlKept(false, -5, 1)).toBe(false); // trop loin (−5 + 1 = −4) → perdu
   });
 
-  it('Test d\'Agilité de rame : réussite = 1 ; échec = 0,8 (−20 %) ; Échec spectaculaire (−6 DR) = 0,5 (÷2) (l.17)', () => {
-    expect(rowingAgilityFactor(true, 3)).toBe(1);
-    expect(rowingAgilityFactor(false, -2)).toBeCloseTo(0.8);
-    expect(rowingAgilityFactor(false, -6)).toBe(0.5);
-    expect(rowingAgilityFactor(false, -7)).toBe(0.5);
-  });
 
   it('km du jour = base × (1 + vent %) × Agilité ; dérive = 25 % de la base (l.29-33, note 2)', () => {
     expect(riverDayKm(48, 25, 1)).toBe(60); // vent arrière +25 %

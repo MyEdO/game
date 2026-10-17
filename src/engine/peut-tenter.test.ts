@@ -3,6 +3,10 @@ import type { Combatant } from './types';
 import { partyAssisted, partyBest, bestSkilledOption, peutTenter } from './skills';
 import { crewRoleValue } from './crewMorale';
 import { findCrewRoleById } from '../data';
+import { propulsionDuNavire } from './shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /** Qui peut TENTER un Test actif (LDB 09 l.30, LDB 16 l.113) : la porte d'élection `partyBest` et le
  *  Soutien `soutienDetail` la lisent, ainsi que les consommateurs qui passent un groupe d'UN seul acteur. */
@@ -43,12 +47,12 @@ describe('peutTenter — l\'élection du meneur et le Soutien', () => {
 describe('peutTenter — consommateurs sur un groupe d\'UN seul acteur', () => {
   it('crewRoleValue (crewMorale) : un marin Inconscient à son poste ne fournit aucune valeur, il porte son refus nommé', () => {
     const mousse = findCrewRoleById('mousse')!;
-    const debout = crewRoleValue(hero('m', 30, { voile: 20 }), mousse);
+    const debout = crewRoleValue(hero('m', 30, { voile: 20 }), mousse, NAVIGATION);
     expect(debout.value).toBeGreaterThan(0);
     expect(debout.refus).toBeUndefined();
-    const ko = crewRoleValue(hero('m', 30, { voile: 20, inconscient: true }), mousse);
+    const ko = crewRoleValue(hero('m', 30, { voile: 20, inconscient: true }), mousse, NAVIGATION);
     expect(ko.value).toBeUndefined();
-    expect(ko.refus).toBe('m ne peut pas tenter le Test de Voile.');
+    expect(ko.refus).toBe('m ne peut pas tenter le Test de Voile (Cogue).');
   });
 
   it('bestSkilledOption (skills) : un acteur Inconscient n\'obtient aucune option tentable', () => {

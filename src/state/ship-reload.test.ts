@@ -9,7 +9,7 @@ import { seedBattleRng } from './battleRng';
  * le tour du navire (`acted`). L'état de recharge vit sur le POSTE (`loaded`/`reloadProgress`), pas sur le marin.
  */
 const gunner = (): Combatant =>
-  ({ id: 'gunner', name: 'Artilleur', kind: 'hero',
+  ({ id: 'gunner', label: 'Artilleur', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 70, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 0, resilience: 0,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
@@ -18,10 +18,10 @@ const gunner = (): Combatant =>
 /** Un poste de canon (Recharge 6) qui A TIRÉ : déchargé, à 5 DR de recharge cumulés (proche de la cible). */
 const firedPoste = (over: Partial<ShipPoste> = {}): ShipPoste =>
   ({ side: 'tribord', loaded: false, reloadProgress: 5, crewIds: ['gunner'],
-    item: { uid: 'canon', name: 'Canon moyen', kind: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
+    item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
 
 const ship = (poste = firedPoste()): Combatant =>
-  ({ id: 'ship', name: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+  ({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
     crewIds: ['gunner'], postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
 const setup = (poste = firedPoste()) =>
@@ -74,20 +74,20 @@ describe('battleShipReload — Test étendu de recharge d’un poste (MDG 12 / L
  *  (l'Artilleur qui a tiré le fait ensuite), pas d'auto-rechargement. */
 describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
   const gunnerPJ = (): Combatant =>
-    ({ id: 'gunner', name: 'Artilleur', kind: 'hero',
+    ({ id: 'gunner', label: 'Artilleur', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 80, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 0, resilience: 0,
       skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
   const onePoste = (): ShipPoste =>
     ({ side: 'tribord', loaded: true, crewIds: ['gunner'],
-      item: { uid: 'canon', name: 'Pierrier', kind: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
+      item: { uid: 'canon', label: 'Pierrier', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
   const cycleShip = (): Combatant =>
-    ({ id: 'ship', name: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    ({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: ['gunner'], postes: [onePoste()], pos: { x: 5, y: 5 }, conditions: [], weapons: [],
       wounds: { current: 50, max: 50, base: 50 } }) as unknown as Combatant;
   const foe = (): Combatant =>
-    ({ id: 'target', name: 'Cogue', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+    ({ id: 'target', label: 'Cogue', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
       characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
       wounds: { current: 90, max: 90, base: 90 }, advantage: 0, conditions: [], weapons: [], armour: { corps: 0 }, skills: [], talents: [], crewIds: [] }) as unknown as Combatant;
 

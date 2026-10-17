@@ -4,6 +4,8 @@ import { FLOW_HANDLERS, FLOW_VERBS } from './rollFlowSpecs';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie, type FlowKey } from '../ui/forcedDieRow';
 import type { Combatant } from '../engine/types';
+import type { ShipManeuverParticipant } from './pendings';
+import { propulsionDuNavire } from '../engine/shipBuild';
 import { cascadeDeTest } from './cascadeTestKit';
 
 /**
@@ -49,8 +51,8 @@ interface Fixture {
   read: () => { roll: number | undefined; success: boolean | undefined };
 }
 const P = <T2,>(k: string): T2 => (useGame.getState() as unknown as Record<string, T2>)[k];
-/** Participant générique d'un flux MULTI (jet à 3 champs). */
-const part3 = (id = 'H') => ({ id, roleId: 'mousse', interactive: true, cumul: 0, result: { roll: 88, target: T, sl: -4 } });
+/** Participant d'un Test d'équipage (jet à 3 champs) ; Compétence de Navigation par `propulsionDuNavire` (MDG 13 l.18-19). */
+const part3 = (id = 'H'): ShipManeuverParticipant => ({ id, roleId: 'mousse', essential: false, interactive: true, cumul: false, navigation: propulsionDuNavire('cogue', undefined, 'maritime')!.competence, result: { roll: 88, target: T, sl: -4 } });
 /** Jet à PLAT sur le pending. */
 const flatRead = (k: string) => () => ({ roll: P<{ roll: number }>(k).roll, success: P<{ success: boolean }>(k).success });
 /** Jet rangé sous `result`. */

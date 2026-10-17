@@ -27,6 +27,7 @@ import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFacto
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -284,14 +285,29 @@ export interface PendingStateRecovery {
   success: boolean;
   rerolled?: boolean;
 }
-/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (marchand).
- *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance ; gagner réduit le prix de 10 %
- *  (20 % avec Succès Stupéfiant DR≥6 ou le talent Négociateur). 1 jet verrouillé par visite. */
+/** Ce que le Marchandage négocie : les prix d'un marchand (achat ou vente, LDB 59 l.43), ou un
+ *  billet de passage (EDO 01 l.142), avec le titre de sa modale. La confirmation
+ *  (`merchantFlow.bargainConfirm`) y aiguille l'issue. */
+export type ContrepartieDeMarchandage = { titre: PlayerText } & (
+  | { kind: 'marchand'; mode: 'buy' | 'sell' }
+  | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
+);
+
+/** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
+ *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
+export interface OpposantDeMarchandage {
+  label: string;
+  valeur: number;
+  portrait?: Combatant;
+}
+
+/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (opposant).
+ *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
   playerName: string;
-  merchantName: string;
-  merchantValue: number; // valeur Marchandage du marchand (opposant)
+  contrepartie: ContrepartieDeMarchandage;
+  opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)
   /** SOUTIEN (LDB 12) des conseillers du groupe, déjà fondu dans `playerSkill` — porté pour l'affichage. */
   support?: SupportDetail;
@@ -301,12 +317,11 @@ export interface PendingBargain {
    *  `playerSkill` : celle-ci porte le Soutien et TOUS les modificateurs de la valeur de Test
    *  (inventaire exhaustif : `skills.testValueParts`). */
   playerBase: number;
-  mode: 'buy' | 'sell';
-  /** Le négociateur possède-t-il le talent Négociateur (−20 % même sans Succès Stupéfiant) ? */
+  /** Le négociateur possède-t-il le talent Négociateur (LDB 10 l.818) ? */
   negotiator: boolean;
   /** Jet du joueur ; null tant que pas lancé (Chance possible ensuite). */
   roll: TestResult | null;
-  /** Jet du marchand, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
+  /** Jet de l'opposant, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
   merchantRoll: TestResult | null;
   /** Résultat opposé (joueur = attaquant). */
   result: OpposedResult | null;
@@ -596,6 +611,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
   essential: boolean;
   /** Marin déjà engagé dans un AUTRE Test d'équipage ce Round → cumul à +2 crans de Difficulté (Manque de bras, l.53). */
   cumul?: boolean;
+  /** Compétence de Navigation du navire (`propulsionDuNavire().competence`), posée à la construction :
+   *  spécialise la Compétence du rôle (`competencesDuRole`, MDG 13 l.18-19). */
+  navigation: RefDesignee;
   /** Sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie du phare, MDG 13 l.337 — visuel), posé
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
    *  `'phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
@@ -928,14 +946,20 @@ export interface ToucheDeProjectile {
  *    les tireurs suivants passent après ce tir, fenêtre de défense comprise (#997). `faits` = les
  *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
- *    l'attaquant, frappe du Maniement de deux armes.
+ *    l'attaquant, frappe du Maniement de deux armes ;
+ *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
+  | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' };
+
+/** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
+ *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
+export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; res: AttackResult }[] }
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles
  *  déjà frappées, enchaînements consommés, borne BCC, mode (Taille vs Frappe Mortelle). */
@@ -1390,6 +1414,17 @@ export interface PendingForceDoor extends MultiPending<ForceDoorParticipant> {
   doorBmax: number; // Blessures initiales (jauge)
   /** Flag de scène posé quand la porte cède (ouverture en jeu) — optionnel. */
   flag?: string;
+  /** SUITE du Flow qui a ouvert l'enfoncement (Effet `forceDoor`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
+}
+
+/** DÉSIGNATION d'un héros pour l'état de campagne `etat` (Effet `designerHeros`, EDO 02 l.91) : décision
+ *  de GROUPE, non annulable, refermée par `designerHerosChoisir` qui rejoue `suite`. `invite` = la prose
+ *  de l'Effet affichée par la modale. */
+export interface PendingDesignationHeros {
+  etat: string;
+  invite?: string;
+  suite?: Flow;
 }
 
 /** UN dé du lot d'étal : une rangée POSABLE, sans acteur — c'est le MONDE qui le lance. `value` est
@@ -1448,6 +1483,8 @@ export interface PendingExtendedTest extends PendingBase {
   outcome?: { kind: string; meta?: CascadeStepMeta };
   /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
   stake?: StakeRef;
+  /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
 }
 
 /** Paramètres SÉRIALISABLES de la conséquence d'une étape (jamais de closure — coop : le pending est

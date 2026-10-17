@@ -161,17 +161,6 @@
   "navBaseDifficulty": "intermediaire",
   "tackDifficulty": "accessible",
   "savoirVoiesFluvialesDR": 1,
-  "rowingAgility": {
-    "difficulty": "intermediaire",
-    "failSpeedPct": -20,
-    "spectacularSL": -6,
-    "spectacularSpeedFactor": 0.5,
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
-      "note": "ch.5 « Navigation fluviale » — RÈGLES DE NAVIGATION, Test d’Agilité pour la Voile (l.17)."
-    }
-  },
   "capsize": {
     "removeSailDifficulty": "accessible",
     "rightDifficulty": "accessible",

@@ -8,6 +8,10 @@ import { findCrewRoleById, findSeaShantyById } from '../data';
 import { rollCrewRole } from './shipManeuver';
 import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from './shipCrew';
 import { makeRNG } from '../engine/dice';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 import { jete } from '../engine/tests.testkit';
 import type { Combatant, SkillInstance } from '../engine/types';
 
@@ -26,11 +30,11 @@ const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
 
 describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
   it('crewTestMod +10 (« Naviguons tous ensemble », MDG 09 l.224) → crewRoleValue du marin +10', () => {
-    const c = mk('m1', { skills: [{ id: 'voile', characteristic: 'agilite', advances: 20 } as SkillInstance] });
-    const base = crewRoleValue(c, findCrewRoleById('timonier')!).value!;
+    const c = mk('m1', { skills: [{ id: 'voile', spec: 'cogue', characteristic: 'agilite', advances: 20 } as SkillInstance] });
+    const base = crewRoleValue(c, findCrewRoleById('timonier')!, NAVIGATION).value!;
     applyOps(c, [{ op: 'crewTestMod', mod: 10 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(crewTestModOf(c)).toBe(10);
-    expect(crewRoleValue(c, findCrewRoleById('timonier')!).value).toBe(base + 10);
+    expect(crewRoleValue(c, findCrewRoleById('timonier')!, NAVIGATION).value).toBe(base + 10);
   });
 
   it('skillDRBonus appliqué (« Jacques Bret », l.228) → lu par le lecteur skillDRBonus (effets actifs)', () => {
@@ -174,18 +178,18 @@ describe('Commandant émérite (MDG 09 l.50-54) — +niveau DR aux Tests d’éq
   });
 
   it('crewTalentDR : +niveau pour le rôle Capitaine (Commandement) ; 0 pour un rôle sans Talent', () => {
-    expect(crewTalentDR(cap(2), findCrewRoleById('capitaine')!)).toBe(2);
-    expect(crewTalentDR(cap(2), findCrewRoleById('mousse')!)).toBe(0); // le Talent vise Commandement
-    expect(crewTalentDR(marin(), findCrewRoleById('capitaine')!)).toBe(0);
+    expect(crewTalentDR(cap(2), findCrewRoleById('capitaine')!, NAVIGATION)).toBe(2);
+    expect(crewTalentDR(cap(2), findCrewRoleById('mousse')!, NAVIGATION)).toBe(0); // le Talent vise Commandement
+    expect(crewTalentDR(marin(), findCrewRoleById('capitaine')!, NAVIGATION)).toBe(0);
   });
 
   it('rollCrewRole : le +DR ne s’applique QUE sur un jet RÉUSSI (règle LDB 10 l.19)', () => {
     // valeur 80 : succès quasi garanti avec ce seed ; on vérifie sl = DR de base + niveau.
     const c = cap(3);
     c.characteristics.sociabilite = 80;
-    const withTalent = jete(rollCrewRole(c, 'capitaine', makeRNG(11))!.result);
+    const withTalent = jete(rollCrewRole(c, 'capitaine', NAVIGATION, makeRNG(11))!.result);
     const sans = { ...c, talents: [] } as Combatant;
-    const without = jete(rollCrewRole(sans, 'capitaine', makeRNG(11))!.result);
+    const without = jete(rollCrewRole(sans, 'capitaine', NAVIGATION, makeRNG(11))!.result);
     expect(withTalent.roll).toBe(without.roll); // même dé (même seed)
     if (withTalent.roll <= withTalent.target) expect(withTalent.sl).toBe(without.sl + 3);
     else expect(withTalent.sl).toBe(without.sl); // raté → pas de bonus

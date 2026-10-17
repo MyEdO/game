@@ -254,8 +254,8 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
     caps: { forced: true },
     resolve: (_s, r, actor, _get, forced) => {
       if (!actor || refusSansJet(r) != null) return null; // LDB 09 l.30 ; #2588 Q1
-      if (!forced) return rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
-      const rr = forceCrewRole(actor, r.roleId, r.cumul, r.sense);
+      if (!forced) return rollCrewRole(actor, r.roleId, r.navigation, battleRng(), r.cumul, r.sense);
+      const rr = forceCrewRole(actor, r.roleId, r.navigation, r.cumul, r.sense);
       return rr ? { result: rr } : null;
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
@@ -1999,7 +1999,7 @@ export const FLOWS = {
     lens: flatRollLens((p) => p.target),
   }),
 
-  /** Marchandage (LDB 59 l.43) : Test OPPOSÉ joueur vs marchand — le marchand garde son jet figé. */
+  /** Marchandage (LDB 59 l.43) : Test OPPOSÉ joueur vs opposant (marchand, vendeur de billet) — l'opposant garde son jet figé. */
   bargain: makeRollFlow<PendingBargain>({
     key: 'pendingBargain',
     // ISSUE au goulot (`apply`) — canal NARRATIF : `bargainConfirm` acquitte, il ne compose plus sa ligne.
@@ -2034,9 +2034,9 @@ export const FLOWS = {
         return { roll: player, result: { ...result, winner: 'attacker' as const, attackerWins: true, netSL: Math.max(1, result.netSL), decidedBy: 'force' as const } };
       }
       const player = bargainPlayerTR(p, rollTest(p.playerSkill, 'intermediaire'));
-      // `merchantValue` = valeur NUE du marchand (archétype tiré, aucun modificateur) — grandeur du
-      // départage à DR égal (LDB 12 l.160), face à la nue du joueur posée par `bargainPlayerTR`.
-      const merchant = { ...rollTest(p.merchantValue, 'intermediaire'), base: p.merchantValue };
+      // `opposant.valeur` = valeur NUE de l'opposant (aucun modificateur) — grandeur du départage à DR
+      // égal (LDB 12 l.160), face à la nue du joueur posée par `bargainPlayerTR`.
+      const merchant = { ...rollTest(p.opposant.valeur, 'intermediaire'), base: p.opposant.valeur };
       return { roll: player, merchantRoll: merchant, result: resolveOpposed(player, merchant) };
     },
     reresolve: (_s, p) => {

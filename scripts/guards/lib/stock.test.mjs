@@ -7,7 +7,7 @@
 // sont tenus par `src/stock-primitive.test.ts` (vitest).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cleDeSite, ecartDuVolet, estEntreeDeSite, estNeuveOuAccrue, naissanceDu, phraseDeNaissance, refusDeCroissance, sitesEnEntrees, survieDeLecheance } from './stock.mjs'
+import { cleDeContenu, cleDeSite, ecartDuVolet, estEntreeDeSite, estNeuveOuAccrue, lignesDuContenu, naissanceDu, phraseDeNaissance, refusDeCroissance, SEPARATEUR_DE_CLE, sitesEnEntrees, survieDeLecheance } from './stock.mjs'
 
 test('#1739 : « à la naissance » — `naissanceDu` relit ce que `phraseDeNaissance` écrit ; une famille absente rend null', () => {
   const comptes = { a: 3, 'b-c': 148 }
@@ -218,4 +218,13 @@ test('estEntreeDeSite : vrai sur chaque entrée que rend `sitesEnEntrees`, avec 
   for (const e of [...sitesEnEntrees(sites), ...sitesEnEntrees(sites.map((s) => ({ famille: 'f', ...s })))]) assert.equal(estEntreeDeSite(e), true, JSON.stringify(e))
   assert.equal(estEntreeDeSite({ fichier: 'src/a.ts', ref: 'r', occurrence: 0 }), false, 'occurrence ≥ 1')
   assert.equal(estEntreeDeSite({ fichier: 'src/a.ts', ref: 'r', occurrence: 1, famille: 2 }), false, 'famille : chaîne ou absente')
+})
+
+test('cleDeContenu / lignesDuContenu : la clé suit le texte, jamais la position ; péremption et ambiguïté se comptent', () => {
+  const text = '  // a\n// b\r\n// a\n'
+  const cle = cleDeContenu('x.mjs', text, 2)
+  assert.equal(cle, `x.mjs${SEPARATEUR_DE_CLE}// b`)
+  assert.deepEqual(lignesDuContenu('x.mjs', `\n${text}`, cle), [3])
+  assert.deepEqual(lignesDuContenu('x.mjs', text, cleDeContenu('x.mjs', text, 1)), [1, 3], 'ambiguë')
+  assert.deepEqual(lignesDuContenu('x.mjs', text, `x.mjs${SEPARATEUR_DE_CLE}// c`), [], 'périmée')
 })

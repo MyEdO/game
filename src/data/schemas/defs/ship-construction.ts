@@ -2,13 +2,11 @@ import { nommerChamps } from '../grammaire/meta';
 /** MDG 12 l.108-193 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { ecartsDeCouverture, plageOuverteSchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, plageOuverteSchema, profilDePropulsionSchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle, marquerCollection, marqueDeListe } from '../grammaire/collection-cle';
 
 export const file = 'ship-construction.json';
 export const famille = 'config';
-
-const propulsionRow = nommerChamps(z.strictObject({ m: z.number(), crew: z.number() }), { m: { label: 'Mouvement' }, crew: { label: 'Équipage' } });
 
 const champs = {
   standard: marquerCollection(
@@ -20,8 +18,8 @@ const champs = {
         costGold: z.number(),
         crew: z.number(),
         /** Absent pour les catégories non propulsables à la voile/à la rame (l.133). */
-        sail: propulsionRow.optional(),
-        oars: propulsionRow.optional(),
+        sail: profilDePropulsionSchema.optional(),
+        oars: profilDePropulsionSchema.optional(),
         /** Colonne « Taille » du tableau standard (l.122-129), en mètres : une FOURCHETTE `{min, max}`
          *  que `findTableEntry` (`src/engine/tables.ts`) lit. La dernière bande est OUVERTE — le livre
          *  imprime « 81+ » (l.129) et aucun plafond (`plageOuverteSchema`). */

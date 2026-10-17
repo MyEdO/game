@@ -47,7 +47,7 @@ const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
 
 /** Coque d'un véhicule RÉEL. `upgrades` = Améliorations d'INSTANCE (le nid-de-pie s'achète, MDG 12 l.299). */
 const coque = (vehicleId: string, upgrades: { id: string }[] = []): Combatant =>
-  ({ id: 'hull', creatureId: vehicleId, upgrades } as unknown as Combatant);
+  ({ id: 'hull', bodyShape: 'vehicule', creatureId: vehicleId, upgrades } as unknown as Combatant);
 
 /** Une rangée RÉELLE du gréement, tirée par le producteur avec son dé FORCÉ — jamais un littéral. */
 const rangee = (min: number) => rollShipCritical('greement', makeRNG(1), min, SHIP_CRIT_SET);

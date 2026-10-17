@@ -6,10 +6,23 @@
  */
 import { SL_ASTOUNDING } from './tests';
 
-/** Facteur appliqué au prix d'ACHAT : perdu = 1 (plein), gagné = 0.9, gagné fort (DR≥6 ou Négociateur) = 0.8. */
+/** Issue d'un Test opposé de Marchandage, vue de l'acheteur (LDB 59 l.43). */
+export interface BargainOutcome {
+  won: boolean;
+  /** DR net de l'Opposé. */
+  drNet: number;
+  negotiator: boolean;
+}
+
+/** Remise d'ACHAT en points de pourcentage : LDB 59 l.43 ; Succès Stupéfiant au DR net, LDB 12 l.107. */
+export function bargainBuyDiscountPct(won: boolean, drNet: number, negotiator: boolean): number {
+  if (!won) return 0;
+  return drNet >= SL_ASTOUNDING || negotiator ? 20 : 10;
+}
+
+/** Facteur appliqué au prix d'ACHAT : `1 − bargainBuyDiscountPct / 100`. */
 export function bargainBuyFactor(won: boolean, drNet: number, negotiator: boolean): number {
-  if (!won) return 1;
-  return drNet >= SL_ASTOUNDING || negotiator ? 0.8 : 0.9; // DR net Stupéfiant (LDB 12 l.107)
+  return (100 - bargainBuyDiscountPct(won, drNet, negotiator)) / 100;
 }
 
 /** Facteur appliqué à la base de VENTE (½ du listé) : gagné = 1 (½ plein), perdu = 0.5 (→ ¼). */

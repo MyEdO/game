@@ -7,20 +7,11 @@
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
 import { basename, dirname } from 'node:path'
+import { NAISSANCE_ABSENTE, creationMemorisee, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
 export const PREFIXE_JETON_VERROU = 'WFRP_VERROU_'
-
-/** Ce PID tourne-t-il ? `process.kill(pid, 0)` ne tue rien : il teste l'existence. */
-export function estPidVivant(pid) {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /** Message de refus : ce que le verrou garde (`libelle`), qui le tient, et les deux sorties. */
 export function refusVerrou({ chemin, tenant, libelle }) {
@@ -132,18 +123,11 @@ function etapesDePrise({
  */
 function vivantSelon({ estVivant, identite, horloge }) {
   if (!identite) return (/** @type {Tenant} */ tenant) => estVivant(tenant.pid)
-  /** @type {Map<string | undefined, { vivant: boolean, instant: number }>} */
-  const vus = new Map()
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
-    if (!estVivant(tenant.pid)) return false
-    if (!Number.isFinite(tenant.creation)) return true
-    const vu = vus.get(brut)
-    if (vu && horloge() - vu.instant < identite.pasMs) return vu.vivant
-    const mesure = identite.lireCreation(tenant.pid)
-    const vivant = mesure === null || mesure <= /** @type {number} */ (tenant.creation) + identite.toleranceMs
-    vus.set(brut, { vivant, instant: horloge() })
-    return vivant
-  }
+  const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs, horloge })
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
+    toleranceMs: identite.toleranceMs,
+    lireCreation: (pid) => lire(pid, brut),
+  }, { estVivant })
 }
 
 /** La clé du tenant d'un essai : sa `generation`, à défaut son texte. */
@@ -323,6 +307,9 @@ function tenantDuTexte(brut) {
 
 /** Le tenant que porte le verrou `chemin`, `null` s'il est absent, illisible ou sans PID. @param {string} chemin */
 export const tenantDe = (chemin) => tenantDuTexte(lireBrut(fsReel, chemin))
+
+/** La naissance du PID d'un tenant : sa `creation`, `NAISSANCE_ABSENTE` pour un tenant pris sans `identite` (#2603). PURE. @param {Tenant} tenant */
+export const naissanceDuTenant = (tenant) => tenant.creation ?? NAISSANCE_ABSENTE
 
 /** L'âge (s) d'un tenant à l'`horloge`, `null` sans date lisible. PURE. */
 export const ageDe = (tenant, horloge) => {

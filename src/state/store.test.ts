@@ -33,6 +33,7 @@ import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from '.
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { OPS_DIFFEREES } from './combatEffects';
+import { t } from '../i18n';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -3511,7 +3512,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const pb = useGame.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('bargainConfirm : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
@@ -3530,7 +3531,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().startBargain('buy'); // achat déjà négocié → no-op
     expect(useGame.getState().pendingBargain).toBeNull();
     useGame.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(useGame.getState().pendingBargain?.mode).toBe('sell');
+    expect(useGame.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
   it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {

@@ -73,7 +73,6 @@ const DATA = riverNavJson as unknown as {
   navBaseDifficulty: Difficulty;
   tackDifficulty: Difficulty;
   savoirVoiesFluvialesDR: number;
-  rowingAgility: { difficulty: Difficulty; failSpeedPct: number; spectacularSL: number; spectacularSpeedFactor: number };
   capsize: { removeSailDifficulty: Difficulty; rightDifficulty: Difficulty; rightCumulativePenalty: number };
   outOfControl: { navPenalty: number };
   echouage: { hullDamage: number };
@@ -132,15 +131,6 @@ export function savoirVoiesFluvialesBonus(c: Combatant): number {
 export function riverControlKept(navSuccess: boolean, navSL: number, savoirBonus: number): boolean {
   return navSuccess || (savoirBonus > 0 && navSL + savoirBonus >= 0);
 }
-
-/** Facteur de vitesse du **Test d'Agilité** de rame du jour (l.17) : réussite → 1 ; échec → 1 + failSpeedPct
- *  (−20 % → 0,8) ; Échec spectaculaire (DR ≤ −6) → spectacularSpeedFactor (÷2 → 0,5). PUR. */
-export function rowingAgilityFactor(success: boolean, sl: number): number {
-  if (success) return 1;
-  if (sl <= DATA.rowingAgility.spectacularSL) return DATA.rowingAgility.spectacularSpeedFactor;
-  return 1 + DATA.rowingAgility.failSpeedPct / 100;
-}
-export const rowingAgilityDifficulty = (): Difficulty => DATA.rowingAgility.difficulty;
 
 /** Km parcourus dans la JOURNÉE : distance de base (barge M × heures, EDOC — l.15) modulée par l'effet du
  *  vent (% l.29-33) et le facteur d'Agilité (l.17). Plancher 0. PUR. */

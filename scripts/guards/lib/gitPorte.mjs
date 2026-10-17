@@ -38,10 +38,11 @@
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
+import { natureDuChemin } from './natureDuChemin.mjs'
 import { MARQUE_RACINE_MESUREE, normaliserRequeteMesuree, porteUnControle, verifierRequeteMesuree } from './requeteMesuree.mjs'
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
@@ -217,21 +218,6 @@ function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSyn
     attendre(BACKOFFS_MS[essai])
   }
 }
-
-/**
- * Ce qu'un chemin EST pour un `cwd` de sous-processus : `'repertoire'`, `'fichier'` (tout nœud qui
- * n'est pas un répertoire) ou `'absent'`. SOURCE UNIQUE de la question « ce chemin peut-il servir de
- * cwd ? ».
- * @param {string} chemin @returns {'repertoire'|'fichier'|'absent'}
- */
-export function natureDuChemin(chemin) {
-  const vu = statSync(chemin, { throwIfNoEntry: false })
-  if (!vu) return 'absent'
-  return vu.isDirectory() ? 'repertoire' : 'fichier'
-}
-
-/** `true` si `chemin` est un RÉPERTOIRE existant — le seul chemin utilisable comme `cwd`. */
-export const estRepertoire = (chemin) => natureDuChemin(chemin) === 'repertoire'
 
 /**
  * Un SPAWN QUI N'A PAS DÉMARRÉ (`error` posé, `status` nul) : TROIS causes, que le message de node

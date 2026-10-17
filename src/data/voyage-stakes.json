@@ -13,19 +13,6 @@
     "rule": "navigation-greement"
   },
   {
-    "id": "river-agility",
-    "type": "voyage-stakes",
-    "label": "Agilité de rame",
-    "kind": "riverAgility",
-    "template": "Échec : vitesse −{failPct} % aujourd’hui ; Échec spectaculaire : vitesse ÷{spectacularDiv}.",
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 28,
-      "note": "MSRC 7 l.17"
-    },
-    "rule": "navigation-agilite-de-rame"
-  },
-  {
     "id": "river-nav",
     "type": "voyage-stakes",
     "label": "Navigation de l’étape",

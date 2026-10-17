@@ -7,6 +7,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { RACINE } from '../hooks/barriere-outil.mjs'
 import { journalDe } from '../git-hooks/journal.mjs'
+import { estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { par, quantile } from './cachePromptAnalyses.mjs'
 
 /** @typedef {{ de: number, a: number }} Fenetre bornes en ms epoch, `de` = -Infinity si l'entrée en veille précède la lecture */
@@ -53,12 +55,14 @@ export function runsDuJournal(entrees, depuis = -Infinity) {
 const resume = (xs) => ({ p50: quantile(xs, 0.5), p90: quantile(xs, 0.9), max: xs.length ? Math.max(...xs) : null })
 
 /**
- * Par hook : n, mur et hors veille (p50, p90, max, ms), tués (ouverts dont le processus n'est pas `vivant`). PURE.
- * @param {ReturnType<typeof runsDuJournal>} runs @param {Fenetre[]} fenetres @param {(pid: number) => boolean} vivant
+ * Par hook : n, mur et hors veille (p50, p90, max, ms), tués (ouverts dont le processus, né à son `debut`, ne vit
+ * plus sous `identite`, #2603). PURE hors de `estVivant` et `identite`.
+ * @param {ReturnType<typeof runsDuJournal>} runs @param {Fenetre[]} fenetres
+ * @param {{ estVivant: (pid: number) => boolean, identite: typeof IDENTITE_MESUREE }} juge
  */
-export function statistiques({ termines, ouverts }, fenetres, vivant) {
+export function statistiques({ termines, ouverts }, fenetres, { estVivant, identite }) {
   const parHook = par(termines, (r) => r.hook)
-  const tues = par(ouverts.filter((r) => !vivant(r.pid)), (r) => r.hook)
+  const tues = par(ouverts.filter((r) => !estPidVivantDepuis(r.pid, Date.parse(r.debut), identite, { estVivant })), (r) => r.hook)
   return [...new Set([...parHook.keys(), ...tues.keys()])].sort().map((hook) => {
     const runs = parHook.get(hook) ?? []
     return {
@@ -69,16 +73,6 @@ export function statistiques({ termines, ouverts }, fenetres, vivant) {
       tues: tues.get(hook)?.length ?? 0,
     }
   })
-}
-
-/** Le processus `pid` existe-t-il ? */
-function processusVivant(pid) {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e.code === 'EPERM'
-  }
 }
 
 /** Les événements 506/507 du journal System depuis `depuis` (ms epoch), une lecture ; hors win32, aucun. */
@@ -112,11 +106,11 @@ const USAGE = 'usage : npm run ops:journal-hooks [-- --arbre <racine>] [--depuis
  * Le geste entier de la ligne de commande, ses lectures injectables. Rend le code de sortie.
  * @param {{ argv: string[], ecrire?: (texte: string) => void, erreur?: (texte: string) => void, journal?: typeof journalDe,
  *   lire?: (chemin: string) => string, veille?: (depuis: number) => { id: number, t: number }[], vivant?: (pid: number) => boolean,
- *   maintenant?: () => number }} p
+ *   identite?: typeof IDENTITE_MESUREE, maintenant?: () => number }} p
  */
 export function executer({
   argv, ecrire = (texte) => process.stdout.write(texte), erreur = (texte) => process.stderr.write(texte), journal = journalDe,
-  lire = lireSurDisque, veille = evenementsDeVeille, vivant = processusVivant, maintenant = Date.now,
+  lire = lireSurDisque, veille = evenementsDeVeille, vivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now,
 }) {
   let values
   try {
@@ -138,7 +132,7 @@ export function executer({
   const runs = runsDuJournal(entreesDe(lire(chemin)), depuis)
   const debuts = [...runs.termines, ...runs.ouverts].map((r) => Date.parse(r.debut))
   const fenetres = fenetresDeVeille(debuts.length ? veille(Math.min(...debuts)) : [], maintenant())
-  const stats = statistiques(runs, fenetres, vivant)
+  const stats = statistiques(runs, fenetres, { estVivant: vivant, identite })
   if (values.json) {
     const bornes = fenetres.map(({ de, a }) => ({ de: Number.isFinite(de) ? new Date(de).toISOString() : null, a: new Date(a).toISOString() }))
     ecrire(`${JSON.stringify({ journal: chemin, fenetres: bornes, hooks: stats })}\n`)

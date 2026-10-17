@@ -14,14 +14,14 @@
  *    LDB 63 « Impénétrable » `critImmuneOdd` : ici c'est un Trait `impenetrable-structure`).
  *  - **Bélier** (ADE II 08 l.249) : « n'infligent des dégâts qu'aux portes » — capacité de qualité `ram`.
  *
- * Module FEUILLE : n'importe QUE `qualities/dispatch` (caps de l'arme) + `capabilities` (caps de la cible) +
- * la donnée/`items` (le BUILDER), JAMAIS `combat`/`ops` → aucun cycle (`woundsCalc` peut le greffer).
+ * N'importe JAMAIS `combat`/`ops` (`woundsCalc` peut le greffer).
  */
 import type { Combatant, Weapon, StructureData } from './types';
 import { resolveQualities } from './qualities/dispatch';
 import { hasCapability } from './capabilities';
 import { findStructureById } from '../data';
 import { inanimateCombatant } from './inanimate';
+import { isVehicle } from './coque';
 import { chebyshev } from './grid';
 import { sizeGap, type SizeCategory } from './size';
 
@@ -57,11 +57,10 @@ export function isDoorEdgeStructure(s: StructureData): boolean {
 /** Cette cible est-elle un OBJET INANIMÉ (pas une créature) — STRUCTURE de siège (ADE II 8), VÉHICULE-coque
  *  (navire/chariot/barge, MDG) ou pièce SERVIE explicitement inerte (`inert`, ex. un affût d'artillerie) ? Source
  *  UNIQUE et NOMMÉE du « c'est un objet » : aucune réaction de combat (ni Parade/Esquive, ni Localisation, ni
- *  Engagement). Le littéral `'vehicule'` est INLINÉ à dessein : importer `isVehicle` créerait un cycle
- *  `structures → vehicle → ops → woundsCalc → structures`. La DESTRUCTION reste, elle, par-type (Siège ×2 propre
- *  aux structures, Critiques navals propres aux véhicules) → garder `isStructure`/`isVehicle` à ces sites-là. */
+ *  Engagement). La DESTRUCTION reste, elle, par-type (Siège ×2 propre aux structures, Critiques navals propres
+ *  aux véhicules) → garder `isStructure`/`isVehicle` à ces sites-là. */
 export function isInanimate(c: Pick<Combatant, 'bodyShape' | 'inert'>): boolean {
-  return isStructure(c) || c.bodyShape === 'vehicule' || !!c.inert;
+  return isStructure(c) || isVehicle(c) || !!c.inert;
 }
 
 /** L'arme porte-t-elle la capacité de qualité `cap` (`siege`/`ram`) ? Lue dans la DONNÉE (`qualities.json`)

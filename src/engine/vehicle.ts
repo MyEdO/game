@@ -1,15 +1,12 @@
 /**
- * Véhicule-à-coque comme `Combatant` (le cœur du modèle unifié terre/fleuve/mer) — module FEUILLE.
+ * Véhicule-à-coque comme `Combatant` (le cœur du modèle unifié terre/fleuve/mer).
  *
  * Un véhicule (`vehicles.json`, facette `hull`) devient une entité À PV : il encaisse des Dégâts
  * exactement comme une créature (langue UNIQUE `GameOp`/`applyOps`). Les montures restent, elles, des
  * créatures (`creatures.json`) ; ce module ne couvre que les coques inertes (chariots, barges, navires).
  *
- * RAW (EDOC 7) : un Problème de véhicule « Cassé »/« Accident » inflige « immédiatement Nd10 points
- * de Dégâts, modifiés avec le Bonus d'Endurance jusqu'à un minimum de 1 » à la coque (l.266-286). Les
- * tables de Localisation/Critiques de la coque (`hull.locationTable`/`criticalTable`) vivent en
- * données ; aucun chemin de résolution ne les lit (#673 volet localisations, bloqué par l'extraction
- * #678) — ici, seul le total de PV de la coque joue.
+ * Problème de véhicule : EDOC 7 l.266-286. Tables de Localisation/Critiques de la coque
+ * (`hull.locationTable`/`criticalTable`) : lues par `./shipCritical`.
  *
  * Deux formes de retour cohabitent dans ce module : les résolveurs rendent une STRUCTURE nue
  * (`forcedPaceCheck`, `forcedPaceBeastCheck`, `repairVehicleAttempt` — aucun texte), tandis
@@ -23,13 +20,6 @@ import { inanimateCombatant } from './inanimate';
 import { rollVehicleProblem, type TravelTableEntry } from './travelTables';
 import { rollTest, isImpressiveFailure, isAstoundingFailure, type TestResult } from './tests';
 import { COND } from './conditions';
-
-/** Ce combattant est-il un VÉHICULE-coque (navire, chariot, barge) — `bodyShape:'vehicule'` ? Prédicat NOMMÉ
- *  (source UNIQUE — jamais un littéral `'vehicule'` dispersé) : un véhicule agit en UNITÉ (Tests d'équipage) ; il
- *  n'a ni arme tenue, ni sort, ni marche de fantassin → les barres/chemins « héros-attaquant » doivent l'ignorer. */
-export function isVehicle(c: Pick<Combatant, 'bodyShape'>): boolean {
-  return c.bodyShape === 'vehicule';
-}
 
 /** Adaptateur de `inanimateCombatant` (builder UNIQUE des objets inanimés) pour une coque de véhicule
  *  depuis sa facette `hull` (Endurance + Blessures). `undefined` si le véhicule n'a pas de profil de coque

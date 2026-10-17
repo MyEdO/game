@@ -12,7 +12,8 @@ import {
 } from '../guards/lib/contratGarde.mjs'
 import { normaliserPatchCodex, resoudreCheminPatchCodex } from '../guards/lib/patchCodex.mjs'
 import { racineNpmDe, sousRacineNpm } from '../guards/lib/racineNpm.mjs'
-import { arbrePrincipal, depotDe, estRepertoire } from '../guards/lib/gitPorte.mjs'
+import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
+import { estRepertoire } from '../guards/lib/natureDuChemin.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import {
   NOM_NON_LITTERAL, affectationsDEnvironnement, canauxDesMessages, cibleDeLaCommande, commandeDeLecture, configsGitDeLaCommande, gitSubcommand,

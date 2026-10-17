@@ -185,7 +185,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
   });
 
   it('bourse insuffisante → voyage refusé', () => {
-    setup(map({ modes: ['diligence'], prices: { diligence: 100 } })); // 1200 PA ≫ 60 PA
+    setup(map({ km: 600, modes: ['diligence'] })); // Intérieur 2 sous/km × 600 km = 1200 PA ≫ 60 PA
     useGame.getState().startTravel('r1', 'diligence', { classeId: 'interieur' });
     const st = useGame.getState();
     expect(st.scene?.id).toBe('lieu-a-scene'); // pas parti
@@ -702,7 +702,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     let problem = false;
     for (let seed = 1; seed <= 30 && !problem; seed++) {
       seedBattleRng(seed);
-      setup(map({ km: 30, modes: ['diligence'], prices: { diligence: 1 } }));
+      setup(map({ km: 30, modes: ['diligence'] }));
       useGame.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)
       const st = useGame.getState();
@@ -721,7 +721,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     let lame = false;
     for (let seed = 1; seed <= 60 && !lame; seed++) {
       seedBattleRng(seed);
-      setup(map({ km: 200, modes: ['diligence'], prices: { diligence: 1 } }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
+      setup(map({ km: 200, modes: ['diligence'] }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
       creditBourse(useGame.getState, useGame.setState, 'h', { gold: 5, silver: 0, brass: 0 });
       useGame.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)

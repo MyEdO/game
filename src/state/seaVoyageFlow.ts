@@ -52,7 +52,9 @@ import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, propulsionSkill, estCompetenceDePropulsion, STEAM_SKILL, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
+import { profilNavalDe } from '../engine/coque';
+import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
@@ -88,6 +90,7 @@ import {
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
@@ -421,9 +424,10 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
   return [t('sv.leakSpoils', { enc: r.removed })];
 }
 
-/** `propulsionDuNavire` de la COQUE `hull`, que le schéma de véhicule garantit (MDG 12 l.131). PUR. */
-function seaRig(hull: Combatant): NonNullable<ReturnType<typeof propulsionDuNavire>> {
-  return garanti(propulsionDuNavire(hull.creatureId, hull.upgrades), hull.creatureId, 'propulsion du navire');
+/** `propulsionDuNavire` MARITIME de la COQUE `hull` (au `mode` du jour d'un navire mixte), que le schéma
+ *  de véhicule garantit (MDG 12 l.131). PUR. */
+function seaRig(hull: Combatant, mode?: PropulsionKind): PropulsionDuNavire {
+  return garanti(propulsionDuNavire(hull.creatureId, hull.upgrades, 'maritime', mode), hull.creatureId, 'propulsion du navire');
 }
 
 /** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
@@ -433,7 +437,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const hull = plan.vehicle!;
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
+  const vd = profilNavalDe(hull);
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   const propulsion = seaRig(hull);
@@ -477,7 +481,8 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   const party = equipageApte(get().party);
   if (!party.length) return undefined;
   ship.crewIds = party.map((h) => h.id); // MDG 14 l.39
-  const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), opts.sense);
+  const navigation = seaRig(ship, plan.sea?.modeToday).competence;
+  const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), navigation, opts.sense);
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
   const essentialRoleId = testType?.essential;
@@ -488,7 +493,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   // `bonusSlOnSuccess` = +DR de Talent baké (Commandant émérite, MDG 09 l.54).
   const participants: BatchParticipant[] = contributors.map((a) => {
     const role = findCrewRoleById(a.roleId);
-    const rv = role ? crewRoleValue(a.crew, role, opts.sense) : undefined;
+    const rv = role ? crewRoleValue(a.crew, role, navigation, opts.sense) : undefined;
     return {
       id: a.crew.id,
       label: role?.label ?? a.roleId, // PROVENANCE affichée (rôle tenu) — jamais le libellé de LIGNE
@@ -497,7 +502,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
       interactive: true,
       essential: a.roleId === essentialRoleId,
       difficulty: 'intermediaire' as const,
-      bonusSlOnSuccess: role ? crewTalentDR(a.crew, role) : 0,
+      bonusSlOnSuccess: role ? crewTalentDR(a.crew, role, navigation) : 0,
       result: null,
       // La Compétence RÉELLEMENT tenue par le rôle (`crewRoleValue().used`) est celle qui se décompose ;
       // le modificateur de Test d'équipage des effets actifs (chanson de marin, `MDG 09 l.224`) est
@@ -552,9 +557,8 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
 
 /** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.97, LDB 09 l.30) ; `null`
  *  sinon. Le geste de départ (`WorldMapView`) et l'étape du jour en dérivent. */
-export function forcePaceRefus(party: Combatant[], rig: PropulsionKind): string | null {
-  const skillId = propulsionSkill(rig);
-  return partyBest(party, skillId) ? null : refusPersonneNePeutTenter({ skill: skillId });
+export function forcePaceRefus(party: Combatant[], competence: RefDesignee): string | null {
+  return partyBest(party, competence.id, undefined, undefined, competence.spec) ? null : refusPersonneNePeutTenter({ skill: competence.id, spec: competence.spec });
 }
 
 /** Étape MONO « Forcer le rythme » (MDG 13 l.95-107, `sea-force-pace`, applier ci-dessous) : le meilleur
@@ -570,11 +574,11 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const rig = propulsion.mode;
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
-  const refus = forcePaceRefus(get().party, rig);
+  const refus = forcePaceRefus(get().party, propulsion.competence);
   if (refus) { tell(get, set, [t('sv.paceRefus', { refus })]); return undefined; }
-  const skillId = propulsionSkill(rig);
-  const best = partyAssisted(get().party, skillId)!;
-  const test = { skill: skillId, label: t('sv.forcePace') };
+  const { id: skillId, spec } = propulsion.competence;
+  const best = partyAssisted(get().party, skillId, undefined, undefined, spec)!;
+  const test = { skill: skillId, spec, label: t('sv.forcePace') };
   return monoStep({
     id: 'sea-force-pace', kind: 'sea-force-pace', actor: best.actor, icon: 'travel/sail-ship',
     label: composeRollLabel(best.actor, t('sv.forcePace'), test),
@@ -582,17 +586,15 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
     // Le Soutien est un bonus AU TEST (LDB 12, fiche `soutien`) : la valeur SOUTENUE (`best.value`,
     // Soutien fondu par `partyAssisted`) donne la CIBLE — sans elle, la cible se recalculerait depuis
     // la carac NUE et les soutiens ne changeraient rien au jet (recette #1117).
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
+    ligne: { test: { skill: skillId, spec }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-force-pace', { paceM: sea.forcePace ?? 0 }),
     meta: { forcePace: sea.forcePace, manieurs: manieursDe(best) },
   });
 }
 
 /** Compétence des Tests de Navigation du navire du voyage (MDG 13 l.18-19, l.32). */
-function helmSkill(get: Get): { id: string; spec?: string } {
-  const plan = get().travelPlan!;
-  const propulsion = seaRig(plan.vehicle!);
-  return propulsion.mode === 'vapeur' ? STEAM_SKILL : { id: propulsionSkill(propulsion.mode) };
+function helmSkill(get: Get): RefDesignee {
+  return seaRig(get().travelPlan!.vehicle!).competence;
 }
 
 /** Étape MONO « Test de Navigation » de PROGRESSION (MDG 13 l.18-19, l.32, l.64-66 ; `helmSkill`), DR lu par
@@ -675,12 +677,8 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
   const sea = plan.sea!;
   if (!sea.milesToday || sea.effMToday == null) return undefined; // aucune Progression ce jour → rien à sanctionner (Encalminé/Affalé/Échoué)
   const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
-  // Référent M = le mode PERSISTÉ du jour (`modeToday`, navire mixte, #524) ; sans mode du jour (vapeur),
-  // la propulsion du navire (`seaRig`).
-  const baseM = sea.modeToday === 'avirons' ? vd?.oars?.m ?? 0
-    : sea.modeToday === 'voile' ? vd?.sail?.m ?? 0
-    : seaRig(hull).m;
+  // Référent M = le mode PERSISTÉ du jour (`modeToday`, navire mixte, #524).
+  const baseM = seaRig(hull, sea.modeToday).m;
   const row = overspeedRow(baseM, sea.effMToday);
   if (!row) return undefined;
   return monoStep({
@@ -1672,7 +1670,7 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
   set({ party: [...get().party] });
 
   // ÉPUISEMENT : MDG 13 l.62, l.111 ; #1595.
-  const patients = sea.modeToday ? equipageImplique(get().party, sea.manieursToday ?? []) : [];
+  const patients = sea.modeToday ? equipageImplique(get().party, sea.manieursToday ?? [], seaRig(get().travelPlan!.vehicle!, sea.modeToday).competence) : [];
   const bande = buildBand(get, {
     id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
     stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
@@ -2139,7 +2137,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   if (b.restart && eng) windowMin += Math.max(0, 5 - runRestart(get, set, eng, b.restart, rng)) * secPerRound / 60; // « 5 − DR Rounds » de mise en pression
   if (windowMin > 0) {
     const miles0 = get().travelPlan?.sea?.milesToday ?? 0;
-    const baseM = effectiveSeaM(get).m ?? 4;
+    const baseM = garanti(effectiveSeaM(get).m, get().travelPlan?.routeId, 'M du navire à vapeur');
     const speedFactor = b.mSet === 0 ? 0 : b.mMod ? Math.max(0, (baseM + b.mMod) / baseM) : 1; // vitesse pendant la fenêtre
     const miles = Math.max(0, Math.round(miles0 - miles0 * Math.min(1, windowMin / MINUTES_PER_DAY) * (1 - speedFactor)));
     if (miles !== miles0) {
