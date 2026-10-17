@@ -18,7 +18,7 @@ const get = () => useGame.getState();
 const ctx = (): ConditionCtx => ({ flags: get().flags, gameTime: get().gameTime });
 
 beforeEach(() => {
-  useGame.getState().loadProject(barge.scenes, barge.scenes[0].id, barge.worldMap, barge.narratif);
+  useGame.getState().loadProject({ scenes: barge.scenes, entryId: barge.scenes[0].id, worldMap: barge.worldMap, narratif: barge.narratif, projet: null });
 });
 
 describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, sur la donnée committée', () => {

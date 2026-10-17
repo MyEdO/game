@@ -13,7 +13,7 @@ export function poserScenario(get: Get, sc: TestScenario): ScenarioConstruit {
   if (sc.rules) for (const [id, v] of Object.entries(sc.rules)) setRule(id, v);
   const c = sc.construire();
   get().setParty(c.party);
-  if (c.extraScenes?.length || c.worldMap || c.narratif) get().loadProject([c.scene, ...(c.extraScenes ?? [])], c.scene.id, c.worldMap ?? null, c.narratif);
+  if (c.extraScenes?.length || c.worldMap || c.narratif) get().loadProject({ scenes: [c.scene, ...(c.extraScenes ?? [])], entryId: c.scene.id, worldMap: c.worldMap ?? null, narratif: c.narratif, projet: null });
   else get().startScene(c.scene);
   return c;
 }

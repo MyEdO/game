@@ -62,10 +62,11 @@ export function documentDeLEntree(p: SavedProject): unknown {
  *  écran qui la joue (« Jouer » de la bibliothèque, « Choisir » du picker de `PartyScreen`) : le
  *  document passe la porte `parseProject(documentDeLEntree(p))` — migré, validé — et un refus lève
  *  `ProjetRefuse`, laissé à l'appelant. Le `label` est celui du document PARSÉ, donc déjà celui de
- *  `documentDeLEntree` ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du picker), et une
- *  scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
+ *  `documentDeLEntree` ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du picker), `projet`
+ *  est l'id du DOCUMENT parsé (#2206), et une scène d'entrée absente du document lève `ProjetRefuse`
+ *  de cause `'entree'`. */
 export function campagneDeLEntree(p: SavedProject): NonNullable<GameState['pendingCampaign']> {
-  const { label, scenes, worldMap, activeAxes, narratif } = parseProject(documentDeLEntree(p));
+  const { id, label, scenes, worldMap, activeAxes, narratif } = parseProject(documentDeLEntree(p));
   // #1627
   if (!scenes.some((s) => s.id === p.startSceneId)) {
     throw refusDeForme('entree', ['startSceneId'], `scène de départ « ${p.startSceneId} » absente du projet`);
@@ -78,6 +79,7 @@ export function campagneDeLEntree(p: SavedProject): NonNullable<GameState['pendi
     worldMap: worldMap ?? null,
     ...(activeAxes !== undefined ? { activeAxes } : {}),
     narratif,
+    projet: { id },
   };
 }
 

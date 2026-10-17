@@ -786,13 +786,15 @@ export function Editor({
       });
       return;
     }
-    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scenesDuProjet[0].id), 'test');
+    // #2206 G2 : un projet jamais enregistré est testé sous l'id que porte son document à cet instant.
+    const doc = documentCourant(projectName, projectId ?? scenesDuProjet[0].id);
+    const refus = refusDeLaPorte(doc, 'test');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_TEST, ...refus });
       return;
     }
     setRefusDuGeste(null);
-    loadProject(scenesDuProjet, scene.id, worldMap, narratif);
+    loadProject({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {

@@ -103,7 +103,7 @@ export function netSnapshot(get: Get): Record<string, unknown> {
   );
   const pc = (data as { pendingCampaign?: GameState['pendingCampaign'] }).pendingCampaign;
   const stub: GameState['pendingCampaign'] = pc
-    ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null }
+    ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null, projet: pc.projet }
     : null;
   (data as Record<string, unknown>).pendingCampaign = stub;
   // L'INTENTION armée est un mode d'ÉCRAN, LOCAL au client (spec HUD zone 4) : elle ne voyage pas —

@@ -358,6 +358,19 @@ export interface CampaignDoc {
   worldMap?: import('./worldMap').WorldMap | null;
   narratif: NarratifBlock;
   startSceneId: string;
+  /** Identité du document de projet chargé : l'`id` du `ProjectDoc` PARSÉ, jamais la clé d'une entrée
+   *  de bibliothèque (#2206). `null` = scénario de test, sans document de projet. */
+  projet: { id: string } | null;
+}
+
+/** Ce que LANCE `loadProject` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
+ *  l'identité de son document (`CampaignDoc.projet`, OBLIGATOIRE : `null` déclare un scénario). */
+export interface PaquetALancer {
+  scenes: Scene[];
+  entryId: string;
+  worldMap?: import('./worldMap').WorldMap | null;
+  narratif?: NarratifBlock;
+  projet: CampaignDoc['projet'];
 }
 
 /** Déplacement-puis-interaction : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
@@ -774,15 +787,18 @@ export interface GameState extends RollFlowActionsMap {
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
-  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string; source?: SourceRef } | null;
+  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
+   *  `documentId` : l'entrée de `narratif.documents` d'où vient `text` (effet `document`) ; absent pour un
+   *  texte RUNTIME (rapport de naufrage, `shipwreck.ts`). */
+  document: { title: string; text: string; source?: SourceRef; documentId?: string } | null;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
    *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
-   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
-  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. `projet` : l'id du
+   *  DOCUMENT lancé (`CampaignDoc.projet`), distinct de `id` pour une entrée de bibliothèque (#2206). */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -937,7 +953,7 @@ export interface GameState extends RollFlowActionsMap {
   startScene: (scene: Scene, narratif?: NarratifBlock) => void;
   /** Enregistre plusieurs scènes (projet multi-scènes) puis démarre l'entrée. `worldMap` = carte du
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
-  loadProject: (scenes: Scene[], entryId: string, worldMap?: import('./worldMap').WorldMap | null, narratif?: NarratifBlock) => void;
+  loadProject: (paquet: PaquetALancer) => void;
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
@@ -2263,7 +2279,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage] }, { own: true });
   },
 
-  loadProject: (scenes, entryId, worldMap, narratif) => {
+  loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
     // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
     // résolvent leurs intérieurs), puis démarre la scène d'entrée.
     const entry = scenes.find((s) => s.id === entryId);
@@ -2279,7 +2295,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
-    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
+    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id, projet } });
   },
 
   /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).

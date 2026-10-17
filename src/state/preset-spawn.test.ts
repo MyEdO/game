@@ -84,7 +84,7 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
   it('campagne chargée : le Combatant spawné porte la carac SURCHARGÉE + le label du preset', () => {
     useGame.setState({ party: [hero()] });
     // Chemin RÉEL : loadProject pose la couche narrative ET active la scène d’entrée.
-    useGame.getState().loadProject([presetScene()], 'sc-preset', undefined, narratifFixture());
+    useGame.getState().loadProject({ scenes: [presetScene()], entryId: 'sc-preset', narratif: narratifFixture(), projet: null });
     // La résolution de couche voit la base mergée.
     const r = resolvePresetCreature('pnj-test')!;
     expect(r.creature.char[CC]).toBe(99);
@@ -134,7 +134,7 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
 describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {
   it('l’hôte et l’invité voient le MÊME PNJ à preset', () => {
     useGame.setState({ party: [hero()], campaignNarratif: null });
-    useGame.getState().loadProject([presetScene('sc-coop')], 'sc-coop', null, narratifFixture());
+    useGame.getState().loadProject({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
     expect(sceneNpc(useGame.getState().scene, 'pnj-1')?.label).toBe('Nommé Test');
 
     const snap = netSnapshot(useGame.getState);

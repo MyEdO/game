@@ -176,7 +176,7 @@ describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt
   const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 
   function entrerAuHub(): void {
-    useGame.getState().loadProject(doc.scenes, 'arene-hub', doc.worldMap, doc.narratif);
+    useGame.getState().loadProject({ scenes: doc.scenes, entryId: 'arene-hub', worldMap: doc.worldMap, narratif: doc.narratif, projet: null });
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },
       camRot: 0, camEdge: false, viewMode: undefined, povActive: false,
@@ -229,7 +229,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   }
 
   it('trigger de transition traversé touche TENUE : aucun pas AVEUGLE dans la scène d’arrivée', () => {
-    useGame.getState().loadProject([scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], 'walk-a');
+    useGame.getState().loadProject({ scenes: [scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], entryId: 'walk-a', projet: null });
     useGame.setState({ screen: 'campaign', mode: 'exploration', partyPos: { x: 5, y: 5 }, camRot: 0, camEdge: false, viewMode: undefined, povActive: false } as never);
     demarrerMarche(get, { vue: 'iso', dir: 'up' }); // 1ᵉʳ pas → (4,4) → trigger → scène B
     expect(useGame.getState().scene?.id, 'la transition doit avoir eu lieu').toBe('walk-b');

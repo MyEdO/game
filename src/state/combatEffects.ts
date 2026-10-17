@@ -1326,7 +1326,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const doc = documentById(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.set({ document: { title: doc.titre, text: doc.prose, ...(doc.source ? { source: structuredClone(doc.source) } : {}) } }); // #2097
+      env.set({ document: { title: doc.titre, text: doc.prose, documentId: doc.id, ...(doc.source ? { source: structuredClone(doc.source) } : {}) } }); // #2097
     },
   },
   revealClue: {

@@ -149,7 +149,7 @@ beforeEach(() => {
 describe('clues — câblage store (#670)', () => {
   it('applyEffects « revealClue » pose state.clues et journalise une ligne', () => {
     useGame.setState({ party: [hero()] });
-    useGame.getState().loadProject([fixtureScene('scene-a')], 'scene-a', undefined, narratif);
+    useGame.getState().loadProject({ scenes: [fixtureScene('scene-a')], entryId: 'scene-a', narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(useGame.getState().clues['ind-lettre'].stadeCourant).toBe('s1');
     expect(useGame.getState().journal.some((l) => l.includes('nouvel indice au carnet'))).toBe(true);
@@ -157,7 +157,7 @@ describe('clues — câblage store (#670)', () => {
 
   it('applyEffects « discreditClue » passe l’indice réfuté et journalise', () => {
     useGame.setState({ party: [hero()] });
-    useGame.getState().loadProject([fixtureScene('scene-b')], 'scene-b', undefined, narratif);
+    useGame.getState().loadProject({ scenes: [fixtureScene('scene-b')], entryId: 'scene-b', narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'discreditClue', indiceId: 'ind-lettre' }]);
     expect(useGame.getState().clues['ind-lettre'].statut).toBe('réfuté');
     expect(useGame.getState().journal.some((l) => l.includes('fausse piste écartée'))).toBe(true);
@@ -167,7 +167,7 @@ describe('clues — câblage store (#670)', () => {
     useGame.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-a2');
     const sceneB = fixtureScene('scene-b2');
-    useGame.getState().loadProject([sceneA, sceneB], 'scene-a2', undefined, narratif);
+    useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a2', narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(useGame.getState().clues['ind-lettre']).toBeDefined();
     useGame.getState().transitionTo('scene-b2');
@@ -177,7 +177,7 @@ describe('clues — câblage store (#670)', () => {
 
   it('nouvelle partie (startScene) REMET le carnet à vide', () => {
     useGame.setState({ party: [hero()] });
-    useGame.getState().loadProject([fixtureScene('scene-c')], 'scene-c', undefined, narratif);
+    useGame.getState().loadProject({ scenes: [fixtureScene('scene-c')], entryId: 'scene-c', narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(Object.keys(useGame.getState().clues)).toHaveLength(1);
     useGame.getState().startScene(fixtureScene('scene-d'));
@@ -186,7 +186,7 @@ describe('clues — câblage store (#670)', () => {
 
   it('toggleCluePin épingle/désépingle par l’action du store', () => {
     useGame.setState({ party: [hero()] });
-    useGame.getState().loadProject([fixtureScene('scene-e')], 'scene-e', undefined, narratif);
+    useGame.getState().loadProject({ scenes: [fixtureScene('scene-e')], entryId: 'scene-e', narratif, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     useGame.getState().toggleCluePin('ind-lettre');
     expect(useGame.getState().clues['ind-lettre'].épinglé).toBe(true);
@@ -201,7 +201,7 @@ describe('clues — câblage store (#670)', () => {
 
     it('un indice révélé+épinglé et un autre réfuté survivent à un vrai saveGame → loadGame', () => {
       useGame.setState({ party: [hero()] });
-      useGame.getState().loadProject([fixtureScene('scene-f')], 'scene-f', undefined, narratif);
+      useGame.getState().loadProject({ scenes: [fixtureScene('scene-f')], entryId: 'scene-f', narratif, projet: null });
       applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
       useGame.getState().toggleCluePin('ind-lettre');
       applyEffects(useGame.getState, useGame.setState, [{ type: 'discreditClue', indiceId: 'ind-mono' }]);
@@ -217,7 +217,7 @@ describe('clues — câblage store (#670)', () => {
 
     it('tolérance PAR CONSTRUCTION : clé « clues » absente du snapshot → valeur initiale ({}) au chargement', () => {
       useGame.setState({ party: [hero()] });
-      useGame.getState().loadProject([fixtureScene('scene-g')], 'scene-g', undefined, narratif);
+      useGame.getState().loadProject({ scenes: [fixtureScene('scene-g')], entryId: 'scene-g', narratif, projet: null });
       applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
       expect(useGame.getState().saveGame(1)).toBe(true);
       const withClues = readSlot(1)!;

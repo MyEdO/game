@@ -94,7 +94,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     useGame.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-a');
     const sceneB = fixtureScene('scene-b');
-    useGame.getState().loadProject([sceneA, sceneB], 'scene-a', undefined);
+    useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a', projet: null });
 
     removeEntity(useGame.getState, useGame.setState, 'decor-retire');
     useGame.setState((s) => ({ scene: setDoorOpen(s.scene!, 1, 1, 'N', 0, true) }));
@@ -121,7 +121,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     useGame.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-c');
     const sceneB = fixtureScene('scene-d');
-    useGame.getState().loadProject([sceneA, sceneB], 'scene-c', undefined);
+    useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
     useGame.getState().transitionTo('scene-d');
     useGame.getState().transitionTo('scene-c');
     expect(useGame.getState().sceneInstances).toEqual({});
@@ -133,7 +133,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
   it('nouvelle partie (startScene) REMET sceneInstances à vide', () => {
     useGame.setState({ party: [hero()] });
     const sceneA = fixtureScene('scene-e');
-    useGame.getState().loadProject([sceneA], 'scene-e', undefined);
+    useGame.getState().loadProject({ scenes: [sceneA], entryId: 'scene-e', projet: null });
     removeEntity(useGame.getState, useGame.setState, 'decor-retire');
     useGame.getState().transitionTo('scene-e'); // capture (même scène, revisit immédiat)
     expect(Object.keys(useGame.getState().sceneInstances)).toHaveLength(1);
@@ -152,7 +152,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     b.seatAssignments = {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
-    useGame.getState().loadProject([a, b], 'scene-t1', undefined);
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'scene-t1', projet: null });
     useGame.getState().transitionTo('scene-t2');
     // Le PNJ authoré reste assis ; le héros qui n'est pas du groupe ne réserve rien.
     expect(useGame.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
@@ -169,7 +169,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
       useGame.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-g');
       const sceneB = fixtureScene('scene-h');
-      useGame.getState().loadProject([sceneA, sceneB], 'scene-g', undefined);
+      useGame.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
       removeEntity(useGame.getState, useGame.setState, 'decor-retire');
       useGame.getState().transitionTo('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
       expect(useGame.getState().saveGame(1)).toBe(true);
@@ -190,7 +190,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
       const s = fixtureScene('scene-assise');
       s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
       s.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD de la table
-      useGame.getState().loadProject([s], 'scene-assise', undefined);
+      useGame.getState().loadProject({ scenes: [s], entryId: 'scene-assise', projet: null });
       useGame.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
       expect(useGame.getState().saveGame(1)).toBe(true);
 
@@ -212,7 +212,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     it('tolérance PAR CONSTRUCTION : clé « sceneInstances » absente du snapshot → valeur initiale ({}) au chargement', () => {
       useGame.setState({ party: [hero()] });
       const sceneA = fixtureScene('scene-i');
-      useGame.getState().loadProject([sceneA], 'scene-i', undefined);
+      useGame.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
       expect(useGame.getState().saveGame(1)).toBe(true);
       const withField = readSlot(1)!;
       const dataSans = { ...withField.data } as Record<string, unknown>;

@@ -36,21 +36,21 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('loadProject démarre sur la zone d’entrée, sans combat', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-zone1');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-zone1', projet: null });
     expect(useGame.getState().scene?.id).toBe('arene-zone1');
     expect(useGame.getState().battle).toBeNull();
   });
 
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-zone1');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-zone1', projet: null });
     useGame.getState().moveParty({ x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(useGame.getState().battle).not.toBeNull();
   });
 
   it('onVictory : argent + flag zone1_clear + transition vers le hub', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-zone1');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-zone1', projet: null });
     runFlow(useGame.getState, useGame.setState, zone1.encounters[0].onVictory!);
     expect(useGame.getState().flags.zone1_clear).toBe(true);
     expect(useGame.getState().scene?.id).toBe('arene-hub');
@@ -58,7 +58,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('au hub, la porte des Ruines s’ouvre une fois la Cour nettoyée', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-zone1');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-zone1', projet: null });
     runFlow(useGame.getState, useGame.setState, zone1.encounters[0].onVictory!);
     const hub = useGame.getState().scene!;
     const dlgHub = hub.dialogues.find((d) => d.id === 'dlg-hub')!;
@@ -68,7 +68,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('ÉCHELLE COMPLÈTE : les 13 victoires enchaînées ouvrent chaque porte puis le titre de champion', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-zone1');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-zone1', projet: null });
     const dlgHub = project.find((s) => s.id === 'arene-hub')!.dialogues.find((d) => d.id === 'dlg-hub')!;
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
     for (let n = 1; n <= 13; n++) {
@@ -91,7 +91,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('ARCHITECTURE : la taverne du Bourg est cernée de murs d’arête, franchissable par sa PORTE', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-hub');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-hub', projet: null });
     const hub = useGame.getState().scene!;
     const bourg = hub.architecture?.find((body) => body.id === 'bourg');
     const taverne = bourg?.masses.find((mass) => mass.id === 'taverne');
@@ -117,7 +117,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('CONTRATS : la victoire au camp de Bella pose contrat_foret_fait → la prime du Maître se débloque', () => {
     useGame.getState().setParty(makeShowcaseParty());
-    useGame.getState().loadProject(project, 'arene-hub');
+    useGame.getState().loadProject({ scenes: project, entryId: 'arene-hub', projet: null });
     const foret = project.find((s) => s.id === 'arene-exp-foret')!;
     const bande = foret.encounters.find((e) => e.id === 'enc-foret-bande')!;
     runFlow(useGame.getState, useGame.setState, bande.onVictory!);

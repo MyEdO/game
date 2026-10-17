@@ -98,6 +98,8 @@ const MIGRATIONS_DE_SAVE = {
   65: '#1853 plancher de `charMod` figé sur l’instance de mutation',
   // #1822
   66: '#1822 l’inspection est un geste, plus une préférence (`inspectEnabled`)',
+  // #2206
+  67: '#2206 identité du projet en portée : `campaignDoc.projet` et `pendingCampaign.projet` obligatoires, `document.documentId`',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

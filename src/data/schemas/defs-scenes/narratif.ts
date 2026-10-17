@@ -66,7 +66,7 @@ export const affaireSchema = z.strictObject({
 export const presetPnjSchema = z.strictObject({
   id: z.string().min(1, 'id vide.'),
   base: idDe('creature').optional(),
-  profil: (creatureEntreePartielle as z.ZodType<CreatureProfilPartiel>).optional(),
+  profil: (creatureEntreePartielle.pipe(z.looseObject({ desc: proseDeScene('narratif.presetsPnj[].profil.desc').min(1).optional() })) as z.ZodType<CreatureProfilPartiel>).optional(),
   apparence: entityAppearanceSchema.optional(),
   /** id d'illustration (registre d'art), affichage seul. */
   portrait: z.string().optional(),

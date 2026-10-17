@@ -122,12 +122,12 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/MerchantPanel.tsx#Prose.md#1', origine: 'R', note: '`ItemInstance.desc` — snapshot d’instance, surchargeable par un objet custom (`giveTrapping`)' },
   { cle: 'src/ui/PartyScreen.tsx#DetailFrame.prose#1', origine: 'Y', note: 'présentation composée des champs du héros + libellés i18n' },
 
-  // ── Prose de SCÈNE : adressée, mais son projet n'a pas d'identité en jeu (reste nommé de T0) ───
-  { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.ouverture.pitch` est un champ adressé (cf. `CHEMINS_ADRESSES`) mais l’id du projet n’est pas en portée — `campaignDoc` (`src/state/store.ts:2218`) ne porte pas d’id et `pendingCampaign` redevient `null` après `loadProject` (`src/state/devtools.test.ts:444`). Un porteur à l’id faux serait pire que pas de porteur.' },
-  { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.indices[].stades[].prose` — même blocage d’identité de projet' },
-  { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', note: 'RESTE T0 : idem (lectures précédentes)' },
-  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `store.document.text` — la prose de `narratif.documents[].prose` que pose l’effet `document` (`src/state/combatEffects.ts`), même blocage d’identité de projet ; la même surface rend aussi le rapport de naufrage, texte RUNTIME (`src/state/shipwreck.ts`)' },
-  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `massBattle.terrain`, authoré dans l’effet de scène — même blocage d’identité de projet' },
+  // ── Prose de PROJET : portée par le document de la partie (`porteurDeProjet.ts`), nue en scénario ──
+  { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.ouverture.pitch' },
+  { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.indices[].stades[].prose' },
+  { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', porteur: 'projet.narratif.documents[].prose', note: 'document CROISÉ par le stade (`IndiceStade.documentId`, #679)' },
+  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.documents[].prose', note: '`store.document.documentId`, posé par l’effet `document` (`src/state/combatEffects.ts`) ; la même surface rend le rapport de naufrage, texte RUNTIME sans `documentId` (`src/state/shipwreck.ts`) : nu' },
+  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: '`massBattle.terrain` : `startMassBattle` recopie le texte de la spec dans l’état sans sa provenance (`src/state/massBattleFlow.ts`, `terrain: spec.terrain`) — l’effet qui le portait n’a pas d’adresse connaissable à l’écran. Un porteur à l’id faux serait pire que pas de porteur.' },
 
   // ── Galerie DEV (montée vivante : des sites réels, pas des fixtures) ──────────────────────────
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#1', origine: 'S', porteur: 'careers.desc' },

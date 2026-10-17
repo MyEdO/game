@@ -641,7 +641,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
       pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
-    useGame.getState().loadProject([portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], 'port-a', worldMap);
+    useGame.getState().loadProject({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
     useGame.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // startScene remet le vessel de campagne — repose-le
   }
 
@@ -879,7 +879,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
       pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
-    useGame.getState().loadProject([portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], 'port-a', abordageMap);
+    useGame.getState().loadProject({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
     useGame.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
   });
 

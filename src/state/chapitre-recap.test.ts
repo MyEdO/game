@@ -119,7 +119,7 @@ describe('armement du récap — la CLÔTURE est une Condition relue après chaq
 describe('cycle de vie de la borne (#717)', () => {
   it('`loadProject` pose l’ouverture APRÈS `startScene` ; `startScene` seul efface le cadre', () => {
     const { scenes, worldMap, narratif } = paquetDuJeu(diligenceCampaign);
-    useGame.getState().loadProject(scenes, scenes[0].id, worldMap, narratif);
+    useGame.getState().loadProject({ scenes, entryId: scenes[0].id, worldMap, narratif, projet: null });
     expect(get().pendingOuverture?.titre).toBe(narratif.ouverture!.titre);
 
     useGame.getState().acquitterOuverture();

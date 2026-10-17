@@ -79,6 +79,7 @@ import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import type { PresetPnj } from '../../state/campaignNarratif';
+import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
@@ -2737,27 +2738,32 @@ export function combatantSections(c: Combatant): CodexSection[] {
 /** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
 const CATEGORIE_DES_CREATURES = 'creatures';
 
-const sectionDescription = (text: string): CodexSection =>
-  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur: { chemin: 'desc' } }] });
+const sectionDescription = (text: string, porteur: PorteurDeRangee = { chemin: 'desc' }): CodexSection =>
+  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur }] });
 
 /**
  * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
  * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
  * (`mergeCreatureProfile` laisse un `profil.id` l'écraser) ; lit `desc`, jamais `maison`.
  * - réf : la `desc` de la créature du catalogue ;
- * - preset : la `desc` de la fiche fusionnée, portée par la base du preset (`presetDe`, résolveur
- *   injecté) quand elle est ce texte même ; sinon nue ;
+ * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
+ *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet
+ *   (`porteurDuNarratif`, injecté : `undefined` hors projet) ; quand elle est la `desc` de sa base,
+ *   la base la porte ; sinon (fiche figée, `sceneNpc.ts`) elle est nue ;
  * - statbloc (`defs-scenes/communs.ts`, aucun champ de prose), héros : `null`.
  */
 export function proseDeFiche(
   c: Combatant,
   presetDe: (id: string) => PresetPnj | undefined,
+  porteurDuNarratif: (cle: 'presetsPnj', id: string, suite: string) => Porteur | undefined,
 ): { section: CodexSection; entree?: { type: string; id: string } } | null {
   const p = c.porteurDeFiche;
   if (p?.presetCreature) {
     const text = p.presetCreature.desc;
     if (!text) return null;
-    const base = presetDe(p.presetId)?.base;
+    const preset = presetDe(p.presetId);
+    if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
+    const base = preset?.base;
     return base && findCreatureById(base)?.desc === text
       ? { section: sectionDescription(text), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
       : { section: sectionDescription(text) };

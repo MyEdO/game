@@ -84,7 +84,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
   });
 
   it('arrivé à la porte sud, un pas dans la ville pose le drapeau et arme le récapitulatif du chapitre', () => {
-    useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    useGame.getState().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: null });
     useGame.getState().acquitterOuverture();
     useGame.getState().transitionTo('altdorf-porte-sud');
     expect(get().flags[CLOS]).toBeFalsy();
@@ -104,7 +104,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 describe('ch.1 — chaque producteur se déclenche au pas du groupe, sur des cases atteignables', () => {
   const get = () => useGame.getState();
   beforeEach(() => {
-    useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    useGame.getState().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: null });
     useGame.getState().acquitterOuverture();
   });
 
