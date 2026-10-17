@@ -53,9 +53,9 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
   });
 
   it('{vehicleId, label} → le label propre de la dotation est transporté sur la PossessionInput', () => {
-    const refs: TrappingRef[] = [{ vehicleId: 'barque', label: 'La Perle Grise' }];
+    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale', label: 'La Perle Grise' }];
     const grants = possessionGrantsFromRefs(refs, 'hero-5', makeRNG(1));
-    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque', label: 'La Perle Grise' });
+    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', label: 'La Perle Grise' });
   });
 
   it('count.roll (1d10) → N tiré via le rouleur canonique, déterministe par seed', () => {
