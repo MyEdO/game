@@ -1,7 +1,7 @@
 ---
 name: arbitre-raw
 description: Réponse RAW en lecture seule — toute question de règle de jeu, AVANT de la poser à l'utilisateur.
-tools: Read, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Bash, PowerShell
+tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: opus
 effort: medium
 ---

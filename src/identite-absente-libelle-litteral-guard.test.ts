@@ -32,7 +32,6 @@ const EXEMPTES = new Map<string, string>([
   ["src/engine/ops.ts|ctx?.label ?? t(`op.nature.${nature}`)", PRIMITIVE],
   ["src/engine/traceLine.ts|row.label ?? t('casc.autoRowFallbackLabel')", AUTHORE],
   ["src/engine/traceLine.ts|d.label ?? t('casc.dieTraceLabel')", AUTHORE],
-  ["src/state/combatEffects.ts|step.label ?? t('eff.flowTitle')", AUTHORE],
   ["src/state/combatEffects.ts|e.label || t('eff.psychScene')", AUTHORE],
   ["src/state/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/state/store.ts|ent.label ?? t('store.searchedFallback')", AUTHORE],

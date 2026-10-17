@@ -155,6 +155,21 @@ describe('MerchantPanel (#2 — panier)', () => {
   });
 });
 
+describe('MerchantPanel — verdicts du Marchandage (LDB 59 l.43/l.54, LDB 10 l.818 ; arbitrage #2547)', () => {
+  const party = [stubHero('h', 'H')];
+  const rendu = (merchant: typeof base & Record<string, unknown>, initialTab?: 'sell') =>
+    renderToStaticMarkup(<MerchantPanelView merchant={merchant} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab={initialTab} />);
+  it('vente gagnée par un Négociateur : le verdict dit la hausse, comme la popin', () => {
+    expect(rendu({ ...base, bargainSell: { won: true, drNet: 1, negotiator: true } }, 'sell')).toContain('Gagné (½ du prix listé, +10 %)');
+    expect(rendu({ ...base, bargainSell: { won: true, drNet: 6, negotiator: true } }, 'sell')).toContain('Gagné (½ du prix listé, +20 %)');
+    expect(rendu({ ...base, bargainSell: { won: false, drNet: 1, negotiator: true } }, 'sell')).toContain('Perdu (¼ du prix listé)');
+  });
+  it('achat gagné, Stupéfiant + Négociateur : prix réduits de 30 %', () => {
+    const html = renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, cart: [{ id: 'hallebarde', qty: 1 }], bargainBuy: { won: true, drNet: 6, negotiator: true } }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialBuyView="cart" />);
+    expect(html.replace(/<!-- -->/g, '')).toContain('Prix réduits de 30 %');
+  });
+});
+
 describe('MerchantPanel — « Évaluer » à la vente suit qui peut tenter le Test (LDB 09 l.30)', () => {
   const inconnu = { uid: 'x', trappingId: 'dague', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false, identified: false } as unknown as ItemInstance;
   const vente = (h: Combatant) => renderToStaticMarkup(<MerchantPanelView merchant={base} party={[h]} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);

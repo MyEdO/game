@@ -1,7 +1,7 @@
 ---
 name: lecteur
 description: Lecture et comparaison de masse en lecture seule — cartographier des régions de code, rapporter coutures, symboles et primitives pertinents. À utiliser pour le grounding avant spec dès que le sweep dépasse 2-3 fichiers.
-tools: mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_tree, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
+tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_tree, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: sonnet
 effort: medium
 ---

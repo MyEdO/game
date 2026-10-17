@@ -1,7 +1,7 @@
 ---
 name: codeur
 description: Implémente un changement de code intégralement spécifié par l'orchestrateur (périmètre de fichiers exact, primitives cibles nommées, réfs RAW nues). À utiliser pour TOUTE édition de code sous spec précise — du one-liner au refacto ciblé.
-tools: mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Write, Bash, PowerShell
+tools: Read, Edit, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Write, Bash, PowerShell
 model: opus
 effort: medium
 ---

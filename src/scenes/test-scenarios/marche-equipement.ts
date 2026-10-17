@@ -132,7 +132,7 @@ export const scenario: TestScenario = {
   icon: 'scenario/market',
   title: 'Marché & équipement',
   tests:
-    'Acheter/Vendre + Marchander (Test opposé −10/−20 %) + Évaluer (révèle la qualité cachée) + Réparer (10 %/PA) ; ' +
+    'Acheter/Vendre + Marchander (Test opposé −10/−20/−30 %) + Évaluer (révèle la qualité cachée) + Réparer (10 %/PA) ; ' +
     'trois archétypes (armurier direct + herboriste via dialogue, Effet openMerchant + maquignon direct, montures/' +
     'véhicules) ; écran d’EMPLACEMENTS (couches ' +
     'd’armure LDB 63 souple/Flexible/rigide avec échange auto, cape cosmétique, 2 sets d’armes) ; Troc (onglet du ' +

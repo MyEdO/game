@@ -1,7 +1,7 @@
 ---
 name: juge
 description: Jugement dur en lecture seule — réfutation adversariale d'une trouvaille, comparaison implémentation↔RAW ligne à ligne, synthèse d'audits. À utiliser quand la conclusion demande du discernement, pas de l'exécution.
-tools: Read, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
+tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: opus
 effort: high
 ---
