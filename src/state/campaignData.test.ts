@@ -40,7 +40,7 @@ function fixtureScene(id = 'camp-scene'): Scene {
 /** Charge la campagne fixture par le chemin RÉEL du store (pose `campaignNarratif`). */
 function loadCampaign(): void {
   useGame.setState({ party: [hero()] });
-  useGame.getState().loadProject([fixtureScene()], 'camp-scene', undefined, narratif);
+  useGame.getState().loadProject({ scenes: [fixtureScene()], entryId: 'camp-scene', narratif, projet: null });
 }
 
 beforeEach(() => {

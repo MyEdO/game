@@ -3114,7 +3114,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
     useGame.getState().transitionTo('b', 'porte');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(useGame.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
@@ -3127,7 +3127,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a2');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
     useGame.getState().transitionTo('b2');
     expect(capDuGroupe(useGame.getState())).toBe('NE');
   });

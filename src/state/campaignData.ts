@@ -38,6 +38,15 @@ export function presetPnjById(id: string): PresetPnj | undefined {
   return maps().presetsPnj.get(id);
 }
 
+/** Le résolveur de preset d'un narratif donné — celui du projet ÉDITÉ, que le store ne porte pas. */
+export const presetDuNarratif = (n: { readonly presetsPnj: readonly PresetPnj[] } | undefined) => (id: string): PresetPnj | undefined => n?.presetsPnj.find((p) => p.id === id);
+
+/** Le NOM d'un preset : celui de son profil, sinon celui de sa créature de base, comme `mergeCreatureProfile`
+ *  le pose ; `undefined` sans l'un ni l'autre. */
+export function nomDePreset(p: PresetPnj): string | undefined {
+  return p.profil?.label ?? (p.base ? findCreatureById(p.base)?.label : undefined);
+}
+
 /**
  * Fusion PURE base+surcharges d'un preset de PNJ (#671) — sémantique de surcharge AU NIVEAU CHAMP :
  * un champ présent dans `profil` REMPLACE celui de `base` ; `char` est fusionné caractéristique par

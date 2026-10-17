@@ -761,6 +761,8 @@ export interface RevealEntry {
   title: string;
   dice?: number; // d100/d10 à afficher (le jet), si pertinent
   lines: string[]; // détail (résultat, effets)
+  /** Entrée de zone : la scène dont `lines` porte le `startMessage` (#2206). */
+  sceneId?: string;
   /** Gravité de ce qui est révélé : 'minor' = informative (entretien, interruptions…), 'grave' =
    *  critique/mutation sur un héros. Elle QUALIFIE la révélation (rendu, cadence choisie quand un site
    *  déclare une auto-fermeture) ; elle n'en arme aucune d'elle-même (#1270). */

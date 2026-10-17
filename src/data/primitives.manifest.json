@@ -766,7 +766,7 @@
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
     "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
-    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
   },

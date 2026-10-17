@@ -15,6 +15,7 @@ import { t } from '../i18n';
 import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../state/campaignNarratif';
 import { affichageDe, estNouveauPour, type ClueState, type IndiceAffiché } from '../state/clues';
 import { Row, Stack } from './Layout';
+import { porteurDuNarratif } from './porteurDeProjet';
 
 /** Sentinelle du pseudo-groupe « Épinglés », en tête de liste — jamais un id de donnée réelle. */
 const PINNED_SEL = '__pinned__';
@@ -47,16 +48,17 @@ function EpingleButton({ clue, onToggle }: { clue: ClueState; onToggle: () => vo
 }
 
 /** Ce qu'un stade révèle : sa prose (absente permise) et sa source, puis le document qu'il croise (#679),
- *  sur parchemin, titré et sourcé. */
-function StadeLu({ stade, documents, attenue }: { stade: IndiceStade; documents: readonly DocumentNarratif[]; attenue?: boolean }) {
+ *  sur parchemin, titré et sourcé. Chaque prose est portée par son champ du document de projet (#2206). */
+function StadeLu({ indice, stade, documents, attenue }: { indice: Indice; stade: IndiceStade; documents: readonly DocumentNarratif[]; attenue?: boolean }) {
+  const campaignDoc = useGame((s) => s.campaignDoc);
   const doc = stade.documentId !== undefined ? documents.find((d) => d.id === stade.documentId) : undefined;
   return (
     <>
-      {stade.prose !== undefined && <Prose md={stade.prose} paquet />}
+      {stade.prose !== undefined && <Prose md={stade.prose} paquet porteur={porteurDuNarratif({ campaignDoc }, 'indices', indice.id, `stades[${indice.stades.indexOf(stade)}].prose`)} />}
       <StadeSource source={stade.source} />
       {doc && (
         <ParchmentCard title={doc.titre} attenue={attenue}>
-          <Prose md={doc.prose} paquet />
+          <Prose md={doc.prose} paquet porteur={porteurDuNarratif({ campaignDoc }, 'documents', doc.id, 'prose')} />
           <StadeSource source={doc.source} />
         </ParchmentCard>
       )}
@@ -84,7 +86,7 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
       }
     >
       <div className={clue.statut === 'réfuté' ? 'clue-refuted' : undefined}>
-        {stadeCourant && <StadeLu stade={stadeCourant} documents={documents} />}
+        {stadeCourant && <StadeLu indice={indice} stade={stadeCourant} documents={documents} />}
         {précédents.length > 0 && (
           <div className="clue-history">
             <div className="mini-title">Lectures précédentes</div>
@@ -93,7 +95,7 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
               if (!stade) return null;
               return (
                 <div key={h.stade} className="clue-history-entry">
-                  <StadeLu stade={stade} documents={documents} attenue />
+                  <StadeLu indice={indice} stade={stade} documents={documents} attenue />
                 </div>
               );
             })}

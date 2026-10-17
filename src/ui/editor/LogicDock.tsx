@@ -10,6 +10,8 @@ import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/sc
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetDuNarratif } from '../../state/campaignData';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -359,7 +361,7 @@ function EncountersTab({
                     <ListRow
                       onClick={() => onSelectEntity(m.entityId)}
                       title="Sélectionner sur la carte → éditer le profil/apparence dans l'inspecteur"
-                      label={e ? `${e.label ?? e.ref ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
+                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
                     />
                     <button className="btn small danger" onClick={() => setScene(removeMember(scene, enc.id, m.entityId))} title="Retirer de la rencontre (l'entité reste sur la carte)">
                       ✕

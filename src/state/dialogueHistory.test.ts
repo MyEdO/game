@@ -1,11 +1,13 @@
 /**
  * #718 — Archive verbatim des tours de dialogue : helper pur (`recordTurn`), résolution du
- * locuteur (`speakerLabel`), câblage `chooseDialogue`, survie cross-scène, reset nouvelle partie,
+ * locuteur (`speakerEntity`), câblage `chooseDialogue`, survie cross-scène, reset nouvelle partie,
  * save/load.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueHistory';
-import { speakerLabel, type Dialogue, type SceneEntity } from './scene';
+import { speakerEntity, type Dialogue, type SceneEntity } from './scene';
+import { placeEntity } from '../ui/editor/editorState';
+import { creatureLabel } from '../data';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -57,23 +59,23 @@ describe('recordTurn (helper pur)', () => {
   });
 });
 
-describe('speakerLabel (helper pur)', () => {
+describe('speakerEntity (helper pur)', () => {
   const dialogue = { speakerId: 'pnj-1' };
 
   it('override du nœud prime sur le speaker de session', () => {
-    expect(speakerLabel(entities, { speakerId: 'pnj-2' }, dialogue)).toBe('Garde');
+    expect(speakerEntity(entities, { speakerId: 'pnj-2' }, dialogue)?.id).toBe('pnj-2');
   });
 
   it('sans override, retombe sur le speaker de session', () => {
-    expect(speakerLabel(entities, {}, dialogue)).toBe('Aubergiste');
+    expect(speakerEntity(entities, {}, dialogue)?.id).toBe('pnj-1');
   });
 
   it('aucun speaker (ni nœud ni session) → undefined', () => {
-    expect(speakerLabel(entities, {}, {})).toBeUndefined();
+    expect(speakerEntity(entities, {}, {})).toBeUndefined();
   });
 
   it('id inconnu de la scène → undefined', () => {
-    expect(speakerLabel(entities, { speakerId: 'fantome' }, dialogue)).toBeUndefined();
+    expect(speakerEntity(entities, { speakerId: 'fantome' }, dialogue)).toBeUndefined();
   });
 });
 
@@ -99,6 +101,19 @@ describe('chooseDialogue — archivage (#718)', () => {
       sceneId: testScene().id,
       session: 7, // la SESSION de la conversation ouverte, recopiée sur le tour archivé
     });
+  });
+
+  it('un locuteur POSÉ à l’éditeur, sans libellé, archive le nom de sa fiche (#1463 S3)', () => {
+    const base = testScene();
+    const pose = placeEntity({ ...base, entities: [...base.entities] }, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
+    expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
+    useGame.setState({
+      party: [hero()],
+      scene: pose.scene,
+      dialogue: { dialogue: { ...makeDialogue(), nodes: makeDialogue().nodes.map(({ speakerId: _s, ...n }) => n) }, nodeId: 'n1', speakerId: pose.id, session: 3 },
+    });
+    useGame.getState().chooseDialogue(0);
+    expect(useGame.getState().dialogueHistory[0].speaker).toBe(creatureLabel('humain'));
   });
 
   it('deux choix successifs archivent DEUX tours distincts', () => {

@@ -44,7 +44,7 @@ const enVigueur = () => identitesResolues(get());
 function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   const s = emptyScene(4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   useGame.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
-  get().loadProject([s], 'sc', undefined, narratif());
+  get().loadProject({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
   useGame.setState({ party });
   if (heroId === undefined) return;
   runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });

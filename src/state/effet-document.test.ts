@@ -32,20 +32,20 @@ function fixtureScene(): Scene {
 
 beforeEach(() => {
   useGame.setState({ campaignNarratif: null, party: [], scene: null, document: null, flags: {}, net: { ...useGame.getState().net, mode: 'local' } });
-  useGame.getState().loadProject([fixtureScene()], 'scene-doc', undefined, narratif);
+  useGame.getState().loadProject({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif, projet: null });
 });
 
 describe('Effect `document` — le registre narratif atteint la modale', () => {
-  it('id CONNU : `store.document` reçoit le titre et la prose du registre', () => {
+  it('id CONNU : `store.document` reçoit le titre et la prose du registre, et l’id de l’entrée qui les porte', () => {
     applyEffects(useGame.getState, useGame.setState, [{ type: 'document', documentId: 'doc-affiche' }]);
     expect(useGame.getState().document).toMatchObject({ title: 'Affiche du Bœuf rouge', text: 'Recherché : **Kastor Lieberung**.', documentId: 'doc-affiche' });
   });
 
   it('document SOURCÉ : `store.document` porte aussi sa source (le badge de la modale la lit)', () => {
-    useGame.getState().loadProject([fixtureScene()], 'scene-doc', undefined, {
+    useGame.getState().loadProject({ scenes: [fixtureScene()], entryId: 'scene-doc', narratif: {
       ...narratif,
       documents: [{ ...narratif.documents[0], source: { book: 'livre-de-base', page: 90 } }],
-    });
+    }, projet: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'document', documentId: 'doc-affiche' }]);
     expect(useGame.getState().document?.source).toEqual({ book: 'livre-de-base', page: 90 });
   });

@@ -155,7 +155,7 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
@@ -185,6 +185,8 @@ import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
 import { createCombatSlice } from './combatSlice';
+import { nomDEntite } from './sceneNpc';
+import { presetPnjById } from './campaignData';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -358,6 +360,19 @@ export interface CampaignDoc {
   worldMap?: import('./worldMap').WorldMap | null;
   narratif: NarratifBlock;
   startSceneId: string;
+  /** Identité du document de projet chargé : l'`id` du `ProjectDoc` PARSÉ, jamais la clé d'une entrée
+   *  de bibliothèque (#2206). `null` = scénario de test, sans document de projet. */
+  projet: { id: string } | null;
+}
+
+/** Ce que LANCE `loadProject` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
+ *  l'identité de son document (`CampaignDoc.projet`, OBLIGATOIRE : `null` déclare un scénario). */
+export interface PaquetALancer {
+  scenes: Scene[];
+  entryId: string;
+  worldMap?: import('./worldMap').WorldMap | null;
+  narratif?: NarratifBlock;
+  projet: CampaignDoc['projet'];
 }
 
 /** Déplacement-puis-interaction : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
@@ -794,8 +809,9 @@ export interface GameState extends RollFlowActionsMap {
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
    *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
-   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
-  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. `projet` : l'id du
+   *  DOCUMENT lancé (`CampaignDoc.projet`), distinct de `id` pour une entrée de bibliothèque (#2206). */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -951,7 +967,7 @@ export interface GameState extends RollFlowActionsMap {
   startScene: (scene: Scene, narratif?: NarratifBlock) => void;
   /** Enregistre plusieurs scènes (projet multi-scènes) puis démarre l'entrée. `worldMap` = carte du
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
-  loadProject: (scenes: Scene[], entryId: string, worldMap?: import('./worldMap').WorldMap | null, narratif?: NarratifBlock) => void;
+  loadProject: (paquet: PaquetALancer) => void;
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
@@ -2295,10 +2311,10 @@ export const useGame = create<GameState>((set, get) => ({
     // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
     // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
     // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte] }, { own: true });
+    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
   },
 
-  loadProject: (scenes, entryId, worldMap, narratif) => {
+  loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
     // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
     // résolvent leurs intérieurs), puis démarre la scène d'entrée.
     const entry = scenes.find((s) => s.id === entryId);
@@ -2314,7 +2330,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
-    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
+    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id, projet } });
   },
 
   /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
@@ -2389,7 +2405,7 @@ export const useGame = create<GameState>((set, get) => ({
     // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
     // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
     // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte] }, { own: true });
+    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
   },
 
   moveParty: (pt) => {
@@ -2618,7 +2634,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Actions authorées toutes ÉPUISÉES et rien d'autre à offrir : on le dit (le halo, lui, s'est
     // déjà éteint). Le décor en PORTE (l'auteur en a posé), aucune n'est plus jouable.
     if (!horsPortee && ent.usable?.actions?.length && !actionsAuthorees(ent, get().flags).length)
-      get().log(t('store.searchedAlready', { what: ent.label ?? t('store.searchedFallback') }));
+      get().log(t('store.searchedAlready', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchedFallback') }));
   },
 
   /**
@@ -2652,13 +2668,13 @@ export const useGame = create<GameState>((set, get) => ({
     }
     const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
     if (!action) return;
-    get().log(t('store.actionJouee', { what: ent.label ?? t('store.searchPlaceFallback'), action: offre.label }));
+    get().log(t('store.actionJouee', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchPlaceFallback'), action: offre.label }));
     // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).
     // CLÔTURES (#1508) : l'horloge (« tout est horodaté ») puis le sort du décor. L'horloge tire les
     // effets PROGRAMMÉS et les ticks — jouée devant un dé de chute, elle les tirerait sur des
     // Blessures qui n'ont pas encaissé. Le coût de temps est une DONNÉE d'auteur (`minutes`) ; absent,
     // c'est celui de la fouille.
-    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), ent.label ?? offre.label), [
+    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), nomDEntite(ent, presetPnjById) ?? offre.label), [
       { verbe: 'avancerHorloge', minutes: action.minutes ?? TIME_COST.search },
       ...(action.consume ? [{ verbe: 'retirerEntite' as const, entityId }] : []),
       ...(action.unique ? [{ verbe: 'marquerActionJouee' as const, entityId, actionId }] : []),
@@ -2715,7 +2731,8 @@ export const useGame = create<GameState>((set, get) => ({
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
-    const speaker = speakerLabel(st.scene?.entities ?? [], node, st.dialogue);
+    const locuteur = speakerEntity(st.scene?.entities ?? [], node, st.dialogue);
+    const speaker = locuteur && nomDEntite(locuteur, presetPnjById);
     // Archive verbatim du tour (#718) — au moment où le choix est FAIT, pas à la reprise d'un
     // Test différé (`choice.flow` peut suspendre plus bas : le tour est déjà enregistré ici).
     const turn: DialogueTurn = {

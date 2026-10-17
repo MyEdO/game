@@ -30,19 +30,20 @@ const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const SEGMENT = /^[A-Za-z0-9._-]+$/
 
 /**
- * Le scratchpad de la session : `<tmpdir>/claude/<slug>/<session_id>/scratchpad`, `<slug>` étant le
+ * Le scratchpad de la session : `<tmpdir>/claude/<slug>/<session_id>/scratchpad` sous win32,
+ * `<tmpdir>/claude-<uid>/…` ailleurs (mesuré le 2026-10-17 en conteneur distant : `/tmp/claude-0/…`), `<slug>` étant le
  * segment qui suit `.claude/projects/` dans `transcript_path`, joint par le `node:path` de `platform` ; `null` s'il ne
  * se dérive pas. PURE.
- * @param {{ transcript_path?: unknown, session_id?: unknown }} entree @param {string} [tmp] @param {NodeJS.Platform} [platform]
+ * @param {{ transcript_path?: unknown, session_id?: unknown }} entree @param {string} [tmp] @param {NodeJS.Platform} [platform] @param {number} [uid]
  */
-export function scratchpadDeSession(entree, tmp = tmpdir(), platform = process.platform) {
+export function scratchpadDeSession(entree, tmp = tmpdir(), platform = process.platform, uid = process.getuid?.()) {
   const { transcript_path: transcript, session_id: session } = entree ?? {}
   if (typeof transcript !== 'string' || typeof session !== 'string' || !SEGMENT.test(session) || /^\.+$/.test(session)) return null
   const parties = transcript.split(/[\\/]+/)
   const k = parties.findIndex((p, i) => p === 'projects' && parties[i - 1] === '.claude')
   const slug = k < 0 ? undefined : parties[k + 1]
   if (!slug || !SEGMENT.test(slug) || /^\.+$/.test(slug)) return null
-  return cheminsDe(platform).join(tmp, 'claude', slug, session, 'scratchpad')
+  return cheminsDe(platform).join(tmp, platform === 'win32' ? 'claude' : `claude-${uid}`, slug, session, 'scratchpad')
 }
 
 /** `chemin` est-il `dossier` ou sous lui ? Chemins du `node:path` de `platform`, canonisés sur l'hôte de même

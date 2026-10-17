@@ -20,18 +20,25 @@ const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const SLUG = 'banc-lecture-seule'
 const SESSION = `banc-2537-${process.pid}`
 const TRANSCRIPT = join(RACINE, '.claude', 'projects', SLUG, `${SESSION}.jsonl`)
-const SP = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad')
+/** Le dossier de Claude Code sous le répertoire temporaire, pour `platform` (`scratchpadDeSession`). */
+const dossierClaude = (platform) => (platform === 'win32' ? 'claude' : `claude-${process.getuid?.()}`)
+const DOSSIER_CLAUDE = dossierClaude(process.platform)
+const SP = join(tmpdir(), DOSSIER_CLAUDE, SLUG, SESSION, 'scratchpad')
 /** `texte` en motif littéral d'une regex. */
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** La suite du banc que `vitest run --dir` lance et qui écrit hors du scratchpad. */
 const SUITE_ECRIT = 'x.test.mjs'
+/** Lecteur Windows assemblé : `src/portable-paths-guard.test.ts`. */
+const LECTEUR = 'C' + ':'
 /** Lecture et listage, sur l'hôte, du chemin `relatif` sous une racine de l'hôte (`RACINE` ou `tmpdir()`). */
 const lireSous = (base, relatif) => FS.readFileSync(join(base, relatif), 'utf8')
 const listerSous = (base, relatif) => FS.readdirSync(join(base, relatif), { recursive: true, withFileTypes: true })
 
 test('#2537 — le scratchpad se dérive de `transcript_path` (segment après `.claude/projects/`) et de `session_id`, jamais du `cwd`', () => {
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: SESSION }), SP)
-  assert.equal(scratchpadDeSession({ transcript_path: join(RACINE, '.claude/projects/s/p/subagents/agent-a.jsonl'), session_id: 'p' }, 'T'), join('T', 'claude', 's', 'p', 'scratchpad'))
+  assert.equal(scratchpadDeSession({ transcript_path: join(RACINE, '.claude/projects/s/p/subagents/agent-a.jsonl'), session_id: 'p' }, 'T'), join('T', DOSSIER_CLAUDE, 's', 'p', 'scratchpad'))
+  assert.equal(scratchpadDeSession({ transcript_path: '/r/.claude/projects/s/p.jsonl', session_id: 'p' }, '/tmp', 'linux', 0), '/tmp/claude-0/s/p/scratchpad')
+  assert.equal(scratchpadDeSession({ transcript_path: LECTEUR + '\\r\\.claude\\projects\\s\\p.jsonl', session_id: 'p' }, LECTEUR + '\\T', 'win32'), LECTEUR + '\\T\\claude\\s\\p\\scratchpad')
   assert.equal(scratchpadDeSession({ transcript_path: join(RACINE, 'projets/s.jsonl'), session_id: 'p' }), null)
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: '..' }), null)
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: 'a/b' }), null)
@@ -42,10 +49,10 @@ test('#2537 — échantillon du rejeu : un type en lecture seule n’écrit que 
   FS.mkdirSync(SP, { recursive: true })
   FS.writeFileSync(join(SP, 'ecrit-hors.mjs'), "import fs from 'node:fs'\nfs.writeFileSync('../hors.txt', 'x')\n")
   FS.writeFileSync(join(SP, 'ecrit-tmp.mts'), "import { mkdtempSync } from 'node:fs'\nimport { join } from 'node:path'\nimport { tmpdir } from 'node:os'\nconst d: string = mkdtempSync(join(tmpdir(), 'x'))\n")
-  FS.writeFileSync(join(SP, 'ecrit-sp.mjs'), `import fs from 'node:fs'
+  for (const platform of ['win32', 'linux']) FS.writeFileSync(join(SP, `ecrit-sp-${platform}.mjs`), `import fs from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad', 'r.txt'), 'x')
+fs.writeFileSync(join(tmpdir(), '${dossierClaude(platform)}', '${SLUG}', '${SESSION}', 'scratchpad', 'r.txt'), 'x')
 `)
   FS.writeFileSync(join(SP, 'lit.mts'), "import { readFileSync } from 'node:fs'\nconst n: number = readFileSync('package.json', 'utf8').length\nconsole.log(n)\n")
   FS.mkdirSync(join(SP, 'dir-ecrit'), { recursive: true })
@@ -73,12 +80,13 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     const oblique = (chemin) => chemin.split('\\').join('/')
     const sous = (chemin, base) => { const o = oblique(chemin), b = oblique(base).replace(/\/$/, ''); return o.startsWith(b) ? `.${o.slice(b.length)}` : null }
     const vers = (relatif, base) => relatif === null ? null : oblique(base).replace(/\/$/, '') + relatif.slice(1)
-    const versMonde = (chemin) => chemins.normalize(vers(sous(chemin, tmpdir()), tmp) ?? vers(sous(chemin, RACINE), racine) ?? chemin)
+    const claude = (relatif, de, vers) => relatif?.replace(`./${dossierClaude(de)}/`, `./${dossierClaude(vers)}/`) ?? null
+    const versMonde = (chemin) => chemins.normalize(vers(claude(sous(chemin, tmpdir()), process.platform, platform), tmp) ?? vers(sous(chemin, RACINE), racine) ?? chemin)
     const hors = () => { throw Object.assign(new Error('hors du monde forgé'), { code: 'ENOENT' }) }
-    const enHote = (chemin, ouvrir) => { const t = sous(chemin, tmp), r = sous(chemin, racine); return t !== null ? ouvrir(tmpdir(), t) : r !== null ? ouvrir(RACINE, r) : hors() }
-    const sp = chemins.join(tmp, 'claude', SLUG, SESSION, 'scratchpad')
+    const enHote = (chemin, ouvrir) => { const t = claude(sous(chemin, tmp), platform, process.platform), r = sous(chemin, racine); return t !== null ? ouvrir(tmpdir(), t) : r !== null ? ouvrir(RACINE, r) : hors() }
+    const sp = chemins.join(tmp, dossierClaude(platform), SLUG, SESSION, 'scratchpad')
     return {
-      hote, racine, tmp, transcript: chemins.join(racine, '.claude', 'projects', SLUG, `${SESSION}.jsonl`), SP: sp, P: oblique(sp),
+      platform, hote, racine, tmp, transcript: chemins.join(racine, '.claude', 'projects', SLUG, `${SESSION}.jsonl`), SP: sp, P: oblique(sp),
       HORS: oblique(chemins.resolve(racine, '..', 'hors-banc-2537')), R: oblique(racine).replace(/\/$/, ''), TMP: { TEMP: tmp, TMP: tmp, TMPDIR: tmp },
       lire: (chemin) => { try { return { texte: enHote(chemin, lireSous) } } catch (e) { return { raison: `illisible (${e?.code})` } } },
       lister: (dossier) => { try { const entrees = enHote(dossier, listerSous); return { suites: entrees.filter((e) => e.isFile() && estSuiteVitest(e.name) && !/[\\/]node_modules(?:[\\/]|$)/.test(e.parentPath)).map((e) => versMonde(join(e.parentPath, e.name))), parcourues: entrees.length } } catch { return { suites: [], parcourues: 0 } } },
@@ -86,7 +94,7 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   }
   /** Chaque cas : l'outil, la commande, le type, la décision attendue, un motif de la raison, et les plateformes
    *  où il se joue (les deux par défaut), forgées par le monde de la plateforme (`mondeDe`). */
-  const casDe = ({ P, HORS, R, SP, TMP, tmp }) => [
+  const casDe = ({ platform, P, HORS, R, SP, TMP, tmp }) => [
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$TMP/plan.md" 2>&1', 'juge', 'deny', /redirection hors du scratchpad/, { env: TMP }],
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$INCONNUE/plan.md"', 'juge', null],
     ['Bash', 'git grep -nE "x" origin/main -- src > ../.wt-tmp.txt', 'juge', 'deny', /redirection hors du scratchpad/],
@@ -140,8 +148,8 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', 'git reflog HEAD -5', 'juge', null],
     ['Bash', 'git reflog exists HEAD', 'juge', null],
     ['Bash', 'git reflog expire --all', 'juge', 'deny', /git reflog : écrivain/],
-    ['Bash', `node "${P}/ecrit-sp.mjs"`, 'lecteur', null, undefined, { env: TMP }],
-    ['Bash', `node "${P}/ecrit-sp.mjs"`, 'lecteur', null, undefined, { env: {}, platforms: ['win32'] }],
+    ['Bash', `node "${P}/ecrit-sp-${platform}.mjs"`, 'lecteur', null, undefined, { env: TMP }],
+    ['Bash', `node "${P}/ecrit-sp-${platform}.mjs"`, 'lecteur', null, undefined, { env: {}, platforms: ['win32'] }],
     ['Bash', 'echo x > ../hors.txt', undefined, null],
     ['Bash', 'F="$TEMP"/x.txt; echo x > "$F"', 'lecteur', null, undefined, { env: { TEMP: SP } }],
     ['Bash', 'export F="$TEMP/x.txt" && echo x > "$F"', 'lecteur', null, undefined, { env: { TEMP: SP } }],
@@ -216,8 +224,8 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `cd "${P}/fx" && npx vitest run lit`, 'juge', null],
     ['Bash', `cd "${P}/fx" && npx vitest run "$INCONNUE"`, 'juge', null],
     ['Bash', `cd "${P}" && npx vitest run "${P}/fx/sous/b-"`, 'juge', 'deny', 'b-autre.test.mjs : writeFileSync hors du scratchpad (/hors-banc-2537/b.txt) — canal'],
-    ['PowerShell', `$S="$env:LOCALAPPDATA\\claude\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', null, undefined, { env: { LOCALAPPDATA: tmp } }],
-    ['PowerShell', `$S="$env:LOCALAPPDATA\\claude\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', 'deny', /export-csv : écrivain à cible non résolue/],
+    ['PowerShell', `$S="$env:LOCALAPPDATA\\${dossierClaude(platform)}\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', null, undefined, { env: { LOCALAPPDATA: tmp } }],
+    ['PowerShell', `$S="$env:LOCALAPPDATA\\${dossierClaude(platform)}\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', 'deny', /export-csv : écrivain à cible non résolue/],
     ['Bash', 'echo x > "$APPDATA/x.txt"', 'lecteur', 'deny', /redirection hors du scratchpad/, { env: { APPDATA: HORS } }],
     ['Bash', `cd "${P}/dir-abs" && npx vitest run`, 'juge', 'deny', /z.test.mjs : writeFileSync hors du scratchpad/],
     ['Bash', `npx vitest run --config "${P}/vitest.config.mjs"`, 'juge', null],
@@ -287,7 +295,7 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     }), { env: {}, cwd: RACINE })
     assert.match(sansTranscript.sortie.hookSpecificOutput.permissionDecisionReason, /scratchpad de session non dérivable/)
   } finally {
-    FS.rmSync(join(tmpdir(), 'claude', SLUG, SESSION), { recursive: true, force: true })
+    FS.rmSync(join(tmpdir(), DOSSIER_CLAUDE, SLUG, SESSION), { recursive: true, force: true })
   }
 })
 
@@ -301,7 +309,7 @@ test('#2537 — le budget d’analyse est le `timeout` du répartiteur, barrièr
 })
 
 test('#2537 — au-delà de la borne, une suite n’est PAS jugée, donc admise, et se nomme en contexte ; en deçà, elle se juge', () => {
-  const sp = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad'), dossier = join(sp, 'gros')
+  const sp = join(tmpdir(), DOSSIER_CLAUDE, SLUG, SESSION, 'scratchpad'), dossier = join(sp, 'gros')
   const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n"
   const disque = new Map([[join(dossier, 'g.test.mjs'), ecrit + `// ${'x'.repeat(BUDGET_ANALYSE_MS * DEBIT_ANALYSE_JS)}\n`], [join(dossier, 'p.test.mjs'), ecrit]])
   const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
@@ -397,7 +405,7 @@ test('#2537 — après un `cd` inconnu, un script se lance d’un répertoire in
 test('#2537 — `vitest` lancé d’un PARENT du scratchpad se juge à la part du scratchpad, sauf à traverser un dossier qu’il exclut', () => {
   const P = cheminsDe('linux')
   const juger = (tmp) => {
-    const sp = P.join(tmp, 'claude', SLUG, SESSION, 'scratchpad'), suite = P.join(sp, 'w.test.mjs')
+    const sp = P.join(tmp, dossierClaude('linux'), SLUG, SESSION, 'scratchpad'), suite = P.join(sp, 'w.test.mjs')
     const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'cd /banc && npx vitest run' }, session_id: SESSION, transcript_path: P.join('/banc/depot/.claude/projects', SLUG, `${SESSION}.jsonl`), agent_type: 'juge' }
     return garde.evaluer(entree, {
       baseDeLAppel: '/banc/depot', platform: 'linux', tmp, horloge: () => 0, lister: (dossier) => ({ suites: dossier === sp ? [suite] : [], parcourues: 1 }),
@@ -446,7 +454,7 @@ test('#2537 — le tsconfig de `tsc -p` se lit sous le plafond et le budget : au
 })
 
 test('#2537 — les scripts d’une commande s’analysent en un corpus, une session au modèle : 121 lancements tiennent le budget, le dernier se juge', () => {
-  const sp = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad')
+  const sp = join(tmpdir(), DOSSIER_CLAUDE, SLUG, SESSION, 'scratchpad')
   const lit = "import fs from 'node:fs'\nfs.readFileSync('package.json')\n// " + 'x'.repeat(2000) + '\n'
   const scripts = Array.from({ length: 121 }, (_, k) => join(sp, `s${k}.mjs`))
   const disque = new Map(scripts.map((s, k) => [s, k === 120 ? "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n" : lit]))

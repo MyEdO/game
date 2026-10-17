@@ -15,7 +15,7 @@ import { pickActiveModalKey } from '../../state/modalArbiter';
 import { evalCondition } from '../../engine/flowCore';
 import { condCtx } from '../../state/bourseFlow';
 import { snapshotSave } from '../../state/saves';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const SOSIE = 'campagne-sosie-heros';
@@ -24,7 +24,7 @@ const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'hu
 
 beforeEach(() => {
   get().setParty([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
-  get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+  expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   get().acquitterOuverture();
   get().transitionTo('route-principale-virage');
   get().moveParty({ x: 36, y: 3 });
@@ -82,7 +82,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
 
   beforeEach(() => {
     get().setParty([heros('Vivant', 1), naine()]);
-    get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    get().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
     get().acquitterOuverture();
     get().transitionTo('route-principale-virage');
     get().moveParty({ x: 36, y: 3 });

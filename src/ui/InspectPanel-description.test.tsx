@@ -3,8 +3,11 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { poserScenario } from '../state/scenarioFlow';
+import { lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
+import { makePregens } from '../data/pregens';
 import { scenario } from '../scenes/test-scenarios/96-presets-edo';
 import { presetPnjById, mergeCreatureProfile } from '../state/campaignData';
 import { sceneNpc } from '../state/sceneNpc';
@@ -15,8 +18,16 @@ import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
 import { proseDeFiche, codexLookupById } from './compendium/registry';
 import { CodexEntry } from './compendium/CodexEntry';
+import { Prose } from './Prose';
+import { porteurDuNarratif } from './porteurDeProjet';
+import { CHEMINS_ADRESSES, type Porteur } from './liage';
 import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';
+import { Inspector } from './editor/Inspector';
+import { addEnemyMember } from '../state/sceneEdit';
+import { placeEntity } from './editor/editorState';
+import { emptyScene } from '../state/scene';
+import type { NarratifBlock } from '../state/campaignNarratif';
 import { useGameKeyboard } from './useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { DELAI_APPUI_LONG } from './useLongPress';
@@ -52,9 +63,36 @@ const extrait = (md: string): string => md.replace(/[*_#>[\]]/g, '').trim().slic
 
 const DESC_KNUD = (): string => presetPnjById('edo-knud-cratinx')!.profil!.desc!;
 
-/** Le scénario des presets EDO posé (narratif chargé par `loadProject`), combat `enc-knud` lancé. */
-function combatKnud(): Combatant {
-  poserScenario(useGame.getState, scenario);
+/** Id du document de projet sous lequel le contenu du scénario est chargé EN CAMPAGNE. */
+const PROJET = 'projet-des-presets';
+
+/** Le porteur de projet tel que l'état courant le résout : l'injection d'`InspectPanel`. */
+const duNarratif = (cle: 'presetsPnj', id: string, suite: string): Porteur | undefined => porteurDuNarratif(useGame.getState(), cle, id, suite);
+
+/** Ajoutée à la desc de chaque profil décrit : un terme du Codex, qui ne se lie que sous un porteur
+ *  (les desc de Knud et de Phillipe n'en citent aucun). */
+const CITATION = ' La Peur le précède.';
+
+/** Le contenu du scénario des presets EDO, les desc de profil augmentées de `CITATION`, chargé par
+ *  `loadProject` comme `poserScenario` le charge : EN CAMPAGNE sous le document `PROJET`, ou en
+ *  SCÉNARIO (`projet: null`). */
+function poser(enCampagne: boolean): void {
+  const c = scenario.construire();
+  const narratif = c.narratif!;
+  const presetsPnj = narratif.presetsPnj.map((p) => (p.profil?.desc ? { ...p, profil: { ...p.profil, desc: p.profil.desc + CITATION } } : p));
+  useGame.getState().setParty(c.party);
+  useGame.getState().loadProject({
+    scenes: [c.scene, ...(c.extraScenes ?? [])],
+    entryId: c.scene.id,
+    worldMap: c.worldMap ?? null,
+    narratif: { ...narratif, presetsPnj },
+    projet: enCampagne ? { id: PROJET } : null,
+  });
+}
+
+/** Le contenu posé (`poser`), combat `enc-knud` lancé. */
+function combatKnud(enCampagne = false): Combatant {
+  poser(enCampagne);
   useGame.getState().startCombat('enc-knud');
   const knud = useGame.getState().battle?.combatants.find((c) => c.label === 'Knud Cratinx');
   expect(knud, 'Knud absent du combat').toBeTruthy();
@@ -84,6 +122,15 @@ function ouvrirDescription(el: HTMLElement): HTMLElement {
 /** Les mentions liées (`CodexRef`) d'un rendu, par leur texte. */
 const liens = (el: Element): string[] => [...el.querySelectorAll('.codex-ref')].map((a) => a.textContent ?? '');
 
+/** Les mentions que lie `md` sous `porteur`, rendu hors de tout écran. */
+const liensSous = (md: string, porteur: Porteur): string[] => {
+  const html = renderToStaticMarkup(<Prose md={md} porteur={porteur} />);
+  return [...html.matchAll(/class="[^"]*codex-ref[^"]*"[^>]*>([^<]*)/g)].map((m) => m[1]);
+};
+
+/** Le porteur du profil de Knud dans le document `PROJET` : 2e preset du narratif du scénario. */
+const PORTEUR_KNUD: Porteur = { type: 'projet', id: PROJET, chemin: 'narratif.presetsPnj[1].profil.desc' };
+
 /** Une scène nue qui porte un PNJ par preset. */
 const sceneAuPreset = (presetId: string): Scene =>
   ({ id: 'sc-preset', label: 'Preset', entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, presetId }] } as unknown as Scene);
@@ -97,8 +144,8 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
   const dialogue = (): HTMLElement => document.querySelector<HTMLElement>('[role="dialog"]')!;
   const clicDroit = (el: HTMLElement) => act(() => { el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
 
-  it('clic droit sur le portrait de Knud dans la frise : onglet « Description », la desc de SON profil, nue', () => {
-    const knud = combatKnud();
+  it('EN CAMPAGNE, clic droit sur le portrait de Knud dans la frise : onglet « Description », la desc de SON profil, portée par le projet, liens armés', () => {
+    const knud = combatKnud(true);
     useGame.setState({ inspectId: null });
     const el = monter(<CampaignView />);
     const portrait = [...el.querySelectorAll<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')][0];
@@ -110,7 +157,82 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     expect(onglet(dlg, 'Profil')).toBeTruthy();
     const pane = ouvrirDescription(dlg);
     expect(pane.textContent).toContain(extrait(DESC_KNUD()));
-    expect(pane.querySelector('.codex-ref'), 'prose de profil : porteur projet absent, aucun lien').toBeNull();
+    const attendus = liensSous(DESC_KNUD(), PORTEUR_KNUD);
+    expect(attendus.length, 'la desc du profil de Knud cite des entrées du Codex').toBeGreaterThan(0);
+    expect(liens(pane)).toEqual(attendus);
+  });
+
+  it('un personnage POSÉ à l’éditeur puis passé au preset se nomme du preset — titre de l’inspection et frise ; un nom d’auteur l’emporte (#1463 S3)', () => {
+    const narratif: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-tavernier', base: 'humain', profil: { label: 'Le Tavernier' } }] };
+    const vide = emptyScene(8, 8);
+    vide.id = 'sc-pose';
+    vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
+    const posee = placeEntity(vide, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
+    const pose = addEnemyMember(posee.scene, '', 'humain', { x: 5, y: 4 });
+    expect(pose.entityId, 'l’outil de combat enrôle le personnage posé').toBe(posee.id);
+    let scene = pose.scene;
+    const editer = (geste: (racine: HTMLElement) => void): void => {
+      const rendre = (sc: Scene) => root!.render(
+        <Inspector
+          scene={sc} otherScenes={[]} worldMap={null}
+          setScene={(next) => { scene = next; act(() => rendre(next)); }}
+          sel={{ type: 'entity', id: pose.entityId }} setSel={() => undefined}
+          enemyCreatures={[{ id: 'humain', label: 'Humain' }]} openLogic={() => undefined} resizeScene={() => undefined}
+          narratif={narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+        />,
+      );
+      const racine = monter(<></>);
+      act(() => rendre(scene));
+      geste(racine);
+      act(() => { root!.unmount(); });
+      host?.remove();
+      host = null; root = null;
+    };
+    const saisir = (el: HTMLInputElement | HTMLSelectElement, v: string) => act(() => {
+      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value')!.set!.call(el, v);
+      el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+    });
+    const titreDeFrise = (nom: string): HTMLElement | null => {
+      useGame.getState().setParty(makePregens().slice(0, 1));
+      useGame.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+      useGame.getState().startCombat(pose.encId, undefined, { noSurprise: true });
+      useGame.setState({ inspectId: null });
+      const el = monter(<CampaignView />);
+      return el.querySelector<HTMLElement>(`.initiative-strip [title="${nom}"]`);
+    };
+
+    expect(scene.entities.find((e) => e.id === pose.entityId)).not.toHaveProperty('label');
+    editer((racine) => {
+      const preset = [...racine.querySelectorAll('select')].find((el) => el.closest('label')?.textContent?.includes('Preset PNJ'))!;
+      saisir(preset, 'pnj-tavernier');
+      expect(racine.querySelector('.insp-title')?.textContent, 'titre de l’inspecteur de l’éditeur').toContain('Le Tavernier');
+    });
+    const portrait = titreDeFrise('Le Tavernier');
+    expect(portrait, 'frise : le nom du preset').toBeTruthy();
+    clicDroit(portrait!);
+    expect(dialogue().querySelector('h3')?.textContent).toBe('Le Tavernier');
+    act(() => { root!.unmount(); });
+    host?.remove();
+    host = null; root = null;
+
+    editer((racine) => {
+      const libelle = [...racine.querySelectorAll('input')].find((el) => el.closest('label')?.textContent?.startsWith('Libellé'))!;
+      expect(libelle.placeholder).toBe('Le Tavernier');
+      saisir(libelle, 'Hans');
+    });
+    clicDroit(titreDeFrise('Hans')!);
+    expect(dialogue().querySelector('h3')?.textContent).toBe('Hans');
+  });
+
+  it('EN SCÉNARIO, la même Description reste NUE : aucun document de projet, aucun lien', () => {
+    combatKnud();
+    useGame.setState({ inspectId: null });
+    const el = monter(<CampaignView />);
+    clicDroit(el.querySelector<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')!);
+    const pane = ouvrirDescription(dialogue());
+    expect(pane.textContent).toContain(extrait(DESC_KNUD()));
+    expect(liensSous(DESC_KNUD(), PORTEUR_KNUD).length, 'la desc se lierait sous un porteur').toBeGreaterThan(0);
+    expect(pane.querySelector('.codex-ref'), 'prose de profil sans projet : aucun lien').toBeNull();
   });
 
   it('la fiche ouverte : le pied du cadre est FRÈRE du corps, jamais dedans, et rien n’a défilé', () => {
@@ -172,27 +294,58 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     expect(useGame.getState().inspectId).toBe('npc-phillipe');
     const dlg = dialogue();
     expect(dlg.textContent).toContain('Phillipe Descartes');
-    const prose = proseDeFiche(sceneNpc(useGame.getState().scene, 'npc-phillipe')!, presetPnjById);
+    const prose = proseDeFiche(sceneNpc(useGame.getState().scene, 'npc-phillipe')!, presetPnjById, duNarratif);
     expect(prose, 'Phillipe est un preset DÉCRIT').toBeTruthy();
     expect(ouvrirDescription(dlg).textContent).toContain(extrait((prose!.section.rows[0] as { text: string }).text));
+  });
+
+  it('hors combat EN CAMPAGNE, touche I sur `npc-phillipe` : la desc de son profil, portée par le projet, liens armés', () => {
+    poser(true);
+    useGame.setState({ inspectId: null, screen: 'campaign' });
+    function Clavier() { useGameKeyboard(); return null; }
+    monter(<><Clavier /><CampaignView /></>);
+    const terminer = [...dialogue().querySelectorAll('button')].find((b) => b.textContent === 'Terminer')!;
+    act(() => { terminer.click(); });
+    act(() => { useGame.setState({ hovered: 'npc-phillipe' }); });
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI' })); });
+    expect(useGame.getState().inspectId).toBe('npc-phillipe');
+    const desc = presetPnjById('edo-phillipe-descartes')!.profil!.desc!;
+    const attendus = liensSous(desc, { type: 'projet', id: PROJET, chemin: 'narratif.presetsPnj[2].profil.desc' });
+    expect(attendus.length, 'la desc du profil de Phillipe cite des entrées du Codex').toBeGreaterThan(0);
+    expect(liens(ouvrirDescription(dialogue()))).toEqual(attendus);
   });
 });
 
 describe('proseDeFiche — provenance de la Description (#2206)', () => {
-  it('preset au profil DÉCRIT sur base décrite (Knud, base `mutant`) : la desc du PROFIL, sans entrée', () => {
-    const knud = combatKnud();
+  it('EN CAMPAGNE, preset au profil DÉCRIT sur base décrite (Knud, base `mutant`) : la desc du PROFIL, portée par son champ du projet', () => {
+    const knud = combatKnud(true);
     expect(knud.porteurDeFiche?.presetId).toBe('edo-knud-cratinx');
-    const p = proseDeFiche(knud, presetPnjById)!;
+    const p = proseDeFiche(knud, presetPnjById, duNarratif)!;
     expect(findCreatureById('mutant')?.desc).toBeTruthy();
-    expect(p.section.rows).toEqual([{ t: 'text', text: DESC_KNUD(), porteur: { chemin: 'desc' } }]);
+    expect(p.section.rows).toEqual([{ t: 'text', text: DESC_KNUD(), porteur: PORTEUR_KNUD }]);
     expect(p.entree).toBeUndefined();
+  });
+
+  it('EN SCÉNARIO, la desc du même profil est NUE', () => {
+    const knud = combatKnud();
+    const p = proseDeFiche(knud, presetPnjById, duNarratif)!;
+    expect(p.section.rows).toEqual([{ t: 'text', text: DESC_KNUD(), porteur: undefined }]);
+    expect(p.entree).toBeUndefined();
+  });
+
+  it('le chemin ÉMIS pour un profil appartient à `CHEMINS_ADRESSES` (forme générique)', () => {
+    const p = proseDeFiche(combatKnud(true), presetPnjById, duNarratif)!;
+    const row = p.section.rows[0] as { porteur?: { type?: string; chemin: string } };
+    const forme = row.porteur!.chemin.replace(/\[\d+\]/g, '[]');
+    expect(row.porteur!.type).toBe('projet');
+    expect(CHEMINS_ADRESSES.some((c) => c.type === 'projet' && c.chemin === forme), `« ${forme} » hors de la liste fermée`).toBe(true);
   });
 
   it('preset au profil MUET sur base décrite : la desc de la BASE, portée par la base — liens Codex actifs', () => {
     // Base `squelette` : sa desc cite des entrées du Codex (celle de `mutant` n'en cite aucune).
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
     const c = sceneNpc(sceneAuPreset('pnj-muet'), 'pnj')!;
-    const p = proseDeFiche(c, presetPnjById)!;
+    const p = proseDeFiche(c, presetPnjById, duNarratif)!;
     expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: { chemin: 'desc' } }]);
     expect(p.entree).toEqual({ type: 'creatures', id: 'squelette' });
     const pane = ouvrirDescription(monter(<InspectPanel combatant={c} onClose={() => {}} />).ownerDocument.body);
@@ -201,34 +354,64 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
     expect(pane.querySelector('h3'), 'l’onglet nomme déjà la Description : aucun titre de section').toBeNull();
   });
 
-  it('fiche FIGÉE dont le texte n’est pas la desc de sa base décrite, preset résolu : prose NUE', () => {
+  it('fiche FIGÉE dont le texte n’est ni la desc du profil de son preset ni celle de sa base, en campagne : prose NUE', () => {
     const figee = mergeCreatureProfile(findCreatureById('squelette')!, { desc: 'Un texte écrit ailleurs.' });
     const c = spawnEnemy({ presetCreature: figee, presetId: 'pnj-fige' }, 'f', { x: 0, y: 0 });
-    const p = proseDeFiche(c, (id) => (id === 'pnj-fige' ? { id, base: 'squelette' } : undefined))!;
+    const enCampagne = (): Porteur => ({ type: 'projet', id: PROJET, chemin: 'narratif.presetsPnj[0].profil.desc' });
+    const presetDe = (id: string) => (id === 'pnj-fige' ? { id, base: 'squelette', profil: { desc: 'Le texte du profil, depuis réécrit.' } } : undefined);
+    const p = proseDeFiche(c, presetDe, enCampagne)!;
     expect(findCreatureById('squelette')?.desc).toBeTruthy();
-    expect(p.section.rows).toEqual([{ t: 'text', text: 'Un texte écrit ailleurs.', porteur: { chemin: 'desc' } }]);
+    expect(p.section.rows).toEqual([{ t: 'text', text: 'Un texte écrit ailleurs.', porteur: undefined }]);
     expect(p.entree).toBeUndefined();
   });
 
   it('preset que `presetDe` ne résout pas : prose NUE', () => {
     const c = spawnEnemy({ presetCreature: findCreatureById('squelette')!, presetId: 'pnj-inconnu' }, 'i', { x: 0, y: 0 });
-    const p = proseDeFiche(c, () => undefined)!;
-    expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: { chemin: 'desc' } }]);
+    const p = proseDeFiche(c, () => undefined, duNarratif)!;
+    expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: undefined }]);
     expect(p.entree).toBeUndefined();
   });
 
   it('créature du catalogue par réf : sa desc, portée par sa fiche Codex', () => {
     const c = spawnEnemy({ ref: 'mutant' }, 'm', { x: 0, y: 0 });
-    expect(proseDeFiche(c, presetPnjById)).toEqual({
+    expect(proseDeFiche(c, presetPnjById, duNarratif)).toEqual({
       section: { title: '', layout: 'list', rows: [{ t: 'text', text: findCreatureById('mutant')!.desc, porteur: { chemin: 'desc' } }] },
       entree: { type: 'creatures', id: 'mutant' },
     });
   });
 });
 
+describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée par le projet', () => {
+  it('campagne lancée par `lancerCampagne` : la desc de SON profil, rendue par `Prose` sous `narratif.presetsPnj[1].profil.desc`', () => {
+    useGame.setState(useGame.getInitialState());
+    useGame.getState().setParty(makePregens().slice(0, 1));
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
+    const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj')!;
+    const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
+    const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[1].profil.desc' };
+    expect(proseDeFiche(gustav, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
+    const pane = ouvrirDescription(monter(<InspectPanel combatant={gustav} onClose={() => {}} />).ownerDocument.body);
+    expect(pane.textContent).toContain(extrait(desc));
+    expect(liens(pane)).toEqual(liensSous(desc, porteur));
+  });
+
+  it('même chemin pour `edo-mutant-terenz` (rang 14), dont la desc cite le Codex : liens armés', () => {
+    useGame.setState(useGame.getInitialState());
+    useGame.getState().setParty(makePregens().slice(0, 1));
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
+    const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj')!;
+    const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;
+    const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[14].profil.desc' };
+    expect(proseDeFiche(terenz, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
+    expect(liensSous(desc, porteur).length, 'la desc de Terenz cite une entrée du Codex').toBeGreaterThan(0);
+    const pane = ouvrirDescription(monter(<InspectPanel combatant={terenz} onClose={() => {}} />).ownerDocument.body);
+    expect(liens(pane)).toEqual(liensSous(desc, porteur));
+  });
+});
+
 describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
   const sansOnglets = (c: Combatant) => {
-    expect(proseDeFiche(c, presetPnjById)).toBeNull();
+    expect(proseDeFiche(c, presetPnjById, duNarratif)).toBeNull();
     const el = monter(<InspectPanel combatant={c} onClose={() => {}} />).ownerDocument.body;
     expect(el.querySelector('[role="tab"]')).toBeNull();
     expect(el.textContent).not.toContain('Description');
@@ -255,16 +438,16 @@ describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
 describe('Aller-retour de l’état : `presetId` survit, `presetPnjById` répond', () => {
   beforeEach(() => { vi.useFakeTimers(); });
 
-  it('snapshot coop (couture de `snapshotSave`) : Knud garde son preset et sa Description', () => {
-    const knud = combatKnud();
+  it('snapshot coop (couture de `snapshotSave`) : Knud garde son preset et sa Description, portée par le projet', () => {
+    const knud = combatKnud(true);
     const data = JSON.parse(JSON.stringify(netSnapshot(useGame.getState))) as Record<string, unknown>;
-    useGame.setState({ battle: null, campaignNarratif: null });
+    useGame.setState({ battle: null, campaignNarratif: null, campaignDoc: null });
     expect(presetPnjById('edo-knud-cratinx')).toBeUndefined();
     applyNetSnapshot(useGame.setState, data);
     const revenu = useGame.getState().battle!.combatants.find((c) => c.id === knud.id)!;
     expect(revenu.porteurDeFiche?.presetId).toBe('edo-knud-cratinx');
     expect(presetPnjById('edo-knud-cratinx')).toBeTruthy();
-    expect(proseDeFiche(revenu, presetPnjById)?.section.rows[0]).toEqual({ t: 'text', text: DESC_KNUD(), porteur: { chemin: 'desc' } });
+    expect(proseDeFiche(revenu, presetPnjById, duNarratif)?.section.rows[0]).toEqual({ t: 'text', text: DESC_KNUD(), porteur: PORTEUR_KNUD });
   });
 
   it('sauvegarde locale (hors combat) : le porteur d’une reconstitution programmée garde son `presetId`', () => {

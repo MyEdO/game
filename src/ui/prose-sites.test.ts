@@ -17,6 +17,7 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  *
  * PROSE DE PAQUET (#686) : un site déclaré `paquet` passe la prop `paquet` (`mdToText(nommer(…))` pour la
  * racine texte), et lui seul — c'est l'ORIGINE déclarée du texte qui décide, jamais sa place dans l'arbre.
+ * Un site de PROJET (#2206) passe `porteur` ET `paquet` : la prose y est liée à son champ ET nommée.
  *
  * ANGLE MORT DIT (et refusé, jamais hérité) : la garde suit des PROPS, elle ne résout pas les
  * VALEURS. Elle sait qu'un site passe `porteur`, pas que ce porteur nomme le bon champ — c'est la
@@ -238,8 +239,19 @@ describe('périmètre du liage — les sites de prose sont une liste FERMÉE (#1
     expect(muets).toEqual([]);
   });
 
-  it('un site de CATALOGUE (porteur) ne rend jamais une prose de paquet', () => {
-    const fautifs = SITES_PROSE.filter((s) => s.porteur && 'paquet' in s).map((s) => s.cle);
+  it('un site porteur rend une prose de paquet SSI il la porte au PROJET (`porteur` = `projet.<chemin nommé>`, `paquet` = [chemin])', () => {
+    const nommees = new Set<string>(CHAMPS_PROSE_DE_SCENE);
+    const cheminDeProjet = (porteur: string): string | undefined => {
+      const chemin = porteur.startsWith('projet.') ? porteur.slice('projet.'.length) : undefined;
+      return chemin !== undefined && nommees.has(chemin) ? chemin : undefined;
+    };
+    const fautifs = SITES_PROSE
+      .filter((s) => s.porteur !== undefined)
+      .filter((s) => {
+        const chemin = cheminDeProjet(s.porteur!);
+        return chemin === undefined ? 'paquet' in s : s.paquet?.length !== 1 || s.paquet[0] !== chemin;
+      })
+      .map((s) => s.cle);
     expect(fautifs).toEqual([]);
   });
 

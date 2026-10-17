@@ -90,6 +90,47 @@ describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
     expect(last.presetsPnj[0].profil?.label).toBe('Josef Quartjin');
   });
 
+  it('saisit la description du PNJ au clic : `profil.desc` posé, qui parse ; vidée, retirée (#2206)', () => {
+    mount();
+    click(btn('PNJ'));
+    click(btn('Ajouter un PNJ'));
+    const zone = () => [...container.querySelectorAll('.ed-field')].find((e) => e.querySelector('span')?.textContent === 'Description')?.querySelector('textarea');
+    click(zone()!);
+    setValue(zone()!, 'Un cocher bourru.');
+    expect(last.presetsPnj[0].profil?.desc).toBe('Un cocher bourru.');
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    setValue(zone()!, '');
+    expect(last.presetsPnj[0].profil, 'profil vidé : retiré').toBeUndefined();
+  });
+
+  it('la description ADRESSÉE d’un PNJ se lit ; « Détacher » la rend saisissable ET adaptée du même folio, puis on l’édite et la vide (#2206)', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    const REF_PNJ = { book: 'ennemi-dans-l-ombre', page: 12 };
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF_PNJ }] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    const champ = () => [...container.querySelectorAll('.ed-field')].find((e) => e.querySelector('span')?.textContent === 'Description')!;
+    const retenu = () => ['Copie', 'Adapté', 'Maison'].filter((m) => container.querySelector(`[aria-label="${m} — provenance du PNJ"]`)?.getAttribute('aria-pressed') === 'true');
+    expect(champ().textContent).toContain('Un cocher.');
+    expect(champ().querySelector('textarea')).toBeNull();
+    expect(retenu()).toEqual(['Copie']);
+    click(container.querySelector<HTMLButtonElement>('[aria-label="Détacher le texte du PNJ"]')!);
+    expect(last.presetsPnj[0]).toMatchObject({ adapteDe: REF_PNJ });
+    expect(last.presetsPnj[0].source).toBeUndefined();
+    expect(last.presetsPnj[0].profil).toEqual({ label: 'Alpha', desc: 'Un cocher.' });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    expect(retenu(), 'détaché : adapté du folio').toEqual(['Adapté']);
+    const zone = champ().querySelector('textarea')!;
+    expect(zone.value).toBe('Un cocher.');
+    setValue(zone, 'Un cocher bourru.');
+    expect(last.presetsPnj[0].profil).toEqual({ label: 'Alpha', desc: 'Un cocher bourru.' });
+    expect(last.presetsPnj[0].adapteDe).toEqual(REF_PNJ);
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    setValue(champ().querySelector('textarea')!, '');
+    expect(last.presetsPnj[0].profil).toEqual({ label: 'Alpha' });
+    expect(retenu(), 'effacé').toEqual(['Adapté']);
+  });
+
   it('supprime le preset sélectionné', () => {
     mount();
     click(btn('PNJ'));
@@ -340,7 +381,7 @@ describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent
     click(btn('Alpha'));
     const adapte = () => container.querySelector<HTMLButtonElement>('[aria-label="Adapté — provenance du PNJ"]')!;
     expect(adapte().getAttribute('aria-disabled')).toBe('true');
-    expect(container.textContent).toContain('La description du profil est la copie adressée du livre.');
+    expect(container.textContent).toContain('Le texte copie un passage du livre : détache-le pour le reformuler.');
     click(adapte());
     expect(last.presetsPnj[0]).toMatchObject({ source: REF });
     expect(last.presetsPnj[0].adapteDe).toBeUndefined();

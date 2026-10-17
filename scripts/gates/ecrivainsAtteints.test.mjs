@@ -236,9 +236,15 @@ const ATTENDU = {
     // +1 le 2026-10-12 (#2537) : le banc de la garde des types en lecture seule pose ses scripts sous le
     // scratchpad FORGÉ de sa session, sous os.tmpdir() (`rmSync` en finally) ; la garde juge, rien n'est exécuté.
     'scripts/hooks/lecture-seule-guard.test.mjs',
+    // +1 le 2026-10-17 (#2712) : le banc de l'index mémoire des sous-agents pose son dépôt JETABLE sous
+    // os.tmpdir() (`mkdtempSync`, `rmSync` en finally) ; le hook lit l'index, rien n'est écrit dans l'arbre.
+    'scripts/hooks/memoire-sous-agent.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
+    // +1 le 2026-10-17 (#2712) : la garde de la racine de confiance copie le texte candidat sous un
+    // `mkdtempSync` d'os.tmpdir() pour en juger la syntaxe (`rmSync` en finally) ; l'arbre n'est jamais écrit.
+    'scripts/hooks/racine-de-confiance-guard.mjs',
     // +2 −1 le 2026-09-28 (#2125), net +1 : le répartiteur AJOUTE au fichier la trace que rend une garde
     // (`{ trace: { fichier, ligne } }`, la dérogation `SKIP_NEW_SRC_GUARD` vers
     // `.claude/logs/new-src-guard-skips.log`) ; son banc pose des `package.json` jetables sous `os.tmpdir()` (`rmSync` en finally)

@@ -10,6 +10,7 @@ import { useSessionEnd } from './SessionEndModal';
 import { GatedAction } from './GatedAction';
 import { Grid, Row } from './Layout';
 import { Prose } from './Prose';
+import { porteurDeProjet } from './porteurDeProjet';
 
 /**
  * RÉCAP DE FIN DE CHAPITRE (#717) — ce que la route retiendra : la chronique DÉRIVÉE (objectifs
@@ -28,6 +29,7 @@ import { Prose } from './Prose';
  */
 export function ChapterRecapScreen() {
   const recap = useGame((s) => s.pendingChapterRecap);
+  const campaignDoc = useGame((s) => s.campaignDoc);
   const cloreChapitre = useGame((s) => s.cloreChapitre);
   const ajourner = useGame((s) => s.ajournerChapterRecap);
   const invite = useGame((s) => s.net.mode === 'guest');
@@ -54,7 +56,7 @@ export function ChapterRecapScreen() {
         />
       ) : seance.gestes}
     >
-      {recap.sousTitre && <Prose md={recap.sousTitre} paquet />}
+      {recap.sousTitre && <Prose md={recap.sousTitre} paquet porteur={porteurDeProjet({ campaignDoc }, 'narratif.cloture.sousTitre.texte')} />}
       <Band title={t('chap.chronique')} right={<XpBadge value={recap.px} />}>
         <ParchmentCard>
           {recap.chronique.length > 0
