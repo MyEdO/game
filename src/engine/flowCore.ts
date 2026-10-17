@@ -540,6 +540,8 @@ export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
  *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
  *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
  *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
+ *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
+ *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
  *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
  *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
  *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
@@ -591,6 +593,8 @@ export interface TriggeredEffect<E = EffectOp> {
    *  attaque de ce type (`melee`/`ranged`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
    *  des Blessures », LDB 85 l.310 → aucune restriction). Lu via `ctx.attackType`. */
   attackType?: 'melee' | 'ranged';
+  /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
+  coupCritique?: boolean;
   /** Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT
    *  de le déclencher. Héros en cadence MANUELLE → proposé (étape de CHOIX de fin de Round, skippable) ;
    *  IA / cadence auto → JAMAIS exercé (défaut conservateur : pas de décision silencieuse ni de jet caché

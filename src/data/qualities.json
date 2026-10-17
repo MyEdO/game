@@ -194,6 +194,7 @@
         "trigger": "onCrit",
         "on": "victim",
         "attackType": "ranged",
+        "coupCritique": true,
         "flow": {
           "kind": "do",
           "effect": {

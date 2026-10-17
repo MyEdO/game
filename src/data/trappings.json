@@ -14226,6 +14226,7 @@
       {
         "trigger": "onCrit",
         "on": "self",
+        "coupCritique": true,
         "flow": {
           "kind": "do",
           "effect": {

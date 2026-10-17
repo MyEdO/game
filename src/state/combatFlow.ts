@@ -2224,20 +2224,20 @@ export function applyOpposedCritical(
     } });
     return;
   }
-  applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, victim.wounds.current);
+  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, victim.wounds.current);
   // 7bis (#316) : un Coup Critique OPPOSÉ (LDB 14 l.3) est une Blessure Critique — le bus émet `onCrit`
   // pour l'attaquant, afin que ses effets de donnée « sur Critique » (Taillade → Hémorragique) s'appliquent
   // ici aussi. Chemin mutuellement exclusif de la déviation (self → émis au Subir de resolveDeviation).
-  emitOpposedCrit(get, set, attacker, victim, loc, ctx.weaponObj, log);
+  if (!lethal) emitOpposedCrit(get, set, attacker, victim, loc, ctx.weaponObj, entree.origine, log);
 }
 
 /** Émet `onCrit` via le bus pour un Critique OPPOSÉ/dévié (7bis, #316) : audience = l'attaquant à l'origine
  *  du double. `sink` → `log` (mêmes lignes que les autres effets déclenchés). No-op sans attaquant en combat. */
-function emitOpposedCrit(get: Get, set: SetFn, attacker: Combatant | undefined, victim: Combatant, loc: HitLocation, weaponObj: Weapon | undefined, log: string[]): void {
+function emitOpposedCrit(get: Get, set: SetFn, attacker: Combatant | undefined, victim: Combatant, loc: HitLocation, weaponObj: Weapon | undefined, origine: OrigineCritique, log: string[]): void {
   if (!attacker) return;
   emitCombatEvent('onCrit', {
     get, set, battle: get().battle!, self: attacker, sink: (line) => log.push(line),
-    triggerCtx: { victim, weapon: weaponObj, location: loc, attackType: weaponObj?.type, rng: battleRng() },
+    triggerCtx: { victim, weapon: weaponObj, location: loc, attackType: weaponObj?.type, origine, rng: battleRng() },
   });
 }
 
@@ -2655,15 +2655,15 @@ function appliquerLaTouche(
     coup: { degats: res.damage ?? 0, cause: causeDuCoupCritique(res), arme: weapon },
   };
   // Blessure Critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante (LDB 10),
-  // puis les effets `onCrit` des données sur un Coup Critique.
+  // puis les effets `onCrit` des données, filtrés par l'origine (`coupCritique`).
   const apresLeCritique = (lethal: boolean, loc: HitLocation, origine: OrigineCritique): void => {
     const fb = talentCritExtraWounds(attacker);
     if (fb > 0 && !lethal) {
       target.wounds.current = Math.max(0, target.wounds.current - fb);
       critLog.push(tr('cf.woundingStrike', { name: target.label, n: fb }));
     }
-    if (origine === 'coup-critique' && !lethal) // #1595 c.6221792068 Q4, L2
-      emitCombatEvent('onCrit', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { victim: target, weapon, location: loc, woundsDealt: res.woundsLost, attackType: weapon.type, rng: battleRng() } });
+    if (!lethal)
+      emitCombatEvent('onCrit', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { victim: target, weapon, location: loc, woundsDealt: res.woundsLost, attackType: weapon.type, origine, rng: battleRng() } });
   };
   // Coup finalisé (Blessures de base + Critique + Frappe blessante) : Premier sang (#471), 0 PB → À Terre
   // (LDB 18 l.15), puis levée des liens d'une cible hors de combat (LDB 13).
@@ -4402,9 +4402,9 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
     // 7bis (#316) : Subir un Critique OPPOSÉ dévié = Blessure Critique → le bus émet `onCrit` pour l'attaquant.
-    emitOpposedCrit(get, set, inBattleId(battle, dev.ctx.attackerId), target, dev.location, dev.ctx.weaponObj, log);
+    if (!lethal) emitOpposedCrit(get, set, inBattleId(battle, dev.ctx.attackerId), target, dev.location, dev.ctx.weaponObj, dev.origine, log);
   }
   // 0 PB → À Terre (LDB 18 l.15).
   if (target.wounds.current <= 0 && !target.dead && !hasCondition(target, COND.inconscient)) applyZeroWounds(target);
