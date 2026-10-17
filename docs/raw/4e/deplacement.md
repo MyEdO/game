@@ -1193,7 +1193,7 @@ Activité de réparation/usure, de préférence au port. En mer : **–20** supp
 
 Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a une **Production**, un **Surplus** (toujours produit) et une **Demande** (toujours acheté).
 
-**Acheter** (3 étapes) : (1) type via colonnes Production/Surplus, ou cargaison aléatoire si « commerce » ; (2) taille = (Taille + Richesse du Lieu + Surplus) × **1d10×10** Enc (un 1 = rien) ; (3) prix = Enc × prix de base, puis **Test opposé de Marchandage** (±10 %, ±20 % avec *Négociateur*). Marchandage d'un commerçant = 3d10+40 (3d10+55 à Marienburg/Lothern). Acheter moins que disponible ou un Surplus → +1 DR au vendeur. `MDG 15 l.315-349`
+**Acheter** (3 étapes) : (1) type via colonnes Production/Surplus, ou cargaison aléatoire si « commerce » ; (2) taille = (Taille + Richesse du Lieu + Surplus) × **1d10×10** Enc (un 1 = rien) ; (3) prix = Enc × prix de base, puis **Test opposé de Marchandage** (±10 %, ±20 % avec *Négociateur*, « décrit en détail en page 291 de WFJDR » = LDB 59 l.43 ; règle effective : cumul de Négociateur, arbitrage #2547 du 2026-10-09, `docs/raw/4e/economie.md`). Marchandage d'un commerçant = 3d10+40 (3d10+55 à Marienburg/Lothern). Acheter moins que disponible ou un Surplus → +1 DR au vendeur. `MDG 15 l.315-349`
 
 **Vendre** : (1) trouver un acheteur via 1d100 ≤ nombre visé = (Taille + Demande)×10 (+30 si « commerce ») ; ne pas produire la cargaison facilite la vente, la produire (–2 DR Marchandage) ou en Surplus (–3 DR) la complique. (2) **Prix d'offre** selon Richesse+Taille+Demande : 1 → –50 %, 2 → –25 %, 3 → –10 %, 4+ → prix de base ; puis Test opposé de Marchandage. En dernier recours : ¼ du prix de base là où il y a « commerce » ou Demande. `MDG 15 l.355-399`
 

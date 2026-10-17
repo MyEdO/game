@@ -29,7 +29,7 @@ describe('#2534 M1 — route à double sens, billet d’auteur au départ de A, 
   it('au départ de A : le billet d’auteur porte l’issue (palier marchandé)', () => {
     const offre = offreDePassage(carte, route, 'diligence', 'A', null, gagneDepuisA);
     if (!offre || offre.couvert) throw new Error('aucune offre au départ de A');
-    expect(toBrass(transportCost(offre.tarif, 'exterieur', 1, offre.issue))).toBe(36);
+    expect(toBrass(transportCost(offre.tarif, 'exterieur', 1, offre.issue)), 'palier 3/- × 0,9 (Négociateur, LDB 10 l.818)').toBe(33);
   });
   it('au départ de B : billet implicite au km, prix PLEIN — l’issue de A ne s’y applique pas', () => {
     const offre = offreDePassage(carte, route, 'diligence', 'B', null, gagneDepuisA);

@@ -9,6 +9,9 @@ import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS } 
  *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
  *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
  *  Ordre = ordre d'exécution. */
+/** Les cibles LITTÉRALES (sans joker) de `cibles` : celles dont la présence se mesure sur le disque. PURE. */
+export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.includes('*'))
+
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },

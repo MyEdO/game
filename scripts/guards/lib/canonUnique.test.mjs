@@ -201,3 +201,33 @@ test('contexte absent ou issu d’un autre AST homonyme refusé avant toute ques
   assert.deepEqual(canon.liaisonImportee(appel.expression, sf, contexte), { spec: '../src/data/index', nom: 'read' });
   }));
 });
+
+test('origine d’un appelé local : déclaration, déstructuration, réaffectation, homonymes et portées', () => {
+  const texte = [
+    "import * as ns from '../src/data/index';",
+    'const a = ns.read; a();',
+    'const { read: g } = ns; g();',
+    'let h = ns.read; h(); h = ns.autre;',
+    'class C { p = (C = ns.read); } C();',
+    'function f(a) { a(); }',
+    'const b = ns.read; { const b = ns.autre; } b();',
+    'function interne() { const c = ns.autre; c(); }',
+    'const c = ns.read; c();',
+  ].join('\n');
+  return avecAnalyse({ rel: 'scripts/probe.ts', text: texte }, undefined, undefined, (sf, checker) => {
+    const contexte = canon.contexteImports(sf, checker);
+    const origine = (ligne) => {
+      const appel = calls(sf).find((n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1 === ligne);
+      return canon.origineImportee(appel.expression, sf, contexte);
+    };
+    const lu = (nom) => ({ module: 'src/data/index.ts', nom });
+    assert.deepEqual(origine(2), lu('read'));
+    assert.deepEqual(origine(3), lu('read'));
+    assert.deepEqual(origine(4), lu('read'));
+    assert.equal(origine(5), null);
+    assert.equal(origine(6), null);
+    assert.deepEqual(origine(7), lu('read'));
+    assert.deepEqual(origine(8), lu('autre'));
+    assert.deepEqual(origine(9), lu('read'));
+  });
+});

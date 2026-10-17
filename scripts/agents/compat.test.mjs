@@ -4,10 +4,11 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, EQUIVALENTS_INTEGRES, buildExpectedOutputs as sortiesAttendues, collectDiffs,
   DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
+import { FAMILLES_LEAN_CTX, PREFIXES_LEAN_CTX, SHELL, familleLeanCtx } from '../guards/lib/contratGarde.mjs';
 
 /** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
@@ -145,6 +146,22 @@ test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil
   for (const outil of OUTILS_NON_RESOLUS) {
     assert.deepEqual(validateRolePairs(...paire(`Read, ${outil}`)).map((d) => [d.type, d.message]), [['tools', `outil « ${outil} » hors du pool des sous-agents`]]);
   }
+});
+
+test('refuse un outil MCP ou propre à un hôte sans son équivalent intégré, accepte la paire (#2710)', () => {
+  const paire = (tools) => [
+    new Map([['codeur', `---\nname: codeur\ndescription: Code\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['codeur', 'name = "codeur"\ndescription = "Code"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  const candidats = [['PowerShell', EQUIVALENTS_INTEGRES[SHELL]], ...Object.keys(FAMILLES_LEAN_CTX)
+    .filter((nu) => Object.hasOwn(EQUIVALENTS_INTEGRES, familleLeanCtx(nu)))
+    .map((nu) => [`${PREFIXES_LEAN_CTX.claude}${nu}`, EQUIVALENTS_INTEGRES[familleLeanCtx(nu)]])];
+  assert.ok(candidats.length > 3);
+  for (const [nom, integre] of candidats) {
+    assert.deepEqual(validateRolePairs(...paire(nom)).map((d) => d.message), [`outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent`], nom);
+    assert.deepEqual(validateRolePairs(...paire(`${nom}, ${integre}`)), [], nom);
+  }
+  assert.deepEqual(validateRolePairs(...paire('mcp__autre__ctx_read')), [], 'un serveur autre que lean-ctx n’est pas classé');
 });
 
 test('génère seulement le credo Codex et partage la mémoire Claude', () => {

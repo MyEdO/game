@@ -224,6 +224,34 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeTruthy(); // garde sa lame
   });
 
+  it('#2689 — lame Solide : la Sauvegarde part à la porte, la suite confiée garde le PIÉGEUR pour cible, et la lame ne se brise qu’une fois', () => {
+    seedBattleRng(7);
+    const { H, A } = setup();
+    H.characteristics.force = 90;
+    const weapon: Weapon = { ...bladedWeapon('atk-blade'), qualities: [{ id: 'solide', value: 1 }] };
+    A.weapons = [weapon];
+
+    openTrapChoice(H, A, weapon, 8);
+    const step = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    // Le dé de l'attaquant (sans siège) est tiré d'office dans le même geste : la suite confiée s'OBSERVE
+    // au store pendant qu'il attend.
+    const suites: unknown[] = [];
+    const desabonne = useGame.subscribe((st) => {
+      for (const p of st.pendingCascade?.participants ?? []) {
+        if (!p.committed && p.meta?.apresSuite?.length) suites.push({ porteur: p.actorId, suite: p.meta.apresSuite.map((c) => (c.verbe === 'reprendreFlowDeCombat' ? { cible: c.cibleId, lanceur: c.ctx.casterId } : c.verbe)) });
+      }
+    });
+    useGame.getState().cascadeRoll(step.id);
+    useGame.getState().cascadeNext();
+    desabonne();
+    expect(suites[0], 'le dé de Sauvegarde de l’attaquant porte la suite, qui garde le PIÉGEUR pour cible')
+      .toEqual({ porteur: A.id, suite: [{ cible: H.id, lanceur: A.id }] });
+
+    const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
+    expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined();
+    expect(useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'bladeTrapResult')).toHaveLength(1);
+  });
+
   it('héros en cadence AUTO : Test opposé résolu INLINE (jet non influençable), désarme si le défenseur l’emporte', () => {
     setCadence('auto');
     try {

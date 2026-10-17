@@ -107,6 +107,7 @@ Le **Marchandage** se résout en **Test opposé** (acheteur vs. vendeur).
 
 - **Victoire** : réduit le prix de **10 %**.
 - **Succès Stupéfiant** (DR net ≥ 6) ou talent **Négociateur** : réduction jusqu'à **20 %**.
+- **Négociateur** (LDB 10 l.818 « vous réduisez ou augmentez le prix des produits de 10 % supplémentaires ») : arbitrage utilisateur #2547, 2026-10-09, verbatim « Cumul (Talent p.10) » — les 10 % du Talent s'ajoutent au résultat du Test, une fois (gagné + Négociateur : −20 % ; Stupéfiant + Négociateur : −30 %). « Même effet à la vente, dans l'autre sens » : sur la base de vente (½ du listé, LDB 59 l.54), un Marchandage gagné vaut ½, +10 % au Succès Stupéfiant, +10 % avec Négociateur ; perdu, ¼ (application de l'arbitrage par l'orchestrateur de #665, 2026-10-17, révisable).
 - **Défaite grave** : le vendeur se méfie de la monnaie du personnage (botch → commerce bloqué pour la visite).
 
 > Verbatim LDB 59 l.43 : « Marchandage est couramment utilisé par les clients et les vendeurs, généralement avec des Tests opposés. Le Marchandage est prévu et la plupart des prix sont légèrement augmentés pour en tenir compte. Gagner un Test de Marchandage réduit le prix de 10 % (et même jusqu'à 20 % avec un Succès Stupéfiant (+6) ou avec le Talent Négociateur). Rater de beaucoup un Test de Marchandage signifie généralement que le vendeur se méfie de votre monnaie. »
@@ -144,7 +145,7 @@ La compétence **Évaluation** sert à :
 > Verbatim LDB 59 l.54 : « le prix de base quand vous vendez est moitié moins cher que le prix listé de l'objet, ce qui signifie que, lors d'une vente d'objets d'occasion, vous gagnez généralement entre un quart et la moitié de la valeur listée de l'objet après le Marchandage. »
 
 - Base vente : **½ prix listé**
-- Avec Marchandage de vente gagné : jusqu'à **½ prix listé** (plafond normal)
+- Avec Marchandage de vente gagné : **½ prix listé**, +10 % au Succès Stupéfiant, +10 % avec Négociateur (arbitrage #2547, 2026-10-09, application du 2026-10-17)
 - Sans Marchandage ou perdu : **¼ prix listé**
 - Avec Carrière Receleur/Marchand + Tests de Ragot actifs : jusqu'à **80 %** du prix listé (à la discrétion du MJ)
 
@@ -330,7 +331,7 @@ Taille disponible = **(Taille + Richesse) × résultat 1d100**, arrondi à la di
 
 ### Étape 4 — Marchandage à l'achat
 
-Test opposé de **Marchandage** vs. le vendeur : ±10 %, jusqu'à ±20 % avec le talent Négociateur (LDB 59 l.43).
+Test opposé de **Marchandage** vs. le vendeur : ±10 %, « jusqu'à 20 % si le Personnage possède le Talent Négociateur », procédure renvoyée à « la page 291 du livre de règles WFJDR » (MSRC 13 l.127) = LDB 59 l.43. Règle effective : celle du Marchandage d'objet, cumul de Négociateur compris (arbitrage #2547, 2026-10-09, voir [Marchandage](#marchandage--test-opposé-réductions-négociateur)) — ±10 %, +10 % au Succès Stupéfiant, +10 % avec Négociateur.
 
 **Compétence Marchandage d'un marchand classique** : 32–50 (lancer 2d10+30 ou choisir).
 
@@ -355,7 +356,7 @@ Test opposé de **Marchandage** vs. le vendeur : ±10 %, jusqu'à ±20 % avec le
 | 4 — Animé | +5 % |
 | 5 — Prospère | +10 % |
 
-Puis Test opposé de **Marchandage** pour ajuster (±10 %/±20 % comme à l'achat).
+Puis Test opposé de **Marchandage** pour ajuster (comme à l'achat : ±10 %, +10 % au Succès Stupéfiant, +10 % avec Négociateur).
 
 **Vente d'urgence** (cargaison invendable, lieu Commerce) : toujours possible pour **½ prix de base**.
 
@@ -386,7 +387,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 | `LDB 59 l.18` | `src/engine/disponibilite.ts` + `src/state/merchantFlow.ts` | Règle optionnelle stock sans Test (`fullStock`) ; désactivation Marchandage si `simplifie` |
 | `LDB 60 l.3` | `src/engine/appraisal.ts` | Évaluation : estimation ±10 % Rare/Exotique |
 | `LDB 60 l.3` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Test opposé Marchandage : −10 % achat ; soured sur botch (DR net ≥ 6 en défaite) ; gel du Marchandage cette visite |
-| `LDB 60 l.5` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné (`resaleRate`) |
+| `LDB 60 l.5` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné, +10 % au Succès Stupéfiant, +10 % avec Négociateur (`resaleRate`, `bargainSellFactor`) |
 | `LDB 60 l.3-62` | `src/engine/qualities/craftEconomy.ts` | Facteur prix (`craftPriceFactor` : ×2/Atout, ÷2/Défaut) ; décalage Disponibilité (`shiftAvailability`) ; delta Enc (`craftEncDelta` : Léger −1, Volumineux +1) ; classe de qualité (`qualityClass`) |
 | `LDB 10 l.336` | `src/state/merchantFlow.ts` | Talent Détection d'artefact : Test Intuition, 1 tentative/artefact, révèle aura par DR |
 | `LDB 12 l.94` | `src/state/merchantFlow.ts` | Échec net Évaluation : pas de re-tentative le même jour |

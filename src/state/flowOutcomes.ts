@@ -34,7 +34,7 @@ import { estCibleType, cibleLabel } from '../engine/psychology';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
-import { bargainBuyDiscountPct } from '../engine/bargain';
+import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount } from '../engine/healing';
 import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
@@ -174,9 +174,15 @@ export function describeBargain(pb: PendingBargain): string {
   if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
   const c = pb.contrepartie;
   if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
-  const discount = t('out.fragDiscount', { pct: bargainBuyDiscountPct(won, drNet, pb.negotiator) });
-  if (won) return c.mode === 'buy' ? t('out.bargainWonBuy', { discount }) : t('out.bargainWonSell');
-  return c.mode === 'buy' ? t('out.bargainLostBuy') : t('out.bargainLostSell');
+  if (c.mode === 'sell') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
+  return won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: bargainPct(won, drNet, pb.negotiator) }) }) : t('out.bargainLostBuy');
+}
+
+/** Marchandage de VENTE (LDB 59 l.54) : verdict, source unique popin ↔ panneau du marchand. */
+export function verdictDeVente(o: BargainOutcome): string {
+  if (!o.won) return t('out.bargainLostSell');
+  const hausse = bargainSellBonusPct(o.won, o.drNet, o.negotiator);
+  return t('out.bargainWonSell', { hausse: hausse ? t('out.fragHausse', { pct: hausse }) : '' });
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION

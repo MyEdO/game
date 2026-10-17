@@ -248,7 +248,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 
 // --- Effets de scène/campagne extraits → combatEffects.ts (baril) ---
 export * from './combatEffects';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, registerSuiteCombat, ouvrirChute, cloturer, registerCloture, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, ouvrirChute, cloturer, registerCloture, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
 // --- Manœuvres de créature (énumération + résolveurs roll/apply) extraites → combatManeuvers.ts (baril) ---
 export * from './combatManeuvers';
@@ -4886,12 +4886,16 @@ export function castSpell(
 // Effet d'auteur `castSpell` (#98, scene.ts) : EN COMBAT, route par CE flux standard — enregistré ici
 // (pas dans combatEffects.ts, module FEUILLE qui n'importe rien de combatFlow).
 registerCastSpellEffect(castSpell);
-// INJECTION du walker de COMBAT dans la porte des dés (#1508) — `combatEffects` ne peut pas importer
-// `combat/triggeredTest` (cycle), et l'injection depuis CE module-là arriverait TROP TÔT (il est évalué
-// pendant l'init de `combatEffects` : TDZ mesurée sur le holder). Elle se fait donc ICI, au site
-// ÉTABLI des injections de ce sens, où `combatEffects` est entièrement initialisé.
-registerSuiteCombat((get, set, cible, caster, flow, label) => {
-  runCombatFlow({ mode: 'combat', get, set, target: cible, caster: caster ?? cible, label }, flow);
+// Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
+// (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
+registerCloture('reprendreFlowDeCombat', (get, set, c) => {
+  const { label } = c;
+  // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `opsDe`) ; les suivants jouent.
+  const cible = actorIn(get(), c.cibleId);
+  if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
+  const opsCtx = ctxRepris(get, set, c.ctx, cible);
+  if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'info'); return; }
+  runCombatFlow({ mode: 'combat', get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
 });
 
 /**

@@ -8,7 +8,7 @@
  *
  * Marchandage : Test opposé de Marchandage (l.335/385, « décrit en page 291 de WFJDR ») — jet direct
  * du meilleur PJ soutenu (LDB 12) contre le commerçant (`rollMerchantSkill`) ; le vainqueur module le
- * prix de ±10 % (±20 % si Négociateur ou DR net Stupéfiant, l.335). Les +DR de vendeur (`buySellerDR`
+ * prix de ±`bargainPct` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
  * à l'achat, `sellChance.sellerDR` à la vente) s'ajoutent au DR de LEUR camp.
  *
  * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`state/rollSeam.ts` `openRoll` +
@@ -27,7 +27,8 @@ import type { RNG } from '../engine/dice';
 import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { placeOfScene } from './worldMap';
 import { partyAssisted } from '../engine/skills';
-import { resolveOpposed, bumpSL, SL_ASTOUNDING, estJete, type TestResult } from '../engine/tests';
+import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
+import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
@@ -151,12 +152,6 @@ export function closePort(_get: Get, set: Set): void {
   set({ port: null });
 }
 
-/** Magnitude d'un Marchandage gagné (±10 %, ±20 % si Négociateur ou DR net Stupéfiant, MDG 15 l.335/385).
- *  Homonyme `engine/bargain.ts` (LDB 60) : NON convergent, VOLONTAIREMENT — source RAW distincte, #351. */
-function bargainPct(winnerNegotiator: boolean, netSL: number): number {
-  return winnerNegotiator || netSL >= SL_ASTOUNDING ? 20 : 10;
-}
-
 /** DR de camp SIGNÉ pour l'enjeu affiché (`combat-stakes`, achat et vente) : le gabarit dit « compte
  *  {sellerDR} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
 const signedDR = (dr: number) => (dr >= 0 ? `+${dr}` : String(dr));
@@ -247,8 +242,8 @@ registerCascadeApplier(PORT_BUY_BARGAIN_KIND, (get, set, step) => {
   const opp = resolveOpposed(heroTR, bumpSL(merchantRoll, sellerDR));
   const netSL = opp.netSL;
   let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
-  if (opp.winner === 'attacker') pct = -bargainPct(hasBargainBonus(actor), netSL); // remise à l'acheteur
-  else if (opp.winner === 'defender') pct = bargainPct(merchantNegotiator, netSL); // le vendeur monte le prix
+  if (opp.winner === 'attacker') pct = -bargainPct(true, netSL, hasBargainBonus(actor)); // remise à l'acheteur
+  else if (opp.winner === 'defender') pct = bargainPct(true, netSL, merchantNegotiator); // le vendeur monte le prix
   const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
   return { consequences: freeCons(finalizePortBuy(get, set, cargoId, want, basePrice, pct, bargainLine)) };
 });
@@ -318,8 +313,8 @@ registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
   const opp = resolveOpposed(bumpSL(heroTR, sellerDR), merchantRoll);
   const netSL = opp.netSL;
   let bargainPctVal = 0;
-  if (opp.winner === 'attacker') bargainPctVal = bargainPct(hasBargainBonus(actor), netSL); // le PJ monte le prix
-  else if (opp.winner === 'defender') bargainPctVal = -bargainPct(merchantNegotiator, netSL); // l'acheteur le baisse
+  if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
+  else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
   const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
   return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
 });

@@ -454,7 +454,7 @@ function depotReel({ docsIgnores = false } = {}) {
   return { racine, git }
 }
 
-test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (constat du bootstrap, #2603)', () => {
+test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (#2603)', () => {
   const { racine } = instanceDeDepot({
     commit: false,
     fichiers: { '.gitignore': 'node_modules/\n', 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n', 'src/commun.ts': 'export const commun = 1\n', 'g/a.mjs': generateurReel('a'), 'g/b.mjs': generateurReel('b', { cliquet: true }) },
