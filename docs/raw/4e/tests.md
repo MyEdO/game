@@ -250,6 +250,8 @@ Autrement dit, on soustrait le **chiffre des dizaines du résultat obtenu** au *
 - Eichengard obtient 21 sur un test de Chevaucher (Cheval) 49. Dizaine de la compétence = 4, dizaine du jet = 2. DR = 4 − 2 = +2 → succès.
 - Sur un test de Perception 39, il obtient 82. Dizaine de la compétence = 3, dizaine du jet = 8. DR = 3 − 8 = −5 → échec impressionnant.
 
+**DR ajoutés par un Talent** : ils ne valent que sur une utilisation RÉUSSIE. LDB 10 l.19 : « pour chaque acquisition de ce Talent, vous gagnez +1 DR pour toute utilisation réussie de la Compétence liée au Talent » (aussi l.11 ; détail à [Talents](talents.md)).
+
 **Option — Calculer rapidement un DR** : sur une réussite, le DR est simplement le chiffre des dizaines du résultat du dé. Cette méthode rend le calcul plus fluide. En cas d'échec, on calcule le DR normalement. Avec cette règle optionnelle, plus le résultat est proche de la Compétence utilisée, mieux c'est.
 
 **Sources RAW** :
@@ -260,7 +262,8 @@ Autrement dit, on soustrait le **chiffre des dizaines du résultat obtenu** au *
 
 **Voir aussi** : [Table des Résultats](#table-des-résultats), [Tests opposés](#tests-opposés), [Succès et échec automatiques](#succès-et-échec-automatiques)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `bargainBuyDiscountPct`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `useTestJetProps`, `forceCrewRole`, `opposedForcedFloor`, `evaluateTest`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
+- `LDB 10` (l.19) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `ChoixDeCreation`, `affinite-avec-les-animaux`, `buyTalent`, `ambidextre`, `ame-pure`, `artilleur`, `slotCovers`, +20 — `src/data/schemas/grammaire/ref.ts`, `src/data/talents.json`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/character.ts`, `src/engine/combat.ts`, +4 fichiers
+- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `BARGAIN_ASTOUNDING_PCT`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `useTestJetProps`, `forceCrewRole`, `opposedForcedFloor`, `evaluateTest`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
 
 ---
 
@@ -287,7 +290,7 @@ Le niveau de succès ou d'échec est qualifié par la Table des Résultats, qui 
 
 **Voir aussi** : [Degrés de Réussite (DR)](#degrés-de-réussite-dr), [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.105-114, l.116-117) → `bargainBuyDiscountPct`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `forceCrewRole`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
+- `LDB 12` (l.105-114, l.116-117) → `BARGAIN_ASTOUNDING_PCT`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `forceCrewRole`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
 
 ---
 

@@ -87,6 +87,7 @@ describe('transportCost — billet implicite (LDB 51 l.178 : prix par km par pas
   it('sans paliers, le Marchandage gagné applique la remise RAW (LDB 59 l.43)', () => {
     expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: true, drNet: 1, negotiator: false })).toBe(90);
     expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: false, drNet: 3, negotiator: true })).toBe(100);
+    expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: true, drNet: 6, negotiator: true })).toBe(70);
   });
 });
 
