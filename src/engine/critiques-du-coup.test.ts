@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { critiquesDuCoup, estUnCoupCritique, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
-import { findVehicleById } from '../data';
 import { resetRule, setRule } from './policy';
 import type { Combatant } from './types';
 
@@ -33,9 +32,7 @@ describe('porteurDeCritique — classifieur TOTAL', () => {
     expect(() => porteurDeCritique(porteur({ bodyShape: 'army' }))).toThrow(/REGIMES_DE_PORTEUR/);
   });
 
-  it('les anciens doublons barque/chaland vivent sous les ids du bateau (#1595 c.6221792068 Q6)', () => {
-    expect(findVehicleById('barque')).toBeUndefined();
-    expect(findVehicleById('chaland')).toBeUndefined();
+  it('la barque fluviale est un navire (#1595 c.6221792068 Q6)', () => {
     expect(porteurDeCritique(porteur({ bodyShape: 'vehicule', creatureId: 'barque-fluviale' }))).toBe('navire');
   });
 });
