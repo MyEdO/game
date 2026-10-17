@@ -790,7 +790,7 @@ export function resolveAttack(
   intoCrowd?: boolean,
   heldGround?: boolean,
   armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
-  withhold?: boolean, // « Retenir ses coups » (Aux Armes 07 l.59-61) — déclaré avant le jet, mêlée seule
+  withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
   const battle = get().battle!;
   const mpt = sceneMetresPerTile(get().scene);
@@ -811,12 +811,12 @@ export function resolveAttack(
   if (weapon.type === 'ranged') {
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
     if (intoCrowd) {
-      const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt);
+      const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold);
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
         const rescued = res.attackerRoll > ad.target - (cm?.value ?? 0); // aurait échoué sans le bonus → 0 DR (l.146)
-        const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, ad);
+        const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, ad, withhold);
         stray.log = tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' });
         return { res: stray, weapon, victim };
       }
@@ -835,12 +835,12 @@ export function resolveAttack(
         const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
-    const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt);
+    const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
     // Tir dans la mêlée (LDB 14 l.116) : si le −20 a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
       const ally = strayShotVictim(res, attacker, target, battle);
-      if (ally) return { res: resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail), weapon, victim: ally };
+      if (ally) return { res: resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail, withhold), weapon, victim: ally };
     }
     return { res, weapon };
   }

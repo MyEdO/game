@@ -1436,6 +1436,7 @@ export function resolveRanged(
   env: ModLine[] = [],
   defense?: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] },
   metresPerTile = 2,
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atkVal = combatValue(attacker, 'ranged', weapon);
   const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
@@ -1449,9 +1450,9 @@ export function resolveRanged(
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
     const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defender.weapons[0], weapon);
-    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods });
+    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
   }
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', location);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', location, undefined, withhold);
 }
 
 /** Jet d'attaque FIGÉ d'un TIR (Test de Projectiles, mods de portée/Taille/État inclus) — mirror de
@@ -1488,10 +1489,11 @@ export function finishRanged(
   dodgeMods: ModLine[] = [],
   metresPerTile = 2,
   compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'ranged', location, distanceTiles, env, metresPerTile });
   const atkBd = bd(attackTestLabel(attacker, weapon, 'ranged'), combatValue(attacker, 'ranged', weapon), atk, compo ?? composeAttack(mods));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMods });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMods, withhold });
 }
 
 /**
@@ -1510,6 +1512,7 @@ export function resolveStrayRangedHit(
    *  `effTarget` de la cible d'origine devient une ligne NOMMÉE — sans quoi la touche déviée
    *  afficherait une cible chargée sans rien pour l'expliquer (#1153 L4). */
   origine?: RollBreakdown,
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atk = evaluateTest(roll, effTarget);
   const base = combatValue(attacker, 'ranged', weapon);
@@ -1523,7 +1526,7 @@ export function resolveStrayRangedHit(
     mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
-  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl));
+  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), withhold);
   res.log = `Le tir dévie dans la mêlée et touche ${victim.label} !`;
   return res;
 }
@@ -1532,10 +1535,10 @@ export function resolveStrayRangedHit(
  * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
  * (MDG 14 l.128). Réussi → `applyHit` ; Critique : LDB 13 l.183, MDG 13 l.656.
  */
-export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number): AttackResult {
+export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, withhold = false): AttackResult {
   // Arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
   if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} manque ${defender.label}.` };
-  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll));
+  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), undefined, undefined, 0, withhold);
 }
 
 /** LDB 18 l.30 ; AA 07 l.61 ; AA 06 l.556. */
@@ -1567,7 +1570,7 @@ function applyHit(
   forcedLoc?: HitLocation,
   dmgProxy?: AttackOptions['dmgProxy'],
   extraAP = 0, // PA conférés par l'arme d'opposition du défenseur (Protectrice, LDB 62 l.296)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61) — voir applyHit, n'agit qu'en mêlée
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   // Arme usée à +0 → improvisée (LDB 62 l.135). L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié
   // dans l'arme active par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
@@ -1750,7 +1753,7 @@ export function rederivePassiveAttack(
   atk: TestResult,
   kind: 'melee' | 'ranged',
   location?: HitLocation,
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61) — n'agit qu'en mêlée (gardé par applyHit)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4)
   dmgProxy?: AttackOptions['dmgProxy'], // LDB 14 l.183
 ): AttackResult {

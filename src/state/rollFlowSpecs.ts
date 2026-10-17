@@ -96,7 +96,7 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     return weapon.type === 'ranged'
-      ? finishRanged(attacker, target, weapon, atk2, def, mode, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo)
+      ? finishRanged(attacker, target, weapon, atk2, def, mode, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
       : finishMelee(attacker, target, weapon, atk2, def, mode, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo, dmgProxy);
@@ -111,7 +111,7 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
   return p.weapon.type === 'ranged'
-    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo)
+    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
     : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
 

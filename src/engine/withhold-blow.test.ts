@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique } from './combat';
+import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit } from './combat';
+import type { RNG } from './dice';
 import { critiquesDuCoup } from './critical';
 import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';
@@ -116,7 +117,7 @@ describe('Retenir ses coups — gardes RAW (mêlée seule, jamais En flammes / p
 
   it('projectile : Retenir n’a aucun effet (l.61) → Critique du double conservé', () => {
     const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', undefined, true);
-    expect(ranged.critical).toBe(true); // au tir, le drapeau est inerte (garde weapon.type === 'melee')
+    expect(ranged.critical).toBe(true); // AA 07 l.61
   });
 });
 
@@ -133,5 +134,37 @@ describe("Retenir ses coups en 'ldb' — tout Coup Critique ignoré, rien d'autr
   it('au tir comme avec une arme En flammes, le Coup Critique est ignoré', () => {
     expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', undefined, true).critical).toBe(false);
     expect(resolveMeleePassive(att(), mk(), flameSword, dbl, undefined, [], undefined, true).critical).toBe(false);
+  });
+});
+
+describe("Retenir ses coups au tir en 'ldb' : la règle de la mêlée retenue (LDB 18 l.30 ; AA 07 l.59)", () => {
+  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const bowCrit = { ...bow, damage: { plusBF: false, flat: 4 } };
+
+  it('tir non défendu (`resolveRanged`) : Coup Critique ignoré, Blessures inchangées, comme en mêlée', () => {
+    const normal = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, false);
+    const withheld = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, true);
+    const melee = resolveMeleePassive(att(), mk(), plainSword, dbl, undefined, [], undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(melee.critical);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
+  });
+
+  it('tir défendu (`finishRanged`) : Coup Critique ignoré', () => {
+    const rate = evaluateTest(95, 40);
+    const normal = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', 10, undefined, [], undefined, [], 2, undefined, false);
+    const withheld = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', 10, undefined, [], undefined, [], 2, undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
+  });
+
+  it('tir dévié (`resolveStrayRangedHit`) : Coup Critique ignoré sur l’allié touché', () => {
+    const normal = resolveStrayRangedHit(att(), mk(), bowCrit, 33, 60, undefined, false);
+    const withheld = resolveStrayRangedHit(att(), mk(), bowCrit, 33, 60, undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
   });
 });
