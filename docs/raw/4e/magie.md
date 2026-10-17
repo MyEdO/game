@@ -546,6 +546,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.103-105) → `followsCharacterRules`, `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, +16 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +11 fichiers
+- dette : #2669
 
 ---
 
@@ -1727,7 +1728,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Projectile magique (localisation inversée, dégâts) | LDB 46 l.99-101 | OK |
 | Composants (Majeure→Mineure, Mineure→annulée) | LDB 46 l.107-114 | OK |
 | Restrictions (parole, unicité, non-cumul, LoS) | LDB 46 l.116-121 | OK |
-| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | OK |
+| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | NON IMPLÉMENTÉ — #2669 |
 | Attributs de Domaine — Bête (Peur 1 post-incantation) | LDB 48 l.7 | OK — `domainAfterCast` |
 | Attributs de Domaine — Cieux (bypass PA métal + AoE 2 m) | LDB 48 l.105 | OK — `domainMissileMods` / `domainOnHitEffects` |
 | Attributs de Domaine — Lumière (Aveuglé + frappe BInt vs Démons/Mort-vivants) | LDB 48 l.302 | OK — `domainOnHitEffects` |

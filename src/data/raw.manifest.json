@@ -48,6 +48,12 @@
     "ticket": "#1033"
   },
   {
+    "id": "4e/magie#sorts-de-contact-en-combat",
+    "type": "raw.manifest",
+    "label": "Sorts de Contact en Combat",
+    "ticket": "#2669"
+  },
+  {
     "id": "4e/religion#colere-des-dieux-declencheur-maladresse",
     "type": "raw.manifest",
     "label": "Colère des dieux — déclencheur Maladresse",
