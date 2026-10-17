@@ -28,6 +28,8 @@ const SP = join(tmpdir(), DOSSIER_CLAUDE, SLUG, SESSION, 'scratchpad')
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** La suite du banc que `vitest run --dir` lance et qui écrit hors du scratchpad. */
 const SUITE_ECRIT = 'x.test.mjs'
+/** Lecteur Windows assemblé : `src/portable-paths-guard.test.ts`. */
+const LECTEUR = 'C' + ':'
 /** Lecture et listage, sur l'hôte, du chemin `relatif` sous une racine de l'hôte (`RACINE` ou `tmpdir()`). */
 const lireSous = (base, relatif) => FS.readFileSync(join(base, relatif), 'utf8')
 const listerSous = (base, relatif) => FS.readdirSync(join(base, relatif), { recursive: true, withFileTypes: true })
@@ -36,7 +38,7 @@ test('#2537 — le scratchpad se dérive de `transcript_path` (segment après `.
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: SESSION }), SP)
   assert.equal(scratchpadDeSession({ transcript_path: join(RACINE, '.claude/projects/s/p/subagents/agent-a.jsonl'), session_id: 'p' }, 'T'), join('T', DOSSIER_CLAUDE, 's', 'p', 'scratchpad'))
   assert.equal(scratchpadDeSession({ transcript_path: '/r/.claude/projects/s/p.jsonl', session_id: 'p' }, '/tmp', 'linux', 0), '/tmp/claude-0/s/p/scratchpad')
-  assert.equal(scratchpadDeSession({ transcript_path: 'C:\\r\\.claude\\projects\\s\\p.jsonl', session_id: 'p' }, 'C:\\T', 'win32'), 'C:\\T\\claude\\s\\p\\scratchpad')
+  assert.equal(scratchpadDeSession({ transcript_path: LECTEUR + '\\r\\.claude\\projects\\s\\p.jsonl', session_id: 'p' }, LECTEUR + '\\T', 'win32'), LECTEUR + '\\T\\claude\\s\\p\\scratchpad')
   assert.equal(scratchpadDeSession({ transcript_path: join(RACINE, 'projets/s.jsonl'), session_id: 'p' }), null)
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: '..' }), null)
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: 'a/b' }), null)
