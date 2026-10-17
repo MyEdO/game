@@ -20,7 +20,7 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ATTENTE_GESTES_LOURDS } from '../test/verrouGestesLourds.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
-import { consignant, nomDesOrphelins, prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { consignant, naissanceDuTenant, nomDesOrphelins, prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
@@ -282,7 +282,7 @@ export function attendreLaReconstruction(racine, seq, { echeanceMs, pasMs = 500,
     const etat = lireEtat(chemins)
     if (etat.soldees >= seq) return { etat: 'soldee', ...etat.dernier }
     const tenant = tenantDe(chemins.verrou)
-    const tenu = tenant !== null && estPidVivantDepuis(tenant.pid, tenant.creation, identite, { estVivant })
+    const tenu = tenant !== null && estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), identite, { estVivant })
     if (!tenu && !etat.lances.some((l) => lanceVivant(l, identite, estVivant))) {
       const relu = lireEtat(chemins)
       if (relu.soldees >= seq) return { etat: 'soldee', ...relu.dernier }
