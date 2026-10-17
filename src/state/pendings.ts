@@ -1602,7 +1602,7 @@ export type Cloture =
   | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
   /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
    *  sa cible et avec le contexte porté de sa pile. */
-  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label?: string };
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string };
 
 /**
  * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`

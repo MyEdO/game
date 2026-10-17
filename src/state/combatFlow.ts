@@ -4889,7 +4889,7 @@ registerCastSpellEffect(castSpell);
 // Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
 // (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
 registerCloture('reprendreFlowDeCombat', (get, set, c) => {
-  const label = c.label ?? tr('eff.flowTitle');
+  const { label } = c;
   // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `opsDe`) ; les suivants jouent.
   const cible = actorIn(get(), c.cibleId);
   if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
