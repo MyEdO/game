@@ -5,6 +5,9 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
+import { cascadeAppliers } from './cascade';
+import { resultLine } from './rollSeam';
+import type { CascadeStep } from './pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 
 /**
@@ -227,5 +230,39 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const spentB = 5000 - partyMoneyTotal(get).gold;
 
     expect(spentB).toBe(spentA);
+  });
+});
+
+/** Étape de Marchandage portuaire POSÉE par la porte (`portBuyCargo` → `openRoll`), jet du héros rendu (`sl`). */
+function etapeMarchandage(hero: Combatant, kind: string, sl: number, success: boolean, meta: CascadeStep['meta']): CascadeStep {
+  setupBuy([hero]);
+  get().portBuyCargo('bois', 20);
+  const posee = get().pendingCascade!.participants[0];
+  set({ pendingCascade: null } as never);
+  return { ...posee, id: kind, kind, meta, result: { roll: 50, target: 60, sl, success } };
+}
+const ligneDe = (kind: string, step: CascadeStep, actor: Combatant): string => {
+  const out = cascadeAppliers[kind].apply(get, set, step, actor, { steps: [step], index: 0 });
+  return resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
+};
+
+describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
+  beforeEach(() => setRule('test-auto-bands', 'off'));
+  afterEach(() => resetRule('test-auto-bands'));
+
+  it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
+    const hero = makePregens()[0];
+    hero.talents = [...hero.talents, { talentId: 'negociateur', times: 1 }];
+    const step = etapeMarchandage(hero, 'port-buy-bargain', 9, true, { cargoId: 'bois', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, sellerDR: 0 });
+    imposeD100(95); // le commerçant (40) rate : DR −5
+    expect(ligneDe('port-buy-bargain', step, hero)).toMatch(/remise de 30 %/);
+  });
+
+  it('vente : l’acheteur Négociateur l’emporte de moins de 6 DR → le prix d’offre baisse de 20 %', () => {
+    const hero = makePregens()[0];
+    const step = etapeMarchandage(hero, 'port-sell-bargain', -3, false, { cargoIndex: 0, sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, sellerDR: 0 });
+    setup({ taille: 4, richesse: 4, production: [] } as unknown as PortProfile, [hero]);
+    imposeD100(40); // l’acheteur (50) réussit : DR +1
+    expect(ligneDe('port-sell-bargain', step, hero)).toMatch(/: -20 %/);
   });
 });

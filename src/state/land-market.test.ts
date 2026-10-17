@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { emptyScene } from './scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng, battleRng } from './battleRng';
 import { draineCascadeDifferee } from './cascadeTestKit';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
@@ -139,6 +139,37 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const cargo = carrierCargo();
     expect(cargo.length === 0 || cargo[0].enc < 40).toBe(true);
     expect(partyMoneyTotal(get).gold).toBeGreaterThan(before);
+  });
+
+  it('landBuyCargo : Marchandage gagné de 6 DR ou plus par un Négociateur → remise de 30 % (LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
+    const meneur = get().party[0];
+    meneur.talents = [...meneur.talents, { talentId: 'negociateur', times: 1 }];
+    meneur.skills = [...meneur.skills.filter((sk) => sk.id !== 'marchandage'), { id: 'marchandage', advances: 60 } as never];
+    useGame.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10 }] } } as never);
+    seedBattleRng(3);
+    const rng = battleRng() as { int: (min: number, max: number) => number };
+    const brut = rng.int.bind(rng);
+    const des = [5, 99]; // le meneur, puis le marchand
+    rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
+    const before = partyMoneyTotal(get).gold;
+    get().landBuyCargo('metal', 20);
+    expect(get().journal.some((l) => /remise de 30 %/.test(l)), get().journal.join('\n')).toBe(true);
+    expect(before - partyMoneyTotal(get).gold).toBe(140); // 20 Enc × 10 CO × 0,7
+  });
+
+  it('landSellCargo : un Négociateur qui gagne de moins de 6 DR monte la mise à prix de 20 % (LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
+    const meneur = get().party[0];
+    meneur.talents = [...meneur.talents, { talentId: 'negociateur', times: 1 }];
+    meneur.skills = [...meneur.skills.filter((sk) => sk.id !== 'marchandage'), { id: 'marchandage', advances: 60 } as never];
+    useGame.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
+    setCarrierCargo([{ cargoId: 'vivres', enc: 20, basePriceGold: 2 }]);
+    seedBattleRng(2);
+    const rng = battleRng() as { int: (min: number, max: number) => number };
+    const brut = rng.int.bind(rng);
+    const des = [5, 70, 40]; // acheteur trouvé, le meneur (DR 1 au plus haut), le marchand (2d10+30)
+    rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
+    vendLot0();
+    expect(get().journal.some((l) => /Marchandage \(70 vs 40\) : \+20 %/.test(l)), get().journal.join('\n')).toBe(true);
   });
 
   it('landDumpCargo brade à la moitié du prix de base (Lieu de Commerce, l.160)', () => {
