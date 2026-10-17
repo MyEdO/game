@@ -180,12 +180,15 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 
 Un **Critique** au Test d'incantation (double réussi, `LDB 46 l.28` renvoie à la p.159) signifie que les Vents ont développé une force dangereuse. À moins de posséder le Talent **Diction instinctive**, effectuer un jet sur le Tableau des Incantations Imparfaites Mineures. On peut **aussi** choisir l'un des effets suivants : le jet sur l'Imparfaite Mineure **demeure**, l'effet choisi s'y ajoute. `LDB 46 l.28` : « Mais vous pouvez aussi choisir » ; `VDM 02 l.52` : « peut également choisir ».
 
-- **Incantation Critique** : si le sort inflige des Dégâts, il inflige également une Blessure Critique (voir traumatisme).
+- **Incantation Critique** : si le sort inflige des Dégâts, il inflige également une Blessure Critique (`LDB 18 l.7-25`, `l.53`).
 - **Puissance totale** : le sort est lancé quel que soient son NI et le DR obtenu — mais il peut être Dissipé.
 - **Force inéluctable** : si le DR est suffisant pour lancer le sort, il ne peut pas être Dissipé.
 - **Localisation de la Blessure critique d'Incantation, silence du texte** : `LDB 46 l.28` renvoie le Critique à la p.159 (« Si vous obtenez un Critique (voir page 159) à votre lancer d'Incantation »). `LDB 18 l.53` relance la Localisation de tout Coup Critique (« Lorsque vous encaissez un **Coup Critique (voir page 159)**, vous ne déterminez pas la Localisation en inversant votre lancer comme d'habitude. À la place, lancez 1d100 et référez-vous à **Déterminer la Localisation (voir page 159)** »). `LDB 46 l.101` fixe celle de la touche d'un *Projectile magique* par inversion (« la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick) »). Aucun passage ne dit laquelle sert à la Blessure critique d'Incantation.
 - **Choix (A), décision d'orchestrateur, ingénierie révisable, non entérinée** (#1595 c.6229735418 ; consigne utilisateur, 2026-10-17 : « seule une vraie contradiction du texte remonte à game-2e ») : la Localisation de la Blessure critique d'Incantation est **relancée au 1d100** (`LDB 18 l.53`), en `ldb` comme en `aa`. Déclencheur unique : `CompteDesCritiques.relance` (`critiquesDuCoup`, `src/engine/critical.ts`), cause `incantation-critique`.
-- **Prières** : `LDB 40` : aucune règle de Critique (ni « Critique » ni « double » dans le chapitre des Prières). Le Test de Prière n'a pas d'équivalent de l'Incantation Critique.
+- **Tout Sort qui inflige des Dégâts** : « si le Sort inflige des Dégâts, il inflige également une Blessure Critique » (`LDB 46 l.30`) ; « si le Sort inflige des Dégâts, il inflige aussi une Blessure Critique » (`VDM 02 l.54`). Code : choix offert aux seuls *Projectiles magiques*, dette #1035.
+- **Localisation d'un Sort non Projectile** : seul `LDB 18 l.53` la donne (« vous ne déterminez pas la Localisation en inversant votre lancer comme d'habitude. À la place, lancez 1d100 et référez-vous à **Déterminer la Localisation (voir page 159)** ») ; l'inversion de `LDB 46 l.101` ne vise que « Quand un *Projectile magique* est lancé avec succès ».
+- **Miracles et Bénédictions, exclus par la nature de leur Test** : « Pour lancer un Sort, effectuez un Test de Langue (Magick). » (`LDB 46 l.24`) ; « Si vous obtenez un Critique (voir page 159) à votre lancer d'Incantation » (`LDB 46 l.28`) ; « Pour proférer une Bénédiction ou un Miracle, effectuez un Test de **Prière Intermédiaire (+0)**. » (`LDB 40 l.13`).
+- **Zone à N cibles, Dégâts par Round, silence du texte, décision d'orchestrateur révisable, non entérinée** (#1035 c.6234339186, 2026-10-17) : une Blessure critique par cible qui subit des Dégâts ; un Sort à Dégâts par Round n'en inflige qu'une par cible, à la première infliction de Dégâts.
 
 > **Verbatim** (l.28) : « À moins que vous n'ayez le Talent Diction instinctive, effectuez un lancer sur le Tableau des Incantations Imparfaites Mineures lorsque la puissance dépasse votre contrôle. Mais vous pouvez aussi choisir l'un des effets suivants : »
 > **Verbatim** (l.31-32) : « **Puissance totale :** le Sort est lancé, quels que soient son NI et votre DR obtenu, mais il peut être Dissipé. » / « **Force inéluctable :** si vous obtenez suffisamment de DR pour lancer votre Sort, il ne peut être Dissipé. »
@@ -599,8 +602,6 @@ Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Pe
 **Sources RAW :** `LDB 48 l.104-106`
 
 > « Les Sorts infligeant des Dégâts ignorent les PA des armures en métal, et se dirigent vers toutes les autres cibles dans les 2 mètres, à l'exception de ceux possédant le Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre Bonus de Force Mentale, traités comme un Projectile magique. »
-
-Double effet : (1) bypass PA métal sur la cible principale ; (2) propagation électrique dans 2 m aux autres cibles (BFM dégâts, Projectile magique), sauf porteurs du Talent `Magie des Arcanes (Cieux)`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 48` (l.105) → `maitre-de-la-bete`, `peau-de-chasseur`, `serres-d-ambre`, `vol-du-destin`, `arc-de-t-essla`, `bouclier-ceruleen` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
@@ -1720,7 +1721,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Mémoriser un sort (PX) | LDB 46 l.16-20 | OK |
 | Test d'incantation (Langue Magick, DR ≥ NI) | LDB 46 l.22-24 | OK |
 | Compétence avancée (0 avance = pas de test) | LDB 09 | OK |
-| Incantation Critique (double réussi) | LDB 46 l.26-32 | OK |
+| Incantation Critique (double réussi) | LDB 46 l.26-32 | Dette #1035 « Incantation Critique offerte aux seuls PROJECTILES » |
 | Maladresse → Imparfaite Mineure | LDB 46 l.83-85 | OK |
 | Influence corruptrice → le 8 | LDB 46 l.87-89 | OK |
 | Tableau Imparfaites Mineures (20 entrées) | LDB 46 l.34-55 | OK — verbatim |

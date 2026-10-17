@@ -54,6 +54,12 @@
     "ticket": "#2669"
   },
   {
+    "id": "4e/magie#incantation-critique",
+    "type": "raw.manifest",
+    "label": "Incantation Critique",
+    "ticket": "#1035"
+  },
+  {
     "id": "4e/religion#colere-des-dieux-declencheur-maladresse",
     "type": "raw.manifest",
     "label": "Colère des dieux — déclencheur Maladresse",

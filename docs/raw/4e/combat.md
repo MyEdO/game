@@ -5213,6 +5213,8 @@ Vous rechargez avec facilité les armes à **Poudre noire**. Effets :
 - Vous gagnez **+1 Avantage supplémentaire** quand vous effectuez ce Test d'Évaluer.
 
 ### Battement
+Les versions mises à jour ne valent qu'avec la règle d'Avantage de groupe ([§ AA : système d'Avantage de Groupe](#aa--système-davantage-de-groupe)) : « Plusieurs Talents ont été modifiés pour correspondre à ces règles d'Avantage alternatives. Reportez-vous à la section Nouveaux Talents et Talents mis à jour en page 140 pour savoir en quoi les Talents suivants sont affectés : Artilleur, Battement, Coude-à-coude, Distraire, Impitoyable, Portebouclier, Rechargement rapide et Renversement. » — `AA 11 l.71`
+
 **Maxi :** Bonus de Capacité de Combat. **Tests :** Corps à Corps pour effectuer une manœuvre de Battement.
 Frappes précises contrôlées sur l'arme adverse, créant une ouverture ou empêchant une attaque d'aboutir. Pour votre **Action**, vous pouvez choisir Battement **avant de lancer les dés**. Effectuez un Test de **Corps à Corps** (Test **NON opposé**). Sur un **Succès** :
 - la réserve d'Avantages du **camp adverse perd −1 Avantage** ;
@@ -5262,11 +5264,9 @@ Quand votre esprit est rivé sur une cible, personne ne peut vous empêcher de l
 
 ### Porte-Bouclier
 **Maxi :** Bonus de Force. **Tests :** n'importe quel Test pour vous défendre avec un bouclier.
-Habile au maniement du bouclier pour tirer parti d'une situation désespérée. Quand vous utilisez un **bouclier pour vous défendre**, **une fois par Round**, vous pouvez **dépenser 2 Avantages** pour, **au choix** :
-- **causer des Dégâts** quand vous êtes attaqué, comme s'il s'agissait de votre Action ; **ou**
-- **pousser** votre adversaire de **2 mètres** dans la direction directement opposée à vous, **et** ne plus être considéré comme **Engagé**.
+> « Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser 2 Avantages soit pour causer des Dégâts quand vous êtes attaqué comme s'il s'agissait de votre Action, soit pour pousser votre adversaire sur 2 mètres dans la direction directement opposée à vous et ne plus être considéré comme Engagé. » — `AA 13 l.84`
 
-> Divergence LDB : la version du Livre de base accorde simplement **+niveau Avantage** quand vous **perdez** le Test opposé en vous défendant avec un bouclier.
+> Divergence LDB : « Quand vous utilisez un Bouclier pour vous défendre, vous gagnez un nombre d'Avantages égal au nombre de Niveaux que vous possédez en Porte-bouclier si vous perdez le Test opposé. » — `LDB 10 l.972`
 
 ### Rechargement Rapide
 **Maxi :** Bonus de Dextérité.
@@ -6404,7 +6404,8 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 ### AA : Talents de combat ⚠
 - MINEUR — Exemple 'Cavalier Émérite' mal localisé dans le fichier source (artefact de conversion PDF) : le texte 'une autre personne sur un cheval ne causerait pas de Peur…' (l.4496) est physiquement placé après Frappe Blessante dans le .md source, pas après Cavalier Émérite. La section de refs du document le note correctement (l.4492-4496 / Frappe Blessante + exemple), mais le corps du document l'intègre sous Cavalier Émérite, ce qui est logiquement juste. Pas d'erreur factuelle, simple artefact de conversion signalé.
 - MINEUR — Commandant d'Équipe : le document dit 'score de Projectiles du Personnage' ; la source dit 'score de Compétence Projectiles du Personnage' (l.4478). Omission du mot 'Compétence', sans impact sur le sens.
-- NON VÉRIFIÉ — Les notes de divergence LDB (Battement '−1 par DR' vs '−1 à 6 DR', Frappe Blessante '+Blessures', Impitoyable 'Désengagement', Porte-Bouclier '+Avantage', Renversement 'TOUS les Avantages', Coude-à-Coude) n'ont pas pu être vérifiées faute de lecture du LDB dans cette session. Elles sont signalées comme divergences, pas vérifiées. L'agent relecteur devrait confirmer ces points contre Source/Warhammer v4 - Livre de base version corrigee.
+- NON VÉRIFIÉ — Les notes de divergence LDB (Battement '−1 par DR' vs '−1 à 6 DR', Frappe Blessante '+Blessures', Impitoyable 'Désengagement', Renversement 'TOUS les Avantages', Coude-à-Coude) n'ont pas pu être vérifiées faute de lecture du LDB dans cette session. Elles sont signalées comme divergences, pas vérifiées. L'agent relecteur devrait confirmer ces points contre Source/Warhammer v4 - Livre de base version corrigee.
+- VÉRIFIÉ — Porte-Bouclier : divergence LDB citée verbatim au § [Porte-Bouclier](#porte-bouclier) (`LDB 10 l.972`).
 
 ### AA : Activités guerrières ⚠
 - Titre de la 4e activité tronqué : le topic écrit « Fabuleuse Vente du Comte de Punchausen » alors que la source (AA 12 l.46) donne « Fabuleuse Vente des Aventures du Comte de Punchausen » (« des Aventures » manquant).

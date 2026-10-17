@@ -889,7 +889,7 @@ Votre forte constitution vous permet de survivre plus facilement à une menace s
 Vous êtes très résistant à la magie. Le DR de tout Sort vous affectant est réduit de 2 par point que vous possédez dans ce Talent. Le DR d'un Sort est uniquement modifié par le plus haut score du Talent Résistance à la Magie dans la zone de sa cible. De plus, vous ne pourrez jamais apprendre les Talents Béni, Invocation, Magie des Arcanes, Magie mineure et Sorcier !.
 
 ### Riposte
-**Source :** LDB 10 p.144  
+**Source :** LDB 10 l.1028-1037  
 **Maxi :** Bonus d'Agilité  
 **Tests :** Corps à corps quand vous vous défendez  
 
@@ -1273,10 +1273,14 @@ Un Personnage doté de ce Talent a l'habitude de gérer des équipes maniant des
 **Description :** non trouvée dans le MD AA VF disponible. Stub à compléter.
 
 #### Porte-Bouclier (mise à jour AA)
-**Source :** AA Annexe III l.4511-4514  
+**Source :** AA 13 l.76-84  
 **Maxi :** Bonus de Force  
 **Tests :** n'importe quel Test pour vous défendre avec un bouclier  
-**Changement AA :** Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser **2 Avantages** soit pour **causer des Dégâts** comme si c'était votre Action, soit pour **pousser votre adversaire sur 2 mètres** et ne plus être Engagé (vs LDB : dépenser des Avantages pour des effets).
+**Condition :** règle d'Avantage de groupe seulement (AA 11 l.71) : « Plusieurs Talents ont été modifiés pour correspondre à ces règles d'Avantage alternatives. […] Portebouclier […] »  
+
+> « Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser 2 Avantages soit pour causer des Dégâts quand vous êtes attaqué comme s'il s'agissait de votre Action, soit pour pousser votre adversaire sur 2 mètres dans la direction directement opposée à vous et ne plus être considéré comme Engagé. » — AA 13 l.84
+
+> LDB : « Quand vous utilisez un Bouclier pour vous défendre, vous gagnez un nombre d'Avantages égal au nombre de Niveaux que vous possédez en Porte-bouclier si vous perdez le Test opposé. » — LDB 10 l.972
 
 #### Rechargement rapide (mise à jour AA)
 **Source :** AA Annexe III l.4516-4519  
