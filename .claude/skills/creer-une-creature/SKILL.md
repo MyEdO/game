@@ -10,3 +10,8 @@ illustration `art-ref/` obligatoire, pièges codifiés. Le statbloc vient du Sou
 Rulebook 5e — `CLAUDE.md` § *Sources VF* ; règle stricte 1) ; l'apparence est de la donnée
 (registres `defs/`, jamais de regex sur les noms — `docs/architecture.md` § Direction visuelle).
 QC : golden tests + reconnaissabilité par agent aveugle.
+
+Aucune vague d'art sur un plan corporel avant que son SQUELETTE passe sa porte : z par os × vue
+complet et testé ; plan de profondeur DÉCLARÉ par vue pour tout élément attaché (part, deco, aile,
+feature), jamais concaténé ; parité de silhouette profil/dos mesurée ; ancres et ligne de sol
+publiées ; sondes perceptuelles, juge en aveugle, puis œil utilisateur.

@@ -3,7 +3,7 @@ import type { Fige } from '../state/scene';
 /**
  * Ids de sort FUSIONNÉS par le lot #1897 : une entrée du livre fan `frenchy-bzh` qui doublait un sort déjà
  * au catalogue n'existe plus, son id désigne l'entrée qui l'a absorbée (doctrine « une entité, N livres » :
- * `.claude/memory/game-doctrine-une-entite-n-livres-n-variantes.md`).
+ * `.claude/memory/user-doctrine-une-entite-n-livres-n-variantes.md`).
  *
  * TABLE GELÉE (`Fige`, `src/state/scene.ts`) : ce que rejoue la migration de donnée
  * (`scripts/migrations/2026-09-23-1897-sorts-fan-par-le-pont.mjs`), jamais une correspondance du jour :

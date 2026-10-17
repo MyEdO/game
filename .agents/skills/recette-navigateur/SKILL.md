@@ -19,6 +19,10 @@ l'écran-cible du parcours joueur (« Fiche complète »), jamais le composant (
 primitive est composée par plusieurs écrans, vérifier lesquels la montent AVEC la donnée concernée (un
 `sections=[…]` restrictif chez l'appelant masque une rubrique pourtant présente dans la primitive).
 
+Un lot UI dont la base a bougé (rebase, conflits résolus, régime de rendu changé entre-temps) se
+recette À NOUVEAU sur l'arbre FUSIONNÉ avant sa fusion, même déjà recetté : des portes machine vertes
+ne valent pas une recette.
+
 ## Recette VISUELLE
 
 Le brief demande d'ÉNUMÉRER tout ce qui est à l'écran calque par calque et de dire ce que chaque chose

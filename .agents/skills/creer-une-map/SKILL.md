@@ -21,6 +21,10 @@ Référence complète (champs, ordre de compilation, pièges) : **`docs/map-auth
 Chaque étape est VALIDABLE avant la suivante. Détail + citations dans `docs/map-authoring.md` § « Procédure
 image → grille ».
 
+La planche décide, le moteur suit : décide ce que la carte doit être AVANT de regarder ce que le format
+exprime. Un besoin qu'il n'exprime pas est un manque du moteur, remonté avec son cas et traité jusqu'au
+bout ; « le format le permet déjà » n'est pas un résultat.
+
 1. **Échelle** : défaut **une porte = 1 case** (dérogable, à documenter) → `metresPerTile`.
 2. **Dimensions communes** : tous les étages partagent le `size` ; z1 = `'vide'` hors emprise bâtie.
 3. **Enveloppe + cloisons** en `walled` box-drawing, SANS mobilier. Obliques `\`/`/` ORTHOGONALISÉES
@@ -44,6 +48,9 @@ image → grille ».
   (chaque pièce nommée atteignable, BFS `reachableCells`/`walkNeighbors`) ; `reachedFloors` couvre tous les
   étages habités (connexité verticale par `stair`).
 - **Jugement visuel** : capture de jeu (patron `scripts/qc/capture-jeu.mjs`) → planche par étage aux
-  **4 rotations**, plan source en regard, jugée en RÉFUTATION — jamais une auto-certification.
+  **4 rotations**, plan source en regard, jugée en RÉFUTATION — jamais une auto-certification. Les
+  EMPRISES des meubles (pixels du plan → cases, contre les dimensions authorées) se recalent avant leurs
+  positions : ½ case d'écart de position se tolère, une emprise à 50 % non. Aucun verdict « calé » sans
+  mesure ; un outillage qui empêche de mesurer est un défaut à traiter.
 - Attendus commités DANS les tests, jamais dépendants d'un fichier hors git. Exemple vivant :
   `src/scenes/test-scenarios/zones-pieces.ts`.

@@ -171,6 +171,10 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
 scripts/mods/               Garde `mods:check` (`verifier.mjs`) : validation stricte, types posés par le
                             moteur, `tsc` et bancs de chaque mod, sur une copie sous os.tmpdir() ;
                             racine d'un mod (`racines.mjs`) ; banc du mur des mods (`murDeMod.test.mjs`)
+scripts/hooks/               Répartiteur des hooks d'appel d'outil (`repartiteur.mjs`, `repartition.mjs`) : gardes de
+                            `registre.mjs` par événement. `regles-projection-guard.mjs` projette les
+                            `.claude/rules/*.md` à `paths:` sur les lectures lean-ctx et `ctx_patch` (#2683),
+                            `regles-projection-oubli.mjs` en efface l'état au SessionStart d'une compaction
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).

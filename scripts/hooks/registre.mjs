@@ -20,12 +20,13 @@ import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
 import { garde as lectureSeule } from './lecture-seule-guard.mjs'
 import { garde as workflowType } from './workflow-type-guard.mjs'
 import { garde as racineDeConfiance } from './racine-de-confiance-guard.mjs'
+import { garde as reglesProjection, gardeEdition as reglesProjectionEdition } from './regles-projection-guard.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
     canalOutil, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
     commandePiege, issueLabel, codeurGates, runnerCapture, appelBorne, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes,
-    lectureSeule, workflowType, racineDeConfiance,
+    lectureSeule, workflowType, racineDeConfiance, reglesProjectionEdition,
   ],
-  PostToolUse: [poison],
+  PostToolUse: [poison, reglesProjection],
 }

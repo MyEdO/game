@@ -14,7 +14,7 @@ choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/CLAUDE.md` parent ne s'applique PAS ici.
 
-Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en local, son index seul
+Mémoire committée `.claude/memory/` (en-tête de routage `MEMORY.md` + doctrines `user-*`) : injectée en local, son en-tête seul
 en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
@@ -96,7 +96,9 @@ Tout est en **français** sous `Source/`, dossiers préfixés `Warhammer v4 - ` 
 SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exceptions** :
 `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (**CRB**), livre VO AUTORISÉ, cœur de la 5e — fiche
 `user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. La VO de L'Ennemi Intérieur se lit pour
-comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Livres : **LDB** ·
+comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donnée MÉCANIQUE absente de
+la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
+`user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM**, chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au

@@ -10,7 +10,11 @@ d'homonymes). En un mot :
 
 1. **CHECK-FIRST** : `grep -rniE '<id>|<label>|<concept>' src/data/*.json` — un même concept vit souvent
    déjà dans un AUTRE sous-système (un bélier est à la fois trapping, machine de guerre et action). S'il
-   existe → ne duplique pas : étends-le ou re-scope.
+   existe → ne duplique pas : étends-le ou re-scope. Cherche par LABEL et synonymes, jamais par préfixe
+   d'id. Un descripteur (« petit », « de qualité », « féroce ») se vérifie au RAW : s'il nomme un trait
+   (`Taille`, `Rapide`…) ou une règle, il se modélise SUR la référence (trait, ou Atout
+   `qualities`/`qualityChoice`, `src/data/schemas/grammaire/reference.ts`, matérialisé avec sa `value`
+   par `qualityInstance`, `src/data/index.ts`), jamais par une entité distincte.
 2. **Router** : si c'est un sort / une créature / un effet mécanique / une icône / un livre → STOP, skill
    de domaine dédié. Sinon, choisir le fichier via la carte `docs/donnees.md` (une « machine de guerre »
    n'est PAS un trapping).

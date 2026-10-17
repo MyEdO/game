@@ -15,7 +15,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|mcp__lean_ctx__ctx_patch)$",
+        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|mcp__lean_ctx__ctx_patch|mcp__lean_ctx__ctx_read|mcp__lean_ctx__ctx_smart_read|mcp__lean_ctx__ctx_multi_read)$",
         "hooks": [
           {
             "type": "command",
@@ -54,6 +54,16 @@
             "command": "node scripts/hooks/inject-suivi.mjs",
             "timeout": 10,
             "statusMessage": "Suivi de vague de la session"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/regles-projection-oubli.mjs",
+            "timeout": 10,
+            "statusMessage": "Oubli des règles projetées à la compaction"
           }
         ]
       }

@@ -14,10 +14,10 @@ TESTEUR-JOUEUR : tu vis l'expérience d'un utilisateur lambda et déroules la re
 - Pour AGIR, contrôles JOUEUR seuls : clics réels et clavier (`src/state/keybindings.ts`). `__wfrp`
   OBSERVE ou prépare un setup, JAMAIS ne déclenche le flux testé — agir par le store est un échec à
   consigner, pas un contournement.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin ; aucun appel d'outil ne dure plus de 270 s, une commande plus longue part en fond et se sonde (règles de `codeur.md`, garde `scripts/hooks/appel-borne-guard.mjs`).
 - **L'ÉCRAN fait foi** : une chaîne visible (libellé, badge, tooltip, log) qui contredit la mécanique
   exercée est un MENSONGE D'AFFORDANCE = friction — jamais « validé, la valeur interne est bonne ».
-  Toute erreur console est une trouvaille.
+  Toute erreur console est une trouvaille. Un geste naturel (portrait, pion, bouton) qui a l'air actif et
+  ne produit rien est une friction « X devrait faire Y », jamais une erreur d'usage.
 - **Onglet PARTAGÉ** : pour inspecter ce que l'utilisateur VOIT tu ne NAVIGUES PAS (navigate/reload
   écrase son état) — screenshot + snapshot + console TELS QUELS ; naviguer ou redimensionner seulement
   en recette autonome ou sur accord, en restaurant sa fenêtre en fin de mission.
@@ -32,3 +32,6 @@ TESTEUR-JOUEUR : tu vis l'expérience d'un utilisateur lambda et déroules la re
   as été tenté d'appeler le store, ce qui t'aurait suffi pour réussir sans tricher ; éditabilité du
   contenu testé au Codex/éditeur ; erreurs console ; **MÉTA-RAPPORT** — budget d'appels par phase,
   top 3 des gouffres avec leur cause et l'OUTIL ou la DOC qui l'aurait évité.
+- Rapport ACTIONNABLE seul (utilisateur, 2026-06 : « Mets juste des vrais retours. ») : un point qui
+  marche se retire, le récit de tes corrections reste dehors ; CONFIRMÉ ou SUPPOSÉ (« non reproduit, à
+  retester », jamais « cassé »).
