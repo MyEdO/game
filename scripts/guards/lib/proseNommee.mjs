@@ -150,18 +150,18 @@ export function classificationsProseLocale(root, fichiers, { sourcesAdditionnell
           ...(motif && preuve && ts.isStringLiteral(motif) && ts.isStringLiteral(preuve) ? { horsContrat: { motif: motif.text, preuve: preuve.text } } : {}) };
       };
       const visiter = n => {
-        if ((ts.isIdentifier(n) || ts.isPropertyAccessExpression(n) || ts.isCallExpression(n)) && sortie(n)) {
+        if (ts.isIdentifier(n) || ts.isPropertyAccessExpression(n) || ts.isCallExpression(n)) {
           const origine = origineImportee(n, sourceFile, contexte);
-          const proprietaires = proprietairesDe(checker.getSymbolAtLocation(n));
-          if (origine && !Object.hasOwn(sources, origine.module) && !proprietaires.some(p => Object.hasOwn(sources, p))) importsSchemas.set(`${origine.module}:${origine.nom}`, origine);
+          if (origine && !Object.hasOwn(sources, origine.module) && sortie(n) && !proprietairesDe(checker.getSymbolAtLocation(n)).some(p => Object.hasOwn(sources, p))) importsSchemas.set(`${origine.module}:${origine.nom}`, origine);
         }
         const constructeur = ts.isCallExpression(n) ? resoudre(n.expression) : undefined;
         const nomConstructeur = constructeur && ts.isPropertyAccessExpression(constructeur) ? constructeur.name.text : undefined;
-        const typeAppel = ts.isCallExpression(n) ? checker.getTypeAtLocation(n) : undefined;
+        const schemaAppele = ts.isCallExpression(n) && sortie(n);
+        const typeAppel = schemaAppele ? checker.getTypeAtLocation(n) : undefined;
         const interneZod = typeAppel && checker.getPropertyOfType(typeAppel, '_zod');
         const origineZod = interneZod?.declarations?.some(d => d.resolve().getSourceFile().fileName.replaceAll('\\', '/').includes('/node_modules/zod/'));
-        const shapeZod = ts.isCallExpression(n) && sortie(n) && checker.getPropertyOfType(typeAppel, 'shape');
-        if (ts.isCallExpression(n) && sortie(n) && origineZod && (shapeZod || ['object', 'strictObject', 'looseObject', 'extend', 'catchall'].includes(nomConstructeur))) {
+        const shapeZod = schemaAppele && checker.getPropertyOfType(typeAppel, 'shape');
+        if (schemaAppele && origineZod && (shapeZod || ['object', 'strictObject', 'looseObject', 'extend', 'catchall'].includes(nomConstructeur))) {
           const shape = resoudre(n.arguments[0]);
           if (shape && nomConstructeur !== 'catchall') {
             const typeShape = checker.getTypeAtLocation(shape);
@@ -227,10 +227,10 @@ export function classificationsProseLocale(root, fichiers, { sourcesAdditionnell
       };
       visites.push(() => visiter(sourceFile));
       const visiterImports = n => {
-        if ((ts.isIdentifier(n) && sortie(n)) || (ts.isCallExpression(n) && (sortie(n) || checker.getPropertyOfType(checker.getTypeAtLocation(n), 'schema')))) {
+        if (ts.isIdentifier(n) || ts.isCallExpression(n)) {
           const cible = ts.isCallExpression(n) ? n.expression : n;
           const origine = origineImportee(cible, sourceFile, contexte);
-          if (origine && !proprietairesDe(checker.getSymbolAtLocation(cible)).some(p => Object.hasOwn(sources, p))) collecterExports(origine.module);
+          if (origine && (sortie(n) || (ts.isCallExpression(n) && checker.getPropertyOfType(checker.getTypeAtLocation(n), 'schema'))) && !proprietairesDe(checker.getSymbolAtLocation(cible)).some(p => Object.hasOwn(sources, p))) collecterExports(origine.module);
         }
         n.forEachChild(visiterImports);
       };

@@ -2,6 +2,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const { tableTotale } = await import('../../../src/lib/tableTotale.ts');
 const norm = (p) => p.replaceAll('\\', '/');
 export const VIRTUAL_ROOT = path.resolve(path.sep, 'repo-virtuel');
 const OPTIONS_VIRTUELLES = { target: 'es2020', module: 'esnext', moduleResolution: 'bundler', strict: true, noEmit: true, skipLibCheck: true, types: [] };
@@ -17,16 +19,46 @@ export function libererSessions(sessions, erreursInitiales = []) {
   if (erreurs.length > 1) throw new AggregateError(erreurs, 'Échecs de libération des sessions natives', { cause: erreurs[0] });
 }
 
+const QUESTIONS_PURES = ['getTypeAtLocation', 'getSymbolAtLocation', 'getPropertyOfType', 'getTypeOfSymbolAtLocation', 'getPropertiesOfType', 'getAliasedSymbol', 'getIndexInfosOfType', 'isTupleType', 'isArrayType', 'getTypeArguments', 'getTypeFromTypeNode'];
+
+function checkerMemoise(natif) {
+  const tables = new Map(QUESTIONS_PURES.map(question => [question, new Map()]));
+  const memoisees = tableTotale(QUESTIONS_PURES, question => (...args) => {
+    if (Array.isArray(args[0])) return natif[question](...args);
+    let table = tables.get(question);
+    for (const cle of [args.length, ...args.slice(0, -1)]) {
+      if (!table.has(cle)) table.set(cle, new Map());
+      table = table.get(cle);
+    }
+    const derniere = args.at(-1);
+    if (table.has(derniere)) return table.get(derniere);
+    const reponse = natif[question](...args);
+    table.set(derniere, reponse);
+    return reponse;
+  });
+  const checker = new Proxy(natif, {
+    get: (cible, cle) => {
+      if (Object.hasOwn(memoisees, cle)) return memoisees[cle];
+      const valeur = Reflect.get(cible, cle);
+      return typeof valeur === 'function' ? valeur.bind(cible) : valeur;
+    },
+  });
+  return { checker, vider: () => { for (const table of tables.values()) table.clear(); } };
+}
+
 function ouvrir(root, fs, configurer, choisirProjet = (snapshot, plan) => snapshot.getProject(plan.openProjects[0])) {
   const { API } = require('typescript/unstable/sync');
   let api = new API({ cwd: root, fs });
   let snapshot;
+  let memo;
   const dispose = () => {
     if (!api) return;
     const courant = api;
     const capture = snapshot;
     api = undefined;
     snapshot = undefined;
+    memo?.vider();
+    memo = undefined;
     libererSessions([
       { dispose: () => capture?.dispose() },
       { dispose: () => courant.clearSourceFileCache() },
@@ -38,7 +70,8 @@ function ouvrir(root, fs, configurer, choisirProjet = (snapshot, plan) => snapsh
     snapshot = api.updateSnapshot(plan);
     const projet = choisirProjet(snapshot, plan);
     if (!projet) throw new Error(`Programme TypeScript introuvable : ${(plan.openProjects ?? plan.openFiles).join(', ')}`);
-    return { program: projet.program, checker: projet.checker, dispose };
+    memo = checkerMemoise(projet.checker);
+    return { program: projet.program, checker: memo.checker, dispose };
   } catch (error) { libererSessions([{ dispose }], [error]); }
 }
 
