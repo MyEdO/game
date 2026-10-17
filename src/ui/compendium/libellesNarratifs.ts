@@ -1,7 +1,7 @@
-import { creatureLabel } from '../../data';
 import { REFERENCES_NARRATIVES, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { etatDeclare, valeurDEtat, type EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDePreset } from '../../state/campaignData';
 
 /** Clé d'une référence narrative (`REFERENCES_NARRATIVES`). */
 export type CleDeReferenceNarrative = keyof typeof REFERENCES_NARRATIVES;
@@ -11,7 +11,7 @@ export type CleDeReferenceNarrative = keyof typeof REFERENCES_NARRATIVES;
 export const LIBELLE_NARRATIF: { readonly [R in CleDeRegistreNarratif]: (e: NarratifBlock[R][number]) => string } = {
   affaires: (a) => a.titre,
   indices: (i) => i.titre,
-  presetsPnj: (p) => p.profil?.label ?? (p.base ? creatureLabel(p.base) : p.id),
+  presetsPnj: (p) => nomDePreset(p) ?? p.id,
   objets: (o) => o.label,
   documents: (d) => d.titre,
   etats: (e) => e.label,

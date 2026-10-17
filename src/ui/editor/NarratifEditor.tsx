@@ -13,6 +13,7 @@ import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../../data
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
+import type { DescRef } from '../../data/schemas/grammaire/valeurs';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { estDerive } from '../compendium/editFields';
 import { RefNarrativeField } from '../compendium/RefField';
@@ -899,12 +900,15 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
   const profil = preset.profil ?? {};
   const appearance: EntityAppearance = preset.apparence ?? {};
   const base = preset.base ? findCreatureById(preset.base) : undefined;
+  const descAdressee = estDerive({ ...profil }, 'desc');
+  const { descRef } = profil as { descRef?: DescRef };
 
-  /** Fusionne un patch de `profil` (retire `profil` s'il redevient vide). */
-  const patchProfil = (patch: Partial<CreatureData>) => {
-    const next = { ...profil, ...patch };
-    onPatch({ profil: Object.keys(next).length ? next : undefined });
+  /** `profil` patché : une clé à `undefined` se retire, et `profil` vide aussi. */
+  const profilPatche = (patch: Partial<CreatureData> & { descRef?: undefined }): Partial<CreatureData> | undefined => {
+    const next = Object.fromEntries(Object.entries({ ...profil, ...patch }).filter(([, v]) => v !== undefined)) as Partial<CreatureData>;
+    return Object.keys(next).length ? next : undefined;
   };
+  const patchProfil = (patch: Partial<CreatureData>) => onPatch({ profil: profilPatche(patch) });
   /** Surcharge d'une carac (vide = héritée de la base) — retire `char` s'il redevient vide. */
   const setChar = (k: CharKey, v: number | null) => {
     const char = { ...(profil.char ?? {}) };
@@ -958,9 +962,10 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
                 ))}
               </div>
             </div>
+            <ProseField label="Description" lecture={descAdressee ? profil.desc ?? '' : undefined} value={profil.desc ?? ''} onChange={(desc) => patchProfil({ desc: desc || undefined })} />
             <ProvenanceDuTexte
               identite={porteur} copie sujet="du PNJ" value={preset} onChange={onPatch}
-              adapteRefuse={estDerive({ ...preset.profil }, 'desc') ? 'La description du profil est la copie adressée du livre.' : undefined}
+              adresseEmbarquee={{ descRef, onDetacher: (provenance) => onPatch({ ...provenance, profil: profilPatche({ descRef: undefined }) }) }}
             />
           </>
         )}

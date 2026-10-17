@@ -11,5 +11,5 @@ metadata:
 **How to apply :**
 - Portée : COMPRENDRE le chantier. Couverts : les tomes VO `Enemy Within Campaign Volume 1…5`, leurs cinq compagnons (`… Companion`), `Enemy Within Developer Diaries`.
 - Évaluations d'ingénierie révisables, pas l'arbitrage (non-verbatim utilisateur) : `Enemy Within Supplementary` (cartes, aides de jeu) se lit au même titre ; un livre présent en VF (`Warhammer v4 - 1.0`, `2.0`, `3.0`, compagnons `1.0`, `2.0`) se cite en VF.
-- Une DONNÉE de jeu VO n'est pas couverte ici : la donnée mécanique absente de la VF relève de `game-francais-jamais-anglais` ; le reste se tranche avec l'utilisateur au démarrage des tomes 4 et 5.
+- Une DONNÉE de jeu VO n'est pas couverte ici : la donnée mécanique absente de la VF relève de [[user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf]] ; le reste se tranche avec l'utilisateur au démarrage des tomes 4 et 5.
 - Les `*.fr.md` de `Volume 5 Empire in Ruins` (6) et `Empire In Ruins Companion` (1) sont des traductions DeepL de l'utilisateur (`scripts/deepl-translate.mjs`, commit `2fe731d4c`) : ni VF publiée, ni statut arbitré.

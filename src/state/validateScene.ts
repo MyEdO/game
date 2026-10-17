@@ -20,12 +20,14 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
 // liaison vive `fireScheduledEffects` que le store lit du baril sous le bundler).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatFlow';
-import { sceneNpc } from './sceneNpc';
+import { nomDEntite, sceneNpc } from './sceneNpc';
+import { presetDuNarratif } from './campaignData';
 import { placeServices, type WorldMap } from './worldMap';
 import { allMusicDefs } from '../audio/music';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './seating';
 import { memoByRefDeps } from './sceneMemo';
+import type { NarratifBlock } from './campaignNarratif';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -129,7 +131,8 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
  * zones hors-carte, ids dupliqués. PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
+  const presetDe = presetDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
   if (worldMap) {
@@ -229,9 +232,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     const layerZs = new Set(s.layers.map((l) => l.z));
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
-      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${e.label ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
-      if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${e.label ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
-      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${e.label ?? e.id} sur étage ${e.z} inexistant`);
+      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
+      if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
+      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
     }
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).

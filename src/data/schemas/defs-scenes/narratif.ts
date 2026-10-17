@@ -16,12 +16,12 @@ import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
-import { champAdapteDe, proseNommee, refineAdapteDe, META_ADAPTE_DE } from '../grammaire/prose';
+import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
-import { refuserSansProvenance } from '../grammaire/document';
+import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 import type { FormeDEtatKind } from './formes-d-etat';
 
@@ -65,8 +65,9 @@ export const affaireSchema = nommerChamps(z.strictObject({
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
  *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
  *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
- *  (`state/campaignData.ts`), même régime que `objets` ci-dessous. */
-export const presetPnjSchema = nommerChamps(z.strictObject({
+ *  (`state/campaignData.ts`), même régime que `objets` ci-dessous. `source`|`adapteDe` : provenance du
+ *  texte du profil et folio du PNJ ; arbitrages chiffrés : `profil.maison` (#2001, #2206). */
+const presetPnjObjet = z.strictObject({
   id: z.string().min(1, 'id vide.'),
   base: idDeCreature.optional(),
   profil: (creatureEntreePartielle as z.ZodType<Partial<CreatureData>>).optional(),
@@ -76,18 +77,8 @@ export const presetPnjSchema = nommerChamps(z.strictObject({
   source: sourceRefSchema.optional(),
   couvre: couvreSchema.optional(),
   ...champAdapteDe(),
-})
-  .superRefine(refineAdapteDe)
-  .superRefine(refinePresetAdapte), { id: { label: "identifiant" , texte: { regime: "technique"} }, base: { label: "base" , texte: { regime: "technique"} }, profil: { label: "profil" }, apparence: { label: "apparence" }, portrait: { label: "portrait" , texte: { regime: "technique"} }, source: { label: "source" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, ...META_ADAPTE_DE });
-
-/** Un preset ADAPTÉ (`adapteDe`) ne porte pas de prose ADRESSÉE : la prose d'un preset est `profil.desc`,
- *  et `profil.descRef` en fait la copie du livre (#2001). */
-function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
-  const p = (v ?? {}) as { adapteDe?: unknown; profil?: { descRef?: unknown } };
-  if (p.adapteDe !== undefined && p.profil?.descRef !== undefined) {
-    ctx.addIssue({ code: 'custom', path: ['adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' });
-  }
-}
+});
+export const presetPnjSchema = nommerChamps(presetPnjObjet.superRefine(exclusiviteAdapteDe(presetPnjObjet)), { id: { label: "identifiant" , texte: { regime: "technique"} }, base: { label: "base" , texte: { regime: "technique"} }, profil: { label: "profil" }, apparence: { label: "apparence" }, portrait: { label: "portrait" , texte: { regime: "technique"} }, source: { label: "source" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, ...META_ADAPTE_DE });
 
 /** Une valeur d'un état ÉNUMÉRÉ : id STABLE (lu par la logique), libellé d'affichage. */
 export const valeurDEtatSchema = nommerChamps(z.strictObject({

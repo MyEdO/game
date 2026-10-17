@@ -3114,7 +3114,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
     useGame.getState().transitionTo('b', 'porte');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(useGame.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
@@ -3127,7 +3127,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a2');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
     useGame.getState().transitionTo('b2');
     expect(capDuGroupe(useGame.getState())).toBe('NE');
   });
@@ -3566,7 +3566,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(discounted).toBeLessThan(full);
   });
 
-  it('vente (panier) : Option 2 — défaut/perdu = ¼ (lowball), marchandage de vente GAGNÉ = ½ (#2c)', () => {
+  it('vente (panier), LDB 59 l.54 + arbitrage #2547 : défaut/perdu = ¼, GAGNÉ = ½, gagné + Négociateur = ½ × 1,1', () => {
     const sellWith = (bargainSell: { won: boolean; drNet: number; negotiator: boolean } | null): number => {
       const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
       reset();
@@ -3581,8 +3581,12 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
     const won = sellWith({ won: true, drNet: 2, negotiator: false }); // ½ (on a tenu notre prix)
     const lost = sellWith({ won: false, drNet: 0, negotiator: false }); // ¼ (rabaissé)
-    expect(won).toBeGreaterThan(lowball); // gagner le marchandage double le gain
+    const wonNegotiator = sellWith({ won: true, drNet: 2, negotiator: true });
+    const lostNegotiator = sellWith({ won: false, drNet: 1, negotiator: true });
+    expect(won).toBe(2 * lowball); // gagner le marchandage double le gain
+    expect(wonNegotiator).toBe(Math.round(won * 1.1)); // Négociateur : +10 % (LDB 10 l.818)
     expect(lost).toBe(lowball); // perdre = ne pas négocier = ¼
+    expect(lostNegotiator).toBe(lowball);
   });
 
   it('buyItem : applique la majoration d’achat paramétrable (buyMarkup) — marchand plus cher (#2)', () => {

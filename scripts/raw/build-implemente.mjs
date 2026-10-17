@@ -1,5 +1,5 @@
 // Générateur du champ `**Implémente :**` des fiches docs/raw/*.md (#487) : le champ est DÉRIVÉ du
-// code (jamais écrit à la main — cf. game-doc-derivee-jamais-ecrite-a-la-main). Patron de
+// code (jamais écrit à la main — cf. user-doctrine-doc-generee-jamais-ecrite-a-la-main). Patron de
 // build-systemes.mjs : manifest éditorial (src/data/raw.manifest.json) + calcul. Mode `--check` : fiche
 // périmée, dette orpheline ou sans objet = sortie 1.
 // Re-run : node scripts/raw/build-implemente.mjs (npm run raw:implemente).

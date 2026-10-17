@@ -18,12 +18,21 @@
       "mcp__Claude_Browser__read_network_requests",
       "mcp__Claude_Browser__preview_logs",
       "mcp__ccd_session_mgmt__list_events"
+    ],
+    "ask": [
+      "Bash(*gh workflow run*)",
+      "Bash(*gh api*dispatches*)",
+      "Bash(*gh run rerun*)",
+      "Bash(*gh api*rerun*)",
+      "mcp__github__actions_run_trigger",
+      "Bash(npm *deploy*)",
+      "Bash(*wrangler*deploy*)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|Bash|PowerShell|Workflow|mcp__lean-ctx__(?!(?:ctx_read|ctx_smart_read|ctx_multi_read|ctx_search|ctx_semantic_search|ctx_symbol|ctx_glob|ctx_tree|ctx_compose|ctx_overview|ctx_repomap|ctx_outline|ctx_explore|ctx_callgraph|ctx_graph|ctx_impact|ctx_architecture|ctx_routes|ctx_smells|ctx_quality|ctx_review|ctx_expand|ctx_delta|ctx_retrieve|ctx_url_read|ctx_summary|ctx_memory|ctx_cache|ctx_index|ctx_context|ctx_metrics|ctx_gain|ctx_heatmap|ctx_cost|ctx_perf|ctx_verify|ctx_compare|ctx_analyze|ctx_benchmark|ctx_discover|ctx_discover_tools|ctx_load_tools|ctx_plan|ctx_fill|ctx_compress|ctx_response)$).+)$",
+        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|Bash|PowerShell|Agent|Workflow|Task|mcp__lean-ctx__(?!(?:ctx_read|ctx_smart_read|ctx_multi_read|ctx_search|ctx_semantic_search|ctx_symbol|ctx_glob|ctx_tree|ctx_compose|ctx_overview|ctx_repomap|ctx_outline|ctx_explore|ctx_callgraph|ctx_graph|ctx_impact|ctx_architecture|ctx_routes|ctx_smells|ctx_quality|ctx_review|ctx_expand|ctx_delta|ctx_retrieve|ctx_url_read|ctx_summary|ctx_memory|ctx_cache|ctx_index|ctx_context|ctx_metrics|ctx_gain|ctx_heatmap|ctx_cost|ctx_perf|ctx_verify|ctx_compare|ctx_analyze|ctx_benchmark|ctx_discover|ctx_discover_tools|ctx_load_tools|ctx_plan|ctx_fill|ctx_compress|ctx_response)$).+)$",
         "hooks": [
           {
             "type": "command",
@@ -39,7 +48,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|NotebookEdit|apply_patch|mcp__lean-ctx__ctx_patch",
+        "matcher": "Write|Edit|NotebookEdit|apply_patch|mcp__lean-ctx__ctx_patch|mcp__lean-ctx__ctx_read|mcp__lean-ctx__ctx_smart_read|mcp__lean-ctx__ctx_multi_read",
         "hooks": [
           {
             "type": "command",
@@ -62,8 +71,36 @@
             "args": [
               "${CLAUDE_PROJECT_DIR}/scripts/hooks/bootstrap-conteneur.mjs"
             ],
-            "timeout": 325,
+            "timeout": 335,
             "statusMessage": "Conformité du conteneur distant (hooks git, docs, gh)"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/regles-projection-oubli.mjs"
+            ],
+            "timeout": 10,
+            "statusMessage": "Oubli des règles projetées à la compaction"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/memoire-sous-agent.mjs"
+            ],
+            "timeout": 10,
+            "statusMessage": "Mémoire du dépôt au sous-agent (conteneur distant)"
           }
         ]
       }

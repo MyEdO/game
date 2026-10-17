@@ -6,8 +6,7 @@
 //   `node_modules` PARTAGÉ qu'il vise, et l'arbre qui emprunte les dépendances d'un autre ne prouve
 //   rien de ses propres versions ;
 // - `git show ... -- <sha>` (le commit APRÈS le séparateur) : git y voit un pathspec et rend le même
-//   résultat pour tous les commits, sans erreur (fiche `env-git-show-ordre-commit-avant-paths`,
-//   mesuré le 2026-08-26) ;
+//   résultat pour tous les commits, sans erreur ;
 // - une mise à mort de processus PAR NOM (#2173) : elle atteint les processus de ce nom de TOUTE la
 //   machine, ceux des autres sessions compris — un worktree isole des fichiers, pas des processus ;
 //   `kill -1` (#2173) les atteint TOUS.
@@ -109,8 +108,7 @@ function lienNodeModules(segment) {
 
 /** Le SHA passé APRÈS le séparateur `--` d'un `git show`, ou `null`. Tout ce qui suit `--` est un
  *  PATHSPEC : le commit y devient un filtre de chemin, et la commande rend silencieusement le même
- *  résultat pour tous les commits (piège mesuré 2026-08-26, fiche
- *  `env-git-show-ordre-commit-avant-paths`). */
+ *  résultat pour tous les commits. */
 function shaApresSeparateur({ sub, args }) {
   if (sub !== 'show') return null
   const sep = args.indexOf('--')

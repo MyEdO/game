@@ -11,3 +11,11 @@ collecteur `passiveMods`), `effects: TriggeredEffect[]` (déclenché, dispatcher
 `capabilities` (lu par le moteur). Tout effet s'exprime en `GameOp[]` édité au Codex (`GameOpEditor`).
 « Difficile à exprimer » n'autorise JAMAIS la machinerie : on étend le vocabulaire
 (`GameOp`/`Formula`/`Condition`) — frontière détaillée dans `docs/combat-events-coherence.md`.
+
+- Implémente à la granularité de l'unité de la phrase RAW (déplacement, Round, rencontre, nuit) :
+  agrège jusqu'à elle avant d'évaluer le prédicat, jamais au grain du moteur. Avant de taguer
+  `maison` une cadence, demande si le livre a déjà une unité d'événement : seul son vrai silence
+  appelle la règle 7. Un garde anti-répétition keyé (`lastXKey`) signale l'agrégation manquante.
+- RAW qui renvoie au MJ : une valeur qui dépend de ce que le CONTENU connaît est un champ éditable de
+  l'entité (règle 2), pas un réglage global. Une fourchette « d'ambiance » est presque toujours un
+  budget d'AUTEUR (XP d'objectifs mineurs) : cherche la branche ou l'objectif qui la porte.

@@ -22,13 +22,13 @@
 import { Combatant } from './types';
 import type { Possession } from './possession';
 import { RNG, defaultRNG } from './dice';
-import { rollTest, testDetail, SL_ASTOUNDING } from './tests';
+import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
 import { addCondition } from './conditions';
 import { encumbrancePenalties } from './encumbrance';
 import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
-import { bargainBuyDiscountPct, type BargainOutcome } from './bargain';
+import { bargainPct, NEGOTIATOR_PCT, type BargainOutcome } from './bargain';
 import { rule } from './policy';
 import {
   type Allure, ALLURE_KMH_PER_M, mountedSpeedKmh, partyMounts, mountProfileById, lameLedCapKmh,
@@ -186,19 +186,18 @@ export function classeRetenue(tarif: TarifDePassage, classeId: string): string {
 }
 
 /** Prix d'UN passager dans la classe retenue (`classeRetenue`), arrondi au sou supérieur.
- *  Gagné avec `paliers` : le palier de plus grand `drMin` ≤ DR net (EDO 01 l.142), le Négociateur
- *  comptant pour un Succès Stupéfiant (LDB 59 l.43) ; gagné sans `paliers` : `bargainBuyDiscountPct`
- *  (LDB 59 l.43). */
+ *  Gagné avec `paliers` : le palier de plus grand `drMin` ≤ DR net (EDO 01 l.142), puis `NEGOTIATOR_PCT`
+ *  (LDB 10 l.818 ; arbitrage #2547, 2026-10-09) ; gagné sans `paliers` : `bargainPct`. */
 export function prixParPassager(tarif: TarifDePassage, classeId: string, issue?: BargainOutcome): number {
   const classe = classeRetenue(tarif, classeId);
   const plein = tarif.prix[classe]!;
   if (!issue?.won) return Math.ceil(plein);
-  if (!tarif.paliers?.length) return Math.ceil((plein * (100 - bargainBuyDiscountPct(true, issue.drNet, issue.negotiator))) / 100);
-  const drNet = issue.negotiator ? Math.max(issue.drNet, SL_ASTOUNDING) : issue.drNet;
+  if (!tarif.paliers?.length) return Math.ceil((plein * (100 - bargainPct(true, issue.drNet, issue.negotiator))) / 100);
   const palier = tarif.paliers
-    .filter((p) => p.drMin <= drNet && p.prix[classe] != null)
+    .filter((p) => p.drMin <= issue.drNet && p.prix[classe] != null)
     .reduce<PalierDeBillet | undefined>((a, p) => (!a || p.drMin > a.drMin ? p : a), undefined);
-  return Math.ceil(palier ? palier.prix[classe]! : plein);
+  const prix = palier ? palier.prix[classe]! : plein;
+  return Math.ceil((prix * (100 - (issue.negotiator ? NEGOTIATOR_PCT : 0))) / 100);
 }
 
 /** Places payées d'un passage : une par passager, au moins une. */

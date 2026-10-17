@@ -349,7 +349,7 @@ for (const dir of HOOKS_DIRS) {
 // chaque session et pointent vers `src/`/`scripts/`/`docs/` ; un renommage les laissait mentir
 // jusqu'à ce qu'un agent suive le pointeur (deux chemins morts ont vécu des mois). MÊME résolution
 // que les sens 1 et 6 — aucune seconde définition de « ce chemin existe-t-il ».
-// PÉRIMÈTRE dit : le credo, `.claude/agents/*.md`, `.claude/skills/*/SKILL.md`, leurs jumeaux Codex
+// PÉRIMÈTRE dit : le credo, `.claude/rules/*.md`, `.claude/agents/*.md`, `.claude/skills/*/SKILL.md`, leurs jumeaux Codex
 // maintenus À LA MAIN (`.codex/agents/*.toml`) et le credo Codex que `agents:sync` produit
 // (`.codex/credo.md`, `scripts/agents/compat-core.mjs`). Hors périmètre, dit aussi :
 // `.claude/memory/**` (les fiches citent l'état d'un jour, pas un pointeur à suivre) et
@@ -357,6 +357,7 @@ for (const dir of HOOKS_DIRS) {
 const CONTEXTE_FICHIERS = [
   '.claude/credo.md',
   '.codex/credo.md',
+  ...listerArbre('.claude/rules', { filtre: (r) => r.endsWith('.md') }).map((r) => `.claude/rules/${r}`),
   ...listerArbre('.claude/agents', { filtre: (r) => r.endsWith('.md') }).map((r) => `.claude/agents/${r}`),
   ...listerArbre('.claude/skills', { filtre: (r) => r.endsWith('/SKILL.md') }).map((r) => `.claude/skills/${r}`),
   ...listerArbre('.codex/agents', { filtre: (r) => r.endsWith('.toml') }).map((r) => `.codex/agents/${r}`),

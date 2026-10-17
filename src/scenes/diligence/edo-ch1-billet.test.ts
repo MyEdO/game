@@ -4,12 +4,12 @@
  * EDO 01 l.142 : un billet La Diligence → Sept Rayons (deux routes de la carte, 40 + 35 km), payé une
  * fois, d'avance, par place (toit = `exterieur`, intérieur au double), marchandable par un Test opposé
  * contre Gunnar et Hultz. LDB 51 l.178 : le tronçon Sept Rayons → Altdorf, sans billet d'auteur, se
- * paie au km. LDB 59 l.43 : le Talent Négociateur vaut un Succès Stupéfiant.
+ * paie au km. LDB 10 l.818, arbitrage #2547 (2026-10-09) : Négociateur au prix du palier.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 import { makePregensWithWealth, PREGEN } from '../../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../../state/bourseFlow';
 import { toBrass } from '../../engine/money';
@@ -38,7 +38,7 @@ function aBord(): void {
   const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
   expect(groupe).toHaveLength(4);
   useGame.setState({ party: groupe.map((e) => e.hero) });
-  get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+  expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
   get().acquitterOuverture();
   get().moveParty({ x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.test.ts`)
@@ -123,7 +123,7 @@ describe('(a) le billet La Diligence → Sept Rayons se paie UNE fois, au dépar
   });
 });
 
-describe('(b) prix des paliers par passager (EDO 01 l.142 ; LDB 59 l.43)', () => {
+describe('(b) prix des paliers par passager (EDO 01 l.142 ; LDB 59 l.43 ; LDB 10 l.818)', () => {
   const tarif = tarifDuBillet();
   const issue = (won: boolean, drNet: number, negotiator = false): BargainOutcome => ({ won, drNet, negotiator });
   it('perdu → 4/- au toit', () => {
@@ -143,10 +143,11 @@ describe('(b) prix des paliers par passager (EDO 01 l.142 ; LDB 59 l.43)', () =>
     expect(prixParPassager(tarif, 'interieur', issue(true, 1))).toBe(72);
     expect(prixParPassager(tarif, 'interieur', issue(true, 6))).toBe(48);
   });
-  it('Négociateur, gagné → le palier du Succès Stupéfiant (2/-), sans remise de plus ; perdu → sans effet', () => {
-    expect(prixParPassager(tarif, 'exterieur', issue(true, 1, true))).toBe(24);
-    expect(prixParPassager(tarif, 'exterieur', issue(true, 7, true))).toBe(24);
-    expect(prixParPassager(tarif, 'interieur', issue(true, 0, true))).toBe(48);
+  it('Négociateur, gagné → −10 % sur le prix du palier atteint, au sou supérieur ; perdu → sans effet (arbitrage #2547)', () => {
+    expect(prixParPassager(tarif, 'exterieur', issue(true, 1, true)), '3/- × 0,9 = 32,4').toBe(33);
+    expect(prixParPassager(tarif, 'exterieur', issue(true, 7, true)), '2/- × 0,9 = 21,6').toBe(22);
+    expect(prixParPassager(tarif, 'interieur', issue(true, 0, true)), '6/- × 0,9 = 64,8').toBe(65);
+    expect(prixParPassager(tarif, 'interieur', issue(true, 6, true)), '4/- × 0,9 = 43,2').toBe(44);
     expect(prixParPassager(tarif, 'exterieur', issue(false, 1, true))).toBe(48);
   });
   it('le total = prix par passager × passagers', () => {

@@ -26,7 +26,7 @@ import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
 import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
+import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, PROJECTION, matcherDOutils, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -44,10 +44,11 @@ const GARDES_COMMANDE = [
 /** Les registres des points d'entrée, avec leur script : la déclaration dont `agents:sync` dérive les
  *  surfaces (`ENTREES_OUTIL`). */
 const REGISTRES = await Promise.all(ENTREES_OUTIL.map(async ({ script, module, exporte }) => [(await import(`./${module}`))[exporte], script]))
-/** Gardes d'ÉCRITURE, DÉRIVÉES des registres : toute garde dont un outil est un canal d'écriture,
- *  avec son point d'entrée et son événement. */
+/** Gardes d'ÉCRITURE, DÉRIVÉES des registres : toute garde de CONTRÔLE dont un outil est un canal d'écriture,
+ *  avec son point d'entrée et son événement. Une garde `PROJECTION` ne décide jamais (`evaluerGardes`) : une
+ *  écriture qu'elle ne voit pas n'échappe à aucun contrôle. */
 const GARDES_ECRITURE = REGISTRES.flatMap(([registre, script]) => Object.entries(registre).flatMap(([phase, gardes]) =>
-  gardes.filter((g) => g.outils.some((o) => OUTILS_ECRITURE.includes(o))).map((g) => [g, script, phase])))
+  gardes.filter((g) => g.role !== PROJECTION && g.outils.some((o) => OUTILS_ECRITURE.includes(o))).map((g) => [g, script, phase])))
 
 /** Canaux dont le `tool_input` porte un champ `command` — donc gardables par les scripts actuels : la
  *  famille SHELL de la déclaration (`OUTILS_SHELL`). Tout canal ajouté aux `outils` d'une garde de

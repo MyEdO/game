@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { RevealEntry } from '../state/store';
+import { useGame, type RevealEntry } from '../state/store';
 import { ParchmentCard } from './ParchmentCard';
 import { TableRollLine } from './RollLine';
 import { VsHeader } from './VsHeader';
@@ -8,6 +8,7 @@ import { conditionLabel } from '../data';
 import { Icon } from './Icon';
 import type { Combatant } from '../engine/types';
 import { Prose } from './Prose';
+import { porteurDeScene } from './porteurDeProjet';
 
 /** Nom de la table tirée pour la rangée d100 (présentation canonique `TableRollLine`). */
 const TABLE_LABEL: Partial<Record<RevealEntry['kind'], string>> = {
@@ -74,12 +75,13 @@ export function CriticalBody({ entry, actor, subject }: { entry: RevealEntry; ac
  *    des lignes de détail.
  */
 export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; actor?: Combatant; subject?: Combatant }) {
+  const campaignDoc = useGame((s) => s.campaignDoc);
   if (entry.kind === 'critical') return <CriticalBody entry={entry} actor={actor} subject={subject} />;
   if (entry.kind === 'sceneEntry') {
     return (
       <ParchmentCard>
         {entry.lines.map((l, i) => (
-          <div key={i} className="modal-log"><Prose md={l} /></div>
+          <div key={i} className="modal-log"><Prose md={l} porteur={entry.sceneId !== undefined ? porteurDeScene({ campaignDoc }, entry.sceneId, 'startMessage.texte') : undefined} /></div>
         ))}
       </ParchmentCard>
     );

@@ -30,6 +30,8 @@ import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type Cl
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetDuNarratif } from '../../state/campaignData';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
@@ -104,12 +106,12 @@ export function effectCtxOf(
     cibles: CIBLES_PAR_RACINE.scene,
     encounters: scene ? scene.encounters : projet.scenes.flatMap((s) => s.encounters),
     dialogues: scene ? scene.dialogues : projet.scenes.flatMap((s) => s.dialogues),
-    merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
+    merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: nomDEntite(e, presetDuNarratif(projet.narratif)) })),
     scenes: projet.scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     places: projet.worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
     // Effet `castSpell` (#98) : lanceur/cible = un « personnage » de la scène (Combatant.id ==
     // SceneEntity.id EN COMBAT — cf. combatSlice) ou un héros du groupe (id libre hors combat).
-    personas: scene?.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: e.label })),
+    personas: scene?.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: nomDEntite(e, presetDuNarratif(projet.narratif)) })),
     narratif: projet.narratif,
   };
 }

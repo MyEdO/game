@@ -40,7 +40,7 @@ function map(km = 16): WorldMap {
 }
 function setup(km = 16, party: Combatant[] = [hero()]): void {
   useGame.setState({ party, gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-  get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', map(km));
+  get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: map(km), projet: null });
   useGame.setState({ gameTime: campaignStart() });
 }
 
