@@ -11,6 +11,29 @@ import { PORTE_DE_PLAGE } from './plageStock.mjs'
 import { RACINE } from './bindingsVivants.mjs'
 import * as stocksActuels from './stocksNominatifs.mjs'
 import { fermetureSurDisque, groupesParEre, jugeDeLEre } from './porteDEre.mjs'
+import { lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
+
+test('#2586 porteDEre : inventaire et lectures groupées par frontière, absents sans lecture', async (t) => {
+  const module = 'scripts/porte.mjs'
+  const fichiers = {
+    [module]: "import { A } from './a.mjs'; import { B } from './b.mjs'; export const juge = () => A + B",
+    'scripts/a.mjs': 'export const A = 1',
+    'scripts/b.mjs': 'export const B = 2',
+  }
+  const { racine, sha } = instanceDeDepot({ fichiers })
+  try {
+    const porte = { racine, module, exports: ['juge'], vie: () => true }
+    const mesure = lancesDeGit(() => jugeDeLEre(depotDe(racine), sha, porte))
+    const vu = await mesure.valeur
+    assert.deepEqual([vu.note, vu.source, vu.juge.juge()], [null, 'disque', 3])
+    assert.equal(mesure.lances.filter((a) => sousCommande(a) === 'ls-tree').length, 1)
+    assert.equal(mesure.lances.filter((a) => sousCommande(a) === 'cat-file').length, 2)
+    t.diagnostic(JSON.stringify({ processus: mesure.lances.length, commandes: mesure.lances.map(sousCommande) }))
+    const absent = lancesDeGit(() => jugeDeLEre(depotDe(racine), sha, { ...porte, module: 'scripts/absent.mjs', vie: () => true }))
+    assert.equal((await absent.valeur).juge, null)
+    assert.equal(absent.lances.filter((a) => sousCommande(a) === 'cat-file').length, 0)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('#2503 fermeture IDENTIQUE à celle du disque : le module qui tourne, sans hooks, mémoïsé par ère', async () => {
   const { racine, sha } = instanceDeDepot({ fichiers: Object.fromEntries(fermetureSurDisque('scripts/guards/lib/plageStock.mjs')), message: 'socle' })

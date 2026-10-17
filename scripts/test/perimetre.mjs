@@ -41,6 +41,7 @@ import { prendreVerrou } from './verrou.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { blobDe, memosDe, specificateursMemoises, versionDesMemos } from '../guards/lib/memosDAnalyse.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { gateDe } from '../gates/testsParGate.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -483,6 +484,11 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
     const ciDuRang = new Set()
     const bilan = { rang: libelleDuRang(rang), murMs: 0, sansDuree: 0, murCiMs: 0, nCi: 0, lances: 0, aLaCI: 0, inconnues: 0 }
     for (const t of tests) {
+      if (gateDe(t) === 'test:corpus') {
+        aLaCI.push(t)
+        bilan.aLaCI += 1
+        continue
+      }
       if (inconnue(t)) bilan.inconnues += 1
       if (rang > 0 && inconnue(t)) {
         aLaCI.push(t)
@@ -942,6 +948,8 @@ export function principal(args, racine) {
   for (const r of plan.rangs)
     journal(`  ${r.rang} : mur estimé ${texteDuMur(r.murMs, r)}, ${r.lances} lancé(s)${r.inconnues ? ` ; ${r.inconnues} de durée inconnue ${r.rang === 'touché' ? 'lancé(s) hors estimation' : 'à la CI'}` : ''}${r.aLaCI ? ` ; ${r.aLaCI} fichier(s) ${r.rang.replace('import ', '')} restent à la CI` : ''}`)
   journal(`budget ${budget} s de mur (touché hors budget) : ${plan.lances.length} lancé(s), mur estimé ${texteDuMur(plan.murMs, plan)}, dont ${secondes(plan.murBudgeteMs)} au budget ; → CI ${plan.aLaCI.length}`)
+  for (const t of plan.aLaCI.filter((t) => gateDe(t) === 'test:corpus'))
+    journal(`→ CI ${t} : audit du dépôt réel, gate test:corpus (${texteDuLien(retenus.get(t))})`)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
   if (options.liste) return 0
   const lint = lintDesTouches(racine, touches, post)

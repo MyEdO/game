@@ -16,6 +16,17 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
+test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, partition sans doublon', () => {
+  const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs']
+  const local = 'scripts/test/local.test.mjs'
+  const retenus = new Map([[corpus[0], { rang: 0 }], [corpus[1], { rang: 2 }], [local, { rang: 0 }]])
+  const plan = planDExecution(retenus, { budget: 100, estimations: new Map([...retenus.keys()].map((t) => [t, { ms: 1 }])) })
+  assert.deepEqual(plan.lances, [local])
+  assert.deepEqual(plan.aLaCI, corpus)
+  assert.deepEqual([...plan.lances, ...plan.aLaCI].sort(), [...retenus.keys()].sort())
+  assert.equal(new Set([...plan.lances, ...plan.aLaCI]).size, retenus.size)
+})
+
 /** Un dépôt jetable : `base` commité, puis `apres` (texte, `null` = supprimé, `{ de }` = renommé) commité
  *  si `commiter`, laissé dans l'arbre de travail sinon. */
 function forger(t, base, apres, { commiter = true } = {}) {

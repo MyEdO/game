@@ -1,6 +1,6 @@
 // Cliquet décroissant de la dette de doc MANUSCRITE (#903 — toute la documentation est GÉNÉRÉE
 // depuis le code, jamais écrite à la main).
-//   node --test scripts/docs/manual-docs-ratchet.test.mjs   (chaîné dans `npm run test:docs`)
+//   node --test scripts/corpus/docs/manual-docs-ratchet.test.mjs   (chaîné dans `npm run test:corpus`)
 //
 // Ce lot ne génère rien : il fige la liste des docs encore manuscrits (`manualDocsStock.mjs`) pour
 // qu'un document manuscrit NEUF échoue la CI.
@@ -11,24 +11,26 @@
 // le disque : une cible de `GENERATORS` est générée par définition, et son texte se lit par
 // `rendreCible`, jamais sur disque (#2203).
 //
-// Second volet (#903 suite) — un doc MANUSCRIT qui porte le marqueur `GÉNÉRÉ par` ment : c'est le
-// trou par lequel `docs/sorts-implementation.md` a pourri (en-tête GÉNÉRÉ, aucun script `npm`,
-// aucun `--check`, absent de la CI — 160 sorts d'écart mesurés avant correction). Le marqueur
-// n'est porté que par une cible de `GENERATORS`.
+// Second volet (#903) — un doc MANUSCRIT qui porte le marqueur `GÉNÉRÉ par` ment : il n'a ni
+// script `npm`, ni `--check`, ni place en CI, et dérive sans rien dire. Le marqueur n'est porté
+// que par une cible de `GENERATORS`.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listerDossier } from '../guards/lib/lister.mjs'
-import { MANUAL_DOCS_STOCK } from '../guards/lib/manualDocsStock.mjs'
-import { ecartsDeStock } from '../guards/lib/stock.mjs'
-import { GENERATORS, generateurDe, rendreCible } from './build-all.mjs'
+import { listerDossier } from '../../guards/lib/lister.mjs'
+import { MANUAL_DOCS_STOCK } from '../../guards/lib/manualDocsStock.mjs'
+import { ecartsDeStock } from '../../guards/lib/stock.mjs'
+import { GENERATORS, generateurDe, rendreCible } from '../../docs/build-all.mjs'
 
-const ROOT = fileURLToPath(new URL('../../', import.meta.url))
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+
 const DOCS_DIR = join(ROOT, 'docs')
+
 /** Les `.md` À PLAT présents dans `docs/`, en ordre total. */
 const DOCS_MD = listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))
+
 /** Les cibles de `GENERATORS` qui sont des `.md` À PLAT de `docs/`. */
 const GENERES_A_PLAT = GENERATORS.flatMap((g) => g.targets).filter((t) => /^docs\/[^/]+\.md$/.test(t))
 
@@ -55,8 +57,8 @@ async function texteDuDoc(doc) {
 
 /**
  * Plafond du stock cliqueté. Il vit ICI, dans le test, et NON dans `manualDocsStock.mjs` — sans
- * lui, « le stock ne peut que décroître » n'était qu'un commentaire, et le chemin le plus court
- * pour « solder » un doc manuscrit neuf restait d'ajouter une ligne au stock, CI verte. Toute
+ * lui, « le stock ne peut que décroître » n'est qu'un commentaire, et le chemin le plus court
+ * pour « solder » un doc manuscrit neuf est d'ajouter une ligne au stock, CI verte. Toute
  * hausse de ce chiffre modifie CE fichier de test, jamais `manualDocsStock.mjs` seul. Il ne
  * DESCEND qu'en soldant des docs (génération ou suppression), jamais en ajoutant une entrée.
  */
@@ -175,6 +177,7 @@ test('section « Périmètre mesuré / angles morts » présente dans chaque doc
  * périmètre à plat de ce fichier).
  */
 const CLAUDE_MD_PATH = join(ROOT, 'CLAUDE.md')
+
 const DOC_CITATION = /docs\/[a-zA-Z0-9_.-]+\.md/g
 
 function routingTableSlice(claudeMd) {

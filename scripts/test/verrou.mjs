@@ -4,14 +4,16 @@
 // `generation` (randomUUID) nomme LA prise ; `creation` (`performance.timeOrigin` du preneur, ms epoch)
 // n'est écrit que sous l'option `identite`. Il refuse le second preneur en NOMMANT le premier, ou le fait
 // attendre sous une échéance ; il ne tue personne.
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
-import { basename, dirname } from 'node:path'
+import { basename, dirname, resolve } from 'node:path'
 import { NAISSANCE_ABSENTE, creationMemorisee, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
 export const PREFIXE_JETON_VERROU = 'WFRP_VERROU_'
+const instanceDuVerrou = (chemin) => process.platform === 'win32' ? resolve(chemin).toLowerCase() : resolve(chemin)
+export const variableDuVerrou = (chemin) => PREFIXE_JETON_VERROU + createHash('sha256').update(instanceDuVerrou(chemin)).digest('hex')
 
 /** Message de refus : ce que le verrou garde (`libelle`), qui le tient, et les deux sorties. */
 export function refusVerrou({ chemin, tenant, libelle }) {
@@ -33,7 +35,7 @@ export const tenantEnUneLigne = (tenant) =>
  * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs: number }} Identite
  * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
  *   fs?: typeof fsReel, estVivant?: (pid: number) => boolean, maintenant?: () => string,
- *   attente?: Attente, horloge?: () => number, identite?: Identite }} Prise
+ *   attente?: Attente, horloge?: () => number, identite?: Identite, env?: NodeJS.ProcessEnv, signal?: AbortSignal }} Prise
  */
 
 /**
@@ -56,11 +58,21 @@ export function prendreVerrou({ dormir = attendreSync, ...prise }) {
 }
 
 /** Le sommeil NON bloquant : une promesse résolue après `ms`. */
-const dormirAsync = (ms) => new Promise((fini) => setTimeout(fini, ms))
+const dormirAsync = (ms, signal) => new Promise((fini) => {
+  const terminer = () => { clearTimeout(minuterie); signal?.removeEventListener('abort', terminer); fini() }
+  const minuterie = setTimeout(terminer, ms)
+  signal?.addEventListener('abort', terminer, { once: true })
+  if (signal?.aborted) terminer()
+})
 
 /** `prendreVerrou`, au sommeil NON bloquant (`dormir` rend une promesse). */
-export function prendreVerrouAsync({ dormir = dormirAsync, ...prise }) {
-  return deroulerAsync(etapesDePrise(prise), dormir)
+export async function prendreVerrouAsync({ dormir = dormirAsync, signal, ...prise }) {
+  const resultat = await deroulerAsync(etapesDePrise({ ...prise, signal }), (ms) => dormir(ms, signal))
+  if (signal?.aborted && resultat.etat === 'pris') {
+    resultat.liberer()
+    return { etat: 'refus', message: '[verrou] acquisition annulée' }
+  }
+  return resultat
 }
 
 /**
@@ -103,16 +115,45 @@ function etapesDePrise({
   horloge = Date.now,
   identite,
   dormir = attendreSync,
+  env = {},
+  signal,
 }) {
   if (identite && pid !== process.pid) {
     throw new Error(`[verrou] ${libelle} : l'identité ne se prend qu'au PID courant (${process.pid}), pas au PID ${pid}`)
   }
   const creation = identite ? performance.timeOrigin : undefined
   const vivant = vivantSelon({ estVivant, identite, horloge })
+  const instance = instanceDuVerrou(chemin)
+  const variable = variableDuVerrou(chemin)
+  const secret = randomUUID()
+  const empreinte = createHash('sha256').update(secret).digest('hex')
+  const annule = () => ({ etat: 'refus', message: `[verrou] ${libelle} : acquisition annulée` })
   return sousEcheance({
     attente, horloge,
-    essai: () => prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, vivant, maintenant, creation, dormir }),
-    abouti: (vu) => vu.etat === 'pris',
+    essai: () => {
+      if (signal?.aborted) return annule()
+      const jetons = Object.entries(env).filter(([cle]) => cle.toUpperCase() === variable.toUpperCase())
+      const transmis = jetons[0]
+      if (transmis) {
+        let jeton
+        try { jeton = JSON.parse(transmis[1]) } catch { /* #2586 */ }
+        const brut = lireBrut(fs, chemin)
+        const tenant = tenantDuTexte(brut)
+        const valide = jetons.length === 1 && jeton && Object.keys(jeton).sort().join(',') === 'generation,instance,secret,version' && jeton.version === 1 && jeton.instance === instance &&
+          typeof jeton.secret === 'string' && tenant?.generation === jeton.generation &&
+          tenant.empreinte === createHash('sha256').update(jeton.secret).digest('hex') && vivant(tenant, brut)
+        return valide
+          ? { etat: 'pris', emprunte: true, env: { [variable]: transmis[1] }, liberer() {} }
+          : { etat: 'refus', definitif: true, message: `[verrou] ${libelle} : jeton d'emprunt invalide` }
+      }
+      const prise = prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, vivant, maintenant, creation, dormir, empreinte })
+      if (prise.etat === 'pris') {
+        if (signal?.aborted) { prise.liberer(); return annule() }
+        prise.env = { [variable]: JSON.stringify({ version: 1, instance, generation: prise.generation, secret }) }
+      }
+      return prise
+    },
+    abouti: (vu) => vu.etat === 'pris' || vu.definitif || signal?.aborted,
   })
 }
 
@@ -168,14 +209,15 @@ async function deroulerAsync(etapes, dormir) {
 }
 
 /** Un essai de prise : le dossier de `chemin` créé, le tenant écrit dans un temporaire voisin, puis lié à `chemin`. */
-function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, vivant, maintenant, creation, dormir }) {
+function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, vivant, maintenant, creation, dormir, empreinte }) {
   fs.mkdirSync(dirname(chemin), { recursive: true })
   const generation = randomUUID()
-  const texte = JSON.stringify({ pid, commande, cwd, date: maintenant(), generation, ...(creation === undefined ? {} : { creation }) })
+  const texte = JSON.stringify({ pid, commande, cwd, date: maintenant(), generation, empreinte, ...(creation === undefined ? {} : { creation }) })
   const temporaire = `${chemin}.${pid}.${generation}`
   fs.writeFileSync(temporaire, texte, { flag: 'wx' })
   try {
-    return prendreDepuis({ chemin, libelle, temporaire, fs, vivant, liberer: () => liberer({ chemin, texte, pid, generation, fs, vivant, dormir }) })
+    const prise = prendreDepuis({ chemin, libelle, temporaire, fs, vivant, liberer: () => liberer({ chemin, texte, pid, generation, fs, vivant, dormir }) })
+    return prise.etat === 'pris' ? { ...prise, generation } : prise
   } finally {
     fs.rmSync(temporaire, { force: true })
   }

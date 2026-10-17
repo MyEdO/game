@@ -588,17 +588,7 @@ describe('synchroniserPrincipal — matrice', () => {
   test('11 deux synchronisations concurrentes, deux processus réels : une avance, l’autre mesure a-jour', async (t) => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
-    const marque = join(m.principal, '.git', 'consommateur-pret')
-    const liberation = join(m.principal, '.git', 'consommateur-libre')
-    const barriere = join(m.principal, '.git', 'post-merge-barriere.mjs')
-    writeFileSync(barriere, `
-import { existsSync, writeFileSync } from 'node:fs'
-import { sousEcheanceAsync } from ${JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', 'test', 'verrou.mjs')).href)}
-writeFileSync(${JSON.stringify(marque)}, '')
-const libere = await sousEcheanceAsync({ attente: { echeanceMs: 60000, pasMs: 20 }, essai: () => existsSync(${JSON.stringify(liberation)}), abouti: (vu) => vu })
-process.exitCode = libere ? 0 : 1
-`)
-    hookDeFixture(m.principal, `exec '${process.execPath.replaceAll('\\', '/')}' '${barriere.replaceAll('\\', '/')}'\n`)
+    const { marque, liberation } = barriereDuConsommateur(m.principal)
     const pids = []
     const erreurs = []
     let attente
@@ -1065,24 +1055,31 @@ function scriptsDansLePrincipal(racine) {
   appendFileSync(join(racine, '.git', 'info', 'exclude'), '/scripts\n')
 }
 
-/** Le post-merge de fixture de T1 (s), et l'échéance (ms) dans laquelle la CLI rend la main : moins que lui,
- *  avec la marge d'une machine chargée (3,5 s mesurées sous `test:perimetre`, 2026-10-08). */
-const POST_MERGE_S = 12
-const RENDU_MS = 10_000
+function barriereDuConsommateur(principal) {
+  const marque = join(principal, '.git', 'consommateur-pret')
+  const liberation = join(principal, '.git', 'consommateur-libre')
+  const barriere = join(principal, '.git', 'post-merge-barriere.mjs')
+  writeFileSync(barriere, `
+import { existsSync, writeFileSync } from 'node:fs'
+import { sousEcheanceAsync } from ${JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', 'test', 'verrou.mjs')).href)}
+writeFileSync(${JSON.stringify(marque)}, '')
+const libere = await sousEcheanceAsync({ attente: { echeanceMs: 60000, pasMs: 20 }, essai: () => existsSync(${JSON.stringify(liberation)}), abouti: (vu) => vu })
+process.exitCode = libere ? 0 : 1
+`)
+  hookDeFixture(principal, `'${process.execPath.replaceAll('\\', '/')}' '${barriere.replaceAll('\\', '/')}'\necho "post-merge $1" >&2\n`)
+  return { marque, liberation }
+}
 
 describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la main', () => {
   test('la CLI réelle rend `avance` AVANT la fin du post-merge, le consommateur nommé le joue puis solde la plage ; une 2ᵉ avance pendant lui est rejouée de B', async () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
-    hookDeFixture(m.principal, `sleep ${POST_MERGE_S}\necho "post-merge $1" >&2\nexit 0\n`)
+    const { marque, liberation } = barriereDuConsommateur(m.principal)
     scriptsDansLePrincipal(m.principal)
     let P
     try {
-      const debut = Date.now()
-      const cli = spawnSync(process.execPath, [join(m.principal, 'scripts', 'ops', 'synchroniser.mjs'), '--json'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: RENDU_MS })
-      const duree = Date.now() - debut
+      const cli = spawnSync(process.execPath, [join(m.principal, 'scripts', 'ops', 'synchroniser.mjs'), '--json'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 10_000 })
       assert.equal(cli.status, 0, `${cli.error?.message ?? ''} ${cli.stderr}`)
-      assert.ok(duree < RENDU_MS, `${duree} ms`)
       const vu = JSON.parse(cli.stdout)
       P = vu.consommateurs.pid
       const L = vu.consommateurs.log
@@ -1095,13 +1092,16 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
       for (const trace of ['synchro', 'index.lock', 'synchro.verrou']) assert.equal(existsSync(join(m.principal, '.git', trace)), false, trace)
       const tenant = await sousEcheanceAsync({
         attente: { echeanceMs: 10_000, pasMs: 20 }, abouti: (t) => t?.pid === P,
-        essai: () => { try { return JSON.parse(readFileSync(verrouDuConsommateur(join(m.principal, '.git')), 'utf8')) } catch { return null } },
+        essai: () => { try { return existsSync(marque) ? JSON.parse(readFileSync(verrouDuConsommateur(join(m.principal, '.git')), 'utf8')) : null } catch { return null } },
       })
       assert.equal(tenant?.pid, P, 'le consommateur tient son verrou')
       assert.equal(estPidVivant(P), true)
       const U2 = committer(m.amont, { 'a.md': 'c\n' })
       const seconde = await synchroniserPrincipal({ depuis: m.principal, env: ENV, consommateur: SYNCHRONISEUR, gestes: { attente: ATTENTE } })
       assert.deepEqual([seconde.etat, seconde.de, seconde.vers, seconde.consommateurs.pid, seconde.consommateurs.de], ['avance', U, U2, P, m.B])
+      assert.equal(estPidVivant(P), true)
+      assert.equal(existsSync(liberation), false)
+      writeFileSync(liberation, '')
       assert.equal(await consommationFinie(m.principal, [P]), null)
       const lignes = readFileSync(logDe(m.principal, P), 'utf8')
       assert.deepEqual(lignes.match(/post-merge ORIG_HEAD=\w+ HEAD=\w+ — début/g), [
@@ -1111,6 +1111,7 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
       assert.match(lignes, /— fin, code 0 \(\d+\.\d s\)/)
       assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
     } finally {
+      writeFileSync(liberation, '')
       await consommationFinie(m.principal, [P])
     }
   })

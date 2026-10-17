@@ -1,133 +1,34 @@
-// LES SCRIPTS DE WORKFLOW, JOUÉS AVEC DES DOUBLURES — sans un seul agent.
-//
-// Un script de `.claude/workflows/` est du JavaScript pur qu'aucun `import` ne peut charger
-// (`export const meta` d'un côté, `return` de premier niveau de l'autre : le harnais l'enveloppe
-// dans une fonction async). Ces tests l'enveloppent DE LA MÊME FAÇON et lui donnent des doublures
-// pour `agent`/`parallel`/`pipeline` : ce qui est vérifié est ce que le script REND et ce qu'il
-// ENVOIE, pas une réécriture de l'un ou de l'autre dans un test.
-//
-// `workflows.test.mjs` juge leur FORME (sans les exécuter), racine du schéma de chaque site comprise,
-// et exige que chaque script reconnu soit nommé par un banc ; ce fichier-ci juge leur COMPORTEMENT,
-// et l'enveloppe applique le même jugement de racine à l'objet SÉRIALISÉ que reçoit chaque agent
-// atteint : un banc dont un agent reçoit une racine fautive est rouge.
-//
-// Ce qui s'y joue : `table-simulee` consomme-t-elle le dossier, refuse-t-elle des ids de PJ confondus,
-// cloisonne-t-elle ses joueurs, enchaîne-t-elle les tirages, dérive-t-elle son plafond du dossier, tait-elle le plafond au MJ et aux joueurs
-// (prompt ET options de chaque appel, copiés à l'appel : schéma, type d'agent, modèle, effort),
-// contraint-elle PAR LE SCHÉMA de chaque appel toute désignation d'un ensemble fermé (PJ, déclencheur
-// en attente, beat, persona, secret, échange, sosie), tient-elle un état par déclencheur et fait-elle
-// d'une fuite de secret une anomalie ; `dossier-de-chapitre` rend-il une fiche au schéma `ficheDeDossier`
-// sur des formes PROJETÉES par le lanceur (`scripts/raw/workflow-args.mjs`), keye-t-il chaque lecture au
-// label de sa lentille, APPLIQUE-t-il les corrections de son juge de complétude, et sa fiche s'écrit-elle
-// par le lanceur pour armer la table ; tout agent de tout workflow exécute-t-il une commande simple ; un
-// verdict de SUCCÈS se rend-il jamais sur un trou.
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs';
-import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs';
-import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../guards/lib/jouer-workflow.mjs';
-import { tableTotale } from '../../src/lib/tableTotale.ts';
-import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts';
-import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs';
+import test from 'node:test'
 
-const RACINE = fileURLToPath(new URL('../../', import.meta.url));
-const DOSSIER = join(RACINE, '.claude', 'workflows');
-const DATE = '2026-09-04';
-// Chemins de FIXTURE : les scripts ne les OUVRENT pas, ils les recopient dans leurs prompts. Ils
-// s'écrivent sans lettre de lecteur — une fixture ne nomme aucune machine
-// (`src/portable-paths-guard.test.ts`).
-const ARBRE = '/arbre-jete';
-const COMMIT = 'f6e343dc8abf36a9d34cc3fd13de60af3d9ac894';
+import assert from 'node:assert/strict'
 
-/** Joue un script de `.claude/workflows/` — l'enveloppe vit dans `scripts/guards/lib/jouer-workflow.mjs`. */
-const jouer = (nomDuScript, argsDuRun, repondre) => jouerWorkflow(join(DOSSIER, nomDuScript), argsDuRun, repondre);
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
-// ── `table-simulee.js` ───────────────────────────────────────────────────────────────────────────
+import { tmpdir } from 'node:os'
 
-const SECRET = 'SECRET-DU-MJ-QUE-LES-JOUEURS-IGNORENT';
-const D1 = { id: 'd1', evenement: 'Le PNJ approche la table des PJ', condition: 'les PJ l’ignorent une demi-heure', ref: ['EDO 01 l.200'] };
-/** La FICHE commitée d'un chapitre (`ficheDeDossier`) : ce que la table consomme. */
-const DOSSIER_DU_CHAPITRE = {
-  lecture: { date: DATE, commit: COMMIT },
-  imperatifs: [{ id: 'imp1', texte: 'le corps doit être trouvé', ref: ['EDO 02 l.34'] }],
-  beats: [{ id: 'b1', titre: 'La route', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] }, { id: 'b2', titre: 'Le relais', statut: 'optionnel', preuveDuStatut: 'p', mediasCandidats: ['resume'], ref: ['EDO 01 l.10'] }],
-  pointsAuMJ: [], indices: [{ id: 'ind1', texte: 'une plume noire sur le rebord', ref: ['EDO 01 l.6'] }], secrets: [{ id: 'sec1', texte: SECRET, ref: ['EDO 01 l.5'] }], declencheurs: [D1],
-  pnj: [{ id: 'pnj1', nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }],
-  lieux: [], textes: [], tests: [], rencontres: [], recompenses: [], etats: [], dureeEtDifficulte: [], matiereCompagnons: [],
-};
-const ARGS_TABLE = {
-  livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], dossier: DOSSIER_DU_CHAPITRE, seed: 'graine', maxEchanges: 3,
-  worktree: ARBRE, date: DATE,
-};
+import { join } from 'node:path'
+
+import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
+
+import { tableTotale } from '../../src/lib/tableTotale.ts'
+
+import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
+
+import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
+
+import { bancworkflowsjouestestmjs } from './workflowsBanc.mjs'
+const { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, SANS_SOSIE, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, ENTREE_BEAT, completude, repondreAuDossier, jouerDossier, sauf } = bancworkflowsjouestestmjs
+
 const ARGS_TABLE_PERSONAS = ['rôliste', 'fouineur', 'saboteur', 'hors-cadre'];
-const FICHES_PJ = {
-  pjs: ['pregen-101', 'pregen-202', 'pregen-707', 'pregen-303'].map((id) => ({ id, nom: id, espece: 'humain', carriere: 'c', fiche: `fiche de ${id}` })),
-  groupe: { source: 'makeShowcaseParty', commande: 'npx tsx sonde.mts' },
-};
-const IDS_DES_PJ = FICHES_PJ.pjs.map((pj) => pj.id);
-const SANS_SOSIE = { id: '', ref: '', motif: 'aucun passage du chapitre ne fait ressembler un PJ à un PNJ' };
-const jetsDe = (premier, n) => Array.from({ length: n }, (_, i) => ({
-  tirage: premier + i, objet: 'o', commande: `npx tsx scripts/ops/table-des.mts simple --seed "graine" --tirage ${premier + i}`, sortie: '{}',
-}));
 
-/** Le texte JSON d'un prompt entre deux marqueurs : ce que le script ENVOIE au juge. */
-const jsonEntre = (prompt, debut, fin) => JSON.parse(prompt.slice(prompt.indexOf(debut) + debut.length, prompt.indexOf(fin)));
+const IDS_DES_PJ = FICHES_PJ.pjs.map((pj) => pj.id);
+
 const journalEnvoye = (prompt) => jsonEntre(prompt, 'JOURNAL COMPLET :\n', '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
-const declencheursEnvoyes = (prompt) => jsonEntre(prompt, 'DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :\n', '\n\nRends :');
-/** Ce qu'un objet d'un schéma admet : `additionalProperties`, les clés EXIGÉES, les clés décrites. */
+
 const clesDe = (objet) => [objet.additionalProperties, objet.required, Object.keys(objet.properties)];
 
-/**
- * Un juge d'analyse au CONTRAT, à la forme du schéma qu'il REÇOIT : chaque intention exigée classée,
- * chaque déclencheur exigé jugé, aucune fuite. `classeDe(persona, echange)` rend la classe ;
- * `retouche(analyse)` altère le rendu (fuite…).
- */
-const analyseCouvrante = (classeDe = () => 'prevu', besoins = [], retouche = (a) => a) => (prompt, opts) => {
-  const { intentions, declencheurs } = opts.schema.properties;
-  const refDe = new Map(declencheursEnvoyes(prompt).map((d) => [d.id, d.ref[0]]));
-  return retouche({
-    intentions: tableTotale(intentions.required, (numero) => tableTotale(intentions.properties[numero].required, (persona) => ({ classe: classeDe(persona, Number(numero)), ref: '', categorie: '' }))),
-    tempsMorts: [], pistesRatees: [],
-    declencheurs: tableTotale(declencheurs.required, (id) => ({ manque: false, constat: 'c', ref: refDe.get(id) })),
-    fuites: [], besoins, synthese: { markdown: 's' },
-  });
-};
-
-/** `mjDe(numero, premierTirage, schema)` décide le rendu du MJ ; `analyseDe(prompt, opts)` celui du juge. */
-const repondreALaTable = (mjDe, analyseDe = analyseCouvrante(), fichesPJ = FICHES_PJ, sosie = SANS_SOSIE) => (prompt, opts) => {
-  if (opts.phase === 'Préparation') return opts.label === 'fiches-pj' ? fichesPJ : { sosie };
-  if (opts.phase === 'Analyse') return analyseDe(prompt, opts);
-  if (opts.label.startsWith('mj:')) {
-    const premier = Number(prompt.match(/commencent à (\d+)/)[1]);
-    return mjDe(Number(opts.label.slice(3)), premier, opts.schema);
-  }
-  return { jeu: { intention: `intention de ${opts.label}`, notes: `notes de ${opts.label}` } };
-};
-const jouerTable = (mjDe, analyseDe = analyseCouvrante(), argsDuRun = ARGS_TABLE, fichesPJ = FICHES_PJ, sosie = SANS_SOSIE) => jouer('table-simulee.js', argsDuRun, repondreALaTable(mjDe, analyseDe, fichesPJ, sosie));
-const RESOLUTION = { source: 'IMPRO', ref: '', categorie: 'hors-livre', resolution: 'r' };
-/** Les clés que le schéma du MJ EXIGE à cet échange : les PJ à résoudre, les déclencheurs en attente. */
-const pjsExiges = (schema) => schema.properties.resolutions.required;
-const declencheursExiges = (schema) => schema.properties.tour.properties.declencheurs.required;
-/** Le MJ au CONTRAT, à la forme du schéma qu'il REÇOIT : une résolution par PJ exigé, deux jets à la suite,
- *  un sort `non-echu` motivé par déclencheur exigé. */
-const mjSansFin = (numero, premier, schema) => ({
-  resolutions: tableTotale(pjsExiges(schema), () => RESOLUTION),
-  jets: jetsDe(premier, 2),
-  tour: { narration: `narration ${numero}`, etatPrive: 'état', beat: 'b1', declencheurs: tableTotale(declencheursExiges(schema), () => ({ statut: 'non-echu', motif: 'la demi-heure court' })) },
-  fin: false,
-});
 const mjQuiFinit = (numero, premier, schema) => ({ ...mjSansFin(numero, premier, schema), fin: true });
-/** Le MJ rend, à l'échange `n`, le sort `sortDe(n, id)` de chaque déclencheur exigé — le reste de son rendu est celui de `mjSansFin`. */
-const mjAuxSorts = (sortDe) => (numero, premier, schema) => {
-  const mj = mjSansFin(numero, premier, schema);
-  return { ...mj, tour: { ...mj.tour, declencheurs: tableTotale(declencheursExiges(schema), (id) => sortDe(numero, id)) } };
-};
-/** Le juge qui classe un refus du saboteur : sur une partie sans trou, SIGNAL. */
-const analyseSignal = (classes = []) => analyseCouvrante((p) => (p === 'saboteur' ? 'refuse' : 'prevu'), classes);
+
 const FUITE = { echange: 2, secret: 'sec1', constat: 'la narration nomme le secret, aucun indice trouvé n’y mène' };
 
 test('table-simulee : les joueurs sont CLOISONNÉS — aucun prompt de joueur ne porte la fiche du MJ ni le livre', async () => {
@@ -532,36 +433,11 @@ test('table-simulee : un argument manquant ARRÊTE avant tout agent, et se nomme
   assert.ok(rendu.manques.some((m) => m.startsWith('args.personas — exactement 4')));
 });
 
-// ── `dossier-de-chapitre.js` ─────────────────────────────────────────────────────────────────────
-
-/** Le fichier `Source/` d'un chapitre de FIXTURE : la projection ne lit pas le `Source/` réel. */
-const fichierDeFixture = (abbr, nn) => `Source/${abbr}-${nn}.md`;
-/** Les args du workflow, PROJETÉS par le lanceur réel (`argsDeDossierDeChapitre`, `scripts/raw/workflow-args.mjs`) :
- *  familles, préfixes et formes d'entrée viennent de `ficheDeDossier`, jamais d'une recopie du banc. */
-const argsDossier = (compagnons = []) => argsDeDossierDeChapitre('EDO', '01', { worktree: ARBRE, date: DATE, commit: COMMIT, compagnons, fichierDe: fichierDeFixture });
-const ARGS_DOSSIER = argsDossier();
 const AVEC_COMPAGNON = argsDossier(['EDOC-03']);
-/** Ce que les lentilles rendent : des entrées SANS id, le script les numérote. */
-const ENTREE_BEAT = { titre: 't', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] };
-const { id: _idDeD1, ...ENTREE_D1 } = D1;
-const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
-const LECTURES = {
-  'imperatifs-et-beats': { imperatifs: [], beats: [ENTREE_BEAT], pointsAuMJ: [], indices: [{ texte: 'la lettre', ref: ['EDO 01 l.3'] }], secrets: [{ texte: 's', ref: ['EDO 01 l.4'] }], declencheurs: [ENTREE_D1] },
-  'pnj-lieux-textes': { pnj: [{ nom: 'Kastor', role: 'r', motivation: 'm', ref: ['EDO 01 l.2'] }, { nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }], lieux: [], textes: [] },
-  mecanique: { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [{ texte: 'Kastor est mort', sens: 'lu', portee: 'chapitre', ref: ['EDO 01 l.8'] }] },
-  'matiere-compagnons': { matiereCompagnons: [{ texte: 'péage', categorie: 'peage', pourCeChapitre: 'b1', ref: ['EDOC 03 l.4'] }] },
-};
 
-/** Le rendu d'un juge de complétude qui ne corrige rien, à la forme du schéma qu'il REÇOIT ; `corrige` y verse ses corrections. */
-const completude = (opts, corrige = {}) => ({
-  oublis: { ...tableTotale(opts.schema.properties.oublis.required, () => []), ...corrige.oublis },
-  refsFausses: corrige.refsFausses ?? [],
-  contenusFaux: corrige.contenusFaux ?? [],
-  synthese: { markdown: 's' },
-});
-const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[opts.label] : completude(opts, corrige));
-const jouerDossier = (argsDuRun = ARGS_DOSSIER, corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(corrige));
-/** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
+
+const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
+
 const dansUnJetable = async (corps) => {
   const dir = mkdtempSync(join(tmpdir(), 'dossiers-'));
   try {
@@ -787,103 +663,6 @@ test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lenti
   });
 });
 
-// ── CLASSES : tout workflow du dépôt ───────────────────────────────────────────────────────────────
-
-/** Le nom de fichier d'un script : ce qu'un banc NOMME (porte B9 de `workflows.test.mjs`). */
-const nomDe = (chemin) => chemin.split(/[\\/]/).pop();
-/** `label` meurt (rend `rendu`, `null` par défaut) ; tout autre agent répond par `repondre`. */
-const sauf = (repondre, label, rendu = null) => (prompt, opts) => (opts.label === label ? rendu : repondre(prompt, opts));
-const ATLAS = join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js');
-/** Un périmètre de FIXTURE : un cœur, un livre, un domaine — rien du registre réel. */
-const ARGS_ATLAS = {
-  coeur: 'alpha', domaines: [{ cle: 'domaine-un', titre: 'Domaine de fixture' }], lot: ['domaine-un'],
-  livres: [{ ab: 'BKA', dir: 'Source/Fixture - Base Alpha', coeur: 'alpha', language: 'Langue-A' }],
-};
-/** Un atlas qui répond à chaque phase ; `fidele: false` ouvre la correction de fidélité et la re-vérification. */
-const repondreALAtlas = (fidele) => (prompt, opts) => ({
-  Cadrage: { coverageRefs: [{ ab: 'BKA', nn: '05' }] },
-  Cartographie: { items: [{ item: 'Une règle', kind: 'table', ref: 'BKA 05 l.1', gist: 'g' }] },
-  Taxonomie: { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'h', covers: ['Une règle'] }] },
-  Survey: { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'g' }] },
-  Synthese: { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nUn corps.', refs: ['BKA 05 l.1'], codeHint: '' } },
-  Correction: { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nCorrigé.', refs: ['BKA 05 l.1'], codeHint: '' } },
-  Audit: { dry: true, gaps: [] },
-  Verif: { faithful: fidele, issues: fidele ? [] : ['une valeur fausse'] },
-})[opts.phase];
-
-/** Par script de workflow du dépôt : des runs qui atteignent ses agents. */
-const RUNS_COUVRANTS = {
-  'dossier-de-chapitre.js': () => [jouerDossier(AVEC_COMPAGNON, { oublis: { declencheurs: [ENTREE_D2] } })],
-  'table-simulee.js': () => [jouerTable(mjSansFin)],
-  'atlas-domain.workflow.js': () => [jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(true)), jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(false))],
-};
-/** Ce qui fige un agent de fond (une commande qui attend une autorisation) : changement de dossier,
- *  enchaînement, shell prescrit, fichier de sonde écrit ou lu par redirection. */
-const INTERDITS_D_EXECUTION = /(^|[\s`"(])cd\s|&&|Shell = Bash|git -C|dossier de sondes|s'écrit sous|redirection fichier/i;
-const CONTRAT_D_EXECUTION = /Toute commande passe par l'outil `ctx_shell`, son paramètre `cwd` = l'arbre[^:\n]* : UNE commande simple par appel, [^\n]*; UN SEUL appel `ctx_shell` par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
-
-test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme `ctx_shell` ou une sonde reçoit le contrat entier', async () => {
-  assert.deepEqual(Object.keys(RUNS_COUVRANTS).sort(), scriptsDeWorkflowDuDepot(RACINE).map(nomDe).sort(), 'chaque script reconnu est joué');
-  const executants = [];
-  for (const [script, runs] of Object.entries(RUNS_COUVRANTS)) {
-    for (const { promptsParLabel } of await Promise.all(runs())) {
-      assert.ok(promptsParLabel.size > 0, `${script} : aucun agent atteint`);
-      for (const [cle, prompt] of promptsParLabel) {
-        assert.doesNotMatch(prompt, INTERDITS_D_EXECUTION, `${script} ${cle}`);
-        if (/ctx_shell|\bsondes?\b/.test(prompt)) {
-          assert.match(prompt, CONTRAT_D_EXECUTION, `${script} ${cle}`);
-          executants.push(script);
-        }
-      }
-    }
-  }
-  assert.deepEqual([...new Set(executants)].sort(), ['dossier-de-chapitre.js', 'table-simulee.js'], 'témoin : les workflows dont les agents exécutent');
-});
-
-/** Par workflow qui rend un verdict : ses verdicts de SUCCÈS, un run témoin qui en rend un, et UNE injection
- *  par espèce de trou, qui la produit. Les espèces se MESURENT aux `trous` que le témoin rend. */
-const VERDICTS_DE_SUCCES = {
-  'table-simulee.js': {
-    succes: ['SIGNAL', 'THÉÂTRE'],
-    temoin: () => jouerTable(mjSansFin, analyseSignal()),
-    trous: {
-      interruption: () => jouerTable((numero, premier, schema) => (numero === 2 ? null : mjSansFin(numero, premier, schema)), analyseSignal()),
-      joueursSansRendu: () => jouer('table-simulee.js', ARGS_TABLE, sauf(repondreALaTable(mjSansFin, analyseSignal()), 'joueur:fouineur:1')),
-      anomaliesDeSosie: () => jouerTable(mjSansFin, analyseSignal(), ARGS_TABLE, FICHES_PJ, { id: '', ref: 'EDO 02 l.40', motif: 'm' }),
-      anomaliesDeTirage: () => jouerTable((numero, premier, schema) => ({ ...mjSansFin(numero, premier, schema), jets: jetsDe(premier + 5, 1) }), analyseSignal()),
-      anomaliesDeDeclencheurs: () => jouerTable(mjAuxSorts(() => ({ statut: 'non-echu', motif: '' })), analyseSignal()),
-      fuites: () => jouerTable(mjSansFin, analyseCouvrante((p) => (p === 'saboteur' ? 'refuse' : 'prevu'), [], (a) => ({ ...a, fuites: [FUITE] }))),
-      analyseSansRendu: () => jouerTable(mjSansFin, () => null),
-    },
-  },
-  'dossier-de-chapitre.js': {
-    succes: ['DOSSIER'],
-    temoin: () => jouerDossier(),
-    trous: {
-      lentillesSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique')),
-      completudeSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'completude')),
-      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] }),
-    },
-  },
-};
-
-test('CLASSE — un verdict de SUCCÈS ne se rend que sur une liste de trous VIDE : chaque espèce mesurée, injectée, le fait tomber', async () => {
-  const aVerdict = scriptsDeWorkflowDuDepot(RACINE).filter((f) => /return\s*\{\s*verdict\b/.test(readFileSync(f, 'utf8'))).map(nomDe).sort();
-  assert.deepEqual(Object.keys(VERDICTS_DE_SUCCES).sort(), aVerdict, 'tout workflow qui rend un verdict a sa ligne');
-  for (const [script, { succes, temoin, trous }] of Object.entries(VERDICTS_DE_SUCCES)) {
-    const nominal = (await temoin()).rendu;
-    assert.ok(succes.includes(nominal.verdict), `${script} : témoin au succès (lu : ${nominal.verdict})`);
-    const especes = Object.keys(nominal.trous);
-    assert.deepEqual(especes.filter((e) => nominal.trous[e].length), [], `${script} : le témoin n’a aucun trou`);
-    assert.deepEqual(Object.keys(trous).sort(), [...especes].sort(), `${script} : une injection par espèce MESURÉE aux trous rendus`);
-    for (const espece of especes) {
-      const { rendu } = await trous[espece]();
-      assert.ok(rendu.trous?.[espece]?.length > 0, `${script} / ${espece} : le trou injecté est nommé (trous rendus : ${JSON.stringify(rendu.trous)})`);
-      assert.ok(!succes.includes(rendu.verdict), `${script} / ${espece} : verdict ${rendu.verdict} sur un trou`);
-    }
-  }
-});
-
 test('table-simulee : la commande de dés est SIMPLE, lancée par `ctx_shell` ; les fiches des PJ se construisent par une sonde sans fichier', async () => {
   const table = await jouerTable(mjSansFin);
   const mj = table.promptsParLabel.get('Partie:mj:1');
@@ -901,14 +680,4 @@ test('les deux workflows : tout agent qui cite le livre prend ses lignes sur une
     assert.match(prompt, /lecture BRUTE numérotée \(`grep -n`, `sed -n 'X,Yp'`, `ctx_read` en mode `raw`\), jamais sur une vue résumée/, cle);
     assert.match(prompt, /toute réf se vérifie en relisant la ligne citée avant d'être rendue/, cle);
   }
-});
-
-test('RECONNAISSANCE : l’AST reconnaît les workflows, jamais un générateur ni un banc qui écrit un jouet', () => {
-  const lire = (relatif) => lireWorkflow(readFileSync(join(RACINE, relatif), 'utf8'), relatif);
-  assert.deepEqual(lire('scripts/docs/build-donnees.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'un générateur qui écrit « export const meta » dans une chaîne');
-  assert.deepEqual(lire('scripts/guards/lib/jouer-workflow.test.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'un banc qui écrit un jouet');
-  assert.deepEqual(lire('scripts/guards/lib/jouer-workflow.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'l’enveloppe, qui DÉCLARE la doublure `agent`');
-  const scripts = scriptsDeWorkflowDuDepot(RACINE);
-  assert.ok(scripts.includes(join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js')), 'un workflow HORS de .claude/workflows/ est vu');
-  assert.deepEqual(scripts.filter(estSuiteVitest), [], 'aucun test n’est pris pour un workflow');
 });

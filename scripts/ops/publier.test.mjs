@@ -1,41 +1,60 @@
-// Contrat du TRAIN de publication — tout ce qui se juge sans git, sans gh et sans réseau.
-//   node --test scripts/ops/publier.test.mjs   (chaîné dans `npm run test:ops`)
-//
-// Rien ici ne touche l'arbre : le moteur reçoit des étapes FACTICES et un journal EN MÉMOIRE, les
-// verdicts reçoivent des listes de courses littérales. Ce que ce fichier ne couvre pas est dit :
-// les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué. Exceptions nommées : les
-// CLI réelles sous git feint (#2285), le constat d'une `fin` tuée sur le journal CAPTURÉ du témoin 6 et la
-// veille composite tuée sous bash (#2493, `.git/suivi/2493-design-verdict-2026-10-08.md`, §4 T2 et T3).
 import { refusDEnfileur } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
+
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
+
 import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
+
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { remplacerCleJson } from '../agents/compat-core.mjs'
 import test, { after, describe, mock } from 'node:test'
+
 import childProcess from 'node:child_process'
+
 import { syncBuiltinESMExports } from 'node:module'
+
 import assert from 'node:assert/strict'
+
 import { spawn, spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
+
+import { createHash, randomUUID } from 'node:crypto'
+
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { constants, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+
+import { EventEmitter } from 'node:events'
+
+import { PassThrough } from 'node:stream'
+
+import { DELAI_ARRET_MS, tuerArbre, constaterArret, creerSuiviProcessus, observerProcessus } from '../guards/lib/processusBorne.mjs'
+
+import { BACKOFFS_MS, STATUS_DLL_INIT_FAILED } from '../guards/lib/spawnResilient.mjs'
+
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
+
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
+
 import { numerosCites } from '../guards/lib/fermetures.mjs'
+
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
+
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
+
 import { GitIndisponible, MARQUE_FEINTE, ajouterOrigine, classer, commitDe, depotDe, pousser, refusDeGit, reussi, shaDe, sortieDe } from '../guards/lib/gitPorte.mjs'
+
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
+
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { ABAISSER_PRIORITE, citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrou, sousEcheanceAsync } from '../test/verrou.mjs'
 import { estPidVivant } from '../guards/lib/pid.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
+
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, runEnVol, cheminDeTrace, sortirHorsJournal, verdictDeTrace } from './publicationDonnee.mjs'
 import { ECHEANCE_SANS_RUN_MS, RACINE, borneDeVeilleMin, identiteDuTrain, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
@@ -63,8 +82,6 @@ import {
 import { gitDe } from '../test/gitDeBanc.mjs'
 
 const NOMS = ETAPES.map((e) => e.nom)
-
-// ── optionsDe ──────────────────────────────────────────────────────────────────────────
 
 test('optionsDe : les drapeaux et l’option à valeur, sans grammaire empruntée', () => {
   assert.deepEqual(optionsDe([]), {
@@ -100,8 +117,6 @@ test('optionsDe : les drapeaux et l’option à valeur, sans grammaire emprunté
   assert.deepEqual([optionsDe(['--constat']).constat, optionsDe(['--constat']).inconnus], [false, ['--constat']])
 })
 
-// ── nomDeJournal ───────────────────────────────────────────────────────────────────────
-
 test('nomDeJournal : une branche devient un NOM DE FICHIER légal', () => {
   assert.equal(nomDeJournal('chantier/1736-publier'), 'chantier_1736-publier')
   assert.equal(nomDeJournal('main'), 'main')
@@ -110,9 +125,6 @@ test('nomDeJournal : une branche devient un NOM DE FICHIER légal', () => {
   assert.equal(nomDeJournal(undefined), 'sans-branche')
 })
 
-// ── etatDuTrain : l'unique lecteur du journal (#2280, V2) ─────────────────────────────────────
-
-/** Un journal du run `r` (pid 7) dont les étapes `faites` sont vertes pour `tete`, la suivante `en` à l'état donné. */
 function journalDuRun({ faites = 2, en = 'en-vol', verdict = null, tete = 'aaa' } = {}) {
   const etapes = {}
   NOMS.slice(0, faites).forEach((nom, i) => { etapes[nom] = { etat: 'vert', tete, run: '7-1', seq: i + 1 } })
@@ -226,9 +238,6 @@ test('planDeReprise / etatDeLEtape : une étape SANS estampille est à faire, M�
   assert.equal(etatDeLEtape(sansEstampille, 'preflight', 'aaa'), 'à faire (verte pour une autre tête)')
 })
 
-// ── jouerLeTrain (étapes factices) ─────────────────────────────────────────────────────
-
-/** Étape factice : `jouer` rend ce qu'on lui dit, et NOTE son passage. */
 const factice = (nom, verdict, { deja = false, joues } = {}) => ({
   nom,
   dejaFaite: () => deja,
@@ -333,10 +342,6 @@ test('jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend 
   assert.deepEqual(joues, ['rebase', 'push', 'rebase', 'push'])
 })
 
-// ── estDocDerive ───────────────────────────────────────────────────────────────────────
-
-// Les générateurs RÉELS (`GENERATORS`) : un motif `injecte` large (`docs/raw/**/*.md`) atteint aussi des
-// cibles PURES, que seule la table réelle porte.
 describe('estDocDerive', () => {
   const GEN = GENERATORS
 
@@ -432,7 +437,7 @@ test('preflight et étape `docs` ATTENDENT la reconstruction des dérivés avant
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'publication', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'dormir', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lirePr', 'lireTicket', 'maintenant', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'publication', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -639,7 +644,6 @@ test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’iden
   }
 })
 
-/** Les argv LITTÉRAUX passés à `gh`/`appel` dans une source, quelle que soit la graphie de quote. */
 function argvDesAppelsGh(code) {
   return [...code.matchAll(/\b(?:gh|appel)\(\s*\[([^\]]*)\]/g)]
     .map((m) => [...m[1].matchAll(/['"`]([^'"`]*)['"`]/g)].map((t) => t[1]))
@@ -801,8 +805,6 @@ test('#2187 #2493 `fin` : le principal synchronisé sur la FUSION, sa ligne au `
   assert.match(vu.ligne, /^synchroniseur sorti sans état \(code 1\) ; re-mesure : refusé \(git-indisponible\) : /)
 })
 
-// ── messageDuTrain / PLAGE_DE_CITATIONS ──────────────────────────────────────────
-
 test('messageDuTrain : un SUJET que la règle du dépôt accepte, le motif au CORPS, pour les deux commits du train', () => {
   const douze = Array.from({ length: 12 }, (_, i) => String(1700 + i))
   const formes = [
@@ -835,8 +837,6 @@ test('PLAGE_DE_CITATIONS : les commits de la branche absents du tronc', () => {
   assert.equal(PLAGE_DE_CITATIONS, 'origin/main..HEAD')
 })
 
-// ── journalInitial / gatesRejouees ───────────────────────────────────────────────
-
 test('journalInitial : sans --reprendre, un lot NEUF ignore le journal du disque', () => {
   const lu = { branche: 'chantier/1736', base: 'b', tete: 't', ejections: 1, etapes: { push: { etat: 'vert' } } }
   const vu = journalInitial({ reprendre: false, lu, branche: 'chantier/1736' })
@@ -861,8 +861,6 @@ test('journalInitial : --reprendre sans journal sur disque part d’un journal N
   assert.equal(vu.vertes, 0)
 })
 
-// ── modeDuLog ─────────────────────────────────────────────────────────────────────
-
 test('modeDuLog : le log suit le journal — lot NEUF tronque, `--reprendre` ajoute', () => {
   // Le cas mesuré (2026-09-14) : ouvert en `'a'` sans condition, un run neuf gardait la ligne
   // `PUBLICATION:` du run précédent, et la veille `until grep -q "^PUBLICATION:"` rendait aussitôt.
@@ -875,8 +873,6 @@ test('modeDuLog : l’ENFANT de `--detache` n’ouvre JAMAIS en troncature — l
   assert.equal(modeDuLog({ reprendre: true, enfant: true }), 'a')
   assert.equal(modeDuLog(), 'w')
 })
-
-// ── rotation du log ───────────────────────────────────────────────────────────────────
 
 test('nomDeRotation : `<nom>.log` devient `<nom>.<AAAAMMJJ-HHMMSS>.log`', () => {
   const date = new Date(2026, 8, 14, 3, 7, 9) // 14 septembre 2026, 03:07:09 — heure LOCALE
@@ -928,8 +924,6 @@ test('motifDeRotation : il ne prend QUE les logs tournés — ni le log courant,
   // Le point du nom de branche est un POINT, jamais un joker : un autre log ne tombe pas dedans.
   assert.equal(motifDeRotation('a.b.log').test('axb.20260914-030709.log'), false)
 })
-
-// ── dejaFaite de l'étape `docs` ──────────────────────────────────────────────
 
 test('étape `docs` : déjà faite sur la tête ENREGISTRÉE, pas sur `journal.tete`', () => {
   const docs = ETAPES.find((e) => e.nom === 'docs')
@@ -1015,7 +1009,6 @@ test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la 
   }
 })
 
-// #2525
 describe('étape `docs` : stocks de sites régénérés après une fusion du tronc', () => {
   const docs = ETAPES.find((e) => e.nom === 'docs')
   const STOCK = 'scripts/guards/balayages-non-resolus-stock.json'
@@ -1118,8 +1111,6 @@ test('ligneDeDetachement : la trace MACHINE que le parent laisse dans le log', (
   assert.equal(ligneDeDetachement({ pid: 7, log: 'x.log', args: [] }), '[publier] détaché — pid=7 log=x.log args=\n')
 })
 
-// ── citerArgv ──────────────────────────────────────────────────────────────────────────
-
 test('citerArgv : un token que `CommandLineToArgvW` relit comme UN argument', () => {
   // Contrat : TOUJOURS entouré de guillemets — un token unique, quelles que soient ses espaces.
   assert.equal(citerArgv('--reprendre'), '"--reprendre"')
@@ -1134,8 +1125,6 @@ test('citerArgv : un token que `CommandLineToArgvW` relit comme UN argument', ()
   // L'apostrophe n'est PAS l'affaire de Win32 : elle traverse (c'est la citation PowerShell qui la double).
   assert.equal(citerArgv("d'ops"), '"d\'ops"')
 })
-
-// ── lancerDetache ──────────────────────────────────────────────────────────────────────
 
 const LANCEMENT = { script: '/dep/scripts/ops/publier.mjs', args: ['--reprendre'], cwd: '/dep', fdLog: 9, node: '/bin/node' }
 
@@ -1232,8 +1221,6 @@ test('lancerDetache : hors win32, le détachement reste `detached` + le fd du jo
   assert.equal(appels[1], 'unref')
 })
 
-// ── filetDuTrainEnfant ───────────────────────────────────────────────────────
-
 const processusFactice = () => {
   const branches = {}
   const sorties = []
@@ -1274,8 +1261,6 @@ test('filetDuTrainEnfant : une promesse rompue tombe par le MÊME filet', (t) =>
   assert.match(ecrits[1].texte, /ARRÊT INATTENDU hors train : rupture nue\nPUBLICATION: rouge moteur — rupture nue\n/)
   assert.deepEqual(processus.sorties, [CODE_ARRET_MOTEUR])
 })
-
-// ── corpsDePilotage ────────────────────────────────────────────────────────────────────
 
 const PILOTAGE = {
   numero: '1736',
@@ -1334,8 +1319,6 @@ test('sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide', () =
 })
 
 const journalPush = () => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt', publication: { bail: 'b'.repeat(40) } })
-
-// ── étapes `push-branche`, `pr` et `file` ───────────────────────────────────────────────
 
 const etapeBranche = ETAPES.find((e) => e.nom === 'push-branche')
 
@@ -1422,8 +1405,6 @@ test('#2285 tronc : fetch muet nonzero refuse avant le SHA, succès avec warning
   assert.deepEqual(accepte, { disponible: true, sha })
 })
 
-// ── PR : lecture REST réduite, choix de la PR, état ──────────────────────────────────────────
-
 const REST = (plus = {}) => ({ number: 7, state: 'open', merged_at: null, merge_commit_sha: null, head: { sha: 'ttttttttt' }, mergeable_state: 'clean', ...plus })
 
 test('prDeRest : ouverte, fusionnée (sha de fusion), fermée ; conflit à trois états par `mergeable_state`', () => {
@@ -1502,8 +1483,6 @@ test('#2626 pr existante non armée : reprise ; armée/en file/fusionnée même 
   assert.match(etapePr.jouer(refusee, journalPush()).raison, /armement.*REFUSÉ.*refus serveur/)
 })
 
-// ── étape `file` ─────────────────────────────────────────────────────────────────────────────
-
 const etapeFile = ETAPES.find((e) => e.nom === 'file')
 
 const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclusion: 'success', databaseId: 40, workflowName: 'CI' }
@@ -1515,10 +1494,14 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
   let lectureDeBranche = 0
   let lectureDeFile = 0
   let lectureDePr = 0
+  let ms = JEUNE_2495
+  const sommeils = []
   const ctx = {
     racine: RACINE,
     branche: 'chantier/2178',
     options: { fileTimeoutMin },
+    maintenant: () => ms,
+    dormir: (pas) => { sommeils.push(pas); ms += pas },
     journaliser: (ligne) => { lignes.push(ligne) },
     tete: 'nnnnnnnnn',
     lirePr: () => {
@@ -1544,7 +1527,7 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
       estAncetre: (a, d) => ({ disponible: true, valeur: a === d || ancetres.some(([x, y]) => x === a && y === d) }),
     },
   }
-  return { ctx, gestes, lignes }
+  return { ctx, gestes, lignes, sommeils }
 }
 for (const differe of [false, true]) test(`#2626 pr conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
   const sale = REST({ mergeable_state: 'dirty' })
@@ -1560,17 +1543,23 @@ for (const differe of [false, true]) test(`#2626 pr conflit ${differe ? 'après 
 
 const courseDeFileRouge = { headBranch: 'gh-readonly-queue/main/pr-7-abc', headSha: 'g'.repeat(40), status: 'completed', conclusion: 'failure', databaseId: 99, workflowName: 'CI' }
 
+test('#2586 file : pas de trente secondes et dernier pas borné par l’échéance locale', () => {
+  const { ctx, sommeils } = ctxFile({ pr: REST(), fileTimeoutMin: 65 / 60, branches: [[]] })
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.indetermine, true)
+  assert.deepEqual(sommeils, [30_000, 30_000, 5_000])
+  assert.equal(vu.detail.attenteSecondes, 65)
+})
+
 for (const variante of ['redemande', 'plafond', 'courses illisibles']) test(`#2499 sortie de file sans course rouge : ${variante}`, () => {
   const { ctx, lignes } = ctxFile({ pr: REST(), fileTimeoutMin: 0.001 })
-  let demandes = 0, tick = 0
-  const montre = mock.method(Date, 'now', () => JEUNE_2495 + tick++)
-  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  let demandes = 0
   ctx.demanderFusion = () => (++demandes === 2 && variante === 'redemande')
     ? { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
     : { ok: true, statut: 'enqueued', compte: 'cgauche', entree: ENTREE_2495 }
   ctx.etatFileDePr = () => ({ ok: true, id: 'PR7', compte: 'cgauche' })
-  if (variante === 'courses illisibles') ctx.coursesDeFile = () => ({ disponible: false, raison: 'HTTP 403' })
-  try {
+  if (variante === 'courses illisibles') ctx.coursesDeFile = () => ({ disponible: false, raison: 'HTTP 403' });
+  {
     const journal = journalPush()
     const vu = etapeFile.jouer(ctx, journal)
     if (variante === 'redemande') {
@@ -1589,7 +1578,7 @@ for (const variante of ['redemande', 'plafond', 'courses illisibles']) test(`#24
       assert.ok(lignes.some((l) => l.includes('courses de file illisibles : HTTP 403')))
       assert.ok(lignes.includes('[publier] file — PR #7 : courses de file illisibles : HTTP 403\n'))
     }
-  } finally { montre.mock.restore(); sommeil.mock.restore() }
+  }
 })
 
 test('#2499 train composé : entrée jeune puis absence de groupe nommée sans nouvelle demande', () => {
@@ -1609,13 +1598,10 @@ test('#2499 train composé : entrée jeune puis absence de groupe nommée sans n
     assert.ok(args.some((a) => a.includes(`head_sha=${ENTREE_2495.headCommit.oid}`)))
     return { status: 0, stdout: readFileSync(new URL('./fixtures/github-2495-absence.json', import.meta.url), 'utf8'), stderr: '' }
   })
-  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
-  let tick = 0
-  const montre = mock.method(Date, 'now', () => JEUNE_2495 + tick++)
   syncBuiltinESMExports()
   try {
     const reel = contexteDe({ racine: RACINE, branche: 'chantier/2499', options: {}, journaliser: () => {}, fdLog: 'ignore', maintenant: () => horloge })
-    const { ctx } = ctxFile({ pr: REST({ head: { sha } }), branche: [{ ...courseDeBrancheVerte, headSha: sha }], fileTimeoutMin: 0.001 })
+    const { ctx } = ctxFile({ pr: REST({ head: { sha } }), branche: [{ ...courseDeBrancheVerte, headSha: sha }], fileTimeoutMin: 30 })
     ctx.demanderFusion = (p) => { demandes++; return reel.demanderFusion(p) }
     ctx.etatFileDePr = reel.etatFileDePr
     const vu = etapeFile.jouer(ctx, { ...journalPush(), tete: sha })
@@ -1625,7 +1611,7 @@ test('#2499 train composé : entrée jeune puis absence de groupe nommée sans n
     assert.equal(vu.detail.compte, 'cgauche')
     assert.equal(demandes, 0)
     assert.ok(lectures >= 4)
-  } finally { api.mock.restore(); sommeil.mock.restore(); montre.mock.restore(); syncBuiltinESMExports() }
+  } finally { api.mock.restore(); syncBuiltinESMExports() }
 })
 
 test('file : une PR FUSIONNÉE rend vert, avec le commit de fusion et le temps d’ATTENTE', () => {
@@ -1645,6 +1631,7 @@ test('file : une course de BRANCHE rouge — aucune demande de fusion, et le tra
 })
 
 const courseDeBrancheAnnulee = (attempt) => ({ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, attempt, workflowName: 'CI' })
+
 const MOTIF_RUNNER = 'The job was not acquired by Runner of type hosted even after multiple attempts'
 
 test('#2392 file : une course de BRANCHE ANNULÉE (aucun job rouge) sous le plafond VEILLE, la dit, puis sa relance VERTE se demande', () => {
@@ -1717,7 +1704,6 @@ test('file : demande REFUSÉE sur une PR relue sans conflit : rouge nommé sans 
   assert.deepEqual(refus.gestes.map((g) => g[0]), ['demander'])
 })
 
-// #2525
 const REFUS_POUR_CONFLIT = { ok: false, raison: REFUS_DE_FILE.concatene }
 const ECHEC_POUR_CONFLIT = { ok: false, raison: 'Pull request has merge conflicts' }
 
@@ -1734,8 +1720,7 @@ test('file #2525 : une demande REFUSÉE ou en ÉCHEC, sur une PR relue en CONFLI
 })
 
 test('file #2525 : après un refus, une PR dont le conflit n’est pas jugé (`unknown`) s’ATTEND, puis son verdict tranche', () => {
-  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
-  try {
+  {
     const inconnue = REST({ mergeable_state: 'unknown' })
     const reprise = ctxFile({ prs: [REST(), inconnue, inconnue, REST({ mergeable_state: 'dirty' })], demande: REFUS_POUR_CONFLIT })
     const vu = etapeFile.jouer(reprise.ctx, journalPush())
@@ -1749,7 +1734,7 @@ test('file #2525 : après un refus, une PR dont le conflit n’est pas jugé (`u
     const fin = etapeFile.jouer(borne.ctx, journalPush())
     assert.deepEqual([fin.ok, fin.raison], [false, `demande de fusion de la PR #7 REFUSÉE : ${REFUS_DE_FILE.concatene}`])
     assert.deepEqual(borne.gestes.map((g) => g[0]), ['demander'], 'jamais de nouvelle demande tant que le refus est posé')
-  } finally { sommeil.mock.restore() }
+  }
 })
 
 test('#2626 file : observation divergente refuse sans armer', () => {
@@ -1815,7 +1800,6 @@ test('preflight : une branche hors des filtres `push.branches` est ROUGE avant t
   assert.match(preflight.jouer(ctxDe(['chantier/**']), journalVide('claude/x')).raison, /^la branche claude.x ne déclenche pas/)
   assert.equal(preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x')).raison, 'ci.yml : filtre illisible')
 })
-
 
 test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le verdict', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
@@ -1958,7 +1942,6 @@ test('file : une fusion en CONFLIT résiduel, un STOCK sous pilote compris, est 
   assert.equal(journal.ejections, 0)
 })
 
-// #2203
 test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT en les retirant de l’index, puis reprend à `docs`', () => {
   const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
   const conflits = ['docs/systemes.md', 'src/audio/_registry.generated.ts']
@@ -1972,7 +1955,6 @@ test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT 
   assert.equal(journal.ejections, 1)
 })
 
-// #2203
 test('file : un conflit MIXTE (une cible pure ET un manuscrit) n’est jamais conclu — la fusion est abandonnée', () => {
   const stdout = `${'note stdout\n'.repeat(50)}cause stdout mixte tardive\n`
   const stderr = `${'note stderr\n'.repeat(50)}cause stderr mixte tardive\n`
@@ -2000,8 +1982,6 @@ test('file : la borne ÉCOULÉE rend INDÉTERMINÉ, jamais un vert — et le dit
   assert.equal(vu.indetermine, true)
   assert.match(vu.raison, /aucune fusion en 0 min pour ttttttttt/)
 })
-
-// ── étape `pilotage` ─────────────────────────────────────────────────────────────────────────
 
 test('pilotage : la plage est `fusion^1..fusion^2` (la branche), la marque le commit de FUSION', () => {
   const plages = []
@@ -2031,14 +2011,12 @@ test('pilotage : sans commit de fusion au journal, rouge — jamais une plage de
   assert.deepEqual(vu, { ok: false, raison: 'aucun commit de fusion au journal de l’étape `file`' })
 })
 
-// ── veillerLeTrain : la veille d'un run (#2227) ──────────────────────────────────────────
-
 const LANCEMENT_DU_RUN = 1790000000000
+
 const RUN = `4242-${LANCEMENT_DU_RUN}`
+
 const AVANT = '4100-1780000000000'
 
-/** Les journaux que le disque porte, sauvegarde après sauvegarde, pendant qu'un run joue `etapes` —
- *  écrits par le MOTEUR réel (`jouerLeTrain`), puis le verdict tel que `main` le pose. */
 function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
   const vus = []
   entameDuRun(journal, { run, pid: pidDeRun(run), creation: runDe(run).lancement, fileTimeoutMin: 10 })
@@ -2619,10 +2597,6 @@ test('lancement : le parent de `--detache` et l’enfant nomment le MÊME run', 
   assert.equal(lancementDe(vuEnv), LANCEMENT_DU_RUN)
 })
 
-// ── #2493 : la mort d'un train sans verdict, CONSTATÉE (T2, T3) ─────────────────────────
-
-/** Le témoin 6 de #2493 (2026-10-08) : journal et log du train `42408`, tué en `fin` PR fusionnée (provenance :
- *  `fixtures/temoin-2493-fin-tuee/provenance.json`). */
 const TEMOIN_6 = Object.freeze({
   dossier: fileURLToPath(new URL('./fixtures/temoin-2493-fin-tuee/', import.meta.url)),
   run: '42408-1791457996063',
@@ -2633,7 +2607,6 @@ const TEMOIN_6 = Object.freeze({
   },
 })
 
-/** Le journal et le log du témoin 6, empreintes vérifiées, copiés sous un dossier jetable. */
 function copieDuTemoin6() {
   const dossier = mkdtempSync(join(tmpdir(), 'temoin-2493-'))
   for (const [nom, empreinte] of Object.entries(TEMOIN_6.empreintes)) {
@@ -2644,7 +2617,6 @@ function copieDuTemoin6() {
   return { dossier, json: join(dossier, 'chantier_2497.json'), log: join(dossier, 'chantier_2497.log') }
 }
 
-/** Un principal laissé `interrompu` après « commit » (journal à `avance`, HEAD = U), et son U. */
 async function principalInterrompu() {
   const env = envDeDepotForge()
   const amont = instanceDeDepot({ fichiers: { 'a.md': 'a\n' } })
@@ -2711,59 +2683,422 @@ test('#2493 T2 variante : le même train mort pendant `file` — `rouge moteur`,
   }
 })
 
-/** `processus` tué : `Stop-Process -Force` sous win32 (Git Bash en rend 127), `SIGKILL` ailleurs. */
-function tuer(pid) {
-  if (process.platform === 'win32') spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Stop-Process -Id ${pid} -Force`], { windowsHide: true })
-  else process.kill(pid, 'SIGKILL')
+function tuer(suivi) {
+  const arret = tuerArbre(suivi)
+  if (arret.erreurs.length || arret.etat !== 'mort') throw new AggregateError(arret.erreurs, `arrêt PID ${suivi.pid} : ${arret.etat}`)
 }
 
-test('#2493 T3 : la veille COMPOSITE sous le shell POSIX de Git, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async () => {
+function observerSortie(enfant, { suivi = creerSuiviProcessus(), mesurer } = {}) {
+  const origine = randomUUID()
+  let annonceLue = -1
+  observerProcessus(suivi, enfant.pid, { mesurer, observation: origine + ':lancement' })
+  const changements = new EventEmitter()
+  let sortie = '', diagnostic = '', ferme = false, erreur = null
+  const veilles = new Set()
+  const recevoir = (texte) => {
+    sortie += texte
+    for (const vu of sortie.matchAll(/^\[veille\] PID (\d+) veille le run /gm)) {
+      const pid = Number(vu[1])
+      if (vu.index <= annonceLue) continue
+      annonceLue = vu.index
+      veilles.add(pid)
+      observerProcessus(suivi, pid, { mesurer, observation: origine + ':' + vu.index })
+    }
+    changements.emit('changement')
+  }
+  const recevoirDiagnostic = (texte) => { diagnostic += texte }
+  enfant.stdout.setEncoding('utf8')
+  enfant.stdout.on('data', recevoir)
+  enfant.stderr?.setEncoding('utf8')
+  enfant.stderr?.on('data', recevoirDiagnostic)
+  let echouer, fermer
+  const fini = new Promise((ok, non) => {
+    echouer = (cause) => {
+      erreur = cause
+      changements.emit('changement')
+      non(cause)
+    }
+    fermer = (code) => {
+      ferme = true
+      enfant.stdout.off('data', recevoir)
+      enfant.stderr?.off('data', recevoirDiagnostic)
+      enfant.off('error', echouer)
+      changements.emit('changement')
+      ok(code)
+    }
+    enfant.once('close', fermer)
+    enfant.once('error', echouer)
+  })
+  fini.catch(() => {})
+  const attendre = (motif, signal) => new Promise((ok, non) => {
+    const retirer = () => {
+      changements.off('changement', verifier)
+      signal?.removeEventListener('abort', abandonner)
+    }
+    const abandonner = () => { retirer(); non(signal.reason) }
+    const verifier = () => {
+      const vu = motif.exec(sortie)
+      if (vu) { retirer(); ok(vu) }
+      else if (erreur || ferme) { retirer(); non(erreur ?? new Error('fermeture avant motif : ' + motif + '\n' + sortie + diagnostic)) }
+    }
+    changements.on('changement', verifier)
+    signal?.addEventListener('abort', abandonner, { once: true })
+    if (signal?.aborted) abandonner()
+    else verifier()
+  })
+  const detacher = () => {
+    erreur ??= new Error('observateur détaché')
+    changements.emit('changement')
+    changements.removeAllListeners()
+    enfant.stdout.off('data', recevoir)
+    enfant.stderr?.off('data', recevoirDiagnostic)
+    enfant.off('error', echouer)
+    enfant.off('close', fermer)
+    enfant.stdout.destroy?.()
+    enfant.stderr?.destroy?.()
+    enfant.stdin?.destroy?.()
+    enfant.unref?.()
+  }
+  return { attendre, fini, veilles, suivi, detacher, texte: () => sortie }
+}
+
+function nettoyageDeVeille({ observe, trainObserve, suivi = observe?.suivi ?? trainObserve?.suivi, retirer, retirerObservateurs, arreter = tuerArbre, constater = constaterArret, delaiArretMs = DELAI_ARRET_MS }) {
+  let nettoyage
+  return () => nettoyage ??= (async () => {
+    const erreurs = []
+    const echeance = Date.now() + delaiArretMs
+    const arrets = new Map()
+    const arreterSuivi = () => {
+      try {
+        const vu = arreter(suivi, { echeance })
+        arrets.set(suivi?.pid, vu)
+        if (vu.erreurs.length) erreurs.push(new Error(`arrêt indéterminé PID ${suivi?.pid} : ${vu.erreurs.map((e) => `${e.operation} PID ${e.pid} ${e.code} : ${e.message}`).join('; ')}`, { cause: vu }))
+      } catch (cause) { erreurs.push(cause) }
+    }
+    try {
+      arreterSuivi()
+      const clotures = [trainObserve, observe].filter(Boolean).map((vu) => {
+        const etat = { finie: false }
+        vu.fini.then(() => { etat.finie = true }, (cause) => { etat.finie = true; erreurs.push(cause) })
+        return etat
+      })
+      const closes = await sousEcheanceAsync({ attente: { echeanceMs: Math.max(0, echeance - Date.now()), pasMs: Math.min(20, delaiArretMs) },
+        essai: () => clotures.every((vu) => vu.finie), abouti: Boolean,
+      })
+      if (!closes) erreurs.push(new Error(`close absent après ${delaiArretMs} ms`))
+      let morts = arrets.size === 1
+      for (const [pid, arret] of arrets) {
+        const constat = constater(arret, { echeance })
+        arrets.set(pid, constat)
+        if (constat.etat !== 'mort') { morts = false; erreurs.push(new Error(`mort non confirmée PID ${pid}`, { cause: constat })) }
+      }
+      if (morts) retirer?.()
+    } catch (cause) {
+      erreurs.push(cause)
+    } finally {
+      for (const detacher of [() => observe?.detacher(), () => trainObserve?.detacher(), () => retirerObservateurs?.()]) {
+        try { detacher() } catch (cause) { erreurs.push(cause) }
+      }
+    }
+    if (erreurs.length) throw new AggregateError(erreurs, erreurs.map((e) => e.message).join('; '), { cause: erreurs[0] })
+    return arrets
+  })()
+}
+
+async function harnaisDeVeille(t, signal) {
   const { racine, sha: fusion } = implantationDuCli()
-  let train, shell, borne, veille = 0
+  let train, shell, trainObserve, observe, nettoyage, abandonner
+  const suivi = creerSuiviProcessus()
+  const fermer = () => {
+    nettoyage ??= nettoyageDeVeille({ shell, train, observe, trainObserve, retirerObservateurs: () => signal.removeEventListener('abort', abandonner), retirer: () => {
+      rmSync(racine, { recursive: true, force: true })
+    } })
+    return nettoyage()
+  }
+  t.after(fermer)
   try {
-    const branche = `chantier/2493-t3-${process.pid}-${Date.now()}`
+    const instant = 1_700_000_000_000
+    const branche = 'chantier/2493-t3-' + process.pid + '-' + Date.now()
     const chemins = cheminsDeJournal(racine, branche)
-    train = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 120000)'], { stdio: 'ignore' })
-    const run = idDeRun({ pid: /** @type {number} */ (train.pid), lancement: Date.now() })
+    const temoin = join(racine, 'train-temoin.mjs')
+    writeFileSync(temoin, 'process.stdin.resume()\n')
+    train = spawn(process.execPath, [temoin], { cwd: racine, stdio: ['pipe', 'pipe', 'pipe'] })
+    trainObserve = observerSortie(train, { suivi })
+    const run = idDeRun({ pid: train.pid, lancement: instant })
     const tete = 'c'.repeat(40)
     mkdirSync(chemins.dossier, { recursive: true })
     ecrireJsonAtomique(chemins.json, {
       branche, base: null, tete, ejections: 0, run, pid: train.pid, fileTimeoutMin: 10, seq: 2, verdict: null,
       etapes: {
         file: { etat: 'vert', detail: { fusion }, tete, run, seq: 1 },
-        fin: { etat: 'en-vol', debut: new Date().toISOString(), detail: null, tete, run, seq: 2 },
+        fin: { etat: 'en-vol', debut: new Date(instant).toISOString(), detail: null, tete, run, seq: 2 },
       },
     })
     writeFileSync(chemins.log, '')
+    const wrapper = join(racine, 'scripts/ops/veille-horloge.mjs')
+    const entree = executerPublication.name
+    writeFileSync(wrapper, "import { " + entree + " } from './publierTrain.mjs'\nimport { writeSync } from 'node:fs'\nlet dit = false\nprocess.exit(await " + entree + "({ maintenant: () => " + instant + ", dormir: (ms) => { if (!dit) { dit = true; writeSync(1, '[horloge] dormir PID ' + process.pid + ' ms=' + ms + '\\n') } } }))\n")
     const env = { ...envDeDepotForge(), ...envGitFeint([{ si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 }]), WFRP_PUBLIER_ENFANT: '' }
-    shell = spawn(gitDe(racine, { net: true })('var', 'GIT_SHELL_PATH'), ['-c', commandeDeVeille({ script: join(racine, 'scripts/ops/publier.mjs'), run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
-    let sortie = ''
-    shell.stdout.on('data', (d) => { sortie += d })
-    const fini = new Promise((ok) => shell.on('close', (code) => ok(code)))
-    const attendre = (motif) => sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => motif.exec(sortie), abouti: (vu) => vu !== null })
-    const premiere = await attendre(/^\[veille\] PID (\d+) veille le run /m)
-    assert.ok(premiere, sortie)
-    veille = Number(premiere[1])
-    tuer(veille)
-    assert.ok(await attendre(new RegExp(`^\\[veille\\] constat du run ${run} après la sortie de sa veille$`, 'm')), sortie)
-    train.kill()
-    borne = setTimeout(() => shell.kill(), 60_000)
-    const code = await fini
-    clearTimeout(borne)
-    assert.equal(code, 0, sortie)
-    assert.match(sortie, new RegExp(`^#3 fin — vert — INTERROMPUE : train ${train.pid} mort sans verdict \\(constat : veille \\d+, .+\\) ; principal `, 'm'))
-    assert.equal(sortie.trimEnd().split('\n').at(-1), `PUBLICATION: vert ${tete}`)
-  } finally {
-    clearTimeout(borne)
-    try {
-      train?.kill()
-      shell?.kill()
-      if (veille && estPidVivant(veille)) tuer(veille)
-      for (const pid of [veille, train?.pid, shell?.pid]) {
-        if (pid) assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 10_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `PID ${pid} survit`)
-      }
-    } finally {
-      rmSync(racine, { recursive: true, force: true })
+    shell = spawn(gitDe(racine, { net: true })('var', 'GIT_SHELL_PATH'), ['-c', commandeDeVeille({ script: wrapper, run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    observe = observerSortie(shell, { suivi })
+    abandonner = () => { fermer().catch(() => {}) }
+    signal.addEventListener('abort', abandonner, { once: true })
+    observe.fini.finally(() => signal.removeEventListener('abort', abandonner)).catch(() => {})
+    return { train, shell, run, tete, observe, fermer }
+  } catch (cause) {
+    await epreuveAvecCloture(() => { throw cause }, fermer)
+  }
+}
+
+test('observations de veille : rescannage stable et nouvelle émission du même PID', () => {
+  const enfant = Object.assign(new EventEmitter(), { pid: 1, stdout: new PassThrough(), stderr: new PassThrough() })
+  let processus = [1, 42].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' }))
+  const mesurer = () => ({ processus })
+  const suivi = creerSuiviProcessus()
+  const observe = observerSortie(enfant, { suivi, mesurer })
+  try {
+    enfant.stdout.write('[veille] PID 42 veille le run x\n')
+    processus = processus.filter((p) => p.pid !== 42)
+    constaterArret({ ...suivi, suivi, etat: 'demande' }, { mesurer })
+    processus.push({ pid: 42, ppid: 0, creation: '2026-10-16T00:01:00Z' })
+    enfant.stdout.write('bruit\n')
+    assert.equal(suivi.membres.filter((p) => p.pid === 42).length, 1)
+    enfant.stdout.write('[veille] PID 42 veille le run x\n')
+    assert.equal(suivi.membres.filter((p) => p.pid === 42).length, 2)
+    assert.equal(constaterArret({ ...suivi, suivi, etat: 'demande' }, { mesurer }).etat, 'indetermine')
+  } finally { observe.detacher() }
+})
+
+test('#2491 nettoyage : close absent, arrêt indéterminé, détachement et idempotence', { timeout: 1000 }, async () => {
+  const enfants = [1, 2].map((pid) => Object.assign(new EventEmitter(), { pid, stdout: new PassThrough(), stderr: new PassThrough() }))
+  const suivi = creerSuiviProcessus()
+  const mesurer = () => ({ processus: [1, 2, 3].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' })) })
+  const [observe, trainObserve] = enfants.map((enfant) => observerSortie(enfant, { suivi, mesurer }))
+  enfants[0].stdout.write('[veille] PID 3 veille le run x\n')
+  const attente = observe.attendre(/^jamais$/m)
+  const refus = assert.rejects(attente, /observateur détaché/)
+  const arrets = []
+  let retraits = 0
+  const nettoyer = nettoyageDeVeille({ shell: enfants[0], train: enfants[1], observe, trainObserve, delaiArretMs: 30,
+    constater: (arret) => ({ ...arret, etat: 'indetermine' }), retirer: () => { retraits++ }, arreter: (domaine) => {
+      arrets.push(...domaine.identites.map((p) => p.pid))
+      return { ...domaine, etat: 'indetermine', erreurs: [{ operation: 'signal', pid: 1, code: 'EPERM', message: 'refus physique' }] }
+    },
+  })
+  const fin = nettoyer()
+  assert.equal(nettoyer(), fin)
+  await assert.rejects(fin, /arrêt indéterminé PID 1.*close absent après 30 ms/)
+  await refus
+  assert.deepEqual(arrets, [1, 2, 3])
+  assert.equal(retraits, 0)
+  for (const enfant of enfants) {
+    assert.equal(enfant.listenerCount('close'), 0)
+    assert.equal(enfant.listenerCount('error'), 0)
+    assert.equal(enfant.stdout.listenerCount('data'), 0)
+    assert.equal(enfant.stderr.listenerCount('data'), 0)
+    assert.equal(enfant.stdout.destroyed, true)
+  }
+})
+
+async function epreuveAvecCloture(corps, fermer) {
+  let primaire, secondaire, corpsEchoue = false, fermetureEchouee = false
+  try { await corps() } catch (erreur) { primaire = erreur; corpsEchoue = true }
+  try { await fermer() } catch (erreur) { secondaire = erreur; fermetureEchouee = true }
+  if (fermetureEchouee) {
+    if (corpsEchoue) throw new AggregateError([primaire, secondaire], `Épreuve : ${primaire?.message ?? String(primaire)} ; clôture : ${secondaire?.message ?? String(secondaire)}`, { cause: primaire })
+    throw secondaire
+  }
+  if (corpsEchoue) throw primaire
+}
+
+test('clôture : chaque rejet falsy reste observable et conserve son identité', async () => {
+  const valeurs = [undefined, null, false, 0, '', NaN]
+  const rejetDe = async (promesse) => {
+    let rejetee = false, raison
+    try { await promesse } catch (erreur) { rejetee = true; raison = erreur }
+    assert.equal(rejetee, true, 'le rejet ne doit pas devenir une résolution')
+    return raison
+  }
+  for (const primaire of valeurs) {
+    assert.equal(await rejetDe(epreuveAvecCloture(() => { throw primaire }, () => {})), primaire)
+    assert.equal(await rejetDe(epreuveAvecCloture(() => {}, () => { throw primaire })), primaire)
+    for (const secondaire of valeurs) {
+      const erreur = await rejetDe(epreuveAvecCloture(() => { throw primaire }, () => { throw secondaire }))
+      assert.ok(erreur instanceof AggregateError)
+      assert.equal(erreur.cause, primaire)
+      assert.equal(erreur.errors[0], primaire)
+      assert.equal(erreur.errors[1], secondaire)
+      assert.equal(erreur.errors.length, 2)
     }
+  }
+})
+
+test('clôture : mort confirmée retire une seule fois ; erreur primaire conservée avec la fermeture', async () => {
+  let retraits = 0
+  const nettoyer = nettoyageDeVeille({ suivi: creerSuiviProcessus(), arreter: () => ({ pid: 1, etat: 'demande', erreurs: [] }), constater: (arret) => ({ ...arret, etat: 'mort' }), retirer: () => { retraits++ } })
+  await nettoyer()
+  await nettoyer()
+  assert.equal(retraits, 1)
+  const primaire = new Error('primaire'), secondaire = new Error('secondaire')
+  await assert.rejects(epreuveAvecCloture(() => { throw primaire }, () => { throw secondaire }), (erreur) => {
+    assert.equal(erreur.cause, primaire)
+    assert.deepEqual(erreur.errors, [primaire, secondaire])
+    return true
+  })
+})
+
+test('clôture : veille connue réaffiliée après disparition des parents interdit le retrait', async () => {
+  let processus = [1, 2, 3].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' }))
+  const mesurer = () => ({ processus })
+  const suivi = creerSuiviProcessus()
+  const enfants = [1, 2].map((pid) => Object.assign(new EventEmitter(), { pid, stdout: new PassThrough() }))
+  const [observe, trainObserve] = enfants.map((enfant) => observerSortie(enfant, { suivi, mesurer }))
+  enfants[0].stdout.write('[veille] PID 3 veille le run x\n')
+  for (const enfant of enfants) enfant.emit('close', 0)
+  processus = [{ ...processus[2], ppid: 999 }]
+  let retraits = 0
+  const signaux = []
+  const nettoyer = nettoyageDeVeille({ observe, trainObserve, retirer: () => { retraits++ },
+    arreter: (domaine, options) => tuerArbre(domaine, { ...options, mesurer, tuer: (pid) => signaux.push(pid) }),
+    constater: (arret, options) => constaterArret(arret, { ...options, mesurer }),
+  })
+  await assert.rejects(nettoyer(), /mort non confirmée/)
+  assert.deepEqual(signaux, [3])
+  assert.equal(retraits, 0)
+  assert.deepEqual(suivi.identites.map((p) => p.pid), [1, 2, 3])
+})
+
+async function tuerLaPremiereVeille(harnais, signal) {
+  const { observe, run } = harnais
+  const premiere = await observe.attendre(/^\[veille\] PID (\d+) veille le run /m, signal)
+  assert.ok(premiere, observe.texte())
+  const veille = Number(premiere[1])
+  await observe.attendre(new RegExp('^\\[horloge\\] dormir PID ' + veille + ' ms=5000$', 'm'), signal)
+  const suiviVeille = { ...observe.suivi, membres: observe.suivi.membres.filter((p) => p.pid === veille) }
+  tuer(suiviVeille)
+  assert.ok(await observe.attendre(new RegExp('^\\[veille\\] constat du run ' + run + ' après la sortie de sa veille$', 'm'), signal), observe.texte())
+  const seconde = await observe.attendre(new RegExp('^\\[veille\\] PID (?!' + veille + '\\b)(\\d+) veille le run ', 'm'), signal)
+  await observe.attendre(new RegExp('^\\[horloge\\] dormir PID ' + seconde[1] + ' ms=5000$', 'm'), signal)
+  assert.equal(observe.veilles.size, 2)
+}
+
+test('#2493 T3 : la veille COMPOSITE sous le shell POSIX de Git, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async (t) => {
+  const signal = AbortSignal.any([t.signal, AbortSignal.timeout(60_000)])
+  const harnais = await harnaisDeVeille(t, signal)
+  const { train, observe, tete } = harnais
+  await epreuveAvecCloture(async () => {
+    await tuerLaPremiereVeille(harnais, signal)
+    train.kill()
+    const code = await observe.fini
+    const sortie = observe.texte()
+    assert.equal(code, 0, sortie)
+    assert.match(sortie, new RegExp('^#3 fin — vert — INTERROMPUE : train ' + train.pid + ' mort sans verdict \\(constat : veille \\d+, .+\\) ; principal ', 'm'))
+    assert.equal(sortie.trimEnd().split('\n').at(-1), 'PUBLICATION: vert ' + tete)
+  }, harnais.fermer)
+})
+
+test('#2491 abandon du harnais après le départ de la seconde veille : tous les PID disparaissent', async (t) => {
+  const abandon = new AbortController()
+  const signal = AbortSignal.any([t.signal, abandon.signal, AbortSignal.timeout(60_000)])
+  const harnais = await harnaisDeVeille(t, signal)
+  await epreuveAvecCloture(async () => {
+    await tuerLaPremiereVeille(harnais, signal)
+    const attente = harnais.observe.attendre(/^jamais$/m, signal)
+    abandon.abort(new Error('abandon du harnais'))
+    await assert.rejects(attente, /abandon du harnais/)
+  }, harnais.fermer)
+})
+
+test('#2491 sortie événementielle : tampon présent, clôture et erreur antérieures à l’attente', async () => {
+  const enfant = () => Object.assign(new EventEmitter(), { stdout: new PassThrough() })
+  const clos = enfant()
+  const lu = observerSortie(clos)
+  clos.stdout.write('déjà reçu\n')
+  clos.emit('close', 0)
+  assert.equal((await lu.attendre(/^déjà reçu$/m))[0], 'déjà reçu')
+  await assert.rejects(lu.attendre(/^absent$/m), /fermeture avant motif/)
+  assert.equal(clos.stdout.listenerCount('data'), 0)
+  assert.equal(clos.listenerCount('error'), 0)
+  const enErreur = enfant()
+  const erreur = observerSortie(enErreur)
+  enErreur.emit('error', new Error('échec avant écoute'))
+  await assert.rejects(erreur.attendre(/^absent$/m), /échec avant écoute/)
+  enErreur.emit('close', null)
+})
+
+test('#2491 constat : verrou contendu, échéance et date suivent l’horloge injectée', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-horloge-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const chemins = { json: join(dossier, 'journal.json'), log: join(dossier, 'journal.log') }
+  const verrou = chemins.json + '.constat.verrou'
+  const instant = 1_700_000_000_000
+  const run = idDeRun({ pid: 42408, lancement: instant })
+  const journal = { run, pid: 42408, seq: 1, verdict: null, etapes: { fin: { etat: 'en-vol', debut: new Date(instant).toISOString(), run, seq: 1 } } }
+  ecrireJsonAtomique(chemins.json, journal)
+  writeFileSync(chemins.log, '')
+  const occuper = () => writeFileSync(verrou, JSON.stringify({ pid: process.pid, date: new Date(instant).toISOString() }))
+  occuper()
+  let maintenant = instant
+  const sommeils = []
+  assert.equal(constaterLaMort({
+    chemins, par: 'garde horloge', vivant: () => false, maintenant: () => maintenant,
+    dormir: (ms) => {
+      sommeils.push(ms)
+      assert.ok(sommeils.length <= 100, 'échéance du verrou hors horloge')
+      maintenant += ms
+    },
+    mesurer: () => assert.fail('verrou encore tenu'),
+  }), null)
+  assert.equal(maintenant, instant + 10_000)
+  assert.deepEqual(sommeils, Array(100).fill(100))
+  maintenant = instant
+  const vu = constaterLaMort({
+    chemins, par: 'garde horloge', vivant: () => false, maintenant: () => maintenant,
+    dormir: (ms) => { maintenant += ms; rmSync(verrou) },
+    mesurer: () => {
+      assert.equal(JSON.parse(readFileSync(verrou, 'utf8')).date, new Date(maintenant).toISOString())
+      return { etat: 'a-jour', mesure: true, sha: 'a'.repeat(40), visee: 'a'.repeat(40) }
+    },
+  })
+  assert.deepEqual(vu, { etat: 'vert', constat: { par: 'garde horloge', a: new Date(instant + 100).toISOString() } })
+})
+
+test('#2491 publisher : les deux dépôts et la re-mesure Git consomment le sommeil injecté', async (t) => {
+  const { racine, sha } = implantationDuCli()
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const entree = join(racine, 'scripts/ops/publierTrain.mjs')
+  const { executerPublication } = await import(pathToFileURL(entree).href)
+  const original = childProcess.spawnSync
+  const rejoues = new Set()
+  const attentes = []
+  let phase = 'main'
+  const feinte = mock.method(childProcess, 'spawnSync', (executable, args, options) => {
+    if (executable === process.execPath && args[0] === join(racine, 'scripts/ops/synchroniser.mjs'))
+      return { status: 1, stdout: 'sans état', stderr: '' }
+    const cible = executable === 'git' && (phase === 'main' && args.includes('--show-toplevel') ? 'main' : phase === 'contexte' && args.includes('--verify') && args.includes('HEAD^{commit}') ? 'contexte' : phase === 'mesure' && args.includes('--git-common-dir') ? 're-mesure' : null)
+    if (cible && !rejoues.has(cible)) {
+      rejoues.add(cible)
+      return { status: STATUS_DLL_INIT_FAILED, stdout: '', stderr: '' }
+    }
+    return original(executable, args, options)
+  })
+  const argv = process.argv
+  syncBuiltinESMExports()
+  try {
+    process.argv = [process.execPath, entree, '--etapes']
+    assert.equal(await executerPublication({ dormir: (ms) => attentes.push(ms) }), 0)
+    const ctx = contexteDe({ racine, branche: 'main', options: {}, journaliser: () => {}, fdLog: 'ignore', dormir: (ms) => attentes.push(ms) })
+    phase = 'contexte'
+    assert.equal(ctx.tete, sha)
+    phase = 'mesure'
+    const vu = ctx.synchroniserPrincipal({ visee: sha })
+    assert.equal(vu.ok, false)
+    assert.equal(vu.mesure.etat, 'a-jour')
+    assert.deepEqual([...rejoues], ['main', 'contexte', 're-mesure'])
+    assert.deepEqual(attentes, Array(3).fill(BACKOFFS_MS[0]))
+  } finally {
+    process.argv = argv
+    feinte.mock.restore()
+    syncBuiltinESMExports()
   }
 })

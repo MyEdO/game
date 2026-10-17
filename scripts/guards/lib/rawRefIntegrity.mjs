@@ -1,7 +1,5 @@
 // Intégrité des réfs RAW du CODE — volet « la ligne citée ne porte RIEN » (#1318).
-// `check-code-refs.mjs` borne déjà la ligne (hors borne du chapitre = mort) ; une réf DANS les
-// bornes mais pointant une ligne VIDE reste invérifiée — c'est par là qu'est passée une règle
-// inventée citée `LDB 17 l.84` (chapitre de 87 lignes, ligne 84 vide).
+// scripts/raw/check-code-refs.mjs#scanEmptyLineCodeRefs
 //
 // Sous-cas GATÉ : la ou les lignes citées sont TOUTES vides ET la fenêtre ±`WINDOW` autour d'elles ne
 // partage AUCUN mot signifiant (≥ `MIN_WORD_LEN` lettres) avec le contexte porteur (la ligne de code

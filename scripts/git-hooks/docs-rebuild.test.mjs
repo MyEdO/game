@@ -1,7 +1,10 @@
 // #1773, #2329, #2475, #2603
 import test from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { dirname, join } from 'node:path'
+
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
@@ -72,7 +75,7 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
     rmSync(racine, { recursive: true, force: true })
   }
 })
-/** Une mesure FORGÉE : un fichier lu, un dossier LISTÉ, une cible signée. */
+
 const MESURE = {
   'g/a.mjs': { cibles: ['docs/a.md'], fichiers: ['src/ui/Prose.tsx', 'notes/lue.md'], dossiers: ['.github/workflows'] },
 }
@@ -153,7 +156,6 @@ test('un fichier dans un dossier NEUF sous un dossier LISTÉ fait régénérer :
   assert.equal(touchesDocSources(['src/nouveau/plus/bas/x.ts'], mesure), true)
 })
 
-/** Une mesure FORGÉE à deux générateurs : `g/m.mjs` (le périmètre restreint) et `g/p.mjs` (hors). */
 const MESURE_DEUX = {
   'g/m.mjs': { cibles: [], fichiers: ['src/m.ts', 'scripts/m.mjs'], dossiers: ['data'] },
   'g/p.mjs': { cibles: [], fichiers: ['notes/p.md', 'scripts/p.mjs'], dossiers: ['.github/workflows'] },
@@ -173,31 +175,6 @@ test('`seulement` : un membre SANS entrée dans la mesure fait régénérer (fer
 
 test('`seulement` : un chemin hors de toute source du périmètre ne fait pas régénérer', () => {
   assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
-})
-
-/** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
- *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
-const MESURES = [
-  'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
-  'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',
-]
-
-test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {
-  const rendues = mesurerEnRendu(MESURES, { cwd: RACINE })
-  const mesure = tableTotale(MESURES, (script) => rendues.get(script).entree)
-  for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
-  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (pathspec de
-  // `git ls-files`), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
-  assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
-  assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
-  assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
-  // Ce qu'aucun générateur ne lit ne périme aucun dérivé, quel que soit son dossier.
-  assert.equal(touchesDocSources(['README.md'], mesure), false)
-  assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
-  // Et les classes que la liste voyait déjà restent vues.
-  assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
-  assert.equal(touchesDocSources(['scripts\\raw\\_lib.mjs'], mesure), true)
-  assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
 })
 
 // #2603
@@ -227,7 +204,6 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   }
 })
 
-// #2327
 test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’index, conflits et lockfile compris ; hors fusion, ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: {
     'commun.txt': 'base\n', 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n',
@@ -273,7 +249,6 @@ test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’in
   }
 })
 
-// #2327
 test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’emporte l’index ; argument 0 : ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n' } })
   const git = gitDe(racine, { net: true })
