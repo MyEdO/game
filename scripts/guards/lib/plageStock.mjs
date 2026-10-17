@@ -53,6 +53,7 @@ import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQu
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
+import { memosDAnalyse } from './memosDAnalyse.mjs'
 import { cheminDuModule, groupesParEre } from './porteDEre.mjs'
 
 // Chargé après la porte de version des hooks qui l'importent : scripts/node-requis.mjs (#1801).
@@ -238,13 +239,13 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
- * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null }} p
+ * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null, origineConfirmee?: string[], dossierDesMemos?: string }} p
  * `commits` nul : la plage ne se lit pas. `pannes` reçoit les indisponibilités de git, lecture comprise.
  * `troncDesEres` = le tronc que la plage exclut, contre lequel se mesure l'ère de ses commits : `debut` d'un
- * push vers le tronc, `TRONC.suivi` sinon (#2503).
- * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string }}
+ * push vers le tronc, `TRONC.suivi` sinon (#2503). `sauverLesMemos` écrit les mémos d'analyse (`memosDAnalyse`), une fois les `cotes()` jugées.
+ * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string, sauverLesMemos?: () => void }}
  */
-export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
+export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null, origineConfirmee, dossierDesMemos } = {}) {
   const pannes = []
   const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const notes = []
@@ -260,7 +261,7 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
   const seul = !debut && !tronc
   const troncDesEres = debut && vers === TRONC.branche ? debut : TRONC.suivi
   if (seul) notes.push(`plage inconnue : ni sha distant ni tronc — ${fin.slice(0, 9)} seul est jugé, sans ses parents`)
-  const revisions = seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]
+  const revisions = [...(seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]), ...(origineConfirmee ?? []).map((sha) => `^${sha}`)]
   const plage = revisions.join(' ')
   const graphe = grapheDe(depot, revisions)
   if (graphe === null) {
@@ -269,6 +270,7 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
   }
   const messages = new Map((journalDe(depot, revisions) ?? []).map((c) => [c.sha, c.message]))
   const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
+  const { specificateurs, sauver: sauverLesMemos } = memosDAnalyse(depot, { racine: cwd, dossierDesMemos })
   let commits
   try {
     commits = graphe.map((lu) => {
@@ -277,14 +279,14 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
       const source = (arbre) => sourceGit({ cwd, arbre, depot })
       const base = source(fait.base)
       const commit = source(sha)
-      const cote = (s) => coteCss(s, { racine: cwd })
+      const cote = (s) => coteCss(s, { racine: cwd, specificateurs })
       return {
         sha,
         message: messages.get(sha) ?? '',
         ...(fusion
           ? { fusion: entreeDeFusion(depot, fusion, texteA(sha)) }
           : { diff: fait.diff(), images: { lirePostImage: texteA(sha), lirePreImage: fait.lirePreImage, renommages: fait.renommages() } }),
-        cotes: cotesLisibles(() => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd })
+        cotes: cotesLisibles(() => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd, specificateurs })
           ? { base: cote(base), commit: cote(commit), ...(fusion ? { parents: fusion.parents.map((p) => cote(source(p))) } : {}) }
           : null)),
       }
@@ -302,10 +304,12 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
   const bout = debut ?? troncDeFin
   const troncDuBout = tronc && avecLeTronc(bout)
   if (tronc && !troncDuBout) notes.push(`\`${bout.slice(0, 9)}\` sans ancêtre commun avec \`${tronc}\` : le cumul ne retranche rien du tronc`)
-  const cumul = seul
+  const cumul = origineConfirmee !== undefined
+    ? bilanSoustrait(commits.flatMap((c) => bilanDuCommit(c)))
+    : seul
     ? commits.flatMap((c) => bilanDuCommit(c))
     : bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
-  return { depot, commits, cumul, notes, plage, pannes, troncDesEres }
+  return { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos }
 }
 
 /**
@@ -315,9 +319,10 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
  * @returns {Promise<{ refus: object[], reclassements: object[], eres?: { ere: string | null, commits: string[], note: string | null }[], notes: string[], plage: string, indisponible: string|null, commits?: number }>}
  */
 export async function croissancesDeLaPlage(p = {}) {
-  const { depot, commits, cumul, notes, plage, pannes, troncDesEres } = lectureDeLaPlage(p)
+  const { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos } = lectureDeLaPlage(p)
   if (!commits) return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
   const { refus, reclassements, eres } = await jugeesParLeurEre(depot, commits, cumul, troncDesEres)
+  sauverLesMemos()
   for (const { note } of eres) if (note) notes.push(note)
   return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
 }

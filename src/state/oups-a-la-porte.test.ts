@@ -28,6 +28,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
 import { stepInteraction } from './cascade';
 import { pushHost } from './rollSeam';
+import { cascadeDeTest } from './cascadeTestKit';
 import type { CascadeStep, BladeTrapFreeze, PendingDefense, SuiteDeCoup } from './pendings';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, isUnarmed, itemFromTrappingById, recomputeLoadout } from '../engine/items';
@@ -392,6 +393,12 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     defenderDetail: { roll: 44, success: false, sl: -3 },
   }) as unknown as AttackResult;
 
+  // Le siège MJ tient la brute : son dé de casse est un geste de siège, jamais posé d'office
+  // (`cascade.tirageSansSiege`) quand le curseur quitte la défense.
+  let net: ReturnType<typeof useGame.getState>['net'];
+  beforeEach(() => { net = useGame.getState().net; useGame.setState({ net: { ...net, gmSeat: 0 } }); });
+  afterEach(() => useGame.setState({ net }));
+
   /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `defenseConfirm` qui applique. */
   function monteDefense(armeAttaquant: Weapon, coup: SuiteDeCoup): { hero: Combatant; brute: Combatant } {
     const hero = mk('hero', 'heros', { pos: { x: 0, y: 0 }, weapons: [EPEE_HERO()] });
@@ -402,31 +409,41 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
       attackerId: brute.id, defenderId: hero.id, weapon: armeAttaquant, location: 'corps', mode: 'parade',
       atk: { roll: 33, success: false, sl: -2, target: 45 }, def: { roll: 44, success: false, sl: -3, target: 45 },
       result, suite: { mode: 'machine', coup },
-    } as unknown as PendingDefense });
+    } as unknown as PendingDefense,
+    pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }) });
     return { hero, brute };
   }
   const etapes = (): string[] => (useGame.getState().pendingCascade?.participants ?? []).map((s) => `${s.kind}:${s.id}`);
+  /** La Maladresse de l'attaquant (LDB 14 l.13), geste du siège MJ, au curseur dès que la défense est quittée. */
+  const maladresseDeLaBrute = (): void => {
+    expect(etapeCourante(), 'la Maladresse de la brute ouvre la queue du coup').toMatchObject({ kind: 'fumbleJet', actorId: 'brute' });
+    useGame.getState().fumbleRoll();
+    useGame.getState().fumbleConfirm();
+  };
 
   it('témoin SANS Solide et cas AVEC Solide : la Maladresse du héros défenseur s’ouvre dans les DEUX', () => {
     monteDefense(bacle(false), { enchainement: { mode: 'aucun' } });
     useGame.getState().defenseConfirm();
+    maladresseDeLaBrute();
     const temoin = etapes();
     expect(temoin.some((s) => s.startsWith('fumbleJet:') && s.includes('heros')),
       `témoin : ${temoin.join(' | ')}`).toBe(true);
 
     monteDefense(bacle(true), { enchainement: { mode: 'aucun' } });
     useGame.getState().defenseConfirm();
+    maladresseDeLaBrute();
     expect(etapeCourante()!.kind, 'le dé de casse part à la porte AVANT la Maladresse du héros').toBe('casseDArme');
-    expect(etapes().some((s) => s.startsWith('fumbleJet:')), 'rien de la queue ne joue devant le dé').toBe(false);
+    expect(etapes().some((s) => s.startsWith('fumbleJet:') && s.includes('heros')), 'rien de la queue ne joue devant le dé').toBe(false);
     poser(9);
-    const maladresses = etapes().filter((s) => s.startsWith('fumbleJet:'));
+    const maladresses = etapes().filter((s) => s.startsWith('fumbleJet:') && s.includes('heros'));
     expect(maladresses, 'la reprise rend la Maladresse SAUTÉE, une fois').toHaveLength(1);
     expect(maladresses[0], 'id mint au rang de la séquence (#1852)').toMatch(/^fumbleJet:cons-fumble-heros-\d+$/);
   });
 
   it('la SUITE portée par la fenêtre (Action gratuite) est rendue par la reprise, une seule fois', () => {
-    monteDefense(bacle(true), { freeAttack: { kind: 'frappe-reactive', prevActed: false }, enchainement: { mode: 'aucun' } });
+    monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
     useGame.getState().defenseConfirm();
+    maladresseDeLaBrute();
     expect(useGame.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
     poser(9);
     // La suite vient APRÈS la Maladresse du héros défenseur (`APRES_COUP`) : elle attend son Oups !.
@@ -439,10 +456,26 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     expect((useGame.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
   });
 
+  it('SANS siège MJ (partie solo) : la Maladresse et le dé de casse de la brute partent d’office, puis la Maladresse du héros, puis la suite, une fois', () => {
+    useGame.setState({ net });
+    expect(useGame.getState().net.gmSeat, 'aucun siège MJ ne tient la brute').toBeUndefined();
+    monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
+    useGame.getState().defenseConfirm();
+    expect(etapeCourante(), 'les dés de la brute sont tirés d’office : le curseur est au héros').toMatchObject({ kind: 'fumbleJet', actorId: 'heros' });
+    expect(etapes().filter((s) => s.startsWith('casseDArme:')), 'le dé de casse est né à la porte, une fois').toHaveLength(1);
+    expect(lignesLues().some((l) => /^brute — Sauvegarde Solide — Épée bâclée : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
+    expect(useGame.getState().battle!.acted, 'la Maladresse du défenseur précède la suite').toBe(true);
+    useGame.getState().fumbleRoll();
+    useGame.getState().fumbleConfirm();
+    expect(useGame.getState().pendingCascade, 'plus aucune étape à jouer').toBeNull();
+    expect(useGame.getState().battle!.acted, 'la reprise rend l’Action gratuite').toBe(false);
+  });
+
   it('le maillon de BALAYAGE porté par la fenêtre (#1858 `ChaineDeBalayage`) voyage jusqu’à la reprise', () => {
     const chaine = { mode: 'chaine' as const, hitIds: ['heros'], n: 1, bcc: 2, fm: true };
     monteDefense(bacle(true), { enchainement: chaine });
     useGame.getState().defenseConfirm();
+    maladresseDeLaBrute();
     const casse = etapeCourante()!;
     expect(casse.kind).toBe('casseDArme');
     expect(casse.casse?.reprise.mode === 'oups' && casse.casse.reprise.coup?.suite?.enchainement,
@@ -461,8 +494,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       critical: false, advantageTo: null, defenderDefeated: false, log: 'touche.',
       defenderDetail: { roll: 33, success: false, sl: -3 },
     } as unknown as AttackResult;
-    const suspendu = applyAttackResult(useGame.getState, useGame.setState, hero, brute, hero.weapons[0], res, { sousAttaque: true, suite: { freeAttack: { kind: 'frappe-reactive', prevActed: false } } });
-    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(true);
+    const suspendu = applyAttackResult(useGame.getState, useGame.setState, hero, brute, hero.weapons[0], res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' } } });
+    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(OPS_DIFFEREES);
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(brisee(arme), 'l’arme du défenseur n’a pas encore cassé').toBeFalsy();
     expect(useGame.getState().battle!.acted, 'l’Action du coup est consommée ; la suite (Action rendue) n’a PAS joué').toBe(true);
@@ -491,8 +524,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const sauvegardes = (label: string): number =>
       (useGame.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Sauvegarde Solide`)).length;
 
-    const suspendu = applyAttackResult(useGame.getState, useGame.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { freeAttack: { kind: 'frappe-reactive', prevActed: false }, enchainement: { mode: 'aucun' } } });
-    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(true);
+    const suspendu = applyAttackResult(useGame.getState, useGame.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
+    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(OPS_DIFFEREES);
     // Ce que la suspension a figé : rien de la queue n'a joué devant le dé.
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(etapeCourante()!.actorId, 'le dé en vol est celui de l’ATTAQUANT').toBe(frappeur.id);

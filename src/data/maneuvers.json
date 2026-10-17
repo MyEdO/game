@@ -14,7 +14,7 @@
       "book": "livre-de-base",
       "page": 338
     },
-    "stake": "Aucun effet authoré : la touche n’inflige que les Dégâts de l’arme naturelle (Indice).",
+    "stake": "Aucun effet supplémentaire : la touche n’inflige que ses Dégâts.",
     "stakeForm": "descripteur"
   },
   {
@@ -32,7 +32,7 @@
       "book": "livre-de-base",
       "page": 340
     },
-    "stake": "Aucun effet authoré : la touche n’inflige que les Dégâts de la morsure (Indice).",
+    "stake": "Aucun effet supplémentaire : la touche n’inflige que ses Dégâts.",
     "stakeForm": "descripteur"
   },
   {
@@ -102,7 +102,7 @@
       "book": "livre-de-base",
       "page": 338
     },
-    "stake": "Aucun effet authoré : la charge n’inflige que les Dégâts des cornes (Indice).",
+    "stake": "Aucun effet supplémentaire : la touche n’inflige que ses Dégâts.",
     "stakeForm": "descripteur"
   },
   {
@@ -713,7 +713,7 @@
       "page": 341
     },
     "effects": [],
-    "stake": "Esquive — le nuage ne porte AUCUN effet authoré : il ne blesse pas, il coupe les Lignes de vue.",
+    "stake": "Le nuage coupe les Lignes de vue pendant un nombre de Rounds égal au Bonus d’Endurance de la créature.",
     "stakeForm": "descripteur"
   },
   {
@@ -1154,6 +1154,33 @@
       "page": 116
     },
     "stake": "Sur soi : la forme hybride prend fin, au prix de l’Action du tour.",
+    "stakeForm": "descripteur"
+  },
+  {
+    "id": "pietinement",
+    "type": "maneuvers",
+    "label": "Piétinement",
+    "kind": "pietinement",
+    "activation": "free",
+    "advantageCost": 1,
+    "stat": "capacite-de-combat",
+    "defense": "auto",
+    "targeting": "melee",
+    "ecartDeTailleMin": 1,
+    "subType": {
+      "id": "bagarre"
+    },
+    "damage": {
+      "plusBF": true,
+      "flat": 0
+    },
+    "effects": [],
+    "source": {
+      "book": "livre-de-base",
+      "page": 342,
+      "note": "LDB 85 l.342"
+    },
+    "stake": "Aucun effet supplémentaire : la touche n’inflige que ses Dégâts.",
     "stakeForm": "descripteur"
   }
 ]

@@ -36,28 +36,70 @@ import { rollTest } from './tests';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
+import { profilNavalDe } from './coque';
 import type { ShipSize, NavalInstall, InstallBand } from '../data';
-import type { Combatant } from './types';
+import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
+import type { Combatant, NavalTraitRef, VehicleData } from './types';
+import type { ShipRig } from './combat';
+import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
+import { COMPETENCE_DU_MODE, type PropulsionKind } from './propulsion';
 
-export type PropulsionKind = 'voile' | 'avirons';
+/** Milieu du FLUX qui meut le navire (voyage maritime ou fluvial) — MDG 12 l.311 ; MSRC 10 l.255. */
+export type MilieuDeNavigation = 'maritime' | 'fluvial';
 
-/** Politique UNIQUE « voile si gréée, sinon avirons » (Compétence de Navigation par mode de
- *  propulsion, MDG 13 l.17-24) — SOURCE UNIQUE du mode/M de conception d'un navire, consommée par
- *  tout site qui décidait auparavant `sail?.m ?? oars?.m`/`sail ? … : …` chacun dans son coin
- *  (#524). `null` = ni voile ni avirons (fiche incomplète — la propulsion à vapeur ne passe pas
- *  par ici, elle a son propre M constant, ch.12 l.311). */
-export function vesselPropulsion(vd: { sail?: { m: number }; oars?: { m: number } } | undefined): { mode: PropulsionKind; m: number } | null {
-  if (vd?.sail) return { mode: 'voile', m: vd.sail.m };
-  if (vd?.oars) return { mode: 'avirons', m: vd.oars.m };
+/** Milieu du voyage en cours : fluvial sous `river`, maritime sinon (MDG 13 l.13). PUR. */
+export function milieuDuVoyage(plan: { river?: unknown } | null | undefined): MilieuDeNavigation {
+  return plan?.river ? 'fluvial' : 'maritime';
+}
+
+/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32 ; MSRC 10 l.255). */
+export const STEAM_SKILL = { id: 'metier', spec: 'ingenieur' } as const;
+
+/** Propulsion d'un navire dans un milieu : mode, M, Compétence de Navigation, gréement (colonne de
+ *  Localisation, MDG 13). */
+export interface PropulsionDuNavire {
+  mode: 'vapeur' | PropulsionKind;
+  m: number;
+  competence: RefDesignee;
+  rig: ShipRig;
+}
+
+/** Gréement d'un profil naval, voile et avirons ensemble = `mixte` (colonne de Localisation, MDG 13) ;
+ *  `null` = ni voile ni avirons. PUR. */
+export function rigDuNavire(vd: Pick<NonNullable<VehicleData['ship']>, 'sail' | 'oars'>): ShipRig | null {
+  if (vd.sail && vd.oars) return 'mixte';
+  if (vd.sail) return 'voile';
+  return vd.oars ? 'avirons' : null;
+}
+
+/** Mode de conception : `mode` s'il est gréé, sinon la voile, sinon les avirons. MDG 13 l.17-24 ; #524. */
+function modeDeConception(vd: NonNullable<VehicleData['ship']>, mode: PropulsionKind | undefined): { mode: PropulsionKind; m: number; competence: RefDesignee } | null {
+  if (vd.sail && mode !== 'avirons') return { mode: 'voile', m: vd.sail.m, competence: { id: COMPETENCE_DU_MODE.voile, spec: vd.sail.spec } };
+  if (vd.oars) return { mode: 'avirons', m: vd.oars.m, competence: { id: COMPETENCE_DU_MODE.avirons } };
+  if (vd.sail) return { mode: 'voile', m: vd.sail.m, competence: { id: COMPETENCE_DU_MODE.voile, spec: vd.sail.spec } };
   return null;
+}
+
+/** Propulsion d'un navire, désigné par son couple (id de véhicule, améliorations) comme `navalTraitsDe`,
+ *  dans le `milieu` du flux ; `mode` = le mode du jour d'un navire mixte. Vapeur : MDG 12 l.311
+ *  (maritime), MSRC 10 l.255 (fluvial) ; voile, avirons : MDG 13 l.18-19. `null` = aucune. PUR. */
+export function propulsionDuNavire(vehicleId: string | undefined, upgrades: NavalTraitRef[] | undefined, milieu: MilieuDeNavigation, mode?: PropulsionKind): PropulsionDuNavire | null {
+  const vd = findVehicleById(vehicleId ?? '')?.ship;
+  if (!vd) return null;
+  const rig = rigDuNavire(vd);
+  const conception = modeDeConception(vd, mode);
+  if (!conception || !rig) return null;
+  if (shipHasNavalTrait(navalTraitsDe(vehicleId, upgrades), 'propulsion-a-vapeur'))
+    return { mode: 'vapeur', m: milieu === 'maritime' ? 4 : conception.m, competence: STEAM_SKILL, rig };
+  return { ...conception, rig };
 }
 
 export interface StandardShipRow {
   size: ShipSize;
   costGold: number;
   crew: number;
-  sail?: { m: number; crew: number };
-  oars?: { m: number; crew: number };
+  sail?: ProfilDePropulsion;
+  oars?: ProfilDePropulsion;
   /** Colonne « Taille » du tableau standard (ch.12 l.122-129), en mètres ; `max: null` = la bande
    *  FINALE, que le livre imprime « 81+ » (l.129). */
   lengthM: { min: number; max: number | null };
@@ -112,13 +154,12 @@ export function shipSizeOfLength(lengthM: number): ShipSize {
 }
 
 /**
- * Taille d'une COQUE EN JEU (`Combatant`) — sa longueur vit sur le TYPE de véhicule (`creatureId`,
- * `vehicles.json`), jamais recopiée sur l'instance : même patron que `hullNavalTraits`
- * (`./navalTraits`). `undefined` quand la coque n'a pas de profil naval (véhicule non navire, ou
- * type introuvable) — l'appelant NOMME ce cas. PUR.
+ * Taille d'une COQUE EN JEU (`Combatant`), MDG 12 l.120-129 — sa longueur vit sur son profil naval
+ * (`profilNavalDe`), jamais recopiée sur l'instance. `undefined` quand la coque n'a pas de profil naval
+ * (véhicule non navire, ou type introuvable) — l'appelant NOMME ce cas. PUR.
  */
-export function hullShipSize(hull: Combatant): ShipSize | undefined {
-  const lengthM = findVehicleById(hull.creatureId ?? '')?.ship?.lengthM;
+export function hullShipSize(hull: Pick<Combatant, 'bodyShape' | 'creatureId'>): ShipSize | undefined {
+  const lengthM = profilNavalDe(hull)?.lengthM;
   return lengthM === undefined ? undefined : shipSizeOfLength(lengthM);
 }
 
@@ -138,8 +179,8 @@ export interface ShipBuildSpec {
 
 export interface ShipBuildResult {
   size: ShipSize;
-  sail?: { m: number; crew: number };
-  oars?: { m: number; crew: number };
+  sail?: ProfilDePropulsion;
+  oars?: ProfilDePropulsion;
   manDR: number;
   e: number;
   b: number;

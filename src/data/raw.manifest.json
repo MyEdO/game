@@ -72,5 +72,19 @@
     "type": "raw.manifest",
     "label": "Atlas RAW — Tests & Success Levels (SL)",
     "ticket": "#1873"
+  },
+  {
+    "id": "4e/deplacement#navigation-fluviale-tests-de-navigation-msrc",
+    "type": "raw.manifest",
+    "label": "Navigation fluviale — Tests de Navigation (MSRC)",
+    "ticket": "#2589",
+    "bloque": "Test d'Agilité du jour (MSRC 7 l.17) sans mécanique : le barreur-poste et le barreur sans Voile se modélisent au système de voyage sur l'eau unique (#2588 Q2/Q3). #2589 réécrit l'étape du jour et son applier `riverAgility` (facteur posé sur `river.dayAgilityFactor`), les facteurs d'échec et d'Échec spectaculaire, leur donnée `river-navigation.json › rowingAgility` et son schéma, l'enjeu `voyage-stakes.json › river-agility`, la fiche `regles.json › navigation-agilite-de-rame` et la section Codex de la Navigation fluviale"
+  },
+  {
+    "id": "4e/deplacement#degats-infliges-aux-vehicules-edoc",
+    "type": "raw.manifest",
+    "label": "Dégâts infligés aux véhicules (EDOC)",
+    "ticket": "#673",
+    "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
   }
 ]

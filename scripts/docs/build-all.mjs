@@ -1,6 +1,7 @@
 // scripts/docs/build-all.mjs — produit TOUS les dérivés (`npm run docs:build`), ou leurs seules cibles
 // de CODE (`--code`, `npm run gen`), ou les seuls MIXTES et leurs préalables (`--mixtes`, l'étape
-// `docs` du train, #2193).
+// `docs` du train, #2193), ou ses cibles de CODE sans mesure ni certificat (`--code --sans-certifier`, le
+// post-hook, #2603).
 // SOURCE UNIQUE de la liste des dérivés : `GENERATORS`. Une cible de `targets` sort EN ENTIER de son
 // générateur : elle n'est PAS commitée (#2203 A2 — `ciblesPures`, bloc de `.gitignore`, garde
 // scripts/docs/cibles-pures.test.mjs) et se produit là où on la lit. Ses cibles de CODE (`ciblesDeCode`)
@@ -9,6 +10,9 @@
 // (`injecte`) est MIXTE : il reste commité, et la CI le juge par `docs:build` puis `Arbre inchangé`.
 // `--check` (`npm run docs:check`) rend chaque générateur et compare son rendu au disque sans rien
 // écrire.
+// VERROU MACHINE (#2603) : la CLI d'un geste lourd (`estGesteLourd`) prend `verrouGestesLourds` avant
+// `executer`, qu'appellent aussi en processus `genererCode` et replay-head ; tenu à l'échéance, elle sort
+// en `CODE_DIFFERE` (`sousGestesLourds`).
 // Ordre motivé : les registres générés passent EN TÊTE (les générateurs de docs lisent `src/`) ; les
 // rapports d'Atlas LISENT les fiches docs/raw (`pagesLues` de coverage.mjs, `computeReconciliation`
 // de reconcile.mjs, `scan` de reanchor.mjs), ils passent donc APRÈS build-implemente qui y injecte ;
@@ -19,12 +23,13 @@
 // SOURCES LUES (#1679) : chaque générateur est lancé avec `scripts/docs/lib/enregistreur-lectures.mjs`
 // en préchargeur (`NODE_OPTIONS`, donc les sous-processus node en héritent) : ce qu'il lit se MESURE.
 // Le set fusionné part dans `docs/.sources-lues.json`, dérivé LOCAL (jamais commité) que lit la
-// sélection de scripts/git-hooks/docs-rebuild.mjs ; la lecture d'une source écrite au même rang ou
+// sélection de scripts/git-hooks/selection-des-derives.mjs ; la lecture d'une source écrite au même rang ou
 // plus tard est refusée par nom. Le rendu est DÉTERMINISTE (tout est trié).
 // Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
+import { etapeHeritee } from '../git-hooks/journal.mjs'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -32,10 +37,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
-import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
-import { perimetreDeMesure } from './lib/chemin-mesure.mjs'
+import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
+import { verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
+import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
+import { gitDirDe } from '../hooks/barriere-outil.mjs'
+import { ecrireDoc, ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
+import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
-import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide } from './lib/fraicheur-docs.mjs'
+import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide, SourceModifiee, vueApresGenerateur } from './lib/fraicheur-docs.mjs'
 
 import { GENERATORS, SOURCES_LUES } from './lib/cibles-generees.mjs'
 export { GENERATORS, SOURCES_LUES, estCiblePure } from './lib/cibles-generees.mjs'
@@ -68,11 +77,23 @@ export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
 }
 
 /**
- * `--mixtes` : `perimetreDesMixtes`, avec conservation des autres mesures. REND le code de sortie : 0,
- * ou 1 au premier rouge, nommé.
+ * Les cibles de CODE (`generateursDeCode`) écrites SANS mesure ni certificat : leurs certificats retirés
+ * (`invaliderPreuve`), puis chaque générateur joué par sa porte `import.meta.main`. La passe des dérivés qui
+ * suit les certifie (#2603). REND 0, ou 1 au premier rouge, nommé.
  */
-export function genererMixtes({ cwd, quiet = false, generateurs = GENERATORS }) {
-  return executer({ cwd, argv: ['--mixtes', ...(quiet ? ['--quiet'] : [])], generateurs })
+export function genererCodeSansCertifier({ cwd, generateurs = GENERATORS }) {
+  const code = generateursDeCode(generateurs)
+  invaliderPreuve(cwd, code.map((g) => g.script))
+  const tsxEsm = tsxEsmPour(code, cwd)
+  for (const g of code) {
+    try {
+      etapeProfilee(`[docs:code] ${g.script}`, () => run(g, { cwd, quiet: false, mode: 'ecrire', tsxEsm }), { mesurer: etapeHeritee(cwd) })
+    } catch (e) {
+      process.stderr.write(`docs:build — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : cibles de code incomplètes.\n`)
+      return 1
+    }
+  }
+  return 0
 }
 
 /** Étapes de `--check` qui ne GÉNÈRENT rien (vérificateurs purs, sans `--check`) : `build-all.mjs`
@@ -250,7 +271,7 @@ export async function rendreCible(cible, generateurs = GENERATORS) {
 
 /**
  * Racine (vidée puis recréée) des lectures d'un run mesuré, et l'ensemble `ignoresGit` de `cwd`,
- * calculé UNE fois, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
+ * calculé par rang, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
  */
 export function preparerLectures(cwd, racineLectures) {
   rmSync(racineLectures, { recursive: true, force: true })
@@ -354,15 +375,30 @@ function argumentsDe(argv, drapeau) {
 }
 
 /**
- * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes`
- * (`genererMixtes`) ou `--check`
+ * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes` ou `--check`
  * (vérification). REND le code de sortie.
  * En écriture, le premier rouge ARRÊTE : un générateur rouge laisse docs/ à moitié régénéré, et
  * enchaîner les suivants fabriquerait un lot incohérent que le hook annoncerait « à committer ».
  * En `--check`, rien n'est écrit : chaque générateur et chaque vérificateur rend son verdict, et tous
  * les rouges sont nommés à la fin, sortie 1.
+ * `--code` en écriture, hors passe des dérivés (`ENV_EPOQUE`) et hors écrivain déjà tenu (`ecrivainTenu`),
+ * PRÉEMPTE (`preempterLesDerives`, #2603) : tenu à l'échéance, rien ne tourne, `CODE_DIFFERE`.
+ * @param {Parameters<typeof executerLesGenerateurs>[0]} p
  */
-export function executer({
+export function executer(p) {
+  const argv = p.argv ?? process.argv
+  const gitDir = gitDirDe(p.cwd)
+  if (!argv.includes('--code') || argv.includes('--check') || gitDir === null || process.env[ENV_EPOQUE] !== undefined) return executerLesGenerateurs(p)
+  const chemins = cheminsDeLEcrivain(gitDir)
+  if (ecrivainTenu(chemins)) return executerLesGenerateurs(p)
+  const vu = preempterLesDerives(chemins, `build-all --code ${process.pid}`, () => executerLesGenerateurs(p))
+  if (typeof vu === 'number') return vu
+  console.error(`docs:build — DIFFÉRÉ à l'échéance : ${vu.refus}`)
+  return CODE_DIFFERE
+}
+
+/** `executer`, l'écrivain des dérivés réglé. */
+function executerLesGenerateurs({
   cwd,
   argv = process.argv,
   generateurs = GENERATORS,
@@ -414,7 +450,7 @@ export function executer({
     }
     const parGenerateur = Object.fromEntries(generateurs.filter((g) => Object.hasOwn(ancienneMesure, g.script)).map((g) => [g.script, ancienneMesure[g.script]]))
     let preuve = chargerPreuve(cwd)
-    let vue = perimes ? nouvelleVue(cwd, fraicheur, preuve) : undefined
+    let vue = perimes ? preparation.vue : undefined
     let ecrits = 0
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const refus = []
@@ -446,14 +482,14 @@ export function executer({
           console.error(`docs:build — ${g.script} périmé : ${validite.raison}`)
         }
         const dossier = path.join(racineLectures, `${passe}-${rang}`)
-        writeFileSync(ignoresLectures, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
-        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
         let mesure
         let avant
         try { avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation) } catch (e) {
           console.error(`docs:build — ARRÊT : ${g.script} non certifiable : ${e.message}`)
-          return 1
+          return e instanceof SourceModifiee ? CODE_SOURCE_MODIFIEE : 1
         }
+        writeFileSync(ignoresLectures, JSON.stringify([...(avant ? avant.baseline.ignores : perimetreDeMesure(cwd).ignores)]))
+        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
         if (!check) {
           invaliderPreuve(cwd, [g.script])
           ecrits++
@@ -462,7 +498,7 @@ export function executer({
           mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
             cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
             rendues: path.join(dossier, 'cibles-rendues'),
-          }))
+          }), { mesurer: etapeHeritee(cwd) })
         } catch (e) {
           transmettreDiagnostic(e, quiet)
           const issue = issueDe(e)
@@ -518,13 +554,13 @@ export function executer({
           records.set(g.script, certification.ok ? certification.record : null)
           if (!certification.ok) {
             console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
-            return 1
+            return certification.sourceModifiee ? CODE_SOURCE_MODIFIEE : 1
           }
           preparation.mesure[g.script] = entree
-        }
-        if (perimes && preparation) {
-          preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
-          vue = nouvelleVue(cwd, fraicheur, preuve)
+          if (perimes) {
+            preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
+            vue = vueApresGenerateur(vue, fraicheur, preuve, g, certification.perimetre, lues.ecrits)
+          }
         }
       }
       if (check) break
@@ -555,7 +591,7 @@ export function executer({
       }
     } while (reprise.size)
     if (!check && ecrits) {
-      ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
+      ecrireDoc(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
       console.log(`${SOURCES_LUES} — ${Object.keys(parGenerateur).length} générateur(s) mesuré(s).`)
     }
     // Les vérificateurs purs, en écriture comme en `--check` : ils n'écrivent rien, leur code de sortie
@@ -567,7 +603,7 @@ export function executer({
           cwd,
           env: envIsole(process.env, binLocal(cwd)),
           ...sortiesDe(quiet),
-        }, { site: `build-all/${script}` }))
+        }, { site: `build-all/${script}` }), { mesurer: etapeHeritee(cwd) })
       } catch (e) {
         transmettreDiagnostic(e, quiet)
         refuser(`docs:${check ? 'check' : 'build'} — ${script} — ${natureDuRouge(issueDe(e))}`)
@@ -595,12 +631,41 @@ export function executer({
   }
 }
 
-/** Écrit `texte` dans `chemin` seulement s'il diffère : un lecteur d'une autre lane ne lit jamais un
- *  fichier réécrit à l'identique. */
-function ecrireSiDifferent(chemin, texte) {
-  let actuel
-  try { actuel = readFileSync(chemin, 'utf8') } catch { actuel = null }
-  if (actuel !== texte) writeFileSync(chemin, texte)
+/** Code de sortie « DIFFÉRÉ » (`EX_TEMPFAIL`, sysexits.h) : le verrou des gestes lourds est resté tenu jusqu'à
+ *  l'échéance de son attente, rien n'a tourné (#2603). */
+export const CODE_DIFFERE = 75
+
+/** Code de sortie « SOURCE MODIFIÉE » : une source du générateur a changé pendant sa passe (`SourceModifiee`),
+ *  préemption transitoire que l'appelant rejoue (#2603). Valeur maison, hors de la plage sysexits.h. */
+export const CODE_SOURCE_MODIFIEE = 79
+
+/** Vrai si `argv` est un geste LOURD, qui prend le verrou des gestes lourds (#2603) : tout mode, hors
+ *  `--code` et `--check --only`. */
+export const estGesteLourd = (argv) => !argv.includes('--code') && !(argv.includes('--check') && argv.includes('--only'))
+
+/**
+ * `geste()` joué sous le verrou des gestes lourds de `cwd` (`verrouGestesLourds`), pris sous `attente` : REND son
+ * code, ou `CODE_DIFFERE` si le verrou est resté tenu à l'échéance, rien n'ayant tourné.
+ * @param {{ cwd: string, argv: string[], geste: () => number | Promise<number>, attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean } }} p
+ */
+export async function sousGestesLourds({ cwd, argv, geste, attente }) {
+  const verrou = verrouGestesLourds(cwd)
+  const delai = attente ?? verrou.attente
+  const annoncer = (tenant) => console.error(`docs:build — en attente : ${verrou.libelle} : ${tenantEnUneLigne(tenant)} (échéance ${delai.echeanceMs / 60_000} min par tenant)`)
+  const prise = prendreVerrou({
+    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd,
+    commande: ['node', 'scripts/docs/build-all.mjs', ...argv].join(' '),
+    attente: { ...delai, annoncer },
+  })
+  if (prise.etat !== 'pris') {
+    console.error(`docs:build — DIFFÉRÉ à l'échéance : ${verrou.libelle} : ${tenantEnUneLigne(prise.tenant)}`)
+    return CODE_DIFFERE
+  }
+  try {
+    return await geste()
+  } finally {
+    prise.liberer()
+  }
 }
 
 async function main() {
@@ -609,7 +674,16 @@ async function main() {
     process.stdout.write(`${ciblesPures(cwd).join('\n')}\n`)
     return
   }
-  process.exitCode = await executer({ cwd })
+  const argv = process.argv.slice(2)
+  if (argv.includes('--code') && argv.includes('--sans-certifier')) {
+    process.exitCode = genererCodeSansCertifier({ cwd })
+    return
+  }
+  if (!estGesteLourd(argv)) {
+    process.exitCode = await executer({ cwd })
+    return
+  }
+  process.exitCode = await sousGestesLourds({ cwd, argv, geste: () => executer({ cwd }) })
 }
 
 if (import.meta.main) main()

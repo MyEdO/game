@@ -25,6 +25,8 @@ import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
+import { milieuDuVoyage } from '../engine/shipBuild';
+import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
@@ -42,7 +44,7 @@ import { quorumAtteint, decidingSeat } from './netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
-export { activeCombatant, entityPickables, trampleTarget } from './combatFlow';
+export { activeCombatant, entityPickables } from './combatFlow';
 import { markActed } from './combatFlow';
 import { EMPTY_FLOW, type Flow } from './flow';
 import { moveEnv, type MoveSnapshot } from './combatGeometry';
@@ -134,13 +136,14 @@ import type { MerchantState, MerchantStocks } from './merchantFlow';
 import * as tavernFlow from './tavernFlow';
 import type {
   PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain,
-  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
+  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
+import { postingTenu } from '../engine/activities';
 import { payFromGroup } from './bourseFlow';
 import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
@@ -242,7 +245,7 @@ export interface BattleState {
   selectedSpellId: string | null;
   /** Attaque ARMÉE pour le clic-ennemi (id d'`AttackOption` : 'arme' | 'morsure' | … — cf. `availableAttacks`).
    *  Défaut 'arme' ; vivante seulement quand `action===null`. Source UNIQUE qui remplace l'attaque d'arme
-   *  implicite + le mode manœuvre/tentacule/trample armé. */
+   *  implicite + le mode manœuvre/tentacule armé. */
   selectedAttack?: string;
   reachable: Map<string, number>;
   /** Cases de Mouvement déjà parcourues ce Tour. Le Mouvement est DÉCOMPOSABLE (règle maison : on peut
@@ -696,8 +699,6 @@ export interface GameState extends RollFlowActionsMap {
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `advanceTime`. */
   scheduledEffects: ScheduledEffect[];
-  /** Piétinement en cours (modale interactive). */
-  pendingTrample: PendingTrample | null;
   /** Battement en cours (LDB 10 l.103 — modale de jet de CC non opposé retirant l'Avantage adverse). */
   pendingBattement: PendingBattement | null;
   /** Distraire en cours (LDB 10 l.364 — modale de Test opposé Athlétisme vs Calme). */
@@ -1296,11 +1297,8 @@ export interface GameState extends RollFlowActionsMap {
   dualStrikeAttack: (targetId: string, skipGate?: boolean) => void;
   /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
   dualStrikeSkip: () => void;
-  /** Piétinement (LDB 85 l.320-321) : action gratuite (1 Avantage) contre un adversaire adjacent
-   *  plus petit. Ne consomme pas l'Action. */
-  battleTrample: (targetId: string) => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
-   *  — source UNIQUE qui remplace l'arme implicite + l'ancien mode manœuvre/tentacule/trample. Toggle → 'arme'.
+   *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
   battleSelectAttack: (id: string) => void;
   /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
@@ -1309,10 +1307,6 @@ export interface GameState extends RollFlowActionsMap {
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
   battleSelfManeuver: (maneuverId: string) => void;
-  /** Piétinement par modale (LDB 85 l.320-321) : Lancer le jet, dépenser une Chance, appliquer (gratuit). */
-  // trample{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  trampleConfirm: () => void;
-  trampleCancel: () => void;
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
   battleBattement: (foeId?: string) => void;
@@ -1465,7 +1459,7 @@ export interface GameState extends RollFlowActionsMap {
   disengageRoll: () => void; // Esquiver (lance le Test opposé)
   // disengage{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
-  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast,trample}SetForcedRoll sont aussi générés.
+  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Calme du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
@@ -1519,9 +1513,9 @@ export interface GameState extends RollFlowActionsMap {
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
    *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
   setVoyageCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, id d'Activité de voyage EDOC 8),
+  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  setTravelRole: (heroId: string, role: string | null) => void;
+  setTravelRole: (heroId: string, role: import('../engine/activities').StagePosting | null) => void;
   /** Épingle (`role`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
    *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   setShipRole: (crewId: string, role: string | null) => void;
@@ -1958,9 +1952,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (!battle || !hull?.pos || !dir) return 0;
     const d = DIR8_DELTA[dir];
     const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
-    // Autres COQUES (jetons-navires) percutables (≠ self, pos connue) : une tuile occupée par une coque arrête
-    // l'avance ADJACENT (pas de chevauchement) et déclenche la collision (MDG 13).
-    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && c.bodyShape === 'vehicule' && c.pos);
+    // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
+    // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
+    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
     const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
     // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
     let moved = 0;
@@ -1992,7 +1986,7 @@ export const useGame = create<GameState>((set, get) => ({
       const opp = rotateDir8(dir, 4);
       const vf = facing[victim.id];
       const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-      for (const line of applyShipCollision(hull, victim, { ramProue: true, frontal }).lines) get().log(line);
+      for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }).lines) get().log(line);
     }
     if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
     return moved;
@@ -3151,7 +3145,7 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role || undefined }))),
+  setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
   setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {

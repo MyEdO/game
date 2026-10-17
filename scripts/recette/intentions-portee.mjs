@@ -20,7 +20,7 @@
 //   4. Échap annule ; re-clic de la case annule ;
 //   5. un clic-ennemi SANS intention reste une attaque normale (non-régression).
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, clicReel, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, geste, clic, SURFACE_CARTE, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour } from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 import { demarrer } from './setup.mjs';
 import { chebyshev } from '../../src/engine/grid.ts';
@@ -59,12 +59,12 @@ async function centreVisible(session, pt) {
   return { x, y };
 }
 
-/** Clic RÉEL au centre d'une case de la carte (`tileScreenPos` → souris CDP). */
+/** Clic RÉEL au centre d'une case de la carte (`tileScreenPos` → `geste` sur la surface de carte). */
 async function cliquerCase(session, pt) {
   const c = await centreVisible(session, pt);
   if (!c) throw new Error(`cliquerCase (${pt.x},${pt.y}) : case hors écran`);
   const { x, y } = c;
-  await clicReel(session, x, y);
+  await geste(session, { surface: SURFACE_CARTE, x, y }, { qui: 'cliquerCase' }, clic());
   await sleep(350);
   return { x, y };
 }

@@ -1,11 +1,13 @@
+import { ast } from '../guards/lib/dialecte.mjs'
+import { readFileSync as lireCalibrage } from 'node:fs'
+const CALIBRAGE = lireCalibrage(new URL('../../.claude/skills/orchestrer-des-agents/SKILL.md', import.meta.url), 'utf8')
 import test from 'node:test'
 
 import assert from 'node:assert/strict'
 
-import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs'
+import { defautsDesSitesDAgent, lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs'
 
-import { bancworkflowstestmjs } from './workflowsBanc.mjs'
-const { TEMOIN, SOURCE_TEMOIN, muter, vus } = bancworkflowstestmjs
+import { TYPES_DECLARES, TEMOIN, SOURCE_TEMOIN, muter, vus as voirDefauts } from '../test/lib/bancWorkflows.mjs'
 
 const LIST_TYPE = "const LIST = {\n  type: 'object', additionalProperties: false,";
 
@@ -233,4 +235,36 @@ test('#2537 — en phase MÉCANIQUE, le modèle se lit au couple (type, modèle)
     vus(muter(TEMOIN, "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'sonnet'", "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'claude-haiku-5-5'")),
     ["agent : phase MÉCANIQUE `Find` : `model` littéral parmi sonnet exigé pour lecteur (lu : `claude-haiku-5-5`)"],
   );
+});
+
+function vus(source, fichier) { return voirDefauts(source, fichier, CALIBRAGE) }
+
+const sansLieu = (m) => m.slice(m.indexOf(' — ') + 3)
+
+test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : défaut universel', () => {
+  const declares = [...TYPES_DECLARES].join('/');
+  assert.deepEqual(
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, model: 'opus', effort: 'high' }")),
+    [`agent : \`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${declares})`],
+  );
+  assert.deepEqual(
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'general-purpose', model: 'opus', effort: 'high' }")),
+    [
+      `agent : \`agentType\` \`general-purpose\` : aucun type de ce nom déclaré sous \`.claude/agents/\` (${declares})`,
+      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge'` exigé (lu : `general-purpose`)",
+    ],
+  );
+});
+
+test('#2537 — la couche UNIVERSELLE seule (la garde de l’outil `Workflow`) n’exige ni phase, ni modèle, ni effort', () => {
+  const universel = (source) => defautsDesSitesDAgent(ast({ rel: 'w.js', text: source }), { typesDeclares: TYPES_DECLARES }).map((d) => sansLieu(d.message));
+  assert.deepEqual(universel("await agent('p', { agentType: 'lecteur' })"), []);
+  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge' }")), []);
+  assert.deepEqual(universel("await agent('p', { label: 'x' })"), [`\`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${[...TYPES_DECLARES].join('/')})`]);
+  assert.deepEqual(universel("await agent('p', { agentType: T })"), ["`agentType` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"]);
+  assert.deepEqual(universel("await agent('p', OPTIONS)"), ["options de l'agent non littérales — la porte ne peut pas lire son étage"]);
+});
+
+test('#2537 — un script qui ne PARSE pas : chaque diagnostic du parseur est un défaut `syntaxe`, et rien d’autre ne se juge', () => {
+  assert.deepEqual(vus(muter(TEMOIN, STATS, `const = 1\n${STATS}`)), ['syntaxe : Variable declaration expected.', 'syntaxe : Variable declaration expected.']);
 });

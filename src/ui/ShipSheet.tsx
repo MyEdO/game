@@ -12,7 +12,7 @@ import { ShipRolesPanel } from './ShipRolesPanel';
 import { StationSheet } from './StationSheet';
 import { postesToStations } from '../state/stations';
 import { posteAnchor } from '../state/shipPostes';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import type { Combatant, NavalTraitRef } from '../engine/types';
 import type { Dir8 } from '../state/dir8';
 import { Icon } from './Icon';
@@ -20,6 +20,7 @@ import { Prose } from './Prose';
 import { Tabs } from './Tabs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema, posteSideSchema } from '../data/schemas/defs/vehicles';
+import { rigDuNavire } from '../engine/shipBuild';
 import { dir8Schema } from '../data/schemas/grammaire/valeurs';
 
 /** État du navire (lecture seule, dérivé) — mêmes `stat-chip` que les vitaux d'une fiche héros. PUR. */
@@ -85,7 +86,7 @@ export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Comba
  * (`NavalTraitRef`), verbatim rendu par `<Prose>` (règle 5). */
 export function ShipInspectBody({ hull, crew, cap }: { hull: Combatant; crew: Combatant[]; cap?: Dir8 }) {
   const vd = hull.creatureId ? findVehicleById(hull.creatureId) : undefined;
-  const rig = vd?.hull?.rig;
+  const rig = vd?.ship ? rigDuNavire(vd.ship) : null;
   const refs: NavalTraitRef[] = hullNavalTraits(hull);
   const traits = refs
     .map((ref) => ({ ref, def: findNavalTrait(ref.id) }))

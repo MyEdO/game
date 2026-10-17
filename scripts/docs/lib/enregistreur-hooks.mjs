@@ -22,7 +22,7 @@ import { syncBuiltinESMExports } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { installer } from './enregistreur-lectures.mjs'
-import { correspondGlob } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, correspondGlob } from '../../guards/lib/lister.mjs'
 
 let racine = null
 let sortie = null
@@ -88,7 +88,7 @@ function noterChemin(cible) {
     if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees, motifsDeclares) || vus.has(rel)) return
     if (cibles.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
       try { if (brut.lstatSync(path.join(racine, rel)).isFile()) return }
-      catch (e) { if (['ENOENT', 'ENOTDIR'].includes(e.code)) return; throw e }
+      catch (e) { if (cheminAbsent(e)) return; throw e }
     }
     vus.add(rel)
     brut.appendFileSync(`${sortie}.${process.pid}.hooks.jsonl`, `${rel}\n`)

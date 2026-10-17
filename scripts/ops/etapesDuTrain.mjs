@@ -1,11 +1,11 @@
 // LES ÉTAPES DU TRAIN DE PUBLICATION (`scripts/ops/publier.mjs`) et les purs qu'elles composent.
 //
 // CLÔTURE, gardée contre une retouche de bonne foi (#1806) : une étape ne tient que son contexte
-// (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
+// (`contexteDe`, `publierTrain.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
-// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
-// `lireFusion`, `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
+// `docs`, `attendreReconstruction`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
 // inertes, import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu,
@@ -21,11 +21,11 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
 import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
-import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
+import { sourcesMesurees, touchesDocSources } from '../git-hooks/selection-des-derives.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { DESTINATIONS, SORTIES_PAR_CLE, remplacerCleJson } from '../agents/compat-core.mjs'
 
 /** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
@@ -122,29 +122,55 @@ export function etatDeLaPr(pr, tete) {
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
  * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les sorties de `npm run agents:sync` (`synchroniserAgents`). PURE.
+ * commités (#2203) —, et les destinations des miroirs d'agents (`DESTINATIONS` de `buildExpectedOutputs`,
+ * `compat-core.mjs`), que les post-hooks `post-merge` et `post-rewrite` produisent sans les committer
+ * (#2578). Une SORTIE PAR CLÉ (`SORTIES_PAR_CLE`) n'est dérivée que si son disque ÉGALE son texte de
+ * HEAD dont seule la clé gérée prend la valeur du disque (`remplacerCleJson`) : `lire(chemin)` rend
+ * `{ tete, disque }`, les textes de HEAD et du disque (`null` si absent) ; sans `lire`, elle est
+ * MANUSCRITE. PURE.
+ * @param {string} chemin @param {readonly object[]} generators
+ * @param {(chemin: string) => { tete: string | null, disque: string | null }} [lire]
  */
-export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
+export function estDocDerive(chemin, generators, lire) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
-  if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
+  if (DESTINATIONS.some((r) => c === r || c.startsWith(`${r}/`))) return !SORTIES_PAR_CLE.has(c) || seuleLaCleGereeAChange(c, lire)
   return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
+/** Le disque de la sortie par clé `chemin` égale-t-il son texte de HEAD, la seule clé gérée remplacée
+ *  par celle du disque ? Disque absent, illisible en JSON ou sans la clé : non. PURE. */
+function seuleLaCleGereeAChange(chemin, lire) {
+  const { tete, disque } = lire?.(chemin) ?? { tete: null, disque: null }
+  if (disque === null) return false
+  const cle = SORTIES_PAR_CLE.get(chemin)
+  try {
+    const valeur = JSON.parse(disque)?.[cle]
+    return valeur !== undefined && remplacerCleJson(tete, cle, valeur) === disque
+  } catch {
+    return false
+  }
+}
+
 /**
- * Partage des chemins SALES en deux tas : ce que l'étape `docs` sait committer (`estDocDerive`) et
- * le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, le hook
- * `post-rewrite` régénère les docs dérivés SANS les committer (`scripts/git-hooks/docs-rebuild.mjs`)
- * — sans ce partage, la préflight refusait le train pour une saleté que l'étape `docs` commet.
+ * Partage des chemins SALES en deux tas : ce que l'étape `docs` sait committer (`estDocDerive`, qui
+ * reçoit `lire`) et le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, la
+ * reconstruction que demande le hook `post-rewrite` régénère les docs dérivés SANS les committer
+ * (`scripts/git-hooks/reconstruction.mjs`, attendue par `attendreLesDerives`) — sans ce partage, la préflight
+ * refusait le train pour une saleté que l'étape `docs` commet.
  * @param {string[]} chemins @param {readonly object[]} generators
+ * @param {(chemin: string) => { tete: string | null, disque: string | null }} [lire]
  * @returns {{derives:string[], manuscrits:string[]}}
  */
-export function partitionSales(chemins, generators, ...reste) {
+export function partitionSales(chemins, generators, lire) {
   const derives = []
   const manuscrits = []
-  for (const c of chemins ?? []) (estDocDerive(c, generators, ...reste) ? derives : manuscrits).push(c)
+  for (const c of chemins ?? []) (estDocDerive(c, generators, lire) ? derives : manuscrits).push(c)
   return { derives, manuscrits }
 }
+
+/** Le partage (`partitionSales`) des chemins sales du train, `chemins` lus à l'arbre par défaut. */
+const salesDuTrain = (ctx, chemins = ctx.questions.cheminsSales()) => partitionSales(chemins, ctx.generators, ctx.questions.textesDe)
 
 /** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
 export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de publication'
@@ -246,24 +272,6 @@ function commettreDerives(ctx, { chemins, numeros, journal }) {
 
 
 /**
- * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
- * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
- * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge, et la gate `agents:check` de la CI refuserait la plage sans nommer la cause.
- * @param {{npm: Function, journaliser: Function}} ctx
- * @returns {{ok: true} | {ok: false, raison: string}}
- */
-export function synchroniserAgents(ctx) {
-  const verif = ctx.npm('agents:check')
-  if (verif.status === 0) return { ok: true }
-  ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
-  const sync = ctx.npm('agents:sync')
-  if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : la gate \`agents:check\` de la CI refuserait la plage` }
-  return { ok: true }
-}
-
-/**
  * Régénère les stocks de sites au point fixe (`npm run stocks:regen`, `regenStock.mts --tous`) quand la
  * branche a absorbé le tronc pendant le lot, puis commet ceux qu'elle a écrits. Une fusion sous pilote
  * (`merge-stocks.mjs`) rend l'union des côtés, pas la mesure de l'arbre fusionné (#2525). Les chemins
@@ -276,7 +284,7 @@ function regenererStocks(ctx, journal) {
   const vu = ctx.npm('stocks:regen')
   if (vu.status !== 0)
     return { ok: false, raison: `\`npm run stocks:regen\` a rendu ${vu.status ?? vu.signal} après la fusion du tronc : stocks de sites non régénérés (sortie au journal du train)` }
-  const { manuscrits } = partitionSales(ctx.questions.cheminsSales(), ctx.generators)
+  const { manuscrits } = salesDuTrain(ctx)
   const attributs = ctx.questions.attributsDeFusion(manuscrits)
   const stocks = manuscrits.filter((c) => attributs.get(c) === 'stocks')
   if (!stocks.length || stocks.length !== manuscrits.length) return { ok: true }
@@ -359,15 +367,12 @@ const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_
  * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
  * tout autre conflit abandonne la fusion.
  */
-function reprendreApresEjection(ctx, journal, cause) {
-  const horsBorne = ejectionHorsBorne(journal, cause)
-  if (horsBorne) return { ok: false, raison: `${horsBorne} : la cause n’est pas le tronc` }
-  const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
+// #2626
+function fusionnerDansTrain(ctx, journal, cause, de = TRONC.suivi) {
   const numeros = numerosDeLaPlage(ctx.questions)
   if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-  const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
-  const vu = ctx.fusionner({ message })
+  const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${de} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
+  const vu = ctx.fusionner({ message, ...(de === TRONC.suivi ? {} : { de }) })
   if (!reussi(vu)) {
     // #2203
     const conflits = ctx.questions.cheminsEnConflit()
@@ -377,13 +382,26 @@ function reprendreApresEjection(ctx, journal, cause) {
       if (conflits.length) ctx.abandonnerFusion()
       return {
         ok: false,
-        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+        raison: `${cause.raison} — fusion de ${de} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${de}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
     const code = ctx.docs('--code')
     if (code.status !== 0)
       return { ok: false, raison: `${cause.raison} — fusion conclue, mais les cibles de code ne sont pas produites (\`npm run gen\` a rendu ${code.status ?? code.signal})${code.stderr ? `\n${finDeSortie(code.stderr)}` : ''}` }
   }
+  const enCours = attendreLesDerives(ctx, 'reprise')
+  if (enCours) return enCours
+  journal.tete = ctx.tete
+  return { ok: true, dit: `${cause.raison} — ${de} fusionné (tête ${journal.tete.slice(0, 9)})` }
+}
+
+function reprendreApresEjection(ctx, journal, cause) {
+  const horsBorne = ejectionHorsBorne(journal, cause)
+  if (horsBorne) return { ok: false, raison: `${horsBorne} : la cause n’est pas le tronc` }
+  const vuTronc = ctx.tronc()
+  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
+  const fusion = fusionnerDansTrain(ctx, journal, cause)
+  if (!fusion.ok) return fusion
   journal.ejections = (journal.ejections ?? 0) + 1
   journal.tete = ctx.tete
   return {
@@ -391,6 +409,18 @@ function reprendreApresEjection(ctx, journal, cause) {
     relancer: ['docs', 'push-branche', 'pr', 'file'],
     dit: `${cause.raison} — ${TRONC.suivi} fusionné (tête ${journal.tete.slice(0, 9)}) : le train reprend à \`docs\``,
   }
+}
+
+/**
+ * La reconstruction des dérivés de l'arbre ATTENDUE (`ctx.attendreReconstruction`, #2603) avant une lecture de
+ * l'arbre sale : REND un refus si elle court encore à l'échéance, `null` sinon ; un verdict non nul est journalisé.
+ * @param {string} ou l'étape qui attend
+ */
+function attendreLesDerives(ctx, ou) {
+  const passe = ctx.attendreReconstruction()
+  if (passe.etat === 'en-cours') return { ok: false, raison: `${ou} : reconstruction des dérivés toujours en cours à l’échéance — \`--reprendre\` après sa fin` }
+  if (passe.code) ctx.journaliser(`[publier] ${ou} — reconstruction des dérivés : ${passe.etat}, code ${passe.code}${passe.log ? `, journal ${passe.log}` : ''}\n`)
+  return null
 }
 
 /** La table des ÉTAPES : nom, `jouer(ctx, journal)`, `dejaFaite(ctx, journal)`. Ajouter une étape,
@@ -406,7 +436,7 @@ export const ETAPES = [
       const entame = questions.rebaseEntame()
       if (entame)
         return { ok: false, raison: `rebase interrompu (${entame}) : \`git rebase --abort\` ou \`--continue\` à la main, puis \`--reprendre\`` }
-      if (questions.brancheDe() === null)
+      if (questions.brancheDe() === null && !ctx.publication)
         return { ok: false, raison: 'HEAD DÉTACHÉ : le train publie une branche, pas un sha errant' }
       let filtres
       try {
@@ -416,7 +446,9 @@ export const ETAPES = [
       }
       const horsCi = refusDeBranche(ctx.branche, filtres)
       if (horsCi) return { ok: false, raison: horsCi }
-      const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
+      const enCours = attendreLesDerives(ctx, 'preflight')
+      if (enCours) return enCours
+      const { derives, manuscrits } = salesDuTrain(ctx)
       if (manuscrits.length)
         return {
           ok: false,
@@ -441,6 +473,17 @@ export const ETAPES = [
       journal.base ??= questions.baseAuTronc()
       if (!journal.base) return { ok: false, raison: `aucune base commune entre ${TRONC.suivi} et HEAD` }
       journal.tete = ctx.tete
+      const rattraper = journal.publication?.rattraper
+      if (rattraper) {
+        const ascendance = questions.estAncetre(rattraper, 'HEAD')
+        if (!ascendance.disponible || ascendance.absent)
+          return { ok: false, raison: `rattrapage de ${rattraper} : ascendance indéterminée` }
+        if (!ascendance.valeur) {
+          const fusion = fusionnerDansTrain(ctx, journal, { raison: `publication précédente ${rattraper}` }, rattraper)
+          if (!fusion.ok) return fusion
+          ctx.journaliser(`[publier] preflight — ${fusion.dit}\n`)
+        }
+      }
       const reste = derives.length
         ? `${derives.length} dérivé(s) sale(s) non commité(s) : l’étape docs les commet`
         : 'arbre propre'
@@ -452,8 +495,8 @@ export const ETAPES = [
     },
   },
   {
-    // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
-    // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi. Le train
+    // Les MIXTES (`injecte` des `generators`) : régénérés, puis commis. Une saleté de dérivés laissée
+    // par un hook (post-merge, post-rewrite), miroirs d'agents compris, est commise ici aussi. Le train
     // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
     // (#2193) ; les stocks de sites, si la branche a absorbé le tronc pendant le lot (`regenererStocks`,
     // un état git qui survit à `--reprendre`).
@@ -462,13 +505,15 @@ export const ETAPES = [
     // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
     dejaFaite(ctx, journal) {
       return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete &&
-        partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
+        salesDuTrain(ctx).derives.length === 0
     },
     jouer(ctx, journal) {
       const { racine } = ctx
       const touches = ctx.questions.ceQuiChange(journal.base, journal.tete).chemins()
       // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
       // RÉGÉNÉRATION, jamais le COMMIT.
+      const avant = attendreLesDerives(ctx, 'docs')
+      if (avant) return avant
       const salesAvant = ctx.questions.cheminsSales()
       const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
       const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
@@ -482,15 +527,15 @@ export const ETAPES = [
             raison: `\`build-all --mixtes\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
           }
       }
-      const agents = synchroniserAgents(ctx)
-      if (!agents.ok) return agents
       if (fusionDuTronc) {
         const stocks = regenererStocks(ctx, journal)
         if (!stocks.ok) return stocks
         if (stocks.dit) ctx.journaliser(`[publier] docs — ${stocks.dit}\n`)
       }
+      const apres = attendreLesDerives(ctx, 'docs')
+      if (apres) return apres
       const chemins = ctx.questions.cheminsSales()
-      const { manuscrits } = partitionSales(chemins, ctx.generators)
+      const { manuscrits } = salesDuTrain(ctx, chemins)
       if (manuscrits.length)
         return { ok: false, raison: `fichier MANUSCRIT sale après la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
       if (!chemins.length) return { ok: true, dit: 'dérivés déjà à jour : rien à committer' }
@@ -508,18 +553,28 @@ export const ETAPES = [
       return ctx.questions.shaDe(`origin/${ctx.branche}`) === journal.tete
     },
     jouer(ctx, journal) {
-      const vu = ctx.pousser({ vers: `refs/heads/${ctx.branche}`, bail: true })
+      if (!journal.publication || typeof journal.publication.bail !== 'string')
+        return { ok: false, raison: 'publication sans bail distant capturé : relancer le train depuis son lanceur' }
+      const vu = ctx.pousser({ vers: `refs/heads/${ctx.branche}`, bail: journal.publication.bail })
       if (!reussi(vu))
         return { ok: false, raison: `push de la branche REFUSÉ :\n${refusDeGit(vu)}` }
+      journal.publication.bail = journal.tete
+      journal.publication.publie = journal.tete
       return { ok: true, dit: `${journal.tete.slice(0, 9)} poussé sur ${ctx.branche} — la CI de la branche juge` }
     },
   },
   {
-    // LA PR vers `main`, créée si elle manque. Elle entre dans la file à l'étape `file`.
+    // #2626
     nom: 'pr',
     dejaFaite(ctx, journal) {
       const vu = ctx.lirePr()
-      return vu.ok && ['ouverte', 'fusionnee'].includes(etatDeLaPr(prDeLaBranche(vu.prs, journal.tete), journal.tete))
+      if (!vu.ok) return false
+      const pr = prDeLaBranche(vu.prs, journal.tete)
+      const etat = etatDeLaPr(pr, journal.tete)
+      if (etat === 'fusionnee') return true
+      if (etat !== 'ouverte') return false
+      const file = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
+      return file.ok && ['armed', 'enqueued', 'merged'].includes(file.statut)
     },
     jouer(ctx, journal) {
       const lu = ctx.lirePr()
@@ -535,7 +590,18 @@ export const ETAPES = [
         pr = relu.ok ? prDeLaBranche(relu.prs, journal.tete) : null
         if (!pr) return { ok: false, raison: `PR de ${ctx.branche} créée mais illisible${relu.ok ? '' : ` : ${relu.raison}`}` }
       }
-      return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} ${pr.etat === 'fusionnee' ? 'déjà fusionnée' : `ouverte sur ${pr.tete?.slice(0, 9)}`}` }
+      const etat = etatDeLaPr(pr, journal.tete)
+      if (etat === 'fusionnee') return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} déjà fusionnée` }
+      if (etat !== 'ouverte') return { ok: false, raison: `PR #${pr.numero} : ${etat}, tête publiée ${journal.tete}` }
+      if (pr.conflit === true) return reprendreApresEjection(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` })
+      const issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
+      if (!issue.ok) {
+        const relu = ctx.lirePr()
+        const courante = relu.ok ? prDeLaBranche(relu.prs, journal.tete) : null
+        if (courante?.conflit === true) return reprendreApresEjection(ctx, journal, { raison: `PR #${courante.numero} en CONFLIT avec la base` })
+        return { ok: false, raison: `armement de la PR #${pr.numero} REFUSÉ : ${issue.raison}` }
+      }
+      return { ok: true, detail: { pr: pr.numero, armement: issue.statut }, dit: `PR #${pr.numero} : ${issue.statut} sur ${journal.tete.slice(0, 9)}` }
     },
   },
   {
@@ -561,7 +627,7 @@ export const ETAPES = [
       }
       const fusionnee = (pr, fusion) =>
         attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
-      // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
+      // #2626
       let demande = null
       // Le refus de la demande (`{pr, raison}`), en attente de la relecture de la PR : un conflit la
       // reprend, une PR propre le rend ; aucune nouvelle demande tant qu'il est posé.
@@ -588,6 +654,7 @@ export const ETAPES = [
           }
           const branche = issueDeBranche(brancheJugee(ctx, journal.tete), pr, journal.tete)
           if (branche?.raison) return attendu({ ok: false, detail: { pr: pr.numero }, raison: branche.raison })
+          if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
           // #2525
           if (pr.conflit === true) return attendu(reprendreApresEjection(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` }))
           if (refus) {
@@ -596,47 +663,28 @@ export const ETAPES = [
             patienter()
             continue
           }
-          let issue = null
-          if (!demande) {
-            if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
-            else {
-              issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
-              noterLeCompte(issue)
-              if (!issue.ok) {
-                refuser(pr, `demande de fusion de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}`)
-                continue
-              }
-              if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
-                return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
-              if (issue.statut === 'pending' && issue.deja)
-                ctx.journaliser(`[publier] file — demande DÉJÀ pendante (409) ${issue.uuid} sur la tête publiée : elle est suivie\n`)
-            }
-          } else if (demande.uuid) {
-            issue = ctx.lireFusion({ numero: pr.numero, sha: journal.tete, uuid: demande.uuid })
+          let issue = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
+          noterLeCompte(issue)
+          if (!issue.ok || issue.statut === 'anomalie')
+            return attendu({ ok: false, detail: { pr: pr.numero }, raison: `lecture de file de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}` })
+          if (!demande && !issue.statut) {
+            issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
             noterLeCompte(issue)
             if (!issue.ok) {
-              ctx.journaliser(`[publier] file — demande ${demande.uuid} illisible : ${issue.raison}\n`)
-              issue = null
+              refuser(pr, `demande de fusion de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}`)
+              continue
             }
           }
-          if (issue?.statut === 'merged') return fusionnee(pr, issue.fusion)
-          if (issue?.statut === 'failed') {
-            refuser(pr, `demande de fusion de la PR #${pr.numero} en ÉCHEC${sousLeCompte(issue)} : ${issue.message}`)
-            continue
-          }
-          if (!demande && (issue?.statut === 'pending' || issue?.statut === 'enqueued')) {
+          if (issue.statut === 'merged') return fusionnee(pr, issue.fusion)
+          if (!demande && ['armed', 'enqueued'].includes(issue.statut)) {
             const vues = ctx.coursesDeFile()
             if (vues.disponible) for (const id of coursesDeFileTerminees(vues.valeur, pr.numero)) ecartees.add(id)
             else ctx.journaliser(`[publier] file — courses de file illisibles à la demande : ${vues.raison}\n`)
           }
-          if (issue?.statut === 'pending') demande = { uuid: issue.uuid }
-          if (issue?.statut === 'enqueued') demande = { enFile: true }
+          if (issue.statut === 'enqueued') demande = { enFile: true }
+          if (issue.statut === 'armed') ctx.journaliser(`[publier] file — PR #${pr.numero} armée, GitHub attend les checks\n`)
           if (demande?.enFile) {
-            const file = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
-            noterLeCompte(file)
-            if (!file.ok || file.statut === 'anomalie')
-              return attendu({ ok: false, detail: { pr: pr.numero }, raison: `lecture de file de la PR #${pr.numero} REFUSÉE${sousLeCompte(file)} : ${file.raison}` })
-            if (file.statut === 'merged') return fusionnee(pr, file.fusion)
+            const file = issue
             const cause = causeDEjection(ctx, pr, journal.tete, ecartees, file.statut === 'enqueued')
             if (cause.attendre) ctx.journaliser(`[publier] file — PR #${pr.numero} : ${cause.dit}\n`)
             else if (cause.redemander) {
@@ -655,7 +703,7 @@ export const ETAPES = [
       if (refus) return attendu({ ok: false, detail: { pr: refus.pr }, raison: refus.raison })
       return attendu({
         indetermine: true,
-        raison: `aucune fusion en ${ctx.options.fileTimeoutMin} min pour ${journal.tete.slice(0, 9)} — \`--reprendre\` reprend l’attente (une nouvelle demande rend la demande pendante, 409, ou la file, 200)`,
+        raison: `aucune fusion en ${ctx.options.fileTimeoutMin} min pour ${journal.tete.slice(0, 9)} — \`--reprendre\` reprend l’observation de l’auto-merge et de la file`,
       })
     },
   },

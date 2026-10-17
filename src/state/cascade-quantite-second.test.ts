@@ -46,7 +46,7 @@ describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => 
     const h = hero();
     const st = quantityStep({ id: 'q', kind: 'mesure-quantite', label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 42 })!;
     expect(stepInteraction(st as CascadeStep)).toBe('quantite');
-    expect(stepReady(st as CascadeStep), 'un compteur n’a pas d’état vide').toBe(true);
+    expect(stepReady(st as CascadeStep, useGame.getState()), 'un compteur n’a pas d’état vide').toBe(true);
     expect((st as CascadeStep).amount).toBe(42);
     // Sans valeur d'ouverture déclarée : le minimum de la plage.
     expect((quantityStep({ id: 'q2', kind: 'mesure-quantite', label: fixtureText('C'), actorId: h.id, min: 5, max: 9 })! as CascadeStep).amount).toBe(5);

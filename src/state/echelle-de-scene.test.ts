@@ -29,7 +29,7 @@ const DIVISION = /\/\s*(?:opts\.mpt\b|mpt\b|MPT\b|metresPerTile\b|sceneMetresPer
 const RECOPIE = /metresPerTile\s*\?\?\s*2/;
 
 /**
- * Les 22 sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
+ * Les 21 sites DÉCLARÉS, chacun avec son RÔLE. Le texte est la ligne elle-même : il ne dérive pas
  * avec les numéros de ligne, et un site NEUF porte forcément un texte neuf — donc un rouge nominatif.
  */
 const SITES: readonly { fichier: string; texte: string; role: string }[] = [
@@ -52,7 +52,6 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'state/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },
 
   // ── LE MONDE NAVAL (portées de coque, en mètres au RAW)
-  { fichier: 'state/combatFlow.ts', texte: 'get().shipAdvance(ship.id, Math.max(1, Math.round(shipMaxPosteRange(ship) / mpt) || 1));', role: 'AVANCE d’un navire (portée de ses pièces, m) → cases' },
   { fichier: 'state/combatSlice.ts', texte: 'const gap = Math.max(1, Math.round(75 / mpt));', role: 'ÉCART de départ d’un combat naval (75 m, MDG 12 l.401) → cases' },
 
   // ── L'ARCHITECTURE et le RENDU

@@ -87,7 +87,7 @@ export const scenario: TestScenario = {
   tests:
     'Puissance de Bataille (ADE II 08) : Activités pré-combat, SITUATION par Round (sous-ensemble + menace ' +
     'Intrus qui s\'impose + enchaînements), Scènes MULTI-PJ en Soutien (Test OU combat qui nourrit la Puissance en ' +
-    'touches + kills), Rassemblement (Résistance), Test spectaculaire de Puissance (10 + DR, min 5), issue.',
+    'touches + kills), Rassemblement, Test spectaculaire de Puissance (10 + DR, min 5), issue.',
   partyNote: '4 pré-tirés (soldat, chasseur, sorcier, tueur)',
   // Interlude de 3 semaines AVANT la bataille : ses Activités (max 3 par héros, LDB 23) sont le budget
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.

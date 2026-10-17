@@ -27,7 +27,7 @@
 //   - ⛔ PAST-EOF (hors-fichier) : NE PAS doubler — déjà cliqueté par `check-refs.mjs`
 //     (`dead-refs-stock.json`), sur la borne HAUTE dépliée d'une plage (`span`), un sur-ensemble
 //     de la borne de départ vérifiée ici.
-import { writeFileSync } from 'node:fs'
+import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -446,7 +446,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
         for (const e of es) s = s.slice(0, e.start) + e.replacement + s.slice(e.end)
         lines[li] = s
       }
-      writeFileSync(path, lines.join('\n'))
+      ecrireDoc(path, lines.join('\n'))
     }
 
     if (rows.length) sections.push({ file, rows })

@@ -1,3 +1,4 @@
+// #1773, #2329, #2475, #2603
 import test from 'node:test'
 
 import assert from 'node:assert/strict'
@@ -5,21 +6,24 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 
 import { fileURLToPath, pathToFileURL } from 'node:url'
-
-import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-
-import { spawnSync } from 'node:child_process'
-
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-
-import { ciblesSurDisque, executer, genererCode, SOURCES_LUES } from '../docs/build-all.mjs'
-
+import { ciblesSurDisque, CODE_DIFFERE, CODE_SOURCE_MODIFIEE, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
-
-import { lotDuPostMerge, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
-
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { codeDeLaPasse, lotDuPostMerge, reconstruireApresGit, touchedFiles } from './docs-rebuild.mjs'
+import {
+  attendreLaReconstruction, cheminsDeLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, demandesDe, passeDesDerives, REJEUX_SUR_SOURCE_MODIFIEE,
+  servirLesDemandes,
+} from './reconstruction.mjs'
+import { pathspecsDeRequeteGit, selectionDesGenerateurs, touchesDocSources } from './selection-des-derives.mjs'
+import { couvertParPathspec } from '../guards/lib/lister.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
-
+import { estPidVivant } from '../test/verrou.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('#2285 callback docs : refus complet et commit ordinaire silencieux', () => {
@@ -33,13 +37,13 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
     const annonces = []
     let npm = 0
     let code = 0
-    let docs = 0
+    let demandes = 0
     const options = {
       cwd: racine, hook: 'post-commit', generateurs: [],
       annoncer: (texte) => annonces.push(texte),
       npm: () => { npm++; return { status: 1 } },
       code: () => { code++; assert.fail('code interdit') },
-      docs: () => { docs++; assert.fail('docs interdits') },
+      demander: () => { demandes++; assert.fail('demande interdite') },
     }
     const resultat = sousGitFeint([
       { si: ['rev-parse', 'HEAD^@'], status: 29, stdout, stderr },
@@ -48,10 +52,10 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
       { si: ['reflog', 'exists', 'HEAD'], status: 1, stdout: '', stderr: '' },
       { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
     ], () => reconstruireApresGit(options))
-    assert.equal(resultat, 1)
+    assert.deepEqual(resultat, { code: 1, seq: null })
     assert.equal(npm, 1)
     assert.equal(code, 0)
-    assert.equal(docs, 0)
+    assert.equal(demandes, 0)
     const lectures = annonces.filter((texte) => texte.startsWith('[post-commit] lecture Git indisponible : '))
     assert.deepEqual(lectures, ['[post-commit] lecture Git indisponible : refus (status 29) — ' + stderr + '\n' + stdout + '\n'])
     assert.equal(annonces.some((texte) => texte.includes('GARDE callback docs')), false)
@@ -61,10 +65,10 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
       { si: ['rev-parse', 'HEAD^@'], status: 0, stdout: 'b'.repeat(40) + '\n' },
       { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
     ], () => reconstruireApresGit(options))
-    assert.equal(ordinaire, 0)
+    assert.deepEqual(ordinaire, { code: 0, seq: null })
     assert.equal(npm, 0)
     assert.equal(code, 0)
-    assert.equal(docs, 0)
+    assert.equal(demandes, 0)
     assert.deepEqual(annonces, [])
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -84,14 +88,58 @@ test('une SOURCE LUE, une CIBLE signée, un dossier LISTÉ : les trois font rég
   assert.equal(touchesDocSources(['src\\ui\\Prose.tsx'], MESURE), true)
 })
 
-test('le FRÈRE d’une source lue fait régénérer ; un chemin sans parent mesuré, non', () => {
-  // `notes/lue.md` est mesurée : une voisine AJOUTÉE dans le même dossier alimente le même doc, et
-  // aucun générateur qui énumère sans lister ne le dirait autrement.
-  assert.equal(touchesDocSources(['notes/voisine.md'], MESURE), true)
+test('un FRÈRE simplement voisin d’une source lue ne fait pas régénérer ; la source elle-même, si', () => {
+  assert.equal(touchesDocSources(['notes/voisine.md'], MESURE), false)
   assert.equal(touchesDocSources(['public/x.svg'], MESURE), false)
-  // À la RACINE, le voisinage ne prouve rien : un fichier de racine n'est lu que s'il est mesuré.
   assert.equal(touchesDocSources(['README.md'], { 'g/a.mjs': { cibles: [], fichiers: ['package.json'], dossiers: [] } }), false)
   assert.equal(touchesDocSources(['package.json'], { 'g/a.mjs': { cibles: [], fichiers: ['package.json'], dossiers: [] } }), true)
+})
+
+// #2603
+test('un chemin SONDÉ absent, puis ajouté, fait régénérer ; un descendant d’un dossier sondé aussi', () => {
+  const mesure = { 'g/a.mjs': { cibles: [], fichiers: ['notes/lue.md'], dossiers: [], sondes: [
+    { chemin: 'notes/peut-etre.md', type: 'exists', existe: false, nature: null },
+    { chemin: 'cache', type: 'stat', existe: false, nature: null, code: 'ENOENT' },
+  ] } }
+  assert.equal(touchesDocSources(['notes/peut-etre.md'], mesure), true)
+  assert.equal(touchesDocSources(['cache/neuf/x.json'], mesure), true)
+  assert.equal(touchesDocSources(['notes/autre.md'], mesure), false)
+})
+
+// #2603
+test('un chemin couvert par le pathspec d’une requête `git` mesurée fait régénérer ; `rev-parse --show-toplevel` seul, non', () => {
+  const avecGit = (...git) => ({ 'g/a.mjs': { cibles: [], fichiers: [], dossiers: [], git } })
+  const lsFiles = avecGit({ args: ['ls-files', '.claude/memory/user-*.md'], cwd: '' })
+  assert.equal(touchesDocSources(['.claude/memory/user-neuve.md'], lsFiles), true)
+  assert.equal(touchesDocSources(['.claude/memory/feedback-x.md'], lsFiles), false)
+  const log = avecGit({ args: ['log', '--diff-filter=A', '--format=%as', '-1', '--', 'x/fiche.md'], cwd: 'notes' })
+  assert.equal(touchesDocSources(['notes/x/fiche.md'], log), true)
+  assert.equal(touchesDocSources(['notes/x/voisine.md'], log), false)
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['rev-parse', '--show-toplevel'], cwd: '' })), false)
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['status', '--short'], cwd: '' })), true, 'sans pathspec, la requête dépend de tout l’arbre')
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['ls-files', '-x', 'a', 'b'], cwd: '' })), true, 'une option à valeur rend la portée illisible')
+})
+
+// #2603
+test('pathspecsDeRequeteGit : après `--`, sinon les non-options de `ls-files`, relatifs au cwd ; `null` quand la portée est illisible', () => {
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['rev-parse', '--show-toplevel'], cwd: '' }), [])
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['ls-files', '-z', 'a/*.md', 'b'], cwd: 'sous' }), ['sous/a/*.md', 'sous/b'])
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['log', '-1', '--', '.'], cwd: '' }), [''])
+  assert.equal(pathspecsDeRequeteGit({ args: ['log', '-1'], cwd: '' }), null)
+  assert.equal(pathspecsDeRequeteGit({ args: ['ls-files', ':(glob)a/**'], cwd: '' }), null)
+  for (const [args, lot] of [
+    [['ls-files', '--others', '--exclude-standard', 'notes'], 'notes/.gitignore'],
+    [['ls-files', '--exclude-from=.gitignore', '--ignored', '--others', 'notes'], '.gitignore'],
+    [['check-ignore', '--', 'notes/a.md'], '.gitignore'],
+    [['check-attr', 'diff', '--', 'notes/a.md'], '.gitattributes'],
+    [['log', '--follow', '--format=%H', '--', 'notes/a.md'], 'notes/ancien.md'],
+    [['log', '-M', '--diff-filter=A', '--', 'notes/a.md'], 'notes/ancien.md'],
+  ]) {
+    assert.equal(pathspecsDeRequeteGit({ args, cwd: '' }), null, `${args.join(' ')} : sa sortie dépend d’un fichier hors pathspec`)
+    assert.equal(touchesDocSources([lot], { 'g/a.mjs': { cibles: [], fichiers: [], dossiers: [], git: [{ args, cwd: '' }] } }), true, lot)
+  }
+  assert.equal(couvertParPathspec('a/b/c.md', 'a/*.md'), true, 'le `*` de Git franchit `/`')
+  assert.equal(couvertParPathspec('ab/c.md', 'a'), false)
 })
 
 test('FAIL-CLOSED : lot inconnu ou mesure illisible → on régénère ; lot vide → silence', () => {
@@ -126,6 +174,20 @@ test('`seulement` : un membre SANS entrée dans la mesure fait régénérer (fer
 
 test('`seulement` : un chemin hors de toute source du périmètre ne fait pas régénérer', () => {
   assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+})
+
+// #2603
+test('frontière d’outillage : un module importé par un générateur entre dans sa mesure, sélection partielle ; un module préchargé périme tout', () => {
+  const scripts = ['scripts/gen-formats.mjs', 'scripts/raw/build-catalogs.mjs']
+  const generateurs = GENERATORS.filter((g) => scripts.includes(g.script))
+  const rendues = mesurerEnRendu(scripts, { cwd: RACINE })
+  const mesure = tableTotale(scripts, (script) => rendues.get(script).entree)
+  assert.deepEqual(scripts.filter((script) => mesure[script].fichiers.includes('scripts/guards/lib/gitPorte.mjs')), ['scripts/raw/build-catalogs.mjs'])
+  const lecteurs = selectionDesGenerateurs({ lot: ['scripts/guards/lib/gitPorte.mjs'], mesure, cwd: RACINE, generateurs })
+  assert.deepEqual([lecteurs.complete, lecteurs.raison], [false, 'sources mesurées et préalables'])
+  assert.ok(lecteurs.scripts.includes('scripts/raw/build-catalogs.mjs'), lecteurs.scripts.join(', '))
+  assert.deepEqual(selectionDesGenerateurs({ lot: ['src/lib/ordre.mjs'], mesure, cwd: RACINE, generateurs }),
+    { scripts, complete: true, raison: 'graphe ou outil de mesure modifié' })
 })
 
 test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (`null`, on régénère), jamais vide', () => {
@@ -172,8 +234,8 @@ test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’in
     assert.equal(resultatDeGit(['merge', '--no-commit', '--no-ff', 'lock'], { cwd: racine }).status, 0)
     const npm = []
     const rendu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {},
-      npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, docs: () => {} })
-    assert.equal(rendu, 0)
+      npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, demander: () => 1 })
+    assert.deepEqual(rendu, { code: 0, seq: 1 })
     assert.deepEqual(npm, ['ci --no-audit --no-fund'], 'le lockfile apporté par la fusion en cours relance npm ci')
     git('commit', '-q', '-m', 'fusion lock')
     assert.deepEqual(lotDuPostMerge(racine), ['package-lock.json'], 'contre-témoin : hors fusion, ORIG_HEAD..HEAD')
@@ -198,7 +260,7 @@ test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’empor
   const mesure = { 'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: [], cibles: ['docs/a.md'] } }
   const npm = []
   const posterieur = (avant) => reconstruireApresGit({ cwd: racine, hook: 'post-merge', avant, generateurs, annoncer: () => {},
-    npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, docs: () => {} })
+    npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, demander: () => 1 }).code
   try {
     git('switch', '-q', '-c', 'cote')
     commit({ 'notes/a.txt': 'cote\n', 'package-lock.json': '{"cote":true}\n' }, 'cote')
@@ -224,14 +286,16 @@ test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’empor
   }
 })
 
-test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout ses deux HEAD, post-merge son drapeau squash', () => {
+test('CÂBLAGE : chaque post-hook lance UN processus, docs-rebuild.mjs, avec son NOM ; post-checkout ses deux HEAD, post-merge son drapeau squash', () => {
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
   assert.match(lire('post-merge'), /^exec "\$\{npm_node_execpath:-node\}" "\$\(dirname "\$0"\)\/docs-rebuild\.mjs" post-merge "\$1"$/m, 'post-merge rend le code de docs-rebuild tel quel')
-  for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
-  assert.match(lire('post-commit'), /docs-rebuild\.mjs" post-commit /)
+  for (const hook of ['post-commit', 'post-merge', 'post-rewrite', 'post-checkout']) {
+    const lancements = lire(hook).split('\n').filter((ligne) => !ligne.startsWith('#') && ligne.includes('npm_node_execpath'))
+    assert.equal(lancements.length, 1, `${hook} : ${lancements.join(' | ')}`)
+    assert.match(lancements[0], new RegExp(`/docs-rebuild\\.mjs" ${hook}( |$)`), hook)
+  }
 })
-
 test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans doc frère général', () => {
   const doc = (nom) => ['docs', `${nom}.md`].join('/')
   const { racine } = instanceDeDepot({ fichiers: { [doc('a')]: 'a', [doc('b')]: 'b', [doc('c')]: 'c', 'src/code.gen.ts': 'code' } })
@@ -244,7 +308,7 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
   const mesure = {
     'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
     'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: ['notes'], cibles: [doc('a')] },
-    'g/b.mjs': { fichiers: [doc('a')], dossiers: [], cibles: [doc('b')] },
+    'g/b.mjs': { fichiers: [doc('a'), 'lus/b.txt'], dossiers: [], cibles: [doc('b')] },
     'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: [doc('c')] },
   }
   const selection = (lot, m = mesure) => selectionDesGenerateurs({ lot, mesure: m, cwd: racine, generateurs })
@@ -254,7 +318,11 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
     assert.deepEqual(selection([doc('a')]).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection(['public/independent.svg']).scripts, [])
     const mixte = [{ ...generateurs[1], targets: [], injecte: [doc('a')] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
-    assert.ok(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts.includes('g/code.mjs'))
+    assert.deepEqual(selection(['lus/b.txt']).scripts, ['g/b.mjs'], 'un lecteur retenu ne tire pas son producteur aux sources intactes')
+    assert.deepEqual(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/b.mjs'],
+      'un mixte retenu seul ne tire pas les générateurs de code')
+    assert.deepEqual(selectionDesGenerateurs({ lot: ['data/code.json'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/code.mjs', 'g/b.mjs'],
+      'témoin : un générateur de code retenu tire les mixtes (#2193)')
     assert.equal(selection(null).complete, true)
     assert.equal(selection(['notes/a.txt'], { 'g/a.mjs': mesure['g/a.mjs'] }).complete, true)
     assert.equal(selection(['scripts/docs/lib/enregistreur-lectures.mjs']).complete, true)
@@ -267,6 +335,7 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
 
 test('post-commit réel : fusion automatique unique, conflit résolu, amend lock/message et reflog inconnu', () => {
   const module = pathToFileURL(join(RACINE, 'scripts/git-hooks/docs-rebuild.mjs')).href
+  const miroirs = pathToFileURL(join(RACINE, 'scripts/git-hooks/miroirs-d-agents.mjs')).href
   for (const conflit of [false, true]) {
     const { racine } = instanceDeDepot({ fichiers: {
       '.gitignore': 'hooks-fixture/\nnode_modules/\n', 'commun.txt': 'base\n', 'main.txt': 'base\n', 'package-lock.json': '{}\n',
@@ -298,18 +367,21 @@ test('post-commit réel : fusion automatique unique, conflit résolu, amend lock
       const harnais = join(racine, 'hooks-fixture', 'docs-rebuild.mjs')
       writeFileSync(harnais, [
         `import { reconstruireApresGit } from ${JSON.stringify(module)}`,
+        `import { jouerLesMiroirs } from ${JSON.stringify(miroirs)}`,
         "import { appendFileSync, readFileSync } from 'node:fs'",
         `const journal = ${JSON.stringify(journal)}`,
         "const hook = process.argv[2]",
         "appendFileSync(journal, hook + '\\n')",
+        "await jouerLesMiroirs(hook)",
         `process.exitCode = reconstruireApresGit({cwd:${JSON.stringify(racine)}, hook, generateurs: [],`,
         "npm: (_cmd,args) => { appendFileSync(journal, 'npm:' + args.join(' ') + '\\n'); let status=0; try {status=Number(readFileSync('.git/npm-status','utf8'))} catch {} return {status} },",
-        "code: () => { appendFileSync(journal,'code\\n'); return 0 }, docs: () => {appendFileSync(journal,'docs\\n')} })",
+        "code: () => { appendFileSync(journal,'code\\n'); return 0 }, demander: () => { appendFileSync(journal,'demande\\n'); return 1 } }).code",
       ].join('\n'))
       git('config', 'core.hooksPath', 'hooks-fixture')
       vider()
       const merge = resultatDeGit(['merge', '--no-ff', 'cote', '-m', 'fusion'], { cwd: racine })
       assert.equal(merge.status, conflit ? 1 : 0, `${merge.stdout}${merge.stderr}`)
+      assert.deepEqual(merge.stderr.split(/\r?\n/).filter((l) => l && (!l.startsWith('[post-') || /NON produit|édité à la main/.test(l))), [], 'toute ligne de stderr est celle d’un post-hook, et aucune n’est un échec des miroirs')
       if (conflit) {
         assert.deepEqual(lire(), [])
         ecrireCommit('commun.txt', 'resolu\n', 'fusion manuelle')
@@ -346,7 +418,6 @@ test('post-commit réel : fusion automatique unique, conflit résolu, amend lock
     } finally { rmSync(racine, { recursive: true, force: true }) }
   }
 })
-
 function fusionReelle(fichiersAvant, fichiersApres) {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'node_modules/\n', ...fichiersAvant } })
   const git = gitDe(racine)
@@ -375,13 +446,13 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
   try {
     assert.deepEqual(lot, ['package-lock.json'])
     const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte),
-      code: () => { generations++; return 0 }, docs: () => { generations++ },
+      code: () => { generations++; return 0 }, demander: () => { generations++; return 1 },
       npm: (cmd, args, opts) => {
         assert.match(sorties.at(-1), /npm ci — début/)
         return spawnSync(cmd, args, { ...opts, stdio: 'pipe', encoding: 'utf8' })
       },
     })
-    assert.equal(vu, 1)
+    assert.deepEqual(vu, { code: 1, seq: null })
     assert.equal(generations, 0)
     assert.match(sorties.join(''), /équipement incomplet : relancer `npm ci`/)
     assert.match(sorties.join(''), /npm ci — fin \(\d+ ms\)/)
@@ -406,13 +477,13 @@ test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pen
   const pendant = []
   try {
     assert.deepEqual(lot, ['package-lock.json'])
-    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {}, code: () => 0, docs: () => {},
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {}, code: () => 0, demander: () => 1,
       npm: () => {
         pendant.push(hookDOutil())
         return { status: 0 }
       },
     })
-    assert.equal(vu, 0)
+    assert.deepEqual(vu, { code: 0, seq: 1 })
     assert.equal(pendant.length, 1, 'un seul npm ci')
     assert.equal(pendant[0].status, 2, pendant[0].stderr)
     assert.match(pendant[0].stderr, /outillage de .* en mise à jour : verrou .*outillage\.verrou tenu par le PID \d+ \(docs-rebuild post-merge\)/)
@@ -424,22 +495,44 @@ test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pen
   }
 })
 
-test('fusion server seule : installer avant passe attestée ; lot sans lockfile : aucun npm ; rouge arrête docs', () => {
+test('fusion server seule : `npm ci` server, cibles de CODE, puis la demande ; lot sans lockfile : code puis demande ; code rouge : aucune demande', () => {
   for (const server of [true, false]) {
     const avant = server ? { 'server/package-lock.json': '{}', 'package-lock.json': '{}' } : { 'a.txt': 'a' }
     const apres = server ? { 'server/package-lock.json': '{}\n' } : { 'a.txt': 'b' }
     const { racine } = fusionReelle(avant, apres)
     const gestes = []
+    const options = { cwd: racine, hook: 'post-merge', annoncer: () => {},
+      npm: (_cmd, args) => { gestes.push(args.join(' ')); return { status: 0 } },
+      demander: () => { gestes.push('demande'); return 7 },
+    }
     try {
-      const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {},
-        npm: (_cmd, args) => { gestes.push(args.join(' ')); return { status: 0 } },
-        docs: (_cmd, args) => { gestes.push(args.slice(1).join(' ')); throw new Error('rouge réel de la passe') },
-      })
-      assert.equal(vu, 1)
-      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', '--perimes'] : ['--perimes'])
+      assert.deepEqual(reconstruireApresGit({ ...options, code: () => { gestes.push('code'); return 0 } }), { code: 0, seq: 7 })
+      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', 'code', 'demande'] : ['code', 'demande'])
+      gestes.length = 0
+      assert.deepEqual(reconstruireApresGit({ ...options, code: () => { gestes.push('code'); return 1 } }), { code: 1, seq: null })
+      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', 'code'] : ['code'])
     } finally {
       rmSync(racine, { recursive: true, force: true })
     }
+  }
+})
+
+test('#2603 — le hook DEMANDE la passe sans la jouer : demande inscrite, un détaché `--servir` lancé, attestation laissée périmée', () => {
+  const { racine } = fusionReelle({ 'a.txt': 'a' }, { 'a.txt': 'b' })
+  const lances = []
+  const sorties = []
+  try {
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), code: () => 0,
+      npm: () => assert.fail('aucun lockfile au lot'),
+      demander: (cwd) => demanderLaReconstruction(cwd, { detacher: (opts) => { lances.push(opts); return 4242 } }),
+    })
+    assert.deepEqual(vu, { code: 0, seq: 1 })
+    assert.deepEqual(lances, [{ script: join(RACINE, 'scripts', 'git-hooks', 'reconstruction.mjs'), args: ['--servir'], cwd: racine, fdLog: 'ignore' }])
+    assert.equal(demandesDe(racine), 1)
+    assert.match(sorties.join(''), /reconstruction en fond, demande 1/)
+    assert.equal(preuveValide(racine, { generateurs: GENERATORS, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, false)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 
@@ -447,19 +540,19 @@ test('racine installée : postinstall suffit pour le code ; ORIG_HEAD inconnu et
   const { racine } = fusionReelle({ 'package-lock.json': '{}' }, { 'package-lock.json': '{}\n' })
   const sorties = []
   let code = 0
-  let docs = 0
+  const demander = () => assert.fail('aucune demande')
   try {
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs: [], annoncer: (texte) => sorties.push(texte),
-      npm: () => ({ status: 0 }), code: () => { code++; return 0 }, docs: () => { docs++ },
-    }), 0)
-    assert.deepEqual([code, docs], [0, 0])
+    assert.deepEqual(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs: [], annoncer: (texte) => sorties.push(texte),
+      npm: () => ({ status: 0 }), code: () => { code++; return 0 }, demander,
+    }), { code: 0, seq: null })
+    assert.equal(code, 0)
     const git = gitDe(racine)
     git('update-ref', '-d', 'ORIG_HEAD')
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), npm: () => ({ status: 1 }), code: () => { code++; return 0 } }), 1)
+    assert.deepEqual(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), npm: () => ({ status: 1 }), code: () => { code++; return 0 }, demander }), { code: 1, seq: null })
     assert.match(sorties.join(''), /plage Git inconnue/)
     git('update-ref', 'ORIG_HEAD', 'HEAD~1')
     rmSync(join(racine, 'package-lock.json'))
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), code: () => { code++; return 0 } }), 1)
+    assert.deepEqual(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), code: () => { code++; return 0 }, demander }), { code: 1, seq: null })
     assert.match(sorties.join(''), /lockfile package-lock.json absent/)
     assert.equal(code, 0)
   } finally {
@@ -472,28 +565,38 @@ test('checkout neuf : ancien SHA nul et cache absent seuls dispensent de répét
   const sorties = []
   const gestes = []
   const options = { cwd: racine, hook: 'post-checkout', apres: 'a'.repeat(40), annoncer: (texte) => sorties.push(texte),
-    npm: () => { gestes.push('npm'); return { status: 1 } }, code: () => { gestes.push('code'); return 0 }, docs: () => { gestes.push('docs') },
+    npm: () => { gestes.push('npm'); return { status: 1 } }, code: () => { gestes.push('code'); return 0 }, demander: () => { gestes.push('demande'); return 1 },
   }
   try {
-    assert.equal(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), 0)
+    assert.deepEqual(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), { code: 0, seq: null })
     assert.deepEqual(gestes, [])
     assert.match(sorties.join(''), /worktree neuf.*npm ci.*npm --prefix server ci.*docs:build/)
     for (const avant of ['inconnu', 'b'.repeat(40)]) {
       gestes.length = 0
-      assert.equal(reconstruireApresGit({ ...options, avant }), 1)
+      assert.deepEqual(reconstruireApresGit({ ...options, avant }), { code: 1, seq: null })
       assert.deepEqual(gestes, ['npm'])
     }
     mkdirSync(join(racine, 'docs'))
     writeFileSync(join(racine, 'docs/.sources-lues.json'), '{}')
     gestes.length = 0
-    assert.equal(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), 1)
+    assert.deepEqual(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), { code: 1, seq: null })
     assert.deepEqual(gestes, ['npm'])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
-test('checkout existant sans mesure : génération attestée puis second checkout silencieux', () => {
+/** La demande d'un hook SANS détaché : le banc sert lui-même la passe (`servirAvec`). */
+const demanderSansDetache = (cwd) => demanderLaReconstruction(cwd, { detacher: () => process.pid })
+
+/** Les demandes de `racine` servies dans ce processus, la passe jugée sur `generateurs` et construite par
+ *  `construire` ; ce qu'elle écrit au journal part aussi dans `annonces`. REND le nombre de passes. */
+const servirAvec = (racine, { generateurs, construire, annonces = [] }) => servirLesDemandes({
+  racine,
+  passe: (p) => passeDesDerives({ ...p, generateurs, construire, ecrire: (texte) => { annonces.push(texte); p.ecrire(texte) } }),
+})
+
+test('checkout existant sans mesure : la passe servie génère et atteste, la suivante est silencieuse', () => {
   const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const cible = ['docs', 'checkout.md'].join('/')
   const generateurs = [{ runner: 'node', script: 'g/checkout.mjs', targets: [cible] }]
@@ -508,24 +611,28 @@ test('checkout existant sans mesure : génération attestée puis second checkou
   git('worktree', 'add', '-q', '-b', 'chantier/checkout', worktree, 'HEAD')
   mkdirSync(join(worktree, 'docs'))
   const appels = []
+  const construire = (cwd) => {
+    appels.push(cwd)
+    return executer({ cwd, argv: ['--quiet', '--perimes'], generateurs, verificateurs: [] })
+  }
   const options = { cwd: worktree, hook: 'post-checkout', avant: head, apres: head, generateurs,
-    annoncer: () => {}, npm: () => assert.fail('aucun équipement'),
-    docs: (_cmd, args) => {
-      appels.push(args.slice(1))
-      assert.equal(executer({ cwd: worktree, argv: ['--quiet', ...args.slice(1)], generateurs, verificateurs: [] }), 0)
-    },
+    annoncer: () => {}, npm: () => assert.fail('aucun équipement'), code: () => assert.fail('aucune cible de code'), demander: demanderSansDetache,
   }
   try {
-    assert.equal(reconstruireApresGit(options), 0)
-    assert.deepEqual(appels, [['--perimes']])
+    assert.deepEqual(reconstruireApresGit(options), { code: 0, seq: 1 })
+    assert.deepEqual(appels, [], 'le hook ne joue pas la passe')
+    assert.equal(servirAvec(worktree, { generateurs, construire }), 1)
+    assert.deepEqual(appels, [worktree])
     assert.equal(readFileSync(join(worktree, cible), 'utf8'), 'source réelle')
     assert.equal(preuveValide(worktree, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
-    assert.equal(reconstruireApresGit(options), 0)
+    assert.deepEqual(reconstruireApresGit(options), { code: 0, seq: 2 })
+    assert.equal(servirAvec(worktree, { generateurs, construire }), 1)
     assert.equal(appels.length, 1)
+    assert.deepEqual(attendreLaReconstruction(worktree, 2, { echeanceMs: 0 }).code, 0)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE indépendant intact', () => {
+test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, CODE synchrone si et seulement si la sélection le contient', () => {
   const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const module = pathToFileURL(join(RACINE, 'scripts/docs/build-all.mjs')).href
   const doc = (nom) => ['docs', `${nom}.md`].join('/')
@@ -560,6 +667,9 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
     assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
     return { ms: Math.round(performance.now() - debut), compte: (vu.stderr.match(/— début/g) ?? []).length }
   }
+  const hook = (nom, injections) => reconstruireApresGit({ cwd: racine, hook: nom, generateurs, annoncer: () => {}, demander: demanderSansDetache, ...injections })
+  const servir = (construire, annonces = []) => servirAvec(racine, { generateurs, construire, annonces })
+  const codeDuBanc = (cwd) => genererCode({ cwd, generateurs, quiet: true })
   try {
     const complet = jouer()
     git('add', 'docs', 'notes', 'scripts', 'g', 'src', 'commun.txt', '.gitignore')
@@ -578,19 +688,16 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
     const journal = readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8')
     const annonces = []
     let partiel
-    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: (texte) => annonces.push(texte),
-      docs: (_cmd, args) => { partiel = jouer(args.slice(1)) },
-    })
-    assert.equal(vu, 0)
+    assert.equal(hook('post-merge', { code: () => assert.fail('aucune source de code au lot') }).code, 0)
+    assert.equal(servir(() => { partiel = jouer(['--perimes']); return 0 }, annonces), 1)
     assert.deepEqual([complet.compte, partiel.compte], [4, 2])
     assert.equal(statSync(join(racine, cible('code'))).mtimeMs, codeAvant)
     assert.equal(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'), journal)
     assert.equal(readFileSync(join(racine, doc('c')), 'utf8'), independant)
     assert.match(readFileSync(join(racine, doc('b')), 'utf8'), /a modifié/)
     assert.match(annonces.join(''), /attestation périmée.*g\/a\.mjs.*sources différentes/)
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
-      annoncer: () => {}, docs: () => assert.fail('fusion déjà attestée'),
-    }), 0)
+    assert.equal(hook('post-commit', { code: () => assert.fail('fusion déjà attestée') }).code, 0)
+    servir(() => assert.fail('fusion déjà attestée'))
     for (const nonPertinent of [false, true]) {
       git('update-ref', 'ORIG_HEAD', 'HEAD')
       if (nonPertinent) {
@@ -600,20 +707,17 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
         git('commit', '-q', '-m', 'source non pertinente')
       }
       const gestes = []
-      assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs,
-        annoncer: () => {}, npm: () => { gestes.push('npm') }, code: () => { gestes.push('code') }, docs: () => { gestes.push('docs') },
-      }), 0)
+      assert.equal(hook('post-merge', { npm: () => { gestes.push('npm') }, code: () => { gestes.push('code') } }).code, 0)
       assert.deepEqual(gestes, [])
+      servir(() => assert.fail('source non pertinente'))
     }
     git('update-ref', 'ORIG_HEAD', 'HEAD')
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
-      annoncer: () => {}, npm: () => assert.fail('équipement ordinaire'), docs: () => assert.fail('attestation ordinaire fraîche'),
-    }), 0)
+    assert.equal(hook('post-commit', { npm: () => assert.fail('équipement ordinaire'), code: () => assert.fail('commit ordinaire') }).code, 0)
+    servir(() => assert.fail('attestation ordinaire fraîche'))
     writeFileSync(join(racine, source('c')), 'c hors lot')
     let horsLot
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
-      annoncer: () => {}, npm: () => assert.fail('équipement ordinaire périmé'), docs: (_cmd, args) => { horsLot = jouer(args.slice(1)) },
-    }), 0)
+    assert.equal(hook('post-commit', { npm: () => assert.fail('équipement ordinaire périmé'), code: () => assert.fail('source hors lot') }).code, 0)
+    servir(() => { horsLot = jouer(['--perimes']); return 0 })
     assert.equal(horsLot.compte, 1)
     assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /c hors lot/)
     writeFileSync(join(racine, 'notes/code/source.txt'), 'code modifié')
@@ -621,35 +725,307 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
     git('commit', '-q', '-m', 'source code')
     git('update-ref', 'ORIG_HEAD', 'HEAD~1')
     const ordre = []
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {},
-      docs: (_cmd, args) => {
-        ordre.push(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'))
-        jouer(args.slice(1))
-      },
-    }), 0)
-    assert.equal(ordre[0], journal)
-    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/)
+    assert.equal(hook('post-merge', { code: (cwd) => { ordre.push('code'); return codeDuBanc(cwd) } }).code, 0)
+    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/, 'le hook rend la main la cible de CODE écrite')
+    assert.match(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'), new RegExp(`^${journal}ecriture\n`))
+    servir(() => { ordre.push('passe'); jouer(['--perimes']); return 0 })
+    assert.deepEqual(ordre, ['code', 'passe'])
     writeFileSync(join(racine, 'package-lock.json'), '{}')
     git('add', 'package-lock.json')
     git('commit', '-q', '-m', 'lockfile toolchain')
     git('update-ref', 'ORIG_HEAD', 'HEAD~1')
     const annoncesLock = []
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: (texte) => annoncesLock.push(texte),
+    assert.equal(hook('post-merge', {
       npm: () => {
         writeFileSync(join(racine, 'node_modules/dependency-value.txt'), 'DEPENDANCE2')
-        return { status: genererCode({ cwd: racine, generateurs, quiet: true }) }
+        return { status: codeDuBanc(racine) }
       },
       code: () => { throw new Error('postinstall ne doit pas être doublé') },
-      docs: (_cmd, args) => { jouer(args.slice(1)) },
-    }), 0)
+    }).code, 0)
+    servir(() => { jouer(['--perimes']); return 0 }, annoncesLock)
     assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /DEPENDANCE2/)
     assert.match(annoncesLock.join(''), /attestation périmée/)
     git('update-ref', 'ORIG_HEAD', 'HEAD')
     rmSync(join(racine, cible('code')))
-    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {}, docs: (_cmd, args) => { jouer(args.slice(1)) } }), 0)
-    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/)
+    assert.equal(hook('post-merge', { code: codeDuBanc }).code, 0)
+    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/, 'cible absente : la sélection est complète, le CODE est synchrone')
+    servir(() => { jouer(['--perimes']); return 0 })
     console.log(JSON.stringify({ banc2329: 'hook-fusion-source', avant: complet, apres: partiel, sorties: annonces }))
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+/** Un dépôt jetable, sa reconstruction vierge. */
+const depotDeReconstruction = () => instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } }).racine
+
+/** L'état de la reconstruction de `racine`, lu sur disque. */
+const etatDe = (racine) => JSON.parse(readFileSync(cheminsDeLaReconstruction(racine).etat, 'utf8'))
+
+// #2603
+test('(b) coalescence : 3 demandes pendant une passe donnent 2 passes, et `soldees === demandes`', () => {
+  const racine = depotDeReconstruction()
+  let lances = 0
+  const demander = () => demanderLaReconstruction(racine, { detacher: () => { lances++; return process.pid } })
+  const cibles = []
+  try {
+    demander()
+    const passes = servirLesDemandes({ racine, passe: () => {
+      cibles.push(demandesDe(racine))
+      if (cibles.length === 1) for (let i = 0; i < 3; i++) demander()
+      return 0
+    } })
+    assert.equal(passes, 2)
+    assert.deepEqual(cibles, [1, 4])
+    const etat = etatDe(racine)
+    assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [4, 4, 4, 0])
+    assert.equal(lances, 4, 'chaque demande lance un détaché')
+    assert.deepEqual(etat.lances, [], 'le servant se retire de `lances` en sortant')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('F2 : une passe en `CODE_SOURCE_MODIFIEE` puis 0 se solde à 0, en deux passes', () => {
+  const racine = depotDeReconstruction()
+  const codes = [CODE_SOURCE_MODIFIEE, 0]
+  try {
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    assert.equal(servirLesDemandes({ racine, passe: () => codes.shift() }), 2)
+    const etat = etatDe(racine)
+    assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [1, 1, 1, 0])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('F2 : une source modifiée à chaque passe se solde, à la borne, de `CODE_SOURCE_MODIFIEE`', () => {
+  const racine = depotDeReconstruction()
+  try {
+    demanderLaReconstruction(racine, { detacher: () => process.pid })
+    assert.equal(servirLesDemandes({ racine, passe: () => CODE_SOURCE_MODIFIEE }), REJEUX_SUR_SOURCE_MODIFIEE + 1)
+    const etat = etatDe(racine)
+    assert.deepEqual([etat.demandes, etat.soldees, etat.dernier.seq, etat.dernier.code], [1, 1, 1, CODE_SOURCE_MODIFIEE])
+    assert.notEqual(CODE_SOURCE_MODIFIEE, CODE_DIFFERE)
+    assert.notEqual(CODE_SOURCE_MODIFIEE, 1)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('(c) réveil : une demande faite pendant qu’un tenant vit encore lance quand même un détaché, qui la sert après lui', async () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  mkdirSync(chemins.logs, { recursive: true })
+  const pris = join(racine, '.git', 'tenant-pris')
+  const liberer = join(racine, '.git', 'tenant-libere')
+  const verrou = pathToFileURL(join(RACINE, 'scripts/test/verrou.mjs')).href
+  const tenant = spawn(process.execPath, ['--input-type=module', '-e', [
+    `import { prendreVerrou } from ${JSON.stringify(verrou)}`,
+    "import { existsSync, writeFileSync } from 'node:fs'",
+    `const prise = prendreVerrou({ chemin: ${JSON.stringify(chemins.verrou)}, libelle: 'tenant du banc', commande: 'banc', cwd: ${JSON.stringify(racine)} })`,
+    `writeFileSync(${JSON.stringify(pris)}, prise.etat)`,
+    'const fin = Date.now() + 30_000',
+    `while (!existsSync(${JSON.stringify(liberer)}) && Date.now() < fin) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20)`,
+    'prise.liberer()',
+  ].join('\n')], { stdio: 'ignore' })
+  const sortie = once(tenant, 'exit')
+  try {
+    const fin = Date.now() + 30_000
+    while (!existsSync(pris) && Date.now() < fin) attendreSync(20)
+    assert.equal(readFileSync(pris, 'utf8'), 'pris')
+    const lances = []
+    assert.equal(demanderLaReconstruction(racine, { detacher: (opts) => { lances.push(opts.args); return process.pid } }), 1)
+    assert.deepEqual(lances, [['--servir']], 'un tenant vivant ne dispense pas de lancer')
+    writeFileSync(liberer, '')
+    assert.equal(servirLesDemandes({ racine, passe: () => 0 }), 1)
+    assert.deepEqual([etatDe(racine).demandes, etatDe(racine).soldees], [1, 1])
+  } finally {
+    writeFileSync(liberer, '')
+    await sortie
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('(e) fenêtre de lancement : le hook a rendu la main, le détaché n’a pas encore pris son verrou — l’attente le voit EN COURS', () => {
+  const racine = depotDeReconstruction()
+  const vivants = new Set([4242])
+  const estVivant = (pid) => vivants.has(pid)
+  try {
+    assert.equal(demanderLaReconstruction(racine, { detacher: () => 4242 }), 1)
+    assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 50, pasMs: 10, estVivant }), { etat: 'en-cours' })
+    assert.equal(servirLesDemandes({ racine, passe: () => 0, estVivant }), 1)
+    const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 0, estVivant })
+    assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 1, 0])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('(f) mort sans verdict : ni tenant ni lancé vivant, demande non soldée — code nommé, journal du dernier lancé', () => {
+  const racine = depotDeReconstruction()
+  try {
+    demanderLaReconstruction(racine, { detacher: () => 4243 })
+    const vu = attendreLaReconstruction(racine, 1, { echeanceMs: 500, pasMs: 10, estVivant: () => false })
+    assert.deepEqual(vu, { etat: 'mort', code: CODE_MORT_SANS_VERDICT, log: join(cheminsDeLaReconstruction(racine).logs, '4243.log') })
+    assert.equal(codeDeLaPasse(vu), CODE_MORT_SANS_VERDICT)
+    assert.equal(codeDeLaPasse({ etat: 'en-cours' }), CODE_DIFFERE)
+    assert.equal(codeDeLaPasse({ etat: 'soldee', code: 3 }), 3)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('(i) le détaché de la reconstruction naît sans `GIT_INDEX_FILE` ni jeton de verrou, sur les deux plateformes', () => {
+  const racine = depotDeReconstruction()
+  const avant = { GIT_INDEX_FILE: process.env.GIT_INDEX_FILE, WFRP_VERROU_BANC: process.env.WFRP_VERROU_BANC }
+  process.env.GIT_INDEX_FILE = '.git/index'
+  process.env.WFRP_VERROU_BANC = 'jeton'
+  try {
+    for (const plateforme of ['linux', 'win32']) {
+      const envs = []
+      demanderLaReconstruction(racine, { detacher: (opts) => lancerDetache({ ...opts, plateforme,
+        detacher: (_node, _argv, options) => { envs.push(options.env); return { pid: 4244, unref: () => {} } },
+        executerSync: (_cmd, _args, options) => { envs.push(options.env); return { stdout: '4244\n', stderr: '' } },
+      }) })
+      assert.equal(envs.length, 1, plateforme)
+      assert.deepEqual(['GIT_INDEX_FILE' in envs[0], 'WFRP_VERROU_BANC' in envs[0], envs[0].PATH === process.env.PATH], [false, false, true], plateforme)
+    }
+  } finally {
+    for (const [cle, valeur] of Object.entries(avant)) {
+      if (valeur === undefined) delete process.env[cle]
+      else process.env[cle] = valeur
+    }
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+/** Les détachés `pids` attendus jusqu'à leur fin, bornée : REND ceux encore vivants à l'échéance. */
+function attendreLesDetaches(pids) {
+  const vivants = () => pids.filter((pid) => estPidVivant(pid))
+  const fin = Date.now() + 60_000
+  while (vivants().length && Date.now() < fin) attendreSync(100)
+  return vivants()
+}
+
+/** Un `build-all` FACTICE : `--code` rend 0 ; `--perimes` pose `.git/perimes-entame` puis attend `.git/debloquer`. */
+const BUILD_ALL_FACTICE = [
+  "import { existsSync, writeFileSync } from 'node:fs'",
+  "if (process.argv.includes('--perimes')) {",
+  "  writeFileSync('.git/perimes-entame', '')",
+  '  const fin = Date.now() + 60_000',
+  "  while (!existsSync('.git/debloquer') && Date.now() < fin) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)",
+  '}',
+].join('\n')
+
+// #2603
+test('(a) CÂBLAGE réel : le VRAI post-commit rend la main pendant que la passe détachée attend ; elle se solde après', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', 'scripts/docs/build-all.mjs': BUILD_ALL_FACTICE } })
+  const git = gitDe(racine)
+  const debloquer = join(racine, '.git', 'debloquer')
+  let rouge = null
+  let residu = null
+  try {
+    git('config', 'core.hooksPath', join(RACINE, 'scripts', 'git-hooks'))
+    writeFileSync(join(racine, 'a.txt'), 'b\n')
+    git('add', 'a.txt')
+    const debut = performance.now()
+    const vu = resultatDeGit(['commit', '--no-verify', '-q', '-m', 'b'], { cwd: racine })
+    const ms = Math.round(performance.now() - debut)
+    assert.equal(vu.status, 0, `${vu.error ?? ''}${vu.stdout}${vu.stderr}`)
+    assert.ok(ms < 30_000, `le post-commit rend la main sans attendre la passe : ${ms} ms`)
+    assert.match(`${vu.stdout}${vu.stderr}`, /^reconstruction seq=1$/m)
+    assert.equal(existsSync(debloquer), false)
+    assert.deepEqual(attendreLaReconstruction(racine, 1, { echeanceMs: 0 }), { etat: 'en-cours' })
+    writeFileSync(debloquer, '')
+    const passe = attendreLaReconstruction(racine, 1, { echeanceMs: 120_000, pasMs: 100 })
+    assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 1, 0], JSON.stringify(passe))
+    assert.equal(existsSync(join(racine, '.git', 'perimes-entame')), true, 'la passe a joué `build-all --perimes` de l’arbre')
+    console.log(JSON.stringify({ banc2603: 'post-commit-reel', ms }))
+  } catch (e) {
+    rouge = e
+  } finally {
+    writeFileSync(debloquer, '')
+    const { logs } = cheminsDeLaReconstruction(racine)
+    const vivants = attendreLesDetaches(existsSync(logs) ? readdirSync(logs).map((f) => Number.parseInt(f, 10)) : [])
+    try {
+      assert.deepEqual(vivants, [])
+      rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
+    } catch (e) {
+      residu = e
+    }
+  }
+  if (rouge ?? residu) throw rouge ?? residu
+})
+
+// #2603
+test('(d) rebase de 3 picks : 3 post-commit et un post-rewrite demandent, aucune passe pendant le rebase, une passe après', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'hooks-fixture/\n', 'a.txt': 'a\n' } })
+  const git = gitDe(racine)
+  const journal = join(racine, '.git', 'journal-fixture')
+  const lire = () => readFileSync(journal, 'utf8').trim().split('\n').filter(Boolean)
+  const url = (rel) => JSON.stringify(pathToFileURL(join(RACINE, rel)).href)
+  const serveur = join(racine, 'hooks-fixture', 'serveur.mjs')
+  try {
+    git('switch', '-q', '-c', 'cote')
+    for (const i of [1, 2, 3]) {
+      writeFileSync(join(racine, `f${i}.txt`), `${i}\n`)
+      git('add', `f${i}.txt`)
+      git('commit', '-q', '-m', `pick ${i}`)
+    }
+    git('switch', '-q', 'main')
+    writeFileSync(join(racine, 'b.txt'), 'b\n')
+    git('add', 'b.txt')
+    git('commit', '-q', '-m', 'b')
+    git('switch', '-q', 'cote')
+    mkdirSync(join(racine, 'hooks-fixture'))
+    for (const hook of ['post-commit', 'post-rewrite']) writeFileSync(join(racine, 'hooks-fixture', hook), readFileSync(join(RACINE, 'scripts/git-hooks', hook)), { mode: 0o755 })
+    writeFileSync(join(racine, 'hooks-fixture', 'docs-rebuild.mjs'), [
+      `import { reconstruireApresGit } from ${url('scripts/git-hooks/docs-rebuild.mjs')}`,
+      `import { demanderLaReconstruction } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
+      `import { lancerDetache } from ${url('scripts/guards/lib/lancerDetache.mjs')}`,
+      "import { appendFileSync } from 'node:fs'",
+      `appendFileSync(${JSON.stringify(journal)}, 'hook ' + process.argv[2] + '\\n')`,
+      `process.exitCode = reconstruireApresGit({ cwd: ${JSON.stringify(racine)}, hook: process.argv[2], generateurs: [{ script: 'g/a.mjs', targets: ['docs/a.md'] }],`,
+      "  annoncer: () => {}, npm: () => ({ status: 1 }), code: () => 1,",
+      `  demander: (cwd) => demanderLaReconstruction(cwd, { script: ${JSON.stringify(serveur)}, detacher: (opts) => {`,
+      '    const pid = lancerDetache(opts)',
+      `    appendFileSync(${JSON.stringify(journal)}, 'lance ' + pid + '\\n')`,
+      '    return pid',
+      '  } }) }).code',
+    ].join('\n'))
+    writeFileSync(serveur, [
+      `import { servirLesDemandes } from ${url('scripts/git-hooks/reconstruction.mjs')}`,
+      `import { operationEnCours } from ${url('scripts/docs/lib/ecrivain-derives.mjs')}`,
+      `import { gitDirDe } from ${url('scripts/hooks/barriere-outil.mjs')}`,
+      "import { appendFileSync } from 'node:fs'",
+      'const racine = process.cwd()',
+      'servirLesDemandes({ racine, attenteArbre: { echeanceMs: 60_000, pasMs: 50 }, passe: () => {',
+      `  appendFileSync(${JSON.stringify(journal)}, 'passe ' + (operationEnCours(gitDirDe(racine)) ?? 'libre') + '\\n')`,
+      '  return 0',
+      '} })',
+    ].join('\n'))
+    git('config', 'core.hooksPath', 'hooks-fixture')
+    const vu = resultatDeGit(['rebase', '-x', 'node -e "setTimeout(() => {}, 1000)"', 'main'], { cwd: racine })
+    assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
+    const demandes = demandesDe(racine)
+    assert.equal(demandes, 4)
+    const passe = attendreLaReconstruction(racine, demandes, { echeanceMs: 120_000, pasMs: 100 })
+    assert.deepEqual([passe.etat, passe.seq, passe.code], ['soldee', 4, 0])
+    const lu = lire()
+    assert.deepEqual(lu.filter((l) => l.startsWith('hook ')), ['hook post-commit', 'hook post-commit', 'hook post-commit', 'hook post-rewrite'])
+    const passes = lu.filter((l) => l.startsWith('passe '))
+    assert.ok(passes.length >= 1, lu.join(' | '))
+    assert.deepEqual(passes.filter((l) => l !== 'passe libre'), [], lu.join(' | '))
+  } finally {
+    const lances = existsSync(journal) ? lire().filter((l) => l.startsWith('lance ')).map((l) => Number(l.slice('lance '.length))) : []
+    assert.deepEqual(attendreLesDetaches(lances), [])
+    rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
   }
 })

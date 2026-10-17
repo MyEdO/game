@@ -480,7 +480,7 @@ const SONDE_DU_JUGE = [
   ["chaîne", "npm run test:perimetre && node scripts/lancer-local.mjs vitest --cwd server -- vitest run src/a.test.ts"],
   ["chaîne", "npm run test:perimetre && npm run test:map"],
   ["chaîne", "npm run test:perimetre && npm run bench"],
-  ["chaîne", "npm run test:perimetre && npm run test:watch"],
+  ["gate", "npm run test:perimetre && npm run test:watch"],
   ["chaîne", "node --import=./scripts/guards/lib/perimetreSansEcriture.mjs scripts/test/perimetre.mjs && npm run typecheck:fast"],
   ["chaîne", "node ./scripts/test/perimetre.mjs; npm run typecheck:fast"],
   ["chaîne", "node /srv/x/.wt-2568/scripts/test/perimetre.mjs; npm run typecheck:fast"],

@@ -8,19 +8,23 @@
 // périmé). L'ordre des racines décide de l'ordre des sites cités par un rapport : sans ordre total,
 // le même dépôt rend deux `.md` différents selon la machine.
 
-import { lstatSync, readdirSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Les comparateurs d'ordre total vivent dans `src/lib/ordre.mjs`, module pur ; ce lecteur les
  *  ré-exporte pour ses consommateurs. */
 export { parUnitesDeCode, parLibelle } from '../../../src/lib/ordre.mjs'
 
+/** Erreur d'une lecture de chemin ABSENT du disque, nom impossible compris (`ENAMETOOLONG`, #2603) :
+ *  la définition UNIQUE d'« absent » des lecteurs de chemin. */
+export const cheminAbsent = (erreur) => ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].includes(erreur?.code)
+
 /**
  * Noms des enfants DIRECTS de `dir`, triés par unités de code.
  * @param {string} dir
  * @param {{ absent?: 'lever' | 'vide', avecTypes?: boolean }} [options] `absent: 'vide'` rend `[]` en mode noms quand le dossier
- *   n'existe pas (ENOENT) ou n'est pas un dossier (ENOTDIR) ; toute AUTRE erreur lève (une lecture
- *   refusée n'est pas un dossier vide).
+ *   est `cheminAbsent` — nature `other` pour un chemin qui n'est pas un dossier (ENOTDIR), `absent`
+ *   sinon ; toute AUTRE erreur lève (une lecture refusée n'est pas un dossier vide).
  * @returns {string[] | { nature: 'directory' | 'absent' | 'other', entrees: { nom: string, nature: 'file' | 'directory' | 'link' | 'other' }[] }}
  */
 export function listerDossier(dir, { absent = 'lever', avecTypes = false } = {}) {
@@ -28,7 +32,7 @@ export function listerDossier(dir, { absent = 'lever', avecTypes = false } = {})
   try {
     noms = readdirSync(dir, avecTypes ? { withFileTypes: true } : undefined)
   } catch (err) {
-    if (absent === 'vide' && (err?.code === 'ENOENT' || err?.code === 'ENOTDIR')) return avecTypes ? { nature: err.code === 'ENOENT' ? 'absent' : 'other', entrees: [] } : []
+    if (absent === 'vide' && cheminAbsent(err)) return avecTypes ? { nature: err.code === 'ENOTDIR' ? 'other' : 'absent', entrees: [] } : []
     throw err
   }
   if (!avecTypes) return noms.map(String).sort()
@@ -80,12 +84,18 @@ export const correspondGlob = (chemin, motif) => {
   return expression.test(String(chemin ?? '').replace(/\\/g, '/'))
 }
 
+/** Ce chemin est-il couvert par ce PATHSPEC git nu (sans magie, sans `?` ni `[…]`) ? `fnmatch` sans
+ *  `FNM_PATHNAME` : `*` traverse `/` ; un dossier couvre ce qu'il contient ; `''` couvre tout. */
+export const couvertParPathspec = (chemin, spec) =>
+  new RegExp(`^${spec.split('*').map((morceau) => morceau.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}${spec === '' ? '' : '(?:/|$)'}`).test(chemin)
+
 /**
  * Chemins RELATIFS POSIX des FICHIERS sous `dir`, à toute profondeur : dossiers parcourus dans
  * l'ordre trié ET résultat trié (le tri final décide, la marche ne fait que le rendre lisible).
- * Le type d'une entrée se lit par `lstatSync`, comme le `Dirent.isDirectory()` que cette fonction
- * remplace : un LIEN SYMBOLIQUE n'est jamais descendu, et un lien vers un fichier est rendu tel quel.
- * Une entrée dont `lstatSync` échoue (lien mort, course) est SAUTÉE — jamais une marche interrompue.
+ * Le type d'une entrée est sa `nature` dans `listerDossier(…, { avecTypes: true })` (le `Dirent`) :
+ * seul un `directory` est descendu ; un lien (jonction NTFS comprise, lien mort compris) et une
+ * entrée `other` sont rendus comme un fichier. Un `DT_UNKNOWN` est typé par Node d'un `lstatSync`
+ * (`getDirent`, `lib/internal/fs/utils.js`).
  * @param {string} dir
  * @param {{ filtre?: (rel: string) => boolean, descendre?: (rel: string) => boolean,
  *           absent?: 'lever' | 'vide' }} [options] `filtre` retient les FICHIERS, `descendre`
@@ -95,11 +105,9 @@ export const correspondGlob = (chemin, motif) => {
 export function listerArbre(dir, { filtre, descendre, absent = 'lever' } = {}) {
   const out = []
   const marcher = (rel) => {
-    for (const nom of listerDossier(rel ? join(dir, rel) : dir, { absent })) {
+    for (const { nom, nature } of listerDossier(rel ? join(dir, rel) : dir, { absent, avecTypes: true }).entrees) {
       const enfant = rel ? `${rel}/${nom}` : nom
-      let st
-      try { st = lstatSync(join(dir, enfant)) } catch { continue }
-      if (st.isDirectory()) {
+      if (nature === 'directory') {
         if (!descendre || descendre(enfant)) marcher(enfant)
       } else if (!filtre || filtre(enfant)) out.push(enfant)
     }

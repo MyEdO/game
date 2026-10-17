@@ -1,4 +1,6 @@
 // Hook pre-commit (#2327) : la porte LÉGÈRE du commit, jugée sur le contenu de l'INDEX.
+// PRODUIT, en PREMIER, les miroirs d'agents (#2578) dans l'INDEX (`miroirs-d-agents.mjs`) ; un miroir
+// édité à la main, un producteur qui diffère entre disque et index : AVERTIS, la CI `agents:check` juge.
 // REFUSE (exit 1) au nom de l'INTÉGRITÉ du dépôt seule (#2327 A8) : arbre de travail imbriqué
 // (`arbreImbrique.mjs`), lock npm amputé (`npmLockHoisted.mjs`), fins de ligne (`eolStage.mjs`) — et
 // la lecture de l'index en panne, sans laquelle aucune des trois ne juge.
@@ -27,6 +29,7 @@ import { codeDePanne, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
 import { INDEX, ceQuApporteLeCommit, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
+import { ecrireAvertissements, produireLesMiroirs } from './miroirs-d-agents.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { journaliserLeHook } from './journal.mjs';
 
@@ -60,6 +63,12 @@ const estJsonDeDonnee = (rel) => /^src\/scenes\/.*\.json$/.test(rel) || /^src\/d
 const BASELINE = relative(fileURLToPath(new URL('../..', import.meta.url)), DECISIONS_BASELINE_PATH).split(sep).join('/');
 
 const offenders = [];
+
+try {
+  ecrireAvertissements('pre-commit —', (await produireLesMiroirs(depot, ROOT)).avertissements);
+} catch (e) {
+  process.stderr.write(`pre-commit — miroirs d'agents NON produits : ${raisonCourte(e?.message ?? e)} ; la gate \`agents:check\` de la CI les juge.\n`);
+}
 /** Avertissements de forme : famille de `FORMES` → lignes. */
 const formes = new Map();
 const avertir = (famille, ligne) => formes.set(famille, [...(formes.get(famille) ?? []), ligne]);

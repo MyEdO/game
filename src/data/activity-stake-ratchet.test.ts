@@ -94,7 +94,7 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
   it('FAIL-CLOSED : le prédicat de jet voit les 4 formes, et ne voit pas une Activité sans Test', () => {
     expect(activityRolls({ skills: [{ id: 'ragot' }] })).toBe(true);
     expect(activityRolls({ char: 'intelligence' })).toBe(true);
-    expect(activityRolls({ freeSkill: true })).toBe(true);
+    expect(activityRolls({ freeSkill: [{ id: 'orientation' }] })).toBe(true);
     expect(activityRolls({ resolver: 'income' })).toBe(true); // compétence dérivée du héros
     // Un résolveur QUELCONQUE ne suffit pas : seuls ceux qui DÉRIVENT la compétence comptent
     // (`identify` lance par ses `skills` authorées, pas par son résolveur).

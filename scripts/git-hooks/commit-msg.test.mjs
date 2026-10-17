@@ -25,7 +25,7 @@ import { dateLocale } from '../guards/lib/dateLocale.mjs'
 import { MOTIF_EJECTION, MOTIF_REGENERATION, messageDuTrain } from '../ops/etapesDuTrain.mjs'
 import { refusDeVersion } from '../node-requis.mjs'
 import { jugerFichierDeMessage } from './commit-msg.mjs'
-import { CHEMIN_DU_JOURNAL } from './journal.mjs'
+import { journalDe } from './journal.mjs'
 import { gitDe, lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
@@ -211,9 +211,9 @@ function banc(fichiers = SOCLE) {
     },
     /** Les verdicts que `commit-msg` a journalisés (`journaliserLeHook`), dans l'ordre. */
     verdicts: (base = racine) => {
-      const chemin = join(base, CHEMIN_DU_JOURNAL)
+      const chemin = journalDe(base)
       if (!existsSync(chemin)) return []
-      return readFileSync(chemin, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((l) => l.hook === 'commit-msg').map((l) => l.verdict)
+      return readFileSync(chemin, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).filter((l) => l.evenement === 'fin' && l.hook === 'commit-msg').map((l) => l.verdict)
     },
     jeter: () => {
       rmSync(hooks, { recursive: true, force: true })

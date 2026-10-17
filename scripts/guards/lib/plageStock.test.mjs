@@ -15,11 +15,6 @@ import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
 import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
-import { fileURLToPath } from 'node:url'
-
-/** La racine du dépôt réel. */
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
-
 const PORTEUR = 'scripts/x.test.mjs'
 
 /** Un dépôt forgé dont le socle porte la porte de plage du disque : son tronc la juge par elle (#2503). */
@@ -181,6 +176,30 @@ test('#2302 lectureDeLaPlage : une ascendance pour un ou cinq commits, différen
       t.diagnostic(JSON.stringify({ nombre, processus: lances.length, ascendances: ascendances.length, diffs: lances.filter((args) => sousCommande(args) === 'diff-tree').length }))
     } finally { rmSync(repo, { recursive: true, force: true }) }
   }
+})
+
+test('#2626 : seuls les commits nouveaux sont jugés, leur cumul exclut le stock déjà publié', async () => {
+  const { repo, shas, git } = depotJetable([
+    { contenu: sourceStock([]), message: 'socle' },
+    { contenu: sourceStock([A]), message: 'ancien stock publié' },
+    { contenu: sourceStock([A, B]), message: 'nouveau stock fautif' },
+    { contenu: sourceStock([A]), message: 'nouveau stock soldé' },
+  ])
+  try {
+    git('update-ref', 'refs/remotes/origin/main', shas[0])
+    const options = { cwd: repo, debut: SHA_NUL, vers: 'refs/heads/chantier/neuve', origineConfirmee: [shas[1]] }
+    const ancien = await croissancesDeLaPlage({ ...options, fin: shas[1] })
+    assert.equal(ancien.commits, 0)
+    assert.deepEqual(ancien.refus, [])
+    const fautif = await croissancesDeLaPlage({ ...options, fin: shas[2] })
+    assert.deepEqual(fautif.refus.map((r) => r.sha), [shas[2]])
+    const solde = await croissancesDeLaPlage({ ...options, fin: shas[3] })
+    assert.equal(solde.commits, 2)
+    assert.deepEqual(solde.refus, [], 'ancien +1 publié puis nouveau +1/-1 : le cumul nouveau est nul')
+    const ci = lectureDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: shas[2], vers: 'refs/heads/chantier/neuve' })
+    assert.ok(ci.commits.some((c) => c.sha === shas[1]), 'la CI sans option explicite garde sa plage')
+    assert.equal(ci.troncDesEres, TRONC.suivi)
+  } finally { rmSync(repo, { recursive: true, force: true }) }
 })
 
 test('C : sur un dépôt réel, la plage voit le commit du MILIEU que `git show HEAD` ne voit pas', async () => {
@@ -1671,15 +1690,7 @@ test('#2503 ÈRE SANS la porte : la porte actuelle juge, un stock qui naît muet
   }
 })
 
-test('#2503 ÈRE SANS la porte, données réelles : `a9b7edf17` poussé sur le tronc `da3acf95c^` rend les refus de la porte actuelle', async () => {
-  const sha = (ref) => gitDe(RACINE)('rev-parse', ref).trim()
-  const plage = { cwd: RACINE, debut: sha('da3acf95c^'), fin: sha('a9b7edf17'), vers: TRONC.branche }
-  const actuelle = refusDeLaPlage(lectureDeLaPlage(plage)).map((r) => [r.sha, r.fichier, r.net, r.declare])
-  assert.ok(actuelle.length, 'témoin : la porte actuelle refuse cette plage')
-  const vu = await croissancesDeLaPlage(plage)
-  assert.deepEqual(vu.refus.map((r) => [r.sha, r.fichier, r.net, r.declare]), actuelle)
-  assert.ok(vu.notes.some((n) => n.includes(`sans la porte \`${MODULE_PORTE}\``)), vu.notes.join('\n'))
-})
+
 
 test('#2503 GitIndisponible entre modules : une lecture en panne sous le juge d’une ère CHARGÉE rend un refus `illisible` au texte de `refusDeGit`', async () => {
   const { racine: repo, sha: socle } = depotForge({

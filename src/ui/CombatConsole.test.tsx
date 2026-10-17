@@ -27,6 +27,7 @@ import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry'
 import { emptyScene } from '../state/scene';
 import { mdToText } from './Prose';
 import { CombatConsole } from './CombatConsole';
+import { TARGETING_MODES } from '../state/targetingModes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { BORNE_DU_CORPS } from './compendium/CodexRef';
 import { readFileSync } from 'node:fs';
@@ -1518,6 +1519,19 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     });
     expect(note()).toBe('Tour fini');
 
+    // Chaîne de balayage ouverte par une gratuite (`PendingCleave.restitution`, LDB 21 l.33) : l'Action
+    // sera rendue à la fermeture, le tour n'est pas fini — coin et compteur lisent la même source.
+    const frenetique = hero('h4', 'Gunnar');
+    frenetique.conditions = [];
+    monter(frenetique);
+    act(() => {
+      const b = useGame.getState().battle!;
+      useGame.setState({ battle: { ...b, acted: true }, pendingCleave: { attackerId: 'h4', hitIds: [], count: 1, restitution: { prevActed: false } } });
+    });
+    expect(note(), 'chaîne qui rendra l’Action : jamais « Tour fini »').toBe('Action non dépensée');
+    expect(host.querySelector('.cc-gutter-action .cc-socle')!.firstChild!.textContent).toBe('1');
+    act(() => useGame.setState({ pendingCleave: null }));
+
     // Surpris (`etats.json` : `gating.action = 'none'`) : rien à dépenser, donc aucun reproche — la
     // plaque imprime SA touche.
     const surpris = hero('h3', 'Gunnar');
@@ -2283,6 +2297,23 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
  * `surface: 'interlude'`, appariées par leur `mode` au mode de ciblage courant) — la console ne nomme
  * aucun état de flux, et le dispatcher exécuté est celui du registre (`runAction`).
  */
+/** COÛT d'une attaque gratuite à la case (`AttackOption.cost`) : l'Action de Mouvement se dit dans la
+ *  MÊME colonne de crans que l'Avantage. LDB 85 l.314 */
+describe('CombatConsole — la case dit le coût en Mouvement d’une gratuite', () => {
+  it('Se cabrer : la case Piétiner porte le cran de Mouvement, nommé au lecteur d’écran', () => {
+    const h = hero('h1', 'Gunnar');
+    h.size = 'grande';
+    h.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    h.advantage = 0;
+    const e = foe('e1', 6, 5);
+    e.size = 'moyenne';
+    monter(h, { foes: [e] });
+    const cout = host.querySelector('[data-cell="attaque-pietinement"] .cc-cost');
+    expect(cout?.querySelector('[data-cout="mouvement"]'), 'cran de Mouvement').not.toBeNull();
+    expect(cout?.getAttribute('aria-label')).toBe(t('cc.cout', { parts: t('acost.mouvement') }));
+  });
+});
+
 describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte porte sa sortie', () => {
   const bandeau = () => host.querySelector('.cc-phase');
   const sortie = (id: string) => host.querySelector(`.cc-phase [data-action="${id}"]`) as HTMLButtonElement | null;
@@ -2295,6 +2326,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     monter(h, { foes: [foe('e1', 6, 5)] });
     act(() => { useGame.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Frappe Mortelle');
+    expect(bandeau()?.querySelector('[data-consigne]')?.textContent, 'le bandeau dit ce que la carte attend').toBe(t('consigne.cleave'));
     const b = sortie('cleave-end');
     expect(b, 'la sortie « Terminer » de l’interlude cleave doit être à l’écran').not.toBeNull();
     expect(b!.textContent).toContain('Terminer');
@@ -2317,6 +2349,11 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     expect(b!.className, 'une annulation ne porte pas l’accent').toContain('btn-ghost');
     act(() => { b!.click(); });
     expect(useGame.getState().battle!.action, 'le clic doit désarmer le mode de bordée').toBeNull();
+  });
+
+  it('tout mode qui nomme sa phase au bandeau y dit aussi sa consigne', () => {
+    const sansConsigne = TARGETING_MODES.filter((m) => m.label && !m.consigne).map((m) => m.id);
+    expect(sansConsigne).toEqual([]);
   });
 
   it('hors interlude : aucun bandeau de sortie — et la pause de Round garde le sien', () => {
@@ -2398,6 +2435,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     // … et aucune case de FANTASSIN ne s'invite : une coque n'a ni poing ni Charge.
     expect(caseAction('attaque'), 'une coque n’a pas d’attaque d’arme').toBeNull();
     expect(caseAction('charge'), 'une coque ne charge pas').toBeNull();
+  });
+
+  it('N-1b — au tour d’un CHARIOT (coque sans profil naval) : aucune case navale (MDG 13 l.584, MDG 14 l.128)', () => {
+    const ship = monterNavire();
+    const chariot = vehicleCombatant(findVehicleById('diligence')!)!;
+    act(() => {
+      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
+    });
+    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty']) {
+      expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
+    }
+    expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();
   });
 
   it('N-2 — la Bordée ARME son mode par le registre, et l’interlude prend la main pour en sortir', () => {

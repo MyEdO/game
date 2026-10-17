@@ -148,7 +148,7 @@ export interface MapRouteTrace {
   /** Route MARITIME (MDG 13-15) : se voyage sur le NAVIRE DE CAMPAGNE (`state.vessel`) ; `km` est
    *  alors en MILLES (les tables RAW — 18 milles/jour par M, distances ch.15 l.40-47 — sont en milles). */
   sea?: boolean;
-  /** Cap DOMINANT du trajet (aspect du vent, MDG 13 l.262-270) — défaut 'ouest'. */
+  /** Cap DOMINANT du trajet (vent relatif, MDG 13 l.262-270) — défaut 'ouest'. */
   seaHeading?: import('../engine/seaWeather').WindDirection;
   /** Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : en mode `barge`, la descente se joue jour par
    *  jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport payant. Repli
@@ -158,8 +158,8 @@ export interface MapRouteTrace {
    *  `perilId` (débris/rochers/eaux-peu-profondes/barrage) tiré à `chancePct` %. Data-driven, éditable. */
   riverPerils?: { perilId: string; chancePct: number }[];
   /** Exposition HYDRIQUE de la descente (MSRC 16 « Maladies transmises par l'eau », l.5-13) : à chaque
-   *  étape à flot, un tirage à `chancePct` % déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance
-   *  modifié → maladie contractée). `source` = id du tableau 1 « Source d'eau » (choix d'auteur de la
+   *  étape à flot, un tirage à `chancePct` % pose le Test d'Exposition de la descente
+   *  (`riverVoyageFlow.openRiverExposureChance`). `source` = id du tableau 1 « Source d'eau » (choix d'auteur de la
    *  portion de fleuve : `grande-ville-marais`, `aval-grande-ville-8km`…), `mode` = `ingestion` (boire l'eau
    *  du fleuve non bouillie, l.5) / `immersion` (chute\nage, blessures ouvertes, l.7-9). Data-driven, éditable. */
   riverExposure?: { source?: string; mode: import('../data').WaterExposureMode; chancePct: number };

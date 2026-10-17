@@ -22,6 +22,8 @@ const doc = document(
     specs: specsSchema.optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
+    /** LDB 09 l.571 */
+    specsSoeursDeBase: z.boolean().optional(),
     movement: z.boolean().optional(),
     senses: z.array(senseSchema).optional(),
     /** Caractéristique ALTERNATIVE sous règle optionnelle (`SkillData.altChar`, lu par `altCharKey`) :
@@ -57,6 +59,10 @@ const doc = document(
     specs: { label: 'Spécialisations', hint: 'Liste fermée de spécialisations proposées' },
     specsSource: { label: 'Registre de spécialisations' },
     specsOpen: { label: 'Spécialisation ouverte' },
+    specsSoeursDeBase: {
+      label: 'Autres Spécialisations de Base',
+      hint: 'Posséder une Spécialisation de cette Compétence rend les autres de Base pour le porteur',
+    },
     movement: {
       label: 'Compétence de déplacement',
       hint: 'Classée « déplacement » : gate les Tests visés par un blocage de Mouvement',

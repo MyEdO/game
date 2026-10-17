@@ -14,7 +14,7 @@
 // reçoit UN fichier (`rel`, `contenu`) et les RÈGLES (signatures + alias, dérivées par l'appelant
 // des schémas eux-mêmes — aucune liste de clés n'est recopiée ici) et rend des trouvailles.
 import * as ts from 'typescript/unstable/ast';
-import { analyserCorpus } from './dialecte.mjs';
+import { avecAnalyse } from './dialecte.mjs';
 import { contexteImports, liaisonImportee } from './canonUnique.mjs';
 
 /** Fabriques d'objet zod dont l'argument littéral porte une forme DÉCLARÉE. */
@@ -116,84 +116,82 @@ function racineDe(e) {
  * @returns {{ ligne: number, symbole: string, champ: string, motif: 'redeclaration'|'alias'|'extend', detail: string }[]}
  */
 export function scan(rel, contenu, regles, sourceFile, checker) {
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([{ rel, text: contenu }])) return scan(rel, contenu, regles, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
-  const contexte = contexteImports(sf, checker);
-  const local = estModuleGrammaire(rel);
-  const alias = new Set(regles.alias);
-  const signatures = regles.signatures.filter((s) => s.cles.length >= 2).map((s) => ({ nom: s.nom, cles: new Set(s.cles) }));
-  const trouvailles = [];
+  return avecAnalyse({ rel, text: contenu }, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    const local = estModuleGrammaire(rel);
+    const alias = new Set(regles.alias);
+    const signatures = regles.signatures.filter((s) => s.cles.length >= 2).map((s) => ({ nom: s.nom, cles: new Set(s.cles) }));
+    const trouvailles = [];
 
-  /** @param {ts.Node} n @param {'redeclaration'|'alias'|'extend'} motif @param {string} detail */
-  const noter = (n, motif, detail) => {
-    const { symbole, champ } = siteDe(n);
-    trouvailles.push({ ligne: ligneDe(sf, n), symbole, champ, motif, detail });
-  };
+    /** @param {ts.Node} n @param {'redeclaration'|'alias'|'extend'} motif @param {string} detail */
+    const noter = (n, motif, detail) => {
+      const { symbole, champ } = siteDe(n);
+      trouvailles.push({ ligne: ligneDe(sf, n), symbole, champ, motif, detail });
+    };
 
-  /**
-   * Scanne UN littéral de forme (argument d'une fabrique zod, ou `champs` de `document()`).
-   * @param {ts.Node} site nœud à qui les trouvailles sont imputées
-   * @param {ts.ObjectLiteralExpression} lit
-   */
-  const scanneLitteral = (site, lit) => {
-    const { cles, spread, discriminee } = clesDuLitteral(lit);
-    const jeu = new Set(cles);
-    // ÉGALITÉ de jeux de clés, jamais inclusion : un document qui PORTE `id` et `type` n'est pas
-    // une réf re-tapée — seule la forme reproduite À L'IDENTIQUE est une seconde graphie. La
-    // recopie PARTIELLE ou CHARGÉE est mesurée côté donnée (`STRUCTURES_REDECLARATIONS`, `+…`).
-    // Une VARIANTE discriminée (`type: z.literal('clearObjective')`) est hors volet : son `type`
-    // nomme la variante, il ne désigne pas le type d'une entité.
-    const memes = spread || discriminee ? [] : signatures.filter((s) => s.cles.size === jeu.size && [...s.cles].every((c) => jeu.has(c)));
-    for (const s of memes) noter(site, 'redeclaration', `${s.nom} {${[...s.cles].sort().join(',')}}`);
-    const graphies = cles.filter((c) => alias.has(c)).sort();
-    if (graphies.length) noter(site, 'alias', graphies.join(','));
-  };
+    /**
+     * Scanne UN littéral de forme (argument d'une fabrique zod, ou `champs` de `document()`).
+     * @param {ts.Node} site nœud à qui les trouvailles sont imputées
+     * @param {ts.ObjectLiteralExpression} lit
+     */
+    const scanneLitteral = (site, lit) => {
+      const { cles, spread, discriminee } = clesDuLitteral(lit);
+      const jeu = new Set(cles);
+      // ÉGALITÉ de jeux de clés, jamais inclusion : un document qui PORTE `id` et `type` n'est pas
+      // une réf re-tapée — seule la forme reproduite À L'IDENTIQUE est une seconde graphie. La
+      // recopie PARTIELLE ou CHARGÉE est mesurée côté donnée (`STRUCTURES_REDECLARATIONS`, `+…`).
+      // Une VARIANTE discriminée (`type: z.literal('clearObjective')`) est hors volet : son `type`
+      // nomme la variante, il ne désigne pas le type d'une entité.
+      const memes = spread || discriminee ? [] : signatures.filter((s) => s.cles.size === jeu.size && [...s.cles].every((c) => jeu.has(c)));
+      for (const s of memes) noter(site, 'redeclaration', `${s.nom} {${[...s.cles].sort().join(',')}}`);
+      const graphies = cles.filter((c) => alias.has(c)).sort();
+      if (graphies.length) noter(site, 'alias', graphies.join(','));
+    };
 
-  /** Consts d'objet du fichier — pour résoudre `document(…, champs, …)` passé par RÉFÉRENCE.
-   *  @type {Map<string, ts.ObjectLiteralExpression>} */
-  const constsObjet = new Map();
-  const releveConsts = (n) => {
-    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
-      constsObjet.set(n.name.text, n.initializer);
-    }
-    n.forEachChild(releveConsts);
-  };
-  releveConsts(sf);
-
-  /** @param {ts.Node} n */
-  const walk = (n) => {
-    // FABRIQUE DE DOCUMENT : `document('x', famille, champs, …)`. Deux formes admises pour `champs`,
-    // toutes deux mesurées sur les defs réels — littéral INLINE (`careers.ts`) et const NOMMÉE
-    // référencée (`axes.ts`, `characteristics.ts`, qui exposent leur vue TS depuis `champs`).
-    if (!regles.sansRedeclaration && ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === FABRIQUE_DOCUMENT) {
-      const argChamps = n.arguments[ARG_CHAMPS];
-      const lit = argChamps && ts.isObjectLiteralExpression(argChamps)
-        ? argChamps
-        : argChamps && ts.isIdentifier(argChamps)
-          ? constsObjet.get(argChamps.text)
-          : undefined;
-      if (lit) scanneLitteral(lit, lit);
-    }
-    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
-      const nom = n.expression.name.text;
-      const arg0 = n.arguments[0];
-      if (!regles.sansRedeclaration && FABRIQUES_OBJET.has(nom) && arg0 && ts.isObjectLiteralExpression(arg0)) {
-        scanneLitteral(n, arg0);
+    /** Consts d'objet du fichier — pour résoudre `document(…, champs, …)` passé par RÉFÉRENCE.
+     *  @type {Map<string, ts.ObjectLiteralExpression>} */
+    const constsObjet = new Map();
+    const releveConsts = (n) => {
+      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
+        constsObjet.set(n.name.text, n.initializer);
       }
-      if (nom === 'extend') {
-        const racine = racineDe(n.expression.expression);
-        const origine = ts.isIdentifier(racine) ? liaisonImportee(racine, sf, contexte) : null;
-        const importee = origine && MODULES_GRAMMAIRE.test(origine.spec)
-          && contexte.liaisonsDuNom(racine.text).some((l) => l.forme === 'nommee' && l.spec === origine.spec && l.importe.nom === origine.nom);
-        if (ts.isIdentifier(racine) && (importee || (local && /Schema$/.test(racine.text)))) {
-          noter(n, 'extend', `${racine.text}.extend(…)`);
+      n.forEachChild(releveConsts);
+    };
+    releveConsts(sf);
+
+    /** @param {ts.Node} n */
+    const walk = (n) => {
+      // FABRIQUE DE DOCUMENT : `document('x', famille, champs, …)`. Deux formes admises pour `champs`,
+      // toutes deux mesurées sur les defs réels — littéral INLINE (`careers.ts`) et const NOMMÉE
+      // référencée (`axes.ts`, `characteristics.ts`, qui exposent leur vue TS depuis `champs`).
+      if (!regles.sansRedeclaration && ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === FABRIQUE_DOCUMENT) {
+        const argChamps = n.arguments[ARG_CHAMPS];
+        const lit = argChamps && ts.isObjectLiteralExpression(argChamps)
+          ? argChamps
+          : argChamps && ts.isIdentifier(argChamps)
+            ? constsObjet.get(argChamps.text)
+            : undefined;
+        if (lit) scanneLitteral(lit, lit);
+      }
+      if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
+        const nom = n.expression.name.text;
+        const arg0 = n.arguments[0];
+        if (!regles.sansRedeclaration && FABRIQUES_OBJET.has(nom) && arg0 && ts.isObjectLiteralExpression(arg0)) {
+          scanneLitteral(n, arg0);
+        }
+        if (nom === 'extend') {
+          const racine = racineDe(n.expression.expression);
+          const origine = ts.isIdentifier(racine) ? liaisonImportee(racine, sf, contexte) : null;
+          const importee = origine && MODULES_GRAMMAIRE.test(origine.spec)
+            && contexte.liaisonsDuNom(racine.text).some((l) => l.forme === 'nommee' && l.spec === origine.spec && l.importe.nom === origine.nom);
+          if (ts.isIdentifier(racine) && (importee || (local && /Schema$/.test(racine.text)))) {
+            noter(n, 'extend', `${racine.text}.extend(…)`);
+          }
         }
       }
-    }
-    n.forEachChild(walk);
-  };
-  walk(sf);
-  return trouvailles;
+      n.forEachChild(walk);
+    };
+    walk(sf);
+    return trouvailles;
+  });
 }

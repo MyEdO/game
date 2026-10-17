@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanNakedTimers, SCAN_DIRS, ALLOWED } from '../../scripts/guards/lib/nakedTimerScan.mjs';
+import { cleDeContenu, lignesDuContenu, SEPARATEUR_DE_CLE } from '../../scripts/guards/lib/stock.mjs';
 
 /**
  * Garde STRUCTURELLE #415 : un `setTimeout`/`setInterval` NU sous `SCAN_DIRS` (`src/state`, et
@@ -12,8 +13,8 @@ import { scanNakedTimers, SCAN_DIRS, ALLOWED } from '../../scripts/guards/lib/na
  * `label-logic-guard.test.ts`).
  */
 
-// Exemptions JUSTIFIÉES par SITE — une entrée = `fichier :: MOTIF`, le motif étant la ligne de code
-// du timer telle qu'écrite (trimée). L'ancre est INSENSIBLE au numéro de ligne : déplacer le site ne
+// Exemptions JUSTIFIÉES par SITE — une entrée = `fichier :: MOTIF` (`cleDeContenu`, #2200), le motif
+// étant la ligne de code du timer telle qu'écrite (trimée). L'ancre est INSENSIBLE au numéro de ligne : déplacer le site ne
 // périme rien, mais RÉÉCRIRE la ligne (ou la retirer) fait échouer le CLIQUET ci-dessous — à réviser,
 // jamais à re-décaler. Un motif qui deviendrait AMBIGU dans son fichier échoue aussi (2e cliquet).
 const ALLOWED_SITES: Record<string, string> = {
@@ -24,12 +25,12 @@ const ALLOWED_SITES: Record<string, string> = {
     'périmètre COMBAT/FLUX de `combatTimers.ts`, pas un contournement de son suivi.',
 };
 
+const corpus = () => readCorpus(SCAN_DIRS, { exts: ['.ts', '.tsx', '.mts', '.cts'] }).filter(({ rel }) => !ALLOWED.includes(rel));
+
 function findingsAcrossFiles(): { site: string; rel: string; line: number; call: string }[] {
   const out: { site: string; rel: string; line: number; call: string }[] = [];
-  for (const { rel, text } of readCorpus(SCAN_DIRS, { exts: ['.ts', '.tsx', '.mts', '.cts'] })) {
-    if (ALLOWED.includes(rel)) continue;
-    const lignes = text.split('\n');
-    for (const f of scanNakedTimers(text)) out.push({ site: `${rel} :: ${lignes[f.line - 1].trim()}`, rel, line: f.line, call: f.call });
+  for (const { rel, text } of corpus()) {
+    for (const f of scanNakedTimers(text)) out.push({ site: cleDeContenu(rel, text, f.line), rel, line: f.line, call: f.call });
   }
   return out;
 }
@@ -52,9 +53,12 @@ describe('garde structurelle — setTimeout/setInterval nu sous src/state et src
   });
 
   it('CLIQUET : un motif d’exemption reste NON AMBIGU dans son fichier (une entrée = UN site)', () => {
-    const sites = findingsAcrossFiles().map((f) => f.site);
-    const doublons = sites.filter((s, i) => sites.indexOf(s) !== i);
-    expect(doublons, 'Motif(s) présent(s) PLUSIEURS fois dans le même fichier — une exemption les amnistierait tous : distinguer les lignes :\n' + doublons.join('\n')).toEqual([]);
+    const textes = new Map(corpus().map(({ rel, text }) => [rel, text]));
+    const ambigues = Object.keys(ALLOWED_SITES).filter((k) => {
+      const rel = k.split(SEPARATEUR_DE_CLE)[0];
+      return lignesDuContenu(rel, textes.get(rel) ?? '', k).length > 1;
+    });
+    expect(ambigues, 'Motif(s) AMBIGU(S), présent(s) PLUSIEURS fois dans le même fichier — une exemption les amnistierait tous : distinguer les lignes :\n' + ambigues.join('\n')).toEqual([]);
   });
 
   it('FAIL-CLOSED : le scanner détecte un appel nu ou global, ignore commentaires/propriété-tierce/type/clear*', () => {

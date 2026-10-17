@@ -26,17 +26,18 @@
  *    (MDG 14 l.116-124) — pas de doublon en Activité.
  *
  * SEAM DE JET (#273 Étape 2) : les 3 formes de résolveur (Cartographie mono, chemin générique
- * `resolveTravelActivity`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
+ * `travelActivitySpec`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
  * UNE passe (`buildSeaActivitiesCascade`) — plus de bulk synchrone. Cartographie/générique sont POUSSÉES
  * à la porte de séquence, qui dérive la surface de leurs porteurs ; le Commerce d'opportunité SÉQUENCE un
  * Test étendu (`startExtendedTest`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
-import { battleRng } from './battleRng';
 import { openRest, placesOfKind } from './restFlow';
-import { activityById, activitiesFor, travelActivitySpec, applyTravelActivityResult, type ActivityDef } from '../engine/activities';
-import { applyOps } from '../engine/ops';
+import { activityById, activitiesFor, travelActivitySpec, type ActivityDef } from '../engine/activities';
+import { appliquerIssueActivite } from './activityIssue';
+import { peutTenter, refusNePeutTenter } from '../engine/skills';
+import type { PlayerText } from '../i18n/playerText';
 import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit, bourseOf } from './bourseFlow';
@@ -48,7 +49,7 @@ import type { TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import type { Get, Set } from './flowTypes';
 import type { BuiltCascadeStep } from './stepBrand';
-import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, type RollRequest } from './rollSeam';
+import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea } from './seaVoyageFlow';
 import { actorIn, garanti } from './combatants';
@@ -93,6 +94,23 @@ export function seaActivityBlocked(get: Get, def: ActivityDef): string | null {
   return null;
 }
 
+/** Test d'une Activité en mer à compétence FIXE (MDG 15 l.274-290) ; le chemin générique dérive la
+ *  sienne du héros (`travelActivitySpec`). Spec par ID (#1341). */
+function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | undefined {
+  if (def.resolver === 'seaChart') return { skill: 'metier', spec: 'cartographe' };
+  if (def.resolver === 'opportunityTrade') return { skill: OPPORTUNITE.test.skill.id, ...(OPPORTUNITE.test.skill.spec ? { spec: OPPORTUNITE.test.skill.spec } : {}) };
+  return undefined;
+}
+
+/** Refus NOMMÉ de CE héros pour une Activité en mer dont il ne peut pas tenter le Test (`peutTenter`) :
+ *  l'Activité est un choix (MDG 15 l.268), offerte FERMÉE avec sa raison. LDB 09 l.30 ; #2588. PUR. */
+export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText | undefined {
+  if (def.resolver === 'crewTraining') return undefined;
+  const test = seaActivityTest(def);
+  if (!test) return travelActivitySpec(hero, def)!.refus;
+  return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
+}
+
 /** Une Activité de héros ÉLIGIBLE (`!dead`, pick valide, contexte 'mer', non bloquée). PUR. */
 function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPick | null>): { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] {
   const out: { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] = [];
@@ -108,47 +126,45 @@ function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPic
 
 /** Étape MONO « Cartographie » (l.288-290, `sea-activity-chart`) : Métier (Cartographe), Complexe (−10). */
 function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityPick): BuiltCascadeStep | undefined {
-  // Spec par ID (#1341) : `testValue` compare `s.spec === spec` à l'ID porté par l'instance — un
-  // libellé ne matcherait aucun personnage et jaugerait le cartographe à sa carac nue.
-  const test: RollRequest['test'] = { skill: 'metier', spec: 'cartographe' };
+  const chart = seaActivityTest(def)!;
+  const test: RollRequest['test'] = chart;
   const difficulty = def.difficulty ?? 'complexe';
   return monoStep({
     id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actor: hero,
-    label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: 'metier', spec: 'cartographe' }),
+    label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', { id: chart.skill, ...(chart.spec ? { spec: chart.spec } : {}) }),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
-    ligne: { test },
+    ligne: { test, refus: seaActivityRefus(hero, def) },
     meta: { stashGold: pick.stashGold ?? 0 },
   });
 }
 
 /** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
- *  MEILLEURE compétence de l'acteur (identique `resolveTravelActivity`), la porte lance le Test.
- *  `undefined` = Activité SANS Test (Récupérer…) — appliquée d'office ici, aucune étape à jouer.
+ *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
+ *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. La spec
+ *  est toujours rendue : le schéma d'édition refuse `freeSkill` à une Activité de contexte 'mer'
+ *  (`superRefine` de `data/schemas/defs/activities.ts`).
  *
  *  EXPORTÉE pour être mesurée SEULE : aucune entrée de contexte 'mer' d'`activities.json` n'emprunte
- *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), et le
- *  catalogue est un module partagé qu'un test ne peut pas peupler sans fuir (`isolate: false`). Le
- *  `def` étant un ARGUMENT, la fonction s'exerce telle quelle avec une Activité réelle. */
+ *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), mais la
+ *  donnée est éditable au Compendium. Ses tests posent une Activité 'mer' dérivée d'une entrée réelle au
+ *  catalogue par le seam `setDataset` (`activiteMer.testkit.ts`). */
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
-  const spec = travelActivitySpec(hero, def);
+  const spec = travelActivitySpec(hero, def)!;
   if (spec.target == null) {
-    const out = applyTravelActivityResult(spec, def, null);
-    if (out.ops.length) {
-      const opLines = applyOps(hero, out.ops, { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } });
-      set({ party: [...get().party] });
-      noteSeaLine(get, set, opLines);
-    }
+    const { consequences } = appliquerIssueActivite(get, hero, def, spec, null);
+    set({ party: [...get().party] });
+    noteSeaLine(get, set, resultLines(consequences).map((l) => l.text));
     return undefined;
   }
   const difficulty = def.difficulty ?? 'intermediaire';
-  const test: RollRequest['test'] = { skill: spec.used?.id, spec: spec.used?.spec };
+  const test: RollRequest['test'] = { skill: spec.used.id, spec: spec.used.spec };
   return monoStep({
     id: `sea-activity-generic-${hero.id}`, kind: 'sea-activity-generic', actor: hero,
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
-    ligne: { test },
+    ligne: { test, refus: spec.refus },
     meta: { activityId: def.id },
   });
 }
@@ -196,7 +212,15 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   set({ pendingSeaActivities: { ...pending, opportunityQueue: rest } });
   const hero = get().party.find((h) => h.id === heroId);
   const pick = pending.picks[heroId];
-  if (!hero || !pick) { continueSeaActivitiesAfterCascade(get, set); return; }
+  const def = pick ? activityById(pick.activityId) : undefined;
+  if (!hero || !pick || !def) { continueSeaActivitiesAfterCascade(get, set); return; }
+  // Choix non tentable (LDB 09 l.30 ; #2588) : aucune mise, aucun Test, le refus nommé au journal.
+  const refus = seaActivityRefus(hero, def);
+  if (refus) {
+    noteSeaLine(get, set, [refus]);
+    continueSeaActivitiesAfterCascade(get, set);
+    return;
+  }
   const capGold = Math.min(vesselFreeEnc(get), Math.floor(toBrass(partyMoneyTotal(get)) / PA_PER_CO));
   const invest = Math.max(0, Math.min(Math.floor(pick.investGold ?? 0), capGold));
   if (invest <= 0) {
@@ -205,9 +229,9 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
     return;
   }
   payFromGroup(get, set, fromBrass(invest * PA_PER_CO), { purpose: 'commerce d’opportunité' });
-  const test: RollRequest['test'] = { skill: OPPORTUNITE.test.skill.id, spec: OPPORTUNITE.test.skill.spec };
+  const test: RollRequest['test'] = seaActivityTest(def)!;
   get().startExtendedTest({
-    actorId: hero.id, label: dataLabel(activityById(pick.activityId)?.label ?? pick.activityId), skillLabel: refLabel('skills', OPPORTUNITE.test.skill),
+    actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill),
     target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.test.totalDR,
     maxAttempts: OPPORTUNITE.test.maxAttempts,
     outcome: { kind: 'sea-activity-opportunity', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
@@ -270,18 +294,16 @@ registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
 });
 
 /** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
- *  pas de RNG) depuis `meta.activityId` pour appliquer `onSuccess` (GameOp, langue UNIQUE des effets)
- *  au jet DÉJÀ résolu (`applyTravelActivityResult`, jumeau PUR de `resolveTravelActivity`). */
+ *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
+ *  (`appliquerIssueActivite`, source unique terre et mer). */
 registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
   if (!step.result || !hero) return;
   const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
-  if (!def) return;
-  const spec = travelActivitySpec(hero, def);
-  const out = applyTravelActivityResult(spec, def, step.result);
-  if (!out.ops.length) return { consequences: freeCons([]) };
-  const opLines = applyOps(hero, out.ops, { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } });
+  const spec = def ? travelActivitySpec(hero, def) : null;
+  if (!def || !spec) return;
+  const { consequences } = appliquerIssueActivite(get, hero, def, spec, step.result);
   set({ party: [...get().party] });
-  return { consequences: freeCons(opLines) };
+  return { consequences };
 });
 
 /** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré

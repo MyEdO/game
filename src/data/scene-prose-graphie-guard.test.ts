@@ -103,12 +103,14 @@ function masquerFrontmatter(texte: string): string {
  * une clé EXIGÉE (porte de forme des workflows, règle `meta` : `scripts/ops/workflows.test.mjs`) :
  * rien de ce qui vit là n'authore un document de scène. Le bloc court jusqu'à sa ligne fermante `}`
  * en COLONNE 0, y compris quand une fixture porte la source d'un workflow dans un gabarit dont le
- * texte s'ouvre sur ce littéral ; ce qui PRÉCÈDE le littéral sur sa ligne reste mesuré.
+ * texte s'ouvre sur ce littéral ; ce qui PRÉCÈDE le littéral sur sa ligne reste mesuré. Un `meta` que sa
+ * ligne referme (accolades équilibrées : une fixture qui porte le workflow en une chaîne) n'est masqué que
+ * jusqu'à son accolade fermante ; la suite de la ligne reste mesurée.
  *
  * Les lignes masquées sont VIDÉES, jamais retirées : les `fichier:ligne` rendus restent ceux du
  * fichier réel.
  */
-const OUVERTURE_META = /export const meta = \{\s*$/;
+const OUVERTURE_META = /export const meta = \{/;
 const FERMETURE_META = /^\}/;
 
 function masquerMetaDeWorkflow(texte: string): string {
@@ -122,6 +124,11 @@ function masquerMetaDeWorkflow(texte: string): string {
       }
       const ouverture = OUVERTURE_META.exec(ligne);
       if (!ouverture) return ligne;
+      let solde = 0;
+      for (let k = ouverture.index + ouverture[0].length - 1; k < ligne.length; k++) {
+        solde += ligne[k] === '{' ? 1 : ligne[k] === '}' ? -1 : 0;
+        if (solde === 0) return ligne.slice(0, ouverture.index) + ligne.slice(k + 1);
+      }
       dedans = true;
       return ligne.slice(0, ouverture.index);
     })

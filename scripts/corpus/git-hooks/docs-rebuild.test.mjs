@@ -23,8 +23,8 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   const rendues = mesurerEnRendu(MESURES, { cwd: RACINE })
   const mesure = tableTotale(MESURES, (script) => rendues.get(script).entree)
   for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
-  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
-  // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
+  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (pathspec de
+  // `git ls-files`), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
   assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
   assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
   assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
@@ -33,6 +33,6 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
   // Et les classes que la liste voyait déjà restent vues.
   assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
-  assert.equal(touchesDocSources(['scripts\\raw\\build-implemente.mjs'], mesure), true)
+  assert.equal(touchesDocSources(['scripts\\raw\\_lib.mjs'], mesure), true)
   assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
 })

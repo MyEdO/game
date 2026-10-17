@@ -7,8 +7,11 @@ import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneC
 import { preflightSessionStart } from './session-start.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
-const politique = lirePolitique()
 const refuser = (raison) => { throw new Error(raison) }
+
+/** `true` si ces arguments ATTENDENT une session (`attendre`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
+ *  @param {string[]} argv */
+export const estUneAttente = (argv) => argv[0] === 'attendre'
 
 export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
@@ -109,7 +112,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const executable = natif(options.agent, options.executable)
   contrat(options.agent, executable, { env })
   const hooks = await preflight(c.worktree, options.agent)
-  planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique })
+  planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique: lirePolitique() })
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
   const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
   const r = sessions.reserver({ ...c, hooks, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
@@ -121,7 +124,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   if (vu.error || vu.status !== 0) { await sessions.echecDemarrage(r.carte.sessionId, r.jeton, `WT SPAWN : ${vu.error?.message ?? vu.stderr ?? vu.status}`); refuser('WT SPAWN ÉCHOUÉ') }
   const carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton)
   if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || (carte.etat !== 'vivante' && !['sortie', 'echec'].includes(carte.issueSortie))) refuser(`DÉMARRAGE ÉCHOUÉ : ${carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT'}`)
-  return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 3600000` }
+  return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 1740000` }
 }
 
 async function jetonDe(env, stdin) {

@@ -47,10 +47,10 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   it("l'interaction est inférée du champ `table` : sans résultat = à tirer, avec résultat = affichage prêt", () => {
     const st = tableStep('t1');
     expect(stepInteraction(st)).toBe('table');
-    expect(stepReady(st)).toBe(false);
+    expect(stepReady(st, useGame.getState())).toBe(false);
     const tiree: CascadeStep = { ...st, table: { ...st.table!, result: { roll: 12, die: 12, id: 'basse', lines: ['x'] } } };
     expect(stepInteraction(tiree)).toBe('affichage');
-    expect(stepReady(tiree)).toBe(true);
+    expect(stepReady(tiree, useGame.getState())).toBe(true);
   });
 
   it('tirage NATUREL par les vraies coutures : le dé tombe dans SA fourchette, la ligne est affichée puis APPLIQUÉE', () => {
@@ -102,7 +102,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     for (const a of applied) expect(a.id).toBe(a.die <= 50 ? 'basse' : 'haute');
     useGame.getState().cascadeFinish();
     applied.length = 0;
-    const out = runCascadeImmediate(useGame.getState, useGame.setState, [tableStep('t3', { tableId: SYNTH, forcedRoll: 51 })]);
+    const out = runCascadeImmediate(useGame.getState, useGame.setState, [tableStep('t3', { tableId: SYNTH, forcedRoll: 51 })])!;
     expect(out[0].table!.result).toMatchObject({ roll: 51, die: 51, id: 'haute' });
     expect(applied).toEqual([{ id: 'haute', roll: 51, die: 51 }]);
   });
@@ -386,7 +386,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     const st = useGame.getState().pendingCascade!.participants[0];
     expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 85).id });
     useGame.getState().cascadeFinish();
-    const out = runCascadeImmediate(useGame.getState, useGame.setState, [structureStep('s2', 20)]);
+    const out = runCascadeImmediate(useGame.getState, useGame.setState, [structureStep('s2', 20)])!;
     expect(ruleOf(out[0])).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 20).id });
   });
 

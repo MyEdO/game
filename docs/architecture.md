@@ -34,9 +34,28 @@ par `npm run docs:build`. Aucune ne se fusionne.
 (heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
 vrai conflit humain.
 
-Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` régénèrent les cibles de
-code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
-reste à committer.
+Après tout commit, toute fusion ou tout rebase : les hooks `post-commit`/`post-merge`/`post-rewrite`
+choisissent les générateurs dont une source a bougé (`scripts/git-hooks/selection-des-derives.mjs`) ;
+`scripts/git-hooks/docs-rebuild.mjs` régénère les cibles de code avant de rendre la main
+(`build-all --code --sans-certifier` : leurs certificats invalidés, la passe les certifie) et DEMANDE la
+reconstruction des docs, jouée en fond par un détaché par arbre (`scripts/git-hooks/reconstruction.mjs`,
+journal `.git/hooks-git/reconstruction/<pid>.log`) une fois l'arbre libre de toute opération git ;
+`--attendre` attend sa fin. Un MIXTE réécrit reste à committer. Les dérivés et le cache de fraîcheur n'ont
+qu'UN écrivain à la fois (`scripts/docs/lib/ecrivain-derives.mjs`) : tout écrivain de cibles de code hors passe
+PRÉEMPTE la passe en cours (époque neuve sous verrou), dont toute écriture suivante est refusée, puis la passe est rejouée ; une écriture de la
+passe pendant une opération git (checkout, rebase, fusion) la préempte de même ; toute autre écriture prend le
+verrou.
+
+**Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
+l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
+produit dans le commit ; les post-hooks (`scripts/git-hooks/miroirs-d-agents.mjs`) rattrapent ce que
+le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit` seulement si l'index
+s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
+producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
+son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
+`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
@@ -292,7 +311,7 @@ src/state/
                               (previewAttack/Defense) : il partage attackEnv/bestDefenseMode avec la
                               résolution → cycle. La cohésion preview↔résolution est voulue.
   rollFlowFactory.ts / rollFlowSpecs.ts  FABRIQUE générique des flux de jet différé (« une situation = une modale ») +
-                              specs des flux (attack/defense/cast/disengage/trample/run/focus/psych/
+                              specs des flux (attack/defense/cast/disengage/run/focus/psych/
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 xConfirm. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
@@ -517,7 +536,7 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
   (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
-  `session.append`, `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
   fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
@@ -527,7 +546,8 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   composée, égalité ou `case` numérique, `Math`, `++`/`--`) ; le parsing (appel d'une méthode de
   découpe ou de recherche de chaîne, `parseInt`, `parseFloat`, `Number`, `RegExp`, littéral regex,
   `Date.parse`, `new Date(x)`, `new URL(x)`, `JSON.parse`) ; `ask` en clé ou en littéral ;
-  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun
+  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289) ; `$.session.append`, l'écriture
+  dans l'historique de la session, qui réécrit le cache de prompt au tour suivant (#2596). Dans la couture : aucun
   `$`, et les mêmes refus, sauf `JSON.parse`. Le mur NE GARDE PAS l'évasion délibérée (`'a' + 'sk'`,
   clé calculée, type dérivé de `On`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur le refuse, la garde
   `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de
@@ -550,16 +570,18 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/seaVoyageFlow.ts` l.876 et l.1541
-  gatent la résolution immédiate/headless d'une journée de routine (`runCascadeImmediate`) par
-  `get().net.mode === 'local'` (en plus de `seaAutoResolves`/`seaDayAllRoutine`) ; en coop la cadence
-  reste JOUR-PAR-JOUR quels que soient les ordres (commentaire au site : « coop = cadence manuelle,
-  pas d'auto-pilote des postes d'autrui »). Raison technique : la résolution immédiate est un bloc
-  synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales (`modalArbiter.ts`)
-  — elle piloterait donc silencieusement les Tests de routine des postes tenus par des PERSONNAGES
-  D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership déjà posé
-  ailleurs, `netOwnership.controlsActive`), même si le résultat reste tracé au PV. Lever ⇒ router les
-  Tests de routine par owner de poste comme le fait déjà le registre de modales pour les interruptions.
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/voyageCadence.ts` (`traverseeCommandee`)
+  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
+  (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
+  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+  (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
+  soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
+  immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales
+  (`modalArbiter.ts`) — elle piloterait donc silencieusement les Tests de routine des postes tenus par des
+  PERSONNAGES D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership,
+  `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
+  `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
+  owner de poste comme le fait déjà le registre de modales pour les interruptions.
 - **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/state/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
   l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever

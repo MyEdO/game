@@ -18,6 +18,7 @@
  * l'exécute SEULEMENT sur clic, Talent d'abord (gratuit, illimité) PUIS jeton (consommé).
  */
 import type { Combatant } from './types';
+import { refCouvre } from '../data/schemas/grammaire/ref';
 import { reverseRoll } from './combat';
 import { evaluateTest } from './tests';
 import { talentReverseFailed } from './combatFeatures/dispatch';
@@ -26,7 +27,7 @@ import { talentReverseFailed } from './combatFeatures/dispatch';
  *  (« Observer une cible », l.218) ; sinon match STRUCTURÉ par id (comme `talentReverseFailed`). */
 function tokenMatches(tok: { skill?: string; spec?: string }, q: { skill?: string; spec?: string }): boolean {
   if (tok.skill == null) return true;
-  return tok.skill === q.skill && (tok.spec == null || tok.spec === q.spec);
+  return refCouvre({ id: tok.skill, spec: tok.spec }, { id: q.skill, spec: q.spec });
 }
 
 /** Peek NON-CONSOMMANT (miroir de `consumeReverseToken`) : `c` porte-t-il un jeton applicable à

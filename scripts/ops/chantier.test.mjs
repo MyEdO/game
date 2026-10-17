@@ -11,9 +11,10 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
-  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis,
+  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
   nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
 } from './chantier.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'

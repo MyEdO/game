@@ -8,14 +8,13 @@ import { tmpdir } from 'node:os'
 
 import { join } from 'node:path'
 
-import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
+import { cheminAbsent, listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
 
 import { norm } from '../../../src/lib/normalize.ts'
 
 import { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 
-import { banclistertestmjs } from './bancLister.mjs'
-const { blocDe, blocsDuMur, couvre, exempte, racinesDuRegistre } = banclistertestmjs
+import { blocDe, blocsDuMur, couvre, exempte, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
 
 test('cache glob : compilation réutilisée, FIFO borné et expressions publiques isolées', () => {
   const motifs = ['__cache2475__/a/*.ts', '__cache2475__/**/b.{md,ts}', '__cache2475__/c.[]+?.ts', '__cache2475__/**', '__cache2475__/z', '__cache2475__/{x,y}/*']
@@ -128,6 +127,23 @@ test('EFFET — `listerArbre` honore `filtre` (fichiers) et `descendre` (dossier
   }
 })
 
+test('EFFET — `listerArbre` ne descend aucun lien (vers un dossier, vers un fichier, mort) : chacun est rendu comme un fichier (#2603)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lister-liens-'))
+  const lier = (cible, nom, type) => symlinkSync(join(dir, cible), join(dir, nom), process.platform === 'win32' ? 'junction' : type)
+  try {
+    mkdirSync(join(dir, 'Cible'))
+    writeFileSync(join(dir, 'Cible', 'dedans.md'), '')
+    writeFileSync(join(dir, 'f.md'), '')
+    lier('Cible', 'LienDossier', 'dir')
+    lier('f.md', 'LienFichier', 'file')
+    lier('nulle-part', 'LienMort', 'file')
+    assert.deepEqual(listerArbre(dir), ['Cible/dedans.md', 'LienDossier', 'LienFichier', 'LienMort', 'f.md'])
+    assert.deepEqual(listerArbre(dir, { filtre: (rel) => !rel.startsWith('Lien'), descendre: () => true }), ['Cible/dedans.md', 'f.md'])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('`parLibelle` — alphabétique ACCENTS et CASSE ignorés, là où `parUnitesDeCode` les fait décider', () => {
   // Les trois désalphabétisations mesurées sur les docs routés par CLAUDE.md quand un libellé est trié
   // en unités de code : accent APRÈS la lettre nue, majuscule AVANT toute minuscule.
@@ -169,6 +185,19 @@ test('`absent` — `vide` rend `[]` sur un dossier absent, `lever` (défaut) lè
   assert.deepEqual(listerDossier(absent, { absent: 'vide' }), [])
   assert.throws(() => listerDossier(absent))
 })
+
+test('`cheminAbsent` — ENOENT, ENOTDIR et ENAMETOOLONG sont absents ; une lecture refusée ne l’est pas (#2603)', () => {
+  for (const code of ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG']) assert.equal(cheminAbsent(Object.assign(new Error(code), { code })), true, code)
+  for (const code of ['EACCES', 'EPERM', 'ELOOP', 'EIO', undefined]) assert.equal(cheminAbsent(Object.assign(new Error('banc'), { code })), false, String(code))
+  assert.equal(cheminAbsent(undefined), false)
+  const dir = mkdtempSync(join(tmpdir(), 'lister-nom-long-'))
+  try {
+    assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide', avecTypes: true }), { nature: 'absent', entrees: [] })
+    assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide' }), [])
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+// --- (b) MUR : la portée du lint COUVRE le registre ---------------------------------------------
 
 test('MUR — toute racine du registre des générateurs est sous les globs de chaque bloc du mur « ordre total »', () => {
   const hors = racinesDuRegistre().filter((r) => !sousLeMurEntier(r))

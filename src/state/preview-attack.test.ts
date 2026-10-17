@@ -96,7 +96,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     expect(off.mods.some((m) => m.label === 'Main secondaire')).toBe(false);
     expect(off.target, 'le −20 reste porté par la cible, palier ou chip').toBe(main.target - 20);
     seedBattleRng(2);
-    const r = resolveAttack(get, a, b, undefined, undefined, undefined, undefined, 'o');
+    const r = resolveAttack(get, a, b, undefined, undefined, undefined, undefined, off.weapon);
     expect(r!.weapon.label).toBe('Dague'); // parité : la résolution utilise la même arme choisie
   });
 

@@ -10,7 +10,7 @@
  * sinon le défaut élémentaire `souffle-feu` (exotiques arbitrés MJ). Aucun regex « (Type) » en dur.
  */
 import { formatTrait } from './traits/dispatch';
-import { findTraitById, findManeuverById, type ManeuverDef } from '../data';
+import { findTraitById, findManeuverById, maneuvers, type ManeuverDef } from '../data';
 import { norm } from '../lib/normalize';
 import { spellEffectOps } from './flowCore';
 import type { TraitList } from './statEntry';
@@ -18,7 +18,7 @@ import type { Combatant } from './types';
 import type { GameOp } from './ops';
 
 /** Type d'attaque naturelle (geste + règle distincts). Sert UNIQUEMENT à l'anim/pose/icône. */
-export type AttackKind = 'arme' | 'morsure' | 'caudale' | 'cornes' | 'souffle' | 'vomi' | 'tentacules' | 'etreinte' | 'regard' | 'langue' | 'hurlement';
+export type AttackKind = 'arme' | 'morsure' | 'caudale' | 'cornes' | 'souffle' | 'vomi' | 'tentacules' | 'etreinte' | 'regard' | 'langue' | 'hurlement' | 'pietinement';
 
 /** Déclenchement RAW : action normale, gratuite (coût en Avantage), ou gratuite à la Charge. */
 export type AttackTrigger = 'action' | 'free' | 'charge';
@@ -75,7 +75,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
     const grants = findTraitById(inst.id)?.grantsManeuvers;
     if (!grants?.length) continue;
     const def = pickGranted(grants.map((r) => r.id), inst.arg);
-    if (!def) continue;
+    if (!def || def.ecartDeTailleMin != null) continue;
     const type = inst.arg && !/divers|au choix/i.test(inst.arg) ? inst.arg : undefined;
     const indice = inst.value ?? 0;
     out.push({
@@ -89,6 +89,26 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
   }
   return out;
 }
+
+/** Attaque d'une manœuvre ouverte par l'écart de Taille (`ecartDeTailleMin`) : aucun trait ne la porte,
+ *  aucune instance n'en module l'Indice. LDB 85 l.387 ; LDB 85 l.344 */
+function attaqueDEcart(def: ManeuverDef): CreatureAttack {
+  return {
+    kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.advantageCost,
+    ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
+  };
+}
+
+/** LISTE UNIQUE des attaques naturelles d'un combattant : celles de ses traits (`creatureAttacks`), puis
+ *  chaque manœuvre d'écart de Taille, une fois par DÉFINITION — tout combattant y a droit, héros compris.
+ *  Lue par la barre d'attaques, la file de l'IA, le coût, l'arme et les effets d'une gratuite. LDB 85 l.387 */
+export function attaquesNaturelles(traits: TraitList): CreatureAttack[] {
+  return [...creatureAttacks(traits), ...maneuvers.filter((d) => d.ecartDeTailleMin != null).map(attaqueDEcart)];
+}
+
+/** L'attaque naturelle `kind` de la liste unique (`attaquesNaturelles`). */
+export const attaqueNaturelle = (traits: TraitList, kind: string): CreatureAttack | undefined =>
+  attaquesNaturelles(traits).find((a) => a.kind === kind);
 
 // ---------------------------------------------------------------------------
 // Capacités SUR SOI (targeting:'self') — transformation/mue/auto-buff octroyées par un trait

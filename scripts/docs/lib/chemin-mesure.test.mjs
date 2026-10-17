@@ -7,11 +7,13 @@ import { mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, symlinkSync, 
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { ancetreExistant, canoniser, dansLaMesure, perimetreDeMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import path, { join } from 'node:path'
+import { ancetreExistant, canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
+import { servirPipe } from '../../test/pipeNomme.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 test('signature Git : lien ignoré POSIX sans suivre sa cible ni lui ajouter un slash', { skip: process.platform === 'win32' }, () => {
@@ -44,6 +46,11 @@ test('admission déclarée : endpoints glob ignorés, natures et frontières', (
   assert.equal(dansLaMesure('data/own.generated.ts', ignores, new Set(), motifs), true)
   assert.equal(dansLaMesure('data/own.generated.ts/foreign.txt', ignores, new Set(), motifs), false)
   for (const rel of ['node_modules/a.generated.ts', '.git/a.generated.ts', 'docs/.cache/a.generated.ts', 'data/foreign.cache']) assert.equal(dansLaMesure(rel, ignores, new Set(), motifs), false)
+})
+
+test('#2603 — un segment .git, à toute profondeur, n’est jamais dans la mesure ; un nom qui le contient y reste', () => {
+  for (const rel of ['src/.git', 'src/.git/HEAD', 'a/b/.git']) assert.equal(dansLaMesure(rel, new Set()), false, rel)
+  for (const rel of ['src/.gitignore', 'src/a.git', 'src/.github/x.yml']) assert.equal(dansLaMesure(rel, new Set()), true, rel)
 })
 
 test('projection froide : seuls les fichiers propres sortent, dossiers, liens et autre producteur restent', () => {
@@ -172,6 +179,68 @@ test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le 
   }
 })
 
+// #2603
+test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-memo-'))
+  try {
+    const cible = join(base, 'cible')
+    mkdirSync(cible)
+    writeFileSync(join(cible, 'Casse.md'), 'casse')
+    symlinkSync(cible, join(base, 'lien'), 'junction')
+    const chemins = [
+      join(cible, 'Casse.md'), join(cible, 'casse.md'), join(base, 'lien'), join(base, 'LIEN'), join(cible, 'absent.md'),
+      join(base, 'lien', 'Casse.md'), join(base, 'lien', 'absent', 'x.md'), join(base, 'absent', 'x.md'), base, cible,
+      join(tmpdir(), '..'), join(base, '..', '..'), base.split(/[\\/]/)[0] + '/',
+    ]
+    const canon = canoniseurParDossier()
+    for (const passe of [1, 2]) for (const chemin of chemins) assert.equal(canon(chemin), canoniser(chemin), `${passe} : ${chemin}`)
+    assert.equal(canon(join(base, 'lien', 'Casse.md')), join(realpathSync.native(cible), 'Casse.md'))
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('estPipeNomme : table de vérité sous win32 forcé, faux sous POSIX, plateforme du node:path par défaut', () => {
+  const lecteur = 'C' + ':'
+  const table = [
+    [String.raw`\\.\pipe\x`, true], ['//./pipe/x', true], [String.raw`\\?\pipe\x`, true], [String.raw`\\.\PIPE\x`, true],
+    [String.raw`\\srv\pipe\x`, true], [String.raw`\\localhost\pipe\x`, true], ['//srv/pipe/x', true], ['//h/pipe/x', true],
+    [String.raw`\\?\UNC\srv\pipe\x`, true], [String.raw`\\?\unc\srv\pipe\x`, true], ['//?/UNC/srv/pipe/x', true], [String.raw`\\.\UNC\srv\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\Device\NamedPipe\x`, true], [String.raw`\\?\GLOBALROOT\Device\NamedPipe\x`, true], [String.raw`\\.\GLOBALROOT\device\namedpipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\PIPE\x`, true], [String.raw`\\.\GLOBALROOT\??\PIPE\x`, true], [String.raw`\\.\GLOBALROOT\DosDevices\pipe\x`, true],
+    [String.raw`\\.\Global\pipe\x`, true], [String.raw`\\?\Global\pipe\x`, true], [String.raw`\\.\Global\Global\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\Global\pipe\x`, true], [String.raw`\\.\GLOBALROOT\??\Global\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\UNC\srv\pipe\x`, true], [String.raw`\\.\Global\UNC\srv\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\Device\Mup\srv\pipe\x`, true], [String.raw`\\.\GLOBALROOT\Device\Mup\;LanmanRedirector\srv\pipe\x`, true],
+    ['\\\\.\\' + lecteur + '\\x', false], ['\\\\?\\' + lecteur + '\\x', false], [String.raw`\\?\Volume{0f1e2d3c-0000-0000-0000-100000000000}\x`, false],
+    ['\\\\.\\GLOBALROOT\\??\\' + lecteur + '\\x', false], ['\\\\.\\Global\\' + lecteur + '\\x', false], [String.raw`\\.\GLOBALROOT\Global\pipe\x`, false],
+    [String.raw`\\.\GLOBALROOT\Device\HarddiskVolume3\x`, false], [String.raw`\\.\GLOBALROOT\Device\Mup\srv\partage\x`, false],
+    [String.raw`\\?\UNC\srv\p`, false], [String.raw`\\?\unc\srv\partage\x`, false],
+    [String.raw`\\srv\partage\x`, false], [String.raw`\\srv\partage\pipe\x`, false], [lecteur + '\\x', false], [lecteur + '\\pipe\\x', false], ['/tmp/x', false],
+  ]
+  for (const [chemin, attendu] of table) {
+    assert.equal(estPipeNomme(chemin, path.win32), attendu, `win32 : ${chemin}`)
+    assert.equal(estPipeNomme(chemin, path.posix), false, `POSIX : ${chemin}`)
+    assert.equal(estPipeNomme(chemin), attendu && path.sep === '\\', `node:path : ${chemin}`)
+  }
+})
+
+// #2603
+test('pipe nommé : canoniser, canoniseurParDossier et relatifSousRacine ne l’ouvrent jamais', { skip: process.platform !== 'win32' }, async (t) => {
+  const { pipe, nom, connexionsHorsTemoin } = await servirPipe(t, 'wfrp-2603-canon')
+  const formes = [pipe, ...[
+    'localhost/pipe', '?/UNC/localhost/pipe', './GLOBALROOT/Device/NamedPipe', '?/GLOBALROOT/Device/NamedPipe', './GLOBALROOT/GLOBAL??/PIPE', './Global/pipe',
+  ].map((prefixe) => path.win32.join('\\\\' + prefixe.split('/').join('\\'), nom))]
+  const racine = canoniser(tmpdir())
+  for (const forme of formes) {
+    assert.equal(canoniser(forme), forme)
+    assert.equal(canoniseurParDossier()(forme), forme)
+    assert.equal(relatifSousRacine(racine, forme), null, forme)
+  }
+  assert.equal(await connexionsHorsTemoin(), 0, 'connexions ouvertes par la canonisation')
+})
+
 test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-racines-'))
   try {
@@ -199,6 +268,33 @@ test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () =
     const vu = spawnSync(process.execPath, [script], { encoding: 'utf8' })
     assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
   } finally { rmSync(base, { recursive: true, force: true }) }
+})
+
+test('canonisation stricte : un composant de 300 caractères est ABSENT, sur le disque et sous ENAMETOOLONG (#2603)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-long-'))
+  const stat = fs.statSync
+  const realpath = fs.realpathSync.native
+  const long = join(base, 'JAB'.repeat(100), 'x.md')
+  const attendu = join(realpath(base), 'JAB'.repeat(100), 'x.md')
+  try {
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+    const tropLong = (chemin) => chemin.split(/[\\/]/).some((segment) => segment.length > 255)
+    fs.statSync = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return stat(chemin, ...reste)
+    }
+    fs.realpathSync.native = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return realpath(chemin, ...reste)
+    }
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+  } finally {
+    fs.statSync = stat
+    fs.realpathSync.native = realpath
+    rmSync(base, { recursive: true, force: true })
+  }
 })
 
 test('ancetreExistant : le chemin lui-même s’il existe, son ancêtre sinon', () => {

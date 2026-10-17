@@ -29,17 +29,27 @@
 //   `awk` n'est pas lu, son filtre par PID non plus ; la substitution passe pour une liste par nom (#2366) ;
 // - la syntaxe `-Param:valeur` et l'alias `iex` : le tokeniseur ne les déplie pas (#2172) ;
 // - un lanceur indirect (`Start-Process taskkill -ArgumentList "/IM node.exe"`, `Invoke-Command`, `Start-Job`,
-//   `. { }`, `start`, `exec`, `find -exec`) : le tokeniseur ne déplie pas la commande qu'il lance (#2172) ;
+//   `. { }`, `start`, `find -exec`) : le tokeniseur ne déplie pas la commande qu'il lance (#2172) ;
 // - la commande que l'hôte PowerShell lit sur stdin (`… | pwsh -Command -`, `… | pwsh -`, `… | powershell`, #2172)
 //   ou dans un script (`pwsh -File x.ps1`) : ni l'une ni l'autre n'est dans la ligne ;
 // - la quote simple échappée hors quote de bash (`echo 'a'\''b' && pkill node`, #2172) ;
 // - la sous-expression PowerShell `( … )` hors tête de segment (`$x = (Stop-Process -Name node)`,
 //   `Write-Output (Stop-Process -Name node)`) : seul son listeur est lu, car en bash `arr=(pkill node)` est un
 //   tableau qui n'exécute rien (#2172).
-import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+//
+// - un QUANTIFICATEUR de regex `{m,N}` au-delà de `QUANTIFICATEUR_MAX` passé à un consommateur de regex (#2603,
+//   constat 23) ; un mode chaîne fixe (`-F`, `fgrep`, `-SimpleMatch`) n'en compile aucune.
+//
+// Au FIL PRINCIPAL, sur Bash et PowerShell (`attenteRefusee`, #2603 constat 1) : une ATTENTE (dormeur, boucle de
+// sondage, veille d'un script de `scripts/ops/` qui exporte `estUneAttente`, `gh run watch`) lancée en fond, ou au
+// premier plan sans borne de vie sous l'échéance de l'appel. Ce que cette lecture ne voit pas : un dormeur écrit
+// dans un autre langage (`node -e setTimeout`), `timeout /t` et `ping -n` de Windows, et les lanceurs indirects
+// (#2172, ci-dessus). `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` à `1` dans `contexte.env` désarme cette lecture (#2603).
+import { ECHEANCE_PAR_DEFAUT_MS, OUTILS_SHELL, commandeDe, entreeDOutil, sousAgent, timeoutDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { readFileSync } from 'node:fs'
 import {
-  REFUS_SATURE, affectationPowerShell, argumentChaine, basenameExecutable, finDuBloc, gitSubcommand, jetonNu, nouveauBudget,
-  pipelinesDeJetons, soldeParentheses, valeurParametre,
+  REFUS_SATURE, affectationPowerShell, argumentChaine, basenameExecutable, borneDeVie, finDuBloc, gitSubcommand, jetonNu,
+  nouveauBudget, pipelinesDeJetons, secondesDeDuree, soldeParentheses, valeurParametre,
 } from '../guards/lib/commandeShell.mjs'
 
 /** Nom d'exécutable d'un segment (`basenameExecutable`, call-operator sauté) ; `commande` = le segment à
@@ -471,20 +481,26 @@ function arretParElement(P) {
     return source && `foreach ($${entete.variable} in ${source})`
   }
   const lier = (nom, liaison) => (liaison ? lies.set(nom.toLowerCase(), liaison) : lies.delete(nom.toLowerCase()))
-  const ordre = P.flat()
-  /** Le `done` qui suit le segment `s` (la fin de sa boucle), ou `undefined`. */
-  const doneSuivant = (s) => ordre.slice(ordre.indexOf(s) + 1).find((t) => executableDe(textesDe(relus(t))).exe === 'done')
+  /** `true` si la boucle `b` contient le segment `s` (`boucle` de `pipelinesDeJetons`). */
+  const dansLaBoucle = (b, s) => {
+    for (let c = s.boucle; c; c = c.parent) if (c === b) return true
+    return false
+  }
   /** L'entrée du segment `s` redirigée depuis une substitution de processus qui liste par nom (`< <(pgrep node)`),
    *  libellée pour la tête `tete`, ou `null`. */
   const entreeRedirigee = (s, tete) => {
     const jetons = s ? relus(s) : []
-    const i = jetons.findIndex((j, k) => k > 0 && j.text === '<' && jetonNu(j) && s.deplies.has(jetons[k + 1]))
+    const i = jetons.findIndex((j, k) => j.text === '<' && jetonNu(j) && s.deplies.has(jetons[k + 1]))
     const listeur = i === -1 ? null : listeurDesPipelines(s.deplies.get(jetons[i + 1]))
     return listeur && `${tete} < <(${listeur} …) → read`
   }
 
   for (const pipeline of P) {
     for (const s of pipeline) {
+      for (const lecture of lectures.filter((l) => !dansLaBoucle(l.boucle, s))) {
+        lies.delete(lecture.nom.toLowerCase())
+        lectures.splice(lectures.indexOf(lecture), 1)
+      }
       const jetons = relus(s)
       const k = s.tube.indexOf(s)
       // Un segment qui ouvre des blocs se lit dans leurs corps ; l'en-tête d'un `foreach` y lie sa variable.
@@ -503,7 +519,6 @@ function arretParElement(P) {
       const textes = textesDe(jetons)
       if (textes.length === 0) continue
       const { exe, args, commande } = executableDe(textes)
-      if (exe === 'done') for (const nom of lectures.splice(0)) lies.delete(nom.toLowerCase())
       const affectation = k === 0 ? affectationPowerShell(jetons) : null
       if (affectation && !PIPELINE_RE.test(affectation.nom)) {
         const source = sourceDe(affectation.valeur, s)
@@ -515,12 +530,12 @@ function arretParElement(P) {
       }
       const source = k === 0 ? null : sources(s.tube)[k]
       if (exe === 'read' && k === s.tube.length - 1) {
-        const entree = source ? `${source} | while read` : entreeRedirigee(s, 'read') ?? entreeRedirigee(doneSuivant(s), 'done')
+        const entree = source ? `${source} | while read` : entreeRedirigee(s, 'read') ?? entreeRedirigee(s.boucle?.fin, 'done')
         const fin = args.findIndex((a) => /^\d*[<>]/.test(a))
         for (const [i, nom] of args.slice(0, fin === -1 ? args.length : fin).entries()) {
           if (nom.startsWith('-') || OPTIONS_READ_A_VALEUR.includes(args[i - 1])) continue
           lier(nom, entree && `${entree} ${nom}`)
-          lectures.push(nom)
+          if (s.boucle) lectures.push({ nom, boucle: s.boucle })
         }
       }
       for (const j of jetons) {
@@ -575,6 +590,148 @@ const refusParNom = (graphieVue) => ({
     `pas des processus). ${ARRET_PAR_PID}`,
 })
 
+// ── Quantificateur de regex démesuré (#2603, constat 23) ─────────────────────────────────────────
+
+/** Exécutables qui compilent leurs arguments en regex ; `git grep` s'y ajoute par sa sous-commande. */
+const CONSOMMATEURS_DE_REGEX = ['grep', 'egrep', 'rg', 'sed', 'awk', 'select-string', 'sls']
+/** Consommateurs dont `-F`/`--fixed-strings` fait une chaîne fixe (`sed` et `awk` n'en ont pas, `awk -F` est le
+ *  séparateur). */
+const AVEC_CHAINE_FIXE = ['grep', 'egrep', 'rg', 'git grep']
+/** Un quantificateur `{m}`, `{m,}`, `{,N}`, `{m,N}`, accolades échappées (BRE) ou non. */
+const QUANTIFICATEUR_RE = /\\?\{(\d*)(?:,(\d*))?\\?\}/g
+const QUANTIFICATEUR_MAX = 200
+
+/** `true` si ce consommateur lit son motif en chaîne fixe. */
+function chaineFixe(consommateur, args) {
+  if (consommateur === 'select-string' || consommateur === 'sls') return args.some((a) => /^-simple/i.test(a))
+  return AVEC_CHAINE_FIXE.includes(consommateur) && args.some((a) => a === '--fixed-strings' || /^-[A-Za-z]*F[A-Za-z]*$/.test(a))
+}
+
+/** `{ consommateur, quantificateur }` du premier quantificateur au-delà de `QUANTIFICATEUR_MAX` que ce segment
+ *  compile, ou `null`. Un champ vide vaut 0. */
+function quantificateurDemesure(segment) {
+  const { exe, args } = executableDe(segment)
+  const git = gitSubcommand(segment)
+  const consommateur = git?.sub === 'grep' ? 'git grep' : CONSOMMATEURS_DE_REGEX.includes(exe) ? exe : null
+  const lus = git?.sub === 'grep' ? git.args : args
+  if (!consommateur || chaineFixe(consommateur, lus)) return null
+  for (const a of lus) {
+    for (const m of a.matchAll(QUANTIFICATEUR_RE)) {
+      if (Math.max(Number(m[1] || 0), Number(m[2] || 0)) > QUANTIFICATEUR_MAX) return { consommateur, quantificateur: m[0] }
+    }
+  }
+  return null
+}
+
+// ── Attente au fil principal (#2603, constat 1) ───────────────────────────────────────────────
+
+/** Exécutables qui ATTENDENT sans rien faire. */
+const DORMEURS = ['sleep', 'start-sleep', 'wait-process', 'wait-job', 'wait-event']
+/** Paramètres de `Start-Sleep` (propres, communs) : base d'ambiguïté. */
+const PARAMS_START_SLEEP = ['Seconds', 'Milliseconds', 'Duration', ...PARAMS_COMMUNS]
+
+/** La durée, en secondes, d'un `sleep` (coreutils : la somme de ses durées) ou d'un `Start-Sleep` (`-Seconds`,
+ *  `-Milliseconds`, positionnel) ; `null` pour un autre dormeur ou une durée illisible. */
+function dureeDuDormeur(exe, args) {
+  if (exe !== 'sleep' && exe !== 'start-sleep') return null
+  const ms = valeurParametre(args, 'Milliseconds', PARAMS_START_SLEEP)
+  if (ms) return /^\d+$/.test(ms) ? Number(ms) / 1000 : null
+  const secondes = valeurParametre(args, 'Seconds', PARAMS_START_SLEEP)
+  const durees = []
+  for (const a of secondes ? [secondes] : args) {
+    const duree = secondesDeDuree(a)
+    if (duree === null) break
+    durees.push(duree)
+  }
+  return durees.length ? durees.reduce((x, y) => x + y) : null
+}
+
+const motNu = (j, ...mots) => jetonNu(j) && mots.includes(j.text.toLowerCase())
+
+/** `true` si le segment est la condition d'une boucle de sondage : `until` en tête, `until`/`while` après le `}` d'un
+ *  `do { … }` PowerShell, ou `while` en tête d'une condition qui n'est pas un `read` (lecture de flux). */
+function conditionDeBoucle(s, exe) {
+  if (s.enTete.some((j) => motNu(j, 'until'))) return true
+  if (s.jetons.some((j, k) => k > 0 && motNu(s.jetons[k - 1], '}') && motNu(j, 'until', 'while'))) return true
+  return s.enTete.some((j) => motNu(j, 'while')) && exe !== 'read'
+}
+
+/** Le script `scripts/ops/<nom>.mjs` qu'un `node` lance : `{ nom, args }`, ou `null`. */
+function scriptOps(exe, args) {
+  if (exe !== 'node') return null
+  const i = args.findIndex((a) => !a.startsWith('-'))
+  const nom = /(?:^|[\\/])scripts[\\/]ops[\\/]([\w-]+)\.mjs$/.exec(args[i] ?? '')?.[1]
+  return nom ? { nom, args: args.slice(i + 1) } : null
+}
+
+/** `true` si le script `scripts/ops/<nom>.mjs` déclare ces `args` une ATTENTE : son export `estUneAttente`, importé
+ *  seulement quand son texte le déclare. */
+async function scriptAttend({ nom, args }) {
+  const url = new URL(`../ops/${nom}.mjs`, import.meta.url)
+  let texte
+  try { texte = readFileSync(url, 'utf8') } catch { return false }
+  if (!/export\s+(?:const|function)\s+estUneAttente\b/.test(texte)) return false
+  return (await import(url.href)).estUneAttente(args) === true
+}
+
+/** Les ATTENTES de la commande, chacune `{ graphie, borne }` : `borne` = sa borne de vie en secondes (`null` sans),
+ *  celle d'un dormeur bornée aussi par sa durée. `enBash` : le `timeout` de tête est celui de coreutils. */
+async function attentesDe(P, enBash) {
+  const attentes = []
+  const scripts = []
+  for (const s of P.flat()) {
+    if (s.ouvreDesBlocs || s.jetons.length === 0) continue
+    const textes = textesDe(s.jetons)
+    const { exe, args } = executableDe(textes)
+    const vie = enBash ? borneDeVie(s) : null
+    const graphie = textes.join(' ')
+    if (DORMEURS.includes(exe)) {
+      const duree = dureeDuDormeur(exe, args)
+      attentes.push({ graphie, borne: duree === null ? vie : Math.min(duree, vie ?? Infinity) })
+    }
+    const gh = exe === 'gh' && ((args[0] === 'run' && args[1] === 'watch') || (args[0] === 'pr' && args[1] === 'checks' && args.includes('--watch')))
+    if (gh || conditionDeBoucle(s, exe)) attentes.push({ graphie, borne: vie })
+    const script = scriptOps(exe, args)
+    if (script) scripts.push({ script, attente: { graphie, borne: vie } })
+  }
+  for (const { script, attente } of scripts) if (await scriptAttend(script)) attentes.push(attente)
+  return attentes
+}
+
+/** Le refus d'une attente du fil principal sur Bash ou PowerShell, ou `null`. Lue en fond, toute attente est refusée ;
+ *  au premier plan, celle dont la borne de vie n'est pas strictement sous l'échéance de l'appel. */
+async function attenteRefusee(entree, env) {
+  if (env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP === '1' || sousAgent(entree) || !['Bash', 'PowerShell'].includes(entree?.tool_name)) return null
+  const commande = commandeDe(entree)
+  if (!commande) return null
+  const input = entreeDOutil(entree)
+  const budget = nouveauBudget()
+  const P = pipelinesDeJetons(commande, 0, { budget })
+  if (budget.sature) return REFUS_SATURE
+  const attentes = await attentesDe(P, entree.tool_name === 'Bash')
+  if (input?.run_in_background === true) {
+    const vue = attentes[0]
+    return vue ? {
+      decision: 'deny',
+      reason:
+        `⛔ Attente en FOND REFUSÉE (${vue.graphie}, #2603) : Claude Code tue les shells de fond d'une session inactive sous ` +
+        `pression mémoire ; le Monitor en est exclu. Lance la même commande par l'outil Monitor (plafond 30 min : à ` +
+        `« Monitor timed out », ré-arme ; une veille du train se ré-arme par --depuis <dernier #seq>). ` +
+        `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 dans l'environnement du hook désarme cette garde.`,
+    } : null
+  }
+  const echeance = timeoutDe(input) ?? ECHEANCE_PAR_DEFAUT_MS
+  const vue = attentes.find((a) => a.borne === null || a.borne * 1000 >= echeance)
+  return vue ? {
+    decision: 'deny',
+    reason:
+      `⛔ Attente non bornée au PREMIER PLAN REFUSÉE (${vue.graphie}, #2603) : à l'échéance de l'appel (${echeance} ms), ` +
+      `elle bascule en fond sans être tuée, puis tombe sous la même mise à mort. Monitor, ou une borne de vie sous ` +
+      `l'échéance (timeout N, outil Bash). CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 dans ` +
+      `l'environnement du hook désarme cette garde.`,
+  } : null
+}
+
 /**
  * Décision du hook (PURE, testable). `null` = silence ; `{ decision: 'deny', reason }` sinon. Une
  * commande est visée si l'un de ses SEGMENTS PROFONDS (enchaînements, enrobeurs de tête, sous-shells,
@@ -602,6 +759,18 @@ export function evaluate(command) {
   const parElement = arretParElement(P)
   if (parElement) return refusParNom(parElement)
   for (const segment of pipelines.flat()) {
+    const regex = quantificateurDemesure(segment)
+    if (regex) {
+      return {
+        decision: 'deny',
+        reason:
+          `⛔ Quantificateur de regex ${regex.quantificateur} au-delà de ${QUANTIFICATEUR_MAX} REFUSÉ (${regex.consommateur}, #2603) : ` +
+          `le coût d'un contexte \`.{0,N}\` croît plus vite que N, et un grep sur un gros fichier (JSONL, binaire) a tenu ` +
+          `1 133 Mo pendant 7,5 min. Borne N à ${QUANTIFICATEUR_MAX}, ou lis en flux par un script node : \`Buffer.indexOf\` sur ` +
+          `les blocs d'un \`createReadStream\`, le bloc précédent gardé en tête, et la fenêtre de contexte découpée ` +
+          `autour de chaque occurrence.`,
+      }
+    }
     const lien = lienNodeModules(segment)
     if (lien) {
       return {
@@ -630,4 +799,8 @@ export function evaluate(command) {
   return null
 }
 
-export const garde = { nom: 'commande-piege', outils: OUTILS_SHELL, evaluer: (entree) => verdictDe(evaluate(commandeDe(entree))) }
+export const garde = {
+  nom: 'commande-piege',
+  outils: OUTILS_SHELL,
+  evaluer: async (entree, { env = process.env } = {}) => verdictDe(evaluate(commandeDe(entree)) ?? await attenteRefusee(entree, env)),
+}

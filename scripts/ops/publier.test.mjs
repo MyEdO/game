@@ -1,5 +1,4 @@
-import { corpsDeFusion, fusionDe, issueDeFusion, refusDEnfileur, reponseHttp } from '../guards/lib/fusionPr.mjs'
-
+import { refusDEnfileur } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
@@ -7,7 +6,7 @@ import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
 import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
 
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-
+import { remplacerCleJson } from '../agents/compat-core.mjs'
 import test, { after, describe, mock } from 'node:test'
 
 import childProcess from 'node:child_process'
@@ -18,19 +17,26 @@ import assert from 'node:assert/strict'
 
 import { spawn, spawnSync } from 'node:child_process'
 
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
-
-import { tmpdir } from 'node:os'
-
+import { constants, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import { fileURLToPath } from 'node:url'
+import { EventEmitter } from 'node:events'
+
+import { PassThrough } from 'node:stream'
+
+import { DELAI_ARRET_MS, tuerArbre, constaterArret, creerSuiviProcessus, observerProcessus } from '../guards/lib/processusBorne.mjs'
+
+import { BACKOFFS_MS, STATUS_DLL_INIT_FAILED } from '../guards/lib/spawnResilient.mjs'
+
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
 
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
+import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 
@@ -43,21 +49,37 @@ import { GitIndisponible, MARQUE_FEINTE, ajouterOrigine, classer, commitDe, depo
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
-
-import { citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
-
+import { ABAISSER_PRIORITE, citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 
-import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { sousEcheanceAsync } from '../test/verrou.mjs'
 
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
-
-import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, RACINE, borneDeVeilleMin, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, filetDuTrainEnfant, jouerLeTrain, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, mortDuRun, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, planDeReprise, rotationnerLog, transitionDuRun, vivant } from './publier.mjs'
-
-import { BORNE_EJECTIONS, ETAPES, MOTIF_EJECTION, MOTIF_REGENERATION, MOTIF_STOCKS, PLAGE_DE_CITATIONS, corpsDePilotage, courseDeFile, estDocDerive, etatDeLaPr, finDeSortie, marquePublication, messageDuTrain, partitionSales, prDeLaBranche, prDeRest, refusDeBranche, synchroniserAgents, titreDeCommit, titreDePr } from './etapesDuTrain.mjs'
-
+import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, vivant } from './publicationDonnee.mjs'
+import { executerPublication, RACINE, borneDeVeilleMin, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
+import {
+  BORNE_EJECTIONS,
+  ETAPES,
+  MOTIF_EJECTION,
+  MOTIF_REGENERATION,
+  MOTIF_STOCKS,
+  PLAGE_DE_CITATIONS,
+  corpsDePilotage,
+  courseDeFile,
+  estDocDerive,
+  etatDeLaPr,
+  finDeSortie,
+  marquePublication,
+  messageDuTrain,
+  partitionSales,
+  prDeLaBranche,
+  prDeRest,
+  refusDeBranche,
+  titreDeCommit,
+  titreDePr,
+} from './etapesDuTrain.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 
 const NOMS = ETAPES.map((e) => e.nom)
@@ -324,10 +346,18 @@ describe('estDocDerive', () => {
       assert.equal(estDocDerive(pure, GEN), false, pure)
   })
 
-  test('estDocDerive : les sorties d’agents:sync sont DÉRIVÉES', () => {
+  test('estDocDerive : les destinations des miroirs d’agents (#2578), hooks compris, que `post-merge` et `post-rewrite` produisent sans les committer, sont DÉRIVÉES', () => {
     assert.equal(estDocDerive('AGENTS.md', GEN), true)
     assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
     assert.equal(estDocDerive('.codex/credo.md', GEN), true)
+    assert.equal(estDocDerive('.codex/hooks.json', GEN), true)
+    assert.equal(estDocDerive('.claude/settings.local.json', GEN), false)
+    assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)
+    assert.equal(estDocDerive('.claude/skills/ajouter-une-donnee/SKILL.md', GEN), false)
+  })
+
+  test('estDocDerive : la sortie PAR CLÉ `.claude/settings.json` sans lecture de HEAD et du disque est MANUSCRITE', () => {
+    assert.equal(estDocDerive('.claude/settings.json', GEN), false)
   })
 
   test('estDocDerive : un MANUSCRIT n’est pas dérivé', () => {
@@ -351,8 +381,8 @@ describe('estDocDerive', () => {
   })
 
   test('partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé', () => {
-    const vu = partitionSales(['docs/raw/4e/00-index.md', 'src/state/cascade.ts', 'AGENTS.md', 'docs/raw/coverage.md', 'docs/architecture.md'], GEN)
-    assert.deepEqual(vu.derives, ['docs/raw/4e/00-index.md', 'AGENTS.md'])
+    const vu = partitionSales(['docs/raw/4e/00-index.md', 'src/state/cascade.ts', 'docs/raw/4e/activites.md', 'docs/raw/coverage.md', 'docs/architecture.md'], GEN)
+    assert.deepEqual(vu.derives, ['docs/raw/4e/00-index.md', 'docs/raw/4e/activites.md'])
     assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/raw/coverage.md', 'docs/architecture.md'])
   })
 
@@ -362,11 +392,44 @@ describe('estDocDerive', () => {
   })
 })
 
+// ── Les gestes du train : des écrivains NOMMÉS, jamais une commande git libre ──────────────────
+
+/** La reconstruction des dérivés de l'arbre, soldée verte (`ctx.attendreReconstruction`, #2603). */
+const RECONSTRUCTION_SOLDEE = () => ({ etat: 'soldee', seq: 1, code: 0 })
+
+// #2603
+test('preflight et étape `docs` ATTENDENT la reconstruction des dérivés avant de lire l’arbre sale : en cours à l’échéance, refus nommé ; verdict rouge, journalisé', () => {
+  const lues = []
+  const journal = []
+  const ctx = (passe) => ({
+    racine: '/nulle-part', branche: 'chantier/x', generators: GENERATORS, filtresDePush: ['chantier/**'],
+    journaliser: (texte) => journal.push(texte),
+    attendreReconstruction: () => { lues.push('attente'); return passe },
+    questions: {
+      rebaseEntame: () => null, brancheDe: () => 'chantier/x', origineDe: () => 'https://exemple.invalid/autre.git',
+      ceQuiChange: () => ({ chemins: () => [] }), cheminsSales: () => { lues.push('sales'); return [] },
+    },
+  })
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  assert.deepEqual(preflight.jouer(ctx({ etat: 'en-cours' }), journalVide('chantier/x')),
+    { ok: false, raison: 'preflight : reconstruction des dérivés toujours en cours à l’échéance — `--reprendre` après sa fin' })
+  assert.deepEqual(lues, ['attente'], 'l’arbre sale n’est pas lu sous une reconstruction en cours')
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  lues.length = 0
+  assert.deepEqual(docs.jouer(ctx({ etat: 'en-cours' }), { base: 'b'.repeat(40), tete: 'a'.repeat(40) }),
+    { ok: false, raison: 'docs : reconstruction des dérivés toujours en cours à l’échéance — `--reprendre` après sa fin' })
+  assert.deepEqual(lues, ['attente'])
+  lues.length = 0
+  assert.deepEqual(preflight.jouer(ctx({ etat: 'mort', code: 70, log: '/j/1.log' }), journalVide('chantier/x')), { ok: false, raison: 'origin étranger au dépôt : https://exemple.invalid/autre.git' })
+  assert.deepEqual(journal, ['[publier] preflight — reconstruction des dérivés : mort, code 70, journal /j/1.log\n'])
+  assert.deepEqual(lues, ['attente', 'sales'], 'un verdict rendu laisse lire l’arbre')
+})
+
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'dormir', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'maintenant', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'dormir', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lirePr', 'lireTicket', 'maintenant', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'publication', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -378,13 +441,10 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
     assert.throws(() => ctx.coursesCi(sha), /ctx\.coursesCi : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.demanderFusion({ numero: 7, sha }), /ctx\.demanderFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.etatFileDePr({ numero: 7, sha }), /ctx\.etatFileDePr : un sha COMPLET/, JSON.stringify(sha))
-    assert.throws(() => ctx.lireFusion({ numero: 7, sha, uuid: '12345678-1234-1234-1234-123456789abc' }), /ctx\.lireFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.parentsDe(sha), /ctx\.parentsDe : un sha COMPLET/, JSON.stringify(sha))
   }
   for (const numero of ['0', '7a', undefined])
     assert.throws(() => ctx.demanderFusion({ numero, sha: 'a'.repeat(40) }), /ctx\.demanderFusion : un NUMÉRO/, JSON.stringify(numero))
-  for (const uuid of ['x', '630b9d5e-3f2a-4f7e-8b0c-2d5f9a8c1e42/../..', undefined])
-    assert.throws(() => ctx.lireFusion({ numero: 7, uuid }), /ctx\.lireFusion : un UUID de demande/, JSON.stringify(uuid))
   for (const id of ['1', 0, -3, 1.5, undefined])
     assert.throws(() => ctx.jobsEnEchec(id), /ctx\.jobsEnEchec : un id de course/, JSON.stringify(id))
   for (const essai of [0, -1, 1.5, '2']) assert.throws(() => ctx.jobsEnEchec(1, essai), /ctx\.jobsEnEchec : un essai de course/, String(essai))
@@ -458,6 +518,34 @@ function implantationDuCli() {
   }
 }
 
+test('#2626 bootstrap : générateur WIP invalide ignoré ; panne de préparation reçoit run et verdict', () => {
+  const { racine } = implantationDuCli()
+  try {
+    const branche = 'chantier/2626-bootstrap'
+    const generateur = join(racine, 'scripts/docs/build-all.mjs')
+    writeFileSync(generateur, 'const = WIP invalide')
+    const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/publier.mjs')], {
+      cwd: racine, encoding: 'utf8', env: { ...envDeDepotForge(), ...envGitFeint([
+        { si: ['--show-toplevel'], stdout: racine, status: 0 },
+        { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
+        { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
+        { si: ['ls-remote', 'origin', `refs/heads/${branche}`], stderr: 'panne distante attendue', status: 29 },
+        { si: [], status: 97, stderr: 'GARDE bootstrap : commande interdite' },
+      ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
+    })
+    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+    assert.match(vu.stderr, /panne distante attendue/)
+    assert.doesNotMatch(vu.stderr, /SyntaxError|GARDE bootstrap/)
+    const journal = lireJournal(cheminsDeJournal(racine, branche).json, branche)
+    assert.ok(journal.run)
+    assert.equal(journal.verdict.etape, 'moteur')
+    assert.match(journal.verdict.raison, /panne distante attendue/)
+    assert.equal(readFileSync(generateur, 'utf8'), 'const = WIP invalide')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
   const { racine } = implantationDuCli()
   try {
@@ -474,7 +562,7 @@ test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
         { si: ['--show-toplevel'], stdout: racine, status: 0 },
         { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
         { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
-        { si: ['rev-parse', '--git-path', 'rebase-merge'], stdout, stderr, status: 29 },
+        { si: ['ls-remote', 'origin', `refs/heads/${branche}`], stdout, stderr, status: 29 },
         { si: [], status: 97, stderr: 'GARDE consommateurs : commande interdite\n' },
       ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
     })
@@ -507,6 +595,24 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
       assert.throws(() => ctx.pousser({ vers, bail }), /main n’avance que par la file de fusion/, vers)
 })
 
+test('#2578 — préflight du train sur un `.claude/settings.json` sale : seule la clé `hooks` changée, elle passe ; des `permissions` changées, arbre NON COMMITÉ', () => {
+  const tete = `${JSON.stringify({ permissions: { allow: ['Bash(git status)'] }, hooks: { PreToolUse: [] } }, null, 2)}
+`
+  const { racine } = instanceDeDepot({ fichiers: { '.claude/settings.json': tete }, message: 'socle' })
+  try {
+    const preflight = ETAPES.find((e) => e.nom === 'preflight')
+    const reel = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const ORIGINE = 'https://exemple.invalid/autre.git'
+    const ctx = { racine, branche: 'chantier/x', filtresDePush: ['chantier/**'], generators: reel.generators, attendreReconstruction: RECONSTRUCTION_SOLDEE, questions: { ...reel.questions, origineDe: () => ORIGINE } }
+    writeFileSync(join(racine, '.claude', 'settings.json'), remplacerCleJson(tete, 'hooks', { PreToolUse: [{ matcher: 'Bash', hooks: [] }] }))
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: `origin étranger au dépôt : ${ORIGINE}` }, 'la saleté dérivée passe la porte de l’arbre')
+    writeFileSync(join(racine, '.claude', 'settings.json'), tete.replace('Bash(git status)', 'Bash(git push)'))
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: 'arbre NON COMMITÉ (1) — on ne publie que du committé :\n    .claude/settings.json' })
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   const mesure = mkdtempSync(join(tmpdir(), 'train-hostile-'))
@@ -534,10 +640,12 @@ function argvDesAppelsGh(code) {
     .map((m) => [...m[1].matchAll(/['"`]([^'"`]*)['"`]/g)].map((t) => t[1]))
 }
 
-const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
+// La SOURCE `gh` du train : le train, ses étapes (#1806) et la couture REST qu'il partage avec les
+// autres `ops` (#1813). En lire une partie seulement rendrait le cliquet aveugle.
+const SOURCES_GH_DU_TRAIN = ['./publierTrain.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
 
 const DOCUMENTS_GRAPHQL_DU_TRAIN = new Set([
-  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
+  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } autoMergeRequest { enabledAt } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
   'mutation EnfilerFusion($input: EnqueuePullRequestInput!) { enqueuePullRequest(input: $input) { mergeQueueEntry { id headCommit { oid } } } }',
 ])
 
@@ -586,15 +694,18 @@ test('la SOURCE du train : REST et deux documents GraphQL fixes, aucun geste de 
   for (const argv of argvs) {
     const dit = `gh ${argv.join(' ')}`
     // #1804 ; #2437
+    if (argv[0] === 'pr') {
+      assert.deepEqual(argv, ['pr', 'merge', '--auto', '--repo', '--match-head-commit'])
+      continue
+    }
     assert.equal(argv[0], 'api', `route hors REST : ${dit}`)
     if (argv[1] === 'graphql') continue
     // La CI ferme (job `fermetures`), jamais le train — ni `gh issue close`, ni son équivalent REST
     // `-X PATCH -f state=closed`, que l'ancienne rédaction de ce cliquet ne voyait pas.
-    // `PUT …/pulls/{n}/merge-async` : la demande de fusion REST (#2178), seule route PUT du train.
     for (const nom of ['-X', '--method']) {
       const i = argv.indexOf(nom)
       if (i === -1) continue
-      const permise = argv[i + 1] === 'POST' || (argv[i + 1] === 'PUT' && argv.some((a) => /\/pulls\/\$\{[^}]+\}\/merge-async$/.test(a)))
+      const permise = argv[i + 1] === 'POST'
       assert.ok(permise, `méthode interdite au train : ${dit}`)
     }
     assert.equal(argv.some((a) => /state=closed/.test(a)), false, `geste de fermeture : ${dit}`)
@@ -622,9 +733,8 @@ test('#2437 garde AST détecte les routes template et parenthésées et refuse l
     assert.throws(() => verifierGraphqlDuTrain(source + `\nappel(['api', 'graphql', '--input', '-'], { input: JSON.stringify({ query: ${document}, variables: {} }) })`), /document GraphQL interdit/)
 })
 
-for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ? 'failed GET' : 'refus PUT'} conserve la tête`, () => {
+test('#2626 contexte du train : refus auto puis repli conserve la tête', () => {
   const sha = 'a'.repeat(40)
-  const uuid = '12345678-1234-1234-1234-123456789abc'
   const appels = []
   const entree = ENTREE_2495
   let enfilee = false
@@ -646,13 +756,18 @@ for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ?
   syncBuiltinESMExports()
   try {
     const ctx = contexteDe({ racine: RACINE, branche: 'chantier/2437', options: {}, journaliser: () => {}, fdLog: 'ignore', maintenant: () => JEUNE_2495 })
-    const vu = suivi ? ctx.lireFusion({ numero: 7, sha, uuid }) : ctx.demanderFusion({ numero: 7, sha })
+    const vu = ctx.demanderFusion({ numero: 7, sha })
     assert.deepEqual(vu, { ok: true, statut: 'enqueued', deja: true, compte: 'cgauche', entree })
     const mutation = appels.find((a) => a.args.includes('graphql') && JSON.parse(a.options.input).query.startsWith('mutation'))
     assert.deepEqual(JSON.parse(mutation.options.input).variables, { input: { pullRequestId: 'PR7', expectedHeadOid: sha } })
-    assert.equal(appels.filter((a) => a.args.includes('PUT')).length, suivi ? 0 : 1)
-    if (suivi) assert.ok(appels.some((a) => a.args.some((arg) => arg.endsWith(uuid))))
+    assert.deepEqual(appels.find((a) => a.args[0] === 'pr').args, ['pr', 'merge', '7', '--auto', '--repo', DEPOT, '--match-head-commit', sha])
   } finally { feinte.mock.restore(); syncBuiltinESMExports() }
+})
+
+test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv', () => {
+  assert.deepEqual(manquementsDeFeuilles().manquements, [])
+  const etapes = readFileSync(new URL('./etapesDuTrain.mjs', import.meta.url), 'utf8')
+  assert.match(etapes, /from '\.\.\/guards\/lib\/plageFermante\.mjs'/)
 })
 
 test('la table des ÉTAPES nomme les sept étapes, dans l’ordre du régime — ni rebase, ni attente de CI, ni fast-forward', () => {
@@ -830,6 +945,7 @@ test('étape `docs` : `build-all --mixtes` ROUGE est un refus nommé par la fin 
     const ctx = {
       racine,
       generators: GENERATORS,
+      attendreReconstruction: RECONSTRUCTION_SOLDEE,
       journaliser: () => {},
       docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: 'docs:mixtes — ARRÊT sur g/a.mjs (sortie 1)' } },
       npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
@@ -867,6 +983,7 @@ test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la 
       const vu = docs.jouer({
         racine,
         generators: GENERATORS,
+        attendreReconstruction: RECONSTRUCTION_SOLDEE,
         journaliser: () => {},
         docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: '' } },
         npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
@@ -902,6 +1019,7 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
     const ctx = {
       racine,
       generators: GENERATORS,
+      attendreReconstruction: RECONSTRUCTION_SOLDEE,
       get tete() { return tete },
       journaliser: (l) => { lignes.push(l) },
       docs: () => assert.fail('aucune source de mixte dans la plage'),
@@ -926,13 +1044,13 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
     return { ctx, gestes, lignes }
   }
 
-  test('base AU TRONC changée pendant le lot : `stocks:regen` après `agents:check`, puis commit `chore(stocks)` des seuls stocks écrits', () => {
+  test('base AU TRONC changée pendant le lot : `stocks:regen`, puis commit `chore(stocks)` des seuls stocks écrits', () => {
     const { ctx, gestes, lignes } = ctxStocks()
     const j = journal()
     const vu = docs.jouer(ctx, j)
     assert.equal(vu.ok, true, vu.raison)
-    assert.deepEqual(gestes.map((g) => g[0] === 'npm' ? g[1] : g[0]), ['agents:check', 'stocks:regen', 'commit'])
-    const { message, chemins } = gestes[2][1]
+    assert.deepEqual(gestes.map((g) => g[0] === 'npm' ? g[1] : g[0]), ['stocks:regen', 'commit'])
+    const { message, chemins } = gestes[1][1]
     assert.deepEqual(chemins, [STOCK])
     assert.ok(message.startsWith('chore(stocks): refs #2525 — stocks de sites\n'), message)
     assert.ok(message.includes(MOTIF_STOCKS))
@@ -974,43 +1092,7 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
   })
 })
 
-describe('synchroniserAgents', () => {
-  const ctxFactice = (codes) => {
-    const joues = []
-    const dits = []
-    return {
-      joues,
-      dits,
-      npm(script) {
-        joues.push(script)
-        return { status: codes[script] ?? 0 }
-      },
-      journaliser: (t) => dits.push(t),
-    }
-  }
-
-  test('`agents:check` VERT : `agents:check` est le seul script joué, et l’étape continue', () => {
-    const ctx = ctxFactice({})
-    assert.deepEqual(synchroniserAgents(ctx), { ok: true })
-    assert.deepEqual(ctx.joues, ['agents:check'])
-    assert.deepEqual(ctx.dits, [])
-  })
-
-  test('`agents:check` ROUGE : `agents:sync` est joué APRÈS lui, et l’étape continue', () => {
-    const ctx = ctxFactice({ 'agents:check': 1 })
-    assert.deepEqual(synchroniserAgents(ctx), { ok: true })
-    assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
-    assert.match(ctx.dits.join(''), /agents:check` rendu 1 : `npm run agents:sync`/)
-  })
-
-  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que la CI ferait', () => {
-    const ctx = ctxFactice({ 'agents:check': 1, 'agents:sync': 7 })
-    const vu = synchroniserAgents(ctx)
-    assert.equal(vu.ok, false)
-    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : la gate `agents:check` de la CI refuserait la plage')
-    assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
-  })
-})
+// ── ligneDeDetachement ─────────────────────────────────────────────────────────────────
 
 test('ligneDeDetachement : la trace MACHINE que le parent laisse dans le log', () => {
   assert.equal(
@@ -1037,6 +1119,9 @@ test('citerArgv : un token que `CommandLineToArgvW` relit comme UN argument', ()
 
 const LANCEMENT = { script: '/dep/scripts/ops/publier.mjs', args: ['--reprendre'], cwd: '/dep', fdLog: 9, node: '/bin/node' }
 
+/** Le préchargement BelowNormal, cité comme `-ArgumentList` le reçoit (#2603). */
+const PRECHARGE = ABAISSER_PRIORITE.map((a) => `'${citerArgv(a)}'`).join(',')
+
 test('lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses enfants héritent)', () => {
   const appels = []
   const pid = lancerDetache({
@@ -1059,7 +1144,7 @@ test('lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses
   assert.ok(commande.includes(' -WindowStyle Hidden'), commande)
   assert.ok(commande.includes(' -PassThru'), commande)
   assert.ok(commande.includes("-FilePath '/bin/node'"), commande)
-  assert.ok(commande.includes(`-ArgumentList '"/dep/scripts/ops/publier.mjs"','"--reprendre"'`), commande)
+  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/scripts/ops/publier.mjs"','"--reprendre"'`), commande)
   assert.equal(appels[0].options.cwd, '/dep')
   assert.equal(appels[0].options.windowsHide, true)
   assert.equal(appels[0].options.env.WFRP_PUBLIER_ENFANT, '1')
@@ -1076,7 +1161,7 @@ test('lancerDetache : sous win32, une apostrophe du chemin est CITÉE, jamais in
       return { stdout: '7', stderr: '' }
     },
   })
-  assert.match(commande, /-ArgumentList '"\/dep d''ops\/publier\.mjs"','"--reprendre"'/)
+  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep d''ops/publier.mjs"','"--reprendre"'`), commande)
 })
 
 test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argument du train', () => {
@@ -1094,7 +1179,7 @@ test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argumen
     },
   })
   assert.ok(
-    commande.includes(`-ArgumentList '"/dep/dossier avec espace/publier.mjs"','"--file-timeout-min"','"30"','"arg avec espace"'`),
+    commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/dossier avec espace/publier.mjs"','"--file-timeout-min"','"30"','"arg avec espace"'`),
     commande,
   )
 })
@@ -1120,7 +1205,7 @@ test('lancerDetache : hors win32, le détachement reste `detached` + le fd du jo
   })
   assert.equal(pid, 31)
   assert.equal(appels[0].exe, '/bin/node')
-  assert.deepEqual(appels[0].args, ['/dep/scripts/ops/publier.mjs', '--reprendre'])
+  assert.deepEqual(appels[0].args, [...ABAISSER_PRIORITE, '/dep/scripts/ops/publier.mjs', '--reprendre'])
   assert.equal(appels[0].options.detached, true)
   assert.deepEqual(appels[0].options.stdio, ['ignore', 9, 9])
   assert.equal(appels[0].options.env.WFRP_PUBLIER_ENFANT, '1')
@@ -1217,7 +1302,7 @@ test('sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide', () =
   assert.match(refusDeGit({ disponible: true, absent: true }), /status \?/)
 })
 
-const journalPush = () => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt' })
+const journalPush = () => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt', publication: { bail: 'b'.repeat(40) } })
 
 const etapeBranche = ETAPES.find((e) => e.nom === 'push-branche')
 
@@ -1231,7 +1316,7 @@ test('push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui
     pousser: (geste) => { vus = geste; return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
   }
   const vu = etapeBranche.jouer(ctx, journalPush())
-  assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: true })
+  assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: 'b'.repeat(40) })
   assert.equal(vu.ok, true)
   assert.match(vu.dit, /poussé sur chantier\/1776 — la CI de la branche juge/)
 })
@@ -1257,7 +1342,7 @@ test('#2285 push-branche : écrivain injecté, diagnostic complet après classif
   assert.ok(vu.raison.includes(stderr), vu.raison)
   assert.ok(vu.raison.includes(stdout), vu.raison)
   assert.match(vu.raison, /status 17/)
-  assert.deepEqual(commandes, [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/chantier/1776']])
+  assert.deepEqual(commandes, [['push', `--force-with-lease=refs/heads/chantier/1776:${'b'.repeat(40)}`, 'origin', 'HEAD:refs/heads/chantier/1776']])
 })
 
 test('#2285 rendu : conserve toutes les notes, les deux flux et la distinction des échecs', () => {
@@ -1350,80 +1435,46 @@ test('titreDePr : aucun mot fermant — la fermeture appartient à `fermetures.y
   assert.deepEqual(numerosCites(titreDePr('chantier/2178')), [])
 })
 
-test('corpsDeFusion : la TÊTE JUGÉE en `sha`, `merge_action: default`, aucun `merge_method` (« Only supported for direct merges »)', () => {
-  assert.deepEqual(JSON.parse(corpsDeFusion('a'.repeat(40))), { sha: 'a'.repeat(40), merge_action: 'default' })
-})
-
-const HTTP = (code, corps) => `HTTP/2.0 ${code} X\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(corps)}`
-
-test('reponseHttp : code de la ligne d’état et corps JSON après la ligne vide ; sans ligne d’état, refus nommé', () => {
-  assert.deepEqual(reponseHttp(HTTP(409, { status: 'pending' })), { ok: true, code: 409, corps: { status: 'pending' } })
-  assert.deepEqual(reponseHttp('HTTP/2.0 204 No Content\r\n\r\n'), { ok: true, code: 204, corps: null })
-  assert.match(reponseHttp('{"status":"merged"}').raison, /sans ligne d’état HTTP/)
-  assert.match(reponseHttp('HTTP/2.0 200 OK\r\n\r\n{').raison, /HTTP 200, corps illisible/)
-})
-
-test('issueDeFusion : 202/409 pendante (uuid), 200 merged/enqueued, 400 failed ; tout autre code se NOMME', () => {
-  const pendante = { status: 'pending', details: { message: 'm', uuid: 'u-1', merge_method: 'merge', merge_action: 'default', expected_head_sha: 'ttt' } }
-  assert.deepEqual(issueDeFusion({ code: 202, corps: pendante }), { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttt', deja: false })
-  assert.deepEqual(issueDeFusion({ code: 409, corps: pendante }), { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttt', deja: true })
-  assert.deepEqual(issueDeFusion({ code: 200, corps: { status: 'merged', details: { message: 'm', sha: 'f'.repeat(40) } } }), { ok: true, statut: 'merged', fusion: 'f'.repeat(40) })
-  assert.deepEqual(issueDeFusion({ code: 200, corps: { status: 'enqueued', details: { message: 'm' } } }), { ok: true, statut: 'enqueued' })
-  assert.deepEqual(issueDeFusion({ code: 400, corps: { status: 'failed', details: { message: 'Pull request is closed.' } } }), { ok: true, statut: 'failed', message: 'Pull request is closed.' })
-  assert.deepEqual(issueDeFusion({ code: 403, corps: { message: 'Resource not accessible' } }), { ok: false, raison: 'HTTP 403 : Resource not accessible' })
-  assert.match(issueDeFusion({ code: 202, corps: { status: 'pending', details: {} } }).raison, /HTTP 202 hors schéma/)
-})
-
-test('fusionDe : un 4xx de `gh` (exit 1) est LU dans son corps ; une panne sans sortie reste la panne', () => {
-  const conflit = { ok: false, raison: 'gh a rendu 1 : (HTTP 409)', stdout: HTTP(409, { status: 'pending', details: { message: 'm', uuid: 'u-2', merge_method: 'merge', merge_action: 'default', expected_head_sha: 't' } }) }
-  assert.deepEqual(fusionDe(conflit), { ok: true, statut: 'pending', uuid: 'u-2', attendue: 't', deja: true })
-  assert.deepEqual(fusionDe({ ok: false, raison: 'spawn gh ENOENT' }), { ok: false, raison: 'spawn gh ENOENT' })
-  assert.match(fusionDe({ ok: false, raison: 'gh a rendu 1 : x', stdout: '' }).raison, /^gh a rendu 1 : x — réponse sans ligne d’état HTTP/)
-})
+// ── étape `pr` ───────────────────────────────────────────────────────────────────────────────
 
 const etapePr = ETAPES.find((e) => e.nom === 'pr')
 
-test('pr : une PR ABSENTE est créée — aucune demande de fusion ici, elle appartient à l’étape `file`', () => {
+test('#2626 pr absente créée puis armée avant toute lecture CI', () => {
   const gestes = []
   let lectures = 0
   const ctx = {
     branche: 'chantier/2178',
     lirePr: () => ({ ok: true, prs: lectures++ === 0 ? [] : [prDeRest(REST())] }),
     ouvrirPr: (p) => { gestes.push(['ouvrir', p.titre]); return { ok: true } },
-    demanderFusion: () => assert.fail('la demande de fusion attend la course verte de la branche'),
+    demanderFusion: (p) => { gestes.push(['armer', p]); return { ok: true, statut: 'armed' } },
+    coursesCi: () => assert.fail('pr arme avant toute attente de CI'),
   }
   const vu = etapePr.jouer(ctx, journalPush())
-  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178']])
-  assert.deepEqual([vu.ok, vu.detail], [true, { pr: 7 }])
+  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178'], ['armer', { numero: 7, sha: journalPush().tete }]])
+  assert.deepEqual(vu.detail, { pr: 7, armement: 'armed' })
 })
-
-test('pr : une PR OUVERTE n’est pas recréée ; un refus de création est ROUGE et nommé', () => {
-  const ouverte = {
-    branche: 'chantier/2178',
-    lirePr: () => ({ ok: true, prs: [prDeRest(REST())] }),
-    ouvrirPr: () => assert.fail('PR déjà ouverte'),
-  }
-  assert.deepEqual(etapePr.jouer(ouverte, journalPush()).detail, { pr: 7 })
-  const refusee = { branche: 'chantier/2178', lirePr: () => ({ ok: true, prs: [] }), ouvrirPr: () => ({ ok: false, raison: 'gh a rendu 1 : HTTP 422' }) }
-  assert.match(etapePr.jouer(refusee, journalPush()).raison, /REFUSÉ : gh a rendu 1 : HTTP 422/)
-})
-
-test('pr : déjà faite sur une PR OUVERTE ou FUSIONNÉE de la tête, jamais sur une autre tête', () => {
-  const avec = (plus) => ({ lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }) })
-  assert.equal(etapePr.dejaFaite(avec({}), journalPush()), true)
+test('#2626 pr existante non armée : reprise ; armée/en file/fusionnée même SHA : étape acquise', () => {
+  const avec = (plus = {}, statut) => ({
+    lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }),
+    etatFileDePr: () => ({ ok: true, statut }),
+  })
+  assert.equal(etapePr.dejaFaite(avec(), journalPush()), false)
+  for (const statut of ['armed', 'enqueued']) assert.equal(etapePr.dejaFaite(avec({}, statut), journalPush()), true)
   assert.equal(etapePr.dejaFaite(avec({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) }), journalPush()), true)
-  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }), journalPush()), false)
+  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }, 'armed'), journalPush()), false)
   assert.equal(etapePr.dejaFaite({ lirePr: () => ({ ok: false, raison: 'x' }) }, journalPush()), false)
+  const refusee = { lirePr: () => ({ ok: true, prs: [prDeRest(REST())] }), demanderFusion: () => ({ ok: false, raison: 'refus serveur' }) }
+  assert.match(etapePr.jouer(refusee, journalPush()).raison, /armement.*REFUSÉ.*refus serveur/)
 })
 
 const etapeFile = ETAPES.find((e) => e.nom === 'file')
 
 const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclusion: 'success', databaseId: 40, workflowName: 'CI' }
 
-const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
+// #2626
+const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
   const gestes = []
   const lignes = []
-  let suivi = 0
   let lectureDeBranche = 0
   let lectureDeFile = 0
   let lectureDePr = 0
@@ -1446,14 +1497,14 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
     parentsDe: () => ({ ok: true, parents }),
     jobsEnEchec: (id) => { gestes.push(['jobs', id]); return { disponible: true, valeur: { rouges: jobs, annules, motif } } },
     demanderFusion: (p) => { gestes.push(['demander', p]); return demande },
-    etatFileDePr: () => ({ ok: true, statut: 'enqueued' }),
-    lireFusion: (p) => { gestes.push(['suivre', p]); return suivis[Math.min(suivi++, suivis.length - 1)] },
+    etatFileDePr: () => ({ ok: true, ...(gestes.some((g) => g[0] === 'demander') ? { statut: 'enqueued' } : {}) }),
     tronc: () => { gestes.push(['tronc']); return { disponible: true, sha: 'm'.repeat(40) } },
     fusionner: ({ message }) => { gestes.push(['fusionner', message]); return fusion },
     abandonnerFusion: () => { gestes.push(['abandonner']); return fusion },
     conclureFusionSansCiblesPures: (p) => { gestes.push(['conclure', p]); return conclusion },
     docs: (mode) => { gestes.push(['docs', mode]); return { status: 0, stderr: '' } },
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     questions: {
       commitsDeLaPlage: () => [{ sha: 'c'.repeat(40), message: 'feat(ops): refs #2178 — x' }],
       cheminsEnConflit: () => conflits,
@@ -1462,6 +1513,17 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
   }
   return { ctx, gestes, lignes, sommeils }
 }
+for (const differe of [false, true]) test(`#2626 pr conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
+  const sale = REST({ mergeable_state: 'dirty' })
+  const { ctx, gestes } = ctxFile({ prs: differe ? [REST({ mergeable_state: 'unknown' }), sale] : [sale], demande: { ok: false, raison: 'conflit calculé' } })
+  const journal = journalPush()
+  const vu = etapePr.jouer(ctx, journal)
+  assert.equal(vu.ok, true, vu.raison)
+  assert.deepEqual(vu.relancer, ['docs', 'push-branche', 'pr', 'file'])
+  assert.deepEqual(gestes.map((g) => g[0]), differe ? ['demander', 'tronc', 'fusionner'] : ['tronc', 'fusionner'])
+  assert.equal(journal.ejections, 1)
+  assert.equal(journal.tete, ctx.tete)
+})
 
 const courseDeFileRouge = { headBranch: 'gh-readonly-queue/main/pr-7-abc', headSha: 'g'.repeat(40), status: 'completed', conclusion: 'failure', databaseId: 99, workflowName: 'CI' }
 
@@ -1531,7 +1593,7 @@ test('#2499 train composé : entrée jeune puis absence de groupe nommée sans n
     assert.match(vu.raison, /PR #7.*REFUSÉE.*cgauche.*aucun run CI merge_group/)
     assert.match(vu.raison, /retirer cette entrée/)
     assert.equal(vu.detail.compte, 'cgauche')
-    assert.equal(demandes, 1)
+    assert.equal(demandes, 0)
     assert.ok(lectures >= 4)
   } finally { api.mock.restore(); syncBuiltinESMExports() }
 })
@@ -1582,7 +1644,8 @@ test('#2392 file : la demande journalise le COMPTE qui la porte, une fois ; une 
     [{ ok: true, statut: 'enqueued', deja: true, compte: 'cgauche' }, '[publier] file — déjà en file, constaté sous le compte « cgauche »\n'],
   ]) {
     const { ctx, lignes } = ctxFile({ pr: REST(), demande })
-    ctx.etatFileDePr = () => ({ ok: true, statut: 'merged', fusion: 'f'.repeat(40) })
+    let lectures = 0
+    ctx.etatFileDePr = () => lectures++ === 0 ? { ok: true } : { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
     const vu = etapeFile.jouer(ctx, journalPush())
     assert.deepEqual(lignes.filter((l) => l.includes('compte')), [ligne])
     assert.equal(vu.detail.compte, 'cgauche', 'l’issue de l’étape porte le compte')
@@ -1599,39 +1662,34 @@ test('#2392 file : un refus d’enfileur nomme le COMPTE et le geste humain sur 
   assert.equal(ligneDePublication({ etat: 'rouge', etape: 'file', raison: vu.raison }, 't'), `PUBLICATION: rouge file — ${vu.raison}`)
 })
 
-test('file : course de branche VERTE → `merge-async` sur la TÊTE JUGÉE ; `merged` rend vert avec le commit de fusion', () => {
+test('file : tête non armée → armement sur la tête jugée ; fusion confirmée rend vert', () => {
   const { ctx, gestes } = ctxFile({ pr: REST(), demande: { ok: true, statut: 'merged', fusion: 'f'.repeat(40) } })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.deepEqual([vu.ok, vu.detail.pr, vu.detail.fusion], [true, 7, 'f'.repeat(40)])
   assert.deepEqual(gestes, [['demander', { numero: 7, sha: 'ttttttttt' }]])
 })
 
-test('file : une demande PENDANTE (202, ou 409 déjà pendante) se SUIT par son uuid jusqu’à `merged`', () => {
-  for (const deja of [false, true]) {
-    const { ctx, gestes } = ctxFile({
-      pr: REST(),
-      demande: { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttttttttt', deja },
-      suivis: [{ ok: true, statut: 'merged', fusion: 'f'.repeat(40) }],
-    })
+test('#2626 file : auto-merge armé avant CI est seulement observé jusqu’à fusion', () => {
+  const { ctx, gestes, lignes } = ctxFile({ pr: REST(), fileTimeoutMin: 0.01 })
+  let lectures = 0
+  ctx.etatFileDePr = () => ++lectures === 1 ? { ok: true, statut: 'armed' } : { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
+  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  try {
     const vu = etapeFile.jouer(ctx, journalPush())
-    assert.deepEqual([vu.ok, vu.detail.fusion], [true, 'f'.repeat(40)], `deja=${deja}`)
-    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'suivre'])
-    assert.deepEqual(gestes[1][1], { numero: 7, sha: 'ttttttttt', uuid: 'u-1' })
-  }
+    assert.equal(vu.detail.fusion, 'f'.repeat(40))
+    assert.equal(gestes.length, 0)
+    assert.ok(lignes.some((s) => s.includes('armée, GitHub attend les checks')))
+  } finally { sommeil.mock.restore() }
 })
 
-test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE, sur une PR relue SANS conflit, est ROUGE et nommée, sans nouvelle demande', () => {
-  const echec = ctxFile({ pr: REST(), demande: { ok: true, statut: 'failed', message: 'Pull request is closed.' } })
-  assert.equal(etapeFile.jouer(echec.ctx, journalPush()).raison, 'demande de fusion de la PR #7 en ÉCHEC : Pull request is closed.')
-  assert.deepEqual(echec.gestes.map((g) => g[0]), ['demander'])
+test('file : demande REFUSÉE sur une PR relue sans conflit : rouge nommé sans nouvelle demande', () => {
   const refus = ctxFile({ pr: REST(), demande: { ok: false, raison: 'HTTP 403 : Resource not accessible' } })
   assert.equal(etapeFile.jouer(refus.ctx, journalPush()).raison, 'demande de fusion de la PR #7 REFUSÉE : HTTP 403 : Resource not accessible')
   assert.deepEqual(refus.gestes.map((g) => g[0]), ['demander'])
 })
 
 const REFUS_POUR_CONFLIT = { ok: false, raison: REFUS_DE_FILE.concatene }
-
-const ECHEC_POUR_CONFLIT = { ok: true, statut: 'failed', message: 'Pull request has merge conflicts' }
+const ECHEC_POUR_CONFLIT = { ok: false, raison: 'Pull request has merge conflicts' }
 
 test('file #2525 : une demande REFUSÉE ou en ÉCHEC, sur une PR relue en CONFLIT, se REPREND : fusion d’origin/main, relance, aucune nouvelle demande', () => {
   for (const demande of [REFUS_POUR_CONFLIT, ECHEC_POUR_CONFLIT]) {
@@ -1663,17 +1721,11 @@ test('file #2525 : après un refus, une PR dont le conflit n’est pas jugé (`u
   }
 })
 
-test('file : un 409 « déjà pendante » sur une AUTRE tête est REFUSÉ d’emblée, nommé, sans suivi (« the merge will be cancelled »)', () => {
-  const { ctx, gestes, sommeils } = ctxFile({
-    pr: REST(),
-    demande: { ok: true, statut: 'pending', uuid: 'u-old', attendue: 'ooooooooo', deja: true },
-    suivis: [{ ok: true, statut: 'failed', message: 'Head branch was modified.' }],
-  })
-  const vu = etapeFile.jouer(ctx, journalPush())
-  assert.equal(vu.ok, false)
-  assert.equal(vu.raison, 'une demande de fusion de la PR #7 est DÉJÀ pendante (409, u-old) sur ooooooooo, pas la tête publiée ttttttttt : GitHub l’annule (schéma de `merge-async`, `sha`) — `--reprendre` après son échec')
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander'], 'aucun suivi de la demande d’une autre tête')
-  assert.deepEqual(sommeils, [], 'aucune attente')
+test('#2626 file : observation divergente refuse sans armer', () => {
+  const { ctx, gestes } = ctxFile({ pr: REST() })
+  ctx.etatFileDePr = () => ({ ok: false, raison: 'tête de PR changée' })
+  assert.match(etapeFile.jouer(ctx, journalPush()).raison, /tête de PR changée/)
+  assert.equal(gestes.length, 0)
 })
 
 test('file : une course de file rouge sur un GROUPE (G^1 hors d’origin/main) n’est PAS une éjection de la PR — ni rouge, ni reprise : on attend dans la borne', () => {
@@ -1742,6 +1794,7 @@ test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le 
     branche: 'chantier/x',
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => vuFetch,
     questions: {
       rebaseEntame: () => null,
@@ -1768,6 +1821,7 @@ test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', ()
     tete: 'a'.repeat(40),
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => { appels.push('fetch'); return { disponible: true } },
     questions: {
       rebaseEntame: () => null,
@@ -1794,6 +1848,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
     branche: 'chantier/x',
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => ({ disponible: true }),
     questions: {
       rebaseEntame: () => null,
@@ -1812,6 +1867,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
 test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, sans fusion d’origin/main ; la vieille course, écartée, n’éjecte plus', () => {
   const { ctx, gestes, lignes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge]], annules: ['docs', 'suite 1/3'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]], fileTimeoutMin: 0.002 })
   const journal = journalPush()
+  ctx.etatFileDePr = () => ({ ok: true })
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.indetermine, true, 'la nouvelle demande attend sa course dans la borne')
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander'])
@@ -1823,6 +1879,7 @@ test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, 
 test(`#2392 file : une course de file ANNULÉE au-delà de la borne (${BORNE_EJECTIONS}) est ROUGE et nommée`, () => {
   const neuve = { ...courseDeFileRouge, databaseId: 100 }
   const { ctx, gestes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge], [courseDeFileRouge], [neuve, courseDeFileRouge]], annules: ['docs'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+  ctx.etatFileDePr = () => ({ ok: true })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
   assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/100 ANNULÉE — jobs annulés : docs — reprise une 2ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`)
@@ -2187,6 +2244,83 @@ test('commandeDeVeille / idDeRun / runDe : la commande que `--detache` imprime',
   assert.deepEqual(optionsDe(['--depuis', '-1']).inconnus, ['--depuis -1'])
 })
 
+test('lancerDetache (#2603) : aucun jeton de verrou `WFRP_VERROU_*` ne passe au détaché, ni hérité ni supplémentaire, sur les deux plateformes', () => {
+  const avant = process.env.WFRP_VERROU_HERITE
+  process.env.WFRP_VERROU_HERITE = 'jeton'
+  try {
+    const envs = []
+    const supplementaire = { WFRP_VERROU_SUPPLEMENTAIRE: 'jeton', WFRP_PUBLIER_ENFANT: '1' }
+    lancerDetache({ ...LANCEMENT, plateforme: 'linux', envSupplementaire: supplementaire, detacher: (_n, _a, o) => { envs.push(o.env); return { pid: 1, unref: () => {} } } })
+    lancerDetache({ ...LANCEMENT, plateforme: 'win32', envSupplementaire: supplementaire, executerSync: (_e, _a, o) => { envs.push(o.env); return { stdout: '7' } } })
+    for (const env of envs) {
+      assert.deepEqual(Object.keys(env).filter((cle) => cle.startsWith('WFRP_VERROU_')), [])
+      assert.equal(env.WFRP_PUBLIER_ENFANT, '1')
+    }
+  } finally {
+    if (avant === undefined) delete process.env.WFRP_VERROU_HERITE
+    else process.env.WFRP_VERROU_HERITE = avant
+  }
+})
+
+test('lancerDetache (#2603) : le préchargement RÉEL abaisse le processus en BelowNormal', () => {
+  const vu = spawnSync(process.execPath, [...ABAISSER_PRIORITE, '-e', 'process.stdout.write(String(require("node:os").getPriority()))'], { encoding: 'utf8' })
+  assert.equal(vu.status, 0, vu.stderr)
+  assert.equal(Number(vu.stdout), constants.priority.PRIORITY_BELOW_NORMAL)
+})
+
+test('lancerDetache (#2603) : tuer le parent tue son enfant NON détaché, jamais ses détachés (deux branches)', {
+  skip: process.platform !== 'win32' && 'win32 seulement : sous POSIX, tuer un parent laisse vivre ses enfants, détachés ou non — le contraste ne s’y observe pas',
+}, async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'detache-survit-'))
+  const dormeur = join(dossier, 'dormeur.mjs')
+  writeFileSync(dormeur, 'setTimeout(() => {}, 30_000)\n')
+  const vit = (pid) => {
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch {
+      return false
+    }
+  }
+  const parent = spawn(process.execPath, ['--input-type=module', '-e', `
+import { openSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { lancerDetache } from ${JSON.stringify(new URL('../guards/lib/lancerDetache.mjs', import.meta.url).href)}
+const script = ${JSON.stringify(dormeur)}, cwd = process.cwd()
+const enfant = spawn(process.execPath, [script], { stdio: 'ignore' })
+const fdLog = openSync(${JSON.stringify(join(dossier, 'detache.log'))}, 'a')
+const posix = lancerDetache({ script, args: [], cwd, fdLog, plateforme: 'linux' })
+const win32 = lancerDetache({ script, args: [], cwd, fdLog })
+process.stdout.write(JSON.stringify({ enfant: enfant.pid, posix, win32 }))
+setTimeout(() => {}, 30_000)
+`], { stdio: ['ignore', 'pipe', 'inherit'] })
+  const fin = new Promise((ok) => parent.once('exit', ok))
+  let pids = {}
+  try {
+    pids = await new Promise((ok, ko) => {
+      let lu = ''
+      parent.stdout.on('data', (b) => {
+        lu += b
+        if (lu.endsWith('}')) ok(JSON.parse(lu))
+      })
+      parent.once('exit', (code) => ko(new Error(`parent sorti (${code}) avant ses pids`)))
+    })
+    assert.deepEqual(Object.values(pids).map(vit), [true, true, true])
+    process.kill(parent.pid, 'SIGKILL')
+    await fin
+    for (let essai = 0; essai < 30 && vit(pids.enfant); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    assert.equal(vit(pids.enfant), false, 'l’enfant non détaché meurt avec son parent')
+    assert.equal(vit(pids.posix), true, 'le détaché par `spawn({ detached: true })` survit')
+    assert.equal(vit(pids.win32), true, 'le détaché par `Start-Process` survit')
+  } finally {
+    const tous = [parent.pid, ...Object.values(pids)]
+    for (const pid of tous) if (vit(pid)) process.kill(pid, 'SIGKILL')
+    await fin
+    for (let essai = 0; essai < 30 && tous.some(vit); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    rmSync(dossier, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+  }
+})
+
 test('lancement : le parent de `--detache` et l’enfant nomment le MÊME run', () => {
   const env = { ...process.env, ...envDeLancement(LANCEMENT_DU_RUN) }
   assert.deepEqual(Object.keys(envDeLancement(LANCEMENT_DU_RUN)), [ENV_LANCEMENT])
@@ -2293,58 +2427,422 @@ test('#2493 T2 variante : le même train mort pendant `file` — `rouge moteur`,
   }
 })
 
-function tuer(pid) {
-  if (process.platform === 'win32') spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Stop-Process -Id ${pid} -Force`], { windowsHide: true })
-  else process.kill(pid, 'SIGKILL')
+function tuer(suivi) {
+  const arret = tuerArbre(suivi)
+  if (arret.erreurs.length || arret.etat !== 'mort') throw new AggregateError(arret.erreurs, `arrêt PID ${suivi.pid} : ${arret.etat}`)
 }
 
-test('#2493 T3 : la veille COMPOSITE sous le shell POSIX de Git, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async () => {
+function observerSortie(enfant, { suivi = creerSuiviProcessus(), mesurer } = {}) {
+  const origine = randomUUID()
+  let annonceLue = -1
+  observerProcessus(suivi, enfant.pid, { mesurer, observation: origine + ':lancement' })
+  const changements = new EventEmitter()
+  let sortie = '', diagnostic = '', ferme = false, erreur = null
+  const veilles = new Set()
+  const recevoir = (texte) => {
+    sortie += texte
+    for (const vu of sortie.matchAll(/^\[veille\] PID (\d+) veille le run /gm)) {
+      const pid = Number(vu[1])
+      if (vu.index <= annonceLue) continue
+      annonceLue = vu.index
+      veilles.add(pid)
+      observerProcessus(suivi, pid, { mesurer, observation: origine + ':' + vu.index })
+    }
+    changements.emit('changement')
+  }
+  const recevoirDiagnostic = (texte) => { diagnostic += texte }
+  enfant.stdout.setEncoding('utf8')
+  enfant.stdout.on('data', recevoir)
+  enfant.stderr?.setEncoding('utf8')
+  enfant.stderr?.on('data', recevoirDiagnostic)
+  let echouer, fermer
+  const fini = new Promise((ok, non) => {
+    echouer = (cause) => {
+      erreur = cause
+      changements.emit('changement')
+      non(cause)
+    }
+    fermer = (code) => {
+      ferme = true
+      enfant.stdout.off('data', recevoir)
+      enfant.stderr?.off('data', recevoirDiagnostic)
+      enfant.off('error', echouer)
+      changements.emit('changement')
+      ok(code)
+    }
+    enfant.once('close', fermer)
+    enfant.once('error', echouer)
+  })
+  fini.catch(() => {})
+  const attendre = (motif, signal) => new Promise((ok, non) => {
+    const retirer = () => {
+      changements.off('changement', verifier)
+      signal?.removeEventListener('abort', abandonner)
+    }
+    const abandonner = () => { retirer(); non(signal.reason) }
+    const verifier = () => {
+      const vu = motif.exec(sortie)
+      if (vu) { retirer(); ok(vu) }
+      else if (erreur || ferme) { retirer(); non(erreur ?? new Error('fermeture avant motif : ' + motif + '\n' + sortie + diagnostic)) }
+    }
+    changements.on('changement', verifier)
+    signal?.addEventListener('abort', abandonner, { once: true })
+    if (signal?.aborted) abandonner()
+    else verifier()
+  })
+  const detacher = () => {
+    erreur ??= new Error('observateur détaché')
+    changements.emit('changement')
+    changements.removeAllListeners()
+    enfant.stdout.off('data', recevoir)
+    enfant.stderr?.off('data', recevoirDiagnostic)
+    enfant.off('error', echouer)
+    enfant.off('close', fermer)
+    enfant.stdout.destroy?.()
+    enfant.stderr?.destroy?.()
+    enfant.stdin?.destroy?.()
+    enfant.unref?.()
+  }
+  return { attendre, fini, veilles, suivi, detacher, texte: () => sortie }
+}
+
+function nettoyageDeVeille({ observe, trainObserve, suivi = observe?.suivi ?? trainObserve?.suivi, retirer, retirerObservateurs, arreter = tuerArbre, constater = constaterArret, delaiArretMs = DELAI_ARRET_MS }) {
+  let nettoyage
+  return () => nettoyage ??= (async () => {
+    const erreurs = []
+    const echeance = Date.now() + delaiArretMs
+    const arrets = new Map()
+    const arreterSuivi = () => {
+      try {
+        const vu = arreter(suivi, { echeance })
+        arrets.set(suivi?.pid, vu)
+        if (vu.erreurs.length) erreurs.push(new Error(`arrêt indéterminé PID ${suivi?.pid} : ${vu.erreurs.map((e) => `${e.operation} PID ${e.pid} ${e.code} : ${e.message}`).join('; ')}`, { cause: vu }))
+      } catch (cause) { erreurs.push(cause) }
+    }
+    try {
+      arreterSuivi()
+      const clotures = [trainObserve, observe].filter(Boolean).map((vu) => {
+        const etat = { finie: false }
+        vu.fini.then(() => { etat.finie = true }, (cause) => { etat.finie = true; erreurs.push(cause) })
+        return etat
+      })
+      const closes = await sousEcheanceAsync({ attente: { echeanceMs: Math.max(0, echeance - Date.now()), pasMs: Math.min(20, delaiArretMs) },
+        essai: () => clotures.every((vu) => vu.finie), abouti: Boolean,
+      })
+      if (!closes) erreurs.push(new Error(`close absent après ${delaiArretMs} ms`))
+      let morts = arrets.size === 1
+      for (const [pid, arret] of arrets) {
+        const constat = constater(arret, { echeance })
+        arrets.set(pid, constat)
+        if (constat.etat !== 'mort') { morts = false; erreurs.push(new Error(`mort non confirmée PID ${pid}`, { cause: constat })) }
+      }
+      if (morts) retirer?.()
+    } catch (cause) {
+      erreurs.push(cause)
+    } finally {
+      for (const detacher of [() => observe?.detacher(), () => trainObserve?.detacher(), () => retirerObservateurs?.()]) {
+        try { detacher() } catch (cause) { erreurs.push(cause) }
+      }
+    }
+    if (erreurs.length) throw new AggregateError(erreurs, erreurs.map((e) => e.message).join('; '), { cause: erreurs[0] })
+    return arrets
+  })()
+}
+
+async function harnaisDeVeille(t, signal) {
   const { racine, sha: fusion } = implantationDuCli()
-  let train, shell, borne, veille = 0
+  let train, shell, trainObserve, observe, nettoyage, abandonner
+  const suivi = creerSuiviProcessus()
+  const fermer = () => {
+    nettoyage ??= nettoyageDeVeille({ shell, train, observe, trainObserve, retirerObservateurs: () => signal.removeEventListener('abort', abandonner), retirer: () => {
+      rmSync(racine, { recursive: true, force: true })
+    } })
+    return nettoyage()
+  }
+  t.after(fermer)
   try {
-    const branche = `chantier/2493-t3-${process.pid}-${Date.now()}`
+    const instant = 1_700_000_000_000
+    const branche = 'chantier/2493-t3-' + process.pid + '-' + Date.now()
     const chemins = cheminsDeJournal(racine, branche)
-    train = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 120000)'], { stdio: 'ignore' })
-    const run = idDeRun({ pid: /** @type {number} */ (train.pid), lancement: Date.now() })
+    const temoin = join(racine, 'train-temoin.mjs')
+    writeFileSync(temoin, 'process.stdin.resume()\n')
+    train = spawn(process.execPath, [temoin], { cwd: racine, stdio: ['pipe', 'pipe', 'pipe'] })
+    trainObserve = observerSortie(train, { suivi })
+    const run = idDeRun({ pid: train.pid, lancement: instant })
     const tete = 'c'.repeat(40)
     mkdirSync(chemins.dossier, { recursive: true })
     ecrireJsonAtomique(chemins.json, {
       branche, base: null, tete, ejections: 0, run, pid: train.pid, fileTimeoutMin: 10, seq: 2, verdict: null,
       etapes: {
         file: { etat: 'vert', detail: { fusion }, tete, run, seq: 1 },
-        fin: { etat: 'en-vol', debut: new Date().toISOString(), detail: null, tete, run, seq: 2 },
+        fin: { etat: 'en-vol', debut: new Date(instant).toISOString(), detail: null, tete, run, seq: 2 },
       },
     })
     writeFileSync(chemins.log, '')
+    const wrapper = join(racine, 'scripts/ops/veille-horloge.mjs')
+    const entree = executerPublication.name
+    writeFileSync(wrapper, "import { " + entree + " } from './publierTrain.mjs'\nimport { writeSync } from 'node:fs'\nlet dit = false\nprocess.exit(await " + entree + "({ maintenant: () => " + instant + ", dormir: (ms) => { if (!dit) { dit = true; writeSync(1, '[horloge] dormir PID ' + process.pid + ' ms=' + ms + '\\n') } } }))\n")
     const env = { ...envDeDepotForge(), ...envGitFeint([{ si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 }]), WFRP_PUBLIER_ENFANT: '' }
-    shell = spawn(gitDe(racine, { net: true })('var', 'GIT_SHELL_PATH'), ['-c', commandeDeVeille({ script: join(racine, 'scripts/ops/publier.mjs'), run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
-    let sortie = ''
-    shell.stdout.on('data', (d) => { sortie += d })
-    const fini = new Promise((ok) => shell.on('close', (code) => ok(code)))
-    const attendre = (motif) => sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => motif.exec(sortie), abouti: (vu) => vu !== null })
-    const premiere = await attendre(/^\[veille\] PID (\d+) veille le run /m)
-    assert.ok(premiere, sortie)
-    veille = Number(premiere[1])
-    tuer(veille)
-    assert.ok(await attendre(new RegExp(`^\\[veille\\] constat du run ${run} après la sortie de sa veille$`, 'm')), sortie)
-    train.kill()
-    borne = setTimeout(() => shell.kill(), 60_000)
-    const code = await fini
-    clearTimeout(borne)
-    assert.equal(code, 0, sortie)
-    assert.match(sortie, new RegExp(`^#3 fin — vert — INTERROMPUE : train ${train.pid} mort sans verdict \\(constat : veille \\d+, .+\\) ; principal `, 'm'))
-    assert.equal(sortie.trimEnd().split('\n').at(-1), `PUBLICATION: vert ${tete}`)
-  } finally {
-    clearTimeout(borne)
-    try {
-      train?.kill()
-      shell?.kill()
-      if (veille && estPidVivant(veille)) tuer(veille)
-      for (const pid of [veille, train?.pid, shell?.pid]) {
-        if (pid) assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 10_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `PID ${pid} survit`)
-      }
-    } finally {
-      rmSync(racine, { recursive: true, force: true })
+    shell = spawn(gitDe(racine, { net: true })('var', 'GIT_SHELL_PATH'), ['-c', commandeDeVeille({ script: wrapper, run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    observe = observerSortie(shell, { suivi })
+    abandonner = () => { fermer().catch(() => {}) }
+    signal.addEventListener('abort', abandonner, { once: true })
+    observe.fini.finally(() => signal.removeEventListener('abort', abandonner)).catch(() => {})
+    return { train, shell, run, tete, observe, fermer }
+  } catch (cause) {
+    await epreuveAvecCloture(() => { throw cause }, fermer)
+  }
+}
+
+test('observations de veille : rescannage stable et nouvelle émission du même PID', () => {
+  const enfant = Object.assign(new EventEmitter(), { pid: 1, stdout: new PassThrough(), stderr: new PassThrough() })
+  let processus = [1, 42].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' }))
+  const mesurer = () => ({ processus })
+  const suivi = creerSuiviProcessus()
+  const observe = observerSortie(enfant, { suivi, mesurer })
+  try {
+    enfant.stdout.write('[veille] PID 42 veille le run x\n')
+    processus = processus.filter((p) => p.pid !== 42)
+    constaterArret({ ...suivi, suivi, etat: 'demande' }, { mesurer })
+    processus.push({ pid: 42, ppid: 0, creation: '2026-10-16T00:01:00Z' })
+    enfant.stdout.write('bruit\n')
+    assert.equal(suivi.membres.filter((p) => p.pid === 42).length, 1)
+    enfant.stdout.write('[veille] PID 42 veille le run x\n')
+    assert.equal(suivi.membres.filter((p) => p.pid === 42).length, 2)
+    assert.equal(constaterArret({ ...suivi, suivi, etat: 'demande' }, { mesurer }).etat, 'indetermine')
+  } finally { observe.detacher() }
+})
+
+test('#2491 nettoyage : close absent, arrêt indéterminé, détachement et idempotence', { timeout: 1000 }, async () => {
+  const enfants = [1, 2].map((pid) => Object.assign(new EventEmitter(), { pid, stdout: new PassThrough(), stderr: new PassThrough() }))
+  const suivi = creerSuiviProcessus()
+  const mesurer = () => ({ processus: [1, 2, 3].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' })) })
+  const [observe, trainObserve] = enfants.map((enfant) => observerSortie(enfant, { suivi, mesurer }))
+  enfants[0].stdout.write('[veille] PID 3 veille le run x\n')
+  const attente = observe.attendre(/^jamais$/m)
+  const refus = assert.rejects(attente, /observateur détaché/)
+  const arrets = []
+  let retraits = 0
+  const nettoyer = nettoyageDeVeille({ shell: enfants[0], train: enfants[1], observe, trainObserve, delaiArretMs: 30,
+    constater: (arret) => ({ ...arret, etat: 'indetermine' }), retirer: () => { retraits++ }, arreter: (domaine) => {
+      arrets.push(...domaine.identites.map((p) => p.pid))
+      return { ...domaine, etat: 'indetermine', erreurs: [{ operation: 'signal', pid: 1, code: 'EPERM', message: 'refus physique' }] }
+    },
+  })
+  const fin = nettoyer()
+  assert.equal(nettoyer(), fin)
+  await assert.rejects(fin, /arrêt indéterminé PID 1.*close absent après 30 ms/)
+  await refus
+  assert.deepEqual(arrets, [1, 2, 3])
+  assert.equal(retraits, 0)
+  for (const enfant of enfants) {
+    assert.equal(enfant.listenerCount('close'), 0)
+    assert.equal(enfant.listenerCount('error'), 0)
+    assert.equal(enfant.stdout.listenerCount('data'), 0)
+    assert.equal(enfant.stderr.listenerCount('data'), 0)
+    assert.equal(enfant.stdout.destroyed, true)
+  }
+})
+
+async function epreuveAvecCloture(corps, fermer) {
+  let primaire, secondaire, corpsEchoue = false, fermetureEchouee = false
+  try { await corps() } catch (erreur) { primaire = erreur; corpsEchoue = true }
+  try { await fermer() } catch (erreur) { secondaire = erreur; fermetureEchouee = true }
+  if (fermetureEchouee) {
+    if (corpsEchoue) throw new AggregateError([primaire, secondaire], `Épreuve : ${primaire?.message ?? String(primaire)} ; clôture : ${secondaire?.message ?? String(secondaire)}`, { cause: primaire })
+    throw secondaire
+  }
+  if (corpsEchoue) throw primaire
+}
+
+test('clôture : chaque rejet falsy reste observable et conserve son identité', async () => {
+  const valeurs = [undefined, null, false, 0, '', NaN]
+  const rejetDe = async (promesse) => {
+    let rejetee = false, raison
+    try { await promesse } catch (erreur) { rejetee = true; raison = erreur }
+    assert.equal(rejetee, true, 'le rejet ne doit pas devenir une résolution')
+    return raison
+  }
+  for (const primaire of valeurs) {
+    assert.equal(await rejetDe(epreuveAvecCloture(() => { throw primaire }, () => {})), primaire)
+    assert.equal(await rejetDe(epreuveAvecCloture(() => {}, () => { throw primaire })), primaire)
+    for (const secondaire of valeurs) {
+      const erreur = await rejetDe(epreuveAvecCloture(() => { throw primaire }, () => { throw secondaire }))
+      assert.ok(erreur instanceof AggregateError)
+      assert.equal(erreur.cause, primaire)
+      assert.equal(erreur.errors[0], primaire)
+      assert.equal(erreur.errors[1], secondaire)
+      assert.equal(erreur.errors.length, 2)
     }
+  }
+})
+
+test('clôture : mort confirmée retire une seule fois ; erreur primaire conservée avec la fermeture', async () => {
+  let retraits = 0
+  const nettoyer = nettoyageDeVeille({ suivi: creerSuiviProcessus(), arreter: () => ({ pid: 1, etat: 'demande', erreurs: [] }), constater: (arret) => ({ ...arret, etat: 'mort' }), retirer: () => { retraits++ } })
+  await nettoyer()
+  await nettoyer()
+  assert.equal(retraits, 1)
+  const primaire = new Error('primaire'), secondaire = new Error('secondaire')
+  await assert.rejects(epreuveAvecCloture(() => { throw primaire }, () => { throw secondaire }), (erreur) => {
+    assert.equal(erreur.cause, primaire)
+    assert.deepEqual(erreur.errors, [primaire, secondaire])
+    return true
+  })
+})
+
+test('clôture : veille connue réaffiliée après disparition des parents interdit le retrait', async () => {
+  let processus = [1, 2, 3].map((pid) => ({ pid, ppid: 0, creation: '2026-10-16T00:00:00Z' }))
+  const mesurer = () => ({ processus })
+  const suivi = creerSuiviProcessus()
+  const enfants = [1, 2].map((pid) => Object.assign(new EventEmitter(), { pid, stdout: new PassThrough() }))
+  const [observe, trainObserve] = enfants.map((enfant) => observerSortie(enfant, { suivi, mesurer }))
+  enfants[0].stdout.write('[veille] PID 3 veille le run x\n')
+  for (const enfant of enfants) enfant.emit('close', 0)
+  processus = [{ ...processus[2], ppid: 999 }]
+  let retraits = 0
+  const signaux = []
+  const nettoyer = nettoyageDeVeille({ observe, trainObserve, retirer: () => { retraits++ },
+    arreter: (domaine, options) => tuerArbre(domaine, { ...options, mesurer, tuer: (pid) => signaux.push(pid) }),
+    constater: (arret, options) => constaterArret(arret, { ...options, mesurer }),
+  })
+  await assert.rejects(nettoyer(), /mort non confirmée/)
+  assert.deepEqual(signaux, [3])
+  assert.equal(retraits, 0)
+  assert.deepEqual(suivi.identites.map((p) => p.pid), [1, 2, 3])
+})
+
+async function tuerLaPremiereVeille(harnais, signal) {
+  const { observe, run } = harnais
+  const premiere = await observe.attendre(/^\[veille\] PID (\d+) veille le run /m, signal)
+  assert.ok(premiere, observe.texte())
+  const veille = Number(premiere[1])
+  await observe.attendre(new RegExp('^\\[horloge\\] dormir PID ' + veille + ' ms=5000$', 'm'), signal)
+  const suiviVeille = { ...observe.suivi, membres: observe.suivi.membres.filter((p) => p.pid === veille) }
+  tuer(suiviVeille)
+  assert.ok(await observe.attendre(new RegExp('^\\[veille\\] constat du run ' + run + ' après la sortie de sa veille$', 'm'), signal), observe.texte())
+  const seconde = await observe.attendre(new RegExp('^\\[veille\\] PID (?!' + veille + '\\b)(\\d+) veille le run ', 'm'), signal)
+  await observe.attendre(new RegExp('^\\[horloge\\] dormir PID ' + seconde[1] + ' ms=5000$', 'm'), signal)
+  assert.equal(observe.veilles.size, 2)
+}
+
+test('#2493 T3 : la veille COMPOSITE sous le shell POSIX de Git, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async (t) => {
+  const signal = AbortSignal.any([t.signal, AbortSignal.timeout(60_000)])
+  const harnais = await harnaisDeVeille(t, signal)
+  const { train, observe, tete } = harnais
+  await epreuveAvecCloture(async () => {
+    await tuerLaPremiereVeille(harnais, signal)
+    train.kill()
+    const code = await observe.fini
+    const sortie = observe.texte()
+    assert.equal(code, 0, sortie)
+    assert.match(sortie, new RegExp('^#3 fin — vert — INTERROMPUE : train ' + train.pid + ' mort sans verdict \\(constat : veille \\d+, .+\\) ; principal ', 'm'))
+    assert.equal(sortie.trimEnd().split('\n').at(-1), 'PUBLICATION: vert ' + tete)
+  }, harnais.fermer)
+})
+
+test('#2491 abandon du harnais après le départ de la seconde veille : tous les PID disparaissent', async (t) => {
+  const abandon = new AbortController()
+  const signal = AbortSignal.any([t.signal, abandon.signal, AbortSignal.timeout(60_000)])
+  const harnais = await harnaisDeVeille(t, signal)
+  await epreuveAvecCloture(async () => {
+    await tuerLaPremiereVeille(harnais, signal)
+    const attente = harnais.observe.attendre(/^jamais$/m, signal)
+    abandon.abort(new Error('abandon du harnais'))
+    await assert.rejects(attente, /abandon du harnais/)
+  }, harnais.fermer)
+})
+
+test('#2491 sortie événementielle : tampon présent, clôture et erreur antérieures à l’attente', async () => {
+  const enfant = () => Object.assign(new EventEmitter(), { stdout: new PassThrough() })
+  const clos = enfant()
+  const lu = observerSortie(clos)
+  clos.stdout.write('déjà reçu\n')
+  clos.emit('close', 0)
+  assert.equal((await lu.attendre(/^déjà reçu$/m))[0], 'déjà reçu')
+  await assert.rejects(lu.attendre(/^absent$/m), /fermeture avant motif/)
+  assert.equal(clos.stdout.listenerCount('data'), 0)
+  assert.equal(clos.listenerCount('error'), 0)
+  const enErreur = enfant()
+  const erreur = observerSortie(enErreur)
+  enErreur.emit('error', new Error('échec avant écoute'))
+  await assert.rejects(erreur.attendre(/^absent$/m), /échec avant écoute/)
+  enErreur.emit('close', null)
+})
+
+test('#2491 constat : verrou contendu, échéance et date suivent l’horloge injectée', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-horloge-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const chemins = { json: join(dossier, 'journal.json'), log: join(dossier, 'journal.log') }
+  const verrou = chemins.json + '.constat.verrou'
+  const instant = 1_700_000_000_000
+  const run = idDeRun({ pid: 42408, lancement: instant })
+  const journal = { run, pid: 42408, seq: 1, verdict: null, etapes: { fin: { etat: 'en-vol', debut: new Date(instant).toISOString(), run, seq: 1 } } }
+  ecrireJsonAtomique(chemins.json, journal)
+  writeFileSync(chemins.log, '')
+  const occuper = () => writeFileSync(verrou, JSON.stringify({ pid: process.pid, date: new Date(instant).toISOString() }))
+  occuper()
+  let maintenant = instant
+  const sommeils = []
+  assert.equal(constaterLaMort({
+    chemins, par: 'garde horloge', vivant: () => false, maintenant: () => maintenant,
+    dormir: (ms) => {
+      sommeils.push(ms)
+      assert.ok(sommeils.length <= 100, 'échéance du verrou hors horloge')
+      maintenant += ms
+    },
+    mesurer: () => assert.fail('verrou encore tenu'),
+  }), null)
+  assert.equal(maintenant, instant + 10_000)
+  assert.deepEqual(sommeils, Array(100).fill(100))
+  maintenant = instant
+  const vu = constaterLaMort({
+    chemins, par: 'garde horloge', vivant: () => false, maintenant: () => maintenant,
+    dormir: (ms) => { maintenant += ms; rmSync(verrou) },
+    mesurer: () => {
+      assert.equal(JSON.parse(readFileSync(verrou, 'utf8')).date, new Date(maintenant).toISOString())
+      return { etat: 'a-jour', mesure: true, sha: 'a'.repeat(40), visee: 'a'.repeat(40) }
+    },
+  })
+  assert.deepEqual(vu, { etat: 'vert', constat: { par: 'garde horloge', a: new Date(instant + 100).toISOString() } })
+})
+
+test('#2491 publisher : les deux dépôts et la re-mesure Git consomment le sommeil injecté', async (t) => {
+  const { racine, sha } = implantationDuCli()
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const entree = join(racine, 'scripts/ops/publierTrain.mjs')
+  const { executerPublication } = await import(pathToFileURL(entree).href)
+  const original = childProcess.spawnSync
+  const rejoues = new Set()
+  const attentes = []
+  let phase = 'main'
+  const feinte = mock.method(childProcess, 'spawnSync', (executable, args, options) => {
+    if (executable === process.execPath && args[0] === join(racine, 'scripts/ops/synchroniser.mjs'))
+      return { status: 1, stdout: 'sans état', stderr: '' }
+    const cible = executable === 'git' && (phase === 'main' && args.includes('--show-toplevel') ? 'main' : phase === 'contexte' && args.includes('--verify') && args.includes('HEAD^{commit}') ? 'contexte' : phase === 'mesure' && args.includes('--git-common-dir') ? 're-mesure' : null)
+    if (cible && !rejoues.has(cible)) {
+      rejoues.add(cible)
+      return { status: STATUS_DLL_INIT_FAILED, stdout: '', stderr: '' }
+    }
+    return original(executable, args, options)
+  })
+  const argv = process.argv
+  syncBuiltinESMExports()
+  try {
+    process.argv = [process.execPath, entree, '--etapes']
+    assert.equal(await executerPublication({ dormir: (ms) => attentes.push(ms) }), 0)
+    const ctx = contexteDe({ racine, branche: 'main', options: {}, journaliser: () => {}, fdLog: 'ignore', dormir: (ms) => attentes.push(ms) })
+    phase = 'contexte'
+    assert.equal(ctx.tete, sha)
+    phase = 'mesure'
+    const vu = ctx.synchroniserPrincipal({ visee: sha })
+    assert.equal(vu.ok, false)
+    assert.equal(vu.mesure.etat, 'a-jour')
+    assert.deepEqual([...rejoues], ['main', 'contexte', 're-mesure'])
+    assert.deepEqual(attentes, Array(3).fill(BACKOFFS_MS[0]))
+  } finally {
+    process.argv = argv
+    feinte.mock.restore()
+    syncBuiltinESMExports()
   }
 })

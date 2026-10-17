@@ -4,9 +4,9 @@
  * base ±mod · Dégâts N ». Une cible que le mode refuse n'est PAS rendue ici (arbitrage 2026-08-24 : le
  * survol n'affiche que le faisable) — le refus se dit au clic. INTERACTION → overlay du stage, hors builders.
  */
-import type { BattleState, PendingAttack, PendingDefense, PendingTrample, PendingHeal, PendingCast } from '../../state/store';
+import type { BattleState, PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../state/store';
 import { Combatant } from '../../engine/types';
-import { firedWeapon } from '../../state/combatFlow';
+import { attackWeaponOf } from '../../state/combatFlow';
 import { Dims, tileCenter } from '../../geometry/iso';
 import { TargetReticle } from '../TargetReticle';
 import { relationColor } from '../teamColors';
@@ -14,14 +14,13 @@ import { GOLD_TINT, ENEMY_CUE_TINT, RING_ALLY_TINT } from '../highlightTints';
 import { difficultyShownText } from '../../ui/difficultyText';
 import type { HoverAim } from './useHoverTargeting';
 
-export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingTrample, pendingHeal, pendingCast }: {
+export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
   battle: BattleState;
   hoverAim: HoverAim | null;
   anchor: (c: Combatant) => { cx: number; cy: number };
   dims: Dims;
   pendingAttack: PendingAttack | null;
   pendingDefense: PendingDefense | null;
-  pendingTrample: PendingTrample | null;
   pendingHeal: PendingHeal | null;
   pendingCast: PendingCast | null;
 }) {
@@ -29,16 +28,12 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
   if (pendingAttack) {
     const a = byId(pendingAttack.attackerId), t = byId(pendingAttack.victimId ?? pendingAttack.targetId);
     if (!a || !t) return null;
-    const ranged = firedWeapon(a, t, pendingAttack.weaponUid).type === 'ranged';
+    const ranged = attackWeaponOf(battle, a, t, pendingAttack).type === 'ranged'; // l'arme du coup (#1026)
     return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {
     const a = byId(pendingDefense.attackerId), t = byId(pendingDefense.defenderId);
     return a && t ? <TargetReticle from={anchor(a)} to={anchor(t)} line={pendingDefense.weapon.type === 'ranged' ? 'dashed' : 'solid'} lineColor={ENEMY_CUE_TINT} /> : null;
-  }
-  if (pendingTrample) {
-    const a = byId(pendingTrample.attackerId), t = byId(pendingTrample.targetId);
-    return a && t ? <TargetReticle from={anchor(a)} to={anchor(t)} line="solid" lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} /> : null;
   }
   if (pendingCast && !pendingCast.pickingTargets) {
     const a = byId(pendingCast.casterId);

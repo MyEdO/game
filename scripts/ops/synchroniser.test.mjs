@@ -22,6 +22,8 @@ import {
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { attendreLibre, estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
+import { cheminsDeLaReconstruction, demanderLaReconstruction, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -160,8 +162,14 @@ async function consommationFinie(principal, pids = [], { solde: exige = true } =
   const solde = await sousEcheanceAsync({
     attente: { echeanceMs: 60_000, pasMs: 50 },
     essai: () => {
-      const du = duDe(principal)
-      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec !== null) && !pids.some((pid) => pid && estPidVivant(pid))
+      let du
+      try {
+        du = duDe(principal)
+      } catch (e) {
+        if (e.code === 'EPERM') return false
+        throw e
+      }
+      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec != null) && !pids.some((pid) => pid && estPidVivant(pid))
     },
     abouti: (fini) => fini,
   })
@@ -732,6 +740,53 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
   })
 
+  for (const codeDiffere of [CODE_DIFFERE, CODE_SOURCE_MODIFIEE]) test(`15 ter reconstruction DIFFÉRÉE (code ${codeDiffere}, #2603) : le post-merge rend 0 et sa demande, \`du.json\` gardé SANS échec, la plage due soldée au passage suivant`, async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    hookReconstruisant(m.principal, codeDiffere)
+    try {
+      const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
+      assert.equal(vu.etat, 'avance', JSON.stringify(vu))
+      const du = await consommationFinie(m.principal, [vu.consommateurs.pid], { solde: false })
+      assert.deepEqual([du?.de, du?.vers, du?.echec ?? null], [m.B, U, null], readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8'))
+      const lignes = readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8')
+      assert.match(lignes, new RegExp(`reconstruction seq=1 — soldee, code ${codeDiffere}, journal `))
+      assert.match(lignes, /reconstruction différée : plage due laissée au prochain passage/)
+      writeFileSync(join(m.principal, 'hooks-fixture', 'post-merge'), '#!/bin/sh\nexit 0\n')
+      const reprise = spawnSync(process.execPath, [SYNCHRONISEUR, '--consommer'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 60_000 })
+      assert.equal(reprise.status, 0, `${reprise.error?.message ?? ''} ${reprise.stderr}`)
+      assert.equal(duDe(m.principal), null)
+    } finally {
+      assert.deepEqual(await reconstructionsFinies(m.principal), [])
+    }
+  })
+
+  test('(g) #2603 : sans ligne `seq=`, le verdict est le code SYNCHRONE du hook, jamais un `dernier` antérieur ; avec `seq=` et une passe rouge, `echec` porte SON code et SON journal', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    demanderLaReconstruction(m.principal, { detacher: () => 2 ** 22 + 1 })
+    servirLesDemandes({ racine: m.principal, passe: () => 3 })
+    hookDeFixture(m.principal, 'exit 0\n')
+    const premier = await sync(m.principal)
+    assert.deepEqual([premier.etat, premier.de, premier.vers], ['avance', m.B, U])
+    assert.equal(duDe(m.principal), null, 'un `dernier` rouge antérieur ne fait pas le verdict d’un hook sans demande')
+    const U2 = committer(m.amont, { 'a.md': 'c\n' })
+    rmSync(join(m.principal, 'hooks-fixture'), { recursive: true, force: true })
+    hookReconstruisant(m.principal, 3)
+    try {
+      const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
+      assert.equal(vu.etat, 'avance', JSON.stringify(vu))
+      const du = await consommationFinie(m.principal, [vu.consommateurs.pid])
+      assert.deepEqual([du?.de, du?.vers, du?.echec?.code], [U, U2, 3], JSON.stringify(du))
+      const { logs } = cheminsDeLaReconstruction(m.principal)
+      assert.equal(resolve(dirname(du.echec.log)), resolve(logs), du.echec.log)
+      assert.notEqual(du.echec.log, logDe(m.principal, vu.consommateurs.pid))
+      assert.match(readFileSync(du.echec.log, 'utf8'), /passe seq=2 — fin, code 3/)
+    } finally {
+      assert.deepEqual(await reconstructionsFinies(m.principal), [])
+    }
+  })
+
   test('15 bis post-merge présent mais non exécutable : avance-non-prete, jamais avance', async () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
@@ -959,10 +1014,37 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
 
 /** Le hook `post-merge` de fixture de `racine` : `corps` sous `#!/bin/sh`, posé par `core.hooksPath`. */
 function hookDeFixture(racine, corps) {
-  mkdirSync(join(racine, 'hooks-fixture'))
+  mkdirSync(join(racine, 'hooks-fixture'), { recursive: true })
   writeFileSync(join(racine, 'hooks-fixture', 'post-merge'), `#!/bin/sh\n${corps}`)
   chmodSync(join(racine, 'hooks-fixture', 'post-merge'), 0o755)
   exiger(reglerDepot(depot(racine), 'core.hooksPath', 'hooks-fixture'), 'hooksPath')
+}
+
+/** Le post-merge de fixture de `racine` qui DEMANDE la reconstruction par la couture du hook réel
+ *  (`demanderLaReconstruction`, sa ligne `ligneDeDemande` sur stdout) et rend 0 ; le détaché demandé sert les
+ *  demandes (`servirLesDemandes`) par une passe qui rend `codePasse`. */
+function hookReconstruisant(racine, codePasse) {
+  const dossier = join(racine, 'hooks-fixture')
+  const url = (rel) => JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', rel)).href)
+  mkdirSync(dossier)
+  const serveur = join(dossier, 'serveur.mjs')
+  writeFileSync(serveur, `import { servirLesDemandes } from ${url('git-hooks/reconstruction.mjs')}\nservirLesDemandes({ racine: process.cwd(), passe: () => ${codePasse} })\n`)
+  const demande = join(dossier, 'demande.mjs')
+  writeFileSync(demande, [
+    `import { demanderLaReconstruction, ligneDeDemande } from ${url('git-hooks/reconstruction.mjs')}`,
+    `process.stdout.write(ligneDeDemande(demanderLaReconstruction(process.cwd(), { script: ${JSON.stringify(serveur)} })))`,
+  ].join('\n'))
+  const posix = (chemin) => chemin.replaceAll(sep, '/')
+  hookDeFixture(racine, `"${posix(process.execPath)}" "${posix(demande)}"\n`)
+}
+
+/** Les détachés de reconstruction de `racine` (leurs journaux `<pid>.log`) attendus jusqu'à leur fin, bornée :
+ *  REND ceux encore vivants à l'échéance. */
+async function reconstructionsFinies(racine) {
+  const { logs } = cheminsDeLaReconstruction(racine)
+  const vivants = () => (existsSync(logs) ? readdirSync(logs) : []).map((f) => Number.parseInt(f, 10)).filter((pid) => pid !== process.pid && estPidVivant(pid))
+  await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: vivants, abouti: (v) => v.length === 0 })
+  return vivants()
 }
 
 /** `scripts/` de CET arbre posé dans le principal `racine` (jonction, exclue de git) : le consommateur

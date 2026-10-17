@@ -213,7 +213,7 @@ export function MedicModal() {
                     {healer && <TeamPortrait combatant={healer} size={20} />}
                   </>}
                   ariaLabel={meta.label}
-                  descOfferte={npc ? `${npc.label} (${skillRefLabel(npc.skill)})` : healer ? `Soigné par ${healer.label}` : undefined}
+                  descOfferte={npc ? `Soigné par ${npc.label} · ${skillRefLabel(npc.skill)}` : healer ? `Soigné par ${healer.label}` : undefined}
                   enabled={!raison}
                   onClick={() => act(a)}
                   primary={false}

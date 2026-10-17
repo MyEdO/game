@@ -23,7 +23,7 @@
 //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE, FN_NOMMER_ELEMENT } from './lib.mjs';
 import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
 
 /** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur
@@ -51,7 +51,8 @@ function parseArgs(argv) {
 }
 
 /** Sonde DOM : toutes les mesures d'une forme, en UN aller-retour. */
-const PROBE = `(() => {
+export const PROBE = `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const box = (r) => r ? { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), bottom: +r.bottom.toFixed(1), right: +r.right.toFixed(1) } : null;
   const rect = (sel) => { const e = document.querySelector(sel); return e ? box(e.getBoundingClientRect()) : null; };
   const debord = (sel) => {
@@ -115,20 +116,20 @@ const PROBE = `(() => {
   };
   const horsFenetre = [...document.querySelectorAll('body *')]
     .filter((e) => !(e instanceof SVGElement) && e.getClientRects().length && !dansUnScrollport(e))
-    .map((e) => { const r = e.getBoundingClientRect(); return { nom: (e.getAttribute('data-cell') || e.getAttribute('data-action') || e.className || e.tagName).toString().slice(0, 32), left: +r.left.toFixed(1), right: +r.right.toFixed(1) }; })
+    .map((e) => { const r = e.getBoundingClientRect(); return { nom: (e.getAttribute('data-cell') || e.getAttribute('data-action') || nommer(e)).slice(0, 32), left: +r.left.toFixed(1), right: +r.right.toFixed(1) }; })
     .filter((e) => e.right > window.innerWidth + 1 || e.left < -1);
   // DE PART ET D'AUTRE DE L'ARCHE, c'est le PLATEAU : en forme spectatrice le pont ne prend aucun
   // clic hors de son arche (le monde reste jouable pendant le tour d'un adversaire).
   const flancs = archeBox ? [archeBox.x / 2, (archeBox.right + window.innerWidth) / 2].map((x) => {
     const y = archeBox.y + archeBox.h / 2;
     const hit = document.elementFromPoint(x, Math.min(y, window.innerHeight - 1));
-    return { x: +x.toFixed(1), quoi: hit ? (hit.closest('.combat-console') ? 'pont' : (hit.closest('.iso-stage') ? 'plateau' : (hit.className || hit.tagName).toString().slice(0, 28))) : 'rien' };
+    return { x: +x.toFixed(1), quoi: hit ? (hit.closest('.combat-console') ? 'pont' : (hit.closest('.iso-stage') ? 'plateau' : nommer(hit).slice(0, 28))) : 'rien' };
   }) : [];
   // CONTRÔLES du pont : tout ce qu'un joueur doit pouvoir viser, plus les textes gravés dont la
   // coupe est un défaut de rendu (nom du porteur, libellés de plaque).
   const controles = [...document.querySelectorAll('.combat-console button, .combat-console .cc-arch-name, .combat-console [data-nom]')].map((e) => {
     const r = e.getBoundingClientRect();
-    return { quoi: (e.getAttribute('data-cell') || e.getAttribute('data-action') || e.className || e.tagName).slice(0, 28), rect: box(r) };
+    return { quoi: (e.getAttribute('data-cell') || e.getAttribute('data-action') || nommer(e)).slice(0, 28), rect: box(r) };
   });
   return {
     forme: pont ? pont.getAttribute('data-forme') : null,
@@ -163,7 +164,7 @@ const PROBE = `(() => {
       const a = document.querySelector('.cc-arch');
       if (!a) return null;
       const cs = getComputedStyle(a);
-      const enfants = [...a.children].map((e) => ({ q: (e.className || e.tagName).toString().slice(0, 22), h: +e.getBoundingClientRect().height.toFixed(1) }));
+      const enfants = [...a.children].map((e) => ({ q: nommer(e).slice(0, 22), h: +e.getBoundingClientRect().height.toFixed(1) }));
       const portrait = a.querySelector('.ptile');
       return { h: +a.getBoundingClientRect().height.toFixed(1), pad: cs.paddingTop + '/' + cs.paddingBottom, gap: cs.rowGap, enfants, portrait: portrait ? +portrait.getBoundingClientRect().height.toFixed(1) : null };
     })(),
@@ -499,7 +500,10 @@ Sonde RÉFUTABLE : +${args.stress}px dans l'arche produisent ${echecs.length} d�
   console.log('\nPont de console : aucune amputation, bande stable dans les trois formes, bandeau d’ouverture dégagé.');
 }
 
-main().catch((e) => {
-  console.error(`ERR ${e.message}`);
-  process.exit(1);
-});
+// La SONDE (`PROBE`) s'importe pour être testée en jsdom ; le script ne s'OUVRE que lancé en CLI.
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error(`ERR ${e.message}`);
+    process.exit(1);
+  });
+}

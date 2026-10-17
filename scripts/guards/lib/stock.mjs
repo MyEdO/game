@@ -129,6 +129,23 @@ export function naissanceDu(quoi, familles) {
  */
 export const cleDeSite = (e) => CHAMPS_DE_CLE.map((c) => e[c]).join(SEPARATEUR_DE_CLE);
 
+const cleDeLigne = (rel, ligne) => `${rel}${SEPARATEUR_DE_CLE}${ligne.trim()}`;
+
+/** CLÉ DE CONTENU d'un site sans entrée de stock ni déclaration englobante (prose, ligne de
+ *  commentaire, ligne qu'éteint une directive) : `fichier :: <ligne trimée>` — le contenu, jamais la
+ *  position (#2200). PURE.
+ *  @param {string} rel @param {string} texte @param {number} ligne 1-based @returns {string} */
+export function cleDeContenu(rel, texte, ligne) {
+  return cleDeLigne(rel, texte.split('\n')[ligne - 1] ?? '');
+}
+
+/** Les lignes (1-based) de `texte` dont la clé de contenu est `cle` : aucune = exemption PÉRIMÉE,
+ *  plusieurs = exemption AMBIGUË. PURE. @param {string} rel @param {string} texte @param {string} cle
+ *  @returns {number[]} */
+export function lignesDuContenu(rel, texte, cle) {
+  return texte.split('\n').flatMap((l, i) => (cleDeLigne(rel, l) === cle ? [i + 1] : []));
+}
+
 /** CLÉ DE GROUPE d'une entrée : sa clé de site sans l'occurrence — les homonymes d'un fichier. PURE.
  *  @param {import('./stock.mjs').EntreeDeSite} e */
 export const groupeDeSite = (e) => CHAMPS_DE_GROUPE.map((c) => e[c]).join(SEPARATEUR_DE_CLE);

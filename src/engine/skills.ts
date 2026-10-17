@@ -2,22 +2,22 @@
  * Valeur d'une Compétence/Caractéristique pour les Tests « dans le monde »
  * (hors combat) : Caractéristique + Augmentations de la compétence.
  */
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { Combatant, CharKey, Difficulty } from './types';
-import { byId, psychologies } from '../data';
+import { byId, psychologies, refLabel } from '../data';
+import { t, deElide } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
 import { groupMatch } from './groups';
 import { effectiveChar, bonus } from './characteristics';
 import { assistBonus } from './tests';
-import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill } from './conditions';
+import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
 import { agilityTestPenalty } from './encumbrance';
 import { traumaSkillPenalty, traumaSkillPenaltyParts, passiveSkillSum, passiveSkillParts, passiveTestMod, passiveTestModParts } from './trauma';
 import type { GameOp, PairedSense } from './ops';
 import type { ModLine } from './combat';
 import { RULE_REF } from './ruleRefs';
 import { rule } from './policy';
-import { rollTest } from './tests';
-import { RNG, defaultRNG } from './dice';
 import { effectivePsychTraits, isPsychImmune } from './psychology';
 import { maxBy } from './pick';
 
@@ -55,7 +55,7 @@ export function effectiveSkillCharKey(
 ): CharKey {
   const { explicit, spec, fallback = 'dexterite' } = opts;
   if (explicit) return explicit;
-  const sk = skillId ? c.skills.find((s) => s.id === skillId && (spec == null || s.spec === spec)) : undefined;
+  const sk = skillId ? c.skills.find((s) => refCouvre({ id: skillId, spec }, s)) : undefined;
   let ck: CharKey = sk?.characteristic ?? (skillId ? skillCharKeyById(skillId) : undefined) ?? fallback;
   if (skillId) ck = altCharKey(c, skillId, ck);
   return ck;
@@ -74,7 +74,7 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
   // `skill` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
   // `spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
   // plusieurs avec des avances différentes — sinon (spec absent) la première instance de l'id suffit.
-  const sk = skill ? c.skills.find((s) => s.id === skill && (spec == null || s.spec === spec)) : undefined;
+  const sk = skill ? c.skills.find((s) => refCouvre({ id: skill, spec }, s)) : undefined;
   // Caractéristique : POINT UNIQUE partagé avec castingValue (carac d'instance data-driven + carac alternative).
   const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
   const base = effectiveChar(c, ck);
@@ -151,7 +151,7 @@ export function skillToolMod(c: Combatant, skill?: string): number {
 export function skillBaseValue(c: Combatant, skill?: string, spec?: string, explicitChar?: CharKey): number {
   if (!skill && !explicitChar) return 0;
   const ck = effectiveSkillCharKey(c, skill, { spec, explicit: explicitChar });
-  const adv = skill ? c.skills.find((s) => s.id === skill && (spec == null || s.spec === spec))?.advances ?? 0 : 0;
+  const adv = skill ? c.skills.find((s) => refCouvre({ id: skill, spec }, s))?.advances ?? 0 : 0;
   return effectiveChar(c, ck) + adv;
 }
 
@@ -167,13 +167,51 @@ export function rawCombatTestBase(c: Combatant, skill?: string, characteristic?:
 /** Le personnage possède-t-il la compétence `skillId` (et, si `spec` fourni, cette spécialisation —
  *  ex. Projectiles (Poudre noire)) ? Par id STABLE. Sert aux modulateurs (ex. `easierIf`). */
 export function actorHasSkill(c: Combatant, skillId: string, spec?: string): boolean {
-  return c.skills.some((s) => s.id === skillId && (spec == null || s.spec === spec));
+  return c.skills.some((s) => refCouvre({ id: skillId, spec }, s));
+}
+
+/** Le personnage POSSÈDE-t-il la Compétence (Base = toujours ; Avancée = au moins une Augmentation) ?
+ *  LDB 09 l.25, LDB 09 l.30. `spec` cible une spécialisation précise (sinon la première instance de l'id,
+ *  comme `skillBaseValue`). Une Compétence `specsSoeursDeBase` dont le porteur a augmenté UNE
+ *  Spécialisation est de Base dans toutes les autres : LDB 09 l.571. */
+export function possesses(c: Combatant, skillId: string, spec?: string): boolean {
+  const sd = byId('skill', skillId);
+  if (!sd) return false;
+  const inst = c.skills?.find((s) => refCouvre({ id: skillId, spec }, s));
+  const soeurAugmentee = sd.specsSoeursDeBase === true && (c.skills ?? []).some((s) => refCouvre({ id: skillId }, s) && (s.advances ?? 0) > 0);
+  return sd.acces === 'base' || (inst?.advances ?? 0) > 0 || soeurAugmentee;
+}
+
+/** Qui peut TENTER un Test ACTIF — le mener, le soutenir, s'y porter candidat. LDB 09 l.30, LDB 16 l.113.
+ *  Contrat : Test ACTIF seulement ; un Test SUBI (LDB 16 l.74) ne le lit pas. Sans `skill` (Test de
+ *  Caractéristique), seule la mise hors d'action compte. */
+export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean {
+  return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
+}
+
+/** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise), ou une action. */
+type QuoiRefuse = { skill: string; spec?: string } | { action: string };
+function quoiRefuse(quoi: QuoiRefuse): PlayerText {
+  return 'skill' in quoi
+    ? t('refus.quoiTest', { de: deElide(refLabel('skills', { id: quoi.skill, ...(quoi.spec ? { spec: quoi.spec } : {}) })) })
+    : t('refus.quoiAction', { action: quoi.action });
+}
+
+/** Refus NOMMÉ du Test (par Compétence) ou de l'action que personne dans le groupe ne peut tenter
+ *  (`peutTenter`). LDB 09 l.30. */
+export function refusPersonneNePeutTenter(quoi: QuoiRefuse): PlayerText {
+  return t('refus.personneNePeutTenter', { quoi: quoiRefuse(quoi) });
+}
+
+/** Refus NOMMÉ, décliné par ACTEUR, d'un Test qu'il ne peut pas tenter (`peutTenter`). LDB 09 l.30. */
+export function refusNePeutTenter(c: Combatant, quoi: QuoiRefuse): PlayerText {
+  return t('refus.nePeutTenter', { qui: c.label, quoi: quoiRefuse(quoi) });
 }
 
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?
  *  Prédicat d'éligibilité au SOUTIEN — LDB 12 l.195. Plus strict que `actorHasSkill` (simple présence). */
 function hasSkillAdvance(c: Combatant, skillId: string, spec?: string): boolean {
-  return c.skills.some((s) => s.id === skillId && (spec == null || s.spec === spec) && (s.advances ?? 0) >= 1);
+  return c.skills.some((s) => refCouvre({ id: skillId, spec }, s) && (s.advances ?? 0) >= 1);
 }
 
 /** Le malus social « contenu » de `type` s'applique-t-il envers `targetGroups` ? (LDB 21) Vrai si le
@@ -237,40 +275,7 @@ export function isSocialTest(skill?: string, characteristic?: CharKey): boolean 
  *  partagés tels quels par les données JSON — vocabulaire commun, sans logique de résolution attachée. */
 export interface TestSpec { skills?: RefDesignee[]; char?: CharKey; difficulty?: Difficulty; combined?: boolean }
 
-/** Résultat d'un « Test du meilleur parmi N compétences » pour UN acteur (la compétence retenue + le jet). */
-export interface SkillBestResult {
-  value: number;
-  roll: number;
-  target: number;
-  sl: number;
-  success: boolean;
-  /** Compétence effectivement utilisée (la meilleure de l'acteur parmi les options). */
-  used?: RefDesignee;
-}
-
-/** Pour l'acteur donné, prend SA meilleure compétence (spec-aware) parmi `options`, puis lance le Test
- *  (Difficulté + `mod`). Primitive NEUTRE et seedée — « cette personne tente une tâche qui accepte
- *  plusieurs compétences → on utilise celle où elle est la meilleure ». Partagée voyage (Cartographe/
- *  Dessin, Survie/Guérison…) et, à venir, équipage naval (Voile/Ramer…). `options` vide ⇒ Test sur 0. */
-export function resolveSkillBest(
-  actor: Combatant,
-  options: readonly RefDesignee[],
-  difficulty: Difficulty = 'intermediaire',
-  rng: RNG = defaultRNG,
-  mod = 0,
-): SkillBestResult {
-  let bestVal = -Infinity;
-  let used: RefDesignee | undefined;
-  for (const ref of options) {
-    const v = testValue(actor, ref.id, undefined, ref.spec);
-    if (v > bestVal) { bestVal = v; used = ref; }
-  }
-  const value = Number.isFinite(bestVal) ? bestVal : 0;
-  const res = rollTest(value, difficulty, rng, mod);
-  return { value, roll: res.roll, target: res.target, sl: res.sl, success: res.success, used };
-}
-
-/** Meilleur membre du groupe pour un test donné. `extraMod` ajoute un modificateur PAR acteur (ex. malus
+/** Meilleur membre du groupe pour un test donné, parmi ceux qui peuvent le tenter (`peutTenter`). `extraMod` ajoute un modificateur PAR acteur (ex. malus
  *  psy de Sociabilité, qui dépend du personnage) — la valeur effective sert au choix ET au résultat.
  *  `sense` (optionnel) : transmis tel quel à `testValue` (sens NARRATIVEMENT sollicité par CE Test précis). */
 export function partyBest(
@@ -281,7 +286,7 @@ export function partyBest(
   spec?: string, // spécialisation ciblée (Métier (Serrurier)…) — transmise à `testValue` pour la bonne instance
   sense?: PairedSense,
 ): { actor: Combatant; value: number } | null {
-  const r = maxBy(party, (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
+  const r = maxBy(party.filter((c) => peutTenter(c, skill, spec)), (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
   return r ? { actor: r.item, value: r.value } : null;
 }
 
@@ -312,21 +317,25 @@ export function bestForCombined(
   sk2: RefDesignee,
   char: CharKey | undefined,
 ): { actor: Combatant; value1: number; value2: number } | null {
-  const r = maxBy(party, (c) => Math.min(testValue(c, sk1.id, char, sk1.spec), testValue(c, sk2.id, char, sk2.spec)));
+  const able = party.filter((c) => peutTenter(c, sk1.id, sk1.spec) && peutTenter(c, sk2.id, sk2.spec));
+  const r = maxBy(able, (c) => Math.min(testValue(c, sk1.id, char, sk1.spec), testValue(c, sk2.id, char, sk2.spec)));
   if (!r) return null;
   return { actor: r.item, value1: testValue(r.item, sk1.id, char, sk1.spec), value2: testValue(r.item, sk2.id, char, sk2.spec) };
 }
 
-/** Meilleure OPTION pour un acteur parmi un catalogue d'options portant des `skills` : score d'une option =
- *  la MEILLEURE compétence de l'acteur dedans (`bestForSkills([actor], opt.skills).value`), par `testValue`
- *  (= compétence RAW). Argmax via `maxBy`. Le filtrage des options (possession, activités sans Test…) et les
- *  replis restent à la charge de l'appelant. */
+/** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des `skills` : score d'une
+ *  option = la meilleure compétence que l'acteur peut tenter dedans (`bestForSkills([actor], opt.skills)`,
+ *  `peutTenter`) ; une option qu'il ne peut pas tenter ne concourt pas. Argmax via `maxBy` ; `null` si
+ *  aucune option n'est tentable. LDB 09 l.30. */
 export function bestSkilledOption<T extends { skills?: RefDesignee[] }>(
   actor: Combatant,
   options: readonly T[],
 ): { option: T; value: number } | null {
-  const r = maxBy(options, (opt) => bestForSkills([actor], opt.skills ?? [], undefined)?.value ?? -Infinity);
-  return r ? { option: r.item, value: r.value } : null;
+  const tentables = options.flatMap((option) => {
+    const b = bestForSkills([actor], option.skills ?? [], undefined);
+    return b ? [{ option, value: b.value }] : [];
+  });
+  return maxBy(tentables, (x) => x.value)?.item ?? null;
 }
 
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le
@@ -436,7 +445,7 @@ export function partyAssisted(
 /** DÉTAIL de SOUTIEN (LDB 12 l.187-200) pour un meneur DONNÉ — SOURCE UNIQUE : combien de membres
  *  soutiennent, le bonus total, et QUI (`ids`). Brique partagée par `partyAssisted` ET les Tests à
  *  sélecteur de candidat (Tests de scène) où le meneur n'est pas le « meilleur » mais le candidat
- *  considéré : +10 par AUTRE membre VIVANT et ÉLIGIBLE (`hasSkillAdvance`, l.195 ; Test de pure
+ *  considéré : +10 par AUTRE membre qui peut tenter (`peutTenter`) et ÉLIGIBLE (`hasSkillAdvance`, l.195 ; Test de pure
  *  Caractéristique → tous), plafonné au Bonus de la Caractéristique testée du meneur (l.198). `eligible` (l.196, « doit
  *  normalement être adjacent ») : prédicat GÉOMÉTRIQUE optionnel fourni par l'appelant (moteur PUR — la
  *  position/adjacence vit côté état) ; absent = comportement inchangé (aucune géométrie, ex. hors combat).
@@ -449,7 +458,7 @@ export function soutienDetail(
   spec?: string,
   eligible?: (c: Combatant) => boolean,
 ): SupportDetail {
-  const elig = party.filter((c) => c.id !== leader.id && !c.dead
+  const elig = party.filter((c) => c.id !== leader.id && peutTenter(c)
     && (skill ? hasSkillAdvance(c, skill, spec) : true) // LDB 12 l.195
     && (eligible ? eligible(c) : true));
   const ck = effectiveSkillCharKey(leader, skill, { explicit: characteristic, spec });

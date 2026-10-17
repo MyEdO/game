@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { AttackKind } from './creatureAttacks';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
@@ -7,6 +8,8 @@ import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
+import type { ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { StagePosting } from './activities';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
@@ -200,13 +203,11 @@ export interface VehicleData {
    *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
   travel?: { movement: number; medium?: Propulsion; draft?: { montureId: string; count: number }; classes: VehicleTravelClass[] };
   /** Facette COQUE (entité à PV). `char.endurance` = Endurance, `char.B` = Blessures. `bodyShape` = 'vehicule'.
-   *  `rig` = gréement (avirons/voile/mixte) → colonne de Localisation des Dégâts (MDG 13).
    *  `locationTable`/`criticalTable` = réfs de tables data-driven (branchées aux dalles fluvial/maritime). */
   hull?: {
     char: { endurance: number; B: number };
     bodyShape: 'vehicule';
     propulsion: Propulsion;
-    rig?: 'avirons' | 'voile' | 'mixte';
     traits?: { id: string; value?: number; arg?: string }[];
     locationTable?: string | null;
     criticalTable?: string | null;
@@ -223,8 +224,8 @@ export interface VehicleData {
      *  créature : un navire occupe ses cases (grille + rendu) sans être une créature (aucune Peur de Taille). */
     footprint?: number;
     capacity: number;
-    sail?: { m: number; crew: number };
-    oars?: { m: number; crew: number };
+    sail?: ProfilDeVoile;
+    oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
   /** Facette PONT (couche tactique, §1bis du modèle naval) : plan person-scale du pont, authoré une fois
@@ -1536,10 +1537,11 @@ export interface Combatant {
   riderId?: string;
   /** Ce combattant est une MONTURE rideable (peut être enfourché par un allié à pied — LDB 14). */
   mountable?: boolean;
-  /** Rôle de marche PERSISTANT (`id` d'Activité de voyage EDOC 8) — « les mêmes tiennent toujours le
-   *  même poste ». Attaché au personnage (toutes parties de voyage) ; l'assignation d'un trajet en est
-   *  initialisée. Absent ⇒ inféré des compétences (`defaultTravelRole`). Le joueur l'épingle/le change. */
-  travelRole?: string;
+  /** Rôle de marche PERSISTANT (Activité de voyage EDOC 8, et sa compétence choisie pour Pratiquer une
+   *  Compétence) — « les mêmes tiennent toujours le même poste ». Attaché au personnage (toutes parties de
+   *  voyage) ; l'assignation d'un trajet en est initialisée. Absent ⇒ inféré des compétences
+   *  (`defaultTravelRole`). Le joueur l'épingle/le change. */
+  travelRole?: StagePosting;
   /** Rôle d'ÉQUIPAGE naval ÉPINGLÉ (`id` de `crew-roles.json` : timonier/artilleur/mousse…) — le poste que ce membre
    *  tient lors des Tests d'équipage du navire (MDG 14). ABSENT ⇒ le Test décide : `shipDefaultRoles`
    *  (`state/shipCrew`) affecte l'équipage au moment du jet, selon le TYPE de Test joué. Aucune surface
@@ -1554,7 +1556,7 @@ export interface Combatant {
   shipStation?: string;
   /** File transitoire d'attaques gratuites de créature restant à résoudre ce tour (kinds :
    *  morsure/caudale/pietinement) — pilotée par aiCreatureFreeAttacks à travers la modale de défense. */
-  pendingFreeAttacks?: string[];
+  pendingFreeAttacks?: AttackKind[];
   /** A chargé ce tour → ouvre une Attaque gratuite de Cornes (LDB 85) si la créature a le trait. */
   chargedThisTurn?: boolean;
   /** Déplacements COMPLETS (départ→arrivée) accomplis ce tour, EN ATTENTE du déclencheur d'approche
@@ -1817,6 +1819,10 @@ export interface Combatant {
    *  survenant un jour de voyage (`activeDayWeather`). SEULE source du canal « Tests physiques » (`weatherTestMods`,
    *  lu par attack/defenseModifiers) — jamais recâblée par surface. Transitoire (non persistée hors combat). */
   envWeather?: import('./travelStages').Weather;
+  /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
+   *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
+   *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
+  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];
@@ -1883,7 +1889,7 @@ export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
 /** VOCABULAIRE FERMÉ des étapes de la cascade de NUIT (#1117) — les 16 `kind` réellement
  *  émis : 7 par les Tests d'entretien DIFFÉRÉS (`UpkeepDeferTest`), 8 construits par le flux de nuit,
  *  1 par l'entretien de MER (`sea-exposition` — MÊME règle d'Exposition, AUTRE route, donc autre kind :
- *  les ORDRES d'une traversée ne commandent que le sien, cf. `voyageCadence.SEA_KINDS_SOUS_ORDRES`).
+ *  les ORDRES d'une traversée ne commandent que le sien, cf. `voyageCadence.KINDS_SOUS_ORDRES`).
  *  Union au TYPE = premier rideau : un kind inventé ne compile pas ; le résolveur d'enjeu jette en
  *  second rideau. Ajouter une étape de nuit = l'ajouter ICI et lui authorer son entrée d'enjeu. */
 export const NIGHT_TEST_KINDS = [

@@ -1,12 +1,13 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
+import { createHero } from '../../engine/character';
 import { itemFromTrappingById } from '../../engine/items';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { Scene } from '../../state/scene';
 import type { MapPlace, MapRoute, WorldMap } from '../../state/worldMap';
-import type { TestScenario } from './_shared';
+import { renforcerCompetence, type TestScenario } from './_shared';
 import { REIK_INDEX, hasTradeGoods, reikMarket, type ReikEntry } from './_reik-index';
-import { rigSpeciesId } from '../../data';
+import { firstLevel, rigSpeciesId } from '../../data';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
 
 /**
  * « Commerce fluvial sur le Reik » — le commerce de cargaison de Mort sur le Reik Compagnon (ch.11
@@ -24,40 +25,34 @@ import { rigSpeciesId } from '../../data';
  * (l.139 : « les hameaux n'ont généralement aucune demande de biens ») — ils restent dans les données.
  */
 
-/** Ajoute/renforce une Compétence sur un héros, à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /** Quatre marchands ambulants. Berta tient le commerce : Marchandage (négocier l'achat/la vente),
  *  Ragot (dénicher une rumeur commerciale au marché, l.180) et Évaluation + Résistance à l'alcool
  *  (jauger la qualité secrète d'une cargaison de vin, l.95). Les trois autres sont l'équipage de barge. */
 function traders(): Combatant[] {
   const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', seed: 1501, id: 'com-berta' });
-  skill(berta, 'marchandage', 65);
-  skill(berta, 'ragot', 55);
-  skill(berta, 'evaluation', 50);
-  skill(berta, 'resistance-a-l-alcool', 45);
+  renforcerCompetence(berta, 'marchandage', 65);
+  renforcerCompetence(berta, 'ragot', 55);
+  renforcerCompetence(berta, 'evaluation', 50);
+  renforcerCompetence(berta, 'resistance-a-l-alcool', 45);
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar' });
-  skill(gunnar, 'ramer', 50);
-  skill(gunnar, 'voile', 40);
+  // Spécialisation Chaland de la Voile (Au choix) du Batelier : valeur d'ADAPTATION du scénario. LDB 09 l.40
+  const voileDeCarriere = adresseDeCreation.carriereCompetence(firstLevel('batelier')!.skills.findIndex((r) => 'id' in r && r.id === 'voile'));
+  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
+  renforcerCompetence(gunnar, 'ramer', 50);
+  renforcerCompetence(gunnar, 'voile', 40, 'chaland');
   gunnar.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.58 };
 
   const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
-  skill(otto, 'intimidation', 40);
+  renforcerCompetence(otto, 'intimidation', 40);
   otto.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.62 };
 
   const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', seed: 1504, id: 'com-lise' });
-  skill(lise, 'metier', 40, 'Cartographe');
+  renforcerCompetence(lise, 'metier', 40, 'cartographe');
   lise.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   return [berta, gunnar, otto, lise];
@@ -146,13 +141,18 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
   // permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
   // est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
-  // atteignable (débris flottants, l.123-125). Le chariot de convoi (porteur réel) persiste pendant la descente.
+  // atteignable : débris flottants (l.123-125) et barrage de débris (l.128). Le chariot de convoi (porteur réel)
+  // persiste pendant la descente.
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
-  grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }];
+  // Débris à 55 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
+  // Source. MSRC 7 l.125
+  // Barrage à 35 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
+  // Source. MSRC 7 l.128
+  grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }, { perilId: 'barrage', chancePct: 35 }];
   // Exposition hydrique de la descente (MSRC 16, l.5) : l'équipage boit l'eau du Reik non bouillie en
   // approchant d'Altdorf (grande ville en aval → tableau 1 « Source d'eau », −20, l.23-33). Chaque étape à
-  // flot, un tirage déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance → maladie) — data-driven.
+  // flot, un tirage pose le Test d'Exposition de la descente (`MapRoute.riverExposure`).
   grunburgAltdorf.riverExposure = { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 60 };
   routes.push(grunburgAltdorf);
 
@@ -177,8 +177,9 @@ export const scenario: TestScenario = {
     'géographique l.185-270, indices Taille/Richesse/Produits verbatim), reliées par des routes de BARGE. ' +
     'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge (le convoi ' +
     'persiste sur le chariot de convoi), revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
-    'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente EXERCE aussi ' +
-    'l’exposition hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
+    'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente Grünburg → Altdorf ' +
+    'EXERCE les périls du fleuve (MSRC 7 : débris, barrage de débris à forcer ou dégager) et l’exposition ' +
+    'hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
   construire: () => {
     const { scenes, carte } = construireReik();

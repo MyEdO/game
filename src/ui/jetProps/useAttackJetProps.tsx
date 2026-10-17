@@ -1,9 +1,9 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../state/rollFlowSpecs';
-import { HitLocation, type Weapon } from '../../engine/types';
+import { HitLocation, type Combatant, type Weapon } from '../../engine/types';
 import type { RollLabelRef } from '../RollLine';
-import { crowdMod, bestRangedDefense, locationLabel, weaponInflictsFlames, attackTestLabel, isHelplessTarget } from '../../engine/combat';
+import { crowdMod, bestRangedDefense, locationLabel, weaponInflictsFlames, attackTestOf, isHelplessTarget } from '../../engine/combat';
 import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { combatDistance } from '../../state/footprint';
@@ -23,17 +23,25 @@ import { ev } from '../../state/combatLog';
 import { Icon } from '../Icon';
 import { Row } from '../Layout';
 import { composeRollLabel } from '../../state/rollSeam';
+import { testSkillLabel } from '../../data';
+
+/** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
+ *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
+export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'defense.appliquer'), onClick: confirm, when: 'post' };
+}
 
 const LOCS: HitLocation[] = ['tete', 'corps', 'brasD', 'brasG', 'jambeD', 'jambeG'];
 
 /** Fiche Codex du NOM du jet d'attaque — MÊME source que son libellé (`attackTestLabel`) : une
  *  Résolution alternative déclarée par l'arme pointe la Caractéristique qui résout, sinon la
- *  Compétence lancée. Ids STABLES, jamais un libellé de recherche. */
-function attackLabelRef(weapon: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
-  const label = attackTestLabel(weapon, kind);
-  return weapon?.resolveChar
-    ? { category: 'characteristics', id: weapon.resolveChar, label }
-    : { category: 'skills', id: kind === 'ranged' ? 'projectiles' : 'corps-a-corps', label };
+ *  Compétence lancée (`attackTestOf`). Ids STABLES, jamais un libellé de recherche. */
+function attackLabelRef(attacker: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
+  const test = attackTestOf(attacker, weapon, kind);
+  const label = testSkillLabel(test);
+  return 'char' in test
+    ? { category: 'characteristics', id: test.char, label }
+    : { category: 'skills', id: test.skill, label };
 }
 
 /**
@@ -71,14 +79,18 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // manœuvre de trait comprise) : MÊME primitive que l'application (`attackConfirm`, #1026) — l'écran
   // et la fenêtre de Défense qui suit ne peuvent plus parler de deux armes différentes.
   const weapon = attackWeaponOf(battle, attacker, target, pa);
-  const pickable = attacker.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
+  // Une attaque gratuite de créature (`freeKind`) frappe de SON arme naturelle : aucun choix d'arme tenue.
+  const armeTenue = !pa.freeKind;
+  // L'intitulé d'une attaque gratuite est celui de SON attaque (Piétinement, Morsure…), lu de son arme.
+  const intitule = armeTenue ? 'Attaque' : weapon.label;
+  const pickable = armeTenue ? attacker.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 (Tableau des Difficultés de Combat, « Attaquer avec votre main secondaire ») — valeur du
   // MOTEUR, la même que celle qui pèsera sur la cible (`attackModifiers`).
   const offPen = offHandPenalty(attacker);
   const res = pa.result;
   const rolled = !!res;
   // LDB 10 l.767-773
-  const dualEligible = !res && attacker.kind === 'hero' && attackModesFor(attacker).includes('dual-wield')
+  const dualEligible = !res && armeTenue && attacker.kind === 'hero' && attackModesFor(attacker).includes('dual-wield')
     && attacker.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)
     && attacker.weapons.some((w) => w.hand === 'off' && w.type === 'melee' && (w.hands ?? 1) === 1)
     && !pa.cleave && !pa.dualSecond;
@@ -113,7 +125,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const canGrapple = !res && weapon?.type === 'melee' && isUnarmed(weapon) && attacker.kind === 'hero';
   // Panneau pré-rempli (l'avant-jet = le résultat, pré-rempli) : MA ligne (score + mods) recalculée à
   // chaque changement d'option ; la ligne adverse via `previewDefense` (compétence + mods, sans valeur).
-  const preview = !res ? previewAttack(useGame.getState, attacker, target, pa.location ?? undefined, { intoCrowd: pa.intoCrowd, heldGround: pa.heldGround, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut }) : null;
+  const preview = !res ? previewAttack(useGame.getState, attacker, target, pa.location ?? undefined, { intoCrowd: pa.intoCrowd, heldGround: pa.heldGround, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon }) : null;
   // LDB 13 l.135
   const rangedDef = !res && weapon?.type === 'ranged' ? bestRangedDefense(attacker, target, weapon, combatDistance(attacker, target)) : undefined;
   // La rangée adverse annonce la Difficulté que le jet de défense subira VRAIMENT : même pénalité
@@ -147,8 +159,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
         : {
             combatant: attacker,
             pending: {
-              label: attackTestLabel(preview!.weapon, preview!.kind),
-              labelRef: attackLabelRef(preview!.weapon, preview!.kind),
+              label: testSkillLabel(attackTestOf(attacker, preview!.weapon, preview!.kind)),
+              labelRef: attackLabelRef(attacker, preview!.weapon, preview!.kind),
               base: preview!.base,
               target: Math.max(0, Math.min(100, preview!.target)),
               mods: preview!.mods,
@@ -179,14 +191,12 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     ? (res.defenderDetail ? witnessRow({ row: { combatant: target, d: res.defenderDetail } }) : null)
     : (!blocked && defenderPending ? buildRollRow({ row: { combatant: target, pending: { ...defenderPending, mask: 'value' as const } } }, { interactive: false }) : null);
   const rows = [attackerRow, ...(defenderRow ? [defenderRow] : [])];
-  const attackTest = weapon?.resolveChar
-    ? { char: weapon.resolveChar }
-    : { skill: weapon?.type === 'ranged' ? 'projectiles' as const : 'corps-a-corps' as const };
+  const attackTest = attackTestOf(attacker, weapon, weapon?.type === 'ranged' ? 'ranged' : 'melee');
 
   return {
     flowKey: 'attack',
-    title: 'Attaque',
-    subtitle: composeRollLabel(attacker, 'Attaque', attackTest),
+    title: intitule,
+    subtitle: composeRollLabel(attacker, intitule, attackTest),
     extra: (
       <VsHeader
         actor={attacker}
@@ -343,7 +353,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     forcedExtra: res?.critical && pa.forced ? <CritLocationPicker current={res.critLocation} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
       { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' } as RollAction,
-      { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+      confirmerLeCoup(awaitingDefense, confirm),
     ],
   };
 }

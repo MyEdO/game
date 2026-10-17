@@ -891,8 +891,8 @@ function CoopBannerDemo() {
 }
 
 /** Deux lignes de butin : une lame CATALOGUÉE non identifiée (la révélation est offerte) et un objet
- *  custom déjà identifié. La Détection d'artefact n'apparaît que si un héros DE LA PARTIE porte le
- *  Talent (`bestDetector`) : sans partie en cours, la ligne ne montre qu'Évaluer. */
+ *  custom déjà identifié. Évaluer et Détecter se lisent au groupe DE LA PARTIE (`appraiseRefus`) : sans
+ *  partie en cours, tous deux sont fermés avec leur raison. */
 function GearAssignListDemo() {
   const heros = herosExemples().slice(0, 3);
   if (!heros.length) return <p className="hint">Aucun pregen disponible.</p>;
@@ -1429,7 +1429,7 @@ function RevealBodyDemo() {
         dice: 73,
         lines: ['Entaille profonde du bras'],
         weapon: 'Épée',
-        crit: { location: 'Bras droit', woundsLost: 5, conditions: [{ id: 'saignement', value: 1 }] },
+        crit: { location: 'Bras droit', woundsLost: 5, conditions: [{ id: 'hemorragique', value: 1 }] },
         details: [{ text: 'Hémorragie 1', note: 'Un Saignement s’ajoute à chaque Round tant qu’il n’est pas soigné.' }],
       }}
       actor={herosExemple()}

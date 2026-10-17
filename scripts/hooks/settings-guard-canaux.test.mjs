@@ -118,7 +118,7 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
 })
 
 const LECTURES = LECTURES_LIBRES.map((nu) => `mcp__lean-ctx__${nu}`)
-const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'ctx_verify', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
+const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
 
 test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx hors `LECTURES_LIBRES`, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
   for (const surface of SURFACES)
@@ -132,10 +132,10 @@ test('un outil de `LECTURES_LIBRES` ne lance PAS le répartiteur là où le mote
     for (const outil of LECTURES) assert.equal(couvre(surface, 'repartiteur.mjs', outil), false, `${surface} : « ${outil} » (LECTURE) lance le répartiteur`)
 })
 
-test('le matcher ANCRÉ du répartiteur ne prend pas `NotebookEdit` pour `Edit`, sur les DEUX surfaces', () => {
+test('le matcher ANCRÉ du répartiteur ne prend pas `PasUnEdit` pour `Edit`, sur les DEUX surfaces', () => {
   for (const surface of SURFACES) {
     assert.ok(couvre(surface, 'repartiteur.mjs', 'Edit'), surface)
-    assert.equal(couvre(surface, 'repartiteur.mjs', 'NotebookEdit'), false, surface)
+    assert.equal(couvre(surface, 'repartiteur.mjs', 'PasUnEdit'), false, surface)
   }
 })
 
@@ -154,7 +154,7 @@ test('les matchers des points d’entrée couvrent les MÊMES outils sur .claude
 const OUTILS_CONNUS = [
   'Agent', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell',
   'NotebookEdit', 'PowerShell', 'Read', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch',
-  'WebSearch', 'Write', ...OUTILS_ECRITURE,
+  'WebSearch', 'Workflow', 'Write', ...OUTILS_ECRITURE,
 ]
 const MCP_TOOL = /^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_]+$/
 
@@ -196,6 +196,7 @@ test('cas plantés : le préfixe magique et le texte libre sont refusés, mcp__*
   assert.equal(valide('OFF_Write|Edit'), false)
   assert.equal(valide('Write|Edit|Coucou'), false)
   assert.equal(valide('Write|Edit'), true)
+  assert.equal(valide('Workflow|Agent'), true, 'Workflow, outil réel (#2537)')
   assert.equal(valide('Bash|PowerShell|mcp__lean-ctx__ctx_shell'), true)
   assert.equal(valide(matcherDe(SURFACE_CLAUDE, 'repartiteur.mjs')), true, 'la regex dérivée')
   assert.equal(valide('^(?:DESACTIVE|Write)$'), false, 'une regex posée à la main')

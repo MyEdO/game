@@ -2,10 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReactNode } from 'react';
-import { buildParticipantRows, type ParticipantRow } from './buildParticipantRows';
+import { buildParticipantRows, crewRoleRow, type ParticipantRow } from './buildParticipantRows';
 import { isBuiltRollRow } from './rollRowBuild';
 import { RollShell } from './RollShell';
 import { refLabel } from '../data';
+import { refusNePeutTenter } from '../engine/skills';
 import type { Combatant } from '../engine/types';
 
 /**
@@ -25,10 +26,10 @@ const bundle = {
 describe('buildParticipantRows — le libellé de ligne vient de {skillId, spec} (#1117)', () => {
   it('la spécialisation est rendue : « Voile (Chaland) », jamais le rôle', () => {
     const rows = buildParticipantRows(
-      [{ id: 'h1', interactive: true, result: null, skillId: 'voile', spec: 'Chaland', label: 'Timonier' } as never],
+      [{ id: 'h1', interactive: true, result: null, skillId: 'voile', spec: 'chaland', label: 'Timonier' } as never],
       [actor], bundle as never,
     );
-    expect(rows[0].row.pending!.label).toBe(refLabel('skills', { id: 'voile', spec: 'Chaland' }));
+    expect(rows[0].row.pending!.label).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
     expect(rows[0].row.pending!.label).not.toBe('Timonier');
   });
 
@@ -125,5 +126,31 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
     expect(rows[0].rerolled, 'seuls les FAITS du slot voyagent sur la rangée').toBe(false);
     const html = renderToStaticMarkup(<RollShell title="T" rows={rows} rolled actions={[]} />);
     expect(html, 'sans Point de Chance, la relance offerte est celle de la Bénédiction').toContain('Bénédiction de Chance');
+  });
+});
+
+/**
+ * Rangée de Test d'équipage par rôle (MDG 14) : un marin qui ne peut pas tenir son rôle (LDB 09 l.30 ;
+ * #2588 Q1) annonce son refus ; un dé JETÉ s'affiche tel qu'il est tombé, contre sa cible.
+ */
+describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible', () => {
+  const marin = {
+    id: 'm1', label: 'Gunnar', kind: 'hero', conditions: [{ id: 'inconscient', value: 1 }], skills: [], talents: [],
+    characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    wounds: { current: 12, max: 12 }, advantage: 0, weapons: [], items: [], movement: 4,
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+  } as unknown as Combatant;
+  const part = { id: 'm1', roleId: 'timonier', essential: true, result: null, interactive: true, navigation: { id: 'voile', spec: 'cogue' } };
+
+  it('non jetée : la rangée annonce le refus nommé, aucun jet en attente', () => {
+    const row = crewRoleRow(part as never, marin, null);
+    expect(row.note).toBe(refusNePeutTenter(marin, { skill: 'voile', spec: 'cogue' }));
+    expect(row.pending).toBeUndefined();
+  });
+
+  it('jetée : le dé s’affiche contre sa cible, sans refus', () => {
+    const row = crewRoleRow(part as never, { ...marin, conditions: [], skills: [{ id: 'voile', spec: 'cogue', advances: 10 }] as Combatant['skills'] }, { roll: 23, target: 41, sl: 1 });
+    expect(row.note).toBeUndefined();
+    expect(row.d).toMatchObject({ roll: 23, target: 41, sl: 1 });
   });
 });

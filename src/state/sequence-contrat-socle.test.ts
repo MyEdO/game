@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { openSequence, displayStep, monoStep } from './rollSeam';
-import { registerCascadeApplier, startCascade, advanceCascade } from './cascade';
+import { registerCascadeApplier, startCascade, advanceCascade, resumeSuspendedCascade } from './cascade';
 import { seedBattleRng } from './battleRng';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { makePregens } from '../data/pregens';
@@ -12,16 +12,21 @@ import type { BuiltCascadeStep } from './rollSeam';
 /**
  * LE CONTRAT DU SOCLE DE SÉQUENCE (#1479), sur ses DEUX bords :
  *
- *  (1) `openSequence` rend les étapes RÉSOLUES — ou RIEN. Le pilote immédiat peut rendre un PRÉFIXE
- *      (un applier ouvre un combat en plein vol, un choix n'a pas de défaut authoré) : rendre ce
- *      préfixe comme « séquence résolue » fait ENCHAÎNER l'appelant sur un dénouement que la reprise
- *      rejouera ensuite — la continuation partait DEUX fois. La garde vit dans `openSequence`, une
- *      fois, jamais recopiée chez les appelants.
+ *  (1) `openSequence` rend les étapes RÉSOLUES — ou RIEN. Le pilote immédiat peut s'arrêter en vol
+ *      (un applier ouvre un combat, un choix n'a pas de défaut authoré) : rendre ce préfixe comme
+ *      « séquence résolue » fait ENCHAÎNER l'appelant sur un dénouement que la reprise rejouera
+ *      ensuite — la continuation partait DEUX fois. La garde vit dans `openSequence`, une fois, jamais
+ *      recopiée chez les appelants. Derrière un combat, la séquence ENTIÈRE est parquée, curseur posé
+ *      derrière l'étape jouée : le combat clos, le pilote la reprend depuis ce curseur — aucune étape
+ *      rejouée, un seul dénouement.
  *
  *  (2) PARITÉ DE TRACE — un dé posé D'OFFICE par le curseur (`poserLeCurseur`, aucun siège humain ne
  *      tient l'étape) laisse la MÊME trace que celui du pilote immédiat : sa ligne de journal.
  *      « A partir du moment ou je dois faire un jet, il doit apparaitre » (utilisateur, 2026-08-24) —
  *      ce que le socle roule à la place du joueur, il le MONTRE.
+ *
+ *  (3) Un combat DÉJÀ ouvert au lancement n'interrompt pas le pilote immédiat : seul un combat qu'une
+ *      étape OUVRE parque la séquence (`combatALEntree`).
  */
 
 const get = useGame.getState.bind(useGame);
@@ -66,7 +71,7 @@ afterEach(() => {
 });
 
 describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence résolue', () => {
-  it('séquence INTERROMPUE en vol (combat ouvert par l’applier) : rien n’est rendu, l’appelant n’enchaîne pas', () => {
+  it('séquence INTERROMPUE en vol (combat ouvert par l’applier) : rien n’est rendu, la séquence ENTIÈRE est parquée, et reprend UNE fois depuis son curseur', () => {
     let continuations = 0;
     const resolues = openSequence(get, set, {
       title: 'Sonde', purpose: 'test', steps: sequenceDe(KIND_OUVRE_COMBAT),
@@ -74,9 +79,19 @@ describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence
     if (resolues) continuations++; // le patron d'appel réel : « j'ai mes lignes, je joue mon dénouement »
     expect(resolues, 'un PRÉFIXE n’est pas une séquence résolue').toBeUndefined();
     expect(continuations, 'l’appelant n’a pas enchaîné sa continuation').toBe(0);
-    expect(apples, 'seule la 1ʳᵉ étape a été appliquée — le reste est préservé').toBe(1);
-    expect(get().suspendedCascades, 'le RESTE de la séquence est parqué, il reprendra UNE fois').toHaveLength(1);
-    expect(get().suspendedCascades[0].participants.map((s) => s.id)).toEqual(['s2']);
+    expect(apples, 'seule la 1ʳᵉ étape a été appliquée').toBe(1);
+    expect(get().suspendedCascades, 'la séquence est parquée derrière le combat, une fois').toHaveLength(1);
+    const [parque] = get().suspendedCascades;
+    expect(parque.participants.map((s) => s.id), 'la séquence ENTIÈRE est parquée').toEqual(['s1', 's2']);
+    expect(parque.cursor, 'le curseur est posé derrière l’étape jouée').toBe(1);
+    expect(parque.participants[0].committed, 's1 est jouée avant le parcage').toBe(true);
+    expect(parque.piloteImmediat, 'le contexte de lancement voyage avec la séquence').toEqual({});
+
+    set({ battle: null } as never);
+    expect(resumeSuspendedCascade(get, set)).toBe(true);
+    expect(apples, 's1 n’est pas rejouée, s2 est jouée une fois').toBe(2);
+    expect(get().pendingCascade, 'la reprise du pilote n’ouvre aucune fenêtre').toBeNull();
+    expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
   });
 
   it('CONTRÔLE POSITIF — la MÊME séquence, sans interruption, rend bien ses étapes RÉSOLUES', () => {
@@ -86,6 +101,15 @@ describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence
     expect(resolues?.map((s) => s.id), 'aucune interruption : l’appelant reçoit ses lignes').toEqual(['s1', 's2']);
     expect(apples).toBe(2);
     expect(get().suspendedCascades).toHaveLength(0);
+  });
+});
+
+describe('#1595 — un combat DÉJÀ ouvert n’interrompt pas le pilote immédiat', () => {
+  it('séquence de plusieurs étapes jouée en combat : toutes appliquées, rien n’est parqué', () => {
+    set({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
+    openSequence(get, set, { title: 'Sonde', purpose: 'test', steps: sequenceDe(KIND_INERTE) });
+    expect(apples, 'chaque étape est appliquée une fois').toBe(2);
+    expect(get().suspendedCascades, 'aucune étape n’est parquée derrière le combat en cours').toEqual([]);
   });
 });
 

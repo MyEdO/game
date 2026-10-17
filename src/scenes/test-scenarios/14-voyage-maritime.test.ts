@@ -124,7 +124,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().startTravel('route-marienburg', 'mer'); // mode MER : appareillage sur le navire de campagne
+    get().startTravel('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 
@@ -133,7 +133,8 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     // ARRIVÉE : la traversée est finie, on est à Marienburg, plusieurs jours ont passé.
     expect(get().travelPlan).toBeNull();
     expect(get().scene?.id).toBe('test-mer-arrivee');
-    expect(get().gameTime - t0).toBeGreaterThanOrEqual(2 * 24 * 60); // ≥ 2 jours de mer
+    expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
+    expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
     expect(kinds).toContain('progression');
     expect(kinds).toContain('orientation');

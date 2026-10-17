@@ -38,6 +38,7 @@
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
+import { MARQUE_RACINE_MESUREE, normaliserRequeteMesuree, porteUnControle, verifierRequeteMesuree } from './requeteMesuree.mjs'
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
@@ -47,6 +48,7 @@ import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
+import { fileURLToPath } from 'node:url'
 
 /** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
@@ -336,44 +338,6 @@ function lanceurDe(depot) {
   return lanceur
 }
 
-export const MARQUE_RACINE_MESUREE = '<RACINE>'
-
-export function normaliserRequeteMesuree(racine, requete) {
-  const base = resolve(racine).replace(/\\/g, '/').replace(/\/$/, '')
-  const motif = new RegExp(base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=/|$|[\\s\'"\\x00])', process.platform === 'win32' ? 'gi' : 'g')
-  const normaliser = (s) => String(s ?? '').replace(/\\/g, '/').replace(motif, MARQUE_RACINE_MESUREE)
-  return { args: requete.args.map(normaliser), cwd: requete.cwd, ...(requete.canal === 'stdout' ? { canal: 'stdout' } : {}), status: requete.status ?? null,
-    stdout: normaliser(requete.stdout), stderr: normaliser(requete.stderr) }
-}
-
-export function verifierRequeteMesuree(requete) {
-  const refus = (raison) => { throw new TypeError(`requête Git mesurée non certifiable : ${raison}`) }
-  if (requete?.canal !== undefined && requete.canal !== 'stdout') refus('canal inconnu')
-  if (!Array.isArray(requete?.args) || !requete.args.length || requete.args.some((a) => typeof a !== 'string' || porteUnControle(a))) refus('arguments invalides')
-  if (typeof requete.cwd !== 'string' || requete.cwd.includes('\\') || isAbsolute(requete.cwd) || requete.cwd.split('/').includes('..') || porteUnControle(requete.cwd)) refus('cwd hors racine')
-  const args = [...requete.args]
-  while (args[0] === '-c') {
-    args.shift()
-    if (!['core.quotepath=false', 'merge.conflictstyle=merge', 'i18n.logoutputencoding=utf-8'].includes(String(args.shift()).toLowerCase())) refus('configuration non autorisée')
-  }
-  if (args[0] === '--literal-pathspecs') args.shift()
-  const commande = args.shift()
-  const drapeaux = {
-    'ls-files': /^(?:-z|--cached|--stage|--others|--ignored|--exclude-standard|--directory|--full-name)$/,
-    'log': /^(?:-1|--no-renames|--name-only|--diff-filter=[ACDMRTUXB*]+|--format=(?:%[a-zA-Z]|[^%\r\n])*)$/,
-    'rev-parse': /^(?:--show-toplevel|--verify|--quiet|--short(?:=\d+)?|--is-shallow-repository)$/,
-  }[commande]
-  if (!drapeaux) refus(`commande ${commande ?? '<absente>'}`)
-  let chemins = false
-  for (const a of args) {
-    if (a === '--') { chemins = true; continue }
-    if (!chemins && a.startsWith('-')) { if (!drapeaux.test(a)) refus(`drapeau ${a}`); continue }
-    const p = a.replaceAll(MARQUE_RACINE_MESUREE, '')
-    if (p.split(/[\\/]/).includes('..') || (!a.startsWith(MARQUE_RACINE_MESUREE) && (isAbsolute(a) || /^[A-Za-z]:/.test(a)))) refus(`chemin hors racine ${a}`)
-  }
-  return true
-}
-
 export function relireRequeteMesuree(depot, requete) {
   verifierRequeteMesuree(requete)
   const hote = lanceurDe(depot)
@@ -657,10 +621,6 @@ const ETATS_EN_CONFLIT = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'])
 
 /** Les chemins NON FUSIONNÉS de l'arbre (`etatDeLArbre`). @param {Depot} depot @returns {string[]} */
 export const cheminsEnConflit = (depot) => etatDeLArbre(depot).filter((e) => ETATS_EN_CONFLIT.has(e.etat)).map((e) => e.chemins[0])
-
-/** Un texte qui porte un caractère de CONTRÔLE (C0 ou DEL) : il ne tient pas sur UNE ligne d'un lot
- *  `cat-file --batch`/`--batch-check`, une requête par ligne (`git help cat-file`, « BATCH OUTPUT »). */
-const porteUnControle = (texte) => [...texte].some((c) => c < ' ' || c === '\x7f')
 
 /** Une révision que l'hôte ne pose pas à git (`revisionsDe`). */
 const revisionFautive = (r) => typeof r !== 'string' || !r || r.startsWith('-') || porteUnControle(r) || r.includes('@{')
@@ -1342,6 +1302,13 @@ export function eolsDe(depot, chemins) {
 }
 
 /**
+ * Les chemins SUIVIS dont l'arbre de travail s'écarte de l'index (`diff --name-only`, `git help diff`,
+ * « git diff [<options>] [--] [<path>...] »), suppressions comprises, sous `pathspecs` (tout l'arbre sans).
+ * @param {Depot} depot @param {...string} pathspecs @returns {string[]}
+ */
+export const ecartsDuTravail = (depot, ...pathspecs) => enregistrementsDe(depot, ['diff', '--name-only', '--no-renames', '--', ...pathspecs])
+
+/**
  * Les FICHIERS qu'une IMAGE git porte sous `dossiers` (tout l'arbre sans dossier), chemins POSIX complets — l'unique listeur
  * d'image des portes : `arbre` = une ref (`ls-tree -r`), `INDEX` (`ls-files --cached`, ce que le
  * commit emporte), `SUIVI` (les mêmes chemins privés de ceux que le disque a perdus, `ls-files
@@ -1651,8 +1618,24 @@ export const caractereDeCommentaire = (depot) => (lire(depot, ['config', '-z', '
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
-/** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
+/** Borne d'un `ls-remote` (`shasDistants`, `tetesDistantes`), en millisecondes : celle de `fetchOrigin`. */
 export const TIMEOUT_DU_DISTANT_MS = 60000
+
+/** Les refs annoncées par l'origine, restreintes si `motifs` est donné (`git help ls-remote`, « <patterns> »),
+ *  en UN `ls-remote origin` : une `Map` ref → sha, `null` quand git ne répond pas 0. */
+export function refsDistantes(depot, motifs = []) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...(motifs.length ? revisionsDe(motifs) : [])], { timeout: TIMEOUT_DU_DISTANT_MS })
+  if (brut === null) return null
+  return new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+}
+
+/**
+ * TOUTES les têtes de l'origine (`refs/heads/*`), en UN `ls-remote origin` (`refsDistantes`), une
+ * LECTURE : une `Map` ref complète → sha, `null` quand git ne répond pas 0 ; une indisponibilité va à
+ * `confier`.
+ * @param {Depot} depot @returns {Map<string, string> | null}
+ */
+export const tetesDistantes = (depot) => refsDistantes(depot, ['refs/heads/*'])
 
 /**
  * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
@@ -1664,9 +1647,8 @@ export const TIMEOUT_DU_DISTANT_MS = 60000
  * @param {Depot} depot @param {readonly string[]} refs @returns {Map<string, string | null> | null}
  */
 export function shasDistants(depot, refs) {
-  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
-  if (brut === null) return null
-  const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  const lus = refsDistantes(depot, refs)
+  if (lus === null) return null
   return new Map(refs.map((ref) => [ref, lus.get(ref) ?? null]))
 }
 
@@ -1689,12 +1671,19 @@ export function nonSuivisIgnoresDe(depot) {
   return new Set(brut.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
 }
 
+/** La configuration BRUTE (`config --null --list`, git-scm.com/docs/git-config) : une entrée
+ *  `clé\nvaleur` par champ terminé par NUL, includes résolus. Toute indisponibilité LÈVE.
+ *  @param {Depot} depot @param {{ environnement?: NodeJS.ProcessEnv }} [opts] @returns {string} */
+export function configurationDe(depot, { environnement } = {}) {
+  return lireLeLotOuLever(depot, ['config', '--null', '--list'], environnement ? { environnement } : {}, 'configuration', (s) => !s || s.endsWith('\0'))
+}
+
 // git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
 export function politiqueExclusionsDe(depot) {
   const environnement = { ...(environnementDe(depot) ?? process.env) }
   const opts = { environnement }
   const { cwd } = lanceurDe(depot)
-  const brut = lireLeLotOuLever(depot, ['config', '--null', '--list'], opts, 'configuration des exclusions', (s) => !s || s.endsWith('\0'))
+  const brut = configurationDe(depot, opts)
   const configuration = brut.split('\0').filter((s) => s.toLowerCase().startsWith('core.excludesfile\n') || s.toLowerCase() === 'core.excludesfile')
     .map((s) => s.includes('\n') ? s.slice(s.indexOf('\n') + 1) : '')
   const excludeBrut = lireLeLotOuLever(depot, ['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude'], opts, 'info/exclude', (s) => s.length > 1 && !s.includes('\0') && s.endsWith('\n'))
@@ -1990,25 +1979,45 @@ export function conclureFusionSansChemins(depot, { chemins, message }) {
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
  * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
  * (scripts/ops/ruleset-main.mjs).
- * @param {Depot} depot @param {{ vers: string, bail?: boolean }} p
+ * @param {Depot} depot @param {{ vers: string, bail?: false | string }} p
  * @throws {Error} `vers` = `TRONC`.
  */
 export function pousser(depot, { vers, bail = false }) {
   if ([TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push` vers `main` : main n’avance que par la file de fusion (`npm run ops:publier`)')
-  return ecrire(depot, ['push', ...(bail ? ['--force-with-lease'] : []), 'origin', `HEAD:${revisionsDe([vers])[0]}`], { timeout: 600_000 })
+  const ref = revisionsDe([vers])[0]
+  if (bail !== false && typeof bail !== 'string') throw new Error('pousser : bail SHA explicite requis')
+  const attendu = typeof bail === 'string' ? bail : null
+  if (attendu !== null && attendu !== '' && !/^[a-f0-9]{40,64}$/.test(attendu)) throw new Error('pousser : bail SHA explicite invalide')
+  const lease = attendu !== null ? [`--force-with-lease=${ref.startsWith('refs/') ? ref : `refs/heads/${ref}`}:${attendu}`] : []
+  const args = ['push', ...lease, 'origin', `HEAD:${ref}`]
+  const { spawn } = lanceurDe(depot)
+  if (spawn && spawn !== spawnSync) return ecrire(depot, args, { timeout: 600_000 })
+  const cwd = lanceurDe(depot).cwd
+  const env = environnementDe(depot)
+  const feinte = feinteDeGit(env ?? process.env, args, 'git push')
+  if (feinte) return classer(feinte, { cwd })
+  const options = Buffer.from(JSON.stringify({ commande: 'git', args, cwd, timeout: 600_000 })).toString('base64')
+  const superviseur = lancer(process.execPath, [fileURLToPath(new URL('./superviserProcessus.mjs', import.meta.url)), options], { cwd, env })
+  if (superviseur.status !== 0) return classer(superviseur, { cwd })
+  try {
+    const vu = JSON.parse(superviseur.stdout)
+    if (vu.error) vu.error = Object.assign(new Error(vu.error.message), { code: vu.error.code })
+    return classer(vu, { cwd })
+  } catch (e) { return indisponible('superviseur push illisible : ' + e.message) }
 }
 
-/** Un worktree neuf en `chemin`, sur la branche NEUVE `branche` partie de `depuis` (`worktree add -b`).
- *  @param {Depot} depot @param {{ chemin: string, branche: string, depuis: string }} p */
-export const ajouterWorktree = (depot, { chemin, branche, depuis }) => {
-  const [nom, base] = revisionsDe([branche, depuis])
-  return ecrire(depot, ['worktree', 'add', '-b', nom, '--', chemin, base])
+/** Un worktree neuf en `chemin`, depuis `depuis`, détaché ou sur une branche neuve.
+ *  @param {Depot} depot @param {{ chemin: string, branche?: string, depuis: string, detache?: boolean }} p */
+export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = false }) => {
+  if (detache && branche) throw new Error('ajouterWorktree : détaché sans branche')
+  const [base] = revisionsDe([depuis])
+  return ecrire(depot, ['worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
 }
 
 /** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */
 export function retirerWorktree(depot, chemin, { mesurer = mesurerProtectionWorktree, residu = retirerResiduelVide } = {}) {
   const protection = mesurer(chemin)
-  if (!protection.ok) return indisponible(protection.refus.join(' ; '), { issue: 'refus' })
+  if (!protection.ok) return indisponible([...protection.refus, ...protection.indeterminees].join(' ; '), { issue: 'refus' })
   const vu = ecrire(depot, ['worktree', 'remove', '--', chemin])
   if (!reussi(vu)) return vu
   try { residu(chemin) }

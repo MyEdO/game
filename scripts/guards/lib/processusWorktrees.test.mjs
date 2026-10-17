@@ -5,10 +5,20 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync 
 import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, resolve, win32 } from 'node:path'
-import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux } from './processusWorktrees.mjs'
+import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure } from './processusWorktrees.mjs'
 import { litteralJs } from './litteralJs.mjs'
 
 const DRIVE = 'C' + ':'
+
+test('#2626 : le mode identités garde PID, parent et création sans lire cwd ni commande', () => {
+  const complet = mesurerProcessusWorktrees({ pids: [process.pid] }).processus[0]
+  const leger = mesurerProcessusWorktrees({ pids: [process.pid], identites: true }).processus[0]
+  assert.equal(leger.pid, process.pid)
+  assert.equal(leger.ppid, process.ppid)
+  assert.equal(leger.creation, complet.creation)
+  assert.ok(!leger.cwd)
+  assert.ok(!leger.commande)
+})
 
 test('jonction réelle extérieure vers arbre : cwd et référence commandée physiques', async () => {
   const terrain = mkdtempSync(join(tmpdir(), 'processus-alias-'))
@@ -184,4 +194,20 @@ test('processus système réel illisible : propriétaire exclu et portée annonc
   assert.ok(!vue.erreurs.some((erreur) => erreur.startsWith('PID ' + p.pid + ' ')))
   assert.match(vue.portee, /hors portée : [1-9]\d* processus/)
   console.log('TEMOIN système illisible réel ' + JSON.stringify(p) + ' ' + vue.portee)
+})
+
+test('#2603 — création RÉELLE du processus courant : date ISO absolue, à `performance.timeOrigin` près de la tolérance de sa source ; `pids` ne lit que lui', () => {
+  const vue = mesurerProcessusWorktrees({ pids: [process.pid], timeout: 30_000 })
+  assert.equal(vue.indeterminee, undefined)
+  assert.deepEqual(vue.processus.map((p) => p.pid), [process.pid])
+  const [{ creation }] = vue.processus
+  assert.match(creation, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/)
+  const ecart = Date.parse(creation) - performance.timeOrigin
+  assert.ok(Math.abs(ecart) <= toleranceDeMesure() + 1_000, `écart ${ecart} ms (${creation})`)
+})
+
+test('#2603 — mesure BORNÉE : l’échéance atteinte rend une vue `indeterminee`, jamais une exception', () => {
+  // win32 : `execFileSync({ timeout: 0 })` n'a pas d'échéance, la borne la plus courte est 1 ms.
+  const timeout = process.platform === 'win32' ? 1 : 0
+  assert.match(mesurerProcessusWorktrees({ pids: [process.pid], timeout }).indeterminee, /échéance de \d+ ms atteinte/)
 })

@@ -1998,8 +1998,81 @@
       {
         "id": "fregate",
         "label": "Frégate"
+      },
+      {
+        "id": "esquif",
+        "label": "Esquif",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.88"
+        }
+      },
+      {
+        "id": "caraque",
+        "label": "Caraque",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.95"
+        }
+      },
+      {
+        "id": "galere-de-guerre",
+        "label": "Galère de guerre",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.96"
+        }
+      },
+      {
+        "id": "croiseur",
+        "label": "Croiseur",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.98"
+        }
+      },
+      {
+        "id": "galion-bretonnien",
+        "label": "Galion bretonnien",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.99"
+        }
+      },
+      {
+        "id": "chebec-arabien",
+        "label": "Chébec arabien",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.101"
+        }
+      },
+      {
+        "id": "boutre-d-inja",
+        "label": "Boutre d'Inja",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.102"
+        }
+      },
+      {
+        "id": "bateau-tresor-cathayen",
+        "label": "Bateau-trésor cathayen",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 93,
+          "note": "MDG 12 l.103"
+        }
       }
     ],
+    "specsSoeursDeBase": true,
     "desc": "C'est votre capacité à piloter et manœuvrer un voilier – y compris gérer les nœuds, le gouvernail, la mesure du vent, etc. En partant du principe que vous disposez d'un équipage suffisamment entraîné sur votre vaisseau, vous utilisez uniquement la Compétence Voile quand vous devez pousser votre vaisseau pour effectuer une course-poursuite, naviguer sur des hauts-fonds particulièrement dangereux, lutter contre de mauvaises conditions météo, ou lors de difficultés similaires. Naviguer simplement par vent calme ou guider un bateau dans le sens du courant ne nécessite pas de Test pour ceux qui possèdent Voile. La Compétence peut aussi être utilisée pour des activités liées à la voile, comme faire des nœuds ou les utiliser pour ligoter des personnes.\n\nComme tous les bateaux à voile sont peu ou prou identiques à diriger, posséder une Spécialisation fait que les autres sont de Base pour vous.",
     "source": {
       "book": "livre-de-base",

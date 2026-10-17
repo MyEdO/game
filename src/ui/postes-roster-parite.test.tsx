@@ -24,6 +24,10 @@ import type { Combatant } from '../engine/types';
 import { TravelRolesPanel } from './TravelRolesPanel';
 import { ShipRolesPanel } from './ShipRolesPanel';
 import { ShipStationsPanel } from './ShipStationsPanel';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -153,7 +157,7 @@ describe('APTITUDE — un marin hors d’état n’entre pas au roster', () => {
     const ko = marin('k', 'Ansmann', 0);
     const crew = [vivant, mort, ko];
     expect(exposedCrew(crew).map((c) => c.id), 'seul le vivant est exposé').toEqual(['v']);
-    const roles = shipDefaultRoles(crew.map((c) => ({ ...c, shipRole: 'timonier' })), 'manoeuvre');
+    const roles = shipDefaultRoles(crew.map((c) => ({ ...c, shipRole: 'timonier' })), 'manoeuvre', NAVIGATION);
     expect([...roles.keys()], 'même épinglé, un marin hors d’état ne tient aucun rôle au Test').toEqual(['v']);
   });
 

@@ -368,36 +368,30 @@ test('SDK natif sous win32 : identité ESM/CJS, tiers hôte, configuration disqu
       { nom: 'invalide.JSON', texte: '\uFEFF{\r\n"marque":"é😀","faute":\r\n}\r\n', valide: false },
     ]
     const syntaxe = [
-      "import path from 'node:path'",
-      `import { syntaxProgram, VIRTUAL_ROOT, libererSessions } from ${JSON.stringify(new URL('../../guards/lib/tsProgram.mjs', import.meta.url).href)}`,
+      `import { analyserCorpus } from ${JSON.stringify(new URL('../../guards/lib/dialecte.mjs', import.meta.url).href)}`,
       `const fixtures = ${JSON.stringify(fixtures)}`,
-      'const fichiers = {}',
-      'const noms = fixtures.map(f => path.resolve(VIRTUAL_ROOT, f.nom).replaceAll("\\\\", "/"))',
-      'for (let i = 0; i < fixtures.length; i++) fichiers[noms[i]] = fixtures[i].texte',
-      'let session',
-      'let erreur',
-      'let resultat',
-      'try {',
-      '  session = syntaxProgram(fichiers)',
-      '  resultat = { racine: VIRTUAL_ROOT, sources: noms.map(nom => {',
-      '    const sf = session.program.getSourceFile(nom)',
-      '    return { nom, fileName: sf.fileName, text: sf.text, end: sf.end, diagnostics: session.program.getSyntacticDiagnostics(nom) }',
-      '  }) }',
-      '} catch (e) { erreur = e } finally { libererSessions(session ? [session] : [], erreur ? [erreur] : []) }',
-      'console.log(JSON.stringify(resultat))',
+      'const sources = []',
+      'for (const { fichier, sourceFile, diagnostics } of analyserCorpus(fixtures.map(f => ({ rel: f.nom, text: f.texte })))) {',
+      '  sources.push({ rel: fichier.rel, fileName: sourceFile.fileName, text: sourceFile.text, end: sourceFile.end, diagnostics: diagnostics.map(d => d.fileName) })',
+      '}',
+      'console.log(JSON.stringify({ cwd: process.cwd(), sources }))',
     ].join('\n')
     const vuSyntaxe = JSON.parse(sousWin32(t, RACINE, ['--input-type=module', '--eval', syntaxe]))
-    assert.match(vuSyntaxe.racine, /^[A-Z]:[\\/]/)
+    assert.match(vuSyntaxe.cwd, /^[A-Z]:[\\/]/)
     assert.equal(vuSyntaxe.sources.length, fixtures.length)
     for (const [i, fixture] of fixtures.entries()) {
-      const attendu = path.win32.resolve(vuSyntaxe.racine, fixture.nom).replaceAll('\\', '/')
+      const ext = path.extname(fixture.nom)
+      const attendu = path.win32.resolve(vuSyntaxe.cwd, fixture.nom.slice(0, -ext.length) + ext.toLowerCase()).replaceAll('\\', '/')
       const sf = vuSyntaxe.sources[i]
-      assert.equal(sf.nom, attendu)
+      assert.equal(sf.rel, fixture.nom)
       assert.equal(sf.fileName, attendu)
       assert.equal(sf.text, fixture.texte)
       assert.equal(sf.end, fixture.texte.length)
       if (fixture.valide) assert.deepEqual(sf.diagnostics, [], fixture.nom)
-      else assert.ok(sf.diagnostics.length > 0, fixture.nom)
+      else {
+        assert.ok(sf.diagnostics.length > 0, fixture.nom)
+        for (const nom of sf.diagnostics) assert.equal(nom, fixture.nom)
+      }
     }
   } finally {
     rmSync(racine, { recursive: true, force: true })

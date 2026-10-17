@@ -12,12 +12,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { REFUS_PUSH_VERS_MAIN, REF_PROTEGEE, jugerPush, refsAPousser } from './pre-push.mjs'
+import { REFUS_PUSH_VERS_MAIN, REF_PROTEGEE, jugerPush as jugerPushReel, refsAPousser } from './pre-push.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
 import { PORTE_DE_PLAGE } from '../guards/lib/plageStock.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 
 const ZERO = '0'.repeat(40)
+const jugerPush = (options) => jugerPushReel({ lireRefs: () => new Map(), ...options })
 
 test('#2285 famille prepush callback : origin complet', async () => {
   const racine = depot()
@@ -59,6 +60,26 @@ const depot = () =>
 const jeter = (racine) => rmSync(racine, { recursive: true, force: true })
 
 const tete = (racine) => git(racine)(['rev-parse', 'HEAD'])
+
+test('#2626 : le hook confirme origin et ignore ses objets inconnus, sans contourner main', async () => {
+  const racine = depotDeuxCommits()
+  try {
+    writeFileSync(join(racine, 'scripts', 'publie.test.mjs'), "const STOCK = ['src/deja.ts']\n")
+    git(racine)(['add', 'scripts/publie.test.mjs'])
+    git(racine)(['commit', '-m', 'stock déjà publié sans annonce'])
+    let lectures = 0
+    const lireRefs = () => { lectures += 1; return new Map([['refs/heads/autre', tete(racine)], ['refs/heads/inconnue', 'f'.repeat(40)]]) }
+    const vu = await jugerPush({ cwd: racine, stdin: pousse(racine), lireRefs })
+    assert.equal(lectures, 1)
+    assert.deepEqual(vu.refus, [REFUS_PUSH_VERS_MAIN])
+    assert.ok(vu.notes.includes('origin confirmée : 1 commit(s) connu(s), 0 commit(s) nouveau(x) jugé(s)'))
+    assert.ok(!vu.notes.some((n) => /plage.*illisible/.test(n)))
+    git(racine)(['remote', 'set-url', 'origin', 'https://example.invalid/repo'])
+    const refuse = await jugerPush({ cwd: racine, stdin: pousse(racine), lireRefs })
+    assert.equal(lectures, 1, 'origin refusée : aucune lecture distante')
+    assert.match(refuse.refus.join('\n'), /origin =/)
+  } finally { jeter(racine) }
+})
 
 /** Une ligne de stdin, telle que git la sert : `<ref locale> <sha> <ref distante> <sha distant>`. */
 const pousse = (racine, { refDistante = REF_PROTEGEE, sha, base = ZERO } = {}) =>
@@ -202,6 +223,34 @@ test('un origin ÉTRANGER est refusé, et le refus le cite', async () => {
 /** Un PORTEUR de stock nominatif (`scripts/guards/lib/**.mjs`), tel que `stocksNominatifs` le lit. */
 const PORTEUR_DE_STOCK = 'scripts/guards/lib/exemptions.mjs'
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
+
+for (const support of ['tags', 'refs/pull/42/head']) test(`#2626 : origin conserve un commit seulement par ${support}, seul le descendant neuf est jugé`, async () => {
+  const racine = depot()
+  const distant = mkdtempSync(join(tmpdir(), '2626-tags-origin-'))
+  try {
+    const base = tete(racine)
+    const fichier = 'scripts/publie.test.mjs'
+    writeFileSync(join(racine, fichier), sourceStock(["'src/publie.ts',"]))
+    git(racine)(['add', fichier]); git(racine)(['commit', '-m', 'ancien stock publié'])
+    const publie = tete(racine)
+    if (support === 'tags') git(racine)(['tag', '-a', 'connu', '-m', 'connu', publie])
+    lancerGit(['clone', '--bare', '-q', racine, distant])
+    git(distant)(['update-ref', 'refs/heads/main', base])
+    if (support === 'tags') git(distant)(['-c', 'user.name=Banc', '-c', 'user.email=banc@example.invalid', 'tag', '-a', 'inconnu', '-m', 'objet tag absent localement', publie])
+    else git(distant)(['update-ref', support, publie])
+    git(racine)(['remote', 'set-url', 'origin', distant])
+    const juger = () => sousGitFeint([{ si: ['remote', 'get-url', 'origin'], status: 0, stdout: `https://github.com/${DEPOT}.git\n` }],
+      () => jugerPushReel({ cwd: racine, stdin: pousse(racine, { refDistante: 'refs/heads/chantier/tag-only' }) }))
+    const ancien = await juger()
+    assert.deepEqual(ancien.refus, [])
+    assert.ok(ancien.notes.includes('origin confirmée : 2 commit(s) connu(s), 0 commit(s) nouveau(x) jugé(s)'))
+    writeFileSync(join(racine, fichier), sourceStock(["'src/publie.ts',", "'src/nouveau.ts',"]))
+    git(racine)(['add', fichier]); git(racine)(['commit', '-m', 'nouveau stock fautif'])
+    const nouveau = await juger()
+    assert.match(nouveau.refus.join('\n'), new RegExp(tete(racine).slice(0, 9)))
+    assert.ok(nouveau.notes.includes('origin confirmée : 2 commit(s) connu(s), 1 commit(s) nouveau(x) jugé(s)'))
+  } finally { jeter(racine); jeter(distant) }
+})
 
 test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est refusé', async () => {
   const racine = depot()

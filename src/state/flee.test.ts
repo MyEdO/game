@@ -290,6 +290,92 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(live(E1.id).engagedWith).toEqual([]); // fuite complétée
   });
 
+  // LDB 14 l.9 ; LDB 85 l.362.
+  it('coup dans le dos d’un héros plus grand : le balayage suit, l’Action rendue à sa fermeture', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    useGame.setState({ party: [hero] });
+    useGame.getState().seedRng(2);
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
+    b.combatants.filter((c) => c.kind === 'enemy').slice(2).forEach((e) => (e.dead = true));
+    H.size = 'grande';
+    H.characteristics['capacite-de-combat'] = 90;
+    H.pos = { x: 6, y: 10 };
+    E1.pos = { x: 7, y: 10 };
+    E2.pos = { x: 5, y: 10 };
+    for (const e of [E1, E2]) e.wounds = { current: 60, max: 60, base: 60 } as never;
+    H.engagedWith = [E1.id, E2.id];
+    E1.engagedWith = [H.id];
+    E2.engagedWith = [H.id];
+    useGame.setState({
+      battle: { ...b, turn: b.order.indexOf(E1.id), acted: false },
+      pendingDisengage: { moverId: E1.id, foeId: H.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+    });
+    let restitutions = 0;
+    const unsub = useGame.subscribe((st, prev) => { if (prev.battle?.acted === true && st.battle?.acted === false) restitutions++; });
+    try {
+      useGame.getState().disengageFlee();
+      const bs = fleeBackstab(useGame.getState().pendingDisengage!)!;
+      useGame.getState().fleeRoll(bs.id);
+      expect(fleeBackstab(useGame.getState().pendingDisengage!)!.result!.hit, 'pré-requis : le coup dans le dos touche').toBe(true);
+      useGame.getState().fleeConfirm();
+      const pc = useGame.getState().pendingCleave;
+      expect(pc?.attackerId, 'le balayage est offert').toBe(H.id);
+      expect(pc?.hitIds).toEqual([E1.id]);
+      expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
+      expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
+      useGame.getState().cleaveEnd();
+      expect(useGame.getState().battle!.acted, 'attaque GRATUITE : l’Action du fuyard retrouve sa valeur').toBe(false);
+      expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
+    } finally {
+      unsub();
+    }
+  });
+
+  // LDB 15 l.63 ; LDB 85 l.362.
+  it('IA plus grande qui frappe dans le dos un héros en fuite : le balayage suit', () => {
+    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    useGame.setState({ party: [A, B] });
+    useGame.getState().seedRng(2);
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'hero');
+    const [E] = b.combatants.filter((c) => c.kind === 'enemy');
+    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    E.size = 'enorme';
+    E.characteristics['capacite-de-combat'] = 90;
+    E.pos = { x: 6, y: 10 };
+    fuyard.pos = { x: 7, y: 10 };
+    voisin.pos = { x: 5, y: 10 };
+    for (const h of [fuyard, voisin]) h.wounds = { current: 60, max: 60, base: 60 } as never;
+    E.engagedWith = [fuyard.id, voisin.id];
+    fuyard.engagedWith = [E.id];
+    voisin.engagedWith = [E.id];
+    useGame.setState({
+      battle: { ...b, turn: b.order.indexOf(fuyard.id), acted: false },
+      pendingDisengage: { moverId: fuyard.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+    });
+    useGame.getState().disengageFlee();
+    const pd = useGame.getState().pendingDisengage!;
+    expect(fleeBackstab(pd)!.interactive, 'pré-requis : le frappeur est conduit par l’IA').toBe(false);
+    expect(fleeBackstab(pd)!.result!.cleave, 'pré-requis : la touche d’un plus grand pose le balayage').toBe(true);
+    if (fleeNeedCalme(pd)) useGame.getState().fleeRoll(fleeCalme(pd)!.id);
+    useGame.getState().fleeConfirm();
+    draineCascade(useGame.getState);
+    const pdef = useGame.getState().pendingDefense;
+    expect(pdef?.attackerId, 'le frappeur enchaîne : fenêtre de défense du voisin du fuyard').toBe(E.id);
+    expect(pdef?.defenderId).toBe(voisin.id);
+  });
+
   // Fuyard ARMURÉ : le Coup Critique du coup dans le dos lui OFFRE la Déviation (LDB 63 l.30) →
   // `applyAttackResult` SUSPEND. La fuite (Brisé + Course) ne se complète qu'APRÈS la résolution du
   // coup gratuit — LDB 15 l.68 verbatim : « Une fois que ce coup gratuit est résolu, vous pouvez vous
@@ -328,7 +414,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const devId = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     useGame.getState().cascadeTableRoll(devId); // le d100 de sévérité tombe DANS la MÊME fenêtre (#1426)
     useGame.getState().cascadeChoose(devId, 'subir');
-    for (let i = 0; i < 4 && useGame.getState().pendingCascade; i++) useGame.getState().cascadeNext();
+    draineCascade(useGame.getState, 4);
     const f = live(fuyard.id);
     expect(f.criticalWounds ?? 0).toBeGreaterThan(0); // Blessure critique subie
     expect(stacks(f, COND.brise)).toBe(2); // Calme raté DR -1 → 1 + 1 États Brisés (LDB 15 l.66)

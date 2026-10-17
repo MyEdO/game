@@ -13,8 +13,8 @@
 // Usage : `npm run ops:synchroniser [-- --json]`, `[-- --mesurer [--visee <sha>] --json]` (ni fetch, ni
 // verrou, ni écriture), `[-- --consommer]` (le consommateur), depuis n'importe quel worktree du dépôt.
 import { randomUUID, createHash } from 'node:crypto'
-import { accessSync, appendFileSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync, writeSync } from 'node:fs'
-import { basename, dirname, join, resolve } from 'node:path'
+import { accessSync, appendFileSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, rmdirSync, writeFileSync, writeSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import {
   GitIndisponible, INDEX, TIMEOUT_DU_DISTANT_MS, TIMEOUT_DU_HOOK_MS, TIMEOUT_READ_TREE_MS, TRONC, ajoutDe, arbrePrincipal, attributsDe, avancerArbre, brancheDe, ceQuiChange, ceriseDe,
   cheminGit, cheminsIgnores, combienDe, contenuDuBlob, depotDe, ecrireBlob, entreesDe, estAncetre, etatDeLArbre, fetchOrigin,
@@ -24,9 +24,11 @@ import {
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { estPidVivant, prendreVerrouAsync, sousEcheanceAsync } from '../test/verrou.mjs'
+import { ageDe, consignant, estPidVivant, mtimeDe, nomDesOrphelins, prendreVerrouAsync, sousEcheanceAsync, tenantDe, vivantSousBorne } from '../test/verrou.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
+import { attendreLaReconstruction, seqDeLaSortie } from '../git-hooks/reconstruction.mjs'
 
 /** Les chemins dont un changement B..U ne prend effet qu'à la PROCHAINE session d'un client (verdict, D2). */
 export const CONFIGURATION_CLIENT = Object.freeze([/^\.claude\/settings\.json$/, /^\.codex\/hooks\.json$/, /^\.claude\/skills\/harnais\//])
@@ -46,63 +48,7 @@ export const BORNE_DU_VERROU_MS = ATTENTE.echeanceMs + TIMEOUT_DU_DISTANT_MS + T
 /** L'âge (ms) au-delà duquel le tenant du verrou du consommateur est PÉRIMÉ, vivant ou non (#2493, verdict §2). */
 export const BORNE_DU_CONSOMMATEUR_MS = TIMEOUT_DU_HOOK_MS + ATTENTE.echeanceMs + 60_000
 
-/** Le tenant que porte le verrou `chemin` (`verrou.mjs`), `null` s'il est absent, illisible ou sans PID. */
-function tenantDe(chemin) {
-  try {
-    const lu = JSON.parse(readFileSync(chemin, 'utf8'))
-    return Number.isInteger(lu?.pid) ? lu : null
-  } catch {
-    return null
-  }
-}
-
-/** L'âge (s) d'un tenant à l'`horloge`, `null` sans date lisible. PURE. */
-const ageDe = (tenant, horloge) => {
-  const date = Date.parse(tenant?.date ?? '')
-  return Number.isFinite(date) ? Math.round((horloge() - date) / 1000) : null
-}
-
-/**
- * Le `estVivant` d'une prise du verrou `chemin` : `estVivant(pid)`, et le tenant `pid` relu n'a pas dépassé
- * `borneMs` d'âge.
- * @param {string} chemin @param {number} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
- */
-const vivantSousBorne = (chemin, borneMs, estVivant, horloge) => (/** @type {number} */ pid) => {
-  if (!estVivant(pid)) return false
-  const tenant = tenantDe(chemin)
-  const age = tenant?.pid === pid ? ageDe(tenant, horloge) : null
-  return age === null || age * 1000 <= borneMs
-}
-
-/** La date de modification ISO du fichier `chemin`, `null` s'il manque. */
-function mtimeDe(chemin) {
-  try {
-    return statSync(chemin).mtime.toISOString()
-  } catch {
-    return null
-  }
-}
-
-/**
- * Le `estVivant` d'une prise du verrou `chemin` (`vivantSousBorne`, sans borne si `borneMs` est `null`) qui
- * CONSIGNE dans `orphelins` (clé `chemin`) son tenant jugé absent (#2493) : `PID mort`, ou `âge > borne`.
- * @param {string} chemin @param {number | null} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
- * @param {Map<string, Orphelin>} orphelins
- */
-const consignant = (chemin, borneMs, estVivant, horloge, orphelins) => (/** @type {number} */ pid) => {
-  const tenant = tenantDe(chemin)
-  const vivant = borneMs === null ? estVivant(pid) : vivantSousBorne(chemin, borneMs, estVivant, horloge)(pid)
-  if (!vivant && tenant?.pid === pid) {
-    orphelins.set(chemin, { verrou: chemin, pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: estVivant(pid) ? 'âge > borne' : 'PID mort' })
-  }
-  return vivant
-}
-
-/** @typedef {{ verrou: string, pid: number, depuis: string | null, preuve: 'jeton du journal' | 'PID mort' | 'âge > borne' }} Orphelin */
-
-/** Les orphelins `orphelins` nommés : `<nom> (PID p mort depuis d, preuve)`, joints par `, `. PURE. @param {Orphelin[]} orphelins */
-const nomDesOrphelins = (orphelins) => orphelins
-  .map((o) => `${basename(o.verrou)} (PID ${o.pid}${o.preuve === 'âge > borne' ? '' : ' mort'} depuis ${o.depuis ?? '?'}, ${o.preuve})`).join(', ')
+/** @typedef {import('../test/verrou.mjs').Orphelin} Orphelin */
 
 /** `verrou tenu par le PID p depuis d (a s)` : le tenant d'un verrou, à l'`horloge`. */
 const tenuPar = (tenant, horloge) => `verrou tenu par le PID ${tenant?.pid ?? '?'} depuis ${tenant?.date ?? '?'} (${ageDe(tenant, horloge) ?? '?'} s)`
@@ -827,9 +773,12 @@ const refusEnReprise = (ctx, journal, refus) => interrompre(ctx, journal, `trans
 
 /**
  * Le CONSOMMATEUR (`--consommer`, #2493 verdict §2) : sous son verrou, joue `post-merge` sur la plage due
- * (`ORIG_HEAD` = son `de`) tant qu'elle change, puis la SOLDE sous `synchro.verrou` : supprimée sur un code 0,
- * `echec` posé sinon. Chaque ligne va à `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception
- * comprise. REND 0, 1 sur une exception.
+ * (`ORIG_HEAD` = son `de`) tant qu'elle change, attend la reconstruction que le hook a demandée
+ * (`seqDeLaSortie` de sa sortie entière : `git hook run` rend le stdout du hook sur stderr ;
+ * `attendreLaReconstruction`, #2603), puis la SOLDE sous `synchro.verrou` : supprimée sur
+ * un verdict 0, laissée au prochain passage sur une reconstruction différée (`CODE_DIFFERE`, `CODE_SOURCE_MODIFIEE`) ou en cours,
+ * `echec` posé sinon. Chaque ligne va à
+ * `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception comprise. REND 0, 1 sur une exception.
  * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, estVivant?: (pid: number) => boolean,
  *   attente?: { echeanceMs: number, pasMs: number } }} [p]
  */
@@ -872,6 +821,11 @@ export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = 
       const code = diagnostic?.status ?? null
       const sortie = [diagnostic?.stdout, diagnostic?.stderr].map((flux) => String(flux ?? '').trimEnd()).filter(Boolean).join('\n')
       ecrire(`[consommateurs] ${iso()} post-merge — fin, code ${code} (${((horloge() - debut) / 1000).toFixed(1)} s)${sortie ? `\n${sortie}` : ''}`)
+      const seq = code === 0 ? seqDeLaSortie(sortie) : null
+      const passe = seq === null ? null : attendreLaReconstruction(racine.valeur, seq, { echeanceMs: Math.max(0, TIMEOUT_DU_HOOK_MS - (horloge() - debut)), estVivant })
+      if (passe) ecrire(`[consommateurs] ${iso()} reconstruction seq=${seq} — ${passe.etat}${passe.code === undefined ? '' : `, code ${passe.code}`}${passe.log ? `, journal ${passe.log}` : ''}`)
+      const differee = passe !== null && (passe.etat === 'en-cours' || passe.code === CODE_DIFFERE || passe.code === CODE_SOURCE_MODIFIEE)
+      const verdict = passe === null ? code : passe.code
       const cheminSynchro = join(commun, 'synchro.verrou')
       const synchro = await prendreVerrouAsync({
         chemin: cheminSynchro, libelle: 'synchronisation du principal', commande: 'ops:synchroniser --consommer', cwd: racine.valeur,
@@ -884,8 +838,9 @@ export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = 
       try {
         const relu = lireDu(commun)
         if (relu && (relu.de !== du.de || relu.vers !== du.vers)) continue
-        if (relu && code === 0) rmSync(cheminDuDu(commun), { force: true })
-        else if (relu) ecrireJsonAtomique(cheminDuDu(commun), { ...relu, echec: { pid: process.pid, fin: iso(), code, log } })
+        if (relu && differee) ecrire(`[consommateurs] ${iso()} reconstruction ${passe?.etat === 'en-cours' ? 'en cours à l’échéance' : 'différée'} : plage due laissée au prochain passage`)
+        else if (relu && verdict === 0) rmSync(cheminDuDu(commun), { force: true })
+        else if (relu) ecrireJsonAtomique(cheminDuDu(commun), { ...relu, echec: { pid: process.pid, fin: iso(), code: verdict, log: passe?.log ?? log } })
         lacher()
         return 0
       } finally {

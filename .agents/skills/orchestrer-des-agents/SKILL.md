@@ -1,6 +1,6 @@
 ---
 name: orchestrer-des-agents
-description: À utiliser dès qu'une tâche implique d'écrire ou modifier du code, de dispatcher un agent ou un workflow — ou dès qu'on est tenté de coder soi-même « parce que c'est petit ». Aussi au retour d'un agent (avant de vérifier/committer son travail) et avant tout agent() sans modèle/effort explicites.
+description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent ou workflow, au retour d'un agent, avant tout agent() sans modèle/effort.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/orchestrer-des-agents/SKILL.md -->
 
@@ -61,7 +61,9 @@ jamais écrites. Fermer sur « déjà implémenté » ou « documenté » appell
 **1. Grounding.** Sweep de 3+ fichiers → `lecteur` ; 1-2 lectures ciblées inline = OK. La décision
 d'archi reste dans mon fil, **primitives cibles NOMMÉES avant tout code**. Mon grounding est fort en
 LARGEUR et faible en PROFONDEUR sur le `Source/` : l'ouvrir moi-même est ma pratique au meilleur
-rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Vague
+rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Les
+COMMENTAIRES d'un ticket se lisent à la composition et vont au juge de design (trame #1561, 2026-10-12 :
+lus après le premier code, 79 min reprises). Vague
 transversale → paragraphe de DESIGN (invariant, qui possède quoi, critère « N+1 = une ligne ») attaqué
 par un juge AVANT le premier codeur ; deux passes sur la même classe = défaut de design, remonter d'un
 niveau.
@@ -77,6 +79,11 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
 - **Le brief ne liste PLUS les tests du périmètre** : il prescrit `npm run test:perimetre`, qui les
   dérive des fichiers touchés (#2400).
+- **Aucun appel d'outil d'un agent ne dure plus de 270 s** (#2596, commentaire 6142833266, 2026-10-13 :
+  « Short tool calls (A2) (Recommended) ») : la garde `scripts/hooks/appel-borne-guard.mjs` refuse à un
+  sous-agent tout appel Bash/PowerShell au premier plan borné au-delà, avec le remède à copier. Le brief
+  ne prescrit jamais un appel long : une commande longue, `test:perimetre` compris, part en fond et se
+  SONDE par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`), qui rend dès la fin.
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -137,6 +144,14 @@ rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIM�
   cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
   contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
   commité, verdict, périmètre).
+- **Tant qu'un agent ou une commande est en vol, j'arme une HORLOGE par l'outil `Monitor`** sur
+  `sleep 1740` (sous le plafond de 30 min du Monitor), ré-armée à sa fin tant que l'attente dure. Mon
+  cache vit 1 h : sa notification me réveille au chaud. Mesuré sur #2596 : 55 min d'attente puis reprise au chaud
+  (`lu 132661`), une réécriture complète au-delà de 60 min ; une requête de maintien ≈ 0,05 $, une
+  réécriture ≈ 1,6 $. `ScheduleWakeup` ne sert qu'en `/loop`. Au fil principal, la garde `commande-piege`
+  refuse toute attente lancée en fond, et au premier plan celle sans borne sous l'échéance de l'appel
+  (#2603) : le harnais tue les shells de fond d'une session inactive, le `Monitor` en est exclu.
+  `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` à `1` dans l'environnement du hook désarme cette garde.
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
 `npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
@@ -168,11 +183,13 @@ lancement.
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
 
-**7. Push.** Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
+**7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement. Chaque tête committée dont la CI est verte se publie immédiatement par `npm run ops:publier -- --detache`, même si le lot reste en cours. Les commits intermédiaires citent `refs #N` ; seul le solde clôt le ticket. Le train arme l’auto-merge à l’étape `pr`, avant l’attente CI : GitHub assure ensuite l’entrée en file à la CI verte. `enqueuePullRequest` est le repli après un refus explicite d’auto-merge, journalisé par le train. Une tête verte n’attend ni la fin du lot ni une fusion manuelle.
+
+Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
 tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMENT : son run CI
 (`.github/workflows/ci.yml`, `push.branches`) joue les mêmes gates que `main`, une fois. **Après CHAQUE
-push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`run_in_background` ou
-`Monitor`), qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
+push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`Monitor`),
+qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
 échec de chaque job rouge ; `npm run ops:ci -- --echecs <run>` relit ceux d'une course nommée — jamais
 un `gh run` ni un `sleep` à la main. Un rouge de branche ne bloque que cette branche, et se rejoue
 localement gate par gate (`npm run gates -- --gates <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
@@ -192,6 +209,11 @@ ABSTENTIONS (« bloqué / dépendance externe » → question inversée « prouv
 pas », une sonde d'existence suffit, étage `verif-mecanique`) et MES PROPRES COMMITS (gates, hooks,
 glue : le canal « trivial » est le seul que personne ne relit). Ces règles se DURCISSENT sous pression
 de temps, elles ne s'y suspendent pas.
+- **Le juge de fermeture est NEUF** : sans l'historique du design ni des corrections, avec pour brief le
+  DoD, le diff et les tests. Le `verdict:` d'un solde est SA sortie, jamais un gabarit pré-rempli. Un DoD
+  ou un solde QUANTIFIÉ (« tout helper », « jamais », « chaque ») porte l'ÉNUMÉRATION de sa classe :
+  commande et sortie qui listent les sites. Une liste de noms écrite de mémoire n'en est pas une (trame
+  #1561, 2026-10-12 : 2 soldes sur 11 réfutés, `survoler`/`molette` jamais lus).
 - **Chaque clôture de phase : passe de juge « ARCHITECTURE À REBOURS »** — si on partait de zéro avec
   la cible d'aujourd'hui, cette couture existerait-elle ?
 - **C'est le TRAVAIL qui se ferme, pas le ticket.** Une fermeture qui émettrait PLUS D'UN ticket de
@@ -236,7 +258,8 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
-| Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
+| Rédaction fidèle au Source (fiches, synthèses de règles) | `redacteur` | opus | medium |
+| Question de règle de jeu, avant l'utilisateur | `arbitre-raw` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
@@ -250,5 +273,5 @@ Préférer ces types (modèle + effort épinglés) à `general-purpose`, qui hé
 taille et au risque RÉELS, pas au flag ultracode : petite feature testée → 1 codeur + gates, sans
 fan-out ni reviewer dédié ; tâche large ou incertaine (audit moteur, migration, extraction massive) →
 workflow ; reviewer adversarial réservé aux régressions silencieuses possibles et à l'art. Un arbitrage
-utilisateur nécessaire → couper la boucle et poser les questions GROUPÉES, jamais les parquer dans une
-spec.
+utilisateur nécessaire → d'abord `arbitre-raw` (#2601), puis couper la boucle et poser les questions
+GROUPÉES, jamais les parquer dans une spec.

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
+import { rigDuNavire } from '../engine/shipBuild';
 import { rollShipCritical } from '../engine/shipCritical';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { applyOps } from '../engine/ops';
@@ -24,8 +25,8 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
     const cogue = findVehicleById('cogue')!; // hull E45/B50, rig 'voile'
     const ship = vehicleCombatant(cogue)!;
 
-    // 1) Localisation du coup d'après le GRÉEMENT (donnée `hull.rig`) — d100=50 sur un voilier → Coque.
-    const loc = shipHitLocation(cogue.hull!.rig!, 50);
+    // 1) Localisation du coup d'après le GRÉEMENT (`rigDuNavire`) — d100=50 sur un voilier → Coque.
+    const loc = shipHitLocation(rigDuNavire(cogue.ship!)!, 50);
     expect(loc).toBe('coque');
 
     // 2) Critique de Coque, d10=10 → « Voie d'eau en dessous de la ligne de flottaison » : Voie d'eau 4.
@@ -52,7 +53,7 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
 
   it('Langskip (mixte) — un coup à d100=15 touche le Gréement, pas la Coque', () => {
     const langskip = findVehicleById('langskip')!; // rig 'mixte'
-    expect(shipHitLocation(langskip.hull!.rig!, 15)).toBe('greement');
+    expect(shipHitLocation(rigDuNavire(langskip.ship!)!, 15)).toBe('greement');
     // Critique de Gréement d10=2 « Voiles trouées » : narratif (−1 M Voile), aucun État posé.
     const crit = rollShipCritical('greement', makeRNG(1), 2);
     expect(crit.id).toBe('voiles-trouees');

@@ -105,7 +105,6 @@ export function SurcoucheIso({
   const pendingAttack = useGame((s) => s.pendingAttack);
   const pendingCast = useGame((s) => s.pendingCast);
   const pendingSiegeAim = useGame((s) => s.pendingSiegeAim); // pilonnage indirect : placeur de CASE
-  const pendingTrample = useGame((s) => s.pendingTrample);
   const pendingHeal = useGame((s) => s.pendingHeal);
   const pendingDefense = useGame((s) => s.pendingDefense);
   const { floats, projs, auras, aoes } = useCombatFx();
@@ -193,7 +192,7 @@ export function SurcoucheIso({
         {battle && <TapPreview battle={battle} activeC={activeC} dims={dims} liftOf={liftOf} myTurn={myTurn} difficulty={previewDifficulty} />}
         {battle && (
           <AimOverlay battle={battle} hoverAim={hoverAim} anchor={reticleAnchor} dims={dims}
-            pendingAttack={pendingAttack} pendingDefense={pendingDefense} pendingTrample={pendingTrample} pendingHeal={pendingHeal} pendingCast={pendingCast} />
+            pendingAttack={pendingAttack} pendingDefense={pendingDefense} pendingHeal={pendingHeal} pendingCast={pendingCast} />
         )}
         {battle && <CrewTooltip battle={battle} hoveredId={hoveredId} myTurn={myTurn} anchor={reticleAnchor} />}
         {debugLabels && <DebugMapLabels scene={scene} dims={dims} liftAt={liftAt} />}

@@ -17,7 +17,7 @@ import { MerchantPanel } from './MerchantPanel';
 import { TavernGameModal } from './TavernGameModal';
 import { CombatConsole } from './CombatConsole';
 import { PosteSheet } from './ShipSheet';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
 import { CombatBanner } from './CombatBanner';
 import { ActiveModal } from './ActiveModal'; // arbitre R2 : une seule modale de combat à la fois

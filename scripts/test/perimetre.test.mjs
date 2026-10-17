@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
@@ -496,31 +496,6 @@ test('signal dérivé sur un dépôt : l’import par nom d’un export modifié
   const { signaux } = deriver(racine)
   assert.deepEqual(['scripts/s.test.mjs', 'scripts/m.test.mjs', 'scripts/e.test.mjs'].map((f) => signaux.get(f)),
     [{ signal: 'symbole', noms: ['a'] }, { signal: 'module', noms: [] }, { signal: 'module', noms: [] }])
-})
-
-test('mémos signés par le tsconfig : le même blob sous deux tsconfig ne partage pas son mémo (T3)', (t) => {
-  const [a, b, c] = ['{}', '{ "compilerOptions": { "verbatimModuleSyntax": true } }', '{}'].map((tsconfig) => {
-    const racine = mkdtempSync(join(tmpdir(), 'perimetre-tsconfig-'))
-    t.after(() => rmSync(racine, { recursive: true, force: true }))
-    writeFileSync(join(racine, 'tsconfig.json'), tsconfig)
-    return racine
-  })
-  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
-  t.after(() => rmSync(dossier, { recursive: true, force: true }))
-  const ecrits = memosDe(dossier, versionDesMemos(a))
-  ecrits.ecrire('specificateurs', '.ts:blob', [])
-  ecrits.sauver()
-  assert.equal(memosDe(dossier, versionDesMemos(b)).lire('specificateurs', '.ts:blob'), undefined)
-  assert.deepEqual(memosDe(dossier, versionDesMemos(c)).lire('specificateurs', '.ts:blob'), [])
-})
-
-test('mémos signés par le texte de `perimetre.mjs`, qui calcule les mémos `declarations` et `liaisons` (C2)', (t) => {
-  const racine = mkdtempSync(join(tmpdir(), 'perimetre-versionnant-'))
-  t.after(() => rmSync(racine, { recursive: true, force: true }))
-  const meme = () => 'texte'
-  const autre = (f) => f === 'scripts/test/perimetre.mjs' ? 'autre texte' : 'texte'
-  assert.equal(versionDesMemos(racine, meme), versionDesMemos(racine, meme))
-  assert.notEqual(versionDesMemos(racine, autre), versionDesMemos(racine, meme))
 })
 
 test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', () => {

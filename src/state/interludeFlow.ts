@@ -67,6 +67,7 @@ import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -1138,7 +1139,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h || st.left <= 0) return;
   if (refusedBeforeDraw(get, h.label)) return;
-  const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && (o.spec ?? '') === (spec ?? ''));
+  const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && memeSpecialisation(o.spec, spec));
   if (!opt) {
     get().log(t('if.entrainementUnknown', { name: h.label }));
     return;
@@ -1159,7 +1160,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
     const resolveBefore = resolveMax(entraine);
     if (kind === 'characteristic') r = engineBuyCharAdvance(entraine, id as CharKey, false);
     else {
-      if (!entraine.skills.some((k) => k.id === id && (k.spec ?? '') === (spec ?? ''))) {
+      if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
         entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
       }
       r = engineBuySkillAdvance(entraine, id, spec, false);

@@ -30,6 +30,7 @@ const sword = {
   type: 'melee',
   damage: { plusBF: true, flat: 0, bare: true },
   uid: 'sword',
+  subType: 'base',
   qualities: [],
 } as unknown as Weapon;
 const bow = {
@@ -67,8 +68,12 @@ function combatant(id: string, label: string, kind: 'hero' | 'enemy', x: number,
   } as unknown as Combatant;
 }
 
+/** Dernières props rendues — l'aperçu pré-jet et la ligne résolue se lisent sur la MÊME rangée. */
+let rendues: ReturnType<typeof useAttackJetProps> = null;
+
 function Probe() {
   const props = useAttackJetProps();
+  rendues = props;
   return props ? <RollShell {...props} /> : null;
 }
 
@@ -89,12 +94,20 @@ afterEach(() => {
  * Localisation visée, tir en mouvement, États et AVANTAGE du jeteur. Défaut = duel de mêlée nu, par
  * temps clair, tireur immobile.
  */
-function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; location?: HitLocation; enMouvement?: boolean; avantage?: number; conditions?: { id: string; value: number }[]; badauds?: number; tasArme?: boolean; tirArme?: boolean; mouvementUse?: number } = {}): HTMLDivElement {
+function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; location?: HitLocation; enMouvement?: boolean; avantage?: number; conditions?: { id: string; value: number }[]; badauds?: number; tasArme?: boolean; tirArme?: boolean; mouvementUse?: number; armes?: Weapon[]; morsure?: boolean; pietinement?: boolean; bagarre?: number } = {}): HTMLDivElement {
   const weapon = opts.ranged ? bow : sword;
   // Tir : 20 cases = 40 m avec une Portée de 60 m → bande « Moyenne » (+0, aucune chip de portée) ;
   // 5 cases = 10 m → « Courte portée » (+20, entrée de la table). Mêlée : au contact. La distance est
   // CHOISIE pour que seules les circonstances mesurées pèsent.
-  const attacker = combatant('attacker', 'Elsa', 'hero', 0, [weapon], opts.avantage ?? 0);
+  const attacker = combatant('attacker', 'Elsa', 'hero', 0, opts.armes ?? [weapon], opts.avantage ?? 0);
+  if (opts.morsure) (attacker as unknown as { traits: unknown[] }).traits = [{ id: 'morsure', value: 6 }];
+  if (opts.pietinement) {
+    attacker.size = 'enorme';
+    attacker.skills = [
+      { id: 'corps-a-corps', spec: 'base', characteristic: 'capacite-de-combat', advances: 8 },
+      ...(opts.bagarre ? [{ id: 'corps-a-corps', spec: 'bagarre', characteristic: 'capacite-de-combat', advances: opts.bagarre }] : []),
+    ] as Combatant['skills'];
+  }
   const target = combatant('target', 'Gobelin', 'enemy', opts.cases ?? (opts.ranged ? 20 : 1));
   if (opts.conditions) (attacker as unknown as { conditions: unknown[] }).conditions = opts.conditions;
   // Badauds AU CONTACT de la cible (`crowdEligible` : distance ≤ 1, la cible comprise) — c'est eux qui
@@ -133,7 +146,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     useGame.setState,
     // Posture ARMÉE à la console : on laisse le VERSEMENT moteur (`withArmedStance`) trancher, comme
     // au vrai site de déclaration — un champ porté par l'appelant primerait et court-circuiterait le prédicat.
-    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, weaponUid: weapon.uid, ...(opts.tirArme ? {} : { heldGround: !opts.enMouvement }) },
+    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { heldGround: !opts.enMouvement }) },
     'Attaque',
     'action/attack',
   );
@@ -145,12 +158,55 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
 }
 
 describe('Attaque — contrat d’affichage Z0–Z15', () => {
+  // Le choix d'arme tenue n'existe que pour une attaque qui en frappe : la Morsure frappe de la sienne.
+  it('choix d’arme : offert à l’attaque d’arme, absent d’une attaque gratuite de créature', () => {
+    const hache = { ...sword, name: 'Hache', label: 'Hache', uid: 'hache' } as unknown as Weapon;
+    const titres = (v: HTMLDivElement) => [...v.querySelectorAll('.rm-options .mini-title')].map((e) => e.textContent?.trim());
+    expect(titres(renderAttack({ armes: [sword, hache] })), 'deux armes tenues : le choix est offert').toContain('Arme');
+    act(() => root!.unmount());
+    host?.remove();
+    expect(titres(renderAttack({ armes: [sword, hache], morsure: true })), 'Morsure : aucun choix d’arme').not.toContain('Arme');
+  });
+
+  // LDB 85 l.387 ; ADE II 02 l.604-710.
+  it('Piétinement : la modale porte SON intitulé, et l’aperçu lit l’arme et la Compétence du jet', () => {
+    const view = renderAttack({ pietinement: true });
+    const dialog = view.querySelector('[role="dialog"]')!;
+    expect(dialog.querySelector('h3')?.textContent).toBe('Piétinement');
+    expect(dialog.querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Piétinement (Corps à corps (Bagarre))');
+    const avant = rendues!.rows[0].row.pending!;
+    expect(avant.base, 'Bagarre, sans avance : la CC nue, pas la Spé de l’arme tenue').toBe(45);
+    expect(avant.mods?.map((m) => m.label)).not.toContain('Possession pas à sa taille');
+    act(() => useGame.getState().attackRoll());
+    const jet = rendues!.rows[0].row.d!;
+    expect([jet.base, jet.target], 'aperçu et jet : même valeur cible').toEqual([avant.base, avant.target]);
+  });
+
+  // LDB 85 l.387 ; LDB 14 l.155.
+  it('Piétinement : sous-titre et rangée nomment Corps à corps (Bagarre), et le jet tire les Augmentations de cette Spé', () => {
+    const view = renderAttack({ pietinement: true, bagarre: 5 });
+    expect(view.querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Piétinement (Corps à corps (Bagarre))');
+    const avant = rendues!.rows[0].row.pending!;
+    expect(avant.label).toBe('Corps à corps (Bagarre)');
+    expect(avant.base, 'CC 45 + 5 Augmentations de Bagarre, jamais les 8 de Base').toBe(50);
+    act(() => useGame.getState().attackRoll());
+    expect(rendues!.rows[0].row.d!.base, 'le jet tire la Spé annoncée').toBe(50);
+  });
+
+  // ADE II 8 l.233.
+  it('arme à Résolution alternative : le sous-titre nomme la Caractéristique pure, sans Spé', () => {
+    const belier = { ...sword, name: 'Bélier', label: 'Bélier', uid: 'belier', resolveChar: 'force' } as unknown as Weapon;
+    const view = renderAttack({ armes: [belier] });
+    expect(view.querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Attaque (Force)');
+    expect(rendues!.rows[0].row.pending!.label).toBe('Force');
+  });
+
   it('rend une seule modale avec le titre nu, le sous-titre composé et un unique A→B', () => {
     const view = renderAttack();
     const dialogs = view.querySelectorAll('[role="dialog"]');
     expect(dialogs).toHaveLength(1);
     expect(dialogs[0].querySelector('h3')?.textContent).toBe('Attaque');
-    expect(dialogs[0].querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Attaque (Corps à corps)');
+    expect(dialogs[0].querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Attaque (Corps à corps (Base))');
     expect(dialogs[0].querySelectorAll('.rm-vs')).toHaveLength(1);
     expect(dialogs[0].textContent).not.toContain('Round 1');
     expect(dialogs[0].textContent).not.toContain('Groupe');
@@ -396,7 +452,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
   it('l’INFOBULLE du nom du jet donne la règle de la Compétence lancée', () => {
     const v = renderAttack();
     const nom = nomDuJet(v);
-    expect(nom!.textContent).toBe('Corps à corps');
+    expect(nom!.textContent).toBe('Corps à corps (Base)');
     act(() => { nom!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
     expect(document.querySelector('.infobulle')?.textContent).toContain('Corps à corps');
   });

@@ -3,7 +3,7 @@ import { nomDuSiege } from '../state/netFlow';
 import { useGame, activeCombatant, movementRemaining, type BattleState, type ShootingStanceKey } from '../state/store';
 import type { Combatant, Weapon, WeaponLoadout } from '../engine/types';
 import { hasMeaningfulOption } from '../state/turnEconomy';
-import { wastesAction, endTurnArmed } from '../state/endTurnGuard';
+import { actionPrise, wastesAction, endTurnArmed } from '../state/endTurnGuard';
 import { advantageCapFor } from '../engine/advantage';
 import { attackWeapon } from '../engine/combat';
 import { availableAttacks, selfManeuversOf, selfManeuverApplicable, previewResourceDelta, STANCE_BLOCK } from '../state/combatFlow';
@@ -11,7 +11,7 @@ import { findSpellById, byId, findActionById, ACTIONS, type ActionDef } from '..
 import { type CodexTarget } from '../engine/ruleRefs';
 import { actionGate, runAction, currentInterludeAction, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../state/actionRegistry';
 import { offresDuRegistre } from '../state/registreOffres';
-import { targetingModeLabel, dispellableOnCarrier } from '../state/targetingModes';
+import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../state/targetingModes';
 import { CodexRef } from './compendium/CodexRef';
 import { isConsumable } from '../engine/consumables';
 import { t } from '../i18n';
@@ -25,8 +25,8 @@ import { useLongPress } from './useLongPress';
 import { ReadyRow } from './ReadyRow';
 import { SpectatorChip } from './SpectatorChip';
 import { spectatorSeatOfModal } from './ownership';
-import { actorHasSkill } from '../engine/skills';
-import { hasHealSkill, healableTargets } from '../engine/healing';
+import { actorHasSkill, possesses } from '../engine/skills';
+import { HEAL_SKILL, healableTargets } from '../engine/healing';
 import { canTakeAction, isActionLocked, isOutOfAction, raisonRefusDetermination } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
@@ -34,7 +34,7 @@ import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from '../state/commandTeam';
 import { shipOfCrew } from '../state/shipPostes';
 import { quartIndex } from '../state/shipCrew';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle, estNavire } from '../engine/coque';
 import { controlsCombatant } from '../state/netOwnership';
 import { inBattleId } from '../state/combatants';
 import { combatDistance } from '../state/footprint';
@@ -78,6 +78,8 @@ type Cell = {
   family: CellFamily;
   /** Coût en crans d'Avantage, adossé au conduit. */
   adv?: number;
+  /** Coût en Action de Mouvement (`AttackOption.cost.movement`), cran de la MÊME colonne que `adv`. */
+  mouv?: boolean;
   on?: boolean;
   disabled?: boolean;
   /** FOYER de règle de la case (`{category, id}` du Codex, `RULE_REF`/registre de données) : c'est LUI
@@ -217,9 +219,13 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
       {/* RAISON d'indisponibilité : lue au SURVOL/FOCUS dans l'infobulle partagée (`CodexRef refus`,
           plus bas) ; ce qui reste ICI est sa copie HORS ÉCRAN, cible de l'`aria-describedby`. */}
       {raison ? <span className="hors-ecran" data-gate="" data-gate-2e={cell.gate ? undefined : ''} id={gateId}>{raison}</span> : null}
-      {cell.adv ? (
-        <span className="cc-cost" aria-label={`Coût : ${cell.adv} Avantage (${Math.min(advantage, cell.adv)} couvert${Math.min(advantage, cell.adv) > 1 ? 's' : ''})`}>
-          {Array.from({ length: cell.adv }, (_, i) => (
+      {cell.adv || cell.mouv ? (
+        <span className="cc-cost" aria-label={t('cc.cout', { parts: [
+          cell.adv ? t('cc.coutAvantage', { n: cell.adv, couverts: Math.min(advantage, cell.adv) }) : '',
+          cell.mouv ? t('acost.mouvement') : '',
+        ].filter(Boolean).join(' + ') })}>
+          {cell.mouv ? <i data-cout="mouvement" className="on" /> : null}
+          {Array.from({ length: cell.adv ?? 0 }, (_, i) => (
             <i key={i} className={i < advantage ? 'on' : undefined} />
           ))}
         </span>
@@ -255,7 +261,7 @@ const avalerMenuNatif = (e: { preventDefault: () => void }) => e.preventDefault(
 type PhaseAction = { key: string; label: string; icon: ReactNode; primary: boolean; disabled?: boolean; run: () => void };
 /** `ready` = état du READY-CHECK de la phase (coop) : la bande porte alors la rangée des sièges
  *  REQUIS (`ReadyRow`, même quorum que le dispatcher) au-dessus de son geste. */
-export type PhaseBanner = { label: ReactNode; actions: PhaseAction[]; ready?: Record<number, boolean> };
+export type PhaseBanner = { label: ReactNode; consigne?: ReactNode; actions: PhaseAction[]; ready?: Record<number, boolean> };
 
 /** Proéminence DÉDUITE du RÔLE de la sortie — même doctrine que `RollShell` (rôle → style DANS la
  *  coquille) : l'entrée du registre déclare ce que le joueur FAIT en la prenant (`role`, gaté par le
@@ -279,7 +285,7 @@ const ACTION_RECHARGER = 'reload';
  *  CARTE comme la référence Rogue Trader le pose. Une seule boîte, une seule matière — l'adresse est
  *  un ATTRIBUT (`data-phase`), jamais un second composant ni une classe de plus. La MATIÈRE est la peau partagée
  *  `.skin-bois` (components.css), celle de la plaque du rail d'outils. */
-export function PhaseBanner({ label, actions, ready, adresse = 'pont' }: PhaseBanner & {
+export function PhaseBanner({ label, consigne, actions, ready, adresse = 'pont' }: PhaseBanner & {
   /** OÙ le bandeau se pose — une ADRESSE, jamais une classe de plus (cliquet xii) : sur le parapet
    *  du pont (`pont`), en haut de la carte à l'ouverture du combat (`ouverture`), ou centré au-dessus
    *  de l'arche quand le pont n'a plus de bande à sa gauche (`spectatrice`). */
@@ -288,6 +294,7 @@ export function PhaseBanner({ label, actions, ready, adresse = 'pont' }: PhaseBa
   return (
     <div className="cc-phase skin-bois" data-phase={adresse}>
       <span className="cc-phase-label">{label}</span>
+      {consigne ? <span className="cc-phase-label" data-consigne="">{consigne}</span> : null}
       {ready && <ReadyRow ready={ready} />}
       {actions.map((a) => (
         <button key={a.key} type="button" data-action={a.key} className={`btn ${a.primary ? 'btn-primary' : 'btn-ghost'}`} disabled={a.disabled} onClick={a.run}>
@@ -483,6 +490,7 @@ export function CombatConsole() {
   // MDG 09 l.40.
   const gameTime = useGame((s) => s.gameTime);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
+  const pendingCleave = useGame((s) => s.pendingCleave);
   // Intention LOCALE armée (spec zone 4) : elle allume SA case. Jamais un intent réseau — c'est un
   // mode d'écran, le geste qu'il commet part, lui, par les chemins de clic habituels.
   const localIntent = useGame((s) => s.localIntent);
@@ -576,6 +584,7 @@ export function CombatConsole() {
     : interlude
       ? {
           label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
+          consigne: interlude.mode && targetingModeConsigne(interlude.mode),
           actions: [{
             key: interlude.id,
             label: interlude.label,
@@ -613,6 +622,7 @@ export function CombatConsole() {
   // les cases navales du registre, dans la MÊME travée.
   const controlled = controlsCombatant(useGame.getState(), active);
   const vehicule = isVehicle(active);
+  const navire = estNavire(active); // MDG 14
   /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
    *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
    *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
@@ -642,7 +652,7 @@ export function CombatConsole() {
   const moveLeft = movementRemaining(battle, active);
   const moveMax = moveLeft + battle.movementUsed;
   const actMax = 1 + (isFrenzied(active) ? 1 : 0);
-  const actAvail = battle.acted ? 0 : 1;
+  const actAvail = actionPrise(battle, pendingCleave) ? 0 : 1;
   const heroIdx = party.findIndex((h) => h.id === active.id);
   const ring = heroIdx >= 0 ? HERO_RING[heroIdx % HERO_RING.length] : ENEMY_RING;
   const previewDelta = previewResourceDelta(battle);
@@ -703,7 +713,7 @@ export function CombatConsole() {
   const cellFor = (
     actionId: string,
     family: CellFamily,
-    over: { key?: string; label?: string; icon?: ReactNode; rule?: CodexTarget; on?: boolean; off?: boolean; adv?: number; args?: ActionRunCtx;
+    over: { key?: string; label?: string; icon?: ReactNode; rule?: CodexTarget; on?: boolean; off?: boolean; adv?: number; mouv?: boolean; args?: ActionRunCtx;
       /** PROGRESSION du Test étendu en cours sur le candidat de la case, portée par le libellé du
        *  geste secondaire qui l'alimente. */
       progres?: string;
@@ -734,6 +744,7 @@ export function CombatConsole() {
       secondaires: gestes2e(def, family, over.args, over.progres),
       on: over.on ?? (arme || undefined),
       adv: over.adv,
+      mouv: over.mouv,
       disabled: !live || !verdict.ok || !!over.off,
       run: live && (def.run || def.intent)
         ? over.ouvre ?? (() => runAction(def.id, useGame.getState, { ...(over.args ?? {}), ...(arme ? { toggleOff: true } : null) }))
@@ -841,7 +852,7 @@ export function CombatConsole() {
       return acc;
     }, {}),
   );
-  const healTargets = hasHealSkill(active)
+  const healTargets = possesses(active, HEAL_SKILL)
     ? healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true })
     : [];
 
@@ -910,14 +921,15 @@ export function CombatConsole() {
     active.mannedPoste ? cellFor('leave-poste', 'geste', { off: busy }) : undefined,
     // La barre : le BARREUR la tient (`atHelm`), et la COQUE elle-même quand c'est SON tour — même case,
     // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1362`).
-    atHelm || vehicule ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
+    atHelm || navire ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (gate `toujours`), donc leur
     // disponibilité RÉELLE est une restriction de SITE : sans chanteur / sans pièce déchargée, case inerte.
-    vehicule ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
-    vehicule ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
-    vehicule ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
+    // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
+    navire ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
+    navire ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
+    navire ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
     vehicule ? cellFor('ship-reload', 'geste', { off: !reloadable, args: { shipId: active.id, posteUid: reloadable?.item.uid } }) : undefined,
   ];
   // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à
@@ -1030,7 +1042,7 @@ export function CombatConsole() {
     // Attaques de trait : adossées au conduit (elles se paient en crans d'Avantage). Une attaque de
     // ZONE immédiate (Hurlement) part par `maneuver-area` ; les autres ARMENT le clic (`select-attack`).
     ...attacks.map((a) => {
-      const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0, off: busy };
+      const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0, mouv: !!a.cost?.movement, off: busy };
       return a.targeting === 'zone'
         ? cellFor('maneuver-area', 'attaque', { ...habillage, args: { attackKind: a.kind } })
         : cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } });
@@ -1097,14 +1109,14 @@ export function CombatConsole() {
   // Garde-fou « tour gâché » (spec §1c-bis COIN) : finir avec l'Action NON DÉPENSÉE demande deux gestes.
   // La POLITIQUE est celle de l'entrée de registre `end-turn` (`battleEndTurn` arme puis finit) : la
   // plaque ne décide rien, elle passe par `runAction` comme la touche et LIT l'armement du combat.
-  const wastingAction = wastesAction(active, battle);
+  const wastingAction = wastesAction(active, battle, pendingCleave);
   const arme = endTurnArmed(battle);
   const onEndTurn = () => runAction('end-turn', useGame.getState);
   // 3ᵉ ligne de la plaque de sortie : elle dit l'état VRAI du tour — l'armement du 2ᵉ geste, sinon
   // l'avertissement « Action non dépensée », sinon « Tour fini », sinon SA touche (Espace,
   // `keybindings.ts` `end-turn`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
   // Armée, elle redit le libellé : hors du nom accessible, qui porte le texte vu UNE fois.
-  const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : battle.acted ? 'Tour fini' : 'ESPACE';
+  const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : actionPrise(battle, pendingCleave) ? 'Tour fini' : 'ESPACE';
 
   /** « Retirez un État » (LDB 17 l.61) — la 3ᵉ dépense de Détermination est le geste de L'ÉTAT, porté
    *  par SA pastille (arbitrage HUD 2026-08-16 : « Réactions d'État sur la PASTILLE »), jamais une

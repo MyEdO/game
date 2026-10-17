@@ -43,6 +43,7 @@ import {
 } from './porte-du-commit.mjs'
 import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
+import { lignesDuContenu } from '../guards/lib/stock.mjs'
 import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
@@ -1400,13 +1401,34 @@ test('soldesEmportes : 1 ou 3 soldes se lisent en autant de processus git (#2294
   }
 })
 
-test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée', () => {
-  assert.ok(EXEMPTIONS_TOMBALE.length <= 5, `stock d'exemption à ${EXEMPTIONS_TOMBALE.length} — il DÉCROÎT`)
+test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée, ni périmée ni ambiguë', () => {
+  assert.ok(EXEMPTIONS_TOMBALE.length <= 3, `stock d'exemption à ${EXEMPTIONS_TOMBALE.length} — il DÉCROÎT`)
   for (const { site, raison } of EXEMPTIONS_TOMBALE) {
-    assert.match(site, /^[\w./-]+:\d+$/, `exemption non ancrée à un SITE : "${site}" (jamais un fichier entier)`)
+    const [, fichier, ligne] = site.match(/^([\w./-]+) :: (.+)$/) ?? []
+    assert.ok(fichier && ligne, `exemption non ancrée à un SITE : "${site}" (jamais un fichier entier)`)
     assert.ok(raison.length >= 30, `exemption "${site}" sans raison lisible`)
+    const porteurs = lignesDuContenu(fichier, readFileSync(join(RACINE, fichier), 'utf8'), site)
+    assert.notEqual(porteurs.length, 0, `exemption PÉRIMÉE : "${site}" ne désigne plus aucune ligne`)
+    assert.equal(porteurs.length, 1, `exemption AMBIGUË : "${site}" désigne les lignes ${porteurs.join(', ')}`)
   }
   assert.equal(new Set(EXEMPTIONS_TOMBALE.map((e) => e.site)).size, EXEMPTIONS_TOMBALE.length)
+})
+
+test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont ne déplace pas l’exemption, et chacune reste NÉCESSAIRE (#2200)', () => {
+  for (const { site } of EXEMPTIONS_TOMBALE) {
+    const fichier = site.split(' :: ')[0]
+    const numeros = [...site.matchAll(/#(\d+)/g)].map((m) => Number(m[1]))
+    const src = readFileSync(join(RACINE, fichier), 'utf8')
+    for (const texte of [src, `\n${src}`]) {
+      const exemptee = lignesDuContenu(fichier, texte, site)
+      const vues = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => texte }).filter((t) => exemptee.includes(t.ligne))
+      assert.deepEqual(vues, [], `"${site}" n'exempte plus son site`)
+      const lignes = texte.split('\n')
+      for (const l of exemptee) lignes[l - 1] += ' ¤'
+      const sansExemption = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => lignes.join('\n') }).filter((t) => exemptee.includes(t.ligne))
+      assert.notDeepEqual(sansExemption, [], `exemption INUTILE : sans elle, "${site}" n'est pas une tombale — la retirer`)
+    }
+  }
 })
 
 test('tombalesDansSource : un mot d\'ÉTAT du domaine n\'est pas une dette', () => {

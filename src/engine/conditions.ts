@@ -27,6 +27,7 @@ import { recomputeLoadout } from './items';
 import { refreshWounds } from './characteristics';
 import { restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
+import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
@@ -54,12 +55,26 @@ export function etatNonCumulable(id: string): boolean {
 }
 
 /** Marqueurs NARRATIFS hors LDB 16 (PAS des États `etats.json`, cf. `data-wellformed.test`) : Pétrifié
- *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : la
- *  sévérité (`conditionSeverity`), l'icone (`gameIso/effectIcons.conditionMeta`) et le nom scanné dans
- *  le journal (`conditionIdInText`) le COMPOSENT, aucun n'en garde de copie. */
-export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number; icon: string }> = {
-  petrifie: { label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
-};
+ *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
+ *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
+ *  n'en garde de copie. */
+export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+];
+
+const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
+
+/** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
+ *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, garde FK
+ *  `refs-migrated.test`), la sévérité (`conditionSeverity`) et l'icone
+ *  (`gameIso/effectIcons.conditionMeta`) le composent. */
+export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
+  return findConditionById(id) ?? marqueurParId(id);
+}
+
+/** Ids que `etatConnu` résout, catalogue vivant puis marqueurs — la liste rendue par un refus. */
+export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MARKERS.map((m) => m.id)];
 
 /** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
@@ -67,7 +82,7 @@ export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number
  *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
 export function conditionIdInText(text: string): string | undefined {
   for (const id of conditionIds()) if (text.includes(conditionLabel(id))) return id;
-  for (const [id, marqueur] of Object.entries(NARRATIVE_MARKERS)) if (text.includes(marqueur.label)) return id;
+  for (const marqueur of NARRATIVE_MARKERS) if (text.includes(marqueur.label)) return marqueur.id;
   return undefined;
 }
 
@@ -76,8 +91,7 @@ export function conditionIdInText(text: string): string | undefined {
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
  *  combat pour le bandeau/la cadence (`state/combatLog.isImportantEvent`). */
 export function conditionSeverity(name: string): number {
-  const id = slugId(name);
-  return findConditionById(id)?.severity ?? NARRATIVE_MARKERS[id]?.severity ?? 10;
+  return etatConnu(slugId(name))?.severity ?? 10;
 }
 
 /**
@@ -936,7 +950,7 @@ export function bleedDeathRoll(c: Combatant, rng: RNG = defaultRNG): { died: boo
  *  (consommée par `isOutOfAction` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
   if (c.kind === 'hero') return false; // jamais pour les PJ (LDB 18 l.46)
-  if (c.bodyShape === 'vehicule') return false; // une COQUE n'est pas un figurant : sa destruction passe par ses Blessures (Naufrage) et les Critiques NAVALS — pas de « Mort Subite » de mook (MDG 13)
+  if (isVehicle(c)) return false; // MDG 13 l.656
   const mode = rule('combat-sudden-death');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
@@ -951,7 +965,7 @@ export function isOutOfAction(c: Combatant): boolean {
   if (c.inert) return c.dead === true || c.outOfRencontre === true;
   // Coque : détruite à 0 PB (MDG 13 l.656), OU coulée par la Voie d'eau — Inondation ≥ Endurance pose
   // l'État `naufrage` (MDG 13 l.674 : « il coule »), l'autre voie de coulée que les Blessures à 0.
-  if (c.bodyShape === 'vehicule') return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
+  if (isVehicle(c)) return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
   return c.dead === true || c.outOfRencontre === true || hasCondition(c, COND.inconscient) || (usesSuddenDeath(c) && c.wounds.current <= 0);
 }
 
@@ -969,7 +983,7 @@ export function endState(c: Combatant): EndState | null {
   if (c.inert) return null;
   if (c.dead) return 'mort';
   if (c.outOfRencontre) return c.exitReason === 'reddition' || c.exitReason === 'prise' ? 'rendu' : 'hors-combat';
-  if (c.bodyShape === 'vehicule') return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // coque coulée (MDG 13)
+  if (isVehicle(c)) return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // MDG 13
   if (usesSuddenDeath(c) && c.wounds && c.wounds.current <= 0) return 'hors-combat'; // figurant tombé à 0 PB
   if (!c.dead && hasCondition(c, COND.inconscient)) return 'inconscient'; // vivant mais KO (même gate de cycle de vie qu'isOutOfAction)
   return null;
@@ -995,7 +1009,7 @@ export function inDeathCondition(c: Combatant): boolean {
  *  (Une COQUE ne tombe pas « À Terre » : sa mise hors-jeu à 0 PB est gérée par `isOutOfAction`.) */
 export function applyZeroWounds(c: Combatant): void {
   if (c.inert) return; // OBJET INERTE (affût d'artillerie) : en permanence à 0 PB, immune aux Blessures → jamais À Terre (cf. isOutOfAction)
-  if (c.bodyShape === 'vehicule') return;
+  if (isVehicle(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
 }
 
@@ -1026,7 +1040,7 @@ export function loseWounds(c: Combatant, amount: number): number {
  */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || c.bodyShape === 'vehicule') return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
+  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || isVehicle(c)) return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
   const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;

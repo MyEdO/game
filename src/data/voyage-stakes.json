@@ -13,19 +13,6 @@
     "rule": "navigation-greement"
   },
   {
-    "id": "river-agility",
-    "type": "voyage-stakes",
-    "label": "Agilité de rame",
-    "kind": "riverAgility",
-    "template": "Échec : vitesse −{failPct} % aujourd’hui ; Échec spectaculaire : vitesse ÷{spectacularDiv}.",
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 28,
-      "note": "MSRC 7 l.17"
-    },
-    "rule": "navigation-agilite-de-rame"
-  },
-  {
     "id": "river-nav",
     "type": "voyage-stakes",
     "label": "Navigation de l’étape",
@@ -148,8 +135,21 @@
     "template": "Survitesse M+{overM} — {damage} Dégât(s) de coque par Test raté.",
     "source": {
       "book": "mer-des-griffes",
-      "page": 121,
-      "note": "MDG 12 l.121-142"
+      "page": 105,
+      "note": "MDG 13 l.121-142"
+    }
+  },
+  {
+    "id": "sea-salissures",
+    "type": "voyage-stakes",
+    "label": "Salissures",
+    "kind": "sea-salissures",
+    "template": "Échec : la coque gagne un niveau de Salissures.",
+    "rule": "salissures-navire",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 105,
+      "note": "MDG 13 l.148"
     }
   },
   {
@@ -245,8 +245,21 @@
     "template": "Échec : le navire reste bloqué (aucune progression ce jour).",
     "source": {
       "book": "mer-des-griffes",
-      "page": 132,
+      "page": 112,
       "note": "MDG 13 l.471-499"
+    }
+  },
+  {
+    "id": "sea-degagement-debris",
+    "type": "voyage-stakes",
+    "label": "Dégagement des Débris marins",
+    "kind": "sea-degagement-debris",
+    "template": "Test étendu : tant que le total de {totalDR} DR n'est pas atteint, le navire reste empêtré.",
+    "rule": "degagement-debris-marins",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 112,
+      "note": "MDG 13 l.487-491"
     }
   },
   {
