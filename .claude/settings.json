@@ -71,21 +71,6 @@
           }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/hooks/rappel-methode.mjs"
-            ],
-            "timeout": 5,
-            "statusMessage": "Rappel de méthode"
-          }
-        ]
-      }
     ]
   }
 }

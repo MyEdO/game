@@ -1,6 +1,6 @@
 ---
 name: aborder-un-sujet
-description: À utiliser au début de CHAQUE nouvelle demande, avant le premier geste (lecture large, code, fichier, agent, publication), et dès que l'objectif change en cours de route. Qualifie la demande, choisit entre agir tout de suite et cadrer d'abord, lève l'ambiguïté sans solliciter l'utilisateur, fait juger le plan et le livrable par une instance neuve, et ne demande que l'irréversible ou un vrai choix d'objectif.
+description: À utiliser quand une demande est ambiguë (plusieurs approches, but en partie non dit, plusieurs modules, décision d'architecture) et doit être cadrée avant d'agir. Lève l'ambiguïté sans solliciter l'utilisateur, écrit le plan, le fait juger par une instance neuve, prouve et livre.
 ---
 
 # Aborder un sujet
