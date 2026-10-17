@@ -381,6 +381,15 @@ Un navire n'a pas d'Effondrement (`AA 10 l.127` vise la Structure) : il coule, `
 > inversé). Sur un Test **raté**, il n'y a ni coup porté ni Critique — `l.656` gate les DEUX cas (« jet d'attaque
 > **réussi** », « tous les coups qui **touchent** ») sur une touche.
 
+**Table au d10, et Critique obtenu.** Les tables de Critiques de navire se lancent au **d10**, pas au d100 des
+personnages : colonne *Résultat du d10* des tables (`MDG 13 l.696`) ; « la colonne Résultat du d10 du tableau des Blessures
+Critiques » (`MDG 13 l.692`). Le double d'un jet d'attaque réussi fait obtenir le Critique à l'attaquant
+(`MDG 13 l.656`) ; sur un bateau fluvial, « Quand un double est obtenu au jet de dés, le bateau subit un Coup Critique
+là où il a été touché. » (`MSRC 07 l.74`), sans table à lancer. **Silence du texte** : la seconde frappe du talent
+*Maniement de deux armes* prend « le lancer du tableau des Critiques » (`LDB 10 l.773`), le second d100 du Coup Critique
+d'un personnage (`LDB 18 l.53`) ; ni MDG ni MSRC ne disent quel lancer elle prend contre un navire (voir
+[combat.md, Talent *Maniement de deux armes*](combat.md#talent-maniement-de-deux-armes--ldb-10-l773)).
+
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `AA 10` (l.13-15, l.127) → `StructureCritEntry`, `BandeOuverte`, `isHealable`, `woundsFromHit`, `cranDeCouvertEnMoins`, `tableDesCritiquesDeStructure`, `soinMagiqueOperant`, `doc`, `rollStructureCritical`, `REPORT_DE_COMBATTANT`, +30 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/data/structures.json`, `src/data/trappings.json`, +15 fichiers
 - `MDG 13` (l.654-674) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `stationAsPoste`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, `applyFall`, +30 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +23 fichiers
