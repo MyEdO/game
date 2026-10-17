@@ -2,7 +2,7 @@ import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { GameState, RevealEntry } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
-import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
+import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
@@ -11,7 +11,7 @@ import { battleRng } from './battleRng';
 import { d10, d100, defaultRNG, roll as rollDice } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
-  type OpsCtx, type OpsCtxGele, type DemandeDe, type GameOp } from '../engine/ops';
+  type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
@@ -210,7 +210,7 @@ export function checkTriggers(get: Get, set: SetFn) {
     // VIVANT au moment où il jouera, exactement comme le tour de boucle qu'il remplace.
     if (issue === OPS_DIFFEREES) {
       const restants = dansLaZone.slice(i + 1).map(enFlowDeDeclencheur);
-      if (restants.length) differerLaSuite(set, { kind: 'seq', steps: restants }, 'scene', t('eff.flowTitleDiscovery'));
+      if (restants.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: restants }, label: t('eff.flowTitleDiscovery') }]);
       return;
     }
   }
@@ -250,11 +250,12 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
 export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
   if (get().battle) return applyEffects(get, set, effects, sl);
   const { gear, rest } = gearFromEffects(structuredClone(effects)); // #2097
-  // Un lot DIFFÉRÉ n'ouvre pas sa fenêtre de butin ICI : le butin fait partie de la suite qu'il a
-  // confiée au dé (le `rest` non appliqué y est déjà), et l'ouvrir maintenant la montrerait AVANT la
-  // conséquence qui l'a produite.
-  const differe = applyEffects(get, set, rest, sl);
-  if (differe) return differe;
+  // #2689
+  const differe = applyEffects(get, set, rest, sl, title);
+  if (differe) {
+    if (gear.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: flowFromEffects(gear.map((g) => g.effect)), label: title, ...(sl !== undefined ? { sl } : {}) }]);
+    return differe;
+  }
   const found = effects
     .filter((e): e is Extract<Effect, { type: 'giveMoney' }> => e.type === 'giveMoney')
     .reduce((m, e) => m + toBrass(toMoney(e.montant)), 0);
@@ -344,7 +345,7 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
     const issue = runFlow(get, set, s.flow, t('eff.flowTitleEvent'));
     if (issue === OPS_DIFFEREES) {
       const restants = entrees.slice(i + 1);
-      if (restants.length) differerLaSuite(set, undefined, 'scene', t('eff.flowTitleEvent'), [{ verbe: 'effetsProgrammes', restants }]);
+      if (restants.length) confierLaSuite(set, [{ verbe: 'effetsProgrammes', restants }]);
       return;
     }
   }
@@ -399,7 +400,7 @@ export const OPS_DIFFEREES = Symbol('#1508 feuille différée : ses dés sont à
  * des walkers : un maillon qui rendrait `void` couperait le signal, et l'appelant appliquerait sa suite
  * PAR-DESSUS un dé en vol.
  *
- * Un appelant a DEUX formes, et pas de troisième : il confie sa suite (`differerLaSuite`), ou il passe
+ * Un appelant a DEUX formes, et pas de troisième : il confie sa suite (`confierLaSuite`), ou il passe
  * par `jouerFlowEntier` ci-dessous — qui NOMME le fait qu'il n'a pas de suite. Un appel dont le retour
  * tombe par terre n'est ni l'un ni l'autre, et le scan de forme le refuse
  * (`roll-seam-exclusivity-guard.test.ts`).
@@ -419,7 +420,7 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
- * c'est une `Cloture`, différée avec la continuation.
+ * c'est une `Cloture`, confiée avec la suite.
  *
  * Le type et le lint acceptent un appel de fonction dont la valeur rendue est jetée.
  */
@@ -439,7 +440,7 @@ export function jouerFlowEntier(_applique: Applique): void {
 export function nePeutPasDifferer(applique: Applique, site: string): void {
   if (applique === OPS_DIFFEREES) {
     throw new Error(`#1508 — « ${site} » a ouvert un dé à la porte alors que sa donnée n'en porte pas : `
-      + 'ce qui suit ce site jouerait devant le dé. Lui confier une continuation (`differerLaSuite`).');
+      + 'ce qui suit ce site jouerait devant le dé. Lui confier une continuation (`confierLaSuite`).');
   }
 }
 
@@ -448,7 +449,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
  *  (`scheduleDelayedOps`), le reste passe par `applyOps` avec le contexte de la FEUILLE (`leafOpsCtx` —
  *  untilTime/label bakés priment, sinon le contexte appelant). Renvoie le journal, ou `OPS_DIFFEREES`
  *  si les dés de la feuille sont partis à la porte (l'appelant confie alors SA SUITE à l'étape ouverte,
- *  cf. `differerLaSuite`).
+ *  cf. `confierLaSuite`).
  *
  *  FAIL-FAST assumé : l'énumération des dés (`demandesDeDes`) LÈVE sur donnée malformée (table de chute
  *  inconnue, coque absente au contexte) AVANT qu'aucune op de la feuille ne s'applique — une feuille
@@ -503,11 +504,10 @@ function refuserSiHorsCanal(ctx: OpsCtx): void {
  * suivants portent celui-là. Deux grappes ouvertes sur le même acteur au même instant de jeu restent
  * ainsi distinctes, et chaque dé montré est celui que sa propre feuille applique.
  *
- * CONTEXTE : la part gelable voyage telle quelle (`gelerOpsCtx`), les Combattants par ID, le reste se
- * rebâtit (`ctxRepris`). La partition est TOTALE au type (`engine/ops`), donc rien ne se perd en silence.
+ * CONTEXTE : porté (`porterOpsCtx`), rebâti à la reprise (`ctxRepris`). La partition est TOTALE au type
+ * (`engine/ops`), donc rien ne se perd en silence.
  */
 function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx, demande: DemandeDe, groupe?: string): void {
-  refuserSiHorsCanal(ctx);
   pushDie(set, {
     id: `opsDe-${cible.id}-${demande.cle}`,
     kind: 'opsDe',
@@ -521,10 +521,7 @@ function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx,
       opsDe: ops,
       opsDeCle: demande.cle,
       ...(groupe ? { opsDeGroupe: groupe } : {}),
-      opsDeCtx: gelerOpsCtx(ctx),
-      ...(ctx.hull ? { hullId: ctx.hull.id } : {}),
-      ...(ctx.caster ? { casterId: ctx.caster.id } : {}),
-      ...(ctx.crew ? { opsDeCrewIds: ctx.crew.map((m) => m.id) } : {}),
+      opsDeCtx: porterOpsCtx(ctx),
     },
   }, revealPurpose('sequence', false));
 }
@@ -540,27 +537,35 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
 /** IDENTITÉ de la grappe de dés d'une étape : celle qu'elle DÉCLARE, sinon la SIENNE (elle l'ouvre). */
 const groupeDe = (s: CascadeStep): string => (typeof s.meta?.opsDeGroupe === 'string' ? s.meta.opsDeGroupe : s.id);
 
+/** PORTE l'`OpsCtx` d'une feuille jusqu'à sa reprise (`OpsCtxPorte`) — pendant d'écriture de `ctxRepris`.
+ *  Un hook `OPS_CTX_HORS_CANAL` lève ici (`refuserSiHorsCanal`). */
+export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
+  refuserSiHorsCanal(ctx);
+  return {
+    gele: gelerOpsCtx(ctx),
+    ...(ctx.caster ? { casterId: ctx.caster.id } : {}),
+    ...(ctx.hull ? { hullId: ctx.hull.id } : {}),
+    ...(ctx.crew ? { crewIds: ctx.crew.map((m) => m.id) } : {}),
+  };
+}
+
 /**
- * RECONSTRUIT l'`OpsCtx` d'une feuille différée à sa reprise — lecture UNIQUE de la partition totale
- * d'`OpsCtx` (`engine/ops`) : la part GELÉE revient verbatim du `meta`, les Combattants sont retrouvés
- * par ID, et ce qui ne se sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, le hook de
+ * RECONSTRUIT l'`OpsCtx` d'une feuille à sa reprise (étape `opsDe`, clôture `reprendreFlowDeCombat`) —
+ * lecture UNIQUE de la partition totale d'`OpsCtx` (`engine/ops`) : la part GELÉE revient verbatim, les
+ * Combattants sont retrouvés par ID, et ce qui ne se sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, le hook de
  * Corruption branché sur la cible — le seul que le dépôt pose sur une feuille, cf. `OPS_CTX_REBATIS`).
  * `des` est monté par l'applier depuis les étapes sœurs, jamais recopié.
  *
  * Rend `null` quand la COQUE déclarée a disparu entre le mint et la résolution (voyage clos, cascade
  * suspendue puis reprise) : l'appelant le DIT au lieu de jouer la conséquence à moitié.
  */
-function ctxRepris(get: Get, set: SetFn, step: CascadeStep, cible: Combatant): OpsCtx | null {
-  const gele = (step.meta?.opsDeCtx ?? {}) as OpsCtxGele;
-  const hullId = typeof step.meta?.hullId === 'string' ? step.meta.hullId : undefined;
-  const hull = hullId ? coqueParId(get(), hullId) : undefined;
-  if (hullId && !hull) return null;
-  const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
-  const caster = casterId ? actorIn(get(), casterId) : undefined;
-  const crewIds = Array.isArray(step.meta?.opsDeCrewIds) ? step.meta.opsDeCrewIds : undefined;
-  const crew = crewIds?.map((id) => actorIn(get(), id)).filter((m): m is Combatant => !!m);
+export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Combatant): OpsCtx | null {
+  const hull = porte.hullId ? coqueParId(get(), porte.hullId) : undefined;
+  if (porte.hullId && !hull) return null;
+  const caster = porte.casterId ? actorIn(get(), porte.casterId) : undefined;
+  const crew = porte.crewIds?.map((id) => actorIn(get(), id)).filter((m): m is Combatant => !!m);
   return {
-    ...gele,
+    ...porte.gele,
     rng: battleRng(),
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
     ...(hull ? { hull } : {}),
@@ -583,7 +588,7 @@ registerCascadeApplier('opsDe', (get, set, step, hero, sctx) => {
   if (!ops || !step.de?.result) return;
   // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
   if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const ctx = ctxRepris(get, set, step, hero);
+  const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
   if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
   const groupe = groupeDe(step);
   const des = new Map<string, number>();
@@ -649,15 +654,6 @@ registerCascadeApplier('chuteDe', (get, set, step, hero) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Le walker de COMBAT (`combat/triggeredTest.runCombatFlow`), INJECTÉ — inversion de dépendance
- * (patron `registerCascadeApplier`/`freeAttackHook`) : `triggeredTest` importe ce module, l'inverse
- * ferait un cycle. Absent (moteur pur, tests unitaires du module) ⇒ une continuation de combat est
- * REFUSÉE nommément plutôt que rejouée par le mauvais walker.
- */
-let suiteCombat: ((get: Get, set: SetFn, cible: Combatant, caster: Combatant | undefined, flow: Flow, label: string) => void) | null = null;
-export function registerSuiteCombat(fn: NonNullable<typeof suiteCombat>): void { suiteCombat = fn; }
-
-/**
  * NOMBRE d'étapes de la séquence en vol qui font ATTENDRE leur conséquence à un dé (`meta.differeLaSuite`).
  * Les deux walkers s'en servent de la MÊME façon : si ce nombre a AUGMENTÉ pendant qu'ils appliquaient
  * une feuille, cette feuille a ouvert un dé — le reste de leur lot/pile est SA suite, pas la suite
@@ -674,37 +670,31 @@ export function comptePasDifferes(s: GameState): number {
 }
 
 /**
- * CONFIE la suite du walker à la DERNIÈRE étape à dé ouverte (#1508) — c'est le geste du `case 'test'`
- * des deux walkers (`stack.splice(0)` empaqueté en continuation), transposé au dé : un lot d'Effets ou
- * une pile de Flow qui poursuivrait par-dessus un dé en vol appliquerait ses conséquences AVANT celle
- * qui attend : l'ordre AUTHORÉ s'inverse (« il tombe PUIS on le soigne » se joue à l'envers).
+ * CONFIE la suite de l'appelant au porteur qui tient la main (#2689) : la DERNIÈRE étape à dé ouverte
+ * (#1508). Un lot d'Effets ou une pile de Flow qui poursuivrait par-dessus un dé en vol appliquerait
+ * ses conséquences AVANT celle qui attend : l'ordre AUTHORÉ s'inverse.
+ *
+ * Toujours en APPEND : deux confidences sur le même porteur sont deux maillons de la même suite, rejoués
+ * dans l'ordre où ils ont été confiés (`jouerLesClotures`).
  *
  * La DERNIÈRE étape, parce qu'une feuille peut en ouvrir plusieurs (une par cible d'un Effet de groupe) :
  * la suite reprend quand le dernier dé du lot est tombé.
  */
-export function differerLaSuite(set: SetFn, flow: Flow | undefined, mode: 'scene' | 'combat', label?: string, clotures?: Cloture[]): void {
-  const compose = (actuel: CascadeStepMeta | undefined): CascadeStepMeta => {
-    const dejaFlow = actuel?.apresFlow as Flow | undefined;
-    return { ...actuel,
-      // COMPOSE, jamais n'écrase : deux confidences sur la même étape (le reste d'un lot PUIS la
-      // continuation d'un second) sont DEUX suites à jouer dans leur ordre, pas un remplacement.
-      // Même règle que les clôtures juste dessous — le `seq` est l'opérateur de suite du Flow.
-      ...(flow ? { apresFlow: dejaFlow ? { kind: 'seq' as const, steps: [dejaFlow, flow] } : flow } : {}),
-      ...(clotures?.length ? { apresClotures: [...((actuel?.apresClotures as Cloture[] | undefined) ?? []), ...clotures] } : {}),
-      apresMode: mode, ...(label ? { apresLabel: label } : {}) };
-  };
+export function confierLaSuite(set: SetFn, suite: Suite): void {
+  if (!suite.length) return;
+  const ajoute = (actuel: CascadeStepMeta | undefined): CascadeStepMeta => ({ ...actuel, apresSuite: [...(actuel?.apresSuite ?? []), ...suite] });
   // Un dé ouvert PENDANT une application attend dans la fenêtre d'insertion, hors du store : c'est LÀ
   // qu'on lui confie la suite. La chercher dans le slot la donnerait à une autre étape, ou à personne.
   const pousse = idDeLaDernierePoussee();
   const enFenetre = pousse ? etapesDeLaFenetre().find((x) => x.id === pousse) : undefined;
-  if (enFenetre && annoterEtapeDeLaFenetre(enFenetre.id, compose(enFenetre.meta))) return;
+  if (enFenetre && annoterEtapeDeLaFenetre(enFenetre.id, ajoute(enFenetre.meta))) return;
   set((s: GameState) => {
     const p = s.pendingCascade;
     if (!p) return {};
     const i = indexDeLEtapeQuiAttend(p);
     if (i < 0) return {};
     return { pendingCascade: { ...p, participants: p.participants.map((x, k) => (k === i
-      ? { ...x, meta: compose(x.meta) } : x)) } };
+      ? { ...x, meta: ajoute(x.meta) } : x)) } };
   });
 }
 
@@ -748,93 +738,54 @@ export function registerCloture<K extends Cloture['verbe']>(verbe: K, fn: Clotur
 }
 /** Les verbes de l'union, en VALEURS — lus par la garde de totalité du registre. */
 export const CLOTURE_VERBES = ['dialogueSuivant', 'avancerHorloge', 'retirerEntite', 'marquerActionJouee',
-  'testRateDeLActeur', 'effetsProgrammes', 'ouvrirEcranDeVictoire', 'teardownDeVictoire'] as const;
+  'testRateDeLActeur', 'effetsProgrammes', 'ouvrirEcranDeVictoire', 'teardownDeVictoire',
+  'reprendreFlow', 'reprendreFlowDeCombat'] as const;
 /** TOTALITÉ AU TYPE : un verbe ajouté à `Cloture` sans entrée dans `CLOTURE_VERBES` fait échouer `tsc`. */
 export type _ClotureVerbesTotaux = [Exclude<Cloture['verbe'], (typeof CLOTURE_VERBES)[number]>] extends [never] ? true
   : ['VERBE DE Cloture ABSENT DE CLOTURE_VERBES', Exclude<Cloture['verbe'], (typeof CLOTURE_VERBES)[number]>];
 const _verbesTotaux: _ClotureVerbesTotaux = true;
 void _verbesTotaux;
 
-/** Les clôtures qu'une étape porte — `meta` est une union, la lecture NOMME ce qu'elle attend. */
-function cloturesDe(step: CascadeStep): Cloture[] {
-  const v = step.meta?.apresClotures;
-  if (!Array.isArray(v)) return [];
-  return v.filter((c): c is Cloture => typeof c === 'object' && c !== null && 'verbe' in c);
-}
-
 /**
- * REJOUE la continuation d'une étape, APRÈS que sa conséquence a été DITE — branchée sur le GOULOT de
- * validation (`cascade.setSuiteApresCommit`), donc valable pour TOUTE étape qui en porte une, sans
- * qu'aucun applier ait à y penser.
- *
- * Le walker est celui qui l'a produite (`meta.apresMode`), seul à savoir quoi en faire : celui de
- * SCÈNE applique un lot d'Effets d'auteur (`runFlow`), celui de COMBAT reprend une pile qui porte
- * cible et lanceur (`runCombatFlow`, injecté par `combatFlow`).
- *
- * La suite peut elle-même DIFFÉRER (une seconde chute) : les CLÔTURES repartent alors avec le nouveau
- * dé, au lieu de se jouer devant lui. C'est ce qui rend l'invariant STABLE en profondeur — la « suite
- * du verbe appelant » ne peut pas resurgir d'un anneau plus haut.
- */
-function rejouerLaSuite(get: Get, set: SetFn, step: CascadeStep): void {
-  const flow = step.meta?.apresFlow as Flow | undefined;
-  const mode = step.meta?.apresMode;
-  const clotures = cloturesDe(step);
-  if (!flow && !clotures.length) return;
-  if (mode !== 'scene' && mode !== 'combat') return;
-  const label = typeof step.meta?.apresLabel === 'string' ? step.meta.apresLabel : (step.label ?? t('eff.flowTitle'));
-  const avant = comptePasDifferes(get());
-  if (flow) {
-    if (mode === 'scene') jouerFlowEntier(runFlow(get, set, flow, label));
-    else {
-      const cible = step.actorId ? actorIn(get(), step.actorId) : undefined;
-      if (!cible) return; // le porteur a quitté l'état (mort retirée, voyage clos) : rien à qui appliquer la suite
-      const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
-      if (!suiteCombat) throw new Error('#1508 — continuation de COMBAT sans walker injecté (registerSuiteCombat) : la suite du Flow serait perdue.');
-      suiteCombat(get, set, cible, casterId ? actorIn(get(), casterId) : undefined, flow, label);
-    }
-  }
-  if (!clotures.length) return;
-  // Le Flow rejoué a ouvert un dé de plus : les clôtures sont SA suite à leur tour.
-  if (comptePasDifferes(get()) > avant) { differerLaSuite(set, undefined, mode, label, clotures); return; }
-  jouerLesClotures(get, set, clotures, mode, label);
-}
-
-/**
- * JOUE les clôtures d'une étape, dans l'ordre du site — et si l'UNE d'elles ouvre un dé à son tour
- * (l'horloge d'une fouille peut tirer un effet programmé qui fait tomber), celles qui RESTENT partent
+ * JOUE une suite, dans l'ordre de la confidence — et si l'UN de ses maillons ouvre un dé à son tour
+ * (l'horloge d'une fouille peut tirer un effet programmé qui fait tomber), ceux qui RESTENT partent
  * avec ce dé. Rien ne double-passe : l'étape SOURCE rend sa suite en se validant (`cascade.commitStep`,
- * au même endroit que son mémo de pli), et seules les clôtures NON ENCORE jouées sont reportées.
+ * au même endroit que son mémo de pli), et seuls les maillons NON ENCORE joués sont reportés.
+ *
+ * Branchée sur le GOULOT de validation (`cascade.setSuiteApresCommit`) pour la suite d'une étape : elle
+ * vaut pour TOUTE étape qui en porte une, sans qu'aucun applier ait à y penser.
  */
-export function jouerLesClotures(get: Get, set: SetFn, clotures: Cloture[], mode: 'scene' | 'combat' = 'scene', label: string = t('eff.flowTitle')): void {
-  for (let i = 0; i < clotures.length; i++) {
-    const c = clotures[i];
+export function jouerLesClotures(get: Get, set: SetFn, suite: Suite): void {
+  for (let i = 0; i < suite.length; i++) {
+    const c = suite[i];
     const applier = clotureAppliers.get(c.verbe);
     if (!applier) throw new Error(`#1508 — clôture « ${c.verbe} » sans applier (registerCloture) : la suite du verbe serait perdue.`);
     const avant = comptePasDifferes(get());
     applier(get, set, c);
-    if (comptePasDifferes(get()) > avant && i + 1 < clotures.length) {
-      differerLaSuite(set, undefined, mode, label, clotures.slice(i + 1));
+    if (comptePasDifferes(get()) > avant && i + 1 < suite.length) {
+      confierLaSuite(set, suite.slice(i + 1));
       return;
     }
   }
 }
 /**
  * CLÔT un verbe (#1508) — LE geste des sites dont quelque chose SUIT le Flow : il consomme le signal
- * d'application et place ses clôtures du bon côté du dé. Déféré ⇒ elles partent AVEC le dé (elles se
- * joueront après la conséquence) ; sinon ⇒ elles se jouent MAINTENANT, dans l'ordre du site.
+ * d'application et place ses clôtures du bon côté du dé. Déféré ⇒ elles sont confiées au porteur (elles
+ * se joueront après la conséquence) ; sinon ⇒ elles se jouent MAINTENANT, dans l'ordre du site.
  *
  * Le site n'a donc aucune question à se poser (« y a-t-il un dé en vol ? ») : il DIT ce qu'il allait
  * faire ensuite, et la porte décide quand.
  */
-export function cloturer(get: Get, set: SetFn, applique: Applique, clotures: Cloture[], mode: 'scene' | 'combat' = 'scene', label?: string): void {
-  if (applique === OPS_DIFFEREES) { differerLaSuite(set, undefined, mode, label, clotures); return; }
-  jouerLesClotures(get, set, clotures, mode, label ?? t('eff.flowTitle'));
+export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite): void {
+  if (applique === OPS_DIFFEREES) { confierLaSuite(set, suite); return; }
+  jouerLesClotures(get, set, suite);
 }
 
-setSuiteApresCommit(rejouerLaSuite);
-// Les effets programmés RESTANTS d'un même pas d'horloge : la seule clôture que CE module possède
-// (les autres verbes appartiennent au store, qui les enregistre à son chargement).
+setSuiteApresCommit((get, set, step) => jouerLesClotures(get, set, step.meta?.apresSuite ?? []));
+// Les clôtures que CE module possède ; les autres verbes appartiennent au module qui les joue (store,
+// combatFlow), qui les enregistre à son chargement.
 registerCloture('effetsProgrammes', (get, set, c) => jouerEffetsProgrammes(get, set, c.restants));
+registerCloture('reprendreFlow', (get, set, c) => jouerFlowEntier(runFlow(get, set, c.flow, c.label, c.sl)));
 
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
@@ -1105,7 +1056,8 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   };
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
   const confier = (node?: Flow): Applique => {
-    differerLaSuite(set, { kind: 'seq', steps: [...(node ? [node] : []), ...stack.splice(0)] }, 'scene', label);
+    const steps = [...(node ? [node] : []), ...stack.splice(0)];
+    if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label, ...(sl !== undefined ? { sl } : {}) }]);
     return OPS_DIFFEREES;
   };
   while (stack.length) {
@@ -2347,7 +2299,7 @@ for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindEx
  * `suspensif` (geste joueur) reçoit le RESTE du lot comme suite : s'il la prend (`'suspend'`), son
  * pending la rejouera à sa clôture et la boucle s'arrête là — aucun Effet ne se perd.
  */
-export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number): Applique {
+export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number, label?: string): Applique {
   const env = makeEffectEnv(get, set, sl);
   const file = structuredClone(effects); // #2097
   let differe: Applique;
@@ -2359,7 +2311,12 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
     // signal REMONTE ensuite : ce qui suit CET appel est lui aussi la suite du dé, pas la suite immédiate.
     const differesAvant = comptePasDifferes(get());
     const issue = handler.apply(e, env, handler.suspensif ? flowFromEffects(file) : EMPTY_FLOW);
-    if (comptePasDifferes(get()) > differesAvant) { differerLaSuite(set, flowFromEffects(file.splice(0)), 'scene'); differe = OPS_DIFFEREES; break; }
+    if (comptePasDifferes(get()) > differesAvant) {
+      const reste = file.splice(0);
+      if (reste.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: flowFromEffects(reste), ...(label ? { label } : {}), ...(sl !== undefined ? { sl } : {}) }]);
+      differe = OPS_DIFFEREES;
+      break;
+    }
     if (issue === 'suspend') { file.splice(0); break; }
   }
   // Couture UNIQUE du cadre de campagne (#717) : la CLÔTURE authorée est une `Condition` — elle se

@@ -816,6 +816,15 @@
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
   },
   {
+    "id": "suite",
+    "type": "primitives.manifest",
+    "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
+    "fichier": "src/state/combatEffects.ts",
+    "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
+    "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
+    "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
+  },
+  {
     "id": "creatorDice",
     "type": "primitives.manifest",
     "label": "CreatorDice",

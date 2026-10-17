@@ -7,13 +7,15 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  GESTES_DU_CONTENEUR, bootstrap, demanderLesDerives, estConteneurDistant, lancer, mettreEnConformite, sousOutillage,
+  GESTES_DU_CONTENEUR, INDEX_MEMOIRE, bootstrap, bootstrapSessionStart, demanderLesDerives, estConteneurDistant, lancer, memoireDuConteneur,
+  mettreEnConformite, sousOutillage,
 } from './bootstrap-conteneur.mjs'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
 import { demanderLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
 import { BUDGET_TOTAL, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
+import { GENERATORS, SOURCES_LUES, ciblesLitterales } from '../docs/build-all.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
@@ -247,6 +249,55 @@ test('npm install sous le verrou d’OUTILLAGE (#2187) : tenu par un vivant → 
     assert.deepEqual(sousOutillage(racine, () => { tenus.push(attendreLibre({ chemin }).etat); return { ok: true, valeur: '', rapport: '' } }), { ok: true, valeur: '', rapport: '' })
     assert.deepEqual(tenus, ['occupe'])
     assert.equal(existsSync(chemin), false)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2710 : le `postinstall` écrit `SOURCES_LUES` pour les seuls générateurs de code ; la mesure lit les docs.
+test('docs dérivés : un marqueur `SOURCES_LUES` sans les docs est MESURÉ manquant ; toutes les cibles fixes présentes, il est mesuré posé', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'derives-'))
+  try {
+    mkdirSync(join(racine, 'docs'), { recursive: true })
+    writeFileSync(join(racine, SOURCES_LUES), '{}')
+    assert.deepEqual(ciblesLitterales(['sortie/a.md', 'sortie/**/catalogue-*.md', 'src/b.generated.ts']), ['sortie/a.md', 'src/b.generated.ts'])
+    assert.equal(GESTES_DU_CONTENEUR.docsMesures(racine), false, 'le marqueur seul ne prouve aucun doc')
+    for (const cible of ciblesLitterales(GENERATORS.flatMap((g) => g.targets))) {
+      mkdirSync(dirname(join(racine, cible)), { recursive: true })
+      writeFileSync(join(racine, cible), '')
+    }
+    assert.equal(GESTES_DU_CONTENEUR.docsMesures(racine), true)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('mémoire committée : imprimée en conteneur distant seulement, et rien sans index', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'memoire-'))
+  try {
+    assert.equal(memoireDuConteneur({ CLAUDE_CODE_REMOTE: 'true' }, racine), '')
+    mkdirSync(dirname(join(racine, INDEX_MEMOIRE)), { recursive: true })
+    writeFileSync(join(racine, INDEX_MEMOIRE), '# Index\n- fiche\n')
+    assert.equal(memoireDuConteneur({}, racine), '')
+    assert.match(memoireDuConteneur({ CLAUDE_CODE_REMOTE: 'true' }, racine), /mémoire du dépôt[\s\S]*# Index\n- fiche\n$/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('CÂBLAGE — en conteneur distant conforme, la sortie du SessionStart porte l’index de la mémoire', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'memoire-cablage-'))
+  const ecrit = []
+  try {
+    mkdirSync(dirname(join(racine, INDEX_MEMOIRE)), { recursive: true })
+    writeFileSync(join(racine, INDEX_MEMOIRE), '# Index\n')
+    const conforme = { ...GESTES_DU_CONTENEUR, estSuperficiel: () => false, dossierDesHooks: () => 'scripts/git-hooks', docsMesures: () => true }
+    const lignes = bootstrapSessionStart({
+      env: { CLAUDE_CODE_REMOTE: 'true' }, racine, depot: racine, gestes: conforme, run: () => ({ ok: true, valeur: '', rapport: '' }),
+      output: { write: (texte) => ecrit.push(texte) },
+    })
+    assert.deepEqual(lignes, [])
+    assert.match(ecrit.join(''), /mémoire du dépôt[\s\S]*# Index/)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

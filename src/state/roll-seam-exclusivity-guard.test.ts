@@ -1352,8 +1352,8 @@ function appelsPerdus(): string[] {
  * fonction, par construction). TypeScript n'a pas de `must_use` : CE scan tient donc l'invariant.
  *
  * TROIS issues admises, et AUCUNE liste de sites : l'appelant lit le retour lui-même (il confie sa
- * suite, `differerLaSuite`), ou il le passe à un CONSOMMATEUR nommé — `cloturer` (ce qui suit est une
- * `Cloture`, différée avec la continuation), `jouerFlowEntier` (rien ne suit), `nePeutPasDifferer`
+ * suite, `confierLaSuite`), ou il le passe à un CONSOMMATEUR nommé — `cloturer` (ce qui suit est une
+ * `Cloture`, confiée avec la suite), `jouerFlowEntier` (rien ne suit), `nePeutPasDifferer`
  * (la donnée appliquée n'a pas de canal de dés — fail-fast si ça change). Écrire le nom EST la
  * déclaration ; personne n'a besoin d'être cité ici.
  */
@@ -1433,7 +1433,7 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(
       perdus,
       'Un appel dont le retour se perd applique sa suite par-dessus un dé en vol (#1508).\n'
-        + 'Trois issues : lire le retour (confier la suite, `differerLaSuite`), ou le passer à\n'
+        + 'Trois issues : lire le retour (confier la suite, `confierLaSuite`), ou le passer à\n'
         + '`cloturer(…)` / `jouerFlowEntier(…)` / `nePeutPasDifferer(…)` (cf. state/combatEffects.ts) :\n'
         + `${perdus.join('\n')}`,
     ).toEqual([]);
@@ -1529,7 +1529,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
 });
 
 /**
- * REGISTRE des CLÔTURES (#1508) : la continuation d'une étape porte un `Flow` ET des `Cloture` — des
+ * REGISTRE des CLÔTURES (#1508, #2689) : la suite d'une étape est une liste de `Cloture` — des
  * VERBES sérialisables (le `pendingCascade` est sauvegardé et voyage sur le réseau). Le registre doit
  * être TOTAL, sans quoi une clôture se perdrait exactement comme le signal qu'elle répare.
  */

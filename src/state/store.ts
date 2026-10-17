@@ -180,7 +180,7 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
+import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
@@ -2815,8 +2815,8 @@ export const useGame = create<GameState>((set, get) => ({
     let issue = leftoverGear.length ? applyEffects(get, set, leftoverGear) : undefined;
     if (cont?.length) {
       // #9 : téléport/dialogue de onVictory APRÈS « Continuer ». Si le butin a différé, ce lot-ci est SA
-      // suite — confié tel quel : `differerLaSuite` COMPOSE (le reste du butin est déjà sur l'étape).
-      if (issue) differerLaSuite(set, flowFromEffects(cont), 'scene');
+      // suite — confié en APPEND derrière le reste du butin (`confierLaSuite`).
+      if (issue) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: flowFromEffects(cont) }]);
       else issue = applyEffects(get, set, cont);
     }
     cloturer(get, set, issue, [{ verbe: 'teardownDeVictoire', kills, batailleDeMasse: inMassBattleCombat }]);
@@ -3106,7 +3106,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
-    // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
+    // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
     // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
     // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
     const branch = effSuccess ? pt.onSuccess : pt.onFailure;

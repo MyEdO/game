@@ -20,7 +20,7 @@ import { condCtx } from './bourseFlow';
 import { buildActorView, flowTestGated } from './combat/flowEval';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
 import { markActed } from './combatFlow';
-import { openSkillTest, runFlow, applyLeafOps, drainPendingLog, differerLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
+import { openSkillTest, runFlow, applyLeafOps, drainPendingLog, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { battleRng } from './battleRng';
@@ -61,7 +61,11 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
           // Feuille partie à la PORTE (#1508) : le reste de la pile est SA suite, exactement comme
           // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un
           // dé en vol. Reprise par le walker de SCÈNE : les feuilles bakées y retombent sur `ops`.
-          if (lines === OPS_DIFFEREES) { differerLaSuite(set, { kind: 'seq', steps: stack.splice(0) }, 'scene', label); return; }
+          if (lines === OPS_DIFFEREES) {
+            const steps = stack.splice(0);
+            if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label }]);
+            return;
+          }
           set(touchActors(get()));
           for (const l of lines) get().log(l);
         }
