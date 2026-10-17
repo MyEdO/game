@@ -824,7 +824,7 @@ export const fr = {
   'cf.spellBounces': '{spell} rebondit sur {name} !',
   'cf.zonePersistsRounds': '{spell} : la zone persiste {rounds} Round(s).',
   'cf.zoneCross': '{name} traverse {zone} !',
-  'cf.castCritical': 'Incantation Critique : le Projectile inflige une Blessure Critique.',
+  'cf.castCritical': 'Incantation Critique : effet choisi.',
   'cf.overcastFullPower': 'Puissance totale : le sort est lancé quels que soient NI et DR (mais peut être Dissipé).',
   'cf.overcastIrresistible': 'Force inéluctable : le sort ne peut pas être Dissipé.',
   'cf.dictionInstinctive': 'Diction instinctive : aucune Imparfaite sur le double réussi.',

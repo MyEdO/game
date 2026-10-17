@@ -354,6 +354,47 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
   });
 });
 
+describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LDB 46 l.30 ; AA 07 l.36, l.67 ; #1595 c.6219992594)", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); });
+  afterEach(() => { resetRule('combat-aa-blessures'); vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le Projectile en Incantation critique sur la cible debout à 20 PB, PA 0, `choix` = l'effet choisi (absent : celui par défaut). */
+  function projectileDebout(chanceux: boolean, choix: 'critique' | undefined) {
+    const { mage, cible } = carreauEnCombat();
+    cible.important = true;
+    cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
+    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }] as never;
+    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+    applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, choix);
+    draineCascade(useGame.getState, 200, () => 50);
+    return useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
+  }
+
+  for (const choix of ['critique', undefined] as const) {
+    it(`cible Chanceux, effet ${choix ?? 'par défaut'} : une Blessure critique, sur la table AA`, () => {
+      const apres = projectileDebout(true, choix);
+      expect(apres.wounds.current, 'la cible reste debout').toBeGreaterThan(0);
+      expect(apres.criticalWounds).toBe(1);
+      expect(apres.critEntriesSuffered).toHaveLength(1);
+      expect(apres.critEntriesSuffered![0]).toMatch(/^aa-/);
+    });
+  }
+
+  it('cible sans Chanceux : la Mort subite refuse la Blessure critique, au Projectile comme au double de mêlée', () => {
+    expect(projectileDebout(false, 'critique').criticalWounds ?? 0).toBe(0);
+    const { auJet, cible } = coup({ current: 20 });
+    expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
+    expect(cible.criticalWounds ?? 0).toBe(0);
+  });
+
+  it("cible sans Chanceux : le journal dit l'effet choisi, jamais une Blessure critique", () => {
+    projectileDebout(false, 'critique');
+    expect(journal()).toContain(tr('cf.castCritical'));
+    expect(journal().filter((l) => /blessure critique/i.test(l))).toEqual([]);
+  });
+});
+
 describe("Projectile magique : l'animation de la touche porte son compte de Blessures critiques (LDB 46 l.30 ; LDB 18 l.17)", () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); });
   afterEach(() => { resetRule('combat-aa-blessures'); vi.clearAllTimers(); vi.useRealTimers(); });

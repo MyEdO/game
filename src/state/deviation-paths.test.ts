@@ -388,6 +388,19 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     expect(critiqueA(journal, touche), 'le Critique à la Localisation de touche').toBe(true);
   });
 
+  for (const jeu of ['ldb', 'aa'] as const) {
+    it(`'${jeu}', Personnage debout, Incantation critique : le Critique tombe à la Localisation relancée (LDB 46 l.30 ; #1595 c.6229735418)`, () => {
+      if (jeu === 'ldb') resetRule('combat-aa-blessures');
+      const relancee = critWoundLocation(makeRNG(GRAINE), 'humanoide');
+      const { touche, journal } = projectile({}, true);
+      expect(relancee, 'la graine sépare les deux Localisations').not.toBe(touche);
+      expect(live('e-cible').wounds.current, 'la cible reste debout').toBeGreaterThan(0);
+      expect(live('e-cible').criticalWounds).toBe(1);
+      expect(critiqueA(journal, relancee), 'le Critique à la Localisation du d100 frais').toBe(true);
+      expect(critiqueA(journal, touche)).toBe(false);
+    });
+  }
+
   it('(c) Incantation critique sur une Structure : aucune relance, le seul d100 tiré est celui de la table', () => {
     projectile({ wounds: { current: 10, max: 30 } as never, bodyShape: 'structure' }, true);
     expect(live('e-cible').criticalWounds).toBe(1);
