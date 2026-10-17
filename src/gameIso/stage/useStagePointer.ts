@@ -55,6 +55,8 @@ import { porteDOffre } from '../../state/offresUtilisables';
 import type { RoomPortal } from '../../state/roomPortals';
 import type { AreteUtilisable } from '../../state/aretes';
 import type { AreteProjetee } from './aretesProjetees';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetPnjById } from '../../state/campaignData';
 
 const PAN_THRESHOLD = 6; // px de glissement avant de passer en panoramique (sinon = clic)
 
@@ -478,7 +480,7 @@ export function useStagePointer({
       setHover(null);
       st.setPendingInteract(null);
       if (plan) moveAlong(sc.id, plan);
-      else st.log(message('store.propInerte', { what: ent.label ?? message('store.propInerteFallback') }));
+      else st.log(message('store.propInerte', { what: nomDEntite(ent, presetPnjById) ?? message('store.propInerteFallback') }));
       return;
     }
     // Clic ailleurs : annule un déplacement-puis-fouille en attente. `dest` couvre l'ESCALIER (geste

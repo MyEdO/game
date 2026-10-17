@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|Bash|PowerShell|Workflow|mcp__lean_ctx__.+)$",
+        "matcher": "^(?:Write|Edit|NotebookEdit|apply_patch|Bash|PowerShell|Agent|Workflow|Task|mcp__lean_ctx__.+)$",
         "hooks": [
           {
             "type": "command",

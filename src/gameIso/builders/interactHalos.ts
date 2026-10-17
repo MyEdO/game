@@ -19,6 +19,8 @@
 import type { Scene, SceneEntity } from '../../state/scene';
 import { decorFootGeometry } from '../../state/footprint';
 import { estUtilisable } from '../../state/usable';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetPnjById } from '../../state/campaignData';
 import { RING_A_PX } from './dynamicMarks';
 import { ancrageDuDecor, ancrageDuJeton, type Ancrage } from './tokenChrome';
 import type { PropEl, TokenEl } from './types';
@@ -171,10 +173,11 @@ export function interactionHalos(
     const ent = parId.get(corps.entId);
     if (!ent || !estUtilisable(scene, ent, flags)) continue;
     const foot = decorFootGeometry(corps.span);
+    const nom = nomDEntite(ent, presetPnjById);
     out.push({
       ...corps.ancrage,
       id: corps.entId,
-      ...(ent.label ? { label: ent.label } : {}),
+      ...(nom !== undefined ? { label: nom } : {}),
       span: corps.span,
       centre: { x: corps.ancrage.cell.x + foot.offX, y: corps.ancrage.cell.y + foot.offY },
       echelle: { x: foot.sx, y: foot.sy },

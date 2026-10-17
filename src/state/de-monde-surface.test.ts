@@ -242,7 +242,7 @@ function marcheAvecLot(): void {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   skill(h, 'marchandage', 60);
   get().setParty([h]);
-  get().loadProject([marche('marche-b', 'Altdorf')], 'marche-b', carte());
+  get().loadProject({ scenes: [marche('marche-b', 'Altdorf')], entryId: 'marche-b', worldMap: carte(), projet: null });
   const convoi: Possession = { uid: CARRIER_ID, ownerId: h.id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] };
   set({
     landMarket: { placeId: 'B', label: 'Altdorf', market: profile(), offers: [] },
@@ -752,7 +752,7 @@ function prepareJourTerrestre(seed: number): void {
   siegeDuMonde();
   setRule('travel-etapes', true);
   set({ party: makePregens().slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
-  get().loadProject([scenePlate('monde-a'), scenePlate('monde-b')], 'monde-a', carteMonde);
+  get().loadProject({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
 const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().startTravel('rt', 'pied'); };

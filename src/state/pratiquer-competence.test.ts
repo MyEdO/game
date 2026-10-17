@@ -46,7 +46,7 @@ const CARTE: WorldMap = {
  *  (`setTravelRole`), départ (`startTravel`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
 function rangeeAuDepart(posting: Parameters<ReturnType<typeof useGame.getState>['setTravelRole']>[1]): BatchParticipant | undefined {
   useGame.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: null });
-  useGame.getState().loadProject([scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], 'lieu-a-scene', CARTE);
+  useGame.getState().loadProject({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
   useGame.getState().setTravelRole('h', posting);
   useGame.getState().startTravel('r1', 'pied');
   const bande = () => useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');

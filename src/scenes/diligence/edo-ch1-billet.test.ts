@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 import { makePregensWithWealth, PREGEN } from '../../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../../state/bourseFlow';
 import { toBrass } from '../../engine/money';
@@ -38,7 +38,7 @@ function aBord(): void {
   const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
   expect(groupe).toHaveLength(4);
   useGame.setState({ party: groupe.map((e) => e.hero) });
-  get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+  expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
   get().acquitterOuverture();
   get().moveParty({ x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.test.ts`)

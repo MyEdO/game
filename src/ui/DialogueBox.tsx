@@ -14,6 +14,9 @@ import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision, groupDecisionSeat } from './ownership';
 import { useModalA11y } from './Modal';
 import { GatedAction, raisonSi } from './GatedAction';
+import { speakerEntity } from '../state/scene';
+import { nomDEntite } from '../state/sceneNpc';
+import { presetPnjById } from '../state/campaignData';
 
 /**
  * Ce que la réponse ANNONCE, en clair : « Compétence — Difficulté », plus le DR CUMULÉ d'un Test
@@ -69,9 +72,8 @@ export function DialogueBox() {
 
   // Portrait ET nom de l'interlocuteur — résolus par ENTITÉ (id), jamais par un nom en clair (#669).
   // Le nœud peut alterner l'interlocuteur ; à défaut, celui de la SESSION de dialogue.
-  const speakerEntId = node.speakerId ?? dialogue.speakerId;
-  const speakerEnt = speakerEntId ? scene?.entities.find((e) => e.id === speakerEntId) : undefined;
-  const speakerName = speakerEnt?.label;
+  const speakerEnt = speakerEntity(scene?.entities ?? [], node, dialogue);
+  const speakerName = speakerEnt && nomDEntite(speakerEnt, presetPnjById);
 
   return (
     <SpeakerBanner

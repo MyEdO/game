@@ -8,6 +8,7 @@ import { Band } from './Band';
 import { FigRow, FigTile } from './FigTile';
 import { RuleDivider } from './Ornaments';
 import { GatedAction } from './GatedAction';
+import { porteurDeProjet } from './porteurDeProjet';
 
 /**
  * OUVERTURE CÉRÉMONIELLE d'un chapitre (#717) — le rideau qui se lève AVANT tout HUD : le titre de
@@ -27,6 +28,7 @@ export function CampaignOpeningScreen() {
   const acquitterOuverture = useGame((s) => s.acquitterOuverture);
   const setScreen = useGame((s) => s.setScreen);
   const invite = useGame((s) => s.net.mode === 'guest');
+  const campaignDoc = useGame((s) => s.campaignDoc);
   if (!ouv) return null;
   const heroes = party.filter((h) => h.kind === 'hero');
 
@@ -49,12 +51,12 @@ export function CampaignOpeningScreen() {
         </>
       }
     >
-      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} />}
+      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} porteur={porteurDeProjet({ campaignDoc }, 'narratif.ouverture.sousTitre.texte')} />}
       {ouv.surtitre && <p className="section-label">{ouv.surtitre}</p>}
       <RuleDivider />
       {ouv.chapitre && <p className="subtitle">{ouv.chapitre}</p>}
       <ParchmentCard seal={{ kind: 'cire' }}>
-        <Prose md={ouv.pitch} />
+        <Prose md={ouv.pitch} porteur={porteurDeProjet({ campaignDoc }, 'narratif.ouverture.pitch')} />
       </ParchmentCard>
       <Band title={t('ouv.compagnie')}>
         <FigRow label={t('ouv.compagnie')}>

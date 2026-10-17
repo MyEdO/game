@@ -177,7 +177,7 @@ test('génère seulement le credo Codex et partage la mémoire Claude', () => {
 test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et par événement, matcher = UNION des outils', () => {
   const claude = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CLAUDE) }, SURFACE_CLAUDE);
   const codex = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CODEX) }, SURFACE_CODEX);
-  const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
+  const outil = (liste) => liste.filter((h) => h.phase.endsWith('ToolUse')).map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
   assert.deepEqual(outil(claude), [
     { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },

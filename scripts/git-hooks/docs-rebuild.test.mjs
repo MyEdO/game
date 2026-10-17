@@ -488,7 +488,7 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
 })
 
 /** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière, le verrou, la porte. */
-const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
+const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/hooks/panne-outil.mjs', 'scripts/guards/lib/stdinBorne.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {
   const lock = JSON.stringify({ name: 'banc2187', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'banc2187', version: '1.0.0' } } })
@@ -497,9 +497,9 @@ test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pen
     mkdirSync(dirname(join(racine, module)), { recursive: true })
     copyFileSync(join(RACINE, module), join(racine, module))
   }
-  const hookDOutil = () => spawnSync(process.execPath, [join(racine, 'scripts', 'hooks', 'repartiteur.mjs')], {
+  const hookDOutil = (command = 'ls') => spawnSync(process.execPath, [join(racine, 'scripts', 'hooks', 'repartiteur.mjs')], {
     cwd: racine, encoding: 'utf8', timeout: 30_000,
-    input: JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } }),
+    input: JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } }),
   })
   const pendant = []
   try {
@@ -517,6 +517,8 @@ test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pen
     const apres = hookDOutil()
     assert.equal(apres.status, 2, `node_modules absent, verrou libre : ${apres.stderr}`)
     assert.match(apres.stderr, /chargement des gardes impossible/)
+    const reparation = hookDOutil('npm ci')
+    assert.equal(reparation.status, 0, `l'entrée lue sur stdin ouvre \`npm ci\` (#2712) : ${reparation.stderr}`)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
