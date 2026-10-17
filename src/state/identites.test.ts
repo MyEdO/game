@@ -24,10 +24,10 @@ const narratif = (): NarratifBlock => ({
       kind: 'heros',
       identite: {
         ancres: ['Kastor', 'Lieberung'],
-        reperes: [{ id: 'nom', texte: 'Lieberung' }, { id: 'salutation', texte: 'Cher Herr Lieberung' }, { id: 'complet', texte: 'Kastor Lieberung' }],
+        reperes: [{ id: 'nom', fragment: 'Lieberung' }, { id: 'salutation', fragment: 'Cher Herr Lieberung' }, { id: 'complet', fragment: 'Kastor Lieberung' }],
         lignes: [
-          { espece: 'humain', sexe: 'M', valeurs: { nom: { texte: 'Lieberung', source: P27 }, salutation: { texte: 'Cher Herr Lieberung', adapteDe: L127 }, complet: { texte: 'Kastor Lieberung', source: P27 } } },
-          { espece: 'nain', sexe: 'F', valeurs: { nom: { texte: 'Linkassniz', adapteDe: L127 }, salutation: { texte: 'Chère Frau Linkassniz', adapteDe: L127 }, complet: { texte: 'Kallar Linkassniz', source: P27 } } },
+          { espece: 'humain', sexe: 'M', valeurs: [{ repere: 'nom', valeur: 'Lieberung', source: P27 }, { repere: 'salutation', valeur: 'Cher Herr Lieberung', adapteDe: L127 }, { repere: 'complet', valeur: 'Kastor Lieberung', source: P27 }] },
+          { espece: 'nain', sexe: 'F', valeurs: [{ repere: 'nom', valeur: 'Linkassniz', adapteDe: L127 }, { repere: 'salutation', valeur: 'Chère Frau Linkassniz', adapteDe: L127 }, { repere: 'complet', valeur: 'Kallar Linkassniz', source: P27 }] },
         ],
       },
     },

@@ -180,9 +180,9 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   désignée → faux. Ex. `campagne-sosie-heros` (EDO 02 l.91, libellé neutre : le titre de la modale ne dévoile
   pas le nom), désigné à la fouille du cadavre de Kastor ; son identité porte les 14 lignes espèce × sexe.
   **Identité** (`forme.identite`, EDO 02 l.112-127) : des `ancres` (les noms du paquet), des `reperes`
-  (`{ id, texte }`, chaque texte est un fragment VERBATIM du paquet qui contient une ancre) et des
-  `lignes` (`{ espece: RaceKey, sexe, valeurs }`, un couple unique, `valeurs` keyées par id de repère,
-  chacune `{ texte, source | adapteDe }`, sans métacaractère Markdown ; `adapteDe` cite les passages adaptés, la
+  (`{ id, fragment }`, chaque fragment est un passage VERBATIM du paquet qui contient une ancre) et des
+  `lignes` (`{ espece: RaceKey, sexe, valeurs }`, un couple unique, `valeurs` une liste keyée par `repere`
+  (l'id d'un repère, une valeur par repère), chacune `{ repere, valeur, source | adapteDe }`, sans métacaractère Markdown ; `adapteDe` cite les passages adaptés, la
   prose qui porte le repère et la ligne de table de l'espèce). Chaque repère doit être EFFECTIVEMENT substitué
   quelque part dans le paquet : un repère toujours masqué par un plus long est refusé par la garde des paquets. La prose STOCKÉE reste verbatim :
   à l'AFFICHAGE, chaque site de prose de paquet (`SITES_PROSE` › `paquet`, `src/ui/liage.ts` ; `<Prose

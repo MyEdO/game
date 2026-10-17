@@ -677,15 +677,15 @@ describe('NarratifEditor — identité d’un état `heros` (EDO 02 l.112-127, #
     expect(narratifSchema.safeParse(last).success, 'une identité neuve parse').toBe(true);
     expect((field('Forme') as HTMLSelectElement).disabled, 'la forme d’un état à identité ne change pas').toBe(true);
     setValue(champ('Ancre 1'), 'Kastor');
-    setValue(champ('Texte du repère 1'), 'Kastor Lieberung');
+    setValue(champ('Fragment du repère 1'), 'Kastor Lieberung');
     click(btn('Ajouter une ligne'));
-    expect(identite().lignes).toEqual([{ espece: 'humain', sexe: 'M', valeurs: { 'repere-1': { texte: '' } } }]);
+    expect(identite().lignes).toEqual([{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: '' }] }]);
     expect(container.textContent).toContain('provenance manquante');
     setValue(champ(`Valeur ${HM}`), 'Kastor Lieberung');
     provenance('Copie', HM);
     setValue(livre(HM), 'ennemi-dans-l-ombre');
     poserPage(HM, '27');
-    expect(identite().lignes[0].valeurs['repere-1']).toMatchObject({ texte: 'Kastor Lieberung', source: { book: 'ennemi-dans-l-ombre', page: 27 } });
+    expect(identite().lignes[0].valeurs).toMatchObject([{ repere: 'repere-1', valeur: 'Kastor Lieberung', source: { book: 'ennemi-dans-l-ombre', page: 27 } }]);
     expect(narratifSchema.safeParse(last).success).toBe(true);
     expect(container.textContent).not.toContain('provenance manquante');
   });
@@ -695,29 +695,28 @@ describe('NarratifEditor — identité d’un état `heros` (EDO 02 l.112-127, #
       ...sosie(),
       etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
         ancres: ['Kastor'],
-        reperes: [{ id: 'repere-1', texte: 'Kastor Lieberung' }, { id: 'repere-2', texte: 'Kastor' }],
-        lignes: [{ espece: 'nain', sexe: 'F', valeurs: { 'repere-1': { texte: 'Kallar Linkassniz', source: { book: 'ennemi-dans-l-ombre', page: 27 } }, 'repere-2': { texte: '' } } }],
+        reperes: [{ id: 'repere-1', fragment: 'Kastor Lieberung' }, { id: 'repere-2', fragment: 'Kastor' }],
+        lignes: [{ espece: 'nain', sexe: 'F', valeurs: [{ repere: 'repere-1', valeur: 'Kallar Linkassniz', source: { book: 'ennemi-dans-l-ombre', page: 27 } }, { repere: 'repere-2', valeur: '' }] }],
       } } }],
     });
     click(btn('États'));
     setValue(champ('Id du repère 1'), 'complet');
     expect(identite().reperes[0].id).toBe('complet');
-    expect(identite().lignes[0].valeurs.complet?.texte).toBe('Kallar Linkassniz');
-    expect(identite().lignes[0].valeurs['repere-1']).toBeUndefined();
+    expect(identite().lignes[0].valeurs.map((v) => [v.repere, v.valeur])).toEqual([['complet', 'Kallar Linkassniz'], ['repere-2', '']]);
     expect(btn('Supprimer le repère 1').getAttribute('aria-disabled'), 'une valeur saisie en dépend').toBe('true');
     click(btn('Supprimer le repère 2'));
     expect(identite().reperes.map((r) => r.id)).toEqual(['complet']);
-    expect(Object.keys(identite().lignes[0].valeurs)).toEqual(['complet']);
+    expect(identite().lignes[0].valeurs.map((v) => v.repere)).toEqual(['complet']);
     expect(narratifSchema.safeParse(last).success).toBe(true);
   });
 
-  it('un repère au texte vide ou en double se nomme par son id stable dans le libellé de ses valeurs', () => {
+  it('un repère au fragment vide ou en double se nomme par son id stable dans le libellé de ses valeurs', () => {
     mount({
       ...sosie(),
       etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
         ancres: ['Kastor'],
-        reperes: [{ id: 'a', texte: 'Kastor' }, { id: 'b', texte: 'Kastor' }, { id: 'c', texte: '' }],
-        lignes: [{ espece: 'humain', sexe: 'M', valeurs: { a: { texte: '' }, b: { texte: '' }, c: { texte: '' } } }],
+        reperes: [{ id: 'a', fragment: 'Kastor' }, { id: 'b', fragment: 'Kastor' }, { id: 'c', fragment: '' }],
+        lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'a', valeur: '' }, { repere: 'b', valeur: '' }, { repere: 'c', valeur: '' }] }],
       } } }],
     });
     click(btn('États'));
@@ -729,8 +728,8 @@ describe('NarratifEditor — identité d’un état `heros` (EDO 02 l.112-127, #
     mount({
       ...sosie(),
       etats: [{ ...sosie().etats[0], forme: { kind: 'heros', identite: {
-        ancres: ['Kastor'], reperes: [{ id: 'nom', texte: 'Kastor' }],
-        lignes: [{ espece: 'humain', sexe: 'M', valeurs: { nom: { texte: 'Kastor', source: { book: 'ennemi-dans-l-ombre', page: 27 } } } }],
+        ancres: ['Kastor'], reperes: [{ id: 'nom', fragment: 'Kastor' }],
+        lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'nom', valeur: 'Kastor', source: { book: 'ennemi-dans-l-ombre', page: 27 } }] }],
       } } }],
     });
     click(btn('États'));

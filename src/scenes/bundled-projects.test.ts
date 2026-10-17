@@ -694,15 +694,15 @@ describe('identité d’un état `heros` dans les paquets livrés (EDO 02 l.112-
   });
 
   it('chaque valeur `source` est contenue À L’OCTET dans son livre', () => {
-    const introuvables = identites.flatMap(({ f, etat, identite }) => identite.lignes.flatMap((l) => Object.entries(l.valeurs)
-      .filter(([, v]) => v.source && !texteDuLivre(v.source.book).includes(v.texte))
-      .map(([r, v]) => `${f} ${etat} ${l.espece} ${l.sexe} ${r} : « ${v.texte} » absent de ${v.source!.book}`)));
+    const introuvables = identites.flatMap(({ f, etat, identite }) => identite.lignes.flatMap((l) => l.valeurs
+      .filter((v) => v.source && !texteDuLivre(v.source.book).includes(v.valeur))
+      .map((v) => `${f} ${etat} ${l.espece} ${l.sexe} ${v.repere} : « ${v.valeur} » absent de ${v.source!.book}`)));
     expect(introuvables).toEqual([]);
   });
 
   it('chaque repère est EFFECTIVEMENT substitué au moins une fois (un repère masqué par un plus long est mort)', () => {
     const morts = identites.flatMap(({ f, p, etat, identite }) => {
-      const marques = identitesDe(new Map(identite.reperes.map((r) => [r.texte, `\uE000${r.id}\uE000`])));
+      const marques = identitesDe(new Map(identite.reperes.map((r) => [r.fragment, `\uE000${r.id}\uE000`])));
       const tires = new Set(prosesDePaquet(p).flatMap((t) => [...nommer(t, marques).matchAll(/\uE000([^\uE000]+)\uE000/g)].map((m) => m[1])));
       return identite.reperes.filter((r) => !tires.has(r.id)).map((r) => `${f} ${etat} : repère « ${r.id} » jamais substitué`);
     });

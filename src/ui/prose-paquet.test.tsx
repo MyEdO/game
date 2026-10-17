@@ -24,8 +24,8 @@ const narratif: NarratifBlock = {
   documents: [{ id: 'doc-3', titre: 'Document 3', prose: 'Cher Herr Lieberung,' }],
   etats: [{ id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26 }, forme: { kind: 'heros', identite: {
     ancres: ['Kastor', 'Lieberung'],
-    reperes: [{ id: 'sal', texte: 'Cher Herr Lieberung' }, { id: 'complet', texte: 'Kastor Lieberung' }],
-    lignes: [{ espece: 'nain', sexe: 'F', valeurs: { sal: { texte: 'Chère Frau Linkassniz', adapteDe: P27 }, complet: { texte: 'Kallar Linkassniz', source: P27 } } }],
+    reperes: [{ id: 'sal', fragment: 'Cher Herr Lieberung' }, { id: 'complet', fragment: 'Kastor Lieberung' }],
+    lignes: [{ espece: 'nain', sexe: 'F', valeurs: [{ repere: 'sal', valeur: 'Chère Frau Linkassniz', adapteDe: P27 }, { repere: 'complet', valeur: 'Kallar Linkassniz', source: P27 }] }],
   } } }],
 };
 const heros = (id: string, speciesId: string, sex: 'M' | 'F') => ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, apparence: { sex, build: 0.5 } }), id });

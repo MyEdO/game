@@ -46,8 +46,8 @@ export function identitesResolues(s: SourceDIdentites): Identites {
     const ligne = etat.forme.identite.lignes.find((l) => l.espece === couple.espece && l.sexe === couple.sexe);
     if (!ligne) continue;
     for (const r of etat.forme.identite.reperes) {
-      const valeur = ligne.valeurs[r.id];
-      if (valeur && !table.has(r.texte)) table.set(r.texte, valeur.texte);
+      const v = ligne.valeurs.find((x) => x.repere === r.id);
+      if (v && !table.has(r.fragment)) table.set(r.fragment, v.valeur);
     }
   }
   return table.size ? identitesDe(table) : AUCUNE_IDENTITE;

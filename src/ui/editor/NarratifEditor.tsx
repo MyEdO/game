@@ -765,15 +765,15 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
 
 type Identite = z.infer<typeof identiteSchema>;
 type LigneDIdentite = Identite['lignes'][number];
-type ValeurDIdentite = LigneDIdentite['valeurs'][string];
+type ValeurDIdentite = LigneDIdentite['valeurs'][number];
 
 /** Une identité neuve : une ancre, le repère qui la porte, aucune ligne. */
-const identiteNeuve = (): Identite => ({ ancres: ['Nom'], reperes: [{ id: 'repere-1', texte: 'Nom' }], lignes: [] });
+const identiteNeuve = (): Identite => ({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
 
 const COUPLES_D_IDENTITE: readonly { espece: RaceKey; sexe: Sexe }[] = raceKeySchema.options.flatMap((espece) => sexeSchema.options.map((sexe) => ({ espece, sexe })));
 const libelleDeLigne = (l: { espece: RaceKey; sexe: Sexe }): string => `${t(`espece.individu.${l.espece}`)} ${libelleDeValeur(sexeSchema, l.sexe).toLowerCase()}`;
 
-/** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : ancres, repères (id stable + texte verbatim du paquet) et, par
+/** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : ancres, repères (id stable + fragment verbatim du paquet) et, par
  *  espèce et sexe, la valeur de chaque repère et sa provenance. Un renommage de repère suit dans chaque ligne ; un
  *  repère dont une valeur est saisie ne se retire pas. */
 function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identite: Identite; onChange: (identite: Identite | undefined) => void }) {
@@ -785,25 +785,25 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
   const setLigne = (j: number, ligne: LigneDIdentite) => poser({ lignes: identite.lignes.map((l, k) => (k === j ? ligne : l)) });
   const renommerRepere = (de: string, vers: string) => poser({
     reperes: identite.reperes.map((r) => (r.id === de ? { ...r, id: vers } : r)),
-    lignes: identite.lignes.map((l) => ({ ...l, valeurs: Object.fromEntries(Object.entries(l.valeurs).map(([k, v]) => [k === de ? vers : k, v])) })),
+    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.map((v) => (v.repere === de ? { ...v, repere: vers } : v)) })),
   });
   const retirerRepere = (id: string) => poser({
     reperes: identite.reperes.filter((r) => r.id !== id),
-    lignes: identite.lignes.map((l) => ({ ...l, valeurs: Object.fromEntries(Object.entries(l.valeurs).filter(([k]) => k !== id)) })),
+    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.filter((v) => v.repere !== id) })),
   });
   const ajouterRepere = () => {
     const id = idFrais('repere', identite.reperes);
-    poser({ reperes: [...identite.reperes, { id, texte: '' }], lignes: identite.lignes.map((l) => ({ ...l, valeurs: { ...l.valeurs, [id]: { texte: '' } } })) });
+    poser({ reperes: [...identite.reperes, { id, fragment: '' }], lignes: identite.lignes.map((l) => ({ ...l, valeurs: [...l.valeurs, { repere: id, valeur: '' }] })) });
   };
   const refusDuRepere = (id: string): string | undefined => {
     if (identite.reperes.length <= 1) return 'Une identité garde au moins un repère.';
-    const saisies = identite.lignes.filter((l) => l.valeurs[id]?.texte.trim()).map(libelleDeLigne);
+    const saisies = identite.lignes.filter((l) => l.valeurs.some((v) => v.repere === id && v.valeur.trim())).map(libelleDeLigne);
     return saisies.length ? `Valeur saisie pour : ${saisies.join(', ')} — videz-la d’abord.` : undefined;
   };
   const libre = COUPLES_D_IDENTITE.find((c) => !identite.lignes.some((l) => l.espece === c.espece && l.sexe === c.sexe));
   const ajouterLigne = () => {
     if (!libre) return;
-    poser({ lignes: [...identite.lignes, { ...libre, valeurs: Object.fromEntries(identite.reperes.map((r) => [r.id, { texte: '' }])) }] });
+    poser({ lignes: [...identite.lignes, { ...libre, valeurs: identite.reperes.map((r) => ({ repere: r.id, valeur: '' })) }] });
   };
   return (
     <div className="ed-field">
@@ -828,8 +828,8 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
             onRename={(id) => renommerRepere(r.id, id)}
           />
           <label className="ed-subfield">
-            {`Texte du repère ${i + 1}`}
-            <input value={r.texte} onChange={(e) => poser({ reperes: identite.reperes.map((x) => (x.id === r.id ? { ...x, texte: e.target.value } : x)) })} />
+            {`Fragment du repère ${i + 1}`}
+            <input value={r.fragment} onChange={(e) => poser({ reperes: identite.reperes.map((x) => (x.id === r.id ? { ...x, fragment: e.target.value } : x)) })} />
           </label>
           <BoutonRetirer id={`supprimer-repere-${porteur}-${r.id}`} libelle={`Supprimer le repère ${i + 1}`} refus={refusDuRepere(r.id)} onRemove={() => retirerRepere(r.id)} />
         </div>
@@ -852,15 +852,16 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
             </select>
           </label>
           {identite.reperes.map((r) => {
-            const v: ValeurDIdentite = l.valeurs[r.id] ?? { texte: '' };
-            const setValeur = (patch: Partial<ValeurDIdentite>) => setLigne(j, { ...l, valeurs: { ...l.valeurs, [r.id]: { ...v, ...patch } } });
-            const nomDuRepere = r.texte.trim() && identite.reperes.filter((x) => x.texte === r.texte).length === 1 ? r.texte : r.id;
+            const k = l.valeurs.findIndex((x) => x.repere === r.id);
+            const v: ValeurDIdentite = k >= 0 ? l.valeurs[k] : { repere: r.id, valeur: '' };
+            const setValeur = (patch: Partial<Omit<ValeurDIdentite, 'repere'>>) => setLigne(j, { ...l, valeurs: k >= 0 ? l.valeurs.map((x, n) => (n === k ? { ...x, ...patch } : x)) : [...l.valeurs, { ...v, ...patch }] });
+            const nomDuRepere = r.fragment.trim() && identite.reperes.filter((x) => x.fragment === r.fragment).length === 1 ? r.fragment : r.id;
             const sujet = `de « ${nomDuRepere} » (${libelleDeLigne(l)})`;
             return (
               <div key={r.id}>
                 <label className="ed-subfield">
                   {`Valeur ${sujet}`}
-                  <input value={v.texte} onChange={(e) => setValeur({ texte: e.target.value })} />
+                  <input value={v.valeur} onChange={(e) => setValeur({ valeur: e.target.value })} />
                 </label>
                 <ProvenanceDuTexte copie identite={`${porteur}/identite/${clesLignes[j]}/${r.id}`} sujet={sujet} value={v} onChange={setValeur} />
               </div>

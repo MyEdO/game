@@ -106,29 +106,31 @@ export function motifEnMot(fragments: readonly string[], drapeaux = 'u'): RegExp
   return new RegExp(`(?<!\\p{L})(?:${alternationDe(fragments)})(?!\\p{L})`, drapeaux);
 }
 
-/** Un REPÈRE d'identité : un fragment VERBATIM du paquet (id STABLE, clé des `valeurs` de chaque ligne). */
+/** Un REPÈRE d'identité : un fragment VERBATIM du paquet, à l'id STABLE que désigne chaque valeur (`repere`). */
 export const repereDIdentiteSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
-  texte: sansMarkdown('texte du repère'),
-}), { id: { label: "identifiant", texte: { regime: "technique" } }, texte: { label: "texte du repère", texte: { regime: "technique", usage: "fragment verbatim du paquet remplacé à l’affichage" } } });
+  fragment: sansMarkdown('fragment du repère'),
+}), { id: { label: "identifiant", texte: { regime: "technique" } }, fragment: { label: "fragment du repère", texte: { regime: "technique", usage: "fragment verbatim du paquet remplacé à l’affichage" } } });
 
-/** La forme d'un repère pour une espèce et un sexe : copie (`source`) ou adaptation (`adapteDe`) d'un passage. */
+/** La forme d'un repère (`repere`, id d'un repère de la même identité) pour une espèce et un sexe : copie
+ *  (`source`) ou adaptation (`adapteDe`) d'un passage. */
 export const valeurDIdentiteSchema = nommerChamps(z.strictObject({
-  texte: sansMarkdown('texte de la valeur'),
+  repere: z.string().min(1, 'repère vide.'),
+  valeur: sansMarkdown('valeur'),
   source: sourceRefSchema.optional(),
   ...champAdapteDe(),
 })
   .superRefine(refineAdapteDe)
   .superRefine((v, ctx) => {
     if (v.source === undefined && v.adapteDe === undefined) ctx.addIssue({ code: 'custom', path: ['source'], message: 'provenance manquante : la page copiée (source) ou le passage adapté (adapté de).' });
-  }), { texte: { label: "texte", texte: { regime: "designation" } }, source: { label: "source" }, ...META_ADAPTE_DE });
+  }), { repere: { label: "repère", texte: { regime: "technique" } }, valeur: { label: "valeur", texte: { regime: "designation" } }, source: { label: "source" }, ...META_ADAPTE_DE });
 
 /** Une ligne d'identité : la valeur de chaque repère pour une espèce (`RaceKey`) et un sexe. */
 export const ligneDIdentiteSchema = nommerChamps(z.strictObject({
   espece: raceKeySchema,
   sexe: sexeSchema,
-  valeurs: z.record(z.string().min(1, 'id de repère vide.'), valeurDIdentiteSchema),
-}), { espece: { label: "espèce" }, sexe: { label: "sexe" }, valeurs: { label: "valeurs", texte: { regime: "technique", usage: "clés : ids des repères de l’identité" } } });
+  valeurs: listeCle(valeurDIdentiteSchema, 'repere'),
+}), { espece: { label: "espèce" }, sexe: { label: "sexe" }, valeurs: { label: "valeurs" } });
 
 /** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : les repères du paquet et leur forme par espèce et sexe du héros désigné. */
 export const identiteSchema = nommerChamps(z.strictObject({
@@ -139,12 +141,15 @@ export const identiteSchema = nommerChamps(z.strictObject({
   .superRefine((id, ctx) => {
     const ancres = motifEnMot(id.ancres);
     id.reperes.forEach((r, i) => {
-      if (!ancres.test(r.texte)) ctx.addIssue({ code: 'custom', path: ['reperes', i, 'texte'], message: `repère « ${r.texte} » sans ancre : il contient au moins l’une de « ${id.ancres.join(' », « ')} ».` });
+      if (!ancres.test(r.fragment)) ctx.addIssue({ code: 'custom', path: ['reperes', i, 'fragment'], message: `repère « ${r.fragment} » sans ancre : il contient au moins l’une de « ${id.ancres.join(' », « ')} ».` });
     });
     const reperes = new Set(id.reperes.map((r) => r.id));
     id.lignes.forEach((l, j) => {
-      for (const r of reperes) if (!(r in l.valeurs)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs'], message: `repère « ${r} » sans valeur : une ligne couvre tous les repères.` });
-      for (const k of Object.keys(l.valeurs)) if (!reperes.has(k)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs', k], message: `repère inconnu « ${k} ».` });
+      const couverts = new Set(l.valeurs.map((v) => v.repere));
+      for (const r of reperes) if (!couverts.has(r)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs'], message: `repère « ${r} » sans valeur : une ligne couvre tous les repères.` });
+      l.valeurs.forEach((v, k) => {
+        if (!reperes.has(v.repere)) ctx.addIssue({ code: 'custom', path: ['lignes', j, 'valeurs', k, 'repere'], message: `repère inconnu « ${v.repere} ».` });
+      });
     });
   }), { ancres: { label: "ancres", texte: { regime: "technique", usage: "noms du paquet que portent les repères" } }, reperes: { label: "repères" }, lignes: { label: "lignes" } });
 

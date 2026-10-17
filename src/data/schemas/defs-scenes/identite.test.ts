@@ -10,12 +10,15 @@ const P27 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.114-125' };
 const L127 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.127' };
 
 type Identite = Record<string, unknown>;
+type Valeur = Record<string, unknown>;
+/** Les valeurs de la ligne `j`. */
+const valeurs = (id: Identite, j: number): Valeur[] => (id.lignes as { valeurs: Valeur[] }[])[j].valeurs;
 const identite = (): Identite => ({
   ancres: ['Kastor', 'Lieberung'],
-  reperes: [{ id: 'complet', texte: 'Kastor Lieberung' }, { id: 'nom', texte: 'Lieberung' }],
+  reperes: [{ id: 'complet', fragment: 'Kastor Lieberung' }, { id: 'nom', fragment: 'Lieberung' }],
   lignes: [
-    { espece: 'humain', sexe: 'M', valeurs: { complet: { texte: 'Kastor Lieberung', source: P27 }, nom: { texte: 'Lieberung', source: P27 } } },
-    { espece: 'nain', sexe: 'F', valeurs: { complet: { texte: 'Kallar Linkassniz', source: P27 }, nom: { texte: 'Linkassniz', adapteDe: L127 } } },
+    { espece: 'humain', sexe: 'M', valeurs: [{ repere: 'complet', valeur: 'Kastor Lieberung', source: P27 }, { repere: 'nom', valeur: 'Lieberung', source: P27 }] },
+    { espece: 'nain', sexe: 'F', valeurs: [{ repere: 'complet', valeur: 'Kallar Linkassniz', source: P27 }, { repere: 'nom', valeur: 'Linkassniz', adapteDe: L127 }] },
   ],
 });
 const narratif = (id: Identite): NarratifBlock => ({
@@ -36,49 +39,55 @@ describe('identité d’un état `heros` — la porte refuse chaque faute à sa 
 
   it('un repère sans ancre est refusé', () => {
     const id = identite();
-    (id.reperes as { texte: string }[])[1].texte = 'Herr Kuftsos';
-    expect(fautes(id)).toEqual(['reperes.1.texte → repère « Herr Kuftsos » sans ancre : il contient au moins l’une de « Kastor », « Lieberung ».']);
+    (id.reperes as { fragment: string }[])[1].fragment = 'Herr Kuftsos';
+    expect(fautes(id)).toEqual(['reperes.1.fragment → repère « Herr Kuftsos » sans ancre : il contient au moins l’une de « Kastor », « Lieberung ».']);
   });
 
   it('une ancre ne compte qu’en mot entier', () => {
     const id = identite();
-    (id.reperes as { texte: string }[])[1].texte = 'Lieberungen';
-    expect(fautes(id)).toEqual(['reperes.1.texte → repère « Lieberungen » sans ancre : il contient au moins l’une de « Kastor », « Lieberung ».']);
+    (id.reperes as { fragment: string }[])[1].fragment = 'Lieberungen';
+    expect(fautes(id)).toEqual(['reperes.1.fragment → repère « Lieberungen » sans ancre : il contient au moins l’une de « Kastor », « Lieberung ».']);
   });
 
   it('une valeur sans provenance est refusée', () => {
     const id = identite();
-    (id.lignes as { valeurs: Record<string, Record<string, unknown>> }[])[1].valeurs.nom = { texte: 'Linkassniz' };
-    expect(fautes(id)).toEqual(['lignes.1.valeurs.nom.source → provenance manquante : la page copiée (source) ou le passage adapté (adapté de).']);
+    valeurs(id, 1)[1] = { repere: 'nom', valeur: 'Linkassniz' };
+    expect(fautes(id)).toEqual(['lignes.1.valeurs.1.source → provenance manquante : la page copiée (source) ou le passage adapté (adapté de).']);
   });
 
   it('une valeur copiée ET adaptée est refusée', () => {
     const id = identite();
-    (id.lignes as { valeurs: Record<string, Record<string, unknown>> }[])[1].valeurs.nom = { texte: 'Linkassniz', source: P27, adapteDe: L127 };
-    expect(fautes(id)).toEqual(['lignes.1.valeurs.nom.adapteDe → texte à la fois copié et adapté d’un passage : garde l’un ou l’autre.']);
+    valeurs(id, 1)[1] = { repere: 'nom', valeur: 'Linkassniz', source: P27, adapteDe: L127 };
+    expect(fautes(id)).toEqual(['lignes.1.valeurs.1.adapteDe → texte à la fois copié et adapté d’un passage : garde l’un ou l’autre.']);
   });
 
   it('un métacaractère Markdown est refusé : ancre, repère, valeur', () => {
     const id = identite();
     (id.ancres as string[])[0] = '*Kastor*';
-    (id.reperes as { texte: string }[])[1].texte = 'Lieberung_';
-    (id.lignes as { valeurs: Record<string, { texte: string }> }[])[1].valeurs.complet.texte = 'Kallar [Linkassniz]';
+    (id.reperes as { fragment: string }[])[1].fragment = 'Lieberung_';
+    valeurs(id, 1)[0].valeur = 'Kallar [Linkassniz]';
     const f = fautes(id);
     expect(f).toContain('ancres.0 → ancre : métacaractère Markdown refusé (\\ ` * _ [ ] < > # | ~).');
-    expect(f).toContain('reperes.1.texte → texte du repère : métacaractère Markdown refusé (\\ ` * _ [ ] < > # | ~).');
-    expect(f).toContain('lignes.1.valeurs.complet.texte → texte de la valeur : métacaractère Markdown refusé (\\ ` * _ [ ] < > # | ~).');
+    expect(f).toContain('reperes.1.fragment → fragment du repère : métacaractère Markdown refusé (\\ ` * _ [ ] < > # | ~).');
+    expect(f).toContain('lignes.1.valeurs.0.valeur → valeur : métacaractère Markdown refusé (\\ ` * _ [ ] < > # | ~).');
   });
 
   it('une ligne qui ne couvre pas tous les repères est refusée', () => {
     const id = identite();
-    delete (id.lignes as { valeurs: Record<string, unknown> }[])[1].valeurs.nom;
+    valeurs(id, 1).splice(1, 1);
     expect(fautes(id)).toEqual(['lignes.1.valeurs → repère « nom » sans valeur : une ligne couvre tous les repères.']);
   });
 
   it('une valeur d’un repère inconnu est refusée', () => {
     const id = identite();
-    (id.lignes as { valeurs: Record<string, unknown> }[])[1].valeurs.titre = { texte: 'Frau', adapteDe: L127 };
-    expect(fautes(id)).toEqual(['lignes.1.valeurs.titre → repère inconnu « titre ».']);
+    valeurs(id, 1).push({ repere: 'titre', valeur: 'Frau', adapteDe: L127 });
+    expect(fautes(id)).toEqual(['lignes.1.valeurs.2.repere → repère inconnu « titre ».']);
+  });
+
+  it('deux valeurs d’un même repère dans une ligne sont refusées', () => {
+    const id = identite();
+    valeurs(id, 1).push({ repere: 'nom', valeur: 'Linkassniz', adapteDe: L127 });
+    expect(fautes(id)).toEqual(['lignes.1.valeurs.2 → « nom » dupliqué : « repere » identifie l’élément dans sa liste, il y est unique.']);
   });
 
   it('un couple espèce × sexe en double est refusé', () => {
