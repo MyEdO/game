@@ -210,17 +210,20 @@ export function shieldReactionCost(c: Combatant, parryWeapon: Weapon | undefined
 export interface ContreSurDefense { choisie: boolean; plafond?: number }
 
 /** Contre-attaque sur Test opposé de DÉFENSE gagné en mêlée — lue en DONNÉES (capacité GÉNÉRIQUE
- *  `counterOnDefenseWin`), arme de PARADE Rapide exigée par `counterRequiresFastParry`. Trait : LDB 85
- *  l.71. Talent : LDB 10 l.1037 (plafond = Niveau). Le trait prime. */
+ *  `counterOnDefenseWin`), arme de PARADE Rapide exigée par `counterRequiresFastParry`, déclaration et
+ *  plafond par Niveau portés par `counterDeclaredPerLevel`. Une contre-attaque non déclarée prime.
+ *  LDB 85 l.71 ; LDB 10 l.1037. */
 export function contreSurDefenseGagnee(c: Combatant, parryWeapon: Weapon | undefined): ContreSurDefense | null {
   const fast = canStrikeFirst(parryWeapon ? [parryWeapon] : []);
-  for (const t of c.traits ?? []) {
-    const cap = findTraitById(t.id)?.capabilities;
-    if (cap?.counterOnDefenseWin && (!cap.counterRequiresFastParry || fast)) return { choisie: false };
-  }
+  const porteuses: { cap: Pick<CombatFeature, 'counterOnDefenseWin' | 'counterRequiresFastParry' | 'counterDeclaredPerLevel'>; niveau: number }[] = [
+    ...(c.traits ?? []).map((t) => ({ cap: findTraitById(t.id)?.capabilities ?? {}, niveau: 1 })),
+    ...featuresOf(c).map(({ def, ctx }) => ({ cap: def, niveau: ctx.level })),
+  ];
   let plafond = 0;
-  for (const { def, ctx } of featuresOf(c)) {
-    if (def.counterOnDefenseWin && (!def.counterRequiresFastParry || fast)) plafond += ctx.level;
+  for (const { cap, niveau } of porteuses) {
+    if (!cap.counterOnDefenseWin || (cap.counterRequiresFastParry && !fast)) continue;
+    if (!cap.counterDeclaredPerLevel) return { choisie: false };
+    plafond += niveau;
   }
   return plafond > 0 ? { choisie: true, plafond } : null;
 }

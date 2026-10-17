@@ -1750,6 +1750,8 @@ export interface TraitCapabilities {
    *  le talent Riposte (`CombatFeature.counterOnDefenseWin`) — un seul concept pour traits ET talents. */
   counterOnDefenseWin?: boolean;
   counterRequiresFastParry?: boolean;
+  /** `CombatFeature.counterDeclaredPerLevel`. */
+  counterDeclaredPerLevel?: boolean;
   unstable?: boolean;
   painless?: boolean;
   /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */

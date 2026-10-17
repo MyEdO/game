@@ -45,6 +45,7 @@ import {
   belowMinRangeBand,
   resolveStrayRangedHit,
   resolveMeleePassive,
+  toucheDuTestDeDefense,
   coupAApplique,
   finishMelee,
   rollMeleeDefender,
@@ -155,7 +156,7 @@ import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, impenetrableAt, piecesPorteesA, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, impenetrableAt, piecesPorteesA, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
@@ -470,11 +471,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   return null;
 }
 
-/** Résout une attaque (le JET) SANS l'appliquer — pour le flux par modale (« Lancer »
- *  puis éventuel point de Chance). Retourne null si la cible est hors de portée de mêlée. */
-/** Tir dans la mêlée (LDB 14 l.116) : si la pénalité de −20 a transformé une réussite en échec, le
- *  tir touche un allié intercalé de la cible. Retourne l'allié (le 1er Engagé côté tireur, « au
- *  hasard » approximé — le cas courant n'a qu'un allié au contact), ou null si non applicable. */
+/** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
   if (res.attackerRoll > res.attackerDetail.target + 20) return null; // n'aurait pas touché même sans le −20
@@ -2936,8 +2933,9 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (maladresseDuDefenseur(get, set, target, q.res, suivant)) return true;
         break;
       case 'reaction':
-        if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant);
-        if (q.suite?.reaction && q.res.parryWeapon) applyShieldReaction(get, set, target, attacker, q.suite.reaction, q.res.parryWeapon);
+        if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.riposte', { name: target.label }));
+        if (q.suite?.reaction && q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, q.suite.reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q)))
+          return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.shieldReactionDamage', { name: target.label, foe: attacker.label }));
         break;
       case 'suite':
         if (jouerLaSuiteDuCoup(get, set, attacker, target, q.res, q.suite)) return true;
@@ -2952,25 +2950,30 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
  *  l.1037 ; LDB 85 l.71 ; LDB 13 l.123. */
 function riposteDeclaree(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
   const { res } = q;
-  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || res.netSL <= 0 || !res.parryWeapon) return false;
-  if (isOutOfAction(target) || isOutOfAction(attacker)) return false;
+  if (!defenseGagneeEnMelee(attacker, target, q) || !res.parryWeapon) return false;
   const contre = contreSurDefenseGagnee(target, res.parryWeapon);
   if (!contre) return false;
   if (contre.plafond != null && (target.ripostesThisRound ?? 0) >= contre.plafond) return false;
   return !contre.choisie || q.suite?.riposte !== false;
 }
 
+/** Le Test opposé de défense est-il GAGNÉ en mêlée, les deux camps encore en état de frapper et d'être
+ *  frappés ? LDB 13 l.123 ; LDB 12 l.160. */
+function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
+  const { res } = q;
+  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || res.netSL <= 0 || !res.defenderDetail) return false;
+  return !isOutOfAction(target) && !isOutOfAction(attacker);
+}
+
 /** LA FRAPPE PASSIVE d'un défenseur, portée par son Test de défense gagné — appliquée comme toute touche
  *  (`applyAttackResult`), puis rend la main à l'après-coup du coup qui l'a provoquée (`suivant`). Rend
  *  `true` quand une fenêtre tient la main. LDB 10 l.1037 ; LDB 85 l.71 ; LDB 13 l.151 ; LDB 14 l.3 ;
  *  LDB 14 l.208-209 ; #1595 c.6234104573. */
-function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup): boolean {
+function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup, ajout: string): boolean {
   const arme = q.res.parryWeapon!;
   if (contreSurDefenseGagnee(defenseur, arme)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
-  const frappe = resolveMeleePassive(defenseur, attacker, arme,
-    { roll: q.res.defenderRoll ?? 1, target: q.res.defenderDetail?.target ?? 1, success: true, sl: q.res.netSL, isDouble: false },
-    undefined, [], undefined, false, frozenDifficulty(q.res.defenderDetail));
-  const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), tr('cf.riposte', { name: defenseur.label })] };
+  const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL);
+  const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), ajout] };
   return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === OPS_DIFFEREES;
 }
 
@@ -3470,23 +3473,21 @@ registerCascadeApplier('casseDArme', (get, set, step, porteur) => {
 });
 
 /**
- * Réaction de Porte-Bouclier — variante « Avantage de groupe » (AA 13 l.84, VERBATIM : « une fois par Round,
- * vous pouvez dépenser 2 Avantages soit pour causer des Dégâts quand vous êtes attaqué comme s'il s'agissait
- * de votre Action, soit pour pousser votre adversaire sur 2 mètres dans la direction directement opposée à
- * vous et ne plus être considéré comme Engagé »). Brique GÉNÉRALE de réaction à coût d'Avantages : le coût et
- * l'éligibilité viennent de la DONNÉE (`shieldReactionCost`), jamais d'un dispatch par nom. Débite la réserve
- * (`campSpend`), marque la cadence 1×/Round, puis applique l'effet via les coutures existantes (poussée
- * `pushAway` + désengagement `disengageFrom` ; Dégâts `resolveMeleePassive` — même voie que la Riposte).
+ * Réaction de Porte-bouclier, variante « Avantage de groupe » (AA 13 l.80, l.84). Coût et éligibilité en
+ * DONNÉE (`shieldReactionCost`). Débite la réserve (`campSpend`) et marque la cadence quand la réaction
+ * part : la poussée s'applique ici ; les Dégâts rendent `true`, la frappe passant par
+ * `jouerLaFrappePassive` (Test opposé de défense gagné, `defenseGagnee`). #1595 c.6234104573 ; #1093.
  */
-export function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker: Combatant, kind: 'damage' | 'push', parryWeapon: Weapon | undefined): void {
+function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker: Combatant, kind: 'damage' | 'push', parryWeapon: Weapon | undefined, defenseGagnee: boolean): boolean {
   const battle = get().battle;
-  if (!battle || isOutOfAction(defender)) return;
+  if (!battle || isOutOfAction(defender)) return false;
   const cost = shieldReactionCost(defender, parryWeapon);
-  if (cost <= 0 || defender.usedShieldReactionRound || spendableAdvantage(get, defender) < cost) return;
+  if (cost <= 0 || defender.usedShieldReactionRound || spendableAdvantage(get, defender) < cost) return false;
+  if (kind === 'damage' && !defenseGagnee) return false;
   campSpend(get, defender, cost);
   defender.usedShieldReactionRound = true;
+  if (kind === 'damage') return true;
   const log = [...battle.log];
-  if (kind === 'push') {
     if (defender.pos && attacker.pos && !isOutOfAction(attacker)) {
       const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene))); // 2 m RAW → cases
       const r = pushAway(get().scene!, defender.pos, attacker.pos, tiles, { blocked: occupied(battle, attacker) });
@@ -3499,27 +3500,10 @@ export function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, a
     }
     disengageFrom(defender, attacker); // « ne plus être considéré comme Engagé »
     log.push(ev('detail', tr('cf.shieldReactionPush', { name: defender.label, foe: attacker.label }), defender.id, attacker.id));
-  } else {
-    // « causer des Dégâts comme s'il s'agissait de son Action » : une frappe de mêlée (arme principale) vers
-    // l'attaquant, résolue passivement — même voie que la Riposte, surfacée au journal (jet dans le log).
-    const weapon = defender.weapons.find((w) => !isUnarmed(w)) ?? defender.weapons[0];
-    const atk = rollMeleeAttacker(defender, attacker, weapon, battleRng());
-    const res = resolveMeleePassive(defender, attacker, weapon, atk, undefined, [], undefined, false, composeAttack(attackModifiers(defender, attacker, weapon, { kind: 'melee' })));
-    if (res.hit && res.woundsLost) {
-      attacker.wounds.current = Math.max(0, attacker.wounds.current - res.woundsLost);
-      if (attacker.wounds.current <= 0 && !attacker.dead && !hasCondition(attacker, COND.inconscient)) applyZeroWounds(attacker);
-      if (isOutOfAction(attacker)) {
-        clearEngagementOf(battle.combatants, attacker.id);
-        clearPsychOf(battle.combatants, attacker.id);
-      refreshAllDefendedPsych(battle.combatants); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
-      }
-    }
-    log.push(ev('damage', tr('cf.shieldReactionDamage', { name: defender.label, foe: attacker.label }), defender.id, attacker.id));
-    log.push(ev(res.hit ? 'damage' : 'attack', res.log, defender.id, attacker.id));
-  }
   set({ battle: { ...get().battle!, log } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
+  return false;
 }
 
 /**

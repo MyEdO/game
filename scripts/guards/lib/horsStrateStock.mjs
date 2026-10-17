@@ -835,7 +835,7 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/talents.json', ref: 'combat | chargeDamageBonus', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'combat | commandTeam', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'combat | corruptionThreshold', occurrence: 1 },
-  { fichier: 'src/data/talents.json', ref: 'combat | counterOnDefenseWin,counterRequiresFastParry', occurrence: 1 },
+  { fichier: 'src/data/talents.json', ref: 'combat | counterDeclaredPerLevel,counterOnDefenseWin,counterRequiresFastParry', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'combat | critExtraWounds', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'combat | critExtraWounds,critRollTwice', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'combat | damageReduction', occurrence: 1 },

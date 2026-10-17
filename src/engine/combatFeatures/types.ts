@@ -94,6 +94,8 @@ export interface CombatFeature {
   counterOnDefenseWin?: boolean;
   /** La contre-attaque exige une arme de PARADE Rapide (Riposte ; Champion ne l'exige pas). */
   counterRequiresFastParry?: boolean;
+  /** La contre-attaque se DÉCLARE, au plus Niveau fois par Round (Riposte LDB 10 l.1037). */
+  counterDeclaredPerLevel?: boolean;
   /** Renversement : en gagnant le Test opposé de Corps à corps, prend TOUS les Avantages adverses au lieu de +1. */
   stealAdvantage?: boolean;
   /** Renversement — variante « Avantage de groupe » (AA 13 l.92-98) : prend 1 Avantage dans la réserve

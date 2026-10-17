@@ -1564,6 +1564,13 @@ export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon
   return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), undefined, undefined, 0, withhold);
 }
 
+/** Touche d'une frappe passive, portée par le Test de défense GAGNÉ (`defBd`) au DR du Test opposé. Le
+ *  double de la défense est le Critique d'`applyOpposedCritical` (LDB 14 l.3). LDB 10 l.1037 ; LDB 85 l.71 ;
+ *  AA 13 l.84 ; LDB 13 l.123, l.151, l.183 ; LDB 62 l.248 ; #1595 c.6234104573. */
+export function toucheDuTestDeDefense(defenseur: Combatant, attaquant: Combatant, arme: Weapon, defBd: RollBreakdown, dr: number): AttackResult {
+  return applyHit(defenseur, attaquant, arme, defBd, dr, false);
+}
+
 /** LDB 18 l.30 ; AA 07 l.61 ; AA 06 l.556. */
 export function peutRetenirSesCoups(weapon: Weapon): boolean {
   return rule('combat-aa-blessures') !== 'aa' || (weapon.type === 'melee' && !weaponInflictsFlames(weapon));
@@ -1684,7 +1691,7 @@ function applyHit(
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
   // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
   // vit dans `critiquesDuCoup` (#1595 c.6220635824).
-  const empale = qualityCritTriggered(weapon, atkBd.roll);
+  const empale = atkBd.success && qualityCritTriggered(weapon, atkBd.roll);
   const isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.

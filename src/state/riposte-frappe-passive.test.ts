@@ -25,11 +25,11 @@ const EPEE = arme('epee', 4, []);
 const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 /** `d` (Riposte, niveau `niveau`) s'est défendu contre `a`, qui frappait à l'Épée. */
-function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[] }): void {
+function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[]; champion?: boolean }): void {
   seedBattleRng(5);
   const d = {
     id: 'd', name: 'd', label: 'Défenseur', kind: 'enemy', important: true, characteristics: { ...CH }, wounds: { current: 30, max: 30 },
-    advantage: 0, conditions: [], movement: 4, skills: [], talents: [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: [],
+    advantage: 0, conditions: [], movement: 4, skills: [], talents: o.champion ? [] : [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: o.champion ? [{ id: 'champion' }] : [],
     engagedWith: ['a'], pos: { x: 1, y: 0 }, size: 'moyenne', weapons: o.armes ?? [RAPIERE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   } as unknown as Combatant;
   const a = {
@@ -48,11 +48,11 @@ function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; 
   } as never);
 }
 
-/** Test opposé GAGNÉ par la défense, au jet `roll` (réussi), parade à `parade`. */
-const defenseGagnee = (parade: Weapon, roll = 12): AttackResult => ({
+/** Test opposé GAGNÉ par la défense, au jet `roll` (réussi sauf `success: false`), parade à `parade`. */
+const defenseGagnee = (parade: Weapon, roll = 12, success = true): AttackResult => ({
   hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 4, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   parryWeapon: parade,
-  defenderDetail: { label: 'Corps à corps', base: 60, target: 60, roll, success: true, sl: 5, mods: [], mode: 'parade' },
+  defenderDetail: { label: 'Corps à corps', base: 60, target: 60, roll, success, sl: success ? 5 : -1, mods: [], mode: 'parade' },
   attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
 } as unknown as AttackResult);
 
@@ -125,5 +125,26 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
     draine();
     expect(cur('a').wounds.current).toBeLessThan(30);
     expect(g().battle!.acted, 'la suite du coup a rendu l’Action').toBe(false);
+  });
+
+  it('R9 — double RÉUSSI au Test de défense : UN Critique, celui de la défense, la frappe n’en ajoute pas (LDB 13 l.183 ; LDB 14 l.3)', () => {
+    monte({ pbAttaquant: 30 });
+    coup(defenseGagnee(RAPIERE, 11)); draine();
+    expect(cur('a').wounds.current).toBeLessThan(30);
+    expect(cur('a').criticalWounds).toBe(1);
+  });
+
+  it('R10 — Empaleuse, défense RATÉE sur un multiple de 10 mais gagnée : frappe sans Critique (LDB 13 l.183 ; LDB 62 l.248)', () => {
+    const empaleuse = arme('estoc', 3, [{ id: 'rapide' }, { id: 'empaleuse' }]);
+    monte({ pbAttaquant: 30, armes: [empaleuse] });
+    coup(defenseGagnee(empaleuse, 70, false)); draine();
+    expect(cur('a').wounds.current).toBeLessThan(30);
+    expect(cur('a').criticalWounds ?? 0).toBe(0);
+  });
+
+  it('R11 — Champion (trait) : la frappe part sans déclaration, à l’arme non Rapide (LDB 85 l.71)', () => {
+    monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
+    coup(defenseGagnee(EPEE), { riposte: false }); draine();
+    expect(cur('a').wounds.current).toBeLessThan(30);
   });
 });

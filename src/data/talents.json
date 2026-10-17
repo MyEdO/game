@@ -4249,7 +4249,8 @@
     },
     "combat": {
       "counterOnDefenseWin": true,
-      "counterRequiresFastParry": true
+      "counterRequiresFastParry": true,
+      "counterDeclaredPerLevel": true
     }
   },
   {
