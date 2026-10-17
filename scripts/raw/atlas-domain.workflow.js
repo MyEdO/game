@@ -102,7 +102,7 @@ const LECTURE_SEULE = 'LECTURE SEULE — tu n ECRIS, ne modifies, ne crees et ne
   + '\n' + 'Un passage de la source TRONQUE, fusionne, duplique ou visiblement abime ne se REPARE JAMAIS : tu le SIGNALES dans le champ `sourceAbimee` de ta reponse ([{ ref, constat }]), et tu cites la regle TELLE QUE le fichier la porte, troncature comprise. Reparer la source que tu cites, c est fabriquer ta preuve.'
 // Types d agent en LECTURE SEULE declares au depot (`.claude/agents/`) : leurs outils n incluent ni
 // Edit ni Write. REPERER lit (`lecteur`) ; REDIGER redige (`redacteur`) ; JUGER la completude ou la fidelite refute
-// (`juge`). Regime de chaque phase : `scripts/ops/workflows.test.mjs`.
+// (`juge-de-source`). Regime de chaque phase : `scripts/ops/workflows.test.mjs`.
 /** Les signalements de source ABIMEE du domaine COURANT. */
 let ABIMEES = []
 /** Recolte, sous sa phase, le signalement de source abimee d un rendu d agent ; rend ce rendu. */
@@ -276,7 +276,7 @@ async function applyGaps(dom, entries, gaps) {
  *  d un verificateur ne porte aucun id (VERIFY_SCHEMA). */
 async function verdictsDeFidelite(dom, entries, etiquette) {
   const rendus = await parallel(entries.map((e) => () =>
-    agent(verifyPrompt(dom, e), { label: dom.domain + ':' + etiquette + ':' + e.topicId, phase: 'Verif', agentType: 'juge', model: 'opus', effort: 'high', schema: VERIFY_SCHEMA })
+    agent(verifyPrompt(dom, e), { label: dom.domain + ':' + etiquette + ':' + e.topicId, phase: 'Verif', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: VERIFY_SCHEMA })
       .then((v) => ({ e, v: recolter(v, 'Verif') }))))
   const parId = {}
   rendus.forEach((x) => { if (x && x.v) parId[x.e.topicId] = { faithful: x.v.faithful, issues: x.v.issues || [] } })
@@ -410,7 +410,7 @@ async function runDomain(domain) {
   while (loops < MAXLOOPS) {
     phase('Audit')
     // L audit CONFRONTE les entrees a la source et refute : c est un JUGEMENT, pas une redaction.
-    const audit = await agent(auditPrompt(dom, entries, inventory, autre), { label: dom.domain + ':audit#' + (loops + 1), phase: 'Audit', agentType: 'juge', model: 'opus', effort: 'high', schema: AUDIT_SCHEMA })
+    const audit = await agent(auditPrompt(dom, entries, inventory, autre), { label: dom.domain + ':audit#' + (loops + 1), phase: 'Audit', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: AUDIT_SCHEMA })
     recolter(audit, 'Audit')
     const gaps = (audit && audit.gaps) || []
     lastDry = !!(audit && audit.dry)

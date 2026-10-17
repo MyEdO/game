@@ -122,6 +122,9 @@ parallèle : rate-limit, finders morts). Un type qui hérite tous les outils (`t
 jugement** (design, diff, fermeture) : les lentilles tiennent dans un seul prompt nourri du grounding
 déjà écrit, il ne re-mesure que ce qu'il conteste ; un workflow multi-agents ne se justifie que sur des
 travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regards sur la même entrée.
+**Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
+liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
+sur un grand diff dilue l'attention.
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
 → je pousse la branche, dont le run CI joue les gates → juge de diff en parallèle → corrections en
 train court.
@@ -263,6 +266,8 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
+| MJ de table simulée | `mj-de-table` | sonnet | medium |
+| Juge de workflow contre le `Source/` (complétude, fidélité, analyse) | `juge-de-source` | opus | high |
 
 **Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**
 (audit de fidélité des règles, extraction d'un livre en dossiers, sprites depuis l'art officiel par

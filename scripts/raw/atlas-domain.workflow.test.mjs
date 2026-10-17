@@ -315,7 +315,7 @@ test('workflow Atlas : un agent muni du SEUL `ctx_patch` (canal d’édition pre
 
 test('workflow Atlas : les types d’agent en lecture seule se lisent au dépôt (sinon le contrat est vide)', () => {
   const types = typesEnLectureSeule()
-  assert.ok(types.includes('lecteur') && types.includes('juge'), `types en lecture seule lus : ${types.join(', ')}`)
+  assert.ok(types.includes('lecteur') && types.includes('juge-de-source'), `types en lecture seule lus : ${types.join(', ')}`)
 })
 
 test('workflow Atlas : AUCUN agent ne part sans `agentType` en LECTURE SEULE, ni sans `model` écrit', async () => {
@@ -330,13 +330,13 @@ test('workflow Atlas : AUCUN agent ne part sans `agentType` en LECTURE SEULE, ni
   assert.deepEqual(sansModele.map(([cle]) => cle), [])
 })
 
-test('workflow Atlas : le type suit ce que la phase FAIT — `juge` là où l’on refute, `redacteur` là où l’on rédige', async () => {
+test('workflow Atlas : le type suit ce que la phase FAIT — `juge-de-source` là où l’on refute, `redacteur` là où l’on rédige', async () => {
   const options = await optionsDesDeuxRuns()
-  const parType = { juge: [], redacteur: [] }
+  const parType = { 'juge-de-source': [], redacteur: [] }
   for (const [cle, o] of options) (parType[o.agentType] ||= []).push(cle)
   // AUDIT de complétude et VÉRIF de fidélité confrontent une entrée à la source et REFUTENT ;
   // l'augmentation, elle, RÉDIGE — un `redacteur`, dans sa phase `Correction`.
-  assert.deepEqual(parType.juge.sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
+  assert.deepEqual(parType['juge-de-source'].sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
   assert.ok(parType.redacteur.includes(`Correction:${LOT[0]}:augment:topic-un`), parType.redacteur.join(' · '))
 })
 

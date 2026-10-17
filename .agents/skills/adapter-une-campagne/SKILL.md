@@ -69,21 +69,23 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    au schéma unique `ficheDeDossier` (`src/data/source/dossier.ts`).
    - Lecture : workflow `dossier-de-chapitre`, args projetés par
      `node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]`
-     (fichiers du chapitre, tête de l'arbre lu, familles et formes d'entrée de la fiche). Tout agent
-     exécute par `ctx_shell`, `cwd` = l'arbre, une commande simple par appel, un seul appel par message,
-     et n'écrit aucun fichier. Lentilles parallèles au `Source/` — impératifs, beats, points au MJ,
+     (fichiers du chapitre, tête de l'arbre lu, familles, formes et définitions d'entrée de la fiche).
+     Tout agent lit par Read/Grep et exécute par Bash, chemins absolus sous l'arbre, une commande simple
+     par appel, un seul appel par message, et n'écrit aucun fichier. Lentilles parallèles au `Source/` — impératifs, beats, points au MJ,
      indices, secrets et DÉCLENCHEURS (événements à l'initiative d'un PNJ ou du monde) ; PNJ, lieux,
      textes ; tests, rencontres, durée et difficulté, récompenses, états ; matière des compagnons si
      fournis. Le script pose chaque id, `<préfixe><rang>`.
    - Complétude : un juge relit le chapitre et rend ses corrections — oubli, réf fausse, contenu faux
-     (tout attribut de l'entrée hors réf, classement compris, validé contre sa forme) —, chacune visée par
-     famille et id. Le script les APPLIQUE : la fiche rendue est la fiche CORRIGÉE, `corrections` en est la
-     trace. Une correction à cible inconnue ou déjà corrigée, à attribut hors de sa famille ou à valeur
-     hors de sa forme, ne s'applique pas : `anomaliesDeCorrection` la nomme.
-   - Verdicts : dérivés de `trous`, une liste par espèce. `DOSSIER` (toutes vides) ; sinon la première
-     espèce trouée le nomme — `LECTURE INCOMPLÈTE` (`lentillesSansRendu`), `DOSSIER SANS COMPLÉTUDE`
-     (`completudeSansRendu`), `CORRECTIONS INAPPLICABLES` (`anomaliesDeCorrection`). `ARRÊT` : argument
-     manquant. Un verdict autre que `DOSSIER` se refait.
+     (tout attribut de l'entrée hors réf, classement compris) —, chacune visée par famille et id, que le
+     schéma du juge restreint aux ids de la fiche et à la forme de chaque attribut. Le script les APPLIQUE :
+     la fiche rendue est la fiche CORRIGÉE, `corrections` en est la trace. Un rendu qui corrige deux fois
+     la même cible est renvoyé au juge (prompt, sortie fautive, anomalies), 2 fois au plus ; restée, la
+     seconde correction ne s'applique pas et `anomaliesDeCorrection` la nomme.
+   - Verdicts : dérivés de `trous`, une liste par espèce, chaque agent sans rendu avec sa cause.
+     `DOSSIER` (toutes vides) ; sinon la première espèce trouée le nomme — `LECTURE INCOMPLÈTE`
+     (`lentillesSansRendu`), `DOSSIER SANS COMPLÉTUDE` (`completudeSansRendu`), `CORRECTIONS
+     INAPPLICABLES` (`anomaliesDeCorrection`). `ARRÊT` : argument manquant. Un verdict autre que
+     `DOSSIER` se refait.
    - Fiche : `node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json>` écrit la fiche d'un run au
      verdict `DOSSIER`, validée par le schéma et les gardes du chargeur (`chargerDossiers`), et refuse
      tout autre run : personne n'écrit ce JSON à la main. Puis `npm run test:raw` (gardes des fiches et des
@@ -94,35 +96,42 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
      `docs/dossiers-de-chapitre.md` après `npm run docs:build`.
 4. **Table papier simulée** (chapitres à forte ambiguïté ; Tome 1 : 1, 2, 6, 8) — workflow
    `table-simulee`, APRÈS le dossier, qu'elle consomme : args
-   `{ livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date }` projetés par
+   `{ livre, chapitre, fichiers, dossier, typeDePointAuMJ, seed, maxEchanges?, personas?, worktree, date }`
+   projetés par
    `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`
    (`--max-echanges`, `--personas` facultatifs) : `dossier` = l'objet de la fiche commitée du chapitre,
-   chargé et gardé par le lanceur ; sans fiche, le lanceur refuse.
+   chargé et gardé par le lanceur ; sans fiche, le lanceur refuse. `typeDePointAuMJ` = la forme projetée
+   du type d'un point au MJ : les catégories d'IMPRO en dérivent, plus `hors-livre`.
    `maxEchanges` absent = 3 échanges par beat du dossier (mesure #1993 : ≈2 par beat atteint) ; chaque
    échange coûte ≈ 5 agents (1 MJ + 4 joueurs). Explicite, il prime (entier ≥ 1, sinon `ARRÊT`).
    - Préparation : fiches des 4 PJ par un lecteur qui ignore le chapitre (un id de PJ vide ou en double
      = `ARRÊT`) ; sosie désigné sur le dossier et la liste des PJ — `motif` toujours renseigné (pourquoi ce
      PJ, ou pourquoi aucun), `ref` vide sans sosie ; la fiche du MJ est TIRÉE de la fiche commitée.
-   - Partie : MJ agent qui cite le livre ou déclare IMPRO, résout chaque intention et rend le sort de
-     chaque déclencheur en attente (joué, non échu, écarté), 4 joueurs cloisonnés à personas, dés tirés
-     par le moteur (une commande simple par jet, par `ctx_shell`, `cwd` = l'arbre). Le MJ ignore le
-     plafond `maxEchanges` : `fin` = le chapitre est clos selon le livre.
-   - Analyse : un juge classe chaque intention du journal et chaque déclencheur non joué ou écarté, sait
-     si la partie s'est arrêtée au plafond, et relève chaque fuite de secret (narration du MJ qui révèle
+   - Partie : MJ agent (`mj-de-table`) qui cite le livre ou déclare IMPRO, résout chaque intention et rend
+     le sort de chaque déclencheur en attente (joué, non échu, écarté), 4 joueurs cloisonnés à personas,
+     dés tirés par le moteur (une commande simple par jet, par Bash, chemin absolu de l'outil). Le MJ ignore
+     le plafond `maxEchanges` : `fin` = le chapitre est clos selon le livre. Un rendu du MJ à tirage hors
+     suite ou à déclencheur non joué sans motif lui est renvoyé (prompt, sortie fautive, anomalies), 2 fois
+     au plus.
+   - Analyse : un juge (`juge-de-source`) reçoit le journal PROJETÉ — les sorties de la partie, ni l'état
+     privé du MJ ni son classement de ses résolutions —, classe chaque intention et chaque déclencheur
+     non joué ou écarté, sait si la partie s'est arrêtée au plafond, et relève chaque fuite de secret (narration du MJ qui révèle
      un secret du dossier sans indice trouvé qui y mène). Un test réussi sur une piste qu'aucun indice du
      dossier ne couvre n'est pas un indice trouvé : le secret qu'en tire la narration reste une fuite.
    - Schémas : toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en
-     attente, beat, persona, secret, échange, id du sosie) est contrainte par le schéma de son appel —
-     `enum`, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée ;
+     attente, beat, persona, secret, échange, id du sosie, catégorie d'IMPRO selon la source) est contrainte
+     par le schéma de son appel — `enum`, branche par cas, ou objet dont les clés sont exactement les
+     membres qui doivent chacun recevoir une entrée ;
      le script ne re-vérifie pas ce que le schéma garantit, et ne redemande pas ce qu'il sait (la réf
      d'une fuite est celle de son secret au dossier).
    - Retour : `trous`, journal complet (anomalies de sosie, de tirage, de déclencheur ; `interrompue`,
      `plafondAtteint`), analyse (besoins `retenu`, fuites), déclencheurs non joués et écartés.
-   - Verdicts : dérivés de `trous`, une liste par espèce. `SIGNAL` ou `THÉÂTRE` (les adverses n'ont pas
+   - Verdicts : dérivés de `trous`, une liste par espèce, chaque agent sans rendu avec sa cause ; un agent
+     qui échoue ne coupe pas le run. `SIGNAL` ou `THÉÂTRE` (les adverses n'ont pas
      joué : le run ne prouve rien) quand toutes sont vides ; sinon la première espèce trouée le nomme —
      `INTERROMPU` (MJ sans rendu, à tout échange), `PARTIE INCOMPLÈTE` (joueur sans rendu), `PARTIE ANOMALE`
-     (sosie à id vide qui cite un passage, tirage hors suite, déclencheur non joué sans motif,
-     fuite de secret), `SANS ANALYSE` (juge sans rendu). `ARRÊT` avant la partie.
+     (sosie à id vide qui cite un passage, tirage hors suite ou déclencheur non joué sans motif restés
+     après les renvois, fuite de secret), `SANS ANALYSE` (juge sans rendu). `ARRÊT` avant la partie.
 5. **Maquette grise jouable** — briques existantes seules, sans art ni système neuf, jouée par
    l'utilisateur AVANT toute production ; les systèmes manquants s'ordonnent sur la friction mesurée.
 6. **Porte G1** — une page, 10 décisions au plus : charte, découpage des premiers chapitres, maquette
