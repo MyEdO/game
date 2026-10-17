@@ -3,11 +3,13 @@
 // surfaces (`TIMEOUT_DU_HOOK`) sans charger le hook, ses gestes ni leur clôture. Chaque geste arrive
 // par le contexte (`run`, `gestes`), et rend la forme de `lancer` : `{ ok, valeur, rapport }`.
 
-/** Budget d'un CONSTAT : trois commandes courtes (`git rev-parse`, `git config`, `gh --version`). */
+/** Budget d'un CONSTAT : une commande courte (`git rev-parse`, `git config`, `gh --version`, `claude plugin list`). */
 export const BUDGET_CONSTAT = 10
 
-/** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE, `poser` agit :
- *  un prérequis déjà satisfait ne fait rien. `budget` borne le temps total de `poser`, en secondes. */
+/** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE (`{ nonMesure }` quand la
+ *  mesure échoue), `poser` agit :
+ *  un prérequis déjà satisfait ne fait rien. `budget` borne le temps total de `poser`, en secondes.
+ *  Un prérequis sans `poser` est hors de portée du hook : son manque se dit avec sa `consequence`. */
 export const PREREQUIS = [
   {
     nom: 'histoire git complète',
@@ -54,6 +56,18 @@ export const PREREQUIS = [
     },
     geste: 'apt-get update puis apt-get install -y gh',
     budget: 90,
+  },
+  {
+    nom: 'mod harnais',
+    // `.claude/skills/harnais` se charge en plugin du dossier des skills, et Claude Code ne le charge
+    // que dans un espace de travail approuvé : le conteneur distant ne l'est pas (`claude plugin list`).
+    manque: ({ run }) => {
+      const vu = run('claude', ['plugin', 'list'])
+      return vu.ok ? /skipped because this workspace was not trusted/.test(vu.valeur) : { nonMesure: `\`claude plugin list\` a échoué — ${vu.rapport}` }
+    },
+    // Sans `poser` : l'approbation de l'espace de travail appartient à l'utilisateur, le hook la CONSTATE.
+    consequence: '`.claude/skills/harnais/hooks` ne joue pas dans cette session : ni `suivi` (synchronisation du principal sur origin/main, suivi de vague), ni `vigie` (état de la CI et du train)',
+    budget: 0,
   },
 ]
 

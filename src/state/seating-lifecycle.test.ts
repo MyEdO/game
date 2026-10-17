@@ -77,7 +77,7 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
     b.id = 'scene-b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     useGame.setState({ party: [hero('h')], battle: null, journal: [] });
-    useGame.getState().loadProject([a, b], 'scene-a', undefined);
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'scene-a', projet: null });
     useGame.setState({ partyPos: { ...ABORD_NORD } });
     useGame.getState().interactEntity(PROP);
     expect(poseDe(1)).not.toBeNull();

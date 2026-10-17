@@ -10,7 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
 import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
-import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { makePregensWithWealth, PREGEN } from '../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../state/bourseFlow';
 import { toBrass } from '../engine/money';
@@ -54,7 +54,7 @@ const T2 = 'route-route-principale-sept-rayons';
 function aBord(): void {
   const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
   useGame.setState({ party: groupe.map((e) => e.hero) });
-  get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+  expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
   get().acquitterOuverture();
   get().moveParty({ x: 13, y: 31 });
@@ -75,7 +75,7 @@ describe('billet de la diligence — chemin du joueur', () => {
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
     const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
     useGame.setState({ party: groupe.map((e) => e.hero) });
-    get().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
     get().acquitterOuverture();
     get().moveParty({ x: 13, y: 31 });

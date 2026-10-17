@@ -5,7 +5,6 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { parseProject } from './worldMap';
 import { bus, EVT } from './bus';
 import { emptyScene } from './scene';
 import { flowFromEffects } from './flow';
@@ -14,8 +13,8 @@ import { STEP_MS } from '../geometry/walk';
 import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './stageWalk';
 import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
-import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { cascadeDeTest } from './cascadeTestKit';
+import { areneCampaign, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 
 const get = useGame.getState;
 
@@ -173,10 +172,8 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  * ici sur la scène RÉELLE pour que la lecture de cette trace ne se refasse jamais.
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
-  const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
-
   function entrerAuHub(): void {
-    useGame.getState().loadProject(doc.scenes, 'arene-hub', doc.worldMap, doc.narratif);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },
       camRot: 0, camEdge: false, viewMode: undefined, povActive: false,
@@ -229,7 +226,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   }
 
   it('trigger de transition traversé touche TENUE : aucun pas AVEUGLE dans la scène d’arrivée', () => {
-    useGame.getState().loadProject([scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], 'walk-a');
+    useGame.getState().loadProject({ scenes: [scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], entryId: 'walk-a', projet: null });
     useGame.setState({ screen: 'campaign', mode: 'exploration', partyPos: { x: 5, y: 5 }, camRot: 0, camEdge: false, viewMode: undefined, povActive: false } as never);
     demarrerMarche(get, { vue: 'iso', dir: 'up' }); // 1ᵉʳ pas → (4,4) → trigger → scène B
     expect(useGame.getState().scene?.id, 'la transition doit avoir eu lieu').toBe('walk-b');

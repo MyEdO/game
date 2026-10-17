@@ -34,6 +34,8 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
+import { nomDEntite } from '../state/sceneNpc';
+import { presetPnjById } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -753,7 +755,7 @@ export function MerchantPanel() {
   if (!merchant) return null;
   const speakerEnt = scene?.entities.find((e) => e.id === merchant.entityId);
   const arch = MERCHANTS[merchant.archetype];
-  const speakerName = speakerEnt?.label ?? arch?.label;
+  const speakerName = (speakerEnt && nomDEntite(speakerEnt, presetPnjById)) ?? arch?.label;
   return (
     <MerchantPanelView
       merchant={merchant} party={party} money={money} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
