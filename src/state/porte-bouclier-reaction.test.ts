@@ -20,15 +20,15 @@ const SHIELD: Weapon = { name: 'Bouclier', label: 'Bouclier', uid: 'sh1', trappi
 const SWORD: Weapon = { name: 'Épée', label: 'Épée', uid: 'sw1', type: 'melee', damage: { plusBF: true, flat: 4, bare: false }, qualities: [] } as never;
 const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
-function setup(o: { talents?: { talentId: string; times: number }[]; reserve: number; pbAttaquant?: number; important?: boolean; traitsAttaquant?: { id: string; value?: number }[] }): void {
+function setup(o: { talents?: { talentId: string; times: number }[]; reserve: number; pbAttaquant?: number; important?: boolean; traitsAttaquant?: { id: string; value?: number }[]; pnj?: boolean }): void {
   seedBattleRng(7);
   const defender = {
-    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: 'hero', important: true, characteristics: chars, wounds: { current: 30, max: 30 },
+    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: o.pnj ? 'enemy' : 'hero', important: true, characteristics: chars, wounds: { current: 30, max: 30 },
     advantage: 0, conditions: [], movement: 4, skills: [], talents: o.talents ?? [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, criticalWounds: 0, traumas: [],
   } as unknown as Combatant;
   const attacker = {
-    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: 'enemy', important: o.important ?? true, characteristics: chars, wounds: { current: o.pbAttaquant ?? 20, max: 20 },
+    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: o.pnj ? 'hero' : 'enemy', important: o.important ?? true, characteristics: chars, wounds: { current: o.pbAttaquant ?? 20, max: 20 },
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: o.traitsAttaquant ?? [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
   } as unknown as Combatant;
@@ -36,10 +36,10 @@ function setup(o: { talents?: { talentId: string; times: number }[]; reserve: nu
     combatants: [defender, attacker], order: [attacker.id, defender.id], baseOrder: [attacker.id, defender.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    advantagePools: { allies: o.reserve, foes: 0 },
+    advantagePools: o.pnj ? { allies: 0, foes: o.reserve } : { allies: o.reserve, foes: 0 },
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene(), party: [defender], pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    battle, mode: 'battle', scene: testScene(), party: [o.pnj ? attacker : defender], pendingDefense: null, pendingAttack: null, pendingCascade: null,
     suspendedCascades: [], pendingLogQueue: [], journal: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
 }
@@ -154,5 +154,18 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
     draine();
     expect(cur('a1').wounds.current).toBeLessThan(20);
     expect(G().battle!.acted, 'la suite du coup a rendu l’Action').toBe(false);
+  });
+
+  it('B8 — PNJ Porte-bouclier, défense gagnée : l’IA déclare les Dégâts, la frappe part (AA 13 l.84)', () => {
+    setup({ reserve: 3, pnj: true });
+    applyAttackResult(G, S, cur('a1'), cur('d1'), SWORD, defenseGagnee(), { suite: { enchainement: { mode: 'aucun' } } }); draine();
+    expect(cur('a1').wounds.current).toBe(15);
+    expect(cur('d1').usedShieldReactionRound).toBe(true);
+  });
+
+  it('B8 — héros surfacé, réaction non déclarée : aucune frappe', () => {
+    setup({ reserve: 3 });
+    applyAttackResult(G, S, cur('a1'), cur('d1'), SWORD, defenseGagnee(), { suite: { enchainement: { mode: 'aucun' } } }); draine();
+    expect(cur('a1').wounds.current).toBe(20);
   });
 });

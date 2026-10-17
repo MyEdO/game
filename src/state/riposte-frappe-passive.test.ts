@@ -14,6 +14,8 @@ import { isOutOfAction } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { unarmedWeapon } from '../engine/items';
+import { weaponsFromTraits } from '../engine/creatureEquip';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 60, 'capacite-de-tir': 30, force: 60, endurance: 20, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -25,11 +27,11 @@ const EPEE = arme('epee', 4, []);
 const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 /** `d` (Riposte, niveau `niveau`) s'est défendu contre `a`, qui frappait à l'Épée. */
-function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[]; champion?: boolean }): void {
+function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[]; champion?: boolean; riposte?: boolean; traitsDefenseur?: { id: string; value?: number }[] }): void {
   seedBattleRng(5);
   const d = {
     id: 'd', name: 'd', label: 'Défenseur', kind: 'enemy', important: true, characteristics: { ...CH }, wounds: { current: 30, max: 30 },
-    advantage: 0, conditions: [], movement: 4, skills: [], talents: o.champion ? [] : [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: o.champion ? [{ id: 'champion' }] : [],
+    advantage: 0, conditions: [], movement: 4, skills: [], talents: o.champion && !o.riposte ? [] : [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: [...(o.champion ? [{ id: 'champion' }] : []), ...(o.traitsDefenseur ?? [])],
     engagedWith: ['a'], pos: { x: 1, y: 0 }, size: 'moyenne', weapons: o.armes ?? [RAPIERE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   } as unknown as Combatant;
   const a = {
@@ -146,5 +148,81 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
     monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
     coup(defenseGagnee(EPEE), { riposte: false }); draine();
     expect(cur('a').wounds.current).toBeLessThan(30);
+  });
+});
+
+/** Test opposé GAGNÉ par une ESQUIVE au jet `roll`, DR opposé `dr`. */
+const esquiveGagnee = (roll = 12, dr = 4): AttackResult => ({
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: dr, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  defenderDetail: { label: 'Esquive', base: 60, target: 60, roll, success: true, sl: 5, mods: [], mode: 'esquive' },
+  attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
+} as unknown as AttackResult);
+/** Blessures de la frappe de `d` à l'arme `w`, au jet `roll` et au DR `dr`. */
+const blessures = (w: Weapon, dr = 4, roll = 12): number =>
+  resolveMeleePassive(cur('d'), cur('a'), w, { roll, target: 60, success: true, sl: dr, isDouble: false }).woundsLost!;
+
+describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () => {
+  beforeEach(() => { useGame.setState({ battle: null }); });
+
+  it('C1 — Esquive gagnée sur un double : frappe à l’arme de main principale, sans Critique (LDB 13 l.183 ; LDB 10 l.500)', () => {
+    const secondaire = { ...HACHE, hand: 'off' } as Weapon;
+    monte({ pbAttaquant: 30, champion: true, armes: [secondaire, EPEE] });
+    expect(blessures(EPEE)).not.toBe(blessures(HACHE));
+    coup(esquiveGagnee(11)); draine();
+    expect(30 - cur('a').wounds.current).toBe(blessures(EPEE));
+    expect(cur('a').criticalWounds ?? 0).toBe(0);
+  });
+
+  it('C2 — mains vides, Esquive gagnée : frappe à Mains nues (LDB 14 l.139)', () => {
+    monte({ pbAttaquant: 30, champion: true, armes: [] });
+    coup(esquiveGagnee()); draine();
+    expect(30 - cur('a').wounds.current).toBe(blessures(unarmedWeapon()));
+  });
+
+  it('C3 — trait Arme +8, Esquive gagnée à DR égal : Dégâts = l’Indice (LDB 85 l.35)', () => {
+    const traits = [{ id: 'arme', value: 8 }];
+    monte({ pbAttaquant: 30, champion: true, armes: weaponsFromTraits(traits), traitsDefenseur: traits });
+    coup(esquiveGagnee(12, 0)); draine();
+    expect(30 - cur('a').wounds.current).toBe(8 - 2);
+  });
+
+  it('C4 — Champion et Riposte, Parade gagnée : une seule frappe, la Riposte ne décompte rien', () => {
+    monte({ pbAttaquant: 30, champion: true, riposte: true });
+    coup(defenseGagnee(RAPIERE)); draine();
+    expect(30 - cur('a').wounds.current).toBe(blessures(RAPIERE));
+    expect(cur('d').ripostesThisRound ?? 0).toBe(0);
+  });
+
+  it('C5 — défense gagnée à DR égal, départagée par la Compétence : la Riposte frappe aux Dégâts d’Arme (LDB 12 l.160)', () => {
+    monte({ pbAttaquant: 30 });
+    coup({ ...defenseGagnee(RAPIERE), netSL: 0 }); draine();
+    expect(30 - cur('a').wounds.current).toBe(blessures(RAPIERE, 0));
+  });
+
+  it('C5 — défense gagnée à DR égal : le Champion frappe aux Dégâts d’Arme (LDB 12 l.160 ; LDB 13 l.123)', () => {
+    monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
+    coup({ ...defenseGagnee(EPEE), netSL: 0 }); draine();
+    expect(30 - cur('a').wounds.current).toBe(blessures(EPEE, 0));
+  });
+
+  it('C6 — Riposte, Esquive gagnée : aucune frappe (LDB 10 l.1032)', () => {
+    monte({ pbAttaquant: 30 });
+    coup(esquiveGagnee()); draine();
+    expect(cur('a').wounds.current).toBe(30);
+  });
+
+  it('C7 — défense gagnée contre un tir : aucune frappe du Champion (LDB 85 l.71)', () => {
+    const ARC = { ...EPEE, uid: 'arc', type: 'ranged', range: 60 } as Weapon;
+    monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
+    applyAttackResult(g, useGame.setState, cur('a'), cur('d'), ARC, esquiveGagnee(), { suite: { enchainement: { mode: 'aucun' } } }); draine();
+    expect(cur('a').wounds.current).toBe(30);
+  });
+
+  it('C1 — Empaleuse, Esquive réussie sur un multiple de 10 : frappe sans Critique (LDB 13 l.183 ; LDB 62 l.248)', () => {
+    const empaleuse = arme('estoc', 3, [{ id: 'empaleuse' }]);
+    monte({ pbAttaquant: 30, champion: true, armes: [empaleuse] });
+    coup(esquiveGagnee(30)); draine();
+    expect(cur('a').wounds.current).toBeLessThan(30);
+    expect(cur('a').criticalWounds ?? 0).toBe(0);
   });
 });

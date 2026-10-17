@@ -1112,6 +1112,14 @@ export function backstabWeapon(foe: Combatant): Weapon {
   return foe.weapons.find((w) => w.type === 'melee') ?? unarmedWeapon();
 }
 
+/** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
+ *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
+export function armeDeMainPrincipale(c: Combatant): Weapon {
+  const sb = bonus(effectiveChar(c, 'force'));
+  const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
+  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, sb) >= effectiveWeaponDamage(w, sb) ? m : w), undefined) ?? unarmedWeapon();
+}
+
 /** Arme d'une attaque gratuite, construite depuis sa manœuvre : libellé (`def.label`), NOM unique de la
  *  gratuite lu par tous les écrans ; groupe d'armes (`def.subType`) ; Dégâts de la manœuvre (`def.damage`),
  *  sinon l'Indice de l'instance du trait (BF inclus). STAMPE `attackKind` → la pose/Condition lit le champ
@@ -1691,7 +1699,7 @@ function applyHit(
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
   // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
   // vit dans `critiquesDuCoup` (#1595 c.6220635824).
-  const empale = atkBd.success && qualityCritTriggered(weapon, atkBd.roll);
+  const empale = atkBd.success && atkBd.mode !== 'esquive' && qualityCritTriggered(weapon, atkBd.roll);
   const isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.

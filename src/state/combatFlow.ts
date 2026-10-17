@@ -46,6 +46,7 @@ import {
   resolveStrayRangedHit,
   resolveMeleePassive,
   toucheDuTestDeDefense,
+  armeDeMainPrincipale,
   coupAApplique,
   finishMelee,
   rollMeleeDefender,
@@ -472,27 +473,21 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
 }
 
 /** LDB 14 l.106, l.116. */
-export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState): Combatant | null {
+export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
   if (res.attackerRoll > res.attackerDetail.target + 20) return null; // n'aurait pas touché même sans le −20
   const allies = (target.engagedWith ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
-  return allies[0] ?? null;
+  return allies.length ? allies[rng.int(0, allies.length - 1)] : null;
 }
 
-/** Cibles éligibles d'un « Tir dans le tas » (LDB 14 l.106) : TOUT le monde serré autour de la
- *  cible (au contact, Chebyshev — diagonale incluse), vivant et positionné, LE TIREUR EXCLU — les
- *  DEUX camps : « vous touchez l'un des adversaires de la cible au hasard » → ça peut être un de vos
- *  PROPRES alliés engagés dans la mêlée (tir fratricide), pas forcément un ennemi. Un tir réussi en
- *  touche UNE au hasard. Base partagée avec le futur surlignage des zones d'effet (Explosion / sorts). */
+/** LDB 14 l.106. */
 export function crowdEligible(battle: BattleState, attacker: Combatant, target: Combatant): Combatant[] {
   return battle.combatants.filter(
     (c) => c.id !== attacker.id && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1,
   );
 }
-
-// smokeOf → combatGeometry.ts
 
 /** Bénédiction de Protection (LDB 41 — L13) : si la cible est bénie, l'attaquant doit réussir un
  *  Test de FM Accessible (+20) pour OSER attaquer — joué à la DÉCLARATION ; sur un échec, « ils
@@ -838,7 +833,7 @@ export function resolveAttack(
     // Tir dans la mêlée (LDB 14 l.116) : si le −20 a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
-      const ally = strayShotVictim(res, attacker, target, battle);
+      const ally = strayShotVictim(res, attacker, target, battle, battleRng());
       if (ally) {
         const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.strayMelee', { name: ally.label })];
@@ -2934,7 +2929,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         break;
       case 'reaction':
         if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.riposte', { name: target.label }));
-        if (q.suite?.reaction && q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, q.suite.reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q)))
+        if (reactionDeBouclierEnDegats(get, set, attacker, target, q))
           return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.shieldReactionDamage', { name: target.label, foe: attacker.label }));
         break;
       case 'suite':
@@ -2945,12 +2940,19 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
   return false;
 }
 
-/** La frappe passive du défenseur est-elle due sur ce coup ? Test opposé de défense GAGNÉ en mêlée, à
- *  l'arme qui a paré, plafond du Round non atteint, déclarée quand le porteur la choisit. LDB 10 l.1032,
- *  l.1037 ; LDB 85 l.71 ; LDB 13 l.123. */
+/** La réaction de Porte-bouclier part-elle en Dégâts ? Déclarée par le défenseur surfacé, décidée par l'IA
+ *  sinon ; coût, réserve et défense gagnée jugés par `applyShieldReaction`. AA 13 l.84 ; #1595. */
+function reactionDeBouclierEnDegats(get: Get, set: SetFn, attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
+  const reaction = q.suite?.reaction ?? (defenseSurfaced(get(), target) ? undefined : 'damage');
+  return !!reaction && !!q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q));
+}
+
+/** La frappe passive du défenseur est-elle due sur ce coup ? Test opposé de défense GAGNÉ en mêlée, plafond
+ *  du Round non atteint, déclarée quand le porteur la choisit. LDB 10 l.1032, l.1037 ; LDB 85 l.71 ;
+ *  LDB 13 l.123 ; #1595 c.6237601266. */
 function riposteDeclaree(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
   const { res } = q;
-  if (!defenseGagneeEnMelee(attacker, target, q) || !res.parryWeapon) return false;
+  if (!defenseGagneeEnMelee(attacker, target, q)) return false;
   const contre = contreSurDefenseGagnee(target, res.parryWeapon);
   if (!contre) return false;
   if (contre.plafond != null && (target.ripostesThisRound ?? 0) >= contre.plafond) return false;
@@ -2961,7 +2963,7 @@ function riposteDeclaree(attacker: Combatant, target: Combatant, q: QueueDuCoup)
  *  frappés ? LDB 13 l.123 ; LDB 12 l.160. */
 function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
   const { res } = q;
-  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || res.netSL <= 0 || !res.defenderDetail) return false;
+  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || !res.defenderDetail) return false;
   return !isOutOfAction(target) && !isOutOfAction(attacker);
 }
 
@@ -2970,8 +2972,8 @@ function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, q: QueueDu
  *  `true` quand une fenêtre tient la main. LDB 10 l.1037 ; LDB 85 l.71 ; LDB 13 l.151 ; LDB 14 l.3 ;
  *  LDB 14 l.208-209 ; #1595 c.6234104573. */
 function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup, ajout: string): boolean {
-  const arme = q.res.parryWeapon!;
-  if (contreSurDefenseGagnee(defenseur, arme)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
+  const arme = q.res.parryWeapon ?? armeDeMainPrincipale(defenseur);
+  if (contreSurDefenseGagnee(defenseur, q.res.parryWeapon)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
   const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL);
   const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), ajout] };
   return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === OPS_DIFFEREES;
