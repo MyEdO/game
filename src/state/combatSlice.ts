@@ -43,7 +43,8 @@ import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
-import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, type DefenseMode } from '../engine/combat';
+import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, causeDuCoupCritique, type DefenseMode } from '../engine/combat';
+import { jeuDeCritique, relanceLaLocalisation } from '../engine/critical';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -2301,7 +2302,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     attackSetWithhold: (v: boolean) => {
       const pa = get().pendingAttack;
-      if (!pa || pa.result) return; // « Retenir ses coups » se déclare AVANT le jet (Aux Armes 07 l.59)
+      if (!pa || pa.result) return; // LDB 18 l.30 ; AA 07 l.59
       set({ pendingAttack: { ...pa, withhold: v } });
     },
     attackSetGrapple: (v: boolean) => {
@@ -2311,8 +2312,9 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     attackSetCritLocation: (loc: HitLocation) => {
       const pa = get().pendingAttack;
-      // RAW-2 (LDB 17 l.68) : réservé à un Coup Critique issu d'un succès FORCÉ (« Je ne faillirai pas ! »).
-      if (!pa || !pa.forced || !pa.result?.critical) return;
+      // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
+      const cible = pa ? inBattleId(get().battle, pa.targetId) : undefined;
+      if (!pa || !pa.forced || !pa.result || !cible || !relanceLaLocalisation(cible, causeDuCoupCritique(pa.result), cible.wounds.current, jeuDeCritique())) return;
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     attackRoll: () => {
@@ -2325,7 +2327,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
       // d'une gratuite de créature comprise.
       const weapon = attackWeaponOf(battle, attacker, target, pa);
-      const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // charge montée → Force+Taille de la monture aux dégâts (LDB 14 l.183) ; pa.withhold = Retenir ses coups (AA)
+      const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
       if (!r) {
         get().log(weapon.type === 'ranged' ? t('cf.noLoSMasked') : t('cs.meleeOutOfRange'));
         set({ pendingAttack: null });

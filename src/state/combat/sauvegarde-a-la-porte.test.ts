@@ -524,7 +524,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(ds!.mainRoll, 'le jet de la main directrice voyage avec la suite').toBe(30);
     const crit = [...(useGame.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
-    expect(ds!.critValue, 'la 2ᵉ frappe lit la valeur du tableau des Critiques (LDB 10 l.767-773)').toBe(crit!.reveal?.dice);
+    expect(ds!.critValue, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
     expect(useGame.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
   });
 
@@ -541,8 +541,47 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
     expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
     expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
-    expect(useGame.getState().pendingDualStrike!.critValue).toBe(crits[0].reveal?.dice);
+    expect(useGame.getState().pendingDualStrike!.critValue, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
   });
+
+  /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
+  function secondeMainEnAA(critique: boolean, current: number) {
+    setRule('combat-aa-blessures', 'aa');
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 } } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+    setBattle([heros, cible, voisin]);
+    const premiere = { ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
+    useGame.getState().attackConfirm();
+    const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    return { crits, critValue: useGame.getState().pendingDualStrike?.critValue };
+  }
+
+  it("(iii ter) 'aa', Coup Critique qui fait aussi passer à 0 : la 2ᵉ frappe lit le d100 NU, pas le jet décalé (LDB 10 l.773 ; AA 07 l.36, l.42)", () => {
+    try {
+      const { crits, critValue } = secondeMainEnAA(true, 2);
+      expect(crits.map((s) => s.reveal?.origine), 'une seule Blessure critique (AA 07 l.42)').toEqual(['coup-critique']);
+      const dice = crits[0].reveal!.dice!;
+      expect(critValue).toBeDefined();
+      expect(dice - critValue!, 'le +10 par Blessure au-delà de 0 est hors de la valeur').toBeGreaterThan(0);
+      expect((dice - critValue!) % 10).toBe(0);
+    } finally {
+      resetRule('combat-aa-blessures');
+    }
+  });
+
+  for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
+    it(`(iii quater) 'aa', ${branche}, sans double : le Coup Critique donne la valeur de la 2ᵉ frappe (LDB 10 l.773 ; #1595 c.6226467544)`, () => {
+      try {
+        const { crits, critValue } = secondeMainEnAA(false, current);
+        expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+        expect(critValue, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
+      } finally {
+        resetRule('combat-aa-blessures');
+      }
+    });
+  }
 
   it('(iv) `defenseConfirm` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
     const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);

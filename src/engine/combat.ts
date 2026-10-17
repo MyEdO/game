@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import type { CauseCoupCritique } from './critical';
+import type { CauseCoupCritique, OrigineCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -493,6 +493,12 @@ export interface AttackResult {
   critical: boolean;
   /** Retenir ses coups effectif sur CE coup (`profilDuCoup`). LDB 18 l.30 ; AA 07 l.59, l.61. */
   retenu?: true;
+  /** Blessures critiques comptées par CE coup, écrites à l'application (`critiquesDuCoup`). LDB 18 l.17 ;
+   *  AA 07 l.42. */
+  critiques?: number;
+  /** La première Blessure critique appliquée par CE coup, écrite à l'application : `naturel` =
+   *  `CriticalResolved.naturel`. LDB 10 l.773 ; #1595 c.6227274650 Q3. */
+  critiqueApplique?: { origine: OrigineCritique; naturel: number };
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée

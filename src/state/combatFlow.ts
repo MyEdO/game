@@ -173,7 +173,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, estUnCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, estUnCoupCritique, relanceLaLocalisation, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -274,7 +274,7 @@ import {
   setManeuverPostHitHook,
 } from './combatManeuvers';
 import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type Flow, type FlowTest, type EffectTrigger } from './flow';
-import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre, pushStep, type TableStepDef } from './cascade';
+import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -1756,12 +1756,14 @@ export function applyCriticalToTarget(
     suppressReveal?: boolean; // la modale de déviation a DÉJÀ affiché le Critique → ne pas re-pousser une révélation
     /** D'où naît la Blessure (Personnage) : titre de sa révélation. */
     origine?: OrigineCritique;
+    /** Le Critique de Personnage, résolu, avant son application. */
+    surLeCritique?: (crit: CriticalResolved) => void;
     /** REQUIS : résout l'ÉQUIPAGE (`crewIds`) d'un navire, et OUVRE par la porte le Test que la rangée
      *  impose (`CriticalResolved.testFlow`) — un appelant sans `get` perdrait ce jet en silence. */
     get: Get;
   },
 ): boolean {
-  const { ctx, prerolled, suppressReveal, get, origine } = opts;
+  const { ctx, prerolled, suppressReveal, get, origine, surLeCritique } = opts;
   // Aiguillage par porteur : `porteurDeCritique` (AA 10 l.114 ; MDG 13 l.656 ; EDOC 07 l.334).
   const porteur = porteurDeCritique(target);
   if (porteur === 'structure') {
@@ -1784,6 +1786,7 @@ export function applyCriticalToTarget(
   const loc = location;
   const severity = prerolled ? undefined : resolveCritSeverity(target, loc, overkill, ctx?.critTwice); // dé de sévérité par l'étape à table (seam UNIQUE)
   const crit = prerolled ?? severity!.crit;
+  surLeCritique?.(crit);
   // Variante Aux Armes (l.79) : un Coup Critique « T » (trivial) n'est PAS compté dans le nombre de
   // Blessures Critiques nécessaires pour tuer → il n'incrémente pas `criticalWounds` (le LDB n'a pas de
   // trivial : chaque Critique compte). `critTwice` (Sauvagerie) reste tables LDB même en mode AA (critical.ts).
@@ -2068,8 +2071,9 @@ function deflectCrit(target: Combatant, location: HitLocation, log: string[]): b
 function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
   log: string[], ctx: DeviationCtx, woundsBefore: number, crit?: CriticalResolved, suppressReveal?: boolean,
+  surLeCritique?: (crit: CriticalResolved) => void,
 ): boolean {
-  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine });
+  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
   if (lethal) finalizeHeroDeath(get, set, target, 'hit', woundsBefore, inBattleId(get().battle, ctx.attackerId));
   return lethal;
 }
@@ -2452,6 +2456,8 @@ interface ApplicationDesCritiques {
   heroConcerne: boolean;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
   apres?: (lethal: boolean, origine: OrigineCritique) => void;
+  /** Le Critique résolu d'une Blessure critique subie, avant son application. */
+  surLeCritique?: (crit: CriticalResolved, origine: OrigineCritique) => void;
 }
 
 /** APPLIQUE le plan des Blessures critiques d'un coup, Blessures du coup déjà retirées : Mort subite, puis
@@ -2475,7 +2481,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): void {
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
+      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => a.surLeCritique?.(crit, entree.origine));
       a.apres?.(lethal, entree.origine);
     }
     if (estUnCoupCritique(entree.origine)) casse();
@@ -2658,7 +2664,7 @@ function appliquerLaTouche(
     coup: { degats: res.damage ?? 0, cause: causeDuCoupCritique(res), arme: weapon },
   };
   // Blessure Critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante (LDB 10),
-  // puis les effets `onCrit` des données, filtrés par l'origine (`coupCritique`).
+  // puis `onCrit` (`TriggeredEffect.coupCritique` ; #1595 c.6221792068 Q4, c.6226467544).
   const apresLeCritique = (lethal: boolean, loc: HitLocation, origine: OrigineCritique): void => {
     const fb = talentCritExtraWounds(attacker);
     if (fb > 0 && !lethal) {
@@ -2685,6 +2691,7 @@ function appliquerLaTouche(
     const currentBefore = target.wounds.current;
     if (relance) { res.critLocation = lieu; res.location = lieu; }
     res.woundsLost = blessures;
+    res.critiques = compte.critiques.length;
     target.wounds.current = Math.max(0, currentBefore - blessures);
     if (!isInanimate(target)) {
       // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
@@ -2694,6 +2701,7 @@ function appliquerLaTouche(
     appliquerLesCritiques({
       get, set, target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, currentBefore,
       roll: res.attackerRoll, heroConcerne: attacker.kind === 'hero', apres: (lethal, origine) => apresLeCritique(lethal, lieu, origine),
+      surLeCritique: (crit, origine) => { res.critiqueApplique ??= { origine, naturel: crit.naturel }; },
     });
     if (regimeDePorteur(target).clore) clore(currentBefore);
   }
@@ -3997,13 +4005,8 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   const offDual = suite?.dualMain ? attacker.weapons.find((w) => w.uid === suite.dualMain!.offWeaponUid) : undefined;
   const battleDual = get().battle;
   if (enAction && suite?.dualMain && touche.hit && offDual && battleDual && dualStrikeTargets(battleDual, attacker, offDual).length) {
-    // Exception Critique : la 2ᵉ frappe utilise la valeur du tableau des Critiques — lue sur l'ÉTAPE de
-    // Critique que l'application vient d'appender à la séquence (elle n'existe qu'après le coup). Jouée
-    // depuis un APPLIER (reprise d'une sauvegarde), cette poussée vit encore dans la FENÊTRE d'insertion
-    // et pas dans `participants` : les deux se lisent, la fenêtre en dernier (elle est la plus récente).
-    const critValue = touche.critical
-      ? [...(get().pendingCascade?.participants ?? []), ...etapesDeLaFenetre()].reverse().find((s) => s.kind === 'critical' && estUnCoupCritique(s.reveal?.origine))?.reveal?.dice
-      : undefined;
+    // LDB 10 l.773 ; #1595 c.6227274650 Q3.
+    const critValue = estUnCoupCritique(touche.critiqueApplique?.origine) ? touche.critiqueApplique!.naturel : undefined;
     set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, mainRoll: suite.dualMain.mainRoll, critValue } });
   }
   // La chaîne d'un héros est une fenêtre (`pendingCleave`) : hors de combat, `maybeHeroCleave` la FERME.
@@ -5793,6 +5796,9 @@ interface ToucheAppliquee { issue: IssueDeTouche; lignes: string[] }
  * (`planifierLesCritiques`, `appliquerLesCritiques`) ; une fenêtre de Critique la ré-entre avec ses
  * décisions (`ch.critiques`), sur la touche déjà passée par les sauvegardes.
  */
+/** Cause du Coup Critique d'une touche de Projectile. LDB 46 l.30. */
+const causeDuProjectile = (t: Pick<ToucheDeProjectile, 'critWound'>): CauseCoupCritique | null => (t.critWound ? 'incantation-critique' : null);
+
 function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectile, sauvegarde?: { sauve: boolean }): ToucheAppliquee {
   const lignes: string[] = [];
   // `actorIn` (combat OU groupe) et non `inBattleId` : un Projectile se lance aussi HORS COMBAT
@@ -5836,7 +5842,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const aPleinesPA = evaluateMissile(caster, cible, spell, mres, loc, 0, ch.overcastDamageSteps).woundsLost ?? 0;
   const blessures = (n: number): number => (n === 0 ? woundsLost
     : woundsLost + Math.max(0, (evaluateMissile(caster, cible, spell, mres, loc, n, ch.overcastDamageSteps).woundsLost ?? 0) - aPleinesPA));
-  const cause = ch.critWound ? 'incantation-critique' as const : null; // LDB 46 l.30
+  const cause = causeDuProjectile(ch);
   const twice = critRollTwiceFor(caster);
   const planifie = planifierLesCritiques(get, set, {
     attacker: caster, target: cible, coup: { mode: 'projectile', touche: { ...ch, mres } }, decides: ch.critiques ?? [], sousAttaque: false, twice,
@@ -5916,7 +5922,7 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   // LDB 18 l.53/55 : un Projectile Coup Critique re-tire la Localisation (1d100 frais, MÊME primitive
   // que la mêlée — pas le dé inversé) et RÉ-ÉVALUE ses Dégâts à cette loc AVANT les atténuations
   // magiques ci-dessous (Résistance/Dôme/Martyr).
-  if (touche.critWound) mres = evaluateMissile(caster, cible, spell, mres, critWoundLocation(battleRng(), cible.bodyShape), 0, touche.overcastDamageSteps);
+  if (relanceLaLocalisation(cible, causeDuProjectile(touche), cible.wounds.current, jeuDeCritique())) mres = evaluateMissile(caster, cible, spell, mres, critWoundLocation(battleRng(), cible.bodyShape), 0, touche.overcastDamageSteps);
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
   // cible — les Dégâts en découlent (`evaluateMissile`), le plancher de 1 Blessure reste celui du
   // RAW (LDB 13 l.155-163). Le jet figé (roll/Surincantation) n'est pas rejoué : seul le DR change.
