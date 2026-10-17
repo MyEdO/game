@@ -865,7 +865,7 @@ export type PendingDeviation =
       mode: 'self';
       attackerId: string;
       targetId: string;
-      location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
+      location: HitLocation; // LDB 18 l.53, l.55
       crit: CriticalResolved;
       origine: OrigineCritique;
       overkill: number; // dépassement (LDB 18 l.17)
@@ -883,7 +883,7 @@ export type PendingDeviation =
 export type PendingCritSeverity = CoupSuspendu & {
   attackerId: string;
   targetId: string;
-  location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
+  location: HitLocation; // LDB 18 l.53, l.55
   overkill: number; // dépassement (LDB 18 l.17) — porté en `mod` par la déclaration
   origine: OrigineCritique;
   /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
