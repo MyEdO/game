@@ -12,6 +12,7 @@ import { critTableRows, critTableKeyFor } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
+import { spawnEnemy } from './spawn';
 import { t as tr } from '../i18n';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
@@ -19,12 +20,13 @@ import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean }
+interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string }
 
 /** Un coup (de double, sauf `double: false`) sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
  *  la cascade drainée au dé `de` et au choix `choisir`. `tenu` = un siège MJ tient la cible. `pieces` = l'armure portée par la cible, à la place de sa PA plate.
- *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque. */
-function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false }: Coup = {}) {
+ *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque.
+ *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître. */
+function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule }: Coup = {}) {
   useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
@@ -34,22 +36,26 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   vi.clearAllTimers();
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [cible, pretre] = b.combatants.filter((c) => c.kind === 'enemy');
+  const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
+  if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ ref: vehicule }, ennemis[0].id, ennemis[0].pos!);
+  const [cible, pretre] = ennemis;
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
   pretre.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   pretre.wounds = { current: 20, max: 20 } as Combatant['wounds'];
   if (martyr) cible.activeEffects = [{ label: 'Martyr', bonus: 0, duration: { scale: 'rounds', left: 4 }, martyrGuard: pretre.id }] as never;
   if (demoniaque != null) cible.traits = [...(cible.traits ?? []), { id: 'demoniaque', value: demoniaque }] as never;
-  cible.items = [...(cible.items ?? []).filter((i) => i.kind !== 'armor'), ...structuredClone(pieces)];
-  cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
-  if (pieces.length) recomputeLoadout(cible);
-  if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
-  cible.wounds = { current, max: 20 } as Combatant['wounds'];
-  cible.important = important;
-  if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
-  const res = rederivePassiveAttack(H, cible, epee, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps');
+  if (!vehicule) {
+    cible.items = [...(cible.items ?? []).filter((i) => i.kind !== 'armor'), ...structuredClone(pieces)];
+    cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
+    if (pieces.length) recomputeLoadout(cible);
+    if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
+    cible.wounds = { current, max: 20 } as Combatant['wounds'];
+    cible.important = important;
+    if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
+  }
+  const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps', retenu);
   const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
-  applyAttackResult(useGame.getState, useGame.setState, H, cible, epee, res, sousAttaque ? { sousAttaque: true } : {});
+  applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, sousAttaque ? { sousAttaque: true } : {});
   const kinds = draineCascade(useGame.getState, 200, () => de, choisir);
   const apres = useGame.getState().battle!.combatants;
   return { res, H, auJet, kinds, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
@@ -68,6 +74,9 @@ const piece = (qualites: string[], pa: number, locs: readonly string[] = LOCS): 
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...locs], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
 const totalPA = (c: Combatant) => Object.values(c.armour ?? {}).reduce((t, n) => t + n, 0);
+const portee = (c: Combatant, uid: string) => c.items!.find((i) => i.uid === uid)!;
+const casse = (c: Combatant, uid: string) => (portee(c, uid).damageTaken ?? 0) > (portee(c, uid).pa ?? 0);
+const journal = () => useGame.getState().battle!.log.map((l) => l.text);
 
 describe('le store joue le compte des Blessures critiques du coup', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
@@ -205,10 +214,6 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  const portee = (c: Combatant, uid: string) => c.items!.find((i) => i.uid === uid)!;
-  const casse = (c: Combatant, uid: string) => (portee(c, uid).damageTaken ?? 0) > (portee(c, uid).pa ?? 0);
-  const journal = () => useGame.getState().battle!.log.map((l) => l.text);
-
   it('Bâclée seule, le porteur dévie : la pièce casse, la Déviation est jouée, aucun Critique', () => {
     const { cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
@@ -242,6 +247,69 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
     expect(auJet.critical).toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(casse(cible, 'p1')).toBe(true);
+  });
+});
+
+describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l.36 ; #1595 c.6226467544)", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+
+  const inoffensive = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'inoffensive' }] } as unknown as Weapon;
+  const estoc = { ...epee, label: 'Estoc', qualities: [{ id: 'perforante' }] } as Weapon;
+  const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as Weapon;
+  const subi = { tenu: true, choisir: () => 'subir' } as const;
+
+  it("passage à 0 sur un impair : Impénétrable à la Localisation de touche n'ignore pas la Blessure, la Bâclée casse (LDB 63 l.78 ; LDB 60 l.50 ; #1595 c.6228496170 R2)", () => {
+    const { auJet, res, cible } = coup({ roll: 45, double: false, current: 2, chanceux: true, ...subi, pieces: [piece(['bacle', 'impenetrable'], 1, ['corps'])] });
+    expect(auJet.critical, 'aucun double').toBe(false);
+    expect(auJet.woundsLost, 'le coup fait passer à 0').toBeGreaterThanOrEqual(2);
+    expect(res.critLocation, 'la Localisation de touche est gardée').toBeUndefined();
+    expect(cible.criticalWounds).toBe(1);
+    expect(casse(cible, 'p1')).toBe(true);
+  });
+
+  it('arme Inoffensive sur une cible déjà à 0 : 0 Blessure, un Coup Critique à la Localisation relancée (LDB 62 l.327 ; AA 07 l.25 ; #1595 c.6227274650 Q1)', () => {
+    const { auJet, res, kinds, cible } = coup({ arme: inoffensive, roll: 45, double: false, current: 0, chanceux: true });
+    expect(auJet.woundsLost).toBe(0);
+    expect(kinds).toContain('critical');
+    expect(res.critiqueApplique?.origine).toBe('coup-critique');
+    expect(res.critLocation).toBeDefined();
+    expect(cible.criticalWounds).toBe(1);
+  });
+
+  it('coup retenu sur une cible déjà à 0 : le double tombe, une seule Blessure critique, Coup Critique relancé (AA 07 l.42, l.59 ; #1595 c.6227274650 Q2)', () => {
+    const { auJet, res, cible } = coup({ retenu: true, current: 0, chanceux: true });
+    expect(auJet.critical, 'Retenir ses coups ignore le double').toBe(false);
+    expect(res.critiqueApplique?.origine).toBe('coup-critique');
+    expect(res.critLocation).toBeDefined();
+    expect(res.critiques).toBe(1);
+    expect(cible.criticalWounds).toBe(1);
+  });
+
+  const atouts: [string, Weapon, Coup][] = [['Perforante', estoc, { pa: 2 }], ['Empaleuse', rapiere, { pieces: [piece(['points-faibles'], 2)] }]];
+  for (const [atout, arme, armure] of atouts) {
+    it(`coup retenu sur une cible déjà à 0 : ${atout} ne joue pas à la Localisation relancée (AA 07 l.59, l.61 ; LDB 62 l.248, l.270 ; LDB 63 l.90)`, () => {
+      const blessures = (o: Coup) => coup({ roll: 45, double: false, current: 0, chanceux: true, ...subi, ...armure, ...o }).res;
+      const temoin = blessures({ retenu: true });
+      const retenu = blessures({ arme, retenu: true });
+      expect(retenu.critLocation).toBeDefined();
+      expect(retenu.woundsLost, `${atout} perdu`).toBe(temoin.woundsLost);
+      expect(blessures({ arme }).woundsLost, `${atout} joue sans la retenue`).toBeGreaterThan(temoin.woundsLost!);
+    });
+  }
+});
+
+describe("véhicule routier : un Coup Critique n'y fait aucune Blessure critique et ne casse rien (EDOC 07 l.334 ; LDB 60 l.50)", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('double sur une diligence : la coque refuse le Critique, aucune pièce cassée', () => {
+    const { auJet, cible } = coup({ vehicule: 'diligence' });
+    expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
+    expect(cible.criticalWounds ?? 0).toBe(0);
+    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+    expect(journal().filter((l) => l === tr('cf.shoddyBreaks', { name: cible.label, loc: 'corps' }))).toEqual([]);
+    expect((cible.items ?? []).filter((i) => (i.damageTaken ?? 0) > 0)).toEqual([]);
   });
 });
 
