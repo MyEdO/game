@@ -19,12 +19,12 @@ import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number }
+interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean }
 
 /** Un coup (de double, sauf `double: false`) sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
  *  la cascade drainée au dé `de` et au choix `choisir`. `tenu` = un siège MJ tient la cible. `pieces` = l'armure portée par la cible, à la place de sa PA plate.
- *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). */
-function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque }: Coup = {}) {
+ *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque. */
+function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false }: Coup = {}) {
   useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
@@ -49,7 +49,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
   const res = rederivePassiveAttack(H, cible, epee, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps');
   const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
-  applyAttackResult(useGame.getState, useGame.setState, H, cible, epee, res, {});
+  applyAttackResult(useGame.getState, useGame.setState, H, cible, epee, res, sousAttaque ? { sousAttaque: true } : {});
   const kinds = draineCascade(useGame.getState, 200, () => de, choisir);
   const apres = useGame.getState().battle!.combatants;
   return { res, H, auJet, kinds, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
@@ -112,14 +112,14 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     const { cible, kinds } = coupQuiDepasse(false, { pa: 1, endurance: 10, tenu: true });
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
-    expect(kinds).not.toContain('deviation');
+    expect(kinds).toEqual([]);
   });
 
   it("Mort subite : l'automate ne dévie rien sur le figurant que personne ne tient (LDB 18 l.44 ; LDB 63 l.30)", () => {
     const { cible, kinds } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
-    expect(kinds).not.toContain('deviation');
+    expect(kinds).toEqual([]);
     expect(useGame.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.deflect', { name: cible.label }));
   });
 
@@ -132,19 +132,38 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(useGame.getState().pendingCascade ?? null).toBeNull();
   });
 
+  /** Le plus grand nombre de fenêtres de sévérité ouvertes à la fois par le coup. */
+  function fenetresDuCoup(de: number) {
+    let fenetres = 0;
+    const stop = useGame.subscribe((s) => { fenetres = Math.max(fenetres, s.pendingCascade?.participants.filter((p) => p.kind === 'deviation').length ?? 0); });
+    const { cible } = coupQuiDepasse(true, { de });
+    stop();
+    return { fenetres, cible };
+  }
+
   it("'ldb' : un premier Critique létal arrête le compte (LDB 18 l.53)", () => {
-    const { cible } = coupQuiDepasse(true, { de: 100 });
+    const { fenetres, cible } = fenetresDuCoup(100);
+    expect(fenetres, 'aucune fenêtre de sévérité après la Blessure létale').toBe(1);
     expect(cible.critEntriesSuffered).toHaveLength(1);
     expect(cible.criticalWounds).toBe(1);
     expect(cible.dead).toBe(true);
+    expect(fenetresDuCoup(1).fenetres, 'le premier Critique non létal laisse la seconde fenêtre').toBe(2);
+  });
+
+  it("'ldb' : sous-attaque sans fenêtre, le premier Critique létal arrête l'application (LDB 18 l.53)", () => {
+    const r = coup({ seed: 111, sousAttaque: true });
+    const [premiere] = r.cible.critEntriesSuffered ?? [];
+    expect(critTableRows('ldb', critTableKeyFor(r.res.critLocation!)).find((e) => e.id === premiere)?.lethal, 'la graine 111 tire un premier Critique létal').toBe(true);
+    expect(r.cible.critEntriesSuffered).toHaveLength(1);
+    expect(r.cible.dead).toBe(true);
   });
 
   it("'ldb' : Dévier le Coup Critique fait naître le dépassement (LDB 63 l.30 ; LDB 18 l.17)", () => {
-    const sansPA = coup({ pa: 1, current: 20 }).auJet.woundsLost;
-    const subi = coup({ pa: 1, current: sansPA, tenu: true, choisir: () => 'subir' });
+    const blessures = coup({ pa: 1, current: 20 }).auJet.woundsLost;
+    const subi = coup({ pa: 1, current: blessures, tenu: true, choisir: () => 'subir' });
     expect(subi.cible.criticalWounds, 'subi, le coup tombe pile à 0 : aucun dépassement').toBe(1);
     let n = 0;
-    const devie = coup({ pa: 1, current: sansPA, tenu: true, choisir: (s) => (n++ === 0 ? 'devier' : s.defaultChoice ?? s.options![0].key) });
+    const devie = coup({ pa: 1, current: blessures, tenu: true, choisir: (s) => (n++ === 0 ? 'devier' : s.defaultChoice ?? s.options![0].key) });
     expect(totalPA(devie.cible), 'un PA sacrifié').toBe(5);
     expect(devie.cible.critEntriesSuffered, 'la Blessure critique du dépassement, née de la Déviation').toHaveLength(1);
     expect(devie.cible.wounds.current).toBe(0);
@@ -157,9 +176,11 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
   });
 
   it("Martyr, sauvegarde et fenêtre de Critique : le prêtre encaisse une seule fois (LDB 43 l.107 ; LDB 85 l.98)", () => {
-    const temoin = coup({ current: 20, martyr: true });
+    const temoin = coup({ current: 20, martyr: true, double: false, roll: 45 });
     const reentre = coup({ current: 20, martyr: true, pa: 1, demoniaque: 8, tenu: true, choisir: () => 'subir' });
+    expect(temoin.kinds, 'le témoin ne ré-entre pas').toEqual([]);
     expect(reentre.kinds.filter((k) => k === 'sauvegarde')).toHaveLength(1);
+    expect(reentre.kinds).toContain('deviation');
     expect(reentre.cible.criticalWounds).toBe(1);
     expect(temoin.pretre.wounds.current).toBeLessThan(20);
     expect(reentre.pretre.wounds.current).toBe(temoin.pretre.wounds.current);
@@ -254,7 +275,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const apres = useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(totalPA(apres)).toBe(6);
-    expect(kinds).not.toContain('deviation');
+    expect(kinds.filter((k) => k === 'deviation' || k === 'critical')).toEqual([]);
     expect(hasCondition(apres, 'inconscient')).toBe(true);
   });
 });

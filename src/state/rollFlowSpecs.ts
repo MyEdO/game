@@ -89,7 +89,7 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     // avec une base de Capacité de Combat, quelle que soit l'arme en main.
     // Mode et arme de parade viennent du jet du DÉFENSEUR (figés dans son détail), la pénalité
     // d'esquive du contexte de la résolution — jamais un défaut forgé.
-    // p.withhold (Retenir ses coups, AA) propagé : la re-dérivation Chance/Résilience garde le coup non létal.
+    // LDB 18 l.30 ; AA 07 l.59
     const mode = dd.mode ?? bestDefenseMode(target);
     const dodge = p.dodgeMods ?? [];
     // Substitution sociale (Intimidation/Dressage, LDB 09 l.207/287) : base et libelle viennent du jet
