@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
-import type { Combatant } from '../engine/types';
+import { locationLabel, type Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
 import { resetRule, setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
@@ -57,8 +57,8 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     vi.useRealTimers();
   });
 
-  /** Le héros attaque une cible à `current` Blessures, et la graine fait rater son jet. */
-  function attaqueRatee(current: number) {
+  /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs ; la graine fait rater son jet. */
+  function attaqueRatee(current: number, paBrasG = 0, autresPA = 0) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
@@ -72,7 +72,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     H.resilience = 1;
     E.pos = { x: 11, y: 10 };
     E.wounds = { current, max: 30 } as never;
-    E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    E.armour = { tete: autresPA, brasG: paBrasG, brasD: autresPA, corps: autresPA, jambeG: autresPA, jambeD: autresPA };
     E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     useGame.getState().battleClickEntity(E.id, { confirm: true });
@@ -80,10 +80,10 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     useGame.getState().attackRoll();
     expect(useGame.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
   }
-  /** « Je ne faillirai pas ! » : le résultat choisi, 21, réussit sans double. */
-  function forcer() {
+  /** « Je ne faillirai pas ! » : le résultat choisi réussit sans double. */
+  function forcer(valeur = 21) {
     useGame.getState().attackForceSuccess();
-    useGame.getState().attackSetForcedRoll(21);
+    useGame.getState().attackSetForcedRoll(valeur);
     const res = useGame.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.critical, 'aucun double : pas de Coup Critique au jet').toBe(false);
@@ -99,14 +99,28 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     expect(res.location).toBe('jambeG');
   });
 
-  it("'aa', passage à 0 (branche 2) : aucun choix, la Localisation reste celle du résultat choisi (R1)", () => {
-    attaqueRatee(2);
-    forcer();
-    const touche = useGame.getState().pendingAttack!.result!.location;
-    useGame.getState().attackSetCritLocation(touche === 'jambeG' ? 'jambeD' : 'jambeG');
-    const res = useGame.getState().pendingAttack!.result!;
-    expect(res.critLocation).toBeUndefined();
-    expect(res.location).toBe(touche);
+  it("'aa', passage à 0 (branche 2), résultat choisi 32 : le Critique tombe au Bras gauche, à ses PA, sans d100 choisi (R1 ; LDB 13 l.133)", () => {
+    /** Le coup forcé à 32, `pa` PA au Bras gauche et 9 ailleurs, et la cible après le coup. */
+    const coup = (pa: number) => {
+      attaqueRatee(2, pa, 9);
+      forcer(32);
+      const E = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const res = useGame.getState().pendingAttack!.result!;
+      expect(res.location, 'le jet inversé, 23, est le Bras gauche').toBe('brasG');
+      useGame.getState().attackSetCritLocation('jambeG');
+      expect(res.critLocation, 'aucun d100 de Localisation à choisir').toBeUndefined();
+      useGame.getState().attackConfirm();
+      const critiques = (useGame.getState().battle?.log ?? []).map((l) => l.text).filter((t) => t.startsWith('Blessure critique'));
+      return { res, cible: E, critiques };
+    };
+    const nu = coup(0);
+    expect(nu.res.woundsLost!, 'le coup suffit à passer à 0').toBeGreaterThanOrEqual(2);
+    expect(nu.cible.wounds.current, 'la cible est tombée à 0').toBe(0);
+    expect(nu.cible.criticalWounds, 'une seule Blessure critique (AA 07 l.42)').toBe(1);
+    expect(nu.critiques).toHaveLength(1);
+    expect(nu.critiques[0], 'le Critique tombe au Bras gauche').toContain(`(${locationLabel('brasG', nu.cible.bodyShape)})`);
+    const arme = coup(3);
+    expect(arme.res.woundsLost!, 'les PA lues sont celles du Bras gauche').toBeLessThan(nu.res.woundsLost!);
   });
 
   it('sans Résilience dépensée : aucun choix', () => {

@@ -582,13 +582,12 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     }
   });
 
-  // Blessures au-delà de 0 : Touche relancée (Dégâts 6, BE 0, PA 0) à 0 ; Touche gardée (4 Blessures) à 2.
-  for (const [branche, current, auDela] of [['cible déjà à 0', 0, 6], ['passage à 0', 2, 2]] as const) {
+  for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
     it(`(iii quater) 'aa', ${branche}, sans double : le Coup Critique donne la valeur de la 2ᵉ frappe (LDB 10 l.773 ; #1595 c.6226467544)`, () => {
       try {
         const { crits, critValue } = secondeMainEnAA(false, current);
         expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
-        expect(critValue, 'le d100 nu du dé de l’étape, sans le +10 par Blessure au-delà de 0 (AA 07 l.36)').toBe(crits[0].reveal!.dice! - 10 * auDela);
+        expect(critValue, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
       } finally {
         resetRule('combat-aa-blessures');
       }

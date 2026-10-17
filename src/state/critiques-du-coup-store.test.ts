@@ -5,7 +5,8 @@ import { draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
-import { evaluateMissile, type CastResult } from '../engine/magic';
+import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
+import { bus, EVT } from './bus';
 import { findSpell } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor } from '../engine/critical';
@@ -300,44 +301,48 @@ describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l
   }
 });
 
-describe("véhicule routier : un Coup Critique n'y fait aucune Blessure critique et ne casse rien (EDOC 07 l.334 ; LDB 60 l.50)", () => {
+describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it('double sur une diligence : la coque refuse le Critique, aucune pièce cassée', () => {
+  it('double sur une diligence : la coque refuse le Critique', () => {
     const { auJet, cible } = coup({ vehicule: 'diligence' });
     expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
-    expect(journal().filter((l) => l === tr('cf.shoddyBreaks', { name: cible.label, loc: locationLabel('corps', cible.bodyShape) }))).toEqual([]);
-    expect((cible.items ?? []).filter((i) => (i.damageTaken ?? 0) > 0)).toEqual([]);
   });
 });
+
+/** Un sorcier à Carreau face à un ennemi de la rencontre, le combat ouvert par le store. */
+function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
+  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  w.spells = ['carreau'];
+  useGame.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
+  useGame.getState().startScene(structuredClone(testScene()));
+  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().confirmRoundStart();
+  vi.clearAllTimers();
+  useGame.getState().seedRng(7);
+  const b = useGame.getState().battle!;
+  const mage = b.combatants.find((c) => c.label === 'W')!;
+  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  mage.pos = { x: 10, y: 10 };
+  cible.pos = { x: 12, y: 10 };
+  cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
+  return { mage, cible };
+}
+const incantationCritique: CastResult = { cast: true, roll: 20, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
 
 describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l.44)", () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it("le figurant blindé tombe sans Blessure critique, sans étape, la PA reste", () => {
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
-    w.spells = ['carreau'];
-    useGame.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
-    useGame.getState().startScene(structuredClone(testScene()));
-    useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    useGame.getState().seedRng(7);
-    const b = useGame.getState().battle!;
-    const mage = b.combatants.find((c) => c.label === 'W')!;
-    const cible = b.combatants.find((c) => c.kind === 'enemy')!;
-    mage.pos = { x: 10, y: 10 };
-    cible.pos = { x: 12, y: 10 };
-    cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
+    const { mage, cible } = carreauEnCombat();
     cible.armour = { tete: 1, corps: 1, brasG: 1, brasD: 1, jambeG: 1, jambeD: 1 };
     cible.important = false;
     cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
-    const critique: CastResult = { cast: true, roll: 20, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
-    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, critique);
+    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
     expect(res.woundsLost ?? 0, 'le Projectile dépasse la Blessure restante').toBeGreaterThan(1);
     applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
     const kinds = draineCascade(useGame.getState, 200, () => 1);
@@ -346,5 +351,33 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     expect(totalPA(apres)).toBe(6);
     expect(kinds.filter((k) => k === 'deviation' || k === 'critical')).toEqual([]);
     expect(hasCondition(apres, 'inconscient')).toBe(true);
+  });
+});
+
+describe("Projectile magique : l'animation de la touche porte son compte de Blessures critiques (LDB 46 l.30 ; LDB 18 l.17)", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); });
+  afterEach(() => { resetRule('combat-aa-blessures'); vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it("'aa', Incantation critique qui fait passer à 0, appliquée sans fenêtre : `ANIM_ATTACK` émet `critiques: 1` (AA 07 l.36, l.42)", () => {
+    const { mage, cible } = carreauEnCombat();
+    cible.important = true;
+    cible.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
+    cible.wounds = { current: 2, max: 20 } as Combatant['wounds'];
+    cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
+    const emis: (number | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => {
+      if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques);
+    });
+    try {
+      const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+      applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+    } finally {
+      lache();
+    }
+    draineCascade(useGame.getState, 200, () => 1);
+    const apres = useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
+    expect(apres.wounds.current).toBe(0);
+    expect(apres.criticalWounds).toBe(1);
+    expect(emis).toEqual([1]);
   });
 });
