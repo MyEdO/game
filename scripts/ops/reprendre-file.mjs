@@ -2,17 +2,16 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
-import { TRONC } from '../guards/lib/gitPorte.mjs'
+import { TRONC, estShaComplet } from '../guards/lib/gitPorte.mjs'
 import { estPrDuTrain, etatFileDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, PLAFOND_RELANCES, WORKFLOW, jobsJuges, motifDAnnulation, phraseDesJobs, verdictJuge } from '../guards/lib/coursesCi.mjs'
 
 /** #2392 */
 export const DELAI_RELANCE_MS = 10 * 60_000
 const route = (suffixe) => `repos/${DEPOT}/${suffixe}`
-const shaValide = (sha) => /^[0-9a-f]{40}$/i.test(String(sha ?? ''))
 const prDePublication = (pr) => estPrDuTrain(pr?.body)
   && pr?.base?.ref === TRONC.nom && pr.base?.repo?.full_name === DEPOT
-  && pr.head?.repo?.full_name === DEPOT && /^chantier\/.+/.test(pr.head?.ref ?? '') && shaValide(pr.head?.sha)
+  && pr.head?.repo?.full_name === DEPOT && /^chantier\/.+/.test(pr.head?.ref ?? '') && estShaComplet(pr.head?.sha)
 export const prEligible = (pr) => pr?.state === 'open' && !pr.draft && !pr.merged_at && prDePublication(pr)
 
 function lire(chemin, appel) {
@@ -79,7 +78,7 @@ function relanceDe(pr, course, { appel, maintenant, lectureSeule }) {
 function reprendrePr(pr, course, { appel, maintenant }) {
   const actuelle = () => {
     const relue = lire(route(`pulls/${pr.number}`), appel)
-    if (prDePublication(relue) && relue.head?.sha === pr.head.sha && relue.merged_at && shaValide(relue.merge_commit_sha))
+    if (prDePublication(relue) && relue.head?.sha === pr.head.sha && relue.merged_at && estShaComplet(relue.merge_commit_sha))
       return { statut: 'merged', raison: `fusion confirmée ${relue.merge_commit_sha}` }
     return prEligible(relue) && relue.head.sha === pr.head.sha
   }

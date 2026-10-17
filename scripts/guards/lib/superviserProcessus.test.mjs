@@ -8,7 +8,7 @@ import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from './lister.mjs'
-import { sortieDeSupervision, superviserProcessus } from './superviserProcessus.mjs'
+import { MESURES_INDETERMINEES_MAX, sortieDeSupervision, superviserProcessus } from './superviserProcessus.mjs'
 import { ancetresValidesDe, identitePresente, mesurerArbreProcessus, tuerArbre } from './arbreProcessus.mjs'
 
 test('un hook refuse de démarrer quand son parent a disparu pendant la mesure initiale', async () => {
@@ -87,29 +87,98 @@ test('une identité PID réutilisée ne désigne jamais le processus capturé', 
   assert.equal(identitePresente({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'ancien', etat: 'Z' }]), false)
 })
 
-test('supervision : une panne de mesure après spawn nettoie l’enfant démarré', { timeout: 20000 }, async () => {
+const VUE_SAINE = '2026-10-16T01:00:00.000000000Z'
+
+test('supervision : une panne de mesure isolée suivie d’une vue saine laisse le hook aller à son terme', { timeout: 20000 }, async () => {
+  let lectures = 0
+  const vu = await superviserProcessus({
+    commande: process.execPath,
+    args: ['-e', 'setTimeout(()=>{},2500)'],
+    timeout: 15000,
+    surveillerGit: true,
+    estVivant: () => true,
+    mesurer: () => {
+      lectures += 1
+      if (lectures === 2) throw new Error('CIM injecté indisponible')
+      return vueHook(VUE_SAINE)
+    },
+  })
+  assert.equal(vu.error, undefined)
+  assert.equal(vu.status, 0)
+  assert.ok(lectures > 3, `${lectures} lectures : la surveillance a repris après la panne`)
+})
+
+test('supervision : des pannes de mesure consécutives au-delà de la borne interrompent, nomment leur compte et nettoient l’enfant', { timeout: 60000 }, async () => {
   let lectures = 0
   let enfant
   const vu = await superviserProcessus({
     commande: process.execPath,
     args: ['--input-type=module', '-e', 'setInterval(()=>{},1000)'],
-    timeout: 5000,
+    timeout: 45000,
     surveillerGit: true,
+    estVivant: () => true,
     mesurer: () => {
       lectures += 1
-      if (lectures === 1) return vueHook('2026-10-16T01:00:00.000000000Z')
-      const vue = mesurerArbreProcessus()
-      if (lectures > 1) {
-        enfant ??= vue.find((p) => p.ppid === process.pid && /^(?:powershell(?:\.exe)?|python(?:3(?:\.\d+)?)?)$/i.test(p.nom))
-        throw new Error('CIM injecté indisponible')
-      }
-      return vue
+      if (lectures === 1) return vueHook(VUE_SAINE)
+      enfant ??= mesurerArbreProcessus().find((p) => p.ppid === process.pid && /^(?:powershell(?:\.exe)?|python(?:3(?:\.\d+)?)?)$/i.test(p.nom))
+      throw new Error('CIM injecté indisponible')
     },
   })
-  assert.equal(vu.error.code, 'EMESURE')
-  assert.match(vu.error.message, /CIM injecté indisponible/)
+  assert.equal(vu.error?.code, 'EMESURE')
+  assert.equal(vu.error.message, `${MESURES_INDETERMINEES_MAX} mesures consécutives indéterminées : CIM injecté indisponible`)
+  assert.ok(lectures >= 1 + MESURES_INDETERMINEES_MAX)
   assert.ok(enfant)
   assert.equal(identitePresente(enfant, mesurerArbreProcessus()), false)
+})
+
+test('supervision : un gardien absent d’une vue saine interrompt en EPARENT', { timeout: 20000 }, async () => {
+  let lectures = 0
+  const vu = await superviserProcessus({
+    commande: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    timeout: 15000,
+    surveillerGit: true,
+    estVivant: () => true,
+    mesurer: () => (lectures += 1) === 1 ? vueHook(VUE_SAINE) : vueHook(),
+  })
+  assert.equal(vu.error?.code, 'EPARENT')
+  assert.equal(vu.error.message, 'parent disparu')
+})
+
+test('supervision : une mesure en échec avec un gardien prouvé mort (ESRCH) interrompt en EPARENT, jamais en EMESURE', { timeout: 20000 }, async () => {
+  let lectures = 0
+  const sondes = []
+  const vu = await superviserProcessus({
+    commande: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    timeout: 15000,
+    surveillerGit: true,
+    estVivant: (pid) => { sondes.push(pid); return pid !== -2626 },
+    mesurer: () => {
+      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
+      throw new Error('CIM injecté indisponible')
+    },
+  })
+  assert.equal(vu.error?.code, 'EPARENT')
+  assert.equal(vu.error.message, 'parent disparu')
+  assert.ok(sondes.includes(-2626))
+})
+
+test('supervision : une sonde de pid qui lève reste indéterminée, jamais une mort', { timeout: 60000 }, async () => {
+  let lectures = 0
+  const vu = await superviserProcessus({
+    commande: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    timeout: 45000,
+    surveillerGit: true,
+    estVivant: () => { throw Object.assign(new Error('sonde indisponible'), { code: 'EINVAL' }) },
+    mesurer: () => {
+      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
+      throw new Error('CIM injecté indisponible')
+    },
+  })
+  assert.equal(vu.error?.code, 'EMESURE')
+  assert.ok(lectures >= 1 + MESURES_INDETERMINEES_MAX)
 })
 
 test('supervision : sortie volumineuse drainée et stdio explicite sans pipe', { timeout: 20000 }, async () => {

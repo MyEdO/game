@@ -9,8 +9,11 @@ import { randomUUID } from 'node:crypto'
 import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
 import { ecrireJsonAtomique } from './ecritureJsonAtomique.mjs'
 import { citerArgv } from './lancerDetache.mjs'
+import { estPidVivant } from './pid.mjs'
 
 const DELAI_IPC = 15000
+/** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
+export const MESURES_INDETERMINEES_MAX = 20
 
 function interpreteurHote() {
   if (process.platform === 'win32') {
@@ -31,7 +34,7 @@ function resultatValide(vu) {
     (!vu.error || (typeof vu.error.code === 'string' && typeof vu.error.message === 'string'))
 }
 
-export async function superviserProcessus({ commande, args = [], cwd = process.cwd(), env, shell = false, timeout, entree, heriter = false, stdio, surveillerGit = false, mesurer = mesurerArbreProcessus }) {
+export async function superviserProcessus({ commande, args = [], cwd = process.cwd(), env, shell = false, timeout, entree, heriter = false, stdio, surveillerGit = false, mesurer = mesurerArbreProcessus, estVivant = estPidVivant }) {
   let stdout = ''; let stderr = ''
   const decodeSortie = new StringDecoder('utf8'); const decodeErreur = new StringDecoder('utf8')
   const refus = (code, message) => ({ status: null, signal: null, stdout, stderr, error: { code, message } })
@@ -125,11 +128,18 @@ export async function superviserProcessus({ commande, args = [], cwd = process.c
     hote.stderr?.on('data', (b) => { stderr += decodeErreur.write(b) })
     if (!heriter) { hote.stdin?.on('error', () => {}); hote.stdin?.end(entree) }
     connexion = setTimeout(() => interrompre('échéance de connexion du worker', 'ECONTROLE'), DELAI_IPC)
+    const mortProuvee = ({ pid }) => { try { return !estVivant(pid) } catch { return false } }
+    let echecs = 0
     if (surveillerGit) intervalle = setInterval(() => {
-      try {
-        const vue = mesurer()
-        if (gardiens.some((p) => !identitePresente(p, vue))) interrompre('parent disparu', 'EPARENT')
-      } catch (e) { interrompre(e.message, 'EMESURE') }
+      let vue
+      try { vue = mesurer() } catch (e) {
+        echecs += 1
+        if (gardiens.some(mortProuvee)) interrompre('parent disparu', 'EPARENT')
+        else if (echecs >= MESURES_INDETERMINEES_MAX) interrompre(`${echecs} mesures consécutives indéterminées : ${e.message}`, 'EMESURE')
+        return
+      }
+      echecs = 0
+      if (gardiens.some((p) => !identitePresente(p, vue))) interrompre('parent disparu', 'EPARENT')
     }, 250)
     if (timeout) borne = setTimeout(() => interrompre(`échéance ${timeout} ms`, 'ETIMEDOUT'), timeout)
     for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
