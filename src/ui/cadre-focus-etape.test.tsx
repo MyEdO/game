@@ -19,6 +19,7 @@ import { useGame } from '../state/store';
 import { startCascade } from '../state/cascade';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,7 +61,7 @@ const ouvrir = (purpose: string, steps: ReturnType<typeof choix>[]) =>
 const actif = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.textContent ?? '').trim());
 const bouton = (texte: string) =>
   [...document.querySelectorAll<HTMLElement>('button')].find((b) => (b.textContent ?? '').trim().startsWith(texte))!;
-const vider = async () => { await act(async () => { await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); }); };
+const vider = tacheSuivante;
 /** Le joueur retient l'option offerte, puis active « Continuer » au pied : le nœud du pied survit. */
 const choisirPuisContinuer = async () => {
   const option = bouton('Corps à corps');
@@ -212,5 +213,72 @@ describe('focus d’étape — zone embarquée, entrée au pied de l’hôte (ho
     act(() => ctl.zone(false));
     await vider();
     expect(actif(), 'fermeture : l’invocateur').toBe('Acte');
+  });
+});
+
+/**
+ * Règle d'étape (#2533, décision d'ingénierie, `useFocusEmprunte`) : à un changement d'étape, le geste
+ * DISPARU cède au groupe révélé (sauvetage, option retenue comprise) ; le geste SURVIVANT laisse la
+ * cible d'étape (ouverture), même quand le focus l'a quitté pour <body>.
+ */
+describe('changement d’étape — geste survivant ou disparu (#2533)', () => {
+  const focusNomme = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.textContent ?? '').trim());
+  const bouton = (t: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.textContent ?? '').trim() === t)!;
+  const pilote = { avancer: (_: number) => {} };
+  /** Le pied SURVIT à l'étape ; le corps change. */
+  function PiedSurvit() {
+    const [e, setE] = useState(0);
+    pilote.avancer = setE;
+    return (
+      <Modal title="T" onClose={() => {}} etape={e} footer={<button className="btn btn-primary">Continuer</button>}>
+        {e === 0 ? <p>texte</p> : <div className="seg"><button aria-pressed="false">A</button><button aria-pressed="false">B</button></div>}
+      </Modal>
+    );
+  }
+  /** MÊME étape 2 (option A pré-retenue, « Valider » au pied), atteinte par un geste qui SURVIT (pied) ou DISPARAÎT (corps). */
+  function Etape({ gestePied }: { gestePied: boolean }) {
+    const [e, setE] = useState(0);
+    const pied = gestePied
+      ? <button className="btn btn-primary" onClick={() => setE(1)}>{e === 0 ? 'Suivant' : 'Valider'}</button>
+      : (e === 1 ? <button className="btn btn-primary">Valider</button> : undefined);
+    return (
+      <Modal title="T" onClose={() => {}} etape={e} footer={pied}>
+        {e === 0
+          ? (gestePied ? <p>intro</p> : <button className="btn" onClick={() => setE(1)}>Suivant</button>)
+          : <div className="seg"><button aria-pressed="true">A</button><button aria-pressed="false">B</button></div>}
+      </Modal>
+    );
+  }
+
+  it('P4 : focus sur body après un clic sur une zone vide, étape avancée hors geste — le geste survit, la cible d’étape est posée', async () => {
+    act(() => root.render(<PiedSurvit />));
+    await tacheSuivante();
+    expect(focusNomme()).toBe('Continuer');
+    act(() => bouton('Continuer').blur());
+    await tacheSuivante();
+    expect(focusNomme()).toBe('BODY');
+    act(() => pilote.avancer(1));
+    await tacheSuivante();
+    expect(focusNomme(), 'la cible d’étape (1re option offerte)').toBe('A');
+  });
+
+  it('P5a : geste au PIED, il survit — la cible d’étape (le primaire, l’option étant déjà retenue)', async () => {
+    act(() => root.render(<Etape gestePied />));
+    await tacheSuivante();
+    const suivant = bouton('Suivant');
+    act(() => suivant.focus());
+    act(() => suivant.click());
+    await tacheSuivante();
+    expect(focusNomme()).toBe('Valider');
+  });
+
+  it('P5b : geste au CORPS, il disparaît — le groupe révélé (l’option retenue)', async () => {
+    act(() => root.render(<Etape gestePied={false} />));
+    await tacheSuivante();
+    const suivant = bouton('Suivant');
+    act(() => suivant.focus());
+    act(() => suivant.click());
+    await tacheSuivante();
+    expect(focusNomme()).toBe('A');
   });
 });

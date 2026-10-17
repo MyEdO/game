@@ -5,7 +5,7 @@ import { Prose } from './Prose';
  * paragraphes (lettre, pitch, prose de stade), se saisit dans une zone à sa mesure — jamais un
  * `<textarea>` nu de deux lignes. Libellé au-dessus (`.ed-field`), zone `.prose-field`, ou prose lue (`lecture`).
  */
-export function ProseField({ label, value, onChange, nu, ariaLabel, lecture }: {
+export function ProseField({ label, value, onChange, nu, ariaLabel, lecture, courte }: {
   label: string;
   value: string;
   onChange: (texte: string) => void;
@@ -20,10 +20,12 @@ export function ProseField({ label, value, onChange, nu, ariaLabel, lecture }: {
    *  porteur `ProseField{lecture}` : chaque site qui la passe se déclare dans `SITES_PROSE`
    *  (`src/ui/liage.ts`) ; `value` n'est que la valeur de la zone de saisie. */
   lecture?: string;
+  /** Texte COURT d'auteur (une raison maison, quelques lignes) : zone basse, agrandissable de même. */
+  courte?: boolean;
 }) {
   const lue = lecture !== undefined;
   const zone = lue ? <Prose md={lecture} /> : (
-    <textarea className="prose-field" aria-label={nu ? label : ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} />
+    <textarea className="prose-field" data-courte={courte || undefined} aria-label={nu ? label : ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} />
   );
   if (nu) return zone;
   const Champ = lue ? 'div' : 'label';

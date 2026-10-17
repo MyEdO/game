@@ -28,6 +28,8 @@ import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { SourceRefField } from '../SourceRefField';
 import { ProvenanceDuTexte } from '../editor/ProvenanceDuTexte';
+import { ProvenanceDeValeur } from '../editor/ProvenanceDeValeur';
+import type { ProvenanceDeValeur as Provenance } from '../../state/worldMap';
 import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
@@ -462,6 +464,22 @@ function ProvenanceDuTexteDemo() {
         <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef) ? adressee.desc ?? '' : undefined} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
         <ProvenanceDuTexte identite="adressee" sujet="de la réplique adressée" value={adressee} onChange={poser(setAdressee)} />
       </Stack>
+    </Grid>
+  );
+}
+
+function ProvenanceDeValeurDemo() {
+  // Une valeur exigée SANS provenance (refus dit), une citée au livre, une maison, une distance facultative.
+  const [vide, setVide] = useState<Provenance | undefined>(undefined);
+  const [citee, setCitee] = useState<Provenance | undefined>({ source: sourceDeSort() });
+  const [maison, setMaison] = useState<Provenance | undefined>({ maison: 'valeur d’adaptation de la campagne' });
+  const [distance, setDistance] = useState<Provenance | undefined>(undefined);
+  return (
+    <Grid min="sm" gap="lg">
+      <Stack gap="sm"><strong>Exigée, absente</strong><ProvenanceDeValeur identite="vide" sujet="du dé de péril" value={vide} onChange={setVide} /></Stack>
+      <Stack gap="sm"><strong>Citée</strong><ProvenanceDeValeur identite="citee" sujet="du dé de péril cité" value={citee} onChange={setCitee} /></Stack>
+      <Stack gap="sm"><strong>Maison</strong><ProvenanceDeValeur identite="maison" sujet="de la vitesse" value={maison} onChange={setMaison} /></Stack>
+      <Stack gap="sm"><strong>Facultative</strong><ProvenanceDeValeur identite="distance" sujet="de la distance" exigee={false} value={distance} onChange={setDistance} /></Stack>
     </Grid>
   );
 }
@@ -1821,6 +1839,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
+  { id: 'provenancedevaleur', label: 'ProvenanceDeValeur', file: 'src/ui/editor/ProvenanceDeValeur.tsx', category: 'Éditeur', render: ProvenanceDeValeurDemo },
   { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
   { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },

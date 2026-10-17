@@ -17,6 +17,7 @@ import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../.
 import { emptyScene, type Scene } from '../../state/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { tacheSuivante } from '../focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -165,5 +166,61 @@ describe('#684 L3 — l’offre de kinds est bornée par le contexte de la carte
     selectRoute();
     const offreRoute = [...kindSelect().options].map((o) => o.value);
     expect(new Set(offreRoute)).toEqual(new Set(CONDITION_KINDS_CARTE));
+  });
+});
+
+describe('#2533 — panneau ROUTE : chaque valeur d’auteur porte sa provenance, éditable au clic', () => {
+  it('le dé de péril posé exige sa provenance, dite à l’écran, puis posée par la source', () => {
+    mount();
+    selectRoute();
+    expect(alerte()).toBeNull();
+    const sujet = 'du dé de péril';
+    expect(container.querySelector(`[aria-label="Livre de la source ${sujet}"]`), 'pas de provenance sans valeur').toBeNull();
+
+    setValue(container.querySelector<HTMLInputElement>('[aria-label="Péripétie : seuil du d10 de la route"]')!, '0');
+    expect(lastMap!.routes[0].perilDie).toBe(0);
+    expect(alerte()).toMatch(/Provenance exigée du dé de péril/);
+
+    setValue(container.querySelector<HTMLSelectElement>(`[aria-label="Livre de la source ${sujet}"]`)!, 'ennemi-dans-l-ombre');
+    const page = container.querySelector<HTMLInputElement>(`[aria-label="Page de la source ${sujet}"]`)!;
+    setValue(page, '28');
+    act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(lastMap!.routes[0].provenances?.perilDie).toEqual({ source: { book: 'ennemi-dans-l-ombre', page: 28 } });
+    expect(alerte()).toBeNull();
+  });
+
+  it('la vitesse posée exige sa provenance ; une raison maison la satisfait', () => {
+    mount();
+    selectRoute();
+    click([...container.querySelectorAll('label.ed-check')].find((l) => l.textContent?.includes('Diligence'))!.querySelector('input')!);
+    setValue(container.querySelector<HTMLInputElement>('[aria-label="Diligence — Déplacement (km/h)"]')!, '15');
+    expect(alerte()).toMatch(/Provenance exigée de la vitesse/);
+    const maison = [...container.querySelectorAll('label.ed-field')].find((l) => l.textContent?.startsWith('Raison maison de la vitesse'))!.querySelector('textarea')!;
+    setValue(maison, 'valeur d’adaptation');
+    expect(lastMap!.routes[0].provenances?.speed).toEqual({ maison: 'valeur d’adaptation' });
+    expect(alerte()).toBeNull();
+  });
+});
+
+describe('#2533 — saisie d’une source de valeur : le focus suit le geste', () => {
+  it('page saisie puis clic sur la note : le commit du blur ne vole pas le focus, la note le prend', async () => {
+    mount();
+    selectRoute();
+    setValue(container.querySelector<HTMLInputElement>('[aria-label="Péripétie : seuil du d10 de la route"]')!, '0');
+    const sujet = 'du dé de péril';
+    setValue(container.querySelector<HTMLSelectElement>(`[aria-label="Livre de la source ${sujet}"]`)!, 'ennemi-dans-l-ombre');
+    const page = container.querySelector<HTMLInputElement>(`[aria-label="Page de la source ${sujet}"]`)!;
+    act(() => { page.focus(); });
+    setValue(page, '24');
+    const note = container.querySelector<HTMLInputElement>(`[aria-label="Note de la source ${sujet}"]`)!;
+    // Le clic sur la note : le navigateur retire d'abord le focus de la page (<body> le temps de
+    // l'événement), le commit du blur re-rend la boîte, PUIS le focus passe à la note.
+    await act(async () => { page.blur(); });
+    expect(lastMap!.routes[0].provenances?.perilDie?.source).toEqual({ book: 'ennemi-dans-l-ombre', page: 24 });
+    expect(document.activeElement, 'personne ne prend le focus pendant la transition').toBe(document.body);
+    act(() => { note.focus(); });
+    await tacheSuivante();
+    expect(container.querySelector(`[aria-label="Note de la source ${sujet}"]`), 'la note est le MÊME nœud').toBe(note);
+    expect(document.activeElement, 'le focus est sur la note').toBe(note);
   });
 });

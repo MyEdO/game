@@ -582,6 +582,39 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['prix'],
   },
+  // Porte : `provenanceDeValeurSchema` (`src/data/schemas/defs-scenes/worldmap.ts`), `source` OU `maison`.
+  // SITE : la valeur qu'elle justifie sous `provenances` ; `coPresence` laisse au hors-strate le record
+  // `speed` d'une route (`{diligence: 15}`), porté par la même clé. #2533.
+  {
+    id: 'provenance-de-valeur',
+    label: 'provenance d’une valeur d’auteur de route (`ProvenanceDeValeur`)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    champs: ['perilDie', 'speed', 'km'],
+    coPresence: ['source', 'maison'],
+    signatures: [
+      { sig: 'source', statut: 'cible' },
+      { sig: 'maison', statut: 'cible' },
+    ],
+  },
+  // Porte : `mapRouteSchema.provenances` (`src/data/schemas/defs-scenes/worldmap.ts`) : chaque clé est
+  // OPTIONNELLE, les sept combinaisons sont la forme cible. #2533.
+  {
+    id: 'provenances-de-route',
+    label: 'provenances des valeurs d’une route (`MapRoute.provenances`)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    champs: ['provenances'],
+    signatures: [
+      { sig: 'km', statut: 'cible' },
+      { sig: 'perilDie', statut: 'cible' },
+      { sig: 'speed', statut: 'cible' },
+      { sig: 'km,perilDie', statut: 'cible' },
+      { sig: 'km,speed', statut: 'cible' },
+      { sig: 'perilDie,speed', statut: 'cible' },
+      { sig: 'km,perilDie,speed', statut: 'cible' },
+    ],
+  },
   // Porte : `weaponDamageSpecSchema` (`src/data/schemas/grammaire/valeurs.ts`), union de deux branches
   // aux clés DISJOINTES, `{literal}` et `{plusBF, flat, bare?}` — d'où `noyauMin: 1`. `flat` n'est pas
   // au noyau : `sea-events › effect {d10, flat, sign}` (`manannFactor`) le porte aussi. La

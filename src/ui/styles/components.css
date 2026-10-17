@@ -289,11 +289,19 @@ label.radio {
   color: var(--muted);
   margin-bottom: 10px;
 }
+/* Champ COMPOSÉ (`SourceRefField` : livre, page, note) : ses sous-champs s'espacent par le `gap` du
+   champ parent, sans cumuler leur marge à la sienne. */
+.ed-field > .ed-field { margin-bottom: 0; }
 .ed-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
 
 /* ── CHAMP DE PROSE (primitive `ProseField`) : un texte VERBATIM de plusieurs paragraphes se saisit dans
    une zone à sa mesure, que l'auteur agrandit encore à la verticale. */
 .prose-field { width: 100%; box-sizing: border-box; min-height: 12rem; resize: vertical; font-family: inherit; line-height: 1.45; }
+/* `[data-courte]` (texte court d'auteur, `ProseField courte`) : la zone grandit avec son contenu
+   (`field-sizing: content`), plancher de 3 lignes (`3lh` + padding et filet de la peau de champ,
+   `base.css`). Navigateur sans `field-sizing` (Firefox) : le plancher fixe la hauteur à 3 lignes, avec
+   défilement interne et poignée `resize`. */
+.prose-field[data-courte] { field-sizing: content; min-height: calc(3lh + 18px); }
 
 /* ── BADGE DE SOURCE (primitive `SourceBadge`) : « abréviation du livre p.page ». Encre et filet lus aux jetons du contexte. */
 .source-badge {

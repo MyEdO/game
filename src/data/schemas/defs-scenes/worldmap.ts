@@ -228,6 +228,16 @@ function fautesDuBillet(route: { a: string; b: string; from?: string; modes: str
   return fautes;
 }
 
+/** Provenance d'une VALEUR d'auteur de route : `source` ou `maison`, jamais ni l'un ni l'autre. */
+export const provenanceDeValeurSchema = nommerChamps(z.strictObject({
+  source: sourceRefSchema.optional(),
+  maison: z.string().min(1).optional(),
+})
+  .superRefine((p, ctx) => refuserSansProvenance(p, ctx, 'de la valeur')), { source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
+
+/** Valeurs de route dont la provenance se dit : posées, `perilDie` et `speed` l'exigent. */
+const PROVENANCE_EXIGEE = { perilDie: 'du dé de péril', speed: 'de la vitesse' } as const;
+
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
 export const mapRouteSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -272,8 +282,20 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
     }), { source: { label: "source" , texte: { regime: "technique"} }, mode: { label: "mode"  }, chancePct: { label: "probabilité" } })
     .optional(),
   couvre: couvreSchema.optional(),
+  /** Provenance de chaque valeur d'auteur (`refuserSansProvenance`). */
+  provenances: nommerChamps(z.strictObject({
+    perilDie: provenanceDeValeurSchema.optional(),
+    speed: provenanceDeValeurSchema.optional(),
+    km: provenanceDeValeurSchema.optional(),
+  }), { perilDie: { label: "dé de péril" }, speed: { label: "vitesse" }, km: { label: "kilomètres" } }).optional(),
 })
   .superRefine((route, ctx) => {
+    const posees = { perilDie: route.perilDie !== undefined, speed: Object.values(route.speed ?? {}).some((v) => v !== undefined) };
+    for (const cle of Object.keys(PROVENANCE_EXIGEE) as (keyof typeof PROVENANCE_EXIGEE)[]) {
+      if (posees[cle] && !route.provenances?.[cle]) {
+        ctx.addIssue({ code: 'custom', path: ['provenances', cle], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${PROVENANCE_EXIGEE[cle]}.` });
+      }
+    }
     if (route.when !== undefined && !route.refus?.texte.trim()) {
       ctx.addIssue({
         code: 'custom',
@@ -282,7 +304,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
     }
     for (const [mode, billet] of Object.entries(route.billets ?? {}))
       for (const message of fautesDuBillet(route, mode, billet)) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({

@@ -14,7 +14,7 @@ import { Scene } from '../../state/scene';
 import { type WorldMap, type MapRoute, type MapRouteTrace, type Praticabilite, type RouteBillet, placeById } from '../../state/worldMap';
 import type { PresetPnj } from '../../state/campaignNarratif';
 import type { VehicleData } from '../../engine/types';
-import { SourceRefField } from '../SourceRefField';
+import { ProvenanceDeValeur } from './ProvenanceDeValeur';
 import { type TravelMode, TRAVEL_DEFAULTS, travelVehicles, travelModeLabels, travelModeIcon } from '../../engine/travel';
 import { EffectList, type Ctx } from './EffectList';
 import { RefSelect } from './worldMapPickers';
@@ -53,6 +53,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           <label className="ed-field">Distance (km)
             <NumberField variant="nu" label="Distance (km)" min={1} value={route.km} onChange={(km) => updRoute(route.id, { km })} />
           </label>
+          <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/km`} sujet="de la distance" exigee={false} value={route.provenances?.km} onChange={(km) => updRoute(route.id, { provenances: { ...route.provenances, km } })} /></div>
           <label className="ed-field">Sens (route à sens unique : n'est offerte que depuis ce lieu ; le retour passe par une autre route)
             <select
               value={route.from ?? ''}
@@ -100,6 +101,9 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               </label>
             </div>
           ))}
+          {Object.values(route.speed ?? {}).some((n) => n !== undefined) && (
+            <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/speed`} sujet="de la vitesse" value={route.provenances?.speed} onChange={(speed) => updRoute(route.id, { provenances: { ...route.provenances, speed } })} /></div>
+          )}
           <label className="ed-field">Péripétie : seuil du d10 (vide = défaut carte ; 0 = désactivé)
             <NumberField
               variant="nu" label="Péripétie : seuil du d10 de la route" min={0} max={10} placeholder={String(map.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie)}
@@ -107,6 +111,9 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               onChange={(n) => updRoute(route.id, { perilDie: n ?? undefined })}
             />
           </label>
+          {route.perilDie !== undefined && (
+            <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/perilDie`} sujet="du dé de péril" value={route.provenances?.perilDie} onChange={(perilDie) => updRoute(route.id, { provenances: { ...route.provenances, perilDie } })} /></div>
+          )}
           <label className="ed-check">
             <input
               type="checkbox"
@@ -323,16 +330,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
               <button className="btn small" onClick={() => poserPaliers([...paliers, { drMin: 0, prix: {} }])}>+ Palier</button>
             </>
           )}
-          <SourceRefField
-            identite={`${route.id}/billets/${v}/source`} label="Source du billet" facultative sujet={`du billet ${vehicule.label}`}
-            value={billet.source} onChange={(source) => patch({ source })}
-          />
-          <label className="ed-field">{vehicule.label} — raison maison du billet (sans source)
-            <input value={billet.maison ?? ''} onChange={(e) => patch({ maison: e.target.value || undefined })} />
-          </label>
-          {!billet.source && !billet.maison && (
-            <ChipDeRefus fixe refus={{ message: 'Provenance exigée : la source du billet, ou sa raison maison ; sans elle le projet est refusé au chargement.' }} />
-          )}
+          <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/billets/${v}`} sujet={`du billet ${vehicule.label}`} value={billet} onChange={patch} /></div>
         </div>
       )}
     </>

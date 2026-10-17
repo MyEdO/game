@@ -133,12 +133,12 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
           poser(props.facultative && book === '' ? { book, page: null, note: '' } : { book });
         }}
       />
-      <label className="ed-subfield">
-        Page
+      <label className="ed-field">
+        <span>Page</span>
         <NumberField variant="nu" label={nom('Page')} vide commit="geste" value={brouillon.page} onChange={(page) => poser({ page })} invalide={pageManquante} describedBy={pageManquante ? messageId : undefined} />
       </label>
-      <label className="ed-subfield">
-        Note
+      <label className="ed-field">
+        <span>Note</span>
         <input aria-label={nom('Note')} placeholder="facultatif" value={brouillon.note} onChange={(e) => poser({ note: e.target.value })} />
       </label>
       {enCours && (

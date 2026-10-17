@@ -125,6 +125,16 @@ export const STRUCTURES_CIBLES = [
   { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },
   { concept: "billet-de-route", signature: "prix", date: "2026-10-16" },
   { concept: "billet-de-route", signature: "prix+…", date: "2026-10-16" },
+  // #2533 (2026-10-17) — provenance des valeurs de route : nées CIBLES, formes que `worldmap.ts` valide.
+  { concept: "provenance-de-valeur", signature: "source", date: "2026-10-17" },
+  { concept: "provenance-de-valeur", signature: "maison", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "km", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "perilDie", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "speed", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "km,perilDie", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "km,speed", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "perilDie,speed", date: "2026-10-17" },
+  { concept: "provenances-de-route", signature: "km,perilDie,speed", date: "2026-10-17" },
   // #1389 (épique #1388, 2026-09-07) — l'ADRESSE de prose et son FRAGMENT naissent CIBLES : ce sont
   // les formes que le parseur `src/data/source/decoupe.ts` PRODUIT et que `descRefSchema`
   // (`grammaire/valeurs.ts`) est seul à accepter — il n'y a rien à migrer vers une autre graphie.
