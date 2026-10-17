@@ -133,15 +133,13 @@ export async function publierDepuisSnapshot({
   fusionDansMain = (p) => ancetreConfirme(estAncetre, depotDe(p.snapshot), 'HEAD', 'origin/main'),
   ecrire = (texte) => process.stderr.write(texte),
   ouvrir = () => 'inherit', entamer = () => {}, achever = () => {}, echouer = (e) => { ecrire(`${e.message}\n`); return 4 }, fermer = () => {},
+  refuser = (raison) => { ecrire(`${raison}\n`); return 1 },
 }) {
   const verrou = verrouiller({
     chemin: `${chemins.json}.publication.verrou`,
     libelle: `publication de ${branche}`, commande: `ops:publier ${args.join(' ')}`, cwd: source,
   })
-  if (verrou.etat !== 'pris') {
-    ecrire(`${verrou.message}\n`)
-    return 1
-  }
+  if (verrou.etat !== 'pris') return refuser(verrou.message)
   try {
     const stdio = ouvrir()
     const precedent = reprendre && existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
