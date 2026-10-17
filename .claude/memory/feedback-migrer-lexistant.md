@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-20T09:03:56.273Z
 ---
 
-Verbatims utilisateur : « Quand tu vois que l'existant ne suis pas nos exigences, il faut le migrer » (2026-07-26) ; « tu dois t'assurer de migrer les éléments qui l'utilisent » (au plus tard le 2026-09-13) ; « on a pleins de guard avec une liste en dure d'élément a migrer » (2026-07-26).
+Verbatims utilisateur : « Quand tu vois que l'existant ne suis pas nos exigences, il faut le migrer » (2026-07-26) ; « tu dois t'assurer de migrer les éléments qui l'utilisent » (2026-07-26) ; « on a pleins de guard avec une liste en dure d'élément a migrer » (2026-07-26).
 
 Rappel du 2026-09-20, quand j'ai proposé d'ouvrir un stock décroissant de plus pour les `!important` : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ».
 

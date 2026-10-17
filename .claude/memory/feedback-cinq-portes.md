@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verdict utilisateur (2026-07-19) : « Ton credo dit bien de vérifier le travail de l'agent ? D'utiliser un juge adversarial pour s'assurer que l'agent ne fasse pas n'importe quoi ? ». Une migration de DONNÉES qui alimente un écran existant est une livraison UI : même régime, recette navigateur AU commit.
+Verdict utilisateur (2026-07-17) : « Ton credo dit bien de vérifier le travail de l'agent ? D'utiliser un juge adversarial pour s'assurer que l'agent ne fasse pas n'importe quoi ? ». Une migration de DONNÉES qui alimente un écran existant est une livraison UI : même régime, recette navigateur AU commit.
 
 **Why:** sous pression de flux chaque vérification paraît trop lourde pour CE petit fix, et la somme des micro-fixes non jugés EST l'écran raté ; un test vert sur un câblage partiel ne voit ni un libellé perdu ni un hook mal placé qui ne casse qu'au montage réel.
 

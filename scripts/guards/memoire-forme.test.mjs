@@ -151,7 +151,7 @@ test('AUCUNE fiche ne dépasse le plafond de PROSE dans le stock permanent de ce
   assert.deepEqual(trop, [])
 })
 
-test('AUCUNE citation de l’utilisateur sans date dans le stock permanent de cet arbre', () => {
+test('AUCUNE ligne CITATION_DE_L_UTILISATEUR sans date dans le stock permanent de cet arbre', () => {
   const fichiers = gitDeLArbreReel(RACINE)('ls-files', '.claude/memory')
     .split('\n').filter(Boolean).filter((c) => familleDe(c) === 'fiche')
   assert.ok(fichiers.length > 0, `périmètre vide ou illisible : ${fichiers.length} fichier(s)`)

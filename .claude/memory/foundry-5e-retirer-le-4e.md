@@ -1,6 +1,6 @@
 ---
 name: foundry-5e-retirer-le-4e
-description: "Toute bascule d'une règle vers la 5e doit supprimer le comportement 4e, pas seulement poser le 5e à côté"
+description: "Monde Foundry — toute bascule d'une règle vers la 5e doit supprimer le comportement 4e, pas seulement poser le 5e à côté"
 metadata: 
   node_type: memory
   type: feedback

@@ -1,6 +1,6 @@
 ---
 name: foundry-5e-pas-de-momentum
-description: "Bascule 5e — le Momentum n'est pas implémenté, le monde garde l'Avantage de groupe 4e"
+description: "Monde Foundry — bascule 5e : le Momentum n'est pas implémenté, le monde garde l'Avantage de groupe 4e"
 metadata: 
   node_type: memory
   type: project

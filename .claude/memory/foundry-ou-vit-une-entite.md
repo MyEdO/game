@@ -17,7 +17,7 @@ Sur le monde Foundry, une entité vit dans **six** endroits sans rapport :
 5. Les textes de `config` (`effectScripts`, descriptions) qui la citent par `@Compendium`/`@UUID`.
 6. Les macros de la bascule (`game.macros.contents`, dossier « Bascule 5e »).
 
-**Why:** trois absences déclarées (*Besmirched*, *Distrayant*, « compétence » *Psychologie*) étaient fausses, et un chantier « à ouvrir » était déjà construit dans une macro :
-« Tu as deja tout code mec ! »
+**Why:** trois absences déclarées (*Besmirched*, *Distrayant*, « compétence » *Psychologie*) étaient fausses, et un chantier « à ouvrir » était déjà construit dans une macro.
+Verbatim utilisateur (au plus tard le 2026-09-27) : « Tu as deja tout code mec ! »
 
 **How to apply:** avant « n'existe pas » ou « reste à faire », balayer les six, nom VO **et** VF. Avant de dire qu'une règle manque de support, vérifier sa catégorie : un « Test de Psychologie » se passe avec Cool (`08 l.2195`). `5e — Verifier` garde que toute référence `@UUID` se résout. Voir [[foundry-champ-multi-surfaces]], [[foundry-5e-regle-absente-ecartee]].

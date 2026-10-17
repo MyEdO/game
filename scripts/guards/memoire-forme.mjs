@@ -2,7 +2,7 @@
 // credo) porte une RÈGLE, pas un RÉCIT. Le récit (ce qui a été vécu, mesuré, daté) est de l'histoire :
 // git la porte. Une fiche qui raconte grossit à chaque relecture et personne ne la relit.
 //
-// PÉRIMÈTRE JUGÉ (quatre familles) :
+// PÉRIMÈTRE JUGÉ (trois familles) :
 //   0. `.claude/memory/MEMORY.md`, l'INDEX — ses PLAFONDS DE CHARGEMENT seulement (`PLAFONDS_DE_L_INDEX`) ;
 //      sa croissance, elle, est jugée par `budget-contexte.mjs`.
 //   A. `.claude/memory/*.md` HORS `MEMORY.md` —
@@ -14,9 +14,9 @@
 //         même ligne comme ailleurs : un seul mot cité n'exempte pas la ligne qui le porte ;
 //      2. toute date ISO (`AAAA-MM-JJ`) dans le corps HORS d'une ligne de citation verbatim
 //         (celle qui porte les guillemets `«` : un arbitrage consigné DOIT porter sa date) ;
-//      3. toute ligne qui CITE L'UTILISATEUR (`CITATION_DE_L_UTILISATEUR`) sans sa date ISO : « Tout
-//         arbitrage UTILISATEUR consigné […] porte sa CITATION verbatim + date » (CLAUDE.md), sur toute
-//         fiche, pas seulement les `user-*` que `scripts/docs/build-doctrines.mjs` rend ;
+//      3. toute ligne qui CITE L'UTILISATEUR (`CITATION_DE_L_UTILISATEUR`) sans sa date ISO, la même
+//         règle de CLAUDE.md, sur toute fiche et pas seulement les `user-*` que
+//         `scripts/docs/build-doctrines.mjs` rend ;
 //      4. les motifs de RÉCIT.
 //   B. `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, `.claude/credo.md` — les motifs de RÉCIT
 //      seulement : ces fichiers n'ont pas de plafond de taille ici (leur `description:` est plafonnée
@@ -27,7 +27,9 @@
 // une date dans le FRONTMATTER (`description`, `metadata`) n'est pas jugée ; les motifs de récit sont
 // une liste FERMÉE, pas une détection sémantique — un récit qui n'emploie aucun de ces mots passe ; un
 // texte de la session placé tout entier entre `« »` passe pour une citation ; une parole de l'utilisateur
-// citée sans marqueur d'attribution (`Verbatim`, `utilisateur`) suivi de `:` puis `«` n'est pas vue citée.
+// citée sans marqueur d'attribution (`Verbatim`, `utilisateur`) suivi de `:` puis `«` n'est pas vue citée ;
+// à l'inverse, un livre ou un tiers cité sous la même forme (`Verbatim : « … »`) est jugé comme une parole
+// de l'utilisateur et doit porter une date.
 import { Buffer } from 'node:buffer'
 
 /** Plafond du CORPS d'une fiche de mémoire, en octets. Une règle tient ; un récit non. */

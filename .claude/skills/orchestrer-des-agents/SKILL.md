@@ -11,14 +11,16 @@ l'intégration triviale et les gates.
 
 ## Suivi
 
-- **Le suivi de vague `.git/suivi/<N>.json` est la SEULE source du plan et du prochain geste** — un
+- **Le suivi de vague `.git/suivi/<N>.json` est, sur le poste, la SEULE source du plan et du prochain geste** — un
   fichier par épique `<N>`, dans le répertoire git commun (utilisateur, 2026-09-28 : « Il faut
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
   Il se relit EN PREMIER à toute reprise (compaction, lendemain) : `npm run ops:suivi -- <N>` (la
   situation), `-- <N> --rendu` (le suivi entier), `-- <N> --mesurer [--sans-fetch]` (la mesure).
-- **Il vit sur le POSTE, jamais versionné** : la reprise d'une épique se fait sur le poste. Hors du
-  poste (session cloud), il n'existe pas : l'état se reconstruit depuis le ticket de l'épique (corps,
-  sous-issues, PR liées), et le ticket reçoit ce que la session décide.
+- **Il vit dans le `.git` du POSTE, jamais versionné** : une épique ne se REPREND que sur le poste. Une
+  session hors du poste (cloud) n'a ni suivi ni plan : elle exécute le lot que nomme son ticket, sans
+  reprendre l'épique, et consigne au TICKET, en commentaire daté, ce qu'elle décide ; à la reprise sur le
+  poste, ces commentaires entrent au suivi par son outil (`npm run ops:suivi -- <N> --arbitrer …`,
+  `--ajouter-etape …`, `--signaler …`) avant tout autre geste.
 - **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
   modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
   l'outil `mcp__harnais__suivi` (mod `harnais`) ou `npm run ops:suivi -- <N> --<geste> <args>…` (table

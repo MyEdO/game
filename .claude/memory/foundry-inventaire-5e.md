@@ -20,8 +20,8 @@ daté), le non-prouvé et le bruit de console préexistant. Seconde page génér
 référence au livre, pas de troisième document.
 
 **Why:** lire le système et le livre sans lire la liste des macros fait présenter comme « à ouvrir »
-un chantier déjà construit (Avantage/Désavantage 5e) :
-« Tu as deja tout code mec ! »
+un chantier déjà construit (Avantage/Désavantage 5e).
+Verbatim utilisateur (au plus tard le 2026-09-27) : « Tu as deja tout code mec ! »
 
 **How to apply:** inventaire d'abord, proposition ensuite. Voir
 [[foundry-ou-vit-une-entite]], sixième endroit.

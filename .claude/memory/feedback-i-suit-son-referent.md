@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur (au plus tard le 2026-08-10) : « le (i) par convention est apres et non avant ceux a quoi il fait référence ».
+Verbatim utilisateur (2026-08-10) : « le (i) par convention est apres et non avant ceux a quoi il fait référence ».
 
 **Why:** un glyphe placé avant son référent se rattache visuellement à ce qui précède — la position code l'appartenance.
 
