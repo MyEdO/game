@@ -1,17 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
-import type { AttackResult } from '../engine/combat';
+import { createHero } from '../engine/character';
+import { resetRule, setRule } from '../engine/policy';
+import { testScene } from '../scenes/test-fixture';
 
-const CRIT: AttackResult = { hit: true, critical: true, attackerRoll: 11, netSL: 1, location: 'corps', advantageTo: 'attacker', defenderDefeated: false, log: '' };
-
-/**
- * RAW-2 — « Je ne faillirai pas ! » (LDB 17 l.68) : « Si vous infligez un Coup Critique, vous pouvez
- * choisir la Localisation atteinte, plutôt que de la laisser au hasard. » Sur un Coup Critique issu d'un
- * succès FORCÉ, la localisation choisie doit court-circuiter le tirage aléatoire (`critLocationRoll`).
- */
+/** LDB 17 l.68 ; LDB 18 l.53 ; #1595 c.6226467544. */
 const mk = (): Combatant =>
   ({
     id: 'T', name: 'Cible', kind: 'enemy',
@@ -48,16 +44,73 @@ describe('applyCriticalToTarget — libellé de localisation adapté à la forme
     expect(log.some((l) => l.includes('(Bras droit)'))).toBe(false);
   });
 });
-
-describe('attackSetCritLocation — réservé au Coup Critique FORCÉ (RAW-2)', () => {
-  it('forced + critical → pose result.critLocation', () => {
-    useGame.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, forced: true, result: CRIT } });
-    useGame.getState().attackSetCritLocation('jambeG');
-    expect(useGame.getState().pendingAttack!.result!.critLocation).toBe('jambeG');
+describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllTimers();
+    setRule('combat-aa-blessures', 'aa');
+    useGame.setState({ battle: null, pendingAttack: null });
+  });
+  afterEach(() => {
+    resetRule('combat-aa-blessures');
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
-  it('non forcé (Coup Critique « ordinaire ») → ignoré (localisation au hasard, RAW)', () => {
-    useGame.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: CRIT } });
+  /** Le héros attaque une cible à `current` Blessures, et la graine fait rater son jet. */
+  function attaqueRatee(current: number) {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    useGame.setState({ party: [hero] });
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    H.pos = { x: 10, y: 10 };
+    H.resilience = 1;
+    E.pos = { x: 11, y: 10 };
+    E.wounds = { current, max: 30 } as never;
+    E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
+    useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
+    useGame.getState().battleClickEntity(E.id, { confirm: true });
+    seedBattleRng(3);
+    useGame.getState().attackRoll();
+    expect(useGame.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
+  }
+  /** « Je ne faillirai pas ! » : le résultat choisi, 21, réussit sans double. */
+  function forcer() {
+    useGame.getState().attackForceSuccess();
+    useGame.getState().attackSetForcedRoll(21);
+    const res = useGame.getState().pendingAttack!.result!;
+    expect(res.hit).toBe(true);
+    expect(res.critical, 'aucun double : pas de Coup Critique au jet').toBe(false);
+  }
+
+  it("'aa', cible déjà à 0 (branche 1) : le choix est accepté et le Critique tombe à la Localisation choisie", () => {
+    attaqueRatee(0);
+    forcer();
+    useGame.getState().attackSetCritLocation('jambeG');
+    const res = useGame.getState().pendingAttack!.result!;
+    expect(res.critLocation).toBe('jambeG');
+    useGame.getState().attackConfirm();
+    expect(res.location).toBe('jambeG');
+  });
+
+  it("'aa', passage à 0 (branche 2) : aucun choix, la Localisation reste celle du résultat choisi (R1)", () => {
+    attaqueRatee(2);
+    forcer();
+    const touche = useGame.getState().pendingAttack!.result!.location;
+    useGame.getState().attackSetCritLocation(touche === 'jambeG' ? 'jambeD' : 'jambeG');
+    const res = useGame.getState().pendingAttack!.result!;
+    expect(res.critLocation).toBeUndefined();
+    expect(res.location).toBe(touche);
+  });
+
+  it('sans Résilience dépensée : aucun choix', () => {
+    attaqueRatee(0);
     useGame.getState().attackSetCritLocation('jambeG');
     expect(useGame.getState().pendingAttack!.result!.critLocation).toBeUndefined();
   });

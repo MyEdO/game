@@ -10,9 +10,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from './combatFlow';
 import { evaluateMissile, magicDeviationEligible, type CastResult } from '../engine/magic';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng, battleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
+import { critWoundLocation } from '../engine/critical';
 import { resetRule, setRule } from '../engine/policy';
-import type { Combatant, Weapon } from '../engine/types';
+import { locationLabel, type Combatant, type HitLocation, type Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { emptyScene } from './scene';
 import { stepInteraction } from './cascade';
@@ -353,5 +355,49 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
     applyAttackResult(useGame.getState, useGame.setState, e, h, weapon, overkillRes());
     resolveDeviation(useGame.getState, useGame.setState, tireLaSeverite().deviation!, false);
     expect(live('h1').criticalWounds ?? 0).toBe(1);
+  });
+});
+
+// ── Projectile : relance de la Localisation sous (B) ──────────────────────────
+// LDB 18 l.53, l.55 ; LDB 46 l.30 ; AA 07 l.36 ; #1595 c.6226467544.
+describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18 l.53, l.55 ; #1595 c.6226467544)", () => {
+  const GRAINE = 5;
+  const jet: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: '' };
+  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); seedBattleRng(GRAINE); });
+  afterEach(() => resetRule('combat-aa-blessures'));
+
+  /** Le Projectile sur une cible hors Mort subite (AA 07 l.67), un témoin garde le combat ouvert. */
+  function projectile(over: Partial<Combatant>, critique: boolean): { touche: HitLocation; journal: string[] } {
+    const caster = mage('hero', 'h-mage');
+    const t = mk('enemy', 'e-cible', { talents: [{ talentId: 'chanceux', times: 1 }] as never, ...over });
+    setBattle([caster, t, mk('enemy', 'e-temoin')]);
+    const touche = evaluateMissile(caster, t, missileSpell(), jet).location!;
+    castMissile(caster, t, missileSpell(), { critical: critique });
+    draineCascade(useGame.getState);
+    return { touche, journal: useGame.getState().battle!.log.map((l) => l.text) };
+  }
+  const critiqueA = (journal: string[], loc: HitLocation) => journal.some((l) => l.startsWith('Blessure critique') && l.includes(`(${locationLabel(loc, 'humanoide')})`));
+
+  it("(a) 'aa', cible déjà à 0, sans Incantation critique : la Localisation est relancée (branche 1)", () => {
+    const relancee = critWoundLocation(makeRNG(GRAINE), 'humanoide');
+    const { touche, journal } = projectile({ wounds: { current: 0, max: 30 } as never }, false);
+    expect(relancee, 'la graine sépare les deux Localisations').not.toBe(touche);
+    expect(live('e-cible').criticalWounds).toBe(1);
+    expect(critiqueA(journal, relancee), 'le Critique à la Localisation du d100 frais').toBe(true);
+    expect(critiqueA(journal, touche)).toBe(false);
+  });
+
+  it("(b) 'aa', passage à 0, sans Incantation critique : la Localisation de touche est gardée (branche 2)", () => {
+    const { touche, journal } = projectile({ wounds: { current: 2, max: 30 } as never }, false);
+    expect(live('e-cible').criticalWounds).toBe(1);
+    expect(critiqueA(journal, touche), 'le Critique à la Localisation de touche').toBe(true);
+  });
+
+  it('(c) Incantation critique sur une Structure : aucune relance, le seul d100 tiré est celui de la table', () => {
+    projectile({ wounds: { current: 10, max: 30 } as never, bodyShape: 'structure' }, true);
+    expect(live('e-cible').criticalWounds).toBe(1);
+    const temoin = makeRNG(GRAINE);
+    temoin.int(1, 100);
+    expect(battleRng().int(1, 1_000_000), 'même graine, un seul dé consommé').toBe(temoin.int(1, 1_000_000));
   });
 });
