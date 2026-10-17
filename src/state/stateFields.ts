@@ -65,6 +65,8 @@ const STATE_FIELDS = {
   /** LOT DE DÉS d'un étal (#1426) : ouvert AVANT l'écran de marché/port, refermé à sa validation. */
   pendingEtalLot: { init: null, resetOn: ['scene'] },
   pendingForceDoor: { init: null, resetOn: [] },
+  // Désignation NON annulable (EDO 02 l.91) : elle survit au changement de scène jusqu'au choix.
+  pendingDesignationHeros: { init: null, resetOn: [] },
   pendingCascade: { init: null, resetOn: ['scene', 'combatStart'] },
   // Pile de cascades SUSPENDUES (state/cascade.ts) : DOIT survivre à `scene`/`combatStart` (c'est
   // PRÉCISÉMENT à ces cadres que la suspension pousse une entrée — un reset ICI la perdrait aussitôt).

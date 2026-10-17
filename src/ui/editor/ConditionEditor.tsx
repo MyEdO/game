@@ -6,16 +6,19 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import type { Condition, ActorRef, ActorField, CompareOp, CompareSubject } from '../../state/flow';
+import type { Condition, ActorRef, ActorField, CompareOp, CompareSubject, PartySelector } from '../../state/flow';
+import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { TemporalCondition } from '../../state/scene';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
+import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { findTrappingById } from '../../data';
 import { formatMoney } from '../../engine/money';
 import { RefField } from '../compendium/RefField';
+import { libelleDEtat } from '../compendium/libellesNarratifs';
 import { NumberField } from '../NumberField';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
@@ -26,6 +29,46 @@ const trappingLabelOrId = (id?: string): string => (id ? findTrappingById(id)?.l
 const optionsDuNoeud = (noeud: unknown): [string, string][] => Object.entries(valeursDe(noeud) ?? {});
 
 const ALWAYS: Condition = { kind: 'always' };
+
+/** Résumé d'un sélecteur de héros. */
+const quiResume = (who: PartySelector | undefined, narratif: NarratifBlock | undefined): string =>
+  who === 'all' ? 'groupe' : typeof who === 'object' ? `héros désigné « ${who.etat ? libelleDEtat(narratif?.etats, who.etat) : '?'} »` : 'un héros';
+
+/** Sélecteur de héros d'une Condition de groupe : le quantificateur (`partyWhoSchema`) ou un état déclaré
+ *  par le projet dont la forme admet la sélection (`FORMES_D_ETAT`). */
+function SelecteurDeHeros({ who, narratif, onChange }: { who: PartySelector; narratif: NarratifBlock | undefined; onChange: (w: PartySelector) => void }) {
+  const heros = etatsAdmettant(narratif?.etats, 'selectionner');
+  const valeur = typeof who === 'object' ? `etat:${who.etat}` : who;
+  return (
+    <select className="cond-kind" aria-label="Héros visé" value={valeur}
+      onChange={(e) => onChange(e.target.value.startsWith('etat:') ? { etat: e.target.value.slice(5) } : e.target.value === 'all' ? 'all' : 'any')}>
+      {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      {heros.map((e) => <option key={e.id} value={`etat:${e.id}`}>{e.label}</option>)}
+    </select>
+  );
+}
+
+/** Condition `etat` : l'état lu (déclaré au projet) et, si sa forme admet la comparaison, la valeur
+ *  comparée (vide = « défini »). */
+function EtatFields({ cond, narratif, onChange }: { cond: Extract<Condition, { kind: 'etat' }>; narratif: NarratifBlock | undefined; onChange: (c: Condition) => void }) {
+  const etats = narratif?.etats ?? [];
+  const etat = etatsAdmettant(etats, 'comparer').find((e) => e.id === cond.etat);
+  return (
+    <span className="cond-time">
+      <select className="cond-kind" aria-label="État de campagne lu" value={cond.etat} onChange={(e) => onChange({ kind: 'etat', etat: e.target.value })}>
+        <option value="">— état de campagne —</option>
+        {etats.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+      </select>
+      {etat && (
+        <select className="cond-kind" aria-label="Valeur comparée" value={cond.value ?? ''}
+          onChange={(e) => onChange(e.target.value ? { kind: 'etat', etat: cond.etat, value: e.target.value } : { kind: 'etat', etat: cond.etat })}>
+          <option value="">est défini</option>
+          {valeursDeclarees(etat).map((v) => <option key={v.id} value={v.id}>= {v.label}</option>)}
+        </select>
+      )}
+    </span>
+  );
+}
 
 /** Kinds d'attaque (cf. `creatureAttackKind`) — libellés du sélecteur de la Condition `attackKind` : les
  *  `AttackKind` catalogués (nœud `attackKindSchema`, `defs/maneuvers.ts`). */
@@ -41,6 +84,7 @@ const subjectLabel = (s: CompareSubject): string =>
 const KIND_OPTIONS: [Condition['kind'], string][] = [
   ['always', 'Toujours'],
   ['flag', 'Flag(s)'],
+  ['etat', 'État de campagne'],
   ['time', 'Créneau horaire'],
   ['hasItem', 'Possède un objet'],
   ['money', 'Bourse ≥'],
@@ -78,8 +122,9 @@ const winSummary = (w: TemporalCondition) => {
   const b = w.beforeHour != null ? `${pad(w.beforeHour)}:${pad(w.beforeMinute ?? 0)}` : null;
   return a && b ? `${a}–${b}` : a ? `dès ${a}` : b ? `avant ${b}` : 'créneau';
 };
-/** Résumé HUMAIN compact d'une Condition (rangées repliées, listes). */
-export function condSummary(c: Condition | undefined): string {
+/** Résumé HUMAIN compact d'une Condition (rangées repliées, listes) ; `narratif` résout les libellés des
+ *  états de campagne (absent : racine de catalogue, les ids restent). */
+export function condSummary(c: Condition | undefined, narratif?: NarratifBlock): string {
   if (!c) return '';
   switch (c.kind) {
     case 'always': return 'toujours';
@@ -87,7 +132,11 @@ export function condSummary(c: Condition | undefined): string {
     case 'time': return winSummary(c.window);
     case 'hasItem': return `a « ${trappingLabelOrId(c.trappingId) || '?'} »${c.count && c.count > 1 ? ` ×${c.count}` : ''}`;
     case 'money': return `bourse ≥ ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;
-    case 'partyDead': return c.who === 'all' ? 'tout le groupe mort' : 'un héros mort';
+    case 'partyDead': return c.who === 'all' ? 'tout le groupe mort' : `${quiResume(c.who, narratif)} mort`;
+    case 'etat': {
+      const nom = c.etat ? libelleDEtat(narratif?.etats, c.etat) : '?';
+      return c.value === undefined ? `état « ${nom} » défini` : `état « ${nom} » = ${libelleDEtat(narratif?.etats, c.etat, c.value)}`;
+    }
     case 'compare': {
       const val = typeof c.value === 'number' ? `${c.value}` : `${libelleDeValeur(actorRefSchema, c.value.who)} ${subjectLabel(c.value)}`;
       return `${libelleDeValeur(actorRefSchema, c.subject.who)} : ${subjectLabel(c.subject)} ${c.op} ${val}`;
@@ -109,13 +158,13 @@ export function condSummary(c: Condition | undefined): string {
     case 'relation': return `${libelleDeValeur(actorRefSchema, c.who)} : ${libelleDeValeur(relationOrCampSchema, c.is)}`;
     case 'has': return `${libelleDeValeur(actorRefSchema, c.who)} a ${libelleDeValeur(hasWhatSchema, c.what)} « ${c.value || '?'}${c.spec ? ` (${c.spec})` : ''} »`;
     case 'casterChaosDomain': return `Domaine du Chaos du lanceur = ${c.is || '?'}`;
-    case 'skill': return `${c.who === 'all' ? 'groupe' : 'un héros'} : Compétence « ${c.id || '?'}${c.spec ? ` (${c.spec})` : ''} »${c.advances ? ` ≥${c.advances}` : ''}`;
-    case 'career': return `${c.who === 'all' ? 'groupe' : 'un héros'} : carrière « ${c.id || '?'} »`;
-    case 'species': return `${c.who === 'all' ? 'groupe' : 'un héros'} : espèce « ${c.id || '?'} »`;
-    case 'status': return `${c.who === 'all' ? 'groupe' : 'un héros'} : Statut ≥ « ${c.atLeast || '?'} »`;
-    case 'all': return c.of.length ? c.of.map(condSummary).join(' ET ') : 'toujours';
-    case 'any': return c.of.length ? c.of.map(condSummary).join(' OU ') : 'jamais';
-    case 'not': return `NON(${condSummary(c.of)})`;
+    case 'skill': return `${quiResume(c.who, narratif)} : Compétence « ${c.id || '?'}${c.spec ? ` (${c.spec})` : ''} »${c.advances ? ` ≥${c.advances}` : ''}`;
+    case 'career': return `${quiResume(c.who, narratif)} : carrière « ${c.id || '?'} »`;
+    case 'species': return `${quiResume(c.who, narratif)} : espèce « ${c.id || '?'} »`;
+    case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${c.atLeast || '?'} »`;
+    case 'all': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' ET ') : 'toujours';
+    case 'any': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' OU ') : 'jamais';
+    case 'not': return `NON(${condSummary(c.of, narratif)})`;
   }
 }
 
@@ -128,6 +177,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'hasItem': return { kind: 'hasItem', trappingId: cond.kind === 'hasItem' ? cond.trappingId : '' };
     case 'money': return { kind: 'money', atLeast: cond.kind === 'money' ? cond.atLeast : { gold: 1 } };
     case 'partyDead': return { kind: 'partyDead', who: cond.kind === 'partyDead' ? cond.who : 'any' };
+    case 'etat': return cond.kind === 'etat' ? cond : { kind: 'etat', etat: '' };
     case 'compare': return cond.kind === 'compare' ? cond : { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 };
     case 'slThreshold': return cond.kind === 'slThreshold' ? cond : { kind: 'slThreshold', op: '>=', value: 6 };
     case 'location': return { kind: 'location', is: cond.kind === 'location' ? cond.is : 'tete' };
@@ -175,12 +225,15 @@ function TimeWindowFields({ window: w, onChange }: { window: TemporalCondition; 
   );
 }
 
-export function ConditionEditor({ cond, onChange, kinds }: {
+export function ConditionEditor({ cond, onChange, kinds, narratif }: {
   cond: Condition;
   onChange: (c: Condition) => void;
   /** Sous-ensemble de kinds offert (défaut : tous). Le porteur du `when` le fournit quand son
    *  contexte d'évaluation n'en couvre qu'une partie — ex. `CONDITION_KINDS_CARTE`. */
   kinds?: ReadonlySet<Condition['kind']>;
+  /** Narratif du projet : ses états de campagne (Condition `etat`, sélecteur `{etat}`). Absent = racine de
+   *  CATALOGUE, aucun état offert (`Ctx.narratif`). */
+  narratif?: NarratifBlock;
 }) {
   const options = kinds ? KIND_OPTIONS.filter(([k]) => kinds.has(k)) : KIND_OPTIONS;
   return (
@@ -217,10 +270,9 @@ export function ConditionEditor({ cond, onChange, kinds }: {
         </span>
       )}
       {cond.kind === 'partyDead' && (
-        <select className="cond-kind" value={cond.who} onChange={(e) => onChange({ kind: 'partyDead', who: e.target.value === 'all' ? 'all' : 'any' })}>
-          {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
+        <SelecteurDeHeros narratif={narratif} who={cond.who} onChange={(who) => onChange({ kind: 'partyDead', who })} />
       )}
+      {cond.kind === 'etat' && <EtatFields cond={cond} narratif={narratif} onChange={onChange} />}
       {cond.kind === 'compare' && (
         <span className="cond-time">
           <select className="cond-kind" value={cond.subject.who} onChange={(e) => onChange({ ...cond, subject: { ...cond.subject, who: e.target.value as ActorRef } })}>
@@ -379,9 +431,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
           />
           <input style={{ width: '6em' }} value={cond.spec ?? ''} placeholder="spéc. (Serrures…)" onChange={(e) => onChange({ ...cond, spec: e.target.value || undefined })} />
           <label className="dr">≥ avances<NumberField variant="nu" label="Avances minimales" min={0} vide value={cond.advances} onChange={(n) => onChange({ ...cond, advances: n ?? undefined })} /></label>
-          <select className="cond-kind" value={cond.who ?? 'any'} onChange={(e) => onChange({ ...cond, who: e.target.value === 'all' ? 'all' : 'any' })}>
-            {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}
       {cond.kind === 'career' && (
@@ -391,9 +441,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
             value={cond.id}
             onChange={(v) => onChange({ ...cond, id: (v as string) ?? '' })}
           />
-          <select className="cond-kind" value={cond.who ?? 'any'} onChange={(e) => onChange({ ...cond, who: e.target.value === 'all' ? 'all' : 'any' })}>
-            {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}
       {cond.kind === 'species' && (
@@ -403,24 +451,20 @@ export function ConditionEditor({ cond, onChange, kinds }: {
             value={cond.id}
             onChange={(v) => onChange({ ...cond, id: (v as string) ?? '' })}
           />
-          <select className="cond-kind" value={cond.who ?? 'any'} onChange={(e) => onChange({ ...cond, who: e.target.value === 'all' ? 'all' : 'any' })}>
-            {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}
       {cond.kind === 'status' && (
         <span className="cond-time">
           <input className="cond-flag" value={cond.atLeast} placeholder="Statut (ex. Argent 2)" onChange={(e) => onChange({ ...cond, atLeast: e.target.value })} />
-          <select className="cond-kind" value={cond.who ?? 'any'} onChange={(e) => onChange({ ...cond, who: e.target.value === 'all' ? 'all' : 'any' })}>
-            {optionsDuNoeud(partyWhoSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}
       {(cond.kind === 'all' || cond.kind === 'any') && (
         <div className={`cond-children ${cond.kind}`}>
           {cond.of.map((c, i) => (
             <div className="cond-child" key={i}>
-              <ConditionEditor cond={c} kinds={kinds} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
+              <ConditionEditor cond={c} kinds={kinds} narratif={narratif} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
               <button className="btn small danger" title="Retirer cette sous-condition" onClick={() => onChange({ ...cond, of: cond.of.filter((_, j) => j !== i) })}>✕</button>
             </div>
           ))}
@@ -431,7 +475,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
       )}
       {cond.kind === 'not' && (
         <div className="cond-children not">
-          <ConditionEditor cond={cond.of} kinds={kinds} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
+          <ConditionEditor cond={cond.of} kinds={kinds} narratif={narratif} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
         </div>
       )}
     </div>
@@ -439,10 +483,11 @@ export function ConditionEditor({ cond, onChange, kinds }: {
 }
 
 /** Variante pour un `when` OPTIONNEL : « Toujours » ↔ `undefined` (pas de condition). */
-export function WhenEditor({ when, onChange, kinds }: {
+export function WhenEditor({ when, onChange, kinds, narratif }: {
   when?: Condition;
   onChange: (c: Condition | undefined) => void;
   kinds?: ReadonlySet<Condition['kind']>;
+  narratif?: NarratifBlock;
 }) {
-  return <ConditionEditor cond={when ?? ALWAYS} kinds={kinds} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
+  return <ConditionEditor cond={when ?? ALWAYS} kinds={kinds} narratif={narratif} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
 }

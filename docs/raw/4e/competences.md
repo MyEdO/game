@@ -45,7 +45,7 @@ Augmentations** dans cette Compétence inscrites sur la Feuille de Personnage.
 **Sources RAW :** LDB 09 l.12-18
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.12-18) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +30 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/activities.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, +20 fichiers
+- `LDB 9` (l.12-18) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `BargainModalView`, `useTestJetProps`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +30 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/activities.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, +20 fichiers
 
 **Voir aussi :** [Tests & Degrés de Réussite](tests.md) pour l'utilisation de ce niveau en test.
 

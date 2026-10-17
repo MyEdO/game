@@ -30,6 +30,7 @@ import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
   CONCEPTS,
+  DATASETS_DES_PROJETS,
   LOTS_CONNUS,
   LOTS_DE_PEUPLEMENT,
   LOT_CLE_RESERVEE,
@@ -670,6 +671,18 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classerValeur('manannD10,max,min', ['min', 'max', 'manannD10'], { dataset: '', champ: 'impressed' })).toBeNull();
   });
 
+  it('la forme d’un état n’est revendiquée qu’au SITE des projets, à ses clés réelles', () => {
+    const projet = DATASETS_DES_PROJETS.find((d) => d === 'diligence-projet.json')!;
+    expect(classement({ kind: 'heros' }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind', statut: 'cible' });
+    expect(classement({ kind: 'enum', valeurs: [] }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind,valeurs', statut: 'cible' });
+    expect(classement({ couleur: 'x', taille: 1 }, 'forme', 'creatures.json')).toBeNull();
+  });
+
+  it('un `prix` hors des projets n’est pas un billet de route', () => {
+    expect(classement({ prix: { exterieur: 1 } }, 'diligence', 'diligence-projet.json')).toMatchObject({ concept: 'billet-de-route', statut: 'cible' });
+    expect(classerValeur('label,prix', ['label', 'prix'], { dataset: 'merchants.json', champ: 'offres' })?.concept).not.toBe('billet-de-route');
+  });
+
   it('une clé RÉSERVÉE encore homonyme ne force aucun concept (`count`, `cost`, `skill`)', () => {
     expect(classement({ count: 2, id: 'x' }, 'trappings')).toBeNull();
     expect(classement({ cost: 3, weightEnc: 1 }, 'install')).toBeNull();
@@ -810,10 +823,11 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         'prose-nommee | barge-du-sel-projet.json › sousTitre | texte',
         'prose-nommee | diligence-projet.json › refus | texte+…',
         'prose-nommee | diligence-projet.json › sousTitre | texte+…',
-        'narratif | arene-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
-        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
-        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
-        'narratif | diligence-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
+        'narratif | arene-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
+        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
+        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
+        'narratif | diligence-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
+        'effet-d-etat | diligence-projet.json › effect | etat,invite,type+…',
         'ouverture | barge-du-sel-projet.json › ouverture | pitch,titre+…',
         'ouverture | diligence-projet.json › ouverture | pitch,titre+…',
         'cloture | barge-du-sel-projet.json › cloture | titre,when+…',

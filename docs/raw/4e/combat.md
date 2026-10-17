@@ -1279,7 +1279,7 @@ L'Empoignade fonctionne entièrement via l'État _Empêtré_ infligé. Sa défin
 **Voir aussi** : Combat à mains nues (Bagarre), État Empêtré, Avantage, Tests opposés et Degrés de Réussite (DR), Localisation (dé inversé), Combat monté, Trait Constriction.
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 14` (l.153-155, l.159, l.161, l.163, l.165, l.167, l.169, l.171-173) → `GrappleModal`, `areGrappling`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `REFUS_MONTE`, `combatOrder`, `grappleTierMod`, `grapple`, +61 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, +27 fichiers
-- `LDB 16` (l.60-66) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `brise`, `Condition`, `peutTenter`, `aaBleedUnconsciousDue`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
+- `LDB 16` (l.60-66) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `brise`, `peutTenter`, `Condition`, `aaBleedUnconsciousDue`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
 
 ---
 
@@ -1603,7 +1603,7 @@ La **Fuite** consiste à faire demi-tour et à utiliser son Mouvement pour fuir.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 15` (l.18-31, l.45-49, l.61-68) → `METRES_PER_LEVEL`, `ClimbPlan`, `fall-choice`, `RunModal`, `planJump`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `fall-roll`, `planClimb`, +89 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +37 fichiers
-- `LDB 21` (l.54) → `nightmare`, `terreur`, `resolvePsychRow`, `endEncounterPsych`, `resolvePsychAI`, `humanizePerSL`, `amour`, `camaraderie`, `phobie`, `failConditionAmount`, +6 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/psychology.ts`, +4 fichiers
+- `LDB 21` (l.54) → `nightmare`, `terreur`, `resolvePsychRow`, `endEncounterPsych`, `resolvePsychAI`, `amour`, `humanizePerSL`, `camaraderie`, `phobie`, `failConditionAmount`, +6 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/psychology.ts`, +4 fichiers
 
 ---
 
@@ -3153,7 +3153,7 @@ L'aventure de départ **Aventures à Übersreik** rassemble les Traits d'un mons
 **Voir aussi** : Souffle (Indice)(Type) ; Regard pétrifiant ; Étreinte glaciale ; Hurlement fantomatique ; Vomissement ; Trait Taille (Piétinement, multiplicateur de Dégâts) ; États Empêtré / Empoisonné / À Terre ; Empoignade ; Charge et Avantage.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.60-66, l.68-74) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `Formula`, `addCondition`, `brise`, `Condition`, `peutTenter`, +34 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
+- `LDB 16` (l.60-66, l.68-74) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `Formula`, `addCondition`, `brise`, `peutTenter`, `Condition`, +34 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
 - `LDB 85` (l.9, l.33-35, l.43, l.45-47, l.73-75, l.81-83, l.209-213, l.235-237, l.405, l.417, l.421, l.423-425) → `TraitDef`, `a-distance`, `arme`, `weaponGroup`, `actionPrise`, `a-sang-froid`, `morsure`, `polymorphOps`, `affame`, `creatureWeapon`, +120 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/schemas/defs/traits.ts`, `src/data/traits.json`, `src/engine/combat.ts`, +21 fichiers
 - sans code : `AU1 4` (l.9, l.12)
 

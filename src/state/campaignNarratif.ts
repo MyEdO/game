@@ -11,6 +11,7 @@ import type {
   clotureSchema,
   documentNarratifSchema,
   ecartSchema,
+  etatNarratifSchema,
   indiceSchema,
   indiceStadeSchema,
   narratifSchema,
@@ -25,6 +26,7 @@ export type DocumentNarratif = z.infer<typeof documentNarratifSchema>;
 export type Indice = z.infer<typeof indiceSchema>;
 export type Affaire = z.infer<typeof affaireSchema>;
 export type PresetPnj = z.infer<typeof presetPnjSchema>;
+export type EtatNarratif = z.infer<typeof etatNarratifSchema>;
 /** Entrée de fiche de dossier de chapitre écartée par l'adaptation, avec son motif (#2290). */
 export type EcartDeFiche = z.infer<typeof ecartSchema>;
 export type OuvertureBlock = z.infer<typeof ouvertureSchema>;

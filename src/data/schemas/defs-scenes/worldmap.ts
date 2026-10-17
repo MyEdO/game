@@ -11,10 +11,12 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
-import { enumNomme } from '../grammaire/valeurs';
+import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
+import { refuserSansProvenance } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
-import { listeCle } from '../grammaire/collection-cle';
+import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
+import { findVehicleById } from '../../index';
 import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
@@ -115,7 +117,7 @@ export const placePoiSchema = nommerChamps(z
 
 /**
  * Kinds de `Condition` réellement ÉVALUABLES avec le contexte de la CARTE (`condCtx`,
- * `src/state/bourseFlow.ts` : `flags`, `gameTime`, `party`, `money`). Les autres kinds lisent
+ * `src/state/bourseFlow.ts` : `flags`, `etats`, `gameTime`, `party`, `money`). Les autres kinds lisent
  * `target`/`caster`/`sl`/`location`/état de combat — absents ici, et `evalCondition`
  * (`src/engine/flowCore.ts`) les rend alors FAUX : un lieu disparaîtrait de la carte, ou un trajet
  * se fermerait, EN SILENCE et sans qu'aucune donnée ne soit fautive. Le sous-ensemble se vérifie
@@ -124,7 +126,7 @@ export const placePoiSchema = nommerChamps(z
  * (prop `kinds`), au lieu d'une seconde liste recopiée dans l'UI.
  */
 export const CONDITION_KINDS_CARTE: ReadonlySet<Condition['kind']> = new Set<Condition['kind']>([
-  'always', 'flag', 'time', 'hasItem', 'money', 'partyDead',
+  'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead',
   'skill', 'career', 'species', 'status',
   'all', 'any', 'not',
 ]);
@@ -150,7 +152,7 @@ export const conditionCondCtxSchema = conditionSchema.superRefine((cond, ctx) =>
       code: 'custom',
       message:
         `Condition : « ${hors.join(' », « ')} » n'est pas évaluable au contexte hors combat ` +
-        `(drapeaux, horloge, groupe, bourse — « condCtx », src/state/bourseFlow.ts) : la Condition serait ` +
+        `(drapeaux, états de campagne, horloge, groupe, bourse — « condCtx », src/state/bourseFlow.ts) : la Condition serait ` +
         `FAUSSE en silence. Kinds admis : ${[...CONDITION_KINDS_CARTE].join(', ')}.`,
     });
   }
@@ -186,6 +188,46 @@ export const routePerilSchema = nommerChamps(z.strictObject({
   effects: z.array(effectSchema),
 }), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
+/** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
+const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
+
+/** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, à partir de `drMin` de DR net gagné. */
+export const palierDeBilletSchema = nommerChamps(z.strictObject({
+  drMin: z.number().int().min(0),
+  prix: prixParClasseSchema,
+}), { drMin: { label: "DR net minimal" }, prix: { label: "prix par classe" , texte: { regime: "technique"} } });
+
+/** `RouteBillet` (`state/worldMap.ts`) — billet d'auteur d'un passage payant (`EDO 01 l.142`). La
+ *  contiguïté de `suite` se valide à la carte (`worldMapSchema`), les classes et `depuis` à la route. */
+export const routeBilletSchema = nommerChamps(z.strictObject({
+  prix: prixParClasseSchema,
+  suite: z.array(z.string()).optional(),
+  depuis: z.string().optional(),
+  marchandage: nommerChamps(z.strictObject({
+    presetId: z.string(),
+    paliers: z.array(palierDeBilletSchema).optional(),
+  }), { presetId: { label: "vendeur (preset PNJ)" , texte: { regime: "technique"} }, paliers: { label: "paliers" } }).optional(),
+  source: sourceRefSchema.optional(),
+  maison: z.string().min(1).optional(),
+})
+  .superRefine((billet, ctx) => refuserSansProvenance(billet, ctx, 'du billet')), { prix: { label: "prix par classe" , texte: { regime: "technique"} }, suite: { label: "routes suivantes couvertes" , texte: { regime: "technique"} }, depuis: { label: "lieu de départ" , texte: { regime: "technique"} }, marchandage: { label: "marchandage" }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
+
+/** Fautes d'un billet contre SA route : véhicule à classes de passage offert sur la route, classes connues,
+ *  `depuis` exigé sur une route à double sens et désignant une de ses extrémités. */
+function fautesDuBillet(route: { a: string; b: string; from?: string; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>): string[] {
+  const travel = findVehicleById(mode)?.travel;
+  if (!travel) return [`« ${mode} » n'est pas un véhicule à passage payant (\`vehicles.json\` sans \`travel\`).`];
+  const fautes: string[] = [];
+  if (!route.modes.includes(mode)) fautes.push(`le billet « ${mode} » est posé sur une route qui n'offre pas ce mode.`);
+  const classes = new Set(travel.classes.map((c) => c.id));
+  const posees = [billet.prix, ...(billet.marchandage?.paliers ?? []).map((p) => p.prix)].flatMap((p) => Object.keys(p));
+  for (const c of new Set(posees)) if (!classes.has(c)) fautes.push(`classe « ${c} » inconnue du véhicule « ${mode} » (classes : ${[...classes].join(', ')}).`);
+  if (route.from == null && billet.depuis == null) fautes.push('route à double sens : « depuis » doit dire de quel lieu part le billet.');
+  if (billet.depuis != null && billet.depuis !== route.a && billet.depuis !== route.b) fautes.push(`« depuis » (« ${billet.depuis} ») n'est pas une extrémité de la route.`);
+  if (billet.depuis != null && route.from != null && billet.depuis !== route.from) fautes.push(`« depuis » (« ${billet.depuis} ») contredit le sens unique de la route (« ${route.from} »).`);
+  return fautes;
+}
+
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
 export const mapRouteSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -195,8 +237,8 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   /** Distance en kilomètres (`LDB 51 l.178`) — en MILLES sur une route `sea`. */
   km: z.number(),
   modes: z.array(travelModeSchema),
-  /** Prix d'auteur (sous/PA par km par passager) par mode payant — défaut : classe RAW. */
-  prices: z.record(z.string(), z.number()).optional(),
+  /** Billet d'auteur par véhicule (`EDO 01 l.142`), posé sur la première route du trajet couvert. */
+  billets: marquerCollection(z.record(z.string(), routeBilletSchema), marqueDeRecord()).optional(),
   /** Déplacement d'auteur par mode (`LDB 51 l.178`). À pied : force la vitesse. */
   speed: z.record(z.string(), z.number()).optional(),
   /** Seuil du d10 quotidien de péripétie (`LDB 51 l.208`) ; 0 = désactivé. */
@@ -238,7 +280,9 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
         message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
       });
     }
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, prices: { label: "prix" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+    for (const [mode, billet] of Object.entries(route.billets ?? {}))
+      for (const message of fautesDuBillet(route, mode, billet)) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({
@@ -249,6 +293,37 @@ export const worldMapParamsSchema = nommerChamps(z.strictObject({
   /** Seuil d10 de péripétie par défaut des routes (défaut 8, `LDB 51 l.208`). */
   perilDie: z.number().optional(),
 }), { hoursPerDay: { label: "heures par jour" }, forcedMaxHours: { label: "durée forcée maximale" }, perilDie: { label: "dé de péril" } });
+
+/** Parcours d'un billet : ses TRONÇONS couverts (`routeId>départ`, première route comprise) et les fautes
+ *  de sa `suite` — chaque route existe, porte le mode, part du lieu où arrive la précédente (dans son
+ *  sens unique s'il y en a un), et n'est couverte qu'une fois. */
+function parcoursDuBillet(
+  routes: readonly { id: string; a: string; b: string; from?: string; modes: string[] }[],
+  premiere: { id: string; a: string; b: string; from?: string },
+  mode: string,
+  billet: { suite?: string[]; depuis?: string },
+): { fautes: string[]; troncons: string[] } {
+  const depart = premiere.from ?? billet.depuis;
+  const fautes: string[] = [];
+  if (depart == null) return { fautes, troncons: [] };
+  const troncons = [`${premiere.id}>${depart}`];
+  const vues = new Set([premiere.id]);
+  let ici = depart === premiere.a ? premiere.b : premiere.a;
+  for (const id of billet.suite ?? []) {
+    const r = routes.find((x) => x.id === id);
+    if (!r) { fautes.push(`route « ${id} » inconnue de la carte.`); break; }
+    if (vues.has(id)) fautes.push(`route « ${id} » couverte deux fois par le même billet.`);
+    vues.add(id);
+    if (!r.modes.includes(mode)) fautes.push(`route « ${id} » n'offre pas le mode « ${mode} ».`);
+    if ((r.a !== ici && r.b !== ici) || (r.from != null && r.from !== ici)) {
+      fautes.push(`route « ${id} » ne part pas de « ${ici} », où arrive la route précédente : la suite n'est pas contiguë.`);
+      break;
+    }
+    troncons.push(`${id}>${ici}`);
+    ici = r.a === ici ? r.b : r.a;
+  }
+  return { fautes, troncons };
+}
 
 /** `WorldMap` — graphe de LIEUX et de ROUTES au niveau PROJET. Un POI est unique dans son lieu
  *  (`listeCle`) ET sur la carte : le `superRefine` en pied refuse l'id qu'un AUTRE lieu porte déjà. */
@@ -263,6 +338,23 @@ export const worldMapSchema = nommerChamps(z
     routes: listeCle(mapRouteSchema, 'id'),
   })
   .superRefine((carte, ctx) => {
+    // Un tronçon (route, sens) n'est vendu que par UN billet d'un même véhicule.
+    const billetDuTroncon = new Map<string, string>();
+    carte.routes.forEach((route, i) => {
+      for (const [mode, billet] of Object.entries(route.billets ?? {})) {
+        const { fautes, troncons } = parcoursDuBillet(carte.routes, route, mode, billet);
+        for (const message of fautes) ctx.addIssue({ code: 'custom', path: ['routes', i, 'billets', mode, 'suite'], message });
+        for (const troncon of troncons) {
+          const cle = `${mode}|${troncon}`;
+          const deja = billetDuTroncon.get(cle);
+          if (deja == null) billetDuTroncon.set(cle, route.id);
+          else if (deja !== route.id) {
+            const [id, depuis] = troncon.split('>');
+            ctx.addIssue({ code: 'custom', path: ['routes', i, 'billets', mode], message: `route « ${id} » depuis « ${depuis} » couverte en « ${mode} » par deux billets (celui de « ${deja} » et celui de « ${route.id} ») : les billets se chevauchent.` });
+          }
+        }
+      }
+    });
     const lieuDuPoi = new Map<string, string>();
     carte.places.forEach((lieu, i) => {
       (lieu.poi ?? []).forEach((poi, j) => {

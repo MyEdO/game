@@ -11,6 +11,7 @@ import { StateRecoveryModal } from './StateRecoveryModal';
 import { SteamSaveModal } from './SteamSaveModal';
 import { RenounceModal } from './RenounceModal';
 import { MountTargetModal } from './MountTargetModal';
+import { DesignationHerosModal } from './DesignationHerosModal';
 import { FateSaveModal } from './FateSaveModal';
 import { BattementModal } from './BattementModal';
 import { DistraireModal } from './DistraireModal';
@@ -45,6 +46,7 @@ import { pickActiveModalKey, voyageHubActive, type ModalKey } from '../state/mod
 
 const COMPONENT: Record<ModalKey, () => JSX.Element | null> = {
   etalLot: () => <EtalLotModal />,
+  designationHeros: DesignationHerosModal,
   fateSave: FateSaveModal, renounce: RenounceModal,
   battement: BattementModal, distraire: DistraireModal, maneuver: ManeuverModal,
   mountTarget: MountTargetModal, frenzy: FrenzyModal, auContact: AuContactModal, grapple: GrappleModal, approach: ApproachModal, ward: WardModal, run: RunModal, fall: FallModal, shipManeuver: ShipManeuverModal, shipBattery: ShipBatteryModal, crewTest: CrewTestModal, shanty: ShantyModal, focus: FocusModal, dispel: DispelModal,

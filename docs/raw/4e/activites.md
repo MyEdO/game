@@ -136,7 +136,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 L'argent non sécurisé (voir *Opérations Bancaires*) disparaît avant la prochaine aventure. Les Revenus sont crédités **après** le gaspillage (LDB 23 l.191 : « vous est seulement remis une fois que vous avez disposé de l'argent de votre dernière aventure »).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `interludeSchema`, `everBelongedClasses`, `openCatalogActivity`, `confirmActivity`, `Combatant`, +3 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, +1 fichiers
+- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `everBelongedClasses`, `interludeSchema`, `openCatalogActivity`, `confirmActivity`, `Combatant`, +3 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, +1 fichiers
 
 ---
 
@@ -665,7 +665,7 @@ Le détail : chaque Personnage dispose d'**une Activité par semaine de 8 jours*
 **Voir aussi** : [Activités Répandues (LDB 23)](#activités-répandues-ldb-23) (Apprentissage particulier, Artisanat, Entraînement, Invention !), [Activités de Classe (LDB 23)](#activités-de-classe-ldb-23) (Recherche de savoir, Semer la dissension, Entraînement au combat), [Activités de Guerrier — AA Annexe II](#activités-de-guerrier--aa-annexe-ii), [Commerce d'opportunité (en mer)](#commerce-dopportunité-en-mer), [Cartographie (Activité en mer)](#cartographie-activité-en-mer), [Entraînement d'équipage](#entraînement-déquipage), [Entretien du navire](#entretien-du-navire).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `seaActivityTest`, `WorldMapView`, `seaActivityRefus`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `doc`, `startTravel`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, +28 — `src/data/regles.json`, `src/data/schemas/defs/activities.ts`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/activityIssue.ts`, +7 fichiers
+- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `seaActivityTest`, `seaActivityRefus`, `WorldMapView`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `doc`, `startTravel`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, +28 — `src/data/regles.json`, `src/data/schemas/defs/activities.ts`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/activityIssue.ts`, +7 fichiers
 
 ---
 
