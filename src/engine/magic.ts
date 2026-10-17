@@ -26,7 +26,6 @@ import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
 import { reverseRoll, hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
-import { deviatableArmourAt } from './items';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
@@ -934,7 +933,7 @@ export interface MissileResult extends CastResult {
   hit: boolean;
   location?: HitLocation;
   damage?: number; // dégâts bruts (avant mitigation)
-  woundsLost?: number; // Blessures réellement perdues
+  woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   defenderDefeated: boolean;
   /** Blessures critiques INFLIGÉES, posées à la clôture de la touche (`clore`), seule émission. LDB 18 l.17 ;
    *  LDB 46 l.30 ; LDB 63 l.30. */
@@ -1053,18 +1052,6 @@ export function evaluateMissile(
     touche,
     log: phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical),
   };
-}
-
-/** Déviation Critique d'un Projectile magique (LDB 63) : éligible SEULEMENT si l'armure ABSORBE
- *  réellement le coup à la loc du Critique — une vraie pièce sacrifiable (`deviatableArmourAt`) ET une PA
- *  mitigante après bypass de Domaine (Ombres/Métal/Cieux) ET un sort qui n'ignore pas les PA. Sinon
- *  « le coup absorbé par votre armure » n'a pas de sens → pas d'offre. */
-export function magicDeviationEligible(target: Combatant, loc: HitLocation, spell: SpellLike): boolean {
-  if (!deviatableArmourAt(target, loc)) return false;
-  if (missileDamage(spell)?.ignorePA) return false;
-  const totalAP = effectiveArmourAt(target, loc);
-  const { apIgnored } = domainMissileMods(target, spell, loc, totalAP);
-  return !(apIgnored > 0 && totalAP - apIgnored <= 0); // PA entièrement bypassée → no-op
 }
 
 /**

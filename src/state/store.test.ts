@@ -179,7 +179,7 @@ describe('Boucle de jeu (store)', () => {
     const res: AttackResult = {
       hit: true, attackerRoll: 12, netSL: 4, location: 'corps', damage: 8, woundsLost: 3,
       // LDB 18 l.53-55 : un Coup Critique RE-TIRE la localisation (#80) ; on la PINNE à corps (le seul
-      // emplacement blindé du héros) pour un test déterministe — la Déviation (LDB 63 l.29-32) sacrifie 1 PA
+      // emplacement blindé du héros) pour un test déterministe — la Déviation (LDB 63 l.30-32) sacrifie 1 PA
       // « à la localisation » du Critique, donc à corps. Sans pin, le re-tirage tomberait sur un emplacement nu.
       critLocation: 'corps',
       critical: true, advantageTo: null, defenderDefeated: false, log: 'Coup Critique (corps)',

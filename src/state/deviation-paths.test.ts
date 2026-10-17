@@ -3,8 +3,8 @@
  * mêlée (`applyAttackResult`), Test opposé (`applyOpposedCritical`) et Projectile magique (`appliquerTouchePourCible`
  * dans `applyCast`). Vérifie la mutualisation : l'ENNEMI dévie AUTO (rule-gated), le HÉROS blindé CHOISIT
  * (étape Dévier/Subir), l'overkill (dépassement) est couvert sur la mêlée ET la magie (RAW complet,
- * LDB 63 l.30 : toute Blessure Critique en zone blindée est déviable), et l'éligibilité magique respecte
- * le bypass de Domaine (Ombres/Métal/Cieux) + les sorts `ignorePA`.
+ * LDB 63 l.30 : toute Blessure Critique en zone blindée est déviable), et la déviabilité d'un Projectile se
+ * lit sur la pièce, comme en mêlée (LDB 63 l.13 ; #1595 c.6232294713).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
@@ -12,7 +12,7 @@ import { registerCombatHook } from './combatHooks';
 import type { CombatEventCtx } from './combatEvents';
 import { hasCondition, COND } from '../engine/conditions';
 import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from './combatFlow';
-import { evaluateMissile, magicDeviationEligible, type CastResult } from '../engine/magic';
+import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { critWoundLocation } from '../engine/critical';
@@ -68,38 +68,66 @@ function castMissile(caster: Combatant, target: Combatant, spell: never, opts: {
   applyCast(useGame.getState, useGame.setState, caster, target, spell, mres, true, false, opts.critical ? 'critique' : undefined, opts.extraTargets ? { extraTargets: opts.extraTargets } : undefined);
 }
 
-// ── Unités : éligibilité magique + recalcul à PA−1 ────────────────────────────
-describe('magicDeviationEligible — éligibilité d\'un Projectile (LDB 63 l.30)', () => {
+// ── Projectile : la Déviation se lit sur la pièce, comme en mêlée ─────────────
+// LDB 63 l.13, l.30, l.32 ; LDB 48 l.399 ; #1595 c.6232294713.
+describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30, l.32 ; #1595 c.6232294713)', () => {
+  beforeEach(() => seedBattleRng(99));
+  afterEach(() => resetRule('combat-critical-deflect'));
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
+  const mailles = (): Partial<Combatant> => ({
+    armour: uniformArmour(4),
+    items: [{ uid: 'mail', name: 'Cotte de mailles', kind: 'armor', equipped: true, pa: 4, locs: ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'], subType: 'mailles', qualities: [] } as never],
+  });
+  /** Les voies de la fenêtre ouverte par l'Incantation critique du Projectile `spell` sur le héros `t`. */
+  const voies = (t: Combatant, spell: never) => {
+    setBattle([mage('enemy', 'e-mage'), t]);
+    castMissile(live('e-mage'), t, spell, { critical: true });
+    return devSteps()[0]?.options?.map((o) => o.key);
+  };
+  /** Les PB du héros `t` après « Dévier », et les Blessures du coup à PA pleins. */
+  const devie = (t: Combatant, spell: never) => {
+    const caster = mage('enemy', 'e-mage');
+    const aPleinesPA = evaluateMissile(caster, t, spell, cr).woundsLost ?? 0;
+    setBattle([caster, t]);
+    castMissile(caster, t, spell, { critical: true });
+    resolveDeviation(useGame.getState, useGame.setState, tireLaSeverite().deviation!, true);
+    return { aPleinesPA, cible: live(t.id) };
+  };
+
+  it('D1 sort `ignorePA`, pièce sacrifiable : la fenêtre offre la Déviation', () => {
+    expect(voies(mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell({ ignorePA: true }))).toEqual(['devier', 'subir']);
+  });
+
+  it('D2 Domaine des Ombres, pièce non magique : la fenêtre offre la Déviation', () => {
+    expect(voies(mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell({ domainId: 'ombres' }))).toEqual(['devier', 'subir']);
+  });
+
+  it('D3 aucune pièce à la Localisation : la fenêtre ne porte que le dé', () => {
+    expect(voies(mk('hero', 'T'), missileSpell())).toBeUndefined();
+  });
+
+  it('F5 sort `ignorePA` dévié : la pièce perd 1 PA, Blessure supplémentaire 0', () => {
+    const { aPleinesPA, cible } = devie(mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell({ ignorePA: true }));
+    expect(aPleinesPA).toBeGreaterThan(0);
+    expect(armourSum(cible)).toBe(23);
+    expect(cible.wounds.current).toBe(30 - aPleinesPA);
+    expect(cible.criticalWounds ?? 0).toBe(0);
+  });
+
+  it("F5' Métal contre mailles, dévié : les Blessures du coup restent celles de la frappe (LDB 48 l.399)", () => {
+    const caster = mage('enemy', 'e-mage');
+    const sansDomaine = evaluateMissile(caster, mk('hero', 'T', mailles()), missileSpell(), cr).woundsLost ?? 0;
+    const { aPleinesPA, cible } = devie(mk('hero', 'T', mailles()), missileSpell({ domainId: 'metal' }));
+    expect(aPleinesPA, 'le Métal ignore les mailles et ajoute leurs PA').toBeGreaterThan(sansDomaine);
+    expect(cible.wounds.current).toBe(30 - aPleinesPA);
+    expect(cible.criticalWounds ?? 0).toBe(0);
+  });
+});
+
+// ── Recompte à PA−n : les pas de Dégâts ne changent pas l'écart ────────────────
+describe('Projectile magique — recompte à PA−n (LDB 63 l.32 ; VDM 02 l.198)', () => {
   const caster = mage('enemy', 'C');
   const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
-
-  it('sort sans Domaine, armure mitigante → éligible', () => {
-    const t = mk('hero', 'T', { armour: uniformArmour(4) });
-    expect(magicDeviationEligible(t, 'corps', missileSpell())).toBe(true);
-  });
-
-  it('sort `ignorePA` (ex. Drain) → NON éligible (l\'armure n\'absorbe rien)', () => {
-    const t = mk('hero', 'T', { armour: uniformArmour(4) });
-    expect(magicDeviationEligible(t, 'corps', missileSpell({ ignorePA: true }))).toBe(false);
-  });
-
-  it('Domaine Ombres (ignore tout PA non magique) → bypass TOTAL → NON éligible', () => {
-    const t = mk('hero', 'T', { armour: uniformArmour(4) }); // armure de statbloc = non magique
-    expect(magicDeviationEligible(t, 'corps', missileSpell({ domainId: 'ombres' }))).toBe(false);
-  });
-
-  it('Domaine Métal vs armure NON métallique (statbloc) → ne bypass pas → éligible', () => {
-    const t = mk('hero', 'T', { armour: uniformArmour(4) });
-    expect(magicDeviationEligible(t, 'corps', missileSpell({ domainId: 'metal' }))).toBe(true);
-  });
-
-  it('Domaine Métal vs cotte de MAILLES portée → bypass TOTAL → NON éligible', () => {
-    const t = mk('hero', 'T', {
-      armour: uniformArmour(4),
-      items: [{ uid: 'mail', name: 'Cotte de mailles', kind: 'armor', equipped: true, pa: 4, locs: ['corps'], subType: 'mailles', qualities: [] } as never],
-    });
-    expect(magicDeviationEligible(t, 'corps', missileSpell({ domainId: 'metal' }))).toBe(false);
-  });
 
   // Les Blessures d'une touche Déviée se relisent à PA−n avec les MÊMES pas de Dégâts (`VDM 02 l.198`) :
   // l'écart PA−1 ne dépend pas des pas alloués.

@@ -109,7 +109,6 @@ import {
   castInfoIsPrayer,
   focusSkillFor,
   castLandProbability,
-  magicDeviationEligible,
   malevolentInfluenceSeverity,
   malepierreItemOf,
   consumeMalepierre,
@@ -5871,7 +5870,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       const compte = critiquesDuCoup(cible, { coupCritique: cause, prise: true, current: currentBefore, blessures: () => blessures(n) });
       return { compte, lieu: loc, blessures: blessures(n), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)) };
     },
-    deviable: (lieu, n) => magicDeviationEligible(apresDeviations(cible, lieu, n), lieu, spell),
+    deviable: (lieu, n) => deviatableArmourAt(apresDeviations(cible, lieu, n), lieu),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;

@@ -181,7 +181,16 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     const subi = coup({ pa: 1, current: blessures, tenu: true, choisir: () => 'subir' });
     expect(subi.cible.criticalWounds, 'subi, le coup tombe pile à 0 : aucun dépassement').toBe(1);
     let n = 0;
+    const parId = new Map<string, { origine: string; overkill: number; mod?: number }>();
+    const stop = useGame.subscribe((s) => {
+      for (const p of s.pendingCascade?.participants ?? []) if (p.critSeverity) parId.set(p.id, { origine: p.critSeverity.origine, overkill: p.critSeverity.overkill, mod: p.table?.mod });
+    });
     const devie = coup({ pa: 1, current: blessures, tenu: true, choisir: (s) => (n++ === 0 ? 'devier' : s.defaultChoice ?? s.options![0].key) });
+    stop();
+    const fenetres = [...parId.values()];
+    expect(fenetres.map((f) => f.origine), 'le compte relu à PA−1 : le Coup Critique, puis le dépassement').toEqual(['coup-critique', 'depassement']);
+    expect(fenetres[1].overkill, 'le dépassement se mesure après la Déviation').toBe(1);
+    expect(fenetres[1].mod, 'LDB 18 l.17').toBe(-20);
     expect(totalPA(devie.cible), 'un PA sacrifié').toBe(5);
     expect(devie.cible.critEntriesSuffered, 'la Blessure critique du dépassement, née de la Déviation').toHaveLength(1);
     expect(devie.cible.wounds.current).toBe(0);
