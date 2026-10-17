@@ -2539,13 +2539,15 @@ export function applyAttackResult(
   res: AttackResult,
   coup: ApplicationDuCoup = {},
 ): Applique {
-  if (appliquerLaTouche(get, set, attacker, target, weapon, res, coup)) return OPS_DIFFEREES;
+  const finale = appliquerLaTouche(get, set, attacker, target, weapon, res, coup);
+  if (!finale) return OPS_DIFFEREES;
   const { suite } = coup;
-  return jouerLApresCoup(get, set, { attackerId: attacker.id, targetId: target.id, weapon, res, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] }) ? OPS_DIFFEREES : undefined;
+  return jouerLApresCoup(get, set, { attackerId: attacker.id, targetId: target.id, weapon, res: finale, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] }) ? OPS_DIFFEREES : undefined;
 }
 
-/** L'APPLICATION du coup, sans son après-coup. Rend `true` quand elle a SUSPENDU (sauvegarde,
- *  Déviation) : la reprise ré-entre par `applyAttackResult`, qui joue alors l'après-coup. */
+/** L'APPLICATION du coup, sans son après-coup. Rend la touche FINALE, celle que les modificateurs de
+ *  touche ont pu copier ; `null` quand elle a SUSPENDU (sauvegarde, Déviation) : la reprise ré-entre par
+ *  `applyAttackResult`, qui joue alors l'après-coup. */
 function appliquerLaTouche(
   get: Get,
   set: SetFn,
@@ -2554,7 +2556,7 @@ function appliquerLaTouche(
   weapon: Weapon,
   res: AttackResult,
   coup: ApplicationDuCoup,
-): boolean {
+): AttackResult | null {
   const { sousAttaque = false, critiques: decides = [], suite } = coup;
   // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Blessure critique.
   const standard = !sousAttaque && decides.length === 0;
@@ -2599,7 +2601,7 @@ function appliquerLaTouche(
   res = apresModifiers.res;
   // Un dé déclaré a ARRÊTÉ la chaîne : aucun modifier d'ordre supérieur n'a muté quoi que ce soit. La
   // résolution repart de l'applier 'sauvegarde', qui rejouera la chaîne ENTIÈRE une fois la touche connue.
-  if (apresModifiers.suspendu) return true;
+  if (apresModifiers.suspendu) return null;
   // Empoignade (LDB 14 l.159) : « Au lieu d'infliger des Dégâts ». Sur une touche, on NEUTRALISE Dégâts,
   // Critique et mort-auto de CE coup (les branches Surpris/Engagé/Avantage/journal restent intactes) ; la
   // pose de l'Empoignade + de l'État *Empêtré* se fait après l'Engagement, plus bas.
@@ -2631,7 +2633,7 @@ function appliquerLaTouche(
     set({ battle: { ...b, action: null, log } });
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
-    return false; // application complète (mort-auto) — non suspendu côté cascade d'attaque
+    return res; // application complète (mort-auto) — non suspendu côté cascade d'attaque
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
@@ -2640,7 +2642,7 @@ function appliquerLaTouche(
     recompter: (n) => compterLesCritiques(res, weapon, attacker, target, n),
     deviable: (lieu, n) => deviatableArmourAt(apresDeviations(target, lieu, n), lieu),
   });
-  if (!planifie) return true; // suspendu — la résolution part de l'applier 'deviation'
+  if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
   const { plan, compte: coupCompte } = planifie;
   const battle = get().battle!;
   attacker.aiming = false; // l'attaque consomme la visée (tir : +20 déjà appliqué ; mêlée : visée gâchée)
@@ -2916,7 +2918,7 @@ function appliquerLaTouche(
   set({ battle: { ...battle, acted: !salvoContinues, action: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
-  return false; // non suspendu : application complète terminée
+  return res; // non suspendu : application complète terminée
 }
 
 /**

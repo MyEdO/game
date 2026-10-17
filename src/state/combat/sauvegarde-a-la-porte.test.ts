@@ -545,10 +545,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   });
 
   /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
-  function secondeMainEnAA(critique: boolean, current: number) {
+  function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
     setRule('combat-aa-blessures', 'aa');
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 } } as never);
+    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 }, ...cibleOver } as never);
     const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
     setBattle([heros, cible, voisin]);
     const premiere = { ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
@@ -571,12 +571,24 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     }
   });
 
-  for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
+  it("(iii ter bis) 'aa', Coup Critique sur un dormeur réveillé : la 2ᵉ frappe lit le d100 du Critique appliqué (LDB 10 l.773 ; LDB 47 l.277)", () => {
+    try {
+      const dormeur = { conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }] } as unknown as Partial<Combatant>;
+      const { crits, critValue } = secondeMainEnAA(true, 30, dormeur);
+      expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+      expect(critValue).toBe(crits[0].reveal!.dice);
+    } finally {
+      resetRule('combat-aa-blessures');
+    }
+  });
+
+  // Blessures au-delà de 0 : Touche relancée (Dégâts 6, BE 0, PA 0) à 0 ; Touche gardée (4 Blessures) à 2.
+  for (const [branche, current, auDela] of [['cible déjà à 0', 0, 6], ['passage à 0', 2, 2]] as const) {
     it(`(iii quater) 'aa', ${branche}, sans double : le Coup Critique donne la valeur de la 2ᵉ frappe (LDB 10 l.773 ; #1595 c.6226467544)`, () => {
       try {
         const { crits, critValue } = secondeMainEnAA(false, current);
         expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
-        expect(critValue, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
+        expect(critValue, 'le d100 nu du dé de l’étape, sans le +10 par Blessure au-delà de 0 (AA 07 l.36)').toBe(crits[0].reveal!.dice! - 10 * auDela);
       } finally {
         resetRule('combat-aa-blessures');
       }
