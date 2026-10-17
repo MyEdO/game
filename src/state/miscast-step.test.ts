@@ -110,11 +110,11 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
 
   it('Colère des dieux « 151+ » (LDB 40 l.89) : la dernière bande est OUVERTE en donnée et au tirage', () => {
     const colere = MISCAST_TABLES.find((t) => t.id === 'miscast-colere')!;
-    expect(colere.entries.at(-1)!.max).toBeNull();
+    expect(colere.entries[colere.entries.length - 1].max).toBeNull();
     for (const de of [151, 260, 1000]) expect(miscastRowAt('miscast-colere', de).id).toBe('colere-appele-a-rendre-des-comptes');
     expect(miscastRowAt('miscast-colere', 150).id).toBe('colere-je-te-chasse');
     const etape = tableStepDef('miscast-colere')!;
-    expect(etape.rows.at(-1)!.max).toBe(Number.POSITIVE_INFINITY);
+    expect(etape.rows[etape.rows.length - 1].max).toBe(Number.POSITIVE_INFINITY);
     expect(etape.lines(1000)[0]).toBe('Appelé à rendre des comptes');
   });
 
