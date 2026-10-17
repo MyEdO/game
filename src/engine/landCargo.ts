@@ -15,7 +15,7 @@
  */
 import landCargoJson from '../data/land-cargo.json';
 import { d10, d100, roll as rollDice, type RNG, defaultRNG } from './dice';
-import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
+import { findTableEntry, findTableEntryIndex } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
@@ -58,9 +58,6 @@ export const landCargoes = memoParVersion('landCargo', (): readonly LandCargoDef
  *  d'un cran dans le livre — arbitrage NOMMÉ en tête de
  *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
 export const LAND_RICHESSE_ROWS: readonly OfferRow[] = LAND.sell.offerByRichesse;
-/** La table de la Mise à prix telle que `findTableEntry` la lit (`tableOuverte`, tronc commun —
- *  MSRC 13 l.150-156 n'écrit aucune bande sans plafond, mais la table est de la même famille). */
-const OFFER_BY_RICHESSE_LOOKUP = tableOuverte(LAND.sell.offerByRichesse);
 /** Résout une MARCHANDISE terrestre (les marqueurs ne sont ni achetables ni vendables). */
 export const findLandCargoById = (id: string): LandCargoDef | undefined => landCargoes().find((c) => c.id === id);
 /** Résout une entrée QUELCONQUE de la colonne Produits, marqueur compris (libellé d'affichage). */
@@ -210,13 +207,13 @@ export function sellDemandTarget(place: LandMarketProfile): number {
  *  Renvoie le POURCENTAGE (ex. 80, 100). Le tableau donne une ligne par indice de 1 à 5 et rien
  *  au-delà : un indice hors de ce domaine est NOMMÉ, jamais rabattu en silence sur une bande. */
 export function sellOfferPct(place: LandMarketProfile): number {
-  const i = findTableEntryIndex(OFFER_BY_RICHESSE_LOOKUP, place.richesse);
+  const i = findTableEntryIndex(LAND.sell.offerByRichesse, place.richesse);
   if (i < 0) {
     throw new Error(
       `Mise à prix : Indice de richesse ${place.richesse} hors du tableau (MSRC 13 l.150-156, une ligne par indice de 1 à 5) — aucune ligne d'offre ne le couvre.`,
     );
   }
-  return 100 + OFFER_BY_RICHESSE_LOOKUP[i].pct;
+  return 100 + LAND.sell.offerByRichesse[i].pct;
 }
 
 /** BRADER une cargaison invendable (l.160) : « pour la moitié de son prix de base » à tout Lieu ayant le

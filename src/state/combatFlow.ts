@@ -133,7 +133,7 @@ import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
-  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastRowSource, MISCAST_TABLES,
+  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
@@ -4600,19 +4600,19 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
 // ---------------------------------------------------------------------------
 
 // Une entrée par table RÉELLE de `miscast.json` (Mineure/Majeure LDB, leurs révisions VDM, Colère
-// des dieux) : fourchettes et ids STABLES projetés depuis la donnée PAR RÉFÉRENCE (`table.entries`,
-// le tableau que le seam édite en place), et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
+// des dieux) : fourchettes et ids STABLES lus par `miscastTableRows` (« 151+ », LDB 40 l.89, ouvert par
+// `tableOuverte`), famille mémoïsée sur les datasets du seam, et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
 // La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
 // miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
-for (const table of MISCAST_TABLES) {
-  registerTableStep(table.id, {
+registerTableStepFamily(memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
+  MISCAST_TABLES.map((table) => [table.id, {
     label: table.label,
     die: 100,
-    rows: table.entries,
+    rows: miscastTableRows(table.id),
     lines: (die) => [miscastRowAt(table.id, die).label],
     ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
-  });
-}
+  }]),
+)));
 
 /** DÉCLARATION du tirage d'une Imparfaite/Colère : la table de la sévérité EN VIGUEUR (LDB ou VDM),
  *  d100, et — pour la COLÈRE SEULE — le +10 par Point de Péché, déclaré en modificateur VIVANT
