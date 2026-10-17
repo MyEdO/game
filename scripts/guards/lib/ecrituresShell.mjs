@@ -533,7 +533,7 @@ const aide = (args, nom) => args.some((a) => a === '--help' || (a === '-h' && !H
 
 /** `npm` qui écrit : hors des commandes d'interrogation, `npm test` avec `MISE_A_JOUR_VITEST`. `npm run <x>` (et
  *  `start`/`stop`/`restart`) se juge au corps de `scripts.<x>`, que `pipelinesDeJetons` déplie (`commandeScriptNpm`) ;
- *  un script absent n'est pas lancé. `juge.md:17-18` prescrit `npm test -- <chemins>` et `npx vitest run`. */
+ *  un script absent n'est pas lancé. `juge.md:18-19` prescrit `npm test -- <chemins>` et `npx vitest run`. */
 const MISE_A_JOUR_VITEST = /^(?:-u|--update(?:Snapshot)?)(?:=.*)?$/s
 const LECTURES_NPM = new Set(['test', 't', 'tst', 'ls', 'list', 'view', 'v', 'info', 'show', 'outdated', 'help', 'explain', 'why', 'query', 'search', 'doctor', 'prefix', 'root', 'bin', 'whoami', 'ping', '--version', '-v', 'version',
   'run', 'run-script', 'rum', 'urn', 'start', 'stop', 'restart'])

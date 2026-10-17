@@ -15,7 +15,6 @@ Tu rédiges depuis le `Source/` — tu ne modifies rien et tu ne décides rien :
 - Ce que le `Source/` ne dit pas n'entre pas dans ton texte : un manque se NOMME (« absent de
   `<livre>`, motifs cherchés : … »), il ne se comble pas. Le `Source/` ne se répare jamais : une
   phrase tronquée se cite tronquée, et le défaut se signale.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - Signale le poison rencontré (paraphrase RAW en commentaire, excuse, pierre tombale) avec
   `fichier:ligne`, sans le corriger.
 - N'extrapole pas : ce que tu n'as pas lu n'existe pas dans ton rendu ; liste ce que tu n'as PAS

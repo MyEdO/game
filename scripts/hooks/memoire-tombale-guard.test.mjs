@@ -15,7 +15,7 @@ import { REGISTRE } from './registre.mjs'
 import { garde } from './memoire-tombale-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const FICHE = join(REPO, '.claude', 'memory', 'game-exemple.md')
+const FICHE = join(REPO, '.claude', 'memory', 'user-exemple.md')
 
 const decision = (input, disque = '') => evaluate(input, () => disque)
 
@@ -66,7 +66,7 @@ test('deny : un en-tête NU là où rien ne précède une phrase — filet `---`
   // Cas réel : l'en-tête posé juste sous la fermeture du frontmatter d'une fiche.
   const d = decision({
     file_path: FICHE, old_string: '',
-    new_string: '---\nname: game-exemple\n---\nSUPERSÉDÉ par la fiche voisine.\n\nCorps.',
+    new_string: '---\nname: user-exemple\n---\nSUPERSÉDÉ par la fiche voisine.\n\nCorps.',
   })
   assert.equal(d?.decision, 'deny')
 })
@@ -98,7 +98,7 @@ test('SILENCE : `PORTÉ PAR <garde>` nomme le porteur actuel — une réécritur
 test('SILENCE : le frontmatter, même quand le NOM de la fiche porte le mot', () => {
   const contenu = [
     '---',
-    'name: game-fiche-temoin-supersede-exemple',
+    'name: user-fiche-temoin-supersede-exemple',
     '---',
     '',
     'Le préset porte la statblock.',
@@ -155,6 +155,16 @@ test('DRIVER : le hook décide de bout en bout, et se tait sur une écriture ord
   assert.equal(decisionOf({ file_path: join(REPO, 'src', 'ui', 'App.tsx'), content: 'OBSOLÈTE' }), null)
 })
 
+test('DRIVER : une fiche hors `user-*` est refusée sans liste, MEMORY.md et une `user-*` passent', () => {
+  const memoire = join(REPO, '.claude', 'memory')
+  for (const nom of ['consigne-x.md', 'regle-neuve.md']) {
+    assert.equal(decisionOf({ file_path: join(memoire, nom), content: 'Règle.\n' }), 'deny', nom)
+    assert.match(decision({ file_path: join(memoire, nom), content: 'Règle.\n' }).reason, /contexte-agents\.md/)
+  }
+  assert.equal(decisionOf({ file_path: join(memoire, 'user-x.md'), content: 'Règle.\n' }), null)
+  assert.equal(decisionOf({ file_path: join(memoire, 'MEMORY.md'), content: '# Mémoire\n' }), null)
+})
+
 // La mémoire de session s'écrit par `~/.claude/projects/<projet>/memory`, une JONCTION vers
 // `<dépôt>/.claude/memory` (mesuré 2026-09-26, #1973) : la fiche se juge sous son chemin RÉEL.
 test('DRIVER : une fiche écrite PAR UNE JONCTION vers la mémoire d’un dépôt reste gardée', () => {
@@ -165,7 +175,7 @@ test('DRIVER : une fiche écrite PAR UNE JONCTION vers la mémoire d’un dépô
     mkdirSync(memoire, { recursive: true })
     const jonction = join(dehors, 'memory')
     symlinkSync(memoire, jonction, 'junction')
-    assert.equal(decisionOf({ file_path: join(jonction, 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), 'deny')
+    assert.equal(decisionOf({ file_path: join(jonction, 'user-x.md'), content: 'SUPERSÉDÉ : x\n' }), 'deny')
   } finally {
     rmSync(dehors, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true })
@@ -175,7 +185,7 @@ test('DRIVER : une fiche écrite PAR UNE JONCTION vers la mémoire d’un dépô
 test('DRIVER : re-sauver une fiche EXISTANTE décide pareil en natif et en MSYS (le disque se lit au chemin réel)', { skip: process.platform !== 'win32' }, () => {
   const { racine } = instanceDeDepot()
   try {
-    const fiche = join(racine, '.claude', 'memory', 'game-x.md')
+    const fiche = join(racine, '.claude', 'memory', 'user-x.md')
     mkdirSync(dirname(fiche), { recursive: true })
     writeFileSync(fiche, 'SUPERSÉDÉ : x\n')
     const msys = '/' + fiche[0].toLowerCase() + fiche.slice(2).replace(/\\/g, '/')
@@ -189,7 +199,7 @@ test('DRIVER : re-sauver une fiche EXISTANTE décide pareil en natif et en MSYS 
 test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) → silence', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'wfrp-scratch-'))
   try {
-    assert.equal(decisionOf({ file_path: join(scratch, '.claude', 'memory', 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), null)
+    assert.equal(decisionOf({ file_path: join(scratch, '.claude', 'memory', 'user-x.md'), content: 'SUPERSÉDÉ : x\n' }), null)
   } finally {
     rmSync(scratch, { recursive: true, force: true })
   }

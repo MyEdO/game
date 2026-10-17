@@ -17,7 +17,7 @@ import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
-import { nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
+import { PROJECTION, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -93,7 +93,7 @@ test('apply_patch : JSON, baseline multi-hunk et mémoire utilisent les images c
   const { racine } = instanceDeDepot({ fichiers: {
     'src/data/sonde.json': '{}\n',
     'run-guard.test.mjs': "const a = 1\nconst W = { 'a.ts': 2 }\nconst b = 2\n",
-    '.claude/memory/fiche.md': 'Une phrase continue\nancien\nfin\n',
+    '.claude/memory/user-fiche.md': 'Une phrase continue\nancien\nfin\n',
   } })
   try {
     const data = await specifiqueNatif(patchNatif('*** Update File: src/data/sonde.json\n@@\n-{}\n+[]', racine))
@@ -102,9 +102,9 @@ test('apply_patch : JSON, baseline multi-hunk et mémoire utilisent les images c
     assert.equal(baseline, undefined, 'baseline hors hunk conservée sans fausse hausse')
     const hausse = await specifiqueNatif(patchNatif("*** Update File: run-guard.test.mjs\n@@\n-const W = { 'a.ts': 2 }\n+const W = { 'a.ts': 3 }", racine))
     assert.match(hausse.additionalContext, /HAUSSE de baseline/)
-    const continuation = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+obsolète dans cette phrase', racine))
+    const continuation = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/user-fiche.md\n@@\n-ancien\n+obsolète dans cette phrase', racine))
     assert.equal(continuation, undefined, 'ligne précédente hors hunk : continuation, pas un en-tête')
-    const entete = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+## OBSOLÈTE', racine))
+    const entete = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/user-fiche.md\n@@\n-ancien\n+## OBSOLÈTE', racine))
     assert.equal(entete.permissionDecision, 'deny')
     assert.match(entete.permissionDecisionReason, /SUPERSESSION/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
@@ -174,6 +174,15 @@ test('une garde qui LÈVE ne fait pas perdre le `deny` d’une autre : sa panne 
   assert.equal(cumul.contexte, 'garde casse en panne : boum')
 })
 
+test('une garde PROJECTION qui rend une `decision` est en PANNE : son refus ne part jamais, celui d’une garde de contrôle si', async () => {
+  const deguisee = { ...factice('deguisee', () => ({ decision: 'deny', raison: 'non' })), role: PROJECTION }
+  const cumul = cumuler(await evaluerGardes([deguisee], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(cumul.decision, null)
+  assert.equal(cumul.contexte, 'garde deguisee en panne : une garde de projection ne décide jamais')
+  const controle = cumuler(await evaluerGardes([{ ...deguisee, role: undefined }], shell('ls'), construireContexte(shell('ls'))))
+  assert.deepEqual(controle.decision, { decision: 'deny', reason: 'non' })
+})
+
 test('un `deny` court-circuite les gardes suivantes', async () => {
   let appelee = false
   await evaluerGardes([
@@ -222,7 +231,7 @@ test('aucune garde ne demande : exception-add AVERTIT sans décider, memoire-tom
     writeFileSync(garde, "export const W = ['a.ts:1']\n")
     const cas = [
       ['exception-add', { tool_name: 'Write', tool_input: { file_path: garde, content: "export const W = ['a.ts:1', 'b.ts:2']\n" } }, undefined],
-      ['memoire-tombale', { tool_name: 'Write', tool_input: { file_path: join(racine, '.claude', 'memory', 'fiche.md'), content: 'SUPERSÉDÉ par la fiche X.\ncorps\n' } }, 'deny'],
+      ['memoire-tombale', { tool_name: 'Write', tool_input: { file_path: join(racine, '.claude', 'memory', 'user-fiche.md'), content: 'SUPERSÉDÉ par la fiche X.\ncorps\n' } }, 'deny'],
     ]
     for (const [nom, charge, attendue] of cas) {
       const brut = JSON.stringify({ hook_event_name: 'PreToolUse', ...charge })
