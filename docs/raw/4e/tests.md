@@ -226,7 +226,7 @@ Quand **plusieurs facteurs** affectent un même test, on **somme** leurs modific
 
 **Voir aussi** : [Difficulté — table complète](#difficulté--table-complète), [Modificateurs de test](#modificateurs-de-test), [Extensions de Difficulté (EDO)](#extensions-de-difficulté--presque-impossible-et-impossible-edo)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.189) → `useExtendedTestJetProps`, `porteADecouvrir`, `BargainModalView`, `soutien`, `SequenceParams`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `buildStageSteps`, `PendingTest`, +36 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +23 fichiers
+- `LDB 12` (l.189) → `useExtendedTestJetProps`, `porteADecouvrir`, `BargainModalView`, `soutien`, `SequenceParams`, `test-extended-min-sl`, `runSceneConsumableFlow`, `RollRequest`, `buildStageSteps`, `PendingTest`, +36 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +23 fichiers
 - `LDB 14` (l.48, l.91-96) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `doc`, `fr`, `SANS_LIVRE`, `poolDeNonCumul`, `10-a-votre-action-au-prochain-round`, +80 — `src/data/actions.json`, `src/data/oups.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +29 fichiers
 - `LDB 16` (l.11) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
@@ -375,7 +375,7 @@ Lorsque plusieurs personnages travaillent ensemble à la même tâche, ceux qui 
 
 **Voir aussi** : [Modificateurs de test](#modificateurs-de-test)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `runSceneConsumableFlow`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
+- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `test-extended-min-sl`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
 
 ---
 
@@ -396,7 +396,7 @@ Parfois, une situation requiert qu'un personnage réussisse deux Compétences di
 
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +37 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +24 fichiers
+- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `RollRowCore`, `test-extended-min-sl`, `runSceneConsumableFlow`, `RollRequest`, `PendingTest`, +37 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +24 fichiers
 
 ---
 
