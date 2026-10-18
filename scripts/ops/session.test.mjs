@@ -278,15 +278,16 @@ test('contrôleur refuse une empreinte modifiée juste avant spawn et purge son 
 
 test('argsTerminal transporte valeurs arbitraires dans PowerShell réel sans interpolation', { skip: process.platform !== 'win32' }, (t) => {
   const b = banc(t), capture = join(b.dossier, "capture ; ' ‘ ’ “ ”.ps1"), sortie = join(b.dossier, 'capture.json')
-  writeFileSync(capture, 'param($Node,$CommandLine,$Worktree)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
+  writeFileSync(capture, 'param($Node,$CommandLine,$Worktree,$SessionId,$Dossier)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree;SessionId=$SessionId;Dossier=$Dossier}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
   const node = join(b.dossier, 'Node espace ; "quote"', 'node.exe'), commande = JSON.stringify(join(b.dossier, 'script ; apostrophe\' ‘ ’ “ ”', 'x'))
-  const args = argsTerminal({ profil: 'profil ; spécial', nom: 'nom ; spécial', script: capture, node, commande, worktree: sortie })
+  const sessionId = '35d913d0-8f84-4abb-b52b-970d27e1ebd1'
+  const args = argsTerminal({ profil: 'profil ; spécial', nom: 'nom ; spécial', script: capture, node, commande, worktree: sortie, sessionId, dossier: b.dossier })
   assert.equal(args[4], 'profil \\; spécial'); assert.equal(args[6], 'nom \\; spécial')
   assert.ok(args.includes('-EncodedCommand')); assert.ok(!args.includes('-File'))
   const debut = args.indexOf('powershell.exe')
   const vu = spawnSync(args[debut], args.slice(debut + 1), { encoding: 'utf8', windowsHide: true, timeout: 10_000 })
   assert.equal(vu.status, 0, vu.stderr); assert.equal(vu.error, undefined)
-  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8').replace(/^\uFEFF/, '')), { Node: node, CommandLine: commande, Worktree: sortie })
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8').replace(/^\uFEFF/, '')), { Node: node, CommandLine: commande, Worktree: sortie, SessionId: sessionId, Dossier: b.dossier })
 })
 
 test('fermeture concurrente idempotente et fin naturelle refuse arrêt', (t) => {
@@ -454,7 +455,7 @@ test('raccord : WT erreur après claim conserve raison et événement unique apr
     lancerWT: () => { id = b.sessions.lister().cartes.find((c) => c.nom === 'banc').sessionId; b.sessions.revendiquer(id, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 1, stderr: 'diagnostic WT original' } },
   }), /WT SPAWN ÉCHOUÉ/)
   const c = b.sessions.lire(id)
-  assert.equal(c.etat, 'fermee'); assert.equal(c.raison, 'WT SPAWN : diagnostic WT original'); assert.equal(c.issueSortie, 'echec')
+  assert.equal(c.etat, 'fermee'); assert.equal(c.raison, '[transitoire · retentable] WT SPAWN ÉCHOUÉ : diagnostic WT original'); assert.equal(c.issueSortie, 'echec')
   assert.equal(c.evenements.filter((e) => e.type === 'échec').length, 1)
   assert.equal(c.evenements.filter((e) => e.type === 'clôture').length, 1)
 })
@@ -472,7 +473,7 @@ test('JobHost réel borné : child neutre sort42, descendant nettoyé, host sort
   writeFileSync(fixture, `import {spawn} from 'node:child_process'; import fs from 'node:fs'; const enfant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',shell:false}); fs.writeFileSync(${JSON.stringify(pids)},JSON.stringify({parent:process.pid,enfant:enfant.pid})); setTimeout(()=>process.exit(42),300);`)
   const commande = ligneControleur({ script: fixture, dossier: b.dossier, id: 'neutre' })
   const host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
-  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-TimeoutMs', '10000'], { cwd: b.dossier, encoding: 'utf8', windowsHide: true, timeout: 20_000, env: envAgent(process.env) })
+  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '10000'], { cwd: b.dossier, encoding: 'utf8', windowsHide: true, timeout: 20_000, env: envAgent(process.env) })
   assert.equal(vu.error, undefined, vu.error?.message)
   assert.equal(vu.status, 0, vu.stderr)
   assert.equal(vu.stderr, '', vu.stderr)
@@ -482,17 +483,20 @@ test('JobHost réel borné : child neutre sort42, descendant nettoyé, host sort
   console.log(`JOBHOST preuve : host=${vu.status}, parent=${ids.parent} absent, descendant=${ids.enfant} absent`)
 })
 
-test('JobHost erreurs contrôlées : image absente et timeout du child neutre rendent0 et nettoient', { skip: process.platform !== 'win32', timeout: 30_000 }, (t) => {
+test('JobHost erreurs contrôlées : image absente et timeout du child neutre rendent1, journalisent et nettoient', { skip: process.platform !== 'win32', timeout: 30_000 }, (t) => {
   const b = banc(t), fixture = join(b.dossier, 'bloque.mjs'), pids = join(b.dossier, 'pids.json')
   writeFileSync(fixture, `import fs from 'node:fs'; fs.writeFileSync(${JSON.stringify(pids)},JSON.stringify({pid:process.pid})); setInterval(()=>{},1000);`)
   const host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
   for (const node of [join(b.dossier, 'absent.exe'), process.execPath]) {
     const commande = ligneControleur({ node, script: fixture, dossier: b.dossier, id: 'neutre' })
-    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-TimeoutMs', '3000'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
+    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '3000'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
     assert.equal(vu.error, undefined)
-    assert.equal(vu.status, 0)
+    assert.equal(vu.status, 1)
     assert.match(vu.stderr, /session JobHost/)
-    if (node === process.execPath) { const ids = JSON.parse(readFileSync(pids, 'utf8')); assert.equal(mesurerProcessus(ids.pid), null); console.log(`JOBHOST erreur preuve : host=0, child=${ids.pid} absent après timeout`) }
+    const diagnostic = readFileSync(join(b.dossier, '35d913d0-8f84-4abb-b52b-970d27e1ebd1.jobhost.log'), 'utf8')
+    const code = node === process.execPath ? 'ETIMEDOUT' : 'ECLOTURE'
+    assert.ok(diagnostic.includes(code)); assert.ok(vu.stderr.includes(code)); assert.ok(diagnostic.length <= 4096)
+    if (node === process.execPath) { const ids = JSON.parse(readFileSync(pids, 'utf8')); assert.equal(mesurerProcessus(ids.pid), null); console.log(`JOBHOST erreur preuve : host=1, child=${ids.pid} absent après timeout`) }
   }
 })
 
@@ -500,7 +504,7 @@ test('JobHost crash : fermeture du handle host tue la descendance kernel sans ar
   const b = banc(t), fixture = join(b.dossier, 'crash-host.mjs'), pids = join(b.dossier, 'pids.json')
   writeFileSync(fixture, `import fs from 'node:fs'; import {spawn} from 'node:child_process'; const enfant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',shell:false}); fs.writeFileSync(${JSON.stringify(pids)},JSON.stringify({parent:process.pid,enfant:enfant.pid})); setInterval(()=>{},1000);`)
   const commande = ligneControleur({ script: fixture, dossier: b.dossier, id: 'neutre' }), host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
-  const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-TimeoutMs', '10000'], { encoding: 'utf8', stdio: 'ignore', windowsHide: true, env: envAgent(process.env) })
+  const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '10000'], { encoding: 'utf8', stdio: 'ignore', windowsHide: true, env: envAgent(process.env) })
   const fin = new Promise((ok, non) => { child.once('error', non); child.once('exit', ok) })
   t.after(() => child.kill())
   let ids
@@ -948,4 +952,123 @@ test('inventaire : PID historique recyclé avec date différente reste Codex NON
   const codex = sessions.lister().nonInscrits.find((p) => p.pid === 20)
   assert.ok(codex)
   assert.equal(codex.creation, 'autre-date'); assert.equal(codex.etatMesure, 'NON INSCRIT'); assert.equal(codex.stoppable, false)
+})
+
+test('fermeture onglet : témoin concordant et absence complète requis, fin normale prioritaire', (t) => {
+  for (const mode of ['valide', 'etranger', 'recycle', 'corrompu', 'absent', 'normal']) {
+    const b = banc(t), r = b.reserver(); b.revendiquer(r); b.sessions.agentDemarre(r.carte.sessionId, identite(20))
+    const signal = { sessionId: mode === 'etranger' ? 'autre' : r.carte.sessionId, jobHost: mode === 'recycle' ? { ...identite(30), creation: 'recycle' } : identite(30) }
+    if (mode !== 'absent') writeFileSync(join(b.dossier, `${r.carte.sessionId}.terminal-close`), mode === 'corrompu' ? '{' : JSON.stringify(signal))
+    b.vivants.delete(10); b.vivants.delete(30)
+    assert.equal(b.sessions.lister().cartes[0].etatMesure, 'orpheline')
+    if (mode === 'normal') b.sessions.sortie(r.carte.sessionId, { codeAgent: 0 })
+    b.vivants.delete(20)
+    const carte = b.sessions.lister().cartes[0]
+    assert.equal(carte.etat, mode === 'normal' ? 'fermee' : 'echec-controle')
+    assert.equal(carte.raison, mode === 'normal' ? undefined : mode === 'valide' ? 'onglet fermé' : 'contrôle perdu, sortie inconnue')
+  }
+})
+
+test('lanceur mesure transitoire : réservation libérée, claim tardif refusé et catégorie conservée', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  let r
+  const panne = new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : spawnSync powershell.exe ETIMEDOUT')
+  await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw panne } }), lancerWT: () => ({ status: 0 }),
+  }), (e) => e === panne && refusSession(e).categorie === 'transitoire' && !e.reprise)
+  assert.equal(b.sessions.lire(r.carte.sessionId).etat, 'echec-reservation')
+  assert.equal(existsSync(join(b.dossier, `${r.carte.sessionId}.bootstrap`)), false)
+  assert.throws(() => b.revendiquer(r), /RÉSERVATION EXPIRÉE/)
+})
+
+test('lanceur catégorie transitoire : carte sortie porte le refus initial', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  await assert.rejects(lancerSession({ ticket: 2461, agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => ({ ...b.sessions, attenteDemarrage: async () => ({ etat: 'fermee', issueSortie: 'echec', recuSessionStart: {}, revendiqueLe: 'date', raison: '[transitoire · retentable] Borne native thread/start atteinte' }) }), lancerWT: () => ({ status: 0 }),
+  }), /\[transitoire · retentable\] DÉMARRAGE ÉCHOUÉ : Borne native thread\/start atteinte/)
+})
+
+test('mesure transitoire avant réservation : aucune carte ni fenêtre créée', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  const sessions = creerSessions({ dossier: b.dossier, inventaire: () => { throw new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT') } })
+  await assert.rejects(lancerSession({ ticket: 2461, agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => sessions, lancerWT: () => assert.fail('fenêtre créée'),
+  }), /\[transitoire · retentable\].*ETIMEDOUT/)
+  assert.equal(fs.readdirSync(b.dossier).filter((n) => /^[0-9a-f-]{36}\.json$/.test(n)).length, 0)
+})
+
+test('lanceur nettoyage incomplet : rend la capacité de reprise après délai sans inférer la mort', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  let r
+  await assert.rejects(lancerSession({ ticket: 2461, agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw new Error('[transitoire · retentable] ETIMEDOUT') }, echecDemarrage: async () => ({ etat: 'arret-demande' }) }), lancerWT: () => ({ status: 0 }),
+  }), (e) => {
+    assert.equal(e.reprise.sessionId, r.carte.sessionId); assert.equal(e.reprise.jeton, r.jeton)
+    assert.equal(e.reprise.transport, 'stdin'); assert.match(e.reprise.raison, /NETTOYAGE EN ATTENTE/)
+    return true
+  })
+})
+
+test('lanceur carte active sans reçu : conserve le refus et la capacité après nettoyage indéterminé', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  let r, retourAttente
+  const raison = '[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT'
+  await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => {
+      retourAttente = await b.sessions.echecDemarrage(r.carte.sessionId, r.jeton, raison)
+      return retourAttente
+    } }),
+    lancerWT: (_executable, args, options) => {
+      assert.equal(JSON.stringify({ args, options }).includes(r.jeton), false)
+      b.revendiquer(r); rmSync(join(b.dossier, `${r.carte.sessionId}.sessionstart`))
+      return { status: 0 }
+    },
+  }), (e) => {
+    const refus = refusSession(e)
+    assert.equal(retourAttente.etat, 'arret-demande'); assert.equal(retourAttente.recuSessionStart, undefined)
+    assert.equal(refus.categorie, 'transitoire'); assert.equal(refus.retentable, true)
+    assert.match(refus.raison, /DÉMARRAGE ÉCHOUÉ : MESURE WINDOWS INDISPONIBLE : ETIMEDOUT/)
+    assert.equal(refus.reprise?.sessionId, r.carte.sessionId); assert.equal(refus.reprise?.jeton, r.jeton)
+    assert.equal(refus.reprise.action, 'fermer'); assert.equal(refus.reprise.transport, 'stdin')
+    assert.match(refus.reprise.raison, /NETTOYAGE EN ATTENTE/)
+    assert.equal(e.message.includes(r.jeton), false)
+    return true
+  })
+  assert.equal(b.sessions.lire(r.carte.sessionId).etat, 'arret-demande')
+})
+
+test('échec démarrage revendiqué : mesure retentée, arrêt propre ; panne persistante rend capacité de reprise', async (t) => {
+  for (const persiste of [false, true]) {
+    const b = banc(t)
+    const consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+    let r, mesures = 0, indisponible = false
+    const panne = new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT')
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 1000, lanceur: () => identite(99), inventaire: () => {
+      if (indisponible && (++mesures <= 2 || persiste)) throw panne
+      return [...b.vivants.values()]
+    }, dormir: async () => { if (sessions.lire(r.carte.sessionId).etat === 'arret-demande') { sessions.sortie(r.carte.sessionId, { codeAgent: null, arret: true }); b.vivants.clear() } } })
+    await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+      contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+      terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+      sessionsDe: () => ({ ...sessions, reserver: (p) => { r = sessions.reserver(p); return r }, attenteDemarrage: async () => { indisponible = true; throw panne } }),
+      lancerWT: () => { sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
+    }), (e) => {
+      assert.equal(e, panne); assert.equal(refusSession(e).categorie, 'transitoire')
+      if (persiste) { assert.equal(e.reprise.sessionId, r.carte.sessionId); assert.equal(e.reprise.jeton, r.jeton); assert.equal(e.reprise.transport, 'stdin') }
+      else assert.equal(e.reprise, undefined)
+      return true
+    })
+    assert.equal(sessions.lire(r.carte.sessionId).etat, persiste ? 'vivante' : 'fermee')
+    assert.ok(mesures >= 3)
+  }
 })

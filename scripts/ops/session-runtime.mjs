@@ -193,6 +193,14 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const memesIdentites = (a, b) => !!a && !!b && ['controleur', 'jobHost', 'agentProcessus'].every((cle) => (!a[cle] && !b[cle]) || identique(a[cle], b[cle]))
   const observationCourante = (carte, vue) => memesIdentites(carte, vue.observees.get(carte.sessionId))
   const encorePresent = (carte, vue) => [carte.controleur, carte.jobHost, carte.agentProcessus].some((id) => id && identique(vue.processus.get(id.pid), id))
+  const ongletFerme = (carte) => {
+    try {
+      const fichier = join(dossier, `${carte.sessionId}.terminal-close`)
+      if (fs.statSync(fichier).size > 2048) return false
+      const signal = z.object({ sessionId: z.uuid(), jobHost: Identite }).strict().parse(lireJSON(fichier))
+      return signal.sessionId === carte.sessionId && identique(signal.jobHost, carte.jobHost)
+    } catch { return false }
+  }
   const reconcilier = () => {
     const initiales = collection()
     const vue = { ...constater(), observees: new Map(initiales.cartes.map((c) => [c.sessionId, c])) }
@@ -208,7 +216,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
           sauver(chemin(c.sessionId), c)
         } else if (observationCourante(c, vue) && ['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
-          c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue'); c.issueSortie = 'echec'; delete c.codeEnveloppe
+          c.etat = 'echec-controle'; signalerEchec(c, ongletFerme(c) ? 'onglet fermé' : 'contrôle perdu, sortie inconnue'); c.issueSortie = 'echec'; delete c.codeEnveloppe
           sauver(chemin(c.sessionId), c)
         }
       }
@@ -331,8 +339,15 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         } else { signalerEchec(carte, raison); if (['nettoyage', 'fermee'].includes(carte.etat)) carte.issueSortie = 'echec' }
       })
       if (sansControleur(c)) return c
-      if (['nettoyage', 'fermee', 'echec-controle'].includes(c.etat)) return (await api.attendre(id, { timeoutMs: 30_000, processusSeulement: true })).carte
-      return (await api.fermer(id, jeton)).carte ?? lire(id)
+      for (let tentative = 0; ; tentative++) {
+        try {
+          if (['nettoyage', 'fermee', 'echec-controle'].includes(lire(id).etat)) return (await api.attendre(id, { timeoutMs: 30_000, processusSeulement: true })).carte
+          return (await api.fermer(id, jeton)).carte ?? lire(id)
+        } catch (e) {
+          if (!e.message.startsWith(prefixeDeRefus('transitoire')) || tentative === 2) throw e
+          await dormir(100)
+        }
+      }
     },
     async attenteDemarrage(id, jeton) {
       const limite = lire(id).demarrageJusqua

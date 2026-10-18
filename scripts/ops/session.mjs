@@ -16,7 +16,7 @@ export function refusSession(erreur) {
   const message = erreur instanceof Error ? erreur.message : String(erreur)
   const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? 'panne'
   const prefixe = prefixeDeRefus(categorie)
-  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message }
+  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message, ...(erreur?.reprise ? { reprise: erreur.reprise } : {}) }
 }
 
 /** `true` si ces arguments ATTENDENT une session (`attendre`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
@@ -117,9 +117,9 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
 
-export function argsTerminal({ profil, nom, worktree, script, node, commande }) {
-  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree }), 'utf8').toString('base64')
-  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
+export function argsTerminal({ profil, nom, worktree, script, node, commande, sessionId, dossier }) {
+  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree, sessionId, dossier }), 'utf8').toString('base64')
+  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree -SessionId $p.sessionId -Dossier $p.dossier; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
   const optionWT = (valeur) => valeur.replaceAll(';', '\\;')
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
@@ -141,14 +141,27 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
   const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
   const r = sessions.reserver({ ...c, hooks, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
+  const abandonner = async (e) => {
+    try {
+      const carte = await sessions.echecDemarrage(r.carte.sessionId, r.jeton, e.message)
+      if (!['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) throw new Error(`${prefixeDeRefus('transitoire')} NETTOYAGE EN ATTENTE`)
+    }
+    catch (nettoyage) { e.reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin', raison: refusSession(nettoyage).raison } }
+    throw e
+  }
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
-  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree })
+  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, dossier })
   let vu
   try { vu = lancerWT('wt.exe', args, { cwd: c.worktree, shell: false, encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(env) }) }
   catch (error) { vu = { error } }
-  if (vu.error || vu.status !== 0) { await sessions.echecDemarrage(r.carte.sessionId, r.jeton, `WT SPAWN : ${vu.error?.message ?? vu.stderr ?? vu.status}`); refuser('WT SPAWN ÉCHOUÉ', 'transitoire') }
-  const carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton)
-  if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || (carte.etat !== 'vivante' && !['sortie', 'echec'].includes(carte.issueSortie))) refuser(`DÉMARRAGE ÉCHOUÉ : ${carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT'}`, 'panne')
+  if (vu.error || vu.status !== 0) return abandonner(new Error(`${prefixeDeRefus('transitoire')} WT SPAWN ÉCHOUÉ : ${vu.error?.message ?? vu.stderr ?? vu.status}`))
+  let carte
+  try { carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton) }
+  catch (e) { return abandonner(e) }
+  if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || carte.issueSortie === 'echec' || (carte.etat !== 'vivante' && carte.issueSortie !== 'sortie')) {
+    const refus = refusSession(carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT')
+    return abandonner(new Error(`${refus.prefixe} DÉMARRAGE ÉCHOUÉ : ${refus.raison}`))
+  }
   return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 1740000` }
 }
 
@@ -244,7 +257,7 @@ if (import.meta.main) {
   catch (e) {
     const refus = refusSession(e)
     if (process.argv.includes('--json')) process.stdout.write(`${JSON.stringify({ refus })}\n`)
-    else process.stderr.write(`${refus.prefixe} ${refus.raison}\n`)
+    else { process.stderr.write(`${refus.prefixe} ${refus.raison}\n`); if (refus.reprise) process.stdout.write(`${JSON.stringify({ reprise: refus.reprise })}\n`) }
     process.exitCode = 1
   }
 }
