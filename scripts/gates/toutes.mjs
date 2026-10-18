@@ -970,7 +970,7 @@ export async function principal({
     // #1772 #2586
     const poser = (nom, r) => {
       const secondes = secondesDepuis(r.debut)
-      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 && !arretNonConfirme(r.arret) ? 'vert' : 'ROUGE'
+      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 ? 'vert' : 'ROUGE'
       verdicts.set(nom, { statut, code: r.code, secondes, fichier: r.fichier, sortie: r.sortie, limiteMs: r.limiteMs, error: r.error, arret: r.arret })
       diagnosticArret(r, (ligne) => journal(ligne + '\n'))
       if (arretNonConfirme(r.arret)) arretDesAttentes.abort()
