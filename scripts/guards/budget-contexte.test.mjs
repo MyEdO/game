@@ -73,7 +73,41 @@ describe('budget-contexte', () => {
     assert.equal(estRegleSansPaths('---\npaths: ["a"]\n---\n'), false)
     assert.equal(estRegleSansPaths('---\nname: x\n---\npaths: leurre\n'), true)
     assert.ok(estCheminDuBudget('.claude/rules/outils.md'))
-    assert.equal(estCheminDuBudget('.claude/rules/sous/x.md'), false)
+    assert.ok(estCheminDuBudget('.claude/rules/sous/x.md'))
+  })
+
+  test('une règle en SOUS-DOSSIER de `.claude/rules/` sans `paths:` est mesurée et refusée', () => {
+    const textes = { ...FAUX, '.claude/rules/outils.md': '# Outils\n', '.claude/rules/sous/x.md': '# X\n- consigne\n' }
+    const mesure = mesurerBudget('/nulle-part', {
+      lireTout: parLot(textes),
+      lister: (dossier) => ({ '.claude/rules': ['outils.md', 'sous'], '.claude/rules/sous': ['x.md'] })[dossier] ?? io.lister(dossier),
+    })
+    assert.ok(mesure.postes.some((p) => p.nom === '.claude/rules/sous/x.md'))
+    assert.match(reglesPermanentesHorsContrat(mesure).join('\n'), /^\.claude\/rules\/sous\/x\.md \(\d+ octets\)/)
+  })
+
+  test('un `paths:` vide, en flux vide, à chaîne vide, couvrant tout l\'arbre, ou un frontmatter non fermé ne cible rien', () => {
+    for (const texte of [
+      '---\npaths: []\n---\n# R\n',
+      '---\npaths:\n---\n# R\n',
+      '---\npaths: ""\n---\n# R\n',
+      '---\npaths:\n  - "  "\n---\n# R\n',
+      '---\npaths: **\n---\n# R\n',
+      '---\npaths:\n  - "src/**"\n  - "**/*"\n---\n# R\n',
+      '---\npaths: "*"\n---\n# R\n',
+      '---\npaths:\n  - "src/**"\n# R jamais fermée\n',
+    ]) assert.equal(estRegleSansPaths(texte), true, texte)
+  })
+
+  test('les formes de `paths:` ciblées (liste YAML, chaîne, flux) ciblent ; sur l\'arbre réel, seule REGLE_PERMANENTE se charge', () => {
+    for (const texte of [
+      '---\npaths:\n  - "src/data/**"\n  - "scripts/data/**"\n---\n# R\n',
+      '---\npaths: "src/engine/*.ts"\n---\n# R\n',
+      '---\npaths: ["a/**", "b"]\n---\n# R\n',
+      '---\npaths:\n  - "**/*.test.mjs"\n---\n# R\n',
+    ]) assert.equal(estRegleSansPaths(texte), false, texte)
+    const chargees = mesurerBudget(RACINE).postes.map((p) => p.nom).filter((nom) => nom.startsWith('.claude/rules/'))
+    assert.deepEqual(chargees, [REGLE_PERMANENTE.chemin])
   })
 
   test('un fichier en CRLF pèse le même nombre d’octets qu’en LF (worktree du harnais)', () => {
