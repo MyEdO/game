@@ -150,7 +150,7 @@ export function possessionCombatRideable(p: Possession): boolean {
 }
 
 /** Libellé affiché : `label` d'instance (« Marguerite ») sinon le libellé du catalogue de sa nature
- *  (doctrine id/label, CLAUDE.md règle stricte). PUR. */
+ *  (doctrine id/label, AGENTS.md règle stricte). PUR. */
 export function possessionLabel(p: Possession): string {
   if (p.label) return p.label;
   switch (p.nature) {

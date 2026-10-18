@@ -6,16 +6,20 @@
 // (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
 // porte une clé que son op ne consomme pas (`OPS_CTX_PATCH`), ou un shell lean-ctx qui porte une clé hors de
 // `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartition.mjs`) dit le
-// lieu NON JUGEABLE (#2224) est refusé avec le canal que ce contexte prescrit. Canal prescrit :
-// `~/.claude/CLAUDE.md` (« Project edits: `ctx_read(mode="anchored")` → `ctx_patch` »).
+// lieu NON JUGEABLE (#2224) est refusé avec le canal que ce contexte prescrit. Un refus ne prescrit que la
+// famille d'outils de l'appel refusé, donc présente (#2726) : canal par geste, `.claude/rules/outils.md`.
 import {
   CLES_SHELL, LECTURE, LECTURES_LIBRES, MOTIF_LEAN_CTX, OUTILS_ECRITURE, OUTILS_SHELL, PASSERELLE, SHELL, actionRefusee, cheminVise,
   clesHorsSchemaShell, clesNonAdmises, ecrituresDe, entreeDOutil, familleLeanCtx, lotAmbigu, nomLeanCtx, outilAppele, remplaceResoluble,
 } from '../guards/lib/contratGarde.mjs'
 
+/** Le canal prescrit à un appel lean-ctx refusé. */
 export const CONSIGNE = 'canal prescrit : ctx_patch (avec `path`, op ancrée ou texte remplacé) pour écrire, ctx_shell pour une commande, un outil de lecture classé pour lire'
 
-const refus = (raison) => ({ decision: 'deny', raison: `⛔ ${raison} — ${CONSIGNE}.` })
+/** Le canal prescrit à une écriture native refusée. */
+export const CONSIGNE_NATIVE = 'canal prescrit : la même écriture avec un chemin explicite et un texte remplacé présent dans le fichier'
+
+const refus = (raison, consigne = CONSIGNE) => ({ decision: 'deny', raison: `⛔ ${raison} — ${consigne}.` })
 
 function evaluer(entree, contexte) {
   const outil = String(entree?.tool_name ?? '')
@@ -43,7 +47,7 @@ function evaluer(entree, contexte) {
   const nonJugeables = ecrituresDe(entree).filter((ecrit) => cheminVise(ecrit) === undefined || !remplaceResoluble(ecrit))
   if (nonJugeables.length === 0) return null
   const ops = [...new Set(nonJugeables.map((ecrit) => ecrit.op).filter(Boolean))]
-  return refus(`écriture non jugeable (${outil}${ops.length ? ` op ${ops.join(', ')}` : ''}) : chemin absent ou texte remplacé non résoluble`)
+  return refus(`écriture non jugeable (${outil}${ops.length ? ` op ${ops.join(', ')}` : ''}) : chemin absent ou texte remplacé non résoluble`, nu === null ? CONSIGNE_NATIVE : CONSIGNE)
 }
 
-export const garde = { nom: 'canal-outil', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL, MOTIF_LEAN_CTX], evaluer }
+export const garde = { nom: 'canal-outil', categorie: 'validation', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL, MOTIF_LEAN_CTX], evaluer }

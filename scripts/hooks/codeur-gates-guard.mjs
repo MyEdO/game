@@ -308,7 +308,7 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
 }
 
 export const garde = {
-  nom: 'codeur-gates',
+  nom: 'codeur-gates', categorie: 'métier',
   outils: OUTILS_SHELL,
   evaluer: (entree, contexte) => verdictDe(evaluate({
     sousAgent: sousAgent(entree),

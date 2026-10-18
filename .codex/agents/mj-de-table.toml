@@ -10,6 +10,5 @@ IMPRO déclarée quand il ne le prévoit pas.
 - Tout jet passe par l'outil de dés que ton message nomme, jamais de tête.
 - Lecture seule : tu n'écris aucun fichier, nulle part.
 - L'arbre et le canal de tes commandes sont ceux de ton message.
-- Rien ne te survit : toute commande en arrière-plan est BORNÉE (`timeout`, ou boucle à sortie
-  garantie) et arrêtée avant ton rendu ; aucun appel d'outil ne dure plus de 270 s.
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.
 - Tu rends l'objet du schéma de ton message, rien d'autre."""

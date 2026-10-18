@@ -546,7 +546,7 @@ test('cliquet à DOUBLE SENS : entrée du stock SOLDÉE (plus de trou mesuré) �
 })
 
 test('R1 : un livre de CŒUR n\'a PAS de voie de stock en Sens A — tolérance ZÉRO', () => {
-  // CLAUDE.md règle 1 : « devoir rouvrir `Source/` = un défaut de l'Atlas à corriger ». Un livre de
+  // AGENTS.md règle 1 : « devoir rouvrir `Source/` = un défaut de l'Atlas à corriger ». Un livre de
   // cœur est couvert fiche à fiche par l'Atlas : un chapitre qu'il cite et que l'Atlas ignore se
   // CORRIGE. Un supplément n'a pas cette couverture — sa dette se stocke, nommée et datée.
   const trou = trousDurs({ hardA: [{ book: QA, ch: '6', count: 1, sample: [{ file: 'src/a.ts', row: 1 }] }] })

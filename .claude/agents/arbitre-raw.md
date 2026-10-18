@@ -32,7 +32,7 @@ chacune, réponds dans cet ordre et ARRÊTE-TOI à la première étape qui répo
    d'abord la FORME (skill `ajouter-une-mecanique`) : la valeur dépend de ce que le CONTENU connaît →
    un champ éditable sur l'entité (couche *scénario* : la valeur d'adaptation) ; sinon, couche
    *système* : la règle optionnelle taguée `maison`, surchargeable, ou le choix joueur (credo
-   « D'abord la COUCHE », règle 7 de `CLAUDE.md`). Propose sa valeur par défaut, sans question.
+   « D'abord la COUCHE », règle 7 d'`AGENTS.md`). Propose sa valeur par défaut, sans question.
 5. **Silence établi**, seulement après l'échec de l'étape 3 : colle les sondes de recherche (termes,
    livres, VO), et la déduction tentée (règle générale et règles voisines lues, et pourquoi elles ne
    suffisent pas). Puis, selon la COUCHE du credo :

@@ -1,4 +1,4 @@
-// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6(c) du CLAUDE.md (pierre tombale,
+// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6 d'AGENTS.md (pierre tombale,
 // tolérance zéro) appliquée à `.claude/memory/**`. Une fiche devenue fausse se RÉÉCRIT au présent ou
 // se SUPPRIME — git porte l'historique ; poser un EN-TÊTE DE SUPERSESSION (les trois mots que `MOTIF`
 // reconnaît plus bas) au-dessus du faux le laisse en place, et la fiche se relit comme une vérité
@@ -103,6 +103,7 @@ export function evaluate(input, lireDisque = () => '') {
   if (!estNomDeMemoireAdmis(nom)) {
     return {
       decision: 'deny',
+      categorie: 'métier',
       reason:
         `⛔ Fiche de mémoire hors \`user-*\` (« ${nom} ») : une fiche ne naît que \`user-*\`, pour un arbitrage ` +
         'utilisateur cité verbatim et daté. Geste : porte la consigne chez son porteur (règle, skill, agent, doc : ' +
@@ -141,4 +142,4 @@ function refus(input, base) {
 
 const evaluer = (entree, { dir }) => ecrituresDe(entree).map((input) => refus(input, dir))
 
-export const garde = { nom: 'memoire-tombale', outils: OUTILS_ECRITURE, evaluer }
+export const garde = { nom: 'memoire-tombale', categorie: 'validation', outils: OUTILS_ECRITURE, evaluer }

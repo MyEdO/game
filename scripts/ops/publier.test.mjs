@@ -356,9 +356,7 @@ describe('estDocDerive', () => {
   })
 
   test('estDocDerive : les destinations des miroirs d’agents (#2578), hooks compris, que `post-merge` et `post-rewrite` produisent sans les committer, sont DÉRIVÉES', () => {
-    assert.equal(estDocDerive('AGENTS.md', GEN), true)
     assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
-    assert.equal(estDocDerive('.codex/credo.md', GEN), true)
     assert.equal(estDocDerive('.codex/hooks.json', GEN), true)
     assert.equal(estDocDerive('.claude/settings.local.json', GEN), false)
     assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)

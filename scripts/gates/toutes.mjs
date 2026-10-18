@@ -85,25 +85,25 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
-const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
 
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
-    lit: ['.claude/', '.agents/', '.codex/', 'AGENTS.md', 'CLAUDE.md', 'scripts/agents/'],
+    lit: ['.claude/', '.agents/', '.codex/', 'scripts/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
       'mode `check` : `runCompat` n’écrit que sous `mode === "sync"` (`runCompat`, scripts/agents/compat-cli.mjs) ; ' +
-      'les 48 lectures mesurées sont les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ + ' +
-      'AGENTS.md + CLAUDE.md (miroirs comparés), plus son propre code',
+      'il lit les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ (miroirs comparés), plus son ' +
+      'propre code (`FICHIERS_LUS`, `DOSSIERS_LUS`)',
   },
   'test:agents': {
     ecrit: [],
-    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
+    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'CLAUDE.md'],
     raison: RETRAIT_WORKTREE_FERME +
       'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
-      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
-      'et AGENTS.md — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
+      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur ses imports `@.claude/credo.md` et ' +
+      '`@AGENTS.md`) — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
       'scripts/hooks/ depuis le 2026-09-28 (#2125) : les déclarations de hooks dérivent des registres, que ' +
       '`chargerRegistres` (scripts/agents/compat-cli.mjs) importe',
   },
@@ -118,7 +118,7 @@ export const ECRIT_LU = {
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
-      'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison: RETRAIT_WORKTREE_FERME +
@@ -145,7 +145,7 @@ export const ECRIT_LU = {
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
       'sonde n’enregistre pas : la déclaration tient de la LECTURE du code, et une sur-déclaration ne peut ' +
       'que RESSERRER les lanes ; LIT .codex/hooks.json et .claude/settings.json ' +
-      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, oxlint.config.mjs et package.json — ' +
+      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md et AGENTS.md qu’il importe (budget de contexte), oxlint.config.mjs et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
       '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
@@ -228,9 +228,9 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.codex/credo.md', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'session-start.test.mjs copie les configurations et credos réels .claude/settings.json, .claude/credo.md, .codex/hooks.json et .codex/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credos et reçus restent dans ces fixtures ; ' +
+      'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
@@ -301,7 +301,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
@@ -331,8 +331,8 @@ export const ECRIT_LU = {
       '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
+      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
+      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
       'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +

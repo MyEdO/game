@@ -11,7 +11,7 @@
 // MÉCANISANT le sort (`effects`), puis en relançant le régénérateur. Toute prose posée ENTRE les
 // entrées est mangée à la régénération.
 //
-// SECOND STOCK, `SPELL_NARRATIF_PARAPHRASE_STOCK` (règle 5 de `CLAUDE.md`) : les ops `narrative` dont
+// SECOND STOCK, `SPELL_NARRATIF_PARAPHRASE_STOCK` (règle 5 d'`AGENTS.md`) : les ops `narrative` dont
 // le `text` n'est pas une sous-chaîne verbatim de la `desc` qui les porte, mesurées par
 // `sitesNarratifsParaphrases` (même module), une occurrence par op. MÊME contrat, MÊME régénérateur :
 // une entrée se solde en implémentant ce que le vocabulaire porte et en recopiant le reste VERBATIM.

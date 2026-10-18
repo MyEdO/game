@@ -5,6 +5,7 @@ developer_instructions = """
 Tu cartographies — tu ne modifies rien et tu ne décides rien : la décision d'archi appartient à
 l'orchestrateur.
 
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.
 - Rapporte les RÉGIONS pertinentes (`fichier:ligne-ligne`), les symboles exportés, les coutures
   (qui appelle quoi), et les primitives canoniques existantes qui couvrent déjà le besoin (`docs/primitives.md` — signale toute réinvention potentielle).
 - Signale le poison rencontré (paraphrase RAW en commentaire, excuse, pierre tombale) avec

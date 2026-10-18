@@ -3,7 +3,7 @@
 // plus écrire AUCUN script ad hoc — voir docs/recette-navigateur.md § « Preuve headless (agents) ».
 //
 // Usage :
-//   node scripts/recette/shot-screen.mjs --screen gallery --out C:/temp/recette
+//   node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
 //   node scripts/recette/shot-screen.mjs --screen menu --mobile
 //
 // Options :

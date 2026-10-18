@@ -227,7 +227,7 @@ export function TavernGameModal() {
           {game && (
             <>
               <div className="tavern-desc"><Prose md={game.desc} porteur={{ type: 'tavernGames', id: game.id, chemin: 'desc' }} /></div>
-              {/* La règle affichée est le VERBATIM de la source (CLAUDE.md règle 5) : on ne la coupe
+              {/* La règle affichée est le VERBATIM de la source (AGENTS.md règle 5) : on ne la coupe
                   pas au régime rapide — c'est la note ci-dessous qui DIT ce que ce régime joue. */}
               {rapide && <p className="tavern-detail muted">{t('tavern.regimeRapideNote')}</p>}
               {game.pot ? (

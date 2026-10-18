@@ -6,18 +6,14 @@ import { racinesDeModsParmi } from '../mods/racines.mjs';
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const replacements = [
-  // L'import `@fichier` est une affordance de Claude Code : Codex n'en a pas, sa surface INJECTE le
-  // credo au SessionStart. Traduire le POINTEUR en pointeur (`.codex/credo.md`) rendrait AGENTS.md
-  // menteur — on traduit le MÉCANISME. Doit précéder la règle `.claude/credo.md` ci-dessous.
-  ['@.claude/credo.md', 'Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).'],
-  ['Foundry/CLAUDE.md', 'Foundry/AGENTS.md'],
-  ['# CLAUDE.md', '# AGENTS.md'],
   ['CLAUDE.md', 'AGENTS.md'],
   ['Claude Code', 'Codex'],
-  ['.claude/credo.md', '.codex/credo.md'],
-  ['~/.claude/projects/…/memory', '~/.codex/projects/…/memory'],
-  ['claude.ai/code', 'Codex cloud'],
 ];
+
+/** Une référence de surface Claude dans un profil Codex, hors des fichiers de `.claude/` que les deux
+ *  surfaces lisent tels quels : le credo (injecté à Codex par `inject-project-credo.mjs`), les règles
+ *  communes des sous-agents, la mémoire du dépôt. */
+const SURFACE_CLAUDE_HORS_PARTAGE = /CLAUDE\.md|\.claude\/(?!credo\.md|sous-agents\.md|memory\/)|\.Codex\//;
 
 export function normalizeText(text) {
   return `${text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '')}\n`;
@@ -98,14 +94,6 @@ function adapt(text) {
   return replacements.reduce((value, [from, to]) => value.split(from).join(to), normalizeText(text));
 }
 
-export function transformGuide(text) {
-  const body = adapt(text);
-  if (/CLAUDE\.md|Claude Code|\.claude\/credo|~\/\.claude|claude\.ai\/code/.test(body)) {
-    throw new Error('guide: référence Claude résiduelle');
-  }
-  return `${GENERATED_PREFIX}CLAUDE.md -->\n${body}`;
-}
-
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
   // Un mod Claude Code (#2278) n'a pas de miroir Codex.
@@ -171,7 +159,7 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));
       const actual = referencesIn(instructions);
-      if (/CLAUDE\.md|\.claude\/(?!memory\/)|\.Codex\//.test(instructions) || expected.some((reference) => !actual.includes(reference)))
+      if (SURFACE_CLAUDE_HORS_PARTAGE.test(instructions) || expected.some((reference) => !actual.includes(reference)))
         diagnostics.push({ family: 'agent', destination: role, type: 'reference', message: 'référence de surface divergente' });
     } catch (error) {
       diagnostics.push({ family: 'agent', destination: role, type: 'parse', message: error.message });
@@ -232,7 +220,8 @@ export const ENTREES_OUTIL = [
  *
  * Le credo de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de
  * CLAUDE.md — un import n'est ni tronqué ni persisté à part. Codex n'a pas d'import : sa surface
- * l'INJECTE au SessionStart. Porter les deux mécanismes sur Claude chargerait le credo deux fois.
+ * l'INJECTE au SessionStart, depuis le même fichier. Porter les deux mécanismes sur Claude chargerait le
+ * credo deux fois.
  *
  * La mise en conformité d'un conteneur distant se garde sur `CLAUDE_CODE_REMOTE`
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
@@ -367,7 +356,7 @@ export function remplacerCleJson(texte, cle, valeur) {
 
 /** Les racines que `agents:sync` POSSÈDE en entier : ce qui y vit hors des sorties attendues est
  *  orphelin (`managedRoots`, `collectDiffs`). */
-export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+export const MANAGED_ROOTS = ['.agents/skills'];
 
 /** Les surfaces dont `buildExpectedOutputs` dérive les déclarations de hooks (`hooksAttendus`). */
 export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
@@ -385,18 +374,7 @@ export function buildExpectedOutputs(snapshot, registres) {
   const files = new Map();
   const sortiesDeHooks = new Set();
   const diagnostics = [];
-  const source = snapshot.get('CLAUDE.md');
-  if (!source) diagnostics.push({ family: 'guide', destination: 'AGENTS.md', type: 'missing', message: 'CLAUDE.md absent' });
-  else {
-    try {
-      files.set('AGENTS.md', Buffer.from(transformGuide(utf8.decode(source))));
-    } catch (error) {
-      diagnostics.push({ family: 'guide', source: 'CLAUDE.md', destination: 'AGENTS.md', type: 'parse', message: error.message });
-    }
-  }
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
-  const credo = snapshot.get('.claude/credo.md');
-  if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
   for (const surface of SURFACES_DE_HOOKS) {
     try {
       const valeur = hooksAttendus(registres, surface);
@@ -413,10 +391,6 @@ export function buildExpectedOutputs(snapshot, registres) {
   return { files, managedRoots: new Set(MANAGED_ROOTS), sortiesDeHooks, diagnostics };
 }
 
-function withoutBanner(value) {
-  return value.replace(/<!-- GENERATED:[^\n]+ -->\n/, '');
-}
-
 function hasGeneratedBanner(value) {
   return /(?:^|\n)<!-- GENERATED: agents:sync; source=[^\n]+ -->\n/.test(value);
 }
@@ -429,20 +403,17 @@ export function collectDiffs(expected, actual) {
       if (!found?.equals(wanted)) diagnostics.push({ family: 'hook', destination, type: found ? 'content' : 'missing', message: 'hooks divergents du registre', safe: true });
       continue;
     }
-    if (!found) diagnostics.push({ family: 'guide', destination, type: 'missing', message: 'sortie absente', safe: true });
+    if (!found) diagnostics.push({ family: 'skill', destination, type: 'missing', message: 'sortie absente', safe: true });
     else if (!found.equals(wanted)) {
       let current;
       try {
         current = utf8.decode(found);
       } catch (error) {
-        diagnostics.push({ family: 'guide', destination, type: 'parse', message: error.message, safe: false });
+        diagnostics.push({ family: 'skill', destination, type: 'parse', message: error.message, safe: false });
         continue;
       }
-      const legacy = Buffer.from(withoutBanner(wanted.toString('utf8')));
       const marked = hasGeneratedBanner(current);
-      const legacyExact = found.equals(legacy);
-      const family = destination.startsWith('.agents/skills/') ? 'skill' : 'guide';
-      diagnostics.push({ family, destination, type: marked || legacyExact ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked || legacyExact });
+      diagnostics.push({ family: 'skill', destination, type: marked ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked });
     }
   }
   for (const [destination, found] of actual) {

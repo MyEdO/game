@@ -170,7 +170,7 @@ describe('narrative — ce que le champ `affects` modélise ne se journalise plu
   });
 });
 
-describe('`maison` — arbitrage de camp tracé en DONNÉE (CLAUDE.md règle 7)', () => {
+describe('`maison` — arbitrage de camp tracé en DONNÉE (AGENTS.md règle 7)', () => {
   it("rafale-hurlante : la rétention des NEUTRES par `is:'opponent'` porte sa justification datée", () => {
     const area = areaOf('rafale-hurlante');
     expect(area.maison).toBeTypeOf('string');

@@ -798,7 +798,7 @@ export function evaluate(command) {
 }
 
 export const garde = {
-  nom: 'commande-piege',
+  nom: 'commande-piege', categorie: 'validation',
   outils: OUTILS_SHELL,
   evaluer: async (entree, { env = process.env } = {}) => verdictDe(evaluate(commandeDe(entree)) ?? await attenteRefusee(entree, env)),
 }

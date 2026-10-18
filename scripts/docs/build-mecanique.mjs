@@ -399,7 +399,7 @@ ${tablePorteurs('capabilities')}
 - la sauvegarde réécrit le \`.json\` app-owned ; Vite recharge.
 
 **Réutiliser, ne jamais réinventer** : toute liste d'ops passe par la primitive partagée (table des
-primitives, \`CLAUDE.md\`). Ne pas dupliquer une op qui existe déjà sous un autre nom.
+primitives, \`docs/primitives.md\`). Ne pas dupliquer une op qui existe déjà sous un autre nom.
 
 ## 6. Frontière donnée / machinerie
 

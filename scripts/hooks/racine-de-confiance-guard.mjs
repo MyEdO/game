@@ -53,4 +53,4 @@ function evaluer(entree, { dir }) {
   })
 }
 
-export const garde = { nom: 'racine-de-confiance', outils: OUTILS_ECRITURE, evaluer }
+export const garde = { nom: 'racine-de-confiance', categorie: 'validation', outils: OUTILS_ECRITURE, evaluer }

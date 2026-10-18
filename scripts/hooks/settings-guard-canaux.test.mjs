@@ -98,7 +98,7 @@ test('tout canal d’une garde de commande est GARDABLE (son tool_input fournit 
   }
 })
 
-test('le canal d’édition PRESCRIT (`ctx_patch`, ~/.claude/CLAUDE.md) est un canal d’écriture ET de création', () => {
+test('le canal d’édition lean-ctx (`ctx_patch`, `.claude/rules/outils.md`) est un canal d’écriture ET de création', () => {
   for (const famille of [OUTILS_ECRITURE, OUTILS_CREATION]) assert.ok(famille.includes('mcp__lean-ctx__ctx_patch'), famille.join('|'))
 })
 

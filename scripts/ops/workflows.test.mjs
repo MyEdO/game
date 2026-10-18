@@ -3,7 +3,7 @@ import { readFileSync as lireCalibrage } from 'node:fs'
 const CALIBRAGE = lireCalibrage(new URL('../../.claude/skills/orchestrer-des-agents/calibrage.md', import.meta.url), 'utf8')
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { defautsDesSitesDAgent, lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs'
+import { defautsDesSitesDAgent, lireWorkflow, LONGUEUR_MAX_DESCRIPTION } from '../guards/lib/formeDeWorkflow.mjs'
 import { TYPES_DECLARES, TEMOIN, SOURCE_TEMOIN, muter, vus as voirDefauts } from '../test/lib/bancWorkflows.mjs'
 
 const LIST_TYPE = "const LIST = {\n  type: 'object', additionalProperties: false,";
@@ -264,4 +264,11 @@ test('#2537 — la couche UNIVERSELLE seule (la garde de l’outil `Workflow`) n
 
 test('#2537 — un script qui ne PARSE pas : chaque diagnostic du parseur est un défaut `syntaxe`, et rien d’autre ne se juge', () => {
   assert.deepEqual(vus(muter(TEMOIN, STATS, `const = 1\n${STATS}`)), ['syntaxe : Variable declaration expected.', 'syntaxe : Variable declaration expected.']);
+});
+
+test('#2726 — `meta.description` au-delà de LONGUEUR_MAX_DESCRIPTION est refusée, au plafond admise', () => {
+  const avec = (n) => muter(TEMOIN, "description: 'Script témoin des mutations de la porte de forme.'", `description: '${'x'.repeat(n)}'`);
+  assert.equal(LONGUEUR_MAX_DESCRIPTION, 1024);
+  assert.deepEqual(vus(avec(1024)), []);
+  assert.deepEqual(vus(avec(1025)), ['meta : meta.description de 1025 caractères pour 1024 au plus — la surface qui liste les workflows comme skills la tronque']);
 });

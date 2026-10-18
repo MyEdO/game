@@ -160,7 +160,7 @@ function skillInstance(skillId: string, spec: string | undefined, value: number,
  * tirage SEEDÉ (déterministe et rejouable, même idiome que `spawnMutations` ci-dessus) parmi les ids
  * que la donnée BORNE (`choix: [ids]`), sinon parmi le POOL de la Compétence (`specPoolOf`).
  * L'instance qui en sort est CONCRÈTE : aucun emplacement non désigné ne survit au spawn.
- * `LDB 09 l.40`, `LDB 09 l.44` ; CLAUDE.md règle 7 (le RAW confie ce choix au MJ, il n'y a pas de MJ).
+ * `LDB 09 l.40`, `LDB 09 l.44` ; AGENTS.md règle 7 (le RAW confie ce choix au MJ, il n'y a pas de MJ).
  * Pool VIDE = arrêt : il n'y a rien à désigner, et rien à inventer.
  */
 function designateSpec(sk: SkillData, choix: true | string[], seed: string): string {

@@ -7,7 +7,7 @@ description: À utiliser quand on crée ou retouche un écran, un panneau, une m
 # Retoucher un écran UI
 
 Lire **`docs/charte-ui.md`** (tokens `:root` seuls, modules CSS par domaine, densité, zéro texte
-tutoriel) + règle stricte 4 du AGENTS.md (responsive dès la création) + la table « Primitives
+tutoriel) + règle stricte 4 d'AGENTS.md (responsive dès la création) + la table « Primitives
 partagées » (composer, jamais recréer). Toute affordance = id d'icône EN DONNÉE via `<Icon>`,
 jamais un émoji (garde `no-emoji-affordance.test.ts`). Validation : skill recette-navigateur.
 

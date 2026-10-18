@@ -160,7 +160,7 @@ test('section « Périmètre mesuré / angles morts » présente dans chaque doc
 })
 
 /**
- * Garde symétrique du cliquet manuscrit ci-dessus — SANS stock. La table de routage de `CLAUDE.md`
+ * Garde symétrique du cliquet manuscrit ci-dessus — SANS stock. La table de routage d’`AGENTS.md`
  * (§ « Table de routage — lire le bon doc AU MOMENT du déclencheur ») est la SEULE surface injectée
  * chez tout agent de ce dépôt : un doc qu'elle ne mentionne pas — ni directement, ni via un
  * document lui-même routé — est invisible, quelle que soit sa qualité. Cette garde n'a PAS de stock
@@ -176,26 +176,26 @@ test('section « Périmètre mesuré / angles morts » présente dans chaque doc
  * (seuls `docs/raw/` et `docs/plans/` en usent, entre fichiers de leur propre sous-dossier, hors du
  * périmètre à plat de ce fichier).
  */
-const CLAUDE_MD_PATH = join(ROOT, 'CLAUDE.md')
+const AGENTS_MD_PATH = join(ROOT, 'AGENTS.md')
 
 const DOC_CITATION = /docs\/[a-zA-Z0-9_.-]+\.md/g
 
-function routingTableSlice(claudeMd) {
-  const start = claudeMd.indexOf('## Table de routage')
+function routingTableSlice(agentsMd) {
+  const start = agentsMd.indexOf('## Table de routage')
   if (start === -1) {
-    throw new Error('CLAUDE.md ne porte plus de section "## Table de routage" — garde à réancrer')
+    throw new Error('AGENTS.md ne porte plus de section "## Table de routage" — garde à réancrer')
   }
-  const afterStart = claudeMd.slice(start + 1)
+  const afterStart = agentsMd.slice(start + 1)
   const nextHeading = afterStart.indexOf('\n## ')
-  const end = nextHeading === -1 ? claudeMd.length : start + 1 + nextHeading
-  return claudeMd.slice(start, end)
+  const end = nextHeading === -1 ? agentsMd.length : start + 1 + nextHeading
+  return agentsMd.slice(start, end)
 }
 
 async function routedFlatDocs() {
-  const claudeMd = readFileSync(CLAUDE_MD_PATH, 'utf8')
+  const agentsMd = readFileSync(AGENTS_MD_PATH, 'utf8')
   const routed = new Set()
   const queue = []
-  for (const m of routingTableSlice(claudeMd).matchAll(DOC_CITATION)) {
+  for (const m of routingTableSlice(agentsMd).matchAll(DOC_CITATION)) {
     if (!routed.has(m[0])) {
       routed.add(m[0])
       queue.push(m[0])
@@ -216,13 +216,13 @@ async function routedFlatDocs() {
 
 const flatDocPaths = () => [...new Set([...manualDocs(), ...GENERES_A_PLAT])].sort()
 
-test('aucun doc à plat non atteignable depuis la table de routage de CLAUDE.md (directement ou via un doc routé)', async () => {
+test('aucun doc à plat non atteignable depuis la table de routage d’AGENTS.md (directement ou via un doc routé)', async () => {
   const routed = await routedFlatDocs()
   const unrouted = flatDocPaths().filter((d) => !routed.has(d))
   assert.deepEqual(
     unrouted.map(
       (d) =>
-        `${d} n'est atteignable depuis aucun déclencheur de la table de routage de CLAUDE.md (ni directement, ni via un doc lui-même routé) — ajouter une ligne à la table (question qu'un agent se pose, sur le modèle des lignes existantes), ou citer ce doc depuis un doc déjà routé`,
+        `${d} n'est atteignable depuis aucun déclencheur de la table de routage d’AGENTS.md (ni directement, ni via un doc lui-même routé) — ajouter une ligne à la table (question qu'un agent se pose, sur le modèle des lignes existantes), ou citer ce doc depuis un doc déjà routé`,
     ),
     [],
   )

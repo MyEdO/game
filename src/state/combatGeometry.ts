@@ -316,7 +316,7 @@ export function setZoneCrossTestHook(fn: ZoneCrossTestHook): void { zoneCrossTes
  *  zones GATÉES (Forêt d'épines, LDB 48 l.749 : « doit réussir un Test… sans posséder le Talent… »),
  *  route un `test` cadence-aware par le hook — succès → `onCross` sauté, échec → identique à `onCross`.
  *  (La Téléportation ne « traverse » pas — apparition — et n'appelle pas ce helper.)
- *  `resolveCaster` résout via la primitive PARTAGÉE `actorIn` (CLAUDE.md, table des primitives — combat
+ *  `resolveCaster` résout via la primitive PARTAGÉE `actorIn` (docs/primitives.md, table des primitives — combat
  *  OU groupe) plutôt qu'une fermeture `inBattleId` ad hoc : un lanceur mort/inconscient (`dead`/États)
  *  RESTE dans `battle.combatants` (aucune purge « morts persistants », #211 — non implémentée) donc
  *  reste résolvable, gardant SA Force Mentale comme référent des formules (`escapeStrength` de l'op

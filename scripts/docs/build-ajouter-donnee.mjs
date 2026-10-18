@@ -235,14 +235,14 @@ FICHIER (liste d'entrées, entrée seule, ou enveloppe + \`entries\`).
 
 ## 3. Vérifier la source RAW
 
-Ouvrir le \`Source/…\` (FR, plus le Core Rulebook 5e — \`CLAUDE.md\` § *Sources VF*), lire le
+Ouvrir le \`Source/…\` (FR, plus le Core Rulebook 5e — \`AGENTS.md\` § *Sources VF*), lire le
 **tableau ET son en-tête** (l'erreur #148 = la colonne « Équipe » lue comme « Encombrement »).
 Citer \`<LIVRE> <chap> l.<ligne>\` dans le message de commit / l'issue. ⚠ Le n° de ligne a dérivé
 (ré-extraction Marker) ET les ancres \`<span id="page-N">\` sont **non fiables** : n'en déduis jamais une \`source.page\`.
 
 Le champ \`book\` d'une entrée porte l'**\`${CLE_ABBR}\`** de \`src/data/books.json\` — ${BOOKS.length} livres
 enregistrés, dont ${ABBR_VF.length} en VF : ${ABBR_VF.map((a) => `\`${a}\``).join(', ')}.
-${ABBRS.length > ABBR_VF.length ? `Les ${ABBRS.length - ABBR_VF.length} autres entrées sont en VO : seul le livre VO nommé au \`CLAUDE.md\` § *Sources VF* est citable.\n` : ''}
+${ABBRS.length > ABBR_VF.length ? `Les ${ABBRS.length - ABBR_VF.length} autres entrées sont en VO : seul le livre VO nommé au \`AGENTS.md\` § *Sources VF* est citable.\n` : ''}
 ## 4. L'ENVELOPPE est posée par la fabrique — ne la redéclare jamais
 
 Tout document passe par \`document(...)\` (\`${DOC}\`), qui pose SEULE les
@@ -267,7 +267,7 @@ secondaire. Une entrée sans folio n'est pas interdite : elle doit DIRE pourquoi
 ## 5. Chaque champ = Source ⊕ convention voisine
 
 Conventions complètes : \`docs/donnees.md\` ; formes observées champ par champ :
-\`docs/structures-donnees.md\`. En bref : \`desc\` = **verbatim** Markdown (règle 5 de \`CLAUDE.md\`,
+\`docs/structures-donnees.md\`. En bref : \`desc\` = **verbatim** Markdown (règle 5 d’\`AGENTS.md\`,
 garde \`no-html-in-prose\`) ; les formes de champ se copient des voisins ; la logique est keyée par
 **id stable**, \`label\` = affichage.
 
@@ -275,7 +275,7 @@ garde \`no-html-in-prose\`) ; les formes de champ se copient des voisins ; la lo
 
 Un champ introuvable au Source → omission assumée (pas une valeur inventée). Une **mécanique RAW que le
 moteur ne modélise pas** → ce n'est pas « hors scope » : c'est une dette → **issue** (ou une valeur
-\`maison\` taguée si le RAW laissait le choix au MJ — house-rule ≠ lacune, règle 7 de \`CLAUDE.md\`).
+\`maison\` taguée si le RAW laissait le choix au MJ — house-rule ≠ lacune, règle 7 d’\`AGENTS.md\`).
 JAMAIS un choix d'agent silencieux enterré. Avant de conclure « le moteur ne sait pas faire X » :
 \`docs/vocabulaire-mecanique.md\` (les ops et Conditions qui EXISTENT) et \`docs/index-moteur.md\`
 (les coutures qui existent).

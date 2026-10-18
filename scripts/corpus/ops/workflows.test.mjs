@@ -9,7 +9,7 @@
 // d'agents).
 //
 // La porte est keyée sur la `phase` et l'`agentType` LITTÉRAUX, jamais sur le `label` : le label est
-// de l'affichage (doctrine id/label du CLAUDE.md), il se renomme sans qu'aucune règle ne bouge.
+// de l'affichage (doctrine id/label d'AGENTS.md), il se renomme sans qu'aucune règle ne bouge.
 //
 // LA RACINE DU SCHÉMA (invariant : aucune propriété racine d'un schéma passé à `agent()` n'accepte
 // une chaîne — run `wf_564ccc33-1bf`, #1993) se juge ICI, seul point qui voit TOUS les sites :
