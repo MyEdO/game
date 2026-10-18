@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
-import { LOT_D_ANALYSE, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
+import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
 import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, decoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
@@ -279,33 +279,39 @@ function deriver({ racine, touches, post, avant, lire, lireAvant, memos, stade =
     for (const spec of lu?.etoiles ?? []) specs.add(spec)
     return specificateursDesLectures.set(f, [...specs]).get(f)
   }
+  /** La clôture des lectures de `departs` par leurs spécificateurs, prélue par tranches de `LOT_D_ANALYSE`. */
+  const clotureDesLectures = (departs) => {
+    const lecturesDuLot = new Map()
+    const resolutions = new Map()
+    const file = [...departs]
+    let finPrelue = 0
+    for (let i = 0; i < file.length; i++) {
+      const f = file[i]
+      if (lecturesDuLot.has(f)) continue
+      if (i >= finPrelue) {
+        finPrelue = Math.min(file.length, i + LOT_D_ANALYSE)
+        prelire(file.slice(i, finPrelue))
+      }
+      const pool = lectureDe(f)
+      lecturesDuLot.set(f, pool)
+      for (const spec of specificateursDeLaLecture(f, pool)) {
+        const cle = JSON.stringify([f, spec])
+        if (resolutions.has(cle)) continue
+        const cible = cibleDe(f, spec)
+        resolutions.set(cle, [f, spec, cible])
+        if (cible !== null && !lecturesDuLot.has(cible)) file.push(cible)
+      }
+    }
+    return { lecturesDuLot, resolutions }
+  }
   function* evaluationsEnLots(nature, fichiers) {
+    if (ferme) clotureDesLectures(fichiers.filter((f) => !variante(nature, f)))
     for (let debut = 0; debut < fichiers.length; debut += LOT_D_ANALYSE) {
       const lot = fichiers.slice(debut, debut + LOT_D_ANALYSE)
       if (ferme) {
         const vues = new Map(lot.map((f) => [f, variante(nature, f)]))
         const manquants = lot.filter((f) => !vues.get(f))
-        const lecturesDuLot = new Map()
-        const resolutions = new Map()
-        const file = [...manquants]
-        let finPrelue = 0
-        for (let i = 0; i < file.length; i++) {
-          const f = file[i]
-          if (lecturesDuLot.has(f)) continue
-          if (i >= finPrelue) {
-            finPrelue = Math.min(file.length, i + LOT_D_ANALYSE)
-            prelire(file.slice(i, finPrelue))
-          }
-          const pool = lectureDe(f)
-          lecturesDuLot.set(f, pool)
-          for (const spec of specificateursDeLaLecture(f, pool)) {
-            const cle = JSON.stringify([f, spec])
-            if (resolutions.has(cle)) continue
-            const cible = cibleDe(f, spec)
-            resolutions.set(cle, [f, spec, cible])
-            if (cible !== null && !lecturesDuLot.has(cible)) file.push(cible)
-          }
-        }
+        const { lecturesDuLot, resolutions } = clotureDesLectures(manquants)
         memos?.sauver?.()
         const resultats = new Map()
         if (manquants.length) {
@@ -403,20 +409,6 @@ function deriver({ racine, touches, post, avant, lire, lireAvant, memos, stade =
   memos?.elaguer?.()
   return { retenus, toolchain, nonResolus, vitest, node, modules: cache.size, setup, signaux }
 }
-/** Les modules `entrees` (`{ rel, text }`, `text` null : absent) analysés par lots de `LOT_D_ANALYSE`,
- *  un module par chemin et par lot. */
-function* analyserEnLots(entrees) {
-  const restes = [...entrees]
-  while (restes.length) {
-    const vus = new Set()
-    const lot = []
-    for (let i = 0; i < restes.length && lot.length < LOT_D_ANALYSE;)
-      if (vus.has(restes[i].rel)) i += 1
-      else { vus.add(restes[i].rel); lot.push(...restes.splice(i, 1)) }
-    yield* analyserCorpus(lot)
-  }
-}
-
 /**
  * `extraire(rel, sourceFile, diagnostics)` de chaque module `entrees`, mémoïsé sous la famille `famille`
  * par chemin et blob ; les absents des mémos s'analysent par lots. Un texte `null` rend `null`.

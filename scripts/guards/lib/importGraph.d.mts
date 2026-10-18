@@ -1,5 +1,6 @@
 import type { Diagnostic } from 'typescript/unstable/sync';
 import type { Node, SourceFile } from 'typescript/unstable/ast';
+import type { AnalyseEmpruntee, FichierSource } from './dialecte.mjs';
 
 export type NatureDeModule = 'statique' | 'dynamique' | 'type' | 'require';
 export type GenreDeModule = 'import' | 'export' | 'importEquals' | 'importType' | 'appel' | 'fournisseur';
@@ -109,6 +110,8 @@ export function directImportsOf(
 ): string[];
 export const CHEMIN_TSCONFIG: string;
 export const LOT_D_ANALYSE: number;
+/** Les modules `entrees` analysés par lots de `tailleLot` (`LOT_D_ANALYSE`), un module par chemin et par lot. */
+export function analyserEnLots(entrees: Iterable<FichierSource>, tailleLot?: number): Generator<AnalyseEmpruntee>;
 /** Les alias que déclare le texte d'un `tsconfig.json`, cibles posées sous `racine`. */
 export function aliasDe(texte: string | null, racine: string): Alias[];
 /** Les alias du `tsconfig.json` que porte le disque sous `racine` (répertoire courant par défaut). */

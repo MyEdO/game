@@ -4,16 +4,16 @@ import { readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { BASELINE, REPO } from '../../ops/knip-exports-ratchet.mjs'
 import { listerArbre } from '../../guards/lib/lister.mjs'
-import { liaisonsDe, resolveImport } from '../../guards/lib/importGraph.mjs'
+import { analyserEnLots, liaisonsDe, resolveImport } from '../../guards/lib/importGraph.mjs'
 
 /** Graphe d'imports NOMMÉS de `src/**` : cible relative → { nom → Set(importateurs) }. */
 function usageParNom() {
   const src = join(REPO, 'src')
-  const files = listerArbre(src, { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => join(src, rel))
+  const files = listerArbre(src, { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => ({ rel: join(src, rel), text: readFileSync(join(src, rel), 'utf8') }))
   const rel = (p) => relative(REPO, p).split('\\').join('/')
   const usage = new Map()
-  for (const f of files) {
-    for (const liaison of liaisonsDe(f, readFileSync(f, 'utf8'))) {
+  for (const { fichier: { rel: f }, sourceFile, diagnostics } of analyserEnLots(files)) {
+    for (const liaison of liaisonsDe(f, sourceFile, diagnostics)) {
       if (liaison.genre !== 'import' || liaison.forme !== 'nommee') continue
       const absolu = resolveImport(f, liaison.spec)
       if (!absolu) continue

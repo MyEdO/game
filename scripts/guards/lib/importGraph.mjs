@@ -23,6 +23,20 @@ export const pathspecsDeModules = (dossier) => EXTS.map((ext) => `${dossier}/*${
 /** Les modules par programme TypeScript (`analyserCorpus`) : pic mesuré de 589 Mo à 64, OOM à 128 (#2586). */
 export const LOT_D_ANALYSE = 64;
 
+/** Les modules `entrees` (`{ rel, text }`) analysés (`analyserCorpus`) par lots de `tailleLot`, un module par
+ *  chemin et par lot ; chaque rendu porte l'entrée d'origine sous `fichier`. */
+export function* analyserEnLots(entrees, tailleLot = LOT_D_ANALYSE) {
+  const restes = [...entrees];
+  while (restes.length) {
+    const vus = new Set();
+    const lot = [];
+    for (let i = 0; i < restes.length && lot.length < tailleLot;)
+      if (vus.has(restes[i].rel)) i += 1;
+      else { vus.add(restes[i].rel); lot.push(...restes.splice(i, 1)); }
+    yield* analyserCorpus(lot);
+  }
+}
+
 /** `require('…')`, `module.require('…')` ou `createRequire(…)('…')` : l'appelé d'une acquisition
  *  CommonJS. */
 const estRequire = (ts, appele) =>
@@ -334,8 +348,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       if (memoises) { cache.set(abs, resoudre(abs, memoises)); continue; }
       aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
     }
-    for (let debut = 0; debut < aAnalyser.length; debut += tailleLot)
-    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aAnalyser.slice(debut, debut + tailleLot))) {
+    for (const { fichier, sourceFile, diagnostics } of analyserEnLots(aAnalyser, tailleLot)) {
       const sites = [...specificateursDe(fichier.rel, sourceFile, diagnostics),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
       specificateurs?.ecrire(fichier.rel, fichier.brut, sites);
