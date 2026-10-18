@@ -4,7 +4,7 @@
 // (`contexteDe`, `publierTrain.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
-// `docs`, `attendreReconstruction`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `genCode`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
 // `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
@@ -20,8 +20,7 @@ import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
-import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { sourcesMesurees, touchesDocSources } from '../git-hooks/selection-des-derives.mjs'
+import { estCiblePure } from '../docs/build-all.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -30,7 +29,7 @@ import { DESTINATIONS, SORTIES_PAR_CLE, remplacerCleJson } from '../agents/compa
 /** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
 
-/** Éjections de la file qu'un lot reprend (FUSION d'`origin/main`, `docs`, push, nouvelle demande de
+/** Éjections de la file qu'un lot reprend (FUSION d'`origin/main`, finalisation, push, nouvelle demande de
  *  fusion) avant de rendre la main : au-delà, la cause n'est pas le tronc. */
 export const BORNE_EJECTIONS = 1
 
@@ -118,24 +117,12 @@ export function etatDeLaPr(pr, tete) {
   return 'ouverte'
 }
 
-/**
- * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
- * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
- * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les destinations des miroirs d'agents (`DESTINATIONS` de `buildExpectedOutputs`,
- * `compat-core.mjs`), que les post-hooks `post-merge` et `post-rewrite` produisent sans les committer
- * (#2578). Une SORTIE PAR CLÉ (`SORTIES_PAR_CLE`) n'est dérivée que si son disque ÉGALE son texte de
- * HEAD dont seule la clé gérée prend la valeur du disque (`remplacerCleJson`) : `lire(chemin)` rend
- * `{ tete, disque }`, les textes de HEAD et du disque (`null` si absent) ; sans `lire`, elle est
- * MANUSCRITE. PURE.
- * @param {string} chemin @param {readonly object[]} generators
- * @param {(chemin: string) => { tete: string | null, disque: string | null }} [lire]
- */
-export function estDocDerive(chemin, generators, lire) {
+// #2578
+export function estMiroir(chemin, lire) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
   if (DESTINATIONS.some((r) => c === r || c.startsWith(`${r}/`))) return !SORTIES_PAR_CLE.has(c) || seuleLaCleGereeAChange(c, lire)
-  return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
+  return false
 }
 
 /** Le disque de la sortie par clé `chemin` égale-t-il son texte de HEAD, la seule clé gérée remplacée
@@ -152,34 +139,25 @@ function seuleLaCleGereeAChange(chemin, lire) {
   }
 }
 
-/**
- * Partage des chemins SALES en deux tas : ce que l'étape `docs` sait committer (`estDocDerive`, qui
- * reçoit `lire`) et le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, la
- * reconstruction que demande le hook `post-rewrite` régénère les docs dérivés SANS les committer
- * (`scripts/git-hooks/reconstruction.mjs`, attendue par `attendreLesDerives`) — sans ce partage, la préflight
- * refusait le train pour une saleté que l'étape `docs` commet.
- * @param {string[]} chemins @param {readonly object[]} generators
- * @param {(chemin: string) => { tete: string | null, disque: string | null }} [lire]
- * @returns {{derives:string[], manuscrits:string[]}}
- */
-export function partitionSales(chemins, generators, lire) {
+// #2578
+export function partitionSales(chemins, lire) {
   const derives = []
   const manuscrits = []
-  for (const c of chemins ?? []) (estDocDerive(c, generators, lire) ? derives : manuscrits).push(c)
+  for (const c of chemins ?? []) (estMiroir(c, lire) ? derives : manuscrits).push(c)
   return { derives, manuscrits }
 }
 
 /** Le partage (`partitionSales`) des chemins sales du train, `chemins` lus à l'arbre par défaut. */
-const salesDuTrain = (ctx, chemins = ctx.questions.cheminsSales()) => partitionSales(chemins, ctx.generators, ctx.questions.textesDe)
+const salesDuTrain = (ctx, chemins = ctx.questions.cheminsSales()) => partitionSales(chemins, ctx.questions.textesDe)
 
-/** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
-export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de publication'
+/** Motif du commit des miroirs de configuration. */
+export const MOTIF_MIROIRS = 'miroirs de configuration produits par les hooks'
 
 /** Motif de la fusion d'`origin/main` qui REPREND une PR que le serveur ne fusionne pas : en conflit
  *  avec la base, refusée à la demande, ou éjectée de la file. */
 export const MOTIF_EJECTION = 'fusion d’origin/main : reprise d’une PR que la file de fusion refuse'
 
-/** Motif du commit des stocks de sites régénérés par l'étape `docs` après une fusion du tronc. */
+/** Motif du commit des stocks de sites régénérés après une fusion du tronc. */
 export const MOTIF_STOCKS = 'stocks de sites régénérés au point fixe après fusion du tronc'
 
 /** Refus commun aux commits du train : sans `#N`, la porte du commit refuserait le message. */
@@ -190,7 +168,7 @@ export const REFUS_SANS_TICKET =
 export const PLAGE_DE_CITATIONS = `${TRONC.suivi}..HEAD`
 
 /**
- * Message d'un commit du train (`chore(docs)` des dérivés, `chore(merge)` de la reprise). PURE — une
+ * Message d'un commit du train (`chore(config)` des dérivés, `chore(merge)` de la reprise). PURE — une
  * seule forme. Le SUJET tient la règle du dépôt (`scripts/guards/lib/sujetDeCommit.mjs`, mesurée ici
  * par `refusDeSujet`, jamais par un compte recopié) ; le MOTIF va au CORPS. Quand les `refs` d'une
  * plage chargée feraient déborder le sujet, elles descendent au corps : `numerosCites` lit le message
@@ -258,16 +236,16 @@ function numerosDeLaPlage(questions) {
 }
 
 /**
- * COMMIT des DÉRIVÉS de l'étape `docs` : stage des chemins EXPLICITES, message qui cite les tickets de
+ * COMMIT des MIROIRS de configuration : stage des chemins EXPLICITES, message qui cite les tickets de
  * la plage, `journal.tete` avancé.
  * @param {object} ctx @param {{chemins:string[], numeros:string[], journal:object}} p
  * @returns {{ok:boolean, raison?:string, detail?:object, dit?:string}}
  */
-function commettreDerives(ctx, { chemins, numeros, journal }) {
-  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros, motif: MOTIF_REGENERATION }), chemins })
-  if (!reussi(commit)) return { ok: false, raison: `\`git add\` puis \`git commit\` des docs ont échoué : ${refusDeGit(commit)}` }
+function commettreMiroirs(ctx, { chemins, numeros, journal }) {
+  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(config)', titre: 'miroirs de configuration', numeros, motif: MOTIF_MIROIRS }), chemins })
+  if (!reussi(commit)) return { ok: false, raison: `\`git add\` puis \`git commit\` des miroirs ont échoué : ${refusDeGit(commit)}` }
   journal.tete = ctx.tete
-  return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
+  return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} miroir(s) commis — tête ${journal.tete.slice(0, 9)}` }
 }
 
 
@@ -295,6 +273,29 @@ function regenererStocks(ctx, journal) {
     return { ok: false, raison: `commit des stocks de sites régénérés REFUSÉ par la porte du commit (une croissance née de la fusion du tronc : \`CLIQUET:\` à écrire à la main) :\n${stocks.map((c) => `    ${c}`).join('\n')}\n${refusDeGit(commit)}` }
   journal.tete = ctx.tete
   return { ok: true, dit: `${stocks.length} stock(s) de sites régénéré(s) commis — tête ${journal.tete.slice(0, 9)}` }
+}
+
+// #2801
+export function finaliserFusion(ctx, journal) {
+  const base = ctx.questions.baseAuTronc()
+  const { manuscrits } = salesDuTrain(ctx)
+  const attributs = ctx.questions.attributsDeFusion(manuscrits)
+  const stocksSales = manuscrits.some((c) => attributs.get(c) === 'stocks')
+  if (journal.base && base !== journal.base && (journal.baseFinalisee !== base || stocksSales)) {
+    const stocks = regenererStocks(ctx, journal)
+    if (!stocks.ok) return stocks
+    if (stocks.dit) ctx.journaliser(`[publier] finalisation — ${stocks.dit}\n`)
+  }
+  const sales = salesDuTrain(ctx)
+  if (sales.manuscrits.length) return { ok: false, raison: `arbre NON COMMITÉ (${sales.manuscrits.length}) — on ne publie que du committé :\n${sales.manuscrits.map((c) => `    ${c}`).join('\n')}` }
+  if (sales.derives.length) {
+    const numeros = numerosDeLaPlage(ctx.questions)
+    if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
+    const commit = commettreMiroirs(ctx, { chemins: sales.derives, numeros, journal })
+    if (!commit.ok) return commit
+  }
+  journal.baseFinalisee = base
+  return { ok: true }
 }
 
 /** La course de BRANCHE de la tête `tete`, jugée (`verdictJuge`) ; une lecture indisponible est `illisible`. */
@@ -362,7 +363,7 @@ const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_
 /**
  * Reprise BORNÉE d'une PR que le serveur ne fusionne pas (#2178, design v3 ; #2525) : en conflit avec la
  * base, refusée à la demande, ou éjectée. FUSION d'`origin/main` dans la branche — jamais un rebase —,
- * puis `docs` (qui régénère les stocks de sites), `push-branche`, `pr` et `file` se rejouent.
+ * puis finalisation des stocks et miroirs, `push-branche`, `pr` et `file` se rejouent.
  * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
  * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
  * tout autre conflit abandonne la fusion.
@@ -385,12 +386,12 @@ function fusionnerDansTrain(ctx, journal, cause, de = TRONC.suivi) {
         raison: `${cause.raison} — fusion de ${de} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${de}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
-    const code = ctx.docs('--code')
+    const code = ctx.genCode()
     if (code.status !== 0)
       return { ok: false, raison: `${cause.raison} — fusion conclue, mais les cibles de code ne sont pas produites (\`npm run gen\` a rendu ${code.status ?? code.signal})${code.stderr ? `\n${finDeSortie(code.stderr)}` : ''}` }
   }
-  const enCours = attendreLesDerives(ctx, 'reprise')
-  if (enCours) return enCours
+  const finalisation = finaliserFusion(ctx, journal)
+  if (!finalisation.ok) return finalisation
   journal.tete = ctx.tete
   return { ok: true, dit: `${cause.raison} — ${de} fusionné (tête ${journal.tete.slice(0, 9)})` }
 }
@@ -406,21 +407,9 @@ function reprendreApresEjection(ctx, journal, cause) {
   journal.tete = ctx.tete
   return {
     ok: true,
-    relancer: ['docs', 'push-branche', 'pr', 'file'],
-    dit: `${cause.raison} — ${TRONC.suivi} fusionné (tête ${journal.tete.slice(0, 9)}) : le train reprend à \`docs\``,
+    relancer: ['push-branche', 'pr', 'file'],
+    dit: `${cause.raison} — ${TRONC.suivi} fusionné (tête ${journal.tete.slice(0, 9)}) : le train reprend au push`,
   }
-}
-
-/**
- * La reconstruction des dérivés de l'arbre ATTENDUE (`ctx.attendreReconstruction`, #2603) avant une lecture de
- * l'arbre sale : REND un refus si elle court encore à l'échéance, `null` sinon ; un verdict non nul est journalisé.
- * @param {string} ou l'étape qui attend
- */
-function attendreLesDerives(ctx, ou) {
-  const passe = ctx.attendreReconstruction()
-  if (passe.etat === 'en-cours') return { ok: false, raison: `${ou} : reconstruction des dérivés toujours en cours à l’échéance — \`--reprendre\` après sa fin` }
-  if (passe.code) ctx.journaliser(`[publier] ${ou} — reconstruction des dérivés : ${passe.etat}, code ${passe.code}${passe.log ? `, journal ${passe.log}` : ''}\n`)
-  return null
 }
 
 /** La table des ÉTAPES : nom, `jouer(ctx, journal)`, `dejaFaite(ctx, journal)`. Ajouter une étape,
@@ -429,7 +418,7 @@ export const ETAPES = [
   {
     nom: 'preflight',
     // TOUJOURS rejouée : elle EST la garde. Elle pose la tête et, sur un lot neuf, la base du lot
-    // (`merge-base origin/main HEAD`) que l'étape `docs` compare à la tête.
+    // (`merge-base origin/main HEAD`) utilisée par la finalisation.
     dejaFaite: () => false,
     jouer(ctx, journal) {
       const { racine, questions } = ctx
@@ -446,17 +435,6 @@ export const ETAPES = [
       }
       const horsCi = refusDeBranche(ctx.branche, filtres)
       if (horsCi) return { ok: false, raison: horsCi }
-      const enCours = attendreLesDerives(ctx, 'preflight')
-      if (enCours) return enCours
-      const { derives, manuscrits } = salesDuTrain(ctx)
-      if (manuscrits.length)
-        return {
-          ok: false,
-          raison:
-            `arbre NON COMMITÉ (${manuscrits.length}) — on ne publie que du committé :\n` +
-            `${manuscrits.map((s) => `    ${s}`).join('\n')}` +
-            (derives.length ? `\n  (et ${derives.length} dérivé(s) sale(s) que l’étape docs aurait commis)` : ''),
-        }
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
       const vuFetch = ctx.tronc()
@@ -464,6 +442,8 @@ export const ETAPES = [
       // #2328 A3
       const fusions = questions.verdictDesFusions()
       if (!fusions.ok) return { ok: false, raison: fusions.texte }
+      const finalisation = finaliserFusion(ctx, journal)
+      if (!finalisation.ok) return finalisation
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }
       // Une branche déjà fusionnée (étape `file` verte) n'a plus rien d'absent du tronc : sa reprise
@@ -484,64 +464,11 @@ export const ETAPES = [
           ctx.journaliser(`[publier] preflight — ${fusion.dit}\n`)
         }
       }
-      const reste = derives.length
-        ? `${derives.length} dérivé(s) sale(s) non commité(s) : l’étape docs les commet`
-        : 'arbre propre'
       return {
         ok: true,
-        detail: { derivesSales: derives, base: journal.base },
-        dit: `${reste}, origin consultable, outillage local posé, base ${journal.base.slice(0, 9)}`,
+        detail: { base: journal.base },
+        dit: `arbre propre, origin consultable, outillage local posé, base ${journal.base.slice(0, 9)}`,
       }
-    },
-  },
-  {
-    // Les MIXTES (`injecte` des `generators`) : régénérés, puis commis. Une saleté de dérivés laissée
-    // par un hook (post-merge, post-rewrite), miroirs d'agents compris, est commise ici aussi. Le train
-    // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
-    // (#2193) ; les stocks de sites, si la branche a absorbé le tronc pendant le lot (`regenererStocks`,
-    // un état git qui survit à `--reprendre`).
-    nom: 'docs',
-    // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci avance à la fusion d'une
-    // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
-    dejaFaite(ctx, journal) {
-      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete &&
-        salesDuTrain(ctx).derives.length === 0
-    },
-    jouer(ctx, journal) {
-      const { racine } = ctx
-      const touches = ctx.questions.ceQuiChange(journal.base, journal.tete).chemins()
-      // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
-      // RÉGÉNÉRATION, jamais le COMMIT.
-      const avant = attendreLesDerives(ctx, 'docs')
-      if (avant) return avant
-      const salesAvant = ctx.questions.cheminsSales()
-      const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
-      const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
-      const fusionDuTronc = ctx.questions.baseAuTronc() !== journal.base
-      if (!regenerer && !fusionDuTronc && !salesAvant.length) return { ok: true, dit: 'aucune source de mixte dans la plage, arbre propre : docs inchangés' }
-      if (regenerer) {
-        const passe = ctx.docs('--mixtes')
-        if (passe.status !== 0)
-          return {
-            ok: false,
-            raison: `\`build-all --mixtes\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
-          }
-      }
-      if (fusionDuTronc) {
-        const stocks = regenererStocks(ctx, journal)
-        if (!stocks.ok) return stocks
-        if (stocks.dit) ctx.journaliser(`[publier] docs — ${stocks.dit}\n`)
-      }
-      const apres = attendreLesDerives(ctx, 'docs')
-      if (apres) return apres
-      const chemins = ctx.questions.cheminsSales()
-      const { manuscrits } = salesDuTrain(ctx, chemins)
-      if (manuscrits.length)
-        return { ok: false, raison: `fichier MANUSCRIT sale après la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
-      if (!chemins.length) return { ok: true, dit: 'dérivés déjà à jour : rien à committer' }
-      const numeros = numerosDeLaPlage(ctx.questions)
-      if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins, numeros, journal })
     },
   },
   {

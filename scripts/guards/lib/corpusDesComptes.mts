@@ -13,7 +13,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } fro
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GENERATORS, genererCodeSansCertifier } from '../../docs/build-all.mjs';
+import { GENERATORS, genererCode } from '../../docs/build-all.mjs';
 import { lierDependances } from '../../migrations/replay-head.mjs';
 import { scanDuCorpus, scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
@@ -132,14 +132,13 @@ export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
 /**
  * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
  * `detecteur`, ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
- * et ses cibles de code produites sans certificat (`genererCodeSansCertifier` : `_registry.generated.ts`
- * n'est pas suivi, et une image jetable ne certifie rien).
+ * et ses cibles de code produites et certifiées localement (`genererCode`).
  */
 function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
   ecrireDeLImage(depot, arbre, dossier, DE_L_IMAGE);
   detecteur.poser(dossier);
   lierDependances(dossier);
-  if (genererCodeSansCertifier({ cwd: dossier, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
+  if (genererCode({ cwd: dossier, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
     throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites`);
 }
 

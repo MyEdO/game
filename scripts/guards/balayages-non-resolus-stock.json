@@ -494,12 +494,6 @@
       "occurrence": 33
     },
     {
-      "famille": "déstructuration de tableau",
-      "fichier": "scripts/raw/assemble-domain.mjs",
-      "ref": "readFileSync : déstructuration de tableau jsonPath",
-      "occurrence": 1
-    },
-    {
       "famille": "forme non évaluée",
       "fichier": "src/data/generic-domain-import-guard.test.ts",
       "ref": "readFileSync : forme NewExpression",

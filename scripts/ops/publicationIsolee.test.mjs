@@ -420,7 +420,6 @@ test('git réel : CI rouge avec docs C, correctif D fusionné dans snapshot sous
     combienDe: () => 1, baseAuTronc: () => base,
     commitsDeLaPlage: () => [{ sha: d, message: 'fix(ops): refs #2626' }],
   }
-  ctx.attendreReconstruction = () => ({ etat: 'soldee' })
   ctx.tronc = () => ({ disponible: true, sha: base })
   const journal = JSON.parse(readFileSync(b.chemins.json))
   const preflight = ETAPES.find((e) => e.nom === 'preflight').jouer(ctx, journal)
@@ -490,7 +489,7 @@ test('preflight accepte HEAD détaché uniquement avec identité de publication 
   const etape = ETAPES.find((e) => e.nom === 'preflight')
   const ctx = {
     racine: '/nulle-part', branche: 'chantier/2626', filtresDePush: ['chantier/**'],
-    attendreReconstruction: () => ({ etat: 'soldee' }), journaliser: () => {}, generators: [],
+    journaliser: () => {}, generators: [],
     questions: { rebaseEntame: () => null, brancheDe: () => null, cheminsSales: () => [], origineDe: () => 'étranger' },
   }
   assert.match(etape.jouer(ctx, {}).raison, /HEAD DÉTACHÉ/)

@@ -59,8 +59,8 @@ script au nom différent du doc est entre parenthèses.
 
 1. **Aucune invention de règles.** Toute règle/valeur vient des livres autorisés : Atlas
    `docs/raw/00-index.md` d'abord — devoir rouvrir `Source/` est un DÉFAUT DE L'ATLAS à corriger —,
-   `Source/` restant la vérité citable (`LDB <chap> l.<ligne>`). Champs `Implémente` GÉNÉRÉS
-   (`npm run raw:implemente`) ; dette = entrée `src/data/raw.manifest.json` (topic non implémenté
+   `Source/` (`LDB <chap> l.<ligne>`). `Implémente` → rapport pur
+   `docs/raw/implemente.generated.md` (`npm run raw:implemente`) ; dette = `src/data/raw.manifest.json` (topic non implémenté
    SANS entrée = CI rouge). Gardes : `scripts/raw/coverage.mjs`, `scripts/raw/reconcile.mjs`,
    `npm run docs:check`.
 2. **Tout le contenu de campagne est éditable** (schéma de Scène unique) : aucune scène « en dur ».

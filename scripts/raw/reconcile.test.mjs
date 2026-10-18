@@ -16,10 +16,13 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { computeReconciliation, renderReport, sansProvenanceAdaptee, trousDurs, ecartsTrousDurs, lireStock, STOCK_PATH, PREFIXE_B2, decodeCle, coeursEtrangers } from './reconcile.mjs'
+import { computeReconciliation as calculerReconciliation, renderReport, sansProvenanceAdaptee, trousDurs, ecartsTrousDurs, lireStock, STOCK_PATH, PREFIXE_B2, decodeCle, coeursEtrangers } from './reconcile.mjs'
 import { BOOKS, coeurDe, coeursDe } from './_lib.mjs'
-import { parseFiche, registresDeFiches, validerDette, orphelinsDeDette } from './build-implemente.mjs'
+import { parseFiche, registresDeFiches, validerDette, orphelinsDeDette, rendre as rendreImplementation, RAPPORT as RAPPORT_IMPLEMENTATION, buildContext, indexCode } from './build-implemente.mjs'
 import { coeurDeBanc } from './atlasFixture.mjs'
+
+const rapportReel = rendreImplementation(buildContext()).get(RAPPORT_IMPLEMENTATION)
+const computeReconciliation = (options = {}) => calculerReconciliation({ rapportImplementation: rapportReel, ...options })
 
 // Registre de FIXTURE à DEUX cœurs (#1825 lot C) : le régime se juge sur le PRÉDICAT, jamais sur
 // l'identité d'un livre réel — ces sigles n'existent nulle part ailleurs, et leurs dossiers non plus.
@@ -109,7 +112,9 @@ function withFixtures(srcFiles, docFiles, fn, dette = [], coeur = COEUR_REEL) {
   for (const [name, content] of Object.entries(docFiles))
     if (!estCatalogue(name)) writeFileSync(join(rawDir, coeur, name), content, 'utf8')
   const catalogues = () => new Map(Object.entries(docFiles).filter(([name]) => estCatalogue(name)).map(([name, content]) => [`${coeur}/${name}`, content]))
-  try { fn({ racines: srcDir, rawDir, manifestPath, catalogues }) } finally { rmSync(root, { recursive: true, force: true }) }
+  const fiches = Object.entries(docFiles).filter(([name]) => !estCatalogue(name)).map(([name, content]) => ({ doc: `${coeur}/${name}`, content, parsed: parseFiche(`${coeur}/${name}`, content) }))
+  const rapportImplementation = rendreImplementation({ fiches, index: indexCode(srcDir), closure: new Set(), dette: validerDette(dette, registresDeFiches(fiches)) }).get(RAPPORT_IMPLEMENTATION)
+  try { fn({ racines: srcDir, rawDir, manifestPath, catalogues, rapportImplementation }) } finally { rmSync(root, { recursive: true, force: true }) }
 }
 
 /** Les mêmes fixtures, posées sous un cœur du registre de FIXTURE — pour tout cas qui injecte
@@ -255,6 +260,17 @@ test('#1825 chapitre co-décrit par une fiche sous dette ET un doc NON-fiche →
   )
 })
 
+test('rapport injecté obligatoire : son état pilote la réconciliation sans lire de cible au disque', () => {
+  assert.throws(() => calculerReconciliation(), /rapportImplementation obligatoire/)
+  withFixturesDuRegistre({}, { 'fiche.md': FICHE_QA7 }, (opts) => {
+    const avant = calculerReconciliation({ ...opts, registre: REGISTRE })
+    assert.equal(avant.nonImpl.filter((n) => n.topic).length, 1)
+    const rapportImplementation = opts.rapportImplementation.replace('(non implémenté)', 'calculé')
+    const apres = calculerReconciliation({ ...opts, registre: REGISTRE, rapportImplementation })
+    assert.equal(apres.nonImpl.filter((n) => n.topic).length, 0)
+  })
+})
+
 test('Sens B1 : un marqueur « (non implémenté) » dit s’il est sous dette, sans entrée, ou hors champ Implémente', () => {
   withFixturesDuRegistre(
     { 'a.ts': '// rien\n' },
@@ -265,12 +281,12 @@ test('Sens B1 : un marqueur « (non implémenté) » dit s’il est sous dette, 
     (opts) => {
       const data = computeReconciliation({ ...opts, registre: REGISTRE })
       const parDoc = new Map(data.nonImpl.map((n) => [n.doc, n]))
-      assert.equal(parDoc.get(stem('fiche.md')).topic, `${stem('fiche')}#sujet`)
-      assert.equal(parDoc.get(stem('fiche.md')).dette.ticket, '#1825')
+      assert.equal(parDoc.get('implemente.generated.md').topic, `${stem('fiche')}#sujet`)
+      assert.equal(parDoc.get('implemente.generated.md').dette.ticket, '#1825')
       assert.equal(parDoc.get(stem('libre.md')).topic, undefined, 'une prose n’est pas un topic : aucune dette à lui demander')
       const rapport = renderReport(data)
       assert.match(rapport, /1 sous dette déclarée · 0 sans entrée de `src\/data\/raw\.manifest\.json` · 1 hors champ/)
-      assert.match(rapport, new RegExp(`\\*\\*${stem('fiche')}\\.md\\*\\* L7 — dette #1825`))
+      assert.match(rapport, /implemente\.generated\.md\*\* L7 — dette #1825/)
       assert.match(rapport, new RegExp(`\\*\\*${stem('libre')}\\.md\\*\\* L3 — hors champ Implémente \\(prose\\)`))
     },
     [{ id: stem('fiche'), ticket: '#1825' }],

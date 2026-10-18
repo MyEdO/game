@@ -3,7 +3,8 @@ import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { GENERATORS, generateursDeCode } from '../docs/build-all.mjs'
+import { ciblesSurDisque, GENERATORS, generateursDeCode, SOURCES_LUES } from '../docs/build-all.mjs'
+import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, preempterLesDerives } from '../docs/lib/ecrivain-derives.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
@@ -11,7 +12,7 @@ import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, fusionnesEnCours, 
 import { journaliserLeHook } from './journal.mjs'
 import { jouerLesMiroirs } from './miroirs-d-agents.mjs'
 import { attendreLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, ligneDeDemande } from './reconstruction.mjs'
-import { selectionDesGenerateurs, sourcesMesurees } from './selection-des-derives.mjs'
+import { sourcesMesurees } from './selection-des-derives.mjs'
 import { gitDirDe, verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 
@@ -53,17 +54,16 @@ export function lotDuPostMerge(cwd, { squash = false } = {}) {
   return panne ? null : lot
 }
 
-/** Les cibles de CODE de l'arbre `cwd` (`build-all --code --sans-certifier` de l'arbre, hors verrou des gestes
- *  lourds) : REND son code de sortie. */
-const codeDeLArbre = (cwd) => {
-  const vu = spawnSync(process.execPath, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--sans-certifier'], { cwd, stdio: ['ignore', 'inherit', 'inherit'] })
+/** #2475 */
+export const codeDeLArbre = (cwd, lancer = spawnSync) => {
+  const vu = lancer(process.execPath, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--perimes'], { cwd, stdio: ['ignore', 'inherit', 'inherit'] })
   return vu.error ? 1 : vu.status ?? 1
 }
 
 /**
  * La partie SYNCHRONE d'un post-hook : le lot, puis, la passe des dérivés PRÉEMPTÉE (`preempterLesDerives`), les
- * `npm ci` sous le verrou d'outillage et les cibles de CODE si la sélection (`selectionDesGenerateurs`) en
- * contient un générateur sans `npm ci` racine ; enfin la DEMANDE de reconstruction (`demanderLaReconstruction`).
+ * `npm ci` sous le verrou d'outillage et les cibles de CODE dont l'attestation est périmée sans `npm ci`
+ * racine ; enfin la DEMANDE de reconstruction (`demanderLaReconstruction`).
  * REND `{ code, seq }` : `seq` le numéro demandé, `null` sans demande.
  */
 export function reconstruireApresGit({
@@ -91,8 +91,8 @@ export function reconstruireApresGit({
   }
   if (lot === null) annoncer(`[${hook}] plage Git inconnue : npm ci racine et server requis avant génération\n`)
   const installations = ['', 'server/'].filter((prefixe) => lot === null || lot.includes(`${prefixe}package-lock.json`))
-  const selection = generateurs.length ? selectionDesGenerateurs({ lot, mesure, cwd, generateurs }).scripts : []
-  const codeSelectionne = generateursDeCode(generateurs).some((g) => selection.includes(g.script))
+  const selection = generateursDeCode(generateurs)
+  const codeSelectionne = selection.length > 0 && !preuveValide(cwd, { generateurs, selection, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok
   if (installations.length || codeSelectionne) {
     const ecrit = preempterLesDerives(cheminsDeLEcrivain(gitDirDe(cwd)), `docs-rebuild ${hook}`,
       () => ecrireLesCibles({ cwd, hook, lot, installations, codeSelectionne, npm, code, annoncer, etape }))
