@@ -34,17 +34,24 @@ test('#2795 protection borne le collecteur réel et conserve son expiration', (t
   assert.deepEqual(vu.refus, ['[transitoire · retentable] échéance atteinte'])
 })
 
-test('#2795 catégories : chaque cause conserve sa catégorie et apparaît une fois au retrait', (t) => {
+test('#2795 catégories : tirées du code de la cause, jamais de son texte, une fois au retrait', (t) => {
   const b = terrain(t)
   for (const [cause, categorie] of [
-    ['cwd illisible : accès refusé', 'permission'],
-    ['ReadProcessMemory partiel', 'transitoire'],
-    ['création illisible', 'panne'],
-    ['entrée invalide', 'validation'],
+    ['cwd illisible : [win32 5] Accès refusé', 'permission'],
+    ['propriétaire illisible : [EACCES] permission denied', 'permission'],
+    ['commande illisible : [win32 299] Seule une partie d’une requête ReadProcessMemory a été effectuée', 'transitoire'],
+    ['cwd illisible : [instable] Parametres modifies pendant inspection', 'transitoire'],
+    ['identité illisible : [instable] identité modifiée pendant inspection', 'transitoire'],
+    ['proprietaire illisible : [win32 87] Paramètre incorrect', 'panne'],
+    ['cwd illisible : accès refusé (EACCES, EPERM)', 'panne'],
+    ['ancêtre illisible : // Windows may deny ancestor metadata (EPERM, EACCES) — UNKNOWN', 'panne'],
+    ['creation illisible', 'panne'],
     [{ message: 'panne nommée', code: 'EACCES' }, 'permission'],
     [{ message: 'accès refusé', code: 'EACCES', categorie: 'transitoire' }, 'transitoire'],
     [{ message: 'accès refusé', code: 'EINVAL' }, 'validation'],
     [{ message: 'ReadProcessMemory partiel', code: 'EIO' }, 'panne'],
+    [Object.assign(new Error('ancêtre illisible : x — EPERM'), { cause: { code: 'EPERM' } }), 'permission'],
+    [Object.assign(new Error('ancêtre illisible : x — EPERM, EACCES'), { cause: { code: 'UNKNOWN' } }), 'panne'],
   ]) {
     const vu = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 701, nom: 'étranger', cwd: b.racine, commande: 'node', creation: 'a', erreurs: [cause] }] } })
     assert.equal(vu.ok, false)
@@ -76,17 +83,30 @@ test('#2795 cwd illisible : panne indépendante et entrée invalide refusent san
   }
 })
 
-test('#2795 provenance de lecture : échec natif attesté exclu, panne inconnue et identité instable refusées', (t) => {
+test('#2795 exclusion bornée : cwd absent et toutes les causes de lecture en permission, rien d’autre', (t) => {
   const b = terrain(t)
-  const natif = 'proprietaire illisible : Exception Owner : Paramètre incorrect'
-  const vue = (erreurs, erreursLecture) => mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 704, cwd: null, commande: 'node', creation: 'a', erreurs, erreursLecture }] } })
-  assert.equal(vue([natif], [natif]).ok, true)
-  assert.equal(vue([natif], []).ok, false)
-  for (const identite of ['identite modifiee pendant inspection', 'identité illisible : identité instable']) {
-    const vu = vue([identite], [identite])
-    assert.equal(vu.ok, false)
-    assert.match(vu.indeterminees[0], /^\[transitoire · retentable\]/)
+  const refuse = (champ) => champ + ' illisible : [win32 5] Accès refusé'
+  const vue = (erreurs, p = {}) => mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 704, nom: 'élevé', cwd: null, commande: null, creation: 'a', erreurs, ...p }] } })
+  for (const erreurs of [[refuse('cwd'), refuse('commande')], [refuse('proprietaire'), refuse('image'), refuse('cwd'), refuse('commande')], ['cwd illisible : [EACCES] permission denied', 'commande illisible : [EPERM] operation not permitted']]) {
+    const vu = vue(erreurs)
+    assert.equal(vu.ok, true, erreurs.join('; '))
+    assert.match(vu.horsMesure.join(' '), /^\[permission · non retentable\] PID 704 élevé : .*cwd illisible/)
   }
+  for (const [erreurs, categorie] of [
+    [[refuse('commande')], 'panne'],
+    [[refuse('cwd'), refuse('commande'), 'proprietaire illisible : [win32 87] Paramètre incorrect'], 'panne'],
+    [['cwd illisible : [instable] Parametres modifies pendant inspection', refuse('commande')], 'transitoire'],
+    [['cwd illisible : [win32 299] lecture partielle', refuse('commande')], 'transitoire'],
+    [['cwd illisible : accès refusé', refuse('commande')], 'panne'],
+    [[refuse('cwd'), refuse('commande'), Object.assign(new Error('canonisation physique illisible'), { code: 'EACCES' })], 'permission'],
+  ]) {
+    const vu = vue(erreurs)
+    assert.equal(vu.ok, false, erreurs.join('; '))
+    assert.deepEqual(vu.horsMesure, [])
+    assert.ok(vu.indeterminees.some((d) => d.startsWith(prefixeDeRefus(categorie))), vu.indeterminees.join('\n'))
+  }
+  assert.equal(vue([refuse('cwd'), refuse('commande')], { cwd: '' }).ok, false)
+  assert.match(vue([refuse('cwd'), refuse('commande')], { image: join(b.arbre, 'eleve.exe') }).refus.join(' '), /^\[métier · non retentable\] processus liés \(1\) : PID 704 élevé — .* — image /)
 })
 
 test('canonisation refusée de cwd lisible : indéterminée quel que soit le propriétaire', (t) => {
@@ -103,10 +123,28 @@ test('canonisation refusée de cwd lisible : indéterminée quel que soit le pro
       const vue = { utilisateur: 'courant', processus: [{ pid: 777, nom: 'témoin', proprietaire, cwd: alias, commande: 'node' }] }
       const resultat = mesurerProtectionWorktree(b.arbre, { snapshot: vue })
       assert.equal(resultat.ok, false)
-      assert.match(resultat.indeterminees.join(' '), /PID 777 témoin.*canonisation physique illisible.*alias.*EACCES/)
+      assert.match(resultat.indeterminees.join(' | '), /(?:^| \| )\[permission · non retentable\] PID 777 témoin : canonisation physique illisible :[ …]/)
       assert.deepEqual(resultat.horsMesure, [])
     }
   } finally { fs.realpathSync.native = original }
+})
+
+test('#2795 arguments réels qui ne désignent aucun chemin du worktree : ni lien ni indétermination', async (t) => {
+  const b = terrain(t)
+  const ailleurs = mkdtempSync(join(tmpdir(), 'argument-texte-'))
+  t.after(() => rmSync(ailleurs, { recursive: true, force: true }))
+  const enfants = [
+    ['--eval', '// Windows may deny ancestor metadata (EPERM, EACCES).\nconst parties = "a/b".split("/")\nsetInterval(() => {}, 1000)'],
+    ['-e', 'setInterval(() => {}, 1000)', '//serveur-inexistant/partage/x'],
+  ].map((args) => spawn(process.execPath, args, { cwd: ailleurs, stdio: 'ignore' }))
+  try {
+    await new Promise((r) => setTimeout(r, 300))
+    const vu = mesurerProtectionWorktree(b.arbre, { processus: (o) => mesurerProcessusWorktrees({ ...o, pids: enfants.map((e) => e.pid) }) })
+    assert.deepEqual(vu.refus, [])
+    assert.deepEqual(vu.horsMesure, [])
+  } finally {
+    await Promise.all(enfants.map((e) => { const sortie = new Promise((r) => e.once('exit', r)); e.kill(); return sortie }))
+  }
 })
 
 test('status Git réellement refusé : protection indéterminée, fichier authoré conservé', (t) => {
@@ -215,11 +253,13 @@ test('sessions : non terminale, identité vivante, PID recyclé, corruption sans
 test('protection : processus illisible sans preuve exclu ; mesure lisible étrangère sous arbre refuse', (t) => {
   const b = terrain(t)
   const utilisateur = 'courant'
+  const refuse = (champ) => champ + ' illisible : [win32 5] Accès refusé'
   const vue = (p) => mesurerProtectionWorktree(b.arbre, { snapshot: porteeProcessus({ utilisateur, processus: [p] }) })
-  const illisible = vue({ pid: 10, nom: 'illisible', proprietaire: utilisateur, creation: 'a', commande: 'node', cwd: null })
+  const illisible = vue({ pid: 10, nom: 'illisible', proprietaire: utilisateur, creation: 'a', commande: null, cwd: null, erreurs: [refuse('cwd'), refuse('commande')] })
   assert.equal(illisible.ok, true)
   assert.match(illisible.horsMesure.join(' '), /PID 10 illisible.*cwd illisible/)
-  const horsPortee = vue({ pid: 11, nom: 'système', proprietaire: null, creation: null, commande: null, cwd: null })
+  assert.equal(vue({ pid: 10, nom: 'muet', proprietaire: utilisateur, creation: 'a', commande: null, cwd: null }).ok, false)
+  const horsPortee = vue({ pid: 11, nom: 'système', proprietaire: null, creation: 'b', commande: null, cwd: null, erreurs: ['proprietaire', 'image', 'cwd', 'commande'].map(refuse) })
   assert.equal(horsPortee.ok, true)
   assert.match(horsPortee.portee, /hors portée : 1.*système/)
   assert.match(vue({ pid: 12, nom: 'autre compte', proprietaire: 'autre', creation: 'b', commande: 'node', cwd: b.arbre }).refus.join(' '), /PID 12.*cwd/)
@@ -232,7 +272,7 @@ test('protection : un processus se nomme sur UNE ligne bornée, l’indétermina
   const prompt = 'powershell.exe -NoProfile -EncodedCommand ' + 'JAB'.repeat(2000) + '\nReprise du lot\n\n' + 'consigne '.repeat(400)
   const vu = mesurerProtectionWorktree(b.arbre, { snapshot: porteeProcessus({ utilisateur, processus: [
     { pid: 13, nom: 'powershell.exe', proprietaire: utilisateur, creation: 'a', commande: prompt, cwd: b.arbre },
-    { pid: 14, nom: 'cachotier.exe', proprietaire: utilisateur, creation: 'b', commande: 'cachotier', cwd: null },
+    { pid: 14, nom: 'cachotier.exe', proprietaire: utilisateur, creation: 'b', commande: null, cwd: null, erreurs: ['cwd illisible : [win32 5] Accès refusé', 'commande illisible : [win32 5] Accès refusé'] },
   ] }) })
   assert.equal(vu.ok, false)
   assert.match(vu.refus[0], /^\[métier · non retentable\] processus liés \(1\) : PID 13 powershell\.exe — powershell\.exe -NoProfile -EncodedCommand… — cwd, argument /)
@@ -266,7 +306,7 @@ test('protection : un dossier de sessions qui est un FICHIER refuse en le nomman
 test('#2741 système illisible sans preuve : retrait réel accepté et diagnostic nommé', (t) => {
   const b = terrain(t)
   const protection = () => mesurerProtectionWorktree(b.arbre, { snapshot: porteeProcessus({ utilisateur: 'moi', processus: [
-    { pid: 20, nom: 'DefenderSessionHelper.exe', image: join(b.racine, 'systeme.exe'), creation: '2026-10-18T00:00:00Z', commande: 'systeme.exe', cwd: null, erreurs: ['cwd illisible : accès refusé'] },
+    { pid: 20, nom: 'DefenderSessionHelper.exe', image: join(b.racine, 'systeme.exe'), creation: '2026-10-18T00:00:00Z', commande: null, cwd: null, erreurs: ['cwd illisible : [win32 5] Accès refusé', 'commande illisible : [win32 5] Accès refusé'] },
   ] }) })
   const vu = protection()
   assert.equal(vu.ok, true)
@@ -286,9 +326,9 @@ test('#2741 commande du snapshot sans cwd : retrait refusé', (t) => {
 test('#2741 image absolue et ancêtres chronologiques prouvent le lien, basename et PID recyclé exclus', (t) => {
   const b = terrain(t)
   const parent = { pid: 30, ppid: 0, cwd: b.arbre, commande: 'node', creation: '2026-10-18T00:00:00Z' }
-  const enfant = { pid: 31, ppid: 30, nom: 'node', cwd: null, commande: 'node', creation: '2026-10-18T00:00:01Z' }
+  const enfant = { pid: 31, ppid: 30, nom: 'node', cwd: null, commande: 'node', creation: '2026-10-18T00:00:01Z', erreurs: ['cwd illisible : [win32 5] Accès refusé'] }
   const protection = (p, parents = []) => mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [p, ...parents] } })
-  assert.match(protection({ ...enfant, image: join(b.arbre, 'node.exe') }).refus.join(' '), /image .*node.exe/)
+  assert.match(protection({ ...enfant, image: join(b.arbre, 'node.exe') }).refus.join(' '), /^\[métier · non retentable\] processus liés \(1\) : PID 31 node — node — image[ …]/)
   assert.equal(protection({ ...enfant, image: 'node.exe' }).ok, true)
   assert.match(protection(enfant, [parent]).refus.join(' '), /ancêtre PID 30 cwd/)
   const recycle = { ...parent, creation: '2026-10-18T00:00:02Z' }

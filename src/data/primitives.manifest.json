@@ -1759,9 +1759,9 @@
   {
     "id": "processusWorktrees",
     "type": "primitives.manifest",
-    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure/classerFiliation",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/lireCause/toleranceDeMesure/classerFiliation",
     "fichier": "scripts/guards/lib/processusWorktrees.mjs",
-    "concept": "mesure Windows/Linux du résident en octets (RSS Linux, WorkingSet Windows), des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`, code `MESURE_PROCESSUS_EXPIREE`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; filiation classée valide/exclue/indeterminee sur les créations UTC exactes, descendance validée et liens indéterminés explicites ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "concept": "mesure Windows/Linux du résident en octets (RSS Linux, WorkingSet Windows), des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`, code `MESURE_PROCESSUS_EXPIREE`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; filiation classée valide/exclue/indeterminee sur les créations UTC exactes, descendance validée et liens indéterminés explicites ; liens au worktree par les seuls arguments en forme de chemin ; causes de lecture codées `<champ> illisible : [<code>]` lues par `lireCause` ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
     "perimetre": "protection des worktrees contre les processus vivants, inventaire lisible de la portée mesurée, identité du détenteur d'un verrou (PID réutilisé)",
     "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs, verrouGestesLourds.test.mjs"
   },
