@@ -63,7 +63,7 @@ Chacun de ces défauts est une couture entre le rendu des billboards et celui de
 
 Dans le dossier du projet `poc-godot/captures-gltf/` :
 - Godot : `lote-3d-capture-debut.png`, `lote-3d-capture-marche.png`, `lote-3d-capture-attaque.png`, `lote-3d-capture-hors-de-combat.png`, `lote-3d-capture-fin.png`.
-- three.js : `threejs-gltf-debut.png`, et pour comparer, `threejs-billboards-debut.png` avec les billboards d'origine.
+- three.js : `threejs-gltf-debut.png`, `threejs-gltf-hors-de-combat.png`, et pour comparer, `threejs-billboards-debut.png` avec les billboards d'origine.
 
 ## Recette
 
