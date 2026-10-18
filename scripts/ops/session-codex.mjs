@@ -498,7 +498,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
             promesse = serial.then(async () => {
               if (ferme || mort) throw refus('métier', 'Session Codex en fermeture ou morte')
               await pret
-              const resultat = projection.etat === 'inactif' ? await demarrerTour(q.message) : await requete('turn/steer', { threadId: projection.threadId, expectedTurnId: projection.turnId, input: [{ type: 'text', text: q.message }] })
+              const resultat = toursTermines.has(projection.turnId) ? await demarrerTour(q.message) : await requete('turn/steer', { threadId: projection.threadId, expectedTurnId: projection.turnId, input: [{ type: 'text', text: q.message }] })
               return { ok: true, requestId: q.requestId, threadId: projection.threadId, turnId: projection.turnId, resultat }
             })
             serial = promesse.catch(() => {})
