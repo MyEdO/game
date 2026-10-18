@@ -12,6 +12,7 @@ import { spawnBorne } from '../guards/lib/processusBorne.mjs'
 import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees.mjs'
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots } from '../guards/lib/importGraph.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const dossierDe = (t) => {
   const d = mkdtempSync(join(tmpdir(), 'derivation-contrat-'))
@@ -267,7 +268,7 @@ test('extraction producteurs : hit, bootstrap brut et lecture seule', (t) => {
   assert.equal(chaud.version, froid.version)
   assert.deepEqual(lancer('lectureSeule'), chaud)
   assert.equal(readFileSync(fichier, 'utf8'), brut)
-  writeFileSync(fichier, JSON.stringify({ version: ecrit.version, memos: Object.fromEntries(Object.keys(ecrit.memos).map((cle) => [cle, []])) }) + '\n')
+  writeFileSync(fichier, JSON.stringify({ version: ecrit.version, memos: tableTotale(Object.keys(ecrit.memos), () => []) }) + '\n')
   assert.notEqual(lancer('lectureSeule').version, froid.version, 'la fermeture lit l\'extraction mémoïsée')
   writeFileSync(fichier, brut)
   const transitif = join(corpus, 'scripts/guards/lib/tsProgram.mjs')
@@ -278,6 +279,44 @@ test('extraction producteurs : hit, bootstrap brut et lecture seule', (t) => {
   assert.equal(Object.keys(extraction.memos).length, NOMBRE_DE_PRODUCTEURS)
   assert.notEqual(modifie.version, froid.version)
   assert.equal(lancer('ecriture').version, modifie.version)
+})
+
+test('extraction producteurs : l\'entête suit l\'état de la fermeture d\'amorçage, jamais l\'histoire du processus (#2586)', (t) => {
+  const entete = (corpus) => {
+    const dossier = dossierDe(t)
+    versionDesMemosDeDerivation(corpus, { racineDuCode: corpus, dossierDesMemos: dossier, fermeture: (...args) => (fermetureSurDisque(...args), []) })
+    const fichiers = fichiersMemos(dossier, 'extractionProducteurs')
+    assert.equal(fichiers.length, 1)
+    return /extractionProducteurs\.([a-f0-9]{64})\.json$/.exec(fichiers[0])[1]
+  }
+  const poser = (corpus, fichiers) => {
+    for (const [f, texte] of Object.entries(fichiers)) {
+      if (texte === null) { rmSync(join(corpus, f)); continue }
+      mkdirSync(dirname(join(corpus, f)), { recursive: true })
+      writeFileSync(join(corpus, f), texte)
+    }
+  }
+  const lib = 'scripts/guards/lib'
+  const { corpus } = producteursDe(t)
+  const cumul = {}
+  const vus = []
+  for (const [etat, fichiers] of [
+    ['spécificateur sans candidat', { [`${lib}/importGraph.mjs`]: `${PRODUCTEURS[`${lib}/importGraph.mjs`]}import './outil'\n` }],
+    ['module ajouté', { [`${lib}/outil/index.mjs`]: 'export const outil = 1\n' }],
+    ['candidat de résolution apparu', { [`${lib}/outil.mjs`]: 'export const outil = 2\n' }],
+    ['contenu changé', { [`${lib}/autre.mjs`]: 'export const autre = 3\n', [`${lib}/outil.mjs`]: "import './autre.mjs'\nexport const outil = 2\n" }],
+    ['module retiré', { [`${lib}/outil.mjs`]: null }],
+  ]) {
+    poser(corpus, fichiers)
+    Object.assign(cumul, fichiers)
+    const neuf = producteursDe(t).corpus
+    poser(neuf, Object.fromEntries(Object.entries(cumul).filter(([, texte]) => texte !== null)))
+    const courant = entete(corpus)
+    assert.equal(courant, entete(neuf), etat)
+    assert.notEqual(courant, vus.at(-1), etat)
+    vus.push(courant)
+  }
+  assert.equal(vus.at(-1), vus[1], 'module retiré : la fermeture du module ajouté')
 })
 
 test('version producteurs : froid canonique puis hit interprocessus et fermeture relue', async (t) => {

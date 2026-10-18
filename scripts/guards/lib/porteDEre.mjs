@@ -45,10 +45,16 @@ export const ereDuCommit = (depot, sha, tronc) => baseCommune(depot, sha, tronc)
 /** Empreinte d'une fermeture `[chemin, texte][]`. */
 export const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...textes].sort(([a], [b]) => parUnitesDeCode(a, b)))).digest('hex')
 
+/** Les sites de spécificateurs extraits dans ce processus, par extension et contenu du texte analysé : l'extracteur
+ *  qui tourne ne change pas ; la résolution des sites contre le disque se refait à chaque fermeture. */
+const SITES_DU_PROCESSUS = new Map()
+const cleDeSites = (abs, texte) => `${extname(abs)}:${createHash('sha256').update(texte).digest('hex')}`
+
 /**
  * La fermeture d'imports de `module` sur le disque de `racine` : `[chemin, texte][]`, chaque texte tel que
  * `clotureDImports` l'a lu pour l'analyser (`specificateurs.ecrire`) ; `null` pour un membre qui n'est pas un
- * module.
+ * module. Les sites d'un texte déjà extraits dans ce processus ne se ré-analysent pas : `specificateurs.lire`
+ * d'abord, puis le mémo du processus, rendu à `specificateurs.ecrire`.
  * @param {string} module @param {string} [racine] @returns {[string, string | null][]}
  */
 export function fermetureSurDisque(module, racine = RACINE_DU_CODE, { specificateurs } = {}) {
@@ -56,8 +62,19 @@ export function fermetureSurDisque(module, racine = RACINE_DU_CODE, { specificat
   /** @type {Map<string, string>} */
   const lus = new Map()
   const membres = clotureDImports([module], { racine, dynamiques: true, specificateurs: {
-    lire: (abs, texte) => { lus.set(abs, texte); return specificateurs?.lire(abs, texte) },
-    ecrire: (abs, texte, sites) => { lus.set(abs, texte); specificateurs?.ecrire(abs, texte, sites) },
+    lire: (abs, texte) => {
+      lus.set(abs, texte)
+      const memoises = specificateurs?.lire(abs, texte)
+      if (memoises) return memoises
+      const extraits = SITES_DU_PROCESSUS.get(cleDeSites(abs, texte))
+      if (extraits) specificateurs?.ecrire(abs, texte, extraits)
+      return extraits
+    },
+    ecrire: (abs, texte, sites) => {
+      lus.set(abs, texte)
+      SITES_DU_PROCESSUS.set(cleDeSites(abs, texte), sites)
+      specificateurs?.ecrire(abs, texte, sites)
+    },
   } })
   return [...membres].map((rel) => [rel, lus.get(`${base}/${rel}`) ?? null])
 }
