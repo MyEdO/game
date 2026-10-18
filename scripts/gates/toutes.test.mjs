@@ -74,43 +74,42 @@ const lancement = (options, ...essais) => {
     surControle: (controle) => { options.surControle(controle); remettre() } })
 }
 
-test('arrêt sur signal : les verdicts indéterminés gardent le verrou et tous les PID sont traités', async () => {
-  for (const jetee of [false, true]) {
-    const pids = [], lignes = []
-    let liberations = 0
-    const code = await arreterGatesSurSignal({ signal: 'SIGINT', vivants: new Map([['a', { pid: 123, demanderArret() {} }], ['b', { pid: 456, demanderArret() {} }]]),
-      verrousTenus: new Set([{ liberer: () => { liberations++ } }]), journal: (texte) => lignes.push(texte),
-      arreter: ({ pid }) => {
-        pids.push(pid)
-        if (pid === 456) return { etat: 'demande', erreurs: [] }
-        const cause = Object.assign(new Error('inspection impossible'), { code: 'EIO' })
-        if (jetee) throw Object.assign(new Error('refus physique', { cause }), { code: 'EPERM' })
-        return { etat: 'indetermine', erreurs: [{ operation: 'taskkill', pid, code: 'EPERM', message: 'refus physique', cause }] }
-      },
-    })
-    assert.equal(code, 130)
-    assert.deepEqual(pids, [123, 456])
-    assert.equal(liberations, 0)
-    assert.match(lignes.join(''), /PID 123 EPERM — refus physique/)
-    assert.match(lignes.join(''), /EIO — inspection impossible/)
-    assert.match(lignes.join(''), /aucun verrou libéré manuellement/)
+test('arrêt sur signal : chaque gate en cours reçoit la demande avant toute attente, le verdict de chacune est attendu, un arrêt indéterminé est nommé', async () => {
+  for (const etat of ['mort', 'indetermine']) {
+    const demandes = [], lignes = []
+    let terminer, rendu = false
+    const enCours = new Promise((ok) => { terminer = ok })
+    const verdicts = new Map([['a', { arret: { pid: 123, etat: 'mort', erreurs: [] } }]])
+    const attente = arreterGatesSurSignal({ signal: 'SIGINT', journal: (texte) => lignes.push(texte), verdicts, gatesEnCours: new Set([enCours]),
+      vivants: new Map([['a', { pid: 123, demanderArret() { demandes.push(123) } }], ['b', { pid: 456, demanderArret() { demandes.push(456) } }]]) })
+      .then((code) => { rendu = true; return code })
+    assert.deepEqual(demandes, [123, 456])
+    await new Promise((ok) => setImmediate(ok))
+    assert.equal(rendu, false, 'le gestionnaire rend avant le verdict de la gate en cours')
+    verdicts.set('b', { arret: { pid: 456, etat, erreurs: [] } })
+    terminer()
+    assert.equal(await attente, 130)
+    const sortie = lignes.join('')
+    if (etat === 'mort') assert.doesNotMatch(sortie, /arrêt indéterminé/, sortie)
+    else assert.match(sortie, /\[gates\] arrêt indéterminé : b PID 456 — verrou retenu\.\n/, sortie)
   }
 })
 
 
-test('capacité de gate : arrêt indéterminé retient PID et verrou, fin confirmée libère une fois par charge', async (t) => {
+test('capacité de gate : arrêt indéterminé, expiré ou non, retient PID et verrou, fin confirmée libère une fois par charge', async (t) => {
   const { racine } = depotDeGates([
     { nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' },
     { nom: 'suivante', job: 'b', fichier: 'scripts/test/run.mjs', corps: '' },
   ])
   const dossierVerrou = mkdtempSync(join(tmpdir(), 'gates-capacite-'))
   t.after(() => { rmSync(racine, { recursive: true, force: true }); rmSync(dossierVerrou, { recursive: true, force: true }) })
-  for (const mode of ['serie', 'lanes']) for (const indetermine of [false, true]) {
+  for (const mode of ['serie', 'lanes']) for (const forme of [{ etat: 'mort' }, { etat: 'indetermine' }, { etat: 'indetermine', expiree: true }]) {
+    const indetermine = forme.etat === 'indetermine'
     const lignes = []
     const chemin = join(dossierVerrou, 'suite.lock')
     const observations = { lancements: 0, prises: 0, tracesPrises: [], liberations: 0 }
     let code
-    const diagnostic = () => JSON.stringify({ mode, indetermine, code: code ?? null, ...observations, verrouPresent: existsSync(chemin) }) + '\n' + lignes.join('')
+    const diagnostic = () => JSON.stringify({ mode, forme, code: code ?? null, ...observations, verrouPresent: existsSync(chemin) }) + '\n' + lignes.join('')
     try {
       code = await principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs', ...(mode === 'lanes' ? [] : ['--serie'])], journal: (texte) => lignes.push(texte),
         ecritLu: tableTotale(['premiere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
@@ -133,20 +132,26 @@ test('capacité de gate : arrêt indéterminé retient PID et verrou, fin confir
         },
         lancer: (options) => {
           observations.lancements++
-          return lancement(options, { pid: 123, etat: indetermine ? 'indetermine' : 'mort' })
+          return lancement(options, { pid: 123, ...forme })
         },
       })
       assert.equal(code, indetermine ? 1 : 0, diagnostic())
       assert.equal(observations.lancements, indetermine ? 1 : 2, diagnostic())
       assert.equal(observations.prises, indetermine && mode === 'serie' ? 1 : 2, diagnostic())
       for (const trace of observations.tracesPrises) assert.ok(trace.horloges >= 2, diagnostic())
-      assert.deepEqual(observations.tracesPrises.map(trace => trace.sommeils), mode === 'lanes' ? [[], [1]] : observations.tracesPrises.map(() => []), diagnostic())
-      if (mode === 'lanes') assert.equal(observations.tracesPrises[1].annonces[0].tenant.pid, process.pid, diagnostic())
+      // En lanes, la seconde prise attend le verrou de la première au pas de 1 ms, autant de pas que dure la première.
+      const [premiere, suivante] = observations.tracesPrises
+      assert.deepEqual(premiere.sommeils, [], diagnostic())
+      if (mode === 'lanes') {
+        assert.ok(suivante.sommeils.length >= 1 && suivante.sommeils.every((ms) => ms === 1), diagnostic())
+        assert.equal(suivante.annonces[0].tenant.pid, process.pid, diagnostic())
+      } else assert.deepEqual(suivante?.sommeils ?? [], [], diagnostic())
       assert.equal(observations.liberations, indetermine ? 0 : 2, diagnostic())
       assert.equal(existsSync(chemin), indetermine, diagnostic())
       if (indetermine) {
+        assert.match(lignes.join(''), new RegExp(`premiere — ${forme.expiree ? 'EXPIRÉE' : 'ROUGE'} \\(exit 1\\)`), diagnostic())
         assert.match(lignes.join(''), /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/, diagnostic())
-        assert.equal((lignes.join('').match(/attente du geste lourd :/g) ?? []).length, mode === 'lanes' ? 1 : 0, diagnostic())
+        assert.equal((lignes.join('').match(/attente du geste lourd :/g) ?? []).length, mode === 'lanes' ? suivante.annonces.length : 0, diagnostic())
       }
     } finally {
       rmSync(chemin, { force: true })
@@ -282,28 +287,48 @@ test('#1772 — le gestionnaire de signal ne vise plus une gate à l’arrêt co
   assert.deepEqual(r.liberations, ['premiere', 'suivante'], diagnostic)
 })
 
-test('#1772 #2776 — le gestionnaire de signal juge l’arrêt de l’essai RENDU : indéterminé, rejeu compris, il retient le verrou', async (t) => {
+test('#1772 #2776 — le gestionnaire de signal juge l’arrêt de l’essai RENDU : indéterminé, rejeu compris, en vol ou terminé, il retient le verrou sous un seul diagnostic', async (t) => {
   const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
   t.after(() => rmSync(racine, { recursive: true, force: true }))
   const CAS = {
     'rejeu : essai 0 au chargement raté, essai rendu dont le superviseur lève': { essais: (demandes) => [{ pid: 10, status: STATUS_DLL_INIT_FAILED, demandes }, { leve: true, demandes }], pid: undefined, demandes: [] },
     'superviseur qui lève dès le premier essai': { essais: (demandes) => [{ leve: true, demandes }], pid: undefined, demandes: [] },
-    'fin native indéterminée': { essais: (demandes) => [{ pid: 123, etat: 'indetermine', demandes }], pid: 123, demandes: [123] },
+    'fin native indéterminée': { essais: (demandes) => [{ pid: 123, etat: 'indetermine', demandes }], pid: 123, demandes: [] },
+    'fin native indéterminée, signal en vol': { essais: (demandes, declencher) => [{ pid: 123, etat: 'indetermine', demandes, pendant: declencher }], pid: 123, demandes: [123], enVol: true },
   }
   for (const [nom, cas] of Object.entries(CAS)) {
     const demandes = []
     const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'],
-      journal: (texte, declencher) => { if (texte.includes('suivante — REFUS CAPACITE_ARRET_INDETERMINE')) declencher() },
-      lancer: (options) => lancement(options, ...cas.essais(demandes)),
+      journal: (texte, declencher) => { if (!cas.enVol && texte.includes('suivante — REFUS CAPACITE_ARRET_INDETERMINE')) declencher() },
+      lancer: (options, declencher) => lancement(options, ...cas.essais(demandes, declencher)),
     })
-    const diagnostic = nom + '\n' + JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + r.lignes.join('')
+    const sortie = r.lignes.join('')
+    const diagnostic = nom + '\n' + JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + sortie
     assert.equal(r.code, 1, diagnostic)
     assert.equal(r.sortie, 130, diagnostic)
-    assert.match(r.lignes.join(''), new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID ${cas.pid}`), diagnostic)
-    assert.deepEqual([...new Set(demandes)], cas.demandes, diagnostic)
+    assert.match(sortie, new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID ${cas.pid}`), diagnostic)
+    assert.deepEqual(demandes, cas.demandes, diagnostic)
     assert.deepEqual(r.liberations, [], diagnostic)
-    assert.match(r.lignes.join(''), /aucun verrou libéré manuellement/, diagnostic)
+    assert.match(sortie, new RegExp(`\\[gates\\] arrêt indéterminé : premiere PID ${cas.pid} — verrou retenu\\.`), diagnostic)
+    assert.equal(sortie.match(/diagnostic arrêt :/g)?.length, 1, diagnostic)
   }
+})
+
+test('#2776 — le résumé compte les rejeux du RUN : un run sans rejeu en compte 0 après un run qui en compte 1', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const jouer = async (...essais) => {
+    const lignes = []
+    const code = await principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs'], journal: (texte) => lignes.push(texte),
+      ecritLu: { premiere: { ecrit: [], lit: ['src/'] } }, lancer: (options) => lancement(options, ...essais) })
+    const sortie = lignes.join('')
+    assert.equal(code, 0, sortie)
+    return sortie
+  }
+  const avecRejeu = await jouer({ pid: 10, status: STATUS_DLL_INIT_FAILED }, { pid: 11 })
+  assert.match(avecRejeu, /\[gates\] 1 spawn\(s\) rejoué\(s\)/, avecRejeu)
+  const sansRejeu = await jouer({ pid: 12 })
+  assert.match(sansRejeu, /\[gates\] 0 spawn rejoué/, sansRejeu)
 })
 
 test('un résultat ordinaire conserve tous les diagnostics d’arrêt, même expiré', async () => {
@@ -1044,19 +1069,4 @@ test('sans --gates, TOUTES les gates de ci.yml sont à jouer', async () => {
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
-})
-
-test('arrêt concurrent : toutes les demandes précèdent les attentes et le verrou attend les factories en cours', async () => {
-  const demandes = []; let liberations = 0; let finirLancement
-  const controles = [1, 2].map((pid) => ({ pid, demanderArret() { demandes.push(pid) } }))
-  const lancement = new Promise((ok) => { finirLancement = ok })
-  const attente = arreterGatesSurSignal({ signal: 'SIGINT', vivants: new Map(controles.map((c) => [c.pid, c])),
-    verrousTenus: new Set([{ liberer() { liberations++ } }]), journal: () => {}, lancementsEnCours: new Set([lancement]),
-    arreter: async () => { assert.deepEqual(demandes, [1, 2]); return { etat: 'mort', erreurs: [] } },
-  })
-  await Promise.resolve()
-  assert.equal(liberations, 0)
-  finirLancement({ arret: { etat: 'indetermine', erreurs: [] } })
-  assert.equal(await attente, 130)
-  assert.equal(liberations, 0)
 })

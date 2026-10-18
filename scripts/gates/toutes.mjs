@@ -38,7 +38,7 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawnSync } from 'node:child_process'
-import { spawnBorne, tuerArbre, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -781,19 +781,21 @@ const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
 
 const arretNonConfirme = (arret) => arret?.etat !== 'mort'
 
-export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, arreter = tuerArbre, lancementsEnCours = [] }) {
+/** `nom PID pid` de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
+const indetermineesDe = (verdicts) =>
+  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => `${nom} PID ${verdict.arret?.pid}`)
+
+/**
+ * Gestionnaire de SIGINT/SIGTERM : demande l'arrêt au contrôle de chaque gate de `vivants`, attend que chaque gate de
+ * `gatesEnCours` ait posé son verdict, et nomme celles dont l'arrêt reste indéterminé — leur verrou reste retenu
+ * (#1772 #2776). REND 130.
+ */
+export async function arreterGatesSurSignal({ signal, vivants, gatesEnCours, verdicts, journal }) {
   journal(`\n[gates] ${signal} — demande d'arrêt de l'arbre de chaque gate en cours.\n`)
-  const controles = [...vivants.values()]
-  for (const controle of controles) controle.demanderArret()
-  const arrets = controles.map(async (controle) => {
-    try { return await arreter(controle) }
-    catch (cause) { return { etat: 'indetermine', erreurs: [{ operation: 'arret', pid: controle.pid, code: cause.code ?? 'ARRET_INDETERMINE', message: cause.message, cause: cause.cause }] } }
-  })
-  const resultats = await Promise.all([...arrets, ...[...lancementsEnCours].map(async (fin) => (await fin).arret)])
-  let indetermine = false
-  for (const vu of resultats) if (diagnosticArret({ arret: vu }, (ligne) => journal(ligne + '\n')) || arretNonConfirme(vu)) indetermine = true
-  if (!indetermine) for (const tenu of verrousTenus) tenu.liberer()
-  else journal('[gates] arrêt indéterminé — aucun verrou libéré manuellement.\n')
+  for (const controle of vivants.values()) controle.demanderArret()
+  await Promise.allSettled(gatesEnCours)
+  const indeterminees = indetermineesDe(verdicts)
+  if (indeterminees.length) journal(`[gates] arrêt indéterminé : ${indeterminees.join(', ')} — verrou retenu.\n`)
   return 130
 }
 
@@ -901,15 +903,14 @@ export async function principal({
   const aJouerParNom = new Map(aJouer.map((g) => [g.nom, g]))
   const verdicts = new Map()
   const vivants = new Map()
-  const lancementsEnCours = new Set()
-  // #1772 #2586
-  const verrousTenus = new Set()
+  // #1772 #2586 #2776
+  const gatesEnCours = new Set()
   const arretDesAttentes = new AbortController()
   const signalDePrise = signal ? AbortSignal.any([signal, arretDesAttentes.signal]) : arretDesAttentes.signal
   let arretSurSignal
   const arreterSurSignal = (signal) => {
     arretDesAttentes.abort()
-    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => sortir(code))
+    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, gatesEnCours, verdicts, journal }).then((code) => sortir(code))
   }
   const surSigint = () => arreterSurSignal('SIGINT')
   const surSigterm = () => arreterSurSignal('SIGTERM')
@@ -926,11 +927,6 @@ export async function principal({
 
     /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
     const jouerGate = async (gate, coeurs, envEnPlus) => {
-      let terminerLancement
-      let arretDuLancement = { etat: 'mort', erreurs: [] }
-      const finDuLancement = new Promise((ok) => { terminerLancement = ok })
-      lancementsEnCours.add(finDuLancement)
-      try {
       const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
       // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
       // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
@@ -947,26 +943,20 @@ export async function principal({
       const envGate = { ...env, ...envEnPlus }
       if (coeurs && !envGate.WFRP_TEST_COEURS) envGate.WFRP_TEST_COEURS = String(coeurs)
       const [commande, ...args] = gate.commande.split(' ')
-      const r = await lancer({
-        commande,
-        argv: args,
-        fichier,
-        limiteMs: limiteDe(gate.nom),
-        cwd: racine,
-        env: envGate,
-        signal,
-        site: `gate ${gate.nom}`,
-        surControle: (controle) => { arretDuLancement = { etat: 'indetermine', erreurs: [] }; vivants.set(gate.nom, controle) },
-      })
-      if (r.controle && arretNonConfirme(r.arret)) vivants.set(gate.nom, r.controle)
-      else vivants.delete(gate.nom)
-      arretDuLancement = r.arret
-
-      return r
+      try {
+        return await lancer({
+          commande,
+          argv: args,
+          fichier,
+          limiteMs: limiteDe(gate.nom),
+          cwd: racine,
+          env: envGate,
+          signal,
+          site: `gate ${gate.nom}`,
+          surControle: (controle) => vivants.set(gate.nom, controle),
+        })
       } finally {
-        terminerLancement({ arret: arretDuLancement })
-        // #2776
-        if (!arretNonConfirme(arretDuLancement)) lancementsEnCours.delete(finDuLancement)
+        vivants.delete(gate.nom)
       }
     }
 
@@ -981,47 +971,58 @@ export async function principal({
       return statut
     }
 
+    /** Le refus qui interdit de lancer `nom` : capacité retenue par un arrêt indéterminé, ou arrêt sur signal demandé. */
+    const refusDeLancement = (nom) => {
+      const indeterminees = indetermineesDe(verdicts)
+      if (indeterminees.length) return `[gates] ${nom} — REFUS CAPACITE_ARRET_INDETERMINE : ${indeterminees.join(', ')} ; capacité retenue, arrêt non confirmé.\n`
+      return arretSurSignal ? `[gates] ${nom} — REFUS ARRET_SUR_SIGNAL : arrêt demandé, gate non lancée.\n` : null
+    }
+
+    /** Joue la gate `nom` de la prise de son verrou à son verdict ; un arrêt indéterminé retient le verrou. */
+    const jouerUneGate = async (nom) => {
+      const gate = aJouerParNom.get(nom)
+      const refusAvantPrise = refusDeLancement(nom)
+      if (refusAvantPrise) {
+        poser(nom, { ...rougeSansSpawn(gate, refusAvantPrise, 2), debut: horloge() })
+        return
+      }
+      // #2187 #2586
+      const lourde = lanceUnGesteLourd(scripts[scriptDeGate(gate)])
+      const debutAttente = horloge()
+      const verrou = lourde
+        ? await prendre({
+            ...configuration, env, horloge, signal: signalDePrise, commande: 'gates ' + nom, cwd: racine,
+            attente: { ...configuration.attente, annoncer: (tenant) => {
+              journal('[gates] ' + nom + ' — attente du geste lourd : ' + tenantEnUneLigne(tenant) + '\n')
+            } },
+          })
+        : null
+      if (lourde) journal(`[gates] ${nom} — ${((horloge() - debutAttente) / 1000).toFixed(1)} s d'attente du geste lourd (hors chronomètre)\n`)
+      const debutGate = horloge()
+      try {
+        const refusApresPrise = refusDeLancement(nom)
+        const r = refusApresPrise
+          ? rougeSansSpawn(gate, refusApresPrise, 2)
+          : verrou?.etat === 'refus' ? rougeSansSpawn(gate, verrou.message + '\n', CODE_DIFFERE)
+          : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, verrou?.env)
+        poser(nom, { ...r, debut: debutGate })
+      } finally {
+        if (!arretNonConfirme(verdicts.get(nom)?.arret)) verrou?.liberer?.()
+      }
+    }
+
+    // #1772 #2776
     const jouerLane = async (lane) => {
       const debut = horloge()
       for (const nom of lane.gates) {
-        const gate = aJouerParNom.get(nom)
-        const refusDeCapacite = () => {
-          const indeterminees = [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret))
-          return indeterminees.length
-            ? `[gates] ${nom} — REFUS CAPACITE_ARRET_INDETERMINE : ${indeterminees.map(([n, verdict]) => `${n} PID ${verdict.arret?.pid}`).join(', ')} ; capacité retenue, arrêt non confirmé.\n`
-            : null
-        }
-        const refusAvantPrise = refusDeCapacite()
-        if (refusAvantPrise) {
-          poser(nom, { ...rougeSansSpawn(gate, refusAvantPrise, 2), debut: horloge() })
-          continue
-        }
-        // #2187 #2586
-        const lourde = lanceUnGesteLourd(scripts[scriptDeGate(gate)])
-        const debutAttente = horloge()
-        const verrou = lourde
-          ? await prendre({
-              ...configuration, env, horloge, signal: signalDePrise, commande: 'gates ' + nom, cwd: racine,
-              attente: { ...configuration.attente, annoncer: (tenant) => {
-                journal('[gates] ' + nom + ' — attente du geste lourd : ' + tenantEnUneLigne(tenant) + '\n')
-              } },
-            })
-          : null
-        if (verrou?.liberer) verrousTenus.add(verrou)
-        if (lourde) journal(`[gates] ${nom} — ${((horloge() - debutAttente) / 1000).toFixed(1)} s d'attente du geste lourd (hors chronomètre)\n`)
-        const debutGate = horloge()
+        let terminer
+        const enCours = new Promise((ok) => { terminer = ok })
+        gatesEnCours.add(enCours)
         try {
-          const refusApresPrise = refusDeCapacite()
-          const r = refusApresPrise
-            ? rougeSansSpawn(gate, refusApresPrise, 2)
-            : verrou?.etat === 'refus' ? rougeSansSpawn(gate, verrou.message + '\n', CODE_DIFFERE)
-            : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, verrou?.env)
-          poser(nom, { ...r, debut: debutGate })
+          await jouerUneGate(nom)
         } finally {
-          if (!arretNonConfirme(verdicts.get(nom)?.arret)) {
-            verrou?.liberer?.()
-            verrousTenus.delete(verrou)
-          }
+          gatesEnCours.delete(enCours)
+          terminer()
         }
       }
       return { nom: lane.nom, secondes: secondesDepuis(debut) }
