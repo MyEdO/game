@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { z } from 'zod';
 
-import { CodexEdit } from './CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
 import { noeudDuChamp, noeudObjet } from '../../data/schemas/validate';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';

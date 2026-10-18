@@ -62,10 +62,10 @@ const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
  * retirer appauvrirait l'outil sans rien protéger, puisque aucune de ces vues n'est atteignable en
  * jouant.
  *
- * Cette frontière n'est pas posée ici : elle est DÉJÀ celle du dépôt.
- * `editor-quarantine-guard.test.ts` (#495) oppose l'« ATELIER » (`src/ui/editor/**`, vocabulaire
- * technique d'auteur) à la « surface JOUEUR », et range `compendium/CodexEdit.tsx`/`StructFields.tsx`
- * parmi les « surfaces d'atelier assumées ». Même partition, appliquée ici à la réf de livre.
+ * Cette frontière n'est pas posée ici : deux murs de `oxlint.config.mjs` la tiennent (#495, #2724).
+ * `murs/interne` ferme les résumeurs d'atelier de `src/ui/editor/interne/` à `src/ui/editor/` ;
+ * `murs/atelier` réserve `editor/GameOpEditor` et `editor/ConditionEditor` à `src/ui/editor/`,
+ * `src/ui/compendium/` et `src/ui/gallery/`. Même partition, appliquée ici à la réf de livre.
  */
 const AUTHORING_DIRS = ['src/ui/compendium/', 'src/ui/editor/'];
 

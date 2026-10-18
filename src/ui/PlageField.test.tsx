@@ -16,8 +16,8 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { PlageField } from './PlageField';
-import { DispoSaisonniereField } from './compendium/StructFields';
-import { CodexEdit } from './compendium/CodexEdit';
+import { DispoSaisonniereField } from './editor/codex/StructFields';
+import { CodexEdit } from './editor/codex/CodexEdit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

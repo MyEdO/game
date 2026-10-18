@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { inferFields } from './editFields';
-import { dedicatedFieldKeys, validateEntry, editableEntries } from './CodexEdit';
+import { dedicatedFieldKeys, validateEntry, editableEntries } from '../editor/codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
 
 /**

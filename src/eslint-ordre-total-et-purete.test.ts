@@ -106,7 +106,7 @@ describe('pureté de couche — la doctrine vit dans oxlint.config.mjs, mesurée
           expect(
             messages,
             `Bloc de pureté ${amont}→src/${aval} MUET : il ne s’applique à aucun fichier réel de la couche (glob décalé ? dossier renommé ?). Fichier sondé : ${rel}`,
-          ).toContain(`src/${aval} à l’EXÉCUTION`);
+          ).toContain(typesAussi.includes(aval) ? `src/${aval} ni à l’EXÉCUTION ni pour un TYPE` : `src/${aval} à l’EXÉCUTION`);
         }
       }
     });

@@ -6,7 +6,7 @@ export default {
   rules: Object.fromEntries([
     ...['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'purete', 'mod-sans-regle']
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
-    ...['ordre-total-imports', 'possession', 'canal-issue', 'purete-imports']
+    ...['ordre-total-imports', 'possession', 'canal-issue', 'purete-imports', 'atelier']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
     ['interne', interne],
   ]),

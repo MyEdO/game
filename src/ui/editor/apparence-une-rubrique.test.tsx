@@ -10,7 +10,7 @@ import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { ReglagesApparence } from './MonsterPartsFields';
-import { CodexEdit } from '../compendium/CodexEdit';
+import { CodexEdit } from './codex/CodexEdit';
 import { DetailsScreen } from '../creator/CharacterCreator';
 import { newDraft, withSpecies, withCareer, type CreatorDraft } from '../creator/draft';
 import { species as allSpecies, careersForSpecies } from '../../data';

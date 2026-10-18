@@ -161,7 +161,7 @@ test('options sensibles, globals readonly et directives nommées gardent leurs e
   }
 })
 
-test('les dix murs mordent dans leur portée et passent leurs témoins neutres ou exemptés', () => {
+test('les murs mordent dans leur portée et passent leurs témoins neutres ou exemptés', () => {
   const cas = [
     ['src/ui/parite-marques.ts','export const a=x as PlayerText;','murs/marques',1],
     ['src/ui/parite-neutre.ts','export const a=x as Combatant;','murs/marques',0],
@@ -189,6 +189,16 @@ test('les dix murs mordent dans leur portée et passent leurs témoins neutres o
     ['src/state/parite-gabarit-rendu.ts',"import(`../gameIso/x`);",'murs/purete',1],
     ['src/state/parite-require-rendu.ts',"require('../gameIso/x');",'murs/purete',1],
     ['src/state/parite-voisin-rendu.ts',"import('../gameIsoX/x');",'murs/purete',0],
+    ['src/engine/parite-require-gabarit.ts',"require(`../ui/x`);",'murs/purete',1],
+    ['src/data/parite-create-require.ts',"createRequire(import.meta.url)('../state/x');",'murs/purete',1],
+    ['src/data/parite-module-require.ts',"module.require('../state/x');",'murs/purete',1],
+    ['src/engine/parite-module-require-gabarit.ts',"module.require(`../ui/x`);",'murs/purete',1],
+    ['src/ui/hud/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
+    ['src/ui/parite-atelier-alias.tsx',"import {ConditionEditor} from '@/ui/editor/ConditionEditor';ConditionEditor();",'murs/atelier',1],
+    ['src/ui/compendium/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
+    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../editor/refsDOp';OP_LABEL.x;",'murs/atelier',1],
+    ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
+    ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
