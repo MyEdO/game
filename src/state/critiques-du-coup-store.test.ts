@@ -4,7 +4,7 @@ import { battleRng, seedBattleRng } from './battleRng';
 import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
+import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
 import { bus, EVT } from './bus';
@@ -56,7 +56,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
   }
   const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
-  const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
+  const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0, cause: causeDuCoupCritique(res), critLocation: res.critLocation, ligne: issueAuJet(cible, coupAApplique(res, grapple, cible), arme, H).ligne };
   applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, { ...(sousAttaque ? { sousAttaque: true } : {}), ...(grapple ? { suite: { grapple: true } } : {}) });
   const kinds: string[] = [];
   const origines: (string | undefined)[] = [];
@@ -740,7 +740,7 @@ describe('la ligne de touche du journal dit le coup APPLIQUÉ (LDB 18 l.53, l.55
       return { ...r, finale: emis[0], ligne: ligne ?? '' };
     } finally { bus.off(EVT.ANIM_ATTACK, h as never); }
   }
-  const lieu = (c: Combatant, res: AttackResult) => locationLabel(res.location!, c.bodyShape);
+  const lieu = (c: Combatant, res: AttackResult) => tr('touche.nouvelleLocalisation', { lieu: locationLabel(res.location!, c.bodyShape) });
 
   it("'ldb' : Dévier le Coup Critique — Localisation relancée, Blessures recomptées à PA−1, sans marque Critique", () => {
     const r = joue({ pa: 2, current: 20, tenu: true, choisir: () => 'devier' });
@@ -814,7 +814,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     expect(journal()).toContain(tr('cf.deflect', { name: r.apres.label }));
     expect(r.finale.critiques).toBe(0);
     expect(r.lignes).toHaveLength(1);
-    expect(r.lignes[0]).toContain(`(${locationLabel(r.finale.location!, r.apres.bodyShape)})`);
+    expect(r.lignes[0]).toContain(`(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(r.finale.location!, r.apres.bodyShape) })})`);
     expect(r.lignes[0]).toContain(`= ${20 - r.apres.wounds.current} Blessures.`);
     expect(r.lignes[0]).not.toContain('CRITIQUE');
   });
@@ -904,5 +904,52 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     const texte = journal().join('\n');
     expect(texte.split(tr('cf.strayMelee', { name: voisin.label })).length - 1).toBe(1);
     expect(texte.split(`${tireur.label} touche ${voisin.label}`).length - 1).toBe(1);
+  });
+});
+
+describe('la ligne de touche qualifie la Localisation relancée, au jet comme au journal (LDB 18 l.53, l.55 ; AA 07 l.25, l.32)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+
+  const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as Weapon;
+  const relancee = (c: Combatant, lieu: Parameters<typeof locationLabel>[0]) => `(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(lieu, c.bodyShape) })})`;
+  const ligneDuJournal = () => journal().find((l) => l.startsWith('H touche')) ?? '';
+
+  const armes = [
+    { cause: 'double', jeu: 'ldb', o: { roll: 44, current: 20 } },
+    { cause: 'empaleuse', jeu: 'ldb', o: { roll: 30, double: false, current: 20, arme: rapiere } },
+    { cause: null, jeu: 'aa', o: { roll: 21, double: false, current: 0, chanceux: true } },
+  ] as const;
+  for (const { cause, jeu, o } of armes) it(`arme, ${cause ?? 'passage à 0'} en '${jeu}' : aperçu et journal disent la nouvelle Localisation`, () => {
+    if (jeu === 'aa') setRule('combat-aa-blessures', 'aa');
+    const r = coup(o);
+    expect(r.auJet.cause).toBe(cause);
+    expect(r.auJet.critLocation, 'la Localisation est relancée à la naissance du coup').toBeDefined();
+    expect(r.auJet.ligne, 'aperçu').toContain(relancee(r.cible, r.auJet.critLocation!));
+    expect(ligneDuJournal(), 'journal').toContain(relancee(r.cible, r.auJet.critLocation!));
+  });
+
+  it("Projectile, Incantation critique : le journal dit la nouvelle Localisation (LDB 46 l.30)", () => {
+    const { mage, cible } = carreauEnCombat();
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+    cible.important = true;
+    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    const sort = findSpell('Carreau')!;
+    const finales: MissileResult[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    try {
+      applyCast(useGame.getState, useGame.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, 'critique');
+      draineCascade(useGame.getState, 200, () => 50);
+    } finally { lache(); }
+    const ligne = journal().find((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`)) ?? '';
+    expect(ligne).toContain(relancee(cible, finales[0].location!));
+  });
+
+  it('contre-témoin, Empoignade sur un double : la Localisation née relancée ne qualifie aucune ligne (LDB 14 l.159)', () => {
+    const r = coup({ roll: 44, current: 20, grapple: true });
+    expect(r.auJet.critLocation, 'le coup naît avec sa Localisation relancée').toBeDefined();
+    const touche = `(${locationLabel('corps', r.cible.bodyShape)})`;
+    expect(r.auJet.ligne, 'aperçu').toContain(touche);
+    expect(ligneDuJournal(), 'journal').toContain(touche);
   });
 });

@@ -2769,7 +2769,7 @@ function appliquerLaTouche(
   const { relance, blessures } = compte;
   if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
-    if (relance) { res.critLocation = lieu; res.location = lieu; }
+    if (relance) { res.location = lieu; res.localisationRelancee = true; }
     res.woundsLost = blessures;
     const { lancerDuTableau, infligees } = encaisserLeCoup({
       get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon,
@@ -5977,7 +5977,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees }), { ...mres, woundsLost: compte.compte.blessures }, infligees);
+  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees, ...(compte.compte.relance ? { localisationRelancee: true as const } : {}) }), { ...mres, woundsLost: compte.compte.blessures }, infligees);
 }
 
 /** La Localisation relancée d'une touche de Projectile sur `cible`, décidée à sa naissance par
