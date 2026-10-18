@@ -510,7 +510,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
     const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
     setBattle([heros, demon]);
-    const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
     useGame.getState().attackConfirm();
     sauvegardeEnCours(demon);
@@ -530,7 +530,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: { current: 2, max: 30 } } as never);
     const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
     setBattle([heros, demon, voisin]);
-    const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
     useGame.getState().attackConfirm();
     expect(etapeCourante()?.kind).toBe('sauvegarde');
@@ -549,7 +549,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 }, ...cibleOver } as never);
     const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
     setBattle([heros, cible, voisin]);
-    const premiere = { ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    const premiere = {
+      ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 },
+      ...(critique || current === 0 ? { critLocation: 'corps' } : {}), // LDB 18 l.53, l.55 ; AA 07 l.25
+    } as AttackResult;
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
     useGame.getState().attackConfirm();
     const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');

@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
-import { garanti } from '../../state/combatants';
+import { garanti } from '../../lib/garanti';
 import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE, parryWeaponOf } from '../../state/rollFlowSpecs';
 import { defenseDodgeMods, defenseGagneeEnMelee } from '../../state/combatFlow';
 import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, DEFENSE_LABEL, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';

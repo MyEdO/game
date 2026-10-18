@@ -196,6 +196,8 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
+                            `garanti.ts` : une valeur que son producteur garantit, absente, lève un
+                            défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection

@@ -82,6 +82,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
   const res = {
     hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 5, woundsLost: 3,
     critical: susp === 'deviation', advantageTo: null, defenderDefeated: false, log: 'touche.',
+    ...(susp === 'deviation' ? { critLocation: 'corps' } : {}), // LDB 18 l.53
     attackerDetail: susp === 'casseAttaquant' ? { roll: 33, success: false, sl: -2 } : { roll: 30, success: true, sl: 1 },
     defenderDetail: { roll: doubleRate ? 44 : 57, success: false, sl: -3, mode: 'parade' },
     parryWeapon: parade,

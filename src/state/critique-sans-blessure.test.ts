@@ -41,9 +41,9 @@ function bordeeSur(cible: Combatant, graine: number) {
   const ship = firingShip();
   useGame.setState({ battle: { combatants: [ship, gunnerPJ(), cible], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
     party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingCascade: null, suspendedCascades: [], scene: mer() as never });
-  const tirs = resolveVolley(ship, ship.postes!, cible, 1, true, [gunnerPJ()], fixe(44));
-  jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: tirs.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res })) });
-  return { res: tirs[0].res, apres: useGame.getState().battle!.combatants.find((c) => c.id === 'target')! };
+  const tirs = resolveVolley(ship, ship.postes!, 1, true, [gunnerPJ()], fixe(44));
+  jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: tirs.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
+  return { apres: useGame.getState().battle!.combatants.find((c) => c.id === 'target')! };
 }
 
 describe('Critique d’une coque, à 0 Blessure comme blindée', () => {
@@ -51,16 +51,14 @@ describe('Critique d’une coque, à 0 Blessure comme blindée', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('RICOCHE : double réussi sur une coque BE 20, 0 Blessure → le Critique de navire est subi (MDG 13 l.656)', () => {
-    const { res, apres } = bordeeSur(coque(200), 7);
-    expect(res).toMatchObject({ hit: true, critical: true, woundsLost: 0 });
+    const { apres } = bordeeSur(coque(200), 7);
     expect(apres.wounds.current).toBe(90);
     expect(apres.criticalWounds).toBe(1);
   });
 
   it('coque blindée : le Blindage n’est jamais sacrifié et le Critique est subi, sur chaque graine (MDG 12 l.232)', () => {
     for (let graine = 1; graine <= 12; graine++) {
-      const { res, apres } = bordeeSur(coque(40, 2), graine);
-      expect(res.critical, `graine ${graine}`).toBe(true);
+      const { apres } = bordeeSur(coque(40, 2), graine);
       expect(apres.armour?.corps, `graine ${graine} : Blindage sacrifié`).toBe(2);
       expect(apres.criticalWounds, `graine ${graine} : Critique perdu`).toBe(1);
     }

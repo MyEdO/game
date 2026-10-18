@@ -52,7 +52,8 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea } from './seaVoyageFlow';
-import { actorIn, garanti } from './combatants';
+import { actorIn } from './combatants';
+import { garanti } from '../lib/garanti';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {

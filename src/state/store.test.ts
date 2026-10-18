@@ -273,7 +273,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
-    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
+    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
     useGame.getState().attackConfirm();
     const seq = useGame.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');

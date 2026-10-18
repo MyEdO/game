@@ -13,7 +13,7 @@
 import type { Effect, Scene } from './scene';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { normalizeScene } from './scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';

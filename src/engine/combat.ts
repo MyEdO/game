@@ -31,6 +31,7 @@ import { groupMatch } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackMod, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
+import { garanti } from '../lib/garanti';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF } from './ruleRefs';
 import { spellEffectOps } from './flowCore';
@@ -1645,7 +1646,7 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
   const relance = relanceLaLocalisation(cible, coup);
-  const lieu: HitLocation = relance ? res.critLocation! : (res.location ?? 'corps');
+  const lieu: HitLocation = relance ? garanti(res.critLocation, cible.id, 'Localisation relancée du coup (applyHit, LDB 18 l.53)') : (res.location ?? 'corps');
   const devie = apresDeviations(cible, lieu, n);
   let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
   if (relance) {

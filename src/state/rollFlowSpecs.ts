@@ -29,7 +29,8 @@ import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, garanti, inBattleId } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import {
   resolveAttack, attackWeaponOf, firedWeapon, bestDefenseMode, effectiveSpellOf,
   disengageOutcome, castContextMods,
