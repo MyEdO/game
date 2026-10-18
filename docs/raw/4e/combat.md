@@ -5967,7 +5967,7 @@ Les Dégâts se réparent **définitivement** sur un Test de **Métier (Construc
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 12` (l.56-64, l.221, l.232-236) → `CollisionShip`, `cargoTone`, `doc`, `peu-maniable`, `resolveShipManeuver`, `renforce`, `resolveCollision`, `construireScene`, `OverloadPalier`, `robuste`, +44 — `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/naval-traits.ts`, `src/data/sea-cargo.json`, `src/data/ship-construction.json`, +19 fichiers
-- `MDG 13` (l.464, l.569-571, l.575-584, l.605-607, l.612-616, l.618-637, l.641-651) → `sea-perils`, `woundsFromHit`, `iceberg`, `peutEtreEmpoigne`, `meleeVsHullBE`, `isArtilleryWeapon`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, +49 — `src/data/etats.json`, `src/data/regles.json`, `src/data/river-criticals.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/sea-navigation.json`, +26 fichiers
+- `MDG 13` (l.464, l.569-571, l.575-584, l.605-607, l.612-616, l.618-637, l.641-651) → `sea-perils`, `woundsFromHit`, `iceberg`, `peutEtreEmpoigne`, `meleeVsHullBE`, `isArtilleryWeapon`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, +50 — `src/data/etats.json`, `src/data/regles.json`, `src/data/river-criticals.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/sea-navigation.json`, +26 fichiers
 
 ## MDG : Coups Critiques sur un navire (Voie d'eau, Éclats, incendies)
 
@@ -6053,7 +6053,7 @@ Chaque table donne des **Blessures (T = effet temporaire), un effet et une Répa
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 12` (l.313) → `moteur-broute`, `fuite-de-vapeur`, `nid-de-pie`, `MilieuDeNavigation`, `perte-de-pression`, `STEAM_SKILL`, `feu-eteint`, `propulsionDuNavire`, `rupture-du-reservoir`, `explosion`, +9 — `src/data/flow-stakes.json`, `src/data/naval-traits.json`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/defs/steam-breakdown.ts`, `src/data/ship-stations.json`, `src/data/steam-breakdown.json`, +4 fichiers
-- `MDG 13` (l.588-592, l.596-601, l.656, l.660, l.664, l.668, l.672-676, l.680-688, l.690-692, l.696-702, l.705-718, l.721-744, l.747-756, l.758-766) → `pont`, `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `greement`, `woundsFromHit`, `stationAsPoste`, `avirons`, `isArtilleryWeapon`, `ShipCritEntry`, +56 — `src/data/crew-roles.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/river-criticals.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, +31 fichiers
+- `MDG 13` (l.588-592, l.596-601, l.656, l.660, l.664, l.668, l.672-676, l.680-688, l.690-692, l.696-702, l.705-718, l.721-744, l.747-756, l.758-766) → `pont`, `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `greement`, `woundsFromHit`, `stationAsPoste`, `avirons`, `isArtilleryWeapon`, `ShipCritEntry`, +57 — `src/data/crew-roles.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/river-criticals.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, +31 fichiers
 
 ## MDG : Collisions, Indice de Collision et béliers
 
@@ -6121,7 +6121,7 @@ Pour résoudre les Dégâts d'un choc contre un péril, le RAW donne des IC type
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 12` (l.221) → `CollisionShip`, `doc`, `peu-maniable`, `renforce`, `resolveCollision`, `robuste`, `solide`, `ancre`, `belierRam`, `belier`, +13 — `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/schemas/defs/naval-traits.ts`, `src/data/ship-construction.json`, `src/engine/collision.ts`, `src/engine/navalTraits.ts`, +2 fichiers
-- `MDG 13` (l.427-438, l.442-446, l.448-462, l.464, l.479, l.485, l.497-499, l.526, l.533-537, l.560) → `sea-perils`, `collisionIndex`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `perilManagement` ⚠sans-appelant, +45 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, +9 fichiers
+- `MDG 13` (l.427-438, l.442-446, l.448-462, l.464, l.479, l.485, l.497-499, l.526, l.533-537, l.560) → `sea-perils`, `collisionIndex`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `perilManagement` ⚠sans-appelant, +46 — `src/data/etats.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, +10 fichiers
 
 ## MDG : Artillerie navale — pièces, portées, recharge et munitions
 
