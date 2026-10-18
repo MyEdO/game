@@ -593,6 +593,19 @@ test('borne transportée : suivi se réarme au raccord IPC puis reçoit la trans
     assert.equal(appels, avant + 1)
   }
 })
+for (const etape of ['version', 'schéma']) {
+  test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
+    const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
+    assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
+      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      return { status: null, error: erreur }
+    } }), (e) => {
+      assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
+      assert.equal(e.native, erreur.message)
+      return true
+    })
+  })
+}
 test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
   assert.equal(VERSION_PROTOCOLE_CODEX, '0.163.0')
   assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)

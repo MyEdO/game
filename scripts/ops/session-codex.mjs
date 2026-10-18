@@ -81,12 +81,12 @@ export function verifierProtocoleCodex({ executable, executer = spawnSync }) {
   let scratch
   try {
     const version = executer(executable, ['--version'], { encoding: 'utf8', timeout: 15_000, windowsHide: true })
-    if (version.error || version.status !== 0) throw refus('panne', 'Version Codex invérifiable', version.error?.message || version.stderr)
+    if (version.error || version.status !== 0) throw refus(version.error?.code === 'ETIMEDOUT' ? 'transitoire' : 'panne', 'Version Codex invérifiable', version.error?.message || version.stderr)
     const mesure = /^codex-cli (\d+\.\d+\.\d+)\s*$/.exec(version.stdout)?.[1]
     if (!mesure || mesure.split('.').map(Number).some((v, i, a) => a.slice(0, i).every((n, j) => n === Number(VERSION_PROTOCOLE_CODEX.split('.')[j])) && v < Number(VERSION_PROTOCOLE_CODEX.split('.')[i]))) throw refus('validation', `Protocole Codex non audité : ${version.stdout.trim()}`)
     scratch = mkdtempSync(join(tmpdir(), 'wfrp-codex-protocole-'))
     const genere = executer(executable, ['app-server', 'generate-json-schema', '--out', scratch], { encoding: 'utf8', timeout: 30_000, windowsHide: true })
-    if (genere.error || genere.status !== 0) throw refus('panne', 'Schéma Codex invérifiable', genere.error?.message || genere.stderr)
+    if (genere.error || genere.status !== 0) throw refus(genere.error?.code === 'ETIMEDOUT' ? 'transitoire' : 'panne', 'Schéma Codex invérifiable', genere.error?.message || genere.stderr)
     for (const [nom, attendu] of Object.entries(EMPREINTES)) {
       const document = JSON.parse(readFileSync(join(scratch, `${nom}.json`), 'utf8'))
       const mesuree = empreinte(JSON.stringify(tableTotale(CHAMPS[nom], (p) => forme(document, p.split('.')))))
