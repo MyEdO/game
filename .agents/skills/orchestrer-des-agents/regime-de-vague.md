@@ -17,9 +17,6 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
 - **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
   que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille`.
   `scripts/ops/session.mjs:19`
-- **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
-  fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
-  critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`calibrage.md`).
 - **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
   (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
 - **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out).

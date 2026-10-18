@@ -17,11 +17,11 @@ l'annexe au moment de son déclencheur.
 
 | Déclencheur | Annexe |
 |---|---|
-| Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond | `.agents/skills/orchestrer-des-agents/publication.md` |
-| Étape 8 : fermer un ticket, annoncer une vague | `.agents/skills/orchestrer-des-agents/fermeture.md` |
-| Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` | `.agents/skills/orchestrer-des-agents/calibrage.md` |
-| Agents rendus, prochain lot, sessions, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
-| Question, `AskUserQuestion`, réponse ou retour de l'utilisateur | `.agents/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
+| Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.agents/skills/orchestrer-des-agents/publication.md` |
+| Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.agents/skills/orchestrer-des-agents/fermeture.md` |
+| Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.agents/skills/orchestrer-des-agents/calibrage.md` |
+| Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, sessions, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
+| Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.agents/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
 
 ## Suivi
 
@@ -127,6 +127,9 @@ sur un grand diff dilue l'attention.
 - **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765).
+- **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
+  fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
+  critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`.agents/skills/orchestrer-des-agents/calibrage.md`).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"`, à défaut committer au retour. **Les recetteurs sont SÉQUENTIELS** : jamais deux en vol (même serveur dev, même
@@ -167,3 +170,4 @@ test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
   en lentilles : charte/primitives, hiérarchie-densité, cohérence inter-écrans, « prototype ou
   produit ? », défauts concrets), lisibilité si du style a bougé. Sur un sous-système, audit adversarial :
   un raccourci qui « borne le reste » est un défaut, pas un choix.
+- Au retour de chaque agent, vérifier qu'il ne laisse aucun processus.

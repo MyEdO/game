@@ -51,11 +51,11 @@ test('sortieSousAgent : règles communes au type à shell, mémoire en conteneur
 
 test('les règles communes du dépôt existent et ne sont recopiées dans aucune fiche d’agent', () => {
   const racine = fileURLToPath(new URL('../../', import.meta.url))
-  const tetes = [...readFileSync(join(racine, REGLES_COMMUNES), 'utf8').matchAll(/^- \*\*([^*]+)\*\*/gm)].map(([, tete]) => tete.replace(/[.:]$/, ''))
+  const tetes = [...readFileSync(join(racine, REGLES_COMMUNES), 'utf8').matchAll(/^- \*\*([^*]+)\*\*/gm)].map(([, tete]) => tete.replace(/[.:]$/, '').toLowerCase())
   assert.ok(tetes.length > 0, 'chaque règle commune ouvre sur sa tête en gras')
   const dossier = join(racine, '.claude', 'agents')
   for (const f of readdirSync(dossier).filter((n) => n.endsWith('.md'))) {
-    const texte = readFileSync(join(dossier, f), 'utf8')
+    const texte = readFileSync(join(dossier, f), 'utf8').toLowerCase()
     for (const tete of tetes) assert.ok(!texte.includes(tete), `${f} recopie « ${tete} »`)
   }
 })

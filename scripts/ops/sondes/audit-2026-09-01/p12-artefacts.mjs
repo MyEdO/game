@@ -3,12 +3,12 @@
 
 import fs from 'fs';
 import path from 'path';
-import { RACINE } from './_socle.mjs';
+import { RACINE, skillOrchestration } from './_socle.mjs';
 
 const root=RACINE;
 const memdir=path.join(root,'.claude/memory');
 const corpus=fs.readdirSync(memdir).filter(f=>f.endsWith('.md')).map(f=>({f,t:fs.readFileSync(path.join(memdir,f),'utf8')}));
-const t=fs.readFileSync(path.join(root,'.claude/skills/orchestrer-des-agents/SKILL.md'),'utf8');
+const t=skillOrchestration();
 const a=t.indexOf('## Rationalisations'),b=t.indexOf('## Red flags');
 const rows=t.slice(a,b).split(/\r?\n/).filter(l=>/^\|/.test(l)).slice(2);
 const stop=new Set(['dans','pour','avec','plus','sans','tout','tous','cette','leur','elle','mais','donc','alors','quand','celui','autre','meme','même','fait','fois','jamais','toute','entre','apres','après','avant','chaque','encore','seul','seule','deja','déjà','pas','que','qui','une','des','les','est','par','sur','aux','ils','son','ses','peut','fera','laffaire','trouve','trouvée']);

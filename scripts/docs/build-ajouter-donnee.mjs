@@ -222,8 +222,8 @@ grep -rniE '<id-candidat>|<label>|<concept>' ${DATA}/*.json
 
 Le concept vit peut-être **déjà** dans un autre sous-système (#148 : le Bélier était dans 6 fichiers).
 S'il existe → **ne duplique pas** : étends-le là où il vit, ou re-scope la tâche. Carte et pièges
-d'homonymes : \`docs/donnees.md\`. La règle \`${REGLE}\` porte ce check à chaque lecture ou
-écriture d'un \`${DATA}/*.json\` (elle atteint aussi les sous-agents, où les skills ne se déclenchent pas).
+d'homonymes : \`docs/donnees.md\`. La règle \`${REGLE}\` porte ce check dès la lecture ou
+l'écriture d'un \`${DATA}/*.json\`, sous-agents compris.
 
 ## 2. Choisir le fichier — et sa FAMILLE
 

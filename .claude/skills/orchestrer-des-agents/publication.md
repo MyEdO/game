@@ -28,5 +28,4 @@ Le verdict d'une suite en fond se LIT puis se DÉCIDE, jamais `tail … && git p
 --attendre` (`Monitor`), `--echecs <run>` pour relire une course, jamais `gh run` ni `sleep` ; un rouge se
 rejoue par `npm run gates -- --gates <noms>`. Un train `--detache` se suit par la commande `veille=`
 qu'il imprime (`Monitor`, ré-armée par `--depuis <dernier #seq>`), jamais par un filtre de son log.
-Migrations : le job `migrations` de `ci.yml` les joue sur la branche, aucun rejeu local. Au retour de
-chaque agent, vérifier qu'il ne laisse aucun processus.
+Migrations : le job `migrations` de `ci.yml` les joue sur la branche, aucun rejeu local.
