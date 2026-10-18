@@ -189,6 +189,7 @@ export async function publierDepuisSnapshot({
       if (reussi(retire)) {
         journal.publication.nettoyee = true
         ecrireJsonAtomique(chemins.json, journal)
+        ecrire(`[publier] snapshot retiré : ${p.snapshot}\n`)
       } else ecrire(`[publier] snapshot conservé : ${refusDeGit(retire)}\n`)
     }
     return execute.code
