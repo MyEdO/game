@@ -1,4 +1,5 @@
-## Modes de mesure du prototype #2793, lus dans `location.search` : `?mesure=pont`, `?sonde=exception`.
+## Modes de mesure du prototype #2793, lus dans `location.search` : `?mesure=pont`, `?sonde=exception`,
+## `?sonde=erreur-gdscript`.
 extends Node
 
 const N_APPELS := 100
@@ -17,8 +18,18 @@ func lancer(vue: Dictionary) -> void:
 		var r: Variant = Pont.sonder_exception_nue()
 		print("[sonde-exception] recu=", type_string(typeof(r)), " valeur=", str(r))
 		Pont.relever_erreurs_globales("sondeExceptionNue")
+	if _parametre("sonde") == "erreur-gdscript":
+		_sonder_erreur_gdscript()
 	if _parametre("mesure") == "pont":
 		_mesurer_pont(vue)
+
+
+## Erreur de script à l'exécution (appel sur `null`) : ce que la console du navigateur en reçoit.
+func _sonder_erreur_gdscript() -> void:
+	var vide: Object = null
+	print("[sonde-erreur-gdscript] avant l'appel sur null")
+	vide.get_instance_id()
+	print("[sonde-erreur-gdscript] après l'appel sur null")
 
 
 func _parametre(cle: String) -> String:

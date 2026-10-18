@@ -67,3 +67,19 @@ type Resultat = {
 ```
 
 `attaquer` et `simulerAttaque` encaissent le coup par la chaîne des Blessures critiques du jeu (`src/state/combatFlow.ts:2721-2879`) : Blessures du coup, Mort subite, puis chaque Blessure critique jusqu'à la première mortelle. Les lignes de l'encaissement suivent `journal` dans le journal de la partie.
+
+## Natures produites côté Godot (`projet/scripts/pont.gd`)
+
+Le pont TypeScript ne produit que les quatre natures du type `Erreur`. `pont.gd` en ajoute deux, de même forme (`nature`, `action`, `message`, `partiels`), qu'il émet par le signal `erreur_pont` après un `push_error("[pont] …")` (`pont.gd:106-108`) ; `combat.gd:40` les branche sur le panneau « Erreur du pont » (`interface.gd:99`). Une erreur `refus` reçue du JS part par le signal `refus` (`pont.gd:95-96`) ; toute autre nature JS est relayée telle quelle par `erreur_pont` (`pont.gd:97-98`).
+
+| Nature | Construite à | Déclencheur | `action` | `partiels` |
+|---|---|---|---|---|
+| `transport` | `pont.gd:102-103` | `globalThis.wfrpPont` toujours absent `DELAI_ATTENTE_MS` (10 s) après le lancement : `wfrp-pont.js` non chargé (`pont.gd:21-28`) | `{ methode: 'get_interface', entree: 'wfrpPont' }` | `null` |
+| `transport` | `pont.gd:102-103` | réponse `null` d'une méthode (`pont.gd:76-77`) | méthode et entrée de l'appel | `null` |
+| `transport` | `pont.gd:102-103` | réponse d'un autre type qu'une chaîne (`pont.gd:79-80`) | idem | la réponse convertie en texte |
+| `transport` | `pont.gd:102-103` | chaîne non décodable en objet JSON (`pont.gd:82-84`) | idem | la chaîne reçue |
+| `transport` | `pont.gd:102-103` | objet décodé sans champ `ok` (`pont.gd:87-88`) | idem | l'objet décodé |
+| `transport` | `pont.gd:102-103` | `ok: false` sans objet `erreur` (`pont.gd:93-94`) | idem | l'objet décodé |
+| `globale` | `pont.gd:54-61` | une entrée de `erreursGlobales()` (`window` `error` ou `unhandledrejection`, `pont.ts:329-336`) relevée après chaque `appeler` (`pont.gd:47-49`) et après les sondes de `mesures.gd:20` et `mesures.gd:68` ; une erreur par entrée | méthode et entrée de l'appel qui précède le relevé | `source` de l'entrée : `'unhandledrejection'`, `'<fichier>:<ligne>'` de l'`error` (`pont.ts:332`), ou `null` si l'`error` n'a pas de fichier |
+
+Le relevé lui-même passe par `_verifier` (`pont.gd:55`) : une réponse défaillante de `erreursGlobales()` produit un `transport` de méthode `erreursGlobales`. `appeler_brut` (`pont.gd:41-43`) et `sonder_exception_nue` (`pont.gd:65-66`) ne produisent aucune de ces natures : ils servent la mesure et la sonde.

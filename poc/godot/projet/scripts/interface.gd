@@ -23,6 +23,8 @@ const SCENE_ENTREE := preload("res://scenes/EntreeInitiative.tscn")
 @onready var _jet_localisation: Label = $Racine/DernierJet/Contenu/Localisation
 @onready var _jet_degats: Label = $Racine/DernierJet/Contenu/Degats
 @onready var _jet_blessures: Label = $Racine/DernierJet/Contenu/BlessuresPerdues
+@onready var _jet_critiques: Label = $Racine/DernierJet/Contenu/Critiques
+@onready var _jet_mort_subite: Label = $Racine/DernierJet/Contenu/MortSubite
 @onready var _bouton_deplacer: Button = $Racine/Actions/Contenu/Deplacer
 @onready var _bouton_attaquer: Button = $Racine/Actions/Contenu/Attaquer
 @onready var _bouton_fin: Button = $Racine/Actions/Contenu/FinDeTour
@@ -86,6 +88,8 @@ func afficher_jet(resultat: Dictionary, attaquant: String, cible: String) -> voi
 	_jet_localisation.text = "Localisation : %s" % (str(resultat.localisation) if _present(resultat, "localisation") else "-")
 	_jet_degats.text = "Dégâts : %s" % _nombre(resultat, "degats")
 	_jet_blessures.text = "Blessures perdues : %s" % _nombre(resultat, "blessuresPerdues")
+	_jet_critiques.text = "Blessures critiques : %s" % _critiques(resultat.critiques)
+	_jet_mort_subite.text = "Mort subite : %s" % ("oui" if resultat.mortSubite else "non")
 
 
 func afficher_message(texte: String) -> void:
@@ -126,6 +130,15 @@ func _etats(etats: Array) -> String:
 	for e in etats:
 		parties.append("%s %d" % [e.id, int(e.valeur)])
 	return ", ".join(parties)
+
+
+func _critiques(critiques: Array) -> String:
+	if critiques.is_empty():
+		return "aucune"
+	var lignes := PackedStringArray()
+	for c in critiques:
+		lignes.append("\n- %s (%s)%s" % [c.libelle, c.localisation, ", mortelle" if c.mortel else ""])
+	return "".join(lignes)
 
 
 func _jet(resultat: Dictionary, jet: String, cible: String, dr: String) -> String:

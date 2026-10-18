@@ -107,7 +107,7 @@ anchor_right = 1.0
 offset_left = -288.0
 offset_top = 64.0
 offset_right = -8.0
-offset_bottom = 300.0
+offset_bottom = 380.0
 grow_horizontal = 0
 
 [node name="Contenu" type="VBoxContainer" parent="Racine/DernierJet"]
@@ -139,6 +139,13 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="BlessuresPerdues" type="Label" parent="Racine/DernierJet/Contenu"]
+layout_mode = 2
+
+[node name="Critiques" type="Label" parent="Racine/DernierJet/Contenu"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="MortSubite" type="Label" parent="Racine/DernierJet/Contenu"]
 layout_mode = 2
 
 [node name="Actions" type="PanelContainer" parent="Racine"]

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Construction du prototype #2793 : bundle du pont, export web Godot, copie, tailles.
-// Usage : node poc/godot/construire.mjs [--godot <exécutable>] [--sortie <dossier>] [--pont-seul]
+// Usage : node poc/godot/construire.mjs [--godot <exécutable>] [--sortie <dossier>] [--debug] [--pont-seul]
 //         (l'exécutable vient aussi de la variable GODOT)
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -13,16 +13,18 @@ const ICI = path.dirname(fileURLToPath(import.meta.url));
 const PONT = 'wfrp-pont.js';
 const MODULES_AFFICHES = 15;
 
-const MODE_D_EMPLOI = `Usage : node poc/godot/construire.mjs [--godot <exécutable>] [--sortie <dossier>] [--pont-seul]
+const MODE_D_EMPLOI = `Usage : node poc/godot/construire.mjs [--godot <exécutable>] [--sortie <dossier>] [--debug] [--pont-seul]
   --godot <chemin>   exécutable Godot 4.7 (sinon variable d'environnement GODOT) ; requis hors --pont-seul
   --sortie <dossier> dossier de l'export web (défaut : poc/godot/build/web/)
+  --debug            export debug (--export-debug) : les erreurs de script GDScript remontent à la console du navigateur
   --pont-seul        seulement le bundle ${PONT}, vers poc/godot/build/`;
 
 function lireOptions(argv) {
-  const options = { godot: process.env.GODOT, sortie: path.join(ICI, 'build', 'web'), pontSeul: false };
+  const options = { godot: process.env.GODOT, sortie: path.join(ICI, 'build', 'web'), debug: false, pontSeul: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--pont-seul') options.pontSeul = true;
+    else if (a === '--debug') options.debug = true;
     else if (a === '--godot' || a === '--sortie') {
       const v = argv[++i];
       if (!v) return { erreur: `${a} attend une valeur` };
@@ -66,10 +68,10 @@ async function empaqueter(dossier) {
   return sortie;
 }
 
-function exporterGodot(godot, sortie) {
+function exporterGodot(godot, sortie, debug) {
   mkdirSync(sortie, { recursive: true });
   const projet = path.join(ICI, 'projet');
-  const args = ['--headless', '--path', projet, '--export-release', 'Web', path.join(sortie, 'index.html')];
+  const args = ['--headless', '--path', projet, debug ? '--export-debug' : '--export-release', 'Web', path.join(sortie, 'index.html')];
   console.log(`[godot] ${godot} ${args.join(' ')}`);
   const debut = performance.now();
   const r = spawnSync(godot, args, { stdio: 'inherit' });
@@ -111,7 +113,7 @@ async function principal() {
     return 2;
   }
   const pont = await empaqueter(path.join(ICI, 'build'));
-  const code = exporterGodot(options.godot, options.sortie);
+  const code = exporterGodot(options.godot, options.sortie, options.debug);
   if (code !== 0) return code;
   copyFileSync(pont, path.join(options.sortie, PONT));
   imprimerTailles(options.sortie);

@@ -264,7 +264,7 @@ func _cliquer(case: Vector2i) -> void:
 		_occupe = false
 	else:
 		return
-	_mode = _mode_par_defaut(_actif())
+	_mode = _mode_par_defaut(_actif()) if _tour_du_joueur() else ""
 	_rafraichir()
 
 
