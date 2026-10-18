@@ -1,4 +1,4 @@
-// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6(c) du CLAUDE.md (pierre tombale,
+// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6 d'AGENTS.md (pierre tombale,
 // tolérance zéro) appliquée à `.claude/memory/**`. Une fiche devenue fausse se RÉÉCRIT au présent ou
 // se SUPPRIME — git porte l'historique ; poser un EN-TÊTE DE SUPERSESSION (les trois mots que `MOTIF`
 // reconnaît plus bas) au-dessus du faux le laisse en place, et la fiche se relit comme une vérité
