@@ -26,6 +26,7 @@ import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { PorteeDAssaut } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
@@ -981,9 +982,9 @@ export type GameOp =
   | { op: 'crewTestMod'; mod: number }
   /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité LDB 85 l.257, Nuée l.253).
    *  PASSIF, lu par `incomingAttackLines` à la collecte des mods d'attaque — DISTINCT de `testMod`
-   *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : portée concernée (`all` = mêlée ET distance).
+   *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : `PorteeDAssaut`.
    *  Inerte dans `applyOps`. */
-  | { op: 'incomingAttackMod'; mode: 'melee' | 'ranged' | 'all'; amount: number;
+  | { op: 'incomingAttackMod'; mode: PorteeDAssaut; amount: number;
       /** Ne s'applique QUE si l'attaquant frappe par le flanc ou par derrière (Assourdi : « par le flanc
        *  ou par derrière gagne +10 », LDB 16 l.29) — bonus ADDITIF (« supplémentaire ») évalué par
        *  `meleeAttackerBonus` seulement quand l'appelant a établi l'angle (facing). Absent = inconditionnel. */
@@ -991,7 +992,7 @@ export type GameOp =
   /** L'ASSAILLANT du porteur GAGNE `amount` Avantage(s) avant son attaque (Sonné : « +1 Avantage », LDB 16
    *  l.125). PASSIF de l'État/trait du DÉFENSEUR, lu par `incomingMeleeAdvantage` au moment de l'attaque
    *  (≠ `incomingAttackMod` = bonus de TOUCHE éphémère). Inerte dans `applyOps`. */
-  | { op: 'incomingAdvantage'; mode: 'melee' | 'ranged' | 'all'; amount: number }
+  | { op: 'incomingAdvantage'; mode: PorteeDAssaut; amount: number }
   /** Modificateur au DR des SORTS qui affectent le porteur (Résistance à la Magie — trait `LDB 85 l.302`,
    *  talent `LDB 10 l.1026`). `amount` est le modificateur PAR RANG de la source qui le porte : Indice du
    *  trait (`TraitInstance.value`) ou niveau du talent (`times`) — négatif = réduction. PASSIF, lu par

@@ -41,6 +41,11 @@ export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
 /** `PerSL` (`src/engine/ops.ts:146`) — échelle « par +N DR » d'un payload d'op. */
 export const perSLSchema = nommerChamps(z.strictObject({ every: z.number(), amount: z.number(), onFailure: z.boolean().optional() }), { every: { label: "intervalle" }, amount: { label: "quantité" }, onFailure: { label: "en cas d’échec" } });
 
+/** PORTÉE d'attaque d'un ASSAILLANT que vise un passif du défenseur (`incomingAttackMod`,
+ *  `incomingAdvantage`, `src/engine/ops.ts`) ; `all` = mêlée ET distance. Source du type moteur. */
+export const porteeDAssautSchema = enumNomme({ melee: 'au corps à corps', ranged: 'à distance', all: 'au corps à corps et à distance' });
+export type PorteeDAssaut = z.infer<typeof porteeDAssautSchema>;
+
 /** SENS engagé par un Test (`FlowTest.sense` — Perception : vue ou ouïe) ; le libellé est celui de la
  *  phrase qui le montre au joueur (op `senseLoss` : « perd la vue »). */
 export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
@@ -309,6 +314,18 @@ const DECLARATIONS_D_OPS = {
     exceptSkills: z.array(ref('skill')).optional(),
     weaponHand: z.enum(['main', 'off']).optional(),
   }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
+  incomingAttackMod: nommerChamps(z.strictObject({
+    op: z.literal('incomingAttackMod'),
+    mode: porteeDAssautSchema,
+    amount: z.number(),
+    flankRear: z.boolean().optional(),
+  }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" }, flankRear: { label: "par le flanc ou par derrière" } }),
+  castWard: nommerChamps(z.strictObject({
+    op: z.literal('castWard'),
+    radius: formulaSchema,
+    mod: z.number(),
+    perSL: nommerChamps(z.strictObject({ every: z.number(), radiusFormula: formulaSchema }), { every: { label: "intervalle" }, radiusFormula: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
+  }), { op: { label: "opération" }, radius: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, mod: { label: "modificateur" }, perSL: { label: "rayon par DR" } }),
   perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
   delayed: nommerChamps(z.strictObject({
     op: z.literal('delayed'),
@@ -415,11 +432,11 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'condition',
+  'beginPsych', 'breakBlade', 'chain', 'charDRBonus', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
-  'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod', 'incomingSpellDRMod', 'interruptFocus',
+  'ignoreStatePenalties', 'incomingAdvantage', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
   'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'spendAdvantage', 'statusMod', 'suppressPsych', 'teamCommander',
