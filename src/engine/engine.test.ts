@@ -134,7 +134,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
   });
   it('Empaleuse : un Test RATÉ sur un multiple de 10, Test opposé gagné, ne génère aucun Critique (LDB 13 l.183)', () => {
     const emp = fighter(30, { qualities: [{ id: 'empaleuse' }] });
-    const r = finishMelee(emp, fighter(30), emp.weapons[0], evaluateTest(40, 30), evaluateTest(96, 30), 'parade');
+    const r = finishMelee(emp, fighter(30), emp.weapons[0], evaluateTest(40, 30), evaluateTest(96, 30), 'parade', { rng: makeRNG(1595) });
     expect(r.hit).toBe(true);
     expect(r.critical).toBe(false);
   });
@@ -171,7 +171,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const rng = makeRNG(7);
     const atk = rollMeleeAttacker(a, d, a.weapons[0], rng);
     const def = rollMeleeDefender(d, 'parade', rng);
-    expect(finishMelee(a, d, a.weapons[0], atk, def, 'parade')).toEqual(full);
+    expect(finishMelee(a, d, a.weapons[0], atk, def, 'parade', { rng: makeRNG(1595) })).toEqual(full);
   });
   it('resolveMelee ≡ split (Esquive)', () => {
     const a = fighter(55);
@@ -180,7 +180,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const rng = makeRNG(11);
     const atk = rollMeleeAttacker(a, d, a.weapons[0], rng);
     const def = rollMeleeDefender(d, 'esquive', rng);
-    expect(finishMelee(a, d, a.weapons[0], atk, def, 'esquive')).toEqual(full);
+    expect(finishMelee(a, d, a.weapons[0], atk, def, 'esquive', { rng: makeRNG(1595) })).toEqual(full);
   });
   it('le jet d’attaque est FIGÉ : même atk + def différents → même attackerRoll, defenderRoll différents', () => {
     const a = fighter(55);
@@ -188,8 +188,8 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const atk = rollMeleeAttacker(a, d, a.weapons[0], makeRNG(3));
     const def1 = rollMeleeDefender(d, 'parade', makeRNG(20));
     const def2 = rollMeleeDefender(d, 'parade', makeRNG(99));
-    const r1 = finishMelee(a, d, a.weapons[0], atk, def1, 'parade');
-    const r2 = finishMelee(a, d, a.weapons[0], atk, def2, 'parade');
+    const r1 = finishMelee(a, d, a.weapons[0], atk, def1, 'parade', { rng: makeRNG(1595) });
+    const r2 = finishMelee(a, d, a.weapons[0], atk, def2, 'parade', { rng: makeRNG(1595) });
     expect(r1.attackerRoll).toBe(atk.roll);
     expect(r2.attackerRoll).toBe(atk.roll); // l'attaque ne change pas quand on relance la défense
     expect(r1.defenderRoll).not.toBe(r2.defenderRoll);
@@ -197,9 +197,9 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
   it('resolveMeleePassive : un succès touche, un échec rate SANS effet (LDB 15 l.63 ; arbitrage A6 2026-10-13)', () => {
     const a = fighter(80);
     const d = fighter(30);
-    const hit = resolveMeleePassive(a, d, a.weapons[0], { roll: 5, target: 80, success: true, sl: 7, isDouble: false });
+    const hit = resolveMeleePassive(a, d, a.weapons[0], { roll: 5, target: 80, success: true, sl: 7, isDouble: false }, { rng: makeRNG(1595) });
     expect(hit.hit).toBe(true);
-    const miss = resolveMeleePassive(a, d, a.weapons[0], { roll: 95, target: 80, success: false, sl: -2, isDouble: false });
+    const miss = resolveMeleePassive(a, d, a.weapons[0], { roll: 95, target: 80, success: false, sl: -2, isDouble: false }, { rng: makeRNG(1595) });
     expect(miss.hit).toBe(false);
     expect(miss.advantageTo, 'aucun Avantage au défenseur qui ne s’est pas défendu').toBeNull();
     expect(miss.netSL, 'le DR du jet, jamais 0').toBe(-2);
@@ -208,8 +208,8 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const a = fighter(80);
     const d = fighter(30);
     const rate = { roll: 95, target: 80, success: false, sl: -2, isDouble: false };
-    const melee = rederivePassiveAttack(a, d, a.weapons[0], rate, 'melee');
-    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'ranged' }, rate, 'ranged');
+    const melee = rederivePassiveAttack(a, d, a.weapons[0], rate, 'melee', { rng: makeRNG(1595) });
+    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'ranged' }, rate, 'ranged', { rng: makeRNG(1595) });
     expect({ advantageTo: melee.advantageTo, netSL: melee.netSL, hit: melee.hit }).toEqual({ advantageTo: tir.advantageTo, netSL: tir.netSL, hit: tir.hit });
   });
 });

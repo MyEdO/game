@@ -17,6 +17,7 @@ import type { Combatant, Weapon } from '../../engine/types';
 import type { Scene } from '../../state/scene';
 import type { BattleState } from '../../state/store';
 import type { TestResult } from '../../engine/tests';
+import { makeRNG } from '../../engine/dice';
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const COGUE = 'enemy-enc-naval-0';
@@ -65,7 +66,7 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
   const weapon = (attacker.weapons.find((w) => w.type === 'melee') ?? attacker.weapons[0]) as Weapon;
   let blows = 0;
   while (!isOutOfAction(target) && blows < 20) {
-    const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee');
+    const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee', { rng: makeRNG(1595) });
     const before = target.wounds.current;
     if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
     const lost = res.woundsLost ?? 0;
@@ -224,7 +225,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
 
     let shots = 0;
     while (cogue.wounds.current > 0 && shots < 20) {
-      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged');
+      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged', { rng: makeRNG(1595) });
       if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost);
       shots++;
     }

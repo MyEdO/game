@@ -11,6 +11,7 @@ import { bus, EVT } from './bus';
 import { emptyScene } from './scene';
 import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
+import { makeRNG } from '../engine/dice';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -37,7 +38,7 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }
 
 /** Double réussi (LDB 13 l.183), par la couture du jeu (`rederivePassiveAttack` → `applyHit`). */
 const doubleReussi = (h: Combatant, cible: Combatant): AttackResult =>
-  rederivePassiveAttack(h, cible, epee, { roll: 44, target: 90, success: true, sl: 4, isDouble: true } as never, 'melee', 'corps');
+  rederivePassiveAttack(h, cible, epee, { roll: 44, target: 90, success: true, sl: 4, isDouble: true } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
 
 /** La touche FINALE telle que le jeu l'émet, et les étapes jouées. */
 function frappe(h: Combatant, cible: Combatant, res: AttackResult, grapple = false): { finale: AttackResult; etapes: string[] } {
@@ -102,7 +103,7 @@ describe('Critique obtenu, touche sans prise', () => {
     const h = mk('hero', 'h');
     const mur = mk('enemy', 'mur', { pos: { x: 1, y: 0 }, bodyShape: 'structure', important: false });
     setBattle([h, mur]);
-    const res = rederivePassiveAttack(h, mur, epee, { roll: 21, target: 90, success: true, sl: 6, isDouble: false } as never, 'melee', 'corps');
+    const res = rederivePassiveAttack(h, mur, epee, { roll: 21, target: 90, success: true, sl: 6, isDouble: false } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
     const { finale } = frappe(h, mur, res, true);
     expect(finale.hit).toBe(true);
     expect(finale.sansPrise).toBeUndefined();

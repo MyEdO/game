@@ -10,6 +10,7 @@ import { damageArmour } from '../engine/items';
 import { addCondition, hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../engine/types';
 import type { CoupDeTouche } from './pendings';
+import { makeRNG } from '../engine/dice';
 
 /**
  * Un porteur TENU est consulté quand le Critique naît d'une sous-attaque (LDB 63 l.30) ; Surpris est
@@ -141,7 +142,7 @@ const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, f
 /** CC réussi, DR 2, 44 en double : Coup Critique (LDB 13). */
 const jet = { label: 'CC', base: 60, modifier: 0, target: 60, roll: 44, success: true, sl: 2 };
 const marinHeros = (pb = 20): Combatant => mk('hero', 'marin', { pos: { x: 6, y: 5 }, armour: { ...PA3 }, items: [piece()], wounds: { current: pb, max: 20 } as Combatant['wounds'] });
-const contre = (att: Combatant, marin: Combatant): AttackResult => toucheAuJetPose(att, structuredClone(marin), hache, jet, 2, false);
+const contre = (att: Combatant, marin: Combatant): AttackResult => toucheAuJetPose(att, structuredClone(marin), hache, jet, 2, { rng: makeRNG(1595) }, false);
 
 /** Le Critique de coque à l'Équipage, porté par un coup de hache sur le navire du marin. */
 function critiqueDEquipage(marin: Combatant): { att: Combatant; nav: Combatant } {
@@ -150,7 +151,7 @@ function critiqueDEquipage(marin: Combatant): { att: Combatant; nav: Combatant }
   nav.crewIds = [marin.id];
   poser([att, nav, marin]);
   seedBattleRng(1);
-  const coup: CoupDeTouche = { mode: 'melee', weapon: hache, res: toucheAuJetPose(att, nav, hache, jet, 2, false) };
+  const coup: CoupDeTouche = { mode: 'melee', weapon: hache, res: toucheAuJetPose(att, nav, hache, jet, 2, { rng: makeRNG(1595) }, false) };
   const log: string[] = [];
   applyHullCriticalToTarget(nav, 'voile', log, useGame.setState, {
     get: useGame.getState, forcedLocRoll: 5, suppressReveal: true,
@@ -173,7 +174,7 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     const lieu = touche.location as HitLocation;
     const abime = structuredClone(marin);
     damageArmour(abime, lieu);
-    const recompte = toucheAuJetPose(att, abime, hache, jet, 2, false).woundsLost ?? 0;
+    const recompte = toucheAuJetPose(att, abime, hache, jet, 2, { rng: makeRNG(1595) }, false).woundsLost ?? 0;
     expect(recompte).toBe((touche.woundsLost ?? 0) + 1);
     expect(draineCascade(useGame.getState, 200, undefined, choix('devier'))).toEqual(['deviation']);
     const m = enJeu('marin');

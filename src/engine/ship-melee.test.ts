@@ -4,6 +4,7 @@ import { hullShipSize } from './shipBuild';
 import { rederivePassiveAttack, woundsFromHit } from './combat';
 import type { Combatant, Weapon } from './types';
 import type { SizeCategory } from './size';
+import { makeRNG } from './dice';
 
 /**
  * #25 — COQUE EN COMBAT PERSONNEL (MDG 13 « Infliger des Dégâts aux navires ») :
@@ -82,7 +83,7 @@ describe('hullHitAdjust — consommé par applyHit (petites armes / table des Ta
 describe('applyHit contre une coque (résolution complète)', () => {
   it('tir de petite arme RÉUSSI sur la coque, double : Critique obtenu (l.656), sans prise (l.605), 0 Blessure', () => {
     const h = hull('cogue');
-    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'ranged');
+    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'ranged', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBe(0);
     expect(res.critical).toBe(true);
@@ -90,17 +91,17 @@ describe('applyHit contre une coque (résolution complète)', () => {
     expect(res.log).toContain('petites armes');
   });
   it('mêlée d’un humain sur une coque Énorme → touche sans AUCUN Dégât (case « – »)', () => {
-    const res = rederivePassiveAttack(bruiser(), hull('galion-bretonnien'), hache, { roll: 21, target: 60, success: true, sl: 3, isDouble: false }, 'melee');
+    const res = rederivePassiveAttack(bruiser(), hull('galion-bretonnien'), hache, { roll: 21, target: 60, success: true, sl: 3, isDouble: false }, 'melee', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBe(0);
     expect(res.log).toContain('trop petit');
   });
   it('mêlée sur un coracle (Minuscule) : BE doublé, plancher 0 (le coup peut ricocher)', () => {
     const h = hull('coracle', 40); // BE 4 → mitigation 8
-    const res = rederivePassiveAttack(bruiser(), h, hache, { roll: 21, target: 60, success: true, sl: 3, isDouble: false }, 'melee');
+    const res = rederivePassiveAttack(bruiser(), h, hache, { roll: 21, target: 60, success: true, sl: 3, isDouble: false }, 'melee', { rng: makeRNG(1595) });
     // Dégâts = 7 + BF4 + DR3 = 14 ; soak = 2×BE(8) + PA 0 → 6 Blessures.
     expect(res.woundsLost).toBe(6);
-    const weak = rederivePassiveAttack(bruiser(), h, { ...hache, damage: { flat: 0, plusBF: false } } as Weapon, { roll: 21, target: 60, success: true, sl: 0, isDouble: false }, 'melee');
+    const weak = rederivePassiveAttack(bruiser(), h, { ...hache, damage: { flat: 0, plusBF: false } } as Weapon, { roll: 21, target: 60, success: true, sl: 0, isDouble: false }, 'melee', { rng: makeRNG(1595) });
     expect(weak.woundsLost).toBe(0); // plancher 0 : pas de « min 1 » contre une coque
   });
 });

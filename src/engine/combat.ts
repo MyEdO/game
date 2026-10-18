@@ -39,7 +39,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
+import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, critWoundLocation, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -487,14 +487,21 @@ export interface RollBreakdown {
  *  LDB 85 l.134 ; LDB 14 l.159. */
 export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade';
 
+/** Le RNG du tirage de la Localisation relancée, et la Localisation figée d'une re-dérivation du même jet.
+ *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
+export interface TirageDeLocalisation {
+  rng: RNG;
+  fige?: HitLocation;
+}
+
 export interface AttackResult {
   hit: boolean;
   attackerRoll: number;
   defenderRoll?: number;
   netSL: number;
   location?: HitLocation;
-  /** Localisation relancée de la Blessure critique, tirée (LDB 18 l.53, l.55 ; AA 07 l.32) ou choisie
-   *  (LDB 17 l.68) ; absente = non encore décidée. #1595 c.6226467544. */
+  /** Localisation relancée du coup, décidée à sa naissance (`applyHit`) ; absente = Localisation de touche.
+   *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; LDB 17 l.68 ; #1595 c.6226467544. */
   critLocation?: HitLocation;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
@@ -1159,7 +1166,7 @@ export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RN
     { label: 'Dos tourné (adversaire en fuite)', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] },
   ];
   const atk = rollTest(combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
-  return resolveMeleePassive(foe, target, weapon, atk, undefined, [], undefined, false, composeAttack(mods));
+  return resolveMeleePassive(foe, target, weapon, atk, { rng }, undefined, [], undefined, false, composeAttack(mods));
 }
 
 /** Combine un jet d'attaque et un jet de défense DÉJÀ obtenus en AttackResult
@@ -1172,6 +1179,7 @@ export function finishMelee(
   atk: TestResult,
   def: TestResult,
   defenseMode: DefenseMode,
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   env: ModLine[] = [],
   dodgeMods: ModLine[] = [],
@@ -1182,7 +1190,7 @@ export function finishMelee(
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
 }
 
 /**
@@ -1201,6 +1209,7 @@ function combineOpposed(
   def: TestResult,
   defenseMode: DefenseMode,
   atkBd: ReturnType<typeof bd>,
+  tirage: TirageDeLocalisation,
   opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub } = {},
 ): AttackResult {
   const { location, dmgProxy } = opts;
@@ -1260,7 +1269,7 @@ function combineOpposed(
   }
   const critical = atk.isDouble && atk.success;
   // Protectrice (LDB 62 l.296) : opposer l'attaque avec l'arme → Indice PA à toutes les localisations.
-  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon) : 0, opts.withhold);
+  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, tirage, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon) : 0, opts.withhold);
   res.defenderRoll = def.roll;
   res.defenderDetail = defLine;
   res.parryWeapon = usedParry;
@@ -1288,6 +1297,7 @@ export function resolveMeleePassive(
   defender: Combatant,
   weapon: Weapon,
   atk: TestResult,
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   env: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
@@ -1295,7 +1305,7 @@ export function resolveMeleePassive(
   compo?: DifficultyComposition, // Difficulté FIGÉE par l'orchestrateur (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'melee', location, dmgProxy, withhold);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'melee', tirage, location, dmgProxy, withhold);
 }
 
 /** DR du Test d'ATTAQUE, ajustements compris : SOURCE UNIQUE du Test opposé (`combineOpposed`) et de
@@ -1316,6 +1326,7 @@ function passiveOutcome(
   atk: TestResult,
   atkBd: RollBreakdown,
   kind: 'melee' | 'ranged',
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   dmgProxy?: AttackOptions['dmgProxy'],
   withhold = false,
@@ -1332,7 +1343,7 @@ function passiveOutcome(
     defenderDefeated: false,
     log: `${attacker.label} manque ${defender.label}.`,
   };
-  const res = applyHit(attacker, defender, weapon, atkBd, dr, atk.isDouble && atk.success, location, dmgProxy, 0, withhold);
+  const res = applyHit(attacker, defender, weapon, atkBd, dr, atk.isDouble && atk.success, tirage, location, dmgProxy, 0, withhold);
   if (kind === 'melee' && res.hit && (attacker.swarm || sizeGap(dmgProxy?.size ?? attacker.size, defender.size) >= 1)) res.cleave = true; // LDB 85 l.362/253 ; LDB 14 l.183
   return res;
 }
@@ -1364,10 +1375,10 @@ export function resolveMelee(
   // d'un contexte plus pauvre (#1153 L4).
   const compo = composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location: opts.location, env: opts.env, flankRear: opts.flankRear }));
   if (defenseMode === 'none') {
-    res = resolveMeleePassive(attacker, defender, weapon, atk, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
+    res = resolveMeleePassive(attacker, defender, weapon, atk, { rng }, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
   } else {
     const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defaultParryWeapon(defender), weapon);
-    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo);
+    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, { rng }, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo);
   }
   if (autoKill && res.hit) res.autoKill = true;
   return res;
@@ -1495,9 +1506,9 @@ export function resolveRanged(
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
     const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defaultParryWeapon(defender), weapon);
-    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
+    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { rng }, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
   }
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', location, undefined, withhold);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', { rng }, location, undefined, withhold);
 }
 
 /** Jet d'attaque FIGÉ d'un TIR (Test de Projectiles, mods de portée/Taille/État inclus) — mirror de
@@ -1527,6 +1538,7 @@ export function finishRanged(
   atk: TestResult,
   def: TestResult,
   defenseMode: DefenseMode, // le tir n'ouvre que Parade/Esquive (cf. rangedDefenseModes) — 'social' n'y parvient jamais
+  tirage: TirageDeLocalisation,
   distanceTiles?: number,
   location?: HitLocation,
   env: ModLine[] = [],
@@ -1538,7 +1550,7 @@ export function finishRanged(
 ): AttackResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'ranged', location, distanceTiles, env, metresPerTile });
   const atkBd = bd(attackTestLabel(attacker, weapon, 'ranged'), combatValue(attacker, 'ranged', weapon), atk, compo ?? composeAttack(mods));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMods, withhold });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, parryWeapon, dodgeMods, withhold });
 }
 
 /**
@@ -1553,6 +1565,7 @@ export function resolveStrayRangedHit(
   weapon: Weapon,
   roll: number,
   effTarget: number,
+  tirage: TirageDeLocalisation,
   /** Ligne du tir d'ORIGINE : sa Difficulté est TRANSPORTÉE (c'est le même jet), et ce qui sépare
    *  `effTarget` de la cible d'origine devient une ligne NOMMÉE — sans quoi la touche déviée
    *  afficherait une cible chargée sans rien pour l'expliquer (#1153 L4). */
@@ -1571,7 +1584,7 @@ export function resolveStrayRangedHit(
     mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
-  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), withhold);
+  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), tirage, withhold);
   return res;
 }
 
@@ -1579,17 +1592,17 @@ export function resolveStrayRangedHit(
  * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
  * (MDG 14 l.128). Réussi → `applyHit` ; Critique : LDB 13 l.183, MDG 13 l.656.
  */
-export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, withhold = false, dmgProxy?: AttackOptions['dmgProxy']): AttackResult {
+export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation, withhold = false, dmgProxy?: AttackOptions['dmgProxy']): AttackResult {
   // Arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
   if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} manque ${defender.label}.` };
-  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), undefined, dmgProxy, 0, withhold);
+  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), tirage, undefined, dmgProxy, 0, withhold);
 }
 
 /** Touche d'une frappe passive, portée par le Test de défense GAGNÉ (`defBd`) au DR du Test opposé. Le
  *  double de la défense est le Critique d'`applyOpposedCritical` (LDB 14 l.3). LDB 10 l.1037 ; LDB 85 l.71 ;
  *  AA 13 l.84 ; LDB 13 l.123, l.151, l.183 ; LDB 62 l.248 ; #1595 c.6234104573. */
-export function toucheDuTestDeDefense(defenseur: Combatant, attaquant: Combatant, arme: Weapon, defBd: RollBreakdown, dr: number): AttackResult {
-  return applyHit(defenseur, attaquant, arme, defBd, dr, false);
+export function toucheDuTestDeDefense(defenseur: Combatant, attaquant: Combatant, arme: Weapon, defBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation): AttackResult {
+  return applyHit(defenseur, attaquant, arme, defBd, dr, false, tirage);
 }
 
 /** LDB 18 l.30 ; AA 07 l.61 ; AA 06 l.556. */
@@ -1702,6 +1715,7 @@ function applyHit(
   atkBd: RollBreakdown,
   dr: number,
   critical: boolean,
+  tirage: TirageDeLocalisation,
   forcedLoc?: HitLocation,
   dmgProxy?: AttackOptions['dmgProxy'],
   extraAP = 0, // PA conférés par l'arme d'opposition du défenseur (Protectrice, LDB 62 l.296)
@@ -1777,12 +1791,16 @@ function applyHit(
     ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
   };
   const apercu = { location: loc, damage, woundsLost, ...(sansPrise ? { sansPrise } : {}) };
+  // LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544.
+  const coupCritique = causeDuCoupCritique({ critical: isCritical, attackerRoll: atkBd.roll, sansPrise });
+  const relance = relanceLaLocalisation(defender, { coupCritique, prise: !sansPrise, current: defender.wounds.current });
   return {
     hit: true,
     attackerRoll: atkBd.roll,
     attackerDetail: atkBd,
     netSL: dr,
     location: loc,
+    ...(relance ? { critLocation: critWoundLocation(tirage.rng, defender.bodyShape, tirage.fige) } : {}),
     damage,
     woundsLost,
     apExternal: extraAP - sureShot,
@@ -1867,6 +1885,7 @@ export function rederivePassiveAttack(
   weapon: Weapon,
   atk: TestResult,
   kind: 'melee' | 'ranged',
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4)
@@ -1876,5 +1895,5 @@ export function rederivePassiveAttack(
   // contexte appauvri (ni distance, ni env, ni flanc/dos) annoncerait une autre Difficulté et
   // laisserait l'écart en chip « autres » — dépenser sa Chance ne change pas la Difficulté du jet.
   const atkBd = bd(attackTestLabel(attacker, weapon, kind), combatValue(attacker, kind, weapon), atk, compo ?? compoDeRepli(attackModifiers(attacker, defender, weapon, { kind, location }), 'rederivePassiveAttack'));
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, kind, location, dmgProxy, withhold);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, kind, tirage, location, dmgProxy, withhold);
 }
