@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -46,26 +47,44 @@ function checkerMemoise(natif) {
   return { checker, vider: () => { for (const table of tables.values()) table.clear(); } };
 }
 
+/** Les `tsc --api` des sessions ouvertes, arrêtés par SIGKILL à la sortie du processus avant le SIGTERM de
+ *  `liveChildren` (`typescript/dist/api/syncChannel.js:35-45`), #2753. */
+const COMPILATEURS_OUVERTS = new Set();
+process.prependListener('exit', () => { for (const enfant of COMPILATEURS_OUVERTS) enfant.kill('SIGKILL'); });
+
+/** Le `tsc --api` d'une `API` : l'interne `api.client.channel.child` de `typescript/unstable/sync`, épinglé (#2753). */
+function compilateurDe(api) {
+  const enfant = api?.client?.channel?.child;
+  if (!(enfant instanceof ChildProcess)) throw new Error('typescript/unstable/sync : api.client.channel.child n’est plus le ChildProcess de tsc --api, arrêt par SIGKILL à réépingler (#2753)');
+  return enfant;
+}
+
 function ouvrir(root, fs, configurer, choisirProjet = (snapshot, plan) => snapshot.getProject(plan.openProjects[0])) {
   const { API } = require('typescript/unstable/sync');
   let api = new API({ cwd: root, fs });
+  let enfant;
   let snapshot;
   let memo;
   const dispose = () => {
     if (!api) return;
     const courant = api;
     const capture = snapshot;
+    const compilateur = enfant;
     api = undefined;
+    enfant = undefined;
     snapshot = undefined;
     memo?.vider();
     memo = undefined;
     libererSessions([
       { dispose: () => capture?.dispose() },
       { dispose: () => courant.clearSourceFileCache() },
+      { dispose: () => { COMPILATEURS_OUVERTS.delete(compilateur); compilateur?.kill('SIGKILL'); } },
       { dispose: () => courant.close() },
     ]);
   };
   try {
+    enfant = compilateurDe(api);
+    COMPILATEURS_OUVERTS.add(enfant);
     const plan = configurer(api);
     snapshot = api.updateSnapshot(plan);
     const projet = choisirProjet(snapshot, plan);

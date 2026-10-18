@@ -663,54 +663,67 @@ const LIMITE_LECTURE = 64 * 1024 * 1024
 export function encoderLecture(racine) {
   if (Object.hasOwn(Object.prototype, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON')) throw new Error('IR_DOMAINE_JSON')
   const pool = []
+  const primitives = new Map()
   const formes = new Map()
   const identites = new WeakMap()
   const actifs = new WeakSet()
-  const pile = [{ valeur: racine }]
-  let resultat
-  const recevoir = (cadre, reference) => {
-    pile.pop()
-    if (pile.length) pile.at(-1).references.push(reference)
-    else resultat = reference
+  const indexer = (cle, noeud, table) => {
+    let reference = table.get(cle)
+    if (reference === undefined) { reference = pool.length; table.set(cle, reference); pool.push(noeud) }
+    return reference
   }
-  while (pile.length) {
-    const cadre = pile.at(-1)
-    const v = cadre.valeur
-    if (!cadre.entrees) {
-      if (v === null || typeof v !== 'object') {
-        if (!['string', 'number', 'boolean', 'undefined'].includes(typeof v) && v !== null) throw new Error('IR_DOMAINE_JSON')
-        const primitive = v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? null : v
-        const noeud = [0, primitive]
-        const cle = JSON.stringify(noeud)
-        if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
-        recevoir(cadre, formes.get(cle))
-        continue
-      }
-      if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
-      if (actifs.has(v)) throw new Error('IR_CYCLE')
-      if (identites.has(v)) { recevoir(cadre, identites.get(v)); continue }
-      const tableau = Array.isArray(v)
-      if (!tableau && ![Object.prototype, null].includes(Object.getPrototypeOf(v))) throw new Error('IR_DOMAINE_JSON')
-      const proprietes = Object.getOwnPropertyDescriptors(v)
-      if (Object.values(proprietes).some((p) => !Object.hasOwn(p, 'value'))) throw new Error('IR_DOMAINE_JSON')
-      if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
-      cadre.tableau = tableau
-      cadre.entrees = tableau ? Array.from({ length: v.length }, (_, i) => [String(i), proprietes[i]?.value])
-        : Object.keys(v).filter((k) => proprietes[k].value !== undefined).map((k) => [k, proprietes[k].value])
-      cadre.references = []
-      actifs.add(v)
+  const primitive = (v) => {
+    if (v !== null && typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean' && v !== undefined) throw new Error('IR_DOMAINE_JSON')
+    const p = v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? null : v
+    return indexer(p, [0, p], primitives)
+  }
+  /** Le cadre d'un objet du domaine JSON : ses valeurs à encoder, dans l'ordre de ses entrées. */
+  const ouvrir = (v) => {
+    if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
+    if (actifs.has(v)) throw new Error('IR_CYCLE')
+    const tableau = Array.isArray(v)
+    if (!tableau) { const prototype = Object.getPrototypeOf(v); if (prototype !== Object.prototype && prototype !== null) throw new Error('IR_DOMAINE_JSON') }
+    const proprietes = Object.getOwnPropertyDescriptors(v)
+    for (const p of Object.values(proprietes)) if (!Object.hasOwn(p, 'value')) throw new Error('IR_DOMAINE_JSON')
+    if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
+    const cles = []
+    const valeurs = []
+    if (tableau) for (let i = 0; i < v.length; i++) valeurs.push(proprietes[i]?.value)
+    else for (const k of Object.keys(v)) { const x = proprietes[k].value; if (x !== undefined) { cles.push(k); valeurs.push(x) } }
+    actifs.add(v)
+    return { v, tableau, cles, valeurs, references: [] }
+  }
+  const fermer = (cadre) => {
+    const { v, tableau, cles, references } = cadre
+    let reference
+    if (tableau) reference = indexer(`a${references.join(',')}`, [1, references], formes)
+    else {
+      let cle = 'o'
+      for (let i = 0; i < cles.length; i++) cle += `${i ? ',' : ''}${JSON.stringify(cles[i])}:${references[i]}`
+      reference = indexer(cle, [2, cles.map((k, i) => [k, references[i]])], formes)
     }
-    if (cadre.references.length < cadre.entrees.length) {
-      pile.push({ valeur: cadre.entrees[cadre.references.length][1] })
-      continue
-    }
-    const noeud = cadre.tableau ? [1, cadre.references] : [2, cadre.entrees.map(([k], i) => [k, cadre.references[i]])]
-    const cle = JSON.stringify(noeud)
-    if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
-    const reference = formes.get(cle)
     identites.set(v, reference)
     actifs.delete(v)
-    recevoir(cadre, reference)
+    return reference
+  }
+  if (racine === null || typeof racine !== 'object') return JSON.stringify({ format: FORMAT_LECTURE, racine: primitive(racine), pool })
+  const pile = [ouvrir(racine)]
+  let resultat
+  while (pile.length) {
+    const cadre = pile[pile.length - 1]
+    if (cadre.references.length < cadre.valeurs.length) {
+      const x = cadre.valeurs[cadre.references.length]
+      if (x === null || typeof x !== 'object') cadre.references.push(primitive(x))
+      else if (identites.has(x)) {
+        if (actifs.has(x)) throw new Error('IR_CYCLE')
+        cadre.references.push(identites.get(x))
+      } else pile.push(ouvrir(x))
+      continue
+    }
+    pile.pop()
+    const reference = fermer(cadre)
+    if (pile.length) pile[pile.length - 1].references.push(reference)
+    else resultat = reference
   }
   return JSON.stringify({ format: FORMAT_LECTURE, racine: resultat, pool })
 }
@@ -784,17 +797,163 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 /** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
+/** @typedef {Readonly<Record<string, never>>} LectureIllisible */
+
+/** Les lectures CERTIFIÉES par `certifierLecture`, chacune liée au module certifié : les seules qu'accepte le noyau
+ *  fermé d'`evaluerLotDuDepot`, et sous ce module seulement. */
+const lecturesCertifiees = new WeakMap()
+
+/** Les TÉMOINS d'illisibilité que rend `certifierLecture` pour un module illisible : certifiés comme toute lecture,
+ *  lus `null` par le noyau fermé et par `evaluateurDuDepot`. */
+const lecturesIllisibles = new WeakSet()
+
+/** Un module du lot : une chaîne non vide. @param {unknown} v @returns {v is string} */
+const estModuleDuLot = (v) => typeof v === 'string' && v !== ''
+
+/** `lu`, ou `null` si c'est un témoin d'illisibilité (`certifierLecture`). @param {unknown} lu */
+const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu)) ? null : /** @type {Lecture | null} */ (lu)
+
 /**
- * L'évaluation d'un LOT, sans accès au disque : `entreeJSON` = `{ lectures, resolutions, lecteurs, questions }` — les IR
- * (`encoderLecture`, `null` pour un module illisible), les `[module, spécificateur, cible]`, les modules qui peuvent porter
- * un relais, et les questions `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend, en JSON, `{ nature, f, resultat, requetes }`
- * par question. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
- * `QUESTION_DU_LOT:<nature>:<f>`.
- * @param {string} entreeJSON @returns {string}
+ * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`) : décodée (`decoderLecture`), sans
+ * nœud `lie`, gelée en profondeur. Pour un module illisible (`pool` = `null`), un TÉMOIN gelé sans clé, certifié et lié
+ * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
+ * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
+ * une racine qui n'est pas un objet ; un `module` hors domaine (`estModuleDuLot`) lève
+ * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`.
+ * @param {string} module @param {string | null} pool @returns {Lecture | LectureIllisible}
  */
-export function evaluerLotDuDepot(entreeJSON) {
-  const { lectures, resolutions, lecteurs, questions } = JSON.parse(entreeJSON)
-  const lus = new Map(lectures)
+export function certifierLecture(module, pool) {
+  if (!estModuleDuLot(module)) throw new Error('SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE')
+  if (pool === null) {
+    const temoin = /** @type {LectureIllisible} */ (Object.freeze(Object.create(null)))
+    lecturesIllisibles.add(temoin)
+    lecturesCertifiees.set(temoin, module)
+    return temoin
+  }
+  const lu = decoderLecture(pool)
+  if (!lu || typeof lu !== 'object') throw new Error(`SNAPSHOT_LECTURE_NON_OBJET:${module}`)
+  const vus = new WeakSet()
+  const visiter = (v) => {
+    if (!v || typeof v !== 'object' || vus.has(v)) return
+    vus.add(v)
+    if (v.k === 'lie') throw new Error(`SNAPSHOT_IR_NON_PRODUCTEUR:${module}`)
+    for (const enfant of Object.values(v)) visiter(enfant)
+  }
+  visiter(lu)
+  gelerLaConstante(lu)
+  lecturesCertifiees.set(lu, module)
+  return /** @type {Lecture} */ (lu)
+}
+
+/** `v` est-il un tableau NU : un `Array` dont les seules clés propres sont `length` et ses indices (ni méthode, ni
+ *  itérateur, ni clé symbole propres) ? @param {unknown} v @returns {v is unknown[]} */
+const estTableauNu = (v) => Array.isArray(v) && Reflect.ownKeys(v).every((cle) => cle === 'length' ||
+  typeof cle === 'string' && Number.isInteger(Number(cle)) && String(Number(cle)) === cle && Number(cle) >= 0 && Number(cle) < v.length)
+
+/**
+ * La valeur PROPRE `objet[cle]`, lue une seule fois par son descripteur (`undefined` si absente) ; un accesseur lève
+ * `SNAPSHOT_ACCESSEUR:<chemin>`.
+ * @param {object} objet @param {PropertyKey} cle @param {string} chemin @returns {unknown}
+ */
+const valeurPropre = (objet, cle, chemin) => {
+  const descripteur = Reflect.getOwnPropertyDescriptor(objet, cle)
+  if (descripteur && !('value' in descripteur)) throw new Error(`SNAPSHOT_ACCESSEUR:${chemin}`)
+  return descripteur?.value
+}
+
+/** La nature `v` dans un message : sa valeur pour une primitive (`String`, qui ne lève sur aucune), son `typeof` pour
+ *  un objet, dont aucune méthode n'est appelée. @param {unknown} v */
+const natureAffichee = (v) => v !== null && (typeof v === 'object' || typeof v === 'function') ? typeof v : String(v)
+
+/**
+ * La COPIE validée du DOMAINE d'un lot hors lectures, seule chose que consomme le noyau fermé : chaque élément lu une
+ * fois par son descripteur propre (`valeurPropre`, un accesseur lève `SNAPSHOT_ACCESSEUR:<chemin>`), jamais par une
+ * méthode ni un itérateur des entrées ; chaque tableau est NU (`estTableauNu`), sinon il lève l'erreur `*_NON_TABLEAU`
+ * ou `*_NON_TRIPLET` de sa place. Refus par forme : `resolutions` (`SNAPSHOT_RESOLUTIONS_NON_TABLEAU`,
+ * `SNAPSHOT_RESOLUTION_NON_TRIPLET:<i>`, `SNAPSHOT_RESOLUTION_HORS_DOMAINE:<i>`, `SNAPSHOT_RESOLUTION_DUPLIQUEE:<[f, spec]>`),
+ * `lecteurs` (`SNAPSHOT_LECTEURS_NON_TABLEAU`, `SNAPSHOT_LECTEUR_HORS_DOMAINE:<i>`, `SNAPSHOT_LECTEUR_DUPLIQUE:<f>`),
+ * `questions` (`SNAPSHOT_QUESTIONS_NON_TABLEAU`, `SNAPSHOT_QUESTION_NON_OBJET:<i>`, `SNAPSHOT_QUESTION_CLES:<i>` dont
+ * toute clé symbole, `SNAPSHOT_NATURE_INVALIDE:<nature>` (`natureAffichee`), `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`).
+ * Un module est une chaîne non vide (`estModuleDuLot`).
+ * @param {unknown} resolutions @param {unknown} lecteurs @param {unknown} questions
+ * @returns {{ resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: 'sitesDe' | 'relaisExportes', f: string }[] }}
+ */
+function validerDomaineDuLot(resolutions, lecteurs, questions) {
+  if (!estTableauNu(resolutions)) throw new Error('SNAPSHOT_RESOLUTIONS_NON_TABLEAU')
+  /** @type {[string, string, string | null][]} */
+  const copieResolutions = []
+  const specs = new Set()
+  for (let i = 0, n = resolutions.length; i < n; i++) {
+    const resolution = valeurPropre(resolutions, i, `resolutions[${i}]`)
+    if (!estTableauNu(resolution) || resolution.length !== 3) throw new Error(`SNAPSHOT_RESOLUTION_NON_TRIPLET:${i}`)
+    const [f, spec, cible] = [0, 1, 2].map((j) => valeurPropre(resolution, j, `resolutions[${i}][${j}]`))
+    if (!estModuleDuLot(f) || !estModuleDuLot(spec) || !(cible === null || estModuleDuLot(cible))) throw new Error(`SNAPSHOT_RESOLUTION_HORS_DOMAINE:${i}`)
+    const cle = JSON.stringify([f, spec])
+    if (specs.has(cle)) throw new Error(`SNAPSHOT_RESOLUTION_DUPLIQUEE:${cle}`)
+    specs.add(cle)
+    copieResolutions.push([/** @type {string} */ (f), /** @type {string} */ (spec), /** @type {string | null} */ (cible)])
+  }
+  if (!estTableauNu(lecteurs)) throw new Error('SNAPSHOT_LECTEURS_NON_TABLEAU')
+  /** @type {string[]} */
+  const copieLecteurs = []
+  const vus = new Set()
+  for (let i = 0, n = lecteurs.length; i < n; i++) {
+    const lecteur = valeurPropre(lecteurs, i, `lecteurs[${i}]`)
+    if (!estModuleDuLot(lecteur)) throw new Error(`SNAPSHOT_LECTEUR_HORS_DOMAINE:${i}`)
+    if (vus.has(lecteur)) throw new Error(`SNAPSHOT_LECTEUR_DUPLIQUE:${lecteur}`)
+    vus.add(lecteur)
+    copieLecteurs.push(/** @type {string} */ (lecteur))
+  }
+  if (!estTableauNu(questions)) throw new Error('SNAPSHOT_QUESTIONS_NON_TABLEAU')
+  /** @type {{ nature: 'sitesDe' | 'relaisExportes', f: string }[]} */
+  const copieQuestions = []
+  for (let i = 0, n = questions.length; i < n; i++) {
+    const question = valeurPropre(questions, i, `questions[${i}]`)
+    if (!question || typeof question !== 'object' || Array.isArray(question)) throw new Error(`SNAPSHOT_QUESTION_NON_OBJET:${i}`)
+    const cles = Reflect.ownKeys(question)
+    if (cles.some((cle) => typeof cle !== 'string') || cles.sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
+    const nature = valeurPropre(question, 'nature', `questions[${i}].nature`)
+    const f = valeurPropre(question, 'f', `questions[${i}].f`)
+    if (nature !== 'sitesDe' && nature !== 'relaisExportes') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${natureAffichee(nature)}`)
+    if (!estModuleDuLot(f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
+    copieQuestions.push({ nature, f: /** @type {string} */ (f) })
+  }
+  return { resolutions: copieResolutions, lecteurs: copieLecteurs, questions: copieQuestions }
+}
+
+/**
+ * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
+ * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
+ * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
+ * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. `lectures`
+ * se valide comme le reste du domaine (`validerDomaineDuLot`) : tableau NU, sinon `SNAPSHOT_LECTURES_NON_TABLEAU`, lu
+ * entrée par entrée à son indice d'entrée `<i>` par son descripteur propre (`valeurPropre`) ; chaque entrée est une
+ * paire NUE, sinon `SNAPSHOT_LECTURE_NON_PAIRE:<i>`, dont le module est du domaine (`estModuleDuLot`), sinon
+ * `SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:<i>`, et la lecture, témoin d'illisibilité compris, certifiée
+ * (`certifierLecture`), sinon `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, pour son module, sinon
+ * `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; un module déjà lu lève `SNAPSHOT_LECTURE_DUPLIQUEE:<module>`.
+ * Le noyau lit un témoin `null`. Il ne consomme du lot que ces lectures validées et la copie validée de
+ * `validerDomaineDuLot`. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`,
+ * enveloppé en `QUESTION_DU_LOT:<nature>:<f>`.
+ * @param {{ lectures: [string, Lecture | LectureIllisible][], resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
+ * @returns {{ nature: string, f: string, resultat: unknown, requetes: string[] }[]}
+ */
+export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lecteurs: lecteursDuLot, questions: questionsDuLot }) {
+  /** @type {Map<string, Lecture | null>} */
+  const lus = new Map()
+  if (!estTableauNu(lectures)) throw new Error('SNAPSHOT_LECTURES_NON_TABLEAU')
+  for (let i = 0, n = lectures.length; i < n; i++) {
+    const entree = valeurPropre(lectures, i, `lectures[${i}]`)
+    if (!estTableauNu(entree) || entree.length !== 2) throw new Error(`SNAPSHOT_LECTURE_NON_PAIRE:${i}`)
+    const [module, lu] = [0, 1].map((j) => valeurPropre(entree, j, `lectures[${i}][${j}]`))
+    if (!estModuleDuLot(module)) throw new Error(`SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:${i}`)
+    if (!lecturesCertifiees.has(/** @type {object} */ (lu))) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
+    const certifie = lecturesCertifiees.get(/** @type {object} */ (lu))
+    if (certifie !== module) throw new Error(`SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:${module}:${certifie}`)
+    if (lus.has(module)) throw new Error(`SNAPSHOT_LECTURE_DUPLIQUEE:${module}`)
+    lus.set(module, lectureOuNull(lu))
+  }
+  const { resolutions, lecteurs, questions } = validerDomaineDuLot(resolutionsDuLot, lecteursDuLot, questionsDuLot)
   const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
   const lisibles = new Set(lecteurs)
   const exiger = (table, cle, nature) => {
@@ -802,21 +961,7 @@ export function evaluerLotDuDepot(entreeJSON) {
     return table.get(cle)
   }
   const rendus = []
-  const decoded = new Map()
-  const lire = (module) => exiger(decoded, module, 'lecture')
-  for (const [module, pool] of lus) {
-    const lu = pool === null ? null : decoderLecture(pool)
-    const vus = new WeakSet()
-    const visiter = (v) => {
-      if (!v || typeof v !== 'object' || vus.has(v)) return
-      vus.add(v)
-      if (v.k === 'lie') throw new Error(`SNAPSHOT_IR_NON_PRODUCTEUR:${module}`)
-      for (const enfant of Object.values(v)) visiter(enfant)
-    }
-    visiter(lu)
-    if (lu) gelerLaConstante(lu)
-    decoded.set(module, lu)
-  }
+  const lire = (module) => exiger(lus, module, 'lecture')
   const evaluateur = construireEvaluateur({
     lecture: lire,
     cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
@@ -824,7 +969,6 @@ export function evaluerLotDuDepot(entreeJSON) {
     clesStructurelles: true, memoiserBooleens: false,
   }, true)
   for (const { nature, f } of questions) {
-    if (!['sitesDe', 'relaisExportes'].includes(nature)) throw new Error(`SNAPSHOT_NATURE_INVALIDE:${nature}`)
     try {
       const calculer = (index) => {
         const { resultat, requetes } = evaluateur.tracer(() => index === undefined ? evaluateur[nature](f) : evaluateur.siteDe(f, index))
@@ -846,10 +990,10 @@ export function evaluerLotDuDepot(entreeJSON) {
         resultat = rendu.resultat
         for (const requete of rendu.requetes) requetes.add(requete)
       }
-      rendus.push(`{"nature":${JSON.stringify(nature)},"f":${JSON.stringify(f)},"resultat":${resultat},"requetes":${JSON.stringify([...requetes])}}`)
+      rendus.push({ nature, f, resultat: JSON.parse(resultat), requetes: [...requetes] })
     } catch (erreur) { throw new Error(`QUESTION_DU_LOT:${nature}:${f}:${erreur.message}`, { cause: erreur }) }
   }
-  return `[${rendus.join(',')}]`
+  return rendus
 }
 
 /**
@@ -857,13 +1001,14 @@ export function evaluerLotDuDepot(entreeJSON) {
  * module à l'autre.
  * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
  * mémos internes compris — son résultat ne dépend que de leurs réponses.
- * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
- *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
+ * @param {{ lecture: (f: string) => Lecture | LectureIllisible | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
+ *   `lecture` : la lecture d'un module (null ou témoin d'illisibilité de `certifierLecture`, lu `null`, s'il est
+ *   illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
  *   `clesStructurelles` : IR DATA de `lectureDeModule`, noms propres, sans hook exécutable ; refus nommé si la qualification échoue.
  */
 export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true, clesStructurelles = false, memoiserBooleens = true }) {
-  return construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
+  return construireEvaluateur({ lecture: (f) => lectureOuNull(lectureDe(f)), cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
 }
 
 function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens }, ferme = false) {
@@ -958,15 +1103,17 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const celluleDe = (tokens) => {
     let branche = cellulesBooleennes
     for (const token of tokens) {
-      if (!branche.has(token)) branche.set(token, new Map())
-      branche = branche.get(token)
+      let suivante = branche.get(token)
+      if (suivante === undefined) branche.set(token, suivante = new Map())
+      branche = suivante
     }
-    if (!branche.has(finCelluleBooleenne)) {
-      const cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
+    let cellule = branche.get(finCelluleBooleenne)
+    if (cellule === undefined) {
+      cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
       referencesBooleennes.add(cellule)
       branche.set(finCelluleBooleenne, cellule)
     }
-    return branche.get(finCelluleBooleenne)
+    return cellule
   }
   const cleCanonique = (faire, racine, cache, { strict = false, cellules = false, formesCompletes = strict } = {}) => {
     try {
@@ -1183,6 +1330,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     const referenceDe = (v) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
       if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
+      if (ferme) {
+        const deja = references.get(v)
+        if (deja !== undefined) return deja
+      }
       observer(v)
       if (ferme) objetsCles.add(v)
       if (ferme && pile.has(v)) throw new Error('DAG_PRIVE_CYCLIQUE')
