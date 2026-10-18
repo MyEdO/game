@@ -3,8 +3,9 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
+import { aJugerParAst } from './check-doc-refs.mjs'
 const CLI = fileURLToPath(new URL('./check-doc-refs.mjs', import.meta.url))
 const site = (fichier, ligne) => [fichier, ligne].join(':')
 for (const porteur of ['commentaire', 'raison']) test(`suite citée ${porteur} : cible existante verte puis supprimée rouge`, () => {
@@ -33,44 +34,34 @@ test('préfiltre : jetons complets, spans AST et politique de chemins conservés
     const autre = 'src/9_alpha-beta.test.tsx'
     writeFileSync(join(racine, cible), '')
     writeFileSync(join(racine, autre), '')
-    writeFileSync(join(racine, 'scripts/non-candidat.mjs'), [
-      "const suffixe = '.test.mjs'",
-      '// scripts/test/outil.mjs',
-      '// src/ui/X.test.tsx ; src/x.test.ts ; src/.test.ts',
-      '// scripts/test/<nom>.test.mjs',
-    ].join('\n'))
-    writeFileSync(join(racine, 'scripts/citations.mjs'), [
-      `// (${cible}).`,
-      `const inline = 1 /* ${autre} */`,
-      `const trailing = 2 // ${cible};`,
-      '/* plusieurs lignes',
-      ` * ${autre},`,
-      ' */',
-      `const ECRIT_LU = { gate: { raison: 'suite : ' + '${cible}' + '\\n' + '${autre}' } }`,
-    ].join('\n'))
-    writeFileSync(join(racine, 'scripts/fixtures.mjs'), [
-      "const chaine = '// scripts/test/invente.test.mjs'",
-      'const regexp = /scripts\\/test\\/invente.test.mjs/',
-      'const template = `/* scripts/test/invente.test.mjs */`',
-      "const fixture = { raison: 'scripts/test/invente.test.mjs' }",
-    ].join('\n'))
-    const observer = join(racine, 'observer.mjs')
-    writeFileSync(observer, `import { registerHooks } from 'node:module'
-registerHooks({ load(url, context, nextLoad) {
-  const resultat = nextLoad(url, context)
-  if (url !== ${JSON.stringify(new URL('./check-doc-refs.mjs', import.meta.url).href)}) return resultat
-  const source = String(resultat.source)
-  const site = 'const sf = ast({ rel: file, text })'
-  if (!source.includes(site)) throw new Error('site AST introuvable')
-  return { ...resultat, source: source.replace(site, "process.stderr.write('[ast] ' + file.replaceAll('\\\\\\\\', '/') + '\\\\n'); " + site) }
-} })
-`)
-    const lancer = () => spawnSync(process.execPath, ['--import', pathToFileURL(observer).href, CLI], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
+    const textes = {
+      'scripts/non-candidat.mjs': [
+        "const suffixe = '.test.mjs'",
+        '// scripts/test/outil.mjs',
+        '// src/ui/X.test.tsx ; src/x.test.ts ; src/.test.ts',
+        '// scripts/test/<nom>.test.mjs',
+      ].join('\n'),
+      'scripts/citations.mjs': [
+        `// (${cible}).`,
+        `const inline = 1 /* ${autre} */`,
+        `const trailing = 2 // ${cible};`,
+        '/* plusieurs lignes',
+        ` * ${autre},`,
+        ' */',
+        `const ECRIT_LU = { gate: { raison: 'suite : ' + '${cible}' + '\\n' + '${autre}' } }`,
+      ].join('\n'),
+      'scripts/fixtures.mjs': [
+        "const chaine = '// scripts/test/invente.test.mjs'",
+        'const regexp = /scripts\\/test\\/invente.test.mjs/',
+        'const template = `/* scripts/test/invente.test.mjs */`',
+        "const fixture = { raison: 'scripts/test/invente.test.mjs' }",
+      ].join('\n'),
+    }
+    for (const [rel, texte] of Object.entries(textes)) writeFileSync(join(racine, rel), texte)
+    assert.deepEqual(Object.keys(textes).filter((rel) => aJugerParAst(textes[rel])), ['scripts/citations.mjs', 'scripts/fixtures.mjs'])
+    const lancer = () => spawnSync(process.execPath, [CLI], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
     const vert = lancer()
     assert.equal(vert.status, 0, vert.stderr)
-    assert.match(vert.stderr, /\[ast\] scripts\/citations.mjs/)
-    assert.match(vert.stderr, /\[ast\] scripts\/fixtures.mjs/)
-    assert.doesNotMatch(vert.stderr, /\[ast\] scripts\/non-candidat.mjs/)
     rmSync(join(racine, cible))
     rmSync(join(racine, autre))
     const rouge = lancer()

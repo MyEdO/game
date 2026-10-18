@@ -5,7 +5,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
- * FILET DE PÉRIMÈTRE DE LA PURETÉ DE COUCHE (#1709 C3b-2 ; CLAUDE.md règle stricte 3, #8 et #161).
+ * FILET DE PÉRIMÈTRE DE LA PURETÉ DE COUCHE (#1709 C3b-2 ; AGENTS.md règle stricte 3, #8 et #161).
  *
  * La doctrine « `src/engine` est pur, `src/state` est en amont de `src/ui`/`src/gameIso` » se dit
  * UNE fois, dans `oxlint.config.mjs`, et se joue par la gate `lint`. Ce banc ne recopie aucune

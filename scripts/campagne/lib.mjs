@@ -21,7 +21,7 @@ import { wardrobeKeyResolves } from '../../src/gameIso/rig/parts/career.ts';
 
 // ── VALIDATION id-only, à l'AUTHORING ───────────────────────────────────────────────────────
 // L'auteur écrit des IDS STABLES (`snotling`, `resistance`, `arc`, `mendiant`) — le libellé est de
-// l'AFFICHAGE (multilangue), jamais une clé (CLAUDE.md, encadré id STABLE). Chaque résolveur VALIDE :
+// l'AFFICHAGE (multilangue), jamais une clé (AGENTS.md, encadré id STABLE). Chaque résolveur VALIDE :
 // un id valide passe tel quel, TOUT le reste → throw en pointant où trouver les ids (Compendium/
 // catalogue). Les pickers de l'éditeur/Compendium aident à trouver l'id à la saisie.
 

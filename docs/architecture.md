@@ -99,7 +99,7 @@ la liaison réexportée en valeur (`export const p = b`), le requireur renommé 
 Premier consommateur : `src/ui/editor/interne/` (résumeurs d'atelier `resumeDOp.ts`, `resumeDeCondition.ts`).
 
 ```
-Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, CLAUDE.md § Sources VF)
+Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, AGENTS.md § Sources VF)
 src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans le Compendium) + index.ts (accès typé), pregens.ts
                             EXCEPTIONS manuscrites (tables verbatim sourcées) : criticals.ts, oups.ts,
                             mutations.ts (Tableaux de Corruption LDB 19). Les métadonnées de résolution
@@ -205,6 +205,8 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
+                            `garanti.ts` : une valeur que son producteur garantit, absente, lève un
+                            défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection

@@ -4,7 +4,7 @@ Référence VIVANTE (maintenue au fil du code). Une **campagne** = un projet mul
 carte du monde (`{ <identité>, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
 pas-à-pas « par où commencer », voir le skill `creer-une-campagne`. Ce document cartographie CHAQUE
 système qu'un auteur mobilise. Règle d'or transverse : **on n'authore que des IDS stables** (le libellé
-est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **personne ne lit le journal**
+est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **personne ne lit le journal**
 (tout dénouement doit être VISIBLE au moment) ; **aucun texte technique dans un texte joueur**.
 
 ## 1. Pipeline
@@ -216,7 +216,7 @@ tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur co
 Un `Dialogue` (`Scene.dialogues`) est un arbre de `DialogueNode` (`id`, `desc`, `choices`) — la
 réplique du nœud est de la PROSE (`desc`), l'étiquette d'un `DialogueChoice` est un LIBELLÉ (`label`),
 deux rôles distincts, deux clés (#1467 L1b). **Aucun nom
-en clair** n'est jamais authoré dans un nœud (doctrine id-only, CLAUDE.md « on ne MANIPULE que des
+en clair** n'est jamais authoré dans un nœud (doctrine id-only, AGENTS.md « on ne MANIPULE que des
 IDs ») : le portrait ET le nom de l'interlocuteur se résolvent TOUJOURS par ID d'entité, jamais par une
 chaîne de nom dupliquée dans la donnée.
 
@@ -503,13 +503,13 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
 ## 11. Règles d'or
 
 - **IDS partout** — `ref`/`skill`/`spell`/`weapon`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
-  des ids STABLES. Un libellé est un défaut silencieux (poison). Doctrine : CLAUDE.md, encadré « id STABLE ».
+  des ids STABLES. Un libellé est un défaut silencieux (poison). Doctrine : AGENTS.md, encadré « id STABLE ».
 - **Personne ne lit le journal** — tout dénouement pertinent est une surface VISIBLE au moment (dialogue,
   modale, effet à l'écran), le `journal` ne fait que rappeler.
 - **Aucun texte technique dans un texte joueur** — un `node.desc`/`journal` est rendu VERBATIM par
   `Prose` (`src/ui/Prose.tsx`) : ni identifiant de code, ni tag d'auteur (`[INEXPRIMABLE]`), ni citation
   RAW brute (`MDG 14 l.45`). Les constats d'authoring vont dans un journal `docs/plans/`, jamais en jeu.
-- **Prose = verbatim source, Markdown** (CLAUDE.md règle 5) — jamais de reformulation ni de HTML. Exception
+- **Prose = verbatim source, Markdown** (AGENTS.md règle 5) — jamais de reformulation ni de HTML. Exception
   du paquet de campagne : une réplique absente du livre s'authore maison, et une description destinée au MJ
   se reformule en texte lu à l'écran même quand le livre la porte — l'une et l'autre SANS `source`, et
   toutes deux passent devant un juge esprit (skill `adapter-une-campagne`, étape 8) ; le verbatim n'y

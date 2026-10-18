@@ -22,7 +22,7 @@ import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, victimeDuCoup, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './lineOfSight';
@@ -43,7 +43,7 @@ import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
-import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, apercuDesCritiques, coupAApplique, type DefenseMode } from '../engine/combat';
+import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, issueAuJet, coupAApplique, type DefenseMode } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -101,7 +101,8 @@ import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId, garanti } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { aPorteeDe } from './exploreNav';
 import { controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './combatCursor';
@@ -222,7 +223,7 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
   const battle = get().battle;
   if (!battle) return false;
   const crew = (ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-  const shots = resolveVolley(ship, bearingPostes(ship, side), target, dr, success, crew, battleRng(), { merScale: isMerScene(get().scene) });
+  const shots = resolveVolley(ship, bearingPostes(ship, side), dr, success, crew, battleRng(), { merScale: isMerScene(get().scene) });
   for (const s of shots) { // la PIÈCE a fait feu (l.128), touchée ou non
     const poste = ship.postes?.find((pp) => pp.item.uid === s.posteUid);
     if (poste) unloadWeapon(undefined, undefined, poste);
@@ -233,7 +234,7 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
   get().log(success
     ? t('cs.bordee', { side, ship: ship.label, target: target.label, dr: drTxt, n })
     : t('cs.bordeeManque', { side, ship: ship.label, target: target.label, dr: drTxt, n }));
-  return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res })) });
+  return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
 }
 
 /**
@@ -2312,8 +2313,12 @@ export function createCombatSlice(get: Get, set: Set) {
     attackSetCritLocation: (loc: HitLocation) => {
       const pa = get().pendingAttack;
       // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-      const cible = pa ? inBattleId(get().battle, pa.targetId) : undefined;
-      if (!pa || !pa.forced || !pa.result || !cible || !apercuDesCritiques(cible, coupAApplique(pa.result, pa.grapple, cible)).relance) return;
+      const battle = get().battle;
+      const cible = pa ? inBattleId(battle, pa.targetId) : undefined;
+      const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
+      if (!battle || !pa || !pa.forced || !pa.result || !cible || !attaquant) return;
+      const victime = victimeDuCoup(battle, cible, pa);
+      if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     attackRoll: () => {
@@ -2349,7 +2354,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const attacker = inBattleId(battle, pa.attackerId);
       const target = inBattleId(battle, pa.targetId);
       // Tir dévié dans la mêlée (LDB 14 l.116) : la touche est appliquée à l'allié intercalé, pas à la cible.
-      const victim = pa.victimId ? inBattleId(battle, pa.victimId) ?? target : target;
+      const victim = target && victimeDuCoup(battle, target, pa);
       const wasChain = !!pa.cleave; // cette attaque faisait-elle partie d'un balayage en cours ?
       const restitutionDeChaine = wasChain ? get().pendingCleave?.restitution : undefined;
       const dualBefore = get().pendingDualStrike; // données de la 1ʳᵉ frappe (présentes quand on confirme la 2ᵉ)

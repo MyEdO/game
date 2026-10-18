@@ -1,5 +1,5 @@
 // Volet ANTI-TOMBALE de la porte du commit (`porte-du-commit.mjs`) : fermer un ticket dont le code porte encore, EN COMMENTAIRE,
-// une trace de dette qui le cite laisse une pierre tombale (CLAUDE.md règle 6, tolérance ZÉRO).
+// une trace de dette qui le cite laisse une pierre tombale (AGENTS.md règle 6, tolérance ZÉRO).
 //
 // La détection réutilise `extractComments` (scripts/guards/lib/commentPoison.mjs), la mécanique
 // EXISTANTE du garde-fou commentaires — jamais un `git grep` sur le texte brut : un motif écrit dans
@@ -102,7 +102,7 @@ export function evaluateTombale({ issuesFermees = [], fichiers = [], lire = () =
   return {
     decision: 'deny',
     reason:
-      `⛔ Fermeture d'un ticket encore cité comme DETTE dans un commentaire du code (CLAUDE.md règle 6, ` +
+      `⛔ Fermeture d'un ticket encore cité comme DETTE dans un commentaire du code (AGENTS.md règle 6, ` +
       `tolérance zéro) : ${detail}. Retirer le commentaire dans le MÊME commit (git porte l'historique) ` +
       `— ou ne pas fermer, si la dette est réelle.`,
   }

@@ -6,7 +6,7 @@
  */
 import type { BattleState, PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../state/store';
 import { Combatant } from '../../engine/types';
-import { attackWeaponOf } from '../../state/combatFlow';
+import { attackWeaponOf, victimeDuCoup } from '../../state/combatFlow';
 import { Dims, tileCenter } from '../../geometry/iso';
 import { TargetReticle } from '../TargetReticle';
 import { relationColor } from '../teamColors';
@@ -26,9 +26,10 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
 }) {
   const byId = (id?: string | null) => (id ? battle.combatants.find((c) => c.id === id && c.pos) : undefined);
   if (pendingAttack) {
-    const a = byId(pendingAttack.attackerId), t = byId(pendingAttack.victimId ?? pendingAttack.targetId);
-    if (!a || !t) return null;
-    const ranged = attackWeaponOf(battle, a, t, pendingAttack).type === 'ranged'; // l'arme du coup (#1026)
+    const a = byId(pendingAttack.attackerId), cible = byId(pendingAttack.targetId);
+    const t = cible && byId(victimeDuCoup(battle, cible, pendingAttack).id);
+    if (!a || !cible || !t) return null;
+    const ranged = attackWeaponOf(battle, a, cible, pendingAttack).type === 'ranged'; // l'arme du coup (#1026)
     return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {

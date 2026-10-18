@@ -158,7 +158,7 @@ test('EFFET — `listerArbre` ne descend aucun lien (vers un dossier, vers un fi
 })
 
 test('`parLibelle` — alphabétique ACCENTS et CASSE ignorés, là où `parUnitesDeCode` les fait décider', () => {
-  // Les trois désalphabétisations mesurées sur les docs routés par CLAUDE.md quand un libellé est trié
+  // Les trois désalphabétisations mesurées sur les docs routés par AGENTS.md quand un libellé est trié
   // en unités de code : accent APRÈS la lettre nue, majuscule AVANT toute minuscule.
   assert.deepEqual(['Transformation', 'États'].sort(parLibelle), ['États', 'Transformation'])
   assert.deepEqual(['Transformation', 'États'].sort(parUnitesDeCode), ['Transformation', 'États'])

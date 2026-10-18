@@ -18,7 +18,7 @@
  */
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { checkPartyWiped } from './partyWipe';
 import { placeById, placeOfScene, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';

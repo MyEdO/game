@@ -1,9 +1,6 @@
-<!-- GENERATED: agents:sync; source=CLAUDE.md -->
-Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).
-
 # AGENTS.md — RPG Warhammer Fantasy v4 (web)
 
-Le credo importé ci-dessus prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
+Le credo `.claude/credo.md` prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
 geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
@@ -13,7 +10,7 @@ Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nig
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
-(trunk-based). Le `Foundry/AGENTS.md` parent ne s'applique PAS ici.
+(trunk-based). Le parent `Foundry/` ne s'applique PAS.
 
 Mémoire committée `.claude/memory/` (en-tête de routage `MEMORY.md` + doctrines `user-*`) : injectée en local, son en-tête seul
 en cloud ; se committe comme du code, jamais de git destructif dessus.

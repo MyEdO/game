@@ -1,11 +1,11 @@
 /**
  * VOLÉE DE BORDÉE — « Tir de batterie » (MDG 14 l.128), résolution PURE : ne mute RIEN. Le Test d'équipage
- * (`dr`, `success`, MDG 14 l.13) tient lieu du jet pour toucher de chaque pièce ; chaque coup est ensuite
- * la touche d'un tir ordinaire (`toucheAuJetPose`, MDG 12 l.375, EDOC 07 l.332), quelle que soit la cible.
- * L'appelant applique chaque `AttackResult` par la couture du coup (`applyAttackResult`).
+ * (`dr`, `success`, MDG 14 l.13) tient lieu du jet pour toucher de chaque pièce : la volée rend le JET de chaque
+ * pièce, et l'appelant fait naître chaque coup (`toucheAuJetPose`, MDG 12 l.375, EDOC 07 l.332) sur la cible
+ * vivante, juste avant de l'appliquer par la couture du coup (`applyAttackResult`).
  */
 import { d100, type RNG, defaultRNG } from './dice';
-import { toucheAuJetPose, type AttackResult, type RollBreakdown } from './combat';
+import type { RollBreakdown } from './combat';
 import { attackDRAdjust } from './qualities/dispatch';
 import { mannedPosteWeapon, loadedAmmo, weaponWithAmmo } from './items';
 import { crewedFireWeapon } from './crewedWeapon';
@@ -18,8 +18,8 @@ export interface VolleyShot {
   tireur: Combatant;
   /** Arme EFFECTIVE de la pièce (munition + sous-effectif). */
   weapon: Weapon;
-  /** Le coup, touché ou raté. */
-  res: AttackResult;
+  /** Le jet de la pièce (MDG 14 l.128). */
+  jet: RollBreakdown;
   /** uid de la pièce (`item.uid`) — pour la décharger après le tir. */
   posteUid: string;
   /** Munition TIRÉE — consommée par l'appelant (MDG 12 l.410-424). */
@@ -29,14 +29,14 @@ export interface VolleyShot {
 }
 
 /**
- * Résout la volée d'une bordée. `firingShip` = navire tireur ; `postes` = pièces du bord qui porte ; `target` = cible
- * (MDG 14 l.128 : « un ennemi ») ; `dr` = DR partagé du Test d'équipage ; `success` = ce Test est-il réussi
- * (`crewTestSuccess`, MDG 14 l.13) ; `crew` = équipage tireur. PUR (RNG injecté).
+ * Résout la volée d'une bordée. `firingShip` = navire tireur ; `postes` = pièces du bord qui porte ;
+ * `dr` = DR partagé du Test d'équipage ; `success` = ce Test est-il réussi (`crewTestSuccess`, MDG 14 l.13) ;
+ * `crew` = équipage tireur. PUR (RNG injecté).
  *
  * `opts.merScale` (MDG 14 l.39) : une pièce sans servant est servie par l'équipage abstrait, à l'Indice plein.
  */
 export function resolveVolley(
-  firingShip: Combatant, postes: ShipPoste[], target: Combatant, dr: number, success: boolean,
+  firingShip: Combatant, postes: ShipPoste[], dr: number, success: boolean,
   crew: Combatant[], rng: RNG = defaultRNG,
   opts: { merScale?: boolean } = {},
 ): VolleyShot[] {
@@ -55,10 +55,7 @@ export function resolveVolley(
     weapon = crewedFireWeapon(weapon, abstract ? crewedTeamIndice(weapon) : servants.length);
     const gunDR = dr + attackDRAdjust(weapon, success); // LDB 62 l.288, l.323
     const jet: RollBreakdown = { label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll: d100(rng), success, sl: gunDR };
-    shots.push({
-      tireur, weapon, ammo, res: toucheAuJetPose(tireur, target, weapon, jet, gunDR, { rng }),
-      posteUid: poste.item.uid, reload: weapon.reload ?? 0,
-    });
+    shots.push({ tireur, weapon, ammo, jet, posteUid: poste.item.uid, reload: weapon.reload ?? 0 });
   }
   return shots;
 }

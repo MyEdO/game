@@ -100,4 +100,4 @@ function evaluer(entree, contexte) {
   return refus(entree.tool_name, commande, borne, base)
 }
 
-export const garde = { nom: 'appel-borne', outils: OUTILS_BORNES, evaluer }
+export const garde = { nom: 'appel-borne', categorie: 'validation', outils: OUTILS_BORNES, evaluer }

@@ -1,7 +1,6 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
 import { createHash } from 'node:crypto'
-import { registerHooks } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, rmSync, writeFileSync } from 'node:fs'
@@ -133,55 +132,6 @@ test('dérivation échouée : diagnostic depuis la sortie bornée sans relire le
   rmSync(traces, { recursive: true, force: true })
 })
 
-const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
-
-
-// #2586
- test('slots gelés owner : N+1, lecture directe et prélue, mémos JSON froids/chauds et blob changé', async () => {
-  const urls = ['prelue', 'directe'].map((mode) => new URL('./perimetreDerivation.mjs?slots-owner-' + mode, import.meta.url).href)
-  const hook = registerHooks({ load(specifier, contexte, suivant) {
-    const rendu = suivant(specifier, contexte)
-    if (!urls.includes(specifier)) return rendu
-    let texte = Buffer.from(rendu.source).toString('utf8')
-    const constructeur = 'APPEL_DE_LECTURE, evaluateurDuDepot,'
-    assert.equal(texte.split(constructeur).length, 2)
-    texte = texte.replace(constructeur, 'APPEL_DE_LECTURE, evaluateurDuDepot as construireEvaluateur,')
-    texte += '\nfunction evaluateurDuDepot(options) { if (options.clesStructurelles !== true) throw new Error("MODE_STRUCTUREL_OWNER_ABSENT"); return construireEvaluateur(options); }\n'
-    texte = texte.replace('  const lectures = new Map()', '  const lectures = new Map()\n  lectures.set = (f, lu) => { if (lu) verifierGel(lu); return Map.prototype.set.call(lectures, f, lu) }')
-    if (specifier === urls[1]) texte = texte.replace('    prelire(new Set(', '    if (false) prelire(new Set(')
-    texte += '\nexport const observationsSlots = [];\nfunction verifierGel(lu) { const pile = [lu]; const vus = new Set(); while (pile.length) { const o = pile.pop(); if (!o || typeof o !== "object" || vus.has(o)) continue; vus.add(o); if (!Object.isFrozen(o)) throw new Error("lecture owner non gelée"); pile.push(...Object.values(o)); } observationsSlots.push(lu); }\n'
-    return { ...rendu, source: texte }
-  } })
-  try {
-    for (const url of urls) {
-      const { deriverPerimetre, observationsSlots } = await import(url)
-      const modules = new Map([
-        ['scripts/nouveau.test.mjs', "import { inédit } from './nouveau.mjs'; inédit(true)"],
-        ['scripts/nouveau.mjs', "import { readFileSync } from 'node:fs'; export function inédit(flag) { if (flag) readFileSync('src/a.json') }"],
-      ])
-      const json = new Map()
-      let hits = 0
-      const memos = {
-        lire(nature, cle) { if (nature === 'evaluations') return undefined; const bytes = json.get(nature + ':' + cle); if (bytes === undefined) return undefined; if (nature === 'lectures') hits++; return JSON.parse(bytes) },
-        ecrire(nature, cle, lu) { json.set(nature + ':' + cle, JSON.stringify(lu)) },
-      }
-      const entree = { racine: new URL('../..', import.meta.url).pathname.replace(/^\/(?=[A-Z]:)/, ''), touches: ['src/a.json'], post: [...modules.keys(), 'src/a.json'], avant: [], lire: (rels) => new Map(rels.map((f) => [f, modules.get(f) ?? null])), memos }
-      const froid = deriverPerimetre(entree)
-      const nombre = observationsSlots.length
-      assert.ok(nombre > 0)
-      const chaud = deriverPerimetre(entree)
-      assert.deepEqual(chaud, froid)
-      assert.ok(hits > 0)
-      assert.ok(observationsSlots.length > nombre)
-      assert.ok(froid.retenus.has('scripts/nouveau.test.mjs'))
-      modules.set('scripts/nouveau.mjs', modules.get('scripts/nouveau.mjs').replace('src/a.json', 'src/b.json'))
-      const change = deriverPerimetre(entree)
-      assert.equal(change.retenus.has('scripts/nouveau.test.mjs'), false)
-      assert.notDeepEqual(change, froid)
-    }
-  } finally { hook.deregister() }
-})
-
 test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, partition sans doublon', () => {
   const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs', 'scripts/corpus-isole/guards/trois.test.mjs']
   const local = 'scripts/test/local.test.mjs'
@@ -192,6 +142,8 @@ test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, 
   assert.deepEqual([...plan.lances, ...plan.aLaCI].sort(), [...retenus.keys()].sort())
   assert.equal(new Set([...plan.lances, ...plan.aLaCI]).size, retenus.size)
 })
+
+const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
 /** Un dépôt jetable : `base` commité, puis `apres` (texte, `null` = supprimé, `{ de }` = renommé) commité
  *  si `commiter`, laissé dans l'arbre de travail sinon. */

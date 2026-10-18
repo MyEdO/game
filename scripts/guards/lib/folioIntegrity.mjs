@@ -2,7 +2,7 @@
 // de `sourceRefSchema`, `citationCoverage.mjs` la COUVERTURE (chaque entrée cite-t-elle une source ?) :
 // aucun des deux ne vérifie que le folio déclaré POINTE SUR LA BONNE PAGE. Ce module le prouve, en
 // croisant deux invariants déjà posés par le dépôt :
-//   1. règle stricte 5 (CLAUDE.md) — une `desc` est un copié/collé VERBATIM de la source, donc elle
+//   1. règle stricte 5 (AGENTS.md) — une `desc` est un copié/collé VERBATIM de la source, donc elle
 //      DOIT se retrouver telle quelle dans le `Source/` du livre déclaré ;
 //   2. `source.page` est le folio IMPRIMÉ du livre — JAMAIS l'index de la ré-extraction Marker
 //      (`sourceRefSchema`, `src/data/schemas/grammaire/valeurs.ts`) —, et l'extraction

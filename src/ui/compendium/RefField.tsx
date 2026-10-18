@@ -11,7 +11,7 @@ import type { JSX } from 'react';
  *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset).
  * On stocke partout l'`id` — multilangue-safe (cf.
- * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
+ * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';

@@ -743,7 +743,7 @@ export const castingNumberModSchema = nommerChamps(z
       }), { domains: { label: "domaines" }, domainsExcept: { label: "domaines exclus" }, chaosMagic: { label: "magie du Chaos" }, spellIds: { label: "sorts" }, kinds: { label: "types" } })
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
-     *  (sens d'arrondi non imprimé…) — CLAUDE.md règle 7. */
+     *  (sens d'arrondi non imprimé…) — AGENTS.md règle 7. */
     maison: z.string().optional(),
     source: sourceRefSchema,
     /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */

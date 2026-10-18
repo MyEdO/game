@@ -991,6 +991,15 @@ export function piecesPorteesA(c: Combatant, loc: HitLocation): ItemInstance[] {
   return (c.items ?? []).filter((i) => i.equipped && i.kind === 'armor' && (i.pa ?? 0) > 0 && !!i.locs?.includes(loc) && armureUtilisable(i));
 }
 
+/** LDB 60 l.50 ; LDB 63 l.21. */
+export function casserLaPieceBaclee(c: Combatant, loc: HitLocation): boolean {
+  const piece = piecesPorteesA(c, loc).find((i) => hasQuality(i, 'bacle'));
+  if (!piece) return false;
+  piece.damageTaken = (piece.pa ?? 0) + 1;
+  recomputeLoadout(c);
+  return true;
+}
+
 /** `loc` est-elle « protégée par une armure » pour la Déviation Critique (LDB 63 l.30) ? Une pièce portée
  *  utilisable, même à 0 PA (LDB 63 l.19, l.21) ; à défaut de pièce, la PA plate (statbloc, Trait Armure, PA de
  *  mutation) MOINS les PA hors Déviation (EDO App.2 l.196), > 0. Le PA de sort (activeEffects) n'entre pas. */

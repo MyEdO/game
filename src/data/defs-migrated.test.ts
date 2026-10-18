@@ -4,7 +4,7 @@
  * Les Traits et les Qualités sont les DEUX familles sans registre généré — 31 `_registry.generated.ts`
  * existent ailleurs sous `src/` (mesuré) : la distinction est vivante, ce fichier la tient, et il porte
  * la SEULE couverture exhaustive de la résolution par id des deux catalogues.
- * Cf. `CLAUDE.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
+ * Cf. `AGENTS.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';

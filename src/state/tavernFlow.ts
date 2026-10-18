@@ -61,7 +61,8 @@ import {
   type SequenceSide, type SequenceCombinedRules,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
-import { actorIn, garanti } from './combatants';
+import { actorIn } from './combatants';
+import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './sceneNpc';
 import type { Scene } from './scene';
 import { jetSurfaced } from './netOwnership';

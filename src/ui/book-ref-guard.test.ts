@@ -10,7 +10,7 @@ import { alternationDuRegistre, REGISTRE_LIVRES } from '../../scripts/guards/lib
  * Garde-fou « réf de livre hors surface Codex » (#601, même classe que #596).
  *
  * Une référence de livre (`LDB 23 l.141`, `MDG 12`…) est une information d'AUTEUR : elle a sa place
- * dans un commentaire (CLAUDE.md règle 6 : la réf NUE y fait foi), dans la donnée (`source: {book,
+ * dans un commentaire (AGENTS.md règle 6 : la réf NUE y fait foi), dans la donnée (`source: {book,
  * page}`), et sur les surfaces qui CITENT leur source — le Codex/Compendium, où `CodexRef` la rend
  * lui-même en pied de popover. Elle n'a AUCUNE place sur une surface de JEU : le joueur n'ouvre pas
  * le livre, et une réf affichée doit être LIÉE à la règle qu'elle cite — via `CodexRef` vers une
@@ -57,7 +57,7 @@ const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
  *
  * `src/ui/editor/**` : l'éditeur de scène/statblock a pour utilisateur un AUTEUR, jamais un joueur.
  * Sa raison d'être est de produire de la donnée conforme au RAW, chaque entrée taguée à sa `source`
- * (CLAUDE.md règles 1 et 5) : un champ « Caractéristiques aléatoires (LDB 77 l.108) » dit à l'auteur
+ * (AGENTS.md règles 1 et 5) : un champ « Caractéristiques aléatoires (LDB 77 l.108) » dit à l'auteur
  * QUEL passage il implémente — c'est le même service que rend la réf en commentaire au codeur. La
  * retirer appauvrirait l'outil sans rien protéger, puisque aucune de ces vues n'est atteignable en
  * jouant.

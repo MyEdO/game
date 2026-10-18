@@ -28,9 +28,10 @@ import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { groupMatch } from './groups';
-import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon } from './items';
+import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackMod, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
+import { garanti } from '../lib/garanti';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF } from './ruleRefs';
 import { spellEffectOps } from './flowCore';
@@ -39,7 +40,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, critWoundLocation, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
+import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -503,6 +504,8 @@ export interface AttackResult {
   /** Localisation relancée du coup, décidée à sa naissance (`applyHit`) ; absente = Localisation de touche.
    *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; LDB 17 l.68 ; #1595 c.6226467544. */
   critLocation?: HitLocation;
+  /** Localisation relancée APPLIQUÉE à CE coup (`location`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32. */
+  localisationRelancee?: true;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
@@ -1615,15 +1618,44 @@ export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attack
   return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
 }
 
-/** Le compte d'une touche d'arme au jet, avant application : `critiquesDuCoup`. LDB 17 l.68 ; LDB 18 l.44 ;
- *  AA 07 l.65 ; #1595 c.6219992594, c.6228496170 R1. */
-export function apercuDesCritiques(
-  cible: Combatant,
-  res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise' | 'hit' | 'woundsLost'>,
-  jeu: JeuDeCritique = jeuDeCritique(),
-): CompteDesCritiques {
+/** La cible après `n` Déviations à `loc`, puis sa pièce Bâclée cassée sous `casse`, sur une COPIE.
+ *  LDB 63 l.19, l.21, l.32 ; LDB 60 l.50 ; #1595 c.6228496170 Q1. */
+export function apresDeviations(cible: Combatant, loc: HitLocation, n: number, opts: { casse?: boolean } = {}): Combatant {
+  if (n === 0 && !opts.casse) return cible;
+  const copie = structuredClone(cible);
+  for (let i = 0; i < n; i++) damageArmour(copie, loc);
+  if (opts.casse) casserLaPieceBaclee(copie, loc);
+  return copie;
+}
+
+/** LDB 63 l.78 ; #1595 c.6221792068 Q3, c.6228496170 Q3, Q4a. */
+export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number, cible: Combatant, lieu: HitLocation): CompteDesCritiques {
+  if (jet % 2 !== 1 || !impenetrableAt(cible, lieu)) return compte;
+  return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
+}
+
+/** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
+ *  LDB 18 l.53, l.55. */
+export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; coupCritique: boolean }
+
+/** Le compte d'une touche d'arme après `n` Déviations, au jet comme à l'application ; ne tire rien.
+ *  LDB 18 l.44, l.53, l.55 ; LDB 63 l.19, l.21, l.30, l.32, l.78 ; LDB 60 l.50 ; AA 07 l.65 ;
+ *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
+export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
-  return critiquesDuCoup(cible, { ...coup, touche: true, relance: relanceLaLocalisation(cible, coup, jeu), blessures: res.woundsLost ?? 0 }, jeu);
+  const relance = relanceLaLocalisation(cible, coup);
+  const lieu: HitLocation = relance ? garanti(res.critLocation, cible.id, 'Localisation relancée du coup (applyHit, LDB 18 l.53)') : (res.location ?? 'corps');
+  const devie = apresDeviations(cible, lieu, n);
+  let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
+  if (relance) {
+    blessures = woundsAtCritLocation(res, arme, apresDeviations(cible, lieu, n, { casse: true }), lieu);
+  } else if (coup.prise && n > 0 && !res.degatsTransferes) {
+    const dmg = res.damage ?? 0;
+    blessures += Math.max(0, woundsFromHit(arme, devie, lieu, dmg, 0, 1, attaquant.size) - woundsFromHit(arme, cible, lieu, dmg, 0, 1, attaquant.size));
+  }
+  const compte = critiquesDuCoup(cible, { ...coup, touche: true, relance, blessures });
+  const coupCritique = compte.critiques.some((c) => estUnCoupCritique(c.origine));
+  return { compte: relance ? sansLeCoupCritiqueIgnore(compte, res.attackerRoll, devie, lieu) : compte, lieu, coupCritique };
 }
 
 /** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159 ; #1595 c.6230022636. */
@@ -1631,12 +1663,12 @@ export function coupAApplique(res: AttackResult, grapple: boolean | undefined, c
   return grapple && res.hit && peutEtreEmpoigne(cible) ? { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' } : res;
 }
 
-/** L'issue au jet du coup `res` tel que l'appelant le passe : sa ligne de touche et `apercuDesCritiques`,
+/** L'issue au jet du coup `res` tel que l'appelant le passe : sa ligne de touche et `compteDuCoup`,
  *  sans les `runHitModifiers` de l'application (`src/state/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
-export function issueAuJet(cible: Combatant, res: AttackResult): { ligne: string; compte: CompteDesCritiques } {
-  const compte = apercuDesCritiques(cible, res);
+export function issueAuJet(cible: Combatant, res: AttackResult, arme: Weapon, attaquant: Combatant): { ligne: string; compte: CompteDesCritiques } {
+  const { compte, lieu } = compteDuCoup(res, arme, attaquant, cible, 0);
   if (!res.touche) return { ligne: res.log, compte };
-  const tete = phraseDeTouche(res.touche, res, compte.critiques.length > 0);
+  const tete = phraseDeTouche(res.touche, { ...res, location: compte.relance ? lieu : res.location, woundsLost: compte.blessures }, compte.critiques.length > 0, compte.relance);
   // LDB 14 l.159
   const empoignade = res.sansPrise === 'empoignade' ? ` ${t('cf.grappleInit', { name: res.touche.attaquant, foe: res.touche.cible })}` : '';
   return { ligne: `${tete}${empoignade}`, compte };
@@ -1680,17 +1712,20 @@ export interface ToucheDuJournal {
 }
 
 /** La ligne de touche d'un coup : Localisation, Dégâts et Blessures tels que portés par `res`, marque Critique
- *  selon `critique`. Sans prise ni Dégâts sur la cible, la ligne ne chiffre rien. LDB 14 l.159 ; LDB 43 l.107. */
+ *  selon `critique`, Localisation relancée selon `relance`. Sans prise ni Dégâts sur la cible, la ligne ne chiffre
+ *  rien. LDB 14 l.159 ; LDB 43 l.107 ; LDB 18 l.53, l.55 ; AA 07 l.32. */
 export function phraseDeTouche(
   touche: ToucheDuJournal,
   res: Pick<AttackResult, 'location' | 'damage' | 'woundsLost' | 'sansPrise' | 'degatsTransferes'>,
   critique: boolean,
+  relance: boolean,
 ): string {
   const tete = touche.sort ? `${touche.attaquant} lance ${touche.sort} sur ${touche.cible}` : `${touche.attaquant} touche ${touche.cible}`;
   if (touche.coque) {
     return t('touche.sansEffetCoque', { tete, raison: t(touche.coque === 'petites-armes' ? 'touche.coquePetitesArmes' : 'touche.coqueTropPetit') });
   }
-  const lieu = res.location ? ` (${locationLabel(res.location, touche.forme)})` : '';
+  const nomme = res.location ? locationLabel(res.location, touche.forme) : '';
+  const lieu = nomme ? ` (${relance ? t('touche.nouvelleLocalisation', { lieu: nomme }) : nomme})` : '';
   const marque = critique ? ' — CRITIQUE !' : '';
   const close = (phrase: string): string => (/[!?…]$/.test(phrase) ? phrase : `${phrase}.`);
   if (res.sansPrise || res.degatsTransferes) return close(`${tete}${lieu}${marque}`);
@@ -1702,7 +1737,7 @@ export function phraseDeTouche(
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
  *  et les Blessures critiques infligées (`critiques`), suivie des `ajouts`. LDB 18 l.53, l.55 ; LDB 63 l.32. */
 export function ligneDuCoup(res: AttackResult): string {
-  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0) : res.log;
+  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, !!res.localisationRelancee) : res.log;
   return [tete, ...(res.ajouts ?? [])].filter(Boolean).join(' ');
 }
 
@@ -1719,6 +1754,7 @@ function applyHit(
   extraAP = 0, // PA conférés par l'arme d'opposition du défenseur (Protectrice, LDB 62 l.296)
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
+  const arme = weapon;
   // LDB 18 l.30 ; AA 07 l.59, l.61.
   const withholding = withhold && peutRetenirSesCoups(effectiveWeapon(weapon));
   const perdAtouts = withholding && rule('combat-aa-blessures') === 'aa';
@@ -1788,11 +1824,10 @@ function applyHit(
     attaquant: attacker.label, cible: defender.label, forme: defender.bodyShape, mitigation: mitLabel,
     ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
   };
-  const apercu = { location: loc, damage, woundsLost, ...(sansPrise ? { sansPrise } : {}) };
   // LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544.
   const coupCritique = causeDuCoupCritique({ critical: isCritical, attackerRoll: atkBd.roll, sansPrise });
   const relance = relanceLaLocalisation(defender, { coupCritique, prise: !sansPrise, current: defender.wounds.current });
-  return {
+  const coup: AttackResult = {
     hit: true,
     attackerRoll: atkBd.roll,
     attackerDetail: atkBd,
@@ -1809,8 +1844,9 @@ function applyHit(
     advantageTo: 'attacker',
     defenderDefeated: defeated,
     touche,
-    log: phraseDeTouche(touche, apercu, isCritical && !sansPrise),
+    log: '',
   };
+  return { ...coup, log: issueAuJet(defender, coup, arme, attacker).ligne };
 }
 
 /** Blessures non critiques à la Localisation relancée (`CompteDesCritiques.relance`) ; queue d'`applyHit`.

@@ -13,7 +13,7 @@
 import type { Effect, Scene } from './scene';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { normalizeScene } from './scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
@@ -72,7 +72,7 @@ export interface MapPlace {
  *  `transitionTo`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
  *  port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
  *  jamais les deux. `id` STABLE (référencé par l'éditeur et les tests, `validateScene`) ; `label` est
- *  le SEUL champ d'affichage (doctrine ids internes, CLAUDE.md). */
+ *  le SEUL champ d'affichage (doctrine ids internes, AGENTS.md). */
 export interface PlacePoi {
   id: string;
   label: string;

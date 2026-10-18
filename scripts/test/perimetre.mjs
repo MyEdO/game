@@ -34,7 +34,7 @@ import { lireArguments } from './argumentsPerimetre.mjs'
 import { prendreVerrouAsync, tenantEnUneLigne } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { ecrireJsonAtomique, lireTextePublie } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { GATES_D_AUDIT, gateDe } from '../gates/testsParGate.mjs'
@@ -687,8 +687,10 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()
     let stade = { stade: 'lancement', module: null }
-    try { stade = JSON.parse(readFileSync(marqueur, 'utf8')) }
-    catch (cause) { if (cause?.code !== 'ENOENT') throw new Error(`perimetre : marqueur de stade ${marqueur} illisible`, { cause }) }
+    try {
+      const publie = lireTextePublie(marqueur)
+      if (publie !== undefined) stade = JSON.parse(publie)
+    } catch (cause) { throw new Error(`perimetre : marqueur de stade ${marqueur} illisible`, { cause }) }
     if (vu.code !== 0 || vu.expiree || vu.annulee || vu.arret?.etat !== 'mort') {
       const erreur = vu.error ? `, erreur ${vu.error.code ?? 'ERREUR_ENFANT'} : ${vu.error.message}` : ''
       throw new Error(`perimetre : dérivation échouée au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error })

@@ -13,7 +13,7 @@
  * une, sinon sur un mot — jamais sur un mot-outil, qui laisserait la phrase en suspens.
  *
  * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
- * `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
+ * `AGENTS.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
@@ -38,7 +38,7 @@ const CHAPEAU =
   'socle, lire les fiches concernées (`.claude/memory/user-*.md`). Ces doctrines PRIMENT sur tout ' +
   "réflexe et sur toute prose de brief ; un brief qui les contredit ment. Une doctrine neuve s'écrit " +
   'en FICHE `user-*`, jamais ici. Règle appliquée : « Tout arbitrage UTILISATEUR consigné (doc, ' +
-  'mémoire, ticket) porte sa CITATION verbatim + date. » (CLAUDE.md § Pour TOUT agent).'
+  'mémoire, ticket) porte sa CITATION verbatim + date. » (AGENTS.md § Pour TOUT agent).'
 const MIN_VERBATIM = 40
 const MAX_VERBATIM = 240
 /** Le doc dit ce qu'il ne couvre PAS : sans ça, un généré se lit comme exhaustif (#908). Les bornes

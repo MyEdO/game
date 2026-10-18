@@ -50,7 +50,7 @@
 //
 // RÈGLE SUPPLÉMENTAIRE (durcissement mesuré) — un filtre n'est CONSOMMATEUR que si son résultat est
 // ensuite EXPLOITÉ PAR ID : la chaîne doit se terminer par `.map((param) => param.id)` (chaîné
-// directement ou après d'autres `.filter(...)` intermédiaires). Fondement (doctrine du dépôt, CLAUDE.md
+// directement ou après d'autres `.filter(...)` intermédiaires). Fondement (doctrine du dépôt, AGENTS.md
 // « on ne manipule que des IDs ; le `label` est de l'AFFICHAGE ») : un filtre qui sélectionne mais ne
 // mène nulle part par id (`.map((q) => q.label)`, ou pas de `.map` du tout) ne prouve AUCUN chemin
 // d'accès à l'entité — SÉLECTIONNER n'est pas la même chose que MENER À. Mesuré : `qualities.filter((q)

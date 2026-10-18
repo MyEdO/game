@@ -13,7 +13,7 @@ import type { Effect, Dialogue } from './scene';
 import type { Flow } from './flow';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
-import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
+import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
@@ -1017,9 +1017,9 @@ export type EnchainementDuCoup =
   | { mode: 'aucun' }
   | { mode: 'apresCoup'; queue: QueueDuCoup };
 
-/** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
+/** Tirs d'une bordée dont le coup reste à faire naître, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
-export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; res: AttackResult }[] }
+export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; jet: RollBreakdown }[] }
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles
  *  déjà frappées, enchaînements consommés, borne BCC, mode (Taille vs Frappe Mortelle). */

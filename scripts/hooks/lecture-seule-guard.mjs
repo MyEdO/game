@@ -324,4 +324,4 @@ function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {}, 
   }
 }
 
-export const garde = { nom: 'lecture-seule', outils: OUTILS_SHELL, evaluer }
+export const garde = { nom: 'lecture-seule', categorie: 'permission', outils: OUTILS_SHELL, evaluer }

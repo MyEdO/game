@@ -1050,7 +1050,7 @@ export function evaluateMissile(
     woundsLost,
     defenderDefeated: defeated,
     touche,
-    log: phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical),
+    log: phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical, false),
   };
 }
 

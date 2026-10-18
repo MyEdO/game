@@ -34,7 +34,7 @@ import { detenteur } from './detenteur.testkit';
  */
 const GARDE = {
   question:
-    'A — quel COMMENTAIRE du dépôt porte du poison (CLAUDE.md règle 6, credo règle 1) : excuse sans tag, ' +
+    'A — quel COMMENTAIRE du dépôt porte du poison (AGENTS.md règle 6, credo règle 1) : excuse sans tag, ' +
     'pierre tombale, revendication d’autorité, vocabulaire de l’ANCIEN ÉTAT ? ' +
     'B — pour la seule famille (e), le stock NOMINATIF DATÉ des sites restants, nommés par fichier + ancre. ' +
     'C — chaque ligne du stock porte le LOT qui l’éteint (#1486) et part avec lui ; les familles excuse et ' +
@@ -140,7 +140,7 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// Famille 1 — PIERRE TOMBALE (CLAUDE.md règle 6). Tolérance ZÉRO, pas d'exception.
+// Famille 1 — PIERRE TOMBALE (AGENTS.md règle 6). Tolérance ZÉRO, pas d'exception.
 // Familles de regex + `tombstonesIn` : `scripts/guards/lib/commentPoison.mjs` (mécanique partagée).
 // ---------------------------------------------------------------------------------------------
 
@@ -176,7 +176,7 @@ describe('balayage — un `/` de CODE ne fait jamais disparaître le commentaire
   });
 });
 
-describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6)', () => {
+describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)', () => {
   it('cas planté : un rappel d\'ancien emplacement est détecté (preuve TDD)', () => {
     const planted = "// Cette logique vit ici anciennement dans un autre module.";
     expect(tombstonesIn(planted)).toContain('anciennement');
@@ -432,18 +432,18 @@ describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6)
     }
     expect(
       offenders,
-      `Pierre(s) tombale(s) détectée(s) — à PURGER (jamais à taguer en exception, CLAUDE.md règle 6) :\n${offenders.join('\n')}`,
+      `Pierre(s) tombale(s) détectée(s) — à PURGER (jamais à taguer en exception, AGENTS.md règle 6) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
-// Famille 2 — commentaire-EXCUSE (CLAUDE.md règle 6). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
+// Famille 2 — commentaire-EXCUSE (AGENTS.md règle 6). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
 // commentaire neutralise la détection (décision utilisateur traçable).
 // Regex + `untaggedExcuseMatch` : `scripts/guards/lib/commentPoison.mjs` (mécanique partagée).
 // ---------------------------------------------------------------------------------------------
 
-describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6)', () => {
+describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règle 6)', () => {
   it('cas planté : une justification sans tag est détectée (preuve TDD)', () => {
     expect(untaggedExcuseMatch("// on garde X pour l'instant")).not.toBeNull();
   });
@@ -684,7 +684,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
       }
       expect(
         offenders,
-        `Excuse(s) sans tag \`[entériné AAAA-MM-JJ]\` (CLAUDE.md règle 6) :\n${offenders.join('\n')}`,
+        `Excuse(s) sans tag \`[entériné AAAA-MM-JJ]\` (AGENTS.md règle 6) :\n${offenders.join('\n')}`,
       ).toEqual([]);
     },
   );

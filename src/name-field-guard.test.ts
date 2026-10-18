@@ -156,7 +156,7 @@ function Inner() {
     expect(nameFieldLines('x.tsx', tsx)).toEqual([7]);
   });
 
-  it('aucune NOUVELLE déclaration de champ `name` hors ALLOWLIST (CLAUDE.md, doctrine '
+  it('aucune NOUVELLE déclaration de champ `name` hors ALLOWLIST (AGENTS.md, doctrine '
     + '2026-07-19 — un porteur nouveau utilise `label`/`id`, jamais `name`)', () => {
     const sites = nameFieldSites();
     const nouveaux = sites.filter((at) => !(ALLOWLIST.includes(at) && porteurs(sites, at) === 1));

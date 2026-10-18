@@ -48,6 +48,9 @@ export const fr = {
   'touche.sansEffetCoque': '{tete}, sans effet sur la coque ({raison} — MDG 13).',
   'touche.coquePetitesArmes': 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau',
   'touche.coqueTropPetit': 'trop petit pour entamer cette coque',
+  // LDB 18 l.53, l.55 ; AA 07 l.32 ; LDB 17 l.68 — lues par `phraseDeTouche` et `CritLocationPicker`.
+  'touche.nouvelleLocalisation': 'nouvelle Localisation : {lieu}',
+  'touche.nouvelleLocalisationAuChoix': 'au choix (Je ne faillirai pas !)',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',

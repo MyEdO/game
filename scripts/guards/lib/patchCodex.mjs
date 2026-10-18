@@ -150,7 +150,7 @@ export function normaliserPatchCodex(entree, { base, lire, resoudre = (path) => 
     return { ...entree, ecritures: ops }
   } catch (e) {
     if (entree.hook_event_name === 'PostToolUse') return { ...entree, ecritures: [], diagnosticPost: `apply_patch PostToolUse : ${e.message}` }
-    return { ...entree, ecritures: [], nonJugeable: { raison: `apply_patch : ${e.message}`, canal: 'ctx_patch avec une préimage ancrée' } }
+    return { ...entree, ecritures: [], nonJugeable: { raison: `apply_patch : ${e.message}`, canal: 'un `apply_patch` dont chaque fichier nomme son chemin et dont la préimage est celle du disque' } }
   }
 }
 

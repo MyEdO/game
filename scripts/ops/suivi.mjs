@@ -35,6 +35,7 @@ import { join } from 'node:path'
 import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import {
   FORMES_DU_CLI, Lot, OUTIL_SUIVI, PLAFOND_INJECTION, appliquer, confronter, heuresDe, horodatage, lignesDeLaMesure, lignesDuPlan,
   lireSuivi, texteDuSuivi,
@@ -309,7 +310,7 @@ export function etatDeSession({ session, dossier, maintenant, fs = FS }) {
  * @returns {{code: number, stdout: string, stderr: string}}
  */
 export function editer({ numero, dossier, session = null, json = false, mutations, fs = FS, pid = process.pid, maintenant = new Date() }) {
-  const refus = (motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${motif}\n` })
+  const refus = (categorie, motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(categorie)} ${motif}\n` })
   const cible = join(dossier, nomDuSuivi(numero))
   for (let essai = 1; ; essai += 1) {
     const texte = relire(cible, fs)
@@ -317,20 +318,20 @@ export function editer({ numero, dossier, session = null, json = false, mutation
     let horsOutil = false
     if (texte !== null) {
       const vu = lireSuivi(texte)
-      if (!vu.ok && vu.genre !== 'empreinte') return refus(`${cible} : ${vu.refus} — rien n'est écrit`)
+      if (!vu.ok && vu.genre !== 'empreinte') return refus('panne', `${cible} : ${vu.refus} — rien n'est écrit`)
       suivi = vu.suivi
       horsOutil = !vu.ok
     }
     const applique = appliquer(suivi, mutations, { maintenant, epique: numero, horsOutil })
     if (!applique.ok) {
       const creer = texte === null ? ` — \`npm run ops:suivi -- ${numero} --creer <titre>\` le pose` : ''
-      return refus(`suivi #${numero} : ${applique.refus}${creer}`)
+      return refus('validation', `suivi #${numero} : ${applique.refus}${creer}`)
     }
     if (texte === null) fs.mkdirSync(dossier, { recursive: true })
     const ecrit = ecrireSuivi({ cible, contenu: texteDuSuivi(applique.suivi), attendu: texte, geste: 'le lot', fs, pid })
     if (ecrit.ok) break
-    if (!ecrit.rejouable) return refus(ecrit.refus)
-    if (essai >= ESSAIS_D_EDITION) return refus(`${ecrit.refus} (${ESSAIS_D_EDITION} essais)`)
+    if (!ecrit.rejouable) return refus(ecrit.categorie, ecrit.refus)
+    if (essai >= ESSAIS_D_EDITION) return refus('transitoire', `${ecrit.refus} (${ESSAIS_D_EDITION} essais)`)
     attendreSync(PAUSE_ENTRE_ESSAIS_MS)
   }
   if (session !== null) {
@@ -451,13 +452,13 @@ export function mutationsDuLot(texte, numero) {
  * @returns {Promise<{code: number, stdout: string, stderr: string}>}
  */
 async function executer({ argv, cwd, stdin, maintenant = new Date() }) {
-  const refus = (motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${motif}\n` })
+  const refus = (categorie, motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(categorie)} ${motif}\n` })
   const sortie = (stdout) => ({ code: 0, stdout, stderr: '' })
   const lus = argumentsDuSuivi(argv)
-  if (lus.refus) return refus(`arguments refusés : ${lus.refus} — usage : ${USAGE}`)
+  if (lus.refus) return refus('validation', `arguments refusés : ${lus.refus} — usage : ${USAGE}`)
   if (lus.mode === 'outil') return sortie(`${JSON.stringify(OUTIL_SUIVI)}\n`)
   const vuDossier = dossierDesSuivis(cwd)
-  if (!vuDossier.disponible) return refus(vuDossier.raison)
+  if (!vuDossier.disponible) return refus('validation', vuDossier.raison)
   const dossier = vuDossier.valeur
   const lu = () => lireLeSuivi({ dossier, epique: lus.numero })
   switch (lus.mode) {
@@ -468,7 +469,7 @@ async function executer({ argv, cwd, stdin, maintenant = new Date() }) {
     case 'mesurer': return (await import('./suiviMesure.mjs')).mesurerLeSuivi({ numero: lus.numero, dossier, sansFetch: lus.sansFetch, json: lus.json, maintenant })
     default: {
       const lot = lus.lot === null ? { mutations: [] } : mutationsDuLot(lus.lot === '-' ? stdin() : lus.lot, lus.numero)
-      if (lot.refus) return refus(lot.refus)
+      if (lot.refus) return refus('validation', lot.refus)
       return editer({ numero: lus.numero, dossier, session: lus.session, json: lus.json, mutations: [...lus.gestes, ...lot.mutations], maintenant })
     }
   }

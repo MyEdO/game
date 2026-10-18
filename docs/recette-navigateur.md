@@ -122,7 +122,7 @@ compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, fricti
 ### CLI — `scripts/recette/shot-screen.mjs`
 
 ```
-node scripts/recette/shot-screen.mjs --screen gallery --out C:/temp/recette
+node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
 node scripts/recette/shot-screen.mjs --screen menu --mobile
 ```
 
@@ -335,7 +335,7 @@ import { openApp, gotoScreen, shot, consoleGuard } from './scripts/recette/lib.m
 const session = await openApp();
 const guard = consoleGuard(session);
 await gotoScreen(session, 'compendium');
-await shot(session, 'compendium-01', 'C:/temp/recette');
+await shot(session, 'compendium-01');
 console.log(guard.errors());
 await session.close();
 ```
@@ -353,7 +353,7 @@ const session = await openApp('http://localhost:5182/', { width: largeur, height
 await gotoScreen(session, 'compendium');
 await selectOption(session, 'select[aria-label="Chapitre du passage"]', '21', { par: 'valeur' });
 await clickButtonByText(session, '+ Fragment');
-await shot(session, 'adresse-01', 'C:/temp/recette');
+await shot(session, 'adresse-01');
 await session.close();
 ```
 
@@ -392,7 +392,7 @@ const session = await openApp();
 try {
   await freezeTimeout(session, [60000]);
   await clickButtonByText(session, 'Lancer', { dans: '.modal-overlay' });
-  await shot(session, 'des-figes', 'C:/temp/recette');
+  await shot(session, 'des-figes');
 } finally {
   await unfreezeTimeout(session);
   await session.close();
@@ -685,8 +685,9 @@ Ordre de préférence STRICT pour exercer un flux :
    les tokens SVG, boutons des modales). C'est le SEUL pilotage qui valide ce que le joueur vit.
 2. **`__wfrp` pour le SETUP et l'OBSERVATION** : lancer un scénario (`scenario`), placer/donner le
    tour (`place`/`turn`), lire la vérité (`state`/`battle`/`aim`/`modal`/`log`).
-3. **Appel direct des fonctions du store** (`__wfrp.store.getState().xxx()`) : DERNIER recours,
-   jamais pour valider le flux testé — on validerait un chemin que le joueur n'emprunte pas, et
+3. **Appel direct des fonctions du store** (`__wfrp.store.getState().xxx()`) : DERNIER recours, pour
+   un setup qu'aucun helper `__wfrp` ne couvre (manque d'outillage à rapporter), jamais pour
+   déclencher le flux testé — on validerait un chemin que le joueur n'emprunte pas, et
    c'est la première source d'erreurs (closures, état non re-rendu, préconditions sautées).
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).

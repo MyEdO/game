@@ -430,7 +430,7 @@ dans le script.
 \`buildScene\` est **PUR** et **Node-safe** (zéro import \`ui/\`/\`gameIso/\`) : le générateur d'arène
 l'exécute via \`tsx\`. Il ne fait que **rejouer les primitives pures de l'éditeur**
 (\`src/state/sceneEdit.ts\`) dans un **ordre figé** — donc tout ce que le format exprime est, par
-construction, reproductible à la main dans l'éditeur (règle 2 de \`CLAUDE.md\`). Si un besoin ne
+construction, reproductible à la main dans l'éditeur (règle 2 d’\`AGENTS.md\`). Si un besoin ne
 s'exprime pas proprement, on **étend une primitive** (avec un golden), on ne bricole jamais le
 scénario.
 

@@ -2,7 +2,7 @@
 // doit citer un plan disparu. Trois SENS vérifiés, exit 1 avec la liste fichier:ligne, vert silencieux.
 //
 // QUESTION A→B→C — A : « ce plan daté est-il encore rattaché à un travail vivant, ou est-ce un
-// fossile que la politique `docs/` du CLAUDE.md aurait dû supprimer ? » → B : la réponse ne peut PAS
+// fossile que la politique `docs/` de `docs/architecture.md` aurait dû supprimer ? » → B : la réponse ne peut PAS
 // se lire dans la prose (mesuré : un scan de `#N` en prose rend 5/8 faux négatifs — la moitié des
 // plans ne nomment leur ticket nulle part — et prend `#443626` (couleur CSS) pour une issue). → C :
 // chaque plan porte donc une ANCRE DÉDIÉE dans ses 30 premières lignes, hors bloc de code :

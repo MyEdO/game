@@ -3,7 +3,7 @@
 // STATIQUES sont des modules intégrés de Node : un `npm ci` ou un `read-tree` en cours dans cet arbre ne
 // l'empêche pas de se charger. Il attend que le verrou d'OUTILLAGE de son arbre soit libre, puis charge
 // par `import()` la porte de version (`scripts/node-requis.mjs`) et le reste ; à échéance, il sort en 2
-// (refus nommé, retentable) ; sur un échec de chargement, il refuse avec le geste qui répare, sauf l'appel
+// (refus transitoire, retentable) ; sur un échec de chargement, il refuse avec le geste qui répare, sauf l'appel
 // qui franchit la panne (`panne-outil.mjs`, #2712).
 // Limite : #2187 commentaire 6029118597, C6 (limite A).
 import { readFileSync, statSync } from 'node:fs'
@@ -22,6 +22,10 @@ export const ATTENTE_BARRIERE = Object.freeze({ echeanceMs: 1_500, pasMs: 100 })
 
 /** Le code de sortie d'un refus : un hook bloquant (`PreToolUse`) refuse l'appel et rend son stderr. */
 export const SORTIE_REFUS = 2
+
+/** Les préfixes de ses refus, tels que `prefixeDeRefus` (`scripts/guards/lib/categorieDeRefus.mjs`) les
+ *  rend : la barrière n'importe en statique que des modules intégrés de Node. */
+export const PREFIXES_DE_REFUS = Object.freeze({ transitoire: '[transitoire · retentable]', panne: '[panne · non retentable]' })
 
 /**
  * Le git-dir de l'arbre `racine`, lu SANS lancer git : `.git` dossier (arbre principal), ou fichier
@@ -65,23 +69,23 @@ export async function franchir(charger, { racine = RACINE, attente = ATTENTE_BAR
     if (vu.etat !== 'libre') {
       const pid = vu.tenant?.pid ?? '?'
       const commande = vu.tenant?.commande ?? 'commande inconnue'
-      return refuser(`outillage de ${racine} en mise à jour : verrou ${chemin} tenu par le PID ${pid} (${commande}) — relancer l'appel une fois la mise à jour finie ; si le PID ${pid} n'exécute pas ${commande}, supprimer ${chemin}`)
+      return refuser(`${PREFIXES_DE_REFUS.transitoire} outillage de ${racine} en mise à jour : verrou ${chemin} tenu par le PID ${pid} (${commande}) — relancer l'appel une fois la mise à jour finie ; si le PID ${pid} n'exécute pas ${commande}, supprimer ${chemin}`)
     }
     await import('../node-requis.mjs')
     geste = await charger()
   } catch (e) {
     const enPanne = `outillage de ${racine} en panne : chargement des gardes impossible —`
     const appel = await entree()
-    if (appel === LECTEUR_EN_PANNE) return refuser(`${enPanne} ${e?.message ?? e} — lecteur d'entrée en panne aussi, appel non jugeable : restaurer ${LECTEUR} hors session`)
+    if (appel === LECTEUR_EN_PANNE) return refuser(`${PREFIXES_DE_REFUS.panne} ${enPanne} ${e?.message ?? e} — lecteur d'entrée en panne aussi, appel non jugeable : restaurer ${LECTEUR} hors session`)
     let panneDe
     try {
       ({ panneDe } = await panne())
     } catch (p) {
       if (editionDeSessionPrincipale(appel)) return undefined
-      return refuser(`${enPanne} ${p?.message ?? p} — non retentable : corriger scripts/hooks/panne-outil.mjs par une édition de fichier, seul geste admis en session principale`)
+      return refuser(`${PREFIXES_DE_REFUS.panne} ${enPanne} ${p?.message ?? p} — corriger scripts/hooks/panne-outil.mjs par une édition de fichier, seul geste admis en session principale`)
     }
     const vu = panneDe(e, appel, racine)
-    return vu.franchit ? undefined : refuser(`${enPanne} ${vu.message} — ${vu.geste}`)
+    return vu.franchit ? undefined : refuser(`${PREFIXES_DE_REFUS.panne} ${enPanne} ${vu.message} — ${vu.geste}`)
   }
   return geste()
 }

@@ -10,7 +10,7 @@
  * de combat, donc `store.ts` — chaîne runtime MESURÉE par la sonde (c) de
  * `netownership-import-isole.test.ts`. Ces primitives descendent donc ici, et la dépendance va du
  * LOURD vers le LÉGER : `combatOrParty` consomme ce module, jamais l'inverse. Le SEUL import runtime
- * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — CLAUDE.md règle 3) : y
+ * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — AGENTS.md règle 3) : y
  * ajouter un import de `src/state` rouvre la chaîne et rend cette garde ROUGE.
  */
 import { isOutOfAction } from '../engine/conditions';
@@ -19,19 +19,10 @@ import type { Dir8 } from './dir8';
 import type { GameState } from './store';
 
 /**
- * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : elle
- * vivait en `4` littéral sur cinq sites (recrutement, créateur, écran d'équipe) sans nom ; toute
- * borne d'emplacement de héros la cite désormais, jamais un chiffre.
+ * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : toute
+ * borne d'emplacement de héros la cite, jamais un chiffre.
  */
 export const PARTY_MAX = 4;
-
-/** Une valeur que son PRODUCTEUR garantit (acteur d'une étape, siège d'une table, arme d'un set, entrée
- *  de catalogue citée par un id fixe) : absente, c'est un défaut interne, levé en NOMMANT ce qu'on
- *  cherchait (`quoi`) et sous quel id (#1906) — jamais un affichage. */
-export function garanti<T>(valeur: T | undefined | null, id: string | number | undefined, quoi: string): T {
-  if (valeur === undefined || valeur === null) throw new Error(`[${quoi}] « ${String(id)} » introuvable alors que son producteur le garantit (#1906)`);
-  return valeur;
-}
 
 /** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe. */
 export function actorIn(state: GameState, id: string): Combatant | undefined {

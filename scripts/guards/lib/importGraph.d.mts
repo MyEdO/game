@@ -84,6 +84,7 @@ export function clotureDImports(
     arbre?: EnsembleDeFichiers;
     specificateurs?: MemoDeSpecificateurs;
     tailleLot?: number;
+    analyser?: typeof analyserEnLots;
   },
 ): Set<string>;
 /** L'ensemble de fichiers contre lequel une marche résout et lit (chemins absolus POSIX). */

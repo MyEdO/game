@@ -166,7 +166,7 @@ function verdictsDe(ecrit, env) {
       panne = e.message
     }
     if (!déclaré) {
-      if (env.SKIP_NEW_SRC_GUARD !== '1') return { decision: 'deny', raison: panne ? messageRegistreCasse(rel, panne) : messageRefus(rel) }
+      if (env.SKIP_NEW_SRC_GUARD !== '1') return panne ? { decision: 'deny', categorie: 'panne', raison: messageRegistreCasse(rel, panne) } : { decision: 'deny', raison: messageRefus(rel) }
       verdicts.push({ trace: { fichier: cheminJournal(env), ligne: `${new Date().toISOString()} SKIP_NEW_SRC_GUARD=1 ${rel}\n` } })
     }
   }
@@ -176,4 +176,4 @@ function verdictsDe(ecrit, env) {
 const evaluer = (entree, { env = process.env } = {}) =>
   ecrituresDe(entree).filter(ecritLeFichierEntier).flatMap((ecrit) => verdictsDe(ecrit, env) ?? [])
 
-export const garde = { nom: 'new-src-file', outils: OUTILS_CREATION, evaluer }
+export const garde = { nom: 'new-src-file', categorie: 'métier', outils: OUTILS_CREATION, evaluer }

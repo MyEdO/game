@@ -8,7 +8,7 @@
 // La règle ne se branche PAS sur la forme du chemin (`.wt-*`, nom du dossier…) mais sur le seul
 // fait qui distingue les deux natures d'arbre pour git : `<racine>/.git` est un DOSSIER dans un
 // arbre principal ou un clone, un FICHIER dans un worktree LIÉ. L'arbre principal garde donc le
-// port historique 5173 (CLAUDE.md, AGENTS.md, `docs/recette-navigateur.md`, les skills de recette
+// port historique 5173 (`docs/recette-navigateur.md`, les skills de recette
 // et `scripts/docs/build-reprise.mjs` le disent tous), les worktrees liés se répartissent sur la
 // plage suivante.
 //

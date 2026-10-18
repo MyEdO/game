@@ -7,7 +7,7 @@
  * (`toitureEffective`, `state/sceneEdit.ts`) passent par les accesseurs ci-dessous, jamais par le
  * tableau brut. La façade vit dans `src/state` — patron `state/terrain/index.ts` (#1690, même
  * domicile) : une façade de DONNÉE lue par le store obligerait sinon `src/state` à importer
- * `src/gameIso`, alors que le rendu dépend du store et jamais l'inverse (CLAUDE.md règle 3, mur
+ * `src/gameIso`, alors que le rendu dépend du store et jamais l'inverse (AGENTS.md règle 3, mur
  * `murs/purete-imports`, `oxlint.config.mjs`).
  *
  * LECTURE VIVANTE, index O(1). Le tableau exporté par `src/data/index.ts` est le binding que `setDataset`
