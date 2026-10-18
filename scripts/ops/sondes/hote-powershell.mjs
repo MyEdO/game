@@ -16,7 +16,8 @@
 // Charge INOFFENSIVE : `Write-Output ('SENTI'+'NELLE_<n>')`, sans le littéral, que 5.1 recopie dans ses erreurs
 // d'analyse. L'hôte EXÉCUTE la charge si, et seulement si, une ligne de sa sortie standard vaut EXACTEMENT
 // `SENTINELLE_<n>`. Chaque cas reçoit une entrée standard fermée (vide, ou la charge pour un cas `entree`) et un
-// délai `DELAI_MS` ; un hôte qui attend (`-NoExit`, `-NamedPipeServerMode`…) est arrêté au délai, par son PID.
+// délai `DELAI_MS` ; un hôte qui attend (`-NoExit`, `-NamedPipeServerMode`…) est arrêté au délai, ou au signal de la file
+// (`enFileBornee`), par son PID.
 // Sortie : `<dossier>/hote-powershell.json` (hôtes, versions, chaque cas avec son code de sortie et les 200
 // premiers caractères de sa sortie) ; code 1 si un écart existe.
 import { Buffer } from 'node:buffer'
@@ -60,14 +61,14 @@ function charge() {
   return { commande: `Write-Output ('SENTI'+'NELLE_${numero}')`, sentinelle: `SENTINELLE_${numero}` }
 }
 
-/** Lance `exe args` (ou la ligne `bash -c`), rend `{ code, sortie, executee, delai }`. */
-function lancer({ exe, args, via, entree }, sentinelle) {
+/** Lance `exe args` (ou la ligne `bash -c`), arrêté avec `signal`, rend `{ code, sortie, executee, delai }`. */
+function lancer({ exe, args, via, entree }, sentinelle, signal) {
   const quote = (a) => `'${a.replaceAll("'", "'\\''")}'`
   const [fichier, argv] = via === 'gitbash'
     ? [GIT_BASH, ['-c', [EXECUTABLES[exe], ...args].map(quote).join(' ')]]
     : [EXECUTABLES[exe], args]
   return new Promise((fin) => {
-    const enfant = spawn(fichier, argv, { cwd: DOSSIER, windowsHide: true, timeout: DELAI_MS })
+    const enfant = spawn(fichier, argv, { cwd: DOSSIER, windowsHide: true, timeout: DELAI_MS, signal })
     let out = ''
     let err = ''
     enfant.stdout.on('data', (d) => { out += d })
@@ -85,10 +86,10 @@ function lancer({ exe, args, via, entree }, sentinelle) {
 const lue = (exe, args, commande) => argumentChaine([exe, ...args])?.includes(commande) ?? false
 
 function casDeLaListe() {
-  return CAS_HOTE_POWERSHELL.map((cas) => async () => {
+  return CAS_HOTE_POWERSHELL.map((cas) => async (signal) => {
     const { commande, sentinelle } = charge()
     const args = argumentsDuCas(cas, commande)
-    const hote = await lancer({ exe: cas.exe, args, via: cas.via, entree: cas.entree ? `${commande}\n` : '' }, sentinelle)
+    const hote = await lancer({ exe: cas.exe, args, via: cas.via, entree: cas.entree ? `${commande}\n` : '' }, sentinelle, signal)
     const classeHote = hote.executee ? (cas.entree ? 'stdin' : 'execute') : 'rien'
     const lecture = lue(cas.exe, args, commande)
     const ecart = classeHote !== cas.classe ? `l'hôte rend ${classeHote}, la liste déclare ${cas.classe}`
@@ -119,10 +120,10 @@ const CANDIDATS_BLANCS = [
 
 /** Grille des blancs : `-c` précédé, puis suivi, de chaque candidat. */
 function casDesBlancs() {
-  return ['pwsh', 'powershell'].flatMap((exe) => CANDIDATS_BLANCS.flatMap((b) => [`${b}-c`, `-c${b}`].map((jeton) => async () => {
+  return ['pwsh', 'powershell'].flatMap((exe) => CANDIDATS_BLANCS.flatMap((b) => [`${b}-c`, `-c${b}`].map((jeton) => async (signal) => {
     const c = charge()
     const args = ['-NoProfile', jeton, c.commande]
-    const hote = await lancer({ exe, args }, c.sentinelle)
+    const hote = await lancer({ exe, args }, c.sentinelle, signal)
     const lecture = lue(exe, args, c.commande)
     const ecart = hote.executee && !lecture ? 'sous-approximation' : null
     const blanc = `U+${b.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`
@@ -143,10 +144,10 @@ function casDeLaGrille() {
         (c) => [jeton, '-NoProfile', c.commande],
       ]
       for (const forme of formes) {
-        taches.push(async () => {
+        taches.push(async (signal) => {
           const c = charge()
           const args = ['-NoProfile', ...forme(c)]
-          const hote = await lancer({ exe, args }, c.sentinelle)
+          const hote = await lancer({ exe, args }, c.sentinelle, signal)
           const lecture = lue(exe, args, c.commande)
           const ecart = hote.executee && !lecture ? 'sous-approximation' : null
           return { jeu: 'grille', exe, nom, args, lecture, ecart, surApproximation: !hote.executee && lecture, ...hote }

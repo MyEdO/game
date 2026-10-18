@@ -55,6 +55,9 @@ const ATTENDU = {
     // +1 le 2026-10-17 (#2586) : chaque banc de `spawnBorne` pose son fichier de sortie sous un `mkdtempSync`
     // d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/processusBorne.test.mjs',
+    // +1 le 2026-10-18 (#2586) : les fichiers de sortie de `spawnBorne` sous un `mkdtempSync` d'os.tmpdir(), retiré
+    // par `t.after` ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/fileBornee.test.mjs',
     'scripts/hooks/superpowers-ecriture-guard.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
@@ -765,6 +768,9 @@ const ATTENDU = {
   'raw:check-source-puces': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:corpus': [
+    // +1 le 2026-10-18 (#2586) : les sorties des rendus hôte et win32 sous un `mkdtempSync` d'os.tmpdir(), retiré
+    // par `t.after` ; l'arbre n'est jamais écrit.
+    "scripts/corpus/docs/plateforme-win32.test.mjs",
     "scripts/corpus/guards/lister.test.mjs",
     "scripts/corpus/migrations/idempotence-ordre-des-cles.test.mjs",
     "scripts/docs/build-all.mjs",

@@ -12,7 +12,7 @@
 import { Buffer } from 'node:buffer'
 
 /** Versions des hôtes sur lesquelles la liste a été mesurée. */
-export const HOTES_MESURES = { pwsh: '7.5.5', powershell: '5.1.26100.9444' }
+export const HOTES_MESURES = { pwsh: '7.5.5', powershell: '5.1.26100.9711' }
 
 export const CHARGE = '<charge>'
 export const CHARGE_ETALEE = '<charge-etalee>'

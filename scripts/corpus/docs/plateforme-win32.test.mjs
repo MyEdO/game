@@ -3,9 +3,11 @@
 // RELATIF par l'API de `node:path` rend un corps qui dépend de la plateforme. La garde compare, par
 // générateur, le rendu d'un processus de l'hôte (`renduSurLHote`) à celui d'un processus rendu sous
 // win32 (`renduSousWin32`) : tous deux jouent `scripts/docs/lib/rendre-seul.mjs`, et
-// `scripts/docs/lib/plateforme-win32.mjs` en `--import` est leur SEULE différence. Sur un hôte win32, le
-// rendu natif EST le rendu sous win32 : les deux côtés seraient la même commande, la garde n'y rend rien
-// et mord en CI Linux.
+// `scripts/docs/lib/plateforme-win32.mjs` en `--import` est leur SEULE différence. Sur un hôte win32, la
+// garde ne compare rien de vrai : sans la simulation, les deux côtés sont le même rendu natif ; avec elle,
+// les chemins absolus de l'hôte passés à `child_process` (exécutable, `cwd`) perdent leur lecteur
+// (`versPosix`), et un lancement à `cwd` échoue (`spawnSync /Program Files/nodejs/node.exe ENOENT`). Elle
+// saute sur win32 et mord en CI Linux.
 // Le lieu d'un module décide de ce qu'il voit : le dépôt voit win32, `node_modules` voit l'hôte
 // (`estModuleDuDepot`, plateforme-win32-hooks.mjs).
 // Les processus de rendu se mènent de front par `enFileBornee`, un par cœur (`coeurs`), lancés par
@@ -55,7 +57,7 @@ const renduSousWin32 = (g, dossier, signal) => renduEnProcessus(g, ['--import', 
 
 test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', {
   timeout: ECHEANCE_MS,
-  skip: process.platform === 'win32' && 'hôte win32 : le rendu natif EST le rendu sous win32 — la garde mord en CI Linux',
+  skip: process.platform === 'win32' && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
 }, async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'plateforme-win32-rendus-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
