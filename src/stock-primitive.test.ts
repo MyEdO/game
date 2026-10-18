@@ -30,21 +30,18 @@ describe('ecartsDeStock — l’écart dans les DEUX sens, la clé libre, le sto
     expect(ecarts.taille).toBe(2);
   });
 
-  it('la CLÉ est libre : une clé COMPOSITE distingue deux entrées de même nom, et le remède voit l’entrée observée', () => {
-    const cle = (e: { dataset: string; champ: string; occurrences: number }) =>
-      `${e.dataset} | ${e.champ} | ${e.occurrences}`;
+  it('la CLÉ est libre : une clé COMPOSITE distingue deux entrées de même dataset, et le remède voit l’entrée observée', () => {
+    const cle = (e: { dataset: string; champ: string }) => `${e.dataset} | ${e.champ}`;
     const ecarts = ecartsDeStock({
       observe: [
-        { dataset: 'talents.json', champ: 'skill', occurrences: 6, ligne: 12 },
-        { dataset: 'talents.json', champ: 'skill', occurrences: 7, ligne: 40 },
+        { dataset: 'talents.json', champ: 'skill', ligne: 12 },
+        { dataset: 'talents.json', champ: 'talent', ligne: 40 },
       ],
-      stock: [{ dataset: 'talents.json', champ: 'skill', occurrences: 6 }],
+      stock: [{ dataset: 'talents.json', champ: 'skill' }],
       cle,
       remede: { neuve: (c, e) => `${c} (ligne ${e.ligne})` },
     });
-    expect(ecarts.neuves, 'l’occurrence entre dans la clé : 7 ≠ 6 est une entrée NEUVE.').toEqual([
-      'talents.json | skill | 7 (ligne 40)',
-    ]);
+    expect(ecarts.neuves).toEqual(['talents.json | talent (ligne 40)']);
     expect(ecarts.perimees).toEqual([]);
   });
 
@@ -59,6 +56,57 @@ describe('ecartsDeStock — l’écart dans les DEUX sens, la clé libre, le sto
   });
 });
 
+describe('ecartsDeStock — le COMPTE hors de la clé, jugé dans un SEUL sens (#2705)', () => {
+  type Entree = { site: string; occurrences: number };
+  const stock: Entree[] = [{ site: 'a.json | x', occurrences: 3 }];
+  const ecarts = (observe: Entree[]) =>
+    ecartsDeStock({
+      observe,
+      stock,
+      cle: (e) => e.site,
+      nombre: (e) => e.occurrences,
+      cible: (c) => `Migrer ${c} vers sa CIBLE.`,
+      remede: { baisse: () => 'écrire la mesure.' },
+    });
+
+  it('une HAUSSE sort en `accrues`, phrase de la primitive et cible du site, ni neuve ni périmée', () => {
+    const e = ecarts([{ site: 'a.json | x', occurrences: 5 }]);
+    expect(e.accrues).toEqual(['a.json | x — HAUSSE 5 > 3 : la dette GRANDIT. Migrer a.json | x vers sa CIBLE. Aucune écriture ne relève ce nombre.']);
+    expect([e.neuves, e.perimees, e.baisses]).toEqual([[], [], []]);
+  });
+
+  it('une BAISSE sort en `baisses`, décorée par `remede.baisse` ; l’égalité ne dit rien', () => {
+    expect(ecarts([{ site: 'a.json | x', occurrences: 2 }]).baisses).toEqual(['a.json | x — BAISSE 2 < 3 : écrire la mesure.']);
+    const egal = ecarts([{ site: 'a.json | x', occurrences: 3 }]);
+    expect([egal.neuves, egal.perimees, egal.accrues, egal.baisses]).toEqual([[], [], [], []]);
+  });
+
+  it('un site NEUF reste en `neuves`, quel que soit son compte', () => {
+    const e = ecarts([{ site: 'a.json | x', occurrences: 3 }, { site: 'b.json | y', occurrences: 1 }]);
+    expect(e.neuves).toEqual(['b.json | y']);
+    expect(e.accrues).toEqual([]);
+  });
+
+  it('une hausse n’a pas de remède décoré : `remede.accrue` n’existe pas au type, et la primitive l’ignore', () => {
+    const e = ecartsDeStock({
+      observe: [{ site: 'a.json | x', occurrences: 5 }],
+      stock,
+      cle: (x) => x.site,
+      nombre: (x) => x.occurrences,
+      cible: () => 'Migrer.',
+      // @ts-expect-error -- une hausse ne se décore pas : sa phrase est fixe.
+      remede: { accrue: () => 'déclarer la hausse' },
+    });
+    expect(e.accrues).toEqual(['a.json | x — HAUSSE 5 > 3 : la dette GRANDIT. Migrer. Aucune écriture ne relève ce nombre.']);
+  });
+
+  it('`cible` est EXIGÉE au type dès que `nombre` est fourni', () => {
+    // @ts-expect-error -- sans cible, une hausse ne nommerait pas sa voie.
+    const appel = () => ecartsDeStock({ observe: stock, stock, cle: (x) => x.site, nombre: (x) => x.occurrences });
+    expect(appel().accrues).toEqual([]);
+  });
+});
+
 describe('champsAveugles — un champ hors de la clé laisse la garde verte quoi qu’on y écrive', () => {
   const stock = [
     { dataset: 'talents.json', champ: 'skill', occurrences: 6, lot: 'L2 #1463' },
@@ -68,6 +116,12 @@ describe('champsAveugles — un champ hors de la clé laisse la garde verte quoi
   it('le champ ABSENT de la clé est nommé, ceux qui y entrent ne le sont pas', () => {
     const cle = (e: (typeof stock)[number]) => `${e.dataset} | ${e.champ}`;
     expect(champsAveugles(stock, cle, ['dataset', 'champ', 'occurrences', 'lot'])).toEqual(['occurrences', 'lot']);
+  });
+
+  it('le COMPTE hors de la clé entre dans l’empreinte par `nombre` : il n’est pas aveugle (#2705)', () => {
+    const cle = (e: (typeof stock)[number]) => `${e.dataset} | ${e.champ} | ${e.lot}`;
+    expect(champsAveugles(stock, cle, ['dataset', 'champ', 'occurrences', 'lot'])).toEqual(['occurrences']);
+    expect(champsAveugles(stock, cle, ['dataset', 'champ', 'occurrences', 'lot'], (e) => e.occurrences)).toEqual([]);
   });
 
   it('une clé qui embarque TOUT ne laisse aucun champ aveugle', () => {

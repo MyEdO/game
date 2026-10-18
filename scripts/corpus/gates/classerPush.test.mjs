@@ -21,6 +21,9 @@ const sautables = gatesSautables({ gates, ecritLu: ECRIT_LU })
 // #1738 : une gate dont le `lit` omet un fichier que son code lit est SAUTÉE sur le push qui touche
 // ce fichier. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
 //
+// Un DOCUMENT de donnée importé (`src/data/**.json`, `src/scenes/**.json`) n'est pas du code : sa prose qui
+// cite `CLAUDE.md` (`src/data/river-criticals.json`) ne lit aucun fichier ; un autre `.json` de la fermeture
+// (configuration) reste jugé.
 // ANGLES MORTS, dits : le grain est la LIGNE d'un module local, et le corpus vient de la fermeture
 // transitive d'imports de `ecrivainsAtteints.mjs` — un chemin CONSTRUIT dynamiquement (`join(base,
 // nom)`, une variable, un `require`) n'est pas vu, ni ce qu'un sous-processus NON-node fait de son
@@ -31,7 +34,7 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
   const corpus = corpusParGate(RACINE)
   const trous = []
   for (const gate of sautables) {
-    for (const fichier of corpus[gate] ?? []) {
+    for (const fichier of (corpus[gate] ?? []).filter((f) => !/^src\/(data|scenes)\/.*\.json$/.test(f))) {
       const lignes = readFileSync(join(RACINE, fichier), 'utf8').split('\n')
       lignes.forEach((ligne, i) => {
         if (inerte(ligne)) return

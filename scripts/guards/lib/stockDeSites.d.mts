@@ -70,6 +70,7 @@ export interface PolitiqueDeCroissance {
   }): string | null;
 }
 
+export const MOTIF_DECROISSANT: string;
 export const DECROISSANT: PolitiqueDeCroissance;
 export const SOUS_LOT: PolitiqueDeCroissance;
 export const REMESURE: PolitiqueDeCroissance;
