@@ -7767,7 +7767,8 @@ export function sealApproachMoves(get: Get, set: SetFn, c: Combatant | null | un
   for (const m of moves) approachFearTrigger(get, set, c, m.from, m.to);
 }
 
-/** SEULE couture qui pose `acted` (Action du Tour consommée) : elle scelle du même geste les
+/** Pose `acted` (Action du Tour consommée, ou tour d'une coque IA joué : MDG 14 l.37 ; #1852 ; #1595)
+ *  et scelle du même geste les
  *  déplacements en attente de l'acteur — une Action prise interdit `cancelMove`, donc le
  *  déplacement est irrévocable et son approche est due (LDB 21 l.27). Rend le `BattleState` à poser. */
 export function markActed(get: Get, set: SetFn): BattleState {

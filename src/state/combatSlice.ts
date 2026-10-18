@@ -1479,10 +1479,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
       const dr = undercrew.capSuccesMinime ? capToSuccesMinime(crewTest.total) : crewTest.total;
-      const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
-      const bB = markActed(get, set); // le tour de la coque IA est joué : une fenêtre ouverte le reprend en fin de tour (#1852 ; #1595)
       const gunners = assignments.map((a) => a.crew.id);
-      set({ battle: { ...bB, crewActed: withCrewActed(bB.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
+      const bA = markActed(get, set); // AVANT la volée : `actedAvant` le capture, chaque reprise de coup le rend (#1852 ; #1595)
+      set({ battle: { ...bA, crewActed: withCrewActed(bA.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
+      const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
       if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
       return true;
