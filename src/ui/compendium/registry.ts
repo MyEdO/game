@@ -18,14 +18,14 @@ import {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
-  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
+  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
-import type { RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
+import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
@@ -346,6 +346,13 @@ const idRefRow = (category: string, id: string, spec?: string, show?: string): C
   const label = refLabel(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
+/** Rangée du FOYER d'une règle (`{ id, type }`) : sa fiche Codex (`cibleCodex`). */
+const foyerRow = (foyer: FoyerDeRegle): CodexRow => {
+  const { category, id } = cibleCodex(foyer);
+  return idRefRow(category, id);
+};
+/** Section « Règle » d'un porteur de foyer (`rule`). */
+const regleChips = (foyer: FoyerDeRegle | undefined) => chips('Règle', foyer ? [foyerRow(foyer)] : []);
 /** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
 const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
@@ -1285,25 +1292,25 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'nightStakes', label: 'Enjeux — cascade de repos', group: 'Tables', sourceRef: 'LDB 18/09/20/21',
-    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake })),
+    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Jumeau du précédent pour les cascades de VOYAGE (#1117) : le contenu est un GABARIT de descripteur
     // mécanique (trous `{nom}` remplis par le flux), là où l'enjeu de nuit est un verbatim figé.
     key: 'voyageStakes', label: 'Enjeux — cascade de voyage', group: 'Tables', sourceRef: 'MSRC 7 · MDG 12',
-    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
+    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par son `id`.
     // Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
     key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
-    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
+    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
     // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
     key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
-    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template })),
+    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
 
   {
@@ -1835,6 +1842,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         chips('Compétence libre', (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),
+        regleChips(a.rule),
       ),
     })),
   },
@@ -2084,7 +2092,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'crewTestTypes', label: 'Tests d’équipage (types)', group: 'Monde',
     build: () => crewTestTypes.map((t) => depuisEnveloppe(t, {
       meta: facts(fact('Rôle essentiel', crewRoles.find((r) => r.id === t.essential)?.label ?? t.essential)),
-      sections: sections(chips('Rôles contributeurs', t.roles.map((id) => idRefRow('crewRoles', id)))),
+      sections: sections(
+        chips('Rôles contributeurs', t.roles.map((id) => idRefRow('crewRoles', id))),
+        regleChips(t.rule),
+      ),
     })),
   },
   {

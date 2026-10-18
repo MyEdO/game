@@ -2,7 +2,9 @@
  * PHASE 2 de `npm run gen` (#1463) — l'INDEX DES IDS (`src/data/schemas/_ids.generated.ts`,
  * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), les CLÉS
  * DE DATASET (`src/data/schemas/_cles-de-dataset.generated.ts`, `CLES_DE_DATASET`), le domaine de
- * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), et les RACINES VIVANTES
+ * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), avec la CATÉGORIE CODEX de chaque
+ * fichier qui en déclare exactement une (`CATEGORIE_CODEX_DU_FICHIER`, lue sur l'`exposition.codex` des
+ * defs), et les RACINES VIVANTES
  * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image.
  *
  * Le JSON disque de chaque document de `SCHEMA_DEFS` est CO-DESCENDU avec son schéma, sans parse
@@ -83,7 +85,7 @@ interface DocumentDeDataset {
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; racines: DocumentDeDataset[] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { DATASET_FICHIER_DERIVE } = await import('../src/data/schemas/exposition-derivee');
@@ -113,6 +115,10 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   return {
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
     clesDeDataset: Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode),
+    categories: SCHEMA_DEFS.flatMap((d): [string, string][] => {
+      const codex = d.exposition?.codex;
+      return codex && 'keys' in codex && codex.keys.length === 1 ? [[d.file, codex.keys[0]]] : [];
+    }).sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
   };
 }
@@ -130,7 +136,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, racines } = await indexDesIds();
+  const { table, clesDeDataset, categories, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -160,7 +166,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     clesDeDataset.map((c) => `  ${litteralJs(c)},\n`).join('') +
     `] as const;\n\n` +
     `/** Une clé de dataset. */\n` +
-    `export type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n`;
+    `export type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n\n` +
+    `/** CATÉGORIE CODEX de chaque fichier qui en déclare exactement une (\`exposition.codex.keys\` de son def) :\n` +
+    ` *  celle où s'ouvre la fiche d'une de ses entrées (\`cibleCodex\`, \`src/data/index.ts\`). */\n` +
+    `export const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {\n` +
+    categories.map(([f, c]) => `  ${litteralJs(f)}: ${litteralJs(c)},\n`).join('') +
+    `};\n`;
   const modRacines =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (un import par document de l'image de \`DATASET_FICHIER_DERIVE\`).\n` +
@@ -193,13 +204,24 @@ function indexSurDisque(): string {
  */
 export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TABLE_VIDE, puis rendu)';
 
-/** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts` et
- *  `src/data/versionDataset.ts` que la phase 2 charge : posés VIDES quand ils manquent (clone neuf,
- *  #2203 A2), puis rendus. */
+/** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts`,
+ *  `src/data/versionDataset.ts` et `src/data/index.ts` que la phase 2 charge : posés VIDES quand ils
+ *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
+ *  la phase 2 n'en rende un de plus), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n'],
+  [SORTIE_CLES, 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
 ]);
+
+/** Les noms exportés d'un module en texte (`export const|type <nom>`). */
+const exportsDe = (texte: string): Set<string> => new Set([...texte.matchAll(/^export (?:const|type) (\w+)/gm)].map((m) => m[1]));
+
+/** Le module `chemin` existe-t-il, avec chaque export de son `amorce` ? */
+function porteLesExports(chemin: string, amorce: string): boolean {
+  if (!existsSync(chemin)) return false;
+  const presents = exportsDe(readFileSync(chemin, 'utf8'));
+  return [...exportsDe(amorce)].every((nom) => presents.has(nom));
+}
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
  *  écrire. LÈVE sur un index illisible (`AMORCAGE_EN_DEUX_TEMPS`). */
@@ -219,7 +241,7 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     }
     writeFileSync(SORTIE, TABLE_VIDE);
   }
-  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!existsSync(chemin)) writeFileSync(chemin, amorce);
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!porteLesExports(chemin, amorce)) writeFileSync(chemin, amorce);
   const { textes, table, clesDeDataset, racines } = await rendu();
   let changed = false;
   for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;

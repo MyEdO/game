@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
-import { refOuSpec, idDe, refs, specDe } from './ref';
+import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
@@ -166,6 +166,30 @@ export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
  * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
+
+/** Les espaces où le FOYER d'une règle peut vivre — l'entité qui la PORTE, `regle` (`regles.json`)
+ *  n'étant que le foyer des règles de cadre (#1117, amendement A). */
+export const typeDeFoyerSchema = enumNomme({
+  regle: 'Règle de jeu',
+  skill: 'Compétence',
+  talent: 'Talent',
+  etat: 'État',
+  quality: 'Qualité',
+  characteristic: 'Caractéristique',
+  spell: 'Sort',
+  psychology: 'État psychologique',
+  symptome: 'Symptôme',
+  steamBreakdown: 'Panne de navire à vapeur',
+});
+export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
+
+/**
+ * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
+ * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
+ * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ */
+export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
+export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
 
 /**
  * Réf de source récurrente `{ book, page }` — vue sur 2-3 datasets (`characteristics.json`,

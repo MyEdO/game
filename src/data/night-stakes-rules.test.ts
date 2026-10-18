@@ -1,7 +1,6 @@
 /**
  * Garde du RENVOI de règle des enjeux de la cascade de NUIT (#1117, lot L0a) — patron des fiches
- * `navigation-*` : chaque entrée de `night-stakes.json` porte un `rule` qui RÉSOUT vers une fiche
- * de `regles.json`, aucune fiche du périmètre n'est orpheline, et chaque fiche référencée est
+ * `navigation-*` : aucune fiche de `regles.json` du périmètre n'est orpheline, et chaque fiche référencée est
  * VERBATIM dans le CHAPITRE que sa note cite, au folio IMPRIMÉ qu'elle déclare.
  *
  * Le folio ne se croit pas sur parole : il se RECALCULE depuis le marqueur `data-folio` le plus
@@ -12,24 +11,15 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { NIGHT_STAKES, regles, books, skills, symptoms, etats } from './index';
+import { NIGHT_STAKES, regles, books } from './index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
-
-/** FOYERS possibles d'une règle (amendement A, 2026-08-06) : l'entité qui la PORTE d'abord —
- *  `regles.json` n'héberge que les règles de CADRE, sans entité porteuse. */
-const FOYERS: Record<string, { id: string; label: string }[]> = {
-  regles, skills, symptoms, etats,
-};
-const foyer = (e: { rule?: string; ruleCategory?: string }) =>
-  e.rule ? (FOYERS[e.ruleCategory ?? 'regles'] ?? []).find((x) => x.id === e.rule) : undefined;
 
 const RULE_BY_ID = new Map(regles.map((r) => [r.id, r]));
 const BOOK_IDS = new Set(books.map((b) => b.id));
-/** Fiches de `regles.json` référencées par la nuit — les foyers d'une AUTRE catégorie portent leur
- *  propre garde de source (chaque catalogue a la sienne) et sortent de ce périmètre. */
-const NIGHT_RULE_IDS = new Set(
-  NIGHT_STAKES.filter((e) => (e.ruleCategory ?? 'regles') === 'regles').map((e) => e.rule).filter((r): r is string => !!r),
-);
+/** Fiches de `regles.json` référencées par la nuit — les foyers d'un AUTRE type (amendement A,
+ *  2026-08-06 : l'entité qui PORTE la règle d'abord) ont leur propre garde de source et sortent de ce
+ *  périmètre. */
+const NIGHT_RULE_IDS = new Set(NIGHT_STAKES.flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])));
 
 /** Lignes du fichier de CHAPITRE cité par une note (`LDB 18 l.294-300` → `18 - Traumatisme.md`). */
 const chapterCache = new Map<string, string[]>();
@@ -57,13 +47,6 @@ function folioAt(lines: string[], lineNo: number): number | null {
 }
 
 describe('night-stakes.json — chaque enjeu porte sa règle (#1117 L0a)', () => {
-  it('toute entrée a un `rule` qui résout vers son FOYER (entité porteuse, ou fiche de cadre)', () => {
-    const orphelins = NIGHT_STAKES.filter((e) => !foyer(e)).map(
-      (e) => `${e.id} → ${e.ruleCategory ?? 'regles'}:${e.rule ?? '(aucun)'}`,
-    );
-    expect(orphelins, 'entrée sans renvoi de règle résoluble').toEqual([]);
-  });
-
   it('les kinds de la cascade de nuit sont couverts', () => {
     expect(NIGHT_STAKES.length, 'catalogue vide : la couverture ne dirait rien').toBeGreaterThan(0);
     expect(NIGHT_RULE_IDS.size).toBeGreaterThan(0);

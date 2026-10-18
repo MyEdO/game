@@ -4,13 +4,13 @@
  * DÉCLARÉE (`form`) : `verbatim` = contigu au Source bloc par bloc ; `descripteur` = assemblage
  * mécanique de ce que l'APPLIER du `kind` fait réellement, dont le verbatim intégral vit dans la fiche.
  *
- * FOYER (`rule` + `ruleCategory`) ou ENTRÉE (`entryCategory`) : le renvoi cible l'entité qui PORTE déjà
+ * FOYER (`rule`, référence `{ id, type }`) ou ENTRÉE (`entryCategory`) : le renvoi cible l'entité qui PORTE déjà
  * la règle (l'État posé par l'échec, la maladie contractée, la manœuvre subie, le sort prolongé),
  * `regles.json` n'étant que le foyer des règles de cadre. Au moins l'un des deux est exigé — les
- * quatre invariants d'entrée sont portés par `options.affinerEntree`, AVANT le sceau de la fabrique.
+ * trois invariants d'entrée sont portés par `options.affinerEntree`, AVANT le sceau de la fabrique.
  */
 import { z } from 'zod';
-import { stakeFormSchema } from '../grammaire/valeurs';
+import { foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 
 export const file = 'combat-stakes.json';
@@ -30,13 +30,11 @@ const doc = document(
     /** FORME DÉCLARÉE (garde `night-stake-form.test.ts`, étendue à ce dataset) — qualifie le gabarit :
      *  présente si et seulement s'il y en a un. */
     form: stakeFormSchema.optional(),
-    /** Id du FOYER de la règle (entité porteuse, ou fiche de `regles.json` à défaut). Le foyer est la
+    /** FOYER de la règle (entité porteuse, ou fiche de `regles.json` à défaut). Le foyer est la
      *  règle qui EXIGE le jet, JAMAIS son issue : le ⓘ du titre ouvre cette règle, les chips d'issue
      *  ouvrent la conséquence appliquée (arbitrage user 2026-08-09 : « ce jet fait référence à une
      *  règle non ? » — la Surprise pointait l'État Surpris, qui n'est que ce qu'on y perd). */
-    rule: z.string().optional(),
-    /** Catégorie Codex du foyer (`'regles'`, `'etats'`, `'maladies'`…). */
-    ruleCategory: z.string().optional(),
+    rule: foyerDeRegleSchema.optional(),
     /** Catégorie Codex de l'ENTRÉE JOUÉE quand le foyer descend jusqu'à elle (`'maladies'`,
      *  `'maneuvers'`, `'spells'`) — le producteur fournit alors l'`entryId` depuis son `meta`. */
     entryCategory: z.string().optional(),
@@ -52,7 +50,6 @@ const doc = document(
       hint: 'Qualifie le gabarit (verbatim / descripteur) — présente si et seulement s’il y a un gabarit',
     },
     rule: { label: 'Règle associée', hint: 'Entité qui EXIGE le jet (jamais son issue)' },
-    ruleCategory: { label: 'Catégorie de la règle', hint: 'Catégorie Codex de l’entité qui porte la règle' },
     entryCategory: {
       label: 'Catégorie de l’entrée jouée',
       hint: 'Catégorie Codex de l’entrée jouée quand la règle descend jusqu’à l’entrée (maladie, manœuvre, sort)',
@@ -74,21 +71,17 @@ const doc = document(
           id: string;
           template?: string;
           form?: string;
-          rule?: string;
-          ruleCategory?: string;
+          rule?: unknown;
           entryCategory?: string;
           entryFromSource?: boolean;
         };
-        if (!e.entryCategory && !e.entryFromSource && !(e.rule && e.ruleCategory)) {
-          ctx.addIssue({ code: 'custom', message: `${e.id} : ni foyer (rule+ruleCategory) ni entryCategory` });
-        }
-        if (e.rule && !e.ruleCategory) {
-          ctx.addIssue({ code: 'custom', message: `${e.id} : rule sans ruleCategory` });
+        if (!e.entryCategory && !e.entryFromSource && !e.rule) {
+          ctx.addIssue({ code: 'custom', message: `${e.id} : ni foyer (rule) ni entryCategory` });
         }
         if (!!e.template !== !!e.form) {
           ctx.addIssue({ code: 'custom', message: `${e.id} : la forme qualifie le gabarit — les deux ensemble, ou aucun` });
         }
-        if (!e.template && !(e.rule && e.ruleCategory)) {
+        if (!e.template && !e.rule) {
           ctx.addIssue({ code: 'custom', message: `${e.id} : entrée sans gabarit ET sans foyer — elle ne dirait plus rien` });
         }
       }),

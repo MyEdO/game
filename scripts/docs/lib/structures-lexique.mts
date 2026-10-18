@@ -336,7 +336,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'id', statut: 'cible' },
       { sig: 'id,spec', statut: 'cible' },
       { sig: 'choix,id', statut: 'cible', note: 'choix borné / libre (DESIGN v2 S2)' },
-      { sig: 'id,type', statut: 'cible', note: 'référence de dotation polymorphe' },
+      { sig: 'id,type', statut: 'cible', note: 'référence polymorphe : le `type` nomme l’espace où l’`id` résout (`refTypee`, foyer de règle #2820)' },
       { sig: 'count,id,type', statut: 'cible' },
       { sig: 'of,pick', statut: 'cible', note: 'tirage parmi un ensemble borné' },
       { sig: 'pick,table', statut: 'cible', note: 'tirage sur une table nommée' },

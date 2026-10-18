@@ -25,7 +25,7 @@ import {
   navalProgression, seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation,
   GRAPPLE, NIGHT_STAKES, VOYAGE_STAKES, FLOW_STAKES, COMBAT_STAKES,
-  windsOfMagicTable,
+  windsOfMagicTable, regles,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
@@ -229,6 +229,9 @@ const ARRAYS = {
   voyageStakes: VOYAGE_STAKES,
   flowStakes: FLOW_STAKES,
   combatStakes: COMBAT_STAKES,
+  // #2820 : catalogue des règles, en lecture seule au Codex — l'espace que le sélecteur du foyer de
+  // règle (`refTypee`, `cfgDuType`) offre au type `regle`.
+  regles,
   // V9 #1318 : registre des RÈGLES OPTIONNELLES (tableau RACINE de `reglesOptionnelles.json`) —
   // MÊME référence que `engine/policy.ts::OPTIONAL_RULES` (singleton JSON) ; Tableau de
   // Surincantation (VDM 02) NICHÉ dans `surincantation.json` (sous `entries`, même patron que
