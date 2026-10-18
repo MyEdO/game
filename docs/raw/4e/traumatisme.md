@@ -48,7 +48,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `isHealable`, `followsCharacterRules`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `applyHealWounds`, `needsRecoveryRoll`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 18` (l.12-19) → `isHealable`, `followsCharacterRules`, `doc`, `outOfCombatUpkeep`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `applyHealWounds`, `needsRecoveryRoll`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -72,7 +72,7 @@ Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6|
 **Voir aussi** : déclenchement du Coup Critique → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) (LDB 13/14) ; tableaux complets → [§ 4](#4-tableaux-des-critiques--renvoi).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `coup-a-l-il`, `estDebout`, `niMortNiATerre`, +61 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
+- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `coupure-mineure`, `doc`, `outOfCombatUpkeep`, `coup-a-l-il`, `estDebout`, `niMortNiATerre`, +61 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
 
 ---
 

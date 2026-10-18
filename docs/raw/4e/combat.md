@@ -1435,7 +1435,7 @@ Le **Bras de fer** est un Test opposé **étendu** de **Force Intermédiaire (+0
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 14` (l.189-191, l.193-198, l.200-211, l.213-215, l.217-221) → `advantageCap`, `advantageCapFor`, `gainAdvantage`, `RunModal`, `isControlledMount`, `REFUS_MONTE`, `combatOrder`, `grapple`, `REPORT_DE_COMBATTANT`, `chargeDmgProxy`, +48 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, +22 fichiers
 - `ZI 14` (l.1016-1017, l.1024-1026) → `fouissement` — `src/data/traits.json`
-- `NADJ 16` (l.34) → `SequenceRoundOps`, `al-zahr`, `SequenceParams`, `alvatafl`, `SequenceVolleyRow`, `bras-de-fer`, `tavern-game`, `bete-tailleurs`, `SequenceSide`, `registerSequenceThrow`, +9 — `src/data/combat-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, `src/state/sequenceContract.ts`, `src/state/sequenceCore.ts`, +2 fichiers
+- `NADJ 16` (l.34) → `SequenceRoundOps`, `al-zahr`, `SequenceParams`, `alvatafl`, `SequenceVolleyRow`, `bras-de-fer`, `tavern-game`, `bete-tailleurs`, `SequenceSide`, `boules`, +9 — `src/data/combat-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, `src/state/sequenceContract.ts`, `src/state/sequenceCore.ts`, +2 fichiers
 
 ---
 
