@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estSuiteVitest, EST_SUITE_VITEST, finsDuGlob } from '../scripts/guards/lib/fichierVitest.mjs';
 import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
 import { detenteur } from './detenteur.testkit';
 
 /**
@@ -12,14 +13,12 @@ import { detenteur } from './detenteur.testkit';
  * rapide qui a pourtant régressé. Ce que le contrat voulait dire se lit sur l'ARTEFACT (tampons,
  * `version` d'attribut, index, compteurs d'appels), qui est déterministe.
  *
- * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : les racines de la suite
- * (`RACINES_DE_LA_SUITE`, d'où `vite.config.ts` tire `test.include`) sont EXACTEMENT ce que la suite
+ * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : la suite (`fichiersDeLaSuite`,
+ * `scripts/guards/lib/suiteVitest.mjs`, la définition des shards de la CI) est EXACTEMENT ce que la suite
  * joue, donc exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites
  * tolérés (une garde qui nomme ses tolérés valide des défauts). Un test que `npm test` ne joue pas
  * (les suites `node --test` de `scripts/**`, qui pilotent des processus et des sockets où un délai
- * peut être le sujet du contrat) sort du périmètre par la MÊME règle, sans énumération. Les motifs
- * ne sont pas recopiés : la garde lit la source unique (`scripts/guards/lib/racinesDeLaSuite.mjs`),
- * les déplie par le lecteur partagé (`finsDuGlob`, `scripts/guards/lib/fichierVitest.mjs`), et ne
+ * peut être le sujet du contrat) sort du périmètre par la MÊME règle, sans énumération. La garde ne
  * porte donc AUCUNE liste — ni de sites, ni de globs.
  *
  * Ce fichier est DANS le corpus qu'il scanne : son motif n'y apparaît qu'ÉCLATÉ (alternance de la
@@ -36,12 +35,12 @@ const GARDE = {
     'aucun — baseline ZÉRO, sans aucune liste de sites tolérés.',
   primitive:
     'La regex `HORLOGE` appliquée LIGNE À LIGNE à la vue CODE SEUL ' +
-    '(`scripts/guards/lib/codeSeul.mjs`) du corpus de `readCorpus` ' +
-    '(`scripts/guards/lib/sourceCorpus.mjs`, `tests: true`) — aucun parcours de ' +
+    '(`scripts/guards/lib/codeSeul.mjs`) des suites de `fichiersDeLaSuite` ' +
+    '(`scripts/guards/lib/suiteVitest.mjs`) et du harnais — aucun parcours de ' +
     'dossiers local, aucun blanchiment local : commentaires et littéraux de chaîne sont de la prose ' +
     'et de la donnée, seul le CODE est mesuré.',
   perimetre:
-    'Le corpus de `npm test`, lu aux racines de la suite (`racinesDeLaSuite.mjs`, source du `test.include` de `vite.config.ts`) — aucune ' +
+    'Le corpus de `npm test`, la suite que jouent les shards de la CI (`suiteVitest.mjs`) — aucune ' +
     'liste de globs ici : fichiers de test ET le harnais `src/test-setup.ts` qui court avant chacun ' +
     'd’eux. Un test que `npm test` ne joue pas en sort par la même règle. Le code de PRODUCTION est ' +
     'hors périmètre : une boucle de rendu a le droit de dater ses images.',
@@ -65,46 +64,15 @@ const GARDE = {
  *  entrerait par le corpus, et la garde devrait alors s'exempter elle-même. */
 const HORLOGE = /\b(?:performance|Date)\s*\.\s*now\s*\(/;
 
-/** Ce qui est SCANNÉ : les fichiers de test, et le HARNAIS qui s'exécute avant CHACUN d'eux
- *  (`src/test-setup.ts`, `setupFiles` de `vite.config.ts`). Une horloge dans le harnais est une
- *  horloge dans tous les tests à la fois — et celle-là n'apparaît dans aucun d'eux. */
-const EST_TEST = (rel: string): boolean => estSuiteVitest(rel) || rel.endsWith('/test-setup.ts');
-
-/** Ce nom de fichier serait-il joué par ce motif d'`include` ? */
-const accepteParLeGlob = (motif: string, nom: string): boolean => finsDuGlob(motif).some((fin) => nom.endsWith(fin));
-
-/** Les six formes témoins de la concordance glob ↔ prédicat : les deux dialectes de suite joués, le
- *  dialecte de suite que seul `scripts/**` écrit, un BANC, une source de production, un suffixé. */
-const NOMS_TEMOINS = ['a.test.ts', 'a.test.tsx', 'a.test.mjs', 'a.bench.ts', 'a.ts', 'x.test.ts.bak'];
-
-describe('la SUITE se définit à UN endroit — le glob des racines et le prédicat partagé concordent', () => {
-  it('sur les dialectes que le glob NOMME, glob et `EST_SUITE_VITEST` acceptent et refusent les mêmes noms', () => {
-    for (const { motif, exts } of RACINES_DE_LA_SUITE) {
-      for (const nom of NOMS_TEMOINS) {
-        if (!exts.some((e) => nom.endsWith(e))) continue; // dialecte que CE glob ne nomme pas
-        expect(accepteParLeGlob(motif, nom), `${motif} ↔ prédicat sur ${nom}`).toBe(EST_SUITE_VITEST.test(nom));
-      }
-    }
-  });
-
-  it('ÉCART MESURÉ : le prédicat couvre un dialecte de suite qu’aucun glob ne joue (`.test.mjs`)', () => {
-    // Ce n'est pas un rouge à masquer, c'est le périmètre : le prédicat sert AUSSI `scripts/**`, dont
-    // les suites sont en `.mjs` et tournent sous `node --test`, hors de `npm test`. La concordance
-    // ci-dessus porte donc sur les dialectes que le glob NOMME, et l'écart est mesuré ici, pas tu.
-    expect(RACINES_DE_LA_SUITE.some((r) => accepteParLeGlob(r.motif, 'a.test.mjs'))).toBe(false);
-    expect(EST_SUITE_VITEST.test('a.test.mjs')).toBe(true);
-  });
-
-  it('un nom SUFFIXÉ n’est une suite pour personne', () => {
-    expect(RACINES_DE_LA_SUITE.some((r) => accepteParLeGlob(r.motif, 'x.test.ts.bak'))).toBe(false);
-    expect(EST_SUITE_VITEST.test('x.test.ts.bak')).toBe(false);
-  });
-});
+/** Le HARNAIS qui s'exécute avant CHAQUE test (`setupFiles` de `vite.config.ts`), scanné avec eux : une
+ *  horloge dans le harnais est une horloge dans tous les tests à la fois — et celle-là n'apparaît dans aucun d'eux. */
+const HARNAIS = 'src/test-setup.ts';
 
 describe('tests-sans-horloge-guard : aucun test joué par `npm test` ne lit l’horloge', () => {
-  const tests = detenteur(() =>
-    RACINES_DE_LA_SUITE.flatMap(({ dir, exts }) => readCorpus([dir], { exts: [...exts], tests: true }).filter((f) => EST_TEST(f.rel))),
-  );
+  const tests = detenteur(() => [
+    ...fichiersDeLaSuite(),
+    { rel: HARNAIS, text: readFileSync(fileURLToPath(new URL('./test-setup.ts', import.meta.url)), 'utf8') },
+  ]);
 
   it('le corpus scanné est le RÉEL — sinon la garde mesurerait le vide', () => {
     expect(tests().length).toBeGreaterThan(100);

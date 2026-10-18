@@ -8,6 +8,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitDe } from './gitDeBanc.mjs'
+import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
 import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
@@ -17,10 +19,12 @@ import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import { profilsDuLancement } from './memoire.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
-import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
+import { PORTEE_LOT_S, VARIABLE_PARTIE, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { fichiersDeLaSuite } from '../guards/lib/suiteVitest.mjs'
+import { lancerTests } from './run.mjs'
 
 // #2586
 function bancDeCloture(t, fichier, familles) {
@@ -352,13 +356,40 @@ test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide
     [['racine balayée', 'autre/donnees'], ['racine balayée', 'autre/donnees']])
 })
 
-test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entière', async (t) => {
-  const racine = forger(t, { 'tsconfig.json': '{}', 'server/package.json': '{}', 'src/h.test.ts': 'export const h = 1\n' },
-    { 'tsconfig.json': '{ "compilerOptions": {} }', 'server/package.json': '{ "private": true }' })
-  const perimetre = (await deriver(racine))
+test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suite que la CI joue est retenue, la même pour la dérivation, les parties de run.mjs et les gardes (#2651)', async (t) => {
+  // Dedans : `src` en .ts/.tsx, suivi ou non suivi, sous un dossier pointé. Dehors : extension hors racine (`server/src`
+  // en .tsx), bench, hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
+  const racine = forger(t, {
+    '.gitignore': '/node_modules/\nsrc/ign/\n', 'tsconfig.json': '{}', 'server/package.json': '{}',
+    'src/state/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
+    'src/d.bench.ts': 'export {}\n', 'docs/e.test.ts': 'export {}\n', 'src/z.test.ts': 'export {}\n',
+    'src/.x/h.test.ts': 'export {}\n', 'src/node_modules/y.test.ts': 'export {}\n',
+  }, {
+    'tsconfig.json': '{ "compilerOptions": {} }', 'server/package.json': '{ "private": true }',
+    'src/f.test.ts': 'export {}\n', 'src/ign/g.test.ts': 'export {}\n',
+  }, { commiter: false })
+  rmSync(join(racine, 'src/z.test.ts'))
+  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/state/voyage-cadence.test.ts']
+
+  const perimetre = await deriver(racine, { base: 'HEAD' })
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
-  assert.deepEqual([...perimetre.retenus.keys()].sort(), ['scripts/temoin.test.mjs', 'src/h.test.ts'])
-  assert.equal(perimetre.retenus.get('src/h.test.ts').nature, 'toolchain')
+  assert.deepEqual([...perimetre.vitest].sort(), suite)
+  assert.deepEqual([...perimetre.retenus.keys()].filter((f) => f.startsWith('src/')).sort(), suite)
+  assert.equal(perimetre.retenus.get('src/state/voyage-cadence.test.ts').nature, 'toolchain')
+
+  assert.deepEqual(fichiersDeLaSuite(racine, { env: envDeDepotForge() }).map((f) => f.rel), suite)
+
+  mkdirSync(join(racine, 'node_modules/vitest'), { recursive: true })
+  writeFileSync(join(racine, 'node_modules/vitest/vitest.mjs'), VITEST_DE_PARTIE)
+  const base = racine.split('\\').join('/') + '/'
+  const parties = []
+  for (const i of [1, 2, 3]) {
+    const trace = join(racine, `include-${i}.json`)
+    const env = { ...envDeDepotForge(), [VARIABLE_PARTIE]: `${i}/3`, TRACE_INCLUDE: trace, WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536' }
+    assert.equal(await lancerTests({ racine, env, argv: [], verrou: { chemin: join(racine, 'geste.verrou'), libelle: 'fixture' } }), 0)
+    parties.push(...JSON.parse(readFileSync(trace, 'utf8')).map((f) => f.replace(base, '')))
+  }
+  assert.deepEqual(parties.sort(), suite)
 })
 
 /** Mesures d'un dossier temporaire où les tests `durees` (`{ [test]: ms }`) ont une durée apprise, surcoûts nuls. */
@@ -861,7 +892,7 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
 const lancerPrincipal = (racine, options = [], platform = process.platform) => {
   const module = pathToFileURL(join(import.meta.dirname, 'perimetre.mjs')).href
   const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = await principal(['--base', 'HEAD~1', '--tete', 'HEAD', ...${JSON.stringify(options)}], ${JSON.stringify(racine)}, { platform: ${JSON.stringify(platform)} })`
-  return spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } })
+  return spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', env: { ...envDeDepotForge(), NODE_TEST_CONTEXT: undefined } })
 }
 
 /** Le lint d'un dépôt forgé : le script `lint` de son `package.json` (`appelDuLint`), un lanceur au rapport vide. */
@@ -1139,6 +1170,44 @@ test('--liste : empreinte intégrale du dépôt conserve fichiers, mémos et mes
     assert.match(vu.stdout, /CI non rapatriée — --liste n’écrit rien/)
     assert.deepEqual(empreintes(), avant)
   }
+})
+
+test('bilan en fichiers : joués / retenus / suite par famille, renvois à la CI par cause ; « suite entière » quand tout est joué (#2651)', (t) => {
+  const bilan = (racine) => {
+    const vu = lancerPrincipal(racine, ['--liste', '--budget', '0'])
+    assert.equal(vu.status, 0, vu.stdout + vu.stderr)
+    return vu.stdout.split(/\r?\n/).filter((l) => l.startsWith('[perimetre] bilan : '))
+  }
+  const toutTouche = forger(t, {}, { 'scripts/temoin.test.mjs': "import './seul.mjs'\nexport {}\n", 'src/a.test.ts': 'export {}\n' })
+  assert.deepEqual(bilan(toutTouche), ['[perimetre] bilan : à jouer 2 / retenu(s) 2 / suite 2 fichier(s) — suite entière au plan'
+    + ' (vitest 1/1/1, node 1/1/1) ; → CI 0 (budget 0, audit 0, durée inconnue 0)'])
+  const toolchain = forger(t, { 'tsconfig.json': '{}', 'src/a.test.ts': 'export {}\n' }, { 'tsconfig.json': '{ "compilerOptions": {} }' })
+  mesuresDe(dossierDesMesures(toolchain)).ecrire('durees.json', { 'src/a.test.ts': 1000 })
+  assert.deepEqual(bilan(toolchain), ['[perimetre] bilan : à jouer 0 / retenu(s) 2 / suite 2 fichier(s)'
+    + ' (vitest 0/1/1, node 0/1/1) ; → CI 2 (budget 1, audit 0, durée inconnue 1)'])
+})
+
+/** Lanceur Vitest d'un dépôt forgé (`scripts/test/run.mjs`) : son rapport de durées ne mesure que les fichiers reçus
+ *  dont le nom ne contient pas `muet`. */
+const RUN_AU_RAPPORT_PARTIEL =
+  "import fs from 'node:fs'\nimport path from 'node:path'\n" +
+  "const sortie = process.argv.find((a) => a.startsWith('--outputFile.durees=')).slice('--outputFile.durees='.length)\n" +
+  "const mesures = process.argv.slice(2).filter((a) => a.endsWith('.test.ts') && !a.includes('muet'))\n" +
+  "fs.writeFileSync(sortie, JSON.stringify({ workers: 1, durees: Object.fromEntries(mesures.map((f) => [path.resolve(f), 5])), echecs: [] }))\n"
+
+test('bilan après lancement : les fichiers joués sont ceux que les rapports mesurent, jamais ceux du plan ; « suite entière jouée » (#2651)', (t) => {
+  const bilan = (racine) => {
+    const vu = lancerPrincipal(racine)
+    assert.equal(vu.status, 0, vu.stdout + vu.stderr)
+    return vu.stdout.split(/\r?\n/).filter((l) => l.startsWith('[perimetre] bilan : '))
+  }
+  const base = { ...LINT_FORGE, 'scripts/test/run.mjs': RUN_AU_RAPPORT_PARTIEL }
+  const unMuet = forger(t, base, { 'src/a.test.ts': 'export {}\n', 'src/muet.test.ts': 'export {}\n' })
+  assert.deepEqual(bilan(unMuet), ['[perimetre] bilan : joué(s) 1 / retenu(s) 2 / suite 3 fichier(s)'
+    + ' (vitest 1/2/2, node 0/0/1) ; → CI 0 (budget 0, audit 0, durée inconnue 0)'])
+  const tout = forger(t, base, { 'scripts/temoin.test.mjs': "import './seul.mjs'\nexport {}\n", 'src/a.test.ts': 'export {}\n' })
+  assert.deepEqual(bilan(tout), ['[perimetre] bilan : joué(s) 2 / retenu(s) 2 / suite 2 fichier(s) — suite entière jouée'
+    + ' (vitest 1/1/1, node 1/1/1) ; → CI 0 (budget 0, audit 0, durée inconnue 0)'])
 })
 
 test('diagnostic périmètre : clôture conserve causes, certificat natif et défaut collecte au journal', async (t) => {

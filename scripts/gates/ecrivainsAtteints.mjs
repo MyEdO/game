@@ -15,6 +15,7 @@ import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, listerTests, testsDe } from './testsParGate.mjs'
 import { OPERATIONS_FS } from '../guards/lib/ecrituresFichiers.mjs'
+import { codeSeul } from '../guards/lib/codeSeul.mjs'
 
 /** Appels qui ÉCRIVENT sur le disque. Le `\b` évite `outputFile` dans une liste de drapeaux. */
 const ECRITURE = new RegExp(`\\b(?:${Object.entries(OPERATIONS_FS).filter(([, op]) => op.detecteeParGateHistorique).map(([nom]) => nom).join('|')})\\s*\\(`)
@@ -41,7 +42,8 @@ export function transitif(graines, racine, mesure = {}) {
   return [...clotureDImports(graines, { racine, typesEffaces: true, ...mesure })]
 }
 
-/** `true` si ce script porte au moins un appel d'écriture hors commentaire et hors import. */
+/** `true` si ce script porte au moins un appel d'écriture dans son CODE (`codeSeul` : commentaires et chaînes
+ *  blanchis), hors import. */
 export function porteUneEcriture(chemin, racine) {
   let texte
   try {
@@ -49,7 +51,7 @@ export function porteUneEcriture(chemin, racine) {
   } catch {
     return false
   }
-  return texte.split('\n').some((l) => !inerte(l) && ECRITURE.test(l))
+  return codeSeul(texte).split('\n').some((l) => !inerte(l) && ECRITURE.test(l))
 }
 
 /** `{ [gate]: [scripts LOCAUX atteints, triés] }` — le CORPUS de chaque gate de `ci.yml` : ses

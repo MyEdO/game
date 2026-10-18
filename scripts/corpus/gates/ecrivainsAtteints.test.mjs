@@ -40,9 +40,6 @@ const ATTENDU = {
     'scripts/gates/vitestSansEcriture.test.mjs',
     'scripts/guards/lib/perimetreSansEcriture.mjs',
     'scripts/guards/lib/perimetreSansEcriture.test.mjs',
-    // #2489 : le cache de mesure est injecté sous os.tmpdir(), puis effacé.
-    'scripts/guards/lib/ecrituresFichiers.test.mjs',
-    'scripts/guards/lib/ecrituresShell.test.mjs',
     // +1 le 2026-10-14 (#2603) : `instanceDeDepot` sous `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en
     // `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/photoArbre.test.mjs',
@@ -359,10 +356,6 @@ const ATTENDU = {
     // derrière sa porte `import.meta.main` — jamais depuis la gate.
     'scripts/git-hooks/journal.mjs',
     'scripts/ops/chantier.test.mjs',
-    // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
-    // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
-    // aucun module fictif n'est importé ni exécuté, et rien n'est écrit, ni dans l'arbre ni ailleurs.
-    'scripts/ops/etapesDuTrain.test.mjs',
     // +1 le 2026-09-18 (#1813) : le banc du vocabulaire de PLAGE FERMANTE prend ses dépôts jetables à
     // la fixture partagée (`instanceDeDepot`, sous os.tmpdir()) et y pose ses fichiers
     // (`mkdirSync`/`writeFileSync` pour `.claude/soldes/42.md`, `rmSync` en finally) : lire une plage

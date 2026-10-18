@@ -13,13 +13,15 @@ import { refusOutillageLocal } from '../outillage-local.mjs'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { lancerTests } from './run.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { VARIABLE_PARTIE } from './partition.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { gitDe } from './gitDeBanc.mjs'
 
 /** Vitest de substitution : trace ses arguments dans `TRACE_DOSSIER` (`<côté>-<pid>.json`), puis sort sur
  *  `FAUX_VITEST_CODE`, ou attend indéfiniment sous `FAUX_VITEST_ATTENTE`. */
@@ -43,16 +45,12 @@ const fixtureRun = (t) => {
   return { racine, traces, verrou: { chemin: join(racine, 'geste.verrou'), libelle: 'fixture' }, env }
 }
 
-/** Fixture partagée node/jsdom : deux fichiers, un par côté, et l'inventaire qui les rend. */
+/** Fixture partagée node/jsdom : deux fichiers, un par côté, et l'énumération qui les rend. */
 const fixturePartagee = (t) => {
   const p = fixtureRun(t)
-  const fichiers = ['moteur.test.ts', 'ecran.test.tsx'].map((n) => join(p.racine, n))
-  fichiers.forEach((f, i) => writeFileSync(f, i ? '// @vitest-environment jsdom\n' : 'export {}'))
-  const inventorier = (_exe, args) => {
-    writeFileSync(args.find((a) => a.startsWith('--json=')).slice(7), JSON.stringify(fichiers.map((file) => ({ file }))))
-    return { status: 0 }
-  }
-  return { ...p, inventorier }
+  const suite = ['moteur.test.ts', 'ecran.test.tsx']
+  suite.forEach((n, i) => writeFileSync(join(p.racine, n), i ? '// @vitest-environment jsdom\n' : 'export {}'))
+  return { ...p, enumerer: () => suite }
 }
 
 /** Les lancements tracés par le faux Vitest, côté node d'abord : `[côté, pid, argv]`. */
@@ -164,10 +162,11 @@ test('lancerTests : une exception levée avec un Vitest vivant le ferme AVANT de
   let atelier
   await assert.rejects(lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
     env: { ...p.env, WFRP_TEST_COEURS: '16', FAUX_VITEST_ATTENTE: '1' },
-    inventorier: (exe, args, options) => {
-      atelier = dirname(args.find((a) => a.startsWith('--json=')).slice(7))
+    enumerer: (racine) => {
+      const ateliers = join(racine, 'node_modules/.vitest-split')
+      atelier = join(ateliers, readdirSync(ateliers)[0])
       mkdirSync(join(atelier, 'vitest.jsdom.config.ts'))
-      return p.inventorier(exe, args, options)
+      return p.enumerer(racine)
     } }), (e) => e.code === 'EISDIR')
   assert.equal(vus.length, 1, 'le Vitest node lancé avant la levée')
   assert.deepEqual([vus[0].ferme, vus[0].verrouALaFermeture], [true, true], 'fermé verrou encore tenu')
@@ -176,17 +175,36 @@ test('lancerTests : une exception levée avec un Vitest vivant le ferme AVANT de
   assert.deepEqual(relais(), avant)
 })
 
-test('lancerTests : annulation avant principal interdit aussi inventaire PARTIE', async (t) => {
+test('lancerTests : une suite qu’on ne peut énumérer, VIDE comprise, est un REFUS (code 1) sans aucun Vitest lancé (#2651)', async (t) => {
+  const p = fixtureRun(t)
+  const git = gitDe(p.racine)
+  git('init', '-q', '-b', 'main')
+  writeFileSync(join(p.racine, 'moteur.ts'), 'export {}\n')
+  git('add', '--', 'moteur.ts')
+  git('-c', 'user.email=run@example.test', '-c', 'user.name=Run', 'commit', '-q', '-m', 'base')
+  const vus = []
+  const ecrits = []
+  t.mock.method(process.stderr, 'write', (texte) => { ecrits.push(String(texte)); return true })
+  const code = await lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
+    env: { ...envDeDepotForge(), WFRP_TEST_COEURS: '16', WFRP_TEST_MEMOIRE_MO: '65536', TRACE_DOSSIER: p.traces } })
+  t.mock.restoreAll()
+  assert.equal(code, 1)
+  assert.ok(ecrits.some((e) => e.startsWith('[test] REFUS — énumération de la suite impossible : suiteVitest : aucune suite Vitest sous ')), ecrits.join(''))
+  assert.deepEqual(vus, [])
+  assert.equal(existsSync(p.verrou.chemin), false)
+})
+
+test('lancerTests : annulation avant principal interdit aussi énumération PARTIE', async (t) => {
   const p = fixtureRun(t)
   const controle = new AbortController()
   const env = { ...p.env, WFRP_TEST_PARTIE: '1/2' }
   let lectures = 0
   Object.defineProperty(env, 'WFRP_TEST_COEURS', { enumerable: true, get() { if (++lectures === 2) controle.abort(); return '4' } })
-  let inventaires = 0
+  let enumerations = 0
   const code = await lancerTests({ ...p, env, signal: controle.signal, argv: [],
-    inventorier: () => { inventaires++; return { status: 1, stdout: '', stderr: '' } } })
+    enumerer: () => { enumerations++; return [] } })
   assert.equal(code, 1)
-  assert.equal(inventaires, 0)
+  assert.equal(enumerations, 0)
   assert.deepEqual(readdirSync(p.traces), [])
   assert.equal(existsSync(p.verrou.chemin), false)
 })
