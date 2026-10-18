@@ -4,7 +4,7 @@ import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, decoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
+import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, decoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
@@ -261,12 +261,16 @@ function deriver({ racine, touches, post, avant, lire, lireAvant, memos, stade =
     const manquants = fichiers.filter((f) => !variante(nature, f))
     prelire(new Set([...manquants, ...manquants.flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
   }
+  /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR `pool`, une fois par module et par dérivation : les
+   *  lots de la dérivation la partagent, la dérivation la relâche à sa fin. */
+  const certifiees = new Map()
+  const certifiee = (f, pool) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, pool)).get(f)
   /** Les spécificateurs qu'importe la lecture `pool` de `f`, ceux de ses `importe` puis ses étoiles, une fois par
    *  module et par dérivation. */
   const specificateursDesLectures = new Map()
   const specificateursDeLaLecture = (f, pool) => {
     if (specificateursDesLectures.has(f)) return specificateursDesLectures.get(f)
-    const lu = pool === null ? null : decoderLecture(pool)
+    const lu = certifiee(f, pool)
     const specs = new Set()
     const vus = new WeakSet()
     const visiter = (v) => {
@@ -317,7 +321,7 @@ function deriver({ racine, touches, post, avant, lire, lireAvant, memos, stade =
         if (manquants.length) {
           stade(nature, manquants.length === 1 ? manquants[0] : null)
           const lecteursDuTour = [...lecteurs]
-          const rendus = JSON.parse(evaluerLotDuDepot(JSON.stringify({ lectures: [...lecturesDuLot], resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })))
+          const rendus = evaluerLotDuDepot({ lectures: [...lecturesDuLot].map(([f, pool]) => [f, certifiee(f, pool)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })
           for (const { f, resultat, requetes } of rendus) {
             resultats.set(f, resultat)
             const cle = `${nature}:${f}`

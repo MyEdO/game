@@ -179,9 +179,9 @@ test('production fermée : clôture exacte par lot, lecteurs figés, deux lots e
     const r = suivant(spec, ctx)
     if (spec !== url) return r
     const source = Buffer.from(r.source).toString('utf8')
-    const appel = 'JSON.parse(evaluerLotDuDepot(JSON.stringify({ lectures:'
+    const appel = 'evaluerLotDuDepot({'
     assert.equal(source.split(appel).length, 2)
-    return { ...r, source: source.replace(appel, `JSON.parse(((json)=>{globalThis['${key}'].push({nature,manquants,lecturesDuLot,resolutions,lecteurs:[...lecteurs],transport:JSON.parse(json)});return evaluerLotDuDepot(json)})(JSON.stringify({ lectures:`)
+    return { ...r, source: source.replace(appel, `((lot)=>{const vues=globalThis['${key}'].certifiees??=new Map();for(const [f,lu] of lot.lectures){if(vues.has(f)&&vues.get(f)!==lu)throw new Error('LECTURE_CERTIFIEE_DEUX_FOIS:'+f);vues.set(f,lu)}globalThis['${key}'].push({nature,manquants,lecturesDuLot,resolutions,lecteurs:[...lecteurs],transport:{...lot,lectures:lot.lectures.map(([f,lu])=>[f,lu===null?null:encoderLecture(lu)])}});return evaluerLotDuDepot(lot)})({`)
       .replace('prelire(file.slice(i, finPrelue))', `globalThis['${key}'].push({prelecture:true,i,finPrelue,file:[...file],tranche:file.slice(i,finPrelue)}); prelire(file.slice(i, finPrelue))`)
       .replace('const vus = new WeakSet()', 'let travail = 0; const vus = new WeakSet()')
       .replace('const visiter = (v) => {', 'const visiter = (v) => { travail++')

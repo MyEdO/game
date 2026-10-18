@@ -784,17 +784,46 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 /** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
+/** Les lectures CERTIFIÉES par `certifierLecture` : les seules qu'accepte le noyau fermé d'`evaluerLotDuDepot`. */
+const lecturesCertifiees = new WeakSet()
+
 /**
- * L'évaluation d'un LOT, sans accès au disque : `entreeJSON` = `{ lectures, resolutions, lecteurs, questions }` — les IR
- * (`encoderLecture`, `null` pour un module illisible), les `[module, spécificateur, cible]`, les modules qui peuvent porter
- * un relais, et les questions `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend, en JSON, `{ nature, f, resultat, requetes }`
- * par question. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
- * `QUESTION_DU_LOT:<nature>:<f>`.
- * @param {string} entreeJSON @returns {string}
+ * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`, `null` pour un module illisible) :
+ * décodée (`decoderLecture`), sans nœud `lie`, gelée en profondeur ; `null` reste `null`. Lève comme
+ * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
+ * une racine qui n'est pas un objet.
+ * @param {string} module @param {string | null} pool @returns {Lecture | null}
  */
-export function evaluerLotDuDepot(entreeJSON) {
-  const { lectures, resolutions, lecteurs, questions } = JSON.parse(entreeJSON)
+export function certifierLecture(module, pool) {
+  if (pool === null) return null
+  const lu = decoderLecture(pool)
+  if (!lu || typeof lu !== 'object') throw new Error(`SNAPSHOT_LECTURE_NON_OBJET:${module}`)
+  const vus = new WeakSet()
+  const visiter = (v) => {
+    if (!v || typeof v !== 'object' || vus.has(v)) return
+    vus.add(v)
+    if (v.k === 'lie') throw new Error(`SNAPSHOT_IR_NON_PRODUCTEUR:${module}`)
+    for (const enfant of Object.values(v)) visiter(enfant)
+  }
+  visiter(lu)
+  gelerLaConstante(lu)
+  lecturesCertifiees.add(lu)
+  return /** @type {Lecture} */ (lu)
+}
+
+/**
+ * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
+ * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
+ * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
+ * question, valeurs détachées du noyau. Une lecture non certifiée lève `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>` ; une
+ * lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
+ * `QUESTION_DU_LOT:<nature>:<f>`.
+ * @param {{ lectures: Iterable<[string, Lecture | null]>, resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
+ * @returns {{ nature: string, f: string, resultat: unknown, requetes: string[] }[]}
+ */
+export function evaluerLotDuDepot({ lectures, resolutions, lecteurs, questions }) {
   const lus = new Map(lectures)
+  for (const [module, lu] of lus) if (lu !== null && !lecturesCertifiees.has(lu)) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
   const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
   const lisibles = new Set(lecteurs)
   const exiger = (table, cle, nature) => {
@@ -802,21 +831,7 @@ export function evaluerLotDuDepot(entreeJSON) {
     return table.get(cle)
   }
   const rendus = []
-  const decoded = new Map()
-  const lire = (module) => exiger(decoded, module, 'lecture')
-  for (const [module, pool] of lus) {
-    const lu = pool === null ? null : decoderLecture(pool)
-    const vus = new WeakSet()
-    const visiter = (v) => {
-      if (!v || typeof v !== 'object' || vus.has(v)) return
-      vus.add(v)
-      if (v.k === 'lie') throw new Error(`SNAPSHOT_IR_NON_PRODUCTEUR:${module}`)
-      for (const enfant of Object.values(v)) visiter(enfant)
-    }
-    visiter(lu)
-    if (lu) gelerLaConstante(lu)
-    decoded.set(module, lu)
-  }
+  const lire = (module) => exiger(lus, module, 'lecture')
   const evaluateur = construireEvaluateur({
     lecture: lire,
     cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
@@ -846,10 +861,10 @@ export function evaluerLotDuDepot(entreeJSON) {
         resultat = rendu.resultat
         for (const requete of rendu.requetes) requetes.add(requete)
       }
-      rendus.push(`{"nature":${JSON.stringify(nature)},"f":${JSON.stringify(f)},"resultat":${resultat},"requetes":${JSON.stringify([...requetes])}}`)
+      rendus.push({ nature, f, resultat: JSON.parse(resultat), requetes: [...requetes] })
     } catch (erreur) { throw new Error(`QUESTION_DU_LOT:${nature}:${f}:${erreur.message}`, { cause: erreur }) }
   }
-  return `[${rendus.join(',')}]`
+  return rendus
 }
 
 /**
