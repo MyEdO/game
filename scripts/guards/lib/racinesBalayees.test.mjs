@@ -351,6 +351,12 @@ test('lot fermé : une lecture certifiée n’entre que sous son module, et le d
     ['c.mjs présentée illisible (null)', () => ({ lectures: [['c.mjs', null]] }), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:c\.mjs$/],
     ['témoin d’illisibilité de nul.mjs présenté c.mjs', () => ({ lectures: [['c.mjs', certifierLecture('nul.mjs', null)]] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:c\.mjs:nul\.mjs$/],
     ['clé de lecture non chaîne', () => ({ lectures: [['c.mjs', c], [42, null]] }), /^Error: SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:1$/],
+    ['D1 [c.mjs, null] avant [c.mjs, c]', () => ({ lectures: [['c.mjs', null], ['c.mjs', c]] }), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:c\.mjs$/],
+    ['D2 [c.mjs, {}] avant [c.mjs, c]', () => ({ lectures: [['c.mjs', {}], ['c.mjs', c]] }), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:c\.mjs$/],
+    ['D3 doublon avant une clé 42', () => ({ lectures: [['c.mjs', c], ['c.mjs', c], [42, c]] }), /^Error: SNAPSHOT_LECTURE_DUPLIQUEE:c\.mjs$/],
+    ['lectures hors tableau', () => ({ lectures: new Map([['c.mjs', c]]) }), /^Error: SNAPSHOT_LECTURES_NON_TABLEAU$/],
+    ['lecture à trois termes', () => ({ lectures: [['c.mjs', c, c]] }), /^Error: SNAPSHOT_LECTURE_NON_PAIRE:0$/],
+    ['lecture en accesseur', () => ({ lectures: Object.defineProperty([], 0, { get: () => ['c.mjs', c], enumerable: true }) }), /^Error: SNAPSHOT_ACCESSEUR:lectures\[0\]$/],
     ['résolutions hors tableau', () => ({ resolutions: new Map() }), /^Error: SNAPSHOT_RESOLUTIONS_NON_TABLEAU$/],
     ['résolution à deux termes', () => ({ resolutions: [['c.mjs', 'node:fs']] }), /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
     ['résolution creuse', () => ({ resolutions: tableauCreux() }), /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
@@ -372,11 +378,17 @@ test('lot fermé : une lecture certifiée n’entre que sous son module, et le d
     ['question sans f', () => ({ questions: [{ nature: 'sitesDe' }] }), /^Error: SNAPSHOT_QUESTION_CLES:0$/],
     ['A5 question à clé symbole', () => ({ questions: [{ ...question, [Symbol('x')]: 1 }] }), /^Error: SNAPSHOT_QUESTION_CLES:0$/],
     ['nature inconnue', () => ({ questions: [question, { nature: 'siteDe', f: 'c.mjs' }] }), /^Error: SNAPSHOT_NATURE_INVALIDE:siteDe$/],
+    ['nature 42', () => ({ questions: [{ nature: 42, f: 'c.mjs' }] }), /^Error: SNAPSHOT_NATURE_INVALIDE:42$/],
     ['A2 nature en accesseur', () => ({ questions: [natureAlternee('siteDe')] }), /^Error: SNAPSHOT_ACCESSEUR:questions\[0\]\.nature$/],
     ['nature hasOwnProperty en accesseur', () => ({ questions: [natureAlternee('hasOwnProperty')] }), /^Error: SNAPSHOT_ACCESSEUR:questions\[0\]\.nature$/],
     ['nature hasOwnProperty par itérateur propre', () => ({ questions: avec([question], { [Symbol.iterator]: iterant({ nature: 'hasOwnProperty', f: 'sitesDe' })[Symbol.iterator] }) }), /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
     ['f non chaîne', () => ({ questions: [{ nature: 'sitesDe', f: ['c.mjs'] }] }), /^Error: SNAPSHOT_QUESTION_F_HORS_DOMAINE:0$/],
   ]) await t.test(nom, () => assert.throws(() => lot(entree()), erreur))
+  const pool = encoderLecture(lire('c.mjs', "import {readFileSync} from 'node:fs'; readFileSync('src')"))
+  for (const [nom, module] of [['Symbol', Symbol('c.mjs')], ['nombre', 42], ['chaîne vide', '']])
+    await t.test(`module de certifierLecture non chaîne (${nom})`, () => {
+      for (const ir of [pool, null]) assert.throws(() => certifierLecture(module, ir), /^Error: SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE$/)
+    })
 })
 
 // #2586

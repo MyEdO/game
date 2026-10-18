@@ -807,6 +807,9 @@ const lecturesCertifiees = new WeakMap()
  *  lus `null` par le noyau fermé et par `evaluateurDuDepot`. */
 const lecturesIllisibles = new WeakSet()
 
+/** Un module du lot : une chaîne non vide. @param {unknown} v @returns {v is string} */
+const estModuleDuLot = (v) => typeof v === 'string' && v !== ''
+
 /** `lu`, ou `null` si c'est un témoin d'illisibilité (`certifierLecture`). @param {unknown} lu */
 const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu)) ? null : /** @type {Lecture | null} */ (lu)
 
@@ -815,10 +818,12 @@ const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu))
  * nœud `lie`, gelée en profondeur. Pour un module illisible (`pool` = `null`), un TÉMOIN gelé sans clé, certifié et lié
  * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
  * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
- * une racine qui n'est pas un objet.
+ * une racine qui n'est pas un objet ; un `module` hors domaine (`estModuleDuLot`) lève
+ * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`.
  * @param {string} module @param {string | null} pool @returns {Lecture | LectureIllisible}
  */
 export function certifierLecture(module, pool) {
+  if (!estModuleDuLot(module)) throw new Error('SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE')
   if (pool === null) {
     const temoin = /** @type {LectureIllisible} */ (Object.freeze(Object.create(null)))
     lecturesIllisibles.add(temoin)
@@ -840,9 +845,6 @@ export function certifierLecture(module, pool) {
   return /** @type {Lecture} */ (lu)
 }
 
-/** Un module du lot : une chaîne non vide. @param {unknown} v */
-const estModuleDuLot = (v) => typeof v === 'string' && v !== ''
-
 /** `v` est-il un tableau NU : un `Array` dont les seules clés propres sont `length` et ses indices (ni méthode, ni
  *  itérateur, ni clé symbole propres) ? @param {unknown} v @returns {v is unknown[]} */
 const estTableauNu = (v) => Array.isArray(v) && Reflect.ownKeys(v).every((cle) => cle === 'length' ||
@@ -859,6 +861,10 @@ const valeurPropre = (objet, cle, chemin) => {
   return descripteur?.value
 }
 
+/** La nature `v` dans un message : sa valeur pour une primitive (`String`, qui ne lève sur aucune), son `typeof` pour
+ *  un objet, dont aucune méthode n'est appelée. @param {unknown} v */
+const natureAffichee = (v) => v !== null && (typeof v === 'object' || typeof v === 'function') ? typeof v : String(v)
+
 /**
  * La COPIE validée du DOMAINE d'un lot hors lectures, seule chose que consomme le noyau fermé : chaque élément lu une
  * fois par son descripteur propre (`valeurPropre`, un accesseur lève `SNAPSHOT_ACCESSEUR:<chemin>`), jamais par une
@@ -867,8 +873,8 @@ const valeurPropre = (objet, cle, chemin) => {
  * `SNAPSHOT_RESOLUTION_NON_TRIPLET:<i>`, `SNAPSHOT_RESOLUTION_HORS_DOMAINE:<i>`, `SNAPSHOT_RESOLUTION_DUPLIQUEE:<[f, spec]>`),
  * `lecteurs` (`SNAPSHOT_LECTEURS_NON_TABLEAU`, `SNAPSHOT_LECTEUR_HORS_DOMAINE:<i>`, `SNAPSHOT_LECTEUR_DUPLIQUE:<f>`),
  * `questions` (`SNAPSHOT_QUESTIONS_NON_TABLEAU`, `SNAPSHOT_QUESTION_NON_OBJET:<i>`, `SNAPSHOT_QUESTION_CLES:<i>` dont
- * toute clé symbole, `SNAPSHOT_NATURE_INVALIDE:<nature>`, `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`). Un module est une
- * chaîne non vide (`estModuleDuLot`).
+ * toute clé symbole, `SNAPSHOT_NATURE_INVALIDE:<nature>` (`natureAffichee`), `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`).
+ * Un module est une chaîne non vide (`estModuleDuLot`).
  * @param {unknown} resolutions @param {unknown} lecteurs @param {unknown} questions
  * @returns {{ resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: 'sitesDe' | 'relaisExportes', f: string }[] }}
  */
@@ -908,7 +914,7 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
     if (cles.some((cle) => typeof cle !== 'string') || cles.sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
     const nature = valeurPropre(question, 'nature', `questions[${i}].nature`)
     const f = valeurPropre(question, 'f', `questions[${i}].f`)
-    if (nature !== 'sitesDe' && nature !== 'relaisExportes') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${typeof nature === 'string' ? nature : typeof nature}`)
+    if (nature !== 'sitesDe' && nature !== 'relaisExportes') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${natureAffichee(nature)}`)
     if (!estModuleDuLot(f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
     copieQuestions.push({ nature, f: /** @type {string} */ (f) })
   }
@@ -919,25 +925,33 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
  * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
  * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
  * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
- * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. Un module
- * de lecture hors domaine (`estModuleDuLot`) lève `SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:<i>` ; toute lecture, témoin
- * d'illisibilité compris, est certifiée (`certifierLecture`), sinon `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, et pour
- * son module, sinon `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; le noyau lit un témoin `null`. Il ne
- * consomme du reste du lot que la copie validée de `validerDomaineDuLot`. Une lecture, une cible ou un `peutLire` absent
- * du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en `QUESTION_DU_LOT:<nature>:<f>`.
- * @param {{ lectures: Iterable<[string, Lecture | LectureIllisible]>, resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
+ * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. `lectures`
+ * se valide comme le reste du domaine (`validerDomaineDuLot`) : tableau NU, sinon `SNAPSHOT_LECTURES_NON_TABLEAU`, lu
+ * entrée par entrée à son indice d'entrée `<i>` par son descripteur propre (`valeurPropre`) ; chaque entrée est une
+ * paire NUE, sinon `SNAPSHOT_LECTURE_NON_PAIRE:<i>`, dont le module est du domaine (`estModuleDuLot`), sinon
+ * `SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:<i>`, et la lecture, témoin d'illisibilité compris, certifiée
+ * (`certifierLecture`), sinon `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, pour son module, sinon
+ * `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; un module déjà lu lève `SNAPSHOT_LECTURE_DUPLIQUEE:<module>`.
+ * Le noyau lit un témoin `null`. Il ne consomme du lot que ces lectures validées et la copie validée de
+ * `validerDomaineDuLot`. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`,
+ * enveloppé en `QUESTION_DU_LOT:<nature>:<f>`.
+ * @param {{ lectures: [string, Lecture | LectureIllisible][], resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
  * @returns {{ nature: string, f: string, resultat: unknown, requetes: string[] }[]}
  */
 export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lecteurs: lecteursDuLot, questions: questionsDuLot }) {
   /** @type {Map<string, Lecture | null>} */
   const lus = new Map()
-  let i = 0
-  for (const [module, lu] of new Map(lectures)) {
+  if (!estTableauNu(lectures)) throw new Error('SNAPSHOT_LECTURES_NON_TABLEAU')
+  for (let i = 0, n = lectures.length; i < n; i++) {
+    const entree = valeurPropre(lectures, i, `lectures[${i}]`)
+    if (!estTableauNu(entree) || entree.length !== 2) throw new Error(`SNAPSHOT_LECTURE_NON_PAIRE:${i}`)
+    const [module, lu] = [0, 1].map((j) => valeurPropre(entree, j, `lectures[${i}][${j}]`))
     if (!estModuleDuLot(module)) throw new Error(`SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:${i}`)
-    if (!lecturesCertifiees.has(lu)) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
-    if (lecturesCertifiees.get(lu) !== module) throw new Error(`SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:${module}:${lecturesCertifiees.get(lu)}`)
+    if (!lecturesCertifiees.has(/** @type {object} */ (lu))) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
+    const certifie = lecturesCertifiees.get(/** @type {object} */ (lu))
+    if (certifie !== module) throw new Error(`SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:${module}:${certifie}`)
+    if (lus.has(module)) throw new Error(`SNAPSHOT_LECTURE_DUPLIQUEE:${module}`)
     lus.set(module, lectureOuNull(lu))
-    i++
   }
   const { resolutions, lecteurs, questions } = validerDomaineDuLot(resolutionsDuLot, lecteursDuLot, questionsDuLot)
   const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
