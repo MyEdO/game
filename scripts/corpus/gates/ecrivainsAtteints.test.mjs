@@ -330,6 +330,9 @@ const ATTENDU = {
     'scripts/test/node-tests.mjs',
     // #2461
     'scripts/ops/session-runtime.mjs',
+    // #2528
+    'scripts/ops/session-codex.mjs',
+    'scripts/ops/session-codex.test.mjs',
     // #2603
     'scripts/git-hooks/reconstruction.mjs',
     'scripts/ops/session.test.mjs',

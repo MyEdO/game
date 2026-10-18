@@ -10,9 +10,12 @@ import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
 import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart } from './session-start.mjs'
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { lancerPontCodex, envoyerCodex, veillerCodex } from './session-codex.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
+const erreur = (categorie, message, options) => new Error(`${prefixeDeRefus(categorie)} ${message}`, options)
 const Identite = z.object({ pid: z.number().int().positive(), creation: z.string().min(1) }).passthrough()
 const CarteSession = z.object({
   sessionId: z.uuid(), producteur: z.literal(PRODUCTEUR), ticket: z.number().int().positive(), nom: z.string().min(1),
@@ -34,7 +37,7 @@ const CarteSession = z.object({
 const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
 const validerPolitique = (brut) => {
   const vu = PolitiqueSession.safeParse(brut)
-  if (!vu.success) throw new Error(`POLITIQUE INVALIDE : ${vu.error.issues.map((e) => `${e.path.join('.') || e.keys?.join(',') || '—'}: ${e.message}`).join('; ')}`)
+  if (!vu.success) throw erreur('validation', `POLITIQUE INVALIDE : ${vu.error.issues.map((e) => `${e.path.join('.') || e.keys?.join(',') || '—'}: ${e.message}`).join('; ')}`)
   return vu.data
 }
 export const lirePolitique = (chemin = new URL('./session-policy.json', import.meta.url)) => validerPolitique(JSON.parse(fs.readFileSync(chemin, 'utf8')))
@@ -72,12 +75,12 @@ export function lireJsonc(texte) {
   return JSON.parse(nettoye)
 }
 
-export function planAgent(carte, { natif, consigne, rapport, schema, politique }) {
-  if (extname(natif ?? '').toLowerCase() !== '.exe') throw new Error('AGENT NATIF ABSENT : executable .exe requis')
+export function planAgent(carte, { natif, consigne, politique }) {
+  if (extname(natif ?? '').toLowerCase() !== '.exe') throw erreur('validation', 'AGENT NATIF ABSENT : executable .exe requis')
   if (carte.agent === 'claude') return { executable: natif, args: [consigne], shell: false }
-  if (carte.agent !== 'codex') throw new Error('AGENT INCONNU')
+  if (carte.agent !== 'codex') throw erreur('validation', 'AGENT INCONNU')
   const p = validerPolitique(politique)
-  return { executable: natif, shell: false, args: ['exec', '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
+  return { executable: natif, shell: false, args: ['-c', `model="${p.model}"`, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', 'app-server', '--listen', 'stdio://'] }
 }
 
 export const contratCodex = ({ sessionId, ticket, worktree }) => `Rapport final JSON : sessionId=${sessionId}, ticket=${ticket}, worktree=${worktree} ; atterrissage = sha du commit d'atterrissage sur main si ta publication est MERGED, sinon null ; resume décrit le résultat.`
@@ -101,12 +104,12 @@ const TYPES_DE_SCHEMA = Object.assign(Object.create(null), { string: (v) => type
 const MOTS_DE_SCHEMA = new Set(['type', 'pattern', 'required', 'properties', 'additionalProperties'])
 
 export function validateurDeSchema(schema) {
-  if (!TYPES_DE_SCHEMA.object(schema) || Object.getPrototypeOf(schema) !== Object.prototype) throw new Error(`SCHÉMA HORS INTERPRÈTE : sous-schéma non objet (${JSON.stringify(schema)})`)
+  if (!TYPES_DE_SCHEMA.object(schema) || Object.getPrototypeOf(schema) !== Object.prototype) throw erreur('validation', `SCHÉMA HORS INTERPRÈTE : sous-schéma non objet (${JSON.stringify(schema)})`)
   const hors = Object.keys(schema).filter((mot) => !MOTS_DE_SCHEMA.has(mot))
   const types = schema.type === undefined ? null : [schema.type].flat()
   if (types?.some((type) => !TYPES_DE_SCHEMA[type])) hors.push(`type ${types.join('|')}`)
   if (schema.additionalProperties !== undefined && schema.additionalProperties !== false) hors.push('additionalProperties')
-  if (hors.length) throw new Error(`SCHÉMA HORS INTERPRÈTE : ${hors.join(', ')}`)
+  if (hors.length) throw erreur('validation', `SCHÉMA HORS INTERPRÈTE : ${hors.join(', ')}`)
   const motif = schema.pattern === undefined ? null : new RegExp(schema.pattern, 'u')
   const proprietes = Object.entries(schema.properties ?? {}).map(([cle, sous]) => [cle, validateurDeSchema(sous)])
   const objet = schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties === false
@@ -125,8 +128,8 @@ const rapportConforme = validateurDeSchema(JSON.parse(fs.readFileSync(SCHEMA_RAP
 
 export function lireRapportDe(chemin) {
   let texte
-  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw new Error('RAPPORT ABSENT', { cause: e }); throw e }
-  try { return JSON.parse(texte) } catch (e) { throw new Error('RAPPORT INVALIDE', { cause: e }) }
+  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw erreur('panne', 'RAPPORT ABSENT', { cause: e }); throw erreur('transitoire', `LECTURE RAPPORT : ${e.message}`, { cause: e }) }
+  try { return JSON.parse(texte) } catch (e) { throw erreur('panne', 'RAPPORT INVALIDE', { cause: e }) }
 }
 
 export function validerRapport(rapport, carte) {
@@ -135,17 +138,17 @@ export function validerRapport(rapport, carte) {
   return { ok: true }
 }
 
-export function creerSessions({ dossier, horloge = Date.now, processus = mesurerProcessus, inventaire = inventorierProcessus, dormir = sommeil, lanceur }) {
+export function creerSessions({ dossier, horloge = Date.now, processus = mesurerProcessus, inventaire = inventorierProcessus, dormir = sommeil, lanceur, envoyer = envoyerCodex, veiller = veillerCodex }) {
   fs.mkdirSync(dossier, { recursive: true })
-  const chemin = (id) => { if (!/^[\w-]+$/.test(id)) throw new Error('IDENTITÉ INVALIDE'); return join(dossier, `${id}.json`) }
+  const chemin = (id) => { if (!/^[\w-]+$/.test(id)) throw erreur('validation', 'IDENTITÉ INVALIDE'); return join(dossier, `${id}.json`) }
   const stop = (id) => join(dossier, `${id}.stop`)
   const bootstrap = (id) => join(dossier, `${id}.bootstrap`)
   const recu = (id) => join(dossier, `${id}.sessionstart`)
   const validerCarte = (brut, fichier) => {
-    if (!brut || typeof brut !== 'object' || Array.isArray(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw new Error(`CARTE INVALIDE : ${fichier}`)
+    if (!brut || typeof brut !== 'object' || Array.isArray(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw erreur('panne', `CARTE INVALIDE : ${fichier}`)
     if (brut.producteur !== PRODUCTEUR) return brut
     const vu = CarteSession.safeParse(brut)
-    if (!vu.success || `${brut.sessionId}.json` !== fichier) throw new Error(`CARTE INVALIDE : ${fichier}${vu.success ? ' — identité/fichier divergent' : ` — ${vu.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')}`}`)
+    if (!vu.success || `${brut.sessionId}.json` !== fichier) throw erreur('panne', `CARTE INVALIDE : ${fichier}${vu.success ? ' — identité/fichier divergent' : ` — ${vu.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')}`}`)
     return vu.data
   }
   const collection = () => {
@@ -159,17 +162,18 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const lire = (id) => {
     const fichier = `${id}.json`
     let brut
-    try { brut = lireJSON(chemin(id)) } catch (e) { if (e.code === 'ENOENT') throw e; throw new Error(`CARTE INVALIDE : ${fichier}`, { cause: e }) }
+    try { brut = lireJSON(chemin(id)) } catch (e) { throw erreur(e.code === 'ENOENT' ? 'métier' : 'panne', `CARTE ${e.code === 'ENOENT' ? 'ABSENTE' : 'INVALIDE'} : ${fichier}`, { cause: e }) }
     return validerCarte(brut, fichier)
   }
   const maintenant = () => new Date(horloge()).toISOString()
   const sansControleur = (c) => !c.controleur && !c.jobHost && !c.agentProcessus
   const capacite = (c, jeton) => {
-    if (!jeton) throw new Error('JETON ABSENT')
-    if (!timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw new Error('JETON INCORRECT')
+    if (!jeton) throw erreur('permission', 'JETON ABSENT')
+    if (typeof jeton !== 'string' || !timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw erreur('permission', 'JETON INCORRECT')
   }
   const signalerEchec = (c, raison) => {
-    c.raison = raison; c.echecLe = maintenant()
+    if (c.raison && raison !== c.raison) { c.observations ??= []; if (!c.observations.includes(raison)) c.observations.push(raison) }
+    c.raison ??= raison; c.echecLe ??= maintenant()
     if (!c.evenements.some((e) => e.type === 'échec')) c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
   }
   const libererReservation = (c, etat, raison) => {
@@ -184,11 +188,11 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   }
   const sousVerrou = (geste) => {
     const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20 } })
-    if (prise.etat !== 'pris') throw new Error(prise.message)
+    if (prise.etat !== 'pris') throw erreur('transitoire', prise.message)
     try { return geste() } finally { prise.liberer() }
   }
-  const ecrireCarte = (carte) => sousVerrou(() => { validerCarte(carte, `${carte.sessionId}.json`); if (fs.existsSync(chemin(carte.sessionId))) { const precedente = lire(carte.sessionId); if (precedente.producteur !== PRODUCTEUR || carte.producteur !== PRODUCTEUR) throw new Error('CARTE ÉTRANGÈRE'); } sauver(chemin(carte.sessionId), carte); return carte })
-  const muter = (id, fn) => sousVerrou(() => { const carte = lire(id); if (carte.producteur !== PRODUCTEUR) throw new Error('CARTE ÉTRANGÈRE'); fn(carte); validerCarte(carte, `${id}.json`); sauver(chemin(id), carte); return carte })
+  const ecrireCarte = (carte) => sousVerrou(() => { validerCarte(carte, `${carte.sessionId}.json`); if (fs.existsSync(chemin(carte.sessionId))) { const precedente = lire(carte.sessionId); if (precedente.producteur !== PRODUCTEUR || carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); } sauver(chemin(carte.sessionId), carte); return carte })
+  const muter = (id, fn) => sousVerrou(() => { const carte = lire(id); if (carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); fn(carte); validerCarte(carte, `${id}.json`); sauver(chemin(id), carte); return carte })
   const constater = () => { const liste = inventaire(); return { inventaire: liste, processus: new Map(liste.map((p) => [p.pid, p])) } }
   const encorePresent = (carte, vue) => [carte.controleur, carte.jobHost, carte.agentProcessus].some((id) => id && identique(vue.processus.get(id.pid), id))
   const reconcilier = () => {
@@ -205,8 +209,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
           sauver(chemin(c.sessionId), c)
         } else if (['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
-          c.etat = 'echec-controle'; c.raison = 'contrôle perdu, sortie inconnue'; c.issueSortie = 'echec'; c.echecLe = maintenant(); delete c.codeEnveloppe
-          c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
+          c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue'); c.issueSortie = 'echec'; delete c.codeEnveloppe
           sauver(chemin(c.sessionId), c)
         }
       }
@@ -217,34 +220,34 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     const exact = vue.cartes.find((c) => c.sessionId === cible)
     if (exact) return exact
     const anomalie = vue.anomalies.find((a) => a.fichier === `${cible}.json`)
-    if (anomalie) throw new Error(anomalie.raison)
+    if (anomalie) throw erreur('panne', anomalie.raison)
     const pid = /^\d+$/.test(String(cible)) ? Number(cible) : null
     const matches = vue.cartes.filter((c) => String(c.ticket) === String(cible) || c.nom === cible || (pid !== null && [c.controleur, c.agentProcessus].some((id) => id?.pid === pid && identique(vue.processus.get(pid), id))))
-    if (!matches.length) throw new Error('NON INSCRIT : aucune session correspondante')
+    if (!matches.length) throw erreur('métier', 'NON INSCRIT : aucune session correspondante')
     const actives = matches.filter((c) => c.producteur !== PRODUCTEUR || !terminaux.has(c.etat))
-    if (actives.length > 1) throw new Error('CIBLE AMBIGUË : plusieurs sessions actives, utiliser UUID')
+    if (actives.length > 1) throw erreur('validation', 'CIBLE AMBIGUË : plusieurs sessions actives, utiliser UUID')
     if (actives.length === 1) return actives[0]
-    if (!attente) throw new Error('DÉJÀ SORTIE')
+    if (!attente) throw erreur('métier', 'DÉJÀ SORTIE')
     return matches.sort((a, b) => Date.parse(b.date) - Date.parse(a.date) || b.sessionId.localeCompare(a.sessionId))[0]
   }
   const controle = (carte, vue = constater()) => {
     const vu = vue.processus.get(carte.controleur?.pid)
-    if (!vu) throw new Error('CONTRÔLE PERDU : contrôleur absent')
-    if (!identique(vu, carte.controleur)) throw new Error('PID RECYCLÉ : contrôleur étranger')
-    if (!identique(vue.processus.get(carte.jobHost?.pid), carte.jobHost)) throw new Error('CONTRÔLE PERDU : JobHost absent ou recyclé')
+    if (!vu) throw erreur('panne', 'CONTRÔLE PERDU : contrôleur absent')
+    if (!identique(vu, carte.controleur)) throw erreur('permission', 'PID RECYCLÉ : contrôleur étranger')
+    if (!identique(vue.processus.get(carte.jobHost?.pid), carte.jobHost)) throw erreur('panne', 'CONTRÔLE PERDU : JobHost absent ou recyclé')
   }
   const estSortieObservee = (carte) => carte.etat === 'fermee'
-  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw new Error('DÉJÀ SORTIE'); const raison = fin.raison ?? c.raison; Object.assign(c, fin, { raison, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
+  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE'); if (fin.raison) signalerEchec(c, fin.raison); const raison = c.raison; Object.assign(c, fin, { rapport: fin.rapport ?? c.rapport, raison, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
   const revendiquer = (id, nonce, ids) => sousVerrou(() => {
     const c = lire(id)
-    if (c.producteur !== PRODUCTEUR) throw new Error('CARTE ÉTRANGÈRE')
-    if (c.etat === 'echec-reservation' || (c.etat === 'reservee' && horloge() > c.reserveJusqua)) throw new Error('RÉSERVATION EXPIRÉE')
-    if (c.etat !== 'reservee') throw new Error('REVENDICATION REFUSÉE')
+    if (c.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE')
+    if (c.etat === 'echec-reservation' || (c.etat === 'reservee' && horloge() > c.reserveJusqua)) throw erreur('métier', 'RÉSERVATION EXPIRÉE')
+    if (c.etat !== 'reservee') throw erreur('permission', 'REVENDICATION REFUSÉE')
     const revendication = nonce ?? lireJSON(bootstrap(id)).nonce
-    if (c.etat !== 'reservee' || c.empreinteNonce !== empreinte(revendication ?? '')) throw new Error('REVENDICATION REFUSÉE')
+    if (c.etat !== 'reservee' || c.empreinteNonce !== empreinte(revendication ?? '')) throw erreur('permission', 'REVENDICATION REFUSÉE')
     const vue = constater()
     ids = { controleur: ids.controleur ?? vue.processus.get(ids.controleurPid), jobHost: ids.jobHost ?? vue.processus.get(ids.jobHostPid) }
-    if (!ids.controleur?.creation || !ids.jobHost?.creation || !identique(vue.processus.get(ids.controleur.pid), ids.controleur) || !identique(vue.processus.get(ids.jobHost.pid), ids.jobHost)) throw new Error('REVENDICATION : IDENTITÉ NON MESURÉE')
+    if (!ids.controleur?.creation || !ids.jobHost?.creation || !identique(vue.processus.get(ids.controleur.pid), ids.controleur) || !identique(vue.processus.get(ids.jobHost.pid), ids.jobHost)) throw erreur('permission', 'REVENDICATION : IDENTITÉ NON MESURÉE')
     Object.assign(c, ids, { etat: 'vivante', revendiqueLe: maintenant() }); delete c.empreinteNonce
     sauver(chemin(id), c)
     fs.rmSync(bootstrap(id), { force: true })
@@ -261,10 +264,33 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   }
   const api = {
     lire, ecrireCarte, muter, constaterRecu,
+    etat(cible) {
+      const choisie = choisir(cible, { attente: true })
+      if (choisie.producteur !== PRODUCTEUR) throw new Error(`${prefixeDeRefus('permission')} CARTE ÉTRANGÈRE`)
+      return api.lister().cartes.find((c) => c.sessionId === choisie.sessionId)
+    },
+    async envoyer(cible, jeton, { message, requestId = randomUUID(), timeoutMs = 30_000 } = {}) {
+      const carte = choisir(cible, { attente: true })
+      if (carte.producteur !== PRODUCTEUR) throw new Error(`${prefixeDeRefus('permission')} CARTE ÉTRANGÈRE`)
+      capacite(carte, jeton)
+      if (carte.agent !== 'codex' || carte.etat !== 'vivante') throw new Error(`${prefixeDeRefus('métier')} SESSION CODEX NON VIVANTE`)
+      controle(carte)
+      return { ...await envoyer({ dossier, sessionId: carte.sessionId, jeton, message, requestId, timeoutMs }), requestId }
+    },
+    projectionCodex(id, projection) {
+      const carte = lire(id)
+      if (projection.rapport) {
+        const recuNatif = constaterRecu(id)
+        if (!recuNatif.ok) throw new Error(`${prefixeDeRefus('panne')} ${recuNatif.raison}`)
+        const validation = validerRapport(projection.rapport, carte)
+        if (!validation.ok) throw new Error(`${prefixeDeRefus('panne')} ${validation.raison}`)
+      }
+      return muter(id, (c) => { c.codex = projection; if (projection.rapport) c.rapport = projection.rapport; if (projection.cause) signalerEchec(c, projection.cause) })
+    },
     reserver(p) {
       const vue = reconcilier()
       return sousVerrou(() => {
-        if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw new Error('COLLISION : ticket ou nom déjà réservé')
+        if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw erreur('métier', 'COLLISION : ticket ou nom déjà réservé')
         const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex'), nonceHook = randomBytes(32).toString('hex')
         const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
         validerCarte(carte, `${sessionId}.json`)
@@ -275,13 +301,13 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       })
     },
     revendiquer,
-    agentDemarre: (id, agentProcessus) => muter(id, (c) => { if (!agentProcessus?.creation) throw new Error('IDENTITÉ AGENT ABSENTE'); c.agentProcessus = agentProcessus }),
+    agentDemarre: (id, agentProcessus) => muter(id, (c) => { if (!agentProcessus?.creation) throw erreur('panne', 'IDENTITÉ AGENT ABSENTE'); c.agentProcessus = agentProcessus }),
     demanderArret(cible, jeton) {
       const vue = reconcilier(), choisie = choisir(cible, { vue, attente: true })
       return muter(choisie.sessionId, (c) => {
         capacite(c, jeton)
         if (sansControleur(c) && ['reservee', 'echec-reservation'].includes(c.etat)) { libererReservation(c, 'fermee'); return }
-        if (terminaux.has(c.etat) || c.etat === 'nettoyage') throw new Error('DÉJÀ SORTIE')
+        if (terminaux.has(c.etat) || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE')
         controle(c, constater())
         if (c.etat === 'arret-demande') return
         c.etat = 'arret-demande'; c.demandeId = randomUUID(); c.arretDemandeLe = maintenant()
@@ -303,7 +329,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         } else { signalerEchec(carte, raison); if (['nettoyage', 'fermee'].includes(carte.etat)) carte.issueSortie = 'echec' }
       })
       if (sansControleur(c)) return c
-      if (['nettoyage', 'fermee', 'echec-controle'].includes(c.etat)) return (await api.attendre(id, { timeoutMs: 30_000 })).carte
+      if (['nettoyage', 'fermee', 'echec-controle'].includes(c.etat)) return (await api.attendre(id, { timeoutMs: 30_000, processusSeulement: true })).carte
       return (await api.fermer(id, jeton)).carte ?? lire(id)
     },
     async attenteDemarrage(id, jeton) {
@@ -328,15 +354,16 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           if (c.etat === 'nettoyage') etatMesure = 'nettoyage-en-cours'
           else if (c.etat !== 'reservee') { try { controle(c, vue) } catch { etatMesure = 'orpheline' } }
         }
-        const { empreinteJeton: _empreinteJeton, empreinteNonce: _empreinteNonce, ...publique } = c
+        const { empreinteJeton: _empreinteJeton, empreinteNonce: _empreinteNonce, empreinteNonceHook: _empreinteNonceHook, ...publique } = c
         return { ...publique, etatMesure, ageMs: horloge() - Date.parse(c.date) }
       })
       const inscrits = toutes.flatMap((c) => [c.controleur, c.agentProcessus]).filter(Boolean)
       return { cartes: toutes, anomalies: vue.anomalies, nonInscrits: vue.inventaire.filter((p) => /codex/i.test(p.nom ?? '') && !inscrits.some((id) => identique(p, id))).map((p) => ({ ...p, etatMesure: 'NON INSCRIT', stoppable: false })), evenements: toutes.flatMap((c) => c.evenements ?? []) }
     },
-    async attendre(cible, { timeoutMs = 60_000 } = {}) {
+    async attendre(cible, { timeoutMs = 60_000, depuis = 0, processusSeulement = false } = {}) {
       const vue = reconcilier()
-      const id = choisir(cible, { attente: true, vue }).sessionId, debut = horloge()
+      const choisie = choisir(cible, { attente: true, vue }), id = choisie.sessionId, debut = horloge()
+      if (!processusSeulement && choisie.producteur === PRODUCTEUR && choisie.agent === 'codex' && !terminaux.has(choisie.etat)) return veiller({ dossier, sessionId: id, depuis, timeoutMs })
       do {
         const c = lire(id)
         if (terminaux.has(c.etat) && c.etat !== 'fermee') return { etat: c.etat, carte: muter(id, (carte) => { carte.consommeLe = maintenant() }) }
@@ -377,8 +404,14 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         const recuNatif = constaterRecu(id)
         if (!recuNatif.ok) raison = recuNatif.raison
         if (lire(id).etat === 'arret-demande') arret = true
-        if (recuNatif.ok && causeSortie && fin.codeAgent !== 0 && !arret) { const cause = await causeSortie(); raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}` }
-        if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret) {
+        if (causeSortie && fin.codeAgent !== 0 && !arret) {
+          const cause = await causeSortie()
+          if (cause || recuNatif.ok) {
+            if (!recuNatif.ok) muter(id, (c) => { c.observations ??= []; c.observations.push(recuNatif.raison) })
+            raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}`
+          }
+        }
+        if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret && !lire(id).codex) {
           try { const lu = lireRapport(), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
           catch (e) { raison = e.message }
         }
@@ -386,7 +419,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       } catch (e) {
         if (child && child.exitCode === null && !arret) child.kill()
         if (fini) { try { await fini } catch {} }
-        return { ...sortie(id, { codeAgent: null, raison: `SPAWN/SUPERVISION : ${e.message}` }), codeEnveloppe: 0 }
+        const cause = causeSortie && child ? await causeSortie() : ''
+        return { ...sortie(id, { codeAgent: null, raison: `SPAWN/SUPERVISION : ${cause || e.message}` }), codeEnveloppe: 0 }
       } finally { if (timer) clearInterval(timer); fs.rmSync(stop(id), { force: true }) }
     },
   }
@@ -395,7 +429,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
 
 function powershell(commande) {
   const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', commande], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
-  if (vu.error || vu.status !== 0) throw new Error(`MESURE WINDOWS INDISPONIBLE : ${vu.error?.message ?? vu.stderr}`)
+  if (vu.error || vu.status !== 0) throw erreur('transitoire', `MESURE WINDOWS INDISPONIBLE : ${vu.error?.message ?? vu.stderr}`)
   return vu.stdout.trim()
 }
 
@@ -412,26 +446,33 @@ export function mesurerProcessus(pid) {
 }
 export function contexteSessions(worktree) {
   const depot = depotDe(worktree), principal = arbrePrincipal(depot)
-  if (!principal.disponible) throw new Error(principal.raison)
+  if (!principal.disponible) throw erreur('panne', principal.raison)
   return { racine: principal.valeur, gitCommun: join(principal.valeur, '.git'), worktree: resolve(worktree), branche: brancheDe(depot), head: shaDe(depot, 'HEAD') }
 }
 
-export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
+export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, pont = lancerPontCodex, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
   const id = carte.sessionId, rapport = join(dossier, `${id}.rapport`), journal = join(dossier, `${id}.stderr`)
   let agent
   try {
     const actuel = await preflight(carte.worktree, carte.agent)
-    if (actuel.empreinteCanon !== carte.hooks?.empreinteCanon || actuel.empreinteCredo !== carte.hooks?.empreinteCredo) throw new Error('HOOKS : EMPREINTE CHANGÉE AVANT SPAWN')
+    if (actuel.empreinteCanon !== carte.hooks?.empreinteCanon || actuel.empreinteCredo !== carte.hooks?.empreinteCredo) throw erreur('permission', 'HOOKS : EMPREINTE CHANGÉE AVANT SPAWN')
     const contexte = lireJSON(join(dossier, `${id}.hook-context`))
     const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
     return await sessions.superviser(id, {
-      lancer: () => { agent = lancerAgent(plan, carte, { journal, lancer, env: { ...process.env, WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') } }); return agent.child },
+      lancer: () => {
+        const env = envAgent({ ...process.env, WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') })
+        agent = carte.agent === 'codex'
+          ? pont({ plan, carte, dossier, consigne: consigneAgent(carte, consigne), schema: SCHEMA_RAPPORT, env, lancer, notifier: (projection) => sessions.projectionCodex(id, projection) })
+          : lancerAgent(plan, carte, { journal, lancer, env })
+        sessions.muter(id, (c) => { c.journalDiagnostic = carte.agent === 'codex' ? agent.journalDiagnostic : journal })
+        return agent.child
+      },
       causeSortie: () => agent.cause(),
       lireRapport: () => lireRapportDe(rapport),
     })
   } finally {
     if (agent) await agent.cause()
-    for (const fichier of [rapport, journal, join(dossier, `${id}.hook-context`), join(dossier, `${id}.sessionstart`)]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+    for (const fichier of [rapport, join(dossier, `${id}.hook-context`), join(dossier, `${id}.sessionstart`)]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] ${prefixeDeRefus('transitoire')} PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
   }
 }
 
