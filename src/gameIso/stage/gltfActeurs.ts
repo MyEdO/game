@@ -17,6 +17,8 @@ const UNE_FOIS: ReadonlySet<GesteGltf> = new Set(['1H_Melee_Attack_Chop', 'Hit_A
 const ARME = '1H_Sword';
 const ARMES_ET_BOUCLIERS = ['1H_Sword_Offhand', 'Badge_Shield', 'Rectangle_Shield', 'Round_Shield', 'Spike_Shield', '1H_Sword', '2H_Sword'];
 const FONDU_S = 0.15;
+const GISANT: GesteGltf = 'Death_A';
+const REPOS: GesteGltf = 'Idle';
 
 const chargeur = new GLTFLoader();
 const sources = new Map<ModeleGltf, Promise<GLTF>>();
@@ -34,8 +36,13 @@ interface ActeurGltf {
   mixer: THREE.AnimationMixer;
   actions: Map<GesteGltf, THREE.AnimationAction>;
   geste: GesteGltf | null;
+  modele: ModeleGltf;
+  /** Départ (`AnimTrack.start`) du dernier coup joué : un coup neuf au même geste relance le clip. */
+  coupDepuis: number | null;
   /** Hauteur du modèle à l'échelle 1, mesurée à l'instanciation. */
   hauteur: number;
+  /** Hauteur posée à la dernière image, en mètres. */
+  hauteurM: number;
 }
 
 /** Ce que la passe d'image dit d'un combattant. */
@@ -46,13 +53,16 @@ export interface PoseGltf {
   /** Cap en radians autour de +Y (0 = +Z, le sud du monde). */
   cap: number;
   hauteurM: number;
-  geste: GesteGltf;
-  visible: boolean;
+  /** L'état du corps : au repos, en marche, à terre. */
+  geste: 'Idle' | 'Walking_A' | 'Death_A';
+  /** Le coup que porte la piste vivante de l'acteur (`fx/animTracks`), et son départ. Le clip se joue
+   *  en entier, piste morte ou non ; le repos ne revient qu'à sa fin. */
+  coup?: { geste: GesteGltf; depuis: number };
 }
 
 export const capDeDir8 = (d: Dir8): number => Math.atan2(DIR8_DELTA[d].gx, DIR8_DELTA[d].gy);
 
-function instancier(gltf: GLTF, epee: THREE.Object3D | null): ActeurGltf {
+function instancier(gltf: GLTF, modele: ModeleGltf, epee: THREE.Object3D | null): ActeurGltf {
   const racine = cloneSkinned(gltf.scene) as THREE.Group;
   const aRetirer: THREE.Object3D[] = [];
   racine.traverse((o) => {
@@ -87,7 +97,7 @@ function instancier(gltf: GLTF, epee: THREE.Object3D | null): ActeurGltf {
     }
     actions.set(g, a);
   }
-  return { racine: enfant, mixer, actions, geste: null, hauteur };
+  return { racine: enfant, mixer, actions, geste: null, modele, coupDepuis: null, hauteur, hauteurM: 0 };
 }
 
 export class CoucheGltf {
@@ -105,15 +115,21 @@ export class CoucheGltf {
     return this.acteurs.get(cid)?.racine;
   }
 
-  /** Pose l'image : rend les cids effectivement dessinés par un modèle (leur billboard s'éteint). */
+  /** Mi-hauteur du modèle posé, en repère monde : le centre de perçage d'un héros (`GameStage3D`). */
+  centre(cid: string, out: THREE.Vector3): THREE.Vector3 | null {
+    const a = this.acteurs.get(cid);
+    return a ? out.copy(a.racine.position).setY(a.racine.position.y + a.hauteurM / 2) : null;
+  }
+
+  /** Pose l'image : rend les cids effectivement dessinés par un modèle. */
   poser(poses: readonly PoseGltf[]): ReadonlySet<string> {
     const now = performance.now();
     const dt = Math.min(0.1, Math.max(0, (now - this.dernier) / 1000));
     this.dernier = now;
     const dessinés = new Set<string>();
-    const voulus = new Set(poses.map((p) => p.cid));
+    const voulus = new Map(poses.map((p) => [p.cid, p.modele]));
     for (const [cid, a] of this.acteurs) {
-      if (voulus.has(cid)) continue;
+      if (voulus.get(cid) === a.modele) continue;
       a.racine.removeFromParent();
       a.mixer.stopAllAction();
       this.acteurs.delete(cid);
@@ -124,17 +140,33 @@ export class CoucheGltf {
         this.monter(p);
         continue;
       }
-      a.racine.visible = p.visible;
       // Un gisant n'est ni cible ni écran du rayon (même loi que les billboards, `GameStage3D` picker).
-      a.racine.userData.gisant = p.geste === 'Death_A';
+      a.racine.userData.gisant = p.geste === GISANT;
       a.racine.position.copy(p.pieds);
       a.racine.rotation.set(0, p.cap, 0);
       a.racine.scale.setScalar(p.hauteurM / a.hauteur);
-      this.jouer(a, p.geste);
+      a.hauteurM = p.hauteurM;
+      this.choisir(a, p);
       a.mixer.update(dt);
       dessinés.add(p.cid);
     }
     return dessinés;
+  }
+
+  /** L'état du corps prime (marche, chute) ; sinon un coup NEUF se joue, un coup en cours se finit, et
+   *  le repos ne revient qu'à la fin de son clip. */
+  private choisir(a: ActeurGltf, p: PoseGltf): void {
+    if (p.geste !== REPOS) {
+      this.jouer(a, p.geste);
+      return;
+    }
+    if (p.coup && p.coup.depuis !== a.coupDepuis) {
+      a.coupDepuis = p.coup.depuis;
+      this.jouer(a, p.coup.geste, true);
+      return;
+    }
+    const enCours = a.geste && UNE_FOIS.has(a.geste) ? a.actions.get(a.geste) : undefined;
+    if (!enCours?.isRunning()) this.jouer(a, REPOS);
   }
 
   private monter(p: PoseGltf): void {
@@ -144,7 +176,7 @@ export class CoucheGltf {
       ([gltf, knight]) => {
         this.enCours.delete(p.cid);
         if (this.acteurs.has(p.cid)) return;
-        const a = instancier(gltf, knight.scene.getObjectByName(ARME) ?? null);
+        const a = instancier(gltf, p.modele, knight.scene.getObjectByName(ARME) ?? null);
         this.acteurs.set(p.cid, a);
         this.racine.add(a.racine);
         this.surPret();
@@ -156,8 +188,8 @@ export class CoucheGltf {
     );
   }
 
-  private jouer(a: ActeurGltf, geste: GesteGltf): void {
-    if (a.geste === geste) return;
+  private jouer(a: ActeurGltf, geste: GesteGltf, relancer = false): void {
+    if (a.geste === geste && !relancer) return;
     const suivante = a.actions.get(geste);
     if (!suivante) return;
     const précédente = a.geste ? a.actions.get(a.geste) : undefined;

@@ -231,6 +231,9 @@ const AUCUN_SUJET: BillboardSubject[] = [];
 const HAUTEUR_GLTF_CASES = 0.9;
 /** ESSAI #2819 : `?billboards` dans l'URL garde les billboards d'origine (témoin de recette). */
 const SANS_GLTF = typeof location !== 'undefined' && new URLSearchParams(location.search).has('billboards');
+/** ESSAI #2819 : un combattant à pied (ni couple monté, ni décor) est rendu par un modèle glTF. */
+const rendGltf = (s: BillboardSubject): boolean => !!s.cid && s.kind === 'personnage' && !s.cavalier;
+const CENTRE_GLTF = new THREE.Vector3();
 
 /** DESSINS DE GRÂCE d'un héros dont le quad manque à l'appel. Les billboards se démontent et se
  *  remontent à chaque commit React qui touche les boards, et des dessins tombent DANS cette fenêtre :
@@ -979,6 +982,9 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues], () => collectBillboards(scene, mpt, elsStables));
   const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(actors, scene, mpt)));
   const subjects = useMemo(() => [...decor, ...acteurs], [decor, acteurs]);
+  /** ESSAI #2819 : les sujets qui reçoivent un billboard — tous, moins les combattants rendus en glTF. */
+  const gltfActif = !pov && !SANS_GLTF;
+  const sujetsDeBoards = useMemo(() => (gltfActif ? subjects.filter((s) => !rendGltf(s)) : subjects), [subjects, gltfActif]);
   // REPOSE DE POSITION : un acteur qui change de case suit sa case, en place. C'est la passe sœur de
   // la repose de regard — même loi, autre entrée. Elle PEINT sa propre écriture (aucune référence ne
   // bouge sous elle) et redemande la carte d'ombre : le casteur, lui, a bougé.
@@ -1325,17 +1331,15 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // au même endroit et sur les mêmes boards — deux écritures de matériau, aucune rasterisation. La
     // planche absente du cache est DEMANDÉE, jamais attendue : le quad garde la sienne d'ici là.
     writeBoardFrames(boardsRef.current, (b) => choisirFrame(b, camera, h), getCachedAtlas, demanderCuisson);
-    // ESSAI #2819 : un combattant à pied est rendu par son modèle glTF ; son billboard s'éteint (le
-    // matériau seul : la succession des corps et `corpsDeLActeur` gardent la main sur `mesh.visible`).
+    // ESSAI #2819 : un combattant à pied est rendu par son modèle glTF, sans billboard (`sujetsDeBoards`).
     const couche = coucheGltf.current;
-    if (couche && !pov && !SANS_GLTF) {
+    if (couche && gltfActif) {
       const poses: PoseGltf[] = [];
-      // Sur les SUJETS, pas sur les boards : un modèle n'attend pas la cuisson du billboard qu'il remplace.
-      const boardDe = new Map(boardsRef.current.filter((b) => b.sub.cid).map((b) => [b.sub.cid!, b]));
+      // Le modèle se lit au COMBATTANT, en combat comme hors combat (`animCtxOf` ne connaît que le combat).
+      const kindDe = new Map(actors.map((p) => [p.c.id, p.c.kind]));
       for (const sub of acteurs) {
-        const cid = sub.cid;
-        if (!cid || sub.kind !== 'personnage' || sub.cavalier) continue;
-        const b = boardDe.get(cid);
+        if (!rendGltf(sub)) continue;
+        const cid = sub.cid!;
         const g = anim ? anim.glide(cid) : null;
         const mém = capsGltf.current.get(cid);
         let cap = capDeDir8(sub.facing);
@@ -1345,31 +1349,23 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
           cap = Math.hypot(ddx, ddz) > 1e-4 ? Math.atan2(ddx, ddz) : mém.cap;
         }
         capsGltf.current.set(cid, { g, cap });
-        const rôle = tracksRef().get(cid)?.role;
-        const geste: GesteGltf = sub.anim?.ground === 'corpse' ? 'Death_A'
-          : g ? 'Walking_A'
-          : rôle === 'attack' ? '1H_Melee_Attack_Chop'
-          : rôle === 'hit' ? 'Hit_A'
-          : rôle === 'defense' ? 'Block'
-          : 'Idle';
+        const piste = tracksRef().get(cid);
+        const coupGeste: GesteGltf | null = piste?.role === 'attack' ? '1H_Melee_Attack_Chop'
+          : piste?.role === 'hit' ? 'Hit_A'
+          : piste?.role === 'defense' ? 'Block'
+          : null;
         poses.push({
           cid,
-          modele: animCtxOf(cid)?.kind === 'hero' ? 'Knight' : 'Skeleton_Warrior',
+          modele: kindDe.get(cid) === 'hero' ? 'Knight' : 'Skeleton_Warrior',
           pieds: new THREE.Vector3(sub.anchor.x + (g?.dx ?? 0), sub.anchor.y + (g?.dy ?? 0), sub.anchor.z + (g?.dz ?? 0)),
           cap,
-          hauteurM: HAUTEUR_GLTF_CASES * mpt,
-          geste,
-          visible: b ? b.mesh.visible : true,
+          hauteurM: HAUTEUR_GLTF_CASES * sub.scaleK * mpt,
+          geste: sub.anim?.ground === 'corpse' ? 'Death_A' : g ? 'Walking_A' : 'Idle',
+          ...(piste && coupGeste ? { coup: { geste: coupGeste, depuis: piste.start } } : {}),
         });
       }
       const dessinés = couche.poser(poses);
       dessinésGltf.current = dessinés;
-      for (const b of boardsRef.current) {
-        const éteint = !!b.sub.cid && dessinés.has(b.sub.cid);
-        b.material.visible = !éteint;
-        b.mesh.castShadow = !éteint;
-        if (b.jumeau) (b.jumeau.material as THREE.Material).visible = !éteint;
-      }
       if (dessinés.size) ombresARefaire.current = true;
     }
     // MARQUES DYNAMIQUES et HALOS D'INTERACTION : ils suivent la MÊME glisse que les
@@ -1448,13 +1444,15 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
         const board = boardsRef.current.find((b) => b.mesh.visible && b.occupants.includes(occupant));
         const état = états.get(occupant);
         let mémoire = état?.percée ?? null;
-        if (board) {
+        // ESSAI #2819 : un héros rendu en glTF perce au centre de son modèle.
+        const centreGltf = !board && gltfActif ? coucheGltf.current?.centre(hp.cid, CENTRE_GLTF) : null;
+        if (board || centreGltf) {
           if (!mémoire) {
             mémoire = { monde: new THREE.Vector3(), absences: 0 };
             if (état) état.percée = mémoire;
             else états.set(occupant, { percée: mémoire });
           }
-          mémoire.monde.copy(board.mesh.position);
+          mémoire.monde.copy(board ? board.mesh.position : centreGltf!);
           mémoire.absences = 0;
         } else if (mémoire && mémoire.absences < PERCAGE_GRACE_DESSINS) {
           mémoire.absences++;
@@ -1582,11 +1580,14 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   // se joue par à-coups, un effondrement se fige à mi-chute (corps en l'air) et la vue d'un quart de
   // tour ne se relève qu'au prochain rendu venu d'ailleurs. Le remontage complet des quads à chaque pas
   // le masquait : il peignait une image par quad.
-  const corpsAnimés = subjects.some((s) => !!s.frameSvg);
+  const corpsAnimés = sujetsDeBoards.some((s) => !!s.frameSvg);
+  // ESSAI #2819 : les mixers glTF avancent à l'image, comme un flipbook.
+  const modelesAnimés = gltfActif && acteurs.some(rendGltf);
   useBattementContinu(!!champ, 'averse');
   useBattementContinu(vacille, 'vacillement');
   useBattementContinu(pulseHalos, 'halos');
   useBattementContinu(corpsAnimés, 'corps-animés');
+  useBattementContinu(modelesAnimés, 'modeles-gltf');
 
   // HIT-TEST DE SPRITE (règle #1297 « ce qui se voit se clique ») : la voie volumique répond
   // au pointeur par un RAYON — cibles = les quads montés, ceux d'un combattant portant son id, ceux du
@@ -1607,11 +1608,11 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
       // Un GISANT (`groundPose.ts:groundStateOf`, hors de combat) n'est ni cible ni écran : le geste le
       // résout par la case, où `combatantAtTile` l'écarte — son quad volerait le clic du voisin debout.
       const gltf = dessinésGltf.current;
-      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible && b.sub.anim?.ground !== 'corpse' && !(b.sub.cid && gltf.has(b.sub.cid))).map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
+      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible && b.sub.anim?.ground !== 'corpse').map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
       // ESSAI #2819 : un combattant rendu en glTF se pointe par son modèle (rayon sur le maillage skinné).
       for (const cid of gltf) {
         const o = coucheGltf.current?.objet(cid);
-        if (o?.visible && !o.userData.gisant) cibles.push({ cid, object: o });
+        if (o && !o.userData.gisant) cibles.push({ cid, object: o });
       }
       return pickNearestTarget(
         camera,
@@ -2128,11 +2129,11 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // 0/63 quads gardés, ~250 buffers et 2 `linkProgram`. Un entrant déjà monté garde son quad, sa
     // texture et son uuid.
     const voulus = new Map<string, BillboardSubject>();
-    for (const sub of subjects) voulus.set(sub.identity, sub);
+    for (const sub of sujetsDeBoards) voulus.set(sub.identity, sub);
     // ATTENTE : les sujets voulus qui n'ont pas de board — leur cuisson court, jusqu'à leur montage ou
     // leur rejet (`successionDesCorps`).
     const montésAvant = new Set(memeBase ? boardsRef.current.map((b) => b.sub.identity) : []);
-    const attente = new Set(subjects.filter((sub) => !montésAvant.has(sub.identity)));
+    const attente = new Set(sujetsDeBoards.filter((sub) => !montésAvant.has(sub.identity)));
     const boards: BoardDeScène[] = [...boardsRef.current];
     boardsRef.current = boards;
     /** Applique la SUCCESSION DES CORPS à l'état courant (passe, montage, rejet) : libère — le board
@@ -2356,7 +2357,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // Sans centre de groupe (éditeur, planche QC), aucune proximité n'a de sens : l'ordre reste celui
     // des sujets, et la distance INFINIE qui en découle ne tient aucun voile d'entrée en scène.
     const centre = centreDuGroupe(frame, actors);
-    const àMonter = subjects.filter((sub) => !déjàMontés.has(sub.identity)).map((sub) => {
+    const àMonter = sujetsDeBoards.filter((sub) => !déjàMontés.has(sub.identity)).map((sub) => {
       // Le quad se taille sur la BOÎTE du sujet : un composite plus haut que la boîte canonique
       // (couple monté) gagne du quad au lieu d'être tranché à la rasterisation.
       const quad = subjectQuad(CONVENTION, sub);
@@ -2403,12 +2404,12 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // plateau (le plafond qu'un tour complet atteignait déjà, atteint plus tôt), trois en première
     // personne sur huit caps possibles. Le cache se vide au changement de scène
     // (`viderTexturesStatiques`).
-    réchaufferVoisins(monté, subjects.map((sub) => ({ sub, heightM: subjectQuad(CONVENTION, sub).heightM })));
+    réchaufferVoisins(monté, sujetsDeBoards.map((sub) => ({ sub, heightM: subjectQuad(CONVENTION, sub).heightM })));
     // Ce teardown court à CHAQUE changement de sujets, PAS seulement au démontage : il n'y a donc
     // rien à libérer ici (la passe suivante fait la succession). Il ne fait qu'annuler les textures en
     // vol — une texture servie après coup monterait un quad qu'aucune attente ne réclame.
     return () => { annule = true; };
-  }, [subjects, mpt, lit]);
+  }, [sujetsDeBoards, mpt, lit]);
 
   // ── VIDAGE FINAL : l'écran s'en va. C'est le SEUL endroit qui libère le groupe entier — la passe de
   // montage, elle, ne libère que les sortants.
