@@ -150,6 +150,7 @@ import {
   type BakedAtlas,
 } from '../backends/webgl/atlasBake';
 import { animCtxOf, animNow, installAnimTracks, tracksRef } from '../fx/animTracks';
+import { CoucheGltf, capDeDir8, type GesteGltf, type PoseGltf } from './gltfActeurs';
 import {
   COLLAPSE_MS,
   clipTotalMs,
@@ -226,6 +227,10 @@ const PERCAGE_HORS_PLATEAU = 'percage:hors-plateau';
  *  tableau neuf par rendu démonterait puis remonterait tous les quads du décor à chaque tick. */
 const AUCUN_TOKEN: SceneBillboardEls['tokens'] = Object.freeze([]);
 const AUCUN_SUJET: BillboardSubject[] = [];
+/** ESSAI #2819 : hauteur d'un modèle glTF, en cases. */
+const HAUTEUR_GLTF_CASES = 0.9;
+/** ESSAI #2819 : `?billboards` dans l'URL garde les billboards d'origine (témoin de recette). */
+const SANS_GLTF = typeof location !== 'undefined' && new URLSearchParams(location.search).has('billboards');
 
 /** DESSINS DE GRÂCE d'un héros dont le quad manque à l'appel. Les billboards se démontent et se
  *  remontent à chaque commit React qui touche les boards, et des dessins tombent DANS cette fenêtre :
@@ -762,8 +767,14 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const cielRef = useRef<THREE.DataTexture | null>(null);
   /** La plaque de décalquage de l'auteur, posée dans son groupe (`stageDecalque.poserDecalque`). */
   const plaqueRef = useRef<DecalquePosé | null>(null);
+  /** ESSAI #2819 : les combattants en modèles glTF (`gltfActeurs`). */
+  const coucheGltf = useRef<CoucheGltf | null>(null);
+  const dessinésGltf = useRef<ReadonlySet<string>>(new Set());
+  const capsGltf = useRef(new Map<string, { g: { dx: number; dz: number } | null; cap: number }>());
   if (!three.current) {
     three.current = new THREE.Scene();
+    coucheGltf.current = new CoucheGltf(() => dessinerRef.current());
+    three.current.add(coucheGltf.current.racine);
     monde.current = new THREE.Group();
     touffes.current = new THREE.Group();
     panneaux.current = new THREE.Group();
@@ -1314,6 +1325,53 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // au même endroit et sur les mêmes boards — deux écritures de matériau, aucune rasterisation. La
     // planche absente du cache est DEMANDÉE, jamais attendue : le quad garde la sienne d'ici là.
     writeBoardFrames(boardsRef.current, (b) => choisirFrame(b, camera, h), getCachedAtlas, demanderCuisson);
+    // ESSAI #2819 : un combattant à pied est rendu par son modèle glTF ; son billboard s'éteint (le
+    // matériau seul : la succession des corps et `corpsDeLActeur` gardent la main sur `mesh.visible`).
+    const couche = coucheGltf.current;
+    if (couche && !pov && !SANS_GLTF) {
+      const poses: PoseGltf[] = [];
+      // Sur les SUJETS, pas sur les boards : un modèle n'attend pas la cuisson du billboard qu'il remplace.
+      const boardDe = new Map(boardsRef.current.filter((b) => b.sub.cid).map((b) => [b.sub.cid!, b]));
+      for (const sub of acteurs) {
+        const cid = sub.cid;
+        if (!cid || sub.kind !== 'personnage' || sub.cavalier) continue;
+        const b = boardDe.get(cid);
+        const g = anim ? anim.glide(cid) : null;
+        const mém = capsGltf.current.get(cid);
+        let cap = capDeDir8(sub.facing);
+        if (g && mém?.g) {
+          const ddx = g.dx - mém.g.dx;
+          const ddz = g.dz - mém.g.dz;
+          cap = Math.hypot(ddx, ddz) > 1e-4 ? Math.atan2(ddx, ddz) : mém.cap;
+        }
+        capsGltf.current.set(cid, { g, cap });
+        const rôle = tracksRef().get(cid)?.role;
+        const geste: GesteGltf = sub.anim?.ground === 'corpse' ? 'Death_A'
+          : g ? 'Walking_A'
+          : rôle === 'attack' ? '1H_Melee_Attack_Chop'
+          : rôle === 'hit' ? 'Hit_A'
+          : rôle === 'defense' ? 'Block'
+          : 'Idle';
+        poses.push({
+          cid,
+          modele: animCtxOf(cid)?.kind === 'hero' ? 'Knight' : 'Skeleton_Warrior',
+          pieds: new THREE.Vector3(sub.anchor.x + (g?.dx ?? 0), sub.anchor.y + (g?.dy ?? 0), sub.anchor.z + (g?.dz ?? 0)),
+          cap,
+          hauteurM: HAUTEUR_GLTF_CASES * mpt,
+          geste,
+          visible: b ? b.mesh.visible : true,
+        });
+      }
+      const dessinés = couche.poser(poses);
+      dessinésGltf.current = dessinés;
+      for (const b of boardsRef.current) {
+        const éteint = !!b.sub.cid && dessinés.has(b.sub.cid);
+        b.material.visible = !éteint;
+        b.mesh.castShadow = !éteint;
+        if (b.jumeau) (b.jumeau.material as THREE.Material).visible = !éteint;
+      }
+      if (dessinés.size) ombresARefaire.current = true;
+    }
     // MARQUES DYNAMIQUES et HALOS D'INTERACTION : ils suivent la MÊME glisse que les
     // quads, à la même frame et sur le même canal — un lien d'engagement posé à un rendu React
     // attendrait le marcheur à l'arrivée. Marques de sol et halos se mesurent à l'ÉCRAN d'une vue
@@ -1548,7 +1606,13 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
       // Seul ce qui est VU se pointe : la visibilité est celle de la succession des corps (`succession`).
       // Un GISANT (`groundPose.ts:groundStateOf`, hors de combat) n'est ni cible ni écran : le geste le
       // résout par la case, où `combatantAtTile` l'écarte — son quad volerait le clic du voisin debout.
-      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible && b.sub.anim?.ground !== 'corpse').map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
+      const gltf = dessinésGltf.current;
+      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible && b.sub.anim?.ground !== 'corpse' && !(b.sub.cid && gltf.has(b.sub.cid))).map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
+      // ESSAI #2819 : un combattant rendu en glTF se pointe par son modèle (rayon sur le maillage skinné).
+      for (const cid of gltf) {
+        const o = coucheGltf.current?.objet(cid);
+        if (o?.visible && !o.userData.gisant) cibles.push({ cid, object: o });
+      }
       return pickNearestTarget(
         camera,
         cibles,
