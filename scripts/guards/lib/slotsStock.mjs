@@ -287,7 +287,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "traits.json", champ: "affectsGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "amount", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "bonus", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "traits.json", champ: "capabilities", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "traits.json", champ: "capabilities", occurrences: 12, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "cond", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "escapeStrength", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "grantGroups", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
