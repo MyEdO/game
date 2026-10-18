@@ -71,7 +71,11 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
   ops:synchroniser`, jamais `git pull` (#2187).
 - **Ticket de plus de ~2 semaines, ou repris d'une session fermée** : RE-MESURE en lecture seule sur
   l'arbre courant contre `docs/doctrines.md`, plus l'inventaire des analyses déjà faites ; commentaire
-  « RE-MESURE » au ticket. Un arbitrage UI ancien est un CONTEXTE, jamais un veto ; un arbitrage de règle
+  « RE-MESURE » au ticket (utilisateur, 2026-09-03 : « Le ticket est tres vieux, donc prends bien en
+  compte nos régles d'aujourd'hui et potentiellement ce qui est cité a pu énormement changer »). Un
+  arbitrage UI ancien est un CONTEXTE, jamais un veto (utilisateur, 2026-09-19 : « "Dock decision" date
+  d'il y a 2 mois et l'interface a tellement changé qu'il est devenu incompatible avec la fiche de
+  personnage ») ; un arbitrage de règle
   de jeu ne périme pas.
 - **Avant de prescrire le traitement d'une CLASSE** (texte joueur, références, surfaces, formes de
   données) ou d'ouvrir un ticket : `gh search issues "<mots>" -R MyEdO/game`, les épiques du domaine, et
@@ -80,13 +84,15 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
 **2. Brief.** Périmètre de fichiers exact, primitives cibles nommées, réfs RAW nues,
 chemin ABSOLU du worktree, interdit de tout `git checkout/restore/reset/stash/add/commit`, « rendu
 final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une liste de tests (#2400).
-- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min) : découper en lots partitionnés par
+- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min ; utilisateur, 2026-10-17 : « 1hr50, c
+  'est du codeur ca ») : découper en lots partitionnés par
   FICHIERS disjoints, lancés en parallèle. Au-delà d'1 h, le codeur rend l'item en cours et le reste se
   répartit ; jamais d'items ajoutés par `SendMessage` à un codeur en vol. La borne est un `Monitor` sur
   l'horloge + `TaskStop`, pas le budget écrit.
 - **Socle → les trois sections de `.claude/agents/codeur.md`, sinon le codeur REFUSE** ; `## Design
   jugé :` cite le rendu du `juge`.
-- **Le brief ne prescrit jamais un appel d'outil de plus de 270 s** (#2596).
+- **Le brief ne prescrit jamais un appel d'outil de plus de 270 s** (#2596), ni un outil dont il n'a pas
+  vérifié ce qu'il fait (`ops:publier` ne fusionne pas en local, hors éjection de la file).
 - **Un brief POSE les questions, il ne les pré-répond pas** : provenance d'une règle, consommateur, état
   d'un fichier se demandent en SORTIE, citation exigée. Le banni est l'affirmation NON citée : verbatim,
   réf RAW nue, ligne de `package.json`, sortie de sonde collés restent légitimes. **Toute RÈGLE affirmée
@@ -107,7 +113,9 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
   mutualisée ou ticketée, morts adjacents purgés) ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
 - **Lot de structure = UN concept sur TOUS ses porteurs** (datasets, ops, tables, scènes, saves,
-  éditeur, Codex), jamais par dataset ni « données d'abord » ; N sites à la même retouche → le lot est le
+  éditeur, Codex), jamais par dataset ni « données d'abord » (utilisateur, 2026-08-09 : « En tout cas je
+  n'aime pas le travail fait a moitié et les demi-migrations » ; 2026-08-14 : « murer le neuf c'est
+  valider du legacy qui vivra eternellement ») ; N sites à la même retouche → le lot est le
   SOCLE qui les rend déclaratifs. Fermeture : un motif qui ne compile plus, ou une garde rouge.
 - **Tout compromis de TRANSITION** (shim, branchement gardé) s'inscrit au REGISTRE DES FOSSILES du
   ticket-mère avec la phase qui le tue ; le cliquet de migration meurt avec la dernière démolition. Une
@@ -123,9 +131,13 @@ diff du codeur → commit sur la branche du worktree → push (CI) → juge de d
 **Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
 liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
 sur un grand diff dilue l'attention.
-- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** : grief DANS la classe gardée →
+- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** (utilisateur, 2026-10-15 : « Ca
+  devient concept tes numeros, j'ai l'impression que tu as lancé 256 juges différents quand je vois
+  jt18 et T3z6¹⁶ ») : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
-  l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765).
+  l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765). Une
+  ALERTE d'une règle prudente n'est pas un site perdu tant que ses appelants n'ont pas été relus
+  (`.claude/soldes/1765.md:34`).
 - **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
   fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
   critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`.claude/skills/orchestrer-des-agents/calibrage.md`).
@@ -156,13 +168,15 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
 test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
 - **Aucun créneau, file ni feu vert pour les gestes lourds** (fusion, `ops:chantier`, publication,
   `test:perimetre`) : chaque session les lance quand son travail l'exige (utilisateur, 2026-10-08 :
-  « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail »). Une mesure
+  « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail », puis « Surtout
+  qu'on en a jamais eu besoin, on a trop peu de session pour devoir bloquer les gestes lourds »). Une mesure
   faussée par la charge se rejoue, la charge se note au ticket.
 - ⚠ **Les portes machine sont un PLANCHER** : « portes vertes » ne se dit jamais « vérifié ». **Tout lot
   qui ajoute une donnée ou une mécanique NOMME sa PORTE** (le geste joueur qui l'atteint) dans son DoD, et
   la recette la traverse (garde `src/data/tables.test.ts`).
 - **Les CLAIMS ARCHITECTURAUX se contre-grep** ; exiger la SORTIE BRUTE des
-  portes au rendu. **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
+  portes au rendu ; un vert ne vaut que s'il porte un compte de tests > 0 (les enfants Vitest tournent
+  en `--passWithNoTests`, `scripts/test/partition.mjs:303`). **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
 - **Friction de recette MESURÉE par script = hypothèse** ; seule la capture vaut fait. Avant tout brief de
   correction, le recetteur la re-mesure isolément (sonde discriminante nommée, tableau brut).
 - **Livraison d'ÉCRAN → trois passes** : recette fonctionnelle (DoD), jugement d'écran (captures → juge

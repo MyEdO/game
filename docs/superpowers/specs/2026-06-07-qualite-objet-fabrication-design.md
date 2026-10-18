@@ -84,7 +84,7 @@ Fichiers sous `Source/Warhammer v4 - Livre de base version corrigée/` :
 > des qualités dans un **registre unifié** (refacto *iso-comportement*, garanti par golden-master).
 > Ensuite chaque qualité (artisanat, armure) devient **une entrée de registre**, pas des `hasQ()`
 > éparpillés. Directive utilisateur : « ne pas empiler des éléments sur des éléments ; refacto pour
-> un code sain et extensible » (cf. `game-existant-poc-refactor-libre`).
+> un code sain et extensible » (cf. `.claude/skills/orchestrer-des-agents/SKILL.md`).
 
 | Phase | Contenu | RAW | Risque |
 |---|---|---|---|

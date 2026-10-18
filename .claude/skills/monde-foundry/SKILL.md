@@ -30,7 +30,7 @@ description: À charger dès qu'on travaille sur le MONDE Foundry VTT distant «
 
 ## Mesurer au navigateur
 
-- Ne recharge jamais l'onglet MJ (il revient sous la dernière identité) : un chargement automatique se vérifie en rechargeant l'onglet joueur. Contrôle `game.user.isGM` avant toute écriture.
+- Ne recharge jamais l'onglet MJ (il revient sous la dernière identité ; utilisateur, 2026-09-16 : « Oui, a chaque rafraichissement tu reviens en pesold. ») : un chargement automatique se vérifie en rechargeant l'onglet joueur. Contrôle `game.user.isGM` avant toute écriture.
 - `skipDialog: true` dans le contexte de `setup*` (sinon `awaitSubmit` fige l'evaluate ; `options.bypass` est mort, `bypass()` honore `computeFields`). Aucun `Roll#evaluateSync` : un dé de plus se lance dans une méthode async déjà attendue (`_handleMiscasts` ne l'est pas). `updateChannelledItems` écrit sans `await` : un seul delta. Pose `miscastModifier` avant `computeResult`, sinon « (+30) (+30) ».
 - Dé forcé `test.preData.roll = N` entre `setup*` et `test.roll()`, origine puis patch au même dé ; restaure tout, supprime les messages.
 
