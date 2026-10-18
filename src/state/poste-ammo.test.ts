@@ -72,7 +72,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     const aide = mkCrew('aide');
     const hull = mkHull(poste);
     serveChef(chef, poste);
-    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    const volley = resolveVolley(hull, [poste], 2, true, [chef, aide], makeRNG(5));
     expect(volley).toHaveLength(1);
     expect(volley[0].ammo!.label).toBe('Boulet et poudre');
     expect(volley[0].ammo!.uid).toBe('boulet');
@@ -202,7 +202,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
     // La SÉLECTION revient au boulet APRÈS le chargement : le coup déjà chargé ne change pas pour autant.
     poste.ammoUid = 'boulet';
-    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    const volley = resolveVolley(hull, [poste], 2, true, [chef, aide], makeRNG(5));
     expect(volley[0].ammo!.uid).toBe('mitraille'); // ce qui part = ce qui a été CHARGÉ
   });
 
@@ -221,7 +221,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
     expect(poste.loaded).toBe(false); // la pièce est muette tant qu'elle n'est pas rechargée
     expect(poste.loadedAmmoUid).toBeUndefined();
-    const volley = resolveVolley(hull, [poste], foeHull(), 2, true, [chef, aide], makeRNG(5));
+    const volley = resolveVolley(hull, [poste], 2, true, [chef, aide], makeRNG(5));
     expect(volley[0].ammo!.uid).not.toBe('boulet');
   });
 

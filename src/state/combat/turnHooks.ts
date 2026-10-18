@@ -24,7 +24,8 @@ import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/con
 import { rawCombatTestBase } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId, garanti } from '../combatants';
+import { inBattleId } from '../combatants';
+import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../lineOfSight';

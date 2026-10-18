@@ -118,6 +118,12 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
     expect(c.compte.critiques).toHaveLength(0);
     expect(c.compte.blessures).toBe(0);
   });
+
+  it('#1906 : un coup relancé sans `critLocation` lève le défaut du producteur', () => {
+    const { seed, lieu } = jetRelanceHorsDuCorps(44);
+    const { H, cible, res } = auJet({ seed, roll: 44 }, lieu);
+    expect(() => compteDuCoup({ ...res, critLocation: undefined }, epee, H, cible, 0)).toThrow(`[Localisation relancée du coup (applyHit, LDB 18 l.53)] « ${cible.id} » introuvable alors que son producteur le garantit (#1906)`);
+  });
 });
 
 const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;

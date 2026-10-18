@@ -41,7 +41,7 @@ import { VB_W, VB_H, fitViewport, type Viewport } from './worldMapViewport';
 import { MapCanvas, type MapMarker, type MapPath } from './MapCanvas';
 import { CompassRose } from './PlanChrome';
 import { Row, Split } from './Layout';
-import { garanti } from '../state/combatants';
+import { garanti } from '../lib/garanti';
 
 /** Hash déterministe d'un id → sens de courbure stable d'une route (pas de Math.random). */
 function hashStr(s: string): number {

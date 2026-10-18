@@ -833,13 +833,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/combatants.ts",
-    motif: "désormais",
-    ancre: "borne d'emplacement de héros la cite désormais, jamais un chiffre.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/corruption-lot-e.test.ts",
     motif: "désormais",
     ancre: "/** Franchit le seuil : le Test de Résistance est désormais une MODALE (kind 'seuil') —",
