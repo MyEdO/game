@@ -86,7 +86,7 @@ import {
   entreesDe, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, indexEmprunte, listerImage, patchsParChemin, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
-import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, corpsDuTrailer, estFichierEcran, messagePorte, sectionDe } from '../guards/lib/livraison.mjs'
+import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, apportsDesTickets, estFichierEcran, messagePorte, sectionDe, sectionDeLivraison } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
@@ -126,7 +126,6 @@ const MIN_VERIFIE_LEN = 40
 // grammaire de tout ce qui suivait le blanc (sonde D1 : 4 dispositions invalides sur 5 acceptées).
 const TITRE_RESTES = 'Restes'
 const TITRE_RECETTE_VISUELLE = 'Recette visuelle'
-const TITRE_REFUTATION = TRAILERS.REFUTATION.section
 
 
 /** Nombre de fois que le titre `## <titre>` apparaît dans le document. Une section DUPLIQUÉE n'est pas
@@ -165,47 +164,7 @@ const ENTETE_JPEG = [0xff, 0xd8, 0xff]
 // pas d'image, et 200 px la plus petite dimension dont on puisse JUGER quoi que ce soit.
 const TAILLE_MIN_CAPTURE = 1024
 const COTE_MIN_CAPTURE = 200
-const VERDICT_RE = /verdict\s*:\s*([A-Za-zÀ-ÖØ-öø-ÿ]+)/i
-const MIN_REFUTATION_LEN = 40
-
-/** `CONFIRMÉ`/`confirme`/`CONFIRME` → `CONFIRME` (compare sans accent, insensible à la casse). */
-function normalizeVerdict(word) {
-  return word.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
-}
-
-/** Longueur de texte hors la ligne `verdict: …` elle-même (mesure la SYNTHÈSE, pas le mot-clef). */
-function lenWithoutVerdictLine(text) {
-  return text.replace(VERDICT_RE, '').trim().length
-}
-
-/** Section `## Réfutation` d'un solde : présence, verdict reconnu, longueur de synthèse.
- *  `refuted: true` si le verdict est RÉFUTÉ — porte alors sa propre entrée dans `problems`
- *  (« un ticket réfuté ne se ferme pas »), le solde est TOUJOURS non conforme dans ce cas. */
-function checkRefutationSection(content) {
-  const problems = []
-  const body = sectionDe(content, TITRE_REFUTATION)
-  if (body === null) {
-    problems.push('section "## Réfutation" absente (verdict adversarial obligatoire)')
-    return { problems, refuted: false }
-  }
-  const vMatch = VERDICT_RE.exec(body)
-  if (!vMatch) {
-    problems.push('ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ" absente dans "## Réfutation"')
-    return { problems, refuted: false }
-  }
-  const verdict = normalizeVerdict(vMatch[1])
-  if (!['CONFIRME', 'PARTIEL', 'REFUTE'].includes(verdict)) {
-    problems.push(`verdict "${vMatch[1]}" non reconnu dans "## Réfutation" (attendu CONFIRMÉ/PARTIEL/RÉFUTÉ)`)
-    return { problems, refuted: false }
-  }
-  const descLen = lenWithoutVerdictLine(body)
-  if (descLen < MIN_REFUTATION_LEN) {
-    problems.push(`"## Réfutation" trop maigre (${descLen} car. hors verdict, ${MIN_REFUTATION_LEN} requis — qui a attaqué quoi, sur le diff/DoD du ticket)`)
-  }
-  const refuted = verdict === 'REFUTE'
-  if (refuted) problems.push('verdict RÉFUTÉ : un ticket réfuté ne se ferme pas')
-  return { problems, refuted }
-}
+const checkRefutationSection = (content) => sectionDeLivraison(content, 'REFUTATION')
 
 /** Items de la section « ## Restes » d'un solde, un par ligne (`[]` si la section est absente ou
  *  vaut « RAS » pour le tout). Point d'entrée UNIQUE des mesures de stock et de la porte. */
@@ -510,7 +469,7 @@ function captureDuSolde(content) {
  * Valide le CONTENU d'un solde. `today` = date du jour en `YYYY-MM-DD`.
  * Contexte INJECTÉ (`decisionsDuCommit` le remplit depuis git/le disque, un appel nu ne joue que la grammaire) :
  * `fichiersEmportes` = chemins que le commit emporte ; `lignesEmportees(fichier)` = lignes que le commit y
- * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = le diff touche un écran ;
+ * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = l’apport cumulé du ticket touche un écran ;
  * `verifierCaptureDe(chemin)` = contrôle de la capture de recette (voir `verifierCapture`) ;
  * `commitEstAncetre(sha)` / `fichiersDuCommit(sha)` / `lignesDuCommit(sha, fichier)` = l'histoire
  * git, pour « corrigé par <sha> » et la « ## Sonde » d'un solde `caduc` ; `numero` = le ticket que le
@@ -583,7 +542,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
 
   const lus = readSoldes(issues)
   const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
-  const { verifierCapturesDe, histoireDe, ...contexte } = contexteSolde
+  const { verifierCapturesDe, histoireDe, apportDuTicket, ...contexte } = contexteSolde
   let captures = null
   const verifierCaptureDe = verifierCapturesDe && ((chemin) => {
     captures ??= verifierCapturesDe([...new Set([...emportes.values()].map(captureDuSolde).filter(Boolean))])
@@ -611,7 +570,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues, numero: n })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...(apportDuTicket ? { touchesUi: apportDuTicket(n).ecran } : {}), ...citations, verifierCaptureDe, issuesFermees: issues, numero: n })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -628,7 +587,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       `de la fermeture : caduc exige une section "## Sonde" — bloc de la commande, bloc de sa sortie, sha ` +
       `ancêtre de HEAD —, décidé une section "## Décision" dont une ligne cite « … » avec sa date AAAA-MM-JJ), une section ` +
       `"## Réfutation" (ligne "verdict: ` +
-      `CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REFUTATION_LEN} caractères — qui a attaqué quoi sur le diff/DoD), et ` +
+      `CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${TRAILERS.REFUTATION.min} caractères — qui a attaqué quoi sur le diff/DoD), et ` +
       `la date du jour (demande 2026-07-14), puis le STAGER (\`git add .claude/soldes/<N>.md\`) : la preuve ` +
       `citée par le message de commit vit dans git.`,
   }
@@ -706,17 +665,16 @@ export function validateRefFile(content) {
 }
 
 /**
- * Décision anti-esquive (PURE, testable). `stagedTouchesSrc`/`stagedSrcLines` = état du diff
+ * Décision anti-esquive (PURE, testable). `stagedSrcLines` = état du diff
  * STAGED (`git diff --cached`), injectés par `decisionsDuCommit`. `readRefFile(n)` lit
  * `.claude/soldes/ref-<n>.md` (ou `null`). `fusionEnCours` (`MERGE_HEAD`, `diffDuCommit(…).enFusion()`) :
  * silence — sauver une fusion n'est pas une livraison (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = false, stagedTouchesSrc, stagedSrcLines, readRefFile = () => null }) {
+export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = false, stagedSrcLines, readRefFile = () => null }) {
   const lu = lectureDeLaPorte({ message, commentaire })
   if (fusionEnCours) return null
-  if (!stagedTouchesSrc) return null
-  if (typeof stagedSrcLines === 'number' && stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
+  if (!Number.isFinite(stagedSrcLines) || stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
 
   // Une fermeture est déjà couverte par `evaluate()` (solde complet, réfutation comprise) — pas de
   // double exigence ici.
@@ -756,12 +714,7 @@ const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
 
 /** La section du trailer `nom` d'un solde (`corpsDuTrailer`, la grammaire de la publication) : présence
  *  + longueur minimale du corps. */
-function checkNamedSection(content, nom) {
-  const { section: label, min } = TRAILERS[nom]
-  const body = corpsDuTrailer(content, nom)
-  if (body === null) return { problems: [`section "## ${label}" absente`] }
-  return { problems: body.length < min ? [`"## ${label}" trop maigre (${body.length} car., ${min} requis)`] : [] }
-}
+const checkNamedSection = sectionDeLivraison
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge" (symétrie exacte de
  *  `validateRefFile`, mécanisme distinct — n'exige pas de "## Réfutation"). */
@@ -781,15 +734,14 @@ export function validateJugeVisionFile(content) {
 /**
  * Décision JUGE (PURE, testable). Même périmètre de déclenchement qu'`evaluateAntiEsquive` (silence
  * sur les fermetures, déjà couvertes par leur propre solde ; silence aussi sur un commit sans AUCUN
- * ticket rattaché — #591). `stagedTouchesUi` = le diff staged touche `src/ui/**` (tests compris).
+ * ticket rattaché — #591). `stagedTouchesUi` = l’apport courant change les lignes d’un écran.
  * `fusionEnCours` : silence, comme `evaluateAntiEsquive` (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateJuge({ message, commentaire, fusionEnCours = false, stagedTouchesSrc, stagedSrcLines, stagedTouchesUi, readRefFile = () => null }) {
+export function evaluateJuge({ message, commentaire, fusionEnCours = false, stagedSrcLines, stagedTouchesUi, readRefFile = () => null }) {
   const lu = lectureDeLaPorte({ message, commentaire })
   if (fusionEnCours) return null
-  if (!stagedTouchesSrc) return null
-  if (typeof stagedSrcLines === 'number' && stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
+  if (!Number.isFinite(stagedSrcLines) || stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
   if (lu.fermes().length > 0) return null
 
   const refIssues = lu.refs()
@@ -931,25 +883,9 @@ export function evaluateRegistresPorteurs({ message, commentaire, lireRegistreEm
   }
 }
 
-/** Les fichiers et la présence d'un ÉCRAN (`estFichierEcran`, `touchesUi`) dans le `--numstat` du
- *  diff que le commit va produire (`diffDuCommit(...).numstat()`, entrées de `ceQuiChange`).
- *  Les fichiers binaires (`plus`/`moins` nuls) conservent leurs chemins. Aucune entrée donne une
- *  liste vide et `touchesUi: false` ; une panne de lecture est refusée par `refusDesPannes`.
- *
- * AUCUN filtrage de chemins ici (#591 défaut 1) : le lot est celui de l'index que git a préparé.
- *
- * `fichiers` porte les DEUX bouts d'un renommage (`chemins` de l'entrée) : c'est par eux que la porte
- * des stocks voit le porteur source ET le porteur cible, qu'un solde prouve sa correction au NOUVEAU chemin, et qu'un `.tsx` renommé reste un ÉCRAN (#1720).
- * `ecranParInsertion` (l'apport d'une fusion en cours, #2328 A5) : un écran ne compte que s'il y gagne
- * des lignes (`plus > 0`).
- * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees]
- * @param {{ ecranParInsertion?: boolean }} [options] */
-export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } = {}) {
-  const fichiers = entrees.flatMap((e) => e.chemins)
-  return {
-    touchesUi: entrees.some((e) => (!ecranParInsertion || e.plus > 0) && e.chemins.some(estFichierEcran)),
-    fichiers,
-  }
+/** Inventaire des chemins emportés, incluant les deux bouts des renommages. */
+export function analyzeDiffDuCommit(entrees = []) {
+  return { fichiers: entrees.flatMap((e) => e.chemins) }
 }
 
 /**
@@ -1053,6 +989,7 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
     renommages: () => new Map(vers().renommages([])),
     enFusion,
     apport,
+    parents: () => enFusion() ? apport().parents : aHead() ? [shaDeHead()] : [],
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
       const { specificateurs } = memos()
@@ -1257,7 +1194,7 @@ const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: racineSurDisque(dir) === 
  *  Tout ce qui se lit sur DISQUE se lit dans `dir`, la racine de l'arbre qui committe. */
 async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   const lu = lectureDeLaPorte(entree)
-  const { touchesUi, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
+  const { fichiers } = analyzeDiffDuCommit(commit.numstat())
   const apport = apportDeLaResolution(patchsParChemin(commit.diff()))
   // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
   // capture antérieure au geste montre l'écran d'avant.
@@ -1265,6 +1202,11 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
   // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
   const histoire = histoireDeHead(depotDe(dir))
+  let apports = null
+  const apportDuTicket = (n) => {
+    apports ??= apportsDesTickets(depotDe(dir), lu.fermes(), apport, { revisions: commit.parents() })
+    return apports.get(n)
+  }
   const decision = jugerOuConfier(() => evaluate({
     ...entree,
     today,
@@ -1274,7 +1216,7 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
     contexteSolde: {
       fichiersEmportes: fichiers,
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
-      touchesUi,
+      apportDuTicket,
       verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: dir, mtimeMin: mtimeEcrans, pannes }),
       histoireDe: (shas) => histoireDesCitations(depotAuxPannes(dir, pannes), shas, { histoire }),
     },
@@ -1283,14 +1225,12 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   const antiEsquive = evaluateAntiEsquive({
     ...entree,
     fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: apport.lignesChangees > 0,
     stagedSrcLines: apport.lignesChangees,
     readRefFile: (n) => readRefFile(n, dir),
   })
   const juge = evaluateJuge({
     ...entree,
     fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: apport.lignesChangees > 0,
     stagedSrcLines: apport.lignesChangees,
     stagedTouchesUi: apport.ecran,
     readRefFile: (n) => readRefFile(n, dir),
