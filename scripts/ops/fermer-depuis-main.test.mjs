@@ -1,11 +1,11 @@
 // CLIQUET du GESTE de fermeture (node --test, sans réseau) : `appel` est FEINT, et le module sous
-// test est une FEUILLE — le banc le vérifie sur les imports du dépôt.
+// test est une FEUILLE — `scripts/corpus/ops/fermer-depuis-main.test.mjs` le vérifie sur les
+// imports du dépôt.
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEPOT, lireTicket } from '../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
-import { FEUILLES, manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { fermeturesDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
 import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
 
@@ -83,9 +83,10 @@ test('fermerLeTicket n’écrit RIEN sur le disque : aucune fabrique de fichier 
 
 /** Les dates des commentaires feints : un jour d'écart chacun, à partir du 2026-01-01. */
 const datesDe = (commentaires) => commentaires.map((_, i) => `2026-01-0${i + 1}T00:00:00Z`)
-/** Une date d'événement POSTÉRIEURE à tout commentaire feint, et une ANTÉRIEURE. */
-const APRES = '2026-02-01T00:00:00Z'
+
+/** Une date d'événement ANTÉRIEURE à tout commentaire feint, et une POSTÉRIEURE. */
 const AVANT = '2025-12-01T00:00:00Z'
+const APRES = '2026-02-01T00:00:00Z'
 
 /** `traiterUnTicket` avec ses quatre coutures feintes ; `gestes` enregistre ce qui a été DEMANDÉ. */
 function traiter({
@@ -268,17 +269,4 @@ test('NATURE illisible au solde publié : AVERTI, aucun geste — jamais fermé 
   assert.deepEqual(gestes, [])
   assert.equal(vu.ok, true)
   assert.match(vu.avertissement, /^::warning::\[fermetures\] #1813 intraitable — solde de aaa : "NATURE: abandonné/)
-})
-
-test('CLIQUET : le module qui FERME est une FEUILLE — aucune source suivie ne l’acquiert par un spécificateur LITTÉRAL', () => {
-  // Un import suffit à mettre le geste à portée d'appel, et aucune lecture d'argv ne voit un appel
-  // indirect. La mesure est GÉNÉRALE et vit dans `scripts/guards/lib/modulesFeuilles.mjs` — un
-  // prédicat écrit ici rate les graphies qu'il n'a pas imaginées (multi-ligne, dynamique, ré-export,
-  // chemin sans extension, `require`/`createRequire`). CE QU'ELLE PROUVE, et le titre s'y borne :
-  // les acquisitions dont le spécificateur est un LITTÉRAL. Un chemin passé par variable n'est
-  // lisible par aucune analyse statique.
-  const vu = manquementsDeFeuilles()
-  assert.deepEqual(vu.manquements, [])
-  assert.ok(FEUILLES.some((f) => f.module === 'scripts/ops/fermer-depuis-main.mjs'), 'ce module est DÉCLARÉ feuille')
-  assert.ok(vu.sourcesLues > 1000, `la garde ne lit plus les sources du dépôt (${vu.sourcesLues})`)
 })

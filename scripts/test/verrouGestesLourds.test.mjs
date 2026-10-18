@@ -6,8 +6,9 @@ import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { prendreVerrou } from './verrou.mjs'
-import { verrouGestesLourds } from './verrouGestesLourds.mjs'
-import { CODE_DIFFERE, SOURCES_LUES, estGesteLourd } from '../docs/build-all.mjs'
+import { estGesteLourd, lanceUnGesteLourd, verrouGestesLourds } from './verrouGestesLourds.mjs'
+import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 const BUILD_ALL = new URL('../docs/build-all.mjs', import.meta.url)
 
@@ -16,7 +17,14 @@ test('#2603 — estGesteLourd : tout mode de build-all, hors `--code` et `--chec
   for (const argv of [['--code'], ['--check', '--only', 'x']]) assert.equal(estGesteLourd(argv), false, argv.join(' '))
 })
 
-test('#2603 — `sousGestesLourds` RÉEL, verrou tenu jusqu’à l’échéance : DIFFÉRÉ, code 75, le tenant nommé, rien ne tourne', (t) => {
+test('#2586 — lanceUnGesteLourd : un script qui lance un preneur, build-all jugé par estGesteLourd', () => {
+  for (const script of ['node scripts/test/run.mjs', 'node ./scripts/test/perimetre.mjs --x', 'node scripts/gates/testsSansEcriture.mjs test:ops',
+    'node scripts/test/node-tests.mjs test:docs', 'node scripts/docs/build-all.mjs', 'npm run gen && node scripts/docs/build-all.mjs --check']) assert.equal(lanceUnGesteLourd(script), true, script)
+  for (const script of [undefined, 'node scripts/docs/build-all.mjs --code', 'node scripts/docs/build-all.mjs --check --only x && node lint.mjs',
+    'node scripts/lancer-local.mjs oxlint -- oxlint .', 'node scripts/raw/check-refs.mjs']) assert.equal(lanceUnGesteLourd(script), false, String(script))
+})
+
+test('#2603 — `sousGestesLourds` RÉEL, verrou tenu jusqu’à l’échéance : DIFFÉRÉ, `CODE_DIFFERE`, le tenant nommé, rien ne tourne', (t) => {
   const { racine: depot } = instanceDeDepot({ commit: false })
   t.after(() => rmSync(depot, { recursive: true, force: true }))
   const verrou = verrouGestesLourds(depot)

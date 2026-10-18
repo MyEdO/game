@@ -8,6 +8,7 @@ import { gitDe } from '../test/gitDeBanc.mjs'
 import { installer } from '../guards/lib/intercepterEcritures.mjs'
 import { lancerSansEcriture } from './testsSansEcriture.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 const GARDE = {
   question: 'Un test de scripts/ ou son enfant écrit-il dans la racine de travail, ou dans son répertoire git commun, pendant une suite ?',
@@ -272,6 +273,48 @@ test('#2603 — depuis un worktree, une écriture sous le répertoire git COMMUN
     assert.match(r.messages.join('\n'), /REFUS écriture dans le dépôt git : mkdirSync hooks-git/)
     assert.equal(existsSync(cible), false)
   } finally { rmSync(parent, { recursive: true, force: true }) }
+}))
+
+// #2586
+test('le verrou des gestes lourds se prend hors contrôle, son jeton passe à l’enfant, il se libère après lui', () => avecDepot((racine) => {
+  const ordre = []
+  let envDeLaPrise
+  let envDeLEnfant
+  const envDonne = { NODE_OPTIONS: '' }
+  const code = lancerSansEcriture({ racine, args: ['--eval', ''], journal: () => {},
+    env: envDonne,
+    verrou: { chemin: join(racine, 'banc.verrou'), libelle: 'banc' },
+    prendre: (p) => { ordre.push('prise'); envDeLaPrise = p.env; return { etat: 'pris', env: { WFRP_VERROU_BANC: 'jeton-du-banc' }, liberer: () => ordre.push('libération') } },
+    spawn: (commande, args, options) => { ordre.push('enfant'); envDeLEnfant = options.env; return { status: 0 } },
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(ordre, ['prise', 'enfant', 'libération'])
+  assert.equal(envDeLaPrise, envDonne, 'la prise précède l’ouverture du contrôle : elle reçoit l’env de l’appelant, sans intercepteur')
+  assert.equal(envDeLEnfant.WFRP_VERROU_BANC, 'jeton-du-banc')
+  assert.match(envDeLEnfant.NODE_OPTIONS, /intercepterEcritures/)
+}))
+
+test('un refus du verrou des gestes lourds rend CODE_DIFFERE sans lancer l’enfant', () => avecDepot((racine) => {
+  const messages = []
+  const code = lancerSansEcriture({ racine, args: ['--eval', ''], journal: (m) => messages.push(m),
+    verrou: { chemin: join(racine, 'banc.verrou'), libelle: 'banc' },
+    prendre: () => ({ etat: 'refus', message: '[verrou] banc : tenu' }),
+    spawn: () => assert.fail('ne doit pas lancer'),
+  })
+  assert.equal(code, CODE_DIFFERE)
+  assert.deepEqual(messages, ['[verrou] banc : tenu'])
+}))
+
+test('sous le contrôle, un enfant qui prend le verrou réel des gestes lourds l’emprunte sans écrire dans le git commun', () => avecDepot((racine) => {
+  const verrou = new URL('../test/verrou.mjs', import.meta.url).href
+  const gestes = new URL('../test/verrouGestesLourds.mjs', import.meta.url).href
+  const r = joue(racine, `
+    import assert from 'node:assert/strict'; import { prendreVerrou } from ${JSON.stringify(verrou)}; import { verrouGestesLourds } from ${JSON.stringify(gestes)};
+    const prise = prendreVerrou({ ...verrouGestesLourds(process.cwd()), env: process.env, attente: undefined });
+    assert.equal(prise.etat, 'pris', prise.message); assert.equal(prise.emprunte, true); prise.liberer();
+  `)
+  assert.equal(r.code, 0, r.brut + r.messages.join('\n'))
+  assert.deepEqual(r.messages, [])
 }))
 
 test('Windows : les deux namespaces IPC nommés échangent des octets sous la garde', { skip: process.platform !== 'win32' }, () => avecDepot((racine) => {

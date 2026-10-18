@@ -84,13 +84,11 @@ const REFUSEES = [
 /** Commandes PASSANTES : test du périmètre, porte incrémentale, lecture, outil hors gates. */
 const PASSANTES = [
   'npm run typecheck:fast',
-  'npx vitest run src/a.test.ts',
   'node --test scripts/ops/board.test.mjs',
   'npx eslint scripts/ops/board.mjs',
   'npm run ops:board -- --liste',
   'npm test -- src/a.test.ts',
   'npm t -- src/a.test.ts',
-  'npm exec vitest run src/a.test.ts',
   'npm run test:perimetre',
   'npm run test:perimetre -- --liste',
   // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : les gates de la RACINE
@@ -108,7 +106,8 @@ for (const commande of REFUSEES) {
     assert.ok(decision, `aucun refus sur « ${commande} » — la gate du train passe`)
     assert.equal(decision.decision, 'deny')
     assert.match(decision.reason, /\[gates-ci\]/)
-    assert.match(decision.reason, /gh run watch/)
+    assert.match(decision.reason, /npm run ops:ci -- --attendre/)
+    assert.match(decision.reason, /npm run ops:ci -- --echecs <run>/)
   })
 }
 
@@ -225,8 +224,7 @@ test('une redirection n’est pas un argument : elle se retire avec sa cible, le
     assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
   }
   for (const cmd of [
-    'npx vitest run src/a.test.ts > tmp/a.log 2>&1', 'npm test -- src/a.test.ts > /tmp/a.log',
-    'npx vitest run 2>err.txt src/x.test.ts', 'npx eslint 2>e.txt src/a.ts',
+    'npm test -- src/a.test.ts > /tmp/a.log', 'npx eslint 2>e.txt src/a.ts',
   ]) {
     assert.equal(pourCodeur(cmd), null, cmd)
   }
@@ -278,6 +276,8 @@ test('SONDE : configuration externe réelle, un fichier ; suite et formes inconn
       writeFileSync(config, text)
       assert.equal(evaluate({ commande, contexte }), null)
       assert.equal(sortieDriver(payload(commande)).trim(), '')
+      assert.match(evaluate({ commande: `${commande} "${fichier}"`, contexte }).reason, /lance Vitest directement/)
+      assert.match(JSON.parse(sortieDriver(payload(`${commande} "${fichier}"`))).hookSpecificOutput.permissionDecisionReason, /lance Vitest directement/)
     }
     for (const text of [
       `export default {test:{include:['**/*.test.ts']}}`,
@@ -305,6 +305,7 @@ test('EXCEPTION : au site exact, raison littérale ; le segment suivant reste re
   const site = resolve('scripts/gates/sur-demande-utilisateur.mjs').replaceAll('\\', '/')
   const commande = `node "${site}" --raison "demande utilisateur" --gates lint`
   assert.equal(evaluate({ commande }), null)
+  assert.equal(evaluate({ commande: commande.replace('demande utilisateur', 'demande utilisateur : npx vitest run src/a.test.ts') }), null)
   for (const cmd of [
     commande + '; npm run lint',
     commande.replace('--raison "demande utilisateur"', '--raison "$RAISON"'),
@@ -372,35 +373,41 @@ test('REPERTOIRE SONDE : après cd, seules les adresses indépendantes du cwd ce
 
 /** #2568 : `test:perimetre` enchaîné à un autre runner dans un même appel. */
 const CHAINES = [
-  'npm run typecheck:fast && npm run test:perimetre',
-  'npm run test:perimetre; node --test scripts/ops/board.test.mjs',
-  'npm test -- src/a.test.ts && npm run test:perimetre',
-  'npx vitest run src/a.test.ts; npm run test:perimetre',
-  'npx eslint scripts/ops/board.mjs && npm run test:perimetre -- --budget 60',
-  'sh -c "npm run test:perimetre && npm run typecheck:fast"',
-  'node scripts/test/perimetre.mjs && node --test scripts/ops/board.test.mjs',
+  ['pass', 'npm run typecheck:fast && npm run test:perimetre'],
+  ['pass', 'npm run test:perimetre; node --test scripts/ops/board.test.mjs'],
+  ['pass', 'npm test -- src/a.test.ts && npm run test:perimetre'],
+  ['direct', 'npx vitest run src/a.test.ts; npm run test:perimetre'],
+  ['pass', 'npx eslint scripts/ops/board.mjs && npm run test:perimetre -- --budget 60'],
+  ['pass', 'sh -c "npm run test:perimetre && npm run typecheck:fast"'],
+  ['pass', 'node scripts/test/perimetre.mjs && node --test scripts/ops/board.test.mjs'],
   // Drapeau de node à valeur séparée, des deux côtés.
-  'node --import tsx --test scripts/a.test.mjs && npm run test:perimetre',
-  'node --import tsx scripts/test/perimetre.mjs; npx vitest run src/a.test.ts',
+  ['pass', 'node --import tsx --test scripts/a.test.mjs && npm run test:perimetre'],
+  ['direct', 'node --import tsx scripts/test/perimetre.mjs; npx vitest run src/a.test.ts'],
   // Alias et lanceurs : `npm t`, `npm exec`, `scripts/lancer-local.mjs` (corps de `test:map`), `playwright test`.
-  'npm t -- src/a.test.ts && npm run test:perimetre',
-  'npm exec vitest run src/a.test.ts && npm run test:perimetre',
-  'node scripts/lancer-local.mjs vitest -- vitest run scripts/map && npm run test:perimetre',
-  'npx playwright test && npm run test:perimetre',
+  ['pass', 'npm t -- src/a.test.ts && npm run test:perimetre'],
+  ['direct', 'npm exec vitest run src/a.test.ts && npm run test:perimetre'],
+  ['pass', 'node scripts/lancer-local.mjs vitest -- vitest run scripts/map && npm run test:perimetre'],
+  ['pass', 'npx playwright test && npm run test:perimetre'],
 ]
 
 test('SOUS-AGENT : `test:perimetre` enchaîné à un autre runner est refusé, la raison porte la consigne', () => {
-  for (const commande of CHAINES) {
+  for (const [, commande] of CHAINES) {
     const decision = pourCodeur(commande)
     assert.equal(decision?.decision, 'deny', commande)
-    assert.match(decision.reason, /enchaîne `npm run test:perimetre` à un autre runner/, commande)
+    assert.match(decision.reason, /enchaîne `npm run test:perimetre` à un autre runner|lance Vitest directement/, commande)
     assert.match(decision.reason, /puce « Auto-contrôle » de `\.claude\/agents\/codeur\.md`/, commande)
     assert.doesNotMatch(decision.reason, /\b(?:te|tu|joue)\b/, commande)
   }
 })
 
-test('SESSION PRINCIPALE : le même enchaînement passe', () => {
-  for (const commande of CHAINES) assert.equal(evaluate({ commande, gates: GATES }), null, commande)
+test('SESSION PRINCIPALE : le même enchaînement passe par les lanceurs canoniques', () => {
+  for (const [attendu, commande] of CHAINES) {
+    const decision = evaluate({ commande, gates: GATES })
+    if (attendu === 'direct') {
+      assert.equal(decision?.decision, 'deny', commande)
+      assert.match(decision.reason, /lance Vitest directement/, commande)
+    } else assert.equal(decision, null, commande)
+  }
 })
 
 test('SOUS-AGENT : `test:perimetre` seul, un runner seul, ou une mention, passent', () => {
@@ -445,13 +452,13 @@ const SONDE_DU_JUGE = [
   [null, "node --test \"scripts/un dossier/n.test.mjs\""],
   [null, "npm run test:perimetre; Write-Output $LASTEXITCODE"],
   [null, "npm run test:perimetre -- --base origin/main"],
-  ["chaîne", "npx --yes vitest run src/a.test.ts && npm run test:perimetre"],
+  ["direct", "npx --yes vitest run src/a.test.ts && npm run test:perimetre"],
   ["gate", "npx -y tsc -p server --noEmit; npm run test:perimetre"],
-  ["chaîne", "& npx vitest run src/a.test.ts; npm run test:perimetre"],
+  ["direct", "& npx vitest run src/a.test.ts; npm run test:perimetre"],
   ["chaîne", "& node --test scripts/a.test.mjs; npm run test:perimetre"],
   ["chaîne", "npm run test:perimetre; & npm run typecheck:fast"],
   ["chaîne", "npm.cmd run test:perimetre; npm.cmd run typecheck:fast"],
-  ["chaîne", "npx.cmd vitest run src/a.test.ts; npm run test:perimetre"],
+  ["direct", "npx.cmd vitest run src/a.test.ts; npm run test:perimetre"],
   ["chaîne", "node.exe --test scripts/a.test.mjs; npm run test:perimetre"],
   ["chaîne", "timeout 600 npm run test:perimetre && npm run typecheck:fast"],
   ["chaîne", "time npm run test:perimetre && npm run typecheck:fast"],
@@ -470,9 +477,9 @@ const SONDE_DU_JUGE = [
   ["chaîne", "npm run test:perimetre && npm -s run typecheck:fast"],
   ["chaîne", "npm run test:perimetre && npm run-script typecheck:fast"],
   ["chaîne", "npm run test:perimetre && npm rum typecheck:fast"],
-  ["chaîne", "npm run test:perimetre && npm x -- vitest run src/a.test.ts"],
-  ["chaîne", "npm run test:perimetre && npm exec --yes -- vitest run src/a.test.ts"],
-  ["chaîne", "npm run test:perimetre && node node_modules/vitest/vitest.mjs run src/a.test.ts"],
+  ["direct", "npm run test:perimetre && npm x -- vitest run src/a.test.ts"],
+  ["direct", "npm run test:perimetre && npm exec --yes -- vitest run src/a.test.ts"],
+  ["direct", "npm run test:perimetre && node node_modules/vitest/vitest.mjs run src/a.test.ts"],
   ["chaîne", "npm run test:perimetre && node scripts/test/run.mjs src/a.test.ts"],
   ["chaîne", "npm run test:perimetre && node ./scripts/typecheck-fast.mjs"],
   ["chaîne", "npm run test:perimetre && npx playwright test e2e/a.spec.ts"],
@@ -516,7 +523,7 @@ const SONDE_DU_JUGE = [
 const SONDE_DE_FERMETURE = [
   ["chaîne", "npm run test:perimetre && node --run typecheck:fast"],
   ["chaîne", "npm run test:perimetre && node --run=typecheck:fast"],
-  ["chaîne", "npm run test:perimetre && npx tsx node_modules/vitest/vitest.mjs run src/a.test.ts"],
+  ["direct", "npm run test:perimetre && npx tsx node_modules/vitest/vitest.mjs run src/a.test.ts"],
   ["chaîne", "npm run test:perimetre && tsx scripts/test/run.mjs src/a.test.ts"],
   ["chaîne", "npm run test:perimetre && npm run test:perimetre"],
   ["chaîne", "node scripts/test/perimetre.mjs; npm run test:perimetre -- --base main"],
@@ -528,8 +535,50 @@ const SONDE_DE_FERMETURE = [
 ]
 
 test('SONDE DU JUGE : chaque commande rend, pour un sous-agent, le verdict attendu', () => {
-  const verdict = (d) => (d === null ? null : d.reason.includes('enchaîne') ? 'chaîne' : 'gate')
-  for (const [attendu, commande] of [...SONDE_DU_JUGE, ...SONDE_DE_FERMETURE]) assert.equal(verdict(evaluate({ sousAgent: true, commande })), attendu, commande)
+  const verdict = (d) => (d === null ? null : d.reason.includes('lance Vitest directement') ? 'direct' : d.reason.includes('enchaîne') ? 'chaîne' : 'gate')
+  for (const [attendu, commande] of [...SONDE_DU_JUGE, ...SONDE_DE_FERMETURE]) {
+    const decision = evaluate({ sousAgent: true, commande })
+    assert.equal(verdict(decision), attendu, commande)
+    if (attendu !== null) assert.equal(decision?.decision, 'deny', commande)
+  }
+})
+
+test('Vitest direct à fichier : chemins, drapeaux et enrobeurs passent par la porte canonique', () => {
+  const commandes = [
+    'npx vitest run src/a.test.ts',
+    'npm exec vitest run src/a.test.ts',
+    'npx vitest run --reporter verbose --testNamePattern motif src/a.test.ts',
+    'npx vitest run src/a.test.ts > tmp/a.log 2>&1',
+    'npx vitest run 2>err.txt src/x.test.ts',
+    'node node_modules/vitest/vitest.mjs run src/a.test.ts',
+    'bash -lc "npx vitest run src/a.test.ts"',
+    'pwsh -Command "& npx vitest run src/a.test.ts"',
+    '1 | % { npx vitest run src/a.test.ts }',
+  ]
+  for (const commande of commandes) {
+    for (const sousAgent of [false, true]) {
+      const decision = evaluate({ commande, sousAgent })
+      assert.equal(decision?.decision, 'deny', commande)
+      assert.match(decision.reason, /npm test -- <chemins>/)
+      assert.match(decision.reason, /scripts\/test\/run\.mjs/)
+    }
+    const run = lancerHook('repartiteur.mjs', JSON.parse(payload(commande)), { surface: 'codex' })
+    assert.equal(run.code, 0)
+    assert.equal(run.specifique.permissionDecision, 'deny', commande)
+    assert.match(run.specifique.permissionDecisionReason, /lance Vitest directement/)
+  }
+})
+
+test('Vitest cité, informatif ou interactif reste hors du refus de capture', () => {
+  for (const commande of [
+    'echo "npx vitest run src/a.test.ts"',
+    'rg "vitest run src/a.test.ts" note.md',
+    'npx vitest --help src/a.test.ts',
+    'npx vitest --version src/a.test.ts',
+    'npx vitest list src/a.test.ts',
+    'npx vitest --watch src/a.test.ts',
+    'npm test -- src/a.test.ts',
+  ]) assert.equal(evaluate({ commande }), null, commande)
 })
 
 test('`--liste` ne vaut que reçu par `scripts/test/perimetre.mjs` : après `--` sous npm, valeur d’un autre drapeau exclue', () => {

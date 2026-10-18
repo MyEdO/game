@@ -68,7 +68,7 @@ function identiteComparee(noeud, valeursDe) {
  * @param {string} [chemin] nom du fichier, qui fixe le dialecte de parse
  * @returns {{ ligne: number, extrait: string }[]} `ligne` 1-based, valable pour la source d'origine
  */
-export function detectionsDePointDEntree(source, chemin = 'source.ts', sourceFile) {
+export function detectionsDePointDEntree(source, chemin = 'source.ts', analyse) {
   return sitesDeGlobalesNode(source, chemin, {
     termes: TERMES,
     retenir: ({ noeud, sorte, valeurs, valeursDe }) => {
@@ -77,5 +77,5 @@ export function detectionsDePointDEntree(source, chemin = 'source.ts', sourceFil
       if (sorte !== 'expression' && valeurs.has('import.meta.main')) return true
       return sorte === 'expression' && valeurs.has('identite') && identiteComparee(noeud, valeursDe)
     },
-  }, sourceFile)
+  }, analyse)
 }

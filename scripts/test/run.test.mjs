@@ -4,13 +4,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import os from 'node:os'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import {
   argumentsEnfant,
   bornesWorkers,
   maxWorkersMono,
   cheminsGlobSuspects,
   codeAgrege,
-  codeEnfant,
   cotesRequis,
   enteteCapture,
   environnementDe,
@@ -30,7 +31,7 @@ import {
   memoireDisponibleOctets,
   EMPREINTES_WORKER_MO,
   PARENT_MO,
-  PLANCHER_WORKERS,
+  MINIMUM_WORKERS,
   regimeDeArgv,
   TAS_UTILISE,
   TAS_WORKER_MO,
@@ -151,11 +152,10 @@ test('arguments : un positionnel ne route que s’il est un chemin existant ; dr
   })
 })
 
-test('argv de l’enfant : les arguments de l’appelant ressortent TELS QUELS, en queue', () => {
+test('argv de l’enfant : les arguments hors workers ressortent tels quels, en queue', () => {
   const tete = ['/v.mjs', 'run', '--config', '/atelier/vitest.node.config.ts', '--maxWorkers', '10', '--passWithNoTests']
   for (const argv of [
     ['src/i18n', '--retry', '2'],
-    ['src/i18n', '--maxWorkers', '4'],
     ['src/i18n/i18n.test.ts', 'src/ui/CombatConsole.test.tsx', '--bail', '1'],
     ['-t', 'Sort de feu', '--no-file-parallelism'],
     [],
@@ -166,17 +166,31 @@ test('argv de l’enfant : les arguments de l’appelant ressortent TELS QUELS, 
   }
 })
 
-test('plafond de charge : injecté sauf si l’appelant borne déjà', () => {
+test('plafond de charge : une borne canonique conserve les demandes inférieures', () => {
   assert.deepEqual(bornesWorkers([], 16), ['--maxWorkers=4'])
   assert.deepEqual(bornesWorkers(['src/engine', '--retry', '2'], 16), [
     '--maxWorkers=4',
   ])
-  assert.deepEqual(bornesWorkers(['--maxWorkers=8'], 16), [])
-  assert.deepEqual(bornesWorkers(['--max-workers', '8'], 16), [])
+  assert.deepEqual(bornesWorkers(['--maxWorkers=2'], 16), ['--maxWorkers=2'])
+  assert.deepEqual(bornesWorkers(['--max-workers', '2'], 16), ['--maxWorkers=2'])
   // Un POSITIONNEL qui contient le mot n’est pas un drapeau.
   assert.deepEqual(bornesWorkers(['src/maxWorkers.test.ts'], 16), [
     '--maxWorkers=4',
   ])
+})
+
+test('enfants partagés : max caller 4 conserve 4+2 et passe le parseur Vitest', () => {
+  const vitest = fileURLToPath(new URL('../../node_modules/vitest/vitest.mjs', import.meta.url))
+  for (const option of [['--maxWorkers', '4'], ['--maxWorkers=4'], ['--max-workers', '4'], ['--max-workers=4']]) {
+    const demandes = [4, 2].map((allocation) => argumentsEnfant(vitest, 'fixture.ts', allocation, ['-t', 'Sort de feu', ...option]))
+    assert.deepEqual(demandes.map((a) => Number(a[a.indexOf('--maxWorkers') + 1])), [4, 2])
+    for (const args of demandes) {
+      assert.equal(args.filter((a) => /^--max-?workers/i.test(a)).length, 1)
+      assert.deepEqual(args.slice(-2), ['-t', 'Sort de feu'])
+      const resultat = spawnSync(process.execPath, [...args, '--help'], { encoding: 'utf8' })
+      assert.equal(resultat.status, 0, resultat.stderr)
+    }
+  }
 })
 
 test('plafond mono : min(4, cœurs − 1), plancher 1 — la CI 4 vCPU sert 3 workers', () => {
@@ -252,26 +266,16 @@ test('mémoire disponible sous cgroup : le cache de fichiers est disponible, bor
   assert.equal(memoireDisponibleOctets(V1, lire, { ...nombres, contrainte: 9223372036854771712 }) / Mo, 11955)
 })
 
-test('invariant mémoire, par régime : parents × PARENT_MO + W × empreinte ≤ mémoire disponible, plancher à 2 workers dès 3 cœurs, jamais plus que les cœurs', () => {
-  assert.equal(PLANCHER_WORKERS, 2)
+test('invariant mémoire : sous le minimum refus, chaque admission couvre les parents et workers', () => {
   for (const [regime, empreinte] of Object.entries(EMPREINTES_WORKER_MO)) {
     for (let cpus = 1; cpus <= 32; cpus++) {
       for (let memoire = 1000; memoire <= 64000; memoire += 250) {
         const c = capacite(cpus, memoire, regime)
-        const w = workersServis(c.servis)
-        const partage = repartitionWorkers(c.servis).split
-        const parents = partage ? 2 : 1
-        const cas = `${regime}, ${cpus} cœurs, ${memoire} Mo disponibles → ${w} workers, ${parents} parent(s)`
-        assert.deepEqual([c.regime, c.empreinteMo], [regime, empreinte], cas)
-        assert.ok(w >= 1, cas)
-        if (memoire < PARENT_MO + PLANCHER_WORKERS * empreinte) assert.equal(w, Math.min(PLANCHER_WORKERS, workersServis(cpus)), `plancher : ${cas}`)
-        else assert.ok(parents * PARENT_MO + w * empreinte <= memoire, `mémoire dépassée : ${cas}`)
-        assert.equal(c.borne === 'plancher', w > Math.max(0, c.portes), `borne plancher ⇔ plus de workers que la mémoire n'en porte : ${cas}`)
-        // Mono IMPOSÉ après coup (`--coverage`, filtre d'un seul côté) sur une capacité qui partageait.
-        if (partage) {
-          assert.ok(PARENT_MO + maxWorkersMono(c.servis) * empreinte <= memoire, `mono imposé : ${cas}`)
-        }
-        assert.ok(w <= workersServis(cpus), `plus que les cœurs : ${cas}`)
+        const minimum = PARENT_MO + Math.min(MINIMUM_WORKERS, workersServis(cpus)) * empreinte
+        assert.equal(c.refus, memoire < minimum ? 'MEMOIRE_INSUFFISANTE' : null)
+        if (c.refus) continue
+        assert.ok(c.parents * PARENT_MO + workersServis(c.servis) * empreinte <= memoire)
+        assert.ok(workersServis(c.servis) <= workersServis(cpus))
       }
     }
   }
@@ -294,8 +298,8 @@ test('régime de l’argv du lanceur : `suite` par défaut, `--regime=<r>` retir
 })
 
 test('capacité : cas choisis, attendus écrits à la main', () => {
-  const suite = { regime: 'suite', empreinteMo: 2340 }
-  const lot = { regime: 'lot', empreinteMo: 1973 }
+  const suite = { regime: 'suite', empreinteMo: 2340, minimumMo: 6142, refus: null }
+  const lot = { regime: 'lot', empreinteMo: 1973, minimumMo: 5408, refus: null }
   // Conteneur de 4 cœurs, 15 424 Mo disponibles : ⌊(15424 − 1462) / 2340⌋ = 5 portés, les cœurs bornent, mono à 3 workers.
   assert.deepEqual(capacite(4, 15424, 'suite'), { cpus: 4, memoireMo: 15424, ...suite, servis: 4, portes: 5, parents: 1, borne: 'cœurs' })
   assert.equal(workersServis(4), 3)
@@ -321,13 +325,12 @@ test('capacité : cas choisis, attendus écrits à la main', () => {
   assert.deepEqual(capacite(16, 10240, 'lot'), { cpus: 16, memoireMo: 10240, ...lot, servis: 5, portes: 4, parents: 1, borne: 'mémoire' })
   assert.deepEqual(capacite(16, 10240, 'suite'), { cpus: 16, memoireMo: 10240, ...suite, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
   assert.equal(workersServis(5), 4)
-  // Mémoire qui ne porte qu'un worker (⌊3538 / 2340⌋ = 1) : le plancher en sert 2, et le dit.
-  assert.deepEqual(capacite(16, 5000, 'suite'), { cpus: 16, memoireMo: 5000, ...suite, servis: 3, portes: 1, parents: 1, borne: 'plancher' })
+  assert.deepEqual(capacite(16, 5000, 'suite'), { cpus: 16, memoireMo: 5000, ...suite, refus: 'MEMOIRE_INSUFFISANTE', servis: 2, portes: 1, parents: 1, borne: 'mémoire' })
   assert.equal(workersServis(3), 2)
-  // Deux cœurs ne servent qu'un worker : les cœurs bornent, pas le plancher.
-  assert.deepEqual(capacite(2, 4000, 'suite'), { cpus: 2, memoireMo: 4000, ...suite, servis: 2, portes: 1, parents: 1, borne: 'cœurs' })
+  // Deux cœurs ne servent qu'un worker : les cœurs bornent.
+  assert.deepEqual(capacite(2, 4000, 'suite'), { cpus: 2, memoireMo: 4000, ...suite, minimumMo: 3802, servis: 2, portes: 1, parents: 1, borne: 'cœurs' })
   assert.equal(workersServis(2), 1)
-  assert.deepEqual(capacite(1, 1000, 'suite'), { cpus: 1, memoireMo: 1000, ...suite, servis: 1, portes: -1, parents: 1, borne: 'plancher' })
+  assert.deepEqual(capacite(1, 1000, 'suite'), { cpus: 1, memoireMo: 1000, ...suite, minimumMo: 3802, refus: 'MEMOIRE_INSUFFISANTE', servis: 1, portes: -1, parents: 1, borne: 'cœurs' })
 })
 
 test('tas d’un worker : relevé sur la ligne de fichier du reporter, préfixée ou non', () => {
@@ -389,12 +392,7 @@ test('résumé : un échec SANS bilan rend la cause brute et l’exit ; le chemi
   )
 })
 
-test('verdicts : signal et code absent valent échec, les deux côtés doivent réussir', () => {
-  assert.equal(codeEnfant(0, null), 0)
-  assert.equal(codeEnfant(1, null), 1)
-  assert.equal(codeEnfant(null, 'SIGTERM'), 1)
-  assert.equal(codeEnfant(0, 'SIGTERM'), 1)
-  assert.equal(codeEnfant(null, null), 1)
+test('verdict du lanceur : les deux côtés doivent réussir', () => {
   assert.equal(codeAgrege([0, 0]), 0)
   assert.equal(codeAgrege([0, 1]), 1)
   assert.equal(codeAgrege([1, 0]), 1)
@@ -491,7 +489,7 @@ test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des c�
   assert.ok(mono.endsWith('\n'), 'le bloc doit clore sa dernière ligne')
 })
 
-test('bloc [diag] : la mémoire qui borne et le plancher sont dits, le tas alerte à 85 % et se dit non relevé', () => {
+test('bloc [diag] : la capacité et le refus mémoire sont dits, le tas alerte à 85 % et se dit non relevé', () => {
   const compte = compterSentinelles([])
   const mesure = { capacite: capacite(16, 25000, 'lot'), memGo: 31.2, memMaxGo: 20, rssMaxMo: 60, secondes: 10 }
   const borne = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 4+jsdom 2', tasMaxMo: 2612 })
@@ -501,7 +499,7 @@ test('bloc [diag] : la mémoire qui borne et le plancher sont dits, le tas alert
   const sousSeuil = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: 2611 })
   assert.ok(!sousSeuil.includes('ALERTE'), sousSeuil)
   const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000, 'suite'), partage: false, maxWorkers: '2', tasMaxMo: null })
-  assert.match(pauvre, / · disponible 4\.9 Go → régime suite \(2340 Mo par worker\) · plancher de 2 workers, au-delà de la mémoire \(5000 Mo < 6142 Mo\) · réserve de 1 parent · borné par plancher \(3 cœurs servis\) · mono /)
+  assert.match(pauvre, / · disponible 4\.9 Go → régime suite \(2340 Mo par worker\) · refus MEMOIRE_INSUFFISANTE \(minimum 6142 Mo\) · réserve de 1 parent · borné par mémoire \(2 cœurs servis\) · mono /)
   const muet = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: null })
   assert.match(muet, new RegExp(`^\\[diag\\] tas max d'un worker : non relevé / ${TAS_WORKER_MO} Mo$`, 'm'))
 })

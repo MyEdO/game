@@ -19,7 +19,31 @@
 // elle dépend (`requeteDe`). Ce qui ne se lit pas ainsi n'est pas deviné : il rend `{ non: raison }`, et
 // son site sort au rapport de l'appelant.
 import { posix } from 'node:path'
+import { types } from 'node:util'
 import { typescript } from './dialecte.mjs'
+import { gelerLaConstante } from '../../../src/lib/gelerProfond.ts'
+
+const mapperTableau = Array.prototype.map
+const getterDePrototype = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__')?.get
+const prototypesDeCle = [Object.prototype, Array.prototype].map((prototype) => {
+  const noms = Reflect.ownKeys(prototype)
+  return { prototype, noms, proprietes: noms.map((nom) => Object.getOwnPropertyDescriptor(prototype, nom)) }
+})
+const prototypesInertes = () => {
+  for (const { prototype, noms, proprietes } of prototypesDeCle) {
+    const actuels = Reflect.ownKeys(prototype)
+    if (actuels.length !== noms.length) return false
+    for (let i = 0; i < noms.length; i++) {
+      if (actuels[i] !== noms[i]) return false
+      const p = Object.getOwnPropertyDescriptor(prototype, noms[i])
+      const avant = proprietes[i]
+      if (!Object.hasOwn(p, 'value') && (prototype !== Object.prototype || noms[i] !== '__proto__' || p.get !== getterDePrototype)) return false
+      if (!Object.is(p.value, avant.value) || p.get !== avant.get || p.set !== avant.set ||
+        p.enumerable !== avant.enumerable || p.configurable !== avant.configurable || p.writable !== avant.writable) return false
+    }
+  }
+  return true
+}
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
  *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
@@ -84,23 +108,53 @@ export function lecteurDExpressions(rel, arbre) {
   /** Les expressions RENDUES par la fonction `n` : son corps d'expression, ou ses `return` hors fonctions imbriquées. */
   const retoursDe = (n) => {
     if (!n.body) return []
-    if (!ts.isBlock(n.body)) return [n.body]
+    if (!ts.isBlock(n.body)) return [{ expression: n.body, gardes: [] }]
     const retours = []
-    const visiter = (x) => {
+    const visiter = (x, gardes = []) => {
       if (estFonction(x)) return
-      if (ts.isReturnStatement(x) && x.expression) retours.push(x.expression)
-      x.forEachChild(visiter)
+      if (ts.isReturnStatement(x)) {
+        if (x.expression) retours.push({ expression: x.expression, gardes })
+        return true
+      }
+      if (ts.isBlock(x)) {
+        let suite = gardes
+        for (const s of x.statements) {
+          const termine = visiter(s, suite)
+          if (termine === true) return true
+          if (Array.isArray(termine)) suite = [...suite, ...termine]
+        }
+        return false
+      }
+      if (ts.isIfStatement(x)) {
+        const oui = visiter(x.thenStatement, [...gardes, { condition: x.expression, attendu: true }])
+        const non = x.elseStatement && visiter(x.elseStatement, [...gardes, { condition: x.expression, attendu: false }])
+        if (oui === true && non === true) return true
+        if (oui === true) return [{ condition: x.expression, attendu: false }]
+        if (non === true) return [{ condition: x.expression, attendu: true }]
+        return false
+      }
+      x.forEachChild((e) => { visiter(e, gardes) })
+      return false
     }
-    n.body.forEachChild(visiter)
+    visiter(n.body)
     return retours
   }
+  const retoursLus = (n, profondeur = 0) => retoursDe(n).map(({ expression, gardes }) => gardes.reduceRight((de, g) =>
+    ({ k: 'garde', de, condition: expr(g.condition, profondeur), attendu: g.attendu }), expr(expression, profondeur)))
 
   /** Le chemin de champs qui mène à `texte` dans un motif de liaison : `null` s'il n'y est pas, `false`
-   *  s'il passe par un tableau ou un reste. */
+   *  s'il passe par un reste. */
   const champsVers = (nom, texte) => {
     if (!nom) return null
     if (ts.isIdentifier(nom)) return nom.text === texte ? [] : null
-    if (ts.isArrayBindingPattern(nom)) return nom.elements.some((e) => ts.isBindingElement(e) && champsVers(e.name, texte) !== null) ? false : null
+    if (ts.isArrayBindingPattern(nom)) {
+      for (const [index, e] of nom.elements.entries()) {
+        if (!ts.isBindingElement(e)) continue
+        const sous = champsVers(e.name, texte)
+        if (sous !== null) return e.dotDotDotToken || sous === false ? false : [index, ...sous]
+      }
+      return null
+    }
     for (const e of nom.elements) {
       const sous = champsVers(e.name, texte)
       if (sous === null) continue
@@ -116,7 +170,7 @@ export function lecteurDExpressions(rel, arbre) {
   const defautVers = (nom, texte) => {
     if (!nom || ts.isIdentifier(nom)) return undefined
     for (const e of nom.elements) {
-      if (!ts.isBindingElement(e)) continue
+      if (!ts.isBindingElement(e) || !e.name) continue
       if (ts.isIdentifier(e.name) && e.name.text === texte) return e.initializer
       const sous = defautVers(e.name, texte)
       if (sous) return sous
@@ -126,9 +180,11 @@ export function lecteurDExpressions(rel, arbre) {
   const parChamps = (base, champs, texte, motif, profondeur = 0) => {
     if (champs === false) return non(`déstructuration de tableau ${texte}`)
     const defaut = motif && defautVers(motif, texte)
-    return champs.reduce((de, nom, i) => ({ k: 'champ', de, nom, texte,
+    return champs.reduce((de, nom, i) => ({ k: typeof nom === 'number' ? 'indice' : 'champ', de, nom, texte,
       ...(defaut && i === champs.length - 1 ? { defaut: expr(defaut, profondeur) } : {}) }), base)
   }
+
+  const elementItere = (de) => ({ k: 'elementItere', de })
 
   /** Les fonctions de PREMIER NIVEAU : déclarations et `const f = () => …` du module. */
   const idDe = new Map()
@@ -199,26 +255,69 @@ export function lecteurDExpressions(rel, arbre) {
    *  déclaration). Calculées une fois par module. */
   let affectations = null
   const LISIBLES = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken, ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken])
+  const ficheDe = (n, nom) => {
+    const noms = affectations.get(n) ?? affectations.set(n, new Map()).get(n)
+    return noms.get(nom) ?? noms.set(nom, { droits: [], opaque: false, champs: new Set() }).get(nom)
+  }
+  /** Le champ STATIQUE de l'accès `acces` (`x.a`, `x['a']`), `null` s'il est calculé. */
+  const champStatique = (acces) => ts.isPropertyAccessExpression(acces) ? acces.name.text
+    : ts.isElementAccessExpression(acces) && ts.isStringLiteralLikeNode(acces.argumentExpression) ? acces.argumentExpression.text : null
+  /** La lecture `id` est-elle souillée par `fiche` : liaison opaque, ou champ écrit (`champs`) que `id` lit, ou
+   *  que `id` lu nu peut atteindre. */
+  const souillee = (fiche, id) => {
+    if (fiche.opaque) return true
+    if (!fiche.champs.size) return false
+    const acces = parents.get(id)
+    const champ = acces && (ts.isPropertyAccessExpression(acces) || ts.isElementAccessExpression(acces)) && acces.expression === id ? champStatique(acces) : null
+    return champ === null || fiche.champs.has(champ)
+  }
   const affectationsDe = () => {
     if (affectations) return affectations
     affectations = new Map()
-    const poser = (cible, droit) => {
+    const poser = (cible, droit, champ = null) => {
       if (!cible) return
       if (ts.isParenthesizedExpression(cible) || ts.isSpreadElement(cible) || ts.isSpreadAssignment(cible)) return poser(cible.expression, null)
       if (ts.isIdentifier(cible)) {
         const liaison = liaisonDe(cible)
         if (!liaison) return
-        const noms = affectations.get(liaison.n) ?? affectations.set(liaison.n, new Map()).get(liaison.n)
-        const fiche = noms.get(cible.text) ?? noms.set(cible.text, { droits: [], opaque: false }).get(cible.text)
-        if (droit) fiche.droits.push(droit)
+        const fiche = ficheDe(liaison.n, cible.text)
+        if (champ !== null) fiche.champs.add(champ)
+        else if (droit) fiche.droits.push(droit)
         else fiche.opaque = true
         return
       }
+      if (ts.isPropertyAccessExpression(cible) || ts.isElementAccessExpression(cible))
+        return ts.isIdentifier(cible.expression) && champStatique(cible) !== null ? poser(cible.expression, null, champStatique(cible)) : poser(cible.expression, null)
       if (ts.isArrayLiteralExpression(cible)) for (const e of cible.elements) poser(e, null)
       if (ts.isObjectLiteralExpression(cible))
         for (const p of cible.properties) poser(ts.isShorthandPropertyAssignment(p) ? p.name : ts.isPropertyAssignment(p) ? p.initializer : p, null)
     }
+    const exposer = (id) => {
+      const liaison = liaisonDe(id)
+      if (!liaison?.parametre) return
+      let x = id, parent = parents.get(x)
+      if ((parent.kind === ts.SyntaxKind.Parameter || ts.isVariableDeclaration(parent) || ts.isBindingElement(parent) ||
+        ts.isFunctionDeclaration(parent) || ts.isFunctionExpression(parent)) && parent.name === x) return
+      if ((ts.isPropertyAccessExpression(parent) || ts.isPropertyAssignment(parent) ||
+        ts.isMethodDeclaration(parent) || ts.isGetAccessorDeclaration(parent) || ts.isSetAccessorDeclaration(parent)) && parent.name === x) return
+      let capture = false
+      for (let n = parent; n && n !== liaison.n; n = parents.get(n)) if (estFonction(n)) capture = true
+      while (parent && (((ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) && parent.expression === x) ||
+        ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent) || ts.isNonNullExpression(parent) || ts.isSatisfiesExpression(parent) ||
+        (ts.isBinaryExpression(parent) && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(parent.operatorToken.kind)) ||
+        (ts.isConditionalExpression(parent) && parent.condition !== x))) {
+        x = parent
+        parent = parents.get(x)
+      }
+      const lecture = parent && (((ts.isIfStatement(parent) || ts.isWhileStatement(parent) ||
+        ts.isDoStatement(parent) || ts.isForStatement(parent)) && parent.expression === x) ||
+        (ts.isConditionalExpression(parent) && parent.condition === x) ||
+        (ts.isPrefixUnaryExpression(parent) && parent.operator === ts.SyntaxKind.ExclamationToken))
+      if (!capture && lecture) return
+      ficheDe(liaison.n, id.text).echappe = true
+    }
     const visiter = (x) => {
+      if (ts.isIdentifier(x)) exposer(x)
       if (ts.isBinaryExpression(x) && x.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && x.operatorToken.kind <= ts.SyntaxKind.LastAssignment)
         poser(x.left, LISIBLES.has(x.operatorToken.kind) && ts.isIdentifier(x.left) ? x.right : null)
       if ((ts.isPrefixUnaryExpression(x) || ts.isPostfixUnaryExpression(x)) &&
@@ -238,14 +337,16 @@ export function lecteurDExpressions(rel, arbre) {
       const appel = parents.get(n)
       if (appel && ts.isCallExpression(appel) && appel.arguments[0] === n && ts.isPropertyAccessExpression(appel.expression) &&
         ITERATEURS.has(appel.expression.name.text) && index === 0)
-        return parChamps(expr(appel.expression.expression, profondeur), champsVers(n.parameters[0].name, texte), texte, n.parameters[0].name, profondeur)
-      if (!idDe.has(n)) return non(`paramètre ${texte}`)
+        return parChamps(elementItere(expr(appel.expression.expression, profondeur)), champsVers(n.parameters[0].name, texte), texte, n.parameters[0].name, profondeur)
+      const fiche = affectationsDe().get(n)?.get(texte)
+      const mute = !!fiche && (souillee(fiche, id) || !!fiche.echappe)
+      if (!idDe.has(n)) return { k: 'paramLambda', fn: `lambda:${n.pos}`, index, nom: texte, mute }
       const motif = n.parameters[index].name
-      return parChamps({ k: 'param', fn: idDe.get(n), index, nom: texte }, champsVers(motif, texte), texte, motif, profondeur)
+      return parChamps({ k: 'param', fn: idDe.get(n), index, nom: texte, mute }, champsVers(motif, texte), texte, motif, profondeur)
     }
     if (boucle) {
       const [d] = n.initializer.declarations
-      return ts.isForOfStatement(n) ? parChamps(expr(n.expression, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
+      return ts.isForOfStatement(n) ? parChamps(elementItere(expr(n.expression, profondeur)), champsVers(d.name, texte), texte, d.name, profondeur)
         : non(`variable de boucle ${texte}`)
     }
     if (decl.fonction) return idDe.has(decl.fonction) ? { k: 'fn', id: texte } : non(`fonction locale ${texte}`)
@@ -266,9 +367,10 @@ export function lecteurDExpressions(rel, arbre) {
   const lier = (id, profondeur) => {
     if (id.text === '__dirname') return { k: 'chemin', v: dossier }
     const liaison = liaisonDe(id)
-    if (!liaison) return non(id.text === 'undefined' ? VALEUR_NULLE : `${id.text} introuvable`)
+    if (!liaison) return id.text === 'String' ? { k: 'native', nom: 'String' } : non(id.text === 'undefined' ? VALEUR_NULLE : `${id.text} introuvable`)
     const fiche = affectationsDe().get(liaison.n)?.get(id.text)
-    if (!fiche) return valeurDeLiaison(id, liaison, profondeur)
+    const opaque = !!fiche && souillee(fiche, id)
+    if (!fiche || (!opaque && !fiche.droits.length)) return valeurDeLiaison(id, liaison, profondeur)
     if (enLecture.some(([n, texte]) => n === liaison.n && texte === id.text)) return non(`${id.text} réaffectée en récurrence`)
     enLecture.push([liaison.n, id.text])
     try {
@@ -276,7 +378,7 @@ export function lecteurDExpressions(rel, arbre) {
       return { k: 'union', v: [
         ...(sansInitiale ? [] : [valeurDeLiaison(id, liaison, profondeur)]),
         ...fiche.droits.map((droit) => expr(droit, profondeur)),
-        ...(fiche.opaque ? [non(`${id.text} réaffectée`)] : []),
+        ...(opaque ? [non(`${id.text} réaffectée`)] : []),
       ] }
     } finally { enLecture.pop() }
   }
@@ -284,12 +386,17 @@ export function lecteurDExpressions(rel, arbre) {
   /** Les fonctions anonymes lues (`expr`), une fois par nœud ; `null` pendant leur lecture : une fonction qui se
    *  nomme elle-même dans ses retours est récursive. */
   const lambdas = new Map()
+  const lexique = {}
   const expr = (n, profondeur = 0) => {
     if (profondeur > PROFONDEUR) return non('expression trop profonde')
     const p = profondeur + 1
     if (ts.isStringLiteralLikeNode(n)) return { k: 'lit', v: n.text }
+    if (n.kind === ts.SyntaxKind.TrueKeyword || n.kind === ts.SyntaxKind.FalseKeyword) return { k: 'booleen', v: n.kind === ts.SyntaxKind.TrueKeyword }
+    if (ts.isNumericLiteral(n)) return { k: 'scalaire', v: n.text }
+    if (ts.isPrefixUnaryExpression(n) && n.operator === ts.SyntaxKind.ExclamationToken) return { k: 'negation', de: expr(n.operand, p) }
     if (n.kind === ts.SyntaxKind.NullKeyword) return non(VALEUR_NULLE)
-    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n) || ts.isSpreadElement(n) ||
+    if (ts.isSpreadElement(n)) return { k: 'etale', de: expr(n.expression, p) }
+    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n) ||
       ts.isAwaitExpression(n))
       return expr(n.expression, p)
     if (ts.isArrayLiteralExpression(n)) return { k: 'liste', v: n.elements.map((e) => expr(e, p)) }
@@ -298,13 +405,29 @@ export function lecteurDExpressions(rel, arbre) {
     if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
       if (lambdas.has(n)) return lambdas.get(n) ?? non('fonction anonyme récursive')
       lambdas.set(n, null)
-      const lue = { k: 'lambda', retours: retoursDe(n).map((x) => expr(x, p)) }
-      lambdas.set(n, lue)
-      return lue
+      const lue = { k: 'lambda', id: `lambda:${n.pos}`, params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer, p) } : {}) })), retours: retoursLus(n, p), sites: [] }
+      const visiter = (x) => {
+        if (estFonction(x) && x !== n) return
+        if (ts.isCallExpression(x)) {
+          const nom = nomAppele(x)
+          const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
+          const cible = !lecture && ts.isIdentifier(x.expression) ? lier(x.expression, p) : null
+          if (lecture || cible) lue.sites.push({ appel: nom, args: [...x.arguments].map((a) => expr(a, p)), ...(lecture ? { lecture: nom } : { cible }) })
+        }
+        x.forEachChild(visiter)
+      }
+      if (n.body && n.parameters.length) visiter(n.body)
+      Object.defineProperty(lexique, lue.id, { value: lue, enumerable: true, configurable: true, writable: true })
+      const reference = { k: 'lambda', id: lue.id }
+      lambdas.set(n, reference)
+      return reference
     }
     if (ts.isTemplateExpression(n))
       return { k: 'concat', v: [{ k: 'lit', v: n.head.text }, ...n.templateSpans.flatMap((s) => [expr(s.expression, p), { k: 'lit', v: s.literal.text }])] }
-    if (ts.isConditionalExpression(n)) return { k: 'union', v: [expr(n.whenTrue, p), expr(n.whenFalse, p)] }
+    if (ts.isConditionalExpression(n)) return { k: 'union', v: [
+      { k: 'garde', condition: expr(n.condition, p), attendu: true, de: expr(n.whenTrue, p) },
+      { k: 'garde', condition: expr(n.condition, p), attendu: false, de: expr(n.whenFalse, p) },
+    ] }
     if (ts.isBinaryExpression(n)) {
       const op = n.operatorToken.kind
       if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) return { k: 'union', v: [expr(n.left, p), expr(n.right, p)] }
@@ -315,12 +438,18 @@ export function lecteurDExpressions(rel, arbre) {
       const v = {}
       const etales = []
       for (const prop of n.properties) {
-        if (ts.isPropertyAssignment(prop) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) v[prop.name.text] = expr(prop.initializer, p)
-        else if (ts.isShorthandPropertyAssignment(prop)) v[prop.name.text] = lier(prop.name, p)
+        if (ts.isPropertyAssignment(prop) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) {
+          if (prop.name.text === '__proto__') etales.push(non(`prototype explicite ${texteDe(prop)}`))
+          else Object.defineProperty(v, prop.name.text, { value: expr(prop.initializer, p), enumerable: true, configurable: true, writable: true })
+        }
+        else if (ts.isShorthandPropertyAssignment(prop)) Object.defineProperty(v, prop.name.text, { value: lier(prop.name, p), enumerable: true, configurable: true, writable: true })
+        else if ((ts.isGetAccessorDeclaration(prop) || ts.isSetAccessorDeclaration(prop) || ts.isMethodDeclaration(prop)) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) Object.defineProperty(v, prop.name.text, { value: non(`membre opaque ${prop.name.text}`), enumerable: true, configurable: true, writable: true })
         else if (ts.isSpreadAssignment(prop)) etales.push(expr(prop.expression, p))
-        else if (ts.isPropertyAssignment(prop)) etales.push(non(`propriété calculée ${texteDe(prop.name)}`))
+        else etales.push(non(`membre opaque ${texteDe(prop)}`))
       }
-      return { k: 'objet', v, ...(etales.length ? { etales } : {}) }
+      const parent = parents.get(n)
+      const objetDirect = (ts.isCallExpression(parent) && parent.arguments.includes(n)) || (parent?.kind === ts.SyntaxKind.Parameter && parent.initializer === n)
+      return { k: 'objet', v, objetDirect, ...(etales.length ? { etales } : {}) }
     }
     if (ts.isPropertyAccessExpression(n)) {
       if (estImportMeta(n.expression) && n.name.text === 'dirname') return { k: 'chemin', v: dossier }
@@ -348,14 +477,17 @@ export function lecteurDExpressions(rel, arbre) {
       const receveurLie = receveur && ts.isIdentifier(receveur) ? lier(receveur, p) : null
       const lie = ts.isIdentifier(n.expression) ? lier(n.expression, p)
         : receveurLie?.k === 'importe' && ['*', 'default'].includes(receveurLie.nom) ? { ...receveurLie, nom } : null
+      if (lie?.k === 'native' && args[0]) return { k: 'chaine', de: expr(args[0], p) }
       if (lie?.k === 'importe' && ['node:os', 'os'].includes(lie.spec) && lie.nom === 'tmpdir') return { k: 'couverture', origine: 'node:os#tmpdir', raison: 'répertoire temporaire dépendant de l’environnement' }
       if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'mkdtempSync' && args[0]) return { k: 'temporaire', prefixe: expr(args[0], p) }
-      if (nom === 'readdirSync' && args[0]) return { k: 'fragment', de: expr(args[0], p) }
-      if (['fileURLToPath', 'depotDe', 'depotReel', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
+      if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'readdirSync' && args[0]) return { k: 'repertoire', de: expr(args[0], p), options: args[1] ? expr(args[1], p) : null }
+      if (['fileURLToPath', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
+      if (nom === 'flat' && receveur) return { k: 'aplatir', de: expr(receveur, p), profondeur: args[0] ? expr(args[0], p) : { k: 'scalaire', v: '1' } }
       if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
       if (SOUS_ENSEMBLES.has(nom) && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
-      const rendus = PROJECTIONS.has(nom) && args[0] && (ts.isArrowFunction(args[0]) || ts.isFunctionExpression(args[0])) ? retoursDe(args[0]) : []
-      if (rendus.length && ts.isPropertyAccessExpression(n.expression)) return { k: 'union', v: rendus.map((r) => expr(r, p)) }
+      const rendus = PROJECTIONS.has(nom) && args[0] && (ts.isArrowFunction(args[0]) || ts.isFunctionExpression(args[0])) ? retoursLus(args[0], p) : []
+      if (rendus.length && ts.isPropertyAccessExpression(n.expression)) return { k: 'projection', de: expr(n.expression.expression, p), aplatie: nom === 'flatMap', v: rendus }
+      if (PROJECTIONS.has(nom) && args[0] && receveur) return { k: 'projectionRappel', de: expr(receveur, p), cible: expr(args[0], p), texte: texteDe(args[0]), aplatie: nom === 'flatMap' }
       if (ITERATEURS.has(nom) && ts.isPropertyAccessExpression(n.expression))
         return { k: 'transforme', raison: `appel ${texteDe(n.expression)}`, v: expr(n.expression.expression, p) }
       if (ts.isIdentifier(n.expression)) return { k: 'appel', cible: lier(n.expression, p), args: args.map((a) => expr(a, p)), texte: texteDe(n.expression) }
@@ -365,12 +497,10 @@ export function lecteurDExpressions(rel, arbre) {
   }
 
   /** Paramètres (reste, défaut) et expressions rendues de chaque fonction de premier niveau. */
-  const fonctions = {}
-  for (const [n, id] of idDe)
-    fonctions[id] = {
-      params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer) } : {}) })),
-      retours: retoursDe(n).map((r) => expr(r)),
-    }
+  const fonctions = Object.fromEntries([...idDe].map(([n, id]) => [id, {
+    params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer) } : {}) })),
+    retours: retoursLus(n),
+  }]))
 
   /** La fonction de premier niveau qui contient `n`, ou `null`. */
   const dansDe = (n) => {
@@ -378,7 +508,27 @@ export function lecteurDExpressions(rel, arbre) {
     return null
   }
 
-  return { expr, lier, nomAppele, fonctions, dansDe, ligneDe }
+  const objetDeclare = (n, vus = new Set()) => {
+    if (!n || vus.has(n)) return null
+    vus.add(n)
+    if (ts.isObjectLiteralExpression(n)) return n
+    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n)) return objetDeclare(n.expression, vus)
+    if (ts.isCallExpression(n) && nomAppele(n) === 'freeze') return objetDeclare(n.arguments[0], vus)
+    if (!ts.isIdentifier(n)) return null
+    const liaison = liaisonDe(n)
+    if (liaison?.decl?.variable) return objetDeclare(liaison.decl.variable.initializer, vus)
+    if (liaison?.parametre) {
+      const index = parametresDe(liaison.n).findIndex((noms) => noms.has(n.text))
+      return objetDeclare(liaison.n.parameters[index].initializer, vus)
+    }
+    return null
+  }
+  const cibleAppele = (n) => {
+    if (ts.isIdentifier(n.expression)) return lier(n.expression, 0)
+    if (!ts.isPropertyAccessExpression(n.expression) || !objetDeclare(n.expression.expression)) return null
+    return expr(n.expression)
+  }
+  return { expr, lambdas: lexique, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele }
 }
 
 /**
@@ -391,43 +541,88 @@ export function lecteurDExpressions(rel, arbre) {
  */
 export function lectureDeModule(rel, arbre) {
   const ts = typescript()
-  const { expr, lier, nomAppele, fonctions, dansDe, ligneDe } = lecteurDExpressions(rel, arbre)
+  const { expr, lambdas, lier, nomAppele, fonctions, dansDe, ligneDe, cibleAppele } = lecteurDExpressions(rel, arbre)
   const sites = []
+  const estMembreCallable = (cible) => {
+    if (cible?.k !== 'champ') return false
+    const de = cible.de.k === 'param' ? (Object.hasOwn(fonctions, cible.de.fn) ? fonctions[cible.de.fn]?.params[cible.de.index]?.defaut : null) : cible.de
+    return de?.k === 'objet' && Object.hasOwn(de.v, cible.nom) && ['fn', 'lambda'].includes(de.v[cible.nom]?.k)
+  }
+  const dansUnRappel = (n) => {
+    for (let a = n.parent; a; a = a.parent) {
+      if (!ts.isArrowFunction(a) && !ts.isFunctionExpression(a)) continue
+      if (!a.parameters.length) return false
+      const appel = a.parent
+      if (!ts.isCallExpression(appel) || !appel.arguments.includes(a) || !ts.isIdentifier(appel.expression)) return false
+      const cible = lier(appel.expression, 0)
+      return cible.k === 'fn' || (cible.k === 'importe' && cible.spec.startsWith('.'))
+    }
+    return false
+  }
   const visiter = (n) => {
-    if (ts.isCallExpression(n)) {
+    if (ts.isCallExpression(n) && !dansUnRappel(n)) {
       const nom = nomAppele(n)
       const lecture = PRIMITIVES.includes(nom) || Object.hasOwn(PORTES_GIT, nom)
-      const cible = !lecture && ts.isIdentifier(n.expression) ? lier(n.expression, 0) : null
-      if (lecture || (cible && (cible.k === 'fn' || (cible.k === 'importe' && !cible.spec.startsWith('node:')))))
+      const cible = !lecture ? cibleAppele(n) : null
+      if (lecture || (cible && (cible.k === 'fn' || cible.k === 'param' || estMembreCallable(cible) || (cible.k === 'importe' && !cible.spec.startsWith('node:')))))
         sites.push({ appel: nom, ligne: ligneDe(n), dans: dansDe(n), args: [...n.arguments].map((a) => expr(a)), ...(lecture ? { lecture: nom } : { cible }) })
     }
     n.forEachChild(visiter)
   }
   visiter(arbre)
 
-  const exports = {}
+  const exportsLus = new Map()
   const etoiles = []
   for (const s of arbre.statements) {
     const exporte = s.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
-    if (exporte && ts.isFunctionDeclaration(s) && s.name) exports[s.name.text] = { k: 'fn', id: s.name.text }
+    if (exporte && ts.isFunctionDeclaration(s) && s.name) exportsLus.set(s.name.text, { k: 'fn', id: s.name.text })
     if (exporte && ts.isVariableStatement(s))
       for (const d of s.declarationList.declarations)
-        if (ts.isIdentifier(d.name)) exports[d.name.text] = d.initializer ? expr(d.initializer) : { k: 'non', raison: `${d.name.text} sans valeur initiale` }
+        if (ts.isIdentifier(d.name)) exportsLus.set(d.name.text, d.initializer ? expr(d.initializer) : { k: 'non', raison: `${d.name.text} sans valeur initiale` })
     if (ts.isExportDeclaration(s)) {
       const spec = s.moduleSpecifier && ts.isStringLiteralLikeNode(s.moduleSpecifier) ? s.moduleSpecifier.text : null
       if (!s.exportClause) { if (spec) etoiles.push(spec); continue }
       if (!ts.isNamedExports(s.exportClause)) continue
       for (const e of s.exportClause.elements) {
         const origine = (e.propertyName ?? e.name).text
-        exports[e.name.text] = spec ? { k: 'importe', spec, nom: origine } : lier(e.propertyName ?? e.name, 0)
+        exportsLus.set(e.name.text, spec ? { k: 'importe', spec, nom: origine } : lier(e.propertyName ?? e.name, 0))
       }
     }
   }
-  const declaration = exports.CONTRATS_DE_DERIVATION
-  const resumeDeRetour = (e, origine) => {
+  const exports = Object.fromEntries(exportsLus)
+  const declaration = Object.hasOwn(exports, 'CONTRATS_DE_DERIVATION') ? exports.CONTRATS_DE_DERIVATION : null
+  const resumeDeRetour = (e, origine, fn) => {
     if (e?.k === 'lit' && e.v === 'corpus') return { k: 'couverture', origine, raison: 'résumé de retour déclaré à la source' }
     if (e?.k !== 'objet' || e.etales?.length || !Object.keys(e.v).length) return null
-    const v = Object.fromEntries(Object.entries(e.v).map(([nom, champ]) => [nom, resumeDeRetour(champ, `${origine}.${nom}`)]))
+    const type = e.v.type?.v
+    const argument = e.v.argument?.k === 'scalaire' ? Number(e.v.argument.v) : null
+    const param = argument === null ? null : { k: 'param', fn, index: argument, nom: 'provenance' }
+    if (type === 'argument' && param) {
+      const champs = e.v.champs?.k === 'liste' ? e.v.champs.v : []
+      if (champs.some((x) => x.k !== 'lit')) return null
+      return champs.reduce((de, x) => ({ k: 'champ', de, nom: x.v, texte: `${origine}.${x.v}` }), param)
+    }
+    if (type === 'reste' && param) return { k: 'reste', fn, index: argument }
+    if (type === 'scalaire') return { k: 'non', raison: `scalaire indéterminé : ${origine}` }
+    if (type === 'chaine') return { k: 'couverture', origine, raison: 'chaîne sans borne déclarée à la source' }
+    if (type === 'null') return { k: 'non', raison: VALEUR_NULLE }
+    if (type === 'poignee' && param) return { k: 'poignee', de: param, origine }
+    if (type === 'racineGit' && param) return { k: 'racineGit', de: param, origine }
+    if (type === 'imageGit' && e.v.porte?.k === 'lit' && Object.hasOwn(PORTES_GIT, e.v.porte.v))
+      return { k: 'imageGit', porte: PORTES_GIT[e.v.porte.v], fn, origine }
+    if (type === 'collection') {
+      const element = resumeDeRetour(e.v.element, `${origine}[]`, fn)
+      return element ? { k: 'collection', element } : null
+    }
+    if (type === 'union' && e.v.variantes?.k === 'liste') {
+      const v = e.v.variantes.v.map((x) => resumeDeRetour(x, origine, fn))
+      return v.every(Boolean) ? { k: 'union', v } : null
+    }
+    if (type === 'objetPartiel' && e.v.champs?.k === 'objet') {
+      const v = Object.fromEntries(Object.entries(e.v.champs.v).map(([nom, champ]) => [nom, resumeDeRetour(champ, `${origine}.${nom}`, fn)]))
+      return Object.values(v).every(Boolean) ? { k: 'objet', v, partiel: true } : null
+    }
+    const v = Object.fromEntries(Object.entries(e.v).map(([nom, champ]) => [nom, resumeDeRetour(champ, `${origine}.${nom}`, fn)]))
     return Object.values(v).every(Boolean) ? { k: 'objet', v, ferme: true } : null
   }
   if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
@@ -437,10 +632,152 @@ export function lectureDeModule(rel, arbre) {
     if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
       fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
     if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, lectures: 'corpus' }
-    const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`)
+    const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`, fonction.id)
     if (resume) fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, retour: resume }
   }
-  return { sites, fonctions, exports, etoiles }
+  const retenues = {}
+  const vus = new Set()
+  const retenir = (x) => {
+    if (!x || typeof x !== 'object' || vus.has(x)) return
+    vus.add(x)
+    if (x.k === 'lambda' && !Object.hasOwn(retenues, x.id) && Object.hasOwn(lambdas, x.id)) {
+      Object.defineProperty(retenues, x.id, { value: lambdas[x.id], enumerable: true, configurable: true, writable: true })
+      retenir(lambdas[x.id])
+    }
+    for (const v of Object.values(x)) retenir(v)
+  }
+  retenir({ sites, fonctions, exports })
+  return { sites, fonctions, exports, etoiles, lambdas: retenues }
+}
+
+/** Le format de l'IR de lecture, vérifié au décodage. */
+const FORMAT_LECTURE = 'lecture-ir-1'
+const LIMITE_LECTURE = 64 * 1024 * 1024
+
+/**
+ * L'IR JSON de `racine` (une lecture de `lectureDeModule`, ou toute valeur du domaine JSON) : un `pool` de nœuds
+ * partagés par forme (`[0, primitive]`, `[1, références]`, `[2, [clé, référence][]]`), chaque référence vers un nœud
+ * antérieur. Lève `IR_DOMAINE_JSON` hors du domaine (accesseur, proxy, prototype, `toJSON`), `IR_CYCLE` sur un cycle.
+ * @param {unknown} racine @returns {string}
+ */
+export function encoderLecture(racine) {
+  if (Object.hasOwn(Object.prototype, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON')) throw new Error('IR_DOMAINE_JSON')
+  const pool = []
+  const formes = new Map()
+  const identites = new WeakMap()
+  const actifs = new WeakSet()
+  const pile = [{ valeur: racine }]
+  let resultat
+  const recevoir = (cadre, reference) => {
+    pile.pop()
+    if (pile.length) pile.at(-1).references.push(reference)
+    else resultat = reference
+  }
+  while (pile.length) {
+    const cadre = pile.at(-1)
+    const v = cadre.valeur
+    if (!cadre.entrees) {
+      if (v === null || typeof v !== 'object') {
+        if (!['string', 'number', 'boolean', 'undefined'].includes(typeof v) && v !== null) throw new Error('IR_DOMAINE_JSON')
+        const primitive = v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? null : v
+        const noeud = [0, primitive]
+        const cle = JSON.stringify(noeud)
+        if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
+        recevoir(cadre, formes.get(cle))
+        continue
+      }
+      if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
+      if (actifs.has(v)) throw new Error('IR_CYCLE')
+      if (identites.has(v)) { recevoir(cadre, identites.get(v)); continue }
+      const tableau = Array.isArray(v)
+      if (!tableau && ![Object.prototype, null].includes(Object.getPrototypeOf(v))) throw new Error('IR_DOMAINE_JSON')
+      const proprietes = Object.getOwnPropertyDescriptors(v)
+      if (Object.values(proprietes).some((p) => !Object.hasOwn(p, 'value'))) throw new Error('IR_DOMAINE_JSON')
+      if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
+      cadre.tableau = tableau
+      cadre.entrees = tableau ? Array.from({ length: v.length }, (_, i) => [String(i), proprietes[i]?.value])
+        : Object.keys(v).filter((k) => proprietes[k].value !== undefined).map((k) => [k, proprietes[k].value])
+      cadre.references = []
+      actifs.add(v)
+    }
+    if (cadre.references.length < cadre.entrees.length) {
+      pile.push({ valeur: cadre.entrees[cadre.references.length][1] })
+      continue
+    }
+    const noeud = cadre.tableau ? [1, cadre.references] : [2, cadre.entrees.map(([k], i) => [k, cadre.references[i]])]
+    const cle = JSON.stringify(noeud)
+    if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
+    const reference = formes.get(cle)
+    identites.set(v, reference)
+    actifs.delete(v)
+    recevoir(cadre, reference)
+  }
+  return JSON.stringify({ format: FORMAT_LECTURE, racine: resultat, pool })
+}
+
+function analyserLecture(texte, limite) {
+  if (typeof texte !== 'string') throw new Error('IR_TEXTE_ATTENDU')
+  if (Buffer.byteLength(texte) > limite) throw new Error(`IR_POOL_HORS_BORNE:${limite}`)
+  let lecture
+  try { lecture = JSON.parse(texte) } catch (e) { throw new Error('IR_JSON_INVALIDE', { cause: e }) }
+  if (!lecture || lecture.format !== FORMAT_LECTURE || !Array.isArray(lecture.pool) ||
+    !Number.isSafeInteger(lecture.racine) || lecture.racine < 0 || lecture.racine >= lecture.pool.length) throw new Error('IR_FORMAT_INVALIDE')
+  const tailles = []
+  const addition = (a, b) => Math.min(limite + 1, a + b)
+  for (const [i, noeud] of lecture.pool.entries()) {
+    if (!Array.isArray(noeud) || noeud.length !== 2) throw new Error(`IR_NOEUD_INVALIDE:${i}`)
+    const [type, contenu] = noeud
+    const reference = (r) => {
+      if (!Number.isSafeInteger(r) || r < 0 || r >= i) throw new Error(`IR_REFERENCE_INVALIDE:${i}:${r}`)
+      return tailles[r]
+    }
+    let taille = 2
+    if (type === 0) {
+      if (contenu !== null && !['string', 'number', 'boolean'].includes(typeof contenu) || typeof contenu === 'number' && !Number.isFinite(contenu)) throw new Error(`IR_PRIMITIVE_INVALIDE:${i}`)
+      taille = Buffer.byteLength(JSON.stringify(contenu))
+    } else if (type === 1 && Array.isArray(contenu)) {
+      for (const [j, r] of contenu.entries()) taille = addition(taille, reference(r) + (j ? 1 : 0))
+    } else if (type === 2 && Array.isArray(contenu)) {
+      const cles = new Set()
+      for (const [j, paire] of contenu.entries()) {
+        if (!Array.isArray(paire) || paire.length !== 2 || typeof paire[0] !== 'string' || cles.has(paire[0])) throw new Error(`IR_PROPRIETE_INVALIDE:${i}`)
+        cles.add(paire[0])
+        taille = addition(taille, Buffer.byteLength(JSON.stringify(paire[0])) + 1 + reference(paire[1]) + (j ? 1 : 0))
+      }
+    } else throw new Error(`IR_NOEUD_INVALIDE:${i}`)
+    tailles.push(Math.min(limite + 1, taille))
+  }
+  return { lecture, taille: tailles[lecture.racine] }
+}
+
+/**
+ * La taille en octets du JSON DÉVELOPPÉ de l'IR `lecture` (`encoderLecture`), plafonnée à `limite + 1`, sans le développer.
+ * Lève `IR_POOL_HORS_BORNE` si l'IR dépasse `limite`, et un `IR_*` nommé sur une IR mal formée.
+ * @param {string} lecture @param {number} [limite] @returns {number}
+ */
+export function mesureLecture(lecture, limite = LIMITE_LECTURE) {
+  return analyserLecture(lecture, limite).taille
+}
+
+/**
+ * La valeur de l'IR `lecture` (`encoderLecture`), nœuds partagés rendus par identité. Lève comme `mesureLecture`, et
+ * `IR_JSON_DEVELOPPE_HORS_BORNE` si le JSON développé dépasse `limite`.
+ * @param {string} lecture @param {number} [limite] @returns {unknown}
+ */
+export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
+  const analyse = analyserLecture(lecture, limite)
+  if (analyse.taille > limite) throw new Error(`IR_JSON_DEVELOPPE_HORS_BORNE:${limite}`)
+  const valeurs = []
+  for (const [type, contenu] of analyse.lecture.pool) {
+    if (type === 0) valeurs.push(contenu)
+    else if (type === 1) valeurs.push(contenu.map((r) => valeurs[r]))
+    else {
+      const objet = {}
+      for (const [k, r] of contenu) Object.defineProperty(objet, k, { value: valeurs[r], enumerable: true, writable: true, configurable: true })
+      valeurs.push(objet)
+    }
+  }
+  return valeurs[analyse.lecture.racine]
 }
 
 /** @typedef {Record<string, unknown> & { k: string }} Expr */
@@ -448,15 +785,92 @@ export function lectureDeModule(rel, arbre) {
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
 /**
+ * L'évaluation d'un LOT, sans accès au disque : `entreeJSON` = `{ lectures, resolutions, lecteurs, questions }` — les IR
+ * (`encoderLecture`, `null` pour un module illisible), les `[module, spécificateur, cible]`, les modules qui peuvent porter
+ * un relais, et les questions `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend, en JSON, `{ nature, f, resultat, requetes }`
+ * par question. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
+ * `QUESTION_DU_LOT:<nature>:<f>`.
+ * @param {string} entreeJSON @returns {string}
+ */
+export function evaluerLotDuDepot(entreeJSON) {
+  const { lectures, resolutions, lecteurs, questions } = JSON.parse(entreeJSON)
+  const lus = new Map(lectures)
+  const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
+  const lisibles = new Set(lecteurs)
+  const exiger = (table, cle, nature) => {
+    if (!table.has(cle)) throw new Error(`SNAPSHOT_QUESTION_ABSENTE:${nature}:${cle}`)
+    return table.get(cle)
+  }
+  const rendus = []
+  const decoded = new Map()
+  const lire = (module) => exiger(decoded, module, 'lecture')
+  for (const [module, pool] of lus) {
+    const lu = pool === null ? null : decoderLecture(pool)
+    const vus = new WeakSet()
+    const visiter = (v) => {
+      if (!v || typeof v !== 'object' || vus.has(v)) return
+      vus.add(v)
+      if (v.k === 'lie') throw new Error(`SNAPSHOT_IR_NON_PRODUCTEUR:${module}`)
+      for (const enfant of Object.values(v)) visiter(enfant)
+    }
+    visiter(lu)
+    if (lu) gelerLaConstante(lu)
+    decoded.set(module, lu)
+  }
+  const evaluateur = construireEvaluateur({
+    lecture: lire,
+    cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
+    peutLire: (module) => { exiger(lus, module, 'peutLire'); return lisibles.has(module) },
+    clesStructurelles: true, memoiserBooleens: false,
+  }, true)
+  for (const { nature, f } of questions) {
+    if (!['sitesDe', 'relaisExportes'].includes(nature)) throw new Error(`SNAPSHOT_NATURE_INVALIDE:${nature}`)
+    try {
+      const calculer = (index) => {
+        const { resultat, requetes } = evaluateur.tracer(() => index === undefined ? evaluateur[nature](f) : evaluateur.siteDe(f, index))
+        return { resultat: JSON.stringify(resultat), requetes: [...requetes] }
+      }
+      const lu = nature === 'sitesDe' ? lire(f) : null
+      const requetes = new Set()
+      const sites = []
+      let resultat
+      if (lu?.sites.length) {
+        for (let index = 0; index < lu.sites.length; index++) {
+          const rendu = calculer(index)
+          if (rendu.resultat !== 'null') sites.push(rendu.resultat)
+          for (const requete of rendu.requetes) requetes.add(requete)
+        }
+        resultat = `[${sites.join(',')}]`
+      } else {
+        const rendu = calculer()
+        resultat = rendu.resultat
+        for (const requete of rendu.requetes) requetes.add(requete)
+      }
+      rendus.push(`{"nature":${JSON.stringify(nature)},"f":${JSON.stringify(f)},"resultat":${resultat},"requetes":${JSON.stringify([...requetes])}}`)
+    } catch (erreur) { throw new Error(`QUESTION_DU_LOT:${nature}:${f}:${erreur.message}`, { cause: erreur }) }
+  }
+  return `[${rendus.join(',')}]`
+}
+
+/**
  * L'ÉVALUATEUR du dépôt : les racines lues par chaque site, relais et valeurs de retour résolus d'un
  * module à l'autre.
  * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
  * mémos internes compris — son résultat ne dépend que de leurs réponses.
- * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean }} acces
+ * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
  *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
+ *   `clesStructurelles` : IR DATA de `lectureDeModule`, noms propres, sans hook exécutable ; refus nommé si la qualification échoue.
  */
-export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true }) {
+export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true, clesStructurelles = false, memoiserBooleens = true }) {
+  return construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
+}
+
+function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens }, ferme = false) {
+  const referencesPrivees = Array.from({ length: 4 }, () => new WeakMap())
+  const argumentsPrives = new WeakMap()
+  const groupesPrives = new WeakMap()
+  const objetsCles = new WeakSet()
   /** Les requêtes de chaque évaluation tracée en cours, la plus interne au sommet. */
   const traces = []
   const noter = (requete) => { if (traces.length) traces[traces.length - 1].add(requete) }
@@ -470,12 +884,26 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     }
   }
   const requetesDeLecture = new Map()
+  const observationsDePreuve = []
+  const clesDesReponses = new WeakMap()
+  const cleDeReponse = (reponse) => cleCanonique(({ referenceDe }) => referenceDe(reponse), reponse,
+    reponse && typeof reponse === 'object' ? clesDesReponses : null, { strict: true })
+  const observerReponse = (nature, args, reponse) => {
+    if (!observationsDePreuve.length) return reponse
+    const cle = cleDeReponse(reponse)
+    for (const observation of observationsDePreuve) {
+      if (cle === null) observation.inerte = false
+      observation.reponses.push({ nature, args, cle })
+    }
+    return reponse
+  }
   const lecture = (f) => {
     noter(requetesDeLecture.get(f) ?? requetesDeLecture.set(f, requeteDe('lecture', f)).get(f))
-    return lectureDe(f)
+    const lu = lectureDe(f)
+    return observerReponse('lecture', [f], lu)
   }
-  const cible = (f, spec) => { noter(requeteDe('cible', f, spec)); return cibleDe(f, spec) }
-  const peutLire = (f) => { noter(requeteDe('peutLire', f)); return peutLireDe(f) }
+  const cible = (f, spec) => { noter(requeteDe('cible', f, spec)); return observerReponse('cible', [f, spec], cibleDe(f, spec)) }
+  const peutLire = (f) => { noter(requeteDe('peutLire', f)); return observerReponse('peutLire', [f], peutLireDe(f)) }
   const pile = []
   const libres = new Map()
   const lies = new Map()
@@ -492,13 +920,376 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     portees.push(portee)
     try { return { resultat: faire(), stable: !portee.dependante } } finally { portees.pop() }
   }
-  const identites = new WeakMap()
-  let objets = 0
-  /** La clé d'une valeur : un objet rendu vaut par identité. */
+  // #2586
+  const clesDesValeurs = new WeakMap()
+  const clesDesArguments = new WeakMap()
+  const slotsGeles = new WeakMap()
+  const sousGraphesGeles = new WeakMap()
+  const sousGraphesDesValeurs = new WeakMap()
+  const sousGraphesRevalides = new WeakMap()
+  const dependancesDesFormes = new WeakMap()
+  const preparerPreuve = () => ({ valide: true, parents: new Set(), parentsInscrits: new WeakSet(), nettoyage: null })
+  const inscrireParent = (preuve, parent) => {
+    if (!preuve.nettoyage) preuve.nettoyage = { iterateur: preuve.parents.values(), restants: preuve.parents.size }
+    const suivant = preuve.nettoyage.iterateur.next()
+    if (!suivant.done && !suivant.value.deref()) preuve.parents.delete(suivant.value)
+    if (suivant.done || --preuve.nettoyage.restants <= 0) preuve.nettoyage = null
+    if (!preuve.parentsInscrits.has(parent)) {
+      preuve.parentsInscrits.add(parent)
+      preuve.parents.add(new WeakRef(parent))
+    }
+  }
+  const invaliderPreuve = (preuve) => {
+    if (!preuve?.valide) return
+    preuve.valide = false
+    for (const lien of preuve.parents) invaliderPreuve(lien.deref())
+    preuve.parents.clear()
+    preuve.nettoyage = null
+  }
+  const cellulesBooleennes = new Map()
+  const referencesBooleennes = new WeakSet()
+  const finCelluleBooleenne = Symbol()
+  const compositionDeCle = Symbol()
+  const marqueursBooleens = Object.freeze({
+    liste: Object.freeze({ marqueur: 'liste' }), objet: Object.freeze({ marqueur: 'objet' }),
+    fin: Object.freeze({ marqueur: 'fin' }), enfant: Object.freeze({ marqueur: 'enfant' }),
+    vide: Object.freeze({ marqueur: 'vide' }),
+  })
+  const celluleDe = (tokens) => {
+    let branche = cellulesBooleennes
+    for (const token of tokens) {
+      if (!branche.has(token)) branche.set(token, new Map())
+      branche = branche.get(token)
+    }
+    if (!branche.has(finCelluleBooleenne)) {
+      const cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
+      referencesBooleennes.add(cellule)
+      branche.set(finCelluleBooleenne, cellule)
+    }
+    return branche.get(finCelluleBooleenne)
+  }
+  const cleCanonique = (faire, racine, cache, { strict = false, cellules = false, formesCompletes = strict } = {}) => {
+    try {
+    if (!ferme && strict && !prototypesInertes()) return null
+    const deja = cache?.get(racine)
+    if (ferme && deja && deja.strict === strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes) return deja.cle
+    const revisionAvant = revisionDesFormes
+    const certifier = (records) => {
+      if (!strict || !records.every(({ objet, preuve }) => Object.isFrozen(objet) &&
+        (!preuve || preuve.valide)) || revisionAvant !== revisionDesFormes) return null
+      const certificat = preparerPreuve()
+      for (const { objet, preuve } of records) {
+        let dependance = dependancesDesFormes.get(objet)
+        if (!dependance?.valide) dependancesDesFormes.set(objet, dependance = preparerPreuve())
+        inscrireParent(dependance, certificat)
+        if (preuve) inscrireParent(preuve, certificat)
+      }
+      return certificat
+    }
+    if (!ferme && strict && deja?.strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes && deja.certificat?.valide &&
+      !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')) return deja.cle
+    if (!ferme && deja && deja.strict === strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON') && deja.objets.every(({ objet, noms, proprietes, forme, prototype, slotsGeles, preuve }) => {
+      if (preuve && !preuve.valide) return false
+      if (strict && slotsGeles) return formesDesArguments.get(objet) === forme
+      if (types.isProxy(objet) || (strict && Object.getOwnPropertySymbols(objet).length)) return false
+      const actuels = Object.getOwnPropertyNames(objet)
+      return Object.getPrototypeOf(objet) === prototype && (!Array.isArray(objet) ||
+        (strict ? Object.getOwnPropertyDescriptor(Array.prototype, 'map')?.value === mapperTableau : Array.prototype.map === mapperTableau)) &&
+        formesDesArguments.get(objet) === forme && actuels.length === noms.length &&
+        actuels.every((nom, i) => {
+          const p = Object.getOwnPropertyDescriptor(objet, nom)
+          return nom === noms[i] && Object.hasOwn(p, 'value') &&
+            Object.is(p.value, proprietes[i].value) && p.enumerable === proprietes[i].enumerable
+        })
+    })) {
+      deja.certificat = certifier(deja.objets)
+      return deja.cle
+    }
+    const capturerSlots = (objet) => {
+      const prototype = Object.getPrototypeOf(objet)
+      if (strict && Array.isArray(objet) && prototype !== Array.prototype ||
+        prototype !== null && prototype !== Object.prototype && prototype !== Array.prototype) { return null }
+      if (Array.isArray(objet) && (Object.hasOwn(objet, 'map') ||
+        (strict ? Object.getOwnPropertyDescriptor(Array.prototype, 'map')?.value !== mapperTableau : Array.prototype.map !== mapperTableau) ||
+        Array.from({ length: objet.length }, (_, i) => i).some((i) => !Object.hasOwn(objet, i)))) { stable = false; if (strict) return null }
+      const noms = Object.getOwnPropertyNames(objet)
+      const proprietes = noms.map((nom) => Object.getOwnPropertyDescriptor(objet, nom))
+      if (proprietes.some((p) => !Object.hasOwn(p, 'value') || typeof p.value === 'function' || strict && (typeof p.value === 'symbol' || typeof p.value === 'bigint' || typeof p.value === 'number' && (!Number.isFinite(p.value) || Object.is(p.value, -0))))) { stable = false; return false }
+      if (strict && (Object.getOwnPropertySymbols(objet).length ||
+        proprietes.some((p, i) => !p.enumerable && !(Array.isArray(objet) && noms[i] === 'length')) ||
+        Array.isArray(objet) && noms.some((nom) => nom !== 'length' && !/^(0|[1-9]\d*)$/.test(nom)))) { stable = false; return false }
+      const slots = { objet, noms, proprietes, prototype }
+      if (strict && Object.isFrozen(objet)) slotsGeles.set(objet, slots)
+      return slots
+    }
+    const objets = new Map()
+    const fermetures = new Map()
+    const preuveDe = (objet) => {
+      if (ferme) return undefined
+      if (!strict || !cellules) return undefined
+      const preuve = (formesCompletes ? sousGraphesGeles : sousGraphesDesValeurs).get(objet)
+      return preuve?.preuve.valide && prototypesInertes() ? preuve : undefined
+    }
+    let stable = true
+    const observer = (objet) => {
+      if (ferme) return true
+      if (strict && (typeof objet === 'symbol' || typeof objet === 'bigint' ||
+        typeof objet === 'number' && (!Number.isFinite(objet) || Object.is(objet, -0)))) { stable = false; return false }
+      if (typeof objet === 'function') { stable = false; return false }
+      if (!objet || typeof objet !== 'object') return true
+      if (cellules && referencesBooleennes.has(objet)) return true
+      if (objets.has(objet)) {
+        const fermeture = fermetures.get(objet)
+        if (fermeture?.actif) { fermeture.eligible = false; fermeture.reutilisable = false }
+        return true
+      }
+      if (types.isProxy(objet)) { stable = false; return false }
+      const preuve = preuveDe(objet)
+      if (preuve) {
+        objets.set(objet, { objet, forme: undefined, slotsGeles: true, preuve: preuve.preuve })
+        fermetures.set(objet, { actif: false, eligible: true, reutilisable: true, inchange: true, cellule: preuve.cellule, preuve: preuve.preuve })
+        return true
+      }
+      const slots = strict && slotsGeles.get(objet) || capturerSlots(objet)
+      if (!slots) { stable = false; return false }
+      const { proprietes } = slots
+      objets.set(objet, { ...slots, slotsGeles: strict && slotsGeles.has(objet), forme: formesDesArguments.get(objet) })
+      const precedent = strict && cellules && sousGraphesRevalides.get(objet)
+      const inchange = precedent && precedent.slots.prototype === slots.prototype && precedent.slots.noms.length === slots.noms.length &&
+        slots.noms.every((nom, i) => nom === precedent.slots.noms[i] &&
+          ['value', 'enumerable', 'writable', 'configurable'].every((champ) => Object.is(proprietes[i][champ], precedent.slots.proprietes[i][champ])))
+      const fermeture = strict && cellules ? { actif: true, eligible: Object.isFrozen(objet) && !formesDesArguments.has(objet),
+        reutilisable: !formesDesArguments.has(objet), inchange: !!inchange, precedent, slots } : null
+      if (fermeture) fermetures.set(objet, fermeture)
+      if (strict) for (const p of proprietes) {
+        if (!observer(p.value)) return false
+        if (fermeture && p.value && typeof p.value === 'object' && !fermetures.get(p.value)?.eligible) fermeture.eligible = false
+        if (fermeture && p.value && typeof p.value === 'object' && !referencesBooleennes.has(p.value)) {
+          const enfant = fermetures.get(p.value)
+          if (!enfant?.reutilisable) fermeture.reutilisable = false
+          if (!enfant?.inchange || precedent?.enfants.get(p.value) !== (enfant.cellule ?? enfant.precedent?.cellule)) fermeture.inchange = false
+        }
+      }
+      const forme = formesDesArguments.get(objet)
+      if (forme) {
+        if (!observer(forme)) return false
+        const ctx = Object.getOwnPropertyDescriptor(forme, 'ctx')?.value
+        if (!observer(ctx)) return false
+        if (!Object.hasOwn(forme, 'e') || !ctx || !Object.hasOwn(ctx, 'f') || !Object.hasOwn(ctx, 'env')) stable = false
+        const env = ctx && Object.getOwnPropertyDescriptor(ctx, 'env')?.value
+        if (!observer(env)) return false
+        if (env && !Object.hasOwn(env, 'args')) stable = false
+      }
+      if (fermeture) {
+        fermeture.actif = false
+        if (fermeture.eligible) {
+          fermeture.preuve = preparerPreuve()
+          for (const p of proprietes) {
+            const enfant = p.value && typeof p.value === 'object' && fermetures.get(p.value)?.preuve
+            if (enfant) inscrireParent(enfant, fermeture.preuve)
+          }
+        }
+      }
+      return true
+    }
+    if (!ferme && strict && (Object.hasOwn(Array.prototype, 'toJSON') || Object.hasOwn(Object.prototype, 'toJSON') ||
+      !observer(racine) || !stable)) return null
+    const descripteurs = new Map()
+    const table = []
+    const sousDescripteurs = new Map()
+    const possedes = new WeakSet()
+    const tuple = (...valeurs) => { possedes.add(valeurs); return valeurs }
+    const liste = cellules ? marqueursBooleens.liste : Symbol()
+    const objet = cellules ? marqueursBooleens.objet : Symbol()
+    const fin = cellules ? marqueursBooleens.fin : Symbol()
+    const enfant = cellules ? marqueursBooleens.enfant : Symbol()
+    const vide = cellules ? marqueursBooleens.vide : Symbol()
+    const signatureDe = (tokens) => {
+      let signature = ''
+      for (const token of tokens) {
+        if (token === liste) signature += 'L;'
+        else if (token === objet) signature += 'O;'
+        else if (token === fin) signature += 'F;'
+        else if (token === enfant) signature += 'E;'
+        else if (token === vide) signature += 'V;'
+        else if (token === null) signature += 'Z;'
+        else if (typeof token === 'string') signature += `S${token.length}:${token}`
+        else if (typeof token === 'boolean') signature += token ? 'B1;' : 'B0;'
+        else signature += `N${token};`
+      }
+      return signature
+    }
+    const pileDesTokens = new Set()
+    const tokensDe = (v, tokens, projection = false) => {
+      if (v === null || v === undefined || typeof v === 'symbol') { tokens.push(null); return true }
+      const type = typeof v
+      if (type === 'string' || type === 'boolean') { tokens.push(v); return true }
+      if (type === 'number') { tokens.push(Number.isFinite(v) ? v + 0 : null); return true }
+      if (type !== 'object') return false
+      if (cellules && referencesBooleennes.has(v)) { tokens.push(v); return true }
+      const lectureDirecte = possedes.has(v) && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')
+      if (!lectureDirecte && !projection && (types.isProxy(v) || !Array.isArray(v) || Object.getPrototypeOf(v) !== Array.prototype ||
+        Object.hasOwn(v, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON') || Object.hasOwn(Object.prototype, 'toJSON'))) return false
+      const locaux = []
+      if (lectureDirecte || Array.isArray(v)) {
+        if (pileDesTokens.has(v)) return false
+        pileDesTokens.add(v)
+        locaux.push(liste)
+        let exact = true
+        for (let i = 0; i < v.length; i++) {
+          if (lectureDirecte) {
+            if (!tokensDe(v[i], locaux, projection)) { exact = false; break }
+            continue
+          }
+          const p = Object.getOwnPropertyDescriptor(v, i)
+          if (!p || !Object.hasOwn(p, 'value') || !tokensDe(p.value, locaux, projection)) { exact = false; break }
+        }
+        pileDesTokens.delete(v)
+        if (!exact) return false
+      } else {
+        locaux.push(objet)
+        for (const nom of Object.keys(v)) {
+          locaux.push(nom)
+          if (!tokensDe(v[nom], locaux, true)) return false
+        }
+      }
+      locaux.push(fin)
+      if (cellules) { tokens.push(enfant, celluleDe(locaux)); return true }
+      const signature = signatureDe(locaux)
+      if (!sousDescripteurs.has(signature)) sousDescripteurs.set(signature, sousDescripteurs.size)
+      tokens.push(enfant, sousDescripteurs.get(signature))
+      return true
+    }
+    const interner = (descriptor) => {
+      let tokens = []
+      if (!tokensDe(descriptor, tokens)) {
+        stable = false
+        tokens = []
+        const cle = JSON.stringify(descriptor)
+        if (cle === undefined) tokens.push(vide)
+        else tokensDe(JSON.parse(cle), tokens, true)
+      }
+      if (cellules) return celluleDe(tokens)
+      const signature = signatureDe(tokens)
+      if (!descripteurs.has(signature)) {
+        descripteurs.set(signature, table.length)
+        table.push(descriptor)
+      }
+      return descripteurs.get(signature)
+    }
+    const memo = new WeakMap()
+    const references = ferme && cellules ? referencesPrivees[Number(strict) * 2 + Number(formesCompletes)] : memo
+    const pile = new Map()
+    const referenceDe = (v) => {
+      if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
+      if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
+      observer(v)
+      if (ferme) objetsCles.add(v)
+      if (ferme && pile.has(v)) throw new Error('DAG_PRIVE_CYCLIQUE')
+      if (pile.has(v)) return !formesCompletes && formesDesArguments.has(v) ? interner(tuple('coupe', v.map(referenceDe)))
+        : interner(tuple('cycle', pile.size - pile.get(v)))
+      if (references.has(v)) return references.get(v)
+      const preuve = preuveDe(v)
+      if (preuve) {
+        references.set(v, preuve.cellule)
+        return preuve.cellule
+      }
+      const fermeture = fermetures.get(v)
+      if (strict && cellules && fermeture?.reutilisable && !fermeture.eligible && fermeture.inchange && revisionAvant === revisionDesFormes) {
+        references.set(v, fermeture.precedent.cellule)
+        return fermeture.precedent.cellule
+      }
+      pile.set(v, pile.size)
+      const forme = formesDesArguments.get(v)
+      const descriptor = formesCompletes && forme ? tuple('argument', v.map(referenceDe), referenceDe(forme))
+        : forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), forme.ctx.f,
+        forme.ctx.env?.args ? referenceDe(forme.ctx.env.args) : null)
+        : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
+        : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
+      pile.delete(v)
+      const reference = interner(descriptor)
+      references.set(v, reference)
+      if (strict && cellules && stable && fermetures.get(v)?.eligible && revisionAvant === revisionDesFormes)
+        (formesCompletes ? sousGraphesGeles : sousGraphesDesValeurs).set(v, { cellule: reference, preuve: fermetures.get(v).preuve })
+      if (strict && cellules && stable && fermeture?.reutilisable && !fermeture.eligible && revisionAvant === revisionDesFormes)
+        sousGraphesRevalides.set(v, { slots: fermeture.slots, cellule: reference, enfants: new Map(fermeture.slots.proprietes
+          .filter((p) => p.value && typeof p.value === 'object' && !referencesBooleennes.has(p.value))
+          .map((p) => [p.value, references.get(p.value)])) })
+      return reference
+    }
+    const reference = faire({ interner, referenceDe, observer, tuple })
+    const cle = cellules ? reference : (() => {
+      const cle = JSON.stringify([reference, table])
+      return cle
+    })()
+    if (stable && cache) {
+      const records = [...objets.values()]
+      const certificat = ferme ? null : certifier(records)
+      cache.set(racine, { cle, strict, cellules, formesCompletes, objets: records, certificat })
+    }
+    return cle
+    } catch (erreur) {
+      if (!strict || !(erreur instanceof RangeError)) throw erreur
+      return null
+    }
+  }
+  const texteDeCle = (cle) => {
+    if (!referencesBooleennes.has(cle)) return cle
+    if (cle.tokens[0] === compositionDeCle) return cle.tokens.slice(1).map(texteDeCle).join('')
+    const references = new Map()
+    const table = []
+    const descriptorDe = (cellule) => {
+      const tokens = cellule.tokens
+      let index = 0
+      const valeur = () => {
+        const token = tokens[index++]
+        if (token === marqueursBooleens.enfant) return descriptorDe(tokens[index++])
+        if (referencesBooleennes.has(token)) return referenceDe(token)
+        if (token === marqueursBooleens.liste) {
+          const rendu = []
+          while (tokens[index] !== marqueursBooleens.fin) rendu.push(valeur())
+          index++
+          return rendu
+        }
+        if (token === marqueursBooleens.objet) {
+          const entrees = []
+          while (tokens[index] !== marqueursBooleens.fin) entrees.push([tokens[index++], valeur()])
+          index++
+          return Object.fromEntries(entrees)
+        }
+        if (token === marqueursBooleens.vide) return undefined
+        return token
+      }
+      const rendu = valeur()
+      if (index !== tokens.length) throw new Error('CLE_STRUCTURELLE_DESCRIPTOR_INVALIDE')
+      return rendu
+    }
+    const referenceDe = (cellule) => {
+      if (!references.has(cellule)) {
+        const descriptor = descriptorDe(cellule)
+        references.set(cellule, table.length)
+        table.push(descriptor)
+      }
+      return references.get(cellule)
+    }
+    return JSON.stringify([referenceDe(cle), table])
+  }
+  const composerCle = (...parties) => clesStructurelles && parties.some((x) => referencesBooleennes.has(x))
+    ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
+  const cleDesValeurs = (faire, racine, cache) => {
+    const cle = cleCanonique(faire, racine, cache, clesStructurelles ? { strict: true, cellules: true, formesCompletes: false } : {})
+    if (clesStructurelles && cle === null) throw new Error('CLE_STRUCTURELLE_SOURCE_INADMISSIBLE')
+    return cle
+  }
+  /** La clé d'une valeur ; un objet rendu vaut par sa clé canonique (`cleDesValeurs`). */
   const cleDe = (v) => {
+    if ('booleen' in v) return `b${v.booleen}`
+    if ('scalaire' in v) return `s${v.scalaire}`
+    if ('native' in v) return `native:${v.native}`
+    if ('poignee' in v) return cleDesValeurs(({ referenceDe }) => referenceDe(v), v, clesDesValeurs)
     if ('chemin' in v) return `c${v.chemin}:${v.sous ?? ''}`
     if ('espace' in v) return `e${v.espace}:${v.cheminExterne}`
-    if ('fragment' in v) return `d${cleDe(v.fragment)}`
+    if ('fragment' in v) return composerCle('d', cleDe(v.fragment))
     if ('couvertureCorpusEntier' in v) return `u${JSON.stringify(v.couvertureCorpusEntier)}`
     if ('texte' in v) return `t${v.texte}`
     if ('non' in v) return `n${v.non}`
@@ -506,15 +1297,9 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     if ('fn' in v) return `f${v.fn.f}#${v.fn.id}`
     if ('hors' in v) return 'h'
     if ('absent' in v) return 'a'
-    if ('lambda' in v) return `l${identiteDe(v.lambda)}@${v.ctx.f}#${v.ctx.env?.fn ?? ''}(${v.ctx.env?.args ? cleDesArgs(v.ctx.env.args) : '*'})`
-    return identiteDe(v)
+    return cleDesValeurs(({ referenceDe }) => referenceDe(v), v, clesDesValeurs)
   }
-  /** L'identité d'une valeur sans clé de contenu (objet rendu, fonction anonyme) : une par objet. */
-  const identiteDe = (v) => {
-    if (!identites.has(v)) identites.set(v, `objet ${objets += 1}`)
-    return identites.get(v)
-  }
-  const uniques = (vals) => [...new Map(vals.map((v) => [cleDe(v), v])).values()]
+  const uniques = (vals) => ferme && vals.length < 2 ? [...vals] : [...new Map(vals.map((v) => [cleDe(v), v])).values()]
   const relais = new Map()
   const atteintes = new Map()
 
@@ -535,9 +1320,213 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     return [{ non: `${nom} non exporté par ${g}` }]
   }
 
+  const preuvesBooleennes = new Map()
+  const clesDesEntreesBooleennes = new WeakMap()
+  const booleenDe = (e, ctx) => {
+    const calculer = () => {
+      const vs = valeurs(e, { ...ctx, preuveBooleenne: true })
+      return vs.length && vs.every((v) => 'booleen' in v && v.booleen === vs[0].booleen) ? vs[0].booleen : null
+    }
+    if (!memoiserBooleens) return calculer()
+    const entree = { e, ctx, pile: [...pile] }
+    const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true })
+    if (cle === null) return calculer()
+    const deja = preuvesBooleennes.get(cle)
+    if (deja && deja.reponses.every(({ nature, args, cle: avant }) => {
+      const reponse = nature === 'lecture' ? lecture(...args) : nature === 'cible' ? cible(...args) : peutLire(...args)
+      return cleDeReponse(reponse) === avant
+    }) && cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle) {
+      fusionner(deja.requetes)
+      return deja.resultat
+    }
+    const observation = { inerte: true, reponses: [] }
+    observationsDePreuve.push(observation)
+    let preuve
+    try { preuve = tracer(() => memoisable(calculer)) } finally { observationsDePreuve.pop() }
+    const { resultat: { resultat, stable }, requetes } = preuve
+    if (stable && observation.inerte && (typeof resultat === 'boolean' || resultat === null) &&
+      cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle)
+      preuvesBooleennes.set(cle, { resultat, requetes, reponses: observation.reponses })
+    return resultat
+  }
+  const gardePossible = (e, ctx) => {
+    const b = booleenDe(e.condition, ctx)
+    return b === null || b === e.attendu
+  }
+  const expressionsLiees = (selectionner, e, ctx) => selectionner(e, ctx).map((de) => ({ k: 'lie', de, ctx }))
+  const collectionsDAppel = (e, ctx, selectionner) => {
+    const args = e.args.map((a) => argumentDe(a, ctx))
+    const selection = (r, contexte) => expressionsLiees(selectionner, r, contexte)
+    return valeurs(e.cible, ctx).flatMap((c) => {
+      const rendus = 'fn' in c ? retour(c.fn, args, selection) : 'lambda' in c ? rendusDeLambda(c, e.texte, args, selection) : [e]
+      return rendus.map((r) => 'non' in r ? { k: 'non', raison: r.non } : r)
+    })
+  }
+  const collectionsDeChamp = (e, ctx, selectionner) => valeurs(e.de, ctx).flatMap((o) => {
+    if ('objet' in o && Object.hasOwn(o.objet, e.nom)) return expressionsLiees(selectionner, o.objet[e.nom], o.ctx)
+    if ('objet' in o && o.etales) return o.etales.flatMap((de) => collectionsDeChamp({ ...e, de }, o.ctx, selectionner))
+    if (('objet' in o || 'absent' in o) && e.defaut) return selectionner(e.defaut, ctx)
+    return [{ k: 'non', raison: 'non' in o ? o.non : `collection propriété ${e.texte}` }]
+  })
+  const formeLiee = (e, ctx) => {
+    if (e.k !== 'param' && e.k !== 'paramLambda') return null
+    let env = ctx.env
+    while (env && env.fn !== e.fn) env = env.parent
+    if (!env?.args) return null
+    const fonctions = e.k === 'paramLambda' ? null : lecture(ctx.f)?.fonctions
+    const decl = e.k === 'paramLambda' ? env.params?.[e.index] : fonctions && Object.hasOwn(fonctions, e.fn) ? fonctions[e.fn]?.params[e.index] : null
+    if (decl?.reste) return { e: { k: 'liste', v: env.args.slice(e.index).map((a) => {
+      const forme = formesDesArguments.get(a)
+      return forme ? { k: 'lie', de: forme.e, ctx: forme.ctx } : { k: 'non', raison: 'forme d’argument restant indéterminée' }
+    }) }, ctx }
+    const forme = formesDesArguments.get(env.args[e.index])
+    if (forme) return forme
+    return decl?.defaut ? { e: decl.defaut, ctx: { ...ctx, env } } : null
+  }
+  const collectionsOpaquesDe = (de, ctx) => {
+    const forme = formeLiee(de, ctx)
+    return forme ? expressionsLiees(collectionsOpaquesDe, forme.e, forme.ctx)
+    : de.k === 'collection' || de.k === 'repertoire' ? []
+    : de.k === 'aplatir' ? []
+    : de.k === 'liste' ? de.v.flatMap((x) => x.k === 'etale' ? collectionsOpaquesDe(x.de, ctx) : [])
+    : de.k === 'lie' ? expressionsLiees(collectionsOpaquesDe, de.de, de.ctx)
+    : de.k === 'appel' ? collectionsDAppel(de, ctx, collectionsOpaquesDe)
+    : de.k === 'champ' ? collectionsDeChamp(de, ctx, collectionsOpaquesDe)
+    : de.k === 'garde' ? (gardePossible(de, ctx) ? collectionsOpaquesDe(de.de, ctx) : [])
+    : de.k === 'union' ? de.v.flatMap((x) => collectionsOpaquesDe(x, ctx))
+    : de.k === 'projection' ? collectionsOpaquesDe(de.de, ctx)
+    : [de]
+  }
+  const elementsDe = (de, ctx) => {
+    const forme = formeLiee(de, ctx)
+    return forme ? expressionsLiees(elementsDe, forme.e, forme.ctx)
+    : de.k === 'collection' ? [de.element]
+    : de.k === 'repertoire' ? elementsDe(repertoireDe(de, ctx), ctx)
+    : de.k === 'aplatir' ? aplatirDe(de, ctx)
+    : de.k === 'liste' ? de.v.flatMap((x) => x.k === 'etale' ? elementsDe(x.de, ctx) : [x])
+    : de.k === 'lie' ? expressionsLiees(elementsDe, de.de, de.ctx)
+    : de.k === 'appel' ? collectionsDAppel(de, ctx, elementsDe)
+    : de.k === 'champ' ? collectionsDeChamp(de, ctx, elementsDe)
+    : de.k === 'garde' ? (gardePossible(de, ctx) ? elementsDe(de.de, ctx) : [])
+    : de.k === 'union' ? de.v.flatMap((x) => elementsDe(x, ctx))
+    : de.k === 'projection' ? (elementsDe(de.de, ctx).length ? [...(de.aplatie ? de.v.flatMap((x) => elementsDe(x, ctx)) : de.v), ...collectionsOpaquesDe(de.de, ctx)] : [])
+    : [de]
+  }
+  const aplatirDe = (e, ctx) => {
+    const profondeur = valeurs(e.profondeur, ctx)
+    if (profondeur.length !== 1 || profondeur[0].scalaire !== '1') return [{ k: 'non', raison: 'profondeur flat non prouvée' }]
+    const descendre = (de, c) => {
+      const forme = formeLiee(de, c)
+      if (forme) return expressionsLiees(descendre, forme.e, forme.ctx)
+      if (de.k === 'lie') return expressionsLiees(descendre, de.de, de.ctx)
+      if (de.k === 'union') return de.v.some((x) => x.k === 'non' && /réaffectée/.test(x.raison)) ? [{ k: 'non', raison: 'méthode flat mutée' }] : de.v.flatMap((x) => descendre(x, c))
+      if (de.k === 'appel') return collectionsDAppel(de, c, (x, contexte) => descendre(x, contexte))
+      if (de.k === 'liste' || de.k === 'collection') return elementsDe(de, c).flatMap((x) => niveau(x, c))
+      return [{ k: 'non', raison: 'receveur flat non prouvé' }]
+    }
+    const niveau = (de, c) => {
+      const forme = formeLiee(de, c)
+      if (forme) return expressionsLiees(niveau, forme.e, forme.ctx)
+      if (de.k === 'lie') return expressionsLiees(niveau, de.de, de.ctx)
+      if (de.k === 'union') return de.v.flatMap((x) => niveau(x, c))
+      if (de.k === 'appel') return collectionsDAppel(de, c, niveau)
+      return de.k === 'liste' || de.k === 'collection' ? elementsDe(de, c) : [de]
+    }
+    return descendre(e.de, ctx)
+  }
+  const repertoireDe = (e, ctx) => {
+    let types = false
+    if (e.options) {
+      const vs = valeurs(e.options, ctx)
+      if (vs.length !== 1) return { k: 'non', raison: 'options readdirSync indéterminées' }
+      const o = vs[0]
+      if ('texte' in o) {
+        if (o.texte === 'buffer') return { k: 'non', raison: 'noms readdirSync Buffer' }
+      } else if ('objet' in o) {
+        const lire = (nom) => Object.hasOwn(o.objet, nom) ? valeurs(o.objet[nom], o.ctx) : [{ absent: true }]
+        const enc = lire('encoding')
+        if (enc.some((x) => x.texte === 'buffer')) return { k: 'non', raison: 'noms readdirSync Buffer' }
+        if (enc.some((x) => !('texte' in x) && !('absent' in x))) return { k: 'non', raison: 'encodage readdirSync indéterminé' }
+        const wt = lire('withFileTypes')
+        if (wt.some((x) => !('booleen' in x) && !('absent' in x)) || o.etales?.length) return { k: 'non', raison: 'options readdirSync indéterminées' }
+        types = wt.some((x) => x.booleen === true)
+      } else return { k: 'non', raison: 'options readdirSync indéterminées' }
+    }
+    const nom = { k: 'fragment', de: e.de }
+    return { k: 'collection', element: types ? { k: 'objet', v: { name: nom }, partiel: true } : nom }
+  }
+  let revisionDesFormes = Symbol()
+  const associationsDesFormes = new WeakMap()
+  const formesDesArguments = Object.freeze({
+    get: (cle) => associationsDesFormes.get(cle),
+    has: (cle) => associationsDesFormes.has(cle),
+    set(cle, forme) {
+      if (ferme && objetsCles.has(cle)) throw new Error('FORME_PRIVEE_ASSOCIEE_APRES_CLE')
+      const identique = associationsDesFormes.has(cle) && Object.is(associationsDesFormes.get(cle), forme)
+      associationsDesFormes.set(cle, forme)
+      if (!identique) {
+        invaliderPreuve(dependancesDesFormes.get(cle))
+        invaliderPreuve(sousGraphesGeles.get(cle)?.preuve)
+        invaliderPreuve(sousGraphesDesValeurs.get(cle)?.preuve)
+        revisionDesFormes = Symbol()
+      }
+      return formesDesArguments
+    },
+    delete(cle) {
+      const retiree = associationsDesFormes.delete(cle)
+      if (retiree) {
+        invaliderPreuve(dependancesDesFormes.get(cle))
+        invaliderPreuve(sousGraphesGeles.get(cle)?.preuve)
+        invaliderPreuve(sousGraphesDesValeurs.get(cle)?.preuve)
+        revisionDesFormes = Symbol()
+      }
+      return retiree
+    },
+  })
+  const basesDuDepot = (depots, origine) => depots.flatMap((d) => {
+    if ('poignee' in d && d.options.length) return [couverture(origine, 'options de poignée sans hôte prouvé')]
+    return ('poignee' in d ? d.poignee : [d]).map((base) => {
+      const b = 'texte' in base ? ancrer(base.texte) : base
+      return 'chemin' in b && !b.chemin ? b : couverture(origine, 'dépôt sans racine prouvée')
+    })
+  })
+  const argumentDe = (e, ctx) => {
+    const vs = valeurs(e, ctx).map((v) => 'objet' in v ? { ...v, preuveDirecte: e.objetDirect === true && e.k === 'objet' && !e.etales?.length } : v)
+    formesDesArguments.set(vs, formeLiee(e, ctx) ?? { e, ctx })
+    return vs
+  }
+  const argumentDElement = (e, ctx) => e.k === 'lie' ? argumentDElement(e.de, e.ctx)
+    : e.k === 'liste' ? [{ non: 'élément de rappel non scalaire' }] : argumentDe(e, ctx)
+  const chaineDe = (e, ctx) => {
+    const forme = formeLiee(e, ctx)
+    if (forme) return chaineDe(forme.e, forme.ctx)
+    if (e.k === 'appel') return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, e.args.map((a) => argumentDe(a, ctx)), chaineDe)
+      : 'lambda' in c ? rendusDeLambda(c, e.texte, e.args.map((a) => argumentDe(a, ctx)), chaineDe) : [{ non: `appel ${e.texte}` }])
+    if (e.k === 'champ') return collectionsDeChamp(e, ctx, (de) => [de]).flatMap((de) => chaineDe(de, ctx))
+    return e.k === 'liste' || e.k === 'objet' ? [{ non: 'conversion String non scalaire' }]
+    : e.k === 'lie' ? chaineDe(e.de, e.ctx)
+    : e.k === 'garde' ? (gardePossible(e, ctx) ? chaineDe(e.de, ctx) : [])
+    : e.k === 'union' ? uniques(e.v.flatMap((x) => chaineDe(x, ctx)))
+    : e.k === 'elementItere' ? uniques(elementsDe(e.de, ctx).flatMap((x) => chaineDe(x, ctx)))
+    : valeurs(e, ctx).map((v) => 'texte' in v || 'chemin' in v || 'espace' in v || 'fragment' in v || 'couvertureCorpusEntier' in v ? v
+      : 'booleen' in v ? { texte: String(v.booleen) } : 'scalaire' in v ? { texte: v.scalaire }
+        : 'non' in v ? v.non === VALEUR_NULLE ? { non: 'conversion String de valeur nulle' } : v
+          : 'relais' in v ? v : { non: 'conversion String non scalaire' })
+  }
+
   /** Évalue `e` dans le module `ctx.f`, paramètres de `ctx.env.fn` liés à `ctx.env.args` (null : relais). */
   function valeurs(e, ctx) {
     switch (e.k) {
+      case 'lie': return valeurs(e.de, e.ctx)
+      case 'booleen': return [{ booleen: e.v }]
+      case 'scalaire': return [{ scalaire: e.v }]
+      case 'native': return [{ native: e.nom }]
+      case 'negation': {
+        const b = booleenDe(e.de, ctx)
+        return b === null ? [{ non: 'booléen indécidable' }] : [{ booleen: !b }]
+      }
+      case 'garde': return gardePossible(e, ctx) ? valeurs(e.de, ctx) : []
+      case 'chaine': return chaineDe(e.de, ctx)
       case 'lit': return [{ texte: e.v }]
       case 'chemin': return [borne(posix.normalize(e.v || '.'))]
       case 'hors': return [{ hors: true }]
@@ -548,34 +1537,91 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         const prefixe = 'texte' in v ? ancrer(v.texte) : v
         return 'chemin' in prefixe ? couverture(`corpus:${prefixe.chemin || '.'}`, 'suffixe aléatoire mkdtempSync') : prefixe
       })
-      case 'fragment': return valeurs(e.de, ctx).map((base) => 'espace' in base ? { fragment: base } : { non: 'appel readdirSync' })
+      case 'fragment': return valeurs(e.de, ctx).map((base) => ({ fragment: 'texte' in base ? ancrer(base.texte) : base }))
+      case 'collection': return valeurs(e.element, ctx)
+      case 'reste': return ctx.env?.args?.slice(e.index).flat() ?? [{ non: 'arguments restants inconnus' }]
+      case 'repertoire': return valeurs(repertoireDe(e, ctx), ctx)
+      case 'aplatir': return uniques(aplatirDe(e, ctx).flatMap((de) => valeurs(de, ctx)))
+      case 'poignee': return [{ poignee: argumentDe(e.de, ctx), options: ctx.env?.args?.slice(1) ?? [], origine: e.origine }]
+      case 'racineGit': return valeurs(e.de, ctx).map((v) => couverture(e.origine, `racine contenant le dépôt : ${texteDeCle(cleDe(v))}`))
+      case 'imageGit': {
+        const args = ctx.env?.args
+        const depots = args?.[e.porte.depot] ?? [{ non: 'dépôt inconnu' }]
+        const image = args?.[1] ?? [{ non: 'image inconnue' }]
+        const chemins = e.porte.chemins === 'reste' ? args?.slice(e.porte.depuis).flat() ?? [] : args?.[e.porte.depuis] ?? []
+        return basesDuDepot(depots, e.origine).flatMap((b) => {
+          if (!('chemin' in b)) return [b]
+          if (image.some((x) => !('texte' in x))) return [couverture(e.origine, 'image indéterminée')]
+          const cs = chemins.length ? chemins : [{ texte: '' }]
+          return cs.map((c) => 'texte' in c && 'chemin' in ancrer(c.texte) && !/[*?[:]/.test(c.texte) ? { chemin: prefixeDeMotif(c.texte), sous: `image Git : ${image.map((v) => texteDeCle(cleDe(v))).join(',')}` } : couverture(e.origine, `pathspec indéterminé : ${texteDeCle(cleDe(c))}`))
+        })
+      }
       case 'non': return [{ non: e.raison }]
       case 'transforme': return [{ non: e.raison }]
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
+      case 'projection': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
+      case 'etale': return valeurs(e.de, ctx)
+      case 'elementItere': return uniques(elementsDe(e.de, ctx).flatMap((x) => valeurs(x, ctx)))
+      case 'projectionRappel': {
+        const rappels = valeurs(e.cible, ctx)
+        const rendu = elementsDe(e.de, ctx).flatMap((x) => rappels.flatMap((c) => 'native' in c && c.native === 'String' ? chaineDe(x, ctx)
+          : 'fn' in c ? retour(c.fn, [argumentDElement(x, ctx)])
+            : 'lambda' in c ? rendusDeLambda(c, e.texte, [argumentDElement(x, ctx)]) : [{ non: `rappel ${e.texte} non résolu` }]))
+        return uniques([...rendu, ...collectionsOpaquesDe(e.de, ctx).flatMap((x) => valeurs(x, ctx))])
+      }
       case 'importe': return importe(ctx.f, e.spec, e.nom)
       case 'fn': return [{ fn: { f: ctx.f, id: e.id } }]
-      case 'lambda': return [{ lambda: e, ctx }]
-      case 'objet': return [{ objet: e.v, ctx, ...(e.etales ? { etales: e.etales } : {}), ...(e.ferme ? { ferme: true } : {}) }]
+      case 'lambda': {
+        const lexique = lecture(ctx.f)?.lambdas
+        const definition = lexique && Object.hasOwn(lexique, e.id) ? lexique[e.id] : null
+        return definition ? [{ lambda: definition, ctx }] : [{ non: `fonction anonyme ${e.id} absente` }]
+      }
+      case 'objet': return [{ objet: e.v, ctx, preuveDirecte: e.objetDirect === true && !e.etales?.length, ...(e.etales ? { etales: e.etales } : {}), ...(e.ferme ? { ferme: true } : {}), ...(e.partiel ? { partiel: true } : {}) }]
+      case 'paramLambda': {
+        let env = ctx.env
+        while (env && env.fn !== e.fn) env = env.parent
+        if (!env?.args) return [{ non: `paramètre ${e.nom}` }]
+        const arg = env.args[e.index]
+        const decl = env.params?.[e.index]
+        if (decl?.reste) return env.args.slice(e.index).flat()
+        return (arg ?? (decl?.defaut ? valeurs(decl.defaut, { ...ctx, env }) : [{ non: `paramètre ${e.nom}` }])).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v)
+      }
       case 'param': {
-        if (ctx.env?.fn !== e.fn) return [{ non: `paramètre ${e.nom}` }]
+        let env = ctx.env
+        while (env && env.fn !== e.fn) env = env.parent
+        if (!env) return [{ non: `paramètre ${e.nom}` }]
+        if (env !== ctx.env) return valeurs(e, { ...ctx, env })
         if (!ctx.env.args) return [{ relais: `${ctx.f}#${e.fn}` }]
-        const decl = lecture(ctx.f)?.fonctions[e.fn]?.params[e.index]
+        const fonctions = lecture(ctx.f)?.fonctions
+        const decl = fonctions && Object.hasOwn(fonctions, e.fn) ? fonctions[e.fn]?.params[e.index] : null
         if (decl?.reste) return ctx.env.args.slice(e.index).flat()
         const defaut = () => decl?.defaut ? valeurs(decl.defaut, ctx) : [{ absent: true }]
         const arg = ctx.env.args[e.index]
-        return arg ? uniques(arg.flatMap((v) => 'absent' in v ? defaut() : [v])) : defaut()
+        return uniques((arg ? arg.flatMap((v) => 'absent' in v ? defaut() : [v]) : defaut()).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v))
       }
-      case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'fragment' in o && e.nom === 'name' ? [o] : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
+      case 'indice': {
+        const selectionner = (de, contexte = ctx) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
+          : de.k === 'appel' ? valeurs(de.cible, contexte).flatMap((c) => 'fn' in c ? retour(c.fn, de.args.map((a) => argumentDe(a, contexte)), selectionner) : [{ non: `déstructuration de tableau ${e.texte}` }])
+          : de.k === 'liste' ? (de.v[e.nom] && !(de.v[e.nom].k === 'non' && de.v[e.nom].raison === 'forme OmittedExpression') ? valeurs(de.v[e.nom], contexte) : e.defaut ? valeurs(e.defaut, contexte) : [{ absent: true }])
+          : de.k === 'lie' ? selectionner(de.de, de.ctx)
+          : de.k === 'union' ? uniques(de.v.flatMap((x) => selectionner(x, contexte)))
+          : de.k === 'garde' ? (gardePossible(de, contexte) ? selectionner(de.de, contexte) : [])
+          : de.k === 'elementItere' ? uniques(elementsDe(de.de, contexte).flatMap((x) => selectionner(x, contexte)))
+          : [{ non: `déstructuration de tableau ${e.texte}` }]
+        return selectionner(e.de)
+      }
+      case 'champ': return valeurs(e.de, ctx).flatMap((o) => ctx.preuveBooleenne && 'objet' in o && !o.preuveDirecte ? [{ non: `option ${e.texte} indécidable` }]
+        : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
         : 'objet' in o && o.etales ? uniques(o.etales.flatMap((x) => valeurs({ k: 'champ', de: x, nom: e.nom, texte: e.texte }, o.ctx))
           .flatMap((v) => 'absent' in v && e.defaut ? valeurs(e.defaut, ctx) : [v]))
-        : 'objet' in o && o.ferme ? [{ non: `propriété ${e.texte}` }]
+        : 'objet' in o && (o.ferme || o.partiel) ? [{ non: `propriété ${e.texte}` }]
         : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
         : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
-        const args = e.args.map((a) => valeurs(a, ctx))
+        const args = e.args.map((a) => argumentDe(a, ctx))
         return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c && `${c.fn.f}#${c.fn.id}` === DOSSIER_GIT
           ? (e.args[0] ? valeurs({ k: 'join', v: [e.args[0], { k: 'lit', v: '.git' }] }, ctx) : [{ non: 'argument absent' }])
-          : 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
+          : 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte, args)
           : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
       case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
@@ -611,21 +1657,61 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     }
   }
 
+  const contexteDeLambda = ({ lambda, ctx }, args) => ({ f: ctx.f, env: { fn: lambda.id, args, params: lambda.params, parent: ctx.env } })
   /** Les valeurs rendues par une fonction ANONYME (`lambda`), évaluées dans le contexte qui l'a définie : ses
-   *  variables capturées s'y lient ; ses propres paramètres restent non liés. */
-  const rendusDeLambda = ({ lambda, ctx }, texte) => lambda.retours.length
-    ? uniques(lambda.retours.flatMap((x) => valeurs(x, ctx))) : [{ non: `appel ${texte} sans retour` }]
+   *  variables capturées s'y lient ; ses propres paramètres se lient à `args`. */
+  const rendusDeLambda = (c, texte, args, transformer = valeurs) => sousPile(`retour ${c.ctx.f}#${c.lambda.id}`, args, c.ctx.env?.fn ?? c.lambda.id, () => c.lambda.retours.length
+    ? uniques(c.lambda.retours.flatMap((x) => transformer(x, contexteDeLambda(c, args)))) : [{ non: `appel ${texte} sans retour` }])
+  const lecturesDeLambda = (c, args) => sousPile(`lambda ${c.ctx.f}#${c.lambda.id}`, args, c.lambda.id, () => uniques(c.lambda.sites.flatMap((site) => lecturesDuSite(c.ctx.f, site, contexteDeLambda(c, args).env))))
 
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
-  const cleDesArgs = (args) => args ? args.map((a) => a.map(cleDe).join(',')).join('|') : ''
+  const cleDesArgs = (args) => {
+    if (!args) return ''
+    return cleDesValeurs(({ interner, referenceDe, observer, tuple }) => {
+      const memo = ferme ? argumentsPrives : new WeakMap()
+      const vus = new Set()
+      const groupes = ferme ? groupesPrives : new WeakMap()
+      let coupes = 0
+      const ensemble = (as) => {
+        observer(as)
+        if (ferme) objetsCles.add(as)
+        if (groupes.has(as)) return groupes.get(as)
+        const avant = coupes
+        const groupe = interner(tuple('arguments', as.map((a) => {
+          observer(a)
+          if (ferme) objetsCles.add(a)
+          if (vus.has(a)) { coupes++; return interner(tuple('coupe', a.map(referenceDe))) }
+          if (memo.has(a)) return memo.get(a)
+          vus.add(a)
+          const forme = formesDesArguments.get(a)
+          const contexte = forme?.ctx.env?.args
+          const reference = interner(tuple('argument', a.map(referenceDe), referenceDe(forme?.e), forme?.ctx.f,
+            contexte ? ensemble(contexte) : null))
+          vus.delete(a)
+          memo.set(a, reference)
+          return reference
+        })))
+        if (coupes === avant) groupes.set(as, groupe)
+        return groupe
+      }
+      return ensemble(args)
+    }, args, clesDesArguments)
+  }
 
   /** Borne la pile d'appels de la fonction `fonction` (`<nature> <module>#<nom>`) aux arguments `args`. Un appel
    *  déjà en cours AUX MÊMES arguments, une `REENTREES`+1-ième ré-entrée à d'autres arguments et la profondeur
    *  rendent un `non` nommé. Chacun dépend de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
    *  que soit l'appel par lequel on y entre. */
   const sousPile = (fonction, args, nom, faire) => {
-    const cle = `${fonction}(${cleDesArgs(args)})`
-    const enCoursAuxMemes = pile.findIndex((p) => p.cle === cle)
+    const differer = ferme && !memoiserBooleens
+    let cle = differer ? undefined : composerCle(fonction, '(', cleDesArgs(args), ')')
+    const enCoursAuxMemes = pile.findIndex((p) => {
+      if (!differer) return p.cle === cle
+      if (p.fonction !== fonction) return false
+      cle ??= composerCle(fonction, '(', cleDesArgs(args), ')')
+      p.cle ??= composerCle(p.fonction, '(', cleDesArgs(p.args), ')')
+      return p.cle === cle
+    })
     const cycle = (depuis) => {
       dependre(depuis)
       return [{ non: `cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}` }]
@@ -636,26 +1722,52 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       dependre(0)
       return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
     }
-    pile.push({ fonction, cle, nom })
+    pile.push(differer ? { fonction, cle, nom, args } : { fonction, cle, nom })
     try { return faire() } finally { pile.pop() }
   }
 
-  const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
-    const decl = lecture(fn.f)?.fonctions[fn.id]
+  const retoursRacines = new Map()
+  const retoursSousCadre = new WeakMap()
+  const retour = (fn, args, transformer = valeurs) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
+    if (!ferme) return calculerRetour(fn, args, transformer)
+    const parent = pile.at(-2)
+    let magasin = retoursRacines
+    if (parent) {
+      if (!retoursSousCadre.has(parent)) retoursSousCadre.set(parent, new Map())
+      magasin = retoursSousCadre.get(parent)
+    }
+    const fonction = `${fn.f}#${fn.id}`
+    if (!magasin.has(fonction)) magasin.set(fonction, new WeakMap())
+    const transformeurs = magasin.get(fonction)
+    if (!transformeurs.has(transformer)) transformeurs.set(transformer, new Map())
+    const memo = transformeurs.get(transformer)
+    const cle = cleDesArgs(args)
+    const dejaRetour = memo.get(cle)
+    if (dejaRetour) {
+      fusionner(dejaRetour.requetes)
+      return dejaRetour.rendu
+    }
+    const { resultat: { resultat: rendu, stable }, requetes } = tracer(() => memoisable(() => calculerRetour(fn, args, transformer)))
+    if (stable) memo.set(cle, { rendu, requetes })
+    return rendu
+  })
+  const calculerRetour = (fn, args, transformer) => {
+    const fonctions = lecture(fn.f)?.fonctions
+    const decl = fonctions && Object.hasOwn(fonctions, fn.id) ? fonctions[fn.id] : null
     if (!decl) return [{ non: `fonction ${fn.id} illisible` }]
-    if (decl.contrat?.retour) return valeurs(decl.contrat.retour, { f: fn.f, env: { fn: fn.id, args } })
+    if (decl.contrat?.retour) return transformer(decl.contrat.retour, { f: fn.f, env: { fn: fn.id, args } })
     if (decl.contrat?.namespace) {
       const rendu = { k: 'espace', racine: `${fn.f}#${fn.id}:${decl.contrat.namespace}`, chemin: '' }
-      return decl.contrat.champ ? valeurs({ k: 'objet', v: { [decl.contrat.champ]: rendu } }, { f: fn.f, env: null }) : valeurs(rendu, { f: fn.f, env: null })
+      return decl.contrat.champ ? transformer({ k: 'objet', v: { [decl.contrat.champ]: rendu } }, { f: fn.f, env: null }) : transformer(rendu, { f: fn.f, env: null })
     }
     if (!decl.retours.length) return [{ non: `${fn.id} sans retour` }]
-    return decl.retours.flatMap((r) => valeurs(r, { f: fn.f, env: { fn: fn.id, args } }))
-  })
+    return decl.retours.flatMap((r) => transformer(r, { f: fn.f, env: { fn: fn.id, args } }))
+  }
 
   /** Les racines lues par la fonction `fn`, paramètres liés à `args` ; `args` null : marqueurs `relais`. */
   const lecturesDe = (fn, args) => {
     const memo = args ? lies : libres
-    const cle = `${fn.f}#${fn.id}${cleDesArgs(args)}`
+    const cle = composerCle(`${fn.f}#${fn.id}`, cleDesArgs(args))
     const deja = memo.get(cle)
     if (deja) {
       fusionner(deja.requetes)
@@ -664,7 +1776,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     const { resultat: { resultat: rendu, stable }, requetes } = tracer(() => memoisable(() => sousPile(`lectures ${fn.f}#${fn.id}`, args, fn.id, () => {
       const lu = lecture(fn.f)
       if (!lu) return [{ non: `module ${fn.f} illisible` }]
-      if (lu.fonctions[fn.id]?.contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
+      if (Object.hasOwn(lu.fonctions, fn.id) && lu.fonctions[fn.id]?.contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
       return uniques(lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args })))
     })))
     if (stable) memo.set(cle, { rendu, requetes })
@@ -696,12 +1808,12 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         const sommet = sommets.get(identite)
         if (!peutLire(sommet.fn.f)) continue
         const lu = lecture(sommet.fn.f)
-        if (!lu?.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
+        if (!lu || !Object.hasOwn(lu.fonctions, sommet.fn.id) || !lu.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
         if (lu.fonctions[sommet.fn.id].contrat?.lectures === 'corpus') { sommet.oui = true; continue }
         for (const site of lu.sites.filter((s) => s.dans === sommet.fn.id)) {
           if (site.lecture) { sommet.oui = true; continue }
           const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
-          if (!cibles.length || cibles.some((c) => !('fn' in c))) sommet.oui = true
+          if (site.cible.k !== 'param' && (!cibles.length || cibles.some((c) => !('fn' in c)))) sommet.oui = true
           for (const cible of cibles.filter((c) => 'fn' in c)) sommets.get(sommetDe(cible.fn)).parents.add(identite)
         }
       }
@@ -726,7 +1838,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
    *  coupe répute relais : un « non » n'est jamais l'effet de la pile qui l'a vu, et la réponse se mémoïse. */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
-    if (lecture(fn.f)?.fonctions[fn.id]?.contrat?.lectures === 'corpus') return true
+    const fonctions = lecture(fn.f)?.fonctions
+    if (fonctions && Object.hasOwn(fonctions, fn.id) && fonctions[fn.id]?.contrat?.lectures === 'corpus') return true
     if (!atteintLecture(fn)) return false
     const deja = relais.get(cle)
     if (deja) {
@@ -744,7 +1857,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
 
   /** Les racines d'un site : la lecture elle-même, ou celles du relais appelé avec ses arguments. */
   function lecturesDuSite(f, site, env) {
-    if (env && lecture(f)?.fonctions[env.fn]?.contrat?.lectures === 'corpus') return [couverture(`${f}#${env.fn}`, 'résumé de lecture déclaré à la source')]
+    const fonctions = env && lecture(f)?.fonctions
+    if (fonctions && Object.hasOwn(fonctions, env.fn) && fonctions[env.fn]?.contrat?.lectures === 'corpus') return [couverture(`${f}#${env.fn}`, 'résumé de lecture déclaré à la source')]
     const ctx = { f, env }
     const arg = (i) => site.args[i] ? valeurs(site.args[i], ctx) : [{ chemin: '' }]
     if (site.lecture) {
@@ -753,8 +1867,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         const chemins = porte.chemins === 'reste'
           ? (site.args.length > porte.depuis ? site.args.slice(porte.depuis).flatMap((a) => valeurs(a, ctx)) : [{ texte: '' }])
           : (site.args[porte.depuis] ? valeurs(site.args[porte.depuis], ctx) : [{ non: 'chemins absents' }])
-        const depots = arg(porte.depot).map((v) => 'texte' in v ? ancrer(v.texte) : v)
-        return finir(depots.flatMap((d) => 'chemin' in d ? chemins.map((c) => joindre(d, c)) : [d]))
+        const depots = basesDuDepot(arg(porte.depot), `${f}#${site.lecture}`)
+        return finir(depots.flatMap((d) => 'chemin' in d ? chemins.map((c) => 'texte' in c && !('chemin' in ancrer(c.texte)) ? couverture(`${f}#${site.lecture}`, 'pathspec hors borne') : joindre(d, c)) : [d]))
       }
       if (!site.args[0]) return [{ non: 'argument absent' }]
       if (!GLOBS.has(site.lecture)) return finir(arg(0))
@@ -763,14 +1877,31 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         : [{ chemin: '' }]
       return finir(cwd.flatMap((c) => arg(0).map((m) => 'texte' in m ? joindre(c, { texte: prefixeDeMotif(m.texte) }) : m)))
     }
-    const cibles = valeurs(site.cible, ctx).filter((c) => 'fn' in c)
-    return cibles.flatMap((c) => estRelais(c.fn) ? finir(lecturesDe(c.fn, site.args.map((a) => valeurs(a, ctx)))) : [])
+    const cibles = valeurs(site.cible, ctx)
+    if (site.cible.k === 'param' && !cibles.some((c) => 'lambda' in c)) return []
+    const relaisNomme = cibles.some((c) => 'fn' in c && estRelais(c.fn))
+    if (!relaisNomme && !cibles.some((c) => 'lambda' in c || 'relais' in c) && !site.args.some((a) => ['lambda', 'param', 'paramLambda'].includes(a.k))) return []
+    const args = site.args.map((a) => argumentDe(a, ctx))
+    const callbackLecteur = args.flat().some((c) => 'lambda' in c && c.lambda.sites.some((s) => s.lecture || valeurs(s.cible, c.ctx).some((v) => 'fn' in v && atteintLecture(v.fn))))
+    return cibles.flatMap((c) => 'fn' in c ? (estRelais(c.fn) || callbackLecteur ? finir(lecturesDe(c.fn, args)) : [])
+      : 'lambda' in c ? finir(lecturesDeLambda(c, args)) : 'relais' in c ? [c] : [])
   }
 
   const finir = (vals) => uniques(vals).filter((v) => !('absent' in v))
     .map(racineFinale)
 
+  const evaluerSite = (f, site) => {
+    const vals = finir(lecturesDuSite(f, site, site.dans ? { fn: site.dans, args: null } : null))
+    if (!vals.length) return null
+    return { ligne: site.ligne, appel: site.appel, relais: vals.some((v) => 'relais' in v), valeurs: vals.filter((v) => !('relais' in v)) }
+  }
+
   return {
+    ...(ferme ? { siteDe(f, index) {
+      const lu = lecture(f)
+      if (!Number.isInteger(index) || index < 0 || !lu || index >= lu.sites.length) throw new Error(`SNAPSHOT_INDEX_SITE_INVALIDE:${f}:${index}`)
+      return evaluerSite(f, lu.sites[index])
+    } } : {}),
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
      *  sa fonction) rend `relais: true`, ses racines se lisent chez ses appelants. */
     sitesDe(f) {
@@ -778,9 +1909,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       if (!lu) return []
       const rendus = []
       for (const site of lu.sites) {
-        const vals = finir(lecturesDuSite(f, site, site.dans ? { fn: site.dans, args: null } : null))
-        if (!vals.length) continue
-        rendus.push({ ligne: site.ligne, appel: site.appel, relais: vals.some((v) => 'relais' in v), valeurs: vals.filter((v) => !('relais' in v)) })
+        const rendu = evaluerSite(f, site)
+        if (rendu) rendus.push(rendu)
       }
       return rendus
     },
@@ -818,12 +1948,16 @@ const borne = (chemin) => {
 
 function joindre(a, s, absoluRemplace = false) {
   if ('couvertureCorpusEntier' in a || 'couvertureCorpusEntier' in s) return 'couvertureCorpusEntier' in a ? a : s
+  if ('poignee' in a || 'poignee' in s) return { non: 'poignée de dépôt non chemin' }
   if ('relais' in a || 'relais' in s) return 'relais' in a ? a : s
   if ('non' in a && 'espace' in s) return couverture(s.espace, a.non)
   if ('non' in s && 'espace' in a) return couverture(a.espace, s.non)
   if ('non' in a) return a
   if ('absent' in a || 'absent' in s) return 'absent' in a ? a : s
-  if ('fragment' in s) return JSON.stringify(s.fragment) === JSON.stringify(a) && 'espace' in a ? couverture(a.espace, 'descente par fragment de namespace susceptible de lien') : { non: 'fragment de répertoire hors de sa base' }
+  if ('fragment' in s) {
+    const base = 'texte' in a ? ancrer(a.texte) : a
+    return JSON.stringify(s.fragment) === JSON.stringify(base) ? couverture('espace' in base ? base.espace : `corpus:${base.chemin || '.'}`, 'descente par fragment de namespace susceptible de lien') : { non: 'fragment de répertoire hors de sa base' }
+  }
   if ('espace' in a) {
     if (!('texte' in s)) return couverture(a.espace, 'suffixe externe indéterminé')
     if (/^([a-zA-Z]:)?[\\/]/.test(s.texte)) return couverture(a.espace, `chemin absolu ${s.texte}`)
@@ -836,7 +1970,7 @@ function joindre(a, s, absoluRemplace = false) {
     const prefixe = 'chemin' in a ? a : a.texte ? ancrer(a.texte) : null
     return prefixe && 'chemin' in prefixe ? couverture(`corpus:${prefixe.chemin || '.'}`, s.non) : s
   }
-  if ('fn' in s || 'objet' in s || 'lambda' in s) return { non: 'racine non chemin' }
+  if (['fn', 'objet', 'lambda', 'booleen', 'scalaire', 'native'].some((k) => k in s)) return { non: 'racine non chemin' }
   if ('chemin' in s) return s
   if ('chemin' in a) return /^([a-zA-Z]:)?[\\/]/.test(s.texte) && absoluRemplace ? { non: `chemin absolu ${s.texte}` } : borne(posix.join(a.chemin || '.', s.texte.replace(/\\/g, '/')))
   return { texte: a.texte ? absoluRemplace && /^([a-zA-Z]:)?[\\/]/.test(s.texte) ? s.texte : posix.join(a.texte, s.texte) : s.texte }
@@ -847,12 +1981,12 @@ const parentExterne = (v) => v.cheminExterne && v.cheminExterne !== '.'
 
 const couverture = (origine, raison) => ({ couvertureCorpusEntier: { origine, raison } })
 
-const racineFinale = (v) => 'couvertureCorpusEntier' in v
+const racineFinale = (v) => 'poignee' in v ? { non: 'poignée de dépôt non chemin' } : 'couvertureCorpusEntier' in v
   ? { chemin: '', sous: `couverture corpus entier : ${v.couvertureCorpusEntier.origine} — ${v.couvertureCorpusEntier.raison}` }
   : 'espace' in v ? v.cheminExterne && v.cheminExterne !== '.' ? racineFinale(couverture(v.espace, 'descente dans namespace susceptible de lien')) : { hors: true }
     : 'fragment' in v ? { non: 'fragment de répertoire sans sa base' }
       : 'texte' in v ? ancrer(v.texte)
-        : 'fn' in v || 'objet' in v || 'lambda' in v ? { non: 'racine non chemin' } : v
+        : ['fn', 'objet', 'lambda', 'booleen', 'scalaire', 'native'].some((k) => k in v) ? { non: 'racine non chemin' } : v
 
 /** Concaténation de gabarit : un chemin suivi d'un texte s'y joint, séparateur de tête retiré. */
 function concatener(a, s) {
@@ -865,9 +1999,12 @@ function concatener(a, s) {
 /**
  * La valeur d'une racine (`Expr`) sans module ni import : chemins POSIX relatifs au dépôt, lieu HORS du
  * dépôt (`{ hors: true }`), ou `{ non: raison }`. Une chaîne nue est relative à la racine du dépôt.
- * @param {Expr} e @returns {Valeur[]}
+ * @param {Expr} e
+ * @param {{ lambdas?: Lecture['lambdas'] }} [options]
+ * @returns {Valeur[]}
  */
-export function evaluer(e) {
-  return evaluateurDuDepot({ lecture: () => null, cible: () => null }).valeurs(e, { f: '', env: null })
+export function evaluer(e, { lambdas } = {}) {
+  const lu = lambdas ? { lambdas, fonctions: {}, exports: {}, sites: [], etoiles: [] } : null
+  return evaluateurDuDepot({ lecture: () => lu, cible: () => null }).valeurs(e, { f: '', env: null })
     .filter((v) => !('absent' in v)).map(racineFinale)
 }

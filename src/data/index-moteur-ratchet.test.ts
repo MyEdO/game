@@ -5,7 +5,7 @@
  * export public un concept de FICHIER (`FILE_CONCEPTS`), donc closure garantie ; mais un export SANS
  * JSDoc n'est cherchable que par le sujet de son module, pas par son contenu. Ce test fige le nombre
  * d'exports sans JSDoc pour qu'il ne CROISSE plus sans un geste visible en revue (même patron que
- * `MANUAL_DOCS_MAX` de `scripts/docs/manual-docs-ratchet.test.mjs` : le plafond vit ICI, dans le test, pas dans la
+ * `MANUAL_DOCS_MAX` de `scripts/corpus/docs/manual-docs-ratchet.test.mjs` : le plafond vit ICI, dans le test, pas dans la
  * lib de mesure — sinon « ne peut que décroître » ne serait qu'un commentaire).
  *
  * Volet 2 — contrat POSITIF : l'incident fondateur de #903bis. `rollCareer` (src/engine/creation.ts)

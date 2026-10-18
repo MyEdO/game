@@ -20,6 +20,23 @@ export const estModule = (chemin) => EXTS.some((ext) => chemin.endsWith(ext));
 /** Les pathspecs git des modules de code sous `dossier` (`EXTS`). @param {string} dossier */
 export const pathspecsDeModules = (dossier) => EXTS.map((ext) => `${dossier}/*${ext}`);
 
+/** Les modules par programme TypeScript (`analyserCorpus`) : pic mesuré de 589 Mo à 64, OOM à 128 (#2586). */
+export const LOT_D_ANALYSE = 64;
+
+/** Les modules `entrees` (`{ rel, text }`) analysés (`analyserCorpus`) par lots de `tailleLot`, un module par
+ *  chemin et par lot ; chaque rendu porte l'entrée d'origine sous `fichier`. */
+export function* analyserEnLots(entrees, tailleLot = LOT_D_ANALYSE) {
+  const restes = [...entrees];
+  while (restes.length) {
+    const vus = new Set();
+    const lot = [];
+    for (let i = 0; i < restes.length && lot.length < tailleLot;)
+      if (vus.has(restes[i].rel)) i += 1;
+      else { vus.add(restes[i].rel); lot.push(...restes.splice(i, 1)); }
+    yield* analyserCorpus(lot);
+  }
+}
+
 /** `require('…')`, `module.require('…')` ou `createRequire(…)('…')` : l'appelé d'une acquisition
  *  CommonJS. */
 const estRequire = (ts, appele) =>
@@ -283,10 +300,11 @@ const arbreDesCaches = new WeakMap();
  * @param {string[]} roots
  * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean,
  *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
- *   specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
+ *   tailleLot?: number, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
  */
-export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs } = {}) {
+export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE } = {}) {
+  if (!Number.isSafeInteger(tailleLot) || tailleLot <= 0) throw new Error(`clotureDImports : tailleLot positive entière attendue : ${tailleLot}`);
   const base = resolve(racine);
   const alias = aliasDuDepot(base);
   const regime = `${typesEffaces ? 'typesEffaces' : 'typage'}, racine ${base}`;
@@ -330,7 +348,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       if (memoises) { cache.set(abs, resoudre(abs, memoises)); continue; }
       aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
     }
-    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aAnalyser)) {
+    for (const { fichier, sourceFile, diagnostics } of analyserEnLots(aAnalyser, tailleLot)) {
       const sites = [...specificateursDe(fichier.rel, sourceFile, diagnostics),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
       specificateurs?.ecrire(fichier.rel, fichier.brut, sites);

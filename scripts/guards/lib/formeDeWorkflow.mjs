@@ -1,4 +1,3 @@
-import { ast } from './dialecte.mjs';
 // FORME D'UN SCRIPT DE WORKFLOW — le jugement PUR que partagent la porte de forme
 // (`scripts/ops/workflows.test.mjs`), la doublure qui joue les scripts (`jouer-workflow.mjs`) et la garde
 // de l'outil `Workflow` (`scripts/hooks/workflow-type-guard.mjs`).
@@ -11,7 +10,7 @@ import { ast } from './dialecte.mjs';
 // Limite déclarée : la reconnaissance (`lireWorkflow`) est bornée au dépôt SUIVI ou à suivre
 // (`git ls-files -co --exclude-standard`, jouer-workflow.mjs) — un script ignoré par git n'est pas jugé.
 
-import { typescript } from './dialecte.mjs'
+import { analyserTexte, ast, typescript } from './dialecte.mjs'
 
 /** Les SEULES clés permises à la racine d'un schéma de sortie d'agent. */
 export const CLES_DE_RACINE = ['type', 'properties', 'required', 'additionalProperties']
@@ -329,4 +328,399 @@ export function defautsDesSitesDAgent(sf, { typesDeclares, regimes, sites = site
     if (lisible(agentType) && !permis.includes(agentType.valeur)) dire('agent', agentType.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`agentType\` littéral parmi ${permis.join('/')} exigé (lu : ${vu(agentType)})`)
   }
   return defauts
+}
+
+/** RÉGIMES des phases, déclarés par script et par phase ; une phase absente est MÉCANIQUE. Un
+ *  régime porte son type ; son modèle et son effort se lisent au frontmatter de ce type (`fichesDAgent`).
+ *  Chaque phase est déclarée ET portée par un SITE `agent(` (`defautsDesTables`). #2099 */
+export const REGIMES = {
+  '.claude/workflows/dossier-de-chapitre.js': { Complétude: 'jugement' },
+  '.claude/workflows/table-simulee.js': { Analyse: 'jugement' },
+  'scripts/raw/atlas-domain.workflow.js': { Taxonomie: 'redaction', Synthese: 'redaction', Correction: 'redaction', Audit: 'jugement', Verif: 'jugement' },
+};
+
+const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
+
+/** Exceptions des étages MÉCANIQUES, nominatives, avec leur raison : dans UNE phase d'UN script, un
+ *  type d'agent permis en plus des mécaniques. Cliquet (`defautsDesTables`) : plafond, liste NOMMÉE. #2099 */
+export const EXCEPTIONS_MECANIQUES = [
+  { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
+  { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'mj-de-table', raison: 'le MJ DÉCIDE ce qui arrive à la table, rôle que le prompt de `lecteur` (« tu ne décides rien ») contredit (`.claude/agents/mj-de-table.md`)' },
+];
+
+/** Les couples (type, modèle) de la table de `.claude/skills/orchestrer-des-agents/calibrage.md`, seule source
+ *  du modèle d'un type (#2537). PUR.
+ *  @param {string} calibrage @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (calibrage) => {
+  return [...calibrage.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+};
+
+const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
+
+export const TABLES = {
+  regimes: REGIMES,
+  exceptions: EXCEPTIONS_MECANIQUES,
+  /** Liste DÉCROISSANTE : en retirer est libre, en ajouter se justifie au commit. */
+  plafond: 2,
+  /** Les exceptions NOMMÉES : une entrée qui change de nom se relit au commit. */
+  nommees: [
+    '.claude/workflows/table-simulee.js / Partie / joueur',
+    '.claude/workflows/table-simulee.js / Partie / mj-de-table',
+  ],
+};
+
+const nomDe = (p) => {
+  const ts = typescript()
+  return ('name' in p && ts.isIdentifier(p.name)) || ts.isStringLiteral(p.name) ? p.name.text : null
+};
+
+const propriete = (obj, nom) => obj.properties.find((p) => typescript().isPropertyAssignment(p) && nomDe(p) === nom);
+
+const sansParentheses = (n) => (n && typescript().isParenthesizedExpression(n) ? sansParentheses(n.expression) : n);
+
+/** Les étages de JUGEMENT et de RÉDACTION, lus aux `fiches` (`fichesDAgent`). */
+export function etagesDe(fiches) {
+  /** L'étage `nom` du type `type`, au `model`/`effort` de sa fiche ; une fiche sans eux casse le chargement. */
+  const etage = (nom, type) => {
+    const { model, effort } = fiches.get(type) ?? {};
+    if (!model || !effort) throw new Error(`étage ${nom} : \`.claude/agents/${type}.md\` sans \`model\` ou \`effort\` au frontmatter`);
+    return { nom, type, modele: model, effort };
+  };
+  return { jugement: etage('JUGEMENT', 'juge-de-source'), redaction: etage('RÉDACTION', 'redacteur') }
+}
+
+/**
+ * Analyse de forme d'un script de workflow. PUR.
+ * @param {string} calibrage le texte de `.claude/skills/orchestrer-des-agents/calibrage.md`
+ * @param {Map<string, { model?: string, effort?: string }>} fiches `fichesDAgent`
+ * @returns {{ defauts: { regle: string, message: string }[], declarees: Set<string>, deSites: Set<string>, sites: number }}
+ *   `deSites` = les phases d'au moins un SITE `agent(` — un `phase(…)` de progression n'en est pas un
+ */
+export function analyser(source, fichier, tables = TABLES, calibrage, fiches) {
+  const ts = typescript()
+  const ETAGES = etagesDe(fiches)
+  /** Les types déclarés sous `.claude/agents/` (`name:` du frontmatter). */
+  const TYPES_DECLARES = new Set(fiches.keys())
+  /** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
+  const COUPLES_MECANIQUES = couplesDuCalibrage(calibrage).filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele))
+  /** La couche DÉPÔT de `defautsDesSitesDAgent` pour `fichier` : l'étage de chaque phase déclarée
+   *  (`null` pour un régime inconnu, que `defautsDesTables` nomme), sinon le régime MÉCANIQUE. PUR. */
+  const regimesDe = (fichier, tables) => ({
+    phases: Object.fromEntries(Object.entries(tables.regimes[fichier] ?? {}).map(([phase, regime]) => [phase, Object.hasOwn(ETAGES, regime) ? ETAGES[regime] : null])),
+    mecanique: { types: TYPES_MECANIQUES, couples: COUPLES_MECANIQUES, exceptions: tables.exceptions.filter((e) => e.fichier === fichier) },
+  });
+  const { sourceFile: sf, diagnostics } = analyserTexte({ rel: fichier, text: String(source) });
+  const defauts = [];
+  const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+  const ligneDePosition = (pos) => sf.getLineAndCharacterOfPosition(Math.min(pos, String(source).length)).line + 1;
+  const dire = (regle, n, message) => defauts.push({ regle, message: `${fichier}:${n ? ligne(n) : 0} — ${message}` });
+  const phasesDeclarees = [];
+  const phasesEmployees = new Set();
+  const phasesDesSites = new Set();
+  let sites = 0;
+  const rendre = () => ({ defauts, declarees: new Set(phasesDeclarees), deSites: phasesDesSites, sites });
+
+  // ── SYNTAXE ──────────────────────────────────────────────────────────────────────
+  for (const d of diagnostics) {
+    defauts.push({ regle: 'syntaxe', message: `${fichier}:${ligneDePosition(d.pos)} — ${d.text}` });
+  }
+  if (diagnostics.length) return rendre(); // un arbre cassé ne se juge pas plus loin
+
+  // ── RECONNAISSANCE (A2) ────────────────────────────────────────────────────────────
+  for (const message of lireWorkflow(source, fichier).defauts) defauts.push({ regle: 'reconnaissance', message });
+
+  // ── PAR APPEL : options fermées, type déclaré, étage (`defautsDesSitesDAgent`) ─────────────────────
+  const sitesDuScript = sitesDAgent(sf);
+  defauts.push(...defautsDesSitesDAgent(sf, { typesDeclares: TYPES_DECLARES, regimes: regimesDe(fichier, tables), sites: sitesDuScript }));
+  const sitesParAppel = new Map(sitesDuScript.map((site) => [site.appel, site]));
+
+  // ── `export const meta`, LITTÉRAL ────────────────────────────────────────────────────────────
+  const meta = exportDeMeta(sf)?.parent.declarationList.declarations
+    .find((d) => ts.isIdentifier(d.name) && d.name.text === 'meta')?.initializer ?? null;
+  if (!meta || !ts.isObjectLiteralExpression(meta)) {
+    dire('meta', meta, '`export const meta` absent ou non littéral — le harnais lit cet objet sans exécuter le script');
+  } else {
+    for (const champ of ['name', 'description']) {
+      const p = propriete(meta, champ);
+      if (!p || !estTexte(p.initializer)) dire('meta', p ?? meta, `meta.${champ} absent ou non littéral`);
+    }
+    const phases = propriete(meta, 'phases');
+    if (!phases || !ts.isArrayLiteralExpression(phases.initializer)) {
+      dire('meta', phases ?? meta, 'meta.phases absent ou non littéral');
+    } else {
+      for (const el of phases.initializer.elements) {
+        const titre = ts.isObjectLiteralExpression(el) ? propriete(el, 'title') : null;
+        if (!titre || !estTexte(titre.initializer)) dire('meta', el, 'une phase sans `title` littéral');
+        else phasesDeclarees.push(titre.initializer.text);
+      }
+    }
+  }
+
+  // ── Textes : résolution des prompts, puis balayage de TOUT littéral du fichier ───────────────
+  /** Déclarations de PREMIER NIVEAU : l'environnement de résolution d'un PROMPT. */
+  const constantes = new Map();
+  const fonctions = new Map();
+  for (const s of sf.statements) {
+    if (ts.isFunctionDeclaration(s) && s.name) fonctions.set(s.name.text, s);
+    const decl = ts.isVariableStatement(s) ? s.declarationList.declarations : [];
+    for (const d of decl) {
+      if (!ts.isIdentifier(d.name) || !d.initializer) continue;
+      if (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer)) fonctions.set(d.name.text, d.initializer);
+      else constantes.set(d.name.text, d.initializer);
+    }
+  }
+  const estTexteur = (n) => Boolean(n) && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)
+    || ts.isTemplateExpression(n) || ts.isParenthesizedExpression(n)
+    || (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken));
+  /** L'expression qu'une fonction du fichier REND, quand elle en rend une seule et qu'elle est du texte. */
+  function texteRendu(fn) {
+    if (!fn) return null;
+    if (fn.body && estTexteur(fn.body)) return fn.body; // flèche à corps concis
+    const retours = [];
+    const chercher = (n) => {
+      if (ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n)) {
+        if (n !== fn) return; // les fonctions imbriquées ne sont pas le retour de celle-ci
+      }
+      if (ts.isReturnStatement(n) && n.expression) retours.push(n.expression);
+      n.forEachChild(chercher);
+    };
+    if (fn.body) fn.body.forEachChild(chercher);
+    const textuels = retours.filter(estTexteur);
+    return textuels.length === 1 ? textuels[0] : null;
+  }
+  /**
+   * Texte d'une expression, et les angles morts DU FICHIER. PUR, borné par `vus` (cycles).
+   * Ce qui rend `''` SANS angle mort est une valeur d'EXÉCUTION (paramètre, variable de boucle,
+   * `args`, `JSON.stringify(…)`) : la porte ne peut pas la connaître et ne le prétend pas.
+   * Est un ANGLE MORT, donc nommé : une déclaration de premier niveau du même fichier dont le texte
+   * ne se lit pas (une fonction à plusieurs retours textuels, une constante textuelle circulaire).
+   */
+  function resoudre(n, vus = new Set()) {
+    if (!n) return { texte: '', inconnus: [] };
+    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return { texte: n.text, inconnus: [] };
+    if (ts.isTemplateExpression(n)) {
+      let texte = n.head.text;
+      const inconnus = [];
+      for (const span of n.templateSpans) {
+        const r = resoudre(span.expression, vus);
+        texte += r.texte + span.literal.text;
+        inconnus.push(...r.inconnus);
+      }
+      return { texte, inconnus };
+    }
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+      const g = resoudre(n.left, vus);
+      const d = resoudre(n.right, vus);
+      return { texte: g.texte + d.texte, inconnus: [...g.inconnus, ...d.inconnus] };
+    }
+    if (ts.isParenthesizedExpression(n)) return resoudre(n.expression, vus);
+    if (ts.isIdentifier(n)) {
+      if (vus.has(n.text)) return { texte: '', inconnus: [] };
+      const init = constantes.get(n.text);
+      if (!init || !estTexteur(init)) return { texte: '', inconnus: [] };
+      const r = resoudre(init, new Set([...vus, n.text]));
+      return r.texte || r.inconnus.length
+        ? r
+        : { texte: '', inconnus: [`${n.text} (constante textuelle de premier niveau non résolue)`] };
+    }
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression)) {
+      const nom = n.expression.text;
+      if (vus.has(nom) || !fonctions.has(nom)) return { texte: '', inconnus: [] };
+      const rendu = texteRendu(fonctions.get(nom));
+      if (!rendu) return { texte: '', inconnus: [`${nom}() (fonction du fichier dont le texte rendu ne se lit pas)`] };
+      return resoudre(rendu, new Set([...vus, nom]));
+    }
+    return { texte: '', inconnus: [] };
+  }
+
+  // ── RACINE du schéma : chaîne résolue par LIAISON (B4), maillons inatteignables (B5) ──────────
+  const declarations = declarationsDuFichier(sf);
+  /** Identifiants lus EN POSITION DE MAILLON : valeur de `schema:`, ou valeur résolue d'un maillon. */
+  const enPositionDeMaillon = new Set();
+  /** Les `const` de premier niveau qu'une chaîne racine a résolues. */
+  const maillons = new Map();
+  /** L'objet littéral auquel `n` se RÉSOUT, ou `null` après avoir nommé le défaut. */
+  const objetResolu = (n, quoi, site) => {
+    const e = sansParentheses(n);
+    if (ts.isObjectLiteralExpression(e)) return e;
+    if (ts.isIdentifier(e)) {
+      const decls = declarations.get(e.text) ?? [];
+      const d = decls.length === 1 ? decls[0].parent : null;
+      const init = d && ts.isVariableDeclaration(d) ? sansParentheses(d.initializer) : null;
+      const premierNiveau = Boolean(d) && ts.isVariableDeclarationList(d.parent) && Boolean(d.parent.flags & ts.NodeFlags.Const)
+        && ts.isVariableStatement(d.parent.parent) && ts.isSourceFile(d.parent.parent.parent);
+      if (premierNiveau && init && ts.isObjectLiteralExpression(init)) {
+        enPositionDeMaillon.add(e);
+        maillons.set(e.text, d);
+        return init;
+      }
+      dire('racine', site, `racine non littérale — ${quoi} : \`${e.text}\` ne se résout pas en \`const\` de premier niveau, UNIQUE, initialisée d’un objet littéral (${decls.length} déclaration(s) du nom)`);
+      return null;
+    }
+    dire('racine', site, `racine non littérale — ${quoi} : ${ts.SyntaxKind[e.kind]} \`${apercu(e, sf)}\``);
+    return null;
+  };
+  const objetFerme = (n, quoi, site) => {
+    const obj = objetResolu(n, quoi, site);
+    if (!obj) return null;
+    const { membres, ouvertures } = fermer(obj, sf);
+    for (const [noeud, pourquoi] of ouvertures) dire('racine', noeud, `racine non fermée — ${quoi} : ${pourquoi}`);
+    return ouvertures.length ? null : membres;
+  };
+  /** Le SQUELETTE évalué de la racine d'un schéma, jugé par `defautsDeRacine` ; `null` quand un
+   *  défaut de résolution est déjà nommé. Rien n'est évalué SOUS une propriété racine, hormis son `type`. */
+  const squelette = (n, site) => {
+    const racine = objetFerme(n, '`schema`', site);
+    if (!racine) return null;
+    let complet = true;
+    const nonLitteral = (valeur, quoi) => {
+      dire('racine', valeur, `racine non littérale — ${quoi} : ${ts.SyntaxKind[sansParentheses(valeur).kind]} \`${apercu(valeur, sf)}\``);
+      complet = false;
+      return undefined;
+    };
+    const textes = (valeur, quoi) => {
+      const e = sansParentheses(valeur);
+      if (estTexte(e)) return e.text;
+      if (ts.isArrayLiteralExpression(e) && e.elements.every(estTexte)) return e.elements.map((x) => x.text);
+      return nonLitteral(valeur, quoi);
+    };
+    const sq = {};
+    for (const [cle, { valeur }] of racine) {
+      const e = sansParentheses(valeur);
+      if (cle === 'type') sq.type = textes(valeur, '`type` de la racine');
+      else if (cle === 'additionalProperties') {
+        if (e.kind === ts.SyntaxKind.FalseKeyword || e.kind === ts.SyntaxKind.TrueKeyword) sq.additionalProperties = e.kind === ts.SyntaxKind.TrueKeyword;
+        else nonLitteral(valeur, '`additionalProperties`');
+      } else if (cle === 'required') {
+        if (ts.isArrayLiteralExpression(e) && e.elements.every(estTexte)) sq.required = e.elements.map((x) => x.text);
+        else nonLitteral(valeur, '`required`');
+      } else if (cle === 'properties') {
+        const proprietes = objetFerme(valeur, '`properties`', valeur);
+        if (!proprietes) {
+          complet = false;
+          continue;
+        }
+        sq.properties = {};
+        for (const [nom, membre] of proprietes) {
+          const prop = objetFerme(membre.valeur, `propriété racine « ${nom} »`, membre.noeud);
+          if (!prop) {
+            complet = false;
+            continue;
+          }
+          sq.properties[nom] = {};
+          if (prop.has('type')) sq.properties[nom].type = textes(prop.get('type').valeur, `\`type\` de la propriété racine « ${nom} »`);
+        }
+      } else sq[cle] = true; // clé hors liste : `defautsDeRacine` la nomme, sa valeur n'est pas évaluée
+    }
+    if (!complet) return null;
+    for (const message of defautsDeRacine(sq, `${fichier}:${ligne(site)}`)) defauts.push({ regle: 'racine', message });
+    return sq;
+  };
+
+  const collecterAcces = (racine, nom, dans) => {
+    const marcher = (x) => {
+      if (ts.isPropertyAccessExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === nom && ts.isIdentifier(x.name)) dans.add(x.name.text);
+      x.forEachChild(marcher);
+    };
+    marcher(racine);
+  };
+  /** Ce que le script LIT du rendu d'un agent : les accès au paramètre de son `.then`, et ceux de la
+   *  constante à laquelle un `await agent(…)` est lié. Un champ hors schéma n'est jamais rendu. */
+  const clesLuesDuRendu = (appel) => {
+    const lues = new Set();
+    const acces = appel.parent;
+    if (acces && ts.isPropertyAccessExpression(acces) && ts.isIdentifier(acces.name) && acces.name.text === 'then'
+      && acces.parent && ts.isCallExpression(acces.parent)) {
+      const rappel = (acces.parent.arguments ?? [])[0];
+      if (rappel && (ts.isArrowFunction(rappel) || ts.isFunctionExpression(rappel))) {
+        const param = (rappel.parameters ?? [])[0];
+        if (param && ts.isIdentifier(param.name) && rappel.body) collecterAcces(rappel.body, param.name.text, lues);
+      }
+    }
+    if (acces && ts.isAwaitExpression(acces) && acces.parent && ts.isVariableDeclaration(acces.parent) && ts.isIdentifier(acces.parent.name)) {
+      collecterAcces(sf, acces.parent.name.text, lues);
+    }
+    return [...lues];
+  };
+  const alerterRunner = (n, texte, ou) => {
+    for (const interdit of RUNNERS_INTERDITS) {
+      if (String(texte).includes(interdit)) {
+        dire('runner', n, `${ou} porte \`${interdit}\` — aucun agent de workflow ne lance de suite ni de gate`);
+      }
+    }
+  };
+
+  /** Un site `agent(prompt, options)` : prompt résolu, racine du schéma (B4), schéma lu, phase déclarée ;
+   *  options et étage : `defautsDesSitesDAgent`. */
+  const visiterSite = (n) => {
+    sites++;
+    const site = sitesParAppel.get(n);
+    const resolu = resoudre(site.prompt);
+    alerterRunner(site.prompt ?? n, resolu.texte, 'le prompt RÉSOLU');
+    for (const inconnu of resolu.inconnus) {
+      dire('prompt-non-resolu', site.prompt ?? n, `prompt non résolu : ${inconnu} — la porte ne peut pas lire ce qui part`);
+    }
+    if (site.membres === null) return;
+    const schema = site.membres.get('schema');
+    if (!schema) {
+      dire('agent', n, '`schema` absent — le rendu d\'un agent de workflow est un OBJET validé, jamais de la prose à interpréter');
+    } else {
+      const sq = squelette(schema.valeur, schema.noeud); // `null` : défaut de racine déjà nommé
+      const requis = sq && Array.isArray(sq.required) ? sq.required : null;
+      const lues = clesLuesDuRendu(n);
+      if (sq && requis === null) {
+        if (lues.length) dire('schema-lu', schema.noeud, `\`schema\` sans \`required\` littéral alors que le script lit \`.${lues.join('`, `.')}\` sur son rendu — un champ hors \`required\` peut ne pas être rendu`);
+      } else if (sq) {
+        for (const cle of lues.filter((c) => !requis.includes(c))) {
+          dire('schema-lu', schema.noeud, `le script lit \`.${cle}\` sur le rendu de cet agent, absent du \`required\` du schéma (${requis.join(', ') || 'aucune clé'}) — un champ hors schéma n'est pas rendu par le harnais`);
+        }
+      }
+    }
+    const phase = optionDuSite(site, 'phase');
+    if (phase.valeur === null) return;
+    phasesEmployees.add(phase.valeur);
+    phasesDesSites.add(phase.valeur);
+    if (phasesDeclarees.length && !phasesDeclarees.includes(phase.valeur)) {
+      dire('phase-declaree', phase.noeud, `phase \`${phase.valeur}\` jamais déclarée dans \`meta.phases\``);
+    }
+  };
+
+  const visiter = (n) => {
+    // Tout TEXTE du fichier, à n'importe quelle profondeur : une consigne portée par un tableau et
+    // le corps d'une fonction qui rend un prompt ne passent par aucun site d'appel littéral.
+    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) alerterRunner(n, n.text, 'un texte du script');
+    if (ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) alerterRunner(n, n.text, 'un texte du script');
+    // Horloge et aléa : ils cassent la reprise (`resumeFromRunId`).
+    if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Date' && !(n.arguments ?? []).length) {
+      dire('horloge', n, '`new Date()` sans argument — la date vient de `args`, sinon la reprise ne rend pas le même run');
+    }
+    if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && ts.isIdentifier(n.name)) {
+      const acces = `${n.expression.text}.${n.name.text}`;
+      if (acces === 'Date.now' || acces === 'Math.random') {
+        dire('horloge', n, `\`${acces}\` — la reprise d'un run doit rendre le même résultat`);
+      }
+    }
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'phase') {
+      const arg = (n.arguments ?? [])[0];
+      if (!estTexte(arg)) dire('phase-declaree', n, '`phase(…)` avec un titre non littéral');
+      else phasesEmployees.add(arg.text);
+    }
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'agent') visiterSite(n);
+    n.forEachChild(visiter);
+  };
+  sf.forEachChild(visiter);
+
+  // B5 — un maillon n'est lu qu'en position de maillon.
+  const marcherMaillons = (x) => {
+    if (ts.isIdentifier(x) && maillons.has(x.text) && estReference(x) && !enPositionDeMaillon.has(x)) {
+      dire('maillon', x, `\`${x.text}\` : maillon de racine atteignable par le code (${ts.SyntaxKind[x.parent.kind]}) — un maillon n'est lu que comme valeur de \`schema:\` ou d'un autre maillon`);
+    }
+    x.forEachChild(marcherMaillons);
+  };
+  marcherMaillons(sf);
+
+  for (const titre of phasesDeclarees) {
+    if (!phasesEmployees.has(titre)) dire('phase-declaree', meta, `phase \`${titre}\` déclarée dans \`meta.phases\` et jamais employée`);
+  }
+  return rendre();
 }

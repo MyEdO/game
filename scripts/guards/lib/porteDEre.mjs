@@ -15,7 +15,7 @@
 // Une ère SANS la porte au chemin de `module` (base antérieure à la porte, porte déplacée), une porte qui
 // ne se charge pas, à qui manque un export, ou dont la sonde de VIE échoue : `juge` nul et une NOTE,
 // l'appelant juge par la porte actuelle et rend la note. Aucun commit n'échappe à toute porte.
-// L'arbre de l'ère se lit chemin par chemin (`lireEnLot`), jamais listé en entier.
+// #2586
 //
 // Limites (#2503) :
 // - une branche de base ancienne garde la sémantique de sa base jusqu'à sa prochaine fusion du tronc :
@@ -26,7 +26,7 @@ import { createHash } from 'node:crypto'
 import { registerHooks } from 'node:module'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { baseCommune, lireEnLot } from './gitPorte.mjs'
+import { baseCommune, lireEnLot, listerImage } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
@@ -43,7 +43,7 @@ export const cheminDuModule = (url, racine = RACINE_DU_CODE) => relative(racine,
 export const ereDuCommit = (depot, sha, tronc) => baseCommune(depot, sha, tronc)
 
 /** Empreinte d'une fermeture `[chemin, texte][]`. */
-const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...textes].sort(([a], [b]) => parUnitesDeCode(a, b)))).digest('hex')
+export const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...textes].sort(([a], [b]) => parUnitesDeCode(a, b)))).digest('hex')
 
 /**
  * La fermeture d'imports de `module` sur le disque de `racine` : `[chemin, texte][]`, chaque texte tel que
@@ -51,11 +51,14 @@ const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...t
  * module.
  * @param {string} module @param {string} [racine] @returns {[string, string | null][]}
  */
-export function fermetureSurDisque(module, racine = RACINE_DU_CODE) {
+export function fermetureSurDisque(module, racine = RACINE_DU_CODE, { specificateurs } = {}) {
   const base = resolve(racine).split(sep).join('/')
   /** @type {Map<string, string>} */
   const lus = new Map()
-  const membres = clotureDImports([module], { racine, dynamiques: true, specificateurs: { lire: () => undefined, ecrire: (abs, texte) => lus.set(abs, texte) } })
+  const membres = clotureDImports([module], { racine, dynamiques: true, specificateurs: {
+    lire: (abs, texte) => { lus.set(abs, texte); return specificateurs?.lire(abs, texte) },
+    ecrire: (abs, texte, sites) => { lus.set(abs, texte); specificateurs?.ecrire(abs, texte, sites) },
+  } })
   return [...membres].map((rel) => [rel, lus.get(`${base}/${rel}`) ?? null])
 }
 
@@ -75,20 +78,26 @@ function fermetureDeLEre(depot, ere, racine, module) {
   const base = resolve(racine).split(sep).join('/')
   const rel = (abs) => (abs.startsWith(`${base}/`) ? abs.slice(base.length + 1) : null)
   const lus = new Map()
-  const lu = (chemin) => {
-    if (!lus.has(chemin)) for (const [c, texte] of lireEnLot(depot, ere, [chemin])) lus.set(c, texte)
-    return lus.get(chemin) ?? null
+  const presents = new Set(listerImage(depot, ere))
+  const lire = (chemins) => {
+    const manquants = [...new Set(chemins)].filter((c) => presents.has(c) && !lus.has(c))
+    if (manquants.length) for (const [c, texte] of lireEnLot(depot, ere, manquants)) lus.set(c, texte)
+    return new Map(chemins.map((c) => [c, lus.get(c) ?? null]))
   }
-  if (lu(module) === null) return null
+  if (!presents.has(module)) return null
   const membres = clotureDImports([module], {
     racine,
     dynamiques: true,
     arbre: {
-      existe: (abs) => rel(abs) !== null && lu(rel(abs)) !== null,
-      lire: (abss) => new Map(abss.map((abs) => [abs, lu(rel(abs))])),
+      existe: (abs) => presents.has(rel(abs)),
+      lire: (abss) => {
+        const textes = lire(abss.map(rel))
+        return new Map(abss.map((abs) => [abs, textes.get(rel(abs))]))
+      },
     },
   })
-  return [...membres].map((m) => [m, lu(m)])
+  const textes = lire([...membres])
+  return [...membres].map((m) => [m, textes.get(m)])
 }
 
 /** Les textes servis, par ère : `ere` → (chemin absolu → texte). @type {Map<string, Map<string, string>>} */
