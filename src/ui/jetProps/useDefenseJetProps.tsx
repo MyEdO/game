@@ -50,7 +50,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const defender = battle.combatants.find((c) => c.id === pd.defenderId);
   if (!attacker || !defender) return null;
   const res = pd.result;
-  const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender)) : null;
+  const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender), pd.weapon, attacker) : null;
   const rolled = !!res;
   // Armes pouvant parer (hors Mains nues) ; arme de parade = celle du jet (`parryWeaponOf`).
   const parryPickable = defender.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
