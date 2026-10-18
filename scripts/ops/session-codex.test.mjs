@@ -31,8 +31,8 @@ const fin={turn:{id,status:'completed',items:[],durationMs:321}};notify('turn/co
 createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(!q.method)return;const p=q.params||{};
 if(q.method==='initialize')send({id:q.id,result:{userAgent:'fixture'}});
 if(q.method==='thread/start')setTimeout(()=>send({id:q.id,result:{thread:{id:tid}}}),Number(process.argv[2]));
-if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});setTimeout(()=>{started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
-if(q.method==='turn/steer'){if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
+if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});const id=active;setTimeout(()=>{if(active!==id)return;started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='ERROR_ACTIVE')notify('error',{turnId:active,error:{message:'temporary active error'}});if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
+if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,message:'no active turn to steer'}});return;}if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='FAIL'){notify('turn/completed',{turn:{id:active,status:'failed',items:[],error:{message:'server overloaded'}}});active=null;}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
 if(q.method==='turn/interrupt'){if(!started)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
@@ -468,6 +468,38 @@ test('steer occupé puis nouveau tour inactif et télémétrie sans transitions 
   assert.equal(fin2.rapport.resultat, 'AUTO')
   assert.deepEqual(await b.veille(), fin)
 })
+test('reprise après échec terminal : nouveau tour sur le même thread et la même capacité', async (t) => {
+  const b = await banc(t)
+  await b.envoyer('FAIL')
+  const echec = await b.veille()
+  assert.equal(echec.etat, 'erreur')
+  assert.equal(echec.turnId, 'turn-1')
+  assert.match(echec.cause, /server overloaded/)
+  const ack = await b.envoyer('AUTO')
+  assert.equal(ack.ok, true)
+  assert.equal(ack.threadId, echec.threadId)
+  assert.equal(ack.turnId, 'turn-2')
+  const fin = await b.veille(echec.seq)
+  assert.equal(fin.rapport.resultat, 'AUTO')
+  assert.equal(fin.threadId, echec.threadId)
+  assert.equal(fin.turnId, 'turn-2')
+  assert.deepEqual(b.requetesEmises.filter((q) => q.method === 'turn/steer').map((q) => q.params.expectedTurnId), ['turn-1'])
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'thread/start').length, 1)
+})
+
+test('erreur pendant un tour actif : envoi conservé dans le tour par steer', async (t) => {
+  const b = await banc(t, { consigne: 'ERROR_ACTIVE' })
+  const erreur = await b.veille()
+  assert.equal(erreur.etat, 'erreur')
+  assert.match(erreur.cause, /temporary active error/)
+  const ack = await b.envoyer('FIN')
+  assert.equal(ack.turnId, 'turn-1')
+  const fin = await b.veille(erreur.seq)
+  assert.equal(fin.rapport.resultat, 'FIN')
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'turn/start').length, 1)
+  assert.deepEqual(b.requetesEmises.filter((q) => q.method === 'turn/steer').map((q) => q.params.expectedTurnId), ['turn-1'])
+})
+
 test('arrêt avant turn/started attend le latch natif, ferme proprement et refuse les envois', async (t) => {
   const b = await banc(t, { consigne: 'WAIT_START' })
   assert.equal(b.pont.child.kill(), true)
@@ -561,6 +593,19 @@ test('borne transportée : suivi se réarme au raccord IPC puis reçoit la trans
     assert.equal(appels, avant + 1)
   }
 })
+for (const etape of ['version', 'schéma']) {
+  test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
+    const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
+    assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
+      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      return { status: null, error: erreur }
+    } }), (e) => {
+      assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
+      assert.equal(e.native, erreur.message)
+      return true
+    })
+  })
+}
 test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
   assert.equal(VERSION_PROTOCOLE_CODEX, '0.163.0')
   assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)
