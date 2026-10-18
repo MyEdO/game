@@ -3766,6 +3766,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     attackerId: attacker.id, defenderId: target.id, weapon, location: pa.location, atk, def: null, result: null,
     env, withhold: pa.withhold, atkCompo: frozenDifficulty(pa.result!.attackerDetail!),
     ...(dmgProxy ? { dmgProxy } : {}),
+    ...(pa.result!.critLocation ? { critLocation: pa.result!.critLocation } : {}),
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'ranged') {

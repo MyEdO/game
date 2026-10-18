@@ -96,10 +96,10 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     return weapon.type === 'ranged'
-      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng() }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
-      : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng() }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
+      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
+      : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
-  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng() }, p.location ?? undefined, p.withhold, compo, dmgProxy);
+  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
 /** Arme avec laquelle cette Défense pare : la DÉCLARÉE (`defenseSetParryWeapon`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
@@ -114,11 +114,13 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
   const sub = defenseSubOf(defender, p);
   const parry = parryWeaponOf(defender, p);
   const atk = forcedOpposedAtk(p, def);
+  // LDB 18 l.53 ; AA 07 l.32
+  const tirage = { rng: battleRng(), fige: p.result?.critLocation ?? p.critLocation };
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
   return p.weapon.type === 'ranged'
-    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, { rng: battleRng() }, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
-    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, { rng: battleRng() }, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
+    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
+    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
 
 /**
@@ -1233,7 +1235,7 @@ export const FLOWS = {
       write: (s, slot, actor, _g, tr, p) => {
         if (slot.kind === 'calme') return { calme: { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success } };
         const t = p ? actorIn(s, p.moverId) : undefined;
-        return actor && t ? { result: rederivePassiveAttack(actor, t, backstabWeapon(actor), tr, 'melee', { rng: battleRng() }, undefined, false, frozenDifficulty(slot.result?.attackerDetail)) } : null;
+        return actor && t ? { result: rederivePassiveAttack(actor, t, backstabWeapon(actor), tr, 'melee', { rng: battleRng(), fige: slot.result?.critLocation }, undefined, false, frozenDifficulty(slot.result?.attackerDetail)) } : null;
       },
     },
     resolve: (s, slot, actor, _get, forced, p) => {
@@ -1254,7 +1256,7 @@ export const FLOWS = {
         // Dé PAR DÉFAUT = LE MEILLEUR (LDB 17 l.68), jamais le dé raté courant.
         const bDie = bestForcedRoll(ad.target);
         const atk2 = forcedTR(bDie, ad.target, Math.max(evaluateTest(bDie, ad.target).sl, 1));
-        return { result: rederivePassiveAttack(actor, target, weapon, atk2, 'melee', { rng: battleRng() }, undefined, false, frozenDifficulty(ad)) };
+        return { result: rederivePassiveAttack(actor, target, weapon, atk2, 'melee', { rng: battleRng(), fige: slot.result?.critLocation }, undefined, false, frozenDifficulty(ad)) };
       }
       return { result: resolveBackstabAttack(actor, target, battleRng()) };
     },
@@ -1269,7 +1271,7 @@ export const FLOWS = {
         const target = p ? actorIn(s, p.moverId) : undefined;
         if (!target) return null;
         const atk2 = bumpSL(hydrateTR(slot.result!.attackerDetail!));
-        return { result: rederivePassiveAttack(actor, target, backstabWeapon(actor), atk2, 'melee', { rng: battleRng() }, undefined, false, frozenDifficulty(slot.result!.attackerDetail)) };
+        return { result: rederivePassiveAttack(actor, target, backstabWeapon(actor), atk2, 'melee', { rng: battleRng(), fige: slot.result!.critLocation }, undefined, false, frozenDifficulty(slot.result!.attackerDetail)) };
       },
     },
   }),

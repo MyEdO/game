@@ -1234,6 +1234,8 @@ export interface PendingDefense {
    *  pending. Sans elle, la ligne d'attaque affichée après la défense annoncerait une autre
    *  Difficulté que celle qui a fait sa cible. */
   atkCompo?: DifficultyComposition;
+  /** Localisation relancée du jet d'attaque piloté (`openSurfacedDefense`). LDB 18 l.53 ; AA 07 l.32 */
+  critLocation?: HitLocation;
   def: TestResult | null; // null = pas encore défendu ; écrasé par Chance
   result: AttackResult | null; // calculé par finishMelee après « Défendre »
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
