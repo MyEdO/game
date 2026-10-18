@@ -59,7 +59,9 @@ export function deriverPerimetre(entree: {
   limiteIR?: number;
 }): Derivation;
 export function produireDTO(entree: { racine: string; base?: string; tete?: string; dossierDesMemos?: string; lectureSeule?: boolean; mode?: string }, stade?: (nom: string, module: string | null) => void): object;
-export function marqueurDeStade(chemin: string, options?: { pas?: number; delaiDArretMs?: number }): { stade: (nom: string, module: string | null) => void; fermer: () => void };
+export type MarqueurDeStade = { stade: (nom: string, module: string | null) => void; fermer: () => void };
+export function marqueurDeStade(chemin: string, options?: { pas?: number; delaiDArretMs?: number }): MarqueurDeStade;
+export function deriverDansLEnfant(argv: string[], options?: { produire?: (entree: never, stade: (nom: string, module: string | null) => void) => unknown; marqueurDe?: (chemin: string) => MarqueurDeStade }): number;
 export function enDTO(images: Images, derive: Derivation): object;
 export function depuisDTO(dto: unknown): Images & Derivation;
 export function signalDe(lien: { distance: number }, liaisons: { forme: string; importe: { nom: string } | null }[], touches: Set<string>): { signal: string; noms: string[] };

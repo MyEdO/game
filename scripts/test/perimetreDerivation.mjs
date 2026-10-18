@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Worker } from 'node:worker_threads'
+import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
 import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
@@ -675,11 +675,14 @@ const PAS_DU_MARQUEUR = 100
 /** Les octets d'un stade sérialisé (`marqueurDeStade`). */
 const CAPACITE_DU_MARQUEUR = 4096
 const [SEQUENCE, LONGUEUR, ARRET, ACQUIT] = [0, 1, 2, 3]
+/** Les états de la cellule `ACQUIT` posés par le guetteur : dernier stade publié, ou guetteur mort (sa panne sur `pannes`). */
+const [ACQUITTE, EN_PANNE] = [1, 2]
 /** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. Ses
  *  lectures, comme les écritures de `stade`, sont toutes atomiques : la séquence paire relue à l'identique prouve un texte
- *  entier (ECMA-262, Memory Model). */
+ *  entier (ECMA-262, Memory Model). Un renommage refusé (`RENOMMAGE_REFUSE`) se rejoue à son pas, jamais sous les paliers
+ *  de `renommerResilient` ; toute autre levée le tue : il la poste sur `pannes` puis pose `EN_PANNE`. */
 const GUETTEUR = `
-const { workerData: { ecriture, chemin, partage, pas } } = require('node:worker_threads')
+const { workerData: { ecriture, renommage, chemin, partage, pas, pannes } } = require('node:worker_threads')
 const entete = new Int32Array(partage, 0, 4)
 const octets = new Uint8Array(partage, 16)
 const decodeur = new TextDecoder()
@@ -693,14 +696,28 @@ const lire = () => {
     if (Atomics.load(entete, ${SEQUENCE}) === sequence) return { sequence, texte }
   }
 }
-import(ecriture).then(({ ecrireTexteAtomique }) => {
+const poser = (etat) => { Atomics.store(entete, ${ACQUIT}, etat); Atomics.notify(entete, ${ACQUIT}) }
+Promise.all([import(ecriture), import(renommage)]).then(([{ ecrireTexteAtomique }, { RENOMMAGE_REFUSE }]) => {
+  const attendre = () => Atomics.wait(entete, ${ACQUIT}, 0, pas)
   for (let publiee = 0; ;) {
     Atomics.wait(entete, ${ARRET}, 0, pas)
     const arret = Atomics.load(entete, ${ARRET}) === 1
     const { sequence, texte } = lire()
-    if (sequence !== publiee) { ecrireTexteAtomique(chemin, texte + '\\n'); publiee = sequence }
-    if (arret) { Atomics.store(entete, ${ACQUIT}, 1); Atomics.notify(entete, ${ACQUIT}); return }
+    if (sequence !== publiee) {
+      try {
+        ecrireTexteAtomique(chemin, texte + '\\n', { attendre })
+        publiee = sequence
+      } catch (e) {
+        if (!RENOMMAGE_REFUSE.has(e?.code)) throw e
+        if (arret) attendre()
+        continue
+      }
+    }
+    if (arret) return poser(${ACQUITTE})
   }
+}).catch((e) => {
+  pannes.postMessage(String(e?.stack ?? e))
+  poser(${EN_PANNE})
 })
 `
 
@@ -708,7 +725,7 @@ import(ecriture).then(({ ecrireTexteAtomique }) => {
  * Le MARQUEUR DE STADE de l'enfant de `derivationBornee` (`perimetre.mjs`), qui le relit à sa mort pour nommer le stade
  * atteint. `stade(nom, module)` pose le stade en mémoire partagée ; le guetteur (`GUETTEUR`, un `Worker`), dès son
  * chargement, publie sous `chemin` le dernier posé à chaque `pas` ms, thread principal bloqué compris ; `fermer` publie
- * le dernier et attend l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève.
+ * le dernier et attend l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève ; un guetteur mort lève sa panne.
  * @param {string} chemin @param {{ pas?: number, delaiDArretMs?: number }} [options]
  */
 export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs = 10_000 } = {}) {
@@ -716,9 +733,11 @@ export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs =
   const entete = new Int32Array(partage, 0, 4)
   const octets = new Uint8Array(partage, 16)
   const encodeur = new TextEncoder()
-  const ecriture = new URL('../guards/lib/ecritureJsonAtomique.mjs', import.meta.url).href
-  const guetteur = new Worker(GUETTEUR, { eval: true, workerData: { ecriture, chemin, partage, pas } })
+  const [ecriture, renommage] = ['ecritureJsonAtomique', 'renommageResilient'].map((m) => new URL(`../guards/lib/${m}.mjs`, import.meta.url).href)
+  const { port1: pannes, port2 } = new MessageChannel()
+  const guetteur = new Worker(GUETTEUR, { eval: true, workerData: { ecriture, renommage, chemin, partage, pas, pannes: port2 }, transferList: [port2] })
   guetteur.unref()
+  pannes.unref()
   return {
     /** @param {string} nom @param {string | null} module */
     stade(nom, module) {
@@ -732,19 +751,33 @@ export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs =
     fermer() {
       Atomics.store(entete, ARRET, 1)
       Atomics.notify(entete, ARRET)
-      const vu = Atomics.wait(entete, ACQUIT, 0, delaiDArretMs)
+      Atomics.wait(entete, ACQUIT, 0, delaiDArretMs)
+      const etat = Atomics.load(entete, ACQUIT)
       void guetteur.terminate()
-      if (vu === 'timed-out') throw new Error(`perimetre : marqueur de stade ${chemin} sans acquit en ${delaiDArretMs} ms`)
+      if (etat === EN_PANNE) throw new Error(`perimetre : guetteur du marqueur de stade ${chemin} mort : ${receiveMessageOnPort(pannes)?.message ?? '—'}`)
+      if (etat !== ACQUITTE) throw new Error(`perimetre : marqueur de stade ${chemin} sans acquit en ${delaiDArretMs} ms`)
     },
   }
 }
 
-if (import.meta.main) {
-  const [entree, sortie, chemin] = process.argv.slice(2)
-  const marqueur = marqueurDeStade(chemin)
+/**
+ * L'ENFANT de `derivationBornee` : le DTO de `produire` sur l'entrée `entree` écrit sous `sortie`, stade posé sur le
+ * marqueur `chemin` (`marqueurDe`). REND son code de sortie, celui de la dérivation seule : la panne du marqueur, diagnostic
+ * pur, s'imprime sans le changer (#2586).
+ * @param {string[]} argv `[entree, sortie, chemin]` @returns {number}
+ */
+export function deriverDansLEnfant([entree, sortie, chemin], { produire = produireDTO, marqueurDe = marqueurDeStade } = {}) {
+  const marqueur = marqueurDe(chemin)
+  let code = 0
   try {
-    const dto = produireDTO(JSON.parse(readFileSync(entree, 'utf8')), marqueur.stade)
-    ecrireJsonAtomique(sortie, dto, { indentation: 0 })
-  } catch (e) { console.error(e.stack ?? e); process.exitCode = 1 }
-  finally { marqueur.fermer() }
+    ecrireJsonAtomique(sortie, produire(JSON.parse(readFileSync(entree, 'utf8')), marqueur.stade), { indentation: 0 })
+  } catch (e) {
+    console.error(e.stack ?? e)
+    code = 1
+  } finally {
+    try { marqueur.fermer() } catch (e) { console.error(e.message) }
+  }
+  return code
 }
+
+if (import.meta.main) process.exitCode = deriverDansLEnfant(process.argv.slice(2))

@@ -1,14 +1,16 @@
 import { test, mock } from 'node:test'
 import { createHash } from 'node:crypto'
+import { spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, produireDTO, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { bornerIR, depuisDTO, deriverDansLEnfant, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, produireDTO, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { derivationBornee } from './perimetre.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { spawnBorne } from '../guards/lib/processusBorne.mjs'
+import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lireTextePublie } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees.mjs'
@@ -687,17 +689,84 @@ test('enfant : nettoyage seulement sous preuve de mort, diagnostics conservés s
   }
 })
 
-test('enfant : marqueur ou DTO illisible lève avec sa cause, marqueur absent garde le stade de lancement (#2586)', async (t) => {
+test('enfant : le marqueur, diagnostic seul, ne masque ni ne fabrique l’échec de la dérivation (#2586)', async (t) => {
   const d = dossierDe(t)
-  const lancerAvec = (marqueur, sortie) => async ({ argv }) => {
+  const reussi = { code: 0, expiree: false, annulee: false, arret: { etat: 'mort', erreurs: [] } }
+  const lancerAvec = (marqueur, sortie, vu = reussi) => async ({ argv }) => {
     if (marqueur !== null) writeFileSync(argv.at(-1), marqueur)
-    writeFileSync(argv.at(-2), sortie)
-    return { code: 0, expiree: false, annulee: false, arret: { etat: 'mort', erreurs: [] } }
+    if (sortie !== null) writeFileSync(argv.at(-2), sortie)
+    return vu
   }
-  await assert.rejects(() => derivationBornee({ racine: d }, { lancer: lancerAvec('{', JSON.stringify(enDTO(images, deriveDe('scripts/a.test.mjs')))) }),
-    (e) => /marqueur de stade .* illisible/.test(e.message) && e.cause instanceof SyntaxError)
+  const derive = deriveDe('scripts/a.test.mjs')
+  assert.deepEqual(await derivationBornee({ racine: d }, { lancer: lancerAvec('{', JSON.stringify(enDTO(images, derive))) }), { ...images, ...derive }, 'enfant réussi : marqueur invalide sans effet')
+  await assert.rejects(() => derivationBornee({ racine: d }, { lancer: lancerAvec('{"stade":"lec', null, { ...reussi, code: 1, sortie: 'TRACE-ENFANT' }) }),
+    (e) => /^perimetre : dérivation échouée au stade illisible \(marqueur .*stade\.json : .+\), module —, durée \d+ ms, limite 180000 ms, code 1, arrêt mort\nTRACE-ENFANT$/.test(e.message) && e.cause instanceof SyntaxError)
+  await assert.rejects(() => derivationBornee({ racine: d }, { lancer: lancerAvec('{', '{"tronqu') }),
+    (e) => /^perimetre : DTO absent ou tronqué au stade illisible \(marqueur .*stade\.json : .+\), module —, durée/.test(e.message) && e.cause instanceof SyntaxError)
   await assert.rejects(() => derivationBornee({ racine: d }, { lancer: lancerAvec(null, '{"tronqu') }),
-    (e) => /DTO absent ou tronqué au stade lancement/.test(e.message) && e.cause instanceof SyntaxError)
+    (e) => /^perimetre : DTO absent ou tronqué au stade lancement, module —, durée/.test(e.message) && e.cause instanceof SyntaxError)
+})
+
+/** Un tiers qui tient `chemin` SANS PARTAGE (`FileShare None`, PowerShell) dès `<chemin>.pret`, jusqu'à `liberer`, au plus
+ *  20 s ; le test `t` le libère et l'attend à sa fin, rouge compris. */
+async function tenirSansPartage(t, chemin) {
+  const [pret, libere, relache] = ['pret', 'libere', 'relache'].map((s) => `${chemin}.${s}`)
+  const tiers = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command',
+    `$f = [System.IO.File]::Open('${chemin}', 'Open', 'Read', 'None'); [System.IO.File]::WriteAllText('${pret}', '1'); $fin = (Get-Date).AddSeconds(20); while (-not (Test-Path -LiteralPath '${libere}') -and (Get-Date) -lt $fin) { Start-Sleep -Milliseconds 20 }; $f.Close(); [System.IO.File]::WriteAllText('${relache}', '1')`], { stdio: 'ignore' })
+  const fin = new Promise((r) => tiers.on('exit', r))
+  let libre = false
+  const liberer = () => {
+    if (libre) return
+    libre = true
+    writeFileSync(libere, '1')
+    for (const echeance = Date.now() + 25_000; !existsSync(relache) && tiers.exitCode === null && Date.now() < echeance;) attendreSync(20)
+  }
+  t.after(async () => {
+    liberer()
+    await fin
+  })
+  for (const echeance = Date.now() + 15_000; !existsSync(pret); await new Promise((r) => setTimeout(r, 20)))
+    if (Date.now() > echeance) throw new Error(`tiers non prêt sur ${chemin}`)
+  return { liberer }
+}
+
+test('enfant : un marqueur tenu par un tiers se relit sous les paliers, tenu au-delà il est dit illisible, jamais « lancement » (#2586)', { skip: process.platform !== 'win32' && 'violation de partage propre à win32' }, async (t) => {
+  const d = dossierDe(t)
+  for (const [tenu, attendu] of [[false, /^perimetre : dérivation échouée au stade lecture, module scripts\/feuille\.mjs, durée/],
+    [true, /^perimetre : dérivation échouée au stade illisible \(marqueur .*stade\.json : tenu par un tiers au-delà de 2000 \+ 5000 ms\), module —, durée/]]) {
+    let tiers, temp
+    const attentes = []
+    const lancer = async ({ argv }) => {
+      temp = dirname(argv.at(-1))
+      writeFileSync(argv.at(-1), '{"stade":"lecture","module":"scripts/feuille.mjs"}\n')
+      tiers = await tenirSansPartage(t, argv.at(-1))
+      return { code: 1, expiree: false, annulee: false, arret: { etat: 'indetermine' }, sortie: 'TRACE-ENFANT' }
+    }
+    const attendre = (ms) => {
+      attentes.push(ms)
+      if (!tenu) tiers.liberer()
+    }
+    await assert.rejects(() => derivationBornee({ racine: d }, { lancer, attendre }), (e) => attendu.test(e.message) && e.message.endsWith('\nTRACE-ENFANT'))
+    assert.deepEqual(attentes, tenu ? BACKOFFS_MS : BACKOFFS_MS.slice(0, 1))
+    tiers.liberer()
+    rmSync(temp, { recursive: true, force: true })
+  }
+})
+
+test('enfant : le code de sortie est celui de la dérivation, la panne du marqueur s’imprime sans le changer (#2586)', (t) => {
+  const d = dossierDe(t)
+  const [entree, sortie, bloquant] = ['entree.json', 'sortie.json', 'bloquant'].map((f) => join(d, f))
+  writeFileSync(entree, '{"racine":"r"}')
+  writeFileSync(bloquant, '')
+  const journal = []
+  t.mock.method(console, 'error', (texte) => { journal.push(String(texte)) })
+  const argv = [entree, sortie, join(bloquant, 'stade.json')]
+  assert.equal(deriverDansLEnfant(argv, { produire: (e, stade) => { stade('images', null); return { lu: e } } }), 0)
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { lu: { racine: 'r' } })
+  assert.match(journal.join('\n'), /guetteur du marqueur de stade .* mort/)
+  journal.length = 0
+  assert.equal(deriverDansLEnfant(argv, { produire: (e, stade) => { stade('graphe', null); throw new Error('dérivation en échec') } }), 1)
+  assert.match(journal.join('\n'), /dérivation en échec[^]*guetteur du marqueur de stade .* mort/)
 })
 
 test('enfant : lancement canonique positif et résultat reconstruit nettoient Temp', async (t) => {
@@ -860,4 +929,38 @@ test('marqueur de stade : publié pendant que le thread principal bloque, le der
     marqueur.stade('sauvegarde', null)
   } finally { marqueur.fermer() }
   assert.deepEqual(publie(), { stade: 'sauvegarde', module: null })
+})
+
+test('marqueur de stade : fermer publie le dernier stade posé, même avant tout pas écoulé (#2586)', (t) => {
+  const chemin = join(dossierDe(t), 'stade.json')
+  const marqueur = marqueurDeStade(chemin, { pas: 600_000 })
+  marqueur.stade('sauvegarde', null)
+  marqueur.fermer()
+  assert.equal(lireTextePublie(chemin), '{"stade":"sauvegarde","module":null}\n')
+})
+
+test('marqueur de stade : un renommage refusé par un lecteur qui tient la cible se rejoue au pas du guetteur, qui survit (#2586)', (t) => {
+  const chemin = join(dossierDe(t), 'stade.json')
+  const marqueur = marqueurDeStade(chemin, { pas: 10, delaiDArretMs: 1000 })
+  const publie = () => { const texte = lireTextePublie(chemin); return texte === undefined ? null : JSON.parse(texte) }
+  try {
+    marqueur.stade('prélire', 'scripts/a.mjs')
+    const echeance = performance.now() + 20_000
+    while (performance.now() < echeance && publie()?.module !== 'scripts/a.mjs');
+    const lecteur = openSync(chemin, 'r')
+    try {
+      marqueur.stade('lecture', 'scripts/tenu.mjs')
+      attendreSync(300)
+    } finally { closeSync(lecteur) }
+    marqueur.stade('sauvegarde', null)
+  } finally { marqueur.fermer() }
+  assert.deepEqual(publie(), { stade: 'sauvegarde', module: null })
+})
+
+test('marqueur de stade : un guetteur mort lève sa panne à la fermeture, sans attendre le délai (#2586)', (t) => {
+  const bloquant = join(dossierDe(t), 'bloquant')
+  writeFileSync(bloquant, '')
+  const marqueur = marqueurDeStade(join(bloquant, 'stade.json'), { pas: 10, delaiDArretMs: 5000 })
+  marqueur.stade('images', null)
+  assert.throws(() => marqueur.fermer(), /^Error: perimetre : guetteur du marqueur de stade .*stade\.json mort : Error: E[A-Z]+/)
 })

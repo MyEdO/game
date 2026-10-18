@@ -18,7 +18,7 @@
 // mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
 // posées (`tracer`, `VARIANTES`). Tous signés par `versionDesMemosDeDerivation` (`perimetreDerivation.mjs`).
 import { availableParallelism, tmpdir } from 'node:os'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
@@ -40,6 +40,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { GATES_D_AUDIT, gateDe } from '../gates/testsParGate.mjs'
 import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, estTestNode, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -673,10 +674,30 @@ export async function entreeDuCli(argv, racine, { executer = principal } = {}) {
 
 if (import.meta.main) process.exitCode = await entreeDuCli(process.argv.slice(2), racineDe(depotDe(RACINE)) ?? RACINE)
 
+/** Le stade publié sous `marqueur` (`marqueurDeStade`), DIAGNOSTIC seul : il ne lève jamais (#2586). Absent : `lancement` ;
+ *  tenu par un tiers (`lireTextePublie`), relu sous les paliers `BACKOFFS_MS` (`attendre`) ; invalide, ou tenu au-delà :
+ *  `illisible`, avec sa `panne`. @returns {{ texte: string, panne?: Error }} */
+function stadeAtteint(marqueur, attendre) {
+  try {
+    for (let essai = 0; ; essai += 1) {
+      const publie = lireTextePublie(marqueur)
+      if (publie !== undefined) {
+        const { stade, module } = JSON.parse(publie)
+        return { texte: `stade ${stade}, module ${module ?? '—'}` }
+      }
+      if (!existsSync(marqueur)) return { texte: 'stade lancement, module —' }
+      if (essai >= BACKOFFS_MS.length) throw new Error(`tenu par un tiers au-delà de ${BACKOFFS_MS.join(' + ')} ms`)
+      attendre(BACKOFFS_MS[essai])
+    }
+  } catch (panne) {
+    return { texte: `stade illisible (marqueur ${marqueur} : ${panne.message}), module —`, panne }
+  }
+}
+
 /** La dérivation de `entree` dans un ENFANT borné (#2603) : `perimetreDerivation.mjs` sous `lancer`, `limiteMs` et
- *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stade.json`) ; le dossier
- *  temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
-export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
+ *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
+ *  dossier temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
+export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
   const temporaire = mkdtempSync(join(tmpdir(), 'perimetre-derivation-'))
   const debut = performance.now()
   let retraitPermis = true
@@ -684,21 +705,18 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
     const input = join(temporaire, 'entree.json'), output = join(temporaire, 'sortie.json'), marqueur = join(temporaire, 'stade.json')
     ecrireJsonAtomique(input, entree, { indentation: 0 })
     const vu = await lancer({ argv: ['--max-old-space-size=640', module, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
+    const bornes = `durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()
-    let stade = { stade: 'lancement', module: null }
-    try {
-      const publie = lireTextePublie(marqueur)
-      if (publie !== undefined) stade = JSON.parse(publie)
-    } catch (cause) { throw new Error(`perimetre : marqueur de stade ${marqueur} illisible`, { cause }) }
     if (vu.code !== 0 || vu.expiree || vu.annulee || vu.arret?.etat !== 'mort') {
+      const { texte, panne } = stadeAtteint(marqueur, attendre)
       const erreur = vu.error ? `, erreur ${vu.error.code ?? 'ERREUR_ENFANT'} : ${vu.error.message}` : ''
-      throw new Error(`perimetre : dérivation échouée au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error })
+      throw new Error(`perimetre : dérivation échouée au ${texte}, ${bornes}, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error ?? panne })
     }
     let dto
-    try { dto = JSON.parse(readFileSync(output, 'utf8')) } catch (cause) { throw new Error(`perimetre : DTO absent ou tronqué au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`, { cause }) }
+    try { dto = JSON.parse(readFileSync(output, 'utf8')) } catch (cause) { throw new Error(`perimetre : DTO absent ou tronqué au ${stadeAtteint(marqueur, attendre).texte}, ${bornes}`, { cause }) }
     try { return depuisDTO(dto) }
-    catch (e) { throw new Error(`${e.message} au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`, { cause: e }) }
+    catch (e) { throw new Error(`${e.message} au ${stadeAtteint(marqueur, attendre).texte}, ${bornes}`, { cause: e }) }
   } finally { if (retraitPermis) rmSync(temporaire, { recursive: true, force: true }) }
 }
 
