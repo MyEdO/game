@@ -202,7 +202,7 @@ function currentStepFreeze(s: GameState) {
 // recopier ; le runtime est byte-identique (mêmes appels `FLOWS.<x>.<m>(get, set[, …])`).
 
 /** Verbes du cycle de jet différé, définis avec la table de flux dans `flowVerbs.ts`. */
-export type { RollVerb, FlowVerbs, FlowKey } from './flowVerbs';
+export type { RollVerb } from './flowVerbs';
 
 const capitalize = <S extends string>(s: S): Capitalize<S> =>
   (s.charAt(0).toUpperCase() + s.slice(1)) as Capitalize<S>;
@@ -1846,11 +1846,9 @@ export const FLOWS = {
       }
       const actorT = { ...rollTest(p.skillValue, p.difficulty, battleRng()), base: p.skillBase };
       if (p.opposition) {
-        // LDB 12 l.160 : les DEUX camps portent leur nue (`resolveRecoverTest`), jamais un seul.
-        // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `p.difficulty` (donnée), l'entrave
-        // roule `intermediaire` — MÊME choix qu'à la voie IA (`runEnemyAI`, `case 'recover'`),
-        // verrouillé par `combat/ai-recover-departage-nue.test`.
-        const oppT = { ...rollTest(p.opposition.value, 'intermediaire', battleRng()), base: p.opposition.base };
+        // LDB 12 l.160 : les DEUX camps portent leur nue ET leur Difficulté (`resolveRecoverTest`), comme
+        // la voie IA (`runEnemyAI`, `case 'recover'`).
+        const oppT = { ...rollTest(p.opposition.value, p.opposition.difficulty, battleRng()), base: p.opposition.base };
         const opp = resolveOpposed(actorT, oppT);
         return { roll: actorT, opponentRoll: oppT, netSL: opp.netSL, success: opp.attackerWins };
       }

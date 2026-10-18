@@ -85,7 +85,7 @@ export function opSummary(o: GameOp): string {
     case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
     case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
     case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : 'un Test (cible)'}`;
-    case 'castWard': return `−20 Langue, rayon ${formulaSummary(o.radius)} m`;
+    case 'castWard': return `${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
     case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.traitId }, formulaSummary(o.indice))} (ZdE du sort)`;
     case 'attackWardFM': return 'l’attaquer exige un Test de FM';

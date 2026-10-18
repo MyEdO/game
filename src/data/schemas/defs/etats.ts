@@ -32,6 +32,7 @@ const recoverSchema = nommerChamps(z.strictObject({
   characteristic: charKeySchema.optional(),
   opposedBy: z.literal('source').optional(),
   difficulty: difficultySchema.optional(),
+  opposedDifficulty: difficultySchema.optional(),
   /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
   enjeu: z.string(),
   /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
@@ -41,6 +42,7 @@ const recoverSchema = nommerChamps(z.strictObject({
   characteristic: { label: 'caractéristique' },
   opposedBy: { label: 'opposition' },
   difficulty: { label: 'difficulté' },
+  opposedDifficulty: { label: 'difficulté de l’opposant', hint: 'Absente : Intermédiaire (LDB 12 l.166)' },
   enjeu: { label: 'enjeu' },
   form: { label: 'forme' },
 });

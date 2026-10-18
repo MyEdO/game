@@ -117,7 +117,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     h.conditions.find((c) => c.id === 'empetre')!.sourceId = 'src';
     setBattle([h, caster], 'h');
     useGame.getState().battleRecoverState('empetre');
-    expect(useGame.getState().pendingStateRecovery!.opposition).toEqual({ value: 40, base: 40, label: 'Liane' });
+    expect(useGame.getState().pendingStateRecovery!.opposition).toEqual({ value: 40, base: 40, label: 'Liane', difficulty: 'intermediaire' });
   });
 
   it('escapeStrength PRIORITAIRE sur la Force de la source vivante', () => {

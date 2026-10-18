@@ -997,7 +997,6 @@ export const STRUCTURES_OPS = [
   { op: "attrMod", signature: "attr,mod,op", dataset: "talents.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
   { op: "attrMod", signature: "attr,mod,op", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "between", signature: "kind,max,min,op", dataset: "water-exposure.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "castWard", signature: "op,perSL,radius", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "chain", signature: "hopMeters,maxBounces,op", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charDamage", signature: "amount,char,op", dataset: "symptoms.json", occurrences: 4, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charDamage", signature: "amount,char,op", dataset: "spells.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
