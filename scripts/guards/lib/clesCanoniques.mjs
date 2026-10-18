@@ -26,12 +26,14 @@ const prototypesInertes = () => {
 
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
- * associée après clé et DAG cyclique refusés) ; `clesStructurelles` = clés en cellules structurelles, refus nommé
- * d'une source inadmissible ; sinon, clés textuelles.
+ * associée après clé, DAG cyclique et clé hors cellules strictes à formes projetées refusés) ; `clesStructurelles` = clés
+ * en cellules structurelles, refus nommé d'une source inadmissible ; sinon, clés textuelles. Un argument vaut par ses
+ * valeurs et sa forme : son expression et tout ce que son évaluation lit de son contexte (module, preuve booléenne,
+ * chaîne d'environnements : fonction, arguments, paramètres).
  * @param {{ ferme: boolean, clesStructurelles: boolean }} regime
  */
 export function clesCanoniques({ ferme, clesStructurelles }) {
-  const referencesPrivees = Array.from({ length: 4 }, () => new WeakMap())
+  const referencesPrivees = new WeakMap()
   const argumentsPrives = new WeakMap()
   const groupesPrives = new WeakMap()
   const objetsCles = new WeakSet()
@@ -67,7 +69,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
   const marqueursBooleens = Object.freeze({
     liste: Object.freeze({ marqueur: 'liste' }), objet: Object.freeze({ marqueur: 'objet' }),
     fin: Object.freeze({ marqueur: 'fin' }), enfant: Object.freeze({ marqueur: 'enfant' }),
-    vide: Object.freeze({ marqueur: 'vide' }),
   })
   const celluleDe = (tokens) => {
     let branche = cellulesBooleennes
@@ -113,10 +114,11 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
     },
   })
   const cleCanonique = (faire, racine, cache, { strict = false, cellules = false, formesCompletes = strict } = {}) => {
+    if (ferme && (!strict || !cellules || formesCompletes)) throw new Error('CLE_PRIVEE_HORS_REGIME')
     try {
     if (!ferme && strict && !prototypesInertes()) return null
     const deja = cache?.get(racine)
-    if (ferme && deja && deja.strict === strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes) return deja.cle
+    if (ferme && deja) return deja.cle
     const revisionAvant = revisionDesFormes
     const certifier = (records) => {
       if (!strict || !records.every(({ objet, preuve }) => Object.isFrozen(objet) &&
@@ -247,7 +249,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
     const objet = cellules ? marqueursBooleens.objet : Symbol()
     const fin = cellules ? marqueursBooleens.fin : Symbol()
     const enfant = cellules ? marqueursBooleens.enfant : Symbol()
-    const vide = cellules ? marqueursBooleens.vide : Symbol()
     const signatureDe = (tokens) => {
       let signature = ''
       for (const token of tokens) {
@@ -255,7 +256,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
         else if (token === objet) signature += 'O;'
         else if (token === fin) signature += 'F;'
         else if (token === enfant) signature += 'E;'
-        else if (token === vide) signature += 'V;'
         else if (token === null) signature += 'Z;'
         else if (typeof token === 'string') signature += `S${token.length}:${token}`
         else if (typeof token === 'boolean') signature += token ? 'B1;' : 'B0;'
@@ -309,9 +309,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       if (!tokensDe(descriptor, tokens)) {
         stable = false
         tokens = []
-        const cle = JSON.stringify(descriptor)
-        if (cle === undefined) tokens.push(vide)
-        else tokensDe(JSON.parse(cle), tokens, true)
+        tokensDe(JSON.parse(JSON.stringify(descriptor)), tokens, true)
       }
       if (cellules) return celluleDe(tokens)
       const signature = signatureDe(tokens)
@@ -321,8 +319,16 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       }
       return descripteurs.get(signature)
     }
+    const contexteDe = (ctx, argumentsDe) => {
+      const chaine = []
+      for (let env = ctx.env; env; env = env.parent) {
+        observer(env)
+        chaine.push(tuple('env', env.fn, env.args ? argumentsDe(env.args) : null, env.params ? referenceDe(env.params) : null))
+      }
+      return interner(tuple('contexte', ctx.f, ctx.preuveBooleenne === true, tuple(...chaine)))
+    }
     const memo = new WeakMap()
-    const references = ferme && cellules ? referencesPrivees[Number(strict) * 2 + Number(formesCompletes)] : memo
+    const references = ferme ? referencesPrivees : memo
     const pile = new Map()
     const referenceDe = (v) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
@@ -350,8 +356,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       pile.set(v, pile.size)
       const forme = formesDesArguments.get(v)
       const descriptor = formesCompletes && forme ? tuple('argument', v.map(referenceDe), referenceDe(forme))
-        : forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), forme.ctx.f,
-        forme.ctx.env?.args ? referenceDe(forme.ctx.env.args) : null)
+        : forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), contexteDe(forme.ctx, referenceDe))
         : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
       pile.delete(v)
@@ -365,11 +370,8 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
           .map((p) => [p.value, references.get(p.value)])) })
       return reference
     }
-    const reference = faire({ interner, referenceDe, observer, tuple })
-    const cle = cellules ? reference : (() => {
-      const cle = JSON.stringify([reference, table])
-      return cle
-    })()
+    const reference = faire({ interner, referenceDe, observer, tuple, contexteDe })
+    const cle = cellules ? reference : JSON.stringify([reference, table])
     if (stable && cache) {
       const records = [...objets.values()]
       const certificat = ferme ? null : certifier(records)
@@ -405,7 +407,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
           index++
           return Object.fromEntries(entrees)
         }
-        if (token === marqueursBooleens.vide) return undefined
         return token
       }
       const rendu = valeur()
@@ -451,7 +452,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
   const cleDesArgs = (args) => {
     if (!args) return ''
-    return cleDesValeurs(({ interner, referenceDe, observer, tuple }) => {
+    return cleDesValeurs(({ interner, referenceDe, observer, tuple, contexteDe }) => {
       const memo = ferme ? argumentsPrives : new WeakMap()
       const vus = new Set()
       const groupes = ferme ? groupesPrives : new WeakMap()
@@ -468,9 +469,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
           if (memo.has(a)) return memo.get(a)
           vus.add(a)
           const forme = formesDesArguments.get(a)
-          const contexte = forme?.ctx.env?.args
-          const reference = interner(tuple('argument', a.map(referenceDe), referenceDe(forme?.e), forme?.ctx.f,
-            contexte ? ensemble(contexte) : null))
+          const reference = interner(tuple('argument', a.map(referenceDe), referenceDe(forme?.e), forme ? contexteDe(forme.ctx, ensemble) : null))
           vus.delete(a)
           memo.set(a, reference)
           return reference

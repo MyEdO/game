@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { posix, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runInNewContext } from 'node:vm'
+import { inspect } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { spawnBorne } from './processusBorne.mjs'
 import { readFileSync, writeFileSync, renameSync, rmSync, mkdtempSync } from 'node:fs'
@@ -64,7 +65,7 @@ test('pile et retours : cycles nommés, réentrées, profondeur, arguments captu
   assert.deepEqual(pile("export function f(d) { readdirSync(d); return f(join(d, 'x')) }\n", "import { f } from './p.mjs'\nf('src')\n"),
     [['f', [{ chemin: 'src' }, { chemin: 'src/x' }, cycle('f')]]])
   assert.deepEqual(pile("export function g(d, n) { readdirSync(d); return n ? x(join(d, 'b')) : y(d) }\nexport function x(d) { return g(d, false) }\nexport function y(d) { return g(d, false) }\n",
-    "import { g } from './p.mjs'\ng('a', true)\n"), [['g', [{ chemin: 'a' }, { chemin: 'a/b' }, cycle('g, x'), cycle('g, y'), cycle('g, x, y')]]])
+    "import { g } from './p.mjs'\ng('a', true)\n"), [['g', [{ chemin: 'a' }, { chemin: 'a/b' }, cycle('g, x'), cycle('g, x, y'), cycle('g, y')]]])
   const anneau = Array.from({ length: 16 }, (_, i) => `export function c${i}(d) { readdirSync(d); return c${(i + 1) % 16}(d) }\n`).join('')
   assert.deepEqual(pile(anneau, "import { c0 } from './p.mjs'\nc0('src')\n"),
     [['c0', [{ chemin: 'src' }, cycle(Array.from({ length: 16 }, (_, i) => 'c' + i).sort().join(', '))]]])
@@ -449,30 +450,18 @@ test('clés privées : partitions, références locales numériques, trois rôle
   const piege = { objet: { get enfant() { throw sentinelle } } }
   const ouvert = clesCanoniques({ ferme: false, clesStructurelles: false })
   assert.throws(() => ouvert.uniques([piege]), (erreur) => erreur === sentinelle)
-  const cle = (v, options) => c.cleCanonique(({ referenceDe }) => referenceDe(v), v, null, options)
+  const cle = (v) => c.cleDe({ objet: v })
   const partage = { x: 'a' }
-  for (const strict of [true, false, true]) for (const formesCompletes of [true, false, true]) {
-    const options = { strict, formesCompletes, cellules: true }
-    assert.equal(cle([partage, partage], options), cle([{ x: 'a' }, { x: 'a' }], options))
-    assert.notEqual(cle([partage], options), cle([{ x: 'b' }], options))
-  }
-  const options = { strict: true, cellules: false }
-  assert.equal(cle([partage], options), cle([{ x: 'a' }], options))
-  assert.equal(cle([{ avant: 1 }, partage], options), cle([{ avant: 1 }, { x: 'a' }], options))
+  assert.equal(cle([partage, partage]), cle([{ x: 'a' }, { x: 'a' }]))
+  assert.notEqual(cle([partage]), cle([{ x: 'b' }]))
+  assert.equal(cle([{ avant: 1 }, partage]), cle([{ avant: 1 }, { x: 'a' }]))
   const args = [[{ texte: 'src' }]]
   const groupe = c.cleDesArgs(args)
-  assert.notEqual(cle(args, { strict: true, cellules: true, formesCompletes: false }), groupe)
+  assert.notEqual(cle(args), groupe)
   assert.equal(c.cleDesArgs([[{ texte: 'src' }]]), groupe)
   assert.equal(c.cleDesArgs([args]), c.cleDesArgs([[[{ texte: 'src' }]]]))
-  const avecForme = [{ texte: 'src' }]
-  c.formesDesArguments.set(avecForme, { e: { k: 'lit', v: 'src' }, ctx: { f: 'a.mjs', env: null } })
-  const complet = cle(avecForme, { strict: true, cellules: true, formesCompletes: true })
-  const projete = cle(avecForme, { strict: true, cellules: true, formesCompletes: false })
-  assert.notEqual(complet, projete)
-  assert.equal(cle(avecForme, { strict: true, cellules: true, formesCompletes: true }), complet)
-  assert.equal(cle(avecForme, { strict: true, cellules: true, formesCompletes: false }), projete)
   const tardif = []
-  cle(tardif, { strict: true, cellules: true })
+  cle(tardif)
   assert.throws(() => c.formesDesArguments.set(tardif, {}), /FORME_PRIVEE_ASSOCIEE_APRES_CLE/)
   const argumentTardif = [{ texte: 'src/tardif' }]
   const groupeTardif = [argumentTardif]
@@ -480,28 +469,37 @@ test('clés privées : partitions, références locales numériques, trois rôle
   assert.throws(() => c.formesDesArguments.set(argumentTardif, {}), /FORME_PRIVEE_ASSOCIEE_APRES_CLE/)
   assert.throws(() => c.formesDesArguments.set(groupeTardif, {}), /FORME_PRIVEE_ASSOCIEE_APRES_CLE/)
   const cycle = {}; cycle.soi = cycle
-  assert.throws(() => cle(cycle, { strict: true, cellules: true }), /DAG_PRIVE_CYCLIQUE/)
-  const sources = { 'a.mjs': "import {scanner} from './b.mjs'; scanner('src')",
-    'b.mjs': "import {readFileSync} from 'node:fs'; export function scanner(p){return readFileSync(p)}" }
-  const question = { nature: 'sitesDe', f: 'a.mjs' }
-  const [froid, chaud] = evaluerLot({ lectures: Object.entries(sources).map(([f, texte]) => [f, encoderLecture(lire(f, texte))]),
-    resolutions: [['a.mjs', './b.mjs', 'b.mjs']], lecteurs: Object.keys(sources), questions: [question, question] })
-  assert.deepEqual(froid.resultat.map((s) => s.valeurs), [[{ chemin: 'src' }]])
-  assert.ok(froid.requetes.includes('["lecture","b.mjs"]'))
-  assert.deepEqual({ ...chaud, requetes: [...chaud.requetes].sort() }, { ...froid, requetes: [...froid.requetes].sort() })
+  assert.throws(() => cle(cycle), /DAG_PRIVE_CYCLIQUE/)
 })
 
-test('construction privée : publication après descripteur et unique association dans argumentDe', () => {
-  const lireModule = (nom) => readFileSync(fileURLToPath(new URL(nom, import.meta.url)), 'utf8')
-  const source = lireModule('./racinesBalayees.mjs')
-  const cles = lireModule('./clesCanoniques.mjs')
-  const debut = cles.indexOf('      pile.set(v, pile.size)')
-  const reference = cles.slice(debut, cles.indexOf('      return reference\n', debut))
-  assert.match(reference, /const descriptor =[^]*?const reference = interner\(descriptor\)\s+references.set\(v, reference\)/)
-  assert.equal(reference.slice(0, reference.indexOf('const reference = interner')).includes('references.set('), false)
-  assert.doesNotMatch(cles, /references\.set\(v,[^\r\n]*\)\s+pile\.set\(v, pile\.size\)/)
-  assert.equal((cles + source).split('formesDesArguments.set(').length, 2)
-  assert.match(source, /const argumentDe = \(e, ctx\) => \{\s+const vs = valeurs\(e, ctx\).map\([^]*?formesDesArguments.set\(vs,[^]*?\n {4}return vs/)
+test('tracer : un mémo de lectures chaud rend les requêtes de son calcul, rappel lié compris, ouvert et en lot', () => {
+  const sources = {
+    'a.mjs': "import {appel} from './b.mjs'; import {lireD} from './d.mjs'; import {RACINE} from './f.mjs'; appel((p) => lireD(RACINE))",
+    'b.mjs': "export function appel(lecteur){return lecteur('x')}",
+    'd.mjs': "import {scanner} from './e.mjs'; export function lireD(p){return scanner(p)}",
+    'e.mjs': "import {readFileSync} from 'node:fs'; export function scanner(p){return readFileSync(p)}",
+    'f.mjs': "export const RACINE = 'donnees'" }
+  const resolutions = [['a.mjs', './b.mjs', 'b.mjs'], ['a.mjs', './d.mjs', 'd.mjs'], ['a.mjs', './f.mjs', 'f.mjs'], ['d.mjs', './e.mjs', 'e.mjs']]
+  const lus = new Map(Object.entries(sources).map(([f, texte]) => [f, lire(f, texte)]))
+  const cibles = new Map(resolutions.map(([f, spec, cible]) => [`${f}|${spec}`, cible]))
+  const ouvertes = []
+  const ev = evaluateurDuDepot({ lecture: (f) => { ouvertes.push(f); return lus.get(f) ?? null }, cible: (f, spec) => cibles.get(`${f}|${spec}`) ?? null })
+  const passe = () => {
+    ouvertes.length = 0
+    const { resultat, requetes } = ev.tracer(() => ev.sitesDe('a.mjs'))
+    return { resultat, requetes: [...requetes].sort(), ouvertes: [...new Set(ouvertes)] }
+  }
+  const froid = passe()
+  const chaud = passe()
+  assert.deepEqual(froid.resultat.map((s) => s.valeurs), [[{ chemin: 'donnees' }]])
+  assert.ok(froid.requetes.includes('["lecture","f.mjs"]'))
+  assert.equal(chaud.ouvertes.includes('f.mjs'), false, 'f.mjs n’est lu que par le calcul de lecturesDe(b.appel, args)')
+  assert.deepEqual({ resultat: chaud.resultat, requetes: chaud.requetes }, { resultat: froid.resultat, requetes: froid.requetes })
+  const question = { nature: 'sitesDe', f: 'a.mjs' }
+  const [lotFroid, lotChaud] = evaluerLot({ lectures: [...lus].map(([f, lu]) => [f, encoderLecture(lu)]), resolutions,
+    lecteurs: Object.keys(sources), questions: [question, question] })
+  assert.deepEqual({ resultat: lotFroid.resultat, requetes: [...lotFroid.requetes].sort() }, { resultat: froid.resultat, requetes: froid.requetes })
+  assert.deepEqual({ ...lotChaud, requetes: [...lotChaud.requetes].sort() }, { ...lotFroid, requetes: [...lotFroid.requetes].sort() })
 })
 
 test('politique BOOL : IR sérialisé gelé, captures, défauts, rest et cycles gardent résultats et dépendances', () => {
@@ -1676,38 +1674,35 @@ test('observation des clés : le contexte Proxy public ne déclenche aucun pièg
 })
 
 // #2586
-test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordre, formes, provenance et cycles', async (t) => {
+test('clés canoniques : partition de la valeur complète sur DAG partagé, réallocation, ordre, formes, contextes et cycles', async (t) => {
   const regimes = [{ ferme: false, clesStructurelles: false }, { ferme: false, clesStructurelles: true }, { ferme: true, clesStructurelles: true }]
   const partition = (observations, nom) => {
-    const oracles = new Set(observations.map((o) => o.oracle))
-    assert.ok(oracles.size > 1 && oracles.size < observations.length, `${nom} : la matrice porte des paires égales et distinctes`)
+    let egales = 0
+    let distinctes = 0
     for (let i = 0; i < observations.length; i++) for (let j = i + 1; j < observations.length; j++) {
       const [a, b] = [observations[i], observations[j]]
-      if ((a.cle === b.cle) !== (a.oracle === b.oracle)) assert.fail(`${nom} : ${a.nom} / ${b.nom}, clés ${a.cle === b.cle ? 'égales' : 'distinctes'}`)
+      const memeOracle = a.oracle === b.oracle
+      if (memeOracle) egales++
+      else distinctes++
+      if ((a.cle === b.cle) !== memeOracle) assert.fail(`${nom} : ${a.nom} / ${b.nom}, clés ${a.cle === b.cle ? 'égales' : 'distinctes'}`)
     }
+    assert.ok(egales && distinctes, `${nom} : la matrice porte des paires égales et distinctes`)
   }
-  const vueDe = (c, v, pile = []) => {
-    if (v === null || typeof v !== 'object') return [typeof v, v]
-    const forme = c.formesDesArguments.get(v)
-    const depuis = pile.indexOf(v)
-    if (depuis >= 0) return forme ? ['coupe', v.map((x) => vueDe(c, x, pile))] : ['cycle', pile.length - depuis]
-    pile.push(v)
-    const vue = forme ? ['argument', v.map((x) => vueDe(c, x, pile)), vueDe(c, forme.e, pile), forme.ctx.f, forme.ctx.env?.args ? vueDe(c, forme.ctx.env.args, pile) : null]
-      : Array.isArray(v) ? ['liste', v.map((x) => vueDe(c, x, pile))]
-      : ['objet', Object.keys(v).sort().map((nom) => [nom, vueDe(c, v[nom], pile)])]
-    pile.pop()
-    return vue
+  /** La valeur COMPLÈTE de `x` à l'instant de l'observation : chaque argument porte ses valeurs et sa forme entière ;
+   *  son texte (`inspect`, clés triées, cycles nommés) est l'oracle. */
+  const complet = (c, x, vus = new Map()) => {
+    if (x === null || typeof x !== 'object') return x
+    if (vus.has(x)) return vus.get(x)
+    const forme = c.formesDesArguments.get(x)
+    const copie = forme ? {} : Array.isArray(x) ? [] : {}
+    vus.set(x, copie)
+    if (forme) Object.assign(copie, { valeurs: x.map((y) => complet(c, y, vus)), forme: complet(c, forme, vus) })
+    else for (const nom of Object.keys(x)) copie[nom] = complet(c, x[nom], vus)
+    return copie
   }
-  const vueDesArgs = (c, as, vus = []) => ['arguments', as.map((a) => {
-    if (vus.includes(a)) return ['coupe', a.map((x) => vueDe(c, x))]
-    const forme = c.formesDesArguments.get(a)
-    vus.push(a)
-    const vue = ['argument', a.map((x) => vueDe(c, x)), vueDe(c, forme?.e), forme?.ctx.f, forme?.ctx.env?.args ? vueDesArgs(c, forme.ctx.env.args, vus) : null]
-    vus.pop()
-    return vue
-  })]
-  const observerArgs = (c, nom, args) => ({ nom, cle: c.cleDesArgs(args), oracle: JSON.stringify(vueDesArgs(c, args)) })
-  const observerValeur = (c, nom, v) => ({ nom, cle: c.cleDe(v), oracle: JSON.stringify(vueDe(c, v)) })
+  const texteComplet = (c, x) => inspect(complet(c, x), { depth: Infinity, sorted: true, maxArrayLength: Infinity, maxStringLength: Infinity, breakLength: Infinity })
+  const observerArgs = (c, nom, args) => ({ nom, cle: c.cleDesArgs(args), oracle: texteComplet(c, args) })
+  const observerValeur = (c, nom, v) => ({ nom, cle: c.cleDe(v), oracle: texteComplet(c, v) })
   const dag = (c, profondeur, variante = {}) => {
     let args = null
     for (let niveau = 0; niveau <= profondeur; niveau++) {
@@ -1738,6 +1733,24 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
     c.formesDesArguments.set(a, { e: { k: 'lit', v: texte }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
     return args
   }
+  const parametre = { k: 'param', fn: 'g', index: 0, nom: 'p' }
+  const contextes = {
+    'parent relais': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: { fn: 'g', args: null } } }),
+    'parent relais #2': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: { fn: 'g', args: null } } }),
+    'parent lié': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: { fn: 'g', args: [[{ texte: 'docs/y' }]] } } }),
+    'parent absent': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: null } }),
+    'fonction g': () => ({ f: 'banc.mjs', env: { fn: 'g', args: [[{ texte: 'src/x' }]], parent: null } }),
+    'sans arguments': () => ({ f: 'banc.mjs', env: { fn: 'f', args: null, parent: null } }),
+    'sans environnement': () => ({ f: 'banc.mjs', env: null }),
+    'preuve booléenne': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: null }, preuveBooleenne: true }),
+    'paramètres': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], params: [{ nom: 'q' }], parent: null } }),
+    'paramètres défaut': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], params: [{ nom: 'q', defaut: { k: 'lit', v: 'src/d' } }], parent: null } }),
+  }
+  const enContexte = (c, ctx) => {
+    const a = [{ texte: 'src/a' }]
+    c.formesDesArguments.set(a, { e: parametre, ctx })
+    return [a]
+  }
   const lambda = (args) => ({ lambda: { id: 'lambda:1', sites: [], retours: [] }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
   for (const regime of regimes) {
     const nomDuRegime = JSON.stringify(regime)
@@ -1751,6 +1764,7 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
     for (const [nom, forme] of [['scalaire', { k: 'lit', v: 'src/a' }], ['liste', { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] }], ['scalaire #2', { k: 'lit', v: 'src/a' }]])
       args.push(observerArgs(c, `forme ${nom}`, lie(c, forme)))
     for (const [nom, texte] of [['cycle', 'src/a'], ['cycle #2', 'src/a'], ['cycle docs', 'docs/b']]) args.push(observerArgs(c, nom, cycle(c, texte)))
+    for (const [nom, ctx] of Object.entries(contextes)) args.push(observerArgs(c, `contexte ${nom}`, enContexte(c, ctx())))
     partition(args, `arguments ${nomDuRegime}`)
     const valeurs = [
       observerValeur(c, 'objet', { objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }),
@@ -1761,6 +1775,8 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
       observerValeur(c, 'lambda scalaire', lambda(lie(c, { k: 'lit', v: 'src/a' }))),
       observerValeur(c, 'lambda liste', lambda(lie(c, { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] }))),
       observerValeur(c, 'lambda scalaire #2', lambda(lie(c, { k: 'lit', v: 'src/a' }))),
+      observerValeur(c, 'lambda en contexte relais', lambda(enContexte(c, contextes['parent relais']()))),
+      observerValeur(c, 'lambda en contexte absent', lambda(enContexte(c, contextes['parent absent']()))),
     ]
     if (!regime.ferme) for (const [nom, fabriquer] of [['boucle grand-parent', () => { const o = {}; o.a = { b: o }; return o }],
       ['boucle parent', () => { const o = {}; const a = {}; a.b = a; o.a = a; return o }], ['boucle grand-parent #2', () => { const o = {}; o.a = { b: o }; return o }]])
@@ -1785,6 +1801,10 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
     forme.ctx.f = 'autre.mjs'
     noter('module muté')
     forme.ctx.f = 'banc.mjs'
+    forme.ctx.env.parent = { fn: 'g', args: null }
+    noter('parent posé')
+    delete forme.ctx.env.parent
+    noter('parent retiré')
     c.formesDesArguments.set(enfant[0], { ...formeEnfant, e: { k: 'liste', v: [formeEnfant.e] } })
     noter('forme d’enfant réallouée')
     c.formesDesArguments.set(enfant[0], formeEnfant)
@@ -1795,26 +1815,14 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
     noter('valeur d’enfant rétablie')
     partition(etats, `mutations ${nomDuRegime}`)
     if (regime.clesStructurelles) continue
-    let provenance = 'banc.mjs'
-    const dynamique = () => {}
-    dynamique.toJSON = () => provenance
-    const fournisseurs = []
-    for (const [nom, f] of [['fonction', dynamique], ['objet', { toJSON: () => provenance }]]) {
-      const a = [{ texte: 'src/a' }]
-      c.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f, env: null } })
-      for (const valeur of ['banc.mjs', 'autre.mjs', 'banc.mjs']) {
-        provenance = valeur
-        fournisseurs.push(observerArgs(c, `${nom} ${valeur}`, [a]))
-      }
-    }
     let contenu = 'src/a'
     const accesseur = { objet: { get texte() { return contenu } } }
+    const lectures = []
     for (const valeur of ['src/a', 'docs/mutation', 'src/a']) {
       contenu = valeur
-      fournisseurs.push(observerValeur(c, `accesseur ${valeur}`, accesseur))
+      lectures.push(observerValeur(c, `accesseur ${valeur}`, accesseur))
     }
-    partition(fournisseurs.slice(0, 6), 'provenance toJSON')
-    partition(fournisseurs.slice(6), 'accesseur')
+    partition(lectures, 'accesseur')
   }
   const fonction = () => {}
   const avecJSON = () => {}
@@ -1825,18 +1833,24 @@ test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordr
   const descripteurs = [-0, 0, NaN, Infinity, null, undefined, fonction, Symbol('s'), avecJSON, 'fonction', { b: 2, a: 1 }, { a: 1, b: 2 },
     { a: undefined, b: fonction, c: null }, { c: null }, creux, [null, 1], [1, null], '\\u0000"[]{}', { toJSON: () => ({ b: 2, a: 1 }) },
     'S3:L;', 'L;', 'N7;', '7', 7, [7], { a: 7 }, [['a', 7]], [8], [], {}, true, 'B1;', new Proxy(['enfant', 7], {}), ['enfant', 7]]
-  const projection = (c, ds) => c.cleCanonique(({ interner }) => ds.map(interner), null, null)
-  const paires = (c) => descripteurs.flatMap((x, i) => descripteurs.map((y, j) => ({ nom: `${i},${j}`, cle: projection(c, [['d', x], ['d', y]]), oracle: JSON.stringify([['d', x], ['d', y]]) })))
-  for (const regime of regimes) partition(paires(clesCanoniques(regime)), `projection ${JSON.stringify(regime)}`)
+  const atteignables = [[regimes[0], [{}, { strict: true }, { strict: true, cellules: true }]],
+    [regimes[1], [{ strict: true }, { strict: true, cellules: true }, { strict: true, cellules: true, formesCompletes: false }]],
+    [regimes[2], [{ strict: true, cellules: true, formesCompletes: false }]]]
+  const projection = (c, ds, options) => c.cleCanonique(({ interner, tuple }) => interner(tuple(...ds.map(interner))), null, null, options)
   const circulaire = {}
   circulaire.a = circulaire
   const tableauCirculaire = []
   tableauCirculaire.push(tableauCirculaire)
-  for (const regime of regimes) for (const d of [1n, circulaire, tableauCirculaire]) {
-    assert.throws(() => JSON.stringify([['d', d]]), TypeError)
-    assert.throws(() => projection(clesCanoniques(regime), [['d', d]]), TypeError)
+  for (const [regime, options] of atteignables) for (const option of options) {
+    const c = clesCanoniques(regime)
+    const nom = `projection ${JSON.stringify(regime)} ${JSON.stringify(option)}`
+    partition(descripteurs.flatMap((x, i) => descripteurs.map((y, j) => ({ nom: `${i},${j}`, cle: projection(c, [['d', x], ['d', y]], option), oracle: JSON.stringify([['d', x], ['d', y]]) }))), nom)
+    for (const d of [1n, circulaire, tableauCirculaire]) {
+      assert.throws(() => JSON.stringify([['d', d]]), TypeError)
+      assert.throws(() => projection(c, [['d', d]], option), TypeError, nom)
+    }
   }
-  t.diagnostic('Partition des clés = partition du JSON : arguments, valeurs, mutations, provenance, accesseur et projections, dans chaque régime atteignable')
+  t.diagnostic('Partition des clés = partition de la valeur complète (formes et contextes entiers) et du JSON des projections, dans chaque régime et option atteignables')
 })
 
 
