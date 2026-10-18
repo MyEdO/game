@@ -123,12 +123,35 @@ function chemins(dossier, sessionId) {
   identite(sessionId)
   return { journal: join(dossier, `${sessionId}.codex.jsonl`), stderr: join(dossier, `${sessionId}.codex.stderr.log`) }
 }
-export function projeterJournalCodex(journal, echo = (texte) => process.stdout.write(texte)) {
+export function projeterJournalCodex(journal, echo = process.stdout, diagnostic = () => {}) {
   const bloc = Buffer.alloc(16 * 1024), limiteLecture = 256 * 1024
-  let position = 0, morceaux = [], longueur = 0, reprise, threadId, turnId
+  let position = 0, morceaux = [], longueur = 0, reprise, threadId, turnId, suspendue = false, fermee = false, ecritures = 0, nettoyage
+  const flux = typeof echo === 'function' ? null : echo
+  function suspendre(e) {
+    if (suspendue) return
+    suspendue = true
+    clearImmediate(reprise)
+    morceaux = []; longueur = 0
+    try { diagnostic(e) } catch {}
+  }
+  function nettoyer() {
+    if (fermee && !ecritures && flux) {
+      clearImmediate(nettoyage)
+      nettoyage = setImmediate(() => flux.off('error', suspendre))
+    }
+  }
+  flux?.on('error', suspendre)
   const afficher = (prefixe, texte = '') => {
-    const net = stripVTControlCharacters(String(texte).slice(0, 8192)).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim()
-    echo(`[Codex] ${prefixe}${net ? ` : ${coupeAuMot(net, 4096)}` : ''}\n`)
+    if (suspendue || fermee) return
+    const net = stripVTControlCharacters(String(texte)).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim()
+    const ligne = `[Codex] ${prefixe}${net ? ` : ${coupeAuMot(net, 4096)}` : ''}\n`
+    if (!flux) echo(ligne)
+    else {
+      ecritures++
+      try {
+        flux.write(ligne, (e) => { ecritures--; if (e) suspendre(e); nettoyer() })
+      } catch (e) { ecritures--; throw e }
+    }
   }
   function projeter(x) {
     const n = x.notification, p = n?.params, item = p?.item
@@ -162,10 +185,16 @@ export function projeterJournalCodex(journal, echo = (texte) => process.stdout.w
   function lire() {
     clearImmediate(reprise)
     reprise = undefined
+    if (suspendue || fermee) return
+    try { lireJournal() } catch (e) { suspendre(e) }
+  }
+  function lireJournal() {
     if (!existsSync(journal)) return
     const fd = openSync(journal, 'r')
     try {
-      const taille = fstatSync(fd).size
+      const stat = fstatSync(fd)
+      if (!stat.isFile()) throw Error('Journal de projection non régulier')
+      const taille = stat.size
       let budget = limiteLecture
       while (position < taille && budget > 0) {
         const n = readSync(fd, bloc, 0, Math.min(bloc.length, budget, taille - position), position)
@@ -175,8 +204,10 @@ export function projeterJournalCodex(journal, echo = (texte) => process.stdout.w
         let debut = 0
         for (let i = 0; i < n; i++) if (bloc[i] === 10) {
           ajouter(bloc.subarray(debut, i))
-          try { projeter(JSON.parse(Buffer.concat(morceaux, longueur).toString('utf8'))) }
+          let entree
+          try { entree = JSON.parse(Buffer.concat(morceaux, longueur).toString('utf8')) }
           catch (e) { if (e instanceof SyntaxError) afficher('Journal', 'ligne JSON invalide'); else throw e }
+          if (entree !== undefined) projeter(entree)
           morceaux = []; longueur = 0; debut = i + 1
         }
         ajouter(bloc.subarray(debut, n))
@@ -184,6 +215,7 @@ export function projeterJournalCodex(journal, echo = (texte) => process.stdout.w
       if (position < taille) reprise = setImmediate(lire)
     } finally { closeSync(fd) }
   }
+  lire.fermer = () => { fermee = true; clearImmediate(reprise); morceaux = []; longueur = 0; nettoyer() }
   return lire
 }
 function lireTransitions(dossier, sessionId) {
@@ -210,7 +242,7 @@ function connexion({ dossier, sessionId, timeoutMs }, commande) {
   return new Promise((resolve, reject) => {
     const socket = createConnection(adresse(dossier, sessionId))
     socket.setEncoding('utf8')
-    const timer = setTimeout(() => finir(refus('transitoire', 'Borne IPC Codex atteinte')), timeoutMs)
+    const timer = setTimeout(() => finir(Object.assign(refus('transitoire', 'Borne IPC Codex atteinte'), { code: 'BORNE_IPC_CODEX' })), timeoutMs)
     let fini = false, tampon = ''
     function finir(erreur, resultat) {
       if (fini) return
@@ -228,7 +260,12 @@ function connexion({ dossier, sessionId, timeoutMs }, commande) {
       if (fin < 0) return
       try {
         const r = JSON.parse(tampon.slice(0, fin))
-        if (r.erreur) finir(Object.assign(new Error(r.erreur), { native: r.native }))
+        if (r.erreur) {
+          if (r.code !== undefined && !(commande.op === 'veiller' && r.code === 'BORNE_IPC_CODEX'
+            && r.erreur === refus('transitoire', 'Borne de veille Codex atteinte').message
+            && Object.keys(r).every((k) => ['erreur', 'code'].includes(k)))) return finir(refus('panne', 'Code de réponse IPC Codex invalide'))
+          finir(Object.assign(new Error(r.erreur), { native: r.native, ...(r.code === 'BORNE_IPC_CODEX' ? { code: r.code } : {}) }))
+        }
         else finir(null, r)
       } catch (e) { finir(refus('panne', `Réponse IPC Codex invalide : ${e.message}`)) }
     })
@@ -271,7 +308,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   const outilsVus = new Set()
   const toursTermines = new Set()
   Object.defineProperties(child, { pid: { get: () => natif.pid }, exitCode: { get: () => natif.exitCode }, signalCode: { get: () => natif.signalCode } })
-  const projeterJournal = projeterJournalCodex(fichiers.journal, echo)
+  const projeterJournal = projeterJournalCodex(fichiers.journal, echo, (e) => appendFileSync(fichiers.stderr, `[Codex] Affichage suspendu : ${e.message}\n`))
   function journal(x) { appendFileSync(fichiers.journal, `${JSON.stringify(x)}\n`); projeterJournal() }
   function cause(e) { if (!premiereCause) premiereCause = e.message || String(e) }
   function publier(type, champs = {}) {
@@ -287,11 +324,12 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     cause(e.message?.startsWith('[') ? e : refus('panne', e.message || String(e)))
     try { publier('erreur', { etat: 'erreur', cause: premiereCause, native: e.native }) } catch (erreur) { cause(erreur); journal({ erreur: erreur.message }) }
   }
-  function requete(method, params) {
+  function requete(method, params, timeoutMs = 20_000) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return Promise.reject(refus('transitoire', `Borne native ${method} atteinte avant émission : échéance de démarrage épuisée`))
     if (mort || natif.stdin.destroyed) return Promise.reject(refus('panne', 'App-server Codex arrêté'))
     return new Promise((resolve, reject) => {
       const id = ++numero
-      const timer = setTimeout(() => { attentes.delete(id); reject(refus('transitoire', `Borne native ${method} atteinte`)) }, 20_000)
+      const timer = setTimeout(() => { attentes.delete(id); reject(refus('transitoire', `Borne native ${method} atteinte`)) }, timeoutMs)
       attentes.set(id, { resolve, reject, timer })
       natif.stdin.write(`${JSON.stringify({ id, method, params })}\n`, (e) => {
         if (e && attentes.delete(id)) { clearTimeout(timer); reject(refus('panne', e.message)) }
@@ -419,6 +457,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   }
   natif.on('error', (e) => { echouer(refus('panne', e.message)); enfantMort(); child.emit('error', e) })
   natif.on('exit', (code, signal) => { sorti = true; clearTimeout(timerArret); enfantMort(); child.emit('exit', code, signal) })
+  natif.on('close', () => projeterJournal.fermer())
   const serveur = createServer((socket) => {
     socket.setEncoding('utf8')
     socket.setTimeout(30_000, () => socket.destroy())
@@ -447,7 +486,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
           abonnement = { depuis: q.depuis, repondre }
           abonnements.add(abonnement)
           socket.setTimeout(q.timeoutMs + 1000)
-          timer = setTimeout(() => repondre({ erreur: refus('transitoire', 'Borne de veille Codex atteinte').message }), q.timeoutMs)
+          timer = setTimeout(() => repondre({ erreur: refus('transitoire', 'Borne de veille Codex atteinte').message, code: 'BORNE_IPC_CODEX' }), q.timeoutMs)
         } else if (q.op === 'envoyer') {
           if (typeof q.jeton !== 'string' || !timingSafeEqual(Buffer.from(empreinte(q.jeton), 'hex'), Buffer.from(carte.empreinteJeton, 'hex'))) throw refus('permission', 'Jeton Codex incorrect')
           messageValide(q.message, q.requestId)
@@ -475,7 +514,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   const pret = (async () => {
     await requete('initialize', { clientInfo: { name: 'wfrp-session', version: '1' }, capabilities: { experimentalApi: true } })
     natif.stdin.write(`${JSON.stringify({ method: 'initialized', params: {} })}\n`)
-    const r = await requete('thread/start', { cwd: carte.worktree })
+    const r = await requete('thread/start', { cwd: carte.worktree }, carte.demarrageJusqua - Date.now())
     if (typeof r?.thread?.id !== 'string') throw refus('panne', 'Réponse thread/start sans identité')
     projection.threadId = r.thread.id
     await demarrerTour(consigne)

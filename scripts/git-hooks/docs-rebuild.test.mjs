@@ -1173,13 +1173,24 @@ test('(i) le détaché de la reconstruction naît sans `GIT_INDEX_FILE` ni jeton
   process.env.WFRP_VERROU_BANC = 'jeton'
   try {
     for (const plateforme of ['linux', 'win32']) {
-      const envs = []
+      const envs = [], helpers = []
       demanderLaReconstruction(racine, { detacher: (opts) => lancerDetache({ ...opts, plateforme,
         detacher: (_node, _argv, options) => { envs.push(options.env); return { pid: 4244, unref: () => {} } },
-        executerSync: (_cmd, _args, options) => { envs.push(options.env); return { stdout: '4244\n', stderr: '' } },
+        executerSync: (_cmd, _args, options) => {
+          helpers.push(options.env)
+          envs.push(Object.fromEntries(JSON.parse(options.input).environment.map((entree) => {
+            const egal = entree.indexOf('=')
+            return [entree.slice(0, egal), entree.slice(egal + 1)]
+          })))
+          return { status: 0, stdout: JSON.stringify({ ReturnValue: 0, ProcessId: 4244 }), stderr: '' }
+        },
       }) })
       assert.equal(envs.length, 1, plateforme)
-      assert.deepEqual(['GIT_INDEX_FILE' in envs[0], 'WFRP_VERROU_BANC' in envs[0], envs[0].PATH === process.env.PATH], [false, false, true], plateforme)
+      const pathDe = (env) => Object.entries(env).find(([cle]) => cle.toUpperCase() === 'PATH')?.[1]
+      assert.ok(pathDe(process.env), 'PATH du processus de test')
+      for (const env of [...envs, ...helpers]) {
+        assert.deepEqual(['GIT_INDEX_FILE' in env, 'WFRP_VERROU_BANC' in env, pathDe(env) === pathDe(process.env)], [false, false, true], plateforme)
+      }
     }
   } finally {
     for (const [cle, valeur] of Object.entries(avant)) {

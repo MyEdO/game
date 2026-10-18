@@ -9,7 +9,9 @@
 // faits de seuls blancs et les expressions JSX vides `{/* … */}` sautés), une constante `const`
 // littérale nommée à la place de l'ellipse, et une coupe liée à une `const` puis ellipsée sous ce nom.
 // Un nom se résout par son SYMBOLE (vérificateur de TypeScript sur le seul fichier) :
-// un homonyme d'une autre portée n'est pas lui. HORS PORTÉE : une coupe passée en argument, rendue par
+// un homonyme d'une autre portée n'est pas lui. #2528 : pré-coupe transmise à coupeAuMot,
+// directement ou par une constante locale, sous des appels et des accès chaînés.
+// HORS PORTÉE : une coupe rendue par
 // une fonction, liée à un `let` ou un `var`, ou ellipsée dans un autre fichier ; une constante importée.
 
 import { analyserCorpus, typescript } from './dialecte.mjs'
@@ -69,10 +71,18 @@ export function coupesAuCaractere(fichiers) {
         return vu
       }
       /** Tableau de CARACTÈRES : `[...s]` ou `Array.from(s)`. */
-      const tableauDeCaracteres = (n) =>
-        (ts.isArrayLiteralExpression(n) && n.elements.length === 1 && ts.isSpreadElement(n.elements[0]))
-        || (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'from'
-          && ts.isIdentifier(n.expression.expression) && n.expression.expression.text === 'Array' && n.arguments.length === 1)
+      const tableauDeCaracteres = (n, vus = new Set()) => {
+        if (ts.isParenthesizedExpression(n)) return tableauDeCaracteres(n.expression, vus)
+        if (ts.isIdentifier(n)) {
+          const decl = constanteDe(n)
+          if (!decl?.initializer || vus.has(decl)) return false
+          vus.add(decl)
+          return tableauDeCaracteres(decl.initializer, vus)
+        }
+        return (ts.isArrayLiteralExpression(n) && n.elements.length === 1 && ts.isSpreadElement(n.elements[0]))
+          || (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'from'
+            && ts.isIdentifier(n.expression.expression) && n.expression.expression.text === 'Array' && n.arguments.length === 1)
+      }
       /** L'expression de texte qui emporte `depart` ; `caracteres` : `depart` est un tableau de caractères. */
       const englobant = (depart, caracteres) => {
         let n = depart
@@ -115,11 +125,63 @@ export function coupesAuCaractere(fichiers) {
         visite(racine)
         return vu
       }
+      const estTableau = (n, vus = new Set()) => {
+        if (ts.isParenthesizedExpression(n)) return estTableau(n.expression, vus)
+        if (ts.isArrayLiteralExpression(n) || tableauDeCaracteres(n)) return true
+        if (!ts.isIdentifier(n)) return false
+        const decl = symbole(n)?.valueDeclaration?.resolve()
+        if (!decl || vus.has(decl)) return false
+        vus.add(decl)
+        return (decl.type && (ts.isArrayTypeNode(decl.type) || ts.isTupleTypeNode(decl.type)))
+          || (decl.initializer && estTableau(decl.initializer, vus))
+      }
+      const destination = (depart, caracteres = false) => {
+        let n = depart
+        while (n.parent) {
+          const p = n.parent
+          if (ts.isFunctionLikeDeclaration(p) || ts.isStatement(p)) return undefined
+          if (ts.isCallExpression(p) && ts.isIdentifier(p.expression) && p.expression.text === 'coupeAuMot'
+            && p.arguments[0] === n) return caracteres ? undefined : { appel: p }
+          if (ts.isPropertyAccessExpression(p) && p.expression === n && p.name.text === 'join') {
+            const appel = p.parent
+            if (!caracteres || !ts.isCallExpression(appel) || appel.arguments.length !== 1
+              || !ts.isStringLiteral(appel.arguments[0]) || appel.arguments[0].text !== '') return undefined
+            caracteres = false
+          }
+          if (ts.isVariableDeclaration(p)) {
+            return p.initializer === n && ts.isIdentifier(p.name) && (p.parent.flags & ts.NodeFlags.Const)
+              ? { constante: p, caracteres } : undefined
+          }
+          n = p
+        }
+        return undefined
+      }
+      const precoupeAuMot = (coupe) => {
+        const caracteres = tableauDeCaracteres(coupe.expression.expression)
+        if (estTableau(coupe.expression.expression) && !caracteres) return false
+        const vus = new Set()
+        const transmise = (depart, tableau) => {
+          const cible = destination(depart, tableau)
+          if (cible?.appel) return true
+          if (!cible?.constante || vus.has(cible.constante)) return false
+          vus.add(cible.constante)
+          let trouve = false
+          const visiteUsage = (n) => {
+            if (trouve) return
+            if (ts.isIdentifier(n) && n !== cible.constante.name && constanteDe(n) === cible.constante
+              && transmise(n, cible.caracteres)) trouve = true
+            else n.forEachChild(visiteUsage)
+          }
+          visiteUsage(racine)
+          return trouve
+        }
+        return transmise(coupe, caracteres)
+      }
       const visite = (n) => {
         if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && COUPES.has(n.expression.name.text)
           && n.arguments.length === 2 && ts.isNumericLiteral(n.arguments[0]) && n.arguments[0].text === '0') {
           const caracteres = tableauDeCaracteres(n.expression.expression)
-          if (ellipse(n, caracteres) || ellipseeParSonNom(englobant(n, caracteres)))
+          if (ellipse(n, caracteres) || ellipseeParSonNom(englobant(n, caracteres)) || precoupeAuMot(n))
             sites.push(`${fichier.rel}:${racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1}`)
         }
         n.forEachChild(visite)

@@ -45,7 +45,6 @@ public static class SessionTerminal {
   [SessionJob]::Run($Node, $CommandLine, $Worktree, $TimeoutMs)
 } catch {
   $diagnostic = '[session JobHost] ' + $_.Exception.Message
-  if ($diagnostic.Length -gt 4096) { $diagnostic = $diagnostic.Substring(0, 4096) }
   [Console]::Error.WriteLine($diagnostic)
   try { [System.IO.File]::WriteAllText((Join-Path $Dossier ($SessionId.ToString() + '.jobhost.log')), $diagnostic) } catch { }
   exit 1

@@ -1,6 +1,7 @@
 // DÉTACHEMENT d'un processus node du dépôt (#1784, #2493, #2603). Tout détaché tourne en BelowNormal
 // (`./abaisser-priorite.mjs`, #2603) et n'hérite d'aucun jeton de verrou (`PREFIXE_JETON_VERROU`) ni de l'index d'un hook (`GIT_INDEX_FILE`, #2603).
 import { spawn, spawnSync } from 'node:child_process'
+import { isAbsolute } from 'node:path'
 import { PREFIXE_JETON_VERROU } from '../../test/verrou.mjs'
 import { estPidDeProcessus } from './pid.mjs'
 
@@ -9,9 +10,8 @@ export const ABAISSER_PRIORITE = Object.freeze(['--import', new URL('./abaisser-
 
 /**
  * Un token de ligne de commande Win32 : ce que `CommandLineToArgvW` (donc `node`, donc tout
- * exécutable C) relira comme UN argument. PURE. `Start-Process -ArgumentList` JOINT ses éléments par
- * des espaces SANS les re-citer : sans ce passage, `['arg avec espace']` arrive au train en trois
- * arguments (mesuré le 2026-09-17), et un script dont le CHEMIN porte un espace n'est pas trouvé.
+ * exécutable C) relira comme UN argument. PURE.
+ * https://learn.microsoft.com/cpp/c-language/parsing-c-command-line-arguments
  * Règle Win32 : le token est entouré de guillemets doubles ; les backslashes qui PRÉCÈDENT un
  * guillemet — ou la fin du token — se doublent ; le guillemet interne s'échappe en `\\"`.
  * @param {string} valeur
@@ -41,9 +41,7 @@ export function citerArgv(valeur) {
  * Le seul site de détachement d'un processus node du dépôt (#1784, #2493, #2603). Sous win32,
  * `spawn({ detached: true })` pose `DETACHED_PROCESS` (libuv) : le détaché n'a AUCUNE console, et chacun
  * de ses enfants console (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ;
- * `Start-Process -WindowStyle Hidden` n'en ouvre qu'une, la sienne, CACHÉE, dont ses enfants héritent. Le pid rendu est celui du NODE détaché (`-PassThru`), jamais celui du `powershell`
- * intermédiaire, qui rend la main aussitôt et meurt sans l'emporter. Aucune redirection n'est demandée à
- * `Start-Process` : le détaché ouvre LUI-MÊME son journal, et `-RedirectStandard*` retiendrait le `powershell` jusqu'à sa fin.
+ * #2528
  * @param {{script:string, args:string[], cwd:string, fdLog:number|'ignore', envSupplementaire?:Record<string,string>,
  *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
  * @returns {number|undefined} pid du processus NODE détaché
@@ -59,30 +57,35 @@ export function lancerDetache({
   detacher = spawn,
   executerSync = spawnSync,
 }) {
-  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.toUpperCase().startsWith(PREFIXE_JETON_VERROU) && cle.toUpperCase() !== 'GIT_INDEX_FILE'))
+  const autorisee = ([cle]) => !cle.toUpperCase().startsWith(PREFIXE_JETON_VERROU) && cle.toUpperCase() !== 'GIT_INDEX_FILE'
+  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(autorisee))
   const argv = [...ABAISSER_PRIORITE, script, ...args]
   if (plateforme !== 'win32') {
     const enfant = detacher(node, argv, { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })
     enfant.unref()
     return enfant.pid
   }
-  const cite = (valeur) => `'${String(valeur).replace(/'/g, "''")}'`
-  const liste = argv.map((a) => cite(citerArgv(a))).join(',')
-  const vu = executerSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      `(Start-Process -FilePath ${cite(node)} -ArgumentList ${liste} -WindowStyle Hidden -PassThru).Id`,
-    ],
-    { cwd, env, encoding: 'utf8', windowsHide: true },
-  )
-  const pid = Number(String(vu?.stdout ?? '').trim().split(/\s+/).pop())
-  if (!estPidDeProcessus(pid)) {
-    throw new Error(
-      `[détachement] ${script} : détachement manqué, powershell a rendu « ${String(vu?.stdout ?? '').trim()} » ${String(vu?.stderr ?? '').trim()}`,
-    )
+  if (!isAbsolute(cwd) || !isAbsolute(node)) throw new Error('[détachement] EVALIDATION : cwd et node absolus requis')
+  const commande = [node, ...argv].map(citerArgv).join(' ')
+  // https://learn.microsoft.com/windows/win32/procthread/job-objects
+  const broker = "$ErrorActionPreference='Stop'; [Console]::InputEncoding=[Text.Encoding]::UTF8; [Console]::OutputEncoding=[Text.Encoding]::UTF8; $d=[Console]::In.ReadToEnd() | ConvertFrom-Json; $s=New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{CreateFlags=[uint32]0x01000410; ShowWindow=[uint16]0; EnvironmentVariables=[string[]]$d.environment}; $r=Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=[string]$d.commande; CurrentDirectory=[string]$d.cwd; ProcessStartupInformation=$s}; @{ReturnValue=$r.ReturnValue; ProcessId=$r.ProcessId} | ConvertTo-Json -Compress"
+  const indetermine = () => new Error('[détachement] EINDETERMINE : ' + script + ' ; un train peut déjà vivre, ne pas relancer sans enquête')
+  let vu
+  try {
+    vu = executerSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', broker], {
+      cwd, env: Object.fromEntries(Object.entries(process.env).filter(autorisee)), encoding: 'utf8', windowsHide: true, timeout: 10000,
+      input: JSON.stringify({ commande, cwd, environment: Object.entries(env).map(([cle, valeur]) => cle + '=' + valeur) }),
+    })
+  } catch { throw indetermine() }
+  if (vu?.error || vu?.signal || vu?.status !== 0) throw indetermine()
+  let resultat
+  try { resultat = JSON.parse(String(vu.stdout ?? '')) } catch { throw indetermine() }
+  if (!resultat || typeof resultat !== 'object' || !Number.isInteger(resultat.ReturnValue) || resultat.ReturnValue < 0) throw indetermine()
+  if (resultat.ReturnValue !== 0) {
+    const code = resultat.ReturnValue
+    const raison = code === 2 || code === 3 ? 'EPERMISSION' : code === 21 ? 'EVALIDATION' : 'EREFUS'
+    throw new Error('[détachement] ' + raison + ' : WMI ReturnValue=' + code + ', refus non retentable')
   }
-  return pid
+  if (!estPidDeProcessus(resultat.ProcessId)) throw indetermine()
+  return resultat.ProcessId
 }
