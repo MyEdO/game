@@ -739,7 +739,7 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 62` (l.248) → `a-enroulement`, `a-poudre-noire`, `a-repetition`, `availableHealModes`, `doc`, `assommante`, `lodgedAmmoCount`, `defensive`, `au-contact-roll`, `arbalete`, +52 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/qualities.json`, `src/data/regles.json`, +17 fichiers
 - `LDB 63` (l.13, l.19, l.21, l.30-32, l.78) → `repairCostBrass`, `doc`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `ActiveEffect`, +49 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +10 fichiers
 - `AA 7` (l.25-79, l.82-104) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `fr`, `pendant`, `rederiveAttack`, `finishDefenseResult`, `CritEscalation`, `useAttackJetProps`, `Formula`, +91 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +14 fichiers
-- `EDO 11` (l.196, l.237-240) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, +8 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/data/trappings.json`, `src/engine/corruption.ts`, +3 fichiers
+- `EDO 11` (l.196, l.237-240) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `OpFields`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +8 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/data/trappings.json`, `src/engine/corruption.ts`, +3 fichiers
 - sans code : `ADE II 4` (l.349), `AU1 4` (l.18), `NADJ 8` (l.263)
 
 ---
@@ -2675,7 +2675,7 @@ Certaines sources naturelles de PA **ne peuvent pas servir à la Déviation Crit
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 62` (l.307) → `InitiativeStripProps`, `canActFirst`, `freeActFirst`, `resolveQualities`, `defensive`, `devastatrice`, `useAttackJetProps`, `empaleuse`, `CampaignView`, `rapideParryMod`, +34 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, +8 fichiers
 - `LDB 63` (l.7-15, l.18-27, l.30-32, l.38-61, l.63-66, l.73-74, l.77-78, l.85-86, l.89-90, l.92) → `repairCostBrass`, `itemRepairCostBrass`, `doc`, `repairCost`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `sacs-et-contenants`, `RegimeDePorteur`, +67 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +13 fichiers
-- `EDO 11` (l.192-196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
+- `EDO 11` (l.192-196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `OpFields`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
 
 ---
 
@@ -3070,7 +3070,7 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 - `ZI 14` (l.1013-1035, l.1037-1087) → `ethere`, `fouissement` — `src/data/traits.json`
 - `MSRC 15` (l.119-128, l.133-135, l.138-163) → `placeCombatant`, `useTestJetProps`, `capriciousDR`, `effectiveMovement`, `PendingTest`, `DECLARATIONS_D_OPS`, `PerSL`, `offTerrainOps`, `offTerrainMoveCap`, `hasNoRun`, +12 — `src/data/creatures.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/encumbrance.ts`, `src/engine/ops.ts`, `src/engine/social.ts`, +6 fichiers
 - `EDO 1` (l.271-290) → `edo-fhluger-dagh`, `edo-lukas` — `src/scenes/diligence/diligence-projet.json`
-- `EDO 11` (l.172-243) → `plancher`, `Formula`, `DECLARATIONS_D_OPS`, `Condition`, `resoudrePlancher`, `engagedAdvantageLead`, `gonflement`, `GameOp`, `EffectTargeting`, `chair-necrosee`, +15 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, +7 fichiers
+- `EDO 11` (l.172-243) → `plancher`, `Formula`, `DECLARATIONS_D_OPS`, `Condition`, `resoudrePlancher`, `engagedAdvantageLead`, `gonflement`, `GameOp`, `EffectTargeting`, `OpFields`, +15 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, +7 fichiers
 - sans code : `EDO 7` (l.320-348), `EDO 9` (l.517-574)
 
 ---
