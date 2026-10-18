@@ -15,7 +15,7 @@
 .voyage-tile-value { font-weight: 600; font-size: 0.94em; }
 .voyage-master { flex: 1 1 auto; }
 .voyage-chronicle { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.voyage-day-card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; text-align: left; cursor: pointer; }
+.voyage-day-card { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; text-align: left; cursor: pointer; }
 .voyage-day-card.active { border-color: var(--accent); }
 .voyage-day-card.current { font-style: italic; }
 .voyage-seal { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); font-weight: 700; font-size: 0.85em; }
