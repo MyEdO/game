@@ -182,6 +182,9 @@ export function lireWorkflow(texte, fichier) {
 // `agentType` littéral qui nomme un type déclaré), et DÉPÔT (`regimes` : étages et modèles), que la
 // porte seule fournit.
 
+/** Plafond de `meta.description` : celui de la description d'un skill. #2726 */
+export const LONGUEUR_MAX_DESCRIPTION = 1024
+
 /** Un littéral de chaîne sans substitution. PUR. */
 export const estTexte = (n) => {
   const ts = typescript()
@@ -443,6 +446,9 @@ export function analyser(source, fichier, tables = TABLES, calibrage, fiches) {
     for (const champ of ['name', 'description']) {
       const p = propriete(meta, champ);
       if (!p || !estTexte(p.initializer)) dire('meta', p ?? meta, `meta.${champ} absent ou non littéral`);
+      else if (champ === 'description' && p.initializer.text.length > LONGUEUR_MAX_DESCRIPTION) {
+        dire('meta', p, `meta.description de ${p.initializer.text.length} caractères pour ${LONGUEUR_MAX_DESCRIPTION} au plus — la surface qui liste les workflows comme skills la tronque`);
+      }
     }
     const phases = propriete(meta, 'phases');
     if (!phases || !ts.isArrayLiteralExpression(phases.initializer)) {

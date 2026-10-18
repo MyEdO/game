@@ -45,7 +45,7 @@ test('feuille répartiteur : helper production refuse liens et erreurs Pre avant
       const sortie = (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX, resoudrePatch })).sortie?.hookSpecificOutput
       assert.equal(sortie.permissionDecision, 'deny')
       assert.match(sortie.permissionDecisionReason, code === 'lien' ? /feuille symbolique/ : new RegExp(`feuille illisible.*${code}`))
-      assert.match(sortie.permissionDecisionReason, /ctx_patch.*préimage ancrée/)
+      assert.match(sortie.permissionDecisionReason, /canal prescrit : un `apply_patch` dont chaque fichier nomme son chemin et dont la préimage est celle du disque/)
       assert.equal(readFileSync(join(racine, 'f'), 'utf8'), 'avant\n')
     }
   } finally { rmSync(racine, { recursive: true }) }
@@ -126,7 +126,8 @@ test('apply_patch : Delete et Move ne contournent ni suivi ni .superpowers ; err
       const refuse = await specifiqueNatif(patchNatif(corps, racine))
       assert.equal(refuse.permissionDecision, 'deny')
       assert.match(refuse.permissionDecisionReason, /non jugeable.*apply_patch/)
-      assert.match(refuse.permissionDecisionReason, /ctx_patch/)
+      assert.match(refuse.permissionDecisionReason, /^\[validation · non retentable\] .*canal prescrit : un `apply_patch`/)
+      assert.doesNotMatch(refuse.permissionDecisionReason, /ctx_/, 'un refus d’apply_patch ne prescrit aucun outil lean-ctx, peut-être absent')
     }
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })

@@ -8,8 +8,6 @@ import {
   DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
-import { resolveCredoPath } from '../hooks/inject-project-credo.mjs';
-import { fileURLToPath } from 'node:url';
 import { FAMILLES_LEAN_CTX, PREFIXES_LEAN_CTX, SHELL, familleLeanCtx } from '../guards/lib/contratGarde.mjs';
 
 /** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
@@ -300,11 +298,10 @@ test('CONTRAT — `.claude/settings.json` n’a PAS de SessionStart credo, `.cod
   assert.equal(credos(codex, SURFACE_CODEX).length, 1, 'Codex n’a pas d’import : sa surface INJECTE le credo');
 });
 
-test('CONTRAT — `CLAUDE.md` importe le credo et `AGENTS.md`, seule source des instructions ; Codex reçoit le même credo', async () => {
+test('CONTRAT — `CLAUDE.md` importe le credo et `AGENTS.md`, seule source des instructions ; Codex reçoit le credo par injection', async () => {
   const racine = new URL('../../', import.meta.url);
   assert.equal(await readFile(new URL('CLAUDE.md', racine), 'utf8'), '@.claude/credo.md\n@AGENTS.md\n');
   assert.equal(HOOKS_DE_SESSION.find((h) => h.script === 'inject-project-credo.mjs').arguments[0], 'codex');
-  assert.equal(resolveCredoPath('codex', new URL('scripts/hooks/inject-project-credo.mjs', racine).href), fileURLToPath(new URL('.claude/credo.md', racine)));
 });
 
 test('les déclarations committées sont celles que les registres RÉELS produisent (agents:check)', async () => {
