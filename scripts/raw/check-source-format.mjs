@@ -78,7 +78,7 @@ export const RACINE_SOURCE = 'Source'
 
 /** Préfixes des dossiers FRANÇAIS suivis de `Source/`. La garde couvre en plus tout livre à `dir`
  *  de `books.json`, quel que soit son préfixe (`dossiersFR`). Le reste de `Source/` est la VO du
- *  dépôt parent MJ, hors de cette garde ; son unique livre citable est nommé au CLAUDE.md
+ *  dépôt parent MJ, hors de cette garde ; son unique livre citable est nommé au AGENTS.md
  *  § Sources VF. */
 export const PREFIXES_FR = [
   'Warhammer v4 - ',

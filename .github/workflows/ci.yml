@@ -161,6 +161,10 @@ jobs:
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:corpus
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:corpus-isole
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run mods:check
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run livraison:plage

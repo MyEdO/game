@@ -38,12 +38,10 @@ export function citerArgv(valeur) {
 }
 
 /**
- * Le seul site de détachement d'un processus node du dépôt (#1784, #2493, #2603) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses gates, mais sous POSIX
- * seulement (`detached: process.platform !== 'win32'`) : sous win32 elles héritent de la console de
- * l'appelant. Sous win32, `spawn({ detached: true })` pose `DETACHED_PROCESS` (libuv) : le détaché n'a
- * AUCUNE console, et chacun de ses enfants console (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au
- * premier plan ; `Start-Process -WindowStyle Hidden` n'en ouvre qu'une, la sienne, CACHÉE, dont ses
- * enfants héritent. Le pid rendu est celui du NODE détaché (`-PassThru`), jamais celui du `powershell`
+ * Le seul site de détachement d'un processus node du dépôt (#1784, #2493, #2603). Sous win32,
+ * `spawn({ detached: true })` pose `DETACHED_PROCESS` (libuv) : le détaché n'a AUCUNE console, et chacun
+ * de ses enfants console (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ;
+ * `Start-Process -WindowStyle Hidden` n'en ouvre qu'une, la sienne, CACHÉE, dont ses enfants héritent. Le pid rendu est celui du NODE détaché (`-PassThru`), jamais celui du `powershell`
  * intermédiaire, qui rend la main aussitôt et meurt sans l'emporter. Aucune redirection n'est demandée à
  * `Start-Process` : le détaché ouvre LUI-MÊME son journal, et `-RedirectStandard*` retiendrait le `powershell` jusqu'à sa fin.
  * @param {{script:string, args:string[], cwd:string, fdLog:number|'ignore', envSupplementaire?:Record<string,string>,
@@ -61,7 +59,7 @@ export function lancerDetache({
   detacher = spawn,
   executerSync = spawnSync,
 }) {
-  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.startsWith(PREFIXE_JETON_VERROU) && cle !== 'GIT_INDEX_FILE'))
+  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.toUpperCase().startsWith(PREFIXE_JETON_VERROU) && cle.toUpperCase() !== 'GIT_INDEX_FILE'))
   const argv = [...ABAISSER_PRIORITE, script, ...args]
   if (plateforme !== 'win32') {
     const enfant = detacher(node, argv, { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })

@@ -9,7 +9,8 @@ import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ciblesSurDisque, CODE_DIFFERE, CODE_SOURCE_MODIFIEE, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, envDeLaPasse, epoqueDe, operationEnCours } from '../docs/lib/ecrivain-derives.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
@@ -20,7 +21,7 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ATTENTE_GESTES_LOURDS } from '../test/verrouGestesLourds.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
-import { consignant, naissanceDuTenant, nomDesOrphelins, prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { naissanceDuTenant, nomDesOrphelins, prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
@@ -189,7 +190,7 @@ export function servirLesDemandes({
       chemin: chemins.verrou, libelle: 'reconstruction de l’arbre', commande, cwd: racine, horloge, dormir,
       attente: { ...attenteTenant, annoncer: () => {} },
       identite: { ...identite, pasMs: ATTENTE_GESTES_LOURDS.pasMs },
-      estVivant: consignant(chemins.verrou, null, estVivant, horloge, orphelins),
+      estVivant, orphelins,
     })
     if (vu.etat !== 'pris') {
       ecrire(`[reconstruction] ${iso()} verrou de l’arbre tenu à l’échéance : ${vu.message}\n`)

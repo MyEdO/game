@@ -14,7 +14,6 @@
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
 import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
-import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -613,11 +612,11 @@ export const ETAPES = [
       return vue?.etat === 'vert' && vue.tete === ctx.tete && Boolean(vue.detail?.fusion)
     },
     jouer(ctx, journal) {
-      const debut = Date.now()
+      const debut = ctx.maintenant()
       const fin = debut + ctx.options.fileTimeoutMin * 60_000
       // Le compte de la PREMIÈRE issue qui le porte (`fusionDePr`).
       let compte = null
-      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), ...(compte ? { compte } : {}), attenteSecondes: (Date.now() - debut) / 1000 } })
+      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), ...(compte ? { compte } : {}), attenteSecondes: (ctx.maintenant() - debut) / 1000 } })
       const sousLeCompte = (issue) => (issue.compte ? ` sous le compte « ${issue.compte} »` : '')
       const noterLeCompte = (issue) => {
         if (compte || !issue.compte) return
@@ -635,8 +634,8 @@ export const ETAPES = [
       let refus = null
       const refuser = (pr, raison) => { refus = { pr: pr.numero, raison }; demande = null }
       const ecartees = new Set()
-      const patienter = () => attendreSync(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
-      while (Date.now() < fin) {
+      const patienter = () => ctx.dormir(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - ctx.maintenant())))
+      while (ctx.maintenant() < fin) {
         const lu = ctx.lirePr()
         if (!lu.ok) ctx.journaliser(`[publier] file — PR illisible : ${lu.raison}\n`)
         else {

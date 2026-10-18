@@ -5,6 +5,7 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "scripts/**/*.{mjs,mts,ts}",
+    "!scripts/test/lib/**",
     "src/**/*.generated.ts"
   ],
   "project": [

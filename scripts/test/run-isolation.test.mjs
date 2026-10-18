@@ -1,17 +1,229 @@
-// ISOLATION entre arbres et entre sessions (#1679 L1c), deux décisions prises avant tout
-// lancement :
+// ISOLATION entre arbres et entre sessions (#1679 L1c), et lancement de Vitest par `lancerTests`
+// (`scripts/test/run.mjs`) :
 //   · refus d'un outillage NON LOCAL (`scripts/test/run.mjs`, `scripts/typecheck-fast.mjs`) — la
 //     vérification juge le FICHIER que l'appelant va jouer, jamais une résolution de module (qui,
 //     elle, remonte les arbres) ;
-//   · runs qui exigent le verrou de SUITE de `scripts/test/run.mjs` (`verrouDeSuite.mjs`) —
-//     une seule suite complète à la fois.
+//   · verrou machine de `scripts/test/run.mjs` (`verrou.mjs`, #2603) — tout run le prend, filtré
+//     ou non, sauf emprunt explicite ;
+//   · Vitest lancé en processus enfant direct : son code rendu, un arrêt relayé, atelier et verrou
+//     rendus après le `close` de chaque enfant.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { refusOutillageLocal } from '../outillage-local.mjs'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite, verrouRequis } from './verrouDeSuite.mjs'
+import { dirname, join } from 'node:path'
+import { lancerTests } from './run.mjs'
+import { prendreVerrou } from './verrou.mjs'
+import { VARIABLE_PARTIE } from './partition.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+
+/** Vitest de substitution : trace ses arguments dans `TRACE_DOSSIER` (`<côté>-<pid>.json`), puis sort sur
+ *  `FAUX_VITEST_CODE`, ou attend indéfiniment sous `FAUX_VITEST_ATTENTE`. */
+const FAUX_VITEST =
+  "import fs from 'node:fs'\n" +
+  "import path from 'node:path'\n" +
+  "const cote = process.argv.some((a) => a.includes('vitest.jsdom.')) ? 'jsdom' : 'node'\n" +
+  "if (process.env.TRACE_DOSSIER) fs.writeFileSync(path.join(process.env.TRACE_DOSSIER, cote + '-' + process.pid + '.json'), JSON.stringify(process.argv.slice(2)))\n" +
+  "if (process.env.FAUX_VITEST_ATTENTE) setInterval(() => {}, 1000)\n" +
+  "else process.exit(Number(process.env.FAUX_VITEST_CODE ?? 0))\n"
+
+const fixtureRun = (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'run-lancement-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  mkdirSync(join(racine, 'node_modules/vitest'), { recursive: true })
+  writeFileSync(join(racine, 'node_modules/vitest/vitest.mjs'), FAUX_VITEST)
+  const traces = join(racine, 'traces')
+  mkdirSync(traces)
+  const env = { ...process.env, WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536', TRACE_DOSSIER: traces }
+  delete env[VARIABLE_PARTIE]
+  return { racine, traces, verrou: { chemin: join(racine, 'geste.verrou'), libelle: 'fixture' }, env }
+}
+
+/** Fixture partagée node/jsdom : deux fichiers, un par côté, et l'inventaire qui les rend. */
+const fixturePartagee = (t) => {
+  const p = fixtureRun(t)
+  const fichiers = ['moteur.test.ts', 'ecran.test.tsx'].map((n) => join(p.racine, n))
+  fichiers.forEach((f, i) => writeFileSync(f, i ? '// @vitest-environment jsdom\n' : 'export {}'))
+  const inventorier = (_exe, args) => {
+    writeFileSync(args.find((a) => a.startsWith('--json=')).slice(7), JSON.stringify(fichiers.map((file) => ({ file }))))
+    return { status: 0 }
+  }
+  return { ...p, inventorier }
+}
+
+/** Les lancements tracés par le faux Vitest, côté node d'abord : `[côté, pid, argv]`. */
+const lancementsDe = (traces) => readdirSync(traces).sort((a, b) => (a.startsWith('node') ? 0 : 1) - (b.startsWith('node') ? 0 : 1))
+  .map((n) => [n.split('-')[0], Number(n.split('-')[1].slice(0, -5)), JSON.parse(readFileSync(join(traces, n), 'utf8'))])
+
+const relais = () => ['SIGINT', 'SIGTERM'].map((s) => process.listeners(s))
+
+/** L'`enfant` de `lancerTests` : le vrai `spawn`, chaque lancement porté dans `vus` avec, à son `close`, l'état du
+ *  verrou `chemin` (`verrouALaFermeture`). */
+const espionDe = (vus, chemin) => (...a) => {
+  const p = spawn(...a)
+  const vu = { pid: p.pid, ferme: false, verrouALaFermeture: null }
+  vus.push(vu)
+  p.on('close', () => { vu.ferme = true; vu.verrouALaFermeture = existsSync(chemin) })
+  return p
+}
+
+/** Dès que `attendus` Vitest sont tracés, `sig` passe aux seuls écouteurs que le lancement a posés depuis `avant`
+ *  (`relais()`) ; au-delà de `echeanceMs` sans relais posé, les enfants de `vus` sont tués à la main et `etat.relaye`
+ *  reste `false`. */
+const signalerAuxRelais = ({ traces, attendus, sig, avant, vus, etat, echeanceMs = 10000 }) => {
+  const debut = Date.now()
+  const guet = setInterval(() => {
+    if (readdirSync(traces).length !== attendus) return
+    const poses = process.listeners(sig).filter((l) => !avant[sig === 'SIGINT' ? 0 : 1].includes(l))
+    if (!poses.length && Date.now() - debut < echeanceMs) return
+    clearInterval(guet)
+    etat.nes = Date.now()
+    if (!poses.length) { for (const { pid } of vus) process.kill(pid); return }
+    etat.relaye = true
+    for (const l of poses) l(sig)
+  }, 10)
+  return guet
+}
+
+test('lancerTests : le code de Vitest est rendu tel quel, verrou rendu, relais retirés', async (t) => {
+  const p = fixtureRun(t)
+  const avant = relais()
+  assert.equal(await lancerTests({ ...p, argv: ['src/un.test.ts'], env: { ...p.env, FAUX_VITEST_CODE: '3' } }), 3)
+  assert.deepEqual(lancementsDe(p.traces).map(([, , argv]) => argv[0]), ['run'])
+  assert.equal(existsSync(p.verrou.chemin), false)
+  assert.deepEqual(relais(), avant)
+})
+
+test('lancerTests : lancement de Vitest impossible rend 1 et rend le verrou', async (t) => {
+  const p = fixtureRun(t)
+  const code = await lancerTests({ ...p, argv: ['src/un.test.ts'], env: { ...p.env, VARIABLE_INVALIDE: 'nul\0' } })
+  assert.equal(code, 1)
+  assert.deepEqual(readdirSync(p.traces), [])
+  assert.equal(existsSync(p.verrou.chemin), false)
+})
+
+test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et verrou rendus après leur close', { timeout: 30000 }, async (t) => {
+  const p = fixturePartagee(t)
+  const controle = new AbortController()
+  const avant = relais()
+  let nes
+  const guet = setInterval(() => {
+    if (readdirSync(p.traces).length !== 2) return
+    nes = Date.now()
+    controle.abort()
+  }, 10)
+  let code
+  try {
+    code = await lancerTests({ ...p, argv: [], signal: controle.signal,
+      env: { ...p.env, WFRP_TEST_COEURS: '16', FAUX_VITEST_ATTENTE: '1' } })
+  } finally { clearInterval(guet) }
+  assert.equal(code, 1)
+  const lancements = lancementsDe(p.traces)
+  assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'])
+  for (const [cote, pid] of lancements) assert.equal(estPidVivantDepuis(pid, nes, IDENTITE_MESUREE), false, cote)
+  assert.deepEqual(readdirSync(join(p.racine, 'node_modules/.vitest-split')), [])
+  assert.equal(existsSync(p.verrou.chemin), false)
+  assert.deepEqual(relais(), avant)
+})
+
+for (const [mode, sig] of [['mono', 'SIGINT'], ['mono', 'SIGTERM'], ['partagé', 'SIGINT'], ['partagé', 'SIGTERM']]) {
+  test(`lancerTests : ${sig} du processus relayé à chaque Vitest (${mode}), verrou rendu après leur close, atelier et relais retirés`, { timeout: 30000 }, async (t) => {
+    const p = fixturePartagee(t)
+    const partage = mode === 'partagé'
+    const avant = relais()
+    const vus = []
+    const etat = { relaye: false, nes: 0 }
+    const guet = signalerAuxRelais({ traces: p.traces, attendus: partage ? 2 : 1, sig, avant, vus, etat })
+    let code
+    try {
+      code = await lancerTests({ ...p, argv: partage ? [] : ['src/un.test.ts'], enfant: espionDe(vus, p.verrou.chemin),
+        env: { ...p.env, WFRP_TEST_COEURS: partage ? '16' : '4', FAUX_VITEST_ATTENTE: '1' } })
+    } finally { clearInterval(guet) }
+    assert.equal(etat.relaye, true, `${sig} relayé par un écouteur du lancement`)
+    assert.equal(code, 1)
+    assert.deepEqual(lancementsDe(p.traces).map(([cote]) => cote), partage ? ['node', 'jsdom'] : ['node'])
+    for (const vu of vus) {
+      assert.equal(estPidVivantDepuis(vu.pid, etat.nes, IDENTITE_MESUREE), false, `pid ${vu.pid}`)
+      assert.deepEqual([vu.ferme, vu.verrouALaFermeture], [true, true], 'le verrou est encore tenu au close de chaque Vitest')
+    }
+    const ateliers = join(p.racine, 'node_modules/.vitest-split')
+    assert.deepEqual(existsSync(ateliers) ? readdirSync(ateliers) : [], [])
+    assert.equal(existsSync(p.verrou.chemin), false)
+    assert.deepEqual(relais(), avant)
+  })
+}
+
+test('lancerTests : une exception levée avec un Vitest vivant le ferme AVANT de rendre le verrou, atelier et relais retirés', { timeout: 30000 }, async (t) => {
+  const p = fixturePartagee(t)
+  const avant = relais()
+  const vus = []
+  let atelier
+  await assert.rejects(lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
+    env: { ...p.env, WFRP_TEST_COEURS: '16', FAUX_VITEST_ATTENTE: '1' },
+    inventorier: (exe, args, options) => {
+      atelier = dirname(args.find((a) => a.startsWith('--json=')).slice(7))
+      mkdirSync(join(atelier, 'vitest.jsdom.config.ts'))
+      return p.inventorier(exe, args, options)
+    } }), (e) => e.code === 'EISDIR')
+  assert.equal(vus.length, 1, 'le Vitest node lancé avant la levée')
+  assert.deepEqual([vus[0].ferme, vus[0].verrouALaFermeture], [true, true], 'fermé verrou encore tenu')
+  assert.equal(existsSync(atelier), false)
+  assert.equal(existsSync(p.verrou.chemin), false)
+  assert.deepEqual(relais(), avant)
+})
+
+test('lancerTests : annulation avant principal interdit aussi inventaire PARTIE', async (t) => {
+  const p = fixtureRun(t)
+  const controle = new AbortController()
+  const env = { ...p.env, WFRP_TEST_PARTIE: '1/2' }
+  let lectures = 0
+  Object.defineProperty(env, 'WFRP_TEST_COEURS', { enumerable: true, get() { if (++lectures === 2) controle.abort(); return '4' } })
+  let inventaires = 0
+  const code = await lancerTests({ ...p, env, signal: controle.signal, argv: [],
+    inventorier: () => { inventaires++; return { status: 1, stdout: '', stderr: '' } } })
+  assert.equal(code, 1)
+  assert.equal(inventaires, 0)
+  assert.deepEqual(readdirSync(p.traces), [])
+  assert.equal(existsSync(p.verrou.chemin), false)
+})
+
+test('lancerTests : bornes validées sur le mode réel et une seule option par enfant', async (t) => {
+  for (const [nom, argv, memoire, attendu, bornes] of [
+    ['camel séparé', ['--maxWorkers', '4'], '17000', 0, [4, 2]],
+    ['camel égal', ['--maxWorkers=4'], '17000', 0, [4, 2]],
+    ['tirets séparés', ['--max-workers', '4'], '17000', 0, [4, 2]],
+    ['tirets égal', ['--max-workers=4'], '17000', 0, [4, 2]],
+    ['inférieur', ['--maxWorkers=1'], '17000', 0, [1, 1]],
+    ['partagé supérieur à mono', ['--maxWorkers=8'], '65536', 0, [8, 5]],
+    ['trop grand partagé', ['--maxWorkers=5'], '17000', 2, []],
+    ['trop grand reporter', ['--reporter=json', '--maxWorkers=8'], '65536', 2, []],
+    ['trop grand config', ['--config=autre.ts', '--maxWorkers=8'], '65536', 2, []],
+    ['trop grand filtre', ['moteur.test.ts', '--maxWorkers=8'], '65536', 2, []],
+    ['doublon camel', ['--maxWorkers', '4', '--maxWorkers=4'], '17000', 2, []],
+    ['doublon mixte', ['--maxWorkers=4', '--max-workers=2'], '17000', 2, []],
+    ['valeur absente', ['--maxWorkers'], '17000', 2, []],
+    ['valeur invalide', ['--max-workers=0'], '17000', 2, []],
+  ]) {
+    const p = fixturePartagee(t)
+    const erreurs = []
+    const error = console.error
+    console.error = (...args) => erreurs.push(args.join(' '))
+    let code
+    try {
+      code = await lancerTests({ ...p, argv, env: { ...p.env, WFRP_TEST_COEURS: '16', WFRP_TEST_MEMOIRE_MO: memoire } })
+    } finally { console.error = error }
+    assert.equal(code, attendu, nom)
+    const lancements = lancementsDe(p.traces).map(([, , args]) => args)
+    assert.deepEqual(lancements.map((a) => Number(a[a.indexOf('--maxWorkers') + 1])), bornes, nom)
+    for (const args of lancements) assert.equal(args.filter((a) => /^--max-?workers/i.test(a)).length, 1, nom)
+    if (attendu === 2) assert.match(erreurs.join('\n'), /CONCURRENCE_SUPERIEURE_CAPACITE|MAX_WORKERS_DUPLIQUE|MAX_WORKERS_INVALIDE/, nom)
+    assert.equal(existsSync(p.verrou.chemin), false, nom)
+  }
+})
 
 test('entrée absente de l’arbre : refus qui NOMME l’arbre, l’outil et la cause', () => {
   const refus = refusOutillageLocal('/arbres/.wt-42', 'vitest', '/arbres/.wt-42/node_modules/vitest/vitest.mjs', () => false)
@@ -38,92 +250,17 @@ test('une entrée présente AILLEURS ne vaut pas présence dans l’arbre', () =
   assert.ok(refus, 'seul le fichier attendu compte')
 })
 
-// ── quels runs prennent le verrou ───────────────────────────────────────────────
-const FICHIERS = new Set(['src/engine/x.test.ts', 'src/ui/y.test.tsx'])
-const estFichier = (t) => FICHIERS.has(t)
-
-test('run SANS filtre : verrou REQUIS', () => {
-  assert.equal(verrouRequis([], estFichier), true)
-})
-
-test('filtre-DOSSIER : verrou REQUIS — `npm test src` énumère la suite entière', () => {
-  assert.equal(verrouRequis(['src'], estFichier), true)
-  assert.equal(verrouRequis(['.'], estFichier), true)
-  assert.equal(verrouRequis(['src/engine'], estFichier), true)
-})
-
-test('filtres-FICHIERS : verrou LIBRE, même à plusieurs', () => {
-  assert.equal(verrouRequis(['src/engine/x.test.ts'], estFichier), false)
-  assert.equal(verrouRequis(['src/engine/x.test.ts', 'src/ui/y.test.tsx'], estFichier), false)
-})
-
-test('un seul filtre-DOSSIER parmi des fichiers suffit à exiger le verrou', () => {
-  assert.equal(verrouRequis(['src/engine/x.test.ts', 'src'], estFichier), true)
-})
-
-// ── la prise du verrou de suite par `run.mjs` (#2187) ─────────────────────────────────────────
-// Sur le disque réel, sous un `mkdtempSync` : un tenant FACTICE (`estVivant` injecté), une horloge et un
-// sommeil factices — l'attente se mesure sans attendre.
-
-/** Un dossier jetable portant un verrou tenu par le PID 1234 ; `verrou` = `VERROU_SUITE` à ce chemin. */
-function verrouTenu() {
-  const dossier = mkdtempSync(join(tmpdir(), 'verrou-suite-'))
-  const chemin = join(dossier, 'suite.lock')
-  writeFileSync(chemin, JSON.stringify({ pid: 1234, cwd: '/arbres/Game' }))
-  return { dossier, chemin, verrou: { ...VERROU_SUITE, chemin } }
-}
-
-function tempsFactice(apres = {}) {
-  const t = { ms: 0, sommeils: [] }
-  t.horloge = () => t.ms
-  t.dormir = (ms) => {
-    t.sommeils.push(ms)
-    t.ms += ms
-    apres[t.sommeils.length]?.()
-  }
-  return t
-}
-
-test('#2187 — run.mjs ATTEND la suite d’un autre arbre : annonce le tenant à chaque pas, prend à sa mort', () => {
-  const { dossier, chemin, verrou } = verrouTenu()
-  try {
-    let vivant = true
-    const temps = tempsFactice({ 2: () => { vivant = false } })
-    const annonces = []
-    const pris = prendreVerrouDeSuite({
-      env: {}, verrou, commande: 'npm test', cwd: '/arbres/.wt-1',
-      annoncer: (tenant) => annonces.push(attenteDeSuite(tenant)),
-      estVivant: (p) => p !== 1234 || vivant, dormir: temps.dormir, horloge: temps.horloge,
-    })
-    assert.equal(pris.etat, 'pris')
-    assert.equal(annonces.length, 2)
-    assert.match(annonces[0], /PID 1234, \/arbres\/Game/)
-    assert.deepEqual(temps.sommeils, [VERROU_SUITE.attente.pasMs, VERROU_SUITE.attente.pasMs])
-    assert.equal(JSON.parse(readFileSync(chemin, 'utf8')).cwd, '/arbres/.wt-1')
-    pris.liberer()
-    assert.equal(existsSync(chemin), false)
-  } finally {
-    rmSync(dossier, { recursive: true, force: true })
-  }
-})
-
-test('#2187 — run.mjs : à l’échéance, REFUS qui nomme le tenant et l’opt-out ; opt-out et run filtré ne prennent rien', () => {
-  const { dossier, chemin, verrou } = verrouTenu()
-  try {
-    const temps = tempsFactice()
-    const court = { ...verrou, attente: { pasMs: 10, echeanceMs: 25 } }
-    const refus = prendreVerrouDeSuite({ env: {}, verrou: court, estVivant: () => true, dormir: temps.dormir, horloge: temps.horloge })
-    assert.equal(refus.etat, 'refus')
-    assert.match(refus.message, /1234/)
-    assert.match(refus.message, /WFRP_SUITE_LOCK=0/)
-    assert.deepEqual(temps.sommeils, [10, 10, 5])
-
-    const horsVerrou = prendreVerrouDeSuite({ env: { WFRP_SUITE_LOCK: '0' }, verrou: court, estVivant: () => true })
-    assert.equal(horsVerrou.etat, 'ignore')
-    assert.match(horsVerrou.avertissement, /ne prend pas le verrou de suite \(WFRP_SUITE_LOCK=0\)/)
-    assert.deepEqual(prendreVerrouDeSuite({ requis: false, env: {}, verrou: court }), { etat: 'ignore' })
-    assert.equal(JSON.parse(readFileSync(chemin, 'utf8')).pid, 1234, 'le verrou du tenant reste intact')
-  } finally {
-    rmSync(dossier, { recursive: true, force: true })
-  }
+test('lancerTests : tout filtre prend la même instance, refus sans spawn et emprunt explicite', async (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'run-isolation-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  mkdirSync(join(racine, 'node_modules/vitest'), { recursive: true })
+  writeFileSync(join(racine, 'node_modules/vitest/vitest.mjs'), "process.stdout.write(' Test Files 1 passed (1)\\n')")
+  const verrou = { chemin: join(racine, 'geste.verrou'), libelle: 'fixture', attente: { echeanceMs: 0, pasMs: 1 } }
+  const owner = prendreVerrou(verrou)
+  t.after(() => owner.liberer())
+  const env = { WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536' }
+  assert.equal(await lancerTests({ racine, verrou, env, argv: ['src/un.test.ts'] }), CODE_DIFFERE)
+  assert.equal(existsSync(join(racine, 'node_modules/.cache')), false)
+  assert.equal(await lancerTests({ racine, verrou, env: { ...process.env, ...env, ...owner.env }, argv: ['src/un.test.ts'] }), 0)
+  assert.equal(existsSync(verrou.chemin), true)
 })

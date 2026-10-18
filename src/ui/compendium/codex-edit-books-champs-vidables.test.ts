@@ -21,7 +21,7 @@ import { books } from '../../data/index';
 
 const FILE = 'books.json';
 const entrees = books as unknown as Record<string, unknown>[];
-/** MÊME régime que `CodexEdit.tsx:575` — le banc lit le formulaire que l'écran construit. */
+/** MÊME régime que `src/ui/editor/codex/CodexEdit.tsx` › `AtelierDEntree` — le banc lit le formulaire que l'écran construit. */
 const REGIME = { meta: metaPourFichier(FILE), noeud: noeudObjet(schemaForFile(FILE)) };
 const CHAMPS = inferFields(entrees, REGIME);
 /**

@@ -209,7 +209,7 @@ export interface CodexItem {
   desc?: string;
   /** Raison MAISON de l'entrée (clé d'enveloppe `maison`, `grammaire/document.ts`) : en clair,
    *  d'où vient une valeur qu'aucun folio n'imprime. Projetée par `depuisEnveloppe` et rendue UNE fois
-   *  par `CodexEntry` — c'est la provenance des documents SANS livre (CLAUDE.md règle 7). */
+   *  par `CodexEntry` — c'est la provenance des documents SANS livre (AGENTS.md règle 7). */
   maison?: string;
   source?: CodexSource | null;
   /** Apparence (rig) à prévisualiser dans la fiche : créature, difformité de mutation, trait à visuel. */
@@ -967,7 +967,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
 /** Section « Test imbriqué » d'une entrée miscast (« Résistance Accessible ou Sonné »), palier
  *  `onFailHard` inclus (« si vous échouez avec DR ≤ N → EN PLUS »). */
 function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSection {
-  const who = testSkillLabel({ skill: t.skill, char: t.characteristic as CharKey | undefined }) ?? 'Test';
+  const who = testSkillLabel({ skill: t.skill, char: t.characteristic }) ?? 'Test';
   const rows: CodexRow[] = [
     { t: 'kv', k: 'Test', v: `${who} ${DIFFICULTY_LABELS[t.difficulty as keyof typeof DIFFICULTY_LABELS]}` },
     { t: 'sub', label: 'Échec' },

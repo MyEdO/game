@@ -45,7 +45,7 @@ chacune, réponds dans cet ordre et ARRÊTE-TOI à la première étape qui répo
 - **Le code n'est pas une source** : le comportement actuel n'est pas un argument de règle. Tu ne lis
   `src/` que si l'orchestrateur te demande de comparer.
 - Lecture seule, aucune commande mutante, aucun commentaire de ticket posté.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin ; aucun appel d'outil ne dure plus de 270 s, une commande plus longue part en fond et se sonde (règles du profil `codeur`, garde `scripts/hooks/appel-borne-guard.mjs`).
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.
 
 ## Rendu (données brutes, par partie de la question)
 

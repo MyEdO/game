@@ -26,7 +26,7 @@ import {
 } from '../guards/lib/appelsRunners.mjs'
 import { lireArguments } from '../test/argumentsPerimetre.mjs'
 import {
-  CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
+  CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, passeParLeLanceurLocal, pipelinesDeJetons, sansRedirections,
 } from '../guards/lib/commandeShell.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { fileURLToPath } from 'node:url'
@@ -186,8 +186,8 @@ const CONSIGNE = `Le geste d'auto-contrôle : puce « Auto-contrôle » de \`.cl
  * @returns {string}
  */
 const raisonDuRefus = (geste) =>
-  `[gates-ci] « ${geste} » est une gate de la CI : pousser la branche, puis \`gh run watch\` ` +
-  `ou \`gh run view --log-failed\`. ${CONSIGNE} Un brief qui impose une gate de la CI se refuse : ` +
+  `[gates-ci] « ${geste} » est une gate de la CI : pousser la branche, puis \`npm run ops:ci -- --attendre\` ` +
+  `ou \`npm run ops:ci -- --echecs <run>\`. ${CONSIGNE} Un brief qui impose une gate de la CI se refuse : ` +
   `« BRIEF REFUSÉ : gates hors périmètre ». Une sonde dont la configuration ne peut être vérifiée exige un filtre de fichier explicite.`
 
 /**
@@ -197,6 +197,14 @@ const raisonDuRefus = (geste) =>
  */
 const raisonDuChainage = (geste) =>
   `[gates-ci] « ${geste} » enchaîne \`npm run test:perimetre\` à un autre runner dans un même appel de sous-agent. ${CONSIGNE}`
+
+/**
+ * La raison du refus d'un Vitest lancé directement sur des chemins (#2586).
+ * @param {string} geste la commande refusée, telle qu'écrite
+ * @returns {string}
+ */
+const raisonDuVitestDirect = (geste) =>
+  `[gates-ci] « ${geste} » lance Vitest directement : utiliser \`npm test -- <chemins>\` (\`scripts/test/run.mjs\`). ${CONSIGNE}`
 
 /**
  * Décision PURE du hook.
@@ -280,12 +288,15 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
       }
     }
 
-    // 5. `vitest run` SANS chemin = la suite entière ; avec des chemins = le test du périmètre.
+    // 5. `vitest` lancé directement : SANS chemin = la suite entière ; avec des chemins = `npm test -- <chemins>`, ou le
+    // lanceur local (corps de `test:map`, `package.json`).
     if (appelleVitestNu(segment)) {
       const cibles = argumentsPositionnels(segment, APPEL_VITEST)
         .filter((cible) => cible !== 'run')
       const contexteDuShell = contexte && { ...contexte, repertoireChange }
-      if (!cibles.some(designeUnChemin) && !estSondeVitest(lus, contexteDuShell)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
+      if (estSondeVitest(lus, contexteDuShell)) continue
+      if (cibles.some(designeUnChemin) && passeParLeLanceurLocal(enTete, lus)) continue
+      return { decision: 'deny', reason: (cibles.some(designeUnChemin) ? raisonDuVitestDirect : raisonDuRefus)(gesteNomme(ecrit, brute)) }
     }
 
     // 6. `tsc --noEmit` nu : la porte de vérité full, ~42 s, portée par le train.
@@ -297,7 +308,7 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
 }
 
 export const garde = {
-  nom: 'codeur-gates',
+  nom: 'codeur-gates', categorie: 'métier',
   outils: OUTILS_SHELL,
   evaluer: (entree, contexte) => verdictDe(evaluate({
     sousAgent: sousAgent(entree),

@@ -289,7 +289,9 @@ function main() {
   }
   const entrees = [...vu.worktrees, ...vu.nonInscrits]
   const indeterminees = indetermineesDe(entrees)
-  if (indeterminees.length) process.stdout.write(`mesure processus indéterminée — ${indeterminees.length} processus, refus de chaque arbre mesuré :\n${indeterminees.map((i) => `  ${i}\n`).join('')}\n`)
+  if (indeterminees.length) process.stdout.write(`mesure processus indéterminée — ${indeterminees.length} diagnostics de refus des arbres concernés :\n${indeterminees.map((i) => `  ${i}\n`).join('')}\n`)
+  const horsMesure = [...new Set(entrees.flatMap((w) => w.protection?.horsMesure ?? []))]
+  if (horsMesure.length) process.stdout.write(`processus sans preuve de lien, hors mesure — ${horsMesure.length} diagnostics :\n${horsMesure.map((i) => `  ${i}\n`).join('')}\n`)
   for (const w of entrees) process.stdout.write(`${ligneDInventaire(w)}\n`)
   if (vu.portee) process.stdout.write(vu.portee + '\n')
   const comptes = comptesParClasse(entrees)

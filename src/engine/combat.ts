@@ -888,8 +888,7 @@ export function attackModifiers(
     if (p) out.push({ label: 'Main secondaire', value: p, famille: 'circonstance', ref: RULE_REF['main-secondaire'] });
   }
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : CANAL UNIQUE — le Test d'attaque est physique
-  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat),
-  // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
   // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
   const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
@@ -959,8 +958,7 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
   // neige, ni de malus « maniement deux armes » ; seuls Avantage/État/Sur la défensive s'appliquent.
   if (mode !== 'social' && defender.dualStrikeDefensePenalty) out.push({ label: 'Maniement deux armes', value: -10, famille: 'jet', ref: RULE_REF['combat-deux-armes'] }); // LDB 10 l.767-773
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : le CANAL UNIQUE `weatherTestMods` lit `defender.envWeather`
-  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité) — jamais
-  // recâblé par surface (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
   out.push(...precipitationTestMods(defender.envPrecipitation, defenseTestSkill(mode))); // MDG 13 l.185, #1936
   return out;

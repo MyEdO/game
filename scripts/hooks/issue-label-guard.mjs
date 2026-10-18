@@ -230,4 +230,4 @@ function evaluer(entree) {
   return contexte ? { contexte } : null
 }
 
-export const garde = { nom: 'issue-label', outils: OUTILS_SHELL, evaluer }
+export const garde = { nom: 'issue-label', categorie: 'validation', outils: OUTILS_SHELL, evaluer }

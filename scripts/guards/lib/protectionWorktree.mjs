@@ -2,8 +2,11 @@ import { lstatSync, readFileSync, rmdirSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
-import { liensProcessus, mesurerProcessusWorktrees, sousArbre } from './processusWorktrees.mjs'
-import { listerDossier } from './lister.mjs'
+import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
+import { ancetresValidesDe } from './arbreProcessus.mjs'
+import { prefixeDeRefus } from './categorieDeRefus.mjs'
+import { CACHE_FRAICHEUR } from '../../docs/lib/cache-fraicheur.mjs'
+import { listerDossier, listerEntrees } from './lister.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
 const LARGEUR_DE_CITATION = 160
@@ -15,7 +18,7 @@ const enumeration = (libelle, elements, separateur = ', ') => libelle + ' (' + e
 /** Un processus nommé sur UNE ligne bornée : PID, exécutable, commande coupée au mot. */
 export const designerProcessus = (p) => 'PID ' + p.pid + (p.nom ? ' ' + p.nom : '') + ' — ' + citation(p.commande)
 
-const RECONSTRUCTIBLES = ['node_modules', 'server/node_modules', 'dist', '.vite']
+const RECONSTRUCTIBLES = ['node_modules', 'server/node_modules', 'dist', '.vite', dirname(CACHE_FRAICHEUR).replaceAll('\\', '/')]
 
 export function ignoresAuthores(racine, ignores) {
   const authores = []
@@ -42,32 +45,46 @@ export function ignoresAuthores(racine, ignores) {
   return [...new Set(authores)].sort()
 }
 
-/**
- * `indeterminees` : les processus que la mesure n'a pas su lire, propres à la MACHINE et non à l'arbre —
- * rendus à part pour qu'un inventaire de N arbres les cite une fois ; `refus` en porte le compte, et
- * `ok` reste faux tant qu'il en reste une.
- * @returns {{ok: boolean, refus: string[], indeterminees: string[], portee?: string}}
- */
+/** @returns {{ok: boolean, refus: string[], indeterminees: string[], horsMesure: string[], portee?: string}} */
 export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesurerProcessusWorktrees, etat = etatDeLArbre, sessions } = {}) {
   const refus = []
   const indeterminees = []
+  const horsMesure = []
   const lies = []
   try {
     if (!isAbsolute(chemin)) throw new Error('chemin de worktree non absolu : ' + chemin)
-    const vue = snapshot ?? processus()
+    const vue = porteeProcessus(snapshot ?? processus())
     for (const p of vue.processus) {
+      let liens = []
+      const causes = [...p.erreurs]
       try {
-        const liens = liensProcessus(p, chemin)
-        if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
+        liens = liensProcessus(p, chemin)
       } catch (e) {
-        const liens = liensProcessus(p, chemin, process.platform, { strict: false })
-        if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
-        if (p.proprietaire && p.proprietaire === vue.utilisateur) indeterminees.push('PID ' + p.pid + ' ' + p.nom + ' — ' + citation(e.message))
+        liens = liensProcessus(p, chemin, process.platform, { strict: false })
+        causes.push(e.message)
+      }
+      if (!p.cwd) {
+        for (const ancetre of ancetresValidesDe(p.pid, vue.processus)) {
+          if (!ancetre.cwd) continue
+          let lie = false
+          try { lie = sousArbre(ancetre.cwd, chemin) }
+          catch (e) {
+            causes.push('ancêtre PID ' + ancetre.pid + ' : ' + e.message)
+            lie = liensProcessus({ cwd: ancetre.cwd }, chemin, process.platform, { strict: false }).includes('cwd')
+          }
+          if (lie) liens.push('ancêtre PID ' + ancetre.pid + ' cwd')
+        }
+      }
+      if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
+      if (causes.length) {
+        const diagnostic = prefixeDeRefus('permission') + ' PID ' + p.pid + ' ' + (p.nom ?? '') + (p.image ? ' image=' + p.image : '') + ' : ' + citation([...new Set(causes)].join('; '))
+        ;(liens.length ? indeterminees : horsMesure).push(diagnostic)
       }
     }
-    if (lies.length) refus.push(enumeration('processus liés', lies, ' | '))
-    for (const erreur of vue.erreurs ?? []) indeterminees.push(citation(erreur))
-    if (indeterminees.length) refus.push('mesure processus indéterminée : ' + indeterminees.length + ' processus, cités à part')
+    if (lies.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('processus liés', lies, ' | '))
+    for (const erreur of vue.erreursGlobales) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne') + ' ' + citation(erreur))
+    if (vue.indeterminee && !vue.erreursGlobales.length) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne') + ' ' + citation(vue.indeterminee))
+    if (indeterminees.length) refus.push(indeterminees.join(' | '))
     const arbres = etat(depotDe(chemin), { ignores: true, strict: true })
     const sales = arbres.filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
     if (sales.length) refus.push(enumeration('modifications non commitées', sales))
@@ -76,7 +93,7 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     const commun = dossierGitCommun(depotDe(chemin))
     if (!commun.disponible) throw new Error(commun.raison)
     const dossier = sessions ?? join(commun.valeur, 'sessions')
-    const lues = listerDossier(dossier, { absent: 'vide', avecTypes: true })
+    const lues = listerEntrees(dossier, { absent: 'vide' })
     if (lues.nature === 'other') throw new Error('dossier sessions non répertoire : ' + dossier)
     for (const { nom } of lues.entrees.filter((e) => e.nom.endsWith('.json'))) {
       const fichier = join(dossier, nom)
@@ -93,8 +110,8 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
         if (vivant) refus.push('session ' + fichier + ' — ' + designerProcessus(vivant))
       }
     }
-    return { ok: refus.length === 0, refus, indeterminees, portee: vue.portee }
-  } catch (e) { return { ok: false, refus: [...refus, 'mesure indéterminée : ' + e.message], indeterminees } }
+    return { ok: refus.length === 0, refus, indeterminees, horsMesure, portee: vue.portee }
+  } catch (e) { return { ok: false, refus: [...refus, prefixeDeRefus(e.categorie ?? 'panne') + ' mesure indéterminée : ' + e.message], indeterminees, horsMesure } }
 }
 
 export function retirerResiduelVide(chemin) {

@@ -18,7 +18,7 @@ import type { Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { windsModLine } from '../engine/windsOfMagic';
 import type { GameState } from './store';
-import type { Get } from './flowTypes';
+import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
@@ -27,7 +27,7 @@ import { inBattleId } from './combatants';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
  *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */
-export function touchActors(state: GameState): Partial<GameState> {
+export function touchActors(state: GameState): PatchDeFlux {
   return state.battle ? { battle: { ...state.battle, combatants: [...state.battle.combatants] } } : { party: [...state.party] };
 }
 

@@ -28,6 +28,23 @@ const MODULE_PARENT = 'module.parent';
 const detecte = (source: string) => detectionsDePointDEntree(source).length > 0;
 
 describe('garde de classe — le point d’entrée se lit à import.meta.main', () => {
+  it('les symboles isolent les portées et conservent les captures Node', () => {
+    const source = [
+      'function cli() { const argv = process.argv.slice(2); return argv[1] }',
+      "function gh() { const argv = ['api', 'graphql']; return argv[1] }",
+      'function locale(process, require) { return process.argv[1] || require.main }',
+      'function variable() { const process = { argv: [] }; const require = {}; return process.argv[1] || require.main }',
+      'const argv = process.argv',
+      'function capture() { return argv[1] }',
+      'const lance = process.argv[1]',
+    ].join('\n');
+    const attendu = [6, 7];
+    expect(detectionsDePointDEntree(source).map(s => s.ligne)).toEqual(attendu);
+    for (const analyse of analyserCorpus([{ rel: 'portees.ts', text: source }])) {
+      expect(detectionsDePointDEntree(source, 'portees.ts', analyse).map(s => s.ligne)).toEqual(attendu);
+    }
+  });
+
   it('cas plantés : chaque variante écrite à la main est détectée', () => {
     const variantes = [
       `const principal = ${ARGV}[1] && resolve(${ARGV}[1]) === fileURLToPath(${URL_DU_MODULE})`,
@@ -115,6 +132,7 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
       ["import * as p from 'process'", "if (p['argv'][1] === soi) main()"],
       ['let lance', `[, lance] = ${ARGV}`],
       ['let lance', '({ argv: [, lance] } = process)'],
+      ['let argv', '({ argv } = process)', 'if (argv[1] === soi) main()'],
     ];
     for (const lignes of sources) {
       expect(detectionsDePointDEntree(lignes.join('\n')), lignes.join(' ⏎ ')).not.toEqual([]);
@@ -325,8 +343,9 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
       }
       fichiers.push({ rel, text: texte });
     }
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(fichiers)) {
-      for (const { ligne, extrait } of detectionsDePointDEntree(text, rel, sourceFile!)) offenders.push(`${rel}:${ligne} → ${extrait}`);
+    for (const analyse of analyserCorpus(fichiers)) {
+      const { fichier: { rel, text } } = analyse;
+      for (const { ligne, extrait } of detectionsDePointDEntree(text, rel, analyse)) offenders.push(`${rel}:${ligne} → ${extrait}`);
     }
     expect(offenders, `Détection(s) du point d'entrée écrite(s) à la main — utiliser \`import.meta.main\` :\n${offenders.join('\n')}`).toEqual([]);
   });

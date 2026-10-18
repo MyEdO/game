@@ -1,8 +1,6 @@
 // FERMETURE DES TICKETS SOLDÉS — jouée DEPUIS `main`, après une CI verte, jamais au commit local.
 //
-// Un ticket se ferme quand son correctif est PUBLIÉ, pas quand un commit existe sur une machine :
-// #1685 a été fermé par 8b52f3a55 avant que ce commit n'atteigne `main`, et un commit rebasé au loin
-// ou jamais poussé laisse un ticket fermé sans code (revue du 2026-09-04, écart 10).
+// Un ticket se ferme quand son correctif est PUBLIÉ, pas quand un commit existe sur une machine (#1679 L2 T2).
 // Aucun hook local ne ferme donc de ticket : c'est le job `fermetures` de `fermetures.yml` qui appelle ce
 // script, après lecture des checks requis verts du sha poussé (`scripts/ops/checks-requis.mjs`), sur la
 // plage qui part du dernier commit où ce workflow a RÉUSSI (`baseDeLaPlage`, #2155) : une course rouge,

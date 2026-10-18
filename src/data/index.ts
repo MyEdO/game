@@ -1391,7 +1391,7 @@ export interface CreatureData {
    *  SOURCE UNIQUE de la nommé-ité — ne PAS l'inférer de `title`. Éditable au Codex. */
   named?: boolean;
   folder: string | null;
-  char: Record<string, number | null>;
+  char: Partial<Record<CharKey | 'M' | 'B', number | null>>;
   /** Traits STRUCTURÉS (`TraitInstance[]`) — source app-owned migrée du parsing de chaînes (de-POC).
    *  Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). */
   traits: import('../engine/statEntry').TraitList;
@@ -2394,7 +2394,7 @@ export const traits = traitsJson as TraitData[];
 const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.toLowerCase());
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
  *  `undefined` si le texte ne nomme aucun trait du catalogue. La couture label→id vit ICI, au
- *  CHARGEMENT de la donnée (CLAUDE.md § Pour TOUT agent) : `src/engine` délègue à ce résolveur d'ID
+ *  CHARGEMENT de la donnée (AGENTS.md § Pour TOUT agent) : `src/engine` délègue à ce résolveur d'ID
  *  et ne manipule que des ids ; le runtime résout par `findTraitById`. */
 export const traitIdByLabel = (label: string): string | undefined => traitParLabelMinuscule(label.toLowerCase())?.id;
 const traitParId = indexParId('traits', traits);
@@ -2852,7 +2852,7 @@ export const calendarPhases = calendarPhasesJson as { id: string; type: 'calenda
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
   seasons: { id: string; label: string; ranges: { min: number; max: number; weather: string }[] }[];
-  physicalTestChars: string[];
+  physicalTestChars: CharKey[];
   conditions: {
     id: string; label: string; desc?: string;
     visibiliteM?: number; rangedMod?: number; rangedUseless?: boolean; powderUseless?: boolean;
@@ -3315,7 +3315,7 @@ const qualiteParSlugDeLabel = indexParChamp('qualities', qualities, (q) => slugI
 /** `id` STABLE d'une Qualité depuis un LIBELLÉ saisi à l'AUTHORING (« Solide », « solide »,
  *  « tir-de-zone ») — casse ignorée puis slug du libellé, `undefined` si hors catalogue. La couture
  *  label→id vit ICI, au chargement de la donnée, JAMAIS dans `src/engine`/`src/state`
- *  (CLAUDE.md § Pour TOUT agent) : le moteur ne reçoit qu'un id, résolu par `findQualityById`. */
+ *  (AGENTS.md § Pour TOUT agent) : le moteur ne reçoit qu'un id, résolu par `findQualityById`. */
 export const qualityIdByLabel = (label: string): string | undefined => {
   const q = qualiteParLabelMinuscule(label.toLowerCase()) ?? qualiteParSlugDeLabel(slugId(label));
   if (!q) return undefined;

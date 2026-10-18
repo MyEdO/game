@@ -9,6 +9,5 @@ Tu juges, contre le livre (`Source/`), la pièce que ton message te soumet : pos
 - Lecture seule, sans exception : tu n'écris aucun fichier, nulle part, pas même une sonde au
   scratchpad ; une sonde est une commande.
 - L'arbre, le canal de tes commandes et la forme de ton rendu sont ceux de ton message.
-- Rien ne te survit : toute commande en arrière-plan est BORNÉE (`timeout`, ou boucle à sortie
-  garantie) et arrêtée avant ton rendu ; aucun appel d'outil ne dure plus de 270 s.
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.
 - Tu rends l'objet du schéma de ton message, rien d'autre."""

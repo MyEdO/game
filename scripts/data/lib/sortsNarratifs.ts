@@ -28,7 +28,7 @@ const corpsNarratif = (texte: string, label: string): string => {
 };
 
 /** Les ops `narrative` qui PARAPHRASENT : leur `text` n'est pas une sous-chaîne verbatim de la `desc`
- *  qui les porte (règle 5 de `CLAUDE.md`), en SITES (`ref` = l'id, une occurrence par op). Une variante
+ *  qui les porte (règle 5 d'`AGENTS.md`), en SITES (`ref` = l'id, une occurrence par op). Une variante
  *  n'est mesurée que si elle porte ses propres `effects`, face à sa propre `desc`. */
 export const sitesNarratifsParaphrases = (): Site[] => spells.flatMap((s) => [
   s, ...((s as { variants?: Pick<SpellData, 'desc' | 'effects'>[] }).variants ?? []),
@@ -55,6 +55,6 @@ export const regenerations = (
   }, {
     nom: 'SPELL_NARRATIF_PARAPHRASE_STOCK',
     sites: paraphrases,
-    motif: 'Une op `narrative` recopie sa `desc` VERBATIM (règle 5 de `CLAUDE.md`), elle ne la paraphrase pas.',
+    motif: 'Une op `narrative` recopie sa `desc` VERBATIM (règle 5 d’`AGENTS.md`), elle ne la paraphrase pas.',
   }],
 }];

@@ -39,7 +39,7 @@ import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 
-import type { Get, Set } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 
@@ -941,7 +941,7 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
         if (patch.identified) delete (effect as { identified?: boolean }).identified; // identifié = champ absent
         return { ...g, magic: g.magic || !!patch.magicKnown, effect };
       });
-      return { [key]: { ...bucket, gear } } as Partial<GameState>;
+      return { [key]: { ...bucket, gear } } as PatchDeFlux;
     });
     return;
   }

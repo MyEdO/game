@@ -13,7 +13,8 @@ des juges ») ; un panel repasse derrière toi.\r
   `git stash` d'une autre session, et a conclu « front-only 12/12 » sur un travail bien présent.\r
   Si l'épinglage ne colle pas : ARRÊTE et dis-le.\r
 \r
-- **Le code de sortie se lit hors pipe.** **Aucun appel d'outil ne dure plus de 270 s** (`BORNE_D_APPEL_MS`, garde `scripts/hooks/appel-borne-guard.mjs`, #2596) : ton cache vit 5 min, un appel plus long réécrit tout ton contexte. Une commande qui peut durer plus, `test:perimetre` compris, part EN FOND (`run_in_background: true`) sous la forme que la garde imprime : `rm -f <base>.code; ( <commande> ) > <base>.log 2>&1; echo $? > <base>.code`, `<base>` hors de l'arbre ; puis elle se SONDE par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`), relancée tant qu'elle rend 124 : elle rend dès la fin, avec le code de la commande et la fin de `<base>.log`.\r
+- **Le code de sortie se lit hors pipe.**\r
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.\r
 - Lis d'abord le skill du domaine (`.agents/skills/creer-une-creature/SKILL.md` : conventions de\r
   rig, 3 vues Dir8, ancrages, palettes) et calque la STRUCTURE d'une part voisine bien faite —\r
   jamais un patron inventé.\r

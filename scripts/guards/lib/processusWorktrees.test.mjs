@@ -2,22 +2,102 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, resolve, win32 } from 'node:path'
-import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure } from './processusWorktrees.mjs'
+import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure, classerFiliation, argumentsProcessus } from './processusWorktrees.mjs'
+import { citerArgv } from './lancerDetache.mjs'
 import { litteralJs } from './litteralJs.mjs'
 
 const DRIVE = 'C' + ':'
 
+test('arguments processus Windows : CRT, apostrophe littérale, chaînes vides et aller-retour du canon citerArgv', () => {
+  const valeurs = ['', DRIVE + "\\l'apostrophe\\test avec espace.mjs", 'a"b', 'fin\\', '\\\\"', 'onglet\tinterne', "l'apostrophe", 'a\\ b']
+  const executable = DRIVE + '\\Program Files\\node.exe'
+  assert.deepEqual(argumentsProcessus([citerArgv(executable), ...valeurs.map(citerArgv)].join(' '), 'win32'), [executable, ...valeurs])
+  for (const [commande, attendu] of [
+    [String.raw`node "a b c" d e`, ['node', 'a b c', 'd', 'e']],
+    [String.raw`node "ab\"c" "\\" d`, ['node', 'ab"c', '\\', 'd']],
+    [String.raw`node a\\\b d"e f"g h`, ['node', String.raw`a\\\b`, 'de fg', 'h']],
+    [String.raw`node a\\\"b c d`, ['node', String.raw`a\"b`, 'c', 'd']],
+    [String.raw`node a\\\\"b c" d e`, ['node', String.raw`a\\b c`, 'd', 'e']],
+    [String.raw`node a"b"" c d`, ['node', 'ab" c d']],
+    [String.raw`node a\ b ""`, ['node', 'a\\', 'b', '']],
+  ]) assert.deepEqual(argumentsProcessus(commande, 'win32'), attendu, commande)
+  assert.deepEqual(argumentsProcessus("node 'a b' \"c d\"", 'linux'), ['node', 'a b', 'c d'])
+  assert.deepEqual(liensProcessus({ commande: 'node ' + citerArgv(DRIVE + "\\l'arbre\\test avec espace.mjs") }, DRIVE + "\\l'arbre", 'win32'), ['argument ' + DRIVE + "\\l'arbre\\test avec espace.mjs"])
+})
+
+test('projection mémoire : topologie RSS globale, métadonnées ciblées dans la même vue', () => {
+  const vue = mesurerProcessusWorktrees({ memoireSeulement: true, pidsAInspecter: [process.pid, process.pid], timeout: 2000 })
+  assert.equal(vue.indeterminee, undefined)
+  const courant = vue.processus.find((p) => p.pid === process.pid)
+  assert.equal(courant.ppid, process.ppid)
+  assert.ok(courant.residentOctets > 0)
+  assert.ok(courant.commande)
+  assert.ok(courant.cwd)
+  assert.ok(courant.creation)
+  assert.deepEqual(courant.erreurs, [])
+  const autres = vue.processus.filter((p) => p.pid !== process.pid)
+  assert.ok(autres.length > 0)
+  assert.ok(autres.some((p) => p.residentOctets > 0))
+  assert.ok(autres.every((p) => !p.cwd && !p.commande))
+})
+
 test('#2626 : le mode identités garde PID, parent et création sans lire cwd ni commande', () => {
   const complet = mesurerProcessusWorktrees({ pids: [process.pid] }).processus[0]
+  assert.equal(resolve(complet.image), resolve(process.execPath))
   const leger = mesurerProcessusWorktrees({ pids: [process.pid], identites: true }).processus[0]
   assert.equal(leger.pid, process.pid)
   assert.equal(leger.ppid, process.ppid)
   assert.equal(leger.creation, complet.creation)
   assert.ok(!leger.cwd)
   assert.ok(!leger.commande)
+})
+
+test('collecteur Windows : sélection massive locale, une énumération projetée et échec jamais vide valide', { skip: process.platform !== 'win32' }, () => {
+  const executable = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')
+  const collecteur = fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url))
+  const selection = Array.from({ length: 1500 }, (_, i) => i + 1)
+  const script = String.raw`
+$ErrorActionPreference = 'Stop'
+$global:appels = 0
+function Get-CimInstance {
+  param($ClassName, $Property, $Filter)
+  $global:appels++
+  if ($Filter) { throw 'requete ciblee interdite' }
+  if ($env:ECHEC_CIM) { throw 'panne CIM temoin' }
+  if (@($Property).Count -ne [int]$env:NOMBRE_PROPRIETES) { throw 'projection incorrecte' }
+  1..1501 | ForEach-Object {
+    [pscustomobject]@{ProcessId=$_;ParentProcessId=0;CreationDate=[DateTime]::Parse('2026-10-16T00:00:00Z').ToUniversalTime();WorkingSetSize=4096}
+  }
+}
+$texte = & $env:COLLECTEUR -Pids $env:SELECTION -Identites:([bool]::Parse($env:IDENTITES)) -MemoireSeulement:([bool]::Parse($env:MEMOIRE))
+if ($global:appels -ne 1) { throw 'enumerations multiples' }
+$texte
+`
+  const executer = (memoire, echec = false) => execFileSync(executable, ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], {
+    encoding: 'utf8', timeout: 30_000, windowsHide: true,
+    env: { ...process.env, COLLECTEUR: collecteur, SELECTION: selection.join(','), IDENTITES: String(!memoire), MEMOIRE: String(memoire), NOMBRE_PROPRIETES: '4', ECHEC_CIM: echec ? '1' : '' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  for (const memoire of [false, true]) {
+    const vue = JSON.parse(executer(memoire))
+    assert.deepEqual(vue.processus.map((p) => p.pid), selection)
+    assert.deepEqual(vue.erreurs, [])
+    for (const p of vue.processus) {
+      assert.equal(p.ppid, 0)
+      assert.equal(Date.parse(p.creation), Date.parse('2026-10-16T00:00:00Z'))
+      assert.deepEqual(p.erreurs, [])
+      assert.equal(p.residentOctets, memoire ? 4096 : undefined)
+    }
+  }
+  assert.throws(() => executer(false, true), (erreur) => {
+    assert.notEqual(erreur.status, 0)
+    assert.match(String(erreur.stderr), /panne CIM temoin/)
+    assert.throws(() => JSON.parse(String(erreur.stdout)))
+    return true
+  })
 })
 
 test('jonction réelle extérieure vers arbre : cwd et référence commandée physiques', async () => {
@@ -209,5 +289,17 @@ test('#2603 — création RÉELLE du processus courant : date ISO absolue, à `p
 test('#2603 — mesure BORNÉE : l’échéance atteinte rend une vue `indeterminee`, jamais une exception', () => {
   // win32 : `execFileSync({ timeout: 0 })` n'a pas d'échéance, la borne la plus courte est 1 ms.
   const timeout = process.platform === 'win32' ? 1 : 0
-  assert.match(mesurerProcessusWorktrees({ pids: [process.pid], timeout }).indeterminee, /échéance de \d+ ms atteinte/)
+  const vue = mesurerProcessusWorktrees({ pids: [process.pid], timeout })
+  assert.match(vue.indeterminee, /échéance de \d+ ms atteinte/)
+  assert.equal(vue.code, 'MESURE_PROCESSUS_EXPIREE')
+})
+
+test('filiation : exclusion chronologique précise et qualité d’identité explicite', () => {
+  const parent = { pid: 100, ppid: 1, creation: '2026-10-16T00:00:00.000000002Z' }
+  const etranger = { pid: 200, ppid: 100, creation: '2026-10-16T00:00:00.000000001Z', residentOctets: NaN, erreurs: ['résident illisible'] }
+  assert.equal(classerFiliation(parent, etranger), 'exclue')
+  for (const modification of [{ creation: null }, { erreurs: ['identité illisible'] }, { etat: 'Z' }, { creation: '2026-02-30T00:00:00Z' }]) {
+    const enfant = { ...etranger, erreurs: [], ...modification }
+    assert.equal(classerFiliation(parent, enfant), 'indeterminee')
+  }
 })

@@ -479,10 +479,18 @@ Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWor
 ${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
 la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
-\`scripts/test/run.mjs\`), jamais moins que \`PLANCHER_WORKERS\` quand les cœurs le permettent, une réserve
+\`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs le permettent ; une réserve
 (\`PARENT_MO\`) déduite par processus Vitest. Les variables
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
 de jouer l'autre chemin sur une machine quelconque).
+
+Le périmètre Node utilise \`paquetsDeLancement\` : chemins triés, durées séquentielles estimées sous le budget
+local plafonné à trente minutes, puis limite d'argv. Une durée inconnue, nulle ou trop longue reste seule.
+Plan et exécution partagent ces paquets ; leurs parents s'enchaînent, chacun avec son surcoût. Les profils
+de \`profilsDuLancement\` identifient les acquisitions estimées sur un worker ; l'admission mémoire fraîche
+reste souveraine. \`lancerNodeMesure\` rend la concurrence réellement servie pour apprendre le surcoût.
+Chaque paquet achevé conserve immédiatement ses profils, durées et verdict, même si le suivant est
+interrompu ; une acquisition est une exécution utile, jamais rejouée pour acquérir son profil.
 
 \`src/data/*.json\` (${NB_DATA_JSON} fichiers) est la **SOURCE app-owned** : rien à régénérer après le clone.
 

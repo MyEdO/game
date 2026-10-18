@@ -16,7 +16,7 @@
 // RÉGIME de CŒUR — le prédicat `coeurDe(abbr)` (champ `coeur` de `books.json`) décide du RÉGIME en
 //   deux endroits, et nulle part ailleurs :
 //   R1 un trou dur de Sens A d'un livre de cœur ne se STOCKE pas — il se CORRIGE à l'Atlas
-//      (CLAUDE.md règle 1 : « devoir rouvrir `Source/` est un DÉFAUT DE L'ATLAS à corriger ») ;
+//      (AGENTS.md règle 1 : « devoir rouvrir `Source/` est un DÉFAUT DE L'ATLAS à corriger ») ;
 //   R2 le Sens B2 et son crédit par folio se calculent par livre de cœur (`livresDeCoeur`) — un
 //      supplément n'étant pas couvert fiche à fiche, son « Atlas hors-code » ne dirait rien.
 //   Le même prédicat est relu en LIBELLÉ par `renderReport` (colonne « Cœur », marque « se corrige,
@@ -552,7 +552,7 @@ export function lireStock(path = STOCK_PATH) {
 /** Écart NOMINATIF des trous durs mesurés à leur stock, dans les deux sens (`ecartsDeStock`), PLUS
  *  le refus des livres de CŒUR (R1) : une clé de Sens A `<ABRÉV> <ch>` d'un livre de cœur — trou
  *  observé OU entrée de stock — est refusée, un livre de cœur étant couvert fiche à fiche par
- *  l'Atlas et un chapitre manquant s'y CORRIGEANT (CLAUDE.md règle 1 : « devoir rouvrir `Source/`
+ *  l'Atlas et un chapitre manquant s'y CORRIGEANT (AGENTS.md règle 1 : « devoir rouvrir `Source/`
  *  = un défaut de l'Atlas à corriger »). Le sens B2 n'est pas concerné : il dit l'Atlas hors-code,
  *  pas l'Atlas incomplet.
  *  Pur : aucun exit — l'appelant décide (frontière de `guards/lib/stock.mjs`). */

@@ -4,40 +4,18 @@
 // Le faux binaire évite de payer un vrai run de suite par cas.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, utimesSync, rmSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, utimesSync, rmSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-import { clotureDImports } from '../guards/lib/importGraph.mjs'
+import { join } from 'node:path'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
-const RACINE = fileURLToPath(new URL('../..', import.meta.url)).replace(/[\\/]$/, '')
-
-/** Modules à copier dans le faux dépôt : la CLÔTURE d'imports RELATIFS de `run.mjs`, CALCULÉE
- *  (`clotureDImports`, `scripts/guards/lib/importGraph.mjs`) — jamais une liste tenue à la main. Une
- *  liste à tenir ne dit rien quand elle périme : au premier module partagé neuf (#1679 L3b) l'enfant
- *  mourait en `ERR_MODULE_NOT_FOUND` AVANT d'écrire sa capture, et les sept cas rougissaient sur un
- *  `scandir ENOENT` qui ne nommait pas la cause. */
-function modulesDuLanceur() {
-  return [...clotureDImports(['scripts/test/run.mjs'], { racine: RACINE })].sort()
-}
-
-/** Le faux dépôt n'est pas une SUITE : il ne prend pas le verrou machine du lanceur (#1679 L1c-M7),
- *  qui refuserait la vraie suite d'à côté. L'opt-out lui-même est mesuré par `run-isolation.test.mjs`. */
-const SANS_VERROU = { WFRP_SUITE_LOCK: '0' }
-
-/** Faux dépôt : le lanceur et TOUT ce qu'il importe (sa lib en fait partie), plus un Vitest de
- *  substitution. Ce que ces cas mesurent : la CAPTURE du lanceur — il rend le code de Vitest tel
- *  quel et écrit la sortie complète, même hors d'un dépôt git. */
+/** Faux dépôt : une entrée qui joue `lancerTests` du lanceur réel sur cette racine, sous un verrou
+ *  propre au faux dépôt, plus un Vitest de substitution. Ce que ces cas mesurent : la CAPTURE du
+ *  lanceur — il rend le code de Vitest tel quel et écrit la sortie complète, même hors d'un dépôt git. */
 function fauxDepot(sourceDuFauxVitest) {
   const base = mkdtempSync(join(tmpdir(), 'vitest-run-'))
-  const modules = modulesDuLanceur()
-  assert.ok(modules.includes('scripts/test/run.mjs'), `clôture vide ou sans le lanceur : ${modules.join(', ')}`)
-  for (const rel of modules) {
-    const cible = join(base, ...rel.split('/'))
-    mkdirSync(dirname(cible), { recursive: true })
-    copyFileSync(join(RACINE, ...rel.split('/')), cible)
-  }
+  writeFileSync(join(base, 'entree.mjs'), 'import { lancerTests } from ' + JSON.stringify(new URL('./run.mjs', import.meta.url).href) + '; process.exitCode = await lancerTests({ env: { ...process.env, WFRP_TEST_COEURS: process.env.WFRP_TEST_COEURS ?? "4", WFRP_TEST_MEMOIRE_MO: process.env.WFRP_TEST_MEMOIRE_MO ?? "65536" }, racine: ' + JSON.stringify(base) + ', verrou: { chemin: ' + JSON.stringify(join(base, 'geste.verrou')) + ', libelle: "fixture", attente: { echeanceMs: 0, pasMs: 1 } } })')
   mkdirSync(join(base, 'node_modules', 'vitest'), { recursive: true })
   writeFileSync(join(base, 'node_modules', 'vitest', 'vitest.mjs'), sourceDuFauxVitest, 'utf8')
   return base
@@ -93,14 +71,13 @@ const VITEST_SANS_BILAN = TRACE(
  *  lanceur. Des cœurs forcés sans mémoire forcée gardent une mémoire qui ne borne pas. */
 function lance(base, args = [], coeurs, memoireMo = 65536) {
   const trace = join(base, 'argv.json')
-  const run = spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs'), '--coverage', ...args], {
+  const run = spawnSync(process.execPath, [join(base, 'entree.mjs'), '--coverage', ...args], {
     cwd: base,
     encoding: 'utf8',
     env: {
       ...process.env,
       FORCE_COLOR: '3',
       TRACE_ARGV: trace,
-      ...SANS_VERROU,
       ...(coeurs === undefined
         ? {}
         : { WFRP_TEST_COEURS: String(coeurs), WFRP_TEST_MEMOIRE_MO: String(memoireMo) }),
@@ -210,8 +187,13 @@ test('plafond de charge : injecté par défaut, jamais doublé si l’appelant b
     assert.deepEqual(lance(sansBorne, [], 16).argv.slice(0, 2), ['run', '--maxWorkers=4'])
     // Plafond `min(4, cœurs − 1)` sur le chemin RÉEL du lanceur, pas seulement dans la fonction pure.
     assert.deepEqual(lance(petiteMachine, [], 4).argv.slice(0, 2), ['run', '--maxWorkers=3'])
-    // La mémoire disponible borne sur le chemin RÉEL : 5 000 Mo ne portent qu'un worker, le plancher en sert deux.
-    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 2), ['run', '--maxWorkers=2'])
+    const refus = spawnSync(process.execPath, [join(memoirePauvre, 'entree.mjs'), '--coverage'], {
+      cwd: memoirePauvre, encoding: 'utf8',
+      env: { ...process.env, WFRP_TEST_COEURS: '16', WFRP_TEST_MEMOIRE_MO: '5000', TRACE_ARGV: join(memoirePauvre, 'argv.json') },
+    })
+    assert.equal(refus.status, CODE_DIFFERE)
+    assert.match(refus.stderr, /MEMOIRE_INSUFFISANTE/)
+    assert.equal(existsSync(join(memoirePauvre, 'argv.json')), false)
 
     const borne = lance(avecBorne, ['--maxWorkers=2'], 16)
     assert.equal(borne.run.status, 0, `run en échec : ${borne.run.stdout}${borne.run.stderr}`)
@@ -275,7 +257,7 @@ test('partage node/jsdom : DEUX processus, sorties préfixées par côté, les d
     writeFileSync(cote.node, "import { test } from 'vitest'\ntest('n', () => {})\n", 'utf8')
     writeFileSync(cote.jsdom, '// @vitest-environment jsdom\ntest x\n', 'utf8')
     const trace = join(base, 'argv.json')
-    const run = spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs')], {
+    const run = spawnSync(process.execPath, [join(base, 'entree.mjs')], {
       cwd: base,
       encoding: 'utf8',
       env: {
@@ -283,7 +265,6 @@ test('partage node/jsdom : DEUX processus, sorties préfixées par côté, les d
         TRACE_ARGV: trace,
         WFRP_TEST_COEURS: '16',
         WFRP_TEST_MEMOIRE_MO: '65536',
-        ...SANS_VERROU,
         TRACE_FICHIERS: JSON.stringify([cote.node, cote.jsdom].map((p) => p.split('\\').join('/'))),
       },
     })
@@ -315,10 +296,10 @@ test('bornage du cache : les captures de plus de 7 jours partent, les fraîches 
     const il_y_a_8_jours = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
     utimesSync(vieille, il_y_a_8_jours, il_y_a_8_jours)
 
-    const run = spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs'), '--coverage'], {
+    const run = spawnSync(process.execPath, [join(base, 'entree.mjs'), '--coverage'], {
       cwd: base,
       encoding: 'utf8',
-      env: { ...process.env, TRACE_ARGV: join(base, 'argv.json'), ...SANS_VERROU },
+      env: { ...process.env, TRACE_ARGV: join(base, 'argv.json') },
     })
     assert.equal(run.status, 0, `run en échec : ${run.stdout}${run.stderr}`)
     const restants = readdirSync(cache).filter((n) => /^vitest-run-\d+\.txt$/.test(n))
@@ -347,10 +328,10 @@ test('échec SANS bilan : la cause brute et l’exit sont imprimés, jamais un r
 
 /** Lancement sur la machine de la CI (4 cœurs, donc mono), sans `--coverage`. */
 function lanceMono(base, env = {}, args = []) {
-  return spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs'), ...args], {
+  return spawnSync(process.execPath, [join(base, 'entree.mjs'), ...args], {
     cwd: base,
     encoding: 'utf8',
-    env: { ...process.env, TRACE_ARGV: join(base, 'argv.json'), WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536', ...SANS_VERROU, ...env },
+    env: { ...process.env, TRACE_ARGV: join(base, 'argv.json'), WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536', ...env },
   })
 }
 
@@ -412,5 +393,36 @@ test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, a
     } finally {
       rmSync(base, { recursive: true, force: true })
     }
+  }
+})
+
+test('capture immédiate : flux relayé et fichier lisible avant la fin de Vitest, son code en queue', { timeout: 15000 }, async () => {
+  const base = fauxDepot("import fs from 'node:fs';process.stdout.write('CAPTURE_AVANT_FIN\\n');const attente=setInterval(()=>{if(fs.existsSync(process.env.FIN_FIXTURE)){clearInterval(attente);process.exit(37)}},10)")
+  const liberation = join(base, 'fin-fixture')
+  const enfant = spawn(process.execPath, [join(base, 'entree.mjs'), '--coverage'], {
+    cwd: base, env: { ...process.env, FIN_FIXTURE: liberation }, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let stdout = ''; let stderr = ''
+  enfant.stderr.on('data', (d) => { stderr += d })
+  const ferme = new Promise((ok) => enfant.once('close', (status) => ok(status)))
+  try {
+    await new Promise((ok, non) => {
+      const ecouter = (d) => { stdout += d; if (stdout.includes('CAPTURE_AVANT_FIN')) ok() }
+      enfant.stdout.on('data', ecouter)
+      enfant.once('error', non)
+      ferme.then(() => { if (!stdout.includes('CAPTURE_AVANT_FIN')) non(new Error(stderr + stdout)) })
+    })
+    const cache = join(base, 'node_modules/.cache')
+    const capture = join(cache, readdirSync(cache).find((n) => /^vitest-run-\d+\.txt$/.test(n)))
+    assert.match(readFileSync(capture, 'utf8'), /CAPTURE_AVANT_FIN/)
+    assert.doesNotMatch(readFileSync(capture, 'utf8'), /^status:/m)
+    writeFileSync(liberation, 'fin')
+    assert.equal(await ferme, 37, stderr + stdout)
+    assert.match(readFileSync(capture, 'utf8'), /status: 37\n$/)
+  } finally {
+    writeFileSync(liberation, 'fin')
+    if (enfant.exitCode === null) enfant.kill('SIGTERM')
+    await ferme
+    rmSync(base, { recursive: true, force: true })
   }
 })

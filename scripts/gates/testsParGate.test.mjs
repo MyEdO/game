@@ -12,7 +12,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gatesDeCi } from './gatesDeCi.mjs'
-import { GATES, RACINES, couverture, gateDe, listerTests, testsDe } from './testsParGate.mjs'
+import { GATES, GATES_D_AUDIT, RACINES, couverture, gateDe, listerTests, testsDe } from './testsParGate.mjs'
 import { gitDe, gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
@@ -56,12 +56,16 @@ test('une racine prise par DEUX gates est NOMMÉE rouge', () => {
   assert.equal(gateDe(partage), 'test:hooks', 'la table du dépôt n’a pas bougé')
 })
 
+test('chaque gate d’AUDIT est une gate de la table', () => {
+  assert.deepEqual(GATES_D_AUDIT.filter((gate) => !GATES.includes(gate)), [], 'GATES_D_AUDIT nomme une gate absente de RACINES')
+})
+
 /** Les scripts de `package.json` qui délèguent au lanceur : `{ nom du script -> gate passée }`. */
 function scriptsDuLanceur() {
   const scripts = JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8')).scripts ?? {}
   const par = {}
   for (const [nom, commande] of Object.entries(scripts)) {
-    const m = /^node scripts\/gates\/testsSansEcriture\.mjs\s+(\S+)$/.exec(commande)
+    const m = /^node scripts\/gates\/testsSansEcriture\.mjs\s+(\S+)(?:\s+--[\w-]+(?:=\S+)?)*$/.exec(commande)
     if (m) par[nom] = m[1]
   }
   return par

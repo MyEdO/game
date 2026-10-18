@@ -10,7 +10,7 @@
  * de combat, donc `store.ts` — chaîne runtime MESURÉE par la sonde (c) de
  * `netownership-import-isole.test.ts`. Ces primitives descendent donc ici, et la dépendance va du
  * LOURD vers le LÉGER : `combatOrParty` consomme ce module, jamais l'inverse. Le SEUL import runtime
- * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — CLAUDE.md règle 3) : y
+ * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — AGENTS.md règle 3) : y
  * ajouter un import de `src/state` rouvre la chaîne et rend cette garde ROUGE.
  */
 import { isOutOfAction } from '../engine/conditions';

@@ -8,9 +8,9 @@ import { injectProjectCredo } from './inject-project-credo.mjs';
 test('résout le credo depuis le script, indépendamment du cwd', async () => {
   const root = await mkdtemp(join(tmpdir(), 'credo-'));
   const scriptUrl = new URL(`file:///${join(root, 'scripts/hooks/inject-project-credo.mjs').replaceAll('\\', '/')}`);
-  await mkdir(join(root, '.codex'), { recursive: true });
-  await writeFile(join(root, '.codex/credo.md'), 'Credo Codex\n');
+  await mkdir(join(root, '.claude'), { recursive: true });
+  await writeFile(join(root, '.claude/credo.md'), 'Credo\n');
   let value = '';
   await injectProjectCredo('codex', scriptUrl.href, { write: (chunk) => { value += chunk; } }, { env: {} });
-  assert.equal(value, 'Credo Codex\n');
+  assert.equal(value, 'Credo\n');
 });

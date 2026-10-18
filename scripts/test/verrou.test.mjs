@@ -7,8 +7,9 @@ import { spawn } from 'node:child_process'
 import fsReel from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { attendreLibre, prendreVerrou, sousEcheanceAsync } from './verrou.mjs'
+import { attendreLibre, jetonsDuVerrou, prendreVerrou, prendreVerrouAsync, sousEcheanceAsync, verdictDuJeton } from './verrou.mjs'
 
 const MODULE = pathToFileURL(path.join(import.meta.dirname, 'verrou.mjs')).href
 const SOMMEIL = pathToFileURL(path.join(import.meta.dirname, '../guards/lib/spawnResilient.mjs')).href
@@ -16,6 +17,8 @@ const PROCESSUS = 8
 const PRISES = 10
 const VERROU = '/tmp/banc.verrou'
 const LIBELLE = 'le banc tient déjà ce verrou'
+/** L'identité INDÉTERMINÉE (`lireCreation` rend `null`) : un PID feint ne se mesure pas. */
+const INDETERMINEE = { lireCreation: () => null, toleranceMs: 0 }
 
 // `fs` factice : des fichiers par chemin ; `writeFileSync(…, { flag: 'wx' })` et `linkSync` refusent une
 // cible déjà présente — la propriété d'exclusion sur laquelle repose le verrou. `boite.contenu` est le
@@ -95,7 +98,7 @@ test('verrou libre : pris, le tenant s’inscrit, et `liberer` rend la place', (
   const pris = prendreVerrou({
     chemin: VERROU,
     libelle: LIBELLE,
-    pid: 4242,
+    identite: INDETERMINEE, pid: 4242,
     commande: 'node scripts/test/run.mjs',
     cwd: '/arbres/.wt-42',
     fs,
@@ -103,7 +106,8 @@ test('verrou libre : pris, le tenant s’inscrit, et `liberer` rend la place', (
     maintenant: () => '2026-09-02T00:00:00.000Z',
   })
   assert.equal(pris.etat, 'pris')
-  const { generation, ...tenant } = JSON.parse(fs.boite.contenu)
+  const { generation, empreinte, ...tenant } = JSON.parse(fs.boite.contenu)
+  assert.match(empreinte, /^[0-9a-f]{64}$/)
   assert.match(generation, /^[0-9a-f-]{36}$/, 'la prise porte sa génération')
   assert.deepEqual(tenant, {
     pid: 4242,
@@ -113,6 +117,10 @@ test('verrou libre : pris, le tenant s’inscrit, et `liberer` rend la place', (
   })
   pris.liberer()
   assert.equal(fs.boite.contenu, null)
+  pris.liberer()
+  const erreur = Object.assign(new Error('suppression refusée'), { code: 'EACCES' })
+  fs.rmSync = () => { throw erreur }
+  assert.throws(() => pris.liberer(), (e) => e === erreur)
 })
 
 test('verrou tenu par un PID VIVANT : refus qui NOMME le libellé, le PID, la commande et l’arbre', () => {
@@ -121,7 +129,7 @@ test('verrou tenu par un PID VIVANT : refus qui NOMME le libellé, le PID, la co
   const refus = prendreVerrou({
     chemin: VERROU,
     libelle: LIBELLE,
-    pid: 4242,
+    identite: INDETERMINEE, pid: 4242,
     fs,
     estVivant: (p) => {
       vus.push(p)
@@ -140,14 +148,14 @@ test('verrou tenu par un PID VIVANT : refus qui NOMME le libellé, le PID, la co
 
 test('verrou laissé par un PID MORT : repris, sans refus', () => {
   const fs = fsFactice(JSON.stringify({ pid: 999, commande: 'node scripts/test/run.mjs' }))
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => false })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => false })
   assert.equal(pris.etat, 'pris')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 4242)
 })
 
 test('verrou ILLISIBLE (écriture interrompue) : repris, aucun PID à interroger', () => {
   const fs = fsFactice('{pas du json')
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true })
   assert.equal(pris.etat, 'pris')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 4242)
 })
@@ -157,11 +165,11 @@ test('#2279 N0 — le verrou porte son tenant DÈS qu’il existe : un second pr
   const espion = {
     creation: () => {
       espion.creation = null
-      second = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 2, fs, estVivant: (p) => p === 1 })
+      second = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 2, fs, estVivant: (p) => p === 1 })
     },
   }
   const fs = fsFactice(null, espion)
-  const premier = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 1, fs, estVivant: (p) => p === 1 })
+  const premier = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 1, fs, estVivant: (p) => p === 1 })
   assert.equal(premier.etat, 'pris')
   assert.equal(second?.etat, 'refus', 'le second a lu un verrou sans tenant et l’a repris')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 1)
@@ -173,11 +181,11 @@ test('#2279 N0 — deux repreneurs d’un verrou MORT : celui qui arrive après 
   const espion = {
     apresLecture: () => {
       espion.apresLecture = null
-      premier = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 1, fs, estVivant: (p) => p !== 999 })
+      premier = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 1, fs, estVivant: (p) => p !== 999 })
     },
   }
   const fs = fsFactice(JSON.stringify({ pid: 999 }), espion)
-  const second = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 2, fs, estVivant: (p) => p !== 999 })
+  const second = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 2, fs, estVivant: (p) => p !== 999 })
   assert.equal(premier?.etat, 'pris')
   assert.equal(second.etat, 'refus')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 1, 'le verrou du premier repreneur est intact')
@@ -187,12 +195,12 @@ test('#2279 N0 — deux repreneurs d’un verrou MORT : celui qui arrive après 
 test('#2279 N0 — un verrou absent à la relecture se retente sans rien retirer ; un verrou de reprise tenu par un MORT est retiré', () => {
   const espion = { lecture: () => { espion.lecture = null; absent.rmSync(VERROU) } }
   const absent = fsFactice(JSON.stringify({ pid: 5 }), espion)
-  const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 1, fs: absent, estVivant: () => true })
+  const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 1, fs: absent, estVivant: () => true })
   assert.equal(vu.etat, 'pris')
   assert.equal(JSON.parse(absent.boite.contenu).pid, 1)
   const fs = fsFactice(JSON.stringify({ pid: 999 }))
   fs.fichiers.set(`${VERROU}.reprise`, JSON.stringify({ pid: 998 }))
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 1, fs, estVivant: (p) => p < 998 })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 1, fs, estVivant: (p) => p < 998 })
   assert.equal(pris.etat, 'pris')
   assert.deepEqual([...fs.fichiers.keys()], [VERROU])
 })
@@ -205,7 +213,7 @@ test('#2187 — prise EN ATTENTE : annonce le tenant à chaque pas, et prend dè
   const temps = tempsFactice({ 2: () => { vivant = false } })
   const annonces = []
   const pris = prendreVerrou({
-    chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: (p) => p !== 1234 || vivant,
+    chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: (p) => p !== 1234 || vivant,
     attente: { echeanceMs: 60_000, pasMs: 15_000, annoncer: (tenant) => annonces.push(tenant.pid) },
     dormir: temps.dormir, horloge: temps.horloge,
   })
@@ -219,7 +227,7 @@ test('#2187 — prise EN ATTENTE d’un tenant qui ne meurt jamais : REFUS à l�
   const fs = fsFactice(JSON.stringify({ pid: 1234 }))
   const temps = tempsFactice()
   const refus = prendreVerrou({
-    chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true,
+    chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true,
     attente: { echeanceMs: 40_000, pasMs: 15_000 },
     dormir: temps.dormir, horloge: temps.horloge,
   })
@@ -296,7 +304,7 @@ const tenu = (pid, generation, autres = {}) => JSON.stringify({ pid, generation,
 
 test('#2603 — libération COMPARÉE : `liberer` retire le verrou de SA génération, jamais celui d’un repreneur', () => {
   const fs = fsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true })
   assert.equal(pris.etat, 'pris')
   const repris = tenu(7, 'generation-du-repreneur')
   fs.fichiers.set(VERROU, repris)
@@ -305,7 +313,7 @@ test('#2603 — libération COMPARÉE : `liberer` retire le verrou de SA génér
   assert.deepEqual([...fs.fichiers.keys()], [VERROU], 'ni temporaire ni verrou de reprise restant')
 
   const fs2 = fsFactice()
-  const tenant = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs: fs2, estVivant: () => true })
+  const tenant = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs: fs2, estVivant: () => true })
   tenant.liberer()
   assert.equal(fs2.boite.contenu, null, 'sa propre génération est retirée')
 })
@@ -313,7 +321,7 @@ test('#2603 — libération COMPARÉE : `liberer` retire le verrou de SA génér
 test('#2603 — libération sous le verrou de REPRISE : rejouée tant qu’un vivant le tient, puis faite ; tenu sans fin, elle LÈVE', () => {
   const fs = fsFactice()
   const temps = tempsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true, dormir: temps.dormir })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true, dormir: temps.dormir })
   fs.fichiers.set(REPRISE, tenu(7, 'reprise-en-cours'))
   const linkSync = fs.linkSync
   let essais = 0
@@ -328,7 +336,7 @@ test('#2603 — libération sous le verrou de REPRISE : rejouée tant qu’un vi
   assert.deepEqual([...fs.fichiers.keys()], [])
 
   const bloque = fsFactice()
-  const tenant = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs: bloque, estVivant: () => true })
+  const tenant = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs: bloque, estVivant: () => true })
   bloque.fichiers.set(REPRISE, tenu(7, 'reprise-sans-fin'))
   assert.throws(() => tenant.liberer(), /non libéré, le verrou de reprise .* reste tenu par un vivant/)
   assert.notEqual(bloque.boite.contenu, null, 'le verrou reste à son tenant')
@@ -336,7 +344,7 @@ test('#2603 — libération sous le verrou de REPRISE : rejouée tant qu’un vi
 
 test('#2603 — `liberer` PROPAGE une erreur autre qu’ENOENT ; un verrou déjà absent ne lève rien', () => {
   const fs = fsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true })
   const readFileSync = fs.readFileSync
   fs.readFileSync = (chemin, ...reste) => {
     if (chemin !== VERROU) return readFileSync(chemin, ...reste)
@@ -353,7 +361,7 @@ test('#2603 — `liberer` PROPAGE une erreur autre qu’ENOENT ; un verrou déj�
 
 test('#2603 — `liberer` d’un verrou dont le DOSSIER a disparu : ENOENT à l’écriture du temporaire vaut verrou absent, rien ne lève', () => {
   const fs = fsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: () => true })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: () => true })
   fs.fichiers.clear()
   const refuser = (code) => (chemin) => {
     const e = new Error(`${code}: ${chemin}`)
@@ -370,7 +378,7 @@ test('#2603 — `liberer` d’un verrou dont le DOSSIER a disparu : ENOENT à l�
 test('#2603 — `liberer` face à un verrou de REPRISE tenu par un MORT : il est retiré, le verrou libéré, rien ne lève', () => {
   const fs = fsFactice()
   const temps = tempsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs, estVivant: (pid) => pid !== 7, dormir: temps.dormir })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs, estVivant: (pid) => pid !== 7, dormir: temps.dormir })
   fs.fichiers.set(REPRISE, tenu(7, 'reprise-morte'))
   pris.liberer()
   assert.equal(fs.boite.contenu, null)
@@ -389,7 +397,7 @@ test('#2603 — TOCTOU de la reprise : un verrou de reprise MORT remplacé entre
   }
   const fs = fsFactice(tenu(999, 'mort'), espion)
   fs.fichiers.set(REPRISE, tenu(998, 'reprise-morte'))
-  const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 2, fs, estVivant: (p) => p < 998 })
+  const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 2, fs, estVivant: (p) => p < 998 })
   assert.equal(vu.etat, 'refus', 'la reprise vivante bloque la reprise du mort')
   assert.equal(fs.fichiers.get(REPRISE), vivantNeuf, 'la reprise du vivant reste en place')
 })
@@ -403,12 +411,70 @@ function identiteFeinte(mesures, { toleranceMs = 0, pasMs = 10_000 } = {}) {
   }
 }
 
-test('#2603 — identité : le tenant porte `creation` = `performance.timeOrigin` du preneur', () => {
+test('#2603 — identité : la prise écrit `creation` = `performance.timeOrigin` au PID courant, la mesure de l’`identite` à un PID tiers, rien d’indéterminé', () => {
   const fs = fsFactice()
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite })
+  const { identite, lectures } = identiteFeinte({ 4242: 7_000 })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite })
   assert.equal(pris.etat, 'pris')
   assert.equal(JSON.parse(fs.boite.contenu).creation, performance.timeOrigin)
   assert.equal(JSON.parse(fs.boite.contenu).pid, process.pid)
+  assert.deepEqual(lectures, [], 'le PID courant ne se mesure pas')
+  const tiers = fsFactice()
+  assert.equal(prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs: tiers, estVivant: () => true, identite }).etat, 'pris')
+  assert.equal(JSON.parse(tiers.boite.contenu).creation, 7_000)
+  assert.deepEqual(lectures, [4242])
+  const indetermine = fsFactice()
+  assert.equal(prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4343, fs: indetermine, estVivant: () => true, identite }).etat, 'pris')
+  assert.equal(Object.hasOwn(JSON.parse(indetermine.boite.contenu), 'creation'), false)
+})
+
+test('#2493 #2603 — `borneMs` et `orphelins` : le juge `consignant`, sous l’identité ; réutilisé = `PID mort`, trop vieux = `âge > borne`, consignés et repris', () => {
+  const horloge = () => Date.parse('2026-10-17T12:00:00.000Z')
+  const { identite } = identiteFeinte({ 1234: 5_000 })
+  const cas = [
+    [tenu(1234, 'g', { creation: 1_000, date: '2026-10-17T11:59:59.000Z' }), 'pris', 'PID mort'],
+    [tenu(1234, 'g', { creation: 5_000, date: '2026-10-17T11:00:00.000Z' }), 'pris', 'âge > borne'],
+    [tenu(1234, 'g', { creation: 5_000, date: '2026-10-17T11:59:59.000Z' }), 'refus', null],
+  ]
+  for (const [texte, attendu, preuve] of cas) {
+    const orphelins = new Map()
+    const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(texte), estVivant: () => true, identite, horloge, borneMs: 60_000, orphelins })
+    assert.equal(vu.etat, attendu, texte)
+    assert.deepEqual([...orphelins.values()].map((o) => [o.verrou, o.pid, o.preuve]), preuve ? [[VERROU, 1234, preuve]] : [], texte)
+  }
+  const sansBorne = new Map()
+  const ancien = tenu(1234, 'g', { creation: 5_000, date: '2026-10-17T00:00:00.000Z' })
+  assert.equal(prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(ancien), estVivant: () => true, identite, horloge, orphelins: sansBorne }).etat, 'refus')
+  assert.equal(sansBorne.size, 0, 'sans `borneMs`, l’âge ne retire personne')
+})
+
+test('#2603 — juge PAR DÉFAUT (`IDENTITE_MESUREE`), sur le disque : PID réutilisé (création mesurée postérieure à la naissance) = mort ; même naissance = vivant', () => {
+  const racine = fsReel.mkdtempSync(path.join(os.tmpdir(), 'verrou-identite-'))
+  try {
+    const chemin = path.join(racine, 'banc.verrou')
+    const poser = (creation) => fsReel.writeFileSync(chemin, JSON.stringify({ pid: process.pid, generation: 'g', creation }))
+    poser(performance.timeOrigin)
+    assert.equal(attendreLibre({ chemin }).etat, 'occupe', 'même naissance : vivant')
+    assert.equal(prendreVerrou({ chemin, libelle: LIBELLE }).etat, 'refus')
+    poser(performance.timeOrigin - 3_600_000)
+    assert.equal(attendreLibre({ chemin }).etat, 'libre', 'né une heure avant ce processus : PID réutilisé')
+    const repris = prendreVerrou({ chemin, libelle: LIBELLE })
+    assert.equal(repris.etat, 'pris')
+    repris.liberer()
+  } finally {
+    fsReel.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2603 — attendreLibre juge sous l’identité : PID réutilisé = libre, même création = occupé, sans `creation` = son existence seule', () => {
+  for (const [texte, mesure, attendu] of [
+    [tenu(1234, 'g', { creation: 1_000 }), 5_000, 'libre'],
+    [tenu(1234, 'g', { creation: 1_000 }), 1_000, 'occupe'],
+    [tenu(1234, 'g'), 5_000, 'occupe'],
+  ]) {
+    const { identite } = identiteFeinte({ 1234: mesure })
+    assert.equal(attendreLibre({ chemin: VERROU, fs: fsFactice(texte), estVivant: () => true, identite }).etat, attendu, `${texte} mesuré ${mesure}`)
+  }
 })
 
 test('#2603 — identité : PID RÉUTILISÉ (création mesurée postérieure) = mort, repris ; même création = vivant ; indéterminée = vivant', () => {
@@ -433,12 +499,11 @@ test('#2603 — identité : un tenant pris sans identité (sans `creation`) est 
   }
 })
 
-test('#2603 — identité : aucune lecture de création d’un PID mort au sens de kill(pid, 0) ; refusée hors du PID courant', () => {
+test('#2603 — identité : aucune lecture de création d’un PID mort au sens de kill(pid, 0)', () => {
   const { identite, lectures } = identiteFeinte({ 1234: 1_000 })
   const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(tenu(1234, 'g', { creation: 1_000 })), estVivant: () => false, identite })
   assert.equal(vu.etat, 'pris')
   assert.deepEqual(lectures, [])
-  assert.throws(() => prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: process.pid + 1, fs: fsFactice(), identite }), /l'identité ne se prend qu'au PID courant/)
 })
 
 test('#2603 — identité : création lue une fois par texte de verrou distinct, puis tous les `pasMs` de l’identité', () => {
@@ -480,7 +545,7 @@ const chemin = ${JSON.stringify(path.join(dossier, 'compteur.verrou'))}
 const compteur = ${JSON.stringify(path.join(dossier, 'compteur'))}
 let prises = 0
 for (let essai = 0; essai < 20000 && prises < ${PRISES}; essai += 1) {
-  const verrou = prendreVerrou({ chemin, libelle: 'compteur' })
+  const verrou = prendreVerrou({ chemin, libelle: 'compteur', identite: { lireCreation: () => null, toleranceMs: 0 } })
   if (verrou.etat !== 'pris') { pause(1); continue }
   const lu = Number(fs.readFileSync(compteur, 'utf8'))
   pause(1)
@@ -513,7 +578,117 @@ test(`#2279 N0 — ${PROCESSUS} processus se disputent le verrou : aucune sectio
 // #2516
 test('verrou dont le tenant porte un pid hors de l’int32 : repris comme mort, sans exception', () => {
   const fs = fsFactice(JSON.stringify({ pid: 2 ** 31, commande: 'tenant forgé' }))
-  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs })
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, identite: INDETERMINEE, pid: 4242, fs })
   assert.equal(pris.etat, 'pris')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 4242)
+})
+
+test('emprunt : fragment explicite retransmis parent/enfant/petit-enfant, empreinte seule et libération sans retrait owner', () => {
+  const fs = fsFactice()
+  const options = { chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite }
+  const avant = { ...process.env }
+  const owner = prendreVerrou(options)
+  const secret = JSON.parse(Object.values(owner.env)[0]).secret
+  assert.ok(!fs.boite.contenu.includes(secret))
+  const enfant = prendreVerrou({ ...options, env: owner.env })
+  const petit = prendreVerrou({ ...options, env: enfant.env })
+  assert.equal(enfant.emprunte, true)
+  assert.deepEqual(petit.env, owner.env)
+  enfant.liberer()
+  petit.liberer()
+  assert.ok(fs.boite.contenu)
+  assert.ok(Object.keys(process.env).length === Object.keys(avant).length && Object.entries(avant).every(([cle, valeur]) => process.env[cle] === valeur))
+  owner.liberer()
+  assert.equal(fs.boite.contenu, null)
+})
+
+test('emprunt : faux secret, instance, génération, JSON et doublon refusent sans attente ni repli, en NOMMANT la raison', () => {
+  const fs = fsFactice()
+  const options = { chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite }
+  const owner = prendreVerrou(options)
+  const [cle, texte] = Object.entries(owner.env)[0]
+  for (const [alteration, raison] of [[{ secret: 'faux' }, 'SECRET'], [{ instance: 'autre' }, 'INSTANCE'], [{ generation: 'autre' }, 'GENERATION']]) {
+    const env = { [cle]: JSON.stringify({ ...JSON.parse(texte), ...alteration }) }
+    const refuse = prendreVerrou({ ...options, env, attente: { echeanceMs: 1000, pasMs: 1 }, dormir: () => assert.fail('ne doit pas attendre') })
+    assert.equal(refuse.etat, 'refus')
+    assert.equal(refuse.message, `[verrou] ${LIBELLE} : jeton d'emprunt invalide (${raison})`)
+    assert.ok(!refuse.message.includes(JSON.parse(texte).secret))
+  }
+  const illisible = prendreVerrou({ ...options, env: { [cle]: '{' } })
+  assert.deepEqual([illisible.etat, illisible.message, illisible.cause instanceof SyntaxError], ['refus', `[verrou] ${LIBELLE} : jeton d'emprunt invalide (JSON)`, true])
+  assert.equal(prendreVerrou({ ...options, env: { [cle]: texte, [cle.toLowerCase()]: texte } }).message, `[verrou] ${LIBELLE} : jeton d'emprunt invalide (DOUBLON)`)
+  owner.liberer()
+})
+
+test('jetonsDuVerrou : les jetons du SEUL verrou nommé, clé comparée sans casse', () => {
+  const fs = fsFactice()
+  const owner = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite })
+  const [cle, texte] = Object.entries(owner.env)[0]
+  const autre = Object.keys(prendreVerrou({ chemin: `${VERROU}.autre`, libelle: LIBELLE, fs, estVivant: () => true }).env)[0]
+  assert.deepEqual(jetonsDuVerrou({ [cle.toLowerCase()]: texte, [autre]: 'x', HORS_VERROU: 'p' }, VERROU), [[cle.toLowerCase(), texte]])
+  assert.deepEqual(jetonsDuVerrou({ HORS_VERROU: 'p' }, VERROU), [])
+  owner.liberer()
+})
+
+test('verdictDuJeton : chaque raison nommée, `cause` pour le JSON illisible', () => {
+  const instance = 'instance-du-banc'
+  const valide = { version: 1, instance, generation: 'g', secret: 's' }
+  const tenant = { pid: 1, generation: 'g', empreinte: createHash('sha256').update('s').digest('hex') }
+  const verdict = (jeton, p = {}) => verdictDuJeton(Array.isArray(jeton) ? jeton : [['CLE', typeof jeton === 'string' ? jeton : JSON.stringify(jeton)]], { instance, tenant, vivant: () => true, ...p })
+  assert.deepEqual(verdict(valide), { ok: true })
+  assert.deepEqual(verdict([['A', JSON.stringify(valide)], ['a', JSON.stringify(valide)]]), { raison: 'DOUBLON' })
+  assert.deepEqual(verdict([]), { raison: 'DOUBLON' })
+  const json = verdict('{')
+  assert.deepEqual([json.raison, json.cause instanceof SyntaxError], ['JSON', true])
+  for (const jeton of [null, 5, '[]', { ...valide, autre: 1 }, { version: 1, instance, generation: 'g' }]) assert.deepEqual(verdict(jeton), { raison: 'CLES' }, JSON.stringify(jeton))
+  assert.deepEqual(verdict({ ...valide, version: 2 }), { raison: 'VERSION' })
+  assert.deepEqual(verdict({ ...valide, instance: 'autre' }), { raison: 'INSTANCE' })
+  assert.deepEqual(verdict({ ...valide, generation: 'autre' }), { raison: 'GENERATION' })
+  assert.deepEqual(verdict(valide, { tenant: null }), { raison: 'GENERATION' })
+  assert.deepEqual(verdict({ ...valide, secret: 'faux' }), { raison: 'SECRET' })
+  assert.deepEqual(verdict({ ...valide, secret: 5 }), { raison: 'SECRET' })
+  assert.deepEqual(verdict(valide, { vivant: () => false }), { raison: 'MORT' })
+})
+
+test('emprunt : propriétaire mort ou PID réutilisé refusé, identité indéterminée conservée', () => {
+  const fs = fsFactice()
+  const identite = { lireCreation: () => null, toleranceMs: 0, pasMs: 1 }
+  const options = { chemin: VERROU, libelle: LIBELLE, fs, identite, estVivant: () => true }
+  const owner = prendreVerrou(options)
+  assert.equal(prendreVerrou({ ...options, env: owner.env }).emprunte, true)
+  const mort = `[verrou] ${LIBELLE} : jeton d'emprunt invalide (MORT)`
+  assert.equal(prendreVerrou({ ...options, env: owner.env, estVivant: () => false }).message, mort)
+  assert.equal(prendreVerrou({ ...options, env: owner.env, identite: { ...identite, lireCreation: () => performance.timeOrigin + 1000 } }).message, mort)
+  owner.liberer()
+})
+
+test('annulation async pendant attente ou retour de prise : aucun tenant acquis restant', async () => {
+  const fs = fsFactice()
+  const options = { chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite }
+  const owner = prendreVerrou(options)
+  const attente = new AbortController()
+  const annulee = await prendreVerrouAsync({ ...options, signal: attente.signal, attente: { echeanceMs: 1000, pasMs: 1 },
+    dormir: async () => { attente.abort() } })
+  assert.equal(annulee.etat, 'refus')
+  assert.match(annulee.message, /annulée/)
+  assert.ok(fs.boite.contenu)
+  owner.liberer()
+  const retour = new AbortController()
+  const prise = prendreVerrouAsync({ ...options, signal: retour.signal })
+  retour.abort()
+  assert.equal((await prise).etat, 'refus')
+  assert.equal(fs.boite.contenu, null)
+})
+
+test('#2586 — l’attente async se réveille à la libération du verrou dans le processus, pas au pas suivant', async () => {
+  const fs = fsFactice()
+  const options = { chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: INDETERMINEE }
+  const tenant = prendreVerrou(options)
+  let liberation
+  setTimeout(() => { liberation = performance.now(); tenant.liberer() }, 200)
+  const prise = await prendreVerrouAsync({ ...options, attente: { echeanceMs: 60_000, pasMs: 10_000 } })
+  const retard = performance.now() - liberation
+  assert.equal(prise.etat, 'pris')
+  assert.ok(retard < 100, `réveil ${retard.toFixed(0)} ms après la libération`)
+  prise.liberer()
 })

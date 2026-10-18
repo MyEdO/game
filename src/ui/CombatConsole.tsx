@@ -84,7 +84,7 @@ type Cell = {
   disabled?: boolean;
   /** FOYER de règle de la case (`{category, id}` du Codex, `RULE_REF`/registre de données) : c'est LUI
    *  qui porte le texte de règle, en VERBATIM, dans l'infobulle `CodexRef`. Aucune prose de règle n'est
-   *  écrite ici (CLAUDE.md règles 5 & 6) — la case NOMME, la donnée EXPLIQUE. */
+   *  écrite ici (AGENTS.md règles 5 & 6) — la case NOMME, la donnée EXPLIQUE. */
   rule?: CodexTarget;
   /** RAISON d'inéligibilité, quand la case se DESSINE quoi qu'il arrive mais que la situation en
    *  interdit l'usage (Charger alors qu'on est Engagé — `regles/charger`). Elle se lit AU SURVOL et AU
@@ -842,7 +842,7 @@ export function CombatConsole() {
   const consumables = (active.items ?? []).filter(isConsumable);
   // Consommables GROUPÉS par MODÈLE — plusieurs potions identiques = une case à compteur ×N. La clé de
   // regroupement est l'id STABLE de catalogue (`trappingId`, `items.ts:240`), jamais le libellé
-  // (doctrine CLAUDE.md : « on ne manipule que des IDs », le `label` est de l'AFFICHAGE) ; un objet
+  // (AGENTS.md, § « Pour TOUT agent ») ; un objet
   // CUSTOM n'en a pas — son `uid` le distingue alors, et deux customs homonymes restent deux cases.
   // Le libellé du groupe reste celui du 1ᵉʳ objet : c'est l'affichage.
   const consumableGroups = Object.values(

@@ -1487,6 +1487,10 @@ export function arbrePrincipal(depot) {
 }
 
 export const CONTRATS_DE_DERIVATION = [
+  { fonction: confier, retour: { type: 'null' } },
+  { fonction: depotDe, retour: { type: 'poignee', argument: 0 } },
+  { fonction: racineDe, retour: { type: 'union', variantes: [{ type: 'racineGit', argument: 0 }, { type: 'null' }] } },
+  { fonction: listerImage, retour: { type: 'collection', element: { type: 'imageGit', porte: 'listerImage' } } },
   { fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' },
   { fonction: politiqueExclusionsDe, lectures: 'corpus', retour: { exclude: { chemin: 'corpus' }, global: { chemin: 'corpus' } } },
   { fonction: nonSuivisIgnoresDe, lectures: 'corpus', retour: 'corpus' },

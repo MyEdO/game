@@ -23,7 +23,7 @@ import { findTableEntry, tableOuverte } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
-import { CATEGORY_BY_SOURCE_KIND, type Difficulty, type EffectSource, type EffectSourceKind } from './types';
+import { CATEGORY_BY_SOURCE_KIND, type CharKey, type Difficulty, type EffectSource, type EffectSourceKind } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type-only (effacé à la compilation, comme `domainAttributes`/`ops` importent déjà `TriggeredEffect`) :
 // le nœud de Test imbriqué d'une entrée de table EST un nœud de Flow `test` — la STRUCTURE de logique
@@ -71,7 +71,7 @@ export interface MiscastResult {
  *  « échec à −4 DR ou moins → Inconscient EN PLUS »). Transformée en nœud de Flow `test` par `mkTest`. */
 interface NestedTest {
   skill?: RefDesignee;
-  characteristic?: 'force-mentale';
+  characteristic?: CharKey;
   difficulty: Difficulty;
   /** Ops appliqués au lanceur sur un ÉCHEC du Test (« ou Sonné »). */
   onFail: GameOp[];
@@ -137,7 +137,7 @@ type JsonOp = {
 /** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
 interface JsonNestedTest {
   skill?: RefDesignee;
-  characteristic?: string;
+  characteristic?: CharKey;
   difficulty: string;
   onFail: JsonOp[];
   onFailHard?: { dr: number; ops: JsonOp[] };
@@ -238,7 +238,7 @@ function expandOps(jsonOps: JsonOp[], sin: number): GameOp[] {
 function expandNestedTest(t: JsonNestedTest): NestedTest {
   const result: NestedTest = {
     ...(t.skill ? { skill: t.skill } : {}),
-    ...(t.characteristic ? { characteristic: t.characteristic as 'force-mentale' } : {}),
+    ...(t.characteristic ? { characteristic: t.characteristic } : {}),
     difficulty: t.difficulty as Difficulty,
     onFail: expandOps(t.onFail, 0), // les ops onFail d'un test ne référencent jamais le Péché
   };

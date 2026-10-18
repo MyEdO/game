@@ -741,6 +741,13 @@ function apresLanceurLocal(segment, i) {
   const suite = segment.slice(i + 2)
   return separerInvocation(suite, { options: ['--cwd'] }) === null ? null : i + 3 + suite.indexOf('--')
 }
+/** `true` si l'`enTete` qu'épluche `pipelinesDeJetons` devant les `jetons` qu'il lance passe par le lanceur local
+ *  (`apresLanceurLocal`). PURE.
+ *  @param {{ text: string, quote?: string }[]} enTete @param {{ text: string }[]} jetons @returns {boolean} */
+export function passeParLeLanceurLocal(enTete, jetons) {
+  const textes = [...enTete, ...jetons].map((j) => j.text)
+  return enTete.some((j, i) => jetonNu(j) && apresLanceurLocal(textes, i) !== null)
+}
 
 /** Tokens de tête sans exécutable propre : call-operator PowerShell, accolades de bloc `& { … }`,
  *  parenthèse ouvrante de sous-shell `( … )`, et les mots réservés POSIX qui précèdent une commande
@@ -1898,6 +1905,7 @@ export const nouveauBudget = () => ({ sature: false })
  *  au-delà de ses bornes. */
 export const REFUS_SATURE = Object.freeze({
   decision: 'deny',
+  categorie: 'validation',
   reason:
     `⛔ commande trop imbriquée pour être jugée : au-delà de ${PROFONDEUR_MAX_ENROBEURS} niveaux de porteurs, de ` +
     `scripts npm ou de substitutions, la lecture s'arrête et ne voit pas ce que la commande exécute. Aplatir la ` +

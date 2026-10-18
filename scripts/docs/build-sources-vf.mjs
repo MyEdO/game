@@ -58,7 +58,7 @@ function rendu() {
 > Source factuelle (id, abréviation, dossier \`Source/…\`) : \`src/data/books.json\`. Part éditoriale (périmètres
 > par passage, arbitrages datés, avertissements d'extraction) : maintenue dans ce script — pas dérivable de la
 > donnée. Extrait verbatim du CLAUDE.md (dégraissage 2026-07-05) : lire ici pour le détail d'un livre ; la règle
-> et la liste compacte restent dans \`CLAUDE.md\`.
+> et la liste compacte restent dans \`AGENTS.md\`.
 
 **Périmètre mesuré / angles morts** — les chemins \`Source/…\` et abréviations ci-dessous sont LUS depuis
 \`src/data/books.json\` (\`id\`/\`abbr\`/\`dir\`) : un livre renommé/déplacé casse ce script au lieu de laisser le
@@ -73,7 +73,7 @@ décision de périmètre qui change se corrige ICI, à la main, comme tout arbit
 Tout est en **français** sous \`Source/\`, dossiers préfixés **\`Warhammer v4 - …\`**. Les dossiers
 SANS ce préfixe (Enemy Within…, Altdorf…, Archives of the Empire…) sont la **VO** (base de
 connaissance MJ du dépôt parent) — **ne jamais les lire/citer** ici (la donnée du jeu est FR :
-CC/CT/F/E…). **Exceptions** (\`CLAUDE.md\` § *Sources VF*) : \`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/\`,
+CC/CT/F/E…). **Exceptions** (\`AGENTS.md\` § *Sources VF*) : \`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/\`,
 livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 \`user-doctrine-lecture-vo-campagne-pour-comprendre\`. Au moindre doute, **lire le \`.md\` et citer**
 \`LDB <chap> l.<ligne>\` / \`ADE…\`.
@@ -91,7 +91,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 > ne se juge PAS au niveau du livre : le périmètre s'établit **par passage**, documenté ici, au même
 > standard partout (verbatim citable \`l.<ligne>\`, extraction FR dans \`Source/\` obligatoire — un livre sans
 > extraction ne peut pas fournir de mécanique vérifiable). La VO ne fournit aucune règle hors le Core
-> Rulebook 5e (\`CLAUDE.md\` § *Sources VF*).
+> Rulebook 5e (\`AGENTS.md\` § *Sources VF*).
 
 - **${abbr('livre-de-base')}** = \`${dir('livre-de-base')}\` — chapitres \`NN - Titre.md\` ;
   les commentaires de code \`LDB <n> l.<ligne>\` pointent ces fichiers. Chapitres clés :

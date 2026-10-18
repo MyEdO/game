@@ -1,10 +1,47 @@
-// Logique PURE du cliquet des exports morts (le passage par knip lui-même est mesuré par
-// `npm run deps:exports`, 4 s) : aplatissement du rapport, comparaison, abaissement.
+// Logique PURE du cliquet des exports morts (le passage par knip sur le dépôt est mesuré par
+// `npm run deps:exports`) : aplatissement du rapport, comparaison, abaissement ; et la config knip des bancs.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-import { join, dirname, resolve, relative } from 'node:path'
-import { flatten, compare, syncBaseline, BASELINE, REPO, HORS_GEL } from './knip-exports-ratchet.mjs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
+import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
+import { join } from 'node:path'
+import { flatten, compare, syncBaseline, REPO, HORS_GEL } from './knip-exports-ratchet.mjs'
+
+const CONFIG = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
+const retenu = (file, motifs) => motifs.some((m) => !m.startsWith('!') && correspondGlob(file, m)) && !motifs.some((m) => m.startsWith('!') && correspondGlob(file, m.slice(1)))
+test('bibliothèques de banc : toutes project/non-entry, CLI banc-pre-commit entry', () => {
+  const bibliotheques = listerArbre(join(REPO, 'scripts/test/lib'), { filtre: (rel) => rel.endsWith('.mjs') })
+  assert.ok(bibliotheques.length > 0)
+  for (const rel of [...bibliotheques, 'bibliotheque-suivante.mjs']) {
+    const file = `scripts/test/lib/${rel}`
+    assert.equal(retenu(file, CONFIG.project), true, file)
+    assert.equal(retenu(file, CONFIG.entry), false, file)
+  }
+  const cli = 'scripts/test/banc-pre-commit.mjs'
+  assert.ok(existsSync(join(REPO, cli)), cli)
+  assert.equal(retenu(cli, CONFIG.entry), true)
+})
+test('bibliothèque hors entry : export consommé vert, export mort rouge au cliquet deps:exports', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'knip-banc-'))
+  try {
+    mkdirSync(join(racine, 'scripts/test/lib'), { recursive: true })
+    writeFileSync(join(racine, 'package.json'), JSON.stringify({ type: 'module' }))
+    writeFileSync(join(racine, 'knip.json'), JSON.stringify({ entry: CONFIG.entry, project: CONFIG.project, ignoreExportsUsedInFile: true }))
+    writeFileSync(join(racine, 'scripts/consommateur.mjs'), "import { vivant } from './test/lib/banc.mjs'; console.log(vivant)")
+    const source = join(racine, 'scripts/test/lib/banc.mjs')
+    const mesurer = () => {
+      const vu = spawnSync(process.execPath, [join(REPO, 'node_modules/knip/bin/knip.js'), '--include', 'exports,types,nsExports,nsTypes', '--no-progress', '--reporter', 'json'], { cwd: racine, encoding: 'utf8', timeout: 15_000 })
+      assert.ok(vu.stdout.includes('{'), vu.stderr)
+      return compare(flatten(JSON.parse(vu.stdout.slice(vu.stdout.indexOf('{')).trim()).issues), {})
+    }
+    writeFileSync(source, 'export const vivant = 1')
+    assert.deepEqual(mesurer().nouveaux, [])
+    writeFileSync(source, 'export const vivant = 1; export const mort = 2')
+    assert.deepEqual(mesurer().nouveaux, ['scripts/test/lib/banc.mjs : mort'])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 const issue = (file, exports = [], types = []) => ({
   file,
@@ -52,82 +89,12 @@ test('syncBaseline ne sait que RETIRER — jamais ajouter un export mort neuf', 
 
 // ── Contrat du filtre gameIso : il vit dans le CLIQUET (après mesure), JAMAIS dans la config knip.
 //    L'y mettre couperait le graphe — un export consommé par le seul `src/gameIso` passerait pour
-//    mort et se ferait geler comme dette. Les deux tests ci-dessous verrouillent le contrat : la
-//    config ne coupe rien, et aucune entrée gelée n'est en réalité importée par gameIso.
+//    mort et se ferait geler comme dette. Deux tests verrouillent le contrat : la config ne coupe rien
+//    (ci-dessous), et aucune entrée gelée n'est en réalité importée par gameIso
+//    (`scripts/corpus/ops/knip-exports-ratchet.test.mjs`).
 test('le filtre gameIso n’est PAS dans knip.json (sinon le graphe est coupé)', () => {
   const knip = JSON.parse(readFileSync(join(REPO, 'knip.json'), 'utf8'))
   const motifs = [...(knip.ignore ?? []), ...(knip.entry ?? []), ...(knip.project ?? [])]
   for (const m of motifs) assert.ok(!m.includes('gameIso'), `knip.json cite gameIso (${m}) : graphe coupé`)
   assert.deepEqual(HORS_GEL, ['src/gameIso/'], 'le hors-gel est le seul endroit où gameIso se filtre')
-})
-
-/** Graphe d'imports NOMMÉS de `src/**` : cible relative → { nom → Set(importateurs) }. */
-function usageParNom() {
-  const src = join(REPO, 'src')
-  const files = []
-  const walk = (d) => {
-    for (const e of readdirSync(d)) {
-      const p = join(d, e)
-      if (statSync(p).isDirectory()) walk(p)
-      else if (/\.tsx?$/.test(e)) files.push(p)
-    }
-  }
-  walk(src)
-  const rel = (p) => relative(REPO, p).split('\\').join('/')
-  const resoudre = (from, spec) => {
-    if (!spec.startsWith('.')) return null
-    const base = resolve(dirname(from), spec)
-    for (const c of [base, base + '.ts', base + '.tsx', join(base, 'index.ts'), join(base, 'index.tsx')])
-      if (existsSync(c) && statSync(c).isFile()) return rel(c)
-    return null
-  }
-  const usage = new Map()
-  for (const f of files) {
-    for (const m of readFileSync(f, 'utf8').matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
-      const cible = resoudre(f, m[2])
-      if (!cible) continue
-      if (!usage.has(cible)) usage.set(cible, new Map())
-      const parNom = usage.get(cible)
-      for (const brut of m[1].split(',')) {
-        const nom = brut.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, '').trim()
-        if (!nom) continue
-        if (!parNom.has(nom)) parNom.set(nom, new Set())
-        parNom.get(nom).add(rel(f))
-      }
-    }
-  }
-  return usage
-}
-
-test('aucune entrée gelée n’est en réalité importée par gameIso (le filtre ne coupe pas le graphe)', () => {
-  const usage = usageParNom()
-  const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'))
-  const faux = []
-  for (const [f, noms] of Object.entries(baseline))
-    for (const n of noms) {
-      const imp = usage.get(f)?.get(n)
-      if (imp && [...imp].some((x) => x.startsWith('src/gameIso/'))) faux.push(`${f}#${n} ← ${[...imp].join(', ')}`)
-    }
-  assert.deepEqual(faux, [], 'entrée(s) gelée(s) comme mortes alors que gameIso les consomme')
-
-  // Contre-épreuve : la mesure ne serait pas concluante si AUCUN export n'était consommé par le seul
-  // gameIso — c'est précisément la population à risque (32 relevés le 2026-08-16, hors imports par
-  // défaut/namespace que ce scan ne lit pas).
-  let seulGameIso = 0
-  for (const [cible, parNom] of usage)
-    if (/^src\/(state|engine)\//.test(cible))
-      for (const [, imps] of parNom) if ([...imps].every((x) => x.startsWith('src/gameIso/'))) seulGameIso++
-  assert.ok(seulGameIso >= 10, `population à risque trop faible (${seulGameIso}) : le contrat ne prouverait rien`)
-})
-
-test('la baseline committée est nominative, triée, et sans entrée gameIso', () => {
-  const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'))
-  const fichiers = Object.keys(baseline)
-  assert.ok(fichiers.length > 0)
-  assert.deepEqual(fichiers, [...fichiers].sort(), 'baseline : fichiers non triés (diffs illisibles)')
-  for (const [f, noms] of Object.entries(baseline)) {
-    assert.ok(!f.startsWith('src/gameIso/'), `${f} : gameIso est hors gel`)
-    assert.ok(Array.isArray(noms) && noms.length > 0, `${f} : entrée vide`)
-    assert.deepEqual(noms, [...noms].sort(), `${f} : noms non triés`)
-  }
 })

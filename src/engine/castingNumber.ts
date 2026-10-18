@@ -60,7 +60,7 @@ export interface CastingNumberMod {
   /** Plancher EXPLICITE du RAW (`VDM 12 l.48` : « jusqu'à un minimum de 0 »). */
   min?: number;
   scope?: CastingNumberScope;
-  /** Valeur maison ÉDITABLE portant sa justification (CLAUDE.md règle 7) — le sens d'arrondi que le
+  /** Valeur maison ÉDITABLE portant sa justification (AGENTS.md règle 7) — le sens d'arrondi que le
    *  RAW n'imprime pas se pose ici, jamais en silence. */
   maison?: string;
   source: { book: string; page: number };

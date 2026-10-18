@@ -1186,7 +1186,7 @@ registerCascadeApplier(SEA_BOARD_EVENT_KIND, (get, set, step) => {
   patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng) });
   if (!event) return {};
   // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
-  // `sea-events.json`, CLAUDE.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
+  // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
   // la rangée reste lisible dans la pile après validation (« on ne perd pas les conséquences »,
   // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `stageWeather`), qui rend
   // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la

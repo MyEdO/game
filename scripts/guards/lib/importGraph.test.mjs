@@ -28,7 +28,7 @@ import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, globsDe, grapheInverse, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
+import { aliasDe, analyserEnLots, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, globsDe, grapheInverse, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
 import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -893,4 +893,30 @@ test('specificateurs : la marche lit le mémo par texte et n’écrit que ce qu�
   const autre = { ...arbre, existe: (a) => a !== abs('b.mjs') && arbre.existe(a) }
   assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, arbre: autre, specificateurs })], ['a.mjs'])
   assert.equal(ecrits.length, 2)
+})
+
+test('clôture : lots positifs bornent les sessions sans changer ordre ni arcs ni cache', () => {
+  const racine = resolve(RACINE).split('\\').join('/')
+  const roots = Array.from({ length: 7 }, (_, i) => `lot/r${i}.mjs`)
+  const modules = new Map(roots.map((r) => [`${racine}/${r}`, "import './feuille.mjs'"]))
+  modules.set(`${racine}/lot/feuille.mjs`, 'export const f=1')
+  const arbre = { existe: (f) => modules.has(f), lire: (fs) => new Map(fs.map((f) => [f, modules.get(f)])) }
+  const vues = [2, 100].map((tailleLot) => {
+    const sessions = []
+    function* analyser(entrees, taille) {
+      for (const analyse of analyserEnLots(entrees, taille)) {
+        if (sessions.at(-1)?.checker !== analyse.checker) sessions.push({ checker: analyse.checker, modules: 0 })
+        sessions.at(-1).modules += 1
+        yield analyse
+      }
+    }
+    const cache = new Map()
+    const fermeture = clotureDImports(roots, { racine, arbre, cache, tailleLot, analyser })
+    const tailles = sessions.map((s) => s.modules)
+    assert.ok(tailles.every((n) => n <= tailleLot), JSON.stringify(tailles))
+    assert.equal(tailles.reduce((a, n) => a + n, 0), 8)
+    return { fermeture: [...fermeture], cache: [...cache] }
+  })
+  assert.deepEqual(vues[0], vues[1])
+  for (const tailleLot of [0, -1, Infinity, 1.5]) assert.throws(() => clotureDImports([], { tailleLot }), /tailleLot/)
 })

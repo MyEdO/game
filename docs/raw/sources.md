@@ -2,7 +2,7 @@
 
 Le **RAW** du projet = ces **livres** (VF — sauf le **CRB**, Core Rulebook 5e, en **VO** par arbitrage
 utilisateur du 2026-09-18 — convertis en `.md` sous `Source/`, table complète ci-dessous). Référence exacte
-dans [`../../CLAUDE.md`](../../CLAUDE.md) § *Sources VF*.
+dans [`../../AGENTS.md`](../../AGENTS.md) § *Sources VF*.
 
 ## Convention de référence
 

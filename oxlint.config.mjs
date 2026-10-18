@@ -55,7 +55,7 @@ const VERROU_DIALECTE = [{
 
 const MARCHE_BRUTE = ['readdirSync', 'readdir', 'opendirSync', 'opendir', 'globSync', 'glob'];
 const MSG_ORDRE_TOTAL =
-  'Ordre total (#1679 L3b) : lister un dossier passe par `listerDossier`/`listerArbre` (`scripts/guards/lib/lister.mjs`), et LIRE un corpus source par `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`) — un listing brut suit l’ordre du système de fichiers et périme le doc dérivé sur l’autre OS.';
+  'Ordre total (#1679 L3b) : lister un dossier passe par `listerDossier`/`listerEntrees`/`listerArbre` (`scripts/guards/lib/lister.mjs`), et LIRE un corpus source par `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`) — un listing brut suit l’ordre du système de fichiers et périme le doc dérivé sur l’autre OS.';
 const MSG_LOCALE_COMPARE =
   'Ordre total (#1679 L3b) : `localeCompare`, `toLocale*` et `Intl` suivent la locale et l’ICU du processus — le doc dérivé change avec la machine. Comparer par `parUnitesDeCode` (chemin, id, clé) ou `parLibelle` (libellé lu par le joueur), de `src/lib/ordre.mjs` ; formater sans locale.';
 
@@ -115,21 +115,31 @@ const GLOBS_GENERATEURS = [
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
-const msgPurete = (amont, aval, suite) =>
-  `Pureté de couche (#1709, CLAUDE.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
+const msgPurete = (amont, aval, suite, types) =>
+  `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} ${types ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION'} — ${suite}`;
 
 const pureteImports = (amont, avals) => ({
-  patterns: avals.map(([aval, suite]) => ({
+  patterns: avals.map(([aval, suite, { types = false } = {}]) => ({
     group: [`**/${aval}`, `**/${aval}/**`],
-    allowTypeImports: true,
-    message: msgPurete(amont, aval, suite),
+    allowTypeImports: !types,
+    message: msgPurete(amont, aval, suite, types),
   })),
 });
 
-const pureteSyntaxe = (amont, avals) => avals.map(([aval, suite]) => ({
-  selector: `ImportExpression[source.value=/(^|\\/)${aval}\\//]`,
-  message: msgPurete(amont, aval, suite),
-}));
+const pureteSyntaxe = (amont, avals) => avals.flatMap(([aval, suite, { types = false } = {}]) => {
+  const vers = `/(^|\\/)${aval}(\\/|$)/`;
+  return [
+    `ImportExpression[source.value=${vers}]`,
+    `ImportExpression[source.expressions.length=0][source.quasis.0.value.cooked=${vers}]`,
+    `CallExpression[callee.name="require"][arguments.0.value=${vers}]`,
+    `CallExpression[callee.name="require"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
+    `CallExpression[callee.callee.name="createRequire"][arguments.0.value=${vers}]`,
+    `CallExpression[callee.callee.name="createRequire"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
+    `CallExpression[callee.object.name="module"][callee.property.name="require"][arguments.0.value=${vers}]`,
+    `CallExpression[callee.object.name="module"][callee.property.name="require"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
+    ...(types ? [`TSImportType[source.value=${vers}]`] : []),
+  ].map((selector) => ({ selector, message: msgPurete(amont, aval, suite, types) }));
+});
 
 const AVALS_ENGINE = [
   ['state', 'extraire le type/la logique partagée vers une couche neutre — `engine/flowCore` a été extrait pour cela (#8), la couche `state` ne fait qu’instancier la feuille générique.'],
@@ -143,7 +153,7 @@ const AVALS_DATA = [
 ];
 const AVALS_STATE = [
   ['ui', 'le store/flux est en amont de l’affichage — extraire le type/la logique partagée, ou n’importer que le TYPE (`import type`).'],
-  ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.'],
+  ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.', { types: true }],
 ];
 
 // #2278, #2280
@@ -540,6 +550,24 @@ export const BLOCS_LINT = [
     rules: {
       'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
       'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
+    },
+  },
+  {
+    // #2724
+    files: ['src/**', 'scripts/**'],
+    rules: { 'murs/interne': 'error' },
+  },
+  {
+    // #495, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/ui/editor/**', 'src/ui/gallery/**', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    rules: {
+      'murs/atelier': ['error', {
+        patterns: [{
+          group: ['**/editor/GameOpEditor', '**/editor/GameOpEditor.*', '**/editor/ConditionEditor', '**/editor/ConditionEditor.*', '**/editor/refsDOp', '**/editor/refsDOp.*'],
+          message: 'Atelier (#495) : `GameOpEditor`, `ConditionEditor` et la palette d’auteur `refsDOp` ne servent qu’à l’atelier (`src/ui/editor/`, et la galerie DEV `src/ui/gallery/`) — une surface joueur compose `opRows`/`GameOpChips`/`humanizeCondition`.',
+        }],
+      }],
     },
   },
   {

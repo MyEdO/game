@@ -2,10 +2,11 @@
 // MEILLEUR EFFORT (sauvegarde impossible avertie, forme fausse ignorée). Dossiers sous mkdtempSync.
 import { test, mock } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, utimesSync, rmSync, writeFileSync } from 'node:fs'
+import { listerDossier } from './lister.mjs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { memosDe, specificateursMemoises, versionDesMemos } from './memosDAnalyse.mjs'
+import { memosDe, specificateursMemoises, texteSiPresent, versionDesMemos } from './memosDAnalyse.mjs'
 
 /** Un dossier jetable, retiré après le test. */
 const jetable = (t, prefixe) => {
@@ -28,10 +29,10 @@ test('mémos signés par le tsconfig : le même blob sous deux tsconfig ne parta
   assert.deepEqual(memosDe(dossier, versionDesMemos(c)).lire('specificateurs', '.ts:blob'), [])
 })
 
-test('mémos signés par le texte de `perimetre.mjs`, qui calcule les mémos `declarations` et `liaisons` (C2)', (t) => {
+test('mémos signés par le texte d’un versionnant, `importGraph.mjs` (C2)', (t) => {
   const racine = jetable(t, 'memos-versionnant-')
   const meme = () => 'texte'
-  const autre = (f) => f === 'scripts/test/perimetre.mjs' ? 'autre texte' : 'texte'
+  const autre = (f) => f === 'scripts/guards/lib/importGraph.mjs' ? 'autre texte' : 'texte'
   assert.equal(versionDesMemos(racine, meme), versionDesMemos(racine, meme))
   assert.notEqual(versionDesMemos(racine, autre), versionDesMemos(racine, meme))
 })
@@ -75,4 +76,59 @@ test('#2603 — mémo de la bonne version mais de forme fausse : ignoré, comme 
     writeFileSync(fichier, JSON.stringify({ version, memos: faux }))
     assert.equal(specificateursMemoises(memosDe(dossier, version), { typesEffaces: false }).lire('a.ts', 'T'), undefined, JSON.stringify(faux))
   }
+})
+
+test('canon checkpoints : seules les familles salies se sérialisent, parcours et suppression composables', (t) => {
+  const dossier = jetable(t, 'memos-checkpoints-')
+  const version = 'a'.repeat(64)
+  const m = memosDe(dossier, version)
+  m.ecrire('lectures', 'a', 1)
+  m.ecrire('evaluations', 'b', 2)
+  const serialiser = mock.method(JSON, 'stringify')
+  try {
+    m.sauver()
+    assert.equal(serialiser.mock.callCount(), 2)
+    m.sauver()
+    assert.equal(serialiser.mock.callCount(), 2)
+    m.parcourir((nom, cle) => { if (nom === 'lectures') m.supprimer(nom, cle) })
+    m.supprimer('inconnue', 'a')
+    m.sauver()
+    assert.equal(serialiser.mock.callCount(), 3)
+  } finally { serialiser.mock.restore() }
+  assert.equal(memosDe(dossier, version).lire('lectures', 'a'), undefined)
+  assert.equal(memosDe(dossier, version).lire('evaluations', 'b'), 2)
+  assert.equal(memosDe(dossier, 'b'.repeat(64)).lire('evaluations', 'b'), undefined)
+})
+
+test('canon checkpoints : purge 40 ou 64 hex, lecture seule sans écriture ni purge', (t) => {
+  const dossier = jetable(t, 'memos-purge-')
+  const anciens = [40, 41, 63, 64].map((n) => join(dossier, 'ancienne.' + 'a'.repeat(n) + '.json'))
+  for (const f of anciens) { writeFileSync(f, '{}'); utimesSync(f, 0, 0) }
+  const version = 'b'.repeat(64)
+  const ro = memosDe(dossier, version, { lectureSeule: true })
+  ro.ecrire('neuve', 'cle', 1)
+  ro.sauver()
+  assert.equal(listerDossier(dossier).length, 4)
+  const m = memosDe(dossier, version)
+  m.ecrire('neuve', 'cle', 1)
+  m.sauver()
+  assert.deepEqual(listerDossier(dossier), [anciens[1], anciens[2], join(dossier, 'neuve.' + version + '.json')].map((f) => f.slice(dossier.length + 1)).sort())
+})
+
+test('canon checkpoints : écriture échouée reste sale et réessaie', (t) => {
+  const dossier = join(jetable(t, 'memos-reessai-'), 'cache')
+  writeFileSync(dossier, 'bloque')
+  const m = memosDe(dossier, 'a'.repeat(40))
+  m.ecrire('lectures', 'a', 1)
+  const avertir = mock.method(process.stderr, 'write', () => true)
+  try { m.sauver() } finally { avertir.mock.restore() }
+  rmSync(dossier)
+  m.sauver()
+  assert.equal(memosDe(dossier, 'a'.repeat(40)).lire('lectures', 'a'), 1)
+})
+
+test('texte d’un versionnant : absent se lit vide, une autre panne de lecture lève avec sa cause (#2586)', (t) => {
+  const dossier = jetable(t, 'memos-texte-')
+  assert.equal(texteSiPresent(join(dossier, 'absent.mjs')), '')
+  assert.throws(() => texteSiPresent(dossier), (e) => /illisible/.test(e.message) && e.cause?.code === 'EISDIR')
 })

@@ -50,7 +50,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
   Trois familles :
   - les **impératifs** du livre (éléments importants, indices, « doivent absolument ») sont des
     INVARIANTS, cités au `Source/` et implémentés ;
-  - une **règle de jeu** laissée au MJ reçoit un arbitrage EXPLICITE (CLAUDE.md règle 7) : donnée maison
+  - une **règle de jeu** laissée au MJ reçoit un arbitrage EXPLICITE (AGENTS.md règle 7) : donnée maison
     éditable, ou choix du joueur, avec la cérémonie du credo (verbatim et date au ticket) ;
   - le **reste narratif** se conçoit comme un MJ, en puisant dans les compagnons (« péages, les
     PNJs/scénarios annexes et autres, mais pas que »), et chaque ajout est tagué `maison`.

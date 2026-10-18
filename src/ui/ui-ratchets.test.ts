@@ -1134,7 +1134,7 @@ function scanNumberInputs(files: readonly Fichier[]): Record<string, number> {
 
 // ── (xviii) Breakpoints de LARGEUR hors canon, sur TOUS les modules CSS (#1318 V5) — le volet
 //    responsive du HUD ne regardait que `hud.css`/`combat-start-splash.css`/`roll-shell.css` ; la règle
-//    stricte 4 du CLAUDE.md vaut pour tout `src/ui`. Canon VERS LE BAS : `max-width` ∈ {900,700,560}.
+//    stricte 4 d'AGENTS.md vaut pour tout `src/ui`. Canon VERS LE BAS : `max-width` ∈ {900,700,560}.
 //    Canon VERS LE HAUT : `min-width` ∈ {561,701,901} (complément exact d'une tranche basse) et 1440
 //    (docs/charte-ui.md § « Politique grand écran (≥1440px) »).
 //    EXEMPTIONS NOMINATIVES (2026-08-16) — chacune porte sa raison, aucune n'est un blanc-seing :

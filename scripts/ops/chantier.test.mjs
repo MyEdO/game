@@ -18,7 +18,8 @@ import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { sousEcheanceAsync } from '../test/verrou.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 /** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
 const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
@@ -127,8 +128,8 @@ describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `a
         assert.match(dits.join(''), /principal avancé .*relance `npm run ops:chantier -- 18 --sans-ci`/)
         assert.equal(consommateurs[0]?.etat, 'en-cours', 'le post-merge de l’avance court en fond')
       } finally {
-        for (const pid of consommateurs.map((c) => c?.pid).filter(Boolean)) {
-          assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `consommateur ${pid} vivant`)
+        for (const { pid, depuis } of consommateurs.filter((c) => c?.pid)) {
+          assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => estPidVivantDepuis(pid, Date.parse(depuis), IDENTITE_MESUREE), abouti: (vit) => !vit }), false, `consommateur ${pid} vivant`)
         }
       }
     } finally {

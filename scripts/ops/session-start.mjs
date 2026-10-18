@@ -33,7 +33,7 @@ export async function preflightSessionStart(worktree, agent) {
     try { contenus.push([script, fs.readFileSync(join(worktree, 'scripts/hooks', script), 'utf8')]) }
     catch (e) { throw new Error(`HOOKS : SCRIPT ABSENT OU ILLISIBLE : ${script} — ${e.code ?? e.message}`, { cause: e }) }
   }
-  const credo = fs.readFileSync(join(worktree, `.${agent}/credo.md`), 'utf8')
+  const credo = fs.readFileSync(join(worktree, '.claude/credo.md'), 'utf8')
   if (!credo.trim()) throw new Error('HOOKS : CREDO VIDE')
   return { empreinteCanon: hashSessionStart(JSON.stringify({ attendus, contenus })), ...(agent === 'codex' ? { empreinteCredo: hashSessionStart(credo) } : {}), delaiMs: (plats.filter((h) => h.phase === 'SessionStart').reduce((total, h) => total + h.timeout, 0) + 10) * 1000 }
 }
