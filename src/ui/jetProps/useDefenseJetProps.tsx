@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { garanti } from '../../state/combatants';
-import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '../../state/rollFlowSpecs';
+import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE, parryWeaponOf } from '../../state/rollFlowSpecs';
 import { defenseDodgeMods, defenseGagneeEnMelee } from '../../state/combatFlow';
 import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, DEFENSE_LABEL, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
 import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../../engine/combatFeatures/dispatch';
@@ -52,9 +52,9 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const res = pd.result;
   const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender)) : null;
   const rolled = !!res;
-  // Armes pouvant parer (hors Mains nues) ; arme de parade choisie (défaut = main principale).
+  // Armes pouvant parer (hors Mains nues) ; arme de parade = celle du jet (`parryWeaponOf`).
   const parryPickable = defender.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
-  const chosenParry = pd.parryWeaponUid ? defender.weapons.find((w) => w.uid === pd.parryWeaponUid) : defender.weapons[0];
+  const chosenParry = parryWeaponOf(defender, pd);
   // Lignes d'Esquive du contexte (neige, monté) : MÊME source que le jet résolu (`defenseDodgeMods`).
   const dodgeMods = defenseDodgeMods(useGame.getState(), defender);
   // Substitution sociale (LDB 09 l.207/287) : proposée en MÊLÉE quand une Compétence sociale
