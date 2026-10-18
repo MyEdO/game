@@ -11,8 +11,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { refusOutillageLocal } from '../outillage-local.mjs'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { lancerTests } from './run.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { VARIABLE_PARTIE } from './partition.mjs'
@@ -60,6 +61,34 @@ const lancementsDe = (traces) => readdirSync(traces).sort((a, b) => (a.startsWit
 
 const relais = () => ['SIGINT', 'SIGTERM'].map((s) => process.listeners(s))
 
+/** L'`enfant` de `lancerTests` : le vrai `spawn`, chaque lancement porté dans `vus` avec, à son `close`, l'état du
+ *  verrou `chemin` (`verrouALaFermeture`). */
+const espionDe = (vus, chemin) => (...a) => {
+  const p = spawn(...a)
+  const vu = { pid: p.pid, ferme: false, verrouALaFermeture: null }
+  vus.push(vu)
+  p.on('close', () => { vu.ferme = true; vu.verrouALaFermeture = existsSync(chemin) })
+  return p
+}
+
+/** Dès que `attendus` Vitest sont tracés, `sig` passe aux seuls écouteurs que le lancement a posés depuis `avant`
+ *  (`relais()`) ; au-delà de `echeanceMs` sans relais posé, les enfants de `vus` sont tués à la main et `etat.relaye`
+ *  reste `false`. */
+const signalerAuxRelais = ({ traces, attendus, sig, avant, vus, etat, echeanceMs = 10000 }) => {
+  const debut = Date.now()
+  const guet = setInterval(() => {
+    if (readdirSync(traces).length !== attendus) return
+    const poses = process.listeners(sig).filter((l) => !avant[sig === 'SIGINT' ? 0 : 1].includes(l))
+    if (!poses.length && Date.now() - debut < echeanceMs) return
+    clearInterval(guet)
+    etat.nes = Date.now()
+    if (!poses.length) { for (const { pid } of vus) process.kill(pid); return }
+    etat.relaye = true
+    for (const l of poses) l(sig)
+  }, 10)
+  return guet
+}
+
 test('lancerTests : le code de Vitest est rendu tel quel, verrou rendu, relais retirés', async (t) => {
   const p = fixtureRun(t)
   const avant = relais()
@@ -97,6 +126,52 @@ test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et ver
   assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'])
   for (const [cote, pid] of lancements) assert.equal(estPidVivantDepuis(pid, nes, IDENTITE_MESUREE), false, cote)
   assert.deepEqual(readdirSync(join(p.racine, 'node_modules/.vitest-split')), [])
+  assert.equal(existsSync(p.verrou.chemin), false)
+  assert.deepEqual(relais(), avant)
+})
+
+for (const [mode, sig] of [['mono', 'SIGINT'], ['mono', 'SIGTERM'], ['partagé', 'SIGINT'], ['partagé', 'SIGTERM']]) {
+  test(`lancerTests : ${sig} du processus relayé à chaque Vitest (${mode}), verrou rendu après leur close, atelier et relais retirés`, { timeout: 30000 }, async (t) => {
+    const p = fixturePartagee(t)
+    const partage = mode === 'partagé'
+    const avant = relais()
+    const vus = []
+    const etat = { relaye: false, nes: 0 }
+    const guet = signalerAuxRelais({ traces: p.traces, attendus: partage ? 2 : 1, sig, avant, vus, etat })
+    let code
+    try {
+      code = await lancerTests({ ...p, argv: partage ? [] : ['src/un.test.ts'], enfant: espionDe(vus, p.verrou.chemin),
+        env: { ...p.env, WFRP_TEST_COEURS: partage ? '16' : '4', FAUX_VITEST_ATTENTE: '1' } })
+    } finally { clearInterval(guet) }
+    assert.equal(etat.relaye, true, `${sig} relayé par un écouteur du lancement`)
+    assert.equal(code, 1)
+    assert.deepEqual(lancementsDe(p.traces).map(([cote]) => cote), partage ? ['node', 'jsdom'] : ['node'])
+    for (const vu of vus) {
+      assert.equal(estPidVivantDepuis(vu.pid, etat.nes, IDENTITE_MESUREE), false, `pid ${vu.pid}`)
+      assert.deepEqual([vu.ferme, vu.verrouALaFermeture], [true, true], 'le verrou est encore tenu au close de chaque Vitest')
+    }
+    const ateliers = join(p.racine, 'node_modules/.vitest-split')
+    assert.deepEqual(existsSync(ateliers) ? readdirSync(ateliers) : [], [])
+    assert.equal(existsSync(p.verrou.chemin), false)
+    assert.deepEqual(relais(), avant)
+  })
+}
+
+test('lancerTests : une exception levée avec un Vitest vivant le ferme AVANT de rendre le verrou, atelier et relais retirés', { timeout: 30000 }, async (t) => {
+  const p = fixturePartagee(t)
+  const avant = relais()
+  const vus = []
+  let atelier
+  await assert.rejects(lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
+    env: { ...p.env, WFRP_TEST_COEURS: '16', FAUX_VITEST_ATTENTE: '1' },
+    inventorier: (exe, args, options) => {
+      atelier = dirname(args.find((a) => a.startsWith('--json=')).slice(7))
+      mkdirSync(join(atelier, 'vitest.jsdom.config.ts'))
+      return p.inventorier(exe, args, options)
+    } }), (e) => e.code === 'EISDIR')
+  assert.equal(vus.length, 1, 'le Vitest node lancé avant la levée')
+  assert.deepEqual([vus[0].ferme, vus[0].verrouALaFermeture], [true, true], 'fermé verrou encore tenu')
+  assert.equal(existsSync(atelier), false)
   assert.equal(existsSync(p.verrou.chemin), false)
   assert.deepEqual(relais(), avant)
 })

@@ -13,7 +13,8 @@
 // gates ne doit pas être découvert APRÈS coup, par un vert qui ne prouve rien.
 //
 // Le lancement prend le verrou machine des gestes lourds (`verrouGestesLourds.mjs`, #2603), ou l'emprunte
-// par le jeton de son appelant, lance `node --test` en enfant direct et le rend à la sortie de l'enfant
+// par le jeton de son appelant, lance `node --test` en enfant direct, lui relaie SIGINT et SIGTERM, et le rend à la
+// sortie de l'enfant
 // (#2586 c.6244746949).
 //
 // Les DURÉES par fichier (#2497) : le reporter `dureesNodeTest.mjs` écrit sous `os.tmpdir()`, puis la ligne
@@ -71,32 +72,51 @@ function dureesDe(sortie) {
 /**
  * Lance `node --test` sur les `tests` de la gate `gate` depuis `racine` (`reportersDuLancement`), sous le verrou
  * `verrou` (par défaut `verrouGestesLourds(racine)`) pris par `prendreVerrouAsync` avec `env` (le jeton d'un
- * appelant s'y emprunte) et `signal` : refusé, il imprime le refus et rend `CODE_DIFFERE`. Pris, `enfant` (`spawn`)
- * lance `node --test` en direct, sorties héritées, l'env augmenté du jeton de la prise et `signal` transmis ; un
- * échec de lancement s'imprime et vaut 1. Imprime la ligne des durées (`ligneDeDurees`) si le reporter en a rendu.
- * À la fermeture de l'enfant, le dossier temporaire (sous `temporaire`) s'efface et le verrou se rend. Rend le code de
- * sortie de l'enfant (`codeEnfant`) ; un rapport des durées illisible LÈVE (`dureesDe`).
+ * appelant s'y emprunte) : refusé, il imprime le refus et rend `CODE_DIFFERE`. Pris, `enfant` (`spawn`) lance
+ * `node --test` en direct, sorties héritées, l'env augmenté du jeton de la prise ; un SIGINT ou SIGTERM du processus
+ * est relayé à l'enfant, et le verrou ne se rend qu'à sa fermeture. Un échec de lancement, levé par `enfant` ou émis
+ * en `'error'`, s'imprime et vaut 1 (`codeEnfant` : un enfant qui n'a pas réussi). Imprime la ligne des durées
+ * (`ligneDeDurees`) si le reporter en a rendu. À la fermeture de l'enfant, le dossier temporaire (sous `temporaire`)
+ * s'efface, les relais se retirent et le verrou se rend. Rend le code de sortie de l'enfant (`codeEnfant`) ; un
+ * rapport des durées illisible LÈVE (`dureesDe`).
  * @param {{ gate: string, tests: string[], drapeaux?: string[], racine?: string, temporaire?: string, tty?: boolean,
  *   enfant?: typeof spawn, imprimer?: (ligne: string) => void, env?: NodeJS.ProcessEnv,
- *   verrou?: Pick<Parameters<typeof prendreVerrouAsync>[0], 'chemin' | 'libelle' | 'attente' | 'identite'>, signal?: AbortSignal }} p
+ *   verrou?: Pick<Parameters<typeof prendreVerrouAsync>[0], 'chemin' | 'libelle' | 'attente' | 'identite'> }} p
  */
-export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, enfant = spawn, imprimer = console.log, env = process.env, verrou, signal }) {
-  const prise = await prendreVerrouAsync({ ...(verrou ?? verrouGestesLourds(racine)), env, signal, cwd: racine, commande: 'node-tests ' + gate })
+export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, enfant = spawn, imprimer = console.log, env = process.env, verrou }) {
+  const prise = await prendreVerrouAsync({ ...(verrou ?? verrouGestesLourds(racine)), env, cwd: racine, commande: 'node-tests ' + gate })
   if (prise.etat !== 'pris') { imprimer(prise.message); return CODE_DIFFERE }
   const dossier = mkdtempSync(join(temporaire, 'durees-node-'))
+  /** @type {((s: NodeJS.Signals) => void) | null} */
+  let relayer = null
   try {
     const sortie = join(dossier, 'durees.json')
     const code = await new Promise((rendre) => {
+      const echouer = (e) => imprimer(`[node-tests] lancement de node --test impossible : ${e.message}`)
+      let p
+      try {
+        p = enfant(process.execPath, ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie }), ...tests],
+          { cwd: racine, stdio: 'inherit', env: { ...env, ...prise.env } })
+      } catch (e) {
+        echouer(e)
+        rendre(1)
+        return
+      }
+      relayer = (s) => { p.kill(s) }
+      process.on('SIGINT', relayer)
+      process.on('SIGTERM', relayer)
       let echec = false
-      const p = enfant(process.execPath, ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie }), ...tests],
-        { cwd: racine, stdio: 'inherit', env: { ...env, ...prise.env }, signal })
-      p.on('error', (e) => { echec = true; imprimer(`[node-tests] lancement de node --test impossible : ${e.message}`) })
+      p.on('error', (e) => { echec = true; echouer(e) })
       p.on('close', (c, s) => rendre(echec ? 1 : codeEnfant(c, s)))
     })
     const lu = dureesDe(sortie)
     if (lu?.durees) imprimer(ligneDeDurees(gate, lu.durees, racine))
     return code
   } finally {
+    if (relayer) {
+      process.removeListener('SIGINT', relayer)
+      process.removeListener('SIGTERM', relayer)
+    }
     rmSync(dossier, { recursive: true, force: true })
     prise.liberer()
   }

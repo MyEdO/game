@@ -55,7 +55,7 @@ import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
-export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, inventorier = spawnSync } = {}) {
+export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, inventorier = spawnSync, enfant = spawn } = {}) {
   const RACINE = racine
   const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
   // Outillage LOCAL exigé AVANT tout lancement (#1679 L1c) : sans `node_modules/vitest` dans CET
@@ -233,27 +233,30 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     })
   }
 
-  /** Un processus Vitest lancé directement, sorties relayées : rend son code (`codeEnfant`), 1 si le
-   *  lancement échoue ou si un arrêt est déjà demandé. */
+  /** Un processus Vitest lancé directement, sorties relayées : rend son code (`codeEnfant`), 1 si son
+   *  lancement ou son arrêt échoue, ou si un arrêt est déjà demandé. */
   function lancerVitest(args, prefixe = '') {
     if (arret || signal?.aborted) return Promise.resolve(1)
-    const echouer = (e) => {
-      const ligne = prefixe + '[test] lancement de Vitest impossible : ' + e.message
+    const echouer = (quoi, e) => {
+      const ligne = prefixe + '[test] ' + quoi + ' : ' + e.message
       process.stderr.write(ligne + '\n'); ecrireCapture(ligne + '\n'); observer(ligne, true)
       arreter('SIGTERM')
     }
     let p
     try {
-      p = spawn(process.execPath, args, { cwd: RACINE, env: ENV, stdio: ['inherit', 'pipe', 'pipe'] })
+      p = enfant(process.execPath, args, { cwd: RACINE, env: ENV, stdio: ['inherit', 'pipe', 'pipe'] })
     } catch (e) {
-      echouer(e)
+      echouer('lancement de Vitest impossible', e)
       return Promise.resolve(1)
     }
     relayer(p.stdout, process.stdout, { prefixe })
     relayer(p.stderr, process.stderr, { prefixe, erreur: true })
     let echec = false
     const fin = new Promise((res) => {
-      p.on('error', (e) => { echec = true; echouer(e) })
+      p.on('error', (e) => {
+        echec = true
+        echouer(p.pid === undefined ? 'lancement de Vitest impossible' : `arrêt du processus Vitest ${p.pid} impossible`, e)
+      })
       p.on('close', (code, s) => {
         enfants.delete(p)
         res(echec ? 1 : codeEnfant(code, s))

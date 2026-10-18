@@ -506,7 +506,7 @@ const ATTENDU = {
     // +1 (#2603) : le banc du verrou des gestes lourds forge un dépôt JETABLE (`instanceDeDepot`,
     // sous os.tmpdir(), `rmSync` en finally) et y tient le verrou ; l'arbre n'est jamais écrit.
     'scripts/test/verrouGestesLourds.test.mjs',
-    // +5 le 2026-10-17 (#2586) : `perimetre.mjs` lance ses fichiers par `memoire.mjs`, qui pose
+    // +4 le 2026-10-17 (#2586) : `perimetre.mjs` lance ses fichiers par `memoire.mjs`, qui pose
     // ses émissions et son diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la
     // supervision de `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; les
     // bancs `memoire.test.mjs` et `mesures.test.mjs` posent leurs dossiers et dépôts sous os.tmpdir(), `rmSync` en
@@ -515,6 +515,9 @@ const ATTENDU = {
     'scripts/test/memoire.mjs',
     'scripts/test/memoire.test.mjs',
     'scripts/test/mesures.test.mjs',
+    // +1 le 2026-10-17 (#2586) : `run.mjs`, importé par `run-isolation.test.mjs`, écrit son atelier
+    // (`node_modules/.vitest-split/`) et sa capture (`node_modules/.cache/vitest-run-<pid>.txt`) sous sa `racine`,
+    // que le banc pose sous un `mkdtempSync` d'os.tmpdir() retiré par `t.after`. L'arbre n'est jamais écrit.
     'scripts/test/run.mjs',
   ],
   'test:docs': [
@@ -576,8 +579,9 @@ const ATTENDU = {
     // +1 le 2026-09-07 (#1709) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     'scripts/guards/lib/depotGabarit.mjs',
-    // +1 le 2026-10-17 (#2586) : les bancs qui importent `gitPorte.mjs` lancent git sous `superviserProcessus.mjs`
-    // (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
+    // +1 le 2026-10-17 (#2586) : atteint par import statique `toutes.mjs` → `processusBorne.mjs` →
+    // `superviserProcessus.mjs` (`transitif`, `scripts/gates/ecrivainsAtteints.mjs:40`) ; il n'écrit que sous son
+    // dossier `mkdtempSync` d'os.tmpdir() (`superviserProcessus.mjs:88`), retiré par `rmSync`. L'arbre n'est jamais écrit.
     'scripts/guards/lib/superviserProcessus.mjs',
   ],
   'deps:unused': [],

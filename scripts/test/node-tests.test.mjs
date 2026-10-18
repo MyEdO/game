@@ -7,8 +7,12 @@ import { join } from 'node:path'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { jetonsDuVerrou, prendreVerrouAsync } from './verrou.mjs'
 import { entree, lancerGate, reporterParDefaut, reportersDuLancement } from './node-tests.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 
 const durees = (args) => args.filter((a) => a.startsWith('--test-reporter')).slice(-2)
+
+const relaisDuProcessus = () => ['SIGINT', 'SIGTERM'].map((s) => process.listeners(s))
 
 /** Un dossier jetable, effacé après `t`, et le verrou de fixture qu'il porte. */
 function banc(t, prefixe) {
@@ -97,6 +101,55 @@ test('lancerGate : le code de l’enfant est propagé ; un enfant tué par signa
   assert.equal(await lancer((cmd, args, options) => spawn(join(temporaire, 'absent.exe'), [], options)), 1)
   assert.match(imprimes.at(-1), /^\[node-tests\] lancement de node --test impossible : /)
   assert.deepEqual(readdirSync(temporaire), [], 'dossier et verrou rendus après chaque lancement')
+})
+
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  test(`lancerGate : ${sig} du processus relayé à l’enfant, verrou tenu jusqu’à son close, relais retirés`, { timeout: 30000 }, async (t) => {
+    const { temporaire, verrou } = banc(t, 'node-tests-signal-')
+    const avant = process.listeners(sig)
+    const vu = { pid: undefined, verrouALaFermeture: null }
+    const joue = enfantQuiJoue('setInterval(() => {}, 1000)')
+    const enfant = (...a) => {
+      const p = joue(...a)
+      vu.pid = p.pid
+      p.on('close', () => { vu.verrouALaFermeture = existsSync(verrou.chemin) })
+      return p
+    }
+    const etat = { relaye: false, nes: 0 }
+    const debut = Date.now()
+    const guet = setInterval(() => {
+      if (vu.pid === undefined) return
+      const poses = process.listeners(sig).filter((l) => !avant.includes(l))
+      if (!poses.length && Date.now() - debut < 10000) return
+      clearInterval(guet)
+      etat.nes = Date.now()
+      if (!poses.length) { process.kill(vu.pid); return }
+      etat.relaye = true
+      for (const l of poses) l(sig)
+    }, 10)
+    let code
+    try {
+      code = await lancerGate({ gate: 'fixture', tests: ['un.test.mjs'], racine: temporaire, temporaire, verrou, imprimer: () => {}, enfant })
+    } finally { clearInterval(guet) }
+    assert.equal(etat.relaye, true, `${sig} relayé par un écouteur du lancement`)
+    assert.equal(code, 1, 'un enfant tué par signal vaut 1')
+    assert.equal(estPidVivantDepuis(vu.pid, etat.nes, IDENTITE_MESUREE), false)
+    assert.equal(vu.verrouALaFermeture, true, 'le verrou est encore tenu au close de l’enfant')
+    assert.deepEqual(readdirSync(temporaire), [], 'dossier et verrou rendus')
+    assert.deepEqual(process.listeners(sig), avant)
+  })
+}
+
+test('lancerGate : une levée synchrone du lancement s’imprime et vaut 1, verrou rendu', async (t) => {
+  const { temporaire, verrou } = banc(t, 'node-tests-levee-')
+  const imprimes = []
+  const avant = relaisDuProcessus()
+  const code = await lancerGate({ gate: 'fixture', tests: ['un.test.mjs'], racine: temporaire, temporaire, verrou, imprimer: (l) => imprimes.push(l),
+    env: { ...process.env, VARIABLE_INVALIDE: 'nul\0' } })
+  assert.equal(code, 1)
+  assert.match(imprimes.at(-1), /^\[node-tests\] lancement de node --test impossible : /)
+  assert.deepEqual(readdirSync(temporaire), [], 'dossier et verrou rendus')
+  assert.deepEqual(relaisDuProcessus(), avant)
 })
 
 test('lancerGate : verrou tenu par un autre, le refus s’imprime, rien n’est lancé, `CODE_DIFFERE` rendu', async (t) => {
