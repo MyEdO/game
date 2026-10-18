@@ -134,4 +134,4 @@ export function evaluate(command) {
   return null
 }
 
-export const garde = { nom: 'hooks-git-contournes', outils: OUTILS_SHELL, evaluer: (entree) => verdictDe(evaluate(commandeDe(entree))) }
+export const garde = { nom: 'hooks-git-contournes', categorie: 'métier', outils: OUTILS_SHELL, evaluer: (entree) => verdictDe(evaluate(commandeDe(entree))) }

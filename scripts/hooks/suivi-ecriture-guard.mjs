@@ -46,4 +46,4 @@ function evaluer(entree, { dir, baseDeLAppel }) {
   return ecrituresDe(entree).map((ecrit) => refusDEcriture(ecrit, dir))
 }
 
-export const garde = { nom: 'suivi-ecriture', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL], evaluer }
+export const garde = { nom: 'suivi-ecriture', categorie: 'métier', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL], evaluer }

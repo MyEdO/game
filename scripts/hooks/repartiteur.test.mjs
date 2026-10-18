@@ -28,7 +28,7 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url))
 const CLAUDE = { CLAUDE_PROJECT_DIR: REPO }
 const CODEX = {}
 const shell = (command, extra = {}) => ({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, ...extra })
-const factice = (nom, evaluer) => ({ nom, outils: ['Bash'], evaluer })
+const factice = (nom, evaluer) => ({ nom, categorie: 'validation', outils: ['Bash'], evaluer })
 
 const patchNatif = (corps, cwd = REPO, phase = 'PreToolUse') => ({ hook_event_name: phase, tool_name: 'apply_patch', cwd, tool_input: { command: `*** Begin Patch\n${corps}\n*** End Patch` } })
 const specifiqueNatif = async (entree) => (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX })).sortie?.hookSpecificOutput
@@ -169,7 +169,7 @@ test('une garde qui LÈVE refuse l’appel en PreToolUse, avec le geste qui la r
   const casse = factice('casse', () => { throw new Error('boum') })
   const pre = cumuler(await evaluerGardes([casse, factice('refus', () => ({ decision: 'deny', raison: 'non' }))], shell('ls'), construireContexte(shell('ls'))))
   assert.equal(pre.decision.decision, 'deny')
-  assert.match(pre.decision.reason, /^⛔ garde casse en panne : boum — non retentable : corriger le module en panne \(nommé : [^)]*scripts\/hooks\/repartiteur[^)]*\) par une édition de fichier, seul geste admis en session principale\.$/)
+  assert.match(pre.decision.reason, /^\[panne · non retentable\] ⛔ garde casse en panne : boum — corriger le module en panne \(nommé : [^)]*scripts\/hooks\/repartiteur[^)]*\) par une édition de fichier, seul geste admis en session principale\.$/)
   const post = cumuler(await evaluerGardes([casse], shell('ls', { hook_event_name: 'PostToolUse' }), construireContexte(shell('ls'))))
   assert.equal(post.decision, null)
   assert.equal(post.contexte, 'garde casse en panne : boum')
@@ -192,7 +192,7 @@ test('une garde PROJECTION qui rend une `decision` est en PANNE : son refus ne p
   assert.equal(cumul.decision, null)
   assert.equal(cumul.contexte, 'garde deguisee en panne : une garde de projection ne décide jamais')
   const controle = cumuler(await evaluerGardes([{ ...deguisee, role: undefined }], shell('ls'), construireContexte(shell('ls'))))
-  assert.deepEqual(controle.decision, { decision: 'deny', reason: 'non' })
+  assert.deepEqual(controle.decision, { decision: 'deny', reason: '[validation · non retentable] non' })
 })
 
 test('un `deny` court-circuite les gardes suivantes', async () => {
@@ -204,19 +204,32 @@ test('un `deny` court-circuite les gardes suivantes', async () => {
   assert.equal(appelee, false)
 })
 
-test('cumul : les raisons des refus jointes ; les contextes toujours joints', () => {
+test('cumul : les raisons des refus jointes, chacune préfixée de sa catégorie ; les contextes toujours joints', () => {
   const cumul = cumuler([
-    { decision: 'deny', raison: 'a', garde: 'g1' },
+    { decision: 'deny', categorie: 'métier', raison: 'a', garde: 'g1' },
     { contexte: 'c1', garde: 'g2' },
-    { decision: 'deny', raison: 'd', garde: 'g3' },
+    { decision: 'deny', categorie: 'transitoire', raison: 'd', garde: 'g3' },
     { contexte: 'c2', garde: 'g4' },
   ])
-  assert.deepEqual(cumul.decision, { decision: 'deny', reason: 'a || d' })
+  assert.deepEqual(cumul.decision, { decision: 'deny', reason: '[métier · non retentable] a || [transitoire · retentable] d' })
   assert.equal(cumul.contexte, 'c1\n\nc2')
 })
 
+test('un refus prend la catégorie de sa garde, sauf la sienne ; une catégorie inconnue lève', async () => {
+  const garde = factice('g', () => [{ decision: 'deny', raison: 'a' }, { decision: 'deny', categorie: 'permission', raison: 'b' }])
+  const cumul = cumuler(await evaluerGardes([garde], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(cumul.decision.reason, '[validation · non retentable] a || [permission · non retentable] b')
+  assert.throws(() => cumuler([{ decision: 'deny', raison: 'x', garde: 'sans' }]), /catégorie de refus inconnue : undefined/)
+})
+
+test('une garde qui refuse sans catégorie connue fait refuser le répartiteur en panne', async () => {
+  const sans = { nom: 'sans-categorie', outils: ['Bash'], evaluer: () => ({ decision: 'deny', raison: 'non' }) }
+  const { sortie } = await repartir({ PreToolUse: [sans] }, JSON.stringify(shell('ls')))
+  assert.match(sortie.hookSpecificOutput.permissionDecisionReason, /^\[panne · non retentable\] ⛔ répartiteur en panne : catégorie de refus inconnue : undefined/)
+})
+
 test('un refus sans raison en porte une qui nomme sa garde', () => {
-  assert.match(cumuler([{ decision: 'deny', raison: '  ', garde: 'muette' }]).decision.reason, /muette/)
+  assert.match(cumuler([{ decision: 'deny', categorie: 'validation', raison: '  ', garde: 'muette' }]).decision.reason, /muette/)
 })
 
 test('projection : Claude porte décision et contexte dans la même sortie ; Codex sans `suppressOutput`', () => {

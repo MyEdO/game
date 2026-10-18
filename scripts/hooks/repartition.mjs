@@ -9,6 +9,7 @@ import { dirname, isAbsolute, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { RACINE } from './barriere-outil.mjs'
 import { panneDe } from './panne-outil.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import {
   EDITION, PROJECTION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert, racineDeLeanCtx,
 } from '../guards/lib/contratGarde.mjs'
@@ -247,7 +248,7 @@ export function verdictDePanne(quoi, e, entree, racine = RACINE) {
   const panne = panneDe(e, entree, racine)
   const texte = `${quoi} en panne : ${panne.message}`
   if (entree?.hook_event_name !== 'PreToolUse' || panne.franchit) return { contexte: texte }
-  return { decision: 'deny', raison: `⛔ ${texte} — ${panne.geste}.` }
+  return { decision: 'deny', categorie: 'panne', raison: `⛔ ${texte} — ${panne.geste}.` }
 }
 
 /**
@@ -267,7 +268,7 @@ export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
     if (garde.role === PROJECTION && rendus.some((v) => v.decision)) {
       rendus = [{ contexte: `garde ${garde.nom} en panne : une garde de projection ne décide jamais` }]
     }
-    verdicts.push(...rendus.map((v) => ({ ...v, garde: garde.nom })))
+    verdicts.push(...rendus.map((v) => (v.decision ? { categorie: garde.categorie, ...v, garde: garde.nom } : { ...v, garde: garde.nom })))
     if (rendus.some((v) => v.decision === 'deny')) break
   }
   return verdicts
@@ -284,10 +285,11 @@ function contextesDe(verdicts) {
 }
 
 /** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés (`contextesDe`),
- *  les traces demandées. Un refus porte toujours une raison. */
+ *  les traces demandées. Un refus porte toujours une raison, préfixée de sa catégorie (`prefixeDeRefus` :
+ *  celle du verdict, sinon celle de sa garde ; une catégorie inconnue lève). */
 export function cumuler(verdicts) {
   const decision = decisionCumulee(verdicts.filter((v) => v.decision).map((v) => ({
-    reason: String(v.raison ?? '').trim() || `refus de la garde ${v.garde}, sans raison donnée`,
+    reason: `${prefixeDeRefus(v.categorie)} ${String(v.raison ?? '').trim() || `refus de la garde ${v.garde}, sans raison donnée`}`,
   })))
   const contextes = contextesDe(verdicts)
   return { decision, contexte: contextes.length ? contextes.join('\n\n') : null, traces: verdicts.filter((v) => v.trace).map((v) => v.trace) }

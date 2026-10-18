@@ -176,4 +176,4 @@ function verdictsDe(ecrit, env) {
 const evaluer = (entree, { env = process.env } = {}) =>
   ecrituresDe(entree).filter(ecritLeFichierEntier).flatMap((ecrit) => verdictsDe(ecrit, env) ?? [])
 
-export const garde = { nom: 'new-src-file', outils: OUTILS_CREATION, evaluer }
+export const garde = { nom: 'new-src-file', categorie: 'métier', outils: OUTILS_CREATION, evaluer }
