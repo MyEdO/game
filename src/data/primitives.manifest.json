@@ -1964,6 +1964,15 @@
     "verrou": "processusBorne.test.mjs"
   },
   {
+    "id": "fileBornee",
+    "type": "primitives.manifest",
+    "label": "enFileBornee",
+    "fichier": "scripts/guards/lib/fileBornee.mjs",
+    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "verrou": "scripts/guards/lib/fileBornee.test.mjs"
+  },
+  {
     "id": "codesDeSortie",
     "type": "primitives.manifest",
     "label": "CODE_DIFFERE/codeEnfant",

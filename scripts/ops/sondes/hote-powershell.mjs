@@ -24,6 +24,7 @@ import { spawn, execFileSync } from 'node:child_process'
 import { existsSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine } from '../../guards/lib/commandeShell.mjs'
+import { enFileBornee } from '../../guards/lib/fileBornee.mjs'
 import { CAS_HOTE_POWERSHELL, HOTES_MESURES, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
 
 const DELAI_MS = 20_000
@@ -78,20 +79,6 @@ function lancer({ exe, args, via, entree }, sentinelle) {
     })
     enfant.stdin.end(entree ?? '')
   })
-}
-
-/** Exécute `taches` (fonctions → promesses), `PARALLELE` à la fois. */
-async function parLots(taches) {
-  const resultats = new Array(taches.length)
-  let suivant = 0
-  const ouvrier = async () => {
-    while (suivant < taches.length) {
-      const i = suivant++
-      resultats[i] = await taches[i]()
-    }
-  }
-  await Promise.all(Array.from({ length: PARALLELE }, ouvrier))
-  return resultats
 }
 
 /** La lecture de la garde sur ce segment rend-elle la charge ? */
@@ -179,7 +166,7 @@ function versions() {
 }
 
 const hotes = versions()
-const resultats = await parLots([...casDeLaListe(), ...casDesBlancs(), ...(process.argv.includes('--liste') ? [] : casDeLaGrille())])
+const resultats = await enFileBornee([...casDeLaListe(), ...casDesBlancs(), ...(process.argv.includes('--liste') ? [] : casDeLaGrille())], { deFront: PARALLELE })
 const ecarts = resultats.filter((r) => r.ecart)
 const versionsEcart = Object.entries(HOTES_MESURES).filter(([exe, v]) => hotes[exe] !== v)
   .map(([exe, v]) => `${exe} ${hotes[exe]} : la liste a été mesurée sur ${v}`)
