@@ -424,6 +424,7 @@
     "label": "Péripéties de la route — le dé du jour",
     "kind": "landPeril",
     "template": "Sur un résultat de {seuil}, un événement survient et se tire sur la table des Péripéties ; sinon, aucune péripétie ce jour-là.",
+    "rule": "peripeties-de-voyage",
     "source": {
       "book": "livre-de-base",
       "page": 263,
@@ -436,6 +437,7 @@
     "label": "Table des péripéties",
     "kind": "landPerilTable",
     "template": "La péripétie du jour : l'événement tiré s'applique au groupe, et appelle parfois un Test.",
+    "rule": "peripeties-de-voyage",
     "source": {
       "book": "livre-de-base",
       "page": 263,

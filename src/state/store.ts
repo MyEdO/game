@@ -151,7 +151,7 @@ import type { MedicState, MedicNpc } from './medicFlow';
 export type { MedicState, MedicNpc } from './medicFlow';
 import * as restFlow from './restFlow';
 import type { PendingRest, RestLodging, RestFood } from './restFlow';
-export type { PendingRest, RestPlaces } from './restFlow';
+export type { PendingRest } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';

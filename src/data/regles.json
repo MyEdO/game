@@ -1474,6 +1474,30 @@
     }
   },
   {
+    "id": "peripeties-de-voyage",
+    "type": "regles",
+    "label": "Péripéties",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "51",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "peripeties",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 3,
+          "sum": "0530a78187651472"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 263,
+      "note": "LDB 51 l.208"
+    }
+  },
+  {
     "id": "symptomes-des-maladies",
     "type": "regles",
     "label": "Symptômes des maladies",

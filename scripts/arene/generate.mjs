@@ -92,7 +92,8 @@ const worldMap = {
       b: 'marais',
       km: 14,
       modes: ['pied'],
-      perilDie: 7, // sentier de tourbière : péripétie sur 7+ (plus risqué que la route)
+      perilDie: 7,
+      provenances: { perilDie: { maison: "tourbière de l'Arène : seuil de démonstration (LDB 51 l.208 propose 8, au choix du MJ)" } },
       perils: [
         {
           label: 'Feux follets',
