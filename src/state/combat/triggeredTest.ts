@@ -386,7 +386,7 @@ registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
     if (!hero || !part.result) continue;
     journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
     set(touchActors(get()));
-    playAfter(get, set, hero, step.meta?.after, nomDeSource(step));
+    journal.push(...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step)));
   }
   return { consequences: freeCons(journal) };
 });
@@ -445,6 +445,14 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
   // L'ENTITÉ PORTEUSE suit la continuation : un `test` resté dans le `seq` dérive son enjeu de la même
   // entité que celui qui vient d'être joué (#1262 V2 L6d).
   if (after && after !== EMPTY_FLOW) runCombatFlow({ mode: 'combat', get, set, target: c, caster: c, label, ...(source ? { opsCtx: { source } } : {}) }, after);
+}
+
+/** `playAfter` d'un applier de cascade, puis le drain de la file différée (`drainPendingLog`,
+ *  combatEffects.ts:123) : les lignes rendues rejoignent les `consequences` de l'étape, que `commitStep`
+ *  journalise après l'applier (cascade.ts:1352). */
+function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, source?: EffectSource): string[] {
+  playAfter(get, set, c, after, label, source);
+  return drainPendingLog(get, set).map((e) => e.text);
 }
 
 /** Le reste d'une pile de combat, en clôture (#2689) : sa cible en id, le contexte de la pile porté. */
@@ -698,8 +706,7 @@ registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
   set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
   // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
   // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
-  playAfter(get, set, hero, step.meta?.after, nomDeSource(step), exec.source);
-  return { consequences: freeCons(journal) };
+  return { consequences: freeCons([...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), exec.source)]) };
 });
 
 /** Le coût d'Avantage d'un nœud `choice` est-il payable par le décideur ? (Coût absent ⇒ gratuit ⇒ oui.)
@@ -794,7 +801,7 @@ registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
   const ctx: ExecCtx = { mode: 'combat', get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', ...(source ? { opsCtx: { source } } : {}), ...(freeAttack ? { freeAttack } : {}) };
   if (can) runCombatFlow(ctx, yesFlow ?? EMPTY_FLOW);
   else if (noFlow) runCombatFlow(ctx, noFlow);
-  playAfter(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source);
+  return { consequences: freeCons(suiteDEtape(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source)) };
 });
 
 /**
