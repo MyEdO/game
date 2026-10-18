@@ -45,14 +45,14 @@ const NOMS = GATES.map((g) => g.nom)
 const LANES = lanesDeCi(GATES)
 const gate = (nom) => ({ nom, commande: `npm run ${nom}` })
 
-/** `arret` de `spawnBorne` quand l'essai rendu n'a aucune `fin` native (processusBorne.mjs:131, :135). */
+/** `arret` de `spawnBorne` quand l'essai rendu n'a aucune `fin` native (`spawnBorne`, processusBorne.mjs). */
 const ARRET_SANS_FIN_NATIVE = { pid: undefined, etat: 'indetermine',
   erreurs: [{ operation: 'lancement', pid: undefined, code: 'ARRET_INDETERMINE', message: 'superviseur sans fin native : arrêt non prouvé' }] }
 
 /**
  * Double de `lancer` à la forme de `spawnBorne` : `surControle` reçoit un `ControleSupervision` porteur de `fin`
- * (processusBorne.d.mts:36), `pendant` s'attend avant le rendu, `code` et `error` dérivent de `arret`
- * (processusBorne.mjs:130-133). `finNative: false` rend l'`arret` d'un essai sans fin native.
+ * (processusBorne.d.mts), `pendant` s'attend avant le rendu, `code` et `error` dérivent de `arret`
+ * (`spawnBorne`, processusBorne.mjs). `finNative: false` rend l'`arret` d'un essai sans fin native.
  */
 const lancement = async (options, { pid, etat = 'mort', erreurs = [], status = 0, expiree = false, finNative = true, demandes = [], pendant }) => {
   const arretNatif = { pid, etat, erreurs }
