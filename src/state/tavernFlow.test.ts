@@ -15,7 +15,8 @@ import { resolveOpposed } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { activeSequence } from './sequenceCore';
 import { tavernPartieEnCours } from './tavernFlow';
-import { TAVERN_GAMES } from '../engine/tavernGame';
+import { TAVERN_GAMES, TAVERN_FAST_RULE } from '../engine/tavernGame';
+import { setRule, resetRule } from '../engine/policy';
 import { addCondition, COND, hasCondition } from '../engine/conditions';
 import { findTavernGameById } from '../engine/tavernGame';
 import { bonus } from '../engine/characteristics';
@@ -166,8 +167,14 @@ describe('playTavernGame', () => {
    * plus élevée qui l'emporte. » Les DEUX camps doivent donc opposer une COMPÉTENCE : depuis #1279 S1
    * les deux rangées de la BANDE la portent, chacune posée par le monteur canonique (`step.base` =
    * `skillBaseValue`). L'État (−10 d'Empoisonné, LDB 16) est un modificateur : il vit dans la CIBLE.
+   * Au régime RAPIDE (NADJ 16 l.11) : les Dominos y jouent sans leur clause d'égalité (l.105), qui
+   * remplace sinon le départage général.
    */
   it('DR égal : les DEUX rangées opposent leur Compétence NUE — l’État ne vole pas la manche (LDB 12 l.160)', () => {
+    setRule(TAVERN_FAST_RULE, true);
+    try { departageParLaNue(); } finally { resetRule(TAVERN_FAST_RULE); }
+  });
+  function departageParLaNue(): void {
     const [a, b] = twoHeroes();
     addCondition(a, COND.empoisonne);
     addCondition(b, COND.empoisonne);
@@ -195,9 +202,14 @@ describe('playTavernGame', () => {
     useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: [pose(rb), pose(ra)] }] } });
     get().cascadeNext();
     expect(get().tavernGames!.result!.winner, 'la nue la plus haute l’emporte').toBe('opponent');
-  });
+  }
 
+  /** Au régime RAPIDE (NADJ 16 l.11) : aucune clause d'égalité déclarée, `resolveOpposed` juge seul. */
   it('zéro divergence de maths avec `resolveTavernRound` : le verdict final recompose EXACTEMENT depuis le meta figé', async () => {
+    setRule(TAVERN_FAST_RULE, true);
+    try { await recomposeDepuisLeMetaFige(); } finally { resetRule(TAVERN_FAST_RULE); }
+  });
+  async function recomposeDepuisLeMetaFige(): Promise<void> {
     const [a] = twoHeroes();
     useGame.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
@@ -211,7 +223,7 @@ describe('playTavernGame', () => {
     const expectedWinner = opp.winner === 'attacker' ? 'player' : opp.winner === 'defender' ? 'opponent' : 'tie';
     expect(res.winner).toBe(expectedWinner);
     expect(res.opponentSL).toBe(aT.sl); // aucun plafond déclaré : le DR adverse passe entier
-  });
+  }
 });
 
 /**
@@ -275,7 +287,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(get().party.find((h) => h.id === b.id)!.advantage ?? 0).toBe(0);
   });
 
-  it('+1 État Exténué tous les (Bonus d’Endurance) tours sans vainqueur (l.35)', () => {
+  it('+1 État Exténué tous les (Bonus d’Endurance) tours sans vainqueur (l.34)', () => {
     const [a, b] = twoHeroes();
     useGame.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
@@ -292,10 +304,10 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 
   /**
    * L'AUTRE moitié de la même phrase, mesurée sur le jeu réel : « Pour chaque Bonus d'Endurance tours
-   * qui PASSENT **sans que personne n'ait gagné** » (l.35). Le tour où quelqu'un GAGNE la partie n'est
+   * qui PASSENT **sans que personne n'ait gagné** » (l.34). Le tour où quelqu'un GAGNE la partie n'est
    * pas un tour qui passe — même si son rang tombe pile sur l'intervalle d'Endurance.
    */
-  it('la manche qui EMPORTE la partie n’inflige pas l’Exténué, même au rang du Bonus d’Endurance (l.35)', () => {
+  it('la manche qui EMPORTE la partie n’inflige pas l’Exténué, même au rang du Bonus d’Endurance (l.34)', () => {
     const [a, b] = twoHeroes();
     useGame.setState({ party: [a, b] });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });

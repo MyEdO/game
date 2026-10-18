@@ -55,7 +55,7 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
 
   it('le rôle `tavernGame` n’est PAS une offre : sa table se joue par le dialogue qui la sert', () => {
     const joueur: SceneEntity = {
-      id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, tavernGame: { gameId: 'imperatrice-ecarlate' },
+      id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, tavernGame: { gameId: 'dominos' },
     };
     const sc = scene([joueur]);
     expect(actionsDe(sc, joueur)).toEqual([]);

@@ -14,15 +14,15 @@ import type { JSX } from 'react';
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
-import { datasetArray, type DatasetKey } from '../../data/overrides';
+import { datasetArray, DATASET_KEYS, type DatasetKey } from '../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
-import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
+import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, espaceDe, type FeuilleDId } from '../../data/schemas/grammaire/ref';
 import { slugId } from '../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from './libellesNarratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
-import { CATEGORY_DATASET_DERIVE } from '../../data/schemas/exposition-derivee';
+import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../data/schemas/exposition-derivee';
 import { categoryByKey } from './registry';
 
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
@@ -179,6 +179,20 @@ export function refusDuNoeud(noeud: unknown): ((entree: { readonly id: string })
     const refus = restreintes.map((f) => refusDeLEntree(f.type, f.sousListe, entree));
     return refus.includes(null) ? null : refus[0];
   };
+}
+
+/**
+ * Le dataset-liste que désignent les feuilles `idDe` FERMÉES du champ — `undefined` quand elles n'en
+ * désignent pas exactement un, ou qu'une feuille admet un id hors catalogue (`ouverte`) : la liste de
+ * RACINE du fichier qui fait autorité sur leur type (`espaceDe`).
+ */
+export function datasetDuNoeud(noeud: unknown): DatasetKey | undefined {
+  const feuilles = feuillesDuNoeud(noeud);
+  const espaces = new Set(feuilles.map((f) => espaceDe(f.type)));
+  if (espaces.size !== 1 || feuilles.some((f) => f.ouverte)) return undefined;
+  const [espace] = espaces;
+  const candidats = DATASET_KEYS.filter((ds) => DATASET_FICHIER_DERIVE[ds] === espace && DATASET_SUITE_DERIVE[ds] === '');
+  return candidats.length === 1 ? candidats[0] : undefined;
 }
 
 /** Une entrée et son id (`String(e.id)`) : la forme que lisent univers, options et refus. */

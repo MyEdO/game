@@ -224,7 +224,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     expect(board()).toBeNull();
   });
 
-  /** JEU D'ÉQUIPE (Middenball l.121) : le tableau de marque dit les BUTS de chaque camp et, en note,
+  /** JEU D'ÉQUIPE (Middenball l.119) : le tableau de marque dit les BUTS de chaque camp et, en note,
    *  la SOMME de DR du dernier tour — celle qui décide le but. Le panneau ne dérive rien : ces deux
    *  grandeurs viennent du `board` du système. */
   it('Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', () => {

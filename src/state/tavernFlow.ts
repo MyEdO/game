@@ -27,7 +27,8 @@ import { DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, tavernOpposedLog, tavernExtendedLog, roundSL,
-  TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type TavernGame, type TavernGameResult,
+  specialsApplicables, difficulteDuJoueur, difficulteDeBase,
+  TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
 import { findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
@@ -42,7 +43,7 @@ import { bourseOf, creditBourse, payWithAllocation, soloPayer } from './bourseFl
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
   tableStep, displayStep,
-  type BuiltCascadeStep, type Consequence,
+  type BuiltCascadeStep,
 } from './rollSeam';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
@@ -51,7 +52,7 @@ import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableSt
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
 import {
-  registerSequence, startSequence, resolveSequenceTie, sequenceCumRound, sequenceDrBonus,
+  registerSequence, startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumRound, sequenceDrBonus,
   sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue,
   resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds,
   activeSequence, setSequencePayload, setSequenceCum, SEQUENCE_PURPOSE,
@@ -215,7 +216,7 @@ export interface TavernPayload {
   opponentId?: string;
   stakeBrass: number;
   /** Scores de la manche close (lus par le dénouement d'une partie à manche unique). */
-  last?: { playerSL: number; opponentSL: number };
+  last?: { playerSL: number; opponentSL: number; departage?: string };
   /** JEU D'ÉQUIPE : les rangées de chaque camp (héros ET figurants), par id de rangée. */
   teams?: { player: string[]; opponent: string[] };
   /** JEU D'ÉQUIPE : option de Test retenue par chaque héros pour la manche EN COURS (clé d'option). */
@@ -223,7 +224,7 @@ export interface TavernPayload {
   /** JEU D'ÉQUIPE : valeur de Test des COÉQUIPIERS figurants du groupe (`allyProfil`), distincte de
    *  celle du camp d'en face (`opponentValue`). Absente hors jeu d'équipe. */
   allyValue?: number;
-  /** JEU D'ÉQUIPE : l'AVANTAGE gagné par chaque camp POUR LE TOUR SUIVANT (l.121). Les héros portent
+  /** JEU D'ÉQUIPE : l'AVANTAGE gagné par chaque camp POUR LE TOUR SUIVANT (l.119). Les héros portent
    *  le leur sur leur fiche (op `gainAdvantage`) ; la fiche d'un figurant ne suit pas la séquence, son camp le
    *  porte ici — sans quoi une équipe de figurants ne pourrait JAMAIS gagner d'Avantage. */
   advantage?: { player: number; opponent: number };
@@ -252,18 +253,31 @@ export interface TavernPayload {
   fin?: boolean;
   /** VOLÉE : le passage en cours — qui lance, son rang de lancer, sa réserve, sa ligne, la manche. */
   volley?: TavernVolleyState;
-  /** CAMPS ASYMÉTRIQUES : l'id du camp que mène le CHALLENGER (Alvatafl l.27) ; absent = le camp
+  /** CAMPS ASYMÉTRIQUES : l'id du camp que mène le CHALLENGER (Alvatafl l.25) ; absent = le camp
    *  reste à annoncer. */
   side?: string;
-  /** TEST COMBINÉ : marques, échecs de seconde lecture, effacements, rang du tour (Cerevis l.97). */
+  /** TEST COMBINÉ : marques, échecs de seconde lecture, effacements, rang du tour (Cerevis l.90). */
   combined?: TavernCombinedState;
+  /** SPÉCIAUX de chaque siège à fiche, par id de fiche, figés à l'ouverture (`specialsApplicables`,
+   *  NADJ 16 l.82). Un siège absent n'en a aucun. */
+  specials?: Record<string, TavernSpecial[]>;
+}
+
+/** Id de la fiche du vis-à-vis : son id de banc, ou celui que `pnjAuProfil` donne à l'habitué. */
+function idAdverse(p: TavernPayload): string {
+  return p.opponentId ?? HABITUE;
+}
+
+/** La Difficulté d'un Test du jeu POUR CE SIÈGE — ses seuls Spéciaux (NADJ 16 l.82). */
+function difficulteDuSiege(p: TavernPayload, base: Difficulty, siege: string): Difficulty {
+  return difficulteDuJoueur(base, p.specials?.[siege] ?? []);
 }
 
 /** Clés de camp de l'accumulateur du socle — le challenger et son vis-à-vis. */
 const CAMP_PLAYER = 'player';
 const CAMP_OPPONENT = 'opponent';
 
-/** Kind de l'étape de CHOIX d'option de Test (Middenball l.121) — une par héros surfacé. */
+/** Kind de l'étape de CHOIX d'option de Test (Middenball l.119) — une par héros surfacé. */
 const TAVERN_CHOICE_KIND = 'tavern-option';
 
 /** Kind de l'étape de Résistance à l'alcool d'un lancer RATÉ (Torchon l.111). */
@@ -369,6 +383,12 @@ export function playTavernGame(
     return;
   }
   const seats = game.pot ? potSeats(challenger, opponentId ? opponentActor : undefined, opponentName, opts.tablePlayers ?? 2) : [];
+  // LES SIÈGES À FICHE : le challenger, son vis-à-vis, et les héros d'un jeu d'équipe.
+  const specials = Object.fromEntries(
+    [challenger, opponentActor, ...(game.team ? equipiers(get) : [])]
+      .map((a) => [a.id, specialsApplicables(game, a)] as const)
+      .filter(([, liste]) => liste.length > 0),
+  );
 
   startSequence<TavernPayload>(get, set, {
     def: TAVERN_SEQUENCE,
@@ -377,6 +397,7 @@ export function playTavernGame(
       gameId: game.id, challengerId: challenger.id, opponentValue, opponentName,
       ...(opponentId ? { opponentId } : {}), stakeBrass,
       ...(allie ? { allyValue: tavernGameValue(allie, game) } : {}),
+      ...(Object.keys(specials).length ? { specials } : {}),
       ...(game.pot
         ? { seats, manche: 1, pot: 0, target: null }
         : {}),
@@ -439,12 +460,12 @@ function combinedSecondRead(game: TavernGame, acteur: Combatant | undefined, dif
  *  par le monteur canonique (`rollStep`), surfaçage SEAT-AGNOSTIQUE (`jetSurfaced`) pour que le héros
  *  d'un AUTRE siège garde son jet À JOUER. Le porteur qu'aucun siège ne tient (ou toute rangée en
  *  cadence Auto/Rapide) naît TÉMOIN, son jet déjà roulé. */
-function tavernRow(get: Get, h: Combatant, game: TavernGame, choix?: number): BatchParticipant {
-  // L'OPTION retenue porte le Test ET sa Difficulté (Alvatafl l.25, Cerevis l.97 : « Pari Accessible
+function tavernRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, choix?: number): BatchParticipant {
+  // L'OPTION retenue porte le Test ET sa Difficulté (Alvatafl l.25, Cerevis l.90 : « Pari Accessible
   // (+20) ») ; sans option déclarée, le repli est celui du jeu rapide (Intermédiaire, l.11).
   const opt = optionOf(game, choix);
   const test = { ...(opt.skill ? { skill: opt.skill.id } : {}), ...(opt.skill?.spec ? { spec: opt.skill.spec } : {}), ...(opt.char ? { char: opt.char } : {}) };
-  const difficulty = difficulteOf(opt);
+  const difficulty = difficulteDuSiege(p, difficulteDeBase(game, choix), h.id);
   const second = combinedSecondRead(game, h, difficulty, 0);
   const row: BatchParticipant = {
     id: h.id,
@@ -474,16 +495,9 @@ function tavernRow(get: Get, h: Combatant, game: TavernGame, choix?: number): Ba
 /** UNE OPTION de Test d'une manche (celle que l'entrée déclare, ou le repli du jeu). */
 type TavernOption = { skill?: import('../data/schemas/grammaire/ref').RefDesignee; char?: CharKey; difficulty?: Difficulty; combatTest?: boolean };
 
-/** La Difficulté d'une option : la sienne, ou celle du jeu rapide (« Test opposé de Compétence
- *  Intermédiaire (+0) », l.11) quand l'option n'en nomme pas — un camp qui se contente d'ESQUIVER ne
- *  porte pas de Difficulté propre. */
-function difficulteOf(opt: TavernOption): Difficulty {
-  return opt.difficulty ?? TAVERN_TEST_DIFFICULTY;
-}
-
 /**
  * L'AVANTAGE d'un camp, en ligne NOMMÉE sur la cible (`LDB 14 l.215` : +10 par point à un Test de
- * Combat ou de Psychologie APPROPRIÉ ; Middenball l.121 : « en utilisant les règles habituelles
+ * Combat ou de Psychologie APPROPRIÉ ; Middenball l.119 : « en utilisant les règles habituelles
  * relatives à l'Avantage »). Deux garde-fous, tous deux DÉCLARÉS :
  *  · l'option dit si son Test est un Test de Combat (`combatTest`) — Bagarre oui, Athlétisme non ;
  *  · la ligne est celle du moteur (`advantageModLine`), jamais un `×10` réécrit ici.
@@ -501,10 +515,11 @@ function avantageSurLaCible(opt: TavernOption, porteur: Combatant | number): Mod
  *  rangées témoins de la bande (`pursuitFlow.pursuitRow`). Aucun Combatant : sa valeur est celle que
  *  la table lui donne, montée par le monteur CANONIQUE en valeur ÉTRANGÈRE (ce n'est pas un Niveau de
  *  Compétence de fiche) — la Difficulté de l'option et l'Avantage DE SON CAMP entrent dans la cible
- *  comme pour un héros (l'Avantage est gagné par l'ÉQUIPE, l.121, pas par ses seuls héros). */
+ *  comme pour un héros (l'Avantage est gagné par l'ÉQUIPE, l.119, pas par ses seuls héros). */
 function figurantRow(id: string, label: string, valeur: number, opt: TavernOption, avantage: number): BatchParticipant {
   const surLaCible = avantageSurLaCible(opt, avantage);
-  const difficulty = difficulteOf(opt);
+  // LDB 12 l.166
+  const difficulty = opt.difficulty ?? TAVERN_TEST_DIFFICULTY;
   const row: BatchParticipant = {
     id, label, difficulty, result: null, interactive: false,
     ...(opt.skill ? { skillId: opt.skill.id } : {}),
@@ -517,7 +532,7 @@ function figurantRow(id: string, label: string, valeur: number, opt: TavernOptio
  *  l'entrée déclare — c'est ce que jouent les porteurs qu'aucun siège ne tient, et les figurants. */
 function optionOf(game: TavernGame, choix: number | undefined): TavernOption {
   const options = game.options ?? [];
-  return options[choix ?? 0] ?? { ...enOption(tavernTestSpec(game)), difficulty: TAVERN_TEST_DIFFICULTY };
+  return options[choix ?? 0] ?? enOption(tavernTestSpec(game));
 }
 
 /**
@@ -541,7 +556,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
       label: testSkillLabel({ skill: o.skill, char: o.char ?? 'intelligence' }),
-      detail: DIFFICULTY_LABELS[o.difficulty],
+      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.difficulty, h.id)],
     })),
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
@@ -564,11 +579,11 @@ function equipiers(get: Get): Combatant[] {
 
 /** RANGÉE d'un héros d'équipe, sur l'option qu'il a RETENUE (Test et Difficulté de cette option) —
  *  son Avantage propre entre dans la cible quand ce Test est un Test de Combat. */
-function equipierRow(get: Get, h: Combatant, game: TavernGame, choix: number | undefined): BatchParticipant {
+function equipierRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, choix: number | undefined): BatchParticipant {
   const opt = optionOf(game, choix);
   const test = { ...(opt.skill ? { skill: opt.skill.id } : {}), ...(opt.skill?.spec ? { spec: opt.skill.spec } : {}), ...(opt.char ? { char: opt.char } : {}) };
   const surLaCible = avantageSurLaCible(opt, h);
-  const difficulty = difficulteOf(opt);
+  const difficulty = difficulteDuSiege(p, difficulteDeBase(game, choix), h.id);
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
@@ -591,8 +606,8 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
   if (game?.roundShape !== 'team' || !game.team) return undefined;
   const heros = equipiers(get);
   if (!heros.length) return undefined;
-  const rows: BatchParticipant[] = heros.map((h) => equipierRow(get, h, game, p.choices?.[h.id]));
-  const optFigurant = optionOf(game, 0);
+  const rows: BatchParticipant[] = heros.map((h) => equipierRow(get, p, h, game, p.choices?.[h.id]));
+  const optFigurant = { ...optionOf(game, 0), difficulty: difficulteDeBase(game, 0) };
   const mien = [...heros.map((h) => h.id)];
   const sien: string[] = [];
   // Les coéquipiers du groupe ont LEUR valeur (`allyValue`), distincte de celle du camp d'en face :
@@ -690,13 +705,14 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   const p: TavernPayload = { ...seq.payload, throwers };
   const test = tavernTestSpec(game);
   const heros = lanceur.camp === 'player' ? get().party.find((h) => h.id === lanceur.id) : undefined;
+  const difficulty = difficulteDuSiege(p, difficulteDeBase(game), lanceur.id);
   const lanceurRow: BatchParticipant = heros
     ? {
       id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skillId: test.skill } : {}),
-      difficulty: TAVERN_TEST_DIFFICULTY, result: null, interactive: true,
-      ...rollStep({ actor: heros, test, difficulty: TAVERN_TEST_DIFFICULTY }),
+      difficulty, result: null, interactive: true,
+      ...rollStep({ actor: heros, test, difficulty }),
     }
-    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { difficulty: TAVERN_TEST_DIFFICULTY }, 0);
+    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { difficulty }, 0);
   const jouable = !!heros && !cadenceAuto() && jetSurfaced(get(), heros);
   // Un héros qu'aucun siège ne tient reste monté sur SA fiche (`equipierRow` l'a déjà roulé) : seule
   // sa rangée devient témoin. Il ne passe jamais par la porte des figurants, dont la fiche ne suit pas la séquence.
@@ -850,7 +866,7 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
       label: refLabel('skills', o.skill ?? { id: '' }),
-      detail: DIFFICULTY_LABELS[o.difficulty],
+      detail: DIFFICULTY_LABELS[difficulteDuSiege(p, o.difficulty, h.id)],
     })),
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
@@ -907,8 +923,8 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
 
   if (opponentHero) {
     const rows = [
-      tavernRow(get, challenger, game, p.choices?.[challenger.id]),
-      tavernRow(get, opponentHero, game, p.choices?.[opponentHero.id]),
+      tavernRow(get, p, challenger, game, p.choices?.[challenger.id]),
+      tavernRow(get, p, opponentHero, game, p.choices?.[opponentHero.id]),
     ];
     const band = bandStep({
       id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
@@ -926,12 +942,12 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   }
 
   const optMien = optionOf(game, p.choices?.[challenger.id]);
-  const difficulty = difficulteOf(optMien);
+  const difficulty = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), challenger.id);
   const test = { ...(optMien.skill ? { skill: optMien.skill.id } : {}), ...(optMien.skill?.spec ? { spec: optMien.skill.spec } : {}), ...(optMien.char ? { char: optMien.char } : {}) };
-  // L'adversaire de la SALLE joue à la MÊME Difficulté que le challenger — un Test opposé se joue au
-  // même palier des deux côtés (l.11), et ce palier est celui de l'option retenue.
-  const rolled = rollTavernTest(p.opponentValue, rng, difficulty);
-  // TEST COMBINÉ (Cerevis l.97) : la fenêtre annonce SES DEUX cibles — sans quoi le second Test ne se
+  // L'adversaire de la SALLE joue l'option retenue, à SA Difficulté (NADJ 16 l.82).
+  const difficulteAdverse = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), idAdverse(p));
+  const rolled = rollTavernTest(p.opponentValue, rng, difficulteAdverse);
+  // TEST COMBINÉ (Cerevis l.90) : la fenêtre annonce SES DEUX cibles — sans quoi le second Test ne se
   // découvrait qu'en le ratant (friction mesurée en recette, #1279 S3).
   const second = combinedSecondRead(game, challenger, difficulty, p.opponentValue);
   const step = monoStep({
@@ -949,7 +965,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
       stakeBrass: p.stakeBrass, round: seq.round,
       // L'adversaire de la salle joue le MÊME Test que le challenger : la STRUCTURE voyage, le
       // libellé de sa ligne s'écrit au rendu.
-      opposed: { aT: rolled, attackerName: p.opponentName, test },
+      opposed: { aT: rolled, attackerName: p.opponentName, test, difficulty: difficulteAdverse },
     },
   });
   if (!step) return undefined;
@@ -986,7 +1002,7 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
   if (!estJete(step.result)) return undefined;
   return {
     player: asTest(step.result, step.base),
-    opponent: step.meta?.opposed?.aT ?? rollTavernTest(p.opponentValue, ctx.rng),
+    opponent: garanti(step.meta?.opposed?.aT, step.id, 'jet adverse figé de la manche'),
     playerActor: actorIn(get(), p.challengerId),
   };
 }
@@ -1106,7 +1122,7 @@ function tavernTeamClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame)
   const log = [but
     ? t('tavern.equipeTourBut', { ...tour, qui: gagnant === 'player' ? t('tavern.equipeQui') : p.opponentName })
     : t('tavern.equipeTour', tour)];
-  // AVANTAGE « pour le tour suivant » (l.121), SYMÉTRIQUE : les héros le reçoivent en op de manche
+  // AVANTAGE « pour le tour suivant » (l.119), SYMÉTRIQUE : les héros le reçoivent en op de manche
   // (le socle), les camps le portent ici pour leurs figurants. Il ne s'accumule pas — c'est +1 pour
   // LE tour suivant, et le camp qui ne gagne pas ce tour retombe à 0.
   const advantage = { player: gagnant === 'player' ? 1 : 0, opponent: gagnant === 'opponent' ? 1 : 0 };
@@ -1595,7 +1611,7 @@ function potBoard(game: TavernGame, p: TavernPayload): SequenceBoard {
  *  1. DR de manche de chaque camp = DR du jet (plafonné `drCap`) + Bonus de Caractéristique DÉCLARÉ
  *     (Bras de fer l.34 : « à chaque tour, ajoutez votre Bonus de Force au nombre de DR ») ;
  *  2. vainqueur de la manche par `resolveTavernRound`, égalité DÉPARTAGÉE par le paramètre déclaré
- *     (Dominos l.107) ;
+ *     (Dominos l.105) ;
  *  3. sans cible de cumul : la partie s'achève sur cette manche (variante rapide, l.11) ;
  *  4. avec cible : CUMUL par le socle (`sequenceCumRound` → `extendedTestStep`, LDB 12 l.174 — le DR
  *     du Round s'ajoute AVEC SON SIGNE, seul le TOTAL est planché à 0) jusqu'à `target`.
@@ -1626,21 +1642,22 @@ function tavernClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
   const { winner, playerSL, opponentSL } = resolveTavernRound(game, sides.player, sides.opponent, {
     player: bonusPlayer, opponent: bonusOpponent,
   });
-  const departage = winner === 'tie'
-    ? resolveSequenceTie(seq.params.tieBreak, { roll: sides.player.roll, sl: playerSL }, { roll: sides.opponent.roll, sl: opponentSL })
-    : 'tie';
+  const mien = { roll: sides.player.roll, sl: playerSL };
+  const sien = { roll: sides.opponent.roll, sl: opponentSL };
+  const departage = winner === 'tie' ? resolveSequenceTie(seq.params.tieBreak, mien, sien) : 'tie';
+  const recit = winner === 'tie' ? recitDuDepartage(seq.params.tieBreak, mien, sien) : undefined;
   const manche: TavernGameResult['winner'] = winner !== 'tie'
     ? winner
     : departage === 'a' ? 'player' : departage === 'b' ? 'opponent' : 'tie';
 
   // PORTEURS des effets de manche (famille 4) : le vainqueur de la manche (Bras de fer l.34, +1
-  // Avantage), et tous les participants pour l'attrition d'intervalle (l.35, +1 Exténué).
+  // Avantage), et tous les participants pour l'attrition d'intervalle (l.34, +1 Exténué).
   const all = [p.challengerId, ...(p.opponentId ? [p.opponentId] : [])];
   const gagnantId = manche === 'player' ? p.challengerId : manche === 'opponent' ? p.opponentId : undefined;
   const roundActors = { ...(gagnantId ? { winners: [gagnantId] } : {}), all };
 
   if (seq.params.target == null) {
-    return { go: 'end', outcome: manche, payload: { ...p, last: { playerSL, opponentSL } }, roundActors };
+    return { go: 'end', outcome: manche, payload: { ...p, last: { playerSL, opponentSL, ...(recit ? { departage: recit } : {}) } }, roundActors };
   }
 
   const { cum, done } = sequenceCumRound(seq, {
@@ -1674,7 +1691,7 @@ function tavernSettle(get: Get, set: Set, seq: SequenceState<TavernPayload>, out
       t('tavern.torchonFinal', { mien, sien, lancers: rounds }), { netBrass: 0, verse: false });
     return;
   }
-  // JEU D'ÉQUIPE : ce qui se dit à la fin, ce sont les BUTS (l.121) — la somme de DR n'était que le
+  // JEU D'ÉQUIPE : ce qui se dit à la fin, ce sont les BUTS (l.119) — la somme de DR n'était que le
   // moyen de les marquer. Le score affiché est donc le compte de buts de chaque camp.
   if (game.roundShape === 'team') {
     const mien = seq.cum[CAMP_PLAYER] ?? 0;
@@ -1684,8 +1701,8 @@ function tavernSettle(get: Get, set: Set, seq: SequenceState<TavernPayload>, out
       { netBrass: 0, verse: false });
     return;
   }
-  // VOLÉE : ce qui se compte, ce sont les points acquis par les lancers (l.42, l.57, l.65, l.83).
-  // CAMPS ASYMÉTRIQUES : ce sont les PIÈCES prises à l'autre camp (l.27-28).
+  // VOLÉE : ce qui se compte, ce sont les points acquis par les lancers (l.42, l.57, l.70, l.97).
+  // CAMPS ASYMÉTRIQUES : ce sont les PIÈCES prises à l'autre camp (l.25-28).
   const playerSL = p.last?.playerSL ?? 0;
   const opponentSL = p.last?.opponentSL ?? 0;
   if (game.combined) {
@@ -1711,16 +1728,18 @@ function tavernSettle(get: Get, set: Set, seq: SequenceState<TavernPayload>, out
       ligne, { netBrass: 0, verse: false, detail: ligne });
     return;
   }
+  const departage = p.last?.departage;
   const log = seq.params.target != null
     ? tavernExtendedLog(game, playerSL, opponentSL, rounds)
-    : tavernOpposedLog(game, playerSL, opponentSL, winner);
+    : `${tavernOpposedLog(game, playerSL, opponentSL, winner)}${departage ? ` ${departage}.` : ''}`;
   finalizeTavernGame(get, set, game, challenger, p.opponentName, winner, playerSL, opponentSL, rounds, p.stakeBrass, log,
-    { netBrass: tavernNetBrass(winner, p.stakeBrass), verse: true });
+    { netBrass: tavernNetBrass(winner, p.stakeBrass), verse: true,
+      ...(departage ? { detail: t('tavern.departageDetail', { mien: playerSL, sien: opponentSL, departage }) } : {}) });
 }
 
 /** TABLEAU DE MARQUE d'une partie EN COURS (affichage) : score par camp, cible, manche, phase. Une
  *  partie à manche UNIQUE sans cible n'a rien à montrer avant son verdict — pas de tableau.
- *  JEU D'ÉQUIPE : le score d'un camp est son compte de BUTS (l.121), et la note porte la SOMME de DR
+ *  JEU D'ÉQUIPE : le score d'un camp est son compte de BUTS (l.119), et la note porte la SOMME de DR
  *  du dernier tour — c'est elle qui décide le but, elle se lit donc à côté. */
 function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard | undefined {
   const p = seq.payload;
@@ -1746,7 +1765,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
       ...(game.scoreUnit ? { unit: dataLabel(game.scoreUnit) } : {}),
     };
   }
-  // TEST COMBINÉ : le score d'un camp est son compte de MARQUES (l.97) — le PLUS BAS l'emporte, la
+  // TEST COMBINÉ : le score d'un camp est son compte de MARQUES (l.90) — le PLUS BAS l'emporte, la
   // jauge n'a donc pas de cible.
   if (game.combined) {
     return {
@@ -1812,10 +1831,10 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
 
 /* ── LA VOLÉE : un PASSAGE de lancers en nombre fixe (famille 7 du socle) ────────────────────────
  * `NADJ 16 l.42` (trois coups, les quilles ÉCRÊTÉES à ce qu'il en reste), `l.70` (cinq lancers, la
- * cible CHOISIE avant chacun), `l.83` (trois fléchettes, un total EXACT), `l.57` (trois boules, la
+ * cible CHOISIE avant chacun), `l.97` (trois fléchettes, un total EXACT), `l.57` (trois boules, la
  * meilleure compte). Un tour de séquence = UN lancer d'UN lanceur : c'est la seule granularité qui
  * tienne, parce que la Difficulté du lancer suivant dépend de ce que celui-ci a produit (l.42) et
- * qu'un dépassement coupe le passage en cours de route (l.83).
+ * qu'un dépassement coupe le passage en cours de route (l.97).
  *
  * CE QUI VIT ICI : les deux lanceurs, l'ordre, les passages, le tableau de marque. CE QUI VIT AU
  * SOCLE : ce que RAPPORTE un lancer (effets ENREGISTRÉS, `resolveSequenceThrow`), ce qu'un gain
@@ -1825,9 +1844,8 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
  * `NADJ 16 l.57` — l'ÉCARTAGE des boules adverses (« vous pouvez réduire le nombre de DR de cette
  * boule de –1 par DR que vous dépensez ») et la variante en points sur trois manches ne sont pas
  * joués : ils demandent une dépense de DR ciblée sur la boule d'autrui, mécanisme qu'aucune famille
- * ne porte encore -> #1279 (lot Sf).
- * `NADJ 16 l.82` / `l.99` — les « Spécial » (Tireur d'élite : d'un cran plus facile ; ±1 au dé des
- * unités) -> #1306, avec les Points de Chance de l'Al-zahr.
+ * ne porte encore -> #2688.
+ * `NADJ 16 l.99` -> #1306.
  *
  * DEUX ARBITRAGES MAISON, portés par la DONNÉE et dits ici (jamais prêtés au RAW) :
  *  · `NADJ 16 l.42` ne donne de Difficulté QUE de 15 à 2 quilles restantes (« 12-15 », …, « 2 ») :
@@ -1870,7 +1888,7 @@ export interface TavernVolleyState {
 function volleyThrowers(get: Get, p: TavernPayload, ordre: SequenceVolleyRules['ordre'], rng: RNG): NonNullable<TavernPayload['throwers']> {
   const mien = { id: p.challengerId, label: actorIn(get(), p.challengerId)?.label ?? p.challengerId, camp: 'player' as const };
   const sien = {
-    id: p.opponentId ?? 'salle', label: p.opponentName, camp: 'opponent' as const,
+    id: idAdverse(p), label: p.opponentName, camp: 'opponent' as const,
     ...(p.opponentId ? {} : { value: p.opponentValue }),
   };
   return ordre === 'tirage' && rng.int(1, 2) === 2 ? [sien, mien] : [mien, sien];
@@ -1963,7 +1981,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const titre = t('tavern.volleyTour', { who: lanceur.label, n: st.jet, total: v.throws });
   const stake = combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } });
 
-  // 1) LA LIGNE VISÉE : « avant de lancer un anneau, choisissez une cible » (l.65) — la décision
+  // 1) LA LIGNE VISÉE : « avant de lancer un anneau, choisissez une cible » (l.70) — la décision
   //    précède le jet, dont elle règle la Difficulté ET les points.
   if (v.pick === 'choix' && st.row == null) {
     const lignes = v.rows ?? [];
@@ -1981,7 +1999,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
           key: String(i),
           label: t('tavern.volleyViseOption', {
             cible: r.label, points: r.points ?? 0,
-            difficulte: DIFFICULTY_LABELS[r.difficulty ?? TAVERN_TEST_DIFFICULTY],
+            difficulte: DIFFICULTY_LABELS[difficulteDuSiege(base, r.difficulty ?? difficulteDeBase(game), lanceur.id)],
           }),
         })),
         defaultChoice: '0',
@@ -2001,7 +2019,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   // 2) LE LANCER — monté par les monteurs CANONIQUES : sur la FICHE d'un héros, en valeur de table
   //    pour un habitué de la salle, dont la fiche (`pnjAuProfil`) ne suit pas la séquence : sa valeur en est dérivée à l'ouverture (`opponentValue`).
   const ligne = volleyRow(v, st);
-  const difficulty = ligne.row?.difficulty ?? TAVERN_TEST_DIFFICULTY;
+  const difficulty = difficulteDuSiege(base, ligne.row?.difficulty ?? difficulteDeBase(game), lanceur.id);
   const test = tavernTestSpec(game);
   const rowJet: BatchParticipant = heros
     ? {
@@ -2030,8 +2048,8 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
 /** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — quand le RAW laisse le gain au
  *  lanceur — l'étape de décision appendée à la MÊME fenêtre (patron du choix d'option d'équipe). Deux
  *  formes, parce que le RAW en donne deux : un CHOIX entre des valeurs nommées (« 2, 6, 20 ou 60 »,
- *  l.83) et une SAISIE dans une plage (« autant de points que vous le souhaitez, entre 1 et 100 »,
- *  l.83 — interaction `'quantite'` de la coquille). La décision, elle, est appliquée par la clôture,
+ *  l.97) et une SAISIE dans une plage (« autant de points que vous le souhaitez, entre 1 et 100 »,
+ *  l.97 — interaction `'quantite'` de la coquille). La décision, elle, est appliquée par la clôture,
  *  seul juge du tour. */
 registerCascadeApplier(TAVERN_THROW_KIND, (get, set, step) => {
   const seq = activeSequence<TavernPayload>(get);
@@ -2087,7 +2105,7 @@ function volleyIssue(params: SequenceParams, mien: number, sien: number): Tavern
 /**
  * RÉDUCTEUR DE CLÔTURE d'un tour de VOLÉE : lit le lancer clos, applique l'effet DÉCLARÉ de sa forme,
  * puis fait avancer le passage — lancer suivant, lanceur suivant, manche suivante. La partie s'achève
- * sur la cible EXACTE atteinte (l.83) ou au bout des passages déclarés (l.57, l.65).
+ * sur la cible EXACTE atteinte (l.97) ou au bout des passages déclarés (l.57, l.70).
  */
 function volleyClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<TavernPayload> {
   const { get, seq, done } = ctx;
@@ -2130,7 +2148,7 @@ function volleyClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
 
   const gains = { ...st.gains, [lu.camp]: [...(st.gains[lu.camp] ?? []), gain] };
   const reserve = st.reserve != null ? Math.max(0, st.reserve - gain) : undefined;
-  // FIN DU PASSAGE : ses lancers sont épuisés, le dépassement l'a coupé (l.83 : « votre tour est
+  // FIN DU PASSAGE : ses lancers sont épuisés, le dépassement l'a coupé (l.97 : « votre tour est
   // terminé »), ou il ne reste plus rien à prendre.
   const finPassage = !!fin.ends || st.jet >= v.throws || (reserve != null && reserve <= 0);
   let apres: TavernVolleyState = finPassage
@@ -2154,7 +2172,7 @@ function volleyClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
   const mien = volleyScore(etat, CAMP_PLAYER);
   const sien = volleyScore(etat, CAMP_OPPONENT);
   const payload: TavernPayload = { ...suite, last: { playerSL: mien, opponentSL: sien } };
-  // CIBLE EXACTE (l.83) : le camp qui la touche conclut — un seul lancer tombe à la fois.
+  // CIBLE EXACTE (l.97) : le camp qui la touche conclut — un seul lancer tombe à la fois.
   if (v.exact != null && (mien === v.exact || sien === v.exact)) {
     return { go: 'end', outcome: mien === v.exact ? 'player' : 'opponent', cum, payload, log };
   }
@@ -2282,7 +2300,7 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
  * une demi-chope de bière » (l.88) — la source dit le prix, pas le moment. Le moment revient donc au
  * joueur (règle 7), par une fenêtre de choix en ouverture de tour.
  *
- * FIN DE PARTIE — ARBITRAGE MAISON (le RAW est MUET, l.97 s'achève sur le Tableau Ivre) : la partie
+ * FIN DE PARTIE — ARBITRAGE MAISON (le RAW est MUET, l.90 s'achève sur le Tableau Ivre) : la partie
  * dure le nombre de tours DÉCLARÉ EN DONNÉE (`combined.tours`, éditable au Codex), et le vainqueur est
  * celui qui a le MOINS de chouettes. Elle s'arrête AVANT terme si un joueur tombe Inconscient — c'est
  * la seule issue que le texte lui-même nomme (l.88 : « peuvent envoyer même les buveurs les plus
@@ -2312,7 +2330,7 @@ function combinedActor(get: Get, p: TavernPayload, camp: string): Combatant | un
   return tavernActor(get, camp === CAMP_PLAYER ? p.challengerId : p.opponentId);
 }
 
-/** ÉCHÉANCE d'un compteur : l'intervalle DÉCLARÉ est-il atteint à ce compte ? (l.97 : « pour chaque 3
+/** ÉCHÉANCE d'un compteur : l'intervalle DÉCLARÉ est-il atteint à ce compte ? (l.90 : « pour chaque 3
  *  Tests […] auxquels vous échouez »). Intervalle absent ou nul : chaque unité échoit. */
 function combinedEcheance(compte: number, intervalle: number | undefined): boolean {
   const pas = Math.max(1, intervalle ?? 1);
@@ -2381,13 +2399,11 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
 
   const sides = tavernSides(ctx);
   if (!sides) return { go: 'end', outcome: 'tie' };
-  const opt = optionOf(game, p.choices?.[p.challengerId]);
-  const difficulty = difficulteOf(opt);
   // LES MARQUES sont l'ACCUMULATEUR du socle (`seq.cum`) ; le compte des échecs reste à la charge utile.
   const marques = { ...seq.cum };
   const fails = { ...etat.fails };
 
-  // 2) LA PREMIÈRE LECTURE : le plus BAS DR prend la marque (l.97). À égalité, personne ne perd le
+  // 2) LA PREMIÈRE LECTURE : le plus BAS DR prend la marque (l.90). À égalité, personne ne perd le
   //    tour — la source ne désigne QUE « le joueur qui a obtenu le moins de DR ».
   const drMien = sides.player.sl;
   const drSien = sides.opponent.sl;
@@ -2405,6 +2421,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
   for (const camp of [CAMP_PLAYER, CAMP_OPPONENT]) {
     const jet = camp === CAMP_PLAYER ? sides.player : sides.opponent;
     const acteur = camp === CAMP_PLAYER ? sides.playerActor : sides.opponentActor;
+    const difficulty = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[p.challengerId]), camp === CAMP_PLAYER ? p.challengerId : idAdverse(p));
     const cible2 = combinedSecondTarget(regles, acteur, difficulty, p.opponentValue);
     const combine = evaluateCombinedTest(jet.roll, jet.target, cible2);
     if (combine.b.success) continue;
@@ -2462,7 +2479,7 @@ function finalizeTavernGame(
   get: Get, set: Set, game: TavernGame, challenger: Combatant, opponentName: string,
   winner: TavernGameResult['winner'], playerSL: number, opponentSL: number, rounds: number, stakeBrass: number, log: string,
   fin: { netBrass: number; verse: boolean; detail?: string },
-): { consequences: Consequence[] } {
+): void {
   const netBrass = fin.netBrass;
   // Gain → crédit du challenger ; perte → débit de SA bourse (soloPayer, plafonné à la mise déjà bornée à sa bourse).
   if (fin.verse && netBrass > 0) creditBourse(get, set, challenger.id, fromBrass(netBrass));
@@ -2478,5 +2495,5 @@ function finalizeTavernGame(
   };
   set({ tavernGames: { result } });
   const stakeTxt = netBrass > 0 ? ` — gain ${formatMoney(fromBrass(netBrass))}` : netBrass < 0 ? ` — perte ${formatMoney(fromBrass(-netBrass))}` : '';
-  return { consequences: freeCons([`${game.label} — ${challenger.label} contre ${opponentName} : ${log}${stakeTxt}`]) };
+  get().log(`${game.label} — ${challenger.label} contre ${opponentName} : ${log}${stakeTxt}`);
 }

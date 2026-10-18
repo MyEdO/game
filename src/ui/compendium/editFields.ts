@@ -4,9 +4,9 @@
  * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit`.
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
-import { derouleEnum, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
+import { derouleEnum, metaDesChamps, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
-import { enfantsDe } from '../../data/schemas/grammaire/descente';
+import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
@@ -58,6 +58,59 @@ function kindOf(key: string, v: unknown): FieldKind {
   return 'text';
 }
 
+/** Nœuds qui ne portent pas de forme propre : la forme est celle de ce qu'ils enveloppent. */
+const ENVELOPPES = new Set(['optional', 'nullable', 'default', 'prefault', 'nonoptional', 'catch', 'readonly', 'lazy', 'pipe', 'transform', 'union']);
+
+/**
+ * Kind FIDÈLE d'un champ que le nœud déclare et qu'aucune rangée ne porte : chaîne (`idDe`
+ * compris), enum, nombre, booléen, source composite, ou objet dont tous les champs sont fidèles (une
+ * référence `{ id }`) — `undefined` pour toute autre forme (record, tuple, liste, union de formes),
+ * qu'aucun contrôle ne rendrait sans la trahir.
+ */
+function kindFidele(noeud: unknown, vus: ReadonlySet<unknown> = new Set()): FieldKind | undefined {
+  if (vus.has(noeud)) return undefined;
+  const formes = ouverts([noeud]).filter((n) => !ENVELOPPES.has(defDe(n)?.type ?? ''));
+  const types = new Set(formes.map((n) => defDe(n)?.type));
+  if (types.size !== 1) return undefined;
+  const [type] = types;
+  if (type === 'string' || type === 'enum') return 'text';
+  if (type === 'number') return 'number';
+  if (type === 'boolean') return 'checkbox';
+  if (type !== 'object' || formes.length !== 1) return undefined;
+  const champs = enfantsDe(formes[0]).filter((e) => e.cle !== undefined);
+  const cles = champs.map((e) => e.cle);
+  if (cles.includes('book') && cles.includes('page')) return 'source';
+  return champs.length > 0 && champs.every((e) => champFidele(e.noeud, new Set([...vus, noeud]))) ? 'object' : undefined;
+}
+
+/** Le champ se rend-il sans trahison : enum nommé à valeur unique, ou kind fidèle ? */
+function champFidele(noeud: unknown, vus: ReadonlySet<unknown> = new Set()): boolean {
+  return (valeursDe(noeud) !== undefined && !derouleEnum(noeud)?.liste) || kindFidele(noeud, vus) !== undefined;
+}
+
+/** Dans des rangées COMPLÉTÉES, un objet que le nœud déclare (une référence `{ id }`) n'est pas un
+ *  record : il se rend en objet, ses clés fixées par le nœud. */
+function kindDesRangees(kind: FieldKind, noeud: unknown, regime: RegimeDeLibelle): FieldKind {
+  return regime.completer && (kind === 'recordText' || kind === 'recordNumber') && kindFidele(noeud) === 'object' ? 'object' : kind;
+}
+
+/**
+ * L'OBJET que désignent `noeuds` pour ces `valeurs`, quand il est UNIQUE : le seul nœud objet du
+ * schéma, sinon le seul qu'admettent toutes les valeurs (`ouverts(…, valeur)`) — `undefined` sinon.
+ */
+export function objetAdmis(noeuds: readonly unknown[], valeurs: readonly unknown[]): unknown {
+  const objets = (valeur?: unknown) => ouverts(noeuds, valeur).filter((n) => defDe(n)?.type === 'object');
+  const tous = objets();
+  if (tous.length === 1) return tous[0];
+  const admis = new Set(valeurs.flatMap((v) => objets(v)));
+  return admis.size === 1 ? [...admis][0] : undefined;
+}
+
+/** L'objet que sont les RANGÉES d'un champ liste (`objetAdmis` sur l'élément de la liste). */
+export function objetDesRangees(noeudDuChamp: unknown, rangees: readonly unknown[]): unknown {
+  return objetAdmis(pasDeDonnee(ouverts([noeudDuChamp]), 0), rangees);
+}
+
 /**
  * Le champ `cle` est-il DÉRIVÉ d'un autre champ de CETTE entrée ? Un champ dérivé ne s'offre pas à
  * l'édition : sa valeur ne vient pas de l'auteur, et la saisir serait écrite nulle part (la porte de
@@ -104,6 +157,9 @@ export interface RegimeDeLibelle {
   noeud?: unknown;
   /** `document` = champ de premier niveau ; `profondeur` = sous-champ (méta dérivée : lot #1466 L6). */
   niveau?: 'document' | 'profondeur';
+  /** Les RANGÉES d'une liste (`objetDesRangees`) : un champ que `noeud` déclare, de kind fidèle, s'offre
+   *  même quand aucune rangée ne le porte — une rangée neuve se remplit alors au clic. */
+  completer?: boolean;
 }
 
 /**
@@ -112,16 +168,16 @@ export interface RegimeDeLibelle {
  * une méta dessus) ; sinon méta d'édition du def ; sinon la clé technique — seam d'extinction à
  * mesure de l'adoption (L1b #1467).
  *
- * Au régime `profondeur`, un sous-champ rend TOUJOURS sa clé : enveloppe et méta décrivent le PREMIER
- * NIVEAU du document (`document()` exige une méta par clé de `champs`, tous de premier niveau), et le
- * nommage d'un sous-champ est la dérivation du lot #1466 L6.
+ * Au régime `profondeur`, enveloppe et méta du document décrivent le PREMIER NIVEAU : un sous-champ
+ * se nomme par la méta de SON nœud objet (`nommerChamps`, `regime.noeud`), sinon par sa clé.
  *
  * EXCLUSION : `type` sur un document SANS méta (donc sans handle) n'est pas le type de document mais
  * un DISCRIMINANT de charge utile (characteristics/qualities/skills/trappings/spells, mesuré) — le
  * libeller « Type de document » mentirait à l'écran.
  */
-export function libelleDuChamp(key: string, { meta, niveau = 'document' }: RegimeDeLibelle = {}): string {
-  if (niveau === 'profondeur') return key;
+export function libelleDuChamp(key: string, { meta, niveau = 'document', noeud }: RegimeDeLibelle = {}): string {
+  // Un sous-champ se nomme par la méta de SON nœud objet (`nommerChamps`) ; sans elle, sa clé.
+  if (niveau === 'profondeur') return metaDesChamps(noeud)?.[key]?.label ?? key;
   // Lecture sur les PROPRES clés de la table (jamais la chaîne de prototypes : `toString` rendrait
   // une fonction là où l'écran attend une chaîne).
   if (Object.prototype.hasOwnProperty.call(LIBELLES_ENVELOPPE, key) && !(key === 'type' && !meta)) return LIBELLES_ENVELOPPE[key as CleEnveloppe];
@@ -134,6 +190,15 @@ export function libelleDuChamp(key: string, { meta, niveau = 'document' }: Regim
 export function inferFields(entries: Record<string, unknown>[], regime: RegimeDeLibelle = {}): FieldDesc[] {
   const keys: string[] = [];
   for (const e of entries) for (const k of Object.keys(e)) if (!keys.includes(k)) keys.push(k);
+  const completes = new Set<string>();
+  if (regime.completer) {
+    for (const e of enfantsDe(regime.noeud)) {
+      if (e.cle === undefined || keys.includes(e.cle)) continue;
+      if (!champFidele(e.noeud)) continue;
+      keys.push(e.cle);
+      completes.add(e.cle);
+    }
+  }
   return keys.map((key) => {
     let sample: unknown;
     let sawNull = false;
@@ -163,7 +228,7 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
     // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
     // structuré qui rende ses deux formes : il s'édite en JSON.
-    const kind = tableaux && scalaires ? 'json' : kindOf(key, echantillon);
+    const kind = tableaux && scalaires ? 'json' : completes.has(key) ? kindFidele(noeud)! : kindDesRangees(kindOf(key, echantillon), noeud, regime);
     return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud };
   });
 }

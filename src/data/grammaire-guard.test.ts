@@ -357,7 +357,7 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:extendedTestSchema|skill',
-      'src/data/schemas/grammaire/mecanique.ts:flowTestSchema|skill',
+      'src/data/schemas/grammaire/mecanique.ts:jetSchema|skill',
       'src/data/schemas/grammaire/mecanique.ts:travelTableEntry.mount.riderTest|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);

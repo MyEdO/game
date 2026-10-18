@@ -604,8 +604,10 @@ NADJ utilise également les **Points de Chance pour relancer** dans les jeux de 
 - **Ajouter le Bonus de Caractéristique au DR** : au Bras de Fer (Force) et à l'Alvatafl (Intelligence), le score obtenu est le DR du test *plus* le Bonus de la Caractéristique concernée. Exemple : DR +2 au Test de Force + Bonus de Force 4 = 6 points ce tour (`NADJ 16 l.34` Bras de Fer ; `NADJ 16 l.25` Alvatafl).
 - **Lire le dé des unités ou des dizaines au choix** : aux Fléchettes, sur un test *réussi*, le joueur choisit de marquer des points égaux au chiffre des unités, au chiffre des dizaines, à 10× le chiffre des unités, ou à 10× le chiffre des dizaines (`NADJ 16 l.97`). C'est une lecture alternative du dé (distincte de l'inversion), uniquement disponible sur réussite.
 - **DR plafonné à 6 (ou objectif) dans un test étendu** : aux Boules, le DR maximal par lancer est 6 (contact avec la cible). Un échec signifie que la boule est hors-jeu (`NADJ 16 l.57`).
+- **Spécial lié à un Talent** : à l'Arène, « si vous avez le Talent Tireur d'élite, vous pouvez compter tous ces Tests comme étant un cran plus faciles » (`NADJ 16 l.82`). Le cran ne vaut que pour le joueur qui a le Talent, jamais pour son adversaire.
+- **Départage propre au jeu** : aux Dominos, « chaque joueur effectue un Test opposé de **Pari Accessible (+20)**. En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le plus bas gagne » (`NADJ 16 l.105`). La clause remplace le départage par la Compétence (LDB 12 l.160) : arbitrage utilisateur du 2026-10-17 (#1921 c.6233078802), verbatim « DR puis dé d'unités ».
 
-Ces trois mécaniques constituent des extensions légitimes du système de DR dans des contextes hors combat, autorisées par les livres de la liste VF.
+Ces mécaniques constituent des extensions légitimes du système de DR dans des contextes hors combat, autorisées par les livres de la liste VF.
 
 **Sources RAW** :
 - `NADJ 16 l.7` — Critique hors combat = double sur réussite (même règle que LDB)
@@ -614,11 +616,13 @@ Ces trois mécaniques constituent des extensions légitimes du système de DR da
 - `NADJ 16 l.25` — Alvatafl : ajouter Bonus d'Intelligence au DR
 - `NADJ 16 l.34` — Bras de Fer : test étendu Force + Bonus de Force au DR par tour
 - `NADJ 16 l.57` — Boules : DR plafonné à 6 par lancer (test étendu)
+- `NADJ 16 l.82` — Arène : Tireur d'élite, tous les Tests un cran plus faciles pour son porteur
 - `NADJ 16 l.97` — Fléchettes : choisir unités/dizaines/×10 sur réussite
+- `NADJ 16 l.105` — Dominos : Pari Accessible (+20) ; égalité de DR départagée par le dé d'unités le plus bas
 - `LDB 12 l.124-127` (rappel) — règle optionnelle Critiques/Maladresses sur tous tests
 
 **Voir aussi** : [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse), [Influencer un test — Chance, Résilience, Talents](#influencer-un-test--chance-résilience-talents), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.124-127) → `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `WallSpec`, `evaluateTest`, `Inspector`, `double-critique-maladresse`, `SL_IMPRESSIVE`, `isImpressiveFailure`, +3 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/tests.ts`, `src/state/flowOutcomes.ts`, `src/state/mapSpec.ts`, +3 fichiers
 - `LDB 17` (l.23) → `canReroll`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `canActFirst`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, `REPORT_DE_COMBATTANT`, +23 — `src/data/flow-stakes.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, `src/engine/tests.ts`, `src/state/actionRegistry.ts`, +12 fichiers
-- `NADJ 16` (l.7, l.11, l.19, l.25, l.34, l.57, l.97) → `SequenceRoundOps`, `doc`, `SequenceDice`, `TavernGame`, `al-zahr`, `SequenceParams`, `alvatafl`, `SequenceTieSide`, `TavernGameModal`, `SequenceVolleyRow`, +38 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, +8 fichiers
+- `NADJ 16` (l.7, l.11, l.19, l.25, l.34, l.57, l.97) → `SequenceRoundOps`, `SequenceDice`, `TavernGame`, `al-zahr`, `doc`, `SequenceParams`, `alvatafl`, `SequenceTieSide`, `TavernGameModal`, `SequenceVolleyRow`, +40 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, +9 fichiers

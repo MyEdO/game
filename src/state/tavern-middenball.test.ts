@@ -133,7 +133,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(bagarre.target, 'la Difficulté (+20) entre dans la cible').toBe(bagarre.base! + 20);
   });
 
-  it('SOMME par équipe, BUT au-delà de 25, +1 Avantage au camp qui l’emporte (l.121)', () => {
+  it('SOMME par équipe, BUT au-delà de 25, +1 Avantage au camp qui l’emporte (l.119)', () => {
     const party = equipe(2);
     get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
@@ -148,7 +148,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
   });
 
   /**
-   * L'AVANTAGE AGIT (l.121 : « en utilisant les règles habituelles relatives à l'Avantage » ; LDB 14
+   * L'AVANTAGE AGIT (l.119 : « en utilisant les règles habituelles relatives à l'Avantage » ; LDB 14
    * l.30 : « +10 à un Test de Combat ou de Psychologie approprié »). Il ne suffit pas de le COMPTER
    * sur la fiche : il doit entrer dans la CIBLE du tour suivant — et seulement pour un Test de Combat.
    */
@@ -180,7 +180,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(rowT2.mods?.some((m) => m.label === 'Avantage')).toBeFalsy();
   });
 
-  /** SYMÉTRIE (l.121) : l'Avantage est gagné par une ÉQUIPE. Les figurants n'ont pas de fiche — leur
+  /** SYMÉTRIE (l.119) : l'Avantage est gagné par une ÉQUIPE. Les figurants n'ont pas de fiche — leur
    *  camp le porte, sans quoi une équipe sans héros ne pourrait jamais rien gagner. */
   it('l’Avantage d’un camp s’applique AUSSI à ses figurants — les deux camps, symétriquement', () => {
     const party = equipe(1);
@@ -216,7 +216,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(tavernGameValue(pnjAuProfil('nain', 'n')!, jeu)).not.toBe(tavernGameValue(pnjAuProfil('humain', 'h')!, jeu));
   });
 
-  /** LA CONJONCTION du but (l.121) : « L'équipe qui obtient le total le plus élevé […] marquera un but
+  /** LA CONJONCTION du but (l.119) : « L'équipe qui obtient le total le plus élevé […] marquera un but
    *  si son total est de +25 ou plus » — les DEUX conditions, sur le MÊME camp. Deux équipes au-dessus
    *  de 25 : seule celle qui l'emporte marque. */
   it('les DEUX camps au-dessus de 25 : SEUL le vainqueur marque', () => {

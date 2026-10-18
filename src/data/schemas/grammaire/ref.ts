@@ -70,6 +70,8 @@ export const TYPES = {
   axe: { espace: 'axes.json', catalogue: 'axes' },
   weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
+  // JEU DE TAVERNE (#1921) : `SceneEntity.tavernGame.gameId` résout AU PARSE.
+  tavernGame: { espace: 'tavernGames.json', catalogue: 'jeux de taverne' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

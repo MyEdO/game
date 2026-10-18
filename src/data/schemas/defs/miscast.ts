@@ -2,16 +2,11 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { formulaSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, formulaSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
-
-const difficultySchemaLocal = z.enum([
-  'tresFacile', 'facile', 'accessible', 'intermediaire', 'complexe',
-  'difficile', 'tresDifficile', 'presqueImpossible', 'impossible',
-]);
 
 /**
  * `JsonOp` (`engine/miscast.ts`) — miroir aplati du `GameOp` runtime (`op:'condition'|'wounds'|
@@ -68,7 +63,7 @@ const jsonOpSchema = nommerChamps(z.strictObject({
 const jsonNestedTestSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
   characteristic: z.string().optional(),
-  difficulty: difficultySchemaLocal,
+  difficulty: difficultySchema,
   onFail: z.array(jsonOpSchema),
   onFailHard: nommerChamps(z.strictObject({ dr: z.number(), ops: z.array(jsonOpSchema) }), { dr: { label: 'DR' }, ops: { label: 'opérations' } }).optional(),
 }), {

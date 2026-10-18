@@ -2560,6 +2560,9 @@ export const fr = {
   'tavern.issueWon': 'gagné',
   'tavern.issueLost': 'perdu',
   'tavern.issueTie': 'égalité',
+  // NADJ 16 l.105 — la clause d'égalité d'un jeu, dite au résultat et au journal.
+  'sequence.departageUnites': 'À DR égal, dé d’unités {mien} contre {sien} : le plus bas l’emporte',
+  'tavern.departageDetail': 'DR {mien} contre {sien} — {departage}',
 
   // ── #1318 V8c₅ — SQUELETTE D'ARGUMENT d'un Trait (`engine/traits/dispatch.ts`) : le nom du POOL
   // attendu (type d'argument), résolu à l'APPEL — la carte porte des clés, jamais des chaînes gelées.

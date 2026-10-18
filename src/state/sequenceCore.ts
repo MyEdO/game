@@ -17,7 +17,7 @@
  *  - la FORMULE DE SCORE par camp (`registerSequenceScore`, paramétrée par la donnée : `min` pour les
  *    poursuivis, `max` pour les poursuivants, `sum` pour une équipe) ;
  *  - le DÉPARTAGE D'ÉGALITÉ (`registerSequenceTieBreak`, paramétré par la donnée : Dominos NADJ 16
- *    l.107, Boules l.57) — jamais un branchement par id de jeu ;
+ *    l.105, Boules l.57) — jamais un branchement par id de jeu ;
  *  - la BORNE ANTI-BOUCLE (`SEQUENCE_MAX_ROUNDS`) : une séquence qui ne conclut pas S'ARRÊTE.
  *
  * DEUX PRIMITIVES RESTENT CHEZ ELLES tant qu'aucune manche ne les joue : la table par fourchette
@@ -112,10 +112,15 @@ export interface SequenceTieSide {
 export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'tie';
 
 const sequenceTieBreaks: Record<string, SequenceTieBreak> = {};
+/** Ce que le départage a LU de chaque camp, dit au joueur (résultat, journal). */
+const recitsDeDepartage: Record<string, (a: SequenceTieSide, b: SequenceTieSide) => string> = {};
 
-/** Enregistre (ou remplace) un départage d'égalité, sous le nom que la donnée emploiera. */
-export function registerSequenceTieBreak(departage: string, fn: SequenceTieBreak): void {
+/** Enregistre (ou remplace) un départage d'égalité, sous le nom que la donnée emploiera, et le récit
+ *  de ce qu'il a lu quand il en tient un. */
+export function registerSequenceTieBreak(departage: string, fn: SequenceTieBreak, recit?: (a: SequenceTieSide, b: SequenceTieSide) => string): void {
   sequenceTieBreaks[departage] = fn;
+  if (recit) recitsDeDepartage[departage] = recit;
+  else delete recitsDeDepartage[departage];
 }
 
 /** L'égalité reste une égalité. */
@@ -126,7 +131,13 @@ registerSequenceTieBreak('units-lowest', (a, b) => {
   const ua = a.roll % 10;
   const ub = b.roll % 10;
   return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
-});
+}, (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }));
+
+/** Le récit du départage DÉCLARÉ (ce qu'il a lu de chaque camp) — `undefined` s'il n'en tient pas. */
+export function recitDuDepartage(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): string | undefined {
+  const recit = departage ? recitsDeDepartage[departage] : undefined;
+  return recit ? recit(a, b) : undefined;
+}
 
 /** Départage une égalité selon le nom DÉCLARÉ. Aucun (ou inconnu) : l'égalité reste. */
 export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'tie' {

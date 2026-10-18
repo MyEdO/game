@@ -80,7 +80,7 @@ export interface SequenceParams {
   /** (2) Table de score par plage de DR. */
   table?: readonly SequenceTableRow[];
   /** (3bis) Bonus de Caractéristique AJOUTÉ au DR de chaque manche (Bras de fer NADJ 16 l.34,
-   *  Alvatafl l.20, Bête l.42) — la Caractéristique est nommée, le Bonus est son chiffre des
+   *  Alvatafl l.25, Bête l.42) — la Caractéristique est nommée, le Bonus est son chiffre des
    *  dizaines (`engine/characteristics.bonus`). */
   drBonus?: CharKey;
   /** (4) Effets par manche. */

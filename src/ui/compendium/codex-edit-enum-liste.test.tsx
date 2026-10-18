@@ -33,7 +33,7 @@ function monter(d: Domaine) {
   root = createRoot(container);
   act(() => { root.render(<CodexEdit categoryKey="domains" id={d.id} onClose={() => {}} />); });
 }
-const cases = (n: number) => [...container.querySelectorAll<HTMLInputElement>(`[role="group"][aria-label^="when de la rangée ${n} "] input[type="checkbox"]`)];
+const cases = (n: number) => [...container.querySelectorAll<HTMLInputElement>(`[role="group"][aria-label^="condition de la rangée ${n} "] input[type="checkbox"]`)];
 const cochees = (n: number) => cases(n).filter((c) => c.checked);
 
 describe('atelier du Codex — une liste de valeurs d’enum est un ensemble de cases', () => {

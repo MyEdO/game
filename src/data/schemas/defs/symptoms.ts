@@ -6,14 +6,10 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { flowSchema, gameOpSchema, noeudTest, triggeredEffectSchema } from '../grammaire/mecanique';
+import { difficultySchema } from '../grammaire/valeurs';
 
 export const file = 'symptoms.json';
 export const famille = 'entite';
-
-const difficultySchemaLocal = z.enum([
-  'tresFacile', 'facile', 'accessible', 'intermediaire', 'complexe',
-  'difficile', 'tresDifficile', 'presqueImpossible', 'impossible',
-]);
 
 /** `SymptomCapabilities` (`src/data/index.ts`) — sac de flags CLOS. */
 const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
@@ -45,8 +41,8 @@ const onTickSchema = nommerChamps(z
     /** LDB 20 l.215 */
     difficultyBySeverity: nommerChamps(z
       .strictObject({
-        moderee: difficultySchemaLocal.optional(),
-        grave: difficultySchemaLocal.optional(),
+        moderee: difficultySchema.optional(),
+        grave: difficultySchema.optional(),
       }), { moderee: { label: 'Modérée' }, grave: { label: 'Grave' } })
       .optional(),
     /** MSRC 16 */

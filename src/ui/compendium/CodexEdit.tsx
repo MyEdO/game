@@ -15,7 +15,7 @@ import { serializeDataset } from '../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../data/schemas/validate';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import * as fs from '../../data/fsPersist';
-import { estDerive, inferFields, type FieldDesc } from './editFields';
+import { estDerive, inferFields, objetAdmis, objetDesRangees, type FieldDesc, type RegimeDeLibelle } from './editFields';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from './registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../engine/activities';
@@ -24,7 +24,7 @@ import { weatherCondition } from '../../engine/travelStages';
 import { weatherIdSchema } from '../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../data/schemas/defs/water-exposure';
-import { RefField, refFieldCfg, libelleDeDataset } from './RefField';
+import { RefField, refFieldCfg, libelleDeDataset, datasetDuNoeud } from './RefField';
 import { DescRefField } from './DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { Icon } from '../Icon';
@@ -348,8 +348,8 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
   if (categoryKey === 'characteristics') add('options'); // dépenses d'une ressource → éditeur GÉNÉRIQUE commun
-  // options de Test (l.121), barème par plage de DR (l.111), camps asymétriques (l.27) → MÊME éditeur générique
-  if (categoryKey === 'tavernGames') add('options', 'table', 'sides');
+  // options de Test (l.119), barème par plage de DR (l.111), camps asymétriques (l.25) → MÊME éditeur générique
+  if (categoryKey === 'tavernGames') add('options', 'table', 'sides', 'specials');
   if (categoryKey === 'creatures') add('traits', 'optionals', 'harvest');
   if (categoryKey === 'details') add('texts');
   if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657)
@@ -800,11 +800,10 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {/* DÉPENSES d'une ressource (`characteristics.options` — Résilience, #1117 geste 5) : tableau
             top-level d'objets homogènes → MÊME éditeur générique que la rubrique de Vent. */}
         {categoryKey === 'characteristics' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
-        {/* OPTIONS de Test d'un jeu de taverne (`tavernGames.options` — Middenball NADJ 16 l.119 :
-            Bagarre (+20) OU Athlétisme (+0)) : même forme, même éditeur générique. */}
-        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options de Test (la règle en offre plusieurs — le joueur choisit)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
-        {/* Barème de points par plage de DR (`tavernGames.table` — Torchon trempé NADJ 16 l.111). */}
-        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="barème de points par plage de DR" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
+        {/* NADJ 16 l.119 ; NADJ 16 l.111 ; NADJ 16 l.25 ; NADJ 16 l.82 */}
+        {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
+          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
+        ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
         {isCreature && (
@@ -1853,7 +1852,8 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   if (kind === 'textarea')
     return <ProseField label={label} ariaLabel={nomPositionne} value={(value as string) ?? ''} onChange={onChange} />;
   if (kind === 'number')
-    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? null : 0))} /></label>;
+    // Vidé : l'ABSENCE quand le nœud l'admet, sinon `null` sur un champ observé nul, sinon 0.
+    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (admetLAbsence(field.noeud) ? undefined : field.nullable ? null : 0))} /></label>;
   if (kind === 'checkbox')
     return <label className="ed-check"><input type="checkbox" aria-label={nomPositionne} checked={!!value} onChange={(e) => onChange(e.target.checked)} /><span>{label}</span></label>;
   if (kind === 'source') return <SourceRefField identite={chemin} label={label} sujet={sujet} facultative={field.nullable} value={value as SourceRef | undefined} onChange={onChange} />;
@@ -1879,6 +1879,9 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       return <GenericArrayField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown>[] | undefined} noeud={field.noeud} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
     return <JsonField label={label} sujet={sujet} value={value} onChange={onChange} />;
   }
+  // Un id que la feuille `idDe` du nœud résout au catalogue se CHOISIT dans ce catalogue, jamais à la frappe.
+  const catalogue = kind === 'text' ? datasetDuNoeud(field.noeud) : undefined;
+  if (catalogue) return <RefField cfg={{ ds: catalogue, single: true }} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
   // `fige` : valeur POSÉE par le def — affichée, jamais saisie (un champ ouvert à la frappe dont une
   // seule valeur parse est une affordance qui ment).
   if (field.fige) return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} readOnly /></label>;
@@ -2025,17 +2028,27 @@ function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin:
   // Régime PROFONDEUR : un sous-champ nommé `id`/`maison` n'est pas le champ d'enveloppe du même nom —
   // il reste en clé technique, sa méta relève de la dérivation des widgets (#1466 L6). Le NŒUD, lui,
   // redescend : les libellés de VALEURS d'un enum nommé valent à toute profondeur (#1694).
-  const subFields = useMemo(() => inferFields([obj], { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [obj, noeud]);
+  // Un objet ABSENT de la donnée s'offre par les champs que déclare son nœud (`objetAdmis`) : sans eux,
+  // une rangée neuve n'aurait aucun contrôle pour le poser. Un objet présent garde ses seules clés.
+  const neuf = value == null ? objetAdmis([noeud], []) : undefined;
+  const subFields = useMemo(() => inferFields([obj], neuf === undefined ? { niveau: 'profondeur', noeud: noeudObjet(noeud) } : { niveau: 'profondeur', noeud: neuf, completer: true }), [obj, noeud, neuf]);
   return (
     <div className="ed-field ed-subform">
       <span>{label}</span>
-      <div className="ed-subfield">
+      <Grid className="ed-champs" min="sm" gap="sm">
         {subFields.map((f) => (
           <Field key={f.key} chemin={`${chemin}/${f.key}`} sujet={`de ${label}${sujet ? ` ${sujet}` : ''}`} field={f} value={obj[f.key]} onChange={(v) => onChange({ ...obj, [f.key]: v })} />
         ))}
-      </div>
+      </Grid>
     </div>
   );
+}
+
+/** Régime des colonnes d'une liste d'objets : complété par les champs que déclare l'objet des rangées
+ *  quand il est unique (`objetDesRangees`), sinon le nœud objet le plus proche, sans complément. */
+function regimeDesRangees(noeud: unknown, rangees: readonly unknown[]): RegimeDeLibelle {
+  const objet = objetDesRangees(noeud, rangees);
+  return objet === undefined ? { niveau: 'profondeur', noeud: noeudObjet(noeud) } : { niveau: 'profondeur', noeud: objet, completer: true };
 }
 
 /** Tableau de lignes HÉTÉROGÈNES (#422) — une entrée par rangée, colonnes DÉRIVÉES par
@@ -2053,14 +2066,14 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
   const list = value ?? [];
   // Colonnes de PROFONDEUR : même frontière que `ObjectField` (méta de profondeur = #1466 L6 ; le nœud
   // de rangée porte, lui, les libellés de valeurs de ses enums nommés, #1694).
-  const selfCols = useMemo(() => inferFields(list, { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [list, noeud]);
+  const selfCols = useMemo(() => inferFields(list, regimeDesRangees(noeud, list)), [list, noeud]);
   const cols = columns ?? selfCols;
   const nestedCols = useMemo(() => {
     const map = new Map<string, FieldDesc[]>();
     for (const f of cols) {
       if (f.kind !== 'json') continue;
       const pool = list.flatMap((r) => (Array.isArray(r[f.key]) ? (r[f.key] as Record<string, unknown>[]) : []));
-      if (pool.length && pool.every((x) => x != null && typeof x === 'object' && !Array.isArray(x))) map.set(f.key, inferFields(pool, { niveau: 'profondeur', noeud: noeudObjet(f.noeud) }));
+      if (pool.length && pool.every((x) => x != null && typeof x === 'object' && !Array.isArray(x))) map.set(f.key, inferFields(pool, regimeDesRangees(f.noeud, pool)));
     }
     return map;
   }, [list, cols]);
@@ -2071,12 +2084,12 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
     <div className="ed-field ed-subform">
       <span>{label}</span>
       {list.map((row, i) => (
-        <div className="ed-subfield" key={cles[i]}>
+        <Grid className="ed-champs" min="sm" gap="sm" key={cles[i]}>
           {cols.map((f) => nestedCols.has(f.key)
             ? <GenericArrayField key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} label={f.label} value={(row[f.key] as Record<string, unknown>[] | undefined) ?? []} noeud={f.noeud} columns={nestedCols.get(f.key)} onChange={(v) => setRow(i, f.key, v)} />
             : <Field key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} field={f} value={row[f.key]} onChange={(v) => setRow(i, f.key, v)} />)}
           <button className="btn small danger" aria-label={`Retirer la rangée ${i + 1} de ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
-        </div>
+        </Grid>
       ))}
       <button className="btn small" aria-label={`Ajouter une rangée à ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange([...list, {}])}>+ Ajouter</button>
     </div>

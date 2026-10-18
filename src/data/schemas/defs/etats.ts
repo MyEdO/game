@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `etats.json` — dérivé de l'inventaire COMPLET des clés (script node, n=20/20) et de
  * `StatusData`/`EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
@@ -7,10 +7,9 @@ import { nommerChamps } from '../grammaire/meta';
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
  */
 import { z } from 'zod';
-import { charKeySchema, difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
+import { stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, gameOpSchema, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { conditionSchema, gameOpSchema, jetSchema, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'etats.json';
 export const famille = 'entite';
@@ -28,19 +27,15 @@ const gatingSchema = nommerChamps(z.strictObject({
 
 /** `EtatData.recover` (`src/data/index.ts`). */
 const recoverSchema = nommerChamps(z.strictObject({
-  skill: refOuSpec('skill').optional(),
-  characteristic: charKeySchema.optional(),
+  ...jetSchema.shape,
   opposedBy: z.literal('source').optional(),
-  difficulty: difficultySchema.optional(),
   /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
   enjeu: z.string(),
   /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
   form: stakeFormSchema,
 }), {
-  skill: { label: 'Compétence' },
-  characteristic: { label: 'caractéristique' },
+  ...metaDesChamps(jetSchema, { exigees: true }),
   opposedBy: { label: 'opposition' },
-  difficulty: { label: 'difficulté' },
   enjeu: { label: 'enjeu' },
   form: { label: 'forme' },
 });

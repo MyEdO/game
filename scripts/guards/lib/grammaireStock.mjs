@@ -51,7 +51,6 @@ export const GRAMMAIRE_STOCK = {
   // #1467 L1b V-FLIP-ENTITE-b : la ligne REVIT sous le binding `doc` — l'adoption de `document()`
   // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
   // Le champ `skill` est toujours là, la donnée n'a pas bougé.
-  'src/data/schemas/defs/etats.ts:recoverSchema|alias|skill': e('Test de récupération d’un État désignant sa Compétence par `skill`.', L2),
   'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (le champ moteur `TestSpec.skill`, non migré).', L2),
   'src/data/schemas/defs/miscast.ts:jsonNestedTestSchema|alias|skill': e('Test IMBRIQUÉ d’un maléfice, même graphie `skill` que l’op porteuse.', L2),
   'src/data/schemas/defs/psychology.ts:doc.test|alias|skill': e('Test de Psychologie désignant sa Compétence par `skill` (`STRUCTURES_REDECLARATIONS` psychology.ts).', L2),
@@ -61,7 +60,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs/spells.ts:champs.opposed|alias|skill': e('Jet OPPOSÉ d’un sort désignant les deux Compétences par `skill`.', L2),
   'src/data/schemas/defs/steam-breakdown.ts:doc.restart|alias|skill': e('Test de redémarrage d’une machine à vapeur : réf de Compétence EMBOÎTÉE (`skill: {id, spec?}`) ; le conteneur reste au lot L4.', L2),
   'src/data/schemas/defs/talents.ts:testMatchSchema|alias|skill': e('Filtre de test d’un Talent (à quel jet il s’applique) désignant la Compétence par `skill`.', L2),
-  'src/data/schemas/defs/tavernGames.ts:doc|alias|skill': e('Jeu de taverne : Compétence du jeu par `skill` (`STRUCTURES_REDECLARATIONS` tavernGames.ts, champ `options`).', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.fastSkill|alias|skill': e('Variante RAPIDE d’un jeu de taverne, même graphie `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.options|alias|skill': e('Options de jeu de taverne, même graphie `skill`.', L2),
   'src/data/schemas/defs/tavernGames.ts:doc.combined.second|alias|skill': e('Second volet d’un test COMBINÉ de jeu de taverne, même graphie `skill`.', L2),
