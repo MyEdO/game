@@ -57,6 +57,29 @@ export function estRegleSansPaths(texte) {
   return true
 }
 
+/** La SEULE règle admise sans `paths:` : des consignes de machine valables pour tout appel d'outil, qu'aucun
+ *  `paths:` ne cible (#2683). Sa taille est bornée en dur : ni une ligne `CLIQUET:` ni le plafond du budget ne la
+ *  relèvent. */
+export const REGLE_PERMANENTE = Object.freeze({ chemin: '.claude/rules/outils.md', octetsMax: 3072 })
+
+/** Les postes de règle sans `paths:` qui sortent du contrat : toute autre règle que `REGLE_PERMANENTE`, et celle-ci
+ *  au-delà de sa borne. `[]` si rien. PURE. */
+export function reglesPermanentesHorsContrat(mesure) {
+  return (mesure?.postes ?? [])
+    .filter((p) => /^\.claude\/rules\/[^/]+\.md$/.test(p.nom))
+    .flatMap((p) => {
+      if (p.nom !== REGLE_PERMANENTE.chemin) {
+        return [`${p.nom} (${p.octets} octets) n'a pas d'en-tête \`paths:\` : seule ${REGLE_PERMANENTE.chemin} `
+          + 'se charge au démarrage ; ciblez-la par `paths:` ou versez sa consigne à son porteur.']
+      }
+      if (p.octets > REGLE_PERMANENTE.octetsMax) {
+        return [`${p.nom} pèse ${p.octets} octets pour une borne de ${REGLE_PERMANENTE.octetsMax} `
+          + `(REGLE_PERMANENTE, ${PORTEUR_DU_PLAFOND}) : renvoyez le détail derrière son déclencheur.`]
+      }
+      return []
+    })
+}
+
 const lecteurDisque = (racine) => (chemins) => new Map(chemins.map((chemin) => {
   try { return [chemin, readFileSync(resolve(racine, chemin), 'utf8')] } catch { return [chemin, null] }
 }))
@@ -115,6 +138,13 @@ export function postesQuiGrossissent(reference, mesure) {
 export function refusDeBudget({ mesure, reference, message }) {
   if (!reference || typeof reference.total !== 'number') throw new Error('budget : référence de mesure absente')
   if (!mesure || typeof mesure.total !== 'number') throw new Error('budget : mesure absente')
+  const horsContrat = reglesPermanentesHorsContrat(mesure)
+  if (horsContrat.length) {
+    return {
+      decision: 'deny',
+      reason: `⛔ RÈGLE CHARGÉE AU DÉMARRAGE hors contrat, qu'aucun CLIQUET ne couvre : ${horsContrat.join(' · ')}`,
+    }
+  }
   const plafond = reference.total
   if (mesure.total <= plafond) return null
   const montee = mesure.total - plafond
@@ -227,6 +257,9 @@ async function principal() {
     const mesure = mesurerBudget(process.cwd())
     for (const p of mesure.postes) process.stdout.write(`${String(p.octets).padStart(6)}  ${p.nom}\n`)
     process.stdout.write(`${String(mesure.total).padStart(6)}  TOTAL (~${enTokens(mesure.total)} tokens)\n`)
+    const horsContrat = reglesPermanentesHorsContrat(mesure)
+    for (const ligne of horsContrat) process.stderr.write(`budget : ${ligne}\n`)
+    if (horsContrat.length) process.exitCode = 1
     if (!process.argv.includes('--mesure')) {
       const argument = (nom) => {
         const i = process.argv.indexOf(nom)
