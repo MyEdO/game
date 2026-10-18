@@ -5,7 +5,7 @@
  * servants au-delà de l'Indice n'améliorent pas le tir mais compensent les pertes (l.444).
  */
 import type { Weapon, QualityInstance } from './types';
-import { crewedTeamIndice, reloadDRTarget, isAtoutQuality } from './qualities/dispatch';
+import { crewedTeamIndice, crewedTeamRedoublePenalty, reloadDRTarget, isAtoutQuality } from './qualities/dispatch';
 
 /** Dégradation d'une Arme d'équipe en sous-effectif (cumulatif). */
 export interface CrewedPenalty {
@@ -19,8 +19,8 @@ export interface CrewedPenalty {
  * Pénalité de sous-effectif d'une Arme d'équipe (MDG 12 l.448-460). `present` = nombre de servants,
  * `indice` = équipage requis (Indice de la qualité). CUMULATIF selon le déficit = max(0, indice − présents) :
  * ≥1 manquant → temps de recharge DOUBLÉ ; ≥2 → + Défaut *Imprécise* ; ≥3 → + Défaut *Dangereuse*. PUR.
- * (Le −10 supplémentaire si l'arme possède DÉJÀ le Défaut ajouté — l.460 — est appliqué à la résolution du
- * tir, qui connaît les qualités de base de l'arme.)
+ * (La pénalité supplémentaire si l'arme possède DÉJÀ le Défaut ajouté — l.460 — est appliquée à la résolution
+ * du tir, qui connaît les qualités de base de l'arme.)
  */
 export function crewedPenalty(present: number, indice: number): CrewedPenalty {
   const deficit = Math.max(0, indice - Math.max(0, present));
@@ -57,7 +57,8 @@ export function crewedReloadStep(weapon: Weapon, progressBefore: number, testDR:
  * `present` (MDG 12 l.448-460) : recharge ×`reloadFactor`, + Défaut *Imprécise*, + Défaut *Dangereuse*.
  * RETIRE la qualité `arme-d-equipe` — l'équipage RÉEL étant désormais résolu, l'hypothèse « maniée en solo »
  * de `dispatch.ts` (`crewedTeamIndice`) ne doit plus se cumuler ; un poste à effectif COMPLET tire donc net.
- * Un Défaut déjà porté par l'arme n'est PAS redoublé : il vaut alors **−10 au Test de tir** (l.460), baké en
+ * Un Défaut déjà porté par l'arme n'est PAS redoublé : il vaut alors la pénalité au Test de tir que porte la
+ * qualité (`crewedTeam`, l.460), bakée en
  * `crewedTohitPenalty` (cumulatif par Défaut redoublé). PUR. Arme sans `arme-d-equipe` → inchangée.
  */
 export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
@@ -66,7 +67,7 @@ export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
   const pen = crewedPenalty(present, indice);
   const has = (id: string) => weapon.qualities.some((q) => q.id === id);
   const added = pen.addFlaws.filter((f) => !has(f)).map((id) => ({ id }));
-  const redoubled = pen.addFlaws.filter(has).length; // Défauts déjà portés et « re-reçus » → −10 chacun (l.460)
+  const redoubled = pen.addFlaws.filter(has).length; // Défauts déjà portés et « re-reçus » (l.460)
   let qualities: QualityInstance[] = [...weapon.qualities.filter((q) => q.id !== 'arme-d-equipe'), ...added];
   // Baliste « relativement simple » (AA 10 l.148) tirée par UN SEUL servant valide (`present ≤ 1` : pas
   // d'équipe) → l'arme PERD TOUS SES ATOUTS, conserve ses Défauts. ORTHOGONAL au sous-effectif : la recharge
@@ -76,7 +77,7 @@ export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
     ...weapon,
     qualities,
     reload: (weapon.reload ?? 0) * pen.reloadFactor,
-    ...(redoubled ? { crewedTohitPenalty: (weapon.crewedTohitPenalty ?? 0) - 10 * redoubled } : null),
+    ...(redoubled ? { crewedTohitPenalty: (weapon.crewedTohitPenalty ?? 0) + crewedTeamRedoublePenalty(weapon)! * redoubled } : null),
   };
 }
 

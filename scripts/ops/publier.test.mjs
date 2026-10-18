@@ -1078,77 +1078,34 @@ test('citerArgv : un token que `CommandLineToArgvW` relit comme UN argument', ()
 
 const LANCEMENT = { script: '/dep/scripts/ops/publier.mjs', args: ['--reprendre'], cwd: '/dep', fdLog: 9, node: '/bin/node' }
 
-/** Le préchargement BelowNormal, cité comme `-ArgumentList` le reçoit (#2603). */
-const PRECHARGE = ABAISSER_PRIORITE.map((a) => `'${citerArgv(a)}'`).join(',')
+/** #2603 */
+const PRECHARGE = ABAISSER_PRIORITE.map(citerArgv).join(' ')
 
-test('lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses enfants héritent)', () => {
-  const appels = []
-  const pid = lancerDetache({
-    ...LANCEMENT,
-    plateforme: 'win32',
-    envSupplementaire: { WFRP_PUBLIER_ENFANT: '1' },
-    executerSync: (exe, args, options) => {
-      appels.push({ exe, args, options })
-      return { status: 0, stdout: '4242\r\n', stderr: '' }
-    },
-    detacher: () => assert.fail('aucun spawn direct sous win32 : il donnerait au train un DETACHED_PROCESS sans console'),
+test('lancerDetache : sous win32, console cachée et données séparées du programme PowerShell', () => {
+  let capture
+  const pid = lancerDetache({...LANCEMENT, plateforme:'win32',envSupplementaire:{WFRP_PUBLIER_ENFANT:'1'},executerSync:(exe,args,options)=>{
+    capture={exe,args,options}
+    return {status:0,stdout:'{"ReturnValue":0,"ProcessId":4242}'}
+  }})
+  assert.equal(pid,4242)
+  assert.equal(capture.exe,'powershell.exe')
+  assert.equal(capture.options.windowsHide,true)
+  assert.ok(JSON.parse(capture.options.input).environment.includes('WFRP_PUBLIER_ENFANT=1'))
+  const donnees=JSON.parse(capture.options.input)
+  assert.equal(donnees.commande, ['"/bin/node"',PRECHARGE,'"/dep/scripts/ops/publier.mjs"','"--reprendre"'].join(' '))
+  assert.equal(donnees.cwd,'/dep')
+})
+for (const script of ["/dep d'ops/publier.mjs", '/dep/dossier avec espace/publier.mjs']) {
+  test('lancerDetache : chemin transmis en JSON et cité Win32 '+script,()=>{
+    lancerDetache({...LANCEMENT,script,plateforme:'win32',executerSync:(_exe,_args,options)=>{
+      assert.ok(JSON.parse(options.input).commande.includes(citerArgv(script)))
+      return {status:0,stdout:'{"ReturnValue":0,"ProcessId":7}'}
+    }})
   })
-  assert.equal(pid, 4242)
-  assert.equal(appels.length, 1)
-  assert.equal(appels[0].exe, 'powershell.exe')
-  assert.deepEqual(appels[0].args.slice(0, 3), ['-NoProfile', '-NonInteractive', '-Command'])
-  // FRAGMENTS, pas une chaîne figée : ce qui est SOUS CONTRAT est la console cachée, le pid rendu,
-  // l'exécutable et la citation de CHAQUE argument.
-  const commande = appels[0].args[3]
-  assert.ok(commande.includes(' -WindowStyle Hidden'), commande)
-  assert.ok(commande.includes(' -PassThru'), commande)
-  assert.ok(commande.includes("-FilePath '/bin/node'"), commande)
-  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/scripts/ops/publier.mjs"','"--reprendre"'`), commande)
-  assert.equal(appels[0].options.cwd, '/dep')
-  assert.equal(appels[0].options.windowsHide, true)
-  assert.equal(appels[0].options.env.WFRP_PUBLIER_ENFANT, '1')
-})
-
-test('lancerDetache : sous win32, une apostrophe du chemin est CITÉE, jamais interpolée', () => {
-  let commande = ''
-  lancerDetache({
-    ...LANCEMENT,
-    script: "/dep d'ops/publier.mjs",
-    plateforme: 'win32',
-    executerSync: (_exe, args) => {
-      commande = args[3]
-      return { stdout: '7', stderr: '' }
-    },
-  })
-  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep d''ops/publier.mjs"','"--reprendre"'`), commande)
-})
-
-test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argument du train', () => {
-  // `Start-Process -ArgumentList` joint ses éléments par des espaces SANS les re-citer : mesuré le
-  // 2026-09-17, un script sous `dossier avec espace/` rendait un pid et un journal VIDE.
-  let commande = ''
-  lancerDetache({
-    ...LANCEMENT,
-    script: '/dep/dossier avec espace/publier.mjs',
-    args: ['--file-timeout-min', '30', 'arg avec espace'],
-    plateforme: 'win32',
-    executerSync: (_exe, args) => {
-      commande = args[3]
-      return { stdout: '7', stderr: '' }
-    },
-  })
-  assert.ok(
-    commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/dossier avec espace/publier.mjs"','"--file-timeout-min"','"30"','"arg avec espace"'`),
-    commande,
-  )
-})
-
-test('lancerDetache : sous win32, un pid illisible ARRÊTE le lancement au lieu d’annoncer un train fantôme', () => {
-  assert.throws(
-    () => lancerDetache({ ...LANCEMENT, plateforme: 'win32', executerSync: () => ({ stdout: '', stderr: 'Start-Process : refus' }) }),
-    { message: '[détachement] /dep/scripts/ops/publier.mjs : détachement manqué, powershell a rendu «  » Start-Process : refus' },
-  )
-})
+}
+test('lancerDetache : PID illisible reste indéterminé',()=>assert.throws(
+  ()=>lancerDetache({...LANCEMENT,plateforme:'win32',executerSync:()=>({status:0,stdout:''})}), /EINDETERMINE/
+))
 
 test('lancerDetache : hors win32, le détachement reste `detached` + le fd du journal en stdio', () => {
   const appels = []
@@ -2482,7 +2439,15 @@ test('lancerDetache (#2603) : aucun jeton de verrou `WFRP_VERROU_*` ne passe au 
     const envs = []
     const supplementaire = { WFRP_VERROU_SUPPLEMENTAIRE: 'jeton', WFRP_PUBLIER_ENFANT: '1' }
     lancerDetache({ ...LANCEMENT, plateforme: 'linux', envSupplementaire: supplementaire, detacher: (_n, _a, o) => { envs.push(o.env); return { pid: 1, unref: () => {} } } })
-    lancerDetache({ ...LANCEMENT, plateforme: 'win32', envSupplementaire: supplementaire, executerSync: (_e, _a, o) => { envs.push(o.env); return { stdout: '7' } } })
+    lancerDetache({ ...LANCEMENT, plateforme: 'win32', envSupplementaire: supplementaire, executerSync: (_e, _a, o) => {
+      assert.deepEqual(Object.keys(o.env).filter((cle) => cle.startsWith('WFRP_VERROU_')), [])
+      assert.equal(o.env.WFRP_PUBLIER_ENFANT, process.env.WFRP_PUBLIER_ENFANT)
+      envs.push(Object.fromEntries(JSON.parse(o.input).environment.map((ligne) => {
+        const index = ligne.indexOf('=')
+        return [ligne.slice(0, index), ligne.slice(index + 1)]
+      })))
+      return { status: 0, stdout: '{"ReturnValue":0,"ProcessId":7}' }
+    } })
     for (const env of envs) {
       assert.deepEqual(Object.keys(env).filter((cle) => cle.startsWith('WFRP_VERROU_')), [])
       assert.equal(env.WFRP_PUBLIER_ENFANT, '1')

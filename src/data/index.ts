@@ -1481,7 +1481,7 @@ export interface EtatData extends StatusData {
    *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
    *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
    *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
+  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; opposedDifficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
   /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
    *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
    *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
@@ -1924,10 +1924,10 @@ export interface QualityCapabilities {
   firearm?: boolean;            // Poudre noire / Explosion : Incident de Tir + terreur (Nerveux)
   canFireWhileEngaged?: boolean;// Pistolet : tir au contact
   magazine?: boolean;           // À Répétition : chargeur (Indice)
-  salvo?: boolean;              // Salve : chargeur (Indice)
+  salvo?: number;               // Salve : chargeur (Indice), pénalité de chaque tir suivant du Round
   areaFire?: boolean;           // Tir de zone : nuage de projectiles (Indice)
   explosion?: boolean;          // À Explosion : tous à Indice m du point cible subissent DR+Dégâts + États de l'arme (LDB 62 l.254)
-  crewedTeam?: boolean;         // Arme d'équipe : sous-effectif (Indice)
+  crewedTeam?: number;          // Arme d'équipe : sous-effectif (Indice), pénalité par Défaut redoublé
   parryAP?: boolean;            // Protectrice : Indice PA en opposant (Indice)
   // Objet / artisanat (LDB 60)
   encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
@@ -2364,6 +2364,17 @@ export interface RegleData {
   label: string;
   desc: string;
   source: SourceRef;
+  /** Les valeurs que le livre chiffre, lues par `engine/reglesChiffrees.ts` (schéma `defs/regles.ts`). */
+  rangees?: RangeeDeRegleData[];
+}
+export interface RangeeDeRegleData {
+  id: string;
+  label: string;
+  palier?: Difficulty;
+  valeur?: number;
+  famille: import('../engine/types').ModFamille;
+  seuil?: number;
+  plafond?: number;
 }
 export const regles = adressee<RegleData>(reglesJson);
 const regleParId = indexParId('regles', regles);

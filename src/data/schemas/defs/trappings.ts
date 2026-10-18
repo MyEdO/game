@@ -15,6 +15,7 @@ import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/me
  *  #1615/#1621. La population (438 références, dont 5 à Indice `{id:'taillade', value:1|2}`) est
  *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
+import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 
 
 export const file = 'trappings.json';
@@ -132,7 +133,7 @@ const doc = document(
     /** ADE II 8 l.243 */
     onHitEffects: z.array(triggeredEffectSchema).optional(),
     /** ADE II 8 l.251/253 */
-    minRangeBand: z.enum(['bout-portant', 'courte', 'moyenne', 'longue', 'extreme']).optional(),
+    minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeRig: z.string().optional(),
     siegeFootprint: z.number().optional(),
     /** Munition REPRÉSENTATIVE d'une arme de siège (`id` de trapping `categorie:'ammunition'`) — discrimine

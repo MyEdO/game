@@ -29,12 +29,13 @@ import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { groupMatch } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
-import { incomingAttackMod, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
+import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
-import { RULE_REF } from './ruleRefs';
+import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
+import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, byId, testSkillLabel } from '../data';
+import { findPsychologyById, byId, testSkillLabel, type RangeeDeRegleData } from '../data';
 import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
@@ -745,7 +746,7 @@ export function weaponReachPenalty(attackerWeapon: Weapon, targetMelee: Weapon |
   if (!rule('combat-weapon-reach')) return 0;
   const target = meleeReachRank(targetMelee);
   const attacker = meleeReachRank(attackerWeapon);
-  return target != null && attacker != null && target > attacker ? -10 : 0;
+  return target != null && attacker != null && target > attacker ? modDeRegle('allonge-longueur-d-arme', 'arme-plus-longue') : 0;
 }
 
 /**
@@ -783,9 +784,9 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
 
 /**
  * Modificateurs étiquetés d'un Test d'attaque (source UNIQUE : le moteur les somme pour le jet,
- * l'UI les affiche). Toutes les valeurs sont sourcées dans la table des Difficultés de Combat
- * (`14 - _GoBack.md`) : Avantage ×10 (LDB 14 l.215), portée (l.54-84), Viser +20 (l.61), Précise +10
- * (Armes l.304), Localisation visée −20 (LDB 14 l.73), Cible vulnérable À Terre/Surpris +20 (l.64).
+ * l'UI les affiche). Les valeurs des règles chiffrées se lisent dans leur fiche (`ligneDeRegle`) :
+ * Avantage (LDB 14 l.215), portée (LDB 14 l.54-84), Viser (LDB 14 l.61), Précise (LDB 62 l.292),
+ * Localisation visée (LDB 14 l.73), Cible vulnérable (LDB 14 l.64).
  */
 /** Lignes de mod des ÉTATS d'un combattant — SOURCE UNIQUE des trois producteurs (attaque, défense,
  *  Test de combat « brut »). Chaque composante de la pénalité arrive NOMMÉE et liée au Codex
@@ -803,10 +804,10 @@ export function attackModifiers(
   opts: { kind: 'melee' | 'ranged'; location?: HitLocation | null; distanceTiles?: number; env?: ModLine[]; flankRear?: boolean; metresPerTile?: number },
 ): ModLine[] {
   const out: ModLine[] = [];
-  const adv = attacker.advantage * 10;
-  if (adv) out.push({ label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage });
+  const adv = advantageModLine(attacker);
+  if (adv) out.push(adv);
   out.push(...conditionModLines(attacker, { skill: weapon.resolveChar ? undefined : weaponSkillId(opts.kind) }));
-  if (attacker.nextActionPenalty) out.push({ label: 'Maladresse (Round précédent)', value: -attacker.nextActionPenalty, famille: 'jet', ref: RULE_REF['maladresse-tableau-des-oups'] });
+  if (attacker.nextActionPenalty) out.push({ label: 'Maladresse (Round précédent)', value: attacker.nextActionPenalty, famille: 'jet', ref: RULE_REF['maladresse-tableau-des-oups'] });
   // Amputation (LDB 18 l.251/263) : pénalité CONTEXTUELLE à l'arme — s'applique ssi l'arme implique la main blessée.
   const amp = amputationCombatPenalty(attacker, weapon);
   if (amp) out.push({ label: 'Amputation', value: amp, famille: 'jet', ref: RULE_REF.amputation });
@@ -816,21 +817,19 @@ export function attackModifiers(
   if (opts.kind === 'ranged') {
     // Portée RÉSOLUE à l'usage (jet `{bf}` → BF×N ; mètres fixes inchangés) + modificateur de la munition tirée.
     const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
-    if (opts.distanceTiles != null && rangeM != null) {
-      const m0 = rangeBandModifier(opts.distanceTiles, rangeM, opts.metresPerTile);
-      // Tireur embusqué (LDB 10) : aucune pénalité à Longue distance, moitié à Portée extrême.
-      const m = m0 != null ? sniperRangeAdjust(attacker, m0) : null;
-      const name = rangeBandName(opts.distanceTiles, rangeM, opts.metresPerTile);
-      if (m != null && m !== 0 && name) out.push({ label: name, value: m, famille: 'circonstance', ref: RULE_REF['portee-d-une-arme'] });
+    const band = opts.distanceTiles != null && rangeM != null ? rangeBandId(opts.distanceTiles, rangeM, opts.metresPerTile) : null;
+    if (band) {
+      const l = ligneDeRegle('portee-d-une-arme', band, { ajuste: (mod) => sniperRangeAdjust(attacker, band, mod) }); // LDB 10, Tireur embusqué
+      if (l.value) out.push(l);
     }
-    if (attacker.aiming) out.push({ label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser }); // LDB 14, Tableau des Difficultés de Combat — Accessible (+20)
-    // Salve (Aux Armes p.126) : chaque tir SUPPLÉMENTAIRE dans le Round subit −10 cumulatif.
-    const salvoShots = hasQuality(weapon, 'salve') ? (attacker.shotsThisTurn ?? 0) : 0;
-    if (salvoShots > 0) out.push({ label: 'Salve (tir suivant)', value: -10 * salvoShots, famille: 'jet', ref: RULE_REF.salve });
-    // Taille de la CIBLE au tir (LDB 14 l.118-131) — valeur absolue −30..+60. Une Nuée ignore la
-    // Taille et donne +40 au tir contre elle (LDB 85 l.253).
-    if (target?.swarm) out.push({ label: 'Nuée (tir)', value: 40, famille: 'circonstance', ref: RULE_REF.nuee });
-    else if (target && !ignoresSizeRangedMods(attacker)) { // Tireur d'élite (LDB 10) : ignore la Taille de la cible
+    if (attacker.aiming) out.push(ligneDeRegle('viser', 'viser'));
+    // Salve (Aux Armes p.126) : la pénalité par tir SUPPLÉMENTAIRE du Round est celle de la qualité.
+    const salve = resolveQualities(weapon).find((q) => q.caps?.salvo !== undefined);
+    const salvoShots = salve ? (attacker.shotsThisTurn ?? 0) : 0;
+    if (salve && salvoShots > 0) out.push({ label: `${salve.def.key} (tir suivant)`, value: salve.caps!.salvo! * salvoShots, famille: 'jet', ref: { category: 'qualities', id: salve.id } });
+    // Une Nuée ignore la Taille (LDB 85 l.253) ; son bonus au tir est une op de son trait.
+    if (target) out.push(...incomingAttackLines(target, 'ranged'));
+    if (target && !target.swarm && !ignoresSizeRangedMods(attacker)) { // LDB 14 l.118-131 ; Tireur d'élite (LDB 10)
       const sm = SIZE_RANGED_MOD[effectiveSize(target.size)];
       if (sm !== 0) out.push({ label: `Taille (cible) — ${SIZE_LABEL[effectiveSize(target.size)]}`, value: sm, famille: 'circonstance', ref: RULE_REF['taille-cible-au-tir'] });
     }
@@ -838,15 +837,12 @@ export function attackModifiers(
     // Cible vulnérable : une ligne PAR État qui l'expose (« +20 À Terre », « +10 Assourdi » de dos),
     // chacune liée à sa fiche — jamais un « Cible vulnérable » anonyme qui fond deux règles distinctes.
     out.push(...meleeAttackerBonusLines(target, { flankRear: opts.flankRear }));
-    // Parasité (LDB 85 l.257) : −10 pour toucher la créature en Corps à corps (vermine perturbante).
-    const para = incomingAttackMod(target, 'melee');
-    if (para) out.push({ label: 'Parasité', value: para, famille: 'circonstance', ref: RULE_REF.parasite });
-    // Option « Longueur d'Arme » (LDB 62 l.172) : arme adverse plus longue → −10 pour la toucher.
-    const reach = weaponReachPenalty(weapon, target.weapons?.find((w) => w.type === 'melee'));
-    if (reach) out.push({ label: "Allonge de l'adversaire", value: reach, famille: 'circonstance', ref: RULE_REF['allonge-longueur-d-arme'] });
+    out.push(...incomingAttackLines(target, 'melee')); // LDB 85 l.257
+    // Option « Longueur d'Arme » (LDB 62 l.172).
+    if (weaponReachPenalty(weapon, target.weapons?.find((w) => w.type === 'melee'))) out.push(ligneDeRegle('allonge-longueur-d-arme', 'arme-plus-longue'));
   }
-  // +10 au plus petit, mêlée ET tir (LDB 85 l.366). Une Nuée ignore TOUTES les règles de Taille (l.253).
-  if (target && !attacker.swarm && !target.swarm && sizeGap(attacker.size, target.size) < 0) out.push({ label: 'Taille (plus petit)', value: 10, famille: 'circonstance', ref: RULE_REF['taille-modificateurs-en-combat'] });
+  // Le plus petit, mêlée ET tir (LDB 85 l.366). Une Nuée ignore TOUTES les règles de Taille (l.253).
+  if (target && !attacker.swarm && !target.swarm && sizeGap(attacker.size, target.size) < 0) out.push(ligneDeRegle('taille-modificateurs-en-combat', 'plus-petit'));
   const precise = qualitySum(weapon, 'attackMod');
   if (precise) {
     // La qualité PORTEUSE est la référence de la ligne quand elle est SEULE à contribuer ; à
@@ -854,19 +850,18 @@ export function attackModifiers(
     const q = attackModQualityIds(weapon);
     out.push({ label: 'Précise', value: precise, famille: 'jet', ref: q.length === 1 ? { category: 'qualities', id: q[0] } : undefined });
   }
-  // Arme d'équipe en sous-effectif re-recevant un Défaut déjà porté → −10 plat (MDG 12 l.460), baké sur
-  // l'arme tirée par `crewedFireWeapon` (≠ le −1 DR d'Imprécise, qui reste sur la qualité).
-  if (weapon.crewedTohitPenalty) out.push({ label: 'Sous-effectif (Défaut redoublé)', value: weapon.crewedTohitPenalty, famille: 'jet', ref: RULE_REF['arme-d-equipe'] });
-  // Machine de guerre en Équipe incomplète (ADE II 8 l.233) : −20 plat, baké par `warMachineFireWeapon`
-  // (3ᵉ courbe de sous-effectif, DISTINCTE de celle d'AA ci-dessus).
-  if (weapon.crewTeamPenalty) out.push({ label: 'Équipe incomplète', value: weapon.crewTeamPenalty, famille: 'jet', ref: RULE_REF['equipe-incomplete-machine-de-guerre'] });
-  // Localisation visée = Difficile −20 (LDB 14 l.73) — SAUF contre une créature de Taille ≥ 2 catégories
+  // Arme d'équipe en sous-effectif re-recevant un Défaut déjà porté (MDG 12 l.460), baké sur l'arme tirée
+  // par `crewedFireWeapon` (≠ le −1 DR d'Imprécise, qui reste sur la qualité).
+  if (weapon.crewedTohitPenalty) out.push({ label: 'Sous-effectif (Défaut redoublé)', value: weapon.crewedTohitPenalty, famille: 'jet', ref: { category: 'qualities', id: 'arme-d-equipe' } });
+  // Machine de guerre en Équipe incomplète (ADE II 8 l.233), baké par `warMachineFireWeapon`.
+  if (weapon.crewTeamIncomplete) out.push(ligneDeRegle('equipe-incomplete-machine-de-guerre', 'equipe-incomplete'));
+  // Localisation visée (LDB 14 l.73) — SAUF contre une créature de Taille ≥ 2 catégories
   // supérieure : on choisit GRATUITEMENT la zone la plus proche / en Ligne de Vue (LDB « Point
   // d'Impact des Créatures » p.312 / `76` l.39).
   // Frappe assommante (Tête + arme Assommante) / Tir mortel (distance) : pas de pénalité (LDB 10).
   if (opts.location && !(target && sizeGap(target.size, attacker.size) >= 2)
-      && !ignoresCalledShotPenalty(attacker, opts.kind, opts.location, hasQuality(weapon, 'assommante'))) out.push({ label: 'Localisation visée', value: -20, famille: 'circonstance', ref: RULE_REF['viser-une-localisation'] });
-  // Possession pas prévue pour la Taille du porteur (ADE II 2 l.710) : −20 plat, ex. un ogre maniant
+      && !ignoresCalledShotPenalty(attacker, opts.kind, opts.location, hasQuality(weapon, 'assommante'))) out.push(ligneDeRegle('viser-une-localisation', 'localisation'));
+  // Possession pas prévue pour la Taille du porteur (ADE II 2 l.710), ex. un ogre maniant
   // une arme de Taille Moyenne. Symétrique quand `sizeFor` est POSÉ (une arme taillée pour une Taille
   // devient réellement inadaptée à une autre, ADE II 2 l.604). Sans `sizeFor` (possession ORDINAIRE
   // du catalogue) : la LDB ne cite aucune pénalité d'équipement pour un porteur plus PETIT que la
@@ -880,12 +875,12 @@ export function attackModifiers(
   const carrierSize = effectiveSize(attacker.size);
   if (!weapon.natural && !weapon.sizeless && gearSize !== carrierSize
       && (weapon.sizeFor !== undefined || SIZE_ORDER[carrierSize] > SIZE_ORDER.moyenne)) {
-    out.push({ label: 'Possession pas à sa taille', value: -20, famille: 'jet', ref: RULE_REF['possession-pas-a-sa-taille'] });
+    out.push(ligneDeRegle('possession-pas-a-sa-taille', 'possession-pas-a-sa-taille'));
   }
-  // Pénalité de main secondaire (LDB 14 l.181) ; Ambidextre la réduit via le registre combatFeatures.
+  // Main secondaire (LDB 14 l.78) ; Ambidextre la réduit via le registre combatFeatures.
   if (weapon.hand === 'off') {
-    const p = offHandPenalty(attacker);
-    if (p) out.push({ label: 'Main secondaire', value: p, famille: 'circonstance', ref: RULE_REF['main-secondaire'] });
+    const l = ligneDeRegle('main-secondaire', 'main-secondaire', { ajuste: (mod) => offHandPenalty(attacker, mod) });
+    if (l.value) out.push(l);
   }
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : CANAL UNIQUE — le Test d'attaque est physique
   // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat).
@@ -900,23 +895,15 @@ export function attackModifiers(
   return out;
 }
 
-/** Surnombre en mêlée (LDB « Difficulté de Combat », 14 - _GoBack.md l.85/92) : 2 attaquants au
- *  contact d'une même cible → +20 (Accessible) ; 3 ou plus → +40 (Facile). `attackers` inclut
- *  l'attaquant courant. Renvoyé en `ModLine` pour injection via `env`. */
+/** Surnombre en mêlée (LDB 14 l.56/63/110) : `attackers` inclut l'attaquant courant. Renvoyé en `ModLine`
+ *  pour injection via `env`. */
 export function outnumberMod(attackers: number): ModLine | null {
-  if (attackers >= 3) return { label: 'Surnombre (3+ c.1)', value: 40, famille: 'circonstance', ref: RULE_REF['superiorite-numerique'] };
-  if (attackers === 2) return { label: 'Surnombre (2 c.1)', value: 20, famille: 'circonstance', ref: RULE_REF['superiorite-numerique'] };
-  return null;
+  return ligneParSeuil('superiorite-numerique', attackers);
 }
 
-/** « Tirer dans le tas » (LDB « Difficulté de Combat », 14 - _GoBack.md l.81/86/89) : tirer sur une
- *  cible noyée dans un groupe serré d'ennemis → 3-6 cibles +20, 7-12 → +40, 13+ → +60. `group` inclut
- *  la cible elle-même. */
+/** « Tirer dans le tas » (LDB 14 l.106) : `group` inclut la cible elle-même. */
 export function crowdMod(group: number): ModLine | null {
-  if (group >= 13) return { label: 'Tirer dans le tas (13+)', value: 60, famille: 'circonstance', ref: RULE_REF['tirer-dans-le-tas'] };
-  if (group >= 7) return { label: 'Tirer dans le tas (7-12)', value: 40, famille: 'circonstance', ref: RULE_REF['tirer-dans-le-tas'] };
-  if (group >= 3) return { label: 'Tirer dans le tas (3-6)', value: 20, famille: 'circonstance', ref: RULE_REF['tirer-dans-le-tas'] };
-  return null;
+  return ligneParSeuil('tirer-dans-le-tas', group);
 }
 
 /** Le défenseur possède-t-il une Spé de Corps à corps donnée (id de Groupe d'arme, ex. `'parade'`) ?
@@ -926,12 +913,13 @@ function hasMeleeSpec(c: Combatant, spec: string): boolean {
   return (c.skills ?? []).some((s) => byId('skill', s.id)?.specsSource === 'weaponGroupsMelee' && (s.spec ?? '') === spec);
 }
 
-/** Pénalité à la PARADE avec l'arme `weapon` (LDB 62 l.151) : 0 en main principale ; 0 si arme à 1 main +
- *  Défensive + le défenseur a Corps à corps (Parade) ; sinon pénalité de main secondaire (Ambidextre la réduit). */
-export function parryPenalty(defender: Combatant, weapon: Weapon | undefined): number {
+/** Pénalité à la PARADE avec l'arme `weapon` (LDB 62 l.151), depuis la pénalité de main secondaire `base` :
+ *  0 en main principale ; 0 si arme à 1 main + Défensive + le défenseur a Corps à corps (Parade) ; sinon
+ *  `base` transformée par Ambidextre. */
+export function parryPenalty(defender: Combatant, weapon: Weapon | undefined, base: number): number {
   if (!weapon || weapon.hand !== 'off') return 0;
   if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && hasMeleeSpec(defender, 'parade')) return 0;
-  return offHandPenalty(defender);
+  return offHandPenalty(defender, base);
 }
 
 /** Modificateurs étiquetés d'un Test de DÉFENSE (Parade/Esquive). `dodgeMods` = lignes d'Esquive du
@@ -940,23 +928,21 @@ export function parryPenalty(defender: Combatant, weapon: Weapon | undefined): n
  *  (pénalité de main secondaire en Parade, sauf exception Parade+Défensive). */
 export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMods: ModLine[] = [], weapon?: Weapon): ModLine[] {
   const out: ModLine[] = [];
-  const adv = defender.advantage * 10;
-  // Avantage HORS table de Difficulté (`LDB 14 l.48`, comme `attackModifiers`) → `famille: 'jet'` : ne
-  // compte pas dans le plafond ±30/+60 de `combineMods`, qui ne combine que les circonstances.
-  if (adv) out.push({ label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage });
+  const adv = advantageModLine(defender);
+  if (adv) out.push(adv);
   out.push(...conditionModLines(defender, { skill: mode === 'parade' ? weaponSkillId('melee') : mode === 'esquive' ? 'esquive' : undefined }));
-  if (defender.defensiveStance) out.push({ label: 'Sur la défensive', value: 20, famille: 'jet', ref: RULE_REF['sur-la-defensive'] });
+  if (defender.defensiveStance) out.push(ligneDeRegle('sur-la-defensive', 'sur-la-defensive'));
   if (mode === 'esquive') out.push(...dodgeMods);
   if (mode === 'parade') {
-    const pp = parryPenalty(defender, weapon);
-    if (pp) out.push({ label: 'Main secondaire', value: pp, famille: 'circonstance', ref: RULE_REF['main-secondaire'] });
+    const pp = ligneDeRegle('main-secondaire', 'main-secondaire', { ajuste: (mod) => parryPenalty(defender, weapon, mod) });
+    if (pp.value) out.push(pp);
     // Amputation (LDB 18) : la parade est un Test d'ARME → même pénalité contextuelle que l'attaque (ssi l'arme de parade implique la main blessée).
     const amp = weapon ? amputationCombatPenalty(defender, weapon) : 0;
     if (amp) out.push({ label: 'Amputation', value: amp, famille: 'jet', ref: RULE_REF.amputation });
   }
   // Substitution sociale (Intimidation/Dressage) : ni arme ni esquive → pas de main secondaire, de
   // neige, ni de malus « maniement deux armes » ; seuls Avantage/État/Sur la défensive s'appliquent.
-  if (mode !== 'social' && defender.dualStrikeDefensePenalty) out.push({ label: 'Maniement deux armes', value: -10, famille: 'jet', ref: RULE_REF['combat-deux-armes'] }); // LDB 10 l.767-773
+  if (mode !== 'social' && defender.dualStrikeDefensePenalty) out.push({ label: 'Maniement deux armes', value: defender.dualStrikeDefensePenalty, famille: 'jet', ref: RULE_REF['combat-deux-armes'] }); // LDB 10 l.767-773
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : le CANAL UNIQUE `weatherTestMods` lit `defender.envWeather`
   // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
@@ -981,15 +967,14 @@ function defenseTestChar(mode: DefenseMode): CharKey | null {
   return mode === 'parade' ? 'capacite-de-combat' : mode === 'esquive' ? 'agilite' : null;
 }
 
-/** LA ligne d'AVANTAGE d'un porteur (`LDB 14 l.215` : +10 par point à un Test approprié), ou `null`
+/** LA ligne d'AVANTAGE d'un porteur (`LDB 14 l.215`), ou `null`
  *  sans Avantage — SOURCE UNIQUE de sa mise en ligne, partagée par les Tests de combat « bruts »
  *  (`baseTestModLines`, ci-dessous) et par tout Test HORS arène que la règle dit « approprié »
  *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
- *  Réutiliser ; ne jamais réécrire `c.advantage * 10`. */
+ *  Réutiliser ; ne jamais recalculer la valeur au site. Famille : celle de la rangée (`LDB 14 l.48`). */
 export function advantageModLine(c: Combatant): ModLine | null {
-  const adv = (c.advantage ?? 0) * 10;
-  // Avantage HORS table de Difficulté (comme `attackModifiers`/`defenseModifiers`) → `famille: 'jet'`.
-  return adv ? { label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage } : null;
+  const points = c.advantage ?? 0;
+  return points ? ligneDeRegle('avantage', 'par-point', { ajuste: (parPoint) => parPoint * points }) : null;
 }
 
 /** Modificateurs de BASE d'un Test de combat « brut » (hors Atouts d'arme et bonus de cible), en lignes
@@ -1014,7 +999,7 @@ export function baseTestModLines(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = 
 
 /** Somme des modificateurs de base d'un Test de combat « brut » — la VALEUR que roule le résolveur.
  *  SOURCE UNIQUE partagée avec `baseTestModLines` (l'affichage et le jet ne peuvent pas diverger).
- *  Réutiliser ; ne pas réécrire `c.advantage * 10 + …`. */
+ *  Réutiliser ; ne pas recalculer l'Avantage au site. */
 export function baseTestMods(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = {}): number {
   return baseTestModLines(c, ck, ctx).reduce((s, l) => s + l.value, 0);
 }
@@ -1072,7 +1057,7 @@ export function assertAttackWeapon(weapons: Weapon[], targetAdjacent: boolean): 
   return w;
 }
 
-/** Jet de l'ATTAQUANT seul (Précise +10, viser -10, Avantage×10, États) — n'inclut
+/** Jet de l'ATTAQUANT seul (`attackModifiers` : Précise, Viser, Avantage, États) — n'inclut
  *  PAS le jet de défense : sert au flux par modale (jet figé, appelé UNE fois). */
 export function rollMeleeAttacker(
   attacker: Combatant,
@@ -1089,7 +1074,7 @@ export function rollMeleeAttacker(
 }
 
 /** Jet du DÉFENSEUR seul (Parade = Corps à corps, Esquive = Agilité + avances ;
- *  « Sur la défensive » +20). C'est le SEUL jet relancé par un point de Chance. */
+ *  « Sur la défensive »). C'est le SEUL jet relancé par un point de Chance. */
 export function rollMeleeDefender(
   defender: Combatant,
   mode: DefenseMode,
@@ -1157,12 +1142,11 @@ export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
 export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RNG = defaultRNG): AttackResult {
   const weapon = backstabWeapon(foe);
   // Les lignes qui composent la cible, NOMMÉES : celles du Test de combat brut (`baseTestModLines`,
-  // source unique du jet) + le +20 du dos tourné. Sans cette ligne, le +20 s'imputait à la première
-  // circonstance venue. Classement `circonstance` : l'entrée `LDB 14 l.62` (cf. `LDB 13 l.171` et
-  // `LDB 15 l.68` ; rappel `LDB 15 l.66`).
+  // source unique du jet) + le dos tourné (`LDB 15 l.63-66`). Sans cette ligne, le bonus s'imputait à la
+  // première circonstance venue. Classement `circonstance` : l'entrée `LDB 14 l.62` (cf. `LDB 13 l.171`).
   const mods: ModLine[] = [
     ...baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
-    { label: 'Dos tourné (adversaire en fuite)', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] },
+    ligneDeRegle('fuite', 'dos-tourne'),
   ];
   const atk = rollTest(combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
   return resolveMeleePassive(foe, target, weapon, atk, { rng }, undefined, [], undefined, false, composeAttack(mods));
@@ -1383,35 +1367,18 @@ export function resolveMelee(
   return res;
 }
 
-/**
- * Bandes de portée d'un tir (table des Difficultés de Combat, LDB 14 l.50-86) :
- * Bout portant (≤ Portée÷10) +40, Courte (≤ Portée÷2) +20, Moyenne (≤ Portée) +0, Longue (≤ Portée×2)
- * −10, Extrême (≤ Portée×3) −30 ; au-delà = hors de portée. Échelle 1 case = `metresPerTile` (défaut 2 m,
- * LDB 15 l.12 ; une Scène MER en déclare une autre, cf. `sceneMetresPerTile`).
- * SOURCE UNIQUE des seuils : le modificateur ET le nom y lisent. `rangeMeters` = Portée de l'arme en m.
- */
-const RANGE_BANDS: { id: RangeBandId; maxFactor: number; mod: number; label: string }[] = [
-  { id: 'bout-portant', maxFactor: 1 / 10, mod: 40, label: 'Bout portant' },
-  { id: 'courte', maxFactor: 1 / 2, mod: 20, label: 'Courte portée' },
-  { id: 'moyenne', maxFactor: 1, mod: 0, label: 'Moyenne' },
-  { id: 'longue', maxFactor: 2, mod: -10, label: 'Longue' },
-  { id: 'extreme', maxFactor: 3, mod: -30, label: 'Extrême' },
-];
-
-/** Ordre STABLE des bandes (du plus proche au plus loin) — SOURCE UNIQUE pour comparer une bande courante
- *  à la PORTÉE MINIMALE d'une arme (`belowMinRangeBand`). */
-const RANGE_BAND_ORDER: RangeBandId[] = RANGE_BANDS.map((b) => b.id);
-
-/** Bande de portée applicable, ou null si hors de portée (au-delà de Portée×3). `metresPerTile` = échelle
- *  de la Scène (défaut 2 m/case, PUR — jamais lu depuis `state`, fourni par l'appelant). */
-function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile = 2): { id: RangeBandId; mod: number; label: string } | null {
+/** Bande de portée applicable : la première rangée de `portee-d-une-arme` (`LDB 62 l.196-206`, `LDB 14
+ *  l.50-86`) dont le plafond, en facteur de la Portée `rangeMeters`, contient la distance ; `undefined` au-delà.
+ *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis `state`). */
+function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeeDeRegleData | undefined {
   const m = distanceTiles * metresPerTile;
-  return RANGE_BANDS.find((b) => m <= rangeMeters * b.maxFactor) ?? null;
+  return rangeesDeRegle('portee-d-une-arme').find((b) => m <= rangeMeters * b.plafond!);
 }
 
-/** Modificateur de portée d'un tir (LDB 14 l.50-86) ; null si hors de portée. */
+/** Modificateur de portée d'un tir ; null si hors de portée. */
 export function rangeBandModifier(distanceTiles: number, rangeMeters: number, metresPerTile = 2): number | null {
-  return rangeBandAt(distanceTiles, rangeMeters, metresPerTile)?.mod ?? null;
+  const b = rangeBandAt(distanceTiles, rangeMeters, metresPerTile);
+  return b ? modDeRangee(b) : null;
 }
 
 /** Nom de la bande de portée — pour l'affichage. */
@@ -1421,7 +1388,7 @@ export function rangeBandName(distanceTiles: number, rangeMeters: number, metres
 
 /** id STABLE de la bande de portée courante (≠ libellé) ; null si hors de portée. */
 export function rangeBandId(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeBandId | null {
-  return rangeBandAt(distanceTiles, rangeMeters, metresPerTile)?.id ?? null;
+  return (rangeBandAt(distanceTiles, rangeMeters, metresPerTile)?.id as RangeBandId | undefined) ?? null;
 }
 
 /** Le tir est-il REFUSÉ car la cible est plus PROCHE que la bande minimale autorisée de l'arme (machines de
@@ -1431,7 +1398,8 @@ export function rangeBandId(distanceTiles: number, rangeMeters: number, metresPe
 export function belowMinRangeBand(distanceTiles: number, rangeMeters: number, minBand: RangeBandId, metresPerTile = 2): boolean {
   const cur = rangeBandId(distanceTiles, rangeMeters, metresPerTile);
   if (cur == null) return false; // hors de portée : géré ailleurs, pas « trop proche »
-  return RANGE_BAND_ORDER.indexOf(cur) < RANGE_BAND_ORDER.indexOf(minBand);
+  const ordre: readonly RangeBandId[] = RANGEES_DE_REGLE['portee-d-une-arme'];
+  return ordre.indexOf(cur) < ordre.indexOf(minBand);
 }
 
 /**
@@ -1553,10 +1521,10 @@ export function finishRanged(
 }
 
 /**
- * Touche « accidentelle » de Projectiles sur un allié intercalé (Tir dans la mêlée, LDB
- * `14 - _GoBack.md` l.136) : un tir qui aurait touché sans la pénalité de −20 dévie et frappe un
- * allié de la cible. Reconstruit la touche depuis le jet d'origine `roll` et la valeur cible SANS
- * le −20 (`effTarget`) — sans relancer (la touche était acquise) ; dégâts recalculés sur la victime.
+ * Touche « accidentelle » de Projectiles sur un allié intercalé (Tir dans la mêlée, LDB 14 l.116) : un
+ * tir qui aurait touché sans la pénalité de la règle dévie et frappe un allié de la cible. Reconstruit la
+ * touche depuis le jet d'origine `roll` et la valeur cible SANS cette pénalité (`effTarget`) — sans
+ * relancer (la touche était acquise) ; dégâts recalculés sur la victime.
  */
 export function resolveStrayRangedHit(
   attacker: Combatant,
@@ -1580,7 +1548,7 @@ export function resolveStrayRangedHit(
   const devie = effTarget - base - porte;
   const compo: DifficultyComposition | undefined = src && {
     ...src,
-    mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }] : src.mods,
+    mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: refDeRegle('tir-dans-un-combat-au-corps-a-corps') }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
   const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), tirage, withhold);

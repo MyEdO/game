@@ -8,6 +8,8 @@ import { preflightSessionStart } from './session-start.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
 import { verifierProtocoleCodex } from './session-codex.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
 const refuser = (raison, categorie = 'validation') => { throw new Error(`${prefixeDeRefus(categorie)} ${raison}`) }
@@ -27,10 +29,10 @@ export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
   const cible = argumentsAction[0] && !argumentsAction[0].startsWith('--') ? argumentsAction.shift() : undefined
   const options = { action, cible }
-  if (!['lancer', 'lister', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] | outils --json')
+  if (!['lancer', 'lister', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
   const permises = {
     lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json']),
-    lister: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis']),
+    lister: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
     envoyer: new Set(['--json', '--message', '--request-id', '--timeout-ms']), etat: new Set(['--json']), outils: new Set(['--json']),
   }[action]
   const args = argumentsAction
@@ -38,6 +40,7 @@ export function optionsSession(argv) {
     const arg = args[i]
     if (!permises.has(arg)) refuser(`OPTION REFUSÉE : ${arg}`)
     if (arg === '--json') { options.json = true; continue }
+    if (arg === '--suivre') { options.suivre = true; continue }
     const cle = ({ '--ticket': 'ticket', '--nom': 'nom', '--agent': 'agent', '--consigne': 'consigne', '--worktree': 'worktree', '--executable': 'executable', '--timeout-ms': 'timeoutMs', '--profil-wt': 'profilWT', '--message': 'message', '--request-id': 'requestId', '--depuis': 'depuis' })[arg]
     if (!cle || !args[i + 1] || args[i + 1].startsWith('--')) refuser(`OPTION REFUSÉE : ${arg}`)
     options[cle] = args[++i]
@@ -103,6 +106,7 @@ export function executableNatif(agent, explicite, executer = spawnSync, { arch =
 export function verifierContratAgent(agent, executable, { executer = spawnSync, env = process.env } = {}) {
   const aide = (args) => {
     const vu = executer(executable, args, { encoding: 'utf8', windowsHide: true, shell: false, timeout: 10_000, env: envAgent(env) })
+    if (vu.error?.code === 'ETIMEDOUT') refuser(`CONTRAT CLI NON MESURÉ : ${agent} ${args.join(' ')} — ${vu.error.message}`, 'transitoire')
     if (vu.error || vu.status !== 0) refuser(`CONTRAT CLI INCOMPATIBLE : ${agent} ${args.join(' ')} — ${vu.error?.message ?? vu.stderr ?? vu.status}`)
     return `${vu.stdout ?? ''}\n${vu.stderr ?? ''}`
   }
@@ -146,7 +150,11 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
       const carte = await sessions.echecDemarrage(r.carte.sessionId, r.jeton, e.message)
       if (!['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) throw new Error(`${prefixeDeRefus('transitoire')} NETTOYAGE EN ATTENTE`)
     }
-    catch (nettoyage) { e.reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin', raison: refusSession(nettoyage).raison } }
+    catch (nettoyage) {
+      const bloque = new Error(`${prefixeDeRefus('métier')} ${refusSession(e).raison}`, { cause: e })
+      bloque.reprise = { sessionId: r.carte.sessionId, jeton: r.jeton, action: 'fermer', transport: 'stdin', raison: refusSession(nettoyage).raison }
+      throw bloque
+    }
     throw e
   }
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
@@ -162,7 +170,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
     const refus = refusSession(carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT')
     return abandonner(new Error(`${refus.prefixe} DÉMARRAGE ÉCHOUÉ : ${refus.raison}`))
   }
-  return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 1740000` }
+  return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 1740000 --suivre` }
 }
 
 async function jetonDe(env, stdin) {
@@ -228,6 +236,25 @@ export function outilsSession() {
   }
 }
 
+export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE } = {}) {
+  if (options.timeoutMs === 0) refuser('SUIVI : timeout strictement positif requis')
+  if (!parentVivant) {
+    const pidParent = lireParent(), instantParent = horloge()
+    parentVivant = () => estPidVivantDepuis(pidParent, instantParent, identite)
+  }
+  let depuis = options.depuis
+  do {
+    if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
+    let resultat
+    try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
+    catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
+    if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
+    depuis = resultat?.curseur ?? resultat?.seq ?? depuis
+    const carte = sessions.etat(cible)
+    if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return sessions.attendre(cible, { timeoutMs: 0, depuis })
+  } while (true)
+}
+
 export async function commandeSession(argv, { stdout = process.stdout, stdin = process.stdin, env = process.env, cwd = process.cwd(), contexte = contexteSessions, sessionsDe = (dossier) => creerSessions({ dossier }) } = {}) {
   const options = optionsSession(argv)
   let resultat
@@ -239,7 +266,7 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
     else if (options.action === 'envoyer') resultat = await sessions.envoyer(options.cible, await jetonDe(env, stdin), { message: options.message, requestId: options.requestId, timeoutMs: Number(options.timeoutMs ?? 30_000) })
     else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? 30_000) })
-    else resultat = await sessions.attendre(options.cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
+    else resultat = await (options.suivre ? attendreSuivi : (s, cible, attente) => s.attendre(cible, attente))(sessions, options.cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
   }
   const code = resultat.etat === 'indeterminee' ? 3 : resultat.etat === 'echec-reservation' || resultat.carte?.issueSortie === 'echec' ? 1 : 0
   if (options.json && code !== 0) resultat = { ...resultat, refus: refusSession(new Error(code === 3 ? `${prefixeDeRefus('transitoire')} ${resultat.raison ?? 'Aucune transition dans le délai demandé'}` : resultat.carte?.raison ?? resultat.raison ?? `${prefixeDeRefus('métier')} Session en échec`)) }

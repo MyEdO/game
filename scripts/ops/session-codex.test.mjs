@@ -6,8 +6,11 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, appendFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createConnection } from 'node:net'
-import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { createConnection, createServer } from 'node:net'
+import { attendreSuivi } from './session.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { Writable } from 'node:stream'
+import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, projeterJournalCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
@@ -27,27 +30,46 @@ notify('item/completed',{turnId:id,item:{id:'answer',type:'agentMessage',text:re
 const fin={turn:{id,status:'completed',items:[],durationMs:321}};notify('turn/completed',fin);if(text==='DUPLICATE')notify('turn/completed',fin);active=null;}
 createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(!q.method)return;const p=q.params||{};
 if(q.method==='initialize')send({id:q.id,result:{userAgent:'fixture'}});
-if(q.method==='thread/start')send({id:q.id,result:{thread:{id:tid}}});
-if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});setTimeout(()=>{started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
-if(q.method==='turn/steer'){if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
+if(q.method==='thread/start')setTimeout(()=>send({id:q.id,result:{thread:{id:tid}}}),Number(process.argv[2]));
+if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});const id=active;setTimeout(()=>{if(active!==id)return;started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='ERROR_ACTIVE')notify('error',{turnId:active,error:{message:'temporary active error'}});if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
+if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,message:'no active turn to steer'}});return;}if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='FAIL'){notify('turn/completed',{turn:{id:active,status:'failed',items:[],error:{message:'server overloaded'}}});active=null;}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
 if(q.method==='turn/interrupt'){if(!started)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
-async function banc(t, { consigne = 'BUSY', validation = () => {} } = {}) {
+async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-pont-banc-'))
   const fixture = join(dossier, 'app-server.mjs')
   writeFileSync(fixture, FIXTURE)
   const sessionId = randomUUID(), jeton = 'secret-exclusif-pont'
-  const projections = [], affichage = []
-  let natif, naissanceNatif, vivantALaRupture = false
-  const pont = lancerPontCodex({
-    plan: { executable: process.execPath, args: [fixture] },
-    carte: { sessionId, worktree: dossier, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
+  const projections = [], affichage = [], requetesEmises = []
+  let natif, pont, fermetureNatif, nettoyage, naissanceNatif, vivantALaRupture = false
+  const nettoyer = () => nettoyage ??= (async () => {
+    const secours = setTimeout(() => natif?.kill('SIGKILL'), 3000)
+    try {
+      if (pont) pont.child.kill()
+      else natif?.kill()
+      await fermetureNatif
+    } finally {
+      clearTimeout(secours)
+      rmSync(dossier, { recursive: true, force: true })
+    }
+  })()
+  t.after(nettoyer)
+  try {
+    pont = lancerPontCodex({
+    plan: { executable: process.execPath, args: [fixture, String(delaiDemarrageMs)] },
+    carte: { sessionId, worktree: dossier, demarrageJusqua, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
     dossier, consigne, schema: { type: 'object' }, env: process.env,
-    echo(texte) { affichage.push(texte) },
+    echo: echo && typeof echo !== 'function' ? echo : (texte) => { affichage.push(texte); echo?.(texte) },
     notifier(p) { validation(p); projections.push(p) }, lancer(...args) {
       natif = spawn(...args)
-      naissanceNatif = IDENTITE_MESUREE.lireCreation(natif.pid)
+      fermetureNatif = once(natif, 'close')
+      const ecrire = natif.stdin.write.bind(natif.stdin)
+      natif.stdin.write = (texte, ...options) => {
+        requetesEmises.push(JSON.parse(String(texte)))
+        return ecrire(texte, ...options)
+      }
+      naissanceNatif = mesurerCreation(natif.pid)
       assert.ok(Number.isFinite(naissanceNatif), 'Création du processus natif mesurée')
       let flux = ''
       natif.stdout.on('data', (b) => {
@@ -60,20 +82,61 @@ async function banc(t, { consigne = 'BUSY', validation = () => {} } = {}) {
       })
       return natif
     },
-  })
+    })
+  } catch (erreur) {
+    await nettoyer()
+    throw erreur
+  }
   const sortie = once(pont.child, 'exit')
-  t.after(async () => {
-    const secours = setTimeout(() => natif.kill('SIGKILL'), 3000)
-    try { pont.child.kill(); await sortie } finally { clearTimeout(secours); rmSync(dossier, { recursive: true, force: true }) }
-  })
   const base = { dossier, sessionId, jeton, timeoutMs: 2000 }
-  return { ...base, pont, projections, affichage, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
+  return { ...base, pont, projections, affichage, requetesEmises, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
 }
 async function sousBorne(promesse, ms) {
   let timer
   try { return await Promise.race([promesse, new Promise((_, reject) => { timer = setTimeout(() => reject(Error('Processus natif toujours vivant après borne')), ms) })]) }
   finally { clearTimeout(timer) }
 }
+
+test('banc : mesure NaN rejette après fermeture du natif sans PowerShell', async (t) => {
+  let pid
+  await assert.rejects(banc(t, {
+    mesurerCreation: (natifPid) => { pid = natifPid; return NaN },
+  }), /Création du processus natif mesurée/)
+  assert.ok(Number.isInteger(pid))
+  assert.equal(estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), false)
+})
+
+test('thread/start réel au-delà de vingt secondes consomme le budget de démarrage', { timeout: 35000 }, async (t) => {
+  const debut = Date.now()
+  const b = await banc(t, {
+    consigne: 'AUTO',
+    delaiDemarrageMs: 21000,
+    demarrageJusqua: debut + 32000,
+  })
+  let transition
+  do {
+    transition = await veillerCodex({ ...b, depuis: transition?.seq ?? 0, timeoutMs: 30000 })
+    assert.notEqual(transition.type, 'erreur', transition.cause)
+  } while (transition.type !== 'fin')
+  assert.ok(Date.now() - debut >= 21000)
+  assert.deepEqual(transition.rapport, { resultat: 'AUTO', sessionId: 'fixture' })
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'thread/start').length, 1)
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'turn/start').length, 1)
+  assert.equal(b.pont.cause(), '')
+  t.diagnostic(JSON.stringify({ dureeMs: Date.now() - debut, rapport: transition.rapport }))
+})
+
+test('thread/start avec échéance épuisée refuse avant toute émission native', { timeout: 5000 }, async (t) => {
+  const b = await banc(t, { demarrageJusqua: Date.now() - 1 })
+  await veillerCodex({ ...b, timeoutMs: 2000 })
+  assert.equal(b.requetesEmises.some((q) => q.method === 'initialize'), true)
+  assert.equal(b.requetesEmises.some((q) => q.method === 'thread/start'), false)
+  assert.equal(b.requetesEmises.some((q) => q.method === 'turn/start'), false)
+  assert.ok(b.pont.cause().startsWith(prefixeDeRefus('transitoire')))
+  assert.match(b.pont.cause(), /thread\/start atteinte avant émission : échéance de démarrage épuisée/)
+  await sousBorne(b.sortie, 3000)
+  assert.ok(b.projections.some((p) => p.etat === 'fermee'))
+})
 
 test('projection réelle : enfant natif, progression, outils, fin et journal unique', async (t) => {
   const b = await banc(t)
@@ -128,16 +191,132 @@ test('projection bornée : gros événements gardent leur statut et fin malgré 
   assert.match(sortie[2], /Outil commandExecution \[completed\] : node --version/)
   assert.match(sortie[3], /Fin du tour : completed/)
 })
-test('projection : coupe au mot et premier mot long sous budget de traitement', (t) => {
+test('projection : nettoyage intégral avant coupe au mot, unicode et premier mot entier', (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-mot-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fichier = join(dossier, 'native.jsonl'), sortie = []
-  const textes = ['a '.repeat(2045) + 'chevauchement suite', 'x'.repeat(10_000)]
+  const textes = ['a '.repeat(2045) + 'chevauchement suite', 'x'.repeat(10_000), '\u001b[31m'.repeat(2000) + ' \t\u202e'.repeat(3000) + 'été 🐉 utile', 'é🐉 '.repeat(3000)]
   writeFileSync(fichier, CONTEXTE_PROJECTION + textes.map((text) => JSON.stringify(notificationProjection('item/completed', { item: { type: 'agentMessage', text } }))).join('\n') + '\n')
   projeterJournalCodex(fichier, (s) => sortie.push(s))()
   assert.equal(sortie[0], '[Codex] Agent : ' + 'a '.repeat(2044) + 'a…\n')
   assert.ok(sortie[0].length <= '[Codex] Agent : '.length + 4096 + 1)
-  assert.equal(sortie[1], '[Codex] Agent : ' + 'x'.repeat(8192) + '\n')
+  assert.equal(sortie[1], '[Codex] Agent : ' + 'x'.repeat(10_000) + '\n')
+  assert.equal(sortie[2], '[Codex] Agent : été 🐉 utile\n')
+  assert.equal(sortie[3], '[Codex] Agent : ' + 'é🐉 '.repeat(1024).trimEnd() + '…\n')
+})
+test('projection facultative : panne de sortie pendant agent ou outil laisse contrôle, abonnement et rapport valides', async (t) => {
+  for (const cible of ['Agent', 'Outil']) await t.test(cible, async (t) => {
+    let pannes = 0
+    const b = await banc(t, { echo(texte) { if (texte.includes(cible)) { pannes++; throw new Error('sortie indisponible') } } })
+    const reveil = b.veille()
+    assert.equal((await b.envoyer('FIN')).ok, true)
+    const fin = await reveil
+    assert.equal(fin.etat, 'inactif')
+    assert.equal(fin.rapport.resultat, 'FIN')
+    assert.equal(pannes, 1)
+    assert.match(readFileSync(join(b.dossier, `${b.sessionId}.codex.stderr.log`), 'utf8'), /^\[Codex\] Affichage suspendu : sortie indisponible\n$/)
+    assert.equal((await b.envoyer('AUTO')).ok, true)
+    assert.equal((await b.veille(fin.curseur)).rapport.resultat, 'AUTO')
+  })
+})
+test('projection facultative : Writable en panne asynchrone conserve le pont et libère son écouteur', async (t) => {
+  let ecritures = 0
+  const sortie = new Writable({ write(_texte, _encodage, callback) {
+    ecritures++
+    setImmediate(() => callback(Object.assign(Error('pipe fermé'), { code: 'EPIPE' })))
+  } })
+  const ecouteurs = sortie.listenerCount('error')
+  const b = await banc(t, { echo: sortie })
+  const reveil = b.veille()
+  assert.equal((await b.envoyer('FIN')).ok, true)
+  const fin = await reveil
+  await new Promise(setImmediate)
+  assert.equal(fin.rapport.resultat, 'FIN')
+  assert.equal(ecritures, 1)
+  assert.equal((await b.envoyer('AUTO')).ok, true)
+  assert.equal((await b.veille(fin.curseur)).rapport.resultat, 'AUTO')
+  assert.equal(readFileSync(b.pont.journalDiagnostic, 'utf8'), '[Codex] Affichage suspendu : pipe fermé\n')
+  b.pont.child.kill()
+  await b.sortie
+  await new Promise(setImmediate)
+  assert.equal(sortie.listenerCount('error'), ecouteurs)
+})
+test('projection : spawn ENOENT sans exit libère son écouteur après close', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-enoent-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const sortie = new Writable({ write(_texte, _encodage, callback) { callback() } })
+  const ecouteurs = sortie.listenerCount('error'), erreurs = [], evenements = []
+  let fermeture
+  const pont = lancerPontCodex({
+    plan: { executable: join(dossier, 'executable-absent'), args: [] },
+    carte: { sessionId: randomUUID(), worktree: dossier, demarrageJusqua: Date.now() + 60_000, empreinteJeton: 'a'.repeat(64) },
+    dossier, consigne: 'test', schema: {}, env: process.env, notifier() {}, echo: sortie,
+    lancer(...args) {
+      const natif = spawn(...args)
+      natif.on('exit', () => evenements.push('exit'))
+      fermeture = new Promise((resolve) => natif.once('close', () => { evenements.push('close'); resolve() }))
+      return natif
+    },
+  })
+  pont.child.on('error', (e) => erreurs.push(e.code))
+  await sousBorne(fermeture, 2000)
+  await new Promise(setImmediate)
+  assert.deepEqual(erreurs, ['ENOENT'])
+  assert.deepEqual(evenements, ['close'])
+  assert.equal(sortie.listenerCount('error'), ecouteurs)
+})
+test('projection : fermeture protège les écritures en vol jusqu’au callback et à error', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-pending-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const fichier = join(dossier, 'journal.jsonl'), erreurs = []
+  let terminer
+  const sortie = new Writable({ write(_texte, _encodage, callback) { terminer = callback } })
+  const ecouteurs = sortie.listenerCount('error')
+  writeFileSync(fichier, JSON.stringify({ erreur: 'test' }) + '\n')
+  const lire = projeterJournalCodex(fichier, sortie, (e) => erreurs.push(e.message))
+  lire()
+  lire.fermer()
+  await new Promise(setImmediate)
+  assert.equal(sortie.listenerCount('error'), ecouteurs + 1)
+  terminer(Error('écriture en vol échouée'))
+  await new Promise(setImmediate)
+  assert.deepEqual(erreurs, ['écriture en vol échouée'])
+  assert.equal(sortie.listenerCount('error'), ecouteurs)
+})
+test('projection facultative : journal illisible suspendu une fois et diagnostic défaillant isolé', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-illisible-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const erreurs = []
+  const lire = projeterJournalCodex(dossier, () => assert.fail('journal illisible'), (e) => { erreurs.push(e); throw Error('diagnostic indisponible') })
+  assert.doesNotThrow(lire)
+  assert.doesNotThrow(lire)
+  assert.equal(erreurs.length, 1)
+  assert.match(erreurs[0].message, /non régulier|EISDIR|EPERM/)
+})
+test('projection facultative : reprise asynchrone défaillante suspendue sans exception non gérée', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-reprise-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const fichier = join(dossier, 'native.jsonl'), erreurs = [], sortie = []
+  writeFileSync(fichier, CONTEXTE_PROJECTION + JSON.stringify({ inconnu: 'x'.repeat(300_000) }) + '\n' + JSON.stringify(notificationProjection('item/completed', { item: { type: 'agentMessage', text: 'tardif' } })) + '\n')
+  const lire = projeterJournalCodex(fichier, (s) => { sortie.push(s); throw Error('sortie de reprise indisponible') }, (e) => erreurs.push(e.message))
+  lire()
+  assert.deepEqual(sortie, [])
+  await new Promise(setImmediate)
+  assert.deepEqual(erreurs, ['sortie de reprise indisponible'])
+  lire()
+  await new Promise(setImmediate)
+  assert.equal(sortie.length, 1)
+  assert.equal(erreurs.length, 1)
+})
+test('projection facultative : sortie du diagnostic JSON invalide protégée', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-json-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const fichier = join(dossier, 'native.jsonl'), erreurs = []
+  writeFileSync(fichier, '{cassé}\n')
+  const lire = projeterJournalCodex(fichier, () => { throw new SyntaxError('sortie JSON indisponible') }, (e) => erreurs.push(e.message))
+  assert.doesNotThrow(lire)
+  lire()
+  assert.deepEqual(erreurs, ['sortie JSON indisponible'])
 })
 test('projection : statuts natifs par famille, erreurs et notifications inconnues', (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-formes-'))
@@ -175,16 +354,20 @@ test('projection : statuts natifs par famille, erreurs et notifications inconnue
   assert.match(texte, /Erreur : journal en erreur/)
   assert.doesNotMatch(texte, /ne pas afficher/)
 })
-test('projection : sortie standard réelle par défaut et ligne invalide sans perte de la suite', (t) => {
+test('projection : sortie standard réelle par défaut et ligne invalide sans perte de la suite', async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-stdout-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fichier = join(dossier, 'native.jsonl'), sortie = []
   writeFileSync(fichier, CONTEXTE_PROJECTION + '{cassé}\n' + JSON.stringify(notificationProjection('turn/completed', { turn: { id: 'turn-owned', status: 'interrupted' } })) + '\n')
   const write = process.stdout.write
+  const ecouteurs = process.stdout.listenerCount('error')
+  const lire = projeterJournalCodex(fichier)
   try {
-    process.stdout.write = (s) => { sortie.push(s); return true }
-    projeterJournalCodex(fichier)()
-  } finally { process.stdout.write = write }
+    process.stdout.write = (s, callback) => { sortie.push(s); callback(); return true }
+    lire()
+  } finally { process.stdout.write = write; lire.fermer() }
+  await new Promise(setImmediate)
+  assert.equal(process.stdout.listenerCount('error'), ecouteurs)
   assert.deepEqual(sortie, ['[Codex] Journal : ligne JSON invalide\n', '[Codex] Fin du tour : interrupted\n'])
 })
 test('projection : propriété du thread et du tour dérivée du journal uniquement', (t) => {
@@ -285,6 +468,38 @@ test('steer occupé puis nouveau tour inactif et télémétrie sans transitions 
   assert.equal(fin2.rapport.resultat, 'AUTO')
   assert.deepEqual(await b.veille(), fin)
 })
+test('reprise après échec terminal : nouveau tour sur le même thread et la même capacité', async (t) => {
+  const b = await banc(t)
+  await b.envoyer('FAIL')
+  const echec = await b.veille()
+  assert.equal(echec.etat, 'erreur')
+  assert.equal(echec.turnId, 'turn-1')
+  assert.match(echec.cause, /server overloaded/)
+  const ack = await b.envoyer('AUTO')
+  assert.equal(ack.ok, true)
+  assert.equal(ack.threadId, echec.threadId)
+  assert.equal(ack.turnId, 'turn-2')
+  const fin = await b.veille(echec.seq)
+  assert.equal(fin.rapport.resultat, 'AUTO')
+  assert.equal(fin.threadId, echec.threadId)
+  assert.equal(fin.turnId, 'turn-2')
+  assert.deepEqual(b.requetesEmises.filter((q) => q.method === 'turn/steer').map((q) => q.params.expectedTurnId), ['turn-1'])
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'thread/start').length, 1)
+})
+
+test('erreur pendant un tour actif : envoi conservé dans le tour par steer', async (t) => {
+  const b = await banc(t, { consigne: 'ERROR_ACTIVE' })
+  const erreur = await b.veille()
+  assert.equal(erreur.etat, 'erreur')
+  assert.match(erreur.cause, /temporary active error/)
+  const ack = await b.envoyer('FIN')
+  assert.equal(ack.turnId, 'turn-1')
+  const fin = await b.veille(erreur.seq)
+  assert.equal(fin.rapport.resultat, 'FIN')
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'turn/start').length, 1)
+  assert.deepEqual(b.requetesEmises.filter((q) => q.method === 'turn/steer').map((q) => q.params.expectedTurnId), ['turn-1'])
+})
+
 test('arrêt avant turn/started attend le latch natif, ferme proprement et refuse les envois', async (t) => {
   const b = await banc(t, { consigne: 'WAIT_START' })
   assert.equal(b.pont.child.kill(), true)
@@ -337,6 +552,60 @@ test('veille bornée et curseur fermé', async (t) => {
   await assert.rejects(veillerCodex({ ...b, depuis: -1 }), /\[validation/)
   await assert.rejects(veillerCodex({ ...b, timeoutMs: 25 }), /\[transitoire/)
 })
+test('borne serveur : réponse IPC porte le code canonique avant la borne client', async (t) => {
+  const b = await banc(t)
+  const socket = createConnection(process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${b.sessionId}` : join(b.dossier, `${b.sessionId}.codex.sock`))
+  t.after(() => socket.destroy())
+  socket.setEncoding('utf8')
+  await once(socket, 'connect')
+  socket.write(JSON.stringify({ op: 'veiller', sessionId: b.sessionId, depuis: 0, timeoutMs: 10 }) + '\n')
+  const [data] = await sousBorne(once(socket, 'data'), 1000)
+  assert.deepEqual(JSON.parse(data), { erreur: prefixeDeRefus('transitoire') + ' Borne de veille Codex atteinte', code: 'BORNE_IPC_CODEX' })
+})
+test('borne transportée : suivi se réarme au raccord IPC puis reçoit la transition', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-veille-raccord-')), sessionId = randomUUID()
+  const adresse = process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${sessionId}` : join(dossier, `${sessionId}.codex.sock`)
+  const borne = { erreur: prefixeDeRefus('transitoire') + ' Borne de veille Codex atteinte', code: 'BORNE_IPC_CODEX' }
+  const fin = { type: 'fin', etat: 'inactif', sessionId, seq: 1, curseur: 1 }
+  let appels = 0, reponses = [borne, fin]
+  const serveur = createServer((socket) => socket.once('data', () => {
+    appels++
+    const reponse = reponses.shift()
+    socket.end(reponse === null ? undefined : JSON.stringify(reponse) + '\n')
+  }))
+  t.after(async () => { await new Promise((resolve) => serveur.close(resolve)); rmSync(dossier, { recursive: true, force: true }) })
+  serveur.listen(adresse)
+  await once(serveur, 'listening')
+  const sessions = { attendre: (_cible, options) => veillerCodex({ dossier, sessionId, ...options }), etat: () => ({ etat: 'occupe' }) }
+  assert.deepEqual(await attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), fin)
+  assert.equal(appels, 2)
+  for (const reponse of [
+    { erreur: borne.erreur },
+    { erreur: prefixeDeRefus('permission') + ' refus', code: 'BORNE_IPC_CODEX' },
+    { erreur: prefixeDeRefus('métier') + ' refus' },
+    { erreur: borne.erreur, code: 'AUTRE' },
+    { ...borne, native: 'permission' },
+    null,
+  ]) {
+    reponses = [reponse]
+    const avant = appels
+    await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), (e) => e.code !== 'BORNE_IPC_CODEX')
+    assert.equal(appels, avant + 1)
+  }
+})
+for (const etape of ['version', 'schéma']) {
+  test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
+    const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
+    assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
+      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      return { status: null, error: erreur }
+    } }), (e) => {
+      assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
+      assert.equal(e.native, erreur.message)
+      return true
+    })
+  })
+}
 test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
   assert.equal(VERSION_PROTOCOLE_CODEX, '0.163.0')
   assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)

@@ -71,8 +71,10 @@ import {
   ligneDuCoup,
   freeAttackWeapon,
   defaultParryWeapon,
+  advantageModLine,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
+import { ligneDeRegle, modDeRegle } from '../engine/reglesChiffrees';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage } from '../engine/advantage';
@@ -270,13 +272,12 @@ import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain } from './netOwnership';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
-export { collectHeroRoundEndUpkeep } from './combat/roundHooks'; // baril : enregistre les hooks de franchissement de Round (effet de bord) + ré-export pour la cascade d'upkeep
 export * from './combat/triggeredTest'; // baril : enregistre l'applier de cascade `triggeredTest` + installe le routeur de Test des triggers (effet de bord)
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
-export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
+export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
 // Sauvegardes post-touche en registre `HitModifier` ordonné (state/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-export { runHitModifiers, registerHitModifier, martyrGuardOf, wardedAgainst, organicProjectile, toucheSauvee } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
+export { wardedAgainst, organicProjectile } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
 import {
   bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS,
   rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps,
@@ -366,7 +367,7 @@ export function firedWeapon(attacker: Combatant, target: Combatant, weaponUid?: 
     if (present != null) w = crewedFireWeapon(w, present);
     // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) : effectif BRUT du poste — le RAW ne pose
     // ICI aucune exigence de Compétence pour compter dans l'Équipe (≠ AA 10 l.230/MDG 12 l.442 ci-dessus) — 3ᵉ courbe,
-    // jamais mêlée à celle d'AA (`warMachineFireWeapon` ne touche QUE `crewTeamPenalty`, pas la Recharge).
+    // jamais mêlée à celle d'AA (`warMachineFireWeapon` ne touche QUE `crewTeamIncomplete`, pas la Recharge).
     if (warMachineCrewRequired(w) > 0) {
       const crew = (attacker.mannedPoste.crewIds ?? [])
         .map((id) => combatants.find((c) => c.id === id))
@@ -488,7 +489,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
 /** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
-  if (res.attackerRoll > res.attackerDetail.target + 20) return null; // n'aurait pas touché même sans le −20
+  if (res.attackerRoll > res.attackerDetail.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')) return null; // n'aurait pas touché même sans la pénalité
   const allies = (target.engagedWith ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
@@ -708,8 +709,7 @@ export function attackEnv(
   const sc = sceneCombatModifiers(scene, get().gameTime);
   const dayW = activeDayWeather(get);
   const env: ModLine[] = [];
-  // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade gagne +20 (cible au plus FAIBLE
-  // Avantage des deux Empoignés) ou +10 (au plus FORT) pour la toucher — mêlée comme tir.
+  // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade, mêlée comme tir.
   const gm = grappleEnvMod(attacker, target, battle.combatants);
   if (gm) env.push(gm);
   if (weapon.type === 'ranged') {
@@ -744,25 +744,25 @@ export function attackEnv(
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
     if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
-    // Tir en bougeant (LDB 14 l.70) : −10 si l'on bouge ET tire au même Round. Le Mouvement étant
-    // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse le −10 par défaut ;
+    // Tir en bougeant (LDB 14 l.70) : si l'on bouge ET tire au même Round. Le Mouvement étant
+    // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse la pénalité par défaut ;
     // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. attackConfirm)
     // — ou s'il NE PEUT PAS bouger (Mouvement effectif 0 : Empêtré/Surpris…), il est immobile d'office.
-    // L'IA/ennemi (pas d'option) : −10 seulement s'il a effectivement bougé ce Tour.
+    // L'IA/ennemi (pas d'option) : seulement s'il a effectivement bougé ce Tour.
     const mobileShot = attacker.kind === 'hero'
       ? (battle.movementUsed > 0 || (mountMovement(battle, attacker) > 0 && !opts?.heldGround))
       : battle.movementUsed > 0;
-    if (mobileShot) env.push({ label: 'Tir en bougeant', value: -10, famille: 'circonstance', ref: RULE_REF['tir-en-mouvement'] });
+    if (mobileShot) env.push(ligneDeRegle('tir-en-mouvement', 'tir-en-mouvement'));
     // Tir dans la mêlée (LDB 14 l.116) : la cible est Engagée avec un allié du tireur. Règle optionnelle
-    // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, pas de −20 NI d'artefact d'aperçu
+    // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, ni pénalité NI artefact d'aperçu
     // (`inMelee` reste false → pas de tir égaré non plus).
     const inMelee = !!rule('combat-ranged-melee-penalty') && (target.engagedWith ?? []).some((id) => {
       const ally = inBattleId(battle, id);
       return !!ally && ally.kind === attacker.kind;
     });
-    if (inMelee && !opts?.intoCrowd) env.push({ label: 'Tir dans la mêlée', value: -20, famille: 'circonstance', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }); // « Tirer dans le tas » REMPLACE ce −20 par le bonus (l.116)
-    env.push(...mountedAttackMods(battle, attacker, target, 'ranged')); // Combat monté : +20 cible plus petite que la monture (LDB 14 l.180)
-    // « Tirer dans le tas » (LDB 14 l.106) : bonus +20/+40/+60 selon la taille du groupe serré.
+    if (inMelee && !opts?.intoCrowd) env.push(ligneDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')); // « Tirer dans le tas » la REMPLACE par son bonus (l.116)
+    env.push(...mountedAttackMods(battle, attacker, target, 'ranged')); // LDB 14 l.180
+    // « Tirer dans le tas » (LDB 14 l.106) : selon la taille du groupe serré.
     const crowd = opts?.intoCrowd ? crowdEligible(battle, attacker, target) : [];
     const cm = opts?.intoCrowd ? crowdMod(crowd.length) : null;
     if (cm) env.push(cm);
@@ -773,18 +773,18 @@ export function attackEnv(
   // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
   // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
   // ET les activités — jamais recâblée par surface (#341). Seuls les mods météo WEAPON-contextuels restent (tir).
-  // Flanc/dos (LDB 14 l.62) : +20 pour attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
+  // Flanc/dos (LDB 14 l.62) : attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
   // orientation du défenseur AVANT cette attaque (il se retourne vers l'attaquant ENSUITE, applyAttackResult).
   const tFacing = get().facing?.[target.id]; // `facing` peut être absent (état épars / contexte sans orientation)
   const flankRear = !!(tFacing && isEngaged(target) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
-  if (flankRear) env.push({ label: 'Flanc/dos', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] });
-  // En contrebas (Difficultés de Combat) : l'attaquant le PLUS BAS subit −10 (la hauteur ne donne AUCUN
-  // bonus « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
-  if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push({ label: 'En contrebas de la cible', value: -10, famille: 'circonstance', ref: RULE_REF['cible-en-contrebas'] });
-  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible (2 → +20, 3+ → +40).
+  if (flankRear) env.push(ligneDeRegle('attaque-de-flanc-ou-de-dos', 'flanc-ou-dos'));
+  // En contrebas (LDB 14 l.67) : l'attaquant le PLUS BAS est pénalisé (la hauteur ne donne AUCUN bonus
+  // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
+  if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
+  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
   const onm = outnumberMod(battle.combatants.filter((c) => c.kind === attacker.kind && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1).length);
   if (onm) env.push(onm);
-  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // Combat monté : +20 cible < monture / −10 viser le cavalier (LDB 14 l.180/181)
+  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
 }
 
@@ -843,12 +843,12 @@ export function resolveAttack(
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
-    // Tir dans la mêlée (LDB 14 l.116) : si le −20 a transformé une réussite en échec, le tir dévie
+    // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
       const ally = strayShotVictim(res, attacker, target, battle, battleRng());
       if (ally) {
-        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, { rng: battleRng() }, res.attackerDetail, withhold);
+        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.strayMelee', { name: ally.label })];
         return { res: stray, weapon, victim: ally };
       }
@@ -1061,7 +1061,7 @@ export function previewCast(
 ): { label: string; base: number; target: number; mods: ModLine[] } {
   const ci = castInfo(spell);
   const target = castingValue(caster, ci.skill, ci.spec);
-  const advMod = 10 * (caster.advantage ?? 0); // l'Avantage s'applique aux Tests d'Incantation
+  const advLine = advantageModLine(caster); // Tests d'Incantation
   const penMod = castPenaltyMod(caster, ci.skill); // contrecoups actifs (Imparfaite/Colère)
   const windsLine = windsModLine(opts?.winds);
   const windsMod = opts?.winds?.mod ?? 0;
@@ -1069,7 +1069,7 @@ export function previewCast(
   const ni = opts?.focused ? 0 : spell.cn ?? 0;
   const ctx = opts?.ctx ? castContextMods(opts.ctx.s, caster, opts.ctx.target, spell, { skipWard: opts.ctx.skipWard }) : null;
   const mods: ModLine[] = [
-    ...(advMod ? [{ label: 'Avantage', value: advMod, famille: 'jet' as const, ref: RULE_REF.avantage }] : []),
+    ...(advLine ? [advLine] : []),
     ...(penMod ? [{ label: 'Contrecoup', value: penMod, famille: 'jet' as const }] : []),
     ...(ctx?.mods ?? []),
     ...(windsLine ? [windsLine] : []),
@@ -3355,7 +3355,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       c.actLastNextRound = true;
       break;
     case 'actionPenalty':
-      c.nextActionPenalty = 10;
+      c.nextActionPenalty = r.mod;
       break;
     case 'loseMovement':
       c.loseNextMovement = true;
@@ -5151,7 +5151,6 @@ export function autoDeclareWitnessRows(participants: CounterParticipant[], actor
 
 /** Un geste de dé PRÉ-ARMÉ est-il en cours ? (drapeau de module, cf. `withPreRollFixedDie`). */
 let preRollFixedDiePending = false;
-export const isPreRollFixedDiePending = (): boolean => preRollFixedDiePending;
 
 /**
  * GESTE ATOMIQUE du dé pré-armé (socle des dés fixés #939 : « Fixer le dé » AVANT le jet, et Résilience
@@ -6604,25 +6603,25 @@ export function castNearCorruption(get: Get): boolean {
 }
 
 /** Aura anti-Sort qui frappe la CIBLE d'un Sort (`ActiveEffect.castWard`, posé par l'op du même nom —
- *  `LDB 43 l.139-145`), rendue en ligne NOMMÉE : le libellé et le renvoi Codex sont ceux de l'ENTITÉ
- *  qui a posé l'aura (« N'écoutez point la Sorcière »), la provenance ceux de son PORTEUR. Sorts
- *  seulement (les Prières passent par Prière, pas Langue). Une SEULE ligne même sous plusieurs auras
- *  (elles valent toutes −20) : la première rencontrée la nomme, dans l'ordre des combattants puis de
- *  leurs effets. Hors combat (pas de géométrie), l'aura ne s'applique pas — limitation documentée.
- *  Aujourd'hui MONO-SOURCE en donnée : `n-ecoutez-point-la-sorciere` est la seule entrée porteuse de
- *  l'op `castWard` ; la ligne nomme quand même son émetteur, une 2ᵉ entrée n'exigera aucun code. */
+ *  `LDB 43 l.139-145`), rendue en ligne NOMMÉE à la valeur de son op : le libellé et le renvoi Codex
+ *  sont ceux de l'ENTITÉ qui a posé l'aura, la provenance ceux de son PORTEUR. Sorts seulement (les
+ *  Prières passent par Prière, pas Langue). Une SEULE ligne même sous plusieurs auras : la plus forte
+ *  (plus grand écart à 0), à égalité la première dans l'ordre des combattants puis de leurs effets.
+ *  Hors combat (pas de géométrie), l'aura ne s'applique pas. */
 export function castWardLine(s: GameState, target: Combatant, spell: SpellLike): ModLine | null {
   if (castInfoIsPrayer(spell)) return null;
   if (!target.pos) return null;
+  let best: ModLine | null = null;
   for (const w of s.battle?.combatants ?? []) {
     if (isOutOfAction(w) || !w.pos) continue;
     for (const e of w.activeEffects ?? []) {
       if (!e.castWard) continue;
       if (combatDistance(w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
-      return { label: e.label, value: -20, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
+      if (!best || Math.abs(e.castWard.mod) > Math.abs(best.value))
+        best = { label: e.label, value: e.castWard.mod, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
     }
   }
-  return null;
+  return best;
 }
 /**
  * Modificateurs de CONTEXTE d'un Test d'Incantation, NOMMÉS et chiffrés — SOURCE UNIQUE de la somme
@@ -6649,11 +6648,6 @@ export function castContextMods(
     ...(env ? [{ label: 'Environnement', value: env, famille: 'jet' as const, ref: dref }] : []),
   ];
   return { mods, total: ward + domain + env, ward, domain, env };
-}
-
-/** Σ de `castWardLine` — la VALEUR que le jet applique (l'affichage et le jet lisent la même aura). */
-export function castWardPenalty(s: GameState, target: Combatant, spell: SpellLike): number {
-  return castWardLine(s, target, spell)?.value ?? 0;
 }
 
 /**
@@ -7493,7 +7487,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // Maniement de deux armes : le −10 défensif expire au DÉBUT du prochain Tour de son porteur. Si ce
       // porteur est order[0] (il rejoue en premier), c'est ICI (le franchissement de Round) que son Tour démarre.
       const firstNext = inBattleId(battle, battle.order[0]);
-      if (firstNext) firstNext.dualStrikeDefensePenalty = false;
+      if (firstNext) firstNext.dualStrikeDefensePenalty = undefined;
       set({ battle: { ...battle, turn: 0, round } });
       resolveRoundBoundary(get, set);
       return;
@@ -7507,7 +7501,7 @@ export function advanceTurn(get: Get, set: SetFn) {
   let acted = false;
   if (newActive) {
     newActive.defensiveStance = false;
-    newActive.dualStrikeDefensePenalty = false; // Maniement de deux armes : expire au début de son Tour (LDB 10 l.767-773)
+    newActive.dualStrikeDefensePenalty = undefined; // Maniement de deux armes : expire au début de son Tour (LDB 10 l.767-773)
     // Maladresse (Oups! 61-80) : perte du Mouvement / de l'Action ce tour-ci.
     if (newActive.loseNextMovement) { movementUsed = mountMovement(battle, newActive); newActive.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.loseMovement', { name: newActive.label }), newActive.id)); }
     if (newActive.loseNextAction) { acted = true; newActive.loseNextAction = false; battle.log.push(ev('detail', tr('cf.loseAction', { name: newActive.label }), newActive.id)); }
@@ -8478,11 +8472,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (!rt) return advanceTurn(get, set); // État non récupérable par Action (pas de `recover` en donnée)
       let success: boolean, netSL: number;
       if (rt.opposition) {
-        // LDB 12 l.160 : les DEUX camps portent leur nue (`RecoverOpposition` les porte ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
-        // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `rec.difficulty` (donnée), l'entrave
-        // roule `intermediaire` — MÊME choix qu'au flux joueur (`FLOWS.recover`), verrouillé par
-        // `combat/ai-recover-departage-nue.test`.
-        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire', {
+        // LDB 12 l.160 : les DEUX camps portent leur nue ET leur Difficulté (`RecoverOpposition` les porte
+        // ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
+        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, rt.opposition.difficulty, {
           attacker: rt.skillBase, defender: rt.opposition.base,
         });
         success = opp.attackerWins; netSL = opp.netSL;

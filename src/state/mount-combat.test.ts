@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { mountedAttackMods, mountedDodgeMods, mountMovement, mountUp } from './mount';
-import { RULE_REF } from '../engine/ruleRefs';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
+import { ligneDeRegle } from '../engine/reglesChiffrees';
 
 const mk = (id: string, size: SizeCategory, extra: Partial<Combatant> = {}): Combatant =>
   ({ id, name: id, size, movement: 4, characteristics: { force: 30, endurance: 30 }, talents: [], items: [], wounds: { current: 10, max: 10, base: 10 }, conditions: [], ...extra }) as unknown as Combatant;
@@ -16,8 +16,8 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-184)', () => {
     mountUp(knight, horse);
     const b = battle([horse, knight]);
     const ogre = mk('o', 'moyenne'); // plus petit que la monture (grande)
-    expect(mountedAttackMods(b, knight, ogre, 'melee')).toContainEqual({ label: 'Combat monté (cible plus petite)', value: 20, famille: 'circonstance', ref: RULE_REF['combat-monte'] });
-    expect(mountedAttackMods(b, knight, ogre, 'ranged')).toContainEqual({ label: 'Combat monté (cible plus petite)', value: 20, famille: 'circonstance', ref: RULE_REF['combat-monte'] });
+    expect(mountedAttackMods(b, knight, ogre, 'melee')).toContainEqual(ligneDeRegle('combat-monte', 'cible-plus-petite'));
+    expect(mountedAttackMods(b, knight, ogre, 'ranged')).toContainEqual(ligneDeRegle('combat-monte', 'cible-plus-petite'));
     // cible AUSSI grande que la monture → pas de bonus
     const giant = mk('g', 'grande');
     expect(mountedAttackMods(b, knight, giant, 'melee')).toEqual([]);
@@ -29,7 +29,7 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-184)', () => {
     mountUp(knight, horse);
     const goblin = mk('gob', 'petite'); // plus petit que la monture (grande)
     const b = battle([horse, knight, goblin]);
-    expect(mountedAttackMods(b, goblin, knight, 'melee')).toContainEqual({ label: 'Cibler le cavalier (plus petit que la monture)', value: -10, famille: 'circonstance', ref: RULE_REF['combat-monte'] });
+    expect(mountedAttackMods(b, goblin, knight, 'melee')).toContainEqual(ligneDeRegle('combat-monte', 'cibler-le-cavalier'));
     expect(mountedAttackMods(b, goblin, knight, 'ranged')).toEqual([]); // le −10 est « en combat rapproché » seulement
     // attaquant aussi grand que la monture → pas de pénalité
     const ogre = mk('o', 'grande');
@@ -43,7 +43,7 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-184)', () => {
   });
 
   it('Esquive : −20 à cheval, annulé par Acrobaties équestres, nul à pied (l.184)', () => {
-    expect(mountedDodgeMods(mk('x', 'moyenne', { mountId: 'h' }))).toEqual([{ label: 'Esquive à cheval', value: -20, famille: 'circonstance', ref: RULE_REF['combat-monte'] }]);
+    expect(mountedDodgeMods(mk('x', 'moyenne', { mountId: 'h' }))).toEqual([ligneDeRegle('combat-monte', 'esquive-a-cheval')]);
     expect(mountedDodgeMods(mk('x', 'moyenne', { mountId: 'h', talents: [{ talentId: 'acrobaties-equestres', times: 1 }] as any }))).toEqual([]);
     expect(mountedDodgeMods(mk('x', 'moyenne'))).toEqual([]); // à pied
   });

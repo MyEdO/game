@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { attackEnv } from './combatFlow';
-import { RULE_REF } from '../engine/ruleRefs';
 import type { ModLine } from '../engine/combat';
 import { emptyScene } from './scene';
 import type { Get } from './flowTypes';
 import type { Combatant, Weapon } from '../engine/types';
+import { ligneDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * MALUS « EN CONTREBAS DE LA CIBLE » (Difficultés de Combat) — en MÊLÉE, l'attaquant dont la surface
@@ -37,7 +37,7 @@ const below = (env: ModLine[]) => env.find((e) => e.label === 'En contrebas de l
 describe('attackEnv (mêlée) — −10 « En contrebas de la cible »', () => {
   it('attaquant SOUS la cible de > STEP_MAX (0 m vs 4 m) → −10', () => {
     const env = envFor(0, 4);
-    expect(below(env)).toEqual({ label: 'En contrebas de la cible', value: -10, famille: 'circonstance', ref: RULE_REF['cible-en-contrebas'] });
+    expect(below(env)).toEqual(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   });
 
   it('attaquant AU-DESSUS de la cible (4 m vs 0 m) → AUCUN modificateur (pas de bonus high-ground)', () => {
@@ -53,6 +53,6 @@ describe('attackEnv (mêlée) — −10 « En contrebas de la cible »', () => {
   });
 
   it('cible dominant de 1,5 m (> STEP_MAX) → −10', () => {
-    expect(below(envFor(0, 1.5))).toEqual({ label: 'En contrebas de la cible', value: -10, famille: 'circonstance', ref: RULE_REF['cible-en-contrebas'] });
+    expect(below(envFor(0, 1.5))).toEqual(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   });
 });
