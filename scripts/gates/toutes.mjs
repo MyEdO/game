@@ -85,7 +85,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
-const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
 
 export const ECRIT_LU = {
   'agents:check': {
@@ -118,7 +118,7 @@ export const ECRIT_LU = {
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
-      'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison: RETRAIT_WORKTREE_FERME +
@@ -145,7 +145,7 @@ export const ECRIT_LU = {
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
       'sonde n’enregistre pas : la déclaration tient de la LECTURE du code, et une sur-déclaration ne peut ' +
       'que RESSERRER les lanes ; LIT .codex/hooks.json et .claude/settings.json ' +
-      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, oxlint.config.mjs et package.json — ' +
+      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md et AGENTS.md qu’il importe (budget de contexte), oxlint.config.mjs et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
       '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
@@ -301,7 +301,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
@@ -331,8 +331,8 @@ export const ECRIT_LU = {
       '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
+      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
+      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
       'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
