@@ -7,7 +7,9 @@ metadata:
 
 **Verbatim (2026-10-12)**, lot naval #1595 : « Quand tu as un doute, regarde la VO ». L'utilisateur soupçonnait un paragraphe manquant (« Il doit manque le paragraphe d'avan »). La FR de MSRC 7 l.17 dit « demandez aux Personnages concernés un Test d'Agilité ». La VO, Death on the Reik Companion p.28, dit « have the Character make a Challenging (+0) Agility Test » : celui qui pilote.
 
-**Why :** une VF peut traduire un singulier par un pluriel ou perdre un référent. Ces questions ont fait faire trois allers-retours de consignation sur #2588 « Test de groupe : le meneur n'est filtré ni par l'État (Inconscient) ni par l'accès à la Compétence avancée (partyBest) » avant que la VO ne tranche.
+**Verbatim (2026-06-23)** : « en cas de question, regarde la VO »
+
+**Why :** une VF peut traduire un singulier par un pluriel ou perdre un référent. Trois allers-retours de consignation sur #2588 « Test de groupe : le meneur n'est filtré ni par l'État (Inconscient) ni par l'accès à la Compétence avancée (partyBest) » avant que la VO ne tranche.
 
 **How to apply :**
 - Au DOUTE de lecture d'une règle VF : sens, référent ou nombre ambigus, ou phrase qui paraît amputée. Avant de poser la question à l'utilisateur, ouvre le passage jumeau de la VO (dossier `Source/` sans préfixe, ou le PDF VO). Ouvre aussi le PDF VF, pour exclure une erreur d'extraction (`.claude/rules/donnees.md`).
