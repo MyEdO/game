@@ -109,9 +109,9 @@ function kindDuNoeud(key: string, noeud: unknown): FieldKind {
 function admetUnObjetDeclare(noeud: unknown, echantillon: unknown): boolean {
   if (echantillon === null || typeof echantillon !== 'object' || Array.isArray(echantillon)) return false;
   return ouverts([noeud], echantillon).some((n) => {
-    const def = defDe(n);
-    const shape = def?.type === 'object' ? def.shape : undefined;
-    return !!shape && Object.keys(shape).length > 0 && Object.keys(echantillon).every((k) => Object.prototype.hasOwnProperty.call(shape, k));
+    if (defDe(n)?.type !== 'object') return false;
+    const cles = new Set(enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [e.cle])));
+    return cles.size > 0 && Object.keys(echantillon).every((k) => cles.has(k));
   });
 }
 

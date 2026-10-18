@@ -16,7 +16,7 @@ import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
 import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
-import { libelleDeValeur, valeursDe, nommerNoeud } from './meta';
+import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
@@ -1223,6 +1223,17 @@ describe('régime d’une réf à spécialisation — un porteur qui DÉSIGNE re
     expect(avancement('talent').safeParse({ id: 'beni', choix: true }).success).toBe(true);
     expect(refOuSpec('talent', undefined, 'specOuChoixFacultatifs').safeParse({ id: 'beni', choix: true }).success).toBe(true);
     expect(refOuSpec('talent').safeParse({ id: 'beni', choix: true }).success).toBe(false);
+  });
+
+  it('un porteur qui DÉSIGNE ne DÉCLARE pas `choix` : son nœud n’a pour champs que `id` et `spec`', () => {
+    const designe = refOuSpec('skill');
+    const cles = (n: unknown) => enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [e.cle]));
+    expect(cles(designe)).toEqual(['id', 'spec']);
+    expect(Object.keys(metaDesChamps(designe) ?? {})).toEqual(['id', 'spec']);
+    expect(cles(refOuSpec('skill', undefined, 'specOuChoixFacultatifs'))).toEqual(['id', 'spec', 'choix']);
+    const res = designe.safeParse({ id: 'savoir', choix: true });
+    expect(res.success).toBe(false);
+    expect(messages(res)).toMatch(/savoir.*« choix ».*n'y est pas admis/);
   });
 
   it('le refus de la sentinelle sur un Talent ne porte AUCUNE référence de livre', () => {

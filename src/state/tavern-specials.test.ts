@@ -10,6 +10,7 @@ import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { TavernPayload } from './tavernFlow';
+import { avanceEtapeCascade } from './cascadeTestKit';
 
 const get = useGame.getState.bind(useGame);
 
@@ -27,10 +28,8 @@ const courant = (): CascadeStep | undefined => {
 
 /** Tranche le choix de ligne visée ouvert, et le commit. */
 function vise(cle: string): void {
-  const cur = courant();
-  expect(cur?.kind, 'la ligne visée est à choisir').toBe('tavern-throw-aim');
-  get().cascadeChoose(cur!.id, cle);
-  get().cascadeNext();
+  expect(courant()?.kind, 'la ligne visée est à choisir').toBe('tavern-throw-aim');
+  avanceEtapeCascade(get, undefined, () => cle);
 }
 
 /** Le lancer ouvert. */
@@ -40,16 +39,10 @@ function lancer(): CascadeStep {
   return band!;
 }
 
-/** Pose un lancer raté sur le lancer ouvert, puis le commit. */
+/** Pose un lancer raté (dé naturel 99) sur le lancer ouvert, puis le commit. */
 function rate(): void {
-  const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');
-  const band = pc.participants[idx];
-  const row = band.participants![0];
-  const participants = [...pc.participants];
-  participants[idx] = { ...band, participants: [{ ...row, result: { roll: 99, target: row.target!, sl: -5, success: false } }] };
-  useGame.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().cascadeNext();
+  expect(courant()?.kind, 'le lancer est ouvert').toBe('tavern-throw');
+  avanceEtapeCascade(get, () => 99);
 }
 
 /** Le libellé de l'option « Cornes » (rang 2) du choix de ligne ouvert. */
