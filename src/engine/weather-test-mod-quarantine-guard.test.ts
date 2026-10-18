@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanNamedImport,
-  RAW_SYMBOL, RAW_ALLOWED, CHANNEL_SYMBOL, CHANNEL_ALLOWED, PRECIP_SYMBOL, PRECIP_ALLOWED,
+  CHANNEL_SYMBOL, CHANNEL_ALLOWED, PRECIP_SYMBOL, PRECIP_ALLOWED,
 } from '../../scripts/guards/lib/weatherTestModQuarantine.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * QUARANTAINE du CANAL météo « Tests physiques » (EDOC 8 l.82, #341). Le calcul brut
- * `weatherPhysicalTestMod` n'est importable QUE par le lecteur canonique `src/engine/weatherTestMod.ts` ;
- * le lecteur `weatherTestMods` (qui produit la ligne « Météo : … ») QUE par les étages de Test canoniques
+ * QUARANTAINE des CANAUX météo (EDOC 8 l.82, #341 ; MDG 13 l.185, #1936). Le lecteur
+ * `weatherTestMods` (qui produit la ligne « Météo : … ») n'est importable QUE par les étages de Test canoniques
  * (`combat.ts` : attack/defenseModifiers/baseTestMods ; `travelPostes.ts` : rangées d'Activité). Garde
  * STRUCTURELLE (doctrine « gardes structurelles, pas greps ») : pousser la météo dans une NOUVELLE surface
  * (une future modale, un nouvel écran) devient INEXPRIMABLE sans éditer la whitelist — c'est la garde qui
@@ -35,7 +34,7 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
   it('PEUPLEMENT : chaque surface AUTORISÉE est dans le corpus, et le scanner y voit son import', () => {
     const parRel = new Map(readCorpus(['src']).map((f) => [f.rel, f.text]));
     expect(parRel.size, 'corpus vide : la garde serait verte sans rien scanner').toBeGreaterThan(0);
-    for (const [symbol, allowed] of [[RAW_SYMBOL, RAW_ALLOWED], [CHANNEL_SYMBOL, CHANNEL_ALLOWED], [PRECIP_SYMBOL, PRECIP_ALLOWED]] as const) {
+    for (const [symbol, allowed] of [[CHANNEL_SYMBOL, CHANNEL_ALLOWED], [PRECIP_SYMBOL, PRECIP_ALLOWED]] as const) {
       for (const rel of allowed) {
         const text = parRel.get(rel);
         expect(text, `${rel} absent du corpus — le scan ne couvre plus la surface qu’il autorise`).toBeDefined();
@@ -45,13 +44,6 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
         ).not.toHaveLength(0);
       }
     }
-  });
-
-  it(`'${RAW_SYMBOL}' n’est importé QUE par le lecteur canonique (${RAW_ALLOWED.join(', ')})`, () => {
-    expect(
-      offendersFor(RAW_SYMBOL, RAW_ALLOWED),
-      'Calcul brut de météo importé hors du lecteur canonique — passer par `weatherTestMods` (src/engine/weatherTestMod.ts).',
-    ).toEqual([]);
   });
 
   it(`'${CHANNEL_SYMBOL}' n’est importé QUE par les étages de Test canoniques (${CHANNEL_ALLOWED.join(', ')})`, () => {
@@ -69,9 +61,9 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
   });
 
   it('FAIL-CLOSED : le scanner détecte un import nommé (valeur ET type, alias)', () => {
-    expect(scanNamedImport("import { weatherPhysicalTestMod } from '../engine/travelStages';", 'weatherPhysicalTestMod')).toHaveLength(1);
+    expect(scanNamedImport("import { weatherTestMods } from '../engine/weatherTestMod';", 'weatherTestMods')).toHaveLength(1);
     expect(scanNamedImport("import { a, weatherTestMods as w } from './x';", 'weatherTestMods')).toHaveLength(1);
     expect(scanNamedImport("import type { weatherTestMods } from './x';", 'weatherTestMods')).toHaveLength(1);
-    expect(scanNamedImport("import { weatherRangedMod } from './x';", 'weatherPhysicalTestMod')).toHaveLength(0);
+    expect(scanNamedImport("import { weatherRangedMod } from './x';", 'weatherTestMods')).toHaveLength(0);
   });
 });
