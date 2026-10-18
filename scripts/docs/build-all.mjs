@@ -400,18 +400,20 @@ function executerLesGenerateurs({
   if (modeSelectif && !selection.some((g) => !seulement || seulement.has(g.script))) return 0
   let preparation
   const records = new Map()
-  if (!check) {
-    try { preparation = preparerPreuves(cwd, fraicheur) } catch (e) {
-      console.error(`docs:build — ARRÊT : certification indisponible : ${e.message}`)
-      return 1
-    }
-  }
   // Cibles écrites en entier, DÉPLIÉES une fois : la lecture tardive se juge contre elles.
   const ecritesPar = new Map(generateurs.map((g) => [g.script, ciblesSurDisque(g.targets, cwd)]))
   const racineLectures = path.join(cwd, path.dirname(CACHE_FRAICHEUR), 'lectures', String(process.pid))
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
-    const ignoresLectures = preparerLectures(cwd, racineLectures)
+    let ignoresLectures
+    try {
+      ignoresLectures = preparerLectures(cwd, racineLectures)
+      if (!check) preparation = preparerPreuves(cwd, fraicheur)
+    } catch (e) {
+      if (check) throw e
+      console.error(`docs:build — ARRÊT : certification indisponible : ${e.message}`)
+      return 1
+    }
     const derivees = path.join(racineLectures, 'derivees.json')
     writeFileSync(derivees, JSON.stringify([...new Set([...ecritesPar.values()].flat())].sort()))
     let ancienneMesure = {}

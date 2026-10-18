@@ -1,10 +1,10 @@
-import { mesurerProcessusWorktrees, classerFiliation } from './processusWorktrees.mjs'
+import { mesurerProcessusWorktrees, classerFiliation, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
 
 export function mesurerArbreProcessus({ mesurer = mesurerProcessusWorktrees } = {}) {
   for (let tentative = 0; tentative < 2; tentative++) {
     let vue
-    try { vue = mesurer({ identites: true, timeout: 5000 }) }
+    try { vue = mesurer({ identites: true, timeout: DELAI_MESURE_PROCESSUS_MS }) }
     catch (cause) {
       const categorie = cause.categorie ?? 'panne'
       throw Object.assign(new Error(prefixeDeRefus(categorie) + ' ' + cause.message, { cause }), { code: cause.code ?? 'MESURE_PROCESSUS_IMPOSSIBLE', categorie })

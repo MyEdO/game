@@ -253,16 +253,21 @@ for (const gitDefectueux of [false, true]) test(`export physique code réel : ${
   const racine = mkdtempSync(path.join(tmpdir(), 'export-code-reel-'))
   const dependances = mkdtempSync(path.join(tmpdir(), 'export-dependances-'))
   const cible = ['src', 'export.generated.ts'].join('/')
-  const generateurs = [{ runner: 'node', script: 'g/a.mjs', targets: [cible] }]
+  const generateurs = [
+    { runner: 'node', script: 'g/a.mjs', targets: [cible] },
+    { runner: 'node', script: 'g/doc.mjs', targets: [DOC_A] },
+  ]
   try {
-    for (const dossier of ['src', 'g', 'docs']) mkdirSync(path.join(racine, dossier))
+    for (const dossier of ['src', 'g']) mkdirSync(path.join(racine, dossier))
     writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 1\n')
     writeFileSync(path.join(racine, 'src/commun.ts'), 'export const commun = 1\n')
     writeFileSync(path.join(racine, 'g/a.mjs'), generateurReel('a').replaceAll(DOC_A, cible))
+    writeFileSync(path.join(racine, 'g/doc.mjs'), "throw new Error('générateur de doc étranger joué')\n")
     symlinkSync(dependances, path.join(racine, 'node_modules'), 'junction')
     if (gitDefectueux) writeFileSync(path.join(racine, '.git'), 'gitdir: inexistant\n')
     const avantDependances = listerDossier(dependances)
-    const vu = executer(racine, ['--code'], {}, [], generateurs)
+    assert.equal(existsSync(path.join(racine, 'docs')), false)
+    const vu = { status: genererCode({ cwd: racine, quiet: true, generateurs }), sortie: 'genererCode export physique' }
     if (gitDefectueux) {
       assert.equal(vu.status, 1, vu.sortie)
       assert.equal(existsSync(path.join(racine, cible)), false)
@@ -270,11 +275,17 @@ for (const gitDefectueux of [false, true]) test(`export physique code réel : ${
     } else {
       assert.equal(vu.status, 0, vu.sortie)
       assert.equal(existsSync(path.join(racine, cible)), true)
-      const options = { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }
+      const options = { generateurs, selection: [generateurs[0]], ciblesSurDisque, sourcesLues: SOURCES_LUES }
       const preuve = chargerPreuve(racine)
       assert.equal(preuveValide(racine, options).ok, true)
       assert.equal(preuve.generateurs['g/a.mjs'].sources.contexte.perimetre.nature, 'physique')
       assert.equal(existsSync(path.join(racine, 'docs/.cache/docs-fraicheur.json')), true)
+      const avantCheck = readFileSync(path.join(racine, cible))
+      const certificatAvantCheck = readFileSync(path.join(racine, CACHE_FRAICHEUR))
+      const check = executer(racine, ['--check', '--code'], {}, [], generateurs)
+      assert.equal(check.status, 0, check.sortie)
+      assert.deepEqual(readFileSync(path.join(racine, cible)), avantCheck)
+      assert.deepEqual(readFileSync(path.join(racine, CACHE_FRAICHEUR)), certificatAvantCheck)
       writeFileSync(path.join(racine, 'src/a.ts'), 'source modifiée après certificat')
       assert.equal(preuveValide(racine, options).ok, false)
     }
@@ -288,7 +299,7 @@ for (const gitDefectueux of [false, true]) test(`export physique code réel : ${
 function modesReels(racine) {
   const code = ['src', 'a.generated.ts'].join('/')
   writeFileSync(path.join(racine, 'g/a.mjs'), generateurReel('a').replaceAll(DOC_A, code))
-  return [{ ...GENERATEURS_REELS[0], targets: [code] }, { ...GENERATEURS_REELS[1], targets: [], injecte: [DOC_B] }]
+  return [{ ...GENERATEURS_REELS[0], targets: [code] }, { ...GENERATEURS_REELS[1], targets: [DOC_B] }]
 }
 
 for (const mode of ['--code']) test(`${mode} certifie ses écritures ; check ne modifie ni sorties ni preuve`, () => {
@@ -422,7 +433,7 @@ const GENERATEURS_REELS = [
 ]
 
 /** Joue `executer` dans un processus À PART (il imprime sur stderr, que le banc lit), par un HARNAIS
- *  posé sous le `node_modules/` ignoré du dépôt jetable : un module qui en importe un autre par
+ *  posé sous le `docs/.cache/` exclu de la mesure du dépôt jetable : un module qui en importe un autre par
  *  `file://` absolu, lancé comme tout script. */
 function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS, outil = BUILD_ALL) {
   const harnais = path.join(racine, 'docs', '.cache', 'harnais-executer.mjs')

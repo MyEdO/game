@@ -1,4 +1,4 @@
-/** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`, `regenStock.mts`). */
+/** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`, `regenStock.mts`, `corpusDesComptes.mts`). */
 import type { RequeteMesuree } from './requeteMesuree.mjs';
 
 /** La marque d'une poignée `depotDe` (`gitPorte.mjs`, `MARQUE_DEPOT`). */
@@ -64,6 +64,17 @@ export const SUIVI: string;
 export const TRAVAIL: string;
 /** Les fichiers que l'image `arbre` (une ref, `INDEX`, `SUIVI` ou `TRAVAIL`) porte sous `dossiers`, chemins POSIX. */
 export function listerImage(depot: Depot, arbre: string, ...dossiers: string[]): string[];
+
+/** Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est absent. */
+export function lireEnLot(depot: Depot, arbre: string, rels: readonly string[]): Map<string, string | null>;
+/** La base commune de `a` et `b` (`merge-base`), `null` sans elle. */
+export function baseCommune(depot: Depot, a: string, b: string): string | null;
+/** Le sha du commit `ref`, `null` s'il est absent. */
+export function shaDe(depot: Depot, ref: string, opts?: { court?: boolean }): string | null;
+/** Le commit des `chemins` nommés, message par l'entrée standard. */
+export function commitDe(depot: Depot, p: { message: string; chemins: readonly string[]; vide?: boolean }): ResultatGit;
+/** Le tronc : son nom, sa branche, sa ref de suivi. */
+export const TRONC: Readonly<{ nom: string; branche: string; suivi: string }>;
 
 /** Une entrée d'image (`entreesDe`) : mode et sha du blob. */
 export type EntreeDImage = { mode: string; sha: string };

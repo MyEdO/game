@@ -11,6 +11,27 @@ import { listerDossier, listerEntrees } from './lister.mjs'
 import { MESURES_INDETERMINEES_MAX, sortieDeSupervision, superviserProcessus, lancerProcessusSupervise } from './superviserProcessus.mjs'
 import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
 
+test('#2795 mesure initiale impossible : EMESURE conserve le code source, la catégorie et la cause', async () => {
+  for (const [code, categorie] of [['MESURE_PROCESSUS_EXPIREE', 'transitoire'], ['EACCES', 'permission'], ['EIO', 'panne']]) {
+    const cause = Object.assign(new Error('collecteur indisponible'), { code, categorie })
+    const options = { surveillerGit: true, mesurer: () => { throw cause } }
+    await assert.rejects(lancerProcessusSupervise('executable-introuvable-2795', [], options), (e) => {
+      assert.equal(e.code, 'EMESURE')
+      assert.equal(e.codeMesure, code)
+      assert.equal(e.categorie, categorie)
+      assert.equal(e.cause, cause)
+      assert.equal(e.hoteLance, false)
+      return true
+    })
+    const vu = await superviserProcessus({ commande: 'executable-introuvable-2795', ...options })
+    assert.equal(vu.error.code, 'EMESURE')
+    assert.equal(vu.error.codeMesure, code)
+    assert.equal(vu.error.categorie, categorie)
+    assert.deepEqual(vu.error.cause, { code, categorie, message: cause.message })
+    assert.doesNotThrow(() => JSON.stringify(vu))
+  }
+})
+
 test('un hook refuse de démarrer quand son parent a disparu pendant la mesure initiale', async () => {
   const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => [] })
   assert.equal(vu.error.code, 'EPARENT')
@@ -134,11 +155,14 @@ test('supervision : des pannes de mesure consécutives au-delà de la borne inte
       lectures += 1
       if (lectures === 1) return vueHook(VUE_SAINE)
       enfant ??= mesurerArbreProcessus().find((p) => p.ppid === process.pid && /^(?:powershell(?:\.exe)?|python(?:3(?:\.\d+)?)?)$/i.test(p.nom))
-      throw new Error('CIM injecté indisponible')
+      throw Object.assign(new Error('CIM injecté indisponible'), { code: 'EIO', categorie: 'panne' })
     },
   })
   assert.equal(vu.error?.code, 'EMESURE')
   assert.equal(vu.error.message, `${MESURES_INDETERMINEES_MAX} mesures consécutives indéterminées : CIM injecté indisponible`)
+  assert.equal(vu.error.codeMesure, 'EIO')
+  assert.equal(vu.error.categorie, 'panne')
+  assert.equal(vu.error.cause.code, 'EIO')
   assert.ok(lectures >= 1 + MESURES_INDETERMINEES_MAX)
   assert.ok(enfant)
   assert.equal(identitePresente(enfant, mesurerArbreProcessus()), false)
