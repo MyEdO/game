@@ -46,7 +46,7 @@ export function franchitLaPanne(entree, cause) {
 /** Le geste qui répare `cause`, à rendre dans le refus. PURE. */
 export function gesteDeReparation(cause, racine) {
   if (cause.genre === 'dependance') return 'dépendance npm absente : lancer `npm ci` (seule commande admise)'
-  const ou = cause.fichiers.length ? ` (nommé : ${cause.fichiers.map((c) => relative(racine, c)).join(', ')})` : ''
+  const ou = cause.fichiers.length ? ` (nommé : ${cause.fichiers.map((c) => relative(racine, c).split(sep).join('/')).join(', ')})` : ''
   return `corriger le module en panne${ou} par une édition de fichier, seul geste admis en session principale`
 }
 
