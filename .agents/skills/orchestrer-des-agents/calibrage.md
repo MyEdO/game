@@ -19,5 +19,5 @@ Annexe du skill `orchestrer-des-agents` (`.agents/skills/orchestrer-des-agents/S
 
 Ces types plutôt que `general-purpose` ; **JAMAIS Sonnet en effort haut/xhigh**. La cérémonie suit le
 risque RÉEL, pas le flag ultracode : petite feature testée → 1 codeur + gates ; tâche large ou incertaine
-(audit moteur, migration, extraction massive), donnée, vérification → workflow multi-agents ; reviewer
+(audit moteur, migration, extraction massive), donnée, vérification → workflow multi-agents si l'utilisateur l'a demandé, sinon des agents ; reviewer
 adversarial pour les régressions silencieuses et l'art, jamais l'art à l'aveugle.

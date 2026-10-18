@@ -49,7 +49,7 @@ Ni la trouvaille d'origine (« ne rend RIEN au-delà du 2026-09-27T19:48Z ») ni
 - F4 : #2226 « Compteurs de version dérivés de leur table : la collision devient structurelle, refusDesCompteurs disparaît ». Nuance mesurée : `SAVE_VERSION` n'a pas de table de migrations, son historique est en commentaire.
 - F5 : routée sur #2178 (issuecomment-5914137574), S9 se ferme à la pose de `merge_queue`.
 - F6 : `src/i18n/index.ts:2` dans le lot 3 de #2178. `CLAUDE.md:14` et `AGENTS.md:15` sont signalés à l'utilisateur (édition de CLAUDE.md réservée).
-- F7 : consignée en mémoire (`feedback-outil-tiers-forme-fermee-d-emblee`).
+- F7 : consignée en mémoire, portée aujourd'hui par `.claude/rules/outillage-ops.md`.
 
 ## Complément (2026-09-30) — ré-ancrage sur la tête publiée, commits de #2132 intercalés
 

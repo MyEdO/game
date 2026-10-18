@@ -14,9 +14,9 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
   `scripts/hooks/*`, classificateur du harnais, mon propre enchaînement) et corriger à la racine ; un hook fautif se ticketise avec ses sondes. « Pourquoi
   X n'est pas fait ? » est l'ordre de faire X : ne soumettre que les RÉSULTATS, jamais le droit de commencer.
 - **Avant de classer un sujet « arbitrage utilisateur », relire l'ATTENDU validé et le RAW** : s'ils
-  répondent, EXÉCUTER. Un « non » vaut au périmètre EXACT refusé.
+  répondent, EXÉCUTER (utilisateur, 2026-07-10 : « C'est fou que tu aies besoin de moi pour ça. »). Un « non » vaut au périmètre EXACT refusé.
 - **Une phrase qui constate une ABSENCE** se lit comme un DÉFAUT quand l'élément figure au dessin ou au
-  spécimen. Si les deux lectures mènent à des gestes opposés, redemander en une ligne ; ne jamais défaire
+  spécimen (utilisateur, 2026-08-17 : « Plutôt rien faire que tu saboter le projet !!! »). Si les deux lectures mènent à des gestes opposés, redemander en une ligne ; ne jamais défaire
   du travail livré sur une phrase ambiguë.
 - **Retours en rafale sur un sujet complexe** : accuser réception, laisser atterrir le travail en vol,
   synthétiser le problème de FOND, proposer UNE direction argumentée, la faire VALIDER, puis exécuter ;
@@ -26,6 +26,7 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
   lisibilité positionnelle, économie d'action, cause→effet).
 - **Juger avant d'exposer au goût** : planche, maquette ou capture passe d'abord un juge-vision ou mon
   jugement écrit défaut par défaut ; les défauts nommés se corrigent et se recapturent ; n'exposer que des
-  candidats défendus (#1343).
+  candidats défendus (#1343 ; utilisateur, 2026-09-26 : « Regarde les de ton coté avant de me les
+  exposer »).
 - **Jamais « complet » sur un trou connu** : la limite de couverture s'écrit dans le livrable ET
   l'annonce ; un « reste » ne se cite que vérifié dans le code et rattaché au travail fait.
