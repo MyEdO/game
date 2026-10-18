@@ -326,7 +326,7 @@ L'immunité est conditionnelle : elle ne s'applique que si la créature a **plus
 **Sources RAW** : `LDB 85 l.51` — condition d'immunité
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.23, l.51) → `TraitDef`, `a-distance`, `arme`, `weaponGroup`, `actionPrise`, `a-sang-froid`, `affame`, `amphibie`, `caudale`, `weaponFromTrait`, +43 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/creatureEquip.ts`, `src/engine/psychology.ts`, +12 fichiers
+- `LDB 85` (l.23, l.51) → `TraitDef`, `a-distance`, `arme`, `weaponGroup`, `actionPrise`, `a-sang-froid`, `affame`, `amphibie`, `caudale`, `weaponFromTrait`, +44 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/creatureEquip.ts`, `src/engine/psychology.ts`, +12 fichiers
 
 ---
 
