@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme } from '../grammaire/valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'oups.json';
 export const famille = 'entite';
@@ -39,9 +40,10 @@ const KINDS = {
 /** CHARGE par `kind`, telle que la lit l'atelier (`espace.chargeParDiscriminant`, `chargeDiscriminee`) :
  *  la bande d100 porte ses bornes, le Malus d'Action son modificateur, l'Incident de Tir rien. Le refine
  *  ci-dessous lit la MÊME table. */
-const chargeParDiscriminant = Object.fromEntries(
-  Object.keys(KINDS).map((kind) => [kind, kind === 'misfire' ? [] : kind === 'actionPenalty' ? ['min', 'max', 'mod'] : ['min', 'max']]),
-) as Readonly<Record<string, readonly string[]>>;
+const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(
+  Object.keys(KINDS) as (keyof typeof KINDS)[],
+  (kind) => (kind === 'misfire' ? [] : kind === 'actionPenalty' ? ['min', 'max', 'mod'] : ['min', 'max']),
+);
 
 const doc = document(
   'oups',
