@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { depotDe } from './gitPorte.mjs'
-import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
+import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, apportsDesTickets, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
 
 test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', () => {
   const sha = 'a'.repeat(40)
@@ -36,8 +36,25 @@ test('#2285 consommateurs livraison : diagnostic autonome et erreur programme pa
   const depot = depotDe('/fixture-consommateurs', { env: {}, spawn: () => { throw erreur } })
   assert.throws(() => verdictDePublication(depot), (e) => e === erreur)
 })
-import { validateJugeFile, validateJugeVisionFile } from '../../git-hooks/porte-du-commit.mjs'
+import { validateRefFile, validateJugeFile, validateJugeVisionFile } from '../../git-hooks/porte-du-commit.mjs'
 import { gitDe, resultatDeGit } from '../../test/gitDeBanc.mjs'
+
+test('#2785 — section Réfutation identique porte/publication, bornes 39/40 et RÉFUTÉ', () => {
+  const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
+  try {
+    const corps = (n, verdict = 'CONFIRMÉ') => '## Réfutation\nverdict: ' + verdict + '\n' + fusion.slice(0, 9) + ' ' + 'x'.repeat(n - 10) + '\n'
+    for (const [n, verdict, attendu] of [[39, 'CONFIRMÉ', false], [40, 'RÉFUTÉ', false], [40, 'CONFIRMÉ', true]]) {
+      const contenu = corps(n, verdict)
+      poser({ '.claude/soldes/ref-42.md': '## Juge\n' + juge(fusion) + '\n\n' + contenu }, 'refs #42')
+      assert.equal(validateRefFile(contenu).ok, attendu, JSON.stringify(validateRefFile(contenu)))
+      assert.equal(juger().refus.length === 0, attendu)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2356 — une lecture git impossible refuse le cumul', () => {
+  assert.throws(() => apportsDesTickets(depotDe('/fixture-cumul', { env: {}, spawn: () => ({ status: 1, stdout: '', stderr: 'panne cumul' }) }), [42], { lignesChangees: 0, ecran: false }), /git|histoire|cumul/)
+})
 
 const GATE = fileURLToPath(new URL('../livraison-plage.mjs', import.meta.url))
 
@@ -206,7 +223,7 @@ test('#2328 — le solde `.claude/soldes/ref-<N>.md` d’un ticket que cite un c
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
     const corps = (titre, texte) => `## ${titre}\n${texte}\n`
-    poser({ '.claude/soldes/ref-42.md': `${corps('Juge', juge(fusion))}\n${corps('Réfutation', refutation(fusion))}` }, 'chore: refs #42 — solde')
+    poser({ '.claude/soldes/ref-42.md': `${corps('Juge', juge(fusion))}\n${corps('Réfutation', `verdict: CONFIRMÉ\n${refutation(fusion)}`)}` }, 'chore: refs #42 — solde')
     assert.deepEqual(juger().refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -299,7 +316,7 @@ test('gate `livraison:plage` : rend 1 et nomme la fusion non jugée, 0 quand ell
 test('#2328 L1 — UNE grammaire de section : un même solde rend le même verdict au commit et à la publication', () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/ui/E.tsx', 12))
   try {
-    const section = (titre, ligne) => `## ${titre}\nverdict : PUBLIABLE\n\n${ligne}\n`
+    const section = (titre, ligne) => `## ${titre}\nverdict : CONFIRMÉ\n\n${ligne}\n`
     const solde = [section('Juge', juge(fusion)), section('Réfutation', refutation(fusion)), section('Juge-Vision', vision(fusion))].join('\n')
     poser({ '.claude/soldes/ref-42.md': solde }, 'chore: refs #42 — solde en deux paragraphes')
     assert.deepEqual(juger().refus, [], 'publication : la section court jusqu’au titre suivant')

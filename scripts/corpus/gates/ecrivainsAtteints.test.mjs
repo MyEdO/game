@@ -316,6 +316,14 @@ const ATTENDU = {
   'mods:check': ['scripts/mods/verifier.mjs'],
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  // +10 le 2026-10-17 (#2705) : la porte des comptes pose chaque borne de la plage sous un `mkdtempSync`
+  // d'os.tmpdir(), effacé en finally, y lie `node_modules` (`replay-head.mjs`) et y produit les cibles de code
+  // (`genererCodeSansCertifier` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
+  // jamais écrit.
+  'comptes:plage': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
+    'scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs', 'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],
   'test:ops': [
     // +1 le 2026-10-17 (#2586) : le banc du cliquet forge un dépôt knip (`package.json`, `knip.json`, sources)
     // sous un `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.

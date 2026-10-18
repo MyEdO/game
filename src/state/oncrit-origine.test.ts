@@ -60,7 +60,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
   }
 
   const touche = (over: Partial<AttackResult>): AttackResult => ({
-    hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps',
+    hit: true, attackerRoll: 44, netSL: 4, location: 'corps',
     damage: 6, woundsLost: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
   });
 
@@ -74,7 +74,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
 
   it('COUP CRITIQUE : Taillade joue et la munition se loge (LDB 62 l.248-250)', () => {
     const { H, E } = setup();
-    applyAttackResult(useGame.getState, useGame.setState, H, E, arcTailladeEmpaleuse(), touche({ critical: true }));
+    applyAttackResult(useGame.getState, useGame.setState, H, E, arcTailladeEmpaleuse(), touche({ critical: true, critLocation: 'corps' }));
     expect(offreDeTaillade()).toBeDefined();
     expect(munitions(cible(E.id))).toBe(1);
   });
@@ -86,7 +86,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     draineCascade(useGame.getState);
     expect(cible(H.id)?.diseases ?? [], 'le dépassement a déclenché la malédiction').toEqual([]);
     ({ H, E } = setup()); E.pos = { x: 11, y: 10 };
-    applyAttackResult(useGame.getState, useGame.setState, H, E, poings(), touche({ critical: true }));
+    applyAttackResult(useGame.getState, useGame.setState, H, E, poings(), touche({ critical: true, critLocation: 'corps' }));
     draineCascade(useGame.getState);
     expect(cible(H.id)?.diseases?.length).toBe(1);
   });

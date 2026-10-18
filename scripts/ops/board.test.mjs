@@ -467,7 +467,9 @@ test('la mesure NOMME le worktree détaché et la branche sans ticket, et les ti
       ok: true,
       worktrees: [
         { chemin: '/dep', principal: true, branche: 'main' },
-        { chemin: '/dep/.codex/worktrees/914b/Game', principal: false, branche: null, classe: 'propre+hors-main' },
+        { chemin: '/dep/.codex/worktrees/914b/Game', principal: false, branche: null, classe: 'protégé', protection: { ok: false, refus: ['[permission · non retentable] PID 777 : EACCES'] } },
+        { chemin: '/dep/detache-fusionne', principal: false, branche: null, classe: 'propre+fusionné' },
+        { chemin: '/dep/detache-hors-main', principal: false, branche: null, classe: 'propre+hors-main', fusionne: false },
       ],
     }),
     issues: () => ({ issues: new Map(), anomalies: [] }),
@@ -476,10 +478,12 @@ test('la mesure NOMME le worktree détaché et la branche sans ticket, et les ti
   assert.equal(vu.ok, true)
   assert.deepEqual(vu.lignes, [])
   assert.deepEqual(vu.anomalies.map((a) => [a.genre, a.cle]), [
-    ['worktree-detache', '/dep/.codex/worktrees/914b/Game'], ['branche-sans-ticket', 'ab/phanes'], ['branche-sans-ticket', 'chantier/vide'],
+    ['worktree-conserve', '/dep/.codex/worktrees/914b/Game'], ['worktree-detache', '/dep/detache-fusionne'], ['worktree-conserve', '/dep/detache-hors-main'], ['branche-sans-ticket', 'ab/phanes'], ['branche-sans-ticket', 'chantier/vide'],
   ])
-  assert.ok(vu.anomalies[1].texte.startsWith('branche sans ticket dérivable : ab/phanes (+2 / −3'), vu.anomalies[1].texte)
-  assert.ok(vu.anomalies[0].texte.startsWith('worktree détaché'), vu.anomalies[0].texte)
+  assert.ok(vu.anomalies[3].texte.startsWith('branche sans ticket dérivable : ab/phanes (+2 / −3'), vu.anomalies[3].texte)
+  assert.match(vu.anomalies[0].texte, /worktree conservé.*\[permission · non retentable\] PID 777 : EACCES/)
+  assert.match(vu.anomalies[1].texte, /worktree détaché.*purgeable/)
+  assert.match(vu.anomalies[2].texte, /worktree conservé.*commits que origin\/main/)
 })
 
 test('ANOMALIE STRUCTURÉE : la clé est le NOM (branche, worktree), jamais l’avance — deux mesures à avances différentes rendent les mêmes (genre, cle)', () => {

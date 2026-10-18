@@ -31,7 +31,6 @@ import { groupMatch } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
-import { garanti } from '../lib/garanti';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
@@ -502,11 +501,10 @@ export interface AttackResult {
   defenderRoll?: number;
   netSL: number;
   location?: HitLocation;
-  /** Localisation relancée du coup, décidée à sa naissance (`applyHit`) ; absente = Localisation de touche.
+  /** Localisation relancée du coup, décidée à sa naissance par son producteur (`applyHit`, Projectile), lue par
+   *  `localisationRelanceeDe` seul ; absente = Localisation de touche.
    *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; LDB 17 l.68 ; #1595 c.6226467544. */
   critLocation?: HitLocation;
-  /** Localisation relancée APPLIQUÉE à CE coup (`location`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32. */
-  localisationRelancee?: true;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
@@ -1602,6 +1600,12 @@ export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number
   return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
 }
 
+/** La Localisation relancée du coup, verdict de sa naissance (`critLocation`), SEUL lecteur ; celui d'un coup sans
+ *  prise n'est pas lu. LDB 18 l.53, l.55 ; AA 07 l.25 ; LDB 85 l.98 ; LDB 14 l.159. */
+export function localisationRelanceeDe(res: Pick<AttackResult, 'hit' | 'sansPrise' | 'critLocation'>): HitLocation | undefined {
+  return res.hit && !res.sansPrise ? res.critLocation : undefined;
+}
+
 /** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
  *  LDB 18 l.53, l.55. */
 export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; coupCritique: boolean }
@@ -1611,8 +1615,9 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
  *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
-  const relance = relanceLaLocalisation(cible, coup);
-  const lieu: HitLocation = relance ? garanti(res.critLocation, cible.id, 'Localisation relancée du coup (applyHit, LDB 18 l.53)') : (res.location ?? 'corps');
+  const relancee = localisationRelanceeDe(res);
+  const relance = relancee !== undefined;
+  const lieu: HitLocation = relancee ?? res.location ?? 'corps';
   const devie = apresDeviations(cible, lieu, n);
   let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
   if (relance) {
@@ -1705,7 +1710,7 @@ export function phraseDeTouche(
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
  *  et les Blessures critiques infligées (`critiques`), suivie des `ajouts`. LDB 18 l.53, l.55 ; LDB 63 l.32. */
 export function ligneDuCoup(res: AttackResult): string {
-  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, !!res.localisationRelancee) : res.log;
+  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, localisationRelanceeDe(res) !== undefined) : res.log;
   return [tete, ...(res.ajouts ?? [])].filter(Boolean).join(' ');
 }
 

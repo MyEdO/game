@@ -14,7 +14,7 @@ import {
   sitesDuDossier, scanDossier, scanAll, dossiersFR, formeDeLigne1, estNomDeSignet,
   comptesDeTables, balisesResiduelles, liensDIndex, regenerations,
   ecartsAuGrain, mobilierAll, rougesAuSite, titresSoudesAll, titresSoudesDuDossier, imperatifsSoudesAll, lireDossier,
-  FAMILLES, STOCK_PATH, PREFIXES_FR,
+  FAMILLES, STOCK_PATH, PREFIXES_FR, SOURCE_FORMAT, ecartDuStock,
 } from './check-source-format.mjs'
 import {
   comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteDeStock, texteEnPlace,
@@ -24,7 +24,7 @@ import { BOOKS, decoupeDe, gabaritTitreDe, livreExtraitDe, livresATitres, livres
 import { chiffresDes, fenetreDe, mobilierDuDossier } from './lib/mobilier.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
-import { cleDeSite, ecartDuVolet, naissanceDu, sitesEnEntrees } from '../guards/lib/stock.mjs'
+import { cleDeSite, naissanceDu, remedeDeNaissance, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { estSeparateur, ligne1DePlage, titreDuFichier } from '../../src/data/source/decoupe.ts'
 
 const DIR = 'Source/Livre'
@@ -334,7 +334,7 @@ test('un livre de `books.json` dont le dossier MANQUE lève — un corpus amput�
 // --- Le STOCK committé ---
 
 test('stock COMMITTÉ : chaque écart mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
+  const { neuves, perimees } = ecartDuStock(scanAll(), lireEntreesDeSite(STOCK_PATH))
   assert.deepEqual(neuves, [], `écart(s) hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
@@ -370,10 +370,11 @@ test('stock COMMITTÉ : chaque entrée nomme sa famille, son chapitre et sa réf
 test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans écart est SOLDÉE', () => {
   const sites = scanAll()
   const stock = lireEntreesDeSite(STOCK_PATH)
-  const ecart = (s) => ecartDuVolet({ sites, stock: s, ou: 'source-format-stock.json' })
+  const ecart = (s) => ecartDuStock(sites, s)
   const ampute = ecart(stock.slice(1))
   assert.equal(ampute.neuves.length, 1)
-  assert.match(ampute.neuves[0], /site NEUF/)
+  assert.equal(ampute.neuves[0], remedeDeNaissance(SOURCE_FORMAT.cible)(cleDeSite(stock[0]), stock[0]), 'le site neuf NAÎT sous la porte des comptes')
+  assert.doesNotMatch(ampute.neuves[0], /CLIQUET:/)
   assert.ok(ampute.neuves[0].includes(stock[0].fichier), `le rouge NOMME le chapitre : ${ampute.neuves[0]}`)
   assert.deepEqual(ampute.perimees, [])
 
@@ -390,7 +391,7 @@ test('l’écart est jugé FAMILLE PAR FAMILLE : le stock d’une famille ne sol
   assert.equal(comptesParFamille(sites, FAMILLES)['ligne1-hors-format'], 1)
   assert.equal(comptesParFamille(sites, FAMILLES)['nom-de-signet'], 1)
   const partiel = entreesRegenerees(sites, { lot: 'x', date: 'y' }).filter((e) => e.famille === 'ligne1-hors-format')
-  const { neuves, perimees } = ecartDuVolet({ sites, stock: partiel, ou: 'source-format-stock.json' })
+  const { neuves, perimees } = ecartDuStock(sites, partiel)
   assert.equal(neuves.length, 1, 'la famille NON couverte reste neuve')
   assert.match(neuves[0], /^nom-de-signet ::/)
   assert.deepEqual(perimees, [], 'la famille couverte n’est pas déclarée soldée pour autant')
