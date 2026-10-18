@@ -6,7 +6,7 @@ import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
 import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, tickDeath, hasCondition } from '../engine/conditions';
 import { rederivePassiveAttack } from '../engine/combat';
-import { critiquesDuCoup } from '../engine/critical';
+import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import type { TestResult } from '../engine/tests';
 import { stepInteraction } from './cascade';
@@ -189,7 +189,7 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
     const { S, H } = start('porte');
     expect(rederivePassiveAttack(H, S!, hache, sansDouble, 'melee').critical, 'contrôle : Structure intacte').toBe(false);
     S!.wounds.current = 0;
-    expect(critiquesDuCoup(S!, { coupCritique: null, prise: true, current: 0, blessures: () => 1 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
+    expect(critiquesDuCoup(S!, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(S!, { coupCritique: null, prise: true, current: 0 }), blessures: 1 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
     const res = rederivePassiveAttack(H, S!, hache, sansDouble, 'melee');
     expect(res.critical, 'le Coup Critique seul').toBe(false);
     applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, res);

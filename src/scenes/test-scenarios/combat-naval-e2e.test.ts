@@ -7,7 +7,7 @@ import { checkBattleOver } from '../../state/combatFlow';
 import { resolveShipUnits } from '../../state/shipCrew';
 import { rederivePassiveAttack } from '../../engine/combat';
 import { loseWounds, isOutOfAction, addCondition, appliquerMortSubite } from '../../engine/conditions';
-import { critiquesDuCoup } from '../../engine/critical';
+import { critiquesDuCoup, relanceLaLocalisation } from '../../engine/critical';
 import { pathTo } from '../../state/path';
 import { moveEnv } from '../../state/combatGeometry';
 import { combatDistance } from '../../state/footprint';
@@ -69,7 +69,7 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
     const before = target.wounds.current;
     if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
     const lost = res.woundsLost ?? 0;
-    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, blessures: () => lost }).mortSubite) appliquerMortSubite(target, []);
+    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, touche: true, relance: relanceLaLocalisation(target, { coupCritique: null, prise: true, current: before }), blessures: lost }).mortSubite) appliquerMortSubite(target, []);
     blows++;
   }
   return blows;
@@ -231,7 +231,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     expect(cogue.wounds.current).toBe(0); // coque à 0 par l'artillerie (Dégâts − BE − Blindage)
     // MDG 13 l.656 : à 0, la coque reste en jeu et tout coup est un Critique.
     expect(isOutOfAction(cogue)).toBe(false);
-    expect(critiquesDuCoup(cogue, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
+    expect(critiquesDuCoup(cogue, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(cogue, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
     settle();
     expect(useGame.getState().battle!.over).toBeFalsy();
     // MDG 13 l.674 : l'Indice d'Inondation égal à l'Endurance la coule (chaîne Voie d'eau → naufrage : naval-damage.test).

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
 import type { RNG } from './dice';
-import { critiquesDuCoup } from './critical';
+import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';
@@ -71,7 +71,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
     const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
     expect(withheld.critical).toBe(false);
-    const compte = critiquesDuCoup(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4, blessures: () => withheld.woundsLost ?? 0 });
+    const compte = critiquesDuCoup(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4, touche: true, relance: relanceLaLocalisation(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4 }), blessures: withheld.woundsLost ?? 0 });
     expect(compte.critiques.map((c) => c.origine)).toEqual(['coup-critique']);
   });
 });
