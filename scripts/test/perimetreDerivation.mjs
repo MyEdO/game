@@ -61,11 +61,11 @@ function imagesDuDiff(depot, { base, tete } = {}) {
   return { base: borne, tete: null, touches, post, avant }
 }
 
-/** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique. */
-function setupFilesDe(texte) {
+/** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique (`analyser`). */
+function setupFilesDe(texte, analyser) {
   if (texte === null) return []
   const ts = typescript()
-  const [{ sourceFile }] = [...analyserCorpus([{ rel: CONFIG_VITEST, text: texte }])]
+  const [{ sourceFile }] = [...analyser([{ rel: CONFIG_VITEST, text: texte }])]
   const { expr, lambdas } = lecteurDExpressions(CONFIG_VITEST, sourceFile)
   const vus = []
   const visiter = (n) => {
@@ -97,7 +97,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const ensemble = new Set([...post, ...avant])
   const vitest = post.filter(estTestVitest)
   const node = post.filter(estTestNode)
-  const setup = setupFilesDe(lire([CONFIG_VITEST]).get(CONFIG_VITEST) ?? null)
+  const setup = setupFilesDe(lire([CONFIG_VITEST]).get(CONFIG_VITEST) ?? null, analyser)
   const textes = new Map()
   const lireAbs = (abss) => {
     const lus = lire(abss.map(rel))
@@ -191,7 +191,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     const cle = `${f}:${blobDe(texte)}`
     let lu = memos?.lire('lectures', cle)
     if (!lu) {
-      const [{ sourceFile }] = [...analyserCorpus([{ rel: f, text: texte }])]
+      const [{ sourceFile }] = [...analyser([{ rel: f, text: texte }])]
       lu = encoderLecture(lectureDeModule(f, sourceFile))
       memos?.ecrire('lectures', cle, lu)
     }
@@ -265,11 +265,12 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
    *  dérivation : les lots et l'évaluateur ouvert la partagent, la dérivation la relâche à sa fin. */
   const certifiees = new Map()
   const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f))).get(f)
-  /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles, une fois par module et
-   *  par dérivation. */
+  /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles : une lecture se visite une
+   *  fois par dérivation, pas une fois par lot (`stade('visite', f)`). */
   const specificateursDesLectures = new Map()
   const specificateursDeLaLecture = (f) => {
     if (specificateursDesLectures.has(f)) return specificateursDesLectures.get(f)
+    stade('visite', f)
     const lu = certifiee(f)
     const specs = new Set()
     const vus = new WeakSet()
@@ -534,9 +535,10 @@ const manifesteDe = (paquet) => posix.join('node_modules', paquet, 'package.json
 export const FICHIERS_DE_CONTEXTE = Object.freeze([CHEMIN_TSCONFIG, ...PAQUETS_VERSIONNANTS.map(manifesteDe)])
 
 /** La version des mémos de la dérivation : les producteurs (la fermeture de ce module sous `racineDuCode`, par défaut le
- *  dépôt qui l'exécute), le contexte de `racine` et `format`. `stade('analyse' | 'normalisation', module)` observe
- *  chaque producteur analysé puis normalisé ; une panne à l'un ou l'autre rend la version non persistable. */
-export function versionDesMemosDeDerivation(racine, { fermeture = fermetureSurDisque, lire = readFileSync, format = FORMAT_DES_MEMOS, dossierDesMemos = join(racine, CACHE), lectureSeule = false, racineDuCode = RACINE, stade = () => {} } = {}) {
+ *  dépôt qui l'exécute), le contexte de `racine` et `format`. `analyser` (`analyserCorpus` par défaut) analyse les
+ *  producteurs ; `stade('analyse' | 'normalisation', module)` observe chaque producteur analysé puis normalisé. Une panne
+ *  de l'analyse, libération comprise, ou de la normalisation rend la version non persistable. */
+export function versionDesMemosDeDerivation(racine, { fermeture = fermetureSurDisque, lire = readFileSync, analyser = analyserCorpus, format = FORMAT_DES_MEMOS, dossierDesMemos = join(racine, CACHE), lectureSeule = false, racineDuCode = RACINE, stade = () => {} } = {}) {
   const texte = (f) => texteSiPresent(f, lire)
   const versions = PAQUETS_VERSIONNANTS.map((p) => [`<${p}>`, JSON.parse(texte(join(racineDuCode, manifesteDe(p))) || '{}').version ?? ''])
   const bootstrap = empreinteDe([
@@ -564,7 +566,7 @@ export function versionDesMemosDeDerivation(racine, { fermeture = fermetureSurDi
   const modules = textes.filter(([f]) => estModule(f)).map(([rel, text]) => ({ rel, text }))
   let persistable = true
   try {
-    for (const analyse of analyserCorpus(modules)) {
+    for (const analyse of analyser(modules)) {
       const f = analyse.fichier.rel
       stade('analyse', f)
       const resultat = signatureDeProducteur(analyse.fichier.text, analyse, stade)

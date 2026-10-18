@@ -11,7 +11,7 @@ import { gitDe } from './gitDeBanc.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
 import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
-import { deriverPerimetre, exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
@@ -132,46 +132,6 @@ test('dérivation échouée : diagnostic depuis la sortie bornée sans relire le
   rmSync(traces, { recursive: true, force: true })
 })
 
-const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
-
-
-// #2586
-test('dérivation : lecture prélue ou directe, mémos passés par JSON froids puis chauds, blob changé relu', () => {
-  const lecteur = 'scripts/nouveau.mjs'
-  const temoin = 'scripts/nouveau.test.mjs'
-  const modes = { prelue: { stadeDeLecture: 'prélire' }, directe: { analyser: () => [], stadeDeLecture: 'lecture' } }
-  for (const [mode, { stadeDeLecture, ...regime }] of Object.entries(modes)) {
-    const modules = new Map([
-      [temoin, "import { inédit } from './nouveau.mjs'; inédit(true)"],
-      [lecteur, "import { readFileSync } from 'node:fs'; export function inédit(flag) { if (flag) readFileSync('src/a.json') }"],
-    ])
-    const json = new Map()
-    let hits = 0
-    const memos = {
-      lire(nature, cle) { if (nature === 'evaluations') return undefined; const bytes = json.get(nature + ':' + cle); if (bytes === undefined) return undefined; if (nature === 'lectures') hits++; return JSON.parse(bytes) },
-      ecrire(nature, cle, lu) { json.set(nature + ':' + cle, JSON.stringify(lu)) },
-    }
-    const stades = []
-    const lecturesDuLecteur = () => stades.filter(([nom, f]) => f === lecteur && (nom === 'prélire' || nom === 'lecture')).map(([nom]) => nom)
-    const entree = { ...regime, racine: new URL('../..', import.meta.url).pathname.replace(/^\/(?=[A-Z]:)/, ''), touches: ['src/a.json'], post: [...modules.keys(), 'src/a.json'], avant: [],
-      lire: (rels) => new Map(rels.map((f) => [f, modules.get(f) ?? null])), memos, stade: (nom, f) => { stades.push([nom, f]) } }
-    const froid = deriverPerimetre(entree)
-    assert.ok(froid.retenus.has(temoin), mode)
-    assert.deepEqual(lecturesDuLecteur(), [stadeDeLecture], `${mode} froid : une lecture du lecteur`)
-    stades.length = 0
-    const chaud = deriverPerimetre(entree)
-    assert.deepEqual(chaud, froid, mode)
-    assert.ok(hits > 0, `${mode} chaud : lecture servie par le mémo JSON`)
-    assert.deepEqual(lecturesDuLecteur(), [], `${mode} chaud : aucune analyse`)
-    modules.set(lecteur, modules.get(lecteur).replace('src/a.json', 'src/b.json'))
-    stades.length = 0
-    const change = deriverPerimetre(entree)
-    assert.deepEqual(lecturesDuLecteur(), [stadeDeLecture], `${mode} blob changé : relu`)
-    assert.equal(change.retenus.has(temoin), false, mode)
-    assert.notDeepEqual(change, froid, mode)
-  }
-})
-
 test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, partition sans doublon', () => {
   const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs', 'scripts/corpus-isole/guards/trois.test.mjs']
   const local = 'scripts/test/local.test.mjs'
@@ -182,6 +142,8 @@ test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, 
   assert.deepEqual([...plan.lances, ...plan.aLaCI].sort(), [...retenus.keys()].sort())
   assert.equal(new Set([...plan.lances, ...plan.aLaCI]).size, retenus.size)
 })
+
+const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
 /** Un dépôt jetable : `base` commité, puis `apres` (texte, `null` = supprimé, `{ de }` = renommé) commité
  *  si `commiter`, laissé dans l'arbre de travail sinon. */

@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, lireDuDisque, memosDeDerivation, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, memosDeDerivation, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { derivationBornee } from './perimetre.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { spawnBorne } from '../guards/lib/processusBorne.mjs'
@@ -155,7 +155,10 @@ test('production fermée : clôture exacte par lot, lecteurs figés, deux lots e
   }
   const publicMemos = memoire()
   const fermeMemos = memoire()
-  const froid = deriverPerimetre({ ...entree, ...fermee, memos: fermeMemos })
+  const visites = []
+  const froid = deriverPerimetre({ ...entree, ...fermee, memos: fermeMemos, stade: (nom, f) => { if (nom === 'visite') visites.push(f) } })
+  assert.ok(visites.includes('scripts/constantes.mjs'))
+  assert.equal(new Set(visites).size, visites.length, 'une lecture se visite une fois par dérivation, pas une fois par lot')
   const tours = [premiers, ['scripts/relais.mjs'], ['scripts/a.test.mjs']]
   const tourDe = ({ nature, f }) => nature === 'sitesDe' ? tours.length - 1 : tours.findIndex((tour) => tour.includes(f))
   const vus = new Set()
@@ -218,7 +221,8 @@ const NOMBRE_DE_PRODUCTEURS = Object.keys(PRODUCTEURS).length
 
 /** Le banc des producteurs : la fixture `PRODUCTEURS` et ses `FICHIERS_DE_CONTEXTE` sous un dossier jetable, posés comme
  *  racine du code (`racineDuCode`) ; `lancer` en calcule la version dans ce processus, `lancerAilleurs` dans un neuf. Une
- *  version compte ses producteurs normalisés ; `echec` (`analyse` | `normalisation`) fait échouer cette étape au dernier. */
+ *  version compte ses producteurs normalisés ; `echec` fait échouer la normalisation du dernier, `analyser` remplace la
+ *  couture d'analyse. */
 function producteursDe(t) {
   const dossier = dossierDe(t)
   const corpus = join(dossier, 'corpus')
@@ -227,16 +231,16 @@ function producteursDe(t) {
     mkdirSync(dirname(join(corpus, f)), { recursive: true })
     writeFileSync(join(corpus, f), texte)
   }
-  const lancer = (mode = 'ecriture', { echec, injecter, format } = {}) => {
+  const lancer = (mode = 'ecriture', { echec, injecter, format, analyser } = {}) => {
     let normalisations = 0
     const version = versionDesMemosDeDerivation(corpus, {
       racineDuCode: corpus, dossierDesMemos: dossier, lectureSeule: mode === 'lectureSeule',
       ...(format ? { format } : {}),
+      ...(analyser ? { analyser } : {}),
       ...(injecter === 'lire' ? { lire: (...args) => readFileSync(...args) } : {}),
       ...(injecter === 'fermeture' ? { fermeture: (...args) => fermetureSurDisque(...args) } : {}),
       stade: (etape) => {
-        if (etape === 'normalisation') normalisations++
-        if (etape === echec && normalisations === NOMBRE_DE_PRODUCTEURS - (etape === 'analyse' ? 1 : 0)) throw new Error(`${etape} injectée`)
+        if (etape === 'normalisation' && ++normalisations === NOMBRE_DE_PRODUCTEURS && echec) throw new Error('normalisation injectée')
       },
     })
     return { version, normalisations }
@@ -361,10 +365,16 @@ test('version producteurs : corruption, entête et lecture seule physiques', (t)
   assert.equal(readFileSync(fichier, 'utf8'), brut)
 })
 
-for (const echec of ['normalisation', 'analyse']) test(`version producteurs : échec ${echec === 'analyse' ? 'd’analyse (libération)' : 'de normalisation'} non persisté puis reprise`, (t) => {
+/** Une couture d'analyse qui rend chaque producteur puis lève à la libération, dans le `finally` de son générateur. */
+function* analyseQuiLeveALaLiberation(modules) {
+  const liberer = () => { throw new Error('libération injectée') }
+  try { yield* analyserCorpus(modules) } finally { liberer() }
+}
+const PANNES_DE_VERSION = [['à la normalisation du dernier producteur', { echec: true }], ['au finally du générateur d’analyse (libération)', { analyser: analyseQuiLeveALaLiberation }]]
+for (const [titre, panne] of PANNES_DE_VERSION) test(`version producteurs : échec ${titre} non persisté puis reprise`, (t) => {
   const { dossier, lancer } = producteursDe(t)
-  const rate = lancer('ecriture', { echec })
-  assert.equal(rate.normalisations, NOMBRE_DE_PRODUCTEURS - (echec === 'analyse' ? 1 : 0))
+  const rate = lancer('ecriture', panne)
+  assert.equal(rate.normalisations, NOMBRE_DE_PRODUCTEURS)
   assert.equal(Boolean(dernierMemo(dossier, 'versionProducteurs')), false)
   const canonique = lancer()
   assert.equal(canonique.normalisations, NOMBRE_DE_PRODUCTEURS)
@@ -588,6 +598,73 @@ test('IR sur lectures directe et prélue, hit et miss : même borne nommée', (t
   }
 })
 
+test('défauts de production : LOT_D_ANALYSE questions par lot d\'évaluation, IR bornée à LIMITE_IR', (t) => {
+  const lecteurs = Array.from({ length: LOT_D_ANALYSE + 1 }, (_, i) => `scripts/lecteur${i}.mjs`)
+  const textes = new Map([
+    ...lecteurs.map((f) => [f, "import {readFileSync} from 'node:fs'; readFileSync('src/a.txt')"]),
+    ['scripts/a.test.mjs', lecteurs.map((f) => `import './${f.slice('scripts/'.length)}'`).join(';')],
+    ['src/a.txt', 'a'],
+  ])
+  const entree = { racine: dossierDe(t), touches: ['src/a.txt'], post: [...textes.keys()], avant: [], lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])) }
+  const specificateurs = new Map()
+  const lots = []
+  deriverPerimetre({ ...entree, ferme: true,
+    memos: { lire: (nom, cle) => nom === 'specificateurs' ? specificateurs.get(cle) : undefined, ecrire: (nom, cle, v) => { if (nom === 'specificateurs') specificateurs.set(cle, v) } },
+    evaluerLot: (lot) => {
+      lots.push(lot.questions.length)
+      return lot.questions.map(({ f }) => ({ f, resultat: [], requetes: [] }))
+    } })
+  assert.deepEqual(lots, [LOT_D_ANALYSE, 1, LOT_D_ANALYSE, 1], 'relaisExportes puis sitesDe, chacun en un lot plein et un reste')
+  const pool = 'x'.repeat(LIMITE_IR + 1)
+  assert.throws(() => deriverPerimetre({ ...entree, memos: { lire: (nom, cle) => nom === 'lectures' ? pool : nom === 'specificateurs' ? specificateurs.get(cle) : undefined, ecrire: () => {} } }),
+    new RegExp(`perimetre : pool IR de scripts/lecteur\\d+\\.mjs > limite ${LIMITE_IR}$`))
+})
+
+test('dérivation : lecture prélue ou directe, mémos passés par JSON froids puis chauds, blob changé relu', (t) => {
+  const temoin = 'scripts/nouveau.test.mjs'
+  const prelu = 'scripts/nouveau.mjs'
+  const direct = 'scripts/profond.mjs'
+  const modules = new Map([
+    [temoin, "import { inédit } from './nouveau.mjs'; inédit(true)"],
+    [prelu, "import { readFileSync } from 'node:fs'; import { chemin } from './relais.mjs'; export function inédit(flag) { if (flag) readFileSync(chemin) }"],
+    ['scripts/relais.mjs', "export { chemin } from './profond.mjs'"],
+    [direct, "export const chemin = 'src/a.json'"],
+  ])
+  const json = new Map()
+  let hits = 0
+  const memos = {
+    lire(nature, cle) { if (nature === 'evaluations') return undefined; const bytes = json.get(nature + ':' + cle); if (bytes === undefined) return undefined; if (nature === 'lectures') hits++; return JSON.parse(bytes) },
+    ecrire(nature, cle, lu) { json.set(nature + ':' + cle, JSON.stringify(lu)) },
+  }
+  const stades = []
+  const analyses = []
+  const lectures = () => Object.fromEntries([prelu, direct].map((m) => [m, {
+    stades: stades.filter(([nom, f]) => f === m && (nom === 'prélire' || nom === 'lecture')).map(([nom]) => nom),
+    analyses: analyses.filter((f) => f === m).length,
+  }]))
+  const entree = { racine: dossierDe(t), touches: ['src/a.json'], post: [...modules.keys(), 'src/a.json'], avant: [], memos,
+    lire: (rels) => new Map(rels.map((f) => [f, modules.get(f) ?? null])), stade: (nom, f) => { stades.push([nom, f]) },
+    analyser: (entrees) => { const lus = [...entrees]; analyses.push(...lus.map((e) => e.rel)); return analyserEnLots(lus) } }
+  const deriver = () => {
+    stades.length = 0
+    analyses.length = 0
+    return deriverPerimetre(entree)
+  }
+  const relues = { [prelu]: { stades: ['prélire'], analyses: 1 }, [direct]: { stades: ['lecture'], analyses: 1 } }
+  const froid = deriver()
+  assert.ok(froid.retenus.has(temoin))
+  assert.deepEqual(lectures(), relues, 'froid : chaque lecture analysée une fois, par la couture d\'analyse')
+  const chaud = deriver()
+  assert.deepEqual(chaud, froid)
+  assert.ok(hits > 0, 'chaud : lectures servies par le mémo JSON')
+  assert.deepEqual(lectures(), { [prelu]: { stades: [], analyses: 0 }, [direct]: { stades: ['lecture'], analyses: 0 } }, 'chaud : aucune analyse')
+  modules.set(prelu, `${modules.get(prelu)}; export const revision = 2`)
+  modules.set(direct, modules.get(direct).replace('src/a.json', 'src/b.json'))
+  const change = deriver()
+  assert.deepEqual(lectures(), relues, 'blob changé : relu')
+  assert.equal(change.retenus.has(temoin), false)
+})
+
 test('enfant : nettoyage seulement sous preuve de mort, diagnostics conservés sans clôture confirmée', async (t) => {
   const d = dossierDe(t)
   const mort = { etat: 'mort', erreurs: [] }
@@ -685,21 +762,29 @@ test('checkpoints : interruption après lot entier conserve un lot de sites et v
 })
 
 test('checkpoints : un par lot d\'évaluation, quel que soit le nombre de programmes d\'analyse (#2586)', (t) => {
-  const sauvegardes = (deps) => {
-    const textes = new Map([
-      ['scripts/lecteur.mjs', "import {readFileSync} from 'node:fs'; " + Array.from({ length: deps }, (_, i) => `import './dep${i}.mjs'`).join(';') + "; readFileSync('src/a.txt')"],
-      ...Array.from({ length: deps }, (_, i) => [`scripts/dep${i}.mjs`, 'export const d = 1']),
-      ['scripts/a.test.mjs', "import './lecteur.mjs'"],
-      ['src/a.txt', 'a'],
-    ])
-    const entrees = new Map()
+  const deps = 2
+  const textes = new Map([
+    ['scripts/lecteur.mjs', "import {readFileSync} from 'node:fs'; " + Array.from({ length: deps }, (_, i) => `import './dep${i}.mjs'`).join(';') + "; readFileSync('src/a.txt')"],
+    ...Array.from({ length: deps }, (_, i) => [`scripts/dep${i}.mjs`, 'export const d = 1']),
+    ['scripts/a.test.mjs', "import './lecteur.mjs'"],
+    ['src/a.txt', 'a'],
+  ])
+  const specificateurs = new Map()
+  const sauvegardes = (tailleDAnalyse) => {
+    const entrees = new Map(specificateurs)
     let n = 0
+    const programmes = []
     const memos = { lire: (famille, cle) => entrees.get(`${famille}:${cle}`), ecrire: (famille, cle, v) => entrees.set(`${famille}:${cle}`, v), sauver: () => { n++ } }
     deriverPerimetre({ racine: dossierDe(t), touches: ['src/a.txt'], post: [...textes.keys()], avant: [], memos,
+      analyser: (lus) => { const tous = [...lus]; programmes.push(Math.ceil(tous.length / tailleDAnalyse)); return analyserEnLots(tous, tailleDAnalyse) },
       lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])) })
-    return n
+    for (const [cle, v] of entrees) if (cle.startsWith('specificateurs:')) specificateurs.set(cle, v)
+    return { sauvegardes: n, programmes: programmes.reduce((a, b) => a + b, 0) }
   }
-  assert.equal(sauvegardes(LOT_D_ANALYSE + 1), sauvegardes(2))
+  const parDeux = sauvegardes(2)
+  const unParAppel = sauvegardes(LOT_D_ANALYSE)
+  assert.ok(parDeux.programmes > unParAppel.programmes, JSON.stringify({ parDeux, unParAppel }))
+  assert.equal(parDeux.sauvegardes, unParAppel.sauvegardes)
 })
 
 test('lecteur du disque : un absent se lit null, une autre panne de lecture lève avec sa cause (#2586)', (t) => {
