@@ -203,7 +203,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Empoignade (`combat.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.60-66, l.72) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `brise`, `addCondition`, `Condition`, `peutTenter`, `aaBleedUnconsciousDue`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
+- `LDB 16` (l.60-66, l.72) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `brise`, `addCondition`, `peutTenter`, `Condition`, `aaBleedUnconsciousDue`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +18 fichiers
 
 ---
 
@@ -230,7 +230,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Traumatisme (`traumatisme.md`), Exténué, Drogues et poisons (`LDB 71`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.68-78) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `Formula`, `brise`, `addCondition`, `peutTenter`, `Condition`, +28 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +16 fichiers
+- `LDB 16` (l.68-78) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `StateRecoveryModal`, `EnemyAction`, `Formula`, `brise`, `addCondition`, `peutTenter`, `aaBleedUnconsciousDue`, +28 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +16 fichiers
 
 ---
 
@@ -286,7 +286,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 **Voir aussi** : Brisé, Sonné, Hémorragique, Empoisonné, Inconscient, Traumatisme (`traumatisme.md`), Psychologie (`psychologie.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.86-101) → `combat-fatigue`, `unstable`, `REPORT_DE_COMBATTANT`, `TEST_PROLONGATION`, `doc`, `EnemyAction`, `stopBleedOutcome`, `Formula`, `needsRecoveryRoll`, `brise`, +31 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/healing.ts`, +15 fichiers
-- `LDB 21` (l.33) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `Condition`, `describeApproach`, +42 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +20 fichiers
+- `LDB 21` (l.33) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `traitCapabilitiesSchema`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `Condition`, +43 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/traits.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +21 fichiers
 
 ---
 
