@@ -4249,15 +4249,14 @@ export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigg
   for (const src of freeAttackSourcesOf(actor)) {
     for (const eff of src.effects) {
       if (eff.trigger !== trigger || !flowHasFreeAttack(eff.flow)) continue;
-      if (defenseEnCours(get())) return true; // fenêtre vivante : la source suivante se déclarera à la fermeture
+      if (defenseEnCours(get())) return true; // #1858
       // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
       // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
       runCombatFlow(
         { mode: 'combat', get, set, target: actor, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
         eff.flow,
       );
-      // Le verdict se lit sur le SLOT : le Flow (nœud `test`/`choice` en amont) ne le remonte pas.
-      if (defenseEnCours(get())) return true;
+      if (defenseEnCours(get())) return true; // #1858
     }
   }
   return false;

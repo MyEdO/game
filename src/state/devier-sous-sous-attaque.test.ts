@@ -10,6 +10,8 @@ import { damageArmour } from '../engine/items';
 import { addCondition, hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../engine/types';
 import type { CoupDeTouche } from './pendings';
+import { evaluateMissile } from '../engine/magic';
+import { findSpell } from '../data';
 import { makeRNG } from '../engine/dice';
 
 /**
@@ -206,5 +208,46 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     expect(m.criticalWounds ?? 0).toBe(0);
     expect(m.items![0].damageTaken).toBe(2);
     expect(enJeu('nav').criticalWounds ?? 0).toBe(critsCoque);
+  });
+});
+
+// ── Projectile Coup Critique sur la coque : la Localisation du marin (LDB 18 l.53, l.55 ; MDG 13 l.584) ──
+const LIEUX: readonly HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
+/** Une pièce par Localisation : la Déviation n'entame que celle du lieu du Critique (LDB 63 l.30). */
+const piecesParLieu = (): ItemInstance[] =>
+  LIEUX.map((l) => ({ uid: `pa-${l}`, name: 'Maille', kind: 'armor', equipped: true, pa: 3, locs: [l], qualities: [] } as unknown as ItemInstance));
+/** Graine du battleRng : le d100 de Localisation relancé contre le marin tombe sur la Jambe droite. */
+const SEED_JAMBE_DROITE = 4;
+
+/** Le Critique de coque à l'Équipage, porté par un Projectile magique Coup Critique (LDB 46 l.30) sur la coque. */
+function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLocation | undefined } {
+  const mage = mk('enemy', 'mage', { pos: { x: 8, y: 5 } });
+  const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+  nav.crewIds = [marin.id];
+  poser([mage, nav, marin]);
+  const sort = findSpell('Carreau')!;
+  const mres = evaluateMissile(mage, nav, sort, { cast: true, roll: 21, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' });
+  seedBattleRng(SEED_JAMBE_DROITE);
+  const coup: CoupDeTouche = { mode: 'projectile', touche: { casterId: mage.id, de: mage.id, targetId: nav.id, spell: sort, mres, zoneTalentMod: 0, critWound: true, overcastDamageSteps: 0, overcastDurationSteps: 0 } };
+  applyHullCriticalToTarget(nav, 'voile', [], useGame.setState, {
+    get: useGame.getState, forcedLocRoll: 5, suppressReveal: true,
+    ctx: { attackerId: mage.id, attackerKind: mage.kind, weapon: sort.label, coup },
+  });
+  return { lieuDeTouche: mres.location };
+}
+
+describe('Projectile Coup Critique redirigé sur le marin : sa Localisation relancée, relue au recompte (LDB 18 l.53, l.55 ; MDG 13 l.584)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('la relance se décide contre le marin à la naissance du coup, et Dévier entame la pièce de CE lieu', () => {
+    const { lieuDeTouche } = critiqueDEquipageAuProjectile(mk('hero', 'marin', { pos: { x: 6, y: 5 }, items: piecesParLieu(), armour: { ...PA3 } }));
+    expect(lieuDeTouche, 'la touche sur la coque porte un autre lieu que la relance').toBe('brasG');
+    expect(etapes().map((s) => s.label), 'la fenêtre du marin nomme le lieu relancé').toEqual(['Blessure critique (Jambe droite)']);
+    expect(draineCascade(useGame.getState, 200, undefined, choix('devier'))).toEqual(['deviation']);
+    const m = enJeu('marin');
+    expect(m.criticalWounds ?? 0, 'Critique ignoré').toBe(0);
+    expect(Object.fromEntries(m.items!.map((i) => [i.uid, i.damageTaken ?? 0])), 'le recompte relit le lieu né avec le coup')
+      .toEqual({ 'pa-tete': 0, 'pa-brasG': 0, 'pa-brasD': 0, 'pa-corps': 0, 'pa-jambeG': 0, 'pa-jambeD': 1 });
   });
 });
