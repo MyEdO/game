@@ -1,4 +1,4 @@
-import { ast } from './dialecte.mjs';
+import { analyserCorpus } from './dialecte.mjs';
 /**
  * Valeur ABSTRAITE des expressions d'une source parmi les globales et modules intégrés de Node que lisent
  * les gardes de #1801 (`pointDEntree.mjs`, `graphiesDHote.mjs`), sur l'AST TypeScript : un commentaire
@@ -29,10 +29,8 @@ import { ast } from './dialecte.mjs';
  * `import('node:module')`) ou comme membre du nom `module`, qui est aussi l'import usuel de
  * `node:module` (l'objet CommonJS n'a pas de `createRequire`).
  *
- * HORS DE PORTÉE : la portée lexicale (un nom est lié pour tout le fichier, et les noms de `GLOBALES` —
- * `process`, `globalThis`, `global`, `module`, `require`, `createRequire`, `getBuiltinModule`,
- * `__filename`, `__dirname` — valent leur globale quel que soit leur masquage) ; une clé calculée non
- * littérale (`process[cle]`) ; `.at(-i)`, `.pop()` ; la copie (`[...argv]`, `Array.from(argv)`) ;
+ * HORS DE PORTÉE : une clé calculée non littérale (`process[cle]`) ; `.at(-i)`, `.pop()` ;
+ * la copie (`[...argv]`, `Array.from(argv)`) ;
  * `&&` ; une valeur terminale liée puis relue par son nom ; `import x = require(…)`.
  */
 import * as typescript from 'typescript/unstable/ast'
@@ -172,9 +170,9 @@ const acquis = (module) => new Set(module === null ? [] : module === 'process' ?
 
 /**
  * Évaluateur des valeurs d'un fichier, pour une table de liaisons donnée.
- * @param {Map<string, Set<string>>} liaisons nom → valeurs conteneurs
+ * @param {Map<object, Set<string>>} liaisons symbole → valeurs conteneurs
  */
-function evaluateur(liaisons) {
+function evaluateur(liaisons, symboleDe) {
   const memo = new Map()
   const valeurs = (e) => {
     const n = nu(e)
@@ -188,8 +186,9 @@ function evaluateur(liaisons) {
   }
   const calculer = (n) => {
     if (ts.isIdentifier(n)) {
-      const liees = liaisons.get(n.text)
-      const globale = GLOBALES.get(n.text)
+      const symbole = symboleDe(n)
+      const liees = liaisons.get(symbole)
+      const globale = symbole?.declarations?.length ? undefined : GLOBALES.get(n.text)
       if (!globale) return liees ?? VIDE
       return new Set([...(liees ?? []), ...globale])
     }
@@ -238,20 +237,22 @@ const cibleDe = (e) =>
  * Lie une cible (nom, motif de déclaration ou d'affectation) à des valeurs ; note les sites `motif`
  * (élément de déstructuration) et `nom` (nom lié).
  */
-function lier(cible, vals, liaisons, sites) {
+function lier(cible, vals, liaisons, sites, symboleDe) {
   cible = nu(cible)
   if (ts.isIdentifier(cible)) {
     sites.push({ noeud: cible, sorte: 'nom', valeurs: vals })
     const conteneurs = [...vals].filter((v) => CONTENEUR.test(v))
     if (!conteneurs.length) return
-    const deja = liaisons.get(cible.text) ?? new Set()
+    const symbole = symboleDe(cible)
+    if (!symbole) return
+    const deja = liaisons.get(symbole) ?? new Set()
     for (const v of conteneurs) deja.add(v)
-    liaisons.set(cible.text, deja)
+    liaisons.set(symbole, deja)
     return
   }
   const sous = (noeud, cibleSuivante, v) => {
     sites.push({ noeud, sorte: 'motif', valeurs: v })
-    lier(cibleSuivante, v, liaisons, sites)
+    lier(cibleSuivante, v, liaisons, sites, symboleDe)
   }
   if (ts.isObjectBindingPattern(cible)) {
     for (const el of cible.elements) {
@@ -277,16 +278,16 @@ function lier(cible, vals, liaisons, sites) {
 }
 
 /** Valeurs qu'un import lie à chacun de ses noms. */
-function lierImport(decl, liaisons, sites) {
+function lierImport(decl, liaisons, sites, symboleDe) {
   const module = moduleDe(decl.moduleSpecifier)
   const clause = decl.importClause
   if (!clause || module === null) return
   const base = ESPACES_DE_NOMS.has(module) ? acquis(module) : VIDE
-  if (clause.name) lier(clause.name, base, liaisons, sites)
+  if (clause.name) lier(clause.name, base, liaisons, sites, symboleDe)
   const liens = clause.namedBindings
-  if (liens && ts.isNamespaceImport(liens)) lier(liens.name, base, liaisons, sites)
+  if (liens && ts.isNamespaceImport(liens)) lier(liens.name, base, liaisons, sites, symboleDe)
   if (liens && ts.isNamedImports(liens)) {
-    for (const s of liens.elements) lier(s.name, membre(base, (s.propertyName ?? s.name).text), liaisons, sites)
+    for (const s of liens.elements) lier(s.name, membre(base, (s.propertyName ?? s.name).text), liaisons, sites, symboleDe)
   }
 }
 
@@ -310,14 +311,14 @@ const produitTerminal = (n) =>
  * copie les liaisons du précédent puis y ajoute, et le domaine est fini (noms du fichier × valeurs
  * conteneurs, décalages d'`argv` saturés) ; le tour qui n'ajoute rien est le point fixe.
  */
-function pointFixe(imports, liens) {
+function pointFixe(imports, liens, symboleDe) {
   let liaisons = new Map()
   for (let taille = -1; ; ) {
-    const valeursDe = evaluateur(liaisons)
+    const valeursDe = evaluateur(liaisons, symboleDe)
     const suivantes = new Map([...liaisons].map(([nom, v]) => [nom, new Set(v)]))
     const sites = []
-    for (const d of imports) lierImport(d, suivantes, sites)
-    for (const [cible, valeur] of liens) lier(cible, valeursDe(valeur), suivantes, sites)
+    for (const d of imports) lierImport(d, suivantes, sites, symboleDe)
+    for (const [cible, valeur] of liens) lier(cible, valeursDe(valeur), suivantes, sites, symboleDe)
     const nouvelle = [...suivantes.values()].reduce((s, v) => s + v.size, 0)
     if (nouvelle === taille) return { valeursDe, sites }
     taille = nouvelle
@@ -347,9 +348,24 @@ const aParser = (source, termes) =>
  *   règle de la garde ne conclut (préfiltre `aParser`), et le prédicat des sites retenus
  * @returns {{ ligne: number, extrait: string }[]}
  */
-export function sitesDeGlobalesNode(source, chemin, { termes, retenir }, sourceFile) {
+export function sitesDeGlobalesNode(source, chemin, garde, analyse) {
+  const { termes, retenir } = garde
   if (!aParser(source, termes)) return []
-  const sf = sourceFile ?? ast({ rel: chemin, text: source })
+  if (!analyse?.sourceFile) {
+    for (const contexte of analyserCorpus([{ rel: chemin, text: source }]))
+      return sitesDeGlobalesNode(source, chemin, garde, contexte)
+  }
+  const { sourceFile: sf, checker } = analyse
+  const symboles = new Map()
+  const symboleDe = (noeud) => {
+    if (!symboles.has(noeud)) {
+      const parent = noeud.parent
+      symboles.set(noeud, ts.isShorthandPropertyAssignment(parent) && parent.name === noeud
+        ? checker.getShorthandAssignmentValueSymbol(parent)
+        : checker.getSymbolAtLocation(noeud))
+    }
+    return symboles.get(noeud)
+  }
   const liens = []
   const imports = []
   const expressions = []
@@ -362,7 +378,7 @@ export function sitesDeGlobalesNode(source, chemin, { termes, retenir }, sourceF
   }
   parcourir(sf)
 
-  const { valeursDe, sites } = pointFixe(imports, liens)
+  const { valeursDe, sites } = pointFixe(imports, liens, symboleDe)
   const trouvees = new Set()
   const candidats = [...expressions.map((noeud) => ({ noeud, sorte: 'expression', valeurs: valeursDe(noeud) })), ...sites]
   for (const site of candidats) {

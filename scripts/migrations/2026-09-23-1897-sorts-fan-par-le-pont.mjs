@@ -3,7 +3,7 @@
  *
  * POURQUOI : l'import du livre fan a lié ses créatures aux sorts PAR LIBELLÉ (au moins 28 liaisons
  * fausses) et créé une DEUXIÈME entité pour des sorts déjà au catalogue. Doctrine du 2026-07-17
- * (`.claude/memory/game-doctrine-une-entite-n-livres-n-variantes.md`) : une entité, N livres.
+ * (`.claude/memory/user-doctrine-une-entite-n-livres-n-variantes.md`) : une entité, N livres.
  *
  * GESTES, dans l'ordre :
  *  1. FUSIONS (`SORTS_FUSIONNES_1897`, `src/data/sortsFusionnes.ts`) : l'entrée fan disparaît, l'entrée qui

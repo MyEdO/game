@@ -204,6 +204,34 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
     expect(held.attackerRoll, 'mêmes dés des deux côtés').toBe(plain.attackerRoll);
     expect(held.critical, 'withhold TRANSPORTÉ : « maîtriser sans tuer » supprime le Critique').toBe(false);
   });
+
+  /** Le tir de l'ennemi sur le héros : à distance `x` > 1 il reste passif (`pendingAttack.result`), au contact il est défendu (`pendingDefense.result`). */
+  function tirerSur(seed: number, x: number, pa: Partial<PendingAttack>): AttackResult {
+    const { enemy, hero } = setup({ x, y: 0 }, [bow], { gmSeat: 0 });
+    const g = useGame.getState;
+    seedBattleRng(seed);
+    openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
+    g().attackRoll();
+    const passif = g().pendingAttack!.result!;
+    if (x > 1) return passif;
+    g().attackConfirm();
+    g().defenseRoll();
+    g().defenseSetForcedRoll(97); // LDB 18 l.53
+    return g().pendingDefense!.result!;
+  }
+
+  for (const [voie, x] of [['non défendu, `resolveAttack`', 10], ['défendu, `finishDefenseResult`', 1]] as const) {
+    it(`« Retenir ses coups » au tir ${voie} : le Coup Critique est ignoré (LDB 18 l.30)`, () => {
+      const plain = tirerSur(21, x, {});
+      const held = tirerSur(21, x, { withhold: true });
+      expect(plain.hit && plain.critical, 'la graine 21 touche en Critique').toBe(true);
+      expect(held.attackerRoll, 'mêmes dés des deux côtés').toBe(plain.attackerRoll);
+      expect(held.critical).toBe(false);
+      expect(held.woundsLost).toBe(plain.woundsLost);
+      expect(plain.critLocation, 'le Coup Critique relance la Localisation (LDB 18 l.53)').toBeDefined();
+      expect(held.critLocation, 'sans Coup Critique, aucune Localisation relancée (LDB 18 l.53)').toBeUndefined();
+    });
+  }
 });
 
 describe('#989 R2 — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) honorée par la fenêtre', () => {

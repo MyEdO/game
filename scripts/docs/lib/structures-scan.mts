@@ -219,15 +219,21 @@ const CONCEPTS_CLASSABLES = CONCEPTS.filter((c) => !c.resolvables && !c.listeIds
 const CONCEPTS_STRUCTURELS = CONCEPTS_CLASSABLES.filter((c) => c.exigeCandidatureStructurelle && c.noyau?.length);
 
 /**
- * Ids des concepts structurels dont l'objet `o` porte TOUT le noyau en NUMÉRIQUE. `dansTableau` dit
+ * Ids des concepts structurels dont l'objet `o` porte TOUT le noyau en BORNE — un nombre, ou `null`
+ * d'une bande OUVERTE (`plageOuverteSchema`, `src/data/schemas/grammaire/valeurs.ts`), au moins une
+ * borne écrite. `dansTableau` dit
  * la POSITION du porteur : un concept qui déclare `candidatureHorsTableau` est candidat des deux
  * côtés, les autres restent bornés à l'élément de tableau. La liste vient du LEXIQUE (#842) — aucun
  * concept n'est nommé ici.
  */
 const candidatsStructurels = (o: Record<string, unknown>, dansTableau: boolean): string[] =>
   CONCEPTS_STRUCTURELS.filter(
-    (c) => (dansTableau || c.candidatureHorsTableau) && c.noyau!.every((k) => typeof o[k] === 'number'),
+    (c) => (dansTableau || c.candidatureHorsTableau) && porteSesBornes(o, c.noyau!),
   ).map((c) => c.id);
+
+/** Le noyau `ks` est tout entier en BORNE (nombre, ou `null` d'une bande ouverte), au moins une écrite. */
+const porteSesBornes = (o: Record<string, unknown>, ks: readonly string[]): boolean =>
+  ks.every((k) => typeof o[k] === 'number' || o[k] === null) && ks.some((k) => typeof o[k] === 'number');
 
 /** Statut d'une signature AU SITE, lu sur son entrée de lexique (`entreeAuSite`). */
 const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: string }): Classement => {
@@ -586,7 +592,7 @@ export function scannerDonnees(
     else for (const e of entrees) { const ident = identiteDe(e); if (ident) ajouteIndex(ident.valeur, doc.nom); }
     const portePlage = entrees.filter((e) => {
       const r = e.range;
-      return (estObjet(r) && typeof r.min === 'number' && typeof r.max === 'number') || (typeof e.min === 'number' && typeof e.max === 'number');
+      return (estObjet(r) && porteSesBornes(r, ['min', 'max'])) || porteSesBornes(e, ['min', 'max']);
     }).length;
     const famille =
       regime === 'valeurs' ? 'record' : regime === 'racine' ? 'config' : portePlage * 2 >= entrees.length && entrees.length ? 'table' : 'entité';

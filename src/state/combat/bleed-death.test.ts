@@ -55,20 +55,37 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     resolveRoundBoundary(useGame.getState, useGame.setState);
   }
 
+  /** Porteur éligible au jet : 0 PB ET Inconscient (#1595 c.6240485441). */
+  function saigneInconscient(c: Combatant, n: number) {
+    c.wounds = { current: 0, max: c.wounds.max };
+    addCondition(c, COND.inconscient, 1);
+    addCondition(c, COND.hemorragique, n);
+  }
+
   it('ennemi : jet ≤ 10×pions → mort finalisée (annonce différée + onSlain)', () => {
     const { E } = setup();
     seedBattleRng(7); // après setup (startCombat a consommé le RNG d'initiative) : 1ᵉʳ d100 = ≤10 → mort
-    addCondition(E, COND.hemorragique, 3);
+    saigneInconscient(E, 3);
     endRound();
     const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
     expect(e.dead).toBe(true);
     expect(useGame.getState().pendingFateSave).toBeNull(); // un ennemi n'a pas de Destin
   });
 
+  it('porteur CONSCIENT à 1 PB : aucun jet, aucune mort (jet ≤ 10×pions ignoré)', () => {
+    const { E } = setup();
+    seedBattleRng(7);
+    E.wounds = { current: 1, max: 20 };
+    addCondition(E, COND.hemorragique, 3);
+    endRound();
+    const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
+    expect(e.dead).toBeFalsy();
+  });
+
   it('coagulation : un DOUBLE retire 1 pion d’Hémorragique (pas de mort)', () => {
     const { E } = setup();
     seedBattleRng(21); // après setup : 1ᵉʳ d100 = double → coagulation
-    addCondition(E, COND.hemorragique, 3);
+    saigneInconscient(E, 3);
     endRound();
     const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
     expect(e.dead).toBeFalsy();
@@ -78,7 +95,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   it('survie : jet > 10×pions → ni mort ni coagulation', () => {
     const { E } = setup();
     seedBattleRng(1); // après setup : 1ᵉʳ d100 > 30, non-double → survie
-    addCondition(E, COND.hemorragique, 3);
+    saigneInconscient(E, 3);
     endRound();
     const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
     expect(e.dead).toBeFalsy();
@@ -89,7 +106,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     const { H } = setup();
     seedBattleRng(7); // après setup : mort
     H.fate = 1;
-    addCondition(H, COND.hemorragique, 3);
+    saigneInconscient(H, 3);
     endRound();
     const fs = useGame.getState().pendingFateSave;
     expect(fs).toBeTruthy();
@@ -102,7 +119,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     const { H } = setup();
     seedBattleRng(7); // après setup : mort
     H.fate = 0;
-    addCondition(H, COND.hemorragique, 3);
+    saigneInconscient(H, 3);
     endRound();
     expect(useGame.getState().pendingFateSave).toBeNull();
     const h = useGame.getState().battle!.combatants.find((x) => x.id === H.id)!;

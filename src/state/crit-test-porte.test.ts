@@ -59,7 +59,7 @@ const etapeTest = (): CascadeStep | undefined =>
 /** Applique un Critique à `loc` sur `hero`, dé de sévérité POSÉ (`forcedRoll` = le dé NATUREL). */
 function subirCritique(hero: Combatant, loc: HitLocation, deSeverite: number): void {
   const crit = resolveCritique('ldb', hero, loc, battleRng(), { forcedRoll: deSeverite });
-  applyCriticalToTarget(hero, loc, true, 0, [], useGame.setState, {
+  applyCriticalToTarget(hero, loc, 0, [], useGame.setState, {
     prerolled: crit, ctx: { attackerId: 'e', attackerKind: 'enemy' }, get: useGame.getState,
   });
 }

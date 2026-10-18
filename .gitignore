@@ -46,10 +46,12 @@ scripts/data/.out/
 .claude/*
 !.claude/settings.json
 !.claude/credo.md
+!.claude/sous-agents.md
 !.claude/skills/
 !.claude/agents/
 !.claude/workflows/
 !.claude/memory/
+!.claude/rules/
 # Soldes de fermeture et revues de palier : VERSIONNÉS (les messages de commit les citent par chemin,
 # et le palier se mesure sur les revues que porte l'histoire — la preuve doit survivre).
 !.claude/soldes/

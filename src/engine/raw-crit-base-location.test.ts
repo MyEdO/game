@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { woundsAtCritLocation, type AttackResult } from './combat';
+import { resolveMeleePassive, woundsAtCritLocation, type AttackResult } from './combat';
+import { evaluateTest } from './tests';
+import { effectiveWeapon } from './weaponDamage';
 import type { Combatant, Weapon } from './types';
+import { makeRNG } from './dice';
 
-/**
- * #80 — LDB 18 l.55 : « Pour calculer enfin les Dégâts non Critiques d'une Attaque, utilisez la nouvelle
- * Localisation déterminée par la Blessure Critique. » Un Coup Critique re-tire la localisation ; les Dégâts
- * NON-critiques (de base) utilisent la PA de CETTE localisation, pas celle de la touche d'origine.
- */
-const weapon = { name: 'Épée', type: 'melee', qualities: [] } as unknown as Weapon;
+/** #80 ; LDB 18 l.53, l.55 ; LDB 62 l.135. */
+const weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon;
 
 const target = (): Combatant =>
   ({
@@ -24,6 +23,14 @@ const crit: AttackResult = {
   woundsLost: 5, advantageTo: 'attacker', defenderDefeated: false, log: '',
 };
 
+const combattant = (over: Partial<Combatant> = {}): Combatant =>
+  ({
+    id: 'x', name: 'X', label: 'X', kind: 'hero',
+    characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4, ...over,
+  }) as unknown as Combatant;
+
 describe('#80 — Dégâts non-critiques à la localisation RE-TIRÉE du Coup Critique (LDB 18 l.55)', () => {
   it('utilise la PA de la NOUVELLE localisation, pas celle d’origine', () => {
     const t = target(); // BE(E35) = 3
@@ -37,5 +44,14 @@ describe('#80 — Dégâts non-critiques à la localisation RE-TIRÉE du Coup Cr
     // apExternal négatif = PA ignoré (Tir sûr ignore N PA) : tête (PA 0) inchangé, corps (PA 4) → ignore 4 → 12-3-0=9.
     const sureShot: AttackResult = { ...crit, apExternal: -4 };
     expect(woundsAtCritLocation(sureShot, weapon, t, 'corps')).toBe(9);
+  });
+
+  it('arme usée à +0 : la Localisation relancée lit le profil EFFECTIF (LDB 62 l.135)', () => {
+    const usee = { label: 'Estoc usé', type: 'melee', damage: { plusBF: true, flat: 4 }, damageTaken: 4, qualities: [{ id: 'perforante' }] } as Weapon;
+    const cible = combattant({ wounds: { current: 0, max: 12 }, armour: { tete: 0, brasG: 2, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
+    const res = resolveMeleePassive(combattant({ label: 'A', size: 'moyenne' } as Partial<Combatant>), cible, usee, evaluateTest(35, 60), { rng: makeRNG(1595) }, 'corps', [], undefined, false);
+    const blessures = woundsAtCritLocation(res, usee, cible, 'brasG');
+    expect(blessures).toBe(0);
+    expect(blessures).toBe(woundsAtCritLocation(res, effectiveWeapon(usee), cible, 'brasG'));
   });
 });

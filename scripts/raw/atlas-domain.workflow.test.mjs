@@ -315,7 +315,7 @@ test('workflow Atlas : un agent muni du SEUL `ctx_patch` (canal d’édition pre
 
 test('workflow Atlas : les types d’agent en lecture seule se lisent au dépôt (sinon le contrat est vide)', () => {
   const types = typesEnLectureSeule()
-  assert.ok(types.includes('lecteur') && types.includes('juge'), `types en lecture seule lus : ${types.join(', ')}`)
+  assert.ok(types.includes('lecteur') && types.includes('juge-de-source'), `types en lecture seule lus : ${types.join(', ')}`)
 })
 
 test('workflow Atlas : AUCUN agent ne part sans `agentType` en LECTURE SEULE, ni sans `model` écrit', async () => {
@@ -330,13 +330,13 @@ test('workflow Atlas : AUCUN agent ne part sans `agentType` en LECTURE SEULE, ni
   assert.deepEqual(sansModele.map(([cle]) => cle), [])
 })
 
-test('workflow Atlas : le type suit ce que la phase FAIT — `juge` là où l’on refute, `redacteur` là où l’on rédige', async () => {
+test('workflow Atlas : le type suit ce que la phase FAIT — `juge-de-source` là où l’on refute, `redacteur` là où l’on rédige', async () => {
   const options = await optionsDesDeuxRuns()
-  const parType = { juge: [], redacteur: [] }
+  const parType = { 'juge-de-source': [], redacteur: [] }
   for (const [cle, o] of options) (parType[o.agentType] ||= []).push(cle)
   // AUDIT de complétude et VÉRIF de fidélité confrontent une entrée à la source et REFUTENT ;
   // l'augmentation, elle, RÉDIGE — un `redacteur`, dans sa phase `Correction`.
-  assert.deepEqual(parType.juge.sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
+  assert.deepEqual(parType['juge-de-source'].sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
   assert.ok(parType.redacteur.includes(`Correction:${LOT[0]}:augment:topic-un`), parType.redacteur.join(' · '))
 })
 
@@ -390,6 +390,7 @@ const RENDU_A_REPRENDRE = () => ({
   lastAuditDry: true,
   surveyCounts: [{ book: 'BKA', hits: 2 }, { book: 'SPG', hits: 0 }],
   sourceAbimee: [{ phase: 'Synthese', ref: 'BKA 05 l.7', constat: 'phrase tronquee en fin de fichier' }],
+  agentsSansRendu: [`${LOT[0]}:survey:SPG — rien rendu`, `${LOT[0]}:verif:jamais-juge — échec : API morte`],
 })
 const ARGS_DE_REPRISE = (rendu = RENDU_A_REPRENDRE()) => ({ ...PERIMETRE(), reprise: rendu })
 /** Les phases de DÉCOUVERTE : aucune ne doit être atteinte par une reprise. */
@@ -411,7 +412,35 @@ test('workflow Atlas : une REPRISE ne lance AUCUN agent de découverte, et ne re
   assert.equal(d.inventoryCount, 4)
   assert.deepEqual(d.surveyCounts, RENDU_A_REPRENDRE().surveyCounts)
   assert.deepEqual(d.topics.map((t) => [t.topicId, t.faithful]), [['deja-prouve', true], ['jamais-juge', true]])
+  assert.deepEqual(d.agentsSansRendu, [`${LOT[0]}:survey:SPG — rien rendu`], 'la verif rejugee sort des trous ; la decouverte perdue y reste')
   assert.equal(rendu.coeur, 'alpha')
+})
+
+test('workflow Atlas : un agent qui LÈVE est capturé — sa cause se nomme au saut ou aux trous du domaine, le run continue (#2721)', async () => {
+  const leve = (phase) => (prompt, opts) => (opts.phase === phase ? Promise.reject(new Error('API morte')) : repondreAvec(false)(prompt, opts))
+  for (const [phase, saute] of [['Cadrage', `cadrage SANS RENDU : ${LOT[0]}:cadrage — échec : API morte`], ['Taxonomie', `taxonomie SANS RENDU : ${LOT[0]}:taxo — échec : API morte`]]) {
+    const { rendu } = await jouerWorkflow(SCRIPT, PERIMETRE(), leve(phase))
+    assert.deepEqual([rendu.domains, rendu.sautes], [[], [{ domain: LOT[0], raison: saute }]], phase)
+  }
+  const audit = await jouerWorkflow(SCRIPT, PERIMETRE(), leve('Audit'))
+  const d = audit.rendu.domains[0]
+  assert.deepEqual(d.agentsSansRendu, [`${LOT[0]}:audit#1 — échec : API morte`])
+  assert.equal(d.lastAuditDry, false, 'un audit sans rendu ne prouve pas la completude')
+  assert.ok(audit.promptsParLabel.has(`Verif:${LOT[0]}:verif:topic-un`), 'la fidelite se juge quand meme')
+  const synthese = await jouerWorkflow(SCRIPT, PERIMETRE(), leve('Synthese'))
+  assert.deepEqual(synthese.rendu.domains[0].agentsSansRendu, [`${LOT[0]}:synth:topic-un — échec : API morte`])
+  const nominal = await jouerWorkflow(SCRIPT, PERIMETRE(), repondreAvec(false))
+  assert.deepEqual(nominal.rendu.domains[0].agentsSansRendu, [], 'témoin : un run sans perte n a aucun trou')
+})
+
+test('workflow Atlas : un domaine SAUTÉ nomme TOUTES ses pertes, pas la seule de l’étape qui le saute (#2721)', async () => {
+  const { rendu } = await jouerWorkflow(SCRIPT, PERIMETRE(), (prompt, o) => {
+    if (o.phase === 'Cadrage') return { coverageRefs: [{ ab: 'BKA', nn: '05' }, { ab: 'BKA', nn: '06' }] }
+    if (o.phase === 'Cartographie' && o.label.endsWith('-06')) return Promise.reject(new Error('API morte'))
+    if (o.phase === 'Taxonomie') return Promise.reject(new Error('quota'))
+    return repondreAvec(false)(prompt, o)
+  })
+  assert.deepEqual(rendu.sautes, [{ domain: LOT[0], raison: `taxonomie SANS RENDU : ${LOT[0]}:carto:BKA-06 — échec : API morte ; ${LOT[0]}:taxo — échec : quota` }])
 })
 
 test('workflow Atlas : en REPRISE, une fidélité REFUSÉE ouvre la correction puis la re-vérif', async () => {
@@ -422,7 +451,8 @@ test('workflow Atlas : en REPRISE, une fidélité REFUSÉE ouvre la correction p
     return { faithful: verifs > 1, issues: verifs > 1 ? [] : ['une valeur fausse'] }
   })
   const labels = [...promptsParLabel.keys()]
-  assert.ok(labels.includes(`Correction:${LOT[0]}:augment:jamais-juge`), `augmentation absente — ${labels.join(' · ')}`)
+  assert.ok(labels.includes(`Correction:${LOT[0]}:corrige:jamais-juge`), `correction de fidélité absente — ${labels.join(' · ')}`)
+  assert.ok(!labels.some((l) => l.includes(':augment:')), 'la correction de fidélité n’emprunte pas le label d’un trou d’audit')
   assert.ok(labels.includes(`Verif:${LOT[0]}:reverif:jamais-juge`))
   const t = rendu.domains[0].topics.find((x) => x.topicId === 'jamais-juge')
   assert.equal(t.faithful, true)
@@ -455,6 +485,7 @@ test('workflow Atlas : en REPRISE, un agent MUET laisse le verdict antérieur IN
   assert.match(refuse.markdown, /Un corps\./)
   // Le topic JAMAIS jugé reste sans verdict : on n'en invente pas un.
   assert.equal(topics.find((t) => t.topicId === 'jamais-juge').faithful, null)
+  assert.ok(sorti.domains[0].agentsSansRendu.includes(`${LOT[0]}:verif:juge-refuse — échec : agent mort`), 'la re-verif muette se nomme aux trous')
   assert.equal(topics.find((t) => t.topicId === 'deja-prouve').faithful, true)
 })
 
@@ -506,6 +537,31 @@ test('reprise de BOUT EN BOUT : rendu du run → lireRendu → workflow → asse
     const r = assemble(relu.domains[0], { racine: relu, source: cheminApres, rawDir: join(dossier, 'atlas') })
     assert.equal(existsSync(r.path), true, r.path)
     assert.match(readFileSync(r.path, 'utf8'), /## Topic Un/)
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
+test('reprise de BOUT EN BOUT : une correction de FIDÉLITÉ perdue, rejugée par la reprise, sort des trous — `assemble` écrit (#2721)', async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'atlas-corrige-'))
+  try {
+    const { rendu: duRun } = await jouerWorkflow(SCRIPT, PERIMETRE(), (p, o) => {
+      if (o.phase === 'Verif') return { faithful: false, issues: ['une valeur fausse'] }
+      if (o.phase === 'Correction') return Promise.reject(new Error('API morte'))
+      return repondreAvec(false)(p, o)
+    })
+    assert.deepEqual(duRun.domains[0].agentsSansRendu, [`${LOT[0]}:corrige:topic-un — échec : API morte`])
+    assert.throws(() => assemble(duRun.domains[0], { racine: duRun, rawDir: dossier }), /fidelite REFUSEE/)
+
+    let verifs = 0
+    const { rendu: apres } = await jouerWorkflow(SCRIPT, { ...PERIMETRE(), reprise: duRun.domains[0] }, (p, o) => {
+      if (o.phase === 'Correction') return repondreAvec(false)(p, o)
+      verifs += 1
+      return verifs > 1 ? { faithful: true, issues: [] } : { faithful: false, issues: ['une valeur fausse'] }
+    })
+    assert.deepEqual([apres.domains[0].topics.map((t) => t.faithful), apres.domains[0].agentsSansRendu], [[true], []], 'la correction rejugée sort des trous')
+    const r = assemble(apres.domains[0], { racine: apres, rawDir: join(dossier, 'atlas') })
+    assert.match(readFileSync(r.path, 'utf8'), /Corrige\./)
   } finally {
     rmSync(dossier, { recursive: true, force: true })
   }

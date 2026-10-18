@@ -294,15 +294,15 @@ export type DialogueNode = z.infer<typeof dialogueNodeSchema>;
 
 export type Dialogue = z.infer<typeof dialogueSchema>;
 
-/** Nom AFFICHÉ du locuteur d'un nœud : override par nœud puis speaker de session, résolu en label
- *  d'entité de la scène (jamais un nom en clair stocké, #669). `undefined` si aucun speaker. */
-export function speakerLabel(
-  entities: SceneEntity[],
+/** Entité LOCUTRICE d'un nœud : override par nœud puis speaker de session, résolue dans la scène
+ *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
+export function speakerEntity(
+  entities: readonly SceneEntity[],
   node: { speakerId?: string },
   dialogue: { speakerId?: string }
-): string | undefined {
+): SceneEntity | undefined {
   const id = node.speakerId ?? dialogue.speakerId;
-  return id ? entities.find((e) => e.id === id)?.label : undefined;
+  return id ? entities.find((e) => e.id === id) : undefined;
 }
 
 /** Fenêtre horaire d'un trigger (heure-du-jour, `before` EXCLUSIF). Champs absents = borne ouverte ;

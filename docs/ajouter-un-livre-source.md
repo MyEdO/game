@@ -1,13 +1,13 @@
 # Ajouter un livre source (pipeline complet)
 
 Opération : intégrer au projet un **nouveau livre autorisé** — VF, ou le livre VO nommément
-autorisé au § Sources VF de `CLAUDE.md` — de
+autorisé au § Sources VF d'`AGENTS.md` — de
 son PDF à sa présence dans l'Atlas RAW (`docs/raw/`) et, si besoin, dans `src/data/*.json`. Suit le
 runbook rejoué pour **La Mer des Griffes** (MDG, 15e livre, 2026-06-22 — commits `295f9a40` +
 `819de62d`). Lire d'abord `docs/raw/00-index.md` et `docs/raw/sources.md`.
 
-**Préalable non négociable** (règle 1 de `CLAUDE.md`) : un livre n'entre dans le pipeline que s'il est
-déjà listé au § *Sources VF* du `CLAUDE.md` racine du dossier `Game`, en **VF**. Un livre **VO**
+**Préalable non négociable** (règle 1 d'`AGENTS.md`) : un livre n'entre dans le pipeline que s'il est
+déjà listé au § *Sources VF* d'`AGENTS.md`, à la racine du dépôt, en **VF**. Un livre **VO**
 n'entre que s'il y est **NOMMÉMENT** autorisé ; à ce jour il y en a UN, le *Core Rulebook 5e*
 (arbitrage utilisateur du 2026-09-18, épique #1816). La Boîte d'Initiation
 WFRP 4e est explicitement **exclue** (`docs/raw/sources.md` § *Exclu des règles* — ruleset simplifié
@@ -69,6 +69,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | GRAIN | un fichier porte **UNE section** du livre et **OUVRE** sur le titre que la LISTE DE DÉCOUPE lui donne (`ouverture`) | livre AVEC liste : rouge nommé, sans stock — livre SANS liste : `sans-decoupe` |
 | Mobilier de page | aucun chiffre d'**onglet** de chapitre ni **folio** mêlé au texte | livre dont la liste porte des `onglets` : `mobilier`, rouge nommé, sans stock |
 | Titres d'entrée | aucun gras de tête soudé à une ligne, aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
+| Trait d'union verbe-pronom | aucun pronom soudé à son verbe (`rappelezvous`) ni détaché d'une espace (`rappelez- vous`) ; un mot du livre qui y tombe s'exempte AU SITE dans `scripts/guards/lib/imperatifSoude.mjs` | tout dossier FR : `imperatif-soude`, rouge nommé, sans stock |
 
 **Le GRAIN, et son régime.** Arbitrage utilisateur du 2026-09-21, verbatim : « Oui : un fichier par
 section majeure ». Le grain d'un livre est sa **LISTE DE DÉCOUPE** (§ 2,
@@ -169,6 +170,11 @@ marker_single "$(node scripts/raw/pdf-de.mjs --copie-marker <id>)" --output_form
 Long (~45 min pour un livre dense) — lancer en arrière-plan. `--config_json marker-paginate.json`
 active `paginate_output=true` : le markdown de sortie porte des séparateurs `{N}----` (N = page
 PDF **0-indexée**).
+
+**Diagnostiquer un arrêt** : un `exit 143` au premier plan est le plafond d'appel de l'outil shell,
+pas un tueur — mesurer le temps écoulé. La preuve de vie est la RAM/CPU du process python, jamais la
+taille de la sortie (bufferisée). Un vrai arrêt en fond se relance UNE fois ; au second, extraire par
+tranches `--page_range` de moins de 10 min (§ 2, dossier de tranches).
 
 **Piège connu** : Marker **gate par mise en page** — un livre
 saturé d'illustrations en zones « figure » peut perdre une grosse part du texte en `--disable_ocr`
@@ -435,7 +441,7 @@ Trois points d'enregistrement, dans cet ordre :
      registre, fait LEVER la couture d'énumération (`pagesDeLAtlas`) — donc toutes les gardes `raw:*` ;
    - **R1** — le Sens A du livre passe à tolérance ZÉRO : un chapitre que le code cite et qu'aucune
      fiche ni aucun catalogue de l'Atlas ne porte se CORRIGE à l'Atlas, il ne se stocke PAS dans
-     `scripts/raw/reconciliation-stock.json` (CLAUDE.md règle 1) ; `raw:reconcile` refuse le trou
+     `scripts/raw/reconciliation-stock.json` (AGENTS.md règle 1) ; `raw:reconcile` refuse le trou
      comme l'entrée de stock ;
    - **R2** — le Sens B2 est calculé pour lui : les chapitres que l'Atlas décrit et qu'aucune réf de
      code ni aucune source folio de `src/data` n'atteint deviennent des trous `B2 <ABRÉV> <ch>`,
@@ -480,8 +486,8 @@ Trois points d'enregistrement, dans cet ordre :
    Y ajouter une ligne à la table *Les N livres* (abrév, titre, dossier,
    rôle en une phrase) et incrémenter le compte en tête de fichier (« Le **RAW** du projet = ces
    **N livres** »). Si le livre a des chapitres purement narratifs/de cadre (gazetteer), documenter
-   le partage règles/cadre ici ou dans `CLAUDE.md`.
-3. **`CLAUDE.md`** (§ *Sources VF*) — ajouter l'entrée abrév + dossier + **périmètre par passage** dans
+   le partage règles/cadre ici ou dans `AGENTS.md`.
+3. **`AGENTS.md`** (§ *Sources VF*) — ajouter l'entrée abrév + dossier + **périmètre par passage** dans
    la liste **RÈGLES & STATS** de `docs/sources-vf.md` (arbitrage 2026-07-10 : tout livre FR peut fournir
    des règles ; un livre dont aucune règle n'est extraite reste simplement listé parmi les volumes
    scénario, comme Ubersreik). La curation est toujours *à la main* (voir § 5) ; préciser le tag
@@ -588,6 +594,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    jamais — un agent qui corrige la source qu'il cite ensuite fabrique sa propre preuve. APRÈS un
    run, `git status --porcelain` du worktree doit donc être IDENTIQUE à ce qu'il était AVANT : toute
    écriture apparue rend le rendu suspect (une preuve a pu être fabriquée) et se remonte au ticket.
+   Un agent qui échoue ne coupe pas le run : il entre au rendu du domaine (`agentsSansRendu`, chacun
+   `<label> — <cause>`), ou à la raison de son saut ; une liste non vide se rejoue avant d'assembler.
    Il rend `{ coeur, supplements, domains: […], sautes: [{ domain, raison }] }` —
    `sautes` nomme les domaines qu'il n'a PAS traités (cadrage, inventaire ou taxonomie vides), et
    `assemble-domain` refuse un rendu qui en porte : une fiche absente ne doit pas pouvoir se lire
@@ -684,7 +692,7 @@ Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent j
 > chapitre** (patron `vdm-completude-entites`, cf. run 2026-07-22) : recenser EXHAUSTIVEMENT, **par
 > TYPE** (sort · carrière · compétence · **talent** · trait · qualité · objet/équipement · état ·
 > créature/PNJ · règle · activité · rituel · table · race), tout ce que le livre **ajoute / MODIFIE
-> (variante gatée par le module, cf. [`game-doctrine-une-entite-n-livres-n-variantes`]) / republie**,
+> (variante gatée par le module, cf. [`user-doctrine-une-entite-n-livres-n-variantes`]) / republie**,
 > avec réf `<ABRÉV> NN l.X`. Sortie = un artefact DATÉ `docs/plans/AAAA-MM-JJ-<livre>-inventaire-entites.md`.
 > Puis **RÉCONCILIER** : chaque entité est soit déjà dans `src/data`, soit portée par un ticket. Rien
 > qui flotte. Le livre n'est « fait » que quand l'inventaire est soldé (précédent VDM :
@@ -700,7 +708,7 @@ re-seed automatique — c'est le chemin suivi par AA, ZI, MDG, ACE, MSRC et NADJ
   `mutations.json`, `careers.json`, etc. — 38 fichiers portent ce champ). Certaines données de
   périmètre (activités, véhicules) portent en plus un `where: [...]` qui gate par lieu/contexte
   (ex. `activities.json` avec `"source":{"book":"ACE"}, "where":["altdorf"]`).
-- Coller le texte **verbatim** (règle 5 de `CLAUDE.md`) : aucune reformulation, formatage Markdown
+- Coller le texte **verbatim** (règle 5 d'`AGENTS.md`) : aucune reformulation, formatage Markdown
   conservé (`**gras**`, listes, sauts `\n\n`), jamais de HTML — garde-fou
   `src/data/no-html-in-prose.test.ts`.
 - Toute description mécanique passe par la primitive `<Prose>` (`src/ui/Prose.tsx`) au rendu, pas

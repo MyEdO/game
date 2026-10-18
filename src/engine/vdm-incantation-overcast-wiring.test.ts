@@ -64,7 +64,7 @@ describe('evaluateMissile — le Projectile magique regagne ses Dégâts (`VDM 0
 
   it('option ON AVEC 3 DR alloués à l’axe Dégâts : les Dégâts sont réparés', () => {
     setRule(RULE, true);
-    const r = evaluateMissile(caster, target, projectile as never, crit(3), undefined, 0, 3);
+    const r = evaluateMissile(caster, target, projectile as never, crit(3), undefined, 3);
     expect(r.damage).toBe(4 + 4 + 3); // Dégâts du Sort + BFM + bonus de Surincantation (palier 3)
   });
 });

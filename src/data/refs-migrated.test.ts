@@ -1,7 +1,7 @@
 /**
  * Garde-fou INVARIANT (multilangue) : les champs de référence migrés ne contiennent QUE des refs
  * STRUCTURÉES (par id), jamais de libellé brut, et les ids de catalogue résolvent. Toute régression
- * (un libellé qui se faufile, un id fantôme) casse ici. Cf. `CLAUDE.md` § Pour TOUT agent.
+ * (un libellé qui se faufile, un id fantôme) casse ici. Cf. `AGENTS.md` § Pour TOUT agent.
  */
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
@@ -898,7 +898,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
 
 // ── GARDE DE CLASSE — `appearance.species` = id STABLE du domaine de saisie (`fauteDEspece`,
 // `grammaire/art.ts`), jamais un LIBELLÉ. `species` absent = OK.
-// Cf. `CLAUDE.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
+// Cf. `AGENTS.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
 describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais un libellé', () => {
   function collect(node: unknown, where: string, out: string[]): void {
     if (Array.isArray(node)) { node.forEach((x, i) => collect(x, `${where}[${i}]`, out)); return; }

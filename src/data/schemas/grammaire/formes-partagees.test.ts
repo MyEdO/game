@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { nommerChamps, metaDesChamps } from './meta';
 import { trappingRefSchema } from './reference';
 import { flowTestSchema, gameOpSchema } from './mecanique';
-import { TESTS_DE_CORRUPTION, bornesSchema, ecartDeCoPresenceDesBornes, plageOuverteSchema, plageSchema } from './valeurs';
+import { TESTS_DE_CORRUPTION, bornesSchema, ecartDeCoPresenceDesBornes, ecartsDeCouverture, plageOuverteSchema, plageSchema } from './valeurs';
 import { schemaForFile, validateDataset, validateDocument } from '../validate';
 import criticals from '../../criticals.json';
 import localisation from '../../localisation.json';
@@ -182,7 +182,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['steam-breakdown.json', steamBreakdown],
   ];
 
-  /** Chemin de la PREMIÈRE rangée `{min, max}` numériques rencontrée en parcours stable. */
+  /** Chemin de la PREMIÈRE rangée `{min, max}` rencontrée en parcours stable — borne numérique, ou `null` d’une bande OUVERTE. */
   const premiereFourchette = (v: unknown, chemin: string[] = []): string[] | null => {
     if (Array.isArray(v)) {
       for (const [i, e] of v.entries()) {
@@ -193,7 +193,8 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     }
     if (v && typeof v === 'object') {
       const o = v as Record<string, unknown>;
-      if (typeof o.min === 'number' && typeof o.max === 'number') return chemin;
+      const borne = (b: unknown) => typeof b === 'number' || b === null;
+      if (borne(o.min) && borne(o.max)) return chemin;
       for (const [k, e] of Object.entries(o)) {
         const t = premiereFourchette(e, [...chemin, k]);
         if (t) return t;
@@ -293,19 +294,29 @@ describe('corruptionExposure.skill — borné aux deux Compétences du Test (LDB
 
 /**
  * `plageOuverteSchema` (`grammaire/valeurs.ts`, #1463 L-gram-1) — la fourchette dont la DERNIÈRE
- * bande n'a pas de plafond (`max: null` ; LDB 07 l.49, bande « 71 et + » l.70). Même angle mort
+ * bande n'a pas de plafond (`max: null` ; LDB 07 l.49, bande « 71 et + » l.70), ou la PREMIÈRE pas de
+ * plancher (`min: null` ; MDG 14 l.199, « 50 ou moins »). Même angle mort
  * qu'au-dessus : le scanner ne résout pas un spread, le gate est donc POSITIF et passe par la porte
  * réelle (`validateDataset`).
  */
-describe('plageOuverteSchema — la bande FINALE reste OUVERTE', () => {
-  it('accepte `max: null` et un plafond chiffré, REFUSE `max` absent et une borne non numérique', () => {
+describe('plageOuverteSchema — la bande EXTRÊME reste OUVERTE', () => {
+  it('accepte `max: null`, `min: null` et des bornes chiffrées, REFUSE une borne absente et une borne non numérique', () => {
     expect(plageOuverteSchema.safeParse({ min: 71, max: null }).success).toBe(true);
+    expect(plageOuverteSchema.safeParse({ min: null, max: 50 }).success).toBe(true);
     expect(plageOuverteSchema.safeParse({ min: 0, max: 5 }).success).toBe(true);
     for (const cas of [{ min: 71 }, { max: null }, { min: 71, max: '∞' }]) {
       expect(plageOuverteSchema.safeParse(cas).success, `${JSON.stringify(cas)} a été ACCEPTÉ`).toBe(false);
     }
     // Le nœud OUVERT ne se substitue pas au fermé : `plageSchema` refuse toujours la borne ouverte.
     expect(plageSchema.safeParse({ min: 71, max: null }).success).toBe(false);
+  });
+
+  it("couverture `ecartsDeCouverture(…, 'ouverte', 'ouverte')` : plancher et plafond ouverts exigés, aux deux bouts seulement", () => {
+    const nom = (f: { min: number | null; max: number | null }) => `[${f.min},${f.max}]`;
+    expect(ecartsDeCouverture([{ min: 51, max: 100 }, { min: null, max: 50 }, { min: 101, max: null }], 'ouverte', 'ouverte', nom)).toEqual([]);
+    expect(ecartsDeCouverture([{ min: 0, max: 50 }, { min: 51, max: null }], 'ouverte', 'ouverte', nom)).toHaveLength(1);
+    expect(ecartsDeCouverture([{ min: null, max: 50 }, { min: 51, max: null }], 0, 'ouverte', nom)).toHaveLength(1);
+    expect(ecartsDeCouverture([{ min: null, max: 50 }, { min: null, max: 70 }], 'ouverte', 70, nom)).toHaveLength(1);
   });
 
   it('advancementCosts.json : sa donnée réelle passe, la MÊME bande sans `min` est REFUSÉE', () => {

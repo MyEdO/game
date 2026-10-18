@@ -222,16 +222,13 @@ function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null 
 // --- Migration ISO-COMPORTEMENT des derniers blocs du franchissement de Round (corps copiés tel quel,
 //     `ctx.sink` remplace `tickLine`). Pas de hook suspensif (aucun pending). ---
 registerCombatHook({
-  id: 'tick-death', // 0 PB → Inconscient après BE Rounds (LDB 18 l.15) — désactivé en mode AA (cf. tickDeath)
+  id: 'tick-death', // LDB 18 l.15, dans les deux modes : #1595 c.6219559935
   phase: 'onRoundEnd',
   order: 76,
   run: ({ battle, sink }) => { for (const c of battle.combatants) tickDeath(c).forEach((l) => sink(l, c)); },
 });
 registerCombatHook({
-  // Aux Armes (AA 07 l.5) : dans le système ALTERNATIF de Blessures, on ne tombe PAS Inconscient d'office à
-  // 0 PB (le décompte LDB de `tick-death` est neutralisé) — c'est l'État Hémorragique qui l'impose : « à
-  // la fin de chaque Tour [modélisé au franchissement de Round, comme tout l'entretien de mort], vous devez
-  // réussir un Test de Résistance Intermédiaire (+0) sous peine de subir immédiatement l'État Inconscient ».
+  // AA 07 l.5, en plus du décompte de `tick-death` (LDB 18 l.15 ; #1595 c.6219559935), qui passe avant (76).
   // RÈGLE DE MORT/machinerie (comme `tick-death`/`bleed-death`) gatée par le mode ; NOMME Hémorragique tout
   // comme `bleed-death`. Résolu AVANT `bleed-death` (77) : un combattant qui tombe Inconscient ICI devient
   // éligible au jet de mort par hémorragie le même Round. Porteur SURFACÉ → différé à la cascade d'entretien
@@ -259,15 +256,11 @@ registerCombatHook({
   phase: 'onRoundEnd',
   order: 77,
   run: ({ battle, sink }) => {
-    // Aux Armes (l.2451) : le jet de mort par hémorragie (10 %/pion) exige d'être à la fois Inconscient ET
-    // Hémorragique. LDB (l.105, hook d'origine) : jet pour tout bleeder encore actif (isOutOfAction exclut
-    // déjà l'Inconscient). La coagulation sur un double (retire 1 pion, +Exténué si vidé) est identique aux
-    // deux systèmes → même `bleedDeathRoll`, seul le prédicat d'éligibilité diffère selon le mode.
-    const aa = rule('combat-aa-blessures') === 'aa';
+    // LDB 16 l.105 ; AA 07 l.7 ; #1595 c.6240485441
     const doomed: { id: string; deathLine: string }[] = [];
     for (const c of battle.combatants) {
-      if (c.dead || c.outOfRencontre || !stacks(c, COND.hemorragique)) continue;
-      if (aa ? !hasCondition(c, COND.inconscient) : isOutOfAction(c)) continue;
+      const eligible = !c.dead && !c.outOfRencontre && c.wounds.current <= 0 && hasCondition(c, COND.inconscient) && stacks(c, COND.hemorragique) > 0;
+      if (!eligible) continue;
       const bd = bleedDeathRoll(c, battleRng());
       if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)
       else bd.log.forEach((l) => sink(l, c)); // coagulation (double) : retrait + éventuel Exténué, visible de suite

@@ -12,15 +12,22 @@
 // Et la couverture se juge AVANT de lancer : un test orphelin (aucune racine) ou revendiqué par deux
 // gates ne doit pas être découvert APRÈS coup, par un vert qui ne prouve rien.
 //
+// Le lancement prend le verrou machine des gestes lourds (`verrouGestesLourds.mjs`, #2603), ou l'emprunte
+// par le jeton de son appelant, lance `node --test` en enfant direct, lui relaie SIGINT et SIGTERM, et le rend à la
+// sortie de l'enfant
+// (#2586 c.6244746949).
+//
 // Les DURÉES par fichier (#2497) : le reporter `dureesNodeTest.mjs` écrit sous `os.tmpdir()`, puis la ligne
 // `[durees] node <gate> {json}` (`ligneDeDurees`) les imprime au journal, lu par `scripts/test/dureesCi.mjs`.
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { GATES, RACINES, couverture, listerTests, testsDe } from '../gates/testsParGate.mjs'
-import { codeEnfant } from './partition.mjs'
+import { prendreVerrouAsync } from './verrou.mjs'
+import { verrouGestesLourds } from './verrouGestesLourds.mjs'
+import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -52,58 +59,110 @@ export function reportersDuLancement(drapeaux, { tty, sortie, versionNode = proc
 export const ligneDeDurees = (gate, durees, racine) =>
   `[durees] node ${gate} ${JSON.stringify(Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relative(racine, f).split(sep).join('/'), Math.round(ms)])))}`
 
-/**
- * Lance `node --test` sur les `tests` de la gate `gate` depuis `racine` (`reportersDuLancement`), imprime la ligne de
- * ses durées (`ligneDeDurees`) si le reporter en a rendu, efface son dossier temporaire (sous `temporaire`) et rend le code
- * de sortie.
- * @param {{ gate: string, tests: string[], drapeaux?: string[], racine?: string, temporaire?: string, tty?: boolean, spawn?: typeof spawnSync, imprimer?: (ligne: string) => void }} p
- */
-export function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, spawn = spawnSync, imprimer = console.log }) {
-  const dossier = mkdtempSync(join(temporaire, 'durees-node-'))
+/** Le rapport des durées `sortie`, `null` s'il est absent (le reporter n'a rien rendu) ; illisible, LÈVE avec `{ cause }`. */
+function dureesDe(sortie) {
   try {
-    const sortie = join(dossier, 'durees.json')
-    const { status, signal } = spawn(process.execPath, ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie }), ...tests], {
-      cwd: racine,
-      stdio: 'inherit',
-    })
-    let lu = null
-    try { lu = JSON.parse(readFileSync(sortie, 'utf8')) } catch { lu = null }
-    if (lu?.durees) imprimer(ligneDeDurees(gate, lu.durees, racine))
-    return codeEnfant(status, signal)
-  } finally {
-    rmSync(dossier, { recursive: true, force: true })
+    return JSON.parse(readFileSync(sortie, 'utf8'))
+  } catch (cause) {
+    if (/** @type {any} */ (cause)?.code === 'ENOENT') return null
+    throw new Error(`rapport des durées ${sortie} illisible`, { cause })
   }
 }
 
-if (import.meta.main) {
-  const gate = process.argv[2]
-  const drapeaux = process.argv.slice(3)
+/**
+ * Lance `node --test` sur les `tests` de la gate `gate` depuis `racine` (`reportersDuLancement`), sous le verrou
+ * `verrou` (par défaut `verrouGestesLourds(racine)`) pris par `prendreVerrouAsync` avec `env` (le jeton d'un
+ * appelant s'y emprunte) : refusé, il imprime le refus et rend `CODE_DIFFERE`. Pris, `enfant` (`spawn`) lance
+ * `node --test` en direct, sorties héritées, l'env augmenté du jeton de la prise ; un SIGINT ou SIGTERM du processus
+ * est relayé à l'enfant, et le verrou ne se rend qu'à sa fermeture. Un échec de lancement, levé par `enfant` ou émis
+ * en `'error'`, s'imprime et vaut 1 (`codeEnfant` : un enfant qui n'a pas réussi). Imprime la ligne des durées
+ * (`ligneDeDurees`) si le reporter en a rendu. À la fermeture de l'enfant, le dossier temporaire (sous `temporaire`)
+ * s'efface, les relais se retirent et le verrou se rend. Rend le code de sortie de l'enfant (`codeEnfant`) ; un
+ * rapport des durées illisible LÈVE (`dureesDe`).
+ * @param {{ gate: string, tests: string[], drapeaux?: string[], racine?: string, temporaire?: string, tty?: boolean,
+ *   enfant?: typeof spawn, imprimer?: (ligne: string) => void, env?: NodeJS.ProcessEnv,
+ *   verrou?: Pick<Parameters<typeof prendreVerrouAsync>[0], 'chemin' | 'libelle' | 'attente' | 'identite'> }} p
+ */
+export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, enfant = spawn, imprimer = console.log, env = process.env, verrou }) {
+  const prise = await prendreVerrouAsync({ ...(verrou ?? verrouGestesLourds(racine)), env, cwd: racine, commande: 'node-tests ' + gate })
+  if (prise.etat !== 'pris') { imprimer(prise.message); return CODE_DIFFERE }
+  const dossier = mkdtempSync(join(temporaire, 'durees-node-'))
+  /** @type {((s: NodeJS.Signals) => void) | null} */
+  let relayer = null
+  try {
+    const sortie = join(dossier, 'durees.json')
+    const code = await new Promise((rendre) => {
+      const echouer = (e) => imprimer(`[node-tests] lancement de node --test impossible : ${e.message}`)
+      let p
+      try {
+        p = enfant(process.execPath, ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie }), ...tests],
+          { cwd: racine, stdio: 'inherit', env: { ...env, ...prise.env } })
+      } catch (e) {
+        echouer(e)
+        rendre(1)
+        return
+      }
+      relayer = (s) => { p.kill(s) }
+      process.on('SIGINT', relayer)
+      process.on('SIGTERM', relayer)
+      let echec = false
+      p.on('error', (e) => { echec = true; echouer(e) })
+      p.on('close', (c, s) => rendre(echec ? 1 : codeEnfant(c, s)))
+    })
+    const lu = dureesDe(sortie)
+    if (lu?.durees) imprimer(ligneDeDurees(gate, lu.durees, racine))
+    return code
+  } finally {
+    if (relayer) {
+      process.removeListener('SIGINT', relayer)
+      process.removeListener('SIGTERM', relayer)
+    }
+    rmSync(dossier, { recursive: true, force: true })
+    prise.liberer()
+  }
+}
+
+/**
+ * L'ENTRÉE de la CLI sur `argv` (`<gate> [drapeaux…]`) : usage, couverture des tests de
+ * `lister`, puis `lancer` (`lancerGate`). REND le code de sortie : 2 sur un usage, une répartition ou une gate vide
+ * fautifs, et sur toute erreur levée, imprimée par `journal` préfixée `[node-tests]`, sa cause comprise (#2586).
+ * @param {string[]} argv
+ * @param {{ lancer?: typeof lancerGate, lister?: () => string[], journal?: (ligne: string) => void }} [p]
+ */
+export async function entree(argv, { lancer = lancerGate, lister = () => listerTests(RACINE), journal = console.error } = {}) {
+  const gate = argv[0]
+  const drapeaux = argv.slice(1)
   if (!gate || !GATES.includes(gate)) {
-    console.error(
+    journal(
       '[tests] usage : node scripts/test/node-tests.mjs <gate> [drapeaux de `node --test`…] — ' +
         `gates connues : ${GATES.join(', ')}${gate ? ` (reçu « ${gate} »)` : ''}`,
     )
-    process.exit(2)
+    return 2
   }
-
-  const lister = () => listerTests(RACINE)
-  const { orphelins, doublons } = couverture(lister)
-  if (orphelins.length || doublons.length) {
-    console.error(
-      `[tests] répartition incomplète — rien n'est lancé.\n` +
-        orphelins.map((t) => `  orphelin (aucune gate ne le joue) : ${t}`).join('\n') +
-        (orphelins.length && doublons.length ? '\n' : '') +
-        doublons.map((d) => `  doublon (${d.gates.join(' + ')}) : ${d.test}`).join('\n') +
-        '\n  remède : donne son répertoire à UNE gate dans scripts/gates/testsParGate.mjs',
-    )
-    process.exit(2)
+  try {
+    const { orphelins, doublons } = couverture(lister)
+    if (orphelins.length || doublons.length) {
+      journal(
+        `[tests] répartition incomplète — rien n'est lancé.\n` +
+          orphelins.map((t) => `  orphelin (aucune gate ne le joue) : ${t}`).join('\n') +
+          (orphelins.length && doublons.length ? '\n' : '') +
+          doublons.map((d) => `  doublon (${d.gates.join(' + ')}) : ${d.test}`).join('\n') +
+          '\n  remède : donne son répertoire à UNE gate dans scripts/gates/testsParGate.mjs',
+      )
+      return 2
+    }
+    const tests = testsDe(gate, lister)
+    if (!tests.length) {
+      journal(`[tests] ${gate} : aucun test sous ses racines (${RACINES[gate].join(', ')}) — table ou arbre à revoir`)
+      return 2
+    }
+    return await lancer({ gate, tests, drapeaux })
+  } catch (erreur) {
+    const e = /** @type {any} */ (erreur)
+    journal(`[node-tests] ${e?.message ?? String(e)}`)
+    if (e?.cause !== undefined) journal(`[node-tests] cause : ${e.cause?.message ?? String(e.cause)}`)
+    return 2
   }
-
-  const tests = testsDe(gate, lister)
-  if (!tests.length) {
-    console.error(`[tests] ${gate} : aucun test sous ses racines (${RACINES[gate].join(', ')}) — table ou arbre à revoir`)
-    process.exit(2)
-  }
-
-  process.exit(lancerGate({ gate, tests, drapeaux }))
 }
+
+if (import.meta.main) process.exitCode = await entree(process.argv.slice(2))

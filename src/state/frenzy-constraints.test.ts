@@ -23,7 +23,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const foes = b.combatants.filter((c) => c.kind === 'enemy');
     const [E1, E2] = foes;
-    for (const e of foes.slice(2)) e.wounds.current = 0;
+    for (const e of foes.slice(2)) e.dead = true;
     H.pos = { x: 6, y: 10 };
     (H.psychState ??= []).push({ type: 'frenesie' });
     E1.pos = { x: 8, y: 10 }; // le plus PROCHE (2 cases)
@@ -84,7 +84,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
   it('COURSE imposée : au-delà de la Marche, VERS la cible, SANS case Course armée → la Course part', () => {
     const { E1, E2 } = setup();
     const b = useGame.getState().battle!;
-    b.combatants.find((c) => c.id === E2.id)!.wounds.current = 0; // E1 reste la cible imposée
+    b.combatants.find((c) => c.id === E2.id)!.dead = true; // E1 reste la cible imposée
     b.combatants.find((c) => c.id === E1.id)!.pos = { x: 14, y: 10 };
     useGame.setState({ battle: { ...b }, localIntent: null, refus: null, pendingRun: null });
     const loin = { x: 11, y: 10 }; // 5 cases : au-delà de la Marche (M4), et ça RAPPROCHE de la cible

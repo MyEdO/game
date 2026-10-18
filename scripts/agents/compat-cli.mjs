@@ -12,7 +12,7 @@ const posix = (chemin) => chemin.replaceAll('\\', '/');
 const DOSSIER_DES_REGISTRES = posix(relative(RACINE_DU_DEPOT, join(dirname(CE_MODULE), '..', 'hooks')));
 
 /** Ce que `snapshot` lit : des fichiers, et des dossiers parcourus en entier. */
-const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
+const FICHIERS_LUS = [SURFACE_CLAUDE, SURFACE_CODEX];
 const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
 /** Les entrées NON-JS d'une production : ce que `snapshot` lit hors des `DESTINATIONS`. */
 export const ENTREES_DU_PRODUCTEUR = [...FICHIERS_LUS, ...DOSSIERS_LUS].filter((rel) => !DESTINATIONS.some((r) => rel === r || rel.startsWith(`${r}/`)));

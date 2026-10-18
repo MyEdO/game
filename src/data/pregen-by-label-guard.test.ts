@@ -7,7 +7,7 @@ import { estSuiteVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 /**
  * Garde-fou « prégénéré retrouvé PAR LABEL » (#322) : un test ne retrouve JAMAIS un `PregenDef`
  * (`pregens.json`) via `.find(… => x.name === '<nom affiché>')`/`.name.startsWith('<préfixe>')` — le
- * label est de l'AFFICHAGE (CLAUDE.md, doctrine ids), fragile à tout renommage. La source unique est
+ * label est de l'AFFICHAGE (AGENTS.md, doctrine ids), fragile à tout renommage. La source unique est
  * `pregen(PREGEN.<clé>)` / `pregenParty(...)` (`src/data/pregens.ts`), résolution par id STABLE
  * (`pregen-<seed>`) qui JETTE explicitement si absent. ZÉRO TOLÉRANCE (pas de baseline cliquet) :
  * la migration (#322) a ramené le compte à 0 sur les 42 sites recensés (16 fichiers `src/state` +

@@ -27,6 +27,7 @@ import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
+import { fourchette } from '../engine/tables';
 import { estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
@@ -41,6 +42,8 @@ import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, Seuil
 import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
+import { useIdentites } from './useIdentites';
+import { nommer } from '../state/identites';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -56,13 +59,6 @@ export function jetStepPresentable(step: CascadeStep, actor: Combatant | undefin
  *  key »). Site UNIQUE de la clé, partagé par la pile figée et la rangée batch courante. */
 export const witnessRowKey = (stepId: string, participantId?: string): string =>
   participantId != null ? `${stepId}:${participantId}` : stepId;
-
-/** Fourchette d'une ligne de table, telle qu'elle se lit sur le tableau imprimé : bornes cadrées sur
- *  les faces du dé (d100 → « 01-50 », d10 → « 1-5 »). Une ligne à borne unique ne s'écrit pas « 7-7 ». */
-export function fourchette(min: number, max: number, dieMax: number): string {
-  const pad = (n: number) => (dieMax >= 100 ? String(n).padStart(2, '0') : String(n));
-  return min === max ? pad(min) : `${pad(min)}-${pad(max)}`;
-}
 
 /** GRAPHIE UNIQUE du seuil d'un dé (#1508) : le Trait à son Indice, et sa PROVENANCE quand une zone
  *  l'octroie (« Protection (6+) du Dôme »). Dite AVANT le lancer, dans la cellule centrale de la
@@ -118,6 +114,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingCascade);
+  const identites = useIdentites();
   const pursuit = useGame((s) => pursuitOf(s)); // manche de poursuite (séquence `pursuit`) — porte partyRole/encounter
   const pursuitAbandon = useGame((s) => s.pursuitAbandon);
   const batchRoll = useGame((s) => s.cascadeBatchRoll); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
@@ -359,7 +356,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // textuel sous la phrase d'enjeu. La nuance de #1078 tient : les CHIPS restent leurs propres
   // portes (aucun ⓘ voisin) — ceci ne vaut que pour la ligne de TITRE. Le sous-titre, lui, ne garde
   // que la position (« jet N/M »).
-  const modalTitle = mdToText(cur.label ?? p.title);
+  const modalTitle = mdToText(nommer(cur.label ?? p.title, identites));
   const titleNode = (
     <>
       <Icon id={cur.icon || p.icon || 'nav/dice'} size="sm" /> {modalTitle}
@@ -547,7 +544,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
               récapitulatif reste plus lisible que N infobulles identiques. */}
           {unreachable > 0 && (
             <p className="hint" id={`${s.id}-unreachable`}>
-              {unreachable} ligne{unreachable > 1 ? 's' : ''} grisée{unreachable > 1 ? 's' : ''} : hors d'atteinte avec le modificateur {mod > 0 ? '+' : '−'}{Math.abs(mod)} (dé de 1 à {dieMax}).
+              {unreachable} ligne{unreachable > 1 ? 's' : ''} grisée{unreachable > 1 ? 's' : ''} : hors d'atteinte{mod !== 0 ? ` avec le modificateur ${mod > 0 ? '+' : '−'}${Math.abs(mod)}` : ''} (dé de 1 à {dieMax}).
             </p>
           )}
         </>
@@ -741,13 +738,13 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         postRollExtra={
           <>
             {rev?.kind === 'critical' && <CriticalBody entry={rev} actor={revActor} subject={revSubject} />}
-            {cur.label && <Prose md={cur.label} />}
+            {cur.label && <Prose md={cur.label} paquet />}
             {!rev && cur.outcome?.length ? <RecapLineList lines={cur.outcome} /> : null}
             <OptionChooser
               layout="grid"
-              groupLabel={cur.label ? mdToText(cur.label) : undefined}
+              groupLabel={cur.label ? mdToText(nommer(cur.label, identites)) : undefined}
               options={(cur.options ?? []).map((o) => ({
-                key: o.key, label: mdToText(o.label), title: o.detail ? mdToText(o.detail) : undefined,
+                key: o.key, label: mdToText(nommer(o.label, identites)), title: o.detail ? mdToText(o.detail) : undefined,
                 ...(o.refus ? { refus: o.refus } : {}),
                 selected: cur.chosen === o.key,
                 onSelect: () => choose(cur.id, o.key),

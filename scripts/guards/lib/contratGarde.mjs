@@ -1,14 +1,19 @@
-// CONTRAT d'une garde d'appel d'outil (#2125) : `garde = { nom, outils, evaluer(entree, contexte) }`,
+// CONTRAT d'une garde d'appel d'outil (#2125) : `garde = { nom, categorie, outils, evaluer(entree, contexte) }`,
 // `evaluer` PUR (ni stdin, ni sortie, ni état de module), éventuellement `async`. Il rend `null`, un
 // verdict, ou une liste de verdicts :
-//   - `{ decision: 'deny', raison }` — un refus, dont la raison dit quoi faire à la place ;
+//   - `{ decision: 'deny', raison, categorie? }` — un refus, dont la raison dit quoi faire à la place ; le
+//     répartiteur la préfixe de `[catégorie · retentable]` (`categorieDeRefus.mjs`, #2726), celle du verdict
+//     sinon celle de la garde, que seule une garde qui peut refuser déclare ;
 //   - `{ contexte }` — du contexte transmis à l'agent ;
 //   - `{ trace: { fichier, ligne } }` — une ligne que le répartiteur AJOUTE au fichier.
+// Une garde au `role` `PROJECTION` ne fait que transmettre du contexte : le répartiteur tient pour une panne
+// toute `decision` qu'elle rendrait (`evaluerGardes`), et les règles de couverture des gardes de CONTRÔLE ne
+// la visent pas.
 // Le répartiteur (`scripts/hooks/repartition.mjs`) lit, construit le contexte, évalue et cumule.
 // Aucune garde ne DEMANDE (`ask`) : doctrine `user-doctrine-gardes-jamais-de-ask` (2026-09-28).
 import { dirname, relative, resolve, sep } from 'node:path'
 import { ancetreExistant, canoniser } from '../../docs/lib/chemin-mesure.mjs'
-import { depotAuxPannes, estIgnore, racineSurDisque } from './gitPorte.mjs'
+import { arbrePrincipal, depotAuxPannes, depotDe, estIgnore, racineSurDisque } from './gitPorte.mjs'
 import { versCheminNatif } from './commandeShell.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
@@ -38,6 +43,13 @@ export const LECTURE = 'lecture'
 export const EDITION = 'edition'
 export const SHELL = 'shell'
 export const PASSERELLE = 'passerelle'
+
+/** Le `role` d'une garde qui ne décide jamais : elle projette du contexte. */
+export const PROJECTION = 'projection'
+
+/** La racine contre laquelle lean-ctx résout un `path` ou un `cwd` relatif : l'arbre principal du dépôt de
+ *  `hook` (`arbrePrincipal`), `{ disponible, valeur }` ou `{ disponible: false, raison }`. */
+export const racineDeLeanCtx = (hook) => arbrePrincipal(depotDe(hook))
 
 export const PREFIXES_LEAN_CTX = Object.freeze({ claude: 'mcp__lean-ctx__', codex: 'mcp__lean_ctx__' })
 const PREFIXE_LEAN_CTX = PREFIXES_LEAN_CTX.claude
@@ -123,7 +135,7 @@ const outilsDeFamille = (famille) => Object.keys(FAMILLES_LEAN_CTX).filter((nu) 
 export const OUTILS_SHELL = ['Bash', 'PowerShell', ...outilsDeFamille(SHELL)]
 
 /** Les canaux d'écriture de fichier : Write, Edit, NotebookEdit, apply_patch, et la famille ÉDITION de lean-ctx
- *  (`ctx_patch`, le canal prescrit par `~/.claude/CLAUDE.md`). */
+ *  (`ctx_patch`). */
 export const OUTILS_ECRITURE = ['Write', 'Edit', 'NotebookEdit', 'apply_patch', ...outilsDeFamille(EDITION)]
 
 /** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas, `NotebookEdit` crée une cellule. */
@@ -395,8 +407,8 @@ export function texteAvant(ecrit, lire) {
   return lignesVisees(ecrit, lire()) ?? ''
 }
 
-/** Le verdict d'un refus d'évaluateur `{ reason }`, `null` sans refus. */
-export const verdictDe = (d) => (d ? { decision: 'deny', raison: d.reason } : null)
+/** Le verdict d'un refus d'évaluateur `{ reason, categorie? }` (sa catégorie prime celle de la garde), `null` sans refus. */
+export const verdictDe = (d) => (d ? { decision: 'deny', raison: d.reason, ...(d.categorie ? { categorie: d.categorie } : {}) } : null)
 
 /**
  * Décision d'ensemble d'un cumul de refus `{ reason }` : `null` sans refus, sinon un `deny` qui porte

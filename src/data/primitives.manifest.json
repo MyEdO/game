@@ -2,10 +2,10 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "label": "mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "descendance et arrêt des gates, mesure des identités PID et création, chaîne des ancêtres validée par dates et protégée des cycles",
-    "perimetre": "gates locales, supervision du push et des hooks, train de publication",
+    "concept": "inspection des identités PID et création et chaîne des ancêtres validée par dates et protégée des cycles",
+    "perimetre": "protection Git et supervision des hooks, publication isolée ; inspection sans autorité de clôture",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
   {
@@ -20,11 +20,11 @@
   {
     "id": "superviserProcessus",
     "type": "primitives.manifest",
-    "label": "superviserProcessus/sortieDeSupervision",
+    "label": "lancerProcessusSupervise/superviserProcessus/sortieDeSupervision",
     "fichier": "scripts/guards/lib/superviserProcessus.mjs",
-    "concept": "commande asynchrone possédée avant lancement par un hôte OS : Job Windows ou subreaper Linux, worker Node fixe et IPC mémoire séparé de stdin ; environnement et résultat sans persistance, gardiens Git datés, générique sans mesure et nettoyage confirmé avant résultat",
-    "perimetre": "gitPorte.pousser, wrapper pre-push, train de publication ; Job natif partagé scripts/guards/lib/processusJob.cs avec scripts/ops/session-process.ps1 ; hoteSupervision.ps1 et hoteSupervision.py exécutent enfantSupervise.mjs",
-    "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
+    "concept": "fabrique asynchrone commune de domaine natif : vrai ChildProcess hôte et contrôle séparé, cible authentifiée par instance IPC, requêtes synchrones de vue mémoire working-set et attribution sur instances natives tenues (Windows ; refusées ENONSUPPORTE sous Linux), clôture exclusive et certificat zéro natif joints au résultat cible et au close des flux ; projection pure de cible et transaction unique du contrôle des écritures",
+    "perimetre": "spawnBorne, gates, familles Node mesurées, hooks et publication ; Windows processusJob.cs/hoteSupervision.ps1, Linux hoteSupervision.py (subreaper), worker enfantSupervise.mjs ; propriétaire des canaux et fichiers privés v1",
+    "verrou": "scripts/guards/lib/superviserProcessus.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },
   {
     "id": "screenShell",
@@ -243,6 +243,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "fourchette",
+    "type": "primitives.manifest",
+    "label": "fourchette",
+    "fichier": "src/engine/tables.ts",
+    "concept": "graphie d'une bande de table (« 01–50 », « 96+ », « ≤50 », « −4 à −3 »)",
+    "perimetre": "toute bande de table affichée dans src/ui : tuile d'étape à table, Codex, création de personnage",
+    "verrou": "src/ui/bande-en-ligne-guard.test.ts (scripts/guards/lib/bandeEnLigne.mjs)"
+  },
+  {
     "id": "baseTestMods",
     "type": "primitives.manifest",
     "label": "baseTestMods",
@@ -419,9 +428,18 @@
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
     "css": "src/ui/styles/team-segments.css",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
+    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée ; `paquet` : prose de paquet nommée par les identités en vigueur (`nommer`), exclusive des annotations",
     "perimetre": "tout champ de prose RAW",
-    "verrou": "no-html-in-prose.test.ts"
+    "verrou": "no-html-in-prose.test.ts, src/ui/prose-sites.test.ts"
+  },
+  {
+    "id": "identites",
+    "type": "primitives.manifest",
+    "label": "nommer/identitesResolues/useIdentites",
+    "fichier": "src/state/identites.ts",
+    "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
+    "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
+    "verrou": "src/state/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "resolveRender",
@@ -757,7 +775,7 @@
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
     "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
-    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
   },
@@ -805,6 +823,15 @@
     "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
     "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
+  },
+  {
+    "id": "suite",
+    "type": "primitives.manifest",
+    "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
+    "fichier": "src/state/combatEffects.ts",
+    "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
+    "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
+    "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "creatorDice",
@@ -1669,9 +1696,9 @@
   {
     "id": "racinesBalayees",
     "type": "primitives.manifest",
-    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE/requeteDe/partiesDeRequete",
+    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/evaluerLotDuDepot/APPEL_DE_LECTURE/requeteDe/partiesDeRequete/encoderLecture/decoderLecture/mesureLecture/certifierLecture",
     "fichier": "scripts/guards/lib/racinesBalayees.mjs",
-    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo ; fonctions anonymes désignées par un id dans le lexique de leur module ; lecture d'un module sérialisée en IR JSON borné (encoder, mesurer, décoder) puis certifiée une fois pour son module, chaîne non vide (décodée, sans lien, gelée ; un module illisible reçoit un témoin certifié, lu nul), et évaluation d'un lot de questions sur ces lectures certifiées, par un noyau fermé neuf qui refuse par une erreur nommée toute lecture non certifiée (nulle comprise), celle d'un autre module, un module hors domaine, un module lu deux fois et tout lot hors domaine (lectures, résolutions, lecteurs, questions : tableaux nus validés entrée par entrée à leur indice, valeurs propres sans accesseur), et ne consomme que la copie qu'il a validée, sans accès au disque, à clés structurelles, au même résultat qu'une évaluation directe ; le JSON du résultat de chaque question est son canal de détachement du noyau",
     "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
     "verrou": "racinesBalayees.test.mjs"
   },
@@ -1687,7 +1714,7 @@
   {
     "id": "commandeShell",
     "type": "primitives.manifest",
-    "label": "pipelinesProfonds/pipelinesDeJetons/texteDuSegment/jetonNu/sansRedirections/ciblesDeRedirection/ciblesDeRedirectionAvecProvenance/cibleDeLaCommande/affectationPowerShell/CHANGEMENTS_DE_REPERTOIRE",
+    "label": "pipelinesProfonds/pipelinesDeJetons/texteDuSegment/jetonNu/passeParLeLanceurLocal/sansRedirections/ciblesDeRedirection/ciblesDeRedirectionAvecProvenance/cibleDeLaCommande/affectationPowerShell/CHANGEMENTS_DE_REPERTOIRE",
     "fichier": "scripts/guards/lib/commandeShell.mjs",
     "concept": "lecture canonique des commandes shell : jetons avec provenance des quotes, pipelines profonds et identité des scopes ; texte d'un segment conservant les raw des jetons ; arguments et cibles de redirection, avec provenance ; cwd nommé par la commande et affectations PowerShell ; les valeurs persistantes d'un segment distinguent affectation autonome et préfixe d'environnement",
     "perimetre": "toutes gardes et portes qui interprètent une commande shell, ses chemins, ses porteurs ou ses redirections",
@@ -1723,9 +1750,9 @@
   {
     "id": "processusWorktrees",
     "type": "primitives.manifest",
-    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure/classerFiliation",
     "fichier": "scripts/guards/lib/processusWorktrees.mjs",
-    "concept": "mesure Windows/Linux des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "concept": "mesure Windows/Linux du résident en octets (RSS Linux, WorkingSet Windows), des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`, code `MESURE_PROCESSUS_EXPIREE`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; filiation classée valide/exclue/indeterminee sur les créations UTC exactes, descendance validée et liens indéterminés explicites ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
     "perimetre": "protection des worktrees contre les processus vivants, inventaire lisible de la portée mesurée, identité du détenteur d'un verrou (PID réutilisé)",
     "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs, verrouGestesLourds.test.mjs"
   },
@@ -1741,10 +1768,10 @@
   {
     "id": "ecritureJsonAtomique",
     "type": "primitives.manifest",
-    "label": "ecrireJsonAtomique/ecrireTexteAtomique",
+    "label": "ecrireJsonAtomique/ecrireTexteAtomique/publierJsonSiAbsent/lireTextePublie",
     "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
-    "concept": "écriture d'un texte (ou d'une valeur JSON) en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
-    "perimetre": "journal du train (`publier.mjs`, `publierTrain.mjs`, `publicationIsolee.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
+    "concept": "publication complète par temporaire exclusif fermé puis renommage remplaçant, ou lien dur exclusif sans remplacement ; première publication immuable partagée entre propriétaires de clôture ; lecture d'un fichier publié qui rend `undefined` tant qu'il est absent (`ENOENT`) ou tenu sans partage par un tiers (`EBUSY`), toute autre erreur levée",
+    "perimetre": "journal du train (`publier.mjs`, `publierTrain.mjs`, `publicationIsolee.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés, réponses du contrôle natif (`superviserProcessus.mjs`)",
     "verrou": "ecritureJsonAtomique.test.mjs"
   },
   {
@@ -1917,5 +1944,68 @@
     "concept": "version des catalogues pour un composant React : re-rend à chaque écriture au seam des datasets, dépendance des mémos qui dessinent depuis un catalogue",
     "perimetre": "tout composant `.tsx` qui dessine depuis un catalogue, et tout écran qui projette un catalogue (Codex)",
     "verrou": "src/gameIso/rig/composition-rig-version.test.tsx"
+  },
+  {
+    "id": "processusBorne",
+    "type": "primitives.manifest",
+    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
+    "fichier": "scripts/guards/lib/processusBorne.mjs",
+    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
+    "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
+    "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "codesDeSortie",
+    "type": "primitives.manifest",
+    "label": "CODE_DIFFERE/codeEnfant",
+    "fichier": "scripts/guards/lib/codesDeSortie.mjs",
+    "concept": "module feuille des codes de sortie partagés : `CODE_DIFFERE` (refusé ou différé, rien n’a tourné) et verdict d’un processus enfant (signal ou code absent = échec)",
+    "perimetre": "lanceurs de tests, docs:build, hooks git de reconstruction, synchronisation, lanceur local",
+    "verrou": "codesDeSortie.test.mjs, perimetre.test.mjs, run-isolation.test.mjs"
+  },
+  {
+    "id": "prendreVerrou",
+    "type": "primitives.manifest",
+    "label": "prendreVerrou/prendreVerrouAsync",
+    "fichier": "scripts/test/verrou.mjs",
+    "concept": "prise ou emprunt explicite d’une capacité sur une instance canonique ; génération, secret transmis et empreinte persistée ; annulation et libération comparée",
+    "perimetre": "lanceurs de tests filtrés, périmètre, familles Node, gates et génération lourde",
+    "verrou": "verrou.test.mjs, run-isolation.test.mjs"
+  },
+  {
+    "id": "verrouGestesLourds",
+    "type": "primitives.manifest",
+    "label": "verrouGestesLourds/estGesteLourd",
+    "fichier": "scripts/test/verrouGestesLourds.mjs",
+    "concept": "instance machine du verrou des gestes lourds sous le .git commun : chemin, libellé, attente et identité à passer à prendreVerrou ; juge des gestes lourds de docs:build",
+    "perimetre": "lanceurs de tests filtrés, périmètre, familles Node, gates et génération lourde",
+    "verrou": "verrouGestesLourds.test.mjs"
+  },
+  {
+    "id": "mesuresDuLancement",
+    "type": "primitives.manifest",
+    "label": "dossierDesMesures/mesuresDe",
+    "fichier": "scripts/test/mesures.mjs",
+    "concept": "journal machine partagé des mesures, fusion sous verrou et écriture JSON atomique",
+    "perimetre": "durées, surcoûts et profils mémoire historiques par fichier",
+    "verrou": "perimetre.test.mjs"
+  },
+  {
+    "id": "memoireDuLancement",
+    "type": "primitives.manifest",
+    "label": "profilsDuLancement/collecterMemoire/admettreLancementNode/lancerNodeMesure",
+    "fichier": "scripts/test/memoire.mjs",
+    "concept": "admission des familles Node et profils résidents par entrée native exclusive ; challenge frais de gate CommonJS bloquée, attribution sur identité native tenue, vue exhaustive dédupliquée, parent explicite et ACK seulement après échantillon complet ; expirations structurées sans publication ni apprentissage sur échec",
+    "perimetre": "test:perimetre ; gate builtin-only scripts/test/memoire-precharge.cjs première --require, même collecteur et contrôle natif de lancerProcessusSupervise",
+    "verrou": "memoire.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
+  },
+  {
+    "id": "controleEcritures",
+    "type": "primitives.manifest",
+    "label": "lancementsControles/LANCEMENTS_SUPERVISES/activerPrecharge/environnementDuControle/relayerReporters/ouvrirControleEcritures",
+    "fichier": "scripts/guards/lib/controleEcritures.mjs",
+    "concept": "transaction du contrôle des écritures : préparation avant lancement, projection pure sans nonce, reporters temporaires restitués après clôture, veto mémorisé et nettoyage idempotent",
+    "perimetre": "fabrique de supervision et intercepteur des lancements Node --test",
+    "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
   }
 ]

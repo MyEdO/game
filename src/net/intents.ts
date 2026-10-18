@@ -52,7 +52,7 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   'attackSetWithhold', 'attackSetHarpoonRopeCut', 'attackSetGrapple',
   'attackSetCritLocation', 'attackRoll', 'attackConfirm',
   // défense réactive : choix de mode/arme/réaction de bouclier + appliquer
-  'defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseConfirm',
+  'defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseSetRiposte', 'defenseConfirm',
   // incantation / prière : options d'incantation + jet/appliquer/annuler
   'castRoll', 'castSetCritChoice', 'castSetConjureForm', 'castSetDiscreet',
   'castAllocOvercast', 'castSetChosenTableRolls', 'castToggleExtraTarget', 'castPickTargets',

@@ -2689,7 +2689,7 @@
       },
       {
         "min": 11,
-        "max": 9999,
+        "max": null,
         "label": "Grosse explosion !",
         "ops": [
           {

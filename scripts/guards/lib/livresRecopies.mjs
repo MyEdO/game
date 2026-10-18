@@ -144,7 +144,7 @@ const chainesDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0
  *  - un sigle ISOLÉ, où qu'il soit : c'est une citation, par construction du seuil ;
  *  - deux livres dans DEUX énumérations voisines : chacune se juge pour elle-même ;
  *  - un BRANCHEMENT par identité (`switch`, `===`, `.includes`) : périmètre de `registryIdBranch.mjs` ;
- *  - les COMMENTAIRES (trivia) : ils ne sont jamais visités — une réf nue y fait foi (CLAUDE.md
+ *  - les COMMENTAIRES (trivia) : ils ne sont jamais visités — une réf nue y fait foi (AGENTS.md
  *    règle 6).
  *
  * @param {string} relPath chemin relatif, séparateurs `/` (décide du dialecte de parse)

@@ -8,7 +8,7 @@ import { stepInteraction, tableStepDef } from './cascade';
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { canFixDie } from './netOwnership';
 import {
-  rollMiscast, miscastTableId, miscastRowAt, MISCAST_TABLES, type MiscastSeverity,
+  rollMiscast, miscastTableId, miscastRowAt, miscastTableRows, MISCAST_TABLES, type MiscastSeverity,
 } from '../engine/miscast';
 import { hasBookMarker } from '../data/bookMarker';
 import { hasCondition } from '../engine/conditions';
@@ -93,11 +93,12 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     expect(desFixes()).toBe(false);
   });
 
-  it('registre : une entrée par table RÉELLE de miscast.json, lignes projetées de la DONNÉE (par référence)', () => {
+  it('registre : une entrée par table RÉELLE de miscast.json, lignes lues de la DONNÉE (`miscastTableRows`)', () => {
     for (const { id, label, entries: rows } of MISCAST_TABLES) {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
-      expect(def.rows).toBe(rows); // par RÉFÉRENCE : zéro duplication de fourchettes
+      expect(def.rows).toBe(miscastTableRows(id));
+      expect(def.rows.map((r) => r.id)).toEqual(rows.map((r) => r.id));
       expect(def.die).toBe(100);
       expect(def.label).toBe(label);
       // Surface JOUEUR : aucun libellé ne porte de référence de livre (`docs/charte-ui.md`).
@@ -105,6 +106,16 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
       const row = rows[0];
       expect(def.lines(row.min)[0]).toBe(miscastRowAt(id, row.min).label);
     }
+  });
+
+  it('Colère des dieux « 151+ » (LDB 40 l.89) : la dernière bande est OUVERTE en donnée et au tirage', () => {
+    const colere = MISCAST_TABLES.find((t) => t.id === 'miscast-colere')!;
+    expect(colere.entries[colere.entries.length - 1].max).toBeNull();
+    for (const de of [151, 260, 1000]) expect(miscastRowAt('miscast-colere', de).id).toBe('colere-appele-a-rendre-des-comptes');
+    expect(miscastRowAt('miscast-colere', 150).id).toBe('colere-je-te-chasse');
+    const etape = tableStepDef('miscast-colere')!;
+    expect(etape.rows[etape.rows.length - 1].max).toBe(Number.POSITIVE_INFINITY);
+    expect(etape.lines(1000)[0]).toBe('Appelé à rendre des comptes');
   });
 
   it('la table déclarée SUIT le jeu de tables en vigueur (LDB, ou VDM sous la règle optionnelle)', () => {

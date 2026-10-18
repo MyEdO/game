@@ -73,6 +73,14 @@ export function coeurs(env, mesure) {
   return forceOuMesure(env.WFRP_TEST_COEURS, mesure)
 }
 
+function racineCgroupLinux() {
+  return '/sys/fs/cgroup'
+}
+
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: racineCgroupLinux, namespace: '/sys/fs/cgroup' },
+]
+
 /** Cache de fichiers du cgroup mémoire de ce processus, en octets : `inactive_file + active_file` de
  *  son `memory.stat`. `procCgroup` est le texte de `/proc/self/cgroup`, `lire` un lecteur de
  *  fichier. Le contrôleur v1 `memory` (`/sys/fs/cgroup/memory<chemin>`, champs `total_*`) prime sur
@@ -84,11 +92,11 @@ function cacheFichiersCgroup(procCgroup, lire) {
     .map((l) => l.match(/^\d+:([^:]*):(.*)$/))
     .find((m) => m?.[1].split(',').includes('memory'))
   const v2 = procCgroup.match(/^0::(.*)$/m)
-  const [racine, champs] = v1
-    ? [`/sys/fs/cgroup/memory${v1[2]}`, ['total_inactive_file', 'total_active_file']]
+  const { racine, champs } = v1
+    ? { racine: `${racineCgroupLinux()}/memory${v1[2]}`, champs: ['total_inactive_file', 'total_active_file'] }
     : v2
-      ? [`/sys/fs/cgroup${v2[1]}`, ['inactive_file', 'active_file']]
-      : [null, []]
+      ? { racine: `${racineCgroupLinux()}${v2[1]}`, champs: ['inactive_file', 'active_file'] }
+      : { racine: null, champs: [] }
   if (racine === null) return 0
   let stat
   try {
@@ -166,29 +174,49 @@ export const PORTEE_LOT_S = 294.4
  *  maximum retenu ; run s4 du 2026-10-08 (`EMPREINTES_WORKER_MO`) : 1 434 Mo de mémoire de travail. */
 export const PARENT_MO = 1462
 
-/** Workers servis quand la mémoire en porte moins, dès que les cœurs le permettent (`servis ≥ 3`) : sous
- *  `isolate:false`, UN worker reçoit tous les fichiers d'un environnement en une requête
- *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:11912-11920). Mesuré sur la suite le 2026-10-08 (#2497) :
- *  5 414 Mo pour ce worker seul, 6,2 Go pour l'arbre, contre 5,65 Go à 2 workers. */
-export const PLANCHER_WORKERS = 2
+/** Workers en deçà desquels le lanceur REFUSE (`MEMOIRE_INSUFFISANTE`, `capacite`) plutôt que de servir au-delà
+ *  de la mémoire, dès que les cœurs les permettent : sous `isolate:false`, UN worker reçoit tous les fichiers d'un
+ *  environnement en une requête (node_modules/vitest/dist/chunks/index.DpLw24bj.js:11912-11920). Mesuré sur la
+ *  suite le 2026-10-08 (#2497) : 5 414 Mo pour ce worker seul, 6,2 Go pour l'arbre, contre 5,65 Go à 2 workers. */
+export const MINIMUM_WORKERS = 2
 
-/** Capacité servie par le lanceur sous le régime `regime` (`EMPREINTES_WORKER_MO`) : cœurs mesurés bornés
- *  par les workers que la mémoire disponible porte, plus le cœur du parent (même convention que
- *  `repartitionWorkers`/`maxWorkersMono`). Calculée avec un parent ; si ce résultat partage, recalculée avec
- *  deux (node et jsdom) — elle peut alors retomber sous le seuil, en mono, qui n'a qu'un parent. `portes` est
- *  le compte AVANT plancher ; sous `PLANCHER_WORKERS`, le lanceur en sert ce plancher quand les cœurs le
- *  permettent, et `borne` vaut `'plancher'` dès qu'il sert plus que la mémoire ne porte. Un régime inconnu lève. */
+/** Admission d'un lancement `node --test`, en OCTETS : `disponibleOctets` mesurés, `profils` (`{ fichier, picOctets }`)
+ *  dont le plus gros pic dimensionne (`fichierDimensionnant`), `parentOctets` du parent. Refus `MEMOIRE_INSUFFISANTE`
+ *  seulement quand `parentOctets + pic` (`minimumOctets`) dépasse le disponible ; l'objectif `objectifOctets` (#2603)
+ *  ne borne que la `concurrence`, jamais sous 1, que bornent aussi `cpus` et `nombre` (fichiers lancés). */
+export function admissionNode(cpus, disponibleOctets, { profils = [], parentOctets = 0, objectifOctets = 2.5 * 2 ** 30, nombre = profils.length } = {}) {
+  const dimensionnant = profils
+    .filter((p) => Number.isSafeInteger(p?.picOctets) && p.picOctets > 0)
+    .reduce((a, b) => !a || b.picOctets > a.picOctets ? b : a, null)
+  const picOctets = dimensionnant?.picOctets ?? 0
+  const budgetOctets = Math.min(disponibleOctets, objectifOctets)
+  const minimumOctets = parentOctets + picOctets
+  const refus = minimumOctets > disponibleOctets ? 'MEMOIRE_INSUFFISANTE' : null
+  const concurrence = refus ? 0 : Math.max(1, Math.min(nombre, cpus, picOctets ? Math.floor((budgetOctets - parentOctets) / picOctets) : nombre))
+  return { concurrence, budgetOctets, minimumOctets, parentOctets, picOctets, fichierDimensionnant: dimensionnant?.fichier, refus }
+}
+
+/** Capacité servie par le lanceur Vitest sous le régime `regime` (`EMPREINTES_WORKER_MO`), mémoire `memoireMo` en
+ *  Mo : cœurs mesurés bornés par les workers que la mémoire disponible porte, plus le cœur du parent (même
+ *  convention que `repartitionWorkers`/`maxWorkersMono`). Calculée avec un parent ; si ce résultat partage,
+ *  recalculée avec deux (node et jsdom) — elle peut alors retomber sous le seuil, en mono, qui n'a qu'un parent.
+ *  `portes` est le compte de workers que la mémoire porte ; `refus` vaut `MEMOIRE_INSUFFISANTE` sous `minimumMo`
+ *  (un parent et `MINIMUM_WORKERS` workers, bornés par les cœurs). Un régime inconnu lève. Régime `node --test` :
+ *  `admissionNode`. */
 export function capacite(cpus, memoireMo, regime) {
   if (!Object.hasOwn(EMPREINTES_WORKER_MO, regime))
     throw new Error(`régime de lancement inconnu : « ${regime} » — attendu ${Object.keys(EMPREINTES_WORKER_MO).join(' | ')}`)
   const empreinteMo = EMPREINTES_WORKER_MO[regime]
   const avec = (parents) => {
     const portes = Math.floor((memoireMo - parents * PARENT_MO) / empreinteMo)
-    return { portes, servis: Math.min(cpus, 1 + Math.max(PLANCHER_WORKERS, portes)) }
+    return { portes, servis: Math.min(cpus, 1 + Math.max(0, portes)) }
   }
   const mono = avec(1)
   const { portes, servis } = repartitionWorkers(mono.servis).split ? avec(2) : mono
+  const minimumMo = PARENT_MO + Math.min(MINIMUM_WORKERS, maxWorkersMono(cpus)) * empreinteMo
   return {
+    refus: memoireMo < minimumMo ? 'MEMOIRE_INSUFFISANTE' : null,
+    minimumMo,
     cpus,
     memoireMo,
     regime,
@@ -196,7 +224,7 @@ export function capacite(cpus, memoireMo, regime) {
     servis,
     portes,
     parents: repartitionWorkers(servis).split ? 2 : 1,
-    borne: maxWorkersMono(servis) > portes ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
+    borne: servis < cpus ? 'mémoire' : 'cœurs',
   }
 }
 
@@ -289,25 +317,41 @@ const VALEUR_ATTENDUE = [
   '--pool', '--environment', '--mode', '--shard', '--root', '-r', '--dir', '--project',
 ]
 
-/** Ligne de commande d'un enfant : les drapeaux du partage, puis l'argv de l'appelant TEL QUEL —
- *  rien n'est reconstruit, donc aucun argument n'est perdu, dupliqué ni déplacé. */
-export function argumentsEnfant(vitest, config, workers, argv) {
+/** Plafond de workers que l'appelant demande dans `argv`, sous les deux graphies que cac accepte, `--maxWorkers`
+ *  et `--max-workers`, jointe (`=`) ou séparée (node_modules/vitest/dist/chunks/cac.DfDGTQ9W.js:186-190, 215-217) :
+ *  `{ argv, maxWorkers }`, l'argv privé de ce seul drapeau, `maxWorkers` à `null` sans demande. Une demande répétée
+ *  rend `{ refus: 'MAX_WORKERS_DUPLIQUE' }`, une valeur non entière ou inférieure à 1 `{ refus: 'MAX_WORKERS_INVALIDE' }`. */
+export function demandeWorkers(argv) {
+  const reste = []
+  let maxWorkers = null
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (!/^--max-?workers(?:=|$)/i.test(a)) { reste.push(a); continue }
+    if (maxWorkers !== null) return { refus: 'MAX_WORKERS_DUPLIQUE' }
+    const valeur = a.includes('=') ? a.slice(a.indexOf('=') + 1) : argv[++i]
+    const n = Number(valeur)
+    if (!Number.isInteger(n) || n < 1) return { refus: 'MAX_WORKERS_INVALIDE' }
+    maxWorkers = n
+  }
+  return { argv: reste, maxWorkers }
+}
+
+/** Ligne de commande d'un enfant : les drapeaux du partage, `--maxWorkers` abaissé à la demande de l'appelant
+ *  (`demandeWorkers`), puis l'argv de l'appelant privé de cette seule demande — rien d'autre n'est reconstruit,
+ *  donc aucun argument n'est perdu, dupliqué ni déplacé. Une demande refusée lève. */
+export function argumentsEnfant(vitest, config, workers, argv, demande = demandeWorkers(argv)) {
+  if (demande.refus) throw new Error(demande.refus)
   return [
     vitest,
     'run',
     '--config',
     config,
     '--maxWorkers',
-    String(workers),
+    String(Math.min(workers, demande.maxWorkers ?? workers)),
     // Un filtre qui ne touche qu'un côté laisse l'autre sans fichier : ce n'est pas un échec.
     '--passWithNoTests',
-    ...argv,
+    ...demande.argv,
   ]
-}
-
-/** Verdict d'un processus enfant : un enfant tué par signal, ou clos sans code, ne réussit pas. */
-export function codeEnfant(code, signal) {
-  return signal ? 1 : (code ?? 1)
 }
 
 /** Verdict du lanceur : les deux côtés doivent réussir. */
@@ -327,13 +371,12 @@ export function cheminsGlobSuspects(chemins) {
  *  (`argumentsEnfant`). */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
-/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. Le nom se replie en casse
- *  et sans tirets : il couvre les deux graphies que cac accepte, `--maxWorkers` et `--max-workers`
- *  (node_modules/vitest/dist/chunks/cac.DfDGTQ9W.js:186-190, 215-217). */
-export function bornesWorkers(argv, cpus) {
-  const nom = (a) => a.split('=')[0].toLowerCase().replace(/-/g, '')
-  const borne = argv.some((a) => a.startsWith('-') && nom(a) === 'maxworkers')
-  return borne ? [] : [`--maxWorkers=${maxWorkersMono(cpus)}`]
+/** Plafond à injecter devant l'argv de l'appelant : `maxWorkersMono(cpus)`, abaissé à la demande de l'appelant
+ *  (`demandeWorkers`, qui replie les deux graphies que cac accepte, `--maxWorkers` et `--max-workers` :
+ *  node_modules/vitest/dist/chunks/cac.DfDGTQ9W.js:186-190, 215-217). Une demande refusée lève. */
+export function bornesWorkers(argv, cpus, demande = demandeWorkers(argv)) {
+  if (demande.refus) throw new Error(demande.refus)
+  return [`--maxWorkers=${Math.min(maxWorkersMono(cpus), demande.maxWorkers ?? Infinity)}`]
 }
 
 /** Environnement des processus Vitest : sortie SANS séquence ANSI. `FORCE_COLOR` est SUPPRIMÉ, pas
@@ -418,15 +461,11 @@ export function bilanDiagnostic(
   { capacite, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers, tasMaxMo },
 ) {
   const { cpus, memoireMo, regime, empreinteMo, servis, portes, parents } = capacite
-  const workersMono = maxWorkersMono(servis)
-  const reserve = parents * PARENT_MO + workersMono * empreinteMo
   const pourcent = memGo > 0 ? Math.round((memMaxGo / memGo) * 100) : 0
   const comptes = SENTINELLES.map(([libelle]) => `${libelle} ${compte[libelle] ?? 0}`).join(' · ')
   const borne = capacite.borne === 'cœurs' ? 'cœurs' : `${capacite.borne} (${servis} cœurs servis)`
-  const porte =
-    capacite.borne === 'plancher'
-      ? `plancher de ${workersMono} worker${workersMono > 1 ? 's' : ''}, au-delà de la mémoire (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
-      : `${portes} worker${portes > 1 ? 's' : ''} porté${portes > 1 ? 's' : ''}`
+  const porte = capacite.refus ? 'refus ' + capacite.refus + ' (minimum ' + capacite.minimumMo + ' Mo)'
+    : `${portes} worker${portes > 1 ? 's' : ''} porté${portes > 1 ? 's' : ''}`
   const tasPourcent = tasMaxMo === null ? 0 : Math.round((tasMaxMo / TAS_WORKER_MO) * 100)
   const tas =
     tasMaxMo === null

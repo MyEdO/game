@@ -96,7 +96,7 @@ export function useCombatFx() {
       if (!target?.pos) return;
       const { x, y } = target.pos;
       if (r.hit) {
-        if (r.woundsLost > 0) push(x, y, `-${r.woundsLost}`, 'damage', !!r.critical);
+        if (r.woundsLost > 0) push(x, y, `-${r.woundsLost}`, 'damage', !!r.critiques);
         else push(x, y, 'Encaissé', 'soak');
         if (r.defenderDefeated) push(x, y, '✦ hors de combat', 'death');
       } else if (r.defenderDetail) {

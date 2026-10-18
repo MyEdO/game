@@ -1,11 +1,12 @@
-// `versionsNonDerivees` (#2226, #2404) : les prédicats sur des fichiers fabriqués, puis sur `src/`.
+// `versionsNonDerivees` (#2226, #2404) : les prédicats sur des fichiers fabriqués, puis sur `src/`
+// (`scripts/corpus/guards/versionsDerivees.test.mjs`).
 import { test, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { API, Snapshot } from 'typescript/unstable/sync'
-import { readCorpus } from './sourceCorpus.mjs'
 import { relevePerimetre, versionsNonDerivees } from './versionsDerivees.mjs'
 
 const juge = versionsNonDerivees
+
 const f = (rel, text) => ({ rel, text })
 
 test('P3 : un champ `version` stampé prend un format importé du module généré — contrat positif', () => {
@@ -167,8 +168,4 @@ test('corpus : fautes d’analyse et de fermeture conservent leurs identités, s
     })
     assert.equal(fermetures.mock.callCount(), 1)
   } finally { fermetures.mock.restore() }
-})
-
-test('src/ : aucune version de forme persistée écrite à la main', () => {
-  assert.deepEqual(versionsNonDerivees(readCorpus(['src'])), { P1: [], P2: [], P3: [] })
 })

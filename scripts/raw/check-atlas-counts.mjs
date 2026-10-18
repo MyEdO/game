@@ -3,7 +3,7 @@
 // recopié à la main, dérivable de BOOKS dans _lib.mjs), et 00-index.md avait aussi porté par le
 // passé des comptes d'état (✅/🟡/⬜/❌ … N) recopiés depuis les fichiers GÉNÉRÉS
 // (coverage.md/reconciliation.md/reanchor.md) — un compte manuscrit ment dès le commit suivant
-// (fiche mémoire game-doc-derivee-jamais-ecrite-a-la-main). Forme retenue : PAS de stamp entre
+// (fiche mémoire user-doctrine-doc-generee-jamais-ecrite-a-la-main). Forme retenue : PAS de stamp entre
 // marqueurs (un seul nombre dérivable, disproportionné pour 2 pages courtes) — le texte cesse de
 // porter un chiffre (renvoi vers la table de sources.md, dérivée de BOOKS) et cette garde échoue
 // si un motif de la CLASSE interdite réapparaît, dans L'UN OU L'AUTRE fichier :

@@ -173,4 +173,3 @@ describe('defenseSetForcedRoll — même choix sur une DÉFENSE forcée', () => 
     expect(useGame.getState().pendingDefense!.def!.roll).toBe(11);
   });
 });
-

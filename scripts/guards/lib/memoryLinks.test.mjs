@@ -7,10 +7,10 @@
 //  - PORTÉE 1 — l'index VIVANT (`.claude/memory/*.md` à plat), `_archive/` hors index par construction.
 //  - PORTÉE 2 — le RESTE du dépôt : les `[[nom]]` de fiche, les CHEMINS `.claude/memory/<nom>.md`
 //    (lien markdown, chemin nu, ligne `:<n>`) et les MENTIONS NUES du nom d'une fiche disparue
-//    (backtics, prose, `name: slug`) des fichiers de `src/`, `scripts/` et `docs/` VIVANTS — c'est
+//    (backtics, prose, `name: slug`) des fichiers VIVANTS (`RACINES_HORS_MEMOIRE`) — c'est
 //    là que vivaient les 30 liens morts laissés par la refonte de mémoire de #1728, invisibles à la
 //    portée 1. Exclusions motivées au site (`HORS_SCAN` : artefacts datés `docs/plans/`+
-//    `docs/superpowers/`, sondes d'audit datées, et CE fichier, dont le banc forge des fiches
+//    `docs/superpowers/`, et CE fichier, dont le banc forge des fiches
 //    inexistantes).
 //
 // ANGLES MORTS de la portée 2, dits ici comme au module : un fichier IGNORÉ par git n'est pas vu
@@ -101,18 +101,11 @@ test('ARBRE RÉEL : aucun lien mort dans `.claude/memory/`', () => {
   assert.deepEqual(problems, [], `\n${formatMemoryLinkProblems(problems)}\n`)
 })
 
-test("ARBRE RÉEL : l'index cite CHAQUE fiche non-`user` une fois et une seule, et aucune `user-*`", () => {
-  // Une fiche que l'index ne cite pas est INTROUVABLE ; citée deux fois, elle a deux déclencheurs
-  // concurrents. Les `user-*` sont PORTÉES par le bloc généré « Doctrines utilisateur » de
-  // `CLAUDE.md` (`scripts/docs/build-doctrines.mjs`) : les redoubler ici ferait deux sources.
+test("ARBRE RÉEL : l'index de routage ne cite aucune fiche", () => {
+  // Les `user-*` sont PORTÉES par `docs/doctrines.md` (`scripts/docs/build-doctrines.mjs`) : les
+  // redoubler dans `MEMORY.md` ferait deux sources.
   const index = readFileSync(join(ROOT, MEMORY_DIR, 'MEMORY.md'), 'utf8')
-  const cites = [...index.matchAll(/\]\(([a-z0-9][a-z0-9-]*\.md)(?:#[^)\s]*)?\)/g)].map((m) => m[1])
-  const fiches = liveNotes(ROOT).filter((f) => f !== 'MEMORY.md')
-  const nonUser = fiches.filter((f) => !f.startsWith('user-'))
-
-  assert.deepEqual([...new Set(nonUser)].filter((f) => !cites.includes(f)), [])
-  assert.deepEqual(cites.filter((f, i) => cites.indexOf(f) !== i), [])
-  assert.deepEqual(cites.filter((f) => f.startsWith('user-')), [])
+  assert.deepEqual([...index.matchAll(/\]\(([a-z0-9][a-z0-9-]*\.md)(?:#[^)\s]*)?\)/g)].map((m) => m[1]), [])
 })
 
 test('PORTÉE 2 — MORSURE : un `[[slug]]` mort et un lien `](.claude/memory/…)` mort sont nommés', () => {
@@ -196,10 +189,12 @@ test("PORTÉE 2 — la FORME d'un nom de fiche discrimine : un littéral `[[a, b
   }
 })
 
-test('PORTÉE 2 — CÂBLAGE : l’énumération réelle prend `src/`+`scripts/`+`docs/` et écarte `HORS_SCAN`', () => {
+test('PORTÉE 2 — CÂBLAGE : l’énumération réelle prend le code, les docs et le contexte des agents, et écarte `HORS_SCAN`', () => {
   const fichiers = fichiersHorsMemoire(ROOT)
-  assert.ok(fichiers.includes('src/engine/magic.ts'))
-  assert.ok(fichiers.includes('scripts/guards/lib/memoryLinks.mjs'))
+  for (const attendu of ['src/engine/magic.ts', 'scripts/guards/lib/memoryLinks.mjs', 'CLAUDE.md', 'AGENTS.md',
+    '.claude/credo.md', '.claude/rules/outils.md', '.claude/agents/codeur.md', '.claude/skills/creer-une-map/SKILL.md',
+    '.codex/agents/arbitre-raw.toml']) assert.ok(fichiers.includes(attendu), attendu)
+  assert.deepEqual(fichiers.filter((f) => f.startsWith('.claude/soldes/') || f.startsWith(`${MEMORY_DIR}/`)), [])
   for (const exclu of HORS_SCAN) {
     assert.deepEqual(fichiers.filter((f) => f === exclu || f.startsWith(exclu)), [])
   }
@@ -207,7 +202,7 @@ test('PORTÉE 2 — CÂBLAGE : l’énumération réelle prend `src/`+`scripts/`
   assert.deepEqual(fichiers.filter((f) => /\.(png|jpg|glb|woff2?)$/.test(f)), [])
 })
 
-test('ARBRE RÉEL : aucun lien mort vers une fiche dans `src/`, `scripts/`, `docs/` vivants', () => {
+test('ARBRE RÉEL : aucun lien mort vers une fiche dans le code, les docs et le contexte des agents vivants', () => {
   const problems = scanRepoMemoryLinks(ROOT)
   assert.deepEqual(problems, [], `\n${formatMemoryLinkProblems(problems)}\n`)
 })

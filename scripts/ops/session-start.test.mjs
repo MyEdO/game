@@ -18,11 +18,12 @@ const root = fileURLToPath(new URL('../../', import.meta.url))
 function fixture(t) {
   const worktree = fs.mkdtempSync(join(tmpdir(), 'sessionstart-'))
   t.after(() => fs.rmSync(worktree, { recursive: true, force: true }))
+  fs.mkdirSync(join(worktree, '.claude'), { recursive: true })
+  fs.copyFileSync(join(root, '.claude/credo.md'), join(worktree, '.claude/credo.md'))
   for (const surface of ['.claude/settings.json', '.codex/hooks.json']) {
     const agent = surface.includes('codex') ? 'codex' : 'claude'
     fs.mkdirSync(join(worktree, `.${agent}`), { recursive: true })
     fs.copyFileSync(join(root, surface), join(worktree, surface))
-    fs.copyFileSync(join(root, `.${agent}/credo.md`), join(worktree, `.${agent}/credo.md`))
     fs.mkdirSync(join(worktree, 'scripts/hooks'), { recursive: true })
     for (const hook of aplatirHooks(JSON.parse(fs.readFileSync(join(root, surface), 'utf8')), surface)) fs.copyFileSync(join(root, 'scripts/hooks', hook.script), join(worktree, 'scripts/hooks', hook.script))
   }
@@ -69,7 +70,7 @@ test('deux producteurs réels : credo émis avant reçu Codex, bootstrap local s
     const recu = JSON.parse(fs.readFileSync(c.attendu.chemin, 'utf8'))
     assert.equal(validerRecuSessionStart(recu, c.carte).ok, true)
     assert.equal(recu.nativeSessionId, 'native-test')
-    assert.equal(texte, agent === 'codex' ? fs.readFileSync(join(c.worktree, '.codex/credo.md'), 'utf8') : '')
+    assert.equal(texte, agent === 'codex' ? fs.readFileSync(join(c.worktree, '.claude/credo.md'), 'utf8') : '')
   }
 })
 
@@ -85,7 +86,7 @@ test('entrée native invalide, credo vide ou écriture échouée ne produisent a
   for (const panne of ['native', 'vide', 'write', 'writeasync']) {
     const c = await contexte(t, 'codex'), url = pathToFileURL(join(c.worktree, 'scripts/hooks/inject-project-credo.mjs')).href
     if (panne === 'native') c.entree = '{}'
-    if (panne === 'vide') fs.writeFileSync(join(c.worktree, '.codex/credo.md'), '')
+    if (panne === 'vide') fs.writeFileSync(join(c.worktree, '.claude/credo.md'), '')
     const output = panne === 'writeasync' ? new Writable({ write: (_chunk, _encoding, done) => done(new Error('write async refusé')) }) : { write: () => { if (panne === 'write') throw new Error('write refusé') } }
     await assert.rejects(injectProjectCredo('codex', url, output, { ...c }))
     assert.equal(fs.existsSync(c.attendu.chemin), false)

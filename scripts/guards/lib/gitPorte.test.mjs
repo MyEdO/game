@@ -4,7 +4,8 @@ import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
 import { DEPOT } from './ticketsGh.mjs'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { spawnBorne, tuerArbre } from './processusBorne.mjs'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
@@ -23,6 +24,8 @@ import { listerDossier, parUnitesDeCode } from './lister.mjs'
 import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 import { createHash } from 'node:crypto'
 import { relireRequeteMesuree } from './gitPorte.mjs'
+import { estPidVivantDepuis } from './pid.mjs'
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
 import { normaliserRequeteMesuree } from './requeteMesuree.mjs'
 
 test('mesure 2456 : requêtes de cache hostiles refusées avant tout processus', () => {
@@ -237,36 +240,126 @@ test('appliquerCorrectif nomme les échecs de démarrage et les signaux sans app
   assert.throws(() => appliquerCorrectif(d, cible), erreur => erreur.name === 'GitIndisponible' && erreur.cause === cause && erreur.raison.endsWith(cause.message))
 })
 
-test('#2285 appliquerCorrectif transporte lancement et interruption complets', t => {
+test('#2285 appliquerCorrectif transporte lancement et interruption complets', async t => {
   const racine = mkdtempSync(join(tmpdir(), 'correctif-diagnostic-'))
-  t.after(() => jeter(racine))
   const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
   const stderr = `${'note stderr\n'.repeat(50)}cause stderr tardive\n`
-  const lancement = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' })
-  const interruption = spawnSync(process.execPath, ['-e', `const fs=require('node:fs');fs.writeFileSync(1,${JSON.stringify(stdout)});fs.writeFileSync(2,${JSON.stringify(stderr)});Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);`], { encoding: 'utf8', timeout:1500, killSignal:'SIGTERM' })
-  assert.equal(lancement.error.code, 'ENOENT')
-  assert.equal(interruption.signal, 'SIGTERM')
-  assert.equal(interruption.stdout, stdout)
-  assert.equal(interruption.stderr, stderr)
-  for (const [nom, vu] of [['lancement', lancement], ['interruption', interruption]]) {
-    t.diagnostic(JSON.stringify({ nom, ...vu, error: vu.error && { name:vu.error.name,message:vu.error.message,code:vu.error.code,errno:vu.error.errno,syscall:vu.error.syscall,path:vu.error.path,spawnargs:vu.error.spawnargs } }))
+  const resultats = []
+  let enfant, naissanceEnfant, fermeture, attendreFermeture, primaire, capture, arretNettoyage, suiviEnfant
+  let stdoutObserve = Buffer.alloc(0), stderrObserve = Buffer.alloc(0)
+  let signalProgramme = false, pretAuSignal = false, signaux = 0
+  const nettoyer = async (operation, erreurInitiale) => {
+    const erreurs = []
+    try { await operation() } catch (erreurNettoyage) { erreurs.push(erreurNettoyage) }
+    if (erreurs.length && erreurInitiale) throw new AggregateError([erreurInitiale, ...erreurs], 'Échec du banc et de son nettoyage', { cause:erreurInitiale })
+    if (erreurs.length) throw erreurs[0]
   }
-  for (const [vu, issue, raison] of [[lancement,'lancement',`git introuvable (binaire absent du PATH) — ${lancement.error.message}`],[interruption,'interruption',`processus tué par le signal ${interruption.signal}`]]) {
-    let appels = 0
-    const d = depotDe(racine, { env:{}, spawn:()=>{appels+=1;return vu} })
-    assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}), e=>{
-      assert.equal(e.issue, issue)
-      assert.equal(e.phase, 'vérification')
-      assert.equal(e.cause, vu.error)
-      assert.equal(e.status, vu.status)
-      assert.equal(e.signal, vu.signal)
-      assert.equal(e.stdout, vu.stdout ?? '')
-      assert.equal(e.stderr, vu.stderr ?? '')
-      assert.deepEqual(e.diagnostic, {status:vu.status ?? null,stdout:vu.stdout ?? '',stderr:vu.stderr ?? '',error:vu.error,...(vu.signal?{signal:vu.signal}:{})})
-      assert.equal(refusDeGit(e), `${issue} (${vu.signal?`signal ${vu.signal}`:'status ?'}) — ${raison}${vu.stderr?`\n${vu.stderr}`:''}${vu.stdout?`\n${vu.stdout}`:''}`)
+  try {
+    const erreurInitiale = new Error('échec initial du banc')
+    const erreurNettoyage = new Error('échec du nettoyage')
+    await assert.rejects(async () => {
+      try { throw erreurInitiale } finally {
+        await nettoyer(() => { throw erreurNettoyage }, erreurInitiale)
+      }
+    }, e => {
+      assert.ok(e instanceof AggregateError)
+      assert.equal(e.cause, erreurInitiale)
+      assert.equal(e.errors.length, 2)
+      assert.equal(e.errors[0], erreurInitiale)
+      assert.equal(e.errors[1], erreurNettoyage)
       return true
     })
-    assert.equal(appels, 1)
+    await assert.rejects(() => nettoyer(() => { throw erreurNettoyage }), e => e === erreurNettoyage)
+    let nettoye = false
+    await nettoyer(() => { nettoye = true })
+    assert.equal(nettoye, true)
+    const lancement = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' })
+    resultats.push(['lancement', lancement])
+    const interruption = spawnSync(process.execPath, ['-e', `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);process.stdout.write(${JSON.stringify(stdout)});process.stderr.write(${JSON.stringify(stderr)});`], { encoding: 'utf8', timeout:1500, killSignal:'SIGTERM' })
+    resultats.push(['timeout', interruption])
+    assert.equal(lancement.error.code, 'ENOENT')
+    assert.equal(interruption.error.code, 'ETIMEDOUT')
+    assert.equal(interruption.signal, 'SIGTERM')
+    assert.equal(interruption.stdout, '')
+    assert.equal(interruption.stderr, '')
+    capture = await spawnBorne({
+      argv: ['-e', `const fs=require('node:fs');fs.writeFileSync(1,${JSON.stringify(stdout)});fs.writeFileSync(2,${JSON.stringify(stderr)});Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);`],
+      fichier: join(racine, 'capture.log'), limiteMs:1500, fluxDistincts:true,
+      surControle: (controle) => { suiviEnfant = controle },
+      superviser: async (...args) => {
+        enfant = spawn(...args)
+        naissanceEnfant = Date.now()
+        attendreFermeture = new Promise(resolve => enfant.once('close', (status, signal) => {
+          fermeture = { status, signal }
+          resolve()
+        }))
+        const signalerSiPret = () => {
+          const pret = stdoutObserve.equals(Buffer.from(stdout)) && stderrObserve.equals(Buffer.from(stderr))
+          if (!signalProgramme && pret) {
+            signalProgramme = true
+            pretAuSignal = pret
+            setImmediate(() => { signaux += 1; enfant.kill('SIGTERM') })
+          }
+        }
+        enfant.stdout.on('data', bytes => {
+          stdoutObserve = Buffer.concat([stdoutObserve, bytes]).subarray(0, 1024 * 1024)
+          signalerSiPret()
+        })
+        enfant.stderr.on('data', bytes => {
+          stderrObserve = Buffer.concat([stderrObserve, bytes]).subarray(0, 1024 * 1024)
+          signalerSiPret()
+        })
+        const controle = { pid: enfant.pid, pret: Promise.resolve({ pidCible: enfant.pid, instanceCible: 'fixture' }),
+          demanderArret() { enfant.kill('SIGTERM') },
+          fin: attendreFermeture.then(() => ({ resultatCible: fermeture, arret: { etat: 'mort', erreurs: [] } })) }
+        return { hote: enfant, controle }
+      },
+    })
+    resultats.push(['causale', capture])
+    assert.equal(capture.expiree, false, 'watchdog expiré avant interruption causale')
+    assert.equal(pretAuSignal, true, 'les deux flux complets précèdent le signal')
+    assert.equal(signaux, 1)
+    assert.deepEqual(fermeture, { status:null, signal:'SIGTERM' }, 'close natif observé')
+    assert.equal(capture.error, null)
+    assert.equal(capture.arret.etat, 'mort')
+    assert.equal(capture.signal, fermeture.signal)
+    assert.equal(capture.status, fermeture.status)
+    assert.equal(capture.stdout, stdout)
+    assert.equal(capture.stderr, stderr)
+    assert.equal(estPidVivantDepuis(enfant.pid, naissanceEnfant, IDENTITE_MESUREE), false)
+    for (const [nom, vu] of resultats) {
+      const issue = nom === 'lancement' ? 'lancement' : 'interruption'
+      const raison = nom === 'lancement' ? `git introuvable (binaire absent du PATH) — ${vu.error.message}` : `processus tué par le signal ${vu.signal}`
+      let appels = 0
+      const d = depotDe(racine, { env:{}, spawn:()=>{appels+=1;return vu} })
+      assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}), e=>{
+        assert.equal(e.issue, issue)
+        assert.equal(e.phase, 'vérification')
+        assert.equal(e.cause, vu.error)
+        assert.equal(e.status, vu.status)
+        assert.equal(e.signal, vu.signal)
+        assert.equal(e.stdout, vu.stdout ?? '')
+        assert.equal(e.stderr, vu.stderr ?? '')
+        assert.deepEqual(e.diagnostic, {status:vu.status ?? null,stdout:vu.stdout ?? '',stderr:vu.stderr ?? '',...(vu.error?{error:vu.error}:{}),...(vu.signal?{signal:vu.signal}:{})})
+        assert.equal(refusDeGit(e), `${issue} (${vu.signal?`signal ${vu.signal}`:'status ?'}) — ${raison}${vu.stderr?`\n${vu.stderr}`:''}${vu.stdout?`\n${vu.stdout}`:''}`)
+        return true
+      })
+      assert.equal(appels, 1)
+    }
+  } catch (e) {
+    primaire = e
+    throw e
+  } finally {
+    t.diagnostic(JSON.stringify({ resultats, pid:enfant?.pid, fermeture, pretAuSignal, signaux, stdoutObserve:stdoutObserve.toString(), stderrObserve:stderrObserve.toString(), primaire:primaire?.message }, (_cle, valeur) => valeur instanceof Error ? { name:valeur.name, message:valeur.message, ...valeur } : valeur))
+    await nettoyer(async () => {
+      if (enfant && !fermeture) {
+        arretNettoyage = await tuerArbre(suiviEnfant)
+        await attendreFermeture
+        t.diagnostic(JSON.stringify({ arretNettoyage, fermeture }))
+      }
+      if (!enfant || fermeture) jeter(racine)
+      else if (!primaire) assert.fail(`close absent ; temporaire conservé : ${racine}`)
+    }, primaire)
   }
 })
 

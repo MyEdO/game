@@ -309,7 +309,7 @@ Tout Personnage accusé d'un crime, à tort ou à raison, est emmené au Tribuna
 
 Si un Personnage est reconnu coupable d'un crime, il est condamné à payer une amende pouvant aller de 1 à 20 pistoles, selon la nature du crime. Les personnes qui ne sont pas en mesure de payer leur amende sont placées dans l'un des deux piloris jusqu'à la tombée de la nuit, ou jusqu'à ce qu'un autre prisonnier ait besoin de la place, ce qui arrive au bout d'1d10 heures. Les individus mis au pilori sont bombardés de fruits pourris et autres substances peu ragoûtantes, lancées par une petite (mais enthousiaste) bande de garnements. Le Personnage doit effectuer un Test de **Résistance Très facile (+60)** à chaque heure écoulée. Au premier échec, il gagne +1 État *Exténué*, qui peut être retiré après une bonne nuit de sommeil dans un lit. Chaque nouvel échec lui fait perdre 1 Point de Blessure.
 
-0 Au moment où les Personnages passent devant le Tribunal des Fêtes, un halfling s'élance dans la foule. « *Arrêtezle !* » hurle un soldat avant de trébucher sur sa hallebarde et d'atterrir dans la boue tête la première. Le halfling, « Innocent » Havrebas, a Mouvement 3 et Athlétisme 39. Si les Personnages se lancent à sa poursuite, utilisez
+0 Au moment où les Personnages passent devant le Tribunal des Fêtes, un halfling s'élance dans la foule. « *Arrêtez-le !* » hurle un soldat avant de trébucher sur sa hallebarde et d'atterrir dans la boue tête la première. Le halfling, « Innocent » Havrebas, a Mouvement 3 et Athlétisme 39. Si les Personnages se lancent à sa poursuite, utilisez
 
 63
 

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { routesFrom, visiblePlaces } from '../../state/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
-import { builtinCampaigns, paquetDuJeu } from '../campaign';
+import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../campaign';
 
 const barge = paquetDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!);
 const CAP = 'sel-cap-donne';
@@ -18,7 +18,7 @@ const get = () => useGame.getState();
 const ctx = (): ConditionCtx => ({ flags: get().flags, gameTime: get().gameTime });
 
 beforeEach(() => {
-  useGame.getState().loadProject(barge.scenes, barge.scenes[0].id, barge.worldMap, barge.narratif);
+  expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!), barge.scenes[0].id)).toBeNull();
 });
 
 describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, sur la donnée committée', () => {

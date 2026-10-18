@@ -52,8 +52,14 @@ export const naissanceEnPlace = (path, familles) => naissanceDu(lireStockJson(pa
 
 /** Les ENTRÉES DE SITE d'un fichier de stock JSON (fichier absent, ou stock vide : aucune entrée). */
 export function lireEntreesDeSite(path) {
-  return lireStockJson(path).entrees ?? []
+  const entrees = lireStockJson(path).entrees ?? []
+  if (!Array.isArray(entrees) || !entrees.every(estEntreeDeSite)) throw new TypeError(`Entrées de site invalides : ${path}`)
+  return entrees
 }
+
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: lireEntreesDeSite, retour: { type: 'collection', element: { type: 'objetPartiel', champs: { fichier: { type: 'chaine' } } } } },
+]
 
 /** Le TEXTE d'un fichier de stock JSON — la seule ÉCRITURE du format `FORMAT_JSON`, en regard de
  *  `lireStockJson` : toute régénération rend le même octet. */

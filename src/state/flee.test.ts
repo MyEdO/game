@@ -164,7 +164,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     fuyard.pos = { x: 7, y: 10 };
     frappeur.engagedWith = [fuyard.id];
     fuyard.engagedWith = [frappeur.id];
-    fuyard.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
+    fuyard.items = (fuyard.items ?? []).filter((i) => i.kind !== 'armor'); fuyard.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     useGame.setState({
       battle: { ...b },
       pendingDisengage: { moverId: fuyard.id, foeId: frappeur.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },

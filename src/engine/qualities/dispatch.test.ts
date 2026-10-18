@@ -184,7 +184,7 @@ describe('catalogue — entrées attendues', () => {
 
 describe('couture label→id — toute qualité d’arme/armure des données se résout par son LIBELLÉ', () => {
   // `parseQuality` (authoring : « Solide 3 » saisi à l'éditeur) passe par `qualityIdByLabel`, la
-  // SEULE couture label→id tolérée (CLAUDE.md). Ce banc refuse qu'un libellé du catalogue n'y résolve
+  // SEULE couture label→id tolérée (AGENTS.md). Ce banc refuse qu'un libellé du catalogue n'y résolve
   // PAS, ou qu'il y résolve sur une entrée d'un AUTRE nom (masquage par slug).
   const parSousType = (prefixe: string) => {
     const path = fileURLToPath(new URL('../../data/qualities.json', import.meta.url));

@@ -137,7 +137,7 @@ export function naissanceDu(quoi, familles) {
  * chaque édition du fichier et rendrait la moitié du stock périmée à chaque commit.
  * Ce que la clé INCLUT, sur les volets à RÉF CITÉE (`reanchor-low`, `dead-refs`, `empty-line`,
  * `dead-code-refs`) : la ligne citée dans `Source/` (`LDB 07 l.43`), qui est l'identité même du site
- * et reste stable hors ré-extraction. Une RÉ-EXTRACTION Marker fait dériver ces lignes (CLAUDE.md
+ * et reste stable hors ré-extraction. Une RÉ-EXTRACTION Marker fait dériver ces lignes (AGENTS.md
  * § Sources VF) — c'est l'événement pour lequel `reanchor.mjs` existe : le stock se renouvelle alors
  * EN BLOC (N périmées + N neuves pour zéro dette de plus) et se déclare comme tel.
  * La clé se CALCULE, elle ne s'ÉCRIT PAS sur le disque : ses séparateurs portent des espaces,
@@ -260,7 +260,7 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
 /**
  * VERDICT d'un volet à stock de sites : les deux sens, en phrases prêtes à afficher, et le `nombre`
  * d'une entrée (occurrences d'un site, hors clé) jugé par `ecartsDeStock` : une mesure ACCRUE sort en
- * `accrues`. Ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque ligne.
+ * `accrues` ET parmi les `neuves`, que lit tout appelant. Ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque ligne.
  * ANGLE MORT DIT, À LA PORTE DE PLAGE : un ÉCHANGE EN PLACE à total constant sous le MÊME fichier,
  * extension comprise — réécrire la `ref` d'une entrée existante pour couvrir un site neuf pendant qu'un
  * autre est soldé, dans le MÊME commit — rend `[]` à `croissanceDesStocks`, qui identifie toute entrée
@@ -273,7 +273,7 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
  *   `ou` nomme le fichier de stock dans le remède.
  */
 export function ecartDuVolet({ sites, stock, ou, remede = {} }) {
-  return ecartsDeStock({
+  const ecart = ecartsDeStock({
     observe: sitesEnEntrees(sites),
     stock,
     cle: cleDeSite,
@@ -284,6 +284,7 @@ export function ecartDuVolet({ sites, stock, ou, remede = {} }) {
       perimee: (k, e) => `${cleOuEntree(k, e)}${SEPARATEUR_DE_REMEDE}entrée SOLDÉE : le site a disparu, retirer cette entrée de ${ou}.`,
     },
   });
+  return { ...ecart, neuves: [...ecart.neuves, ...ecart.accrues] };
 }
 
 /** Une ligne de remède de `ecartDuVolet` NOMME-t-elle cette clé ? (le remède décore la clé d'une phrase)

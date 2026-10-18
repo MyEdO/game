@@ -20,6 +20,12 @@
 import type { Combatant } from './types';
 import type { ModLine } from './combat';
 import { RULE_REF } from './ruleRefs';
+import { isInanimate } from './structures';
+
+/** LDB 14 l.159 ; AA 10 l.96 ; MDG 13 l.612 ; EDOC 07 l.314 ; #1595 c.6230022636. */
+export function peutEtreEmpoigne(target: Pick<Combatant, 'bodyShape' | 'inert'>): boolean {
+  return !isInanimate(target);
+}
 
 /** Deux combattants sont-ils mutuellement Empoignés (LDB 14 l.159) ? Relation SYMÉTRIQUE (posée par
  *  paire) — un seul côté suffit donc à la lire. Pure. */

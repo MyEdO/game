@@ -3,7 +3,7 @@
 // `docs` du train (`scripts/ops/etapesDuTrain.mjs`).
 import { existsSync, readFileSync } from 'node:fs'
 import { join, posix } from 'node:path'
-import { ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesLitterales, ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { fichiersDOutillage } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob, couvertParPathspec } from '../guards/lib/lister.mjs'
 
@@ -119,7 +119,7 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   const outillage = fichiersDOutillage()
   if (lot.some((f) => GRAPHE_DE_SELECTION.includes(f) || outillage.has(f))) return tous('graphe ou outil de mesure modifié')
   if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
-    [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
+    ciblesLitterales([...g.targets, ...(g.injecte ?? [])]).some((c) => !existsSync(join(cwd, c))))) return tous('cible absente')
   const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
   const sorties = (g) => [...g.targets, ...(g.injecte ?? [])]
   let changement = true

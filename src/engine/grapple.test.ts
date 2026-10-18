@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areGrappling, setGrapple, clearGrapple, grappleTierMod, grappleEnvMod } from './grapple';
+import { areGrappling, setGrapple, clearGrapple, grappleTierMod, grappleEnvMod, peutEtreEmpoigne } from './grapple';
 import { combineMods } from './combat';
 import { applyOps } from './ops';
 import { GRAPPLE } from '../data';
@@ -120,5 +120,37 @@ describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.damage) : BF + 
     const da = armoured.wounds.current; applyOps(armoured, GRAPPLE.win.damage, { caster: actor, sl: 3 });
     expect(dn - naked.wounds.current).toBe(da - armoured.wounds.current); // PA ignorés → même perte
     expect(da - armoured.wounds.current).toBe(5);
+  });
+});
+
+// LDB 14 l.159 ; AA 10 l.96 ; MDG 13 l.612 ; EDOC 07 l.314 ; #1595 c.6230022636.
+describe('peutEtreEmpoigne', () => {
+  it.each([
+    ['une Structure', { bodyShape: 'structure' }],
+    ['un véhicule', { bodyShape: 'vehicule' }],
+    ['une pièce inerte', { inert: true }],
+  ] as const)('refuse %s', (_nom, p) => {
+    expect(peutEtreEmpoigne(C('cible', p as Partial<Combatant>))).toBe(false);
+  });
+  it.each([
+    ['un humanoïde', { bodyShape: 'humanoide' }],
+    ['une Nuée', { bodyShape: 'humanoide', traits: [{ id: 'nuee' }] }],
+    ['un Éthéré', { bodyShape: 'humanoide', traits: [{ id: 'ethere' }] }],
+  ] as const)('accepte %s', (_nom, p) => {
+    expect(peutEtreEmpoigne(C('cible', p as unknown as Partial<Combatant>))).toBe(true);
+  });
+  it('GRAPPLE.init contre une Structure ne pose ni Empoignade ni Empêtré', () => {
+    const lutteur = C('lutteur');
+    const mur = C('mur', { bodyShape: 'structure' } as Partial<Combatant>);
+    applyOps(mur, GRAPPLE.init, { caster: lutteur });
+    expect(areGrappling(lutteur, mur)).toBe(false);
+    expect(mur.conditions).toEqual([]);
+  });
+  it('GRAPPLE.init contre un humanoïde pose Empoignade et Empêtré', () => {
+    const lutteur = C('lutteur');
+    const proie = C('proie', { bodyShape: 'humanoide' } as Partial<Combatant>);
+    applyOps(proie, GRAPPLE.init, { caster: lutteur });
+    expect(areGrappling(lutteur, proie)).toBe(true);
+    expect(proie.conditions.map((c) => c.id)).toContain('empetre');
   });
 });

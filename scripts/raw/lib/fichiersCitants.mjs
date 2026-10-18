@@ -1,4 +1,4 @@
-// Les fichiers que lisent les scanners de réfs du CODE (CLAUDE.md règle 1) : UNE marche, DEUX
+// Les fichiers que lisent les scanners de réfs du CODE (AGENTS.md règle 1) : UNE marche, DEUX
 // populations nommées. Le triage `audit-refs-chapitre.mjs`, qui balaie aussi `scripts/` et `docs/`,
 // lit la même liste de CITANTS.
 // - CITANTS : tout fichier qui peut porter une réf `<ABRÉV> <chap> l.<ligne>`. Sa FORME

@@ -58,6 +58,7 @@ import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
 import { cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
@@ -1335,7 +1336,7 @@ export function StarScreen({ d, setD }: StepProps) {
               // destins de L'Étoile du Sorcier partagent « Signe de la Magie » (elle vaut donc pour
               // la position), là où des destins discordants ne pourraient pas se résumer d'un mot.
               sub: selPos.members.every((m) => m.signe === selPos.members[0].signe) ? selPos.members[0].signe : null,
-              note: `d100 : ${selPos.from === selPos.rand ? selPos.rand : `${selPos.from}-${selPos.rand}`}`,
+              note: bandeAuDe('d100', selPos.from, selPos.rand),
             }
           }
         />
@@ -1364,7 +1365,7 @@ export function StarScreen({ d, setD }: StepProps) {
                 <PlaqueRow
                   key={m.id}
                   content={splitLabel(m.label).spec ?? m.label}
-                  meta={m.sub && <span className="hint">1d10 : {m.sub.min === m.sub.max ? m.sub.min : `${m.sub.min}-${m.sub.max}`}</span>}
+                  meta={m.sub && <span className="hint">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}
                   selected={m.id === d.star}
                   onClick={() => setD({ ...d, star: m.id })}
                 />

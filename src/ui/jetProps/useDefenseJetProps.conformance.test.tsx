@@ -9,6 +9,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
+import { setRule, resetRule } from '../../engine/policy';
 import { useGame, type BattleState } from '../../state/store';
 import { openAttackCascade, aiCreatureFreeAttacks } from '../../state/combatFlow';
 import { seedBattleRng } from '../../state/battleRng';
@@ -40,8 +41,9 @@ afterEach(() => {
 });
 
 /** Ouvre la fenêtre de Défense d'un héros attaqué en mêlée, et la monte.
- *  `defenderWeapon` remplace l'arme (donc l'arme de parade par défaut) du défenseur. */
-function openDefense(defenderWeapon?: Weapon): HTMLDivElement {
+ *  `defenderWeapon` remplace l'arme (donc l'arme de parade par défaut) du défenseur ; `prepare` complète
+ *  la fiche du héros et le combat avant l'attaque ; `atkDie` fixe le dé de l'attaque. */
+function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle: BattleState) => void, atkDie?: number): HTMLDivElement {
   const enemy = mk('e', 'Rat géant', 'enemy', { x: 1, y: 0 });
   const hero = mk('h', 'Gunnar', 'hero', { x: 0, y: 0 });
   if (defenderWeapon) hero.weapons = [defenderWeapon];
@@ -50,14 +52,16 @@ function openDefense(defenderWeapon?: Weapon): HTMLDivElement {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
+  prepare?.(hero, battle);
   useGame.setState({
-    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, codexOverlay: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} },
   });
   const g = useGame.getState;
   seedBattleRng(3);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
   g().attackRoll();
+  if (atkDie != null) g().attackSetForcedRoll(atkDie);
   g().attackConfirm();
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -166,5 +170,113 @@ describe('Défense : les modificateurs de la VALEUR sont des lignes NOMMÉES', (
     act(() => { useGame.getState().defenseSetMode('esquive'); });
     poser('agilite');
     expect(rangeeDefenseur()).toContain('Sonde de valeur');
+  });
+});
+
+/** Les volets de Talent de la fenêtre : titre ouvrant la fiche, option hors de portée refusée avec sa cause. */
+describe('Défense : volets Riposte et Porte-bouclier', () => {
+  const RAPIERE = { ...sword, name: 'Rapière', label: 'Rapière', uid: 'rp', qualities: [{ id: 'rapide' }] } as unknown as Weapon;
+  const BOUCLIER = { name: 'Bouclier', label: 'Bouclier', uid: 'sh', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as unknown as Weapon;
+  const volet = (titre: string) => [...host!.querySelectorAll('.rm-loc-inline')].find((el) => el.querySelector('.mini-title')?.textContent?.startsWith(titre)) ?? null;
+  const segment = (titre: string, libelle: string) => [...(volet(titre)?.querySelectorAll('.seg button') ?? [])].find((b) => b.textContent === libelle) as HTMLButtonElement | undefined;
+  const riposteur = (portees: number) => (h: Combatant) => {
+    h.talents = [{ talentId: 'riposte', times: 1 }] as Combatant['talents'];
+    h.ripostesThisRound = portees;
+  };
+  const porteBouclier = (h: Combatant, b: BattleState) => {
+    h.weapons = [BOUCLIER];
+    h.talents = [{ talentId: 'porte-bouclier', times: 1 }] as Combatant['talents'];
+    h.advantage = 3;
+    (b as BattleState & { advantagePools: { allies: number; foes: number } }).advantagePools = { allies: 3, foes: 0 };
+  };
+
+  it('Riposte au plafond du Niveau : Oui et Non refusés avec la cause, aucun pressé', () => {
+    openDefense(RAPIERE, riposteur(1));
+    const oui = segment('Riposte', 'Oui')!;
+    expect(oui.getAttribute('aria-disabled')).toBe('true');
+    expect(oui.getAttribute('aria-pressed')).toBe('false');
+    expect(segment('Riposte', 'Non')!.getAttribute('aria-pressed')).toBe('false');
+    const cause = document.getElementById(oui.getAttribute('aria-describedby') ?? '')?.textContent;
+    expect(cause).toBe('Riposte déjà portée 1 fois ce Round : Niveau 1.');
+  });
+
+  it('Riposte sous le plafond : Oui offert et pressé', () => {
+    openDefense(RAPIERE, riposteur(0));
+    const oui = segment('Riposte', 'Oui')!;
+    expect(oui.getAttribute('aria-disabled')).toBeNull();
+    expect(oui.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('Riposte déclarée : le choix reste visible après le jet, figé, Oui pressé', () => {
+    openDefense(RAPIERE, riposteur(0), 90);
+    act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(5); });
+    expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+    const oui = segment('Riposte', 'Oui')!;
+    expect(oui.getAttribute('aria-pressed')).toBe('true');
+    expect(oui.getAttribute('aria-disabled')).toBe('true');
+    expect(segment('Riposte', 'Non')!.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('le titre du volet Riposte ouvre la fiche au clic et au clavier', () => {
+    openDefense(RAPIERE, riposteur(0));
+    const titre = volet('Riposte')!.querySelector<HTMLElement>('.mini-title .codex-ref')!;
+    expect(titre.getAttribute('role')).toBe('button');
+    expect(titre.tabIndex).toBe(0);
+    act(() => { titre.click(); });
+    expect(useGame.getState().codexOverlay).toMatchObject({ category: 'talents', id: 'riposte' });
+    act(() => { useGame.setState({ codexOverlay: null }); });
+    act(() => { titre.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    expect(useGame.getState().codexOverlay).toMatchObject({ category: 'talents', id: 'riposte' });
+  });
+
+  describe('Porte-bouclier (variante Avantage de groupe)', () => {
+    afterEach(() => resetRule('combat-aa-avantage-groupe'));
+
+    it('« Dégâts » déclaré, Défense perdue : le volet reste après le jet, Dégâts refusé avec sa cause', () => {
+      setRule('combat-aa-avantage-groupe', true);
+      openDefense(undefined, porteBouclier, 5);
+      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(97); });
+      expect(useGame.getState().pendingDefense!.result!.hit).toBe(true);
+      const degats = segment('Porte-bouclier', 'Dégâts')!;
+      expect(degats.getAttribute('aria-pressed')).toBe('true');
+      expect(degats.getAttribute('aria-disabled')).toBe('true');
+      const cause = document.getElementById(degats.getAttribute('aria-describedby') ?? '')?.textContent;
+      expect(cause).toBe('Défense non gagnée : pas de Dégâts.');
+    });
+
+    it('« Dégâts » déclaré, Défense gagnée : Dégâts reste pressé, refusé seulement parce que le jet est lancé', () => {
+      setRule('combat-aa-avantage-groupe', true);
+      openDefense(undefined, porteBouclier, 90);
+      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(5); });
+      expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+      const degats = segment('Porte-bouclier', 'Dégâts')!;
+      expect(degats.getAttribute('aria-pressed')).toBe('true');
+      const cause = document.getElementById(degats.getAttribute('aria-describedby') ?? '')?.textContent;
+      expect(cause).toBe('Le jet est lancé : la réaction se déclare avant.');
+    });
+
+    it('« Dégâts » déclaré, Test opposé à égalité : l\'attaque ne touche pas, Dégâts refusé comme au moteur', () => {
+      setRule('combat-aa-avantage-groupe', true);
+      openDefense(undefined, porteBouclier, 30);
+      act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
+      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(65); });
+      const res = useGame.getState().pendingDefense!.result!;
+      expect(res.hit).toBe(false);
+      expect(res.advantageTo).toBeNull();
+      const degats = segment('Porte-bouclier', 'Dégâts')!;
+      const cause = document.getElementById(degats.getAttribute('aria-describedby') ?? '')?.textContent;
+      expect(cause).toBe('Défense non gagnée : pas de Dégâts.');
+    });
+
+    it('le titre du volet Porte-bouclier ouvre la fiche au clic', () => {
+      setRule('combat-aa-avantage-groupe', true);
+      openDefense(undefined, porteBouclier);
+      const titre = volet('Porte-bouclier')!.querySelector<HTMLElement>('.mini-title .codex-ref')!;
+      expect(titre.tabIndex).toBe(0);
+      act(() => { titre.click(); });
+      expect(useGame.getState().codexOverlay).toMatchObject({ category: 'talents', id: 'porte-bouclier' });
+    });
   });
 });

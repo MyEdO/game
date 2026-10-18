@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
-  normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  normalizeText, readFrontmatter, readTomlStringField,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, EQUIVALENTS_INTEGRES, buildExpectedOutputs as sortiesAttendues, collectDiffs,
   DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
+import { FAMILLES_LEAN_CTX, PREFIXES_LEAN_CTX, SHELL, familleLeanCtx } from '../guards/lib/contratGarde.mjs';
 
 /** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
@@ -42,27 +43,13 @@ test('décode les échappements TOML des strings basic mono et multiligne', () =
   assert.equal(readTomlStringField('developer_instructions = """\nl\\"igne\\\\\n"""', 'developer_instructions'), 'l"igne\\\n');
 });
 
-test('transforme le guide par table fermée', async () => {
-  const out = transformGuide(await readFile(new URL('./fixtures/guide/CLAUDE.md', import.meta.url), 'utf8'));
-  assert.match(out, /^<!-- GENERATED: agents:sync; source=CLAUDE\.md -->\n# AGENTS\.md/m);
-  assert.doesNotMatch(out.replace(/^[^\n]*\n/, ''), /CLAUDE\.md|Claude Code|\.claude\/credo|~\/\.claude|claude\.ai\/code/);
-});
+const ANNEXE = '.claude/skills/demo/annexe.md';
+const MIROIR_ANNEXE = '.agents/skills/demo/annexe.md';
+const avecAnnexe = (texte) => buildExpectedOutputs(new Map([[ANNEXE, Buffer.from(texte)]]));
 
-test('adopte un legacy exact mais refuse un écrasement manuel', () => {
-  const expected = buildExpectedOutputs(new Map([['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code\n')]]));
-  const generated = expected.files.get('AGENTS.md').toString('utf8');
-  const legacy = generated.replace(/^<!-- GENERATED:[^\n]+ -->\n/, '');
-  assert.equal(collectDiffs(expected, new Map([['AGENTS.md', Buffer.from(legacy)] ]))[0].safe, true);
-  assert.equal(collectDiffs(expected, new Map([['AGENTS.md', Buffer.from(legacy.replace(/\n/g, '\r\n'))] ]))[0].type, 'unsafe-overwrite');
-  assert.equal(collectDiffs(expected, new Map([['AGENTS.md', Buffer.from('# manuel\n')]]))[0].type, 'unsafe-overwrite');
-});
-
-test('produit un diagnostic parse pour UTF-8 invalide', () => {
-  const invalid = Buffer.from([0xc3, 0x28]);
-  const expected = buildExpectedOutputs(new Map([['CLAUDE.md', invalid]]));
-  assert.equal(expected.diagnostics[0].type, 'parse');
-  const valid = buildExpectedOutputs(new Map([['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code\n')]]));
-  assert.equal(collectDiffs(valid, new Map([['AGENTS.md', invalid]]))[0].type, 'parse');
+test('produit un diagnostic parse pour un miroir en UTF-8 invalide', () => {
+  const diagnostics = collectDiffs(avecAnnexe('# Annexe\n'), new Map([[MIROIR_ANNEXE, Buffer.from([0xc3, 0x28])]]));
+  assert.equal(diagnostics.find((d) => d.destination === MIROIR_ANNEXE).type, 'parse');
 });
 
 test('réessaie atomiquement les verrous Windows avec un temporaire unique', async () => {
@@ -86,10 +73,10 @@ test('réessaie atomiquement les verrous Windows avec un temporaire unique', asy
 });
 
 test('reconstruit les sorties attendues depuis le snapshot post-sync', async () => {
-  const first = new Map([['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code un\n')]]);
+  const first = new Map([[ANNEXE, Buffer.from('# Annexe\nClaude Code un\n')]]);
   const second = new Map([
-    ['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code deux\n')],
-    ['AGENTS.md', buildExpectedOutputs(first).files.get('AGENTS.md')],
+    [ANNEXE, Buffer.from('# Annexe\nClaude Code deux\n')],
+    [MIROIR_ANNEXE, buildExpectedOutputs(first).files.get(MIROIR_ANNEXE)],
   ]);
   let reads = 0;
   const diagnostics = await runCompat({ root: 'virtual', mode: 'sync' }, {
@@ -97,7 +84,7 @@ test('reconstruit les sorties attendues depuis le snapshot post-sync', async () 
     snapshot: async () => (reads++ === 0 ? first : second),
     atomicWrite: async () => {},
   });
-  assert.equal(diagnostics[0].type, 'content');
+  assert.equal(diagnostics.find((d) => d.destination === MIROIR_ANNEXE).type, 'content');
 });
 
 test('préserve le frontmatter, adapte le corps et copie les ressources', () => {
@@ -108,6 +95,15 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   const out = transformSkillTree(source);
   assert.match(out.get('.agents/skills/demo/SKILL.md').toString(), /^---[\s\S]+---\n<!-- GENERATED:/);
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
+});
+
+test('une annexe Markdown d’un skill s’adapte comme son SKILL.md, sans frontmatter', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nLire `.claude/skills/demo/annexe.md`.\n')],
+    ['.claude/skills/demo/annexe.md', Buffer.from('# Annexe\n\nLire CLAUDE.md et `.claude/skills/demo/SKILL.md`.\n')],
+  ]));
+  assert.equal(out.get('.agents/skills/demo/annexe.md').toString(),
+    '<!-- GENERATED: agents:sync; source=.claude/skills/demo/annexe.md -->\n# Annexe\n\nLire AGENTS.md et `.agents/skills/demo/SKILL.md`.\n');
 });
 
 test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
@@ -147,20 +143,26 @@ test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil
   }
 });
 
-test('génère seulement le credo Codex et partage la mémoire Claude', () => {
-  const expected = buildExpectedOutputs(new Map([
-    ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
-    ['.claude/credo.md', Buffer.from('Lire .claude/memory/MEMORY.md\n')],
-    ['.claude/memory/MEMORY.md', Buffer.from('Guide CLAUDE.md\n')],
-  ]));
-  assert.match(expected.files.get('.codex/credo.md').toString(), /\.claude\/memory/);
-  assert.equal(expected.files.has('.codex/memory/MEMORY.md'), false);
+test('refuse un outil MCP ou propre à un hôte sans son équivalent intégré, accepte la paire (#2710)', () => {
+  const paire = (tools) => [
+    new Map([['codeur', `---\nname: codeur\ndescription: Code\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['codeur', 'name = "codeur"\ndescription = "Code"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  const candidats = [['PowerShell', EQUIVALENTS_INTEGRES[SHELL]], ...Object.keys(FAMILLES_LEAN_CTX)
+    .filter((nu) => Object.hasOwn(EQUIVALENTS_INTEGRES, familleLeanCtx(nu)))
+    .map((nu) => [`${PREFIXES_LEAN_CTX.claude}${nu}`, EQUIVALENTS_INTEGRES[familleLeanCtx(nu)]])];
+  assert.ok(candidats.length > 3);
+  for (const [nom, integre] of candidats) {
+    assert.deepEqual(validateRolePairs(...paire(nom)).map((d) => d.message), [`outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent`], nom);
+    assert.deepEqual(validateRolePairs(...paire(`${nom}, ${integre}`)), [], nom);
+  }
+  assert.deepEqual(validateRolePairs(...paire('mcp__autre__ctx_read')), [], 'un serveur autre que lean-ctx n’est pas classé');
 });
 
 test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et par événement, matcher = UNION des outils', () => {
   const claude = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CLAUDE) }, SURFACE_CLAUDE);
   const codex = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CODEX) }, SURFACE_CODEX);
-  const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
+  const outil = (liste) => liste.filter((h) => h.phase.endsWith('ToolUse')).map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
   assert.deepEqual(outil(claude), [
     { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
@@ -285,19 +287,12 @@ test('CONTRAT — `.claude/settings.json` n’a PAS de SessionStart credo, `.cod
     .filter((h) => h.phase === 'SessionStart' && h.script === 'inject-project-credo.mjs');
   assert.equal(credos(claude, SURFACE_CLAUDE).length, 0, 'Claude importe le credo par `@.claude/credo.md`, il ne l’injecte pas');
   assert.equal(credos(codex, SURFACE_CODEX).length, 1, 'Codex n’a pas d’import : sa surface INJECTE le credo');
-  const guide = await readFile(new URL('CLAUDE.md', racine), 'utf8');
-  assert.match(guide, /^@\.claude\/credo\.md$/m, 'la ligne d’import du credo manque à CLAUDE.md');
 });
 
-test("CONTRAT — l'import `@.claude/credo.md` se traduit en MÉCANISME, pas en pointeur inerte", async () => {
+test('CONTRAT — `CLAUDE.md` importe le credo et `AGENTS.md`, seule source des instructions ; Codex reçoit le credo par injection', async () => {
   const racine = new URL('../../', import.meta.url);
-  // Codex n'a pas d'affordance d'import : un `@.codex/credo.md` dans AGENTS.md ne chargerait RIEN.
-  const transforme = transformGuide('@.claude/credo.md\n\n# CLAUDE.md — titre\n');
-  assert.doesNotMatch(transforme, /@\.codex\/credo\.md/, 'le pointeur inerte est interdit sur AGENTS.md');
-  assert.match(transforme, /Credo injecté au SessionStart par `\.codex\/hooks\.json`/);
-  const agents = await readFile(new URL('AGENTS.md', racine), 'utf8');
-  assert.match(agents, /Credo injecté au SessionStart par `\.codex\/hooks\.json`/, 'AGENTS.md doit dire le mécanisme réel');
-  assert.doesNotMatch(agents, /@\.codex\/credo\.md/);
+  assert.equal(await readFile(new URL('CLAUDE.md', racine), 'utf8'), '@.claude/credo.md\n@AGENTS.md\n');
+  assert.equal(HOOKS_DE_SESSION.find((h) => h.script === 'inject-project-credo.mjs').arguments[0], 'codex');
 });
 
 test('les déclarations committées sont celles que les registres RÉELS produisent (agents:check)', async () => {
@@ -321,7 +316,7 @@ test('`DESTINATIONS` couvre chaque sortie de `buildExpectedOutputs`, et chacune 
 
 test('réfute toute référence de profil qui diverge après normalisation', () => {
   const claude = new Map([['artiste', '---\nname: artiste\ndescription: Art\n---\nLire `.claude/skills/demo/SKILL.md` et `.claude/credo.md`.\n']]);
-  const codex = new Map([['artiste', 'name = "artiste"\ndescription = "Art"\ndeveloper_instructions = """\nLire `.Codex/skills/demo/SKILL.md` et `.codex/credo.md`.\n"""']]);
+  const codex = new Map([['artiste', 'name = "artiste"\ndescription = "Art"\ndeveloper_instructions = """\nLire `.Codex/skills/demo/SKILL.md` et `.claude/credo.md`.\n"""']]);
   assert.equal(validateRolePairs(claude, codex)[0].type, 'reference');
 });
 

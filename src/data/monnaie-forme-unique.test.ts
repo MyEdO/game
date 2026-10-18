@@ -67,7 +67,7 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
     // Recensement des MONTANTS (un objet dont les clés sont des dénominations et rien d'autre) :
     // les catalogues chiffrent les 3, un coût authoré n'écrit que ce qu'il coûte.
     expect(montants, 'signatures de montant observées').toEqual({
-      'brass,gold,silver': 465, // 447 colonnes Prix (trappings 392, vehicles 31, creatures 14, machines de guerre 10) + solde d'équipage 18
+      'brass,gold,silver': 463, // 445 colonnes Prix (trappings 392, vehicles 29, creatures 14, machines de guerre 10) + solde d'équipage 18
       gold: 27, // mise minimale du Mécénat + 1 coût de choix d'arène + 25 `giveMoney.montant`
       silver: 23, // 7 coûts de choix d'arène + 16 `giveMoney.montant`
       'gold,silver': 3, // 3 `giveMoney.montant` à deux dénominations
@@ -101,9 +101,9 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     // `price` = la colonne Prix TELLE QUE LE LIVRE L'IMPRIME (`money.ts:36-39`) : un montant, la
     // marque « ND », ou rien. La classe `number` est le barème qui USURPE le nom (solde L-monnaie-4).
-    expect(classes.price, 'classes de `price`').toEqual({ object: 465, null: 46, "'ND'": 3, number: 6 });
+    expect(classes.price, 'classes de `price`').toEqual({ object: 463, null: 46, "'ND'": 3, number: 6 });
     expect(signatures.price, 'signatures d’objet sous `price`').toEqual({
-      'brass,gold,silver': 447, // la colonne Prix chiffrée
+      'brass,gold,silver': 445, // la colonne Prix chiffrée
       'automne,ete,hiver,printemps': 17, // barème SAISONNIER d'une cargaison
       dice: 1, // prix TIRÉ
     });

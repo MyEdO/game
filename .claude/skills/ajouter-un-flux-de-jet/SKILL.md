@@ -10,3 +10,15 @@ verbes dans la table `FLOW_VERBS` de `src/state/flowVerbs.ts`) + 1 xConfirm ; la
 paramétrée (slots/jetProps, JAMAIS de mécanique générique recodée) ; le résolveur porte les trois cas
 de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.test.ts` (câblage) et
 `maneuver-defense-cascade.test.ts` (surfaçage contrôleur humain).
+
+- Un Test que le RAW dit OPPOSÉ passe, sur le chemin joueur, par la machinerie d'opposition
+  (`opposedBinaryFlow` `src/state/rollFlowSpecs.ts:375`, `openCastOpposition`,
+  `src/state/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
+  influence (utilisateur, 2026-07-17 : « les jets opposés sont un MENSONGE […] alors qu'on SAIT FAIRE
+  DES JETS OPPOSÉS ! »). Un test simple avec tirage adverse caché dans l'applier exige une justification
+  RAW citée.
+  La fidélité de RÉSOLUTION (opposé réel ou simple) se recense comme un axe à part : un registre ne
+  jure que les axes qu'il a mesurés.
+- Un acte de combat qui exige un Test consomme l'Action (`battle.acted`), mouvement difficile compris.
+  Ce critère ne renverse jamais une exception canon explicite (Piétinement gratuit, Viser = Action sans
+  jet). `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/034 - Taking Your Turn.md` l.39, l.17

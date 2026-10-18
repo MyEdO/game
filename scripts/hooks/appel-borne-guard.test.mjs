@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BORNE_D_APPEL_MS, garde } from './appel-borne-guard.mjs'
 import { codeDe } from '../ops/sonde.mjs'
+import { REGLES_COMMUNES } from './contexte-sous-agent.mjs'
 
 const SOUS_AGENT = { session_id: 's', agent_id: 'a1', agent_type: 'codeur' }
 const PRINCIPAL = { session_id: 's' }
@@ -51,16 +52,19 @@ test('#2596 — acceptés : sous-agent borné à BORNE_D_APPEL_MS ou sans timeou
   }
 })
 
-test('#2596 — définitions d’agents : aucune n’interdit le fond ; codeur et artiste, aux deux surfaces, portent la règle des 270 s et la sonde', () => {
+test('#2596 — définitions d’agents : aucune n’interdit le fond ; la règle des 270 s et la sonde vivent dans les règles communes, que tout profil Codex à shell désigne (#2726)', () => {
   const racine = fileURLToPath(new URL('../..', import.meta.url))
+  const communes = readFileSync(join(racine, REGLES_COMMUNES), 'utf8')
+  assert.match(communes, /aucun appel d'outil ne dure plus de 270 s/i, REGLES_COMMUNES)
+  assert.match(communes, /node scripts\/ops\/sonde\.mjs <base>\.code/, REGLES_COMMUNES)
   for (const dossier of ['.claude/agents', '.codex/agents']) {
     for (const nom of readdirSync(join(racine, dossier))) {
       const texte = readFileSync(join(racine, dossier, nom), 'utf8')
       assert.doesNotMatch(texte, /Jamais de `run_in_background`/, `${dossier}/${nom}`)
-      if (/^(codeur|artiste)\./.test(nom)) {
-        assert.match(texte, /Aucun appel d'outil ne dure plus de 270 s/, `${dossier}/${nom}`)
-        assert.match(texte, /node scripts\/ops\/sonde\.mjs <base>\.code/, `${dossier}/${nom}`)
-      }
+      if (dossier !== '.codex/agents') continue
+      const outils = /^tools:\s*(.+)$/m.exec(readFileSync(join(racine, '.claude/agents', nom.replace(/\.toml$/, '.md')), 'utf8'))?.[1]
+      if (outils && !/\b(Bash|PowerShell)\b/.test(outils)) continue
+      assert.ok(texte.includes(`lis \`${REGLES_COMMUNES}\``), `${dossier}/${nom} : profil à shell sans renvoi aux règles communes`)
     }
   }
 })

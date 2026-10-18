@@ -73,6 +73,7 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 /** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
  *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
 export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
+export type DeDeTable = z.infer<typeof deDeTableSchema>;
 
 /**
  * Registre d'où DÉRIVE le pool de spécialisations d'une def (`SpecsSource`, `src/data/index.ts` ;
@@ -394,6 +395,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     advantageDefenseReaction: nommerChamps(z.strictObject({ avantage: z.number() }), { avantage: { label: "Avantage" } }).optional(),
     counterOnDefenseWin: z.boolean().optional(),
     counterRequiresFastParry: z.boolean().optional(),
+    counterDeclaredPerLevel: z.boolean().optional(),
     stealAdvantage: z.boolean().optional(),
     stealOne: z.boolean().optional(),
     transferWeight: z.number().optional(),
@@ -420,7 +422,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     commandTeam: z.boolean().optional(),
     seaShanty: z.boolean().optional(),
     critRollTwice: z.boolean().optional(),
-  }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
+  }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, counterDeclaredPerLevel: { label: "riposte déclarée, plafond par Niveau" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
 );
 
 /**
@@ -730,7 +732,7 @@ export const castingNumberModSchema = nommerChamps(z
       }), { domains: { label: "domaines" }, domainsExcept: { label: "domaines exclus" }, chaosMagic: { label: "magie du Chaos" }, spellIds: { label: "sorts" }, kinds: { label: "types" } })
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
-     *  (sens d'arrondi non imprimé…) — CLAUDE.md règle 7. */
+     *  (sens d'arrondi non imprimé…) — AGENTS.md règle 7. */
     maison: z.string().optional(),
     source: sourceRefSchema,
     /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
@@ -921,16 +923,14 @@ export const refTestDeCorruption = nommerChamps(z.strictObject({
 export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "minimum" }, max: { label: "maximum" } });
 
 /**
- * FOURCHETTE À BORNE HAUTE OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande
- * n'a pas de plafond, et JSON n'a pas d'Infinity (`max: null` ; c'est le lookup qui ouvre, cf.
- * `src/engine/advancement.ts`). Composée sur la SHAPE de `plageSchema`, graphie UNIQUE de dérivation
- * dans la grammaire. Mesuré 2026-09-01 sur les deux racines de donnée : DEUX bandes ouvertes
- * (`advancementCosts.json`, « 71 et + », LDB 07 l.49/l.70 ; `sea-cargo.json › sell.offerPrice`,
- * « 4 ou plus », MDG 15 l.383) contre plus de 1470 fourchettes FERMÉES — sonde tenue par
- * `src/data/plage-bornes-contrat.test.ts` (volet E). La couverture d'une suite de telles bandes se vérifie
- * par `ecartsDeCouverture(…, 'ouverte')` ci-dessous.
+ * FOURCHETTE À BORNE EXTRÊME OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande
+ * n'a pas de plafond, ou la PREMIÈRE pas de plancher, et JSON n'a pas d'Infinity (`max: null`,
+ * `min: null` ; c'est le lookup qui ouvre, `tableOuverte`, `src/engine/tables.ts`). Les deux champs
+ * de `plageSchema` et leurs métadonnées (`metaDesChamps`), rendus nullables. Les bandes ouvertes de la
+ * donnée sont NOMMÉES, une par document, par `src/data/plage-bornes-contrat.test.ts` (volet E). La
+ * couverture d'une suite de telles bandes se vérifie par `ecartsDeCouverture(…, 'ouverte')` ci-dessous.
  */
-export const plageOuverteSchema = nommerChamps(z.strictObject({ ...plageSchema.shape, max: z.number().nullable() }), { ...metaDesChamps(plageSchema, { exigees: true }), max: { label: "maximum" } });
+export const plageOuverteSchema = nommerChamps(z.strictObject({ min: z.number().nullable(), max: z.number().nullable() }), metaDesChamps(plageSchema, { exigees: true }));
 
 /**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique
@@ -987,20 +987,25 @@ export function ecartDeCoPresenceDesBornes(v: {
  * ORDRE INERTE : les fourchettes sont triées par `min` avant mesure — les deux bornes étant
  * authorées, réordonner les rangées au Codex ne change RIEN au tirage, et ne doit donc rien refuser.
  * `jusqua: 'ouverte'` = la dernière fourchette n'a PAS de plafond (`max: null`, cf. la bande
- * « 71 et + », LDB 07 l.70) ; sinon la borne haute exacte est exigée.
+ * « 71 et + », LDB 07 l.70) ; sinon la borne haute exacte est exigée. `depuis: 'ouverte'` = la
+ * première n'a PAS de plancher (`min: null`, « 50 ou moins », MDG 14 l.199) ; sinon la borne basse
+ * exacte est exigée.
  */
-export function ecartsDeCouverture<F extends { min?: number; max?: number | null }>(
+export function ecartsDeCouverture<F extends { min?: number | null; max?: number | null }>(
   fourchettes: readonly F[],
-  depuis: number,
+  depuis: number | 'ouverte',
   jusqua: number | 'ouverte',
   nom: (f: F) => string,
 ): string[] {
   if (!fourchettes.length) return ['aucune fourchette'];
   const ecarts: string[] = [];
-  const triees = [...fourchettes].sort((a, b) => (a.min ?? 0) - (b.min ?? 0));
-  let attendu = depuis;
+  const plancher = (f: F) => f.min ?? Number.NEGATIVE_INFINITY;
+  const triees = [...fourchettes].sort((a, b) => plancher(a) - plancher(b));
+  let attendu = depuis === 'ouverte' ? Number.NEGATIVE_INFINITY : depuis;
   for (const [i, f] of triees.entries()) {
-    if (f.min !== attendu) ecarts.push(`${nom(f)} commence à ${f.min} au lieu de ${attendu}`);
+    if (i === 0 && depuis === 'ouverte') {
+      if (f.min !== null) ecarts.push(`${nom(f)} est la PREMIÈRE et porte un plancher (${f.min}) : sa borne basse reste OUVERTE (\`min: null\`)`);
+    } else if (f.min !== attendu) ecarts.push(`${nom(f)} commence à ${f.min} au lieu de ${attendu}`);
     if (i === triees.length - 1 && jusqua === 'ouverte') {
       if (f.max !== null) ecarts.push(`${nom(f)} est la DERNIÈRE et porte un plafond (${f.max}) : sa borne haute reste OUVERTE (\`max: null\`)`);
       return ecarts;
@@ -1009,7 +1014,7 @@ export function ecartsDeCouverture<F extends { min?: number; max?: number | null
       ecarts.push(`${nom(f)} n'a pas de borne haute`);
       return ecarts;
     }
-    if (f.max < (f.min ?? attendu)) ecarts.push(`${nom(f)} finit (${f.max}) avant de commencer (${f.min})`);
+    if (typeof f.min === 'number' && f.max < f.min) ecarts.push(`${nom(f)} finit (${f.max}) avant de commencer (${f.min})`);
     attendu = f.max + 1;
   }
   if (jusqua !== 'ouverte' && attendu !== jusqua + 1) {

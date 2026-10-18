@@ -2,10 +2,11 @@
 // `occurrencesStock.mjs`) sur une racine, et la PORTE DE PLAGE qui refuse qu'un compte monte ou qu'un
 // site naisse entre la base d'une plage et sa tête.
 //
-// DÉTECTEUR CONSTANT : la base et la tête se mesurent par le MÊME code, celui qui tourne (`scripts/`), posé
-// dans chaque image ; tout `src/` vient de l'image — donnée, defs, grammaire, `OP_DEFS`. Un détecteur élargi
-// mesure donc les deux côtés pareil, et ce qui monte est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit).
-// Aucune ligne de message n'admet une hausse.
+// DÉTECTEURS CONSTANTS : la base et la tête se mesurent par le MÊME code, posé dans chaque image — deux fois,
+// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base) ;
+// tout `src/` vient de l'image — donnée, defs, grammaire, `OP_DEFS`. Ce qui monte sous l'un ou l'autre est la
+// DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui ne se lie pas est sautée et
+// nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
 // ANGLE MORT : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711).
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -17,10 +18,19 @@ import { lierDependances } from '../../migrations/replay-head.mjs';
 import { scanDuCorpus, scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
+import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
+import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { GitIndisponible, TRONC, baseCommune, depotDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import { COLLECTIONS_A_COMPTE, occurrencesDe, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { cleDeSite, ecartsDeStock, sitesEnEntrees, SEPARATEUR_DE_REMEDE, type EntreeDeSite } from './stock.mjs';
 import { scanAll } from '../../raw/check-source-format.mjs';
+
+/** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
+ *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`estDetteDOp`). */
+export function refsAPlat(opDefs: Readonly<Record<string, unknown>>): Record<string, string[]> {
+  return Object.fromEntries(Object.entries(opDefs).map(([op, schema]) => [op, [...new Set(ouverts([schema]).flatMap((n) =>
+    enfantsDe(n).flatMap((e) => (e.cle !== undefined && ouverts([e.noeud]).some(estFeuilleDId) ? [e.cle] : []))))].sort()]));
+}
 
 /** Le corpus des comptes d'un scan déjà fait (`scanDuCorpus`) et de ses redéclarations. Le parse de mesure des
  *  slots ne se joue qu'à la première lecture de `sansSlot` : une garde qui ne mesure pas les slots ne le paie pas. */
@@ -32,7 +42,7 @@ export function corpusDuScan(
   return {
     scan, inatteignables: occurrencesInatteignables(scan), redeclarations,
     get sansSlot() { return (sansSlot ??= champsSansSlot(scan, slotsDuParse(scan, defs))); },
-    typage: { types: Object.keys(OP_DEFS), nonTypees: OPS_NON_TYPEES },
+    typage: { types: Object.keys(OP_DEFS), nonTypees: OPS_NON_TYPEES, aPlat: refsAPlat(OP_DEFS) },
   };
 }
 
@@ -88,7 +98,7 @@ export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   });
 }
 
-/** La racine du code qui TOURNE : le détecteur. */
+/** La racine du code qui TOURNE : le détecteur de la tête. */
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url));
 /** Ce que le détecteur apporte à une image : son code et sa configuration de modules. */
 const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
@@ -96,23 +106,47 @@ const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
 const DE_L_IMAGE = ['src', 'Source'];
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
+/** Le point d'entrée de la mesure, dans le code d'un détecteur. */
+const POINT_D_ENTREE = 'scripts/guards/lib/corpusDesComptes.mts';
 
 /** La mesure d'une image n'a pas abouti : la porte ne juge pas ce qu'elle n'a pas mesuré. */
 class MesureImpossible extends Error {}
 
-/**
- * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
- * détecteur (`DU_DETECTEUR`), ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
- * et ses cibles de code produites sans certificat (`genererCodeSansCertifier` : `_registry.generated.ts`
- * n'est pas suivi, et une image jetable ne certifie rien).
- */
-function poserImage(depot: Depot, arbre: string, dossier: string): void {
-  for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...DE_L_IMAGE).filter((c) => TEXTE.test(c)))) {
+/** Les fichiers texte de `dossiers` dans l'image `arbre`, écrits sous `dossier`. */
+function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[]): void {
+  for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
     if (texte === null) continue;
     mkdirSync(dirname(join(dossier, rel)), { recursive: true });
     writeFileSync(join(dossier, rel), texte);
   }
-  for (const rel of DU_DETECTEUR) cpSync(join(RACINE, rel), join(dossier, rel), { recursive: true });
+}
+
+/** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`) dans une image. */
+type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
+
+/** Le détecteur de la tête : le code qui tourne (`RACINE`). */
+const DETECTEUR_DE_LA_TETE: Detecteur = {
+  nom: 'détecteur de la tête',
+  cle: 'tête',
+  poser: (dossier) => { for (const rel of DU_DETECTEUR) cpSync(join(RACINE, rel), join(dossier, rel), { recursive: true }); },
+};
+
+/** Le détecteur du commit `sha` : son `scripts/`, son `package.json` et son `tsconfig.json`, lus par git. */
+export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
+  nom: `détecteur de la base (${sha.slice(0, 9)})`,
+  cle: sha,
+  poser: (dossier) => ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR),
+});
+
+/**
+ * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
+ * `detecteur`, ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
+ * et ses cibles de code produites sans certificat (`genererCodeSansCertifier` : `_registry.generated.ts`
+ * n'est pas suivi, et une image jetable ne certifie rien).
+ */
+function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
+  ecrireDeLImage(depot, arbre, dossier, DE_L_IMAGE);
+  detecteur.poser(dossier);
   lierDependances(dossier);
   if (genererCodeSansCertifier({ cwd: dossier, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
     throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites`);
@@ -120,7 +154,7 @@ function poserImage(depot: Depot, arbre: string, dossier: string): void {
 
 /** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`. */
 function mesurerImage(dossier: string): Comptes {
-  const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), 'scripts/guards/lib/corpusDesComptes.mts'], {
+  const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), POINT_D_ENTREE], {
     cwd: dossier, encoding: 'utf8', maxBuffer: 1 << 28,
   });
   if (vu.status !== 0) {
@@ -130,25 +164,58 @@ function mesurerImage(dossier: string): Comptes {
   return new Map(JSON.parse(vu.stdout) as [string, EntreeDeCompte[]][]);
 }
 
-/** Les comptes du commit `sha`, une fois par processus : la mesure ne dépend que du commit et du détecteur. */
-const COMPTES_PAR_SHA = new Map<string, Comptes>();
-function comptesDuCommit(depot: Depot, sha: string): Comptes {
-  const connus = COMPTES_PAR_SHA.get(sha);
+/** Les comptes du commit `sha` sous `detecteur`, une fois par processus : la mesure ne dépend que des deux. */
+const COMPTES_PAR_MESURE = new Map<string, Comptes>();
+function comptesDuCommit(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+  const cle = `${detecteur.cle}\u0000${sha}`;
+  const connus = COMPTES_PAR_MESURE.get(cle);
   if (connus) return connus;
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-'));
   try {
-    poserImage(depot, sha, dossier);
+    poserImage(depot, sha, dossier, detecteur);
     const comptes = mesurerImage(dossier);
-    COMPTES_PAR_SHA.set(sha, comptes);
+    COMPTES_PAR_MESURE.set(cle, comptes);
     return comptes;
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
 }
 
+/** La mesure de la plage par un détecteur : ses comptes aux deux bornes, ou la raison qui la saute. */
+type MesureDUnDetecteur = { readonly detecteur: string } & (
+  | { readonly base: Comptes; readonly tete: Comptes }
+  | { readonly sautee: string }
+);
+
+/** La paire base/tête mesurée par `detecteur`, ou sautée quand elle ne se lie pas. */
+function mesurerLaPaire(depot: Depot, shaBase: string, shaTete: string, detecteur: Detecteur): MesureDUnDetecteur {
+  try {
+    return { detecteur: detecteur.nom, base: comptesDuCommit(depot, shaBase, detecteur), tete: comptesDuCommit(depot, shaTete, detecteur) };
+  } catch (e) {
+    if (!(e instanceof MesureImpossible)) throw e;
+    return { detecteur: detecteur.nom, sautee: e.message };
+  }
+}
+
 /**
- * Le verdict de la plage `merge-base(base, tete)..tete` : `ok`, et son `texte`. Chaque borne est posée sous
- * `os.tmpdir()` et mesurée dans son image, puis effacée.
+ * Le verdict de la `plage` sur les mesures de ses détecteurs : refus si l'UN voit un compte monter ou un site
+ * naître (`refusDesComptes`), refus si AUCUNE paire ne se lie ; chaque paire sautée est nommée. PURE.
+ */
+export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnDetecteur[]): { ok: boolean; texte: string } {
+  const sautees = mesures.flatMap((m) => ('sautee' in m ? [`  paire sautée — ${m.detecteur} : ${m.sautee}`] : []));
+  const liees = mesures.flatMap((m) => ('sautee' in m ? [] : [m]));
+  const suite = sautees.length ? `\n${sautees.join('\n')}` : '';
+  if (!liees.length) return { ok: false, texte: `⛔ ${plage} : aucune paire de détecteur ne se lie — la porte ne juge pas ce qu’elle n’a pas mesuré.${suite}` };
+  const refus = liees.flatMap((m) => refusDesComptes(m.base, m.tete).map((l) => `  [${m.detecteur}] ${l}`));
+  return refus.length
+    ? { ok: false, texte: `⛔ ${plage} : ${refus.length} compte(s) de collection à compte MONTENT ou NAISSENT — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.join('\n')}${suite}` }
+    : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} collections sous la porte ne monte, aucun site n’y naît (${liees.map((m) => m.detecteur).join(', ')}).${suite}` };
+}
+
+/**
+ * Le verdict de la plage `merge-base(base, tete)..tete`, jugée par le détecteur de la tête et par celui de la
+ * base (`verdictDesDetecteurs`). Chaque borne est posée sous `os.tmpdir()` et mesurée dans son image, puis
+ * effacée ; un détecteur de base sans point d'entrée (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
 export function jugerLesComptes({ cwd, base = TRONC.suivi, tete = 'HEAD' }: { cwd: string; base?: string; tete?: string }): { ok: boolean; texte: string } {
   try {
@@ -158,12 +225,14 @@ export function jugerLesComptes({ cwd, base = TRONC.suivi, tete = 'HEAD' }: { cw
     if (!shaTete || !shaBase) return { ok: false, texte: `⛔ ${base}..${tete} : base commune illisible — la porte ne juge pas une plage sans borne.` };
     const plage = `${base} (base ${shaBase.slice(0, 9)})..${tete} (${shaTete.slice(0, 9)})`;
     if (shaBase === shaTete) return { ok: true, texte: `${plage} : plage vide.` };
-    const refus = refusDesComptes(comptesDuCommit(depot, shaBase), comptesDuCommit(depot, shaTete));
-    return refus.length
-      ? { ok: false, texte: `⛔ ${plage} : ${refus.length} compte(s) de collection à compte MONTENT ou NAISSENT — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.map((l) => `  ${l}`).join('\n')}` }
-      : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} collections sous la porte ne monte, aucun site n’y naît.` };
+    const deLaBase = detecteurDuCommit(depot, shaBase);
+    return verdictDesDetecteurs(plage, [
+      mesurerLaPaire(depot, shaBase, shaTete, DETECTEUR_DE_LA_TETE),
+      listerImage(depot, shaBase, POINT_D_ENTREE).length
+        ? mesurerLaPaire(depot, shaBase, shaTete, deLaBase)
+        : { detecteur: deLaBase.nom, sautee: `\`${POINT_D_ENTREE}\` absent de la base` },
+    ]);
   } catch (e) {
-    if (e instanceof MesureImpossible) return { ok: false, texte: `⛔ ${e.message} — la porte ne juge pas ce qu’elle n’a pas mesuré.` };
     if (!(e instanceof GitIndisponible)) throw e;
     return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte ne juge pas ce que git n’a pas lu.` };
   }

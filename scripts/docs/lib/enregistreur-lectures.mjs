@@ -53,11 +53,14 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
   const mesurer = (geste) => {
     if (mesureEnCours) return
     mesureEnCours = true
-    try { const delta = geste(); if (delta) observer?.(delta) } catch (e) {
-      incomplet.add(String(e.message))
-      try { observer?.({ incomplet: [String(e.message)] }) } catch {}
-    }
-    finally { mesureEnCours = false }
+    try {
+      let delta
+      try { delta = geste() } catch (e) {
+        incomplet.add(String(e.message))
+        delta = { incomplet: [String(e.message)] }
+      }
+      if (delta) observer?.(delta)
+    } finally { mesureEnCours = false }
   }
   // Chemins LUS hors racine, refusés : un rejet muet est indiscernable d'une absence de lecture. Des
   // CHEMINS CANONIQUES DISTINCTS, comme `fichiers` : une même lecture passe par plusieurs appels de
@@ -348,6 +351,9 @@ if (isMainThread && RACINE && SORTIE && !globalThis[MARQUE]) {
   process.on('exit', () => {
     try {
       fs.writeFileSync(`${SORTIE}.${process.pid}.json`, JSON.stringify(collecteur.rendu()))
-    } catch { /* un enfant sans droit d'écriture ne fait pas échouer le générateur */ }
+    } catch (e) {
+      process.stderr.write(`collecte : ${SORTIE}.${process.pid}.json : ${e.message}\n`)
+      if (!process.exitCode) process.exitCode = 1
+    }
   })
 }

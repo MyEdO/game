@@ -2,7 +2,7 @@
 /**
  * `offTerrainMod` à l'atelier (#1789) — le terrain d'ÉLECTION est une RÉF au registre
  * (`terrains.json`) : il s'élit dans une liste dérivée de `terrainsElectifs()`, jamais au clavier en
- * JSON libre. Doctrine « la LOGIQUE est keyée par id, le `label` est de l'AFFICHAGE » (CLAUDE.md) :
+ * JSON libre. Doctrine « la LOGIQUE est keyée par id, le `label` est de l'AFFICHAGE » (AGENTS.md) :
  * l'option porte l'id en `value` et le libellé FR en texte, et c'est l'ID qui atterrit au payload.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';

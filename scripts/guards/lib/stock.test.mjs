@@ -26,11 +26,11 @@ test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se dist
   assert.equal(new Set(entrees.map(cleDeSite)).size, entrees.length, 'la clé doit distinguer chaque site')
 })
 
-test('ecartDuVolet : un site dont le NOMBRE grandit sort en `accrues` ; plus petit ou égal, il reste couvert', () => {
+test('ecartDuVolet : un site dont le NOMBRE grandit rougit parmi les `neuves`, que lit tout appelant ; plus petit ou égal, il reste couvert', () => {
   const stock = [{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', occurrence: 1, nombre: 3 }]
   const ecart = (nombre) => ecartDuVolet({ sites: [{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre }], stock, ou: 'x-stock.json' })
-  assert.deepEqual(ecart(4).accrues, ['f :: Source/X/01 - A.md :: <sup> :: 1 — HAUSSE 4 > 3 : la dette GRANDIT. Corriger le site (x-stock.json). Aucune écriture ne relève ce nombre.'])
-  assert.deepEqual([ecart(4).neuves, ecart(4).perimees], [[], []])
+  const hausse = 'f :: Source/X/01 - A.md :: <sup> :: 1 — HAUSSE 4 > 3 : la dette GRANDIT. Corriger le site (x-stock.json). Aucune écriture ne relève ce nombre.'
+  assert.deepEqual([ecart(4).neuves, ecart(4).accrues, ecart(4).perimees], [[hausse], [hausse], []])
   assert.deepEqual([ecart(3).accrues, ecart(2).accrues, ecart(2).neuves, ecart(2).perimees], [[], [], [], []])
   assert.equal(survieDeLecheance(sitesEnEntrees([{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre: 2 }]), { lot: '#1', date: '2026-09-25', ancien: stock })[0].nombre, 2, 'plus petit : la régénération recale le stock')
 })

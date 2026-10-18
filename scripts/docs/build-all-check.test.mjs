@@ -15,7 +15,9 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { CODE_SOURCE_MODIFIEE, genererCode, issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
+import { sousGestesLourds, CODE_SOURCE_MODIFIEE, genererCode, issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+import { verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import { chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
@@ -454,7 +456,7 @@ function depotReel({ docsIgnores = false } = {}) {
   return { racine, git }
 }
 
-test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (constat du bootstrap, #2603)', () => {
+test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (#2603)', () => {
   const { racine } = instanceDeDepot({
     commit: false,
     fichiers: { '.gitignore': 'node_modules/\n', 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n', 'src/commun.ts': 'export const commun = 1\n', 'g/a.mjs': generateurReel('a'), 'g/b.mjs': generateurReel('b', { cliquet: true }) },
@@ -790,4 +792,27 @@ test('fraîcheur : ledger par générateur, partial conserve les autres ; check 
     assert.equal(executer(racine, ['--check']).status, 0)
     assert.deepEqual(readFileSync(cache), bytesRouges)
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('geste lourd : fragment explicite vers le geste et emprunt imbriqué, environnement parent intact', async (t) => {
+  const { racine } = instanceDeDepot({ fichiers: { 'temoin': 'x' } })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const configuration = verrouGestesLourds(racine)
+  const owner = prendreVerrou(configuration)
+  t.after(() => owner.liberer())
+  const env = { ...process.env, ...owner.env }
+  const avant = { ...process.env }
+  let vu = false
+  const code = await sousGestesLourds({ cwd: racine, argv: [], env, geste: ({ env: transmis }) => {
+    const emprunt = prendreVerrou({ ...configuration, env: transmis })
+    assert.equal(emprunt.emprunte, true)
+    emprunt.liberer()
+    assert.equal(existsSync(configuration.chemin), true)
+    vu = true
+    return 0
+  } })
+  assert.equal(code, 0)
+  assert.equal(vu, true)
+  assert.ok(Object.keys(process.env).length === Object.keys(avant).length && Object.entries(avant).every(([cle, valeur]) => process.env[cle] === valeur))
+  assert.equal(existsSync(configuration.chemin), true)
 })

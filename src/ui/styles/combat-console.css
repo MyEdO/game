@@ -767,7 +767,7 @@
 }
 /* UN SEUL marqueur de camp sur le portrait de l'arche : la bordure d'équipe de `PortraitTile`
    (`.ptile.team-*`). Le cadre du DESSIN (`RigPortrait`) se retire — les deux anneaux concentriques
-   faisaient le « cadre dans un cadre » que la doctrine `FigTile` proscrit (CLAUDE.md). La FORME du
+   faisaient le « cadre dans un cadre » que la doctrine `FigTile` proscrit (docs/primitives.md). La FORME du
    trait (R9, daltonisme) passe sur l'anneau restant : plein pour un allié, tirets pour un ennemi. */
 .cc-arch .ptile-face .rig-portrait {
   border-width: 0;

@@ -6,7 +6,7 @@
 
 - Ubel Rikard-Goellner, Prince marchand
 
-Les Possessions que vous recevez grâce à votre Classe et votre Carrière (voir Chapitre 2 : Personnages) sont suffisantes pour vous lancer, mais vous pouvez désirer plus d'équipement. Pendant la création de Personnage, des objets supplémentaires peuvent être achetés sans restriction dans les listes de ce chapitre. Cependant, une fois que vous commencez à jouer, la disponibilité de certaines Possessions est limitée, alors assurezvous d'acheter tout ce dont vous avez besoin et que vous pouvez vous permettre avant le début de la partie.
+Les Possessions que vous recevez grâce à votre Classe et votre Carrière (voir Chapitre 2 : Personnages) sont suffisantes pour vous lancer, mais vous pouvez désirer plus d'équipement. Pendant la création de Personnage, des objets supplémentaires peuvent être achetés sans restriction dans les listes de ce chapitre. Cependant, une fois que vous commencez à jouer, la disponibilité de certaines Possessions est limitée, alors assurez-vous d'acheter tout ce dont vous avez besoin et que vous pouvez vous permettre avant le début de la partie.
 
 LISTES DES POSSESSIONS
 

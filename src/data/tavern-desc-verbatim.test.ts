@@ -1,6 +1,6 @@
 /**
- * GARDE DE VERBATIM — `tavernGames.json` `desc` ↔ `Source/` (CLAUDE.md règle 5 : « une description est
- * un copié/collé verbatim de la source — JAMAIS une reformulation », formatage Markdown CONSERVÉ).
+ * GARDE DE VERBATIM — `tavernGames.json` `desc` ↔ `Source/` (AGENTS.md règle 5,
+ * formatage Markdown CONSERVÉ).
  *
  * Le défaut que cette garde ferme est une CLASSE, mesurée sur le stock (#1279 S4-a) : trois entrées
  * avaient perdu le Markdown de la source en cours de route (`**Pari Accessible (+20)**` rendu en

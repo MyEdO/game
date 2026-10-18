@@ -3772,7 +3772,7 @@
       {
         "id": "aa-tete-00",
         "min": 100,
-        "max": 100000,
+        "max": null,
         "label": "Crâne fracassé",
         "lethal": true,
         "desc": "Votre tête est écrasée et vous vous écroulez, mort sur le coup.",
@@ -4495,7 +4495,7 @@
       {
         "id": "aa-bras-136",
         "min": 136,
-        "max": 100000,
+        "max": null,
         "label": "Démembrement brutal",
         "lethal": true,
         "desc": "Votre bras est tranché et vous mourez presque instantanément à cause du choc et de la perte de sang.",
@@ -5174,7 +5174,7 @@
       {
         "id": "aa-corps-116",
         "min": 116,
-        "max": 100000,
+        "max": null,
         "label": "Éventré",
         "lethal": true,
         "desc": "Vous êtes littéralement coupé en deux. Les deux parties de votre corps atterrissent de façon parfaitement aléatoire au sol, et tout Personnage situé à moins de 2 mètres est recouvert de sang.",
@@ -5954,7 +5954,7 @@
       {
         "id": "aa-jambe-126",
         "min": 126,
-        "max": 100000,
+        "max": null,
         "label": "Bassin fracassé",
         "lethal": true,
         "desc": "Le coup fracasse votre bassin, coupant une jambe. Vous mourez instantanément à cause du choc traumatique.",

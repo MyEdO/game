@@ -16,39 +16,97 @@ const NATURES_DE_TEXTE = ['document-verbatim', 'motivation-a-authorer', 'narrati
 const SENS_D_ETAT = ['produit', 'lu'] as const;
 const PORTEES_D_ETAT = ['chapitre', 'campagne'] as const;
 
-const texte = z.string().trim().min(1);
+// `.meta` porte dans la projection `z.toJSONSchema` (`famillesDeLaFiche`, `scripts/raw/workflow-args.mjs`) ce
+// qu'un `.trim()` ou un `.refine` n'y projette pas : un texte blanc n'est pas un texte, un média ne se double pas.
+const texte = z.string().trim().min(1).meta({ pattern: '\\S' });
 /** Réfs NUES au livre, une par élément ; leur graphie se juge au chargement des fiches commitées
  *  (`scripts/raw/lib/dossiers.mjs`), leurs bornes aux scanners CITANTS (`scripts/raw/lib/fichiersCitants.mjs`). */
-const refs = z.array(texte).min(1);
+const refs = z.array(texte).min(1).describe('Réfs NUES au livre, une par élément : `<ABBR> <NN> l.<ligne>`, ligne lue sur le fichier Source/.');
 
 /** Les familles de la fiche, dans l'ordre de rendu, chacune avec le préfixe de ses `id` et les
- *  attributs d'une entrée (hors `id` et `ref`, communs à toutes). */
+ *  attributs d'une entrée (hors `id` et `ref`, communs à toutes). Chaque attribut porte sa définition
+ *  (`.describe`), projetée avec sa forme dans le schéma de l'agent qui le remplit. */
 const FAMILLES = {
-  imperatifs: { prefixe: 'imp', attributs: { texte } },
+  imperatifs: { prefixe: 'imp', attributs: { texte: texte.describe('Ce que le livre rend indispensable : élément clé, indice à trouver, « doit absolument », contrainte posée pour la suite de la campagne.') } },
   beats: {
     prefixe: 'b',
     attributs: {
-      titre: texte,
-      statut: z.enum(STATUTS_DE_BEAT),
-      preuveDuStatut: texte,
-      // `.meta` porte l'unicité dans la projection `z.toJSONSchema` (`famillesDeLaFiche`,
-      // `scripts/raw/workflow-args.mjs`), où un `.refine` ne se projette pas.
-      mediasCandidats: z.array(z.enum(MEDIAS)).min(1).refine((m) => new Set(m).size === m.length, 'médias en double').meta({ uniqueItems: true }),
+      titre: texte.describe("Une scène du chapitre, dans l'ordre du livre."),
+      statut: z.enum(STATUTS_DE_BEAT).describe('Le statut TEL QUE LE LIVRE LE DIT : `obligatoire` ou `optionnel` quand un passage le qualifie, `non-qualifie` quand aucun ne le fait.'),
+      preuveDuStatut: texte.describe("Le passage qui qualifie le beat ; pour `non-qualifie`, le constat qu'aucun ne le fait."),
+      mediasCandidats: z.array(z.enum(MEDIAS)).min(1).refine((m) => new Set(m).size === m.length, 'médias en double').meta({ uniqueItems: true })
+        .describe('TOUS les médias plausibles pour jouer ce beat, chacun une fois : on liste, on ne tranche pas.'),
     },
   },
-  pointsAuMJ: { prefixe: 'mj', attributs: { texte, type: z.enum(TYPES_POINT_AU_MJ) } },
-  indices: { prefixe: 'ind', attributs: { texte } },
-  secrets: { prefixe: 'sec', attributs: { texte } },
-  declencheurs: { prefixe: 'd', attributs: { evenement: texte, condition: texte } },
-  pnj: { prefixe: 'pnj', attributs: { nom: texte, role: texte, motivation: texte } },
-  lieux: { prefixe: 'lieu', attributs: { texte } },
-  textes: { prefixe: 'txt', attributs: { texte, nature: z.enum(NATURES_DE_TEXTE) } },
-  tests: { prefixe: 'test', attributs: { texte, competence: texte, difficulte: texte } },
-  rencontres: { prefixe: 'renc', attributs: { texte } },
-  recompenses: { prefixe: 'rec', attributs: { texte } },
-  etats: { prefixe: 'etat', attributs: { texte, sens: z.enum(SENS_D_ETAT), portee: z.enum(PORTEES_D_ETAT) } },
-  dureeEtDifficulte: { prefixe: 'dur', attributs: { texte } },
-  matiereCompagnons: { prefixe: 'comp', attributs: { texte, categorie: texte, pourCeChapitre: texte } },
+  pointsAuMJ: {
+    prefixe: 'mj',
+    attributs: {
+      texte: texte.describe('Un passage que le livre laisse à la décision du MJ (« à vous de décider », « si vous le désirez », alternatives, encarts).'),
+      type: z.enum(TYPES_POINT_AU_MJ).describe(
+        "Ce que le livre laisse au MJ : `veracite-rumeur` = la vérité d'une rumeur ou d'une information ; `consequence-ouverte` = l'issue d'un acte des PJ ; "
+        + "`rythme-deblocage` = le moment, l'ordre ou la relance d'un élément ; `variante-pnj` = le comportement ou l'identité d'un PNJ ; "
+        + '`encart-optionnel` = un encart ou une scène que le MJ joue ou non. Exemples : « heure d’arrivée modifiable, adapter les informations » '
+        + 'est `rythme-deblocage`, le livre laisse le MOMENT et non l’issue ; « PNJ capturé : procès long, relâché sauf bonne raison » est '
+        + '`consequence-ouverte`, l’ISSUE d’un acte des PJ reste au MJ.',
+      ),
+    },
+  },
+  indices: { prefixe: 'ind', attributs: { texte: texte.describe('Ce que les joueurs peuvent trouver et qui mène à un secret.') } },
+  secrets: { prefixe: 'sec', attributs: { texte: texte.describe('Ce que le MJ sait et que les joueurs peuvent découvrir.') } },
+  declencheurs: {
+    prefixe: 'd',
+    attributs: {
+      evenement: texte.describe("Ce qui arrive à l'INITIATIVE d'un PNJ ou du monde, sans action des joueurs."),
+      condition: texte.describe("La condition ou le délai TEL QUE LE LIVRE L'ÉCRIT (« s'ils l'ignorent, au bout d'une demi-heure »)."),
+    },
+  },
+  pnj: {
+    prefixe: 'pnj',
+    attributs: {
+      nom: texte.describe('Le nom du PNJ, ou sa description quand le livre ne le nomme pas.'),
+      role: texte.describe('Son rôle dans le chapitre.'),
+      motivation: texte.describe('Sa motivation telle que le livre la donne.'),
+    },
+  },
+  lieux: { prefixe: 'lieu', attributs: { texte: texte.describe('Un lieu où une scène peut se jouer.') } },
+  textes: {
+    prefixe: 'txt',
+    attributs: {
+      texte: texte.describe('Un texte que le jeu devra montrer.'),
+      nature: z.enum(NATURES_DE_TEXTE).describe(
+        '`document-verbatim` = le livre en donne le texte (lettre, affiche, aide de jeu), il se recopie tel quel ; '
+        + "`motivation-a-authorer` = le livre ne donne qu'une intention ou une motivation de PNJ, la réplique s'authore ; "
+        + '`narration-a-reformuler` = une description ou une narration destinée au MJ, que le jeu reformule en texte lu à l’écran.',
+      ),
+    },
+  },
+  tests: {
+    prefixe: 'test',
+    attributs: {
+      texte: texte.describe('Un Test que le livre demande ou propose.'),
+      competence: texte.describe('La compétence ou la caractéristique testée.'),
+      difficulte: texte.describe("La difficulté TELLE QUE LE LIVRE L'ÉCRIT."),
+    },
+  },
+  rencontres: { prefixe: 'renc', attributs: { texte: texte.describe('Un combat ou une opposition : adversaires et effectifs.') } },
+  recompenses: { prefixe: 'rec', attributs: { texte: texte.describe("Points d'expérience, argent, objets ou relations gagnés.") } },
+  etats: {
+    prefixe: 'etat',
+    attributs: {
+      texte: texte.describe('Une décision, une fin ou un drapeau que le chapitre produit ou lit.'),
+      sens: z.enum(SENS_D_ETAT).describe("`produit` = le chapitre pose l'état ; `lu` = il l'hérite d'un chapitre ou d'un tome antérieur."),
+      portee: z.enum(PORTEES_D_ETAT).describe("`chapitre` = l'état ne vit que dans ce chapitre ; `campagne` = la suite de la campagne le lit."),
+    },
+  },
+  dureeEtDifficulte: { prefixe: 'dur', attributs: { texte: texte.describe('Ce que le livre dit de la durée et de la difficulté visées : séances, jours de jeu, dangerosité.') } },
+  matiereCompagnons: {
+    prefixe: 'comp',
+    attributs: {
+      texte: texte.describe("Une matière d'un chapitre de compagnon que ce chapitre-ci peut puiser."),
+      categorie: texte.describe('Un mot : peage, pnj, scenario-annexe, lieu, regle, rencontre…'),
+      pourCeChapitre: texte.describe("Où elle s'insère dans le chapitre : beat, lieu ou réf du chapitre."),
+    },
+  },
 } as const;
 
 type FamilleDeDossier = keyof typeof FAMILLES;

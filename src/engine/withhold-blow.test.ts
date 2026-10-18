@@ -1,11 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames } from './combat';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
+import type { RNG } from './dice';
+import { critiquesDuCoup, relanceLaLocalisation } from './critical';
+import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';
 import type { TriggeredEffect } from './flowCore';
+import { makeRNG } from './dice';
 
 /**
- * « Retenir vos coups » — Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES A JOUR DE L'ETAT HEMORRAGIQUE.md` l.59-61) :
+ * « Retenir vos coups » — LDB 18 l.30 en 'ldb' ; Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES A JOUR DE L'ETAT HEMORRAGIQUE.md` l.59-61) :
  *  l.59 « … vous devez déclarer que vous Retenez vos coups avant de faire le jet pour toucher … vous
  *        infligez tout de même des Blessures, mais vous n'infligez de Blessure Critique que si votre
  *        adversaire tombe à 0 Blessure. »
@@ -49,10 +53,13 @@ const att = () => mk({ label: 'Héros', size: 'moyenne' });
 // de celui d'Empaleuse (l.282), qui ne se déclencherait pas ici de toute façon.
 const dbl = evaluateTest(33, 60); // success, isDouble=true, units=3
 
+const enAA = () => { beforeEach(() => setRule('combat-aa-blessures', 'aa')); afterEach(() => resetRule('combat-aa-blessures')); };
+
 describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61)', () => {
+  enAA();
   it('double (Critique normalement) sur cible PAS à 0 → critical false, Blessures normales infligées', () => {
-    const normal = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, undefined, [], undefined, false);
-    const withheld = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, undefined, [], undefined, true);
+    const normal = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, false);
+    const withheld = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(normal.critical).toBe(true); // non-régression : le double reste un Critique sans Retenir
     expect(withheld.critical).toBe(false); // Retenir : pas de Critique (cible pas à 0)
     expect(withheld.defenderDefeated).toBe(false);
@@ -60,28 +67,58 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
     expect(withheld.woundsLost).toBeGreaterThan(0);
   });
 
-  it('même coup mais la cible tombe à 0 → critical true (Critique autorisé à la mise à 0)', () => {
-    const lowHP = mk({ wounds: { current: 4, max: 12 } }); // 4 PB ; le coup (≈7) la met à 0
-    const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, undefined, [], undefined, true);
+  it('même coup mais la cible tombe à 0 → le Coup Critique du double reste ignoré, celui de la mise à 0 demeure (#1595 c.6226467544)', () => {
+    const lowHP = mk({ wounds: { current: 4, max: 12 }, kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
+    const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
-    expect(withheld.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    const compte = critiquesDuCoup(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4, touche: true, relance: relanceLaLocalisation(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4 }), blessures: withheld.woundsLost ?? 0 });
+    expect(compte.critiques.map((c) => c.origine)).toEqual(['coup-critique']);
+  });
+});
+
+describe('Retenir ses coups sur une cible déjà à 0 : la Localisation relancée garde le profil retenu (AA 07 l.59, l.61 ; #1595 c.6227274650 Q2)', () => {
+  enAA();
+  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: { current: 0, max: 12 }, kind: 'hero', ...over });
+  const atk = evaluateTest(35, 60);
+
+  it('Estoc Perforante contre PA 2 : la Localisation relancée ne compte pas Perforante', () => {
+    const armure = { tete: 0, brasG: 2, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    const normal = resolveMeleePassive(att(), aZero({ armour: armure }), perforanteSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, false);
+    const retenu = resolveMeleePassive(att(), aZero({ armour: armure }), perforanteSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, true);
+    expect(retenu.retenu).toBe(true);
+    expect(normal.retenu).toBeUndefined();
+    expect(retenu.damage).toBe(normal.damage);
+    const cible = aZero({ armour: armure });
+    expect(woundsAtCritLocation(retenu, perforanteSword, cible, 'brasG')).toBe(woundsAtCritLocation(retenu, plainSword, cible, 'brasG'));
+    expect(woundsAtCritLocation(normal, perforanteSword, cible, 'brasG') - woundsAtCritLocation(retenu, perforanteSword, cible, 'brasG')).toBe(1);
+  });
+
+  it('arme Empaleuse contre une pièce Points faibles : les PA de la Localisation relancée ne sont pas ignorés', () => {
+    const items = [{ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa: 2, locs: ['brasG'], qualities: [{ id: 'points-faibles' }] }];
+    const cible = aZero({ armour: { tete: 0, brasG: 2, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items } as never);
+    const normal = resolveMeleePassive(att(), cible, empaleuseSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, false);
+    const retenu = resolveMeleePassive(att(), cible, empaleuseSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, true);
+    expect(retenu.damage).toBe(normal.damage);
+    expect(woundsAtCritLocation(normal, empaleuseSword, cible, 'brasG') - woundsAtCritLocation(retenu, empaleuseSword, cible, 'brasG')).toBe(2);
   });
 });
 
 describe('Retenir ses coups — Atouts retirés (AA 07 l.61)', () => {
+  enAA();
   it('Percutante retirée : les Dégâts ne reçoivent PAS le bonus de l’Atout (même jet)', () => {
     // roll 27 (unités 7) : Percutante = +unités aux Dégâts. Retenir l’annule → −7 Blessures.
     const atk = evaluateTest(27, 60); // success, units=7
-    const normal = resolveMeleePassive(att(), mk(), percutanteSword, atk, undefined, [], undefined, false);
-    const withheld = resolveMeleePassive(att(), mk(), percutanteSword, atk, undefined, [], undefined, true);
+    const normal = resolveMeleePassive(att(), mk(), percutanteSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, false);
+    const withheld = resolveMeleePassive(att(), mk(), percutanteSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(normal.woundsLost! - withheld.woundsLost!).toBe(7); // exactement le dé des unités (bonus Percutante)
   });
 
   it('Perforante retirée : l’armure n’est PLUS percée (même jet)', () => {
     const atk = evaluateTest(35, 60); // success
     const armoured = () => mk({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } });
-    const normal = resolveMeleePassive(att(), armoured(), perforanteSword, atk, 'corps', [], undefined, false);
-    const withheld = resolveMeleePassive(att(), armoured(), perforanteSword, atk, 'corps', [], undefined, true);
+    const normal = resolveMeleePassive(att(), armoured(), perforanteSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, false);
+    const withheld = resolveMeleePassive(att(), armoured(), perforanteSword, atk, { rng: makeRNG(1595) }, 'corps', [], undefined, true);
     expect(normal.woundsLost! - withheld.woundsLost!).toBe(1); // Perforante perçait 1 PA ; retirée → +1 PA absorbé
   });
 
@@ -89,24 +126,73 @@ describe('Retenir ses coups — Atouts retirés (AA 07 l.61)', () => {
     const big = mk({ label: 'Ogre', size: 'enorme' });   // gap +2 vs Moyenne → ×2 + Atouts de Taille
     const small = mk({ label: 'Ogre', size: 'moyenne' }); // même Force, sans bonus de Taille
     const atk = evaluateTest(25, 60); // success, units=5
-    const normalBig = resolveMeleePassive(big, mk(), plainSword, atk, undefined, [], undefined, false);
-    const withheldBig = resolveMeleePassive(big, mk(), plainSword, atk, undefined, [], undefined, true);
-    const withheldSmall = resolveMeleePassive(small, mk(), plainSword, atk, undefined, [], undefined, true);
+    const normalBig = resolveMeleePassive(big, mk(), plainSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, false);
+    const withheldBig = resolveMeleePassive(big, mk(), plainSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, true);
+    const withheldSmall = resolveMeleePassive(small, mk(), plainSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(normalBig.woundsLost!).toBeGreaterThan(withheldBig.woundsLost!); // sans Retenir, la Taille compte
     expect(withheldBig.woundsLost).toBe(withheldSmall.woundsLost); // Retenir efface toute contribution de Taille
   });
 });
 
 describe('Retenir ses coups — gardes RAW (mêlée seule, jamais En flammes / projectiles)', () => {
+  enAA();
   it('arme infligeant En flammes : Retenir est IGNORÉ (l.61) → Critique normal', () => {
     expect(weaponInflictsFlames(flameSword)).toBe(true);
     expect(weaponInflictsFlames(plainSword)).toBe(false);
-    const withheld = resolveMeleePassive(att(), mk(), flameSword, dbl, undefined, [], undefined, true);
+    const withheld = resolveMeleePassive(att(), mk(), flameSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(withheld.critical).toBe(true); // garde : l’arme En flammes ne peut pas Retenir → Critique conservé
   });
 
   it('projectile : Retenir n’a aucun effet (l.61) → Critique du double conservé', () => {
-    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', undefined, true);
-    expect(ranged.critical).toBe(true); // au tir, le drapeau est inerte (garde weapon.type === 'melee')
+    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true);
+    expect(ranged.critical).toBe(true); // AA 07 l.61
+  });
+});
+
+describe("Retenir ses coups en 'ldb' — tout Coup Critique ignoré, rien d'autre (LDB 18 l.30)", () => {
+  it('le double ne fait plus de Coup Critique, les Atouts restent (Percutante)', () => {
+    const atk = evaluateTest(33, 60);
+    const normal = resolveMeleePassive(att(), mk(), percutanteSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, false);
+    const withheld = resolveMeleePassive(att(), mk(), percutanteSword, atk, { rng: makeRNG(1595) }, undefined, [], undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
+  });
+
+  it('au tir comme avec une arme En flammes, le Coup Critique est ignoré', () => {
+    expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true).critical).toBe(false);
+    expect(resolveMeleePassive(att(), mk(), flameSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true).critical).toBe(false);
+  });
+});
+
+describe("Retenir ses coups au tir en 'ldb' : la règle de la mêlée retenue (LDB 18 l.30 ; AA 07 l.59)", () => {
+  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const bowCrit = { ...bow, damage: { plusBF: false, flat: 4 } };
+
+  it('tir non défendu (`resolveRanged`) : Coup Critique ignoré, Blessures inchangées, comme en mêlée', () => {
+    const normal = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, false);
+    const withheld = resolveRanged(att(), mk(), bowCrit, rngOf(33), 10, undefined, [], undefined, 2, true);
+    const melee = resolveMeleePassive(att(), mk(), plainSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(melee.critical);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
+  });
+
+  it('tir défendu (`finishRanged`) : Coup Critique ignoré', () => {
+    const rate = evaluateTest(95, 40);
+    const normal = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, false);
+    const withheld = finishRanged(att(), mk(), bowCrit, dbl, rate, 'esquive', { rng: makeRNG(1595) }, 10, undefined, [], undefined, [], 2, undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
+  });
+
+  it('tir dévié (`resolveStrayRangedHit`) : Coup Critique ignoré sur l’allié touché', () => {
+    const normal = resolveStrayRangedHit(att(), mk(), bowCrit, 33, 60, { rng: makeRNG(1595) }, undefined, false);
+    const withheld = resolveStrayRangedHit(att(), mk(), bowCrit, 33, 60, { rng: makeRNG(1595) }, undefined, true);
+    expect(normal.critical).toBe(true);
+    expect(withheld.critical).toBe(false);
+    expect(withheld.woundsLost).toBe(normal.woundsLost);
   });
 });

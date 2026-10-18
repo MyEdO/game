@@ -1,3 +1,4 @@
+import { spawnBorne } from '../guards/lib/processusBorne.mjs'
 // Porte au MESSAGE (#1728 train B) et porte du COMMIT (#2071) — la règle PURE
 // (`scripts/guards/lib/sujetDeCommit.mjs`), le driver appelé comme git l'appelle (fichier du message en
 // `$1`), et des `git commit` RÉELS dans des dépôts jetables, `core.hooksPath` pointé sur un dossier de
@@ -34,7 +35,11 @@ const ICI = dirname(fileURLToPath(import.meta.url))
  *  `sh` est dash sous Linux), car des formes jugées (`<(…)`) ne sont pas POSIX. */
 const BASH = process.platform === 'win32' ? 'sh' : 'bash'
 /** `script` lancé par `BASH -c` dans `cwd` sous `env`. */
-const lancerBash = (script, { cwd, env }) => spawnSync(BASH, ['-c', script], { cwd, env, encoding: 'utf8' })
+const lancerBash = async (script, { cwd, env }) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'bash-borne-'))
+  try { return await spawnBorne({ commande: BASH, argv: ['-c', script], cwd, env, fichier: join(dossier, 'sortie'), limiteMs: 120_000, fluxDistincts: true }) }
+  finally { rmSync(dossier, { recursive: true, force: true }) }
+}
 const DRIVER = join(ICI, 'commit-msg.mjs')
 
 const SUJET_LONG = `fix(x): refs #1728 — ${'a'.repeat(130)}`
@@ -111,7 +116,7 @@ function dossierDeHooks() {
   return dir
 }
 
-for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime ${runtimeExplicite ? 'npm explicite avec espaces' : 'node sans variable npm'}`, () => {
+for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime ${runtimeExplicite ? 'npm explicite avec espaces' : 'node sans variable npm'}`, async () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'v1\n' }, message: 'socle' })
   const hooks = dossierDeHooks()
   try {
@@ -133,7 +138,7 @@ for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime $
     lancerGit(['add', 'a.txt'], { cwd: racine, env })
 
     if (!runtimeExplicite) {
-      const sonde = lancerBash('node -p process.versions.node', { cwd: racine, env })
+      const sonde = await lancerBash('node -p process.versions.node', { cwd: racine, env })
       assert.equal(sonde.status, 0, sonde.stderr)
       const { engines } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
       const refus = refusDeVersion(engines.node, sonde.stdout.trim())
@@ -263,7 +268,7 @@ const CLASSES = [
 ]
 
 for (const { classe, script, statutLibre = false, saut = false, propre = false } of CLASSES) {
-  test(`#2071 porte au commit-msg — ${classe} : témoin passe, sans ticket refusé`, { skip: saut }, () => {
+  test(`#2071 porte au commit-msg — ${classe} : témoin passe, sans ticket refusé`, { skip: saut }, async () => {
     for (const [message, attendu] of [[TEMOIN, 'passe'], [SANS_TICKET, 'refuse']]) {
       const b = banc()
       try {
@@ -272,7 +277,7 @@ for (const { classe, script, statutLibre = false, saut = false, propre = false }
           assert.equal(b.git('commit', '-a', '-m', 'docs: refs #7 — un second commit').status, 0)
         } else b.ecrire('src/a.ts', 'export const a = 2\n')
         const avant = b.head()
-        const vu = b.sh(script, { M: message, MF: b.message('m.txt', `${message}\n`) })
+        const vu = await b.sh(script, { M: message, MF: b.message('m.txt', `${message}\n`) })
         if (attendu === 'passe') passe(b, vu, avant, { statutLibre })
         else refuse(b, vu, avant, MANQUE_DE_TICKET)
       } finally {
@@ -282,7 +287,7 @@ for (const { classe, script, statutLibre = false, saut = false, propre = false }
   })
 }
 
-test('#2071 porte au commit-msg — porcelaine `git pull` : fusion propre passe, sa fermeture sans solde refusée', () => {
+test('#2071 porte au commit-msg — porcelaine `git pull` : fusion propre passe, sa fermeture sans solde refusée', async () => {
   const amont = banc()
   const b = banc()
   try {
@@ -292,17 +297,16 @@ test('#2071 porte au commit-msg — porcelaine `git pull` : fusion propre passe,
     assert.equal(b.git('commit', '-a', '-m', TEMOIN).status, 0)
     const avant = b.head()
     const editeur = b.message('editeur.sh', 'printf "Merge: corrige #5\\n" > "$1"\n')
-    const ferme = b.sh(`git pull --no-rebase --edit "${posix(amont.racine)}" main`, { GIT_EDITOR: `sh "${editeur}"` })
+    const ferme = await b.sh(`git pull --no-rebase --edit "${posix(amont.racine)}" main`, { GIT_EDITOR: `sh "${editeur}"` })
     refuse(b, ferme, avant, MANQUE_DE_SOLDE)
     lancerGit(['merge', '--abort'], { cwd: b.racine, env: b.env })
-    passe(b, b.sh(`git pull --no-rebase --no-edit "${posix(amont.racine)}" main`), avant)
+    passe(b, await b.sh(`git pull --no-rebase --no-edit "${posix(amont.racine)}" main`), avant)
   } finally {
     amont.jeter()
     b.jeter()
   }
 })
 
-test('#2071 porte au commit-msg — `-F` sous cinq formes (#2282) : jugé UNE fois, même verdict qu’un chemin littéral', () => {
   const MSYS = process.platform === 'win32'
   const formes = [
     { forme: 'chemin littéral', script: (mf) => `git commit -a -F "${mf}"` },
@@ -312,14 +316,14 @@ test('#2071 porte au commit-msg — `-F` sous cinq formes (#2282) : jugé UNE fo
     { forme: '"$TEMP/…"', script: () => 'git commit -a -F "$TEMP/m.txt"' },
     { forme: 'heredoc + add + commit', script: (_mf, texte) => `cat > "$TEMP/h.txt" <<'MSG'\n${texte}\nMSG\ngit add src/a.ts && git commit -F "$TEMP/h.txt"` },
   ]
-  for (const { forme, script, saut } of formes) {
-    if (saut) continue
+test('#2071 porte au commit-msg — `-F` sous six formes (#2282) : jugé UNE fois, même verdict qu’un chemin littéral', { concurrency: formes.length }, async (t) => {
+  await Promise.all(formes.map(({ forme, script, saut }) => t.test(forme, { skip: saut }, async () => {
     for (const [texte, attendu] of [[TEMOIN, 'franchi'], ['fix(a): corrige #5 — sans solde', 'refusé']]) {
       const b = banc()
       try {
         b.ecrire('src/a.ts', 'export const a = 2\n')
         const avant = b.head()
-        const vu = b.sh(script(b.message('m.txt', `${texte}\n`), texte))
+        const vu = await b.sh(script(b.message('m.txt', `${texte}\n`), texte))
         if (attendu === 'franchi') passe(b, vu, avant)
         else refuse(b, vu, avant, MANQUE_DE_SOLDE)
         assert.deepEqual(b.verdicts(), [attendu], `${forme} : ${vu.stderr}`)
@@ -327,15 +331,15 @@ test('#2071 porte au commit-msg — `-F` sous cinq formes (#2282) : jugé UNE fo
         b.jeter()
       }
     }
-  }
+  })))
 })
 
-test('#2071 porte au commit-msg — un heredoc qui porte `JUGE:` dans la COMMANDE ne satisfait pas la porte : elle juge le message', () => {
+test('#2071 porte au commit-msg — un heredoc qui porte `JUGE:` dans la COMMANDE ne satisfait pas la porte : elle juge le message', async () => {
   const b = banc()
   try {
     b.ecrire('src/a.ts', Array.from({ length: 30 }, (_, i) => `export const v${i} = 1\n`).join(''))
     const avant = b.head()
-    const vu = b.sh('cat > /dev/null <<\'EOF\' && git commit -a -m "feat(a): refs #7 — x"\n'
+    const vu = await b.sh('cat > /dev/null <<\'EOF\' && git commit -a -m "feat(a): refs #7 — x"\n'
       + 'JUGE: juge adversarial opus a refuté le lot entier, verdict NON-REFUTE, preuves au ticket\nEOF')
     refuse(b, vu, avant, /sans juge/)
     assert.deepEqual(b.verdicts(), ['refusé'], vu.stderr)
@@ -471,7 +475,7 @@ test('#2071 porte au commit-msg — fusion propre (apport vide) passe ; résolut
   }
 })
 
-test('#2071 porte au commit-msg — worktree lié, et commit lancé d’un sous-dossier', () => {
+test('#2071 porte au commit-msg — worktree lié, et commit lancé d’un sous-dossier', async () => {
   const b = banc()
   const lie = join(mkdtempSync(join(tmpdir(), 'lie-')), 'wt')
   try {
@@ -484,21 +488,21 @@ test('#2071 porte au commit-msg — worktree lié, et commit lancé d’un sous-
 
     b.ecrire('src/b.ts', 'export const b = 2\n')
     const avant = b.head()
-    refuse(b, b.sh(`git commit -a -m "${SANS_TICKET}"`, {}, join(b.racine, 'src')), avant, MANQUE_DE_TICKET)
-    passe(b, b.sh(`git commit -a -m "${TEMOIN}"`, {}, join(b.racine, 'src')), avant)
+    refuse(b, await b.sh(`git commit -a -m "${SANS_TICKET}"`, {}, join(b.racine, 'src')), avant, MANQUE_DE_TICKET)
+    passe(b, await b.sh(`git commit -a -m "${TEMOIN}"`, {}, join(b.racine, 'src')), avant)
   } finally {
     rmSync(dirname(lie), { recursive: true, force: true })
     b.jeter()
   }
 })
 
-test('#2071 porte au commit-msg — ciseaux sous `-e` sans `-v` (P3bis) : git enregistre la suite, la porte l’exige', () => {
+test('#2071 porte au commit-msg — ciseaux sous `-e` sans `-v` (P3bis) : git enregistre la suite, la porte l’exige', async () => {
   const b = banc()
   try {
     const ciseaux = b.message('ciseaux.txt', 'docs: refs #3 — note\n\n# ------------------------ >8 ------------------------\ncorrige #12\n')
     b.ecrire('src/a.ts', 'export const a = 4\n')
     const avant = b.head()
-    const p3bis = b.sh(`git commit -a -e -F "${ciseaux}"`, { GIT_EDITOR: 'true' })
+    const p3bis = await b.sh(`git commit -a -e -F "${ciseaux}"`, { GIT_EDITOR: 'true' })
     refuse(b, p3bis, avant, MANQUE_DE_SOLDE)
     assert.match(p3bis.stderr, /#12/)
   } finally {
@@ -506,18 +510,18 @@ test('#2071 porte au commit-msg — ciseaux sous `-e` sans `-v` (P3bis) : git en
   }
 })
 
-test('#2071 porte au commit-msg — ciseaux : la suite est exigée sous `-v` ; `# corrige #5` sous `-m` est exigé', () => {
+test('#2071 porte au commit-msg — ciseaux : la suite est exigée sous `-v` ; `# corrige #5` sous `-m` est exigé', async () => {
   const b = banc()
   try {
     const editeur = b.message('editeur.sh', `{ printf '${TEMOIN}\\n\\n'; cat "$1"; } > "$1.tmp" && mv "$1.tmp" "$1"\n`)
     b.ecrire('src/a.ts', 'export const a = 2\n')
     const avant = b.head()
-    passe(b, b.sh('git commit -a -v', { GIT_EDITOR: `sh "${editeur}"` }), avant)
+    passe(b, await b.sh('git commit -a -v', { GIT_EDITOR: `sh "${editeur}"` }), avant)
     assert.match(b.git('log', '-1', '--format=%B').stdout, /refs #7/)
 
     b.ecrire('src/a.ts', 'export const a = 3 // corrige #9\n')
     const avantV = b.head()
-    refuse(b, b.sh('git commit -a -v', { GIT_EDITOR: `sh "${editeur}"` }), avantV, MANQUE_DE_SOLDE)
+    refuse(b, await b.sh('git commit -a -v', { GIT_EDITOR: `sh "${editeur}"` }), avantV, MANQUE_DE_SOLDE)
 
     b.ecrire('src/b.ts', 'export const b = 2\n')
     const apres = b.head()

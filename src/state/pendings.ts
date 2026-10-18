@@ -15,7 +15,7 @@ import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
-import type { CriticalResolved } from '../engine/critical';
+import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
 import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
@@ -407,8 +407,8 @@ export interface PendingAttack {
    *  l'Atout Immobilisante, cf. `effectiveWeapon`). Proposé seulement si l'arme tirée porte la capacité
    *  `ItemCapabilities.ropeMode` (arbitrage user « mode de tir choisi », #476). */
   harpoonRopeCut?: boolean;
-  /** Réussite FORCÉE via « Je ne faillirai pas ! » (Résilience, LDB 17 l.68) : débloque, sur un Coup
-   *  Critique, le choix de la Localisation (cf. `critLocation` du résultat). */
+  /** Réussite FORCÉE, « Je ne faillirai pas ! » (LDB 17 l.68) : ouvre le choix d'`AttackResult.critLocation`
+   *  sous `CompteDesCritiques.relance`. */
   forced?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
@@ -438,6 +438,8 @@ export interface PendingAttack {
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
    *  la rend ici avec le résultat opposé, et `attackConfirm` la verse dans la `SuiteDeCoup`. */
   reaction?: 'damage' | 'push';
+  /** Riposte refusée par le défenseur SURFACÉ (LDB 10 l.1037), rendue comme `reaction`. */
+  riposte?: boolean;
   /** PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : POINT D'IMPACT choisi au sol. Présent → la
    *  touche DÉTONE sur cette case (Explosion/Tir de zone uniforme sur le rayon, RAW LDB 62 l.254), AUCUNE touche
    *  directe « primaire » ni Critique par victime ; `targetId` n'est que la cible-REPÈRE de la bande de
@@ -502,14 +504,13 @@ export interface PendingCleave {
   restitution?: SuiteDeCoup['restitution'];
 }
 /** Sélection de la 2ᵉ cible du Maniement de deux armes (LDB 10 l.767-773), après une 1ʳᵉ frappe RÉUSSIE.
- *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `dualStrikeSkip`). `mainRoll` = jet
- *  conservé de la 1ʳᵉ frappe ; `critValue` = valeur du tableau des Critiques si la 1ʳᵉ était un Critique.
+ *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `dualStrikeSkip`). `jet` = le jet
+ *  d'attaquant de la 2ᵉ frappe, tranché à l'ouverture (LDB 10 l.773).
  *  Avantage : +1 UNIQUE accordé si les DEUX frappes touchent (l.638) — son existence prouve que la 1ʳᵉ a touché. */
 export interface PendingDualStrike {
   attackerId: string;
   offWeaponUid: string;
-  mainRoll: number;
-  critValue?: number;
+  jet: number;
 }
 /** Battement en attente (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé.
  *  Modale MONO — Lancer (jet de CC figé) → Chance/Pacte/Résilience →
@@ -761,6 +762,8 @@ export interface RevealEntry {
   title: string;
   dice?: number; // d100/d10 à afficher (le jet), si pertinent
   lines: string[]; // détail (résultat, effets)
+  /** Entrée de zone : la scène dont `lines` porte le `startMessage` (#2206). */
+  sceneId?: string;
   /** Gravité de ce qui est révélé : 'minor' = informative (entretien, interruptions…), 'grave' =
    *  critique/mutation sur un héros. Elle QUALIFIE la révélation (rendu, cadence choisie quand un site
    *  déclare une auto-fermeture) ; elle n'en arme aucune d'elle-même (#1270). */
@@ -772,6 +775,8 @@ export interface RevealEntry {
   actorId?: string;
   /** Arme employée (Coup Critique). */
   weapon?: string;
+  /** D'où naît la Blessure critique révélée (`estUnCoupCritique`) : titre, Seconde main (LDB 10 l.767-773). */
+  origine?: OrigineCritique;
   /** Effets détaillés (table des Critiques) AVEC leur explication RAW — pour qu'on sache « à quoi ça
    *  correspond » (plus de simple texte gris). */
   details?: { text: string; note?: string }[];
@@ -817,66 +822,110 @@ export interface DeviationCtx {
    *  d'un Critique OPPOSÉ / dévié avec les Atouts d'arme du porteur (Taillade → Hémorragique, #316). */
   weaponObj?: Weapon;
   critTwice?: boolean;
+  /** Le coup qui porte le Critique, pour le marin d'un Critique de coque à l'Équipage (MDG 13 l.584). */
+  coup?: CoupDeTouche;
 }
 
-/** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
- *  Critique sur double OU dépassement — à une localisation où elle porte de la PA ; elle choisit
- *  Dévier (sacrifie 1 PA, ignore le Critique, subit les Blessures recalculées PA−1) ou Subir.
- *  Union discriminée par `mode` :
- *  - `melee` : `res`/`weapon` figés → le résolveur REJOUE `applyAttackResult` avec la décision (son
- *    « tail » décision-indépendant — riposte/triggers/ammo… — tourne ainsi une seule fois).
- *  - `self` : auto-contenu (opposé/tir/magie n'ont pas de tail) → le résolveur applique directement
- *    déflexion vs Critique pré-tiré, sans rejouer aucune attaque.
- *  Le Critique PRÉ-TIRÉ (`crit`, graine figée) est affiché sur la modale ET appliqué tel quel sur Subir. */
-export type PendingDeviation =
+/** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
+ *  `crit` = la Blessure tirée à sa fenêtre ; `deviation` = la voie tranchée ; `auto` = tranchée par
+ *  l'automate (`tenuParUnHumain` faux), sa révélation reste due. */
+export interface DecisionDeCritique {
+  crit?: CriticalResolved;
+  deviation?: 'devier' | 'subir';
+  auto?: true;
+}
+
+/** LE COUP qu'une fenêtre de Blessure critique suspend, et que sa reprise RÉ-ENTRE avec les décisions
+ *  tranchées (#1426 ; #1595 c.6220635824) — union discriminée par `mode` :
+ *  - `melee` : un coup d'arme, `res`/`weapon` figés → la reprise rejoue `applyAttackResult` (son
+ *    « tail » décision-indépendant — riposte/triggers/ammo… — tourne ainsi une seule fois) ;
+ *  - `projectile` : une touche de Projectile magique → la reprise rejoue son application ;
+ *  - `marin` : le coup qu'encaisse le marin d'un Critique de coque à l'Équipage → la reprise ré-entre le
+ *    seul pipeline du marin (MDG 13 l.584 ; LDB 63 l.30). */
+export type CoupSuspendu =
+  | CoupDeTouche
+  | {
+      mode: 'marin';
+      coupDuMarin: CoupDuMarin;
+      weapon?: never;
+      res?: never;
+      suite?: never;
+      touche?: never;
+    };
+
+/** Le coup d'une touche, arme ou Projectile magique. */
+export type CoupDeTouche =
   | {
       mode: 'melee';
-      attackerId: string;
-      targetId: string; // victime du Critique (cible réelle, y compris un tir dévié)
       weapon: Weapon;
       res: AttackResult;
-      crit: CriticalResolved;
-      reveal: RevealEntry;
-      resumeAfter: boolean;
       /** Ce que l'appelant fera APRÈS le coup (#1508) : la DÉVIATION est une fenêtre DE PLUS sur le même
        *  coup, et cette donnée porte jusqu'à la reprise d'après-déviation la chaîne de balayage en cours
        *  et l'Action d'une frappe gratuite. */
       suite?: SuiteDeCoup;
+      touche?: never;
+      coupDuMarin?: never;
     }
+  | {
+      mode: 'projectile';
+      /** La touche, ses Dégâts APRÈS le registre « après la touche » (sauvegardes, Martyr) : la reprise
+       *  ne le rejoue pas. Ce que l'appelant fera APRÈS elle (son `rebond`) y voyage. */
+      touche: ToucheDeProjectile;
+      weapon?: never;
+      res?: never;
+      suite?: never;
+      coupDuMarin?: never;
+    };
+
+/** Le coup qu'encaisse le marin d'un Critique de coque à l'Équipage, sa touche calculée contre LUI : MDG 13
+ *  l.584 ; LDB 85 l.360-361. Donnée SÉRIALISABLE, que le pipeline du marin ré-entre. */
+export type CoupDuMarin = CoupDeTouche & { attackerId: string; marinId: string };
+
+/** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
+ *  Critique OU dépassement — à une localisation où elle porte de la PA ; elle choisit Dévier (sacrifie
+ *  1 PA, ignore le Critique, subit les Blessures recalculées PA−1) ou Subir. Union discriminée par `mode` :
+ *  le `CoupSuspendu` (`melee`, `projectile`), que la reprise ré-entre ; `self` : auto-contenu (Test
+ *  opposé), le résolveur applique directement déflexion vs Critique pré-tiré, sans rejouer aucun coup.
+ *  Le Critique PRÉ-TIRÉ (`crit`, graine figée) est affiché sur la modale ET appliqué tel quel sur Subir. */
+export type PendingDeviation =
+  | (CoupSuspendu & {
+      attackerId: string;
+      targetId: string; // victime du Critique (cible réelle, y compris un tir dévié)
+      crit: CriticalResolved;
+      /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
+      decides: readonly DecisionDeCritique[];
+      reveal: RevealEntry;
+      resumeAfter: boolean;
+    })
   | {
       mode: 'self';
       attackerId: string;
       targetId: string;
-      location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
+      location: HitLocation; // LDB 18 l.53, l.55
       crit: CriticalResolved;
-      isCoupCritique: boolean; // double (true) vs dépassement (false) → applique le bon Critique au Subir
-      overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.30)
-      deflectExtraWounds: number; // Blessures ajoutées au Dévier (recalcul PA−1 ; 0 pour un critique « sec »)
+      origine: OrigineCritique;
+      overkill: number; // dépassement (LDB 18 l.17)
       woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
       reveal: RevealEntry;
       resumeAfter: boolean;
       ctx: DeviationCtx;
-      /** LA TOUCHE de Projectile magique que cette fenêtre suspend (#1508) — présente pour le seul
-       *  chemin du Projectile. Ce que l'appelant fera APRÈS la touche (son `rebond`) voyage ainsi
-       *  jusqu'à la reprise : c'est la DERNIÈRE fenêtre fermée qui le joue, sur des PB frais. */
-      touche?: ToucheDeProjectile;
     };
 
 /** FENÊTRE de POSE du d100 de SÉVÉRITÉ d'une Blessure Critique (#942 L4) : le dé de la table de
  *  Blessures est resté à poser (option « Dés fixés » + siège qui contrôle la victime), donc la
  *  résolution de l'attaque est SUSPENDUE. La charge est sérialisable (coop) et rejoue le MÊME chemin
  *  que la déviation : l'applier re-entre dans `applyAttackResult` avec le Critique construit sur le dé
- *  posé (`prerolledCrit`) — aucune mécanique parallèle. */
-export interface PendingCritSeverity {
+ *  posé (`ApplicationDuCoup.critiques`) — aucune mécanique parallèle. */
+export type PendingCritSeverity = CoupSuspendu & {
   attackerId: string;
   targetId: string;
-  weapon: Weapon;
-  res: AttackResult;
-  location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
-  overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.17) — porté en `mod` par la déclaration
+  location: HitLocation; // LDB 18 l.53, l.55
+  overkill: number; // dépassement (LDB 18 l.17) — porté en `mod` par la déclaration
+  origine: OrigineCritique;
+  /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
+  decides: readonly DecisionDeCritique[];
   twice?: boolean; // LDB 41 l.170 — pose `keepHighest: 2` sur la déclaration et garde la bifurcation AA
-  suite?: SuiteDeCoup; // ce que l'appelant fera APRÈS le coup (#1508) : le PLI post-dé la reconduit dans la `PendingDeviation` qu'il forme
-}
+};
 /**
  * LE REBOND d'un Projectile « Attaques en chaîne » (op `chain`, `LDB 47 l.340`) en DONNÉE (#1508) : ce
  * que l'appelant fera APRÈS la touche, porté PAR la touche. Une fenêtre ouverte sur la cible (sauvegarde
@@ -910,6 +959,8 @@ export interface RebondDeChaine {
  */
 export interface ToucheDeProjectile {
   casterId: string;
+  /** D'où part la touche à l'écran : le lanceur, ou la cible précédente d'un rebond (LDB 47 l.340). */
+  de: string;
   targetId: string;
   spell: SpellData;
   mres: CastResult & Partial<MissileResult>;
@@ -920,10 +971,16 @@ export interface ToucheDeProjectile {
   rebond?: RebondDeChaine;
   /** Blessure Critique choisie par le lanceur (LDB 46 l.30) — `crit && choice === 'critique'`, tranché à l'ouverture. */
   critWound: boolean;
+  /** Localisation relancée de la touche sur `targetId`, décidée à sa naissance ; absente = Localisation de touche.
+   *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
+  critLocation?: HitLocation;
   overcastDamageSteps: number;
   overcastDurationSteps: number;
   chosenTableRolls?: number;
   conjureForm?: ConjureForm;
+  /** Les Blessures critiques de la touche déjà tranchées à leur fenêtre, dans l'ordre (#1426 ; LDB 63 l.30) —
+   *  posées par la seule reprise de la fenêtre. */
+  critiques?: readonly DecisionDeCritique[];
   /** IDENTITÉ du Sort source pour la dissipation (LDB 46 l.158-160), composée à l'ouverture du
    *  lancement (`applyCast`) : donnée pure, elle voyage telle quelle plutôt que d'être recomposée à la
    *  reprise — une 2ᵉ composition serait une 2ᵉ vérité. */
@@ -947,7 +1004,9 @@ export interface ToucheDeProjectile {
  *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
  *    l'attaquant, frappe du Maniement de deux armes ;
- *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
+ *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee` ;
+ *  - `apresCoup` : la frappe passive d'un défenseur (`jouerLaFrappePassive`) rend la main à l'après-coup
+ *    du coup qui l'a provoquée, au temps porté par `queue`. LDB 10 l.1037 ; LDB 85 l.71.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
@@ -955,7 +1014,8 @@ export type EnchainementDuCoup =
   | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
-  | { mode: 'aucun' };
+  | { mode: 'aucun' }
+  | { mode: 'apresCoup'; queue: QueueDuCoup };
 
 /** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
@@ -1000,6 +1060,8 @@ export interface SuiteDeCoup {
   /** Réaction de Porte-Bouclier DÉCLARÉE par le défenseur qui a paré (variante `AA 13 l.84`) : jouée
    *  au temps `reaction` de l'après-coup, APRÈS l'application — suspendue ou non. */
   reaction?: 'damage' | 'push';
+  /** Riposte du défenseur (LDB 10 l.1037) : `false` = refusée à sa fenêtre ; absente = déclarée. */
+  riposte?: boolean;
 }
 
 /**
@@ -1172,6 +1234,8 @@ export interface PendingDefense {
    *  pending. Sans elle, la ligne d'attaque affichée après la défense annoncerait une autre
    *  Difficulté que celle qui a fait sa cible. */
   atkCompo?: DifficultyComposition;
+  /** Localisation relancée du jet d'attaque piloté (`openSurfacedDefense`). LDB 18 l.53 ; AA 07 l.32 */
+  critLocation?: HitLocation;
   def: TestResult | null; // null = pas encore défendu ; écrasé par Chance
   result: AttackResult | null; // calculé par finishMelee après « Défendre »
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
@@ -1184,6 +1248,8 @@ export interface PendingDefense {
    *  Bouclier : 'damage' = causer des Dégâts « comme s'il s'agissait de son Action » ; 'push' = repousser
    *  l'attaquant de 2 m et se désengager. Appliquée à l'Appliquer (`applyShieldReaction`), coût débité alors. */
   shieldReaction?: 'damage' | 'push';
+  /** Riposte (LDB 10 l.1037) : `false` = refusée ; absente = déclarée. */
+  riposte?: boolean;
   /** CE QUE LA FERMETURE JOUERA (#1858) : déclaré par le producteur qui ouvre la fenêtre, jamais patché
    *  après coup ni deviné à la fermeture. */
   suite: SuiteDeDefense;
@@ -1597,35 +1663,45 @@ export type Cloture =
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
   /** Teardown de fin de combat : reprise de la bataille de masse puis de la séquence parquée. */
-  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean };
+  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean }
+  /** Reste d'un lot d'Effets d'auteur, rejoué par le walker de SCÈNE (`runFlow`). */
+  | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
+  /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
+   *  sa cible et avec le contexte porté de sa pile. */
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string };
+
+/**
+ * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`
+ * (`engine/ops`) : la part GELÉE voyage telle quelle (`gelerOpsCtx`), les Combattants par ID, le reste
+ * se rebâtit (`combatEffects.ctxRepris`).
+ */
+export interface OpsCtxPorte {
+  gele: OpsCtxGele;
+  casterId?: string;
+  hullId?: string;
+  crewIds?: string[];
+}
+
+/**
+ * SUITE confiée au porteur qui tient la main (#2689) : une liste ORDONNÉE de clôtures, rejouée dans
+ * l'ordre de la confidence (`combatEffects.confierLaSuite`, `jouerLesClotures`).
+ */
+export type Suite = Cloture[];
 
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxGele | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un dé (#1508) : le lot/la pile qui l'a
-   *  produite lui confie SA SUITE (`apresFlow`) au lieu de continuer par-dessus le dé en vol. Posé par
+   *  produite lui confie SA SUITE (`apresSuite`) au lieu de continuer par-dessus le dé en vol. Posé par
    *  les mints du canal (`opsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
    *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
-  /** CLÔTURES confiées AVEC la continuation (#1508) — les verbes que le site allait jouer après son
-   *  Flow, en donnée. Rejouées APRÈS `apresFlow`, dans l'ordre du site, à la DERNIÈRE étape de la
-   *  grappe : si le Flow rouvre un dé, elles repartent avec lui. */
-  apresClotures?: Cloture[];
-  /** CONTINUATION confiée par le walker qui a différé — le reste de son lot/de sa pile, en Flow pur
-   *  (sérialisable). Rejouée par l'applier de l'étape APRÈS la conséquence, jamais avant. */
-  apresFlow?: Flow;
-  /** QUEL walker rejoue `apresFlow` : `'scene'` (`runFlow` — lot d'Effets d'auteur) ou `'combat'`
-   *  (`runCombatFlow` — pile d'un Flow d'effet déclenché, qui porte cible/lanceur et la cadence). C'est
-   *  l'identité du PRODUCTEUR (`ExecCtx.mode`, déjà nommée par le socle), pas une classe de situation :
-   *  un lot de scène rejoué par le walker de combat perdrait ses Effets non-`ops`, et l'inverse
-   *  perdrait cible et lanceur. */
-  apresMode?: 'scene' | 'combat';
-  /** CONTEXTE de la feuille d'ops différée, part GELÉE (`engine/ops.gelerOpsCtx` — partition TOTALE
-   *  `OPS_CTX_GELES`). Ce qui n'est pas gelable voyage à côté (`casterId`/`hullId`/`opsDeCrewIds`) ou se
-   *  rebâtit (rng, hook de Corruption, dés). Sans lui, une reprise appliquait la feuille avec un
-   *  contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
-  opsDeCtx?: OpsCtxGele;
-  /** ÉQUIPAGE (`OpsCtx.crew`) d'une feuille différée, en ids — résolus par `actorIn` à la reprise. */
-  opsDeCrewIds?: string[];
+  /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
+   *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
+   *  lui. */
+  apresSuite?: Suite;
+  /** CONTEXTE PORTÉ de la feuille d'ops différée (`combatEffects.porterOpsCtx`). Sans lui, une reprise
+   *  appliquait la feuille avec un contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
+  opsDeCtx?: OpsCtxPorte;
   /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
   manieurs?: string[];
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses

@@ -7,7 +7,7 @@
 import { analyserTexte, typescript } from './dialecte.mjs'
 import { CHAMP_D_OCCURRENCE, ecartsDeStock, refusDeCroissance } from './stock.mjs'
 import { MOTIF_DECROISSANT } from './stockDeSites.mjs'
-import { RX_CLE_REFERENCE, ciblesDuSite } from '../../docs/lib/structures-lexique.mts'
+import { ciblesDuSite } from '../../docs/lib/structures-lexique.mts'
 
 export const siteDeForme = (f) => `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`
 export const siteDeSlot = (s) => `${s.dataset} | ${s.champ}`
@@ -35,11 +35,12 @@ const cibleDeForme = (_cle, f) => {
 
 /**
  * Une op observée est une DETTE de L1c (#1468) quand son payload n'est pas typé — op de `OPS_NON_TYPEES`, ou
- * op que `OP_DEFS` ne connaît pas — ou quand, typée, elle porte une référence À PLAT (`RX_CLE_REFERENCE`) là
- * où la cible l'emboîte. `typage` = les ops de `OP_DEFS` et `OPS_NON_TYPEES` du schéma mesuré. PURE.
+ * op que `OP_DEFS` ne connaît pas — ou quand, typée, elle porte une référence À PLAT là où la cible l'emboîte :
+ * une clé de sa signature que `typage.aPlat` déclare feuille `idDe` du payload. `typage` = les ops de `OP_DEFS`,
+ * `OPS_NON_TYPEES` et `aPlat` (`refsAPlat`, `corpusDesComptes.mts`) du schéma mesuré. PURE.
  */
-export const estDetteDOp = (o, { types, nonTypees }) =>
-  !types.includes(o.op) || nonTypees.includes(o.op) || o.signature.split(',').some((k) => RX_CLE_REFERENCE.test(k))
+export const estDetteDOp = (o, { types, nonTypees, aPlat }) =>
+  !types.includes(o.op) || nonTypees.includes(o.op) || o.signature.split(',').some((k) => aPlat[o.op]?.includes(k) ?? false)
 
 /** Les redéclarations de l'AST des defs (`scannerRedeclarations`), comptées par identité. */
 function redeclarationsComptees(redeclarations) {
@@ -99,9 +100,9 @@ export function collectionsACompteDe(modules) {
       : []))
 }
 
-/** Une HISTOIRE de compte (`a → b`) écrite en commentaire d'un stock : le compte vit dans l'entrée, son histoire
- *  dans git. */
-export const HISTOIRE_DE_COMPTE = /\d+\s*(?:→|->)\s*\d+/
+/** Une HISTOIRE de compte écrite en commentaire d'un stock, transition (`a → b`) ou delta signé (`+N :`,
+ *  `+N (#M) :`) : le compte vit dans l'entrée, son histoire dans git. */
+export const HISTOIRE_DE_COMPTE = /\d+\s*(?:→|->)\s*\d+|(?<![\w.])[+−-]\d+\s*(?:\(#\d+\)\s*)?:/
 
 /**
  * Les commentaires du tableau exporté `nom` de `texte` qui racontent un compte (`HISTOIRE_DE_COMPTE`), avec

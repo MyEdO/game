@@ -2,7 +2,7 @@
  * Métriques PURES de la grille carrée — foyer moteur, sans aucune dépendance (module feuille).
  *
  * Le moteur (`scatter`), le store (`path`, `vision`, IA, combat) et le rendu mesurent tous des
- * distances de cases : elles vivent ICI, jamais recopiées au site. Règle 3 (CLAUDE.md) : `src/engine`
+ * distances de cases : elles vivent ICI, jamais recopiées au site. Règle 3 (AGENTS.md) : `src/engine`
  * ne dépend pas de `src/state` — c'est donc le moteur qui porte la primitive et `state/path` qui la
  * consomme, pas l'inverse.
  */

@@ -96,7 +96,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "creatures.json", champ: "appearance", occurrences: 456, lot: "L2/L3 #1473", date: "2026-08-27" },
   { dataset: "creatures.json", champ: "features", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "grant", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "grantGroups", occurrences: 90, lot: "L2/L3 #1473", date: "2026-08-26" }, // +2 : Mouton + Cochon ("bete"), EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
+  { dataset: "creatures.json", champ: "grantGroups", occurrences: 90, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "monster", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "optionals", occurrences: 649, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "remove", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -263,7 +263,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "traits.json", champ: "affectsGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "amount", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "bonus", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "traits.json", champ: "capabilities", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "traits.json", champ: "capabilities", occurrences: 12, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "cond", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "escapeStrength", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "grantGroups", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },

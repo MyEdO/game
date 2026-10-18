@@ -11943,7 +11943,7 @@
         "id": "chapeau"
       },
       {
-        "vehicleId": "chaland",
+        "vehicleId": "barge-fluviale",
         "label": "Bateau de transport fluvial"
       },
       {
@@ -12099,7 +12099,7 @@
         "id": "veste-de-cuir"
       },
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       }
     ],
     "characteristics": [
@@ -12153,7 +12153,7 @@
         "text": "Coureur de rivières"
       },
       {
-        "vehicleId": "barque",
+        "vehicleId": "barque-fluviale",
         "label": "Bateau de transport fluvial rapide"
       }
     ],
@@ -12633,7 +12633,7 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       },
       {
         "id": "lampe-tempete"
@@ -13045,7 +13045,7 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       },
       {
         "id": "lampe-tempete"
@@ -13114,7 +13114,7 @@
         "text": "Corde avec grappin"
       },
       {
-        "vehicleId": "chaland",
+        "vehicleId": "barge-fluviale",
         "label": "Bateau de transport fluvial"
       }
     ],
@@ -13305,7 +13305,7 @@
         "id": "corde"
       },
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       }
     ],
     "characteristics": [
@@ -13409,7 +13409,7 @@
         "text": "Canotier"
       },
       {
-        "vehicleId": "barque",
+        "vehicleId": "barque-fluviale",
         "label": "Petit bateau de transport fluvial"
       }
     ],
@@ -14595,7 +14595,7 @@
         "id": "corde"
       },
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       }
     ],
     "characteristics": [
@@ -22823,7 +22823,7 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque"
+        "vehicleId": "barque-fluviale"
       },
       {
         "id": "corde"
@@ -23606,7 +23606,7 @@
     ],
     "trappings": [
       {
-        "vehicleId": "barque",
+        "vehicleId": "barque-fluviale",
         "label": "Bateau"
       },
       {
@@ -23869,7 +23869,7 @@
     ],
     "trappings": [
       {
-        "vehicleId": "chaland",
+        "vehicleId": "barge-fluviale",
         "label": "Bateau de transport fluvial"
       },
       {

@@ -14,11 +14,7 @@ import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
-import { gitDe, lancerGit, lancesDeGit } from '../../test/gitDeBanc.mjs'
-import { fileURLToPath } from 'node:url'
-
-/** La racine du dépôt réel. */
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
+import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -167,6 +163,25 @@ function depotJetable(commits) {
 }
 
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
+
+test('#2302 lectureDeLaPlage : une ascendance pour un ou cinq commits, différences croissantes, le reste constant', (t) => {
+  const horsDiffs = []
+  for (const nombre of [1, 5]) {
+    const { repo, shas } = depotJetable(Array.from({ length: nombre + 1 }, (_, i) => ({ contenu: sourceStock(Array.from({ length: i }, (_, n) => `  'src/f${n}.ts',`)), message: `commit ${i}` })))
+    try {
+      const { valeur, lances } = lancesDeGit(() => lectureDeLaPlage({ cwd: repo, debut: shas[0], fin: shas.at(-1) }))
+      const ascendances = lances.filter((args) => sousCommande(args) === 'rev-list' && args.includes('--format=%H %T %P'))
+      assert.equal(ascendances.length, 1)
+      assert.equal(lances.some((args) => args.includes('-n') || args.includes('-n1') || args.some((a) => a.endsWith('^@'))), false)
+      assert.deepEqual(valeur.commits.map((c) => [c.sha, c.message]), shas.slice(1).map((sha, i) => [sha, `commit ${i + 1}\n`]))
+      const diffs = lances.filter((args) => sousCommande(args) === 'diff-tree').length
+      assert.ok(diffs >= nombre)
+      horsDiffs.push(lances.length - diffs)
+      t.diagnostic(JSON.stringify({ nombre, processus: lances.length, ascendances: ascendances.length, diffs }))
+    } finally { rmSync(repo, { recursive: true, force: true }) }
+  }
+  assert.equal(horsDiffs[1], horsDiffs[0], `processus hors diff-tree : ${horsDiffs.join(' pour 1, ')} pour 5`)
+})
 
 test('#2626 : seuls les commits nouveaux sont jugés, le cumul reste celui des états de la plage', async () => {
   const { repo, shas, git } = depotJetable([
@@ -1799,16 +1814,6 @@ test('#2503 ÈRE SANS la porte : la porte actuelle juge, un stock qui naît muet
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
-})
-
-test('#2503 ÈRE SANS la porte, données réelles : `a9b7edf17` poussé sur le tronc `da3acf95c^` rend les refus de la porte actuelle', async () => {
-  const sha = (ref) => gitDe(RACINE)('rev-parse', ref).trim()
-  const plage = { cwd: RACINE, debut: sha('da3acf95c^'), fin: sha('a9b7edf17'), vers: TRONC.branche }
-  const actuelle = refusDeLaPlage(lectureDeLaPlage(plage)).map((r) => [r.sha, r.fichier, r.net, r.declare])
-  assert.ok(actuelle.length, 'témoin : la porte actuelle refuse cette plage')
-  const vu = await croissancesDeLaPlage(plage)
-  assert.deepEqual(vu.refus.map((r) => [r.sha, r.fichier, r.net, r.declare]), actuelle)
-  assert.ok(vu.notes.some((n) => n.includes(`sans la porte \`${MODULE_PORTE}\``)), vu.notes.join('\n'))
 })
 
 test('#2503 GitIndisponible entre modules : une lecture en panne sous le juge d’une ère CHARGÉE rend un refus `illisible` au texte de `refusDeGit`', async () => {

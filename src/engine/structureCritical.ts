@@ -13,7 +13,8 @@
  * d'Athlétisme, perte de couvert) sont RENDUS verbatim en `note` (la boucle de combat connaît occupants/couvert).
  */
 import { d100, type RNG, defaultRNG } from './dice';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import type { GameOp } from './ops';
 import { STRUCTURE_CRITICALS, type StructureCritEntry } from '../data/structureCriticals';
 import { t } from '../i18n';
@@ -35,11 +36,14 @@ export interface StructureCriticalResolved {
   log: string[];
 }
 
+/** La table telle que `findTableEntry` la lit : « 96 ou plus » (AA 10 l.127) ouvert par `tableOuverte`. */
+export const tableDesCritiquesDeStructure = memoParVersion('structureCriticals', () => tableOuverte(STRUCTURE_CRITICALS));
+
 /** Résout un Critique de Structure (AA 10 l.112-127) : tire le d100 sur `STRUCTURE_CRITICALS`, dérive les
  *  Blessures supplémentaires en `GameOp` et le drapeau d'Effondrement. `forcedRoll` = d100 imposé (tests). PUR. */
 export function rollStructureCritical(rng: RNG = defaultRNG, forcedRoll?: number): StructureCriticalResolved {
   const roll = forcedRoll ?? d100(rng);
-  const entry = findTableEntry(STRUCTURE_CRITICALS, roll);
+  const entry = findTableEntry(tableDesCritiquesDeStructure(), roll);
   const extra = entry.wounds ?? 0;
   // Blessures supplémentaires → op `wounds` en MODE PAR DÉFAUT (ignore BE+PA) : c'est une perte de PB issue de
   // la table de Critiques, pas un coup d'arme. Rien pour une Triviale (0) ni un Effondrement (destruction directe).

@@ -15,7 +15,8 @@
  * modificateurs de Moral (dés signés « +2d10 »/« -3d10 ») ; `findTableEntry` classe le score dans sa bande.
  */
 import crewMoraleJson from '../data/crew-morale.json';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { rollExpr, type RNG, defaultRNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
 import { bestForSkills, refusNePeutTenter } from './skills';
@@ -46,9 +47,7 @@ export interface MoraleFactor {
 }
 
 /** Bande d'effet du Moral (EFFETS DU MORAL, MDG 14). */
-export interface MoraleBand {
-  min: number;
-  max: number;
+export interface MoraleBand extends BandeOuverte {
   id: string;
   /** Titre de bande verbatim (MDG 14 l.187-202). */
   label: string;
@@ -67,10 +66,13 @@ export const MORALE_BASE: number = crewMoraleJson.base;
 export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors;
 export const MORALE_BANDS: MoraleBand[] = crewMoraleJson.bands as MoraleBand[];
 
+/** Les bandes telles que `findTableEntry` les lit (`tableOuverte`) : « 101 ou plus » et « 50 ou moins »
+ *  (MDG 14 l.188, l.199) sont ouvertes. */
+const bandesDuMoral = memoParVersion('crewMoraleBands', () => tableOuverte(MORALE_BANDS));
 
 /** Bande d'effet du Moral courant (DR aux Tests, seuil de désertion). PUR. */
 export function moraleBand(score: number): MoraleBand {
-  return findTableEntry(MORALE_BANDS, score);
+  return findTableEntry(bandesDuMoral(), score);
 }
 
 export interface MoraleRecalc {

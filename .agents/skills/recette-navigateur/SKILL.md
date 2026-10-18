@@ -8,7 +8,7 @@ description: À utiliser avant de valider TOUTE feature visible en jeu (UI, comb
 
 Lire **`docs/recette-navigateur.md`**. L'essentiel non négociable : piloter **COMME UN JOUEUR**
 (clavier `src/state/keybindings.ts` + clics réels d'abord ; `__wfrp` pour le setup/l'observation ;
-fonctions du store en dernier recours — jamais pour valider le flux testé). Console à 0 erreur. Piège
+store en dernier recours pour un setup sans helper — jamais pour déclencher le flux testé). Console à 0 erreur. Piège
 closure-sync : jamais lire le DOM dans le même `evaluate` que l'action qui change l'état React.
 
 ## Ce que seule la recette prouve
@@ -18,6 +18,10 @@ une feature peut être câblée sur une primitive qu'aucun écran du parcours ne
 l'écran-cible du parcours joueur (« Fiche complète »), jamais le composant (« HeroSheet ») ; quand une
 primitive est composée par plusieurs écrans, vérifier lesquels la montent AVEC la donnée concernée (un
 `sections=[…]` restrictif chez l'appelant masque une rubrique pourtant présente dans la primitive).
+
+Un lot UI dont la base a bougé (rebase, conflits résolus, régime de rendu changé entre-temps) se
+recette À NOUVEAU sur l'arbre FUSIONNÉ avant sa fusion, même déjà recetté : des portes machine vertes
+ne valent pas une recette.
 
 ## Recette VISUELLE
 

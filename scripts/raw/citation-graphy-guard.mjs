@@ -1,6 +1,6 @@
 // Garde de graphie des citations RAW (#487, #585, #454 DoD, #1898).
 // Dans les CITANTS (`RACINES_CITANTES`, `lib/fichiersCitants.mjs`), une réf au livre s'écrit
-// `<ABRÉV> <chap> l.<ligne>` (CLAUDE.md règle 1). Deux classes y lisent TOUTE ligne — commentaire en
+// `<ABRÉV> <chap> l.<ligne>` (AGENTS.md règle 1). Deux classes y lisent TOUTE ligne — commentaire en
 // tête ou en fin de ligne de code, titre de test, chaîne affichée, champ JSON :
 // - (a′) graphie chapitre-relative `NN-Nom l.X` (ex. `18-Traumatisme l.417-422`) : INVISIBLE de
 //   `refRe` (_lib.mjs — il exige le livre AVANT le numéro de chapitre), donc jamais comptée par

@@ -6,6 +6,7 @@ import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/com
 import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
+import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../engine/types';
 
@@ -58,18 +59,26 @@ beforeEach(() => useGame.setState({ ...initialFields(), battle: null, scene: nul
 describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773)', () => {
   beforeEach(() => setupBattle());
 
-  it('utilise le jet INVERSÉ de la main directrice comme jet de la 2ᵉ attaque (34 → 43)', () => {
-    const { h, f2 } = setupBattle();
-    const off = h.weapons.find((w) => w.hand === 'off')!;
-    const res = resolveDualSecond(useGame.getState, h, f2, off, 34);
-    expect(res.attackerRoll).toBe(reverseRoll(34)); // 43
+  it('le jet INVERSÉ de la main directrice est tranché à l’ouverture, puis joué tel quel (34 → 43)', () => {
+    setupBattle();
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 34, attackerDetail: { roll: 34, target: 50, success: true, sl: 1 } } as never), dualMode: true } as any });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingDualStrike!.jet).toBe(reverseRoll(34));
+    useGame.getState().dualStrikeAttack('f2');
+    expect(useGame.getState().pendingAttack?.result?.attackerRoll).toBe(43);
   });
 
-  it('exception Critique : utilise la valeur du tableau des Critiques, pas l’inversion', () => {
-    const { h, f2 } = setupBattle();
-    const off = h.weapons.find((w) => w.hand === 'off')!;
-    const res = resolveDualSecond(useGame.getState, h, f2, off, 11, { critValue: 56 });
-    expect(res.attackerRoll).toBe(56);
+  it('exception Critique, ldb : le jet est le d100 du tableau des Critiques du Coup Critique appliqué (LDB 10 l.773 ; LDB 18 l.53)', () => {
+    const { f1 } = setupBattle();
+    f1.important = true; // LDB 18 l.44 : hors Mort subite
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true }), dualMode: true } as any });
+    useGame.getState().attackConfirm();
+    for (let i = 0; i < 20 && !useGame.getState().pendingDualStrike; i++) avanceEtapeCascade(useGame.getState, undefined, () => 'subir');
+    const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+    const jet = useGame.getState().pendingDualStrike!.jet;
+    expect(jet).toBe(crits[0].reveal!.dice);
+    expect(jet, 'la graine rend la mutation visible').not.toBe(reverseRoll(30));
   });
 
   // Règles d'arme contextuelles de Groupe (LDB 62 l.146-147) AUSSI pour la 2ᵉ frappe : `resolveDualSecond`
@@ -84,9 +93,9 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
     h.weapons = [W('m', 'main'), off];
     f2.conditions = [{ id: 'surpris' } as any]; // ne se défend pas → résolution déterministe
     h.skills = [];
-    const rSans = resolveDualSecond(useGame.getState, h, f2, off, 32); // jet forcé = reverseRoll(32) = 23 (3 unités) → touche
+    const rSans = resolveDualSecond(useGame.getState, h, f2, off, reverseRoll(32)); // jet forcé = 23 (3 unités) → touche
     h.skills = [{ id: 'corps-a-corps', spec: 'fleau', advances: 0 } as any];
-    const rAvec = resolveDualSecond(useGame.getState, h, f2, off, 32);
+    const rAvec = resolveDualSecond(useGame.getState, h, f2, off, reverseRoll(32));
     expect([rSans.hit, rAvec.hit]).toEqual([true, true]);
     expect(rAvec.damage! - rSans.damage!).toBe(3); // Percutante (3 unités) conservée AVEC la Spé, retirée SANS
   });
@@ -163,9 +172,10 @@ describe('chaînage de l’Action « des deux armes »', () => {
   it('main touche et TUE la seule cible à portée → aucun « adversaire disponible » (LDB 10 l.773) : pas de 2ᵉ frappe', () => {
     const { f1, f2 } = setupBattle();
     f2.pos = { x: 7, y: 3 }; // hors d'Allonge de la main secondaire
-    f1.wounds.current = 8; // tombe à 0 PB sans excédent : Mort Subite du figurant, sans Critique
-    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 8, woundsLost: 8 }), dualMode: true } as any });
+    f1.wounds.current = 8; // dépassement : Mort Subite du figurant (LDB 18 l.46)
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 9, woundsLost: 9 }), dualMode: true } as any });
     useGame.getState().attackConfirm();
+    draineCascade(useGame.getState); // Blessure Critique du dépassement, Déviation comprise : LDB 18 l.17, LDB 63 l.30
     expect(isOutOfAction(useGame.getState().battle!.combatants.find((c) => c.id === 'f1')!), 'pré-requis : la 1re frappe a tué').toBe(true);
     expect(useGame.getState().pendingDualStrike).toBeNull();
     const h = useGame.getState().battle!.combatants.find((c) => c.id === 'h')!;
@@ -179,7 +189,7 @@ describe('Avantage : +1 UNIQUE et seulement si les DEUX frappes touchent (LDB 10
     const { h } = setupBattle();
     h.advantage = 0;
     useGame.setState({
-      pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any,
+      pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any,
       pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes(), dualSecond: true, weaponUid: 'o' } as any,
     });
     useGame.getState().attackConfirm();
@@ -191,7 +201,7 @@ describe('Avantage : +1 UNIQUE et seulement si les DEUX frappes touchent (LDB 10
     const { h } = setupBattle();
     h.advantage = 0;
     useGame.setState({
-      pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any,
+      pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any,
       pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualSecond: true, weaponUid: 'o' } as any,
     });
     useGame.getState().attackConfirm();
@@ -228,7 +238,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
 
   it('SEULE la 2nde main gatée → la 2ᵉ frappe interpose le Test (pas encore résolue)', () => {
     setupBattle(gatedHero(['off']));
-    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     useGame.getState().dualStrikeAttack('f2');
     const s = useGame.getState();
     expect(s.pendingHandGate?.hand).toBe('off');
@@ -238,7 +248,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
 
   it('RÉUSSITE → la 2ᵉ frappe se résout (dualSecond pré-résolu)', () => {
     setupBattle(gatedHero(['off']));
-    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     useGame.getState().dualStrikeAttack('f2');
     const pg = useGame.getState().pendingHandGate!;
     useGame.setState({ pendingHandGate: { ...pg, roll: pg.target, success: true, sl: 0 } });
@@ -251,7 +261,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
 
   it('ÉCHEC → l\'objet de la 2nde main glisse (pas la directrice) ; 2ᵉ frappe renoncée, sous-flux clos', () => {
     setupBattle(gatedHero(['off']));
-    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     useGame.getState().dualStrikeAttack('f2');
     const pg = useGame.getState().pendingHandGate!;
     useGame.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
@@ -267,7 +277,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
 
   it('un SEUL Test par Action : main directrice AUSSI gatée → la 2nde n\'est PAS re-testée', () => {
     setupBattle(gatedHero(['main', 'off']));
-    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', mainRoll: 30 } as any });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     useGame.getState().dualStrikeAttack('f2');
     const s = useGame.getState();
     expect(s.pendingHandGate).toBeNull();           // le Test de la directrice a déjà couvert l'Action
@@ -314,18 +324,18 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
 
   it('défenseur non surfacé : la 2ᵉ frappe garde son jet de défense neuf', () => {
     const { h, f2 } = setupBattle();
-    const res = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], 34);
+    const res = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], reverseRoll(34));
     expect(res.defenderDetail).toBeDefined();
   });
 
-  it('exception Critique : la valeur du tableau des Critiques survit à la fenêtre du défenseur surfacé', () => {
+  it('le jet tranché à l’ouverture survit à la fenêtre du défenseur surfacé', () => {
     setupBattle();
     useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
     useGame.getState().attackConfirm();
-    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, critValue: 56 } });
+    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, jet: 56 } });
     useGame.getState().dualStrikeAttack('f2');
-    expect(useGame.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend la valeur du Critique').toBe(56);
+    expect(useGame.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend le jet tranché').toBe(56);
     useGame.getState().attackConfirm();
     expect((useGame.getState().pendingDefense as any)?.atk?.roll, 'le jet figé voyage sur la fenêtre').toBe(56);
     useGame.getState().defenseRoll();
@@ -334,14 +344,14 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
 
   it('DR net identique, défenseur surfacé ou non, à dés égaux', () => {
     const { h, f2 } = setupBattle();
-    const inline = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], 34);
+    const inline = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], reverseRoll(34));
     const deDefense = (inline.defenderDetail as any).roll as number;
     useGame.setState({ ...initialFields(), battle: null });
     setupBattle();
     useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 43, attackerDetail: { roll: 43, target: 50, success: true, sl: 0 } } as any), dualMode: true, defended: true } as any });
     useGame.getState().attackConfirm();
-    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, mainRoll: 34, critValue: undefined } });
+    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, jet: reverseRoll(34) } });
     useGame.getState().dualStrikeAttack('f2');
     useGame.getState().attackConfirm();
     useGame.getState().defenseRoll();

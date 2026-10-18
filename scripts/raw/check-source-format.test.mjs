@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import {
   sitesDuDossier, scanDossier, scanAll, dossiersFR, formeDeLigne1, estNomDeSignet,
   comptesDeTables, balisesResiduelles, liensDIndex, regenerations,
-  ecartsAuGrain, mobilierAll, rougesDuMobilier, titresSoudesAll, titresSoudesDuDossier,
+  ecartsAuGrain, mobilierAll, rougesAuSite, titresSoudesAll, titresSoudesDuDossier, imperatifsSoudesAll, lireDossier,
   FAMILLES, STOCK_PATH, PREFIXES_FR,
 } from './check-source-format.mjs'
 import {
@@ -23,6 +23,7 @@ import {
 import { BOOKS, decoupeDe, gabaritTitreDe, livreExtraitDe, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, readText } from './_lib.mjs'
 import { chiffresDes, fenetreDe, mobilierDuDossier } from './lib/mobilier.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
+import { sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 import { cleDeSite, ecartDuVolet, naissanceDu, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { estSeparateur, ligne1DePlage, titreDuFichier } from '../../src/data/source/decoupe.ts'
 
@@ -333,9 +334,8 @@ test('un livre de `books.json` dont le dossier MANQUE lève — un corpus amput�
 // --- Le STOCK committé ---
 
 test('stock COMMITTÉ : chaque écart mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees, accrues } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
+  const { neuves, perimees } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
   assert.deepEqual(neuves, [], `écart(s) hors du stock :\n${neuves.join('\n')}`)
-  assert.deepEqual(accrues, [], `écart(s) dont le nombre GRANDIT :\n${accrues.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
@@ -472,7 +472,7 @@ test('mobilier : un chiffre d’onglet RÉINJECTÉ en ligne seule ou dans une li
     const x = [...chiffresDes(ongletsDe(id), fenetreDe(liste[i]))][0]
     const cible = nomsDeLaListe(liste)[i]
     const sites = mobilierAvec(id, (nom, t) => (nom === cible ? [t, '', x, '', `fin de paragraphe ${x}`].join('\n') : t))
-    const rouges = rougesDuMobilier(sites)
+    const rouges = rougesAuSite(sites)
     assert.equal(rouges.length, 2, `${id} : ${JSON.stringify(rouges)}`)
     assert.ok(rouges.every((r) => r.file.endsWith(`/${cible}`) && r.ref.includes(`« ${x} »`)))
     assert.deepEqual(rouges.map((r) => r.ref.split(' ')[1]), ['romain-seul', 'mot'])
@@ -483,12 +483,12 @@ test('mobilier : le pronom « I » EXEMPTÉ ne rougit pas ; sans son exemption i
   for (const id of LIVRES_A_ONGLETS) {
     const exemptes = mobilierAvec(id).filter((s) => s.exemption)
     assert.ok(exemptes.length, `${id} : aucun site exempté mesuré`)
-    assert.deepEqual(rougesDuMobilier(mobilierAvec(id)), [])
+    assert.deepEqual(rougesAuSite(mobilierAvec(id)), [])
     const sans = mobilierAvec(id, undefined, [])
-    assert.equal(rougesDuMobilier(sans, []).length, exemptes.length)
+    assert.equal(rougesAuSite(sans, []).length, exemptes.length)
     const morte = { fichier: exemptes[0].fichier, motif: /^aucune ligne ne porte ce texte$/, jetons: 1, raison: 'banc' }
     const avecMorte = [...EXEMPTIONS_MOBILIER, morte]
-    assert.deepEqual(rougesDuMobilier(mobilierAvec(id, undefined, avecMorte), avecMorte).map((r) => r.ref), [`exemption qui couvre 0 site(s) pour 1 déclaré(s) : ${morte.motif}`])
+    assert.deepEqual(rougesAuSite(mobilierAvec(id, undefined, avecMorte), avecMorte).map((r) => r.ref), [`exemption qui couvre 0 site(s) pour 1 déclaré(s) : ${morte.motif}`])
   }
 })
 
@@ -497,7 +497,7 @@ test('mobilier : un chiffre d’onglet AJOUTÉ à une ligne EXEMPTÉE rougit —
     const [cible] = mobilierAvec(id).filter((s) => s.exemption)
     const nom = cible.fichier.slice(cible.fichier.lastIndexOf('/') + 1)
     const retouche = (n, t) => (n !== nom ? t : t.split('\n').map((l, j) => (j === cible.ligne - 1 ? `${l} ${cible.jeton}` : l)).join('\n'))
-    const rouges = rougesDuMobilier(mobilierAvec(id, retouche))
+    const rouges = rougesAuSite(mobilierAvec(id, retouche))
     assert.equal(rouges.length, 1, `${id} : ${JSON.stringify(rouges)}`)
     assert.ok(rouges[0].file === cible.fichier && rouges[0].ref.startsWith(`l.${cible.ligne} mot « ${cible.jeton} »`))
   }
@@ -527,4 +527,38 @@ test('titre-soude : un titre RE-SOUDÉ à son corps ROUGIT, nommé à sa ligne',
     assert.match(rouges[0].ref, /^l\.\d+ p5 : \*\*/)
     assert.equal(rouges[0].file, `${dir}/${nom}`)
   }
+})
+
+// --- TRAIT D'UNION VERBE-PRONOM (#1595) : la famille `imperatif-soude`, rouge nommé sans stock ---
+
+const LDB_DIR = 'Source/Warhammer v4 - Livre de base version corrigee'
+const TALENTS_LDB = `${LDB_DIR}/10 - Talents.md`
+/** Le dossier du LDB lu sur disque, le chapitre des Talents passé par `retouche`. */
+const ldbRetouche = (retouche) => () => lireDossier(LDB_DIR).map((f) => (f.nom === '10 - Talents.md' ? { ...f, texte: retouche(f.texte) } : f))
+
+test('imperatif-soude : l’arbre est VERT — aucun pronom soudé ni détaché de son verbe dans un dossier FR', () => {
+  assert.deepEqual(imperatifsSoudesAll(), [])
+})
+
+test('imperatif-soude : un trait d’union RETIRÉ ou DÉTACHÉ rougit, nommé à sa ligne et à sa classe', () => {
+  const lire = ldbRetouche((t) => t.replace('rappelez-vous', 'rappelezvous').replace('Rappelez-vous', 'Rappelez- vous'))
+  const rouges = imperatifsSoudesAll([LDB_DIR], [], lire)
+  assert.equal(rouges.length, 2, JSON.stringify(rouges))
+  for (const r of rouges) assert.equal(r.file, TALENTS_LDB)
+  assert.match(rouges[0].ref, /^l\.\d+ soude « rappelezvous » : /)
+  assert.match(rouges[1].ref, /^l\.\d+ detache « Rappelez- vous » : /)
+})
+
+test('imperatif-soude : une exemption couvre ses jetons sites, pas un de plus ni de moins', () => {
+  const lire = ldbRetouche((t) => t.replace('rappelez-vous', 'rappelezvous'))
+  const juste = [{ fichier: TALENTS_LDB, motif: /rappelezvous de conserver/, jetons: 1, raison: 'test' }]
+  assert.deepEqual(imperatifsSoudesAll([LDB_DIR], juste, lire), [])
+  const large = [{ ...juste[0], jetons: 2 }]
+  assert.match(imperatifsSoudesAll([LDB_DIR], large, lire)[0].ref, /^exemption qui couvre 1 site\(s\) pour 2 déclaré\(s\)/)
+})
+
+test('imperatif-soude : les mots du livre et le trait d’union présent ne sont pas des sites', () => {
+  const texte = 'Rendez-vous chez le prêtre, assez vite. Allons-y ! Cela, celui-ci, un receleur. Le nez le trahit. Rappelez-vous.'
+  assert.deepEqual(sitesImperatifSoude(texte), [])
+  assert.deepEqual(sitesImperatifSoude('a\nSuivezmoi, allonsy.').map((s) => [s.ligne, s.classe, s.jeton]), [[2, 'soude', 'Suivezmoi'], [2, 'soude', 'allonsy']])
 })

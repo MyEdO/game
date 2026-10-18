@@ -21,6 +21,7 @@
 //   8. un ENSEMBLE de fichiers (`arbre`) remplace le disque : résolution, lecture, motifs d'`import.meta.glob` ;
 //      les spécificateurs non résolus se mémoïsent (`specificateurs`), et le graphe INVERSE se lit sur le cache.
 import { test, mock } from 'node:test'
+import { registerHooks } from 'node:module'
 import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -893,4 +894,34 @@ test('specificateurs : la marche lit le mémo par texte et n’écrit que ce qu�
   const autre = { ...arbre, existe: (a) => a !== abs('b.mjs') && arbre.existe(a) }
   assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, arbre: autre, specificateurs })], ['a.mjs'])
   assert.equal(ecrits.length, 2)
+})
+
+test('clôture : lots positifs bornent les sessions sans changer ordre ni arcs ni cache', async () => {
+  const url = new URL('./importGraph.mjs?lot-borne', import.meta.url).href
+  const hook = registerHooks({ load(specifier, contexte, suivant) {
+    const rendu = suivant(specifier, contexte)
+    if (specifier !== url) return rendu
+    let source = Buffer.from(rendu.source).toString('utf8')
+    source = source.replace('analyserTexte, analyserCorpus, typescript', 'analyserTexte, analyserCorpus as analyserNatif, typescript')
+    source += '\nexport const taillesAnalysees=[]; function* analyserCorpus(entrees) { taillesAnalysees.push(entrees.length); yield* analyserNatif(entrees) }\n'
+    return { ...rendu, source }
+  } })
+  try {
+    const { clotureDImports: marcher, taillesAnalysees } = await import(url)
+    const racine = resolve(RACINE).split('\\').join('/')
+    const roots = Array.from({ length: 7 }, (_, i) => `lot/r${i}.mjs`)
+    const modules = new Map(roots.map((r) => [`${racine}/${r}`, "import './feuille.mjs'"]))
+    modules.set(`${racine}/lot/feuille.mjs`, 'export const f=1')
+    const arbre = { existe: (f) => modules.has(f), lire: (fs) => new Map(fs.map((f) => [f, modules.get(f)])) }
+    const vues = [2, 100].map((tailleLot) => {
+      taillesAnalysees.length = 0
+      const cache = new Map()
+      const fermeture = marcher(roots, { racine, arbre, cache, tailleLot })
+      assert.ok(taillesAnalysees.every((n) => n <= tailleLot), JSON.stringify(taillesAnalysees))
+      assert.equal(taillesAnalysees.reduce((a, n) => a + n, 0), 8)
+      return { fermeture: [...fermeture], cache: [...cache] }
+    })
+    assert.deepEqual(vues[0], vues[1])
+    for (const tailleLot of [0, -1, Infinity, 1.5]) assert.throws(() => marcher([], { tailleLot }), /tailleLot/)
+  } finally { hook.deregister() }
 })

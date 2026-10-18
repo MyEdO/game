@@ -50,6 +50,7 @@ export const MAISON_SANS_SOURCE = [
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["sea-shipwreck-swim","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["sea-water-litres-mediane","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["siege-engine-push-speed","maison","",""]', occurrence: 1 },
+  { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["structure-soin-magique","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["test-intimidation-char","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["travel-departure-gate","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["travel-etapes-low-move-bonus","maison","",""]', occurrence: 1 },

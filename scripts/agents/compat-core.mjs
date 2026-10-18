@@ -1,23 +1,19 @@
 import { Buffer } from 'node:buffer';
-import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
+import { EDITION, LECTURE, SHELL, familleLeanCtx, matcherDOutils, nomLeanCtx } from '../guards/lib/contratGarde.mjs';
 import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
 import { racinesDeModsParmi } from '../mods/racines.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const replacements = [
-  // L'import `@fichier` est une affordance de Claude Code : Codex n'en a pas, sa surface INJECTE le
-  // credo au SessionStart. Traduire le POINTEUR en pointeur (`.codex/credo.md`) rendrait AGENTS.md
-  // menteur — on traduit le MÉCANISME. Doit précéder la règle `.claude/credo.md` ci-dessous.
-  ['@.claude/credo.md', 'Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).'],
-  ['Foundry/CLAUDE.md', 'Foundry/AGENTS.md'],
-  ['# CLAUDE.md', '# AGENTS.md'],
   ['CLAUDE.md', 'AGENTS.md'],
   ['Claude Code', 'Codex'],
-  ['.claude/credo.md', '.codex/credo.md'],
-  ['~/.claude/projects/…/memory', '~/.codex/projects/…/memory'],
-  ['claude.ai/code', 'Codex cloud'],
 ];
+
+/** Une référence de surface Claude dans un profil Codex, hors des fichiers de `.claude/` que les deux
+ *  surfaces lisent tels quels : le credo (injecté à Codex par `inject-project-credo.mjs`), les règles
+ *  communes des sous-agents, la mémoire du dépôt. */
+const SURFACE_CLAUDE_HORS_PARTAGE = /CLAUDE\.md|\.claude\/(?!credo\.md|sous-agents\.md|memory\/)|\.Codex\//;
 
 export function normalizeText(text) {
   return `${text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '')}\n`;
@@ -98,14 +94,6 @@ function adapt(text) {
   return replacements.reduce((value, [from, to]) => value.split(from).join(to), normalizeText(text));
 }
 
-export function transformGuide(text) {
-  const body = adapt(text);
-  if (/CLAUDE\.md|Claude Code|\.claude\/credo|~\/\.claude|claude\.ai\/code/.test(body)) {
-    throw new Error('guide: référence Claude résiduelle');
-  }
-  return `${GENERATED_PREFIX}CLAUDE.md -->\n${body}`;
-}
-
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
   // Un mod Claude Code (#2278) n'a pas de miroir Codex.
@@ -113,14 +101,16 @@ export function transformSkillTree(sourceFiles) {
   for (const [source, bytes] of sourceFiles) {
     if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
-    if (!source.endsWith('/SKILL.md')) {
+    if (!source.endsWith('.md')) {
       outputs.set(destination, Buffer.from(bytes));
       continue;
     }
+    // Une annexe Markdown d'un skill (doc skills, « Add supporting files ») se lit comme son SKILL.md :
+    // même adaptation, sans frontmatter.
     const text = utf8.decode(bytes);
-    const parsed = readFrontmatter(text, source);
-    const frontmatter = normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0];
-    const body = adapt(parsed.body).split('.claude/skills/').join('.agents/skills/');
+    const skill = source.endsWith('/SKILL.md');
+    const frontmatter = skill ? normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0] : '';
+    const body = adapt(skill ? readFrontmatter(text, source).body : text).split('.claude/skills/').join('.agents/skills/');
     outputs.set(destination, Buffer.from(`${frontmatter}${GENERATED_PREFIX}${source} -->\n${body}`));
   }
   return outputs;
@@ -128,6 +118,21 @@ export function transformSkillTree(sourceFiles) {
 
 // #2537
 export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
+
+// #2710 : un outil lean-ctx ou PowerShell manque hors du poste qui le porte, sans erreur au lancement de l'agent.
+export const EQUIVALENTS_INTEGRES = Object.freeze({ [LECTURE]: 'Read', [EDITION]: 'Edit', [SHELL]: 'Bash' });
+
+/** L'outil intégré qui rend la capacité de `outil` sans serveur MCP ni hôte propre, ou `null`. PURE. */
+export const equivalentIntegre = (outil) => {
+  if (outil === 'PowerShell') return EQUIVALENTS_INTEGRES[SHELL];
+  const nu = nomLeanCtx(outil);
+  const famille = nu === null ? null : familleLeanCtx(nu);
+  return famille !== null && Object.hasOwn(EQUIVALENTS_INTEGRES, famille) ? EQUIVALENTS_INTEGRES[famille] : null;
+};
+
+/** Les outils intégrés que `outils` doit lister pour garder ses capacités hors du poste. PURE. */
+export const equivalentsManquants = (outils) =>
+  [...new Set(outils.map(equivalentIntegre).filter(Boolean))].filter((integre) => !outils.includes(integre));
 
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
@@ -148,11 +153,13 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
         if (OUTILS_NON_RESOLUS.includes(outil))
           diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
+      for (const integre of equivalentsManquants((frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()).filter(Boolean)))
+        diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));
       const actual = referencesIn(instructions);
-      if (/CLAUDE\.md|\.claude\/(?!memory\/)|\.Codex\//.test(instructions) || expected.some((reference) => !actual.includes(reference)))
+      if (SURFACE_CLAUDE_HORS_PARTAGE.test(instructions) || expected.some((reference) => !actual.includes(reference)))
         diagnostics.push({ family: 'agent', destination: role, type: 'reference', message: 'référence de surface divergente' });
     } catch (error) {
       diagnostics.push({ family: 'agent', destination: role, type: 'parse', message: error.message });
@@ -213,7 +220,8 @@ export const ENTREES_OUTIL = [
  *
  * Le credo de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de
  * CLAUDE.md — un import n'est ni tronqué ni persisté à part. Codex n'a pas d'import : sa surface
- * l'INJECTE au SessionStart. Porter les deux mécanismes sur Claude chargerait le credo deux fois.
+ * l'INJECTE au SessionStart, depuis le même fichier. Porter les deux mécanismes sur Claude chargerait le
+ * credo deux fois.
  *
  * La mise en conformité d'un conteneur distant se garde sur `CLAUDE_CODE_REMOTE`
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
@@ -224,12 +232,17 @@ export const ENTREES_OUTIL = [
  *
  * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
  * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
+ *
+ * L'oubli des règles projetées à la compaction (`scripts/hooks/regles-projection-oubli.mjs`, #2683) : les DEUX
+ * surfaces, qui portent toutes deux la projection et rendent `source: 'compact'`.
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
+  { phase: 'SubagentStart', script: 'contexte-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Règles communes et mémoire du dépôt au sous-agent' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'SessionStart', script: 'regles-projection-oubli.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Oubli des règles projetées à la compaction' },
 ];
 
 /**
@@ -343,7 +356,7 @@ export function remplacerCleJson(texte, cle, valeur) {
 
 /** Les racines que `agents:sync` POSSÈDE en entier : ce qui y vit hors des sorties attendues est
  *  orphelin (`managedRoots`, `collectDiffs`). */
-export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+export const MANAGED_ROOTS = ['.agents/skills'];
 
 /** Les surfaces dont `buildExpectedOutputs` dérive les déclarations de hooks (`hooksAttendus`). */
 export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
@@ -361,18 +374,7 @@ export function buildExpectedOutputs(snapshot, registres) {
   const files = new Map();
   const sortiesDeHooks = new Set();
   const diagnostics = [];
-  const source = snapshot.get('CLAUDE.md');
-  if (!source) diagnostics.push({ family: 'guide', destination: 'AGENTS.md', type: 'missing', message: 'CLAUDE.md absent' });
-  else {
-    try {
-      files.set('AGENTS.md', Buffer.from(transformGuide(utf8.decode(source))));
-    } catch (error) {
-      diagnostics.push({ family: 'guide', source: 'CLAUDE.md', destination: 'AGENTS.md', type: 'parse', message: error.message });
-    }
-  }
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
-  const credo = snapshot.get('.claude/credo.md');
-  if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
   for (const surface of SURFACES_DE_HOOKS) {
     try {
       const valeur = hooksAttendus(registres, surface);
@@ -389,10 +391,6 @@ export function buildExpectedOutputs(snapshot, registres) {
   return { files, managedRoots: new Set(MANAGED_ROOTS), sortiesDeHooks, diagnostics };
 }
 
-function withoutBanner(value) {
-  return value.replace(/<!-- GENERATED:[^\n]+ -->\n/, '');
-}
-
 function hasGeneratedBanner(value) {
   return /(?:^|\n)<!-- GENERATED: agents:sync; source=[^\n]+ -->\n/.test(value);
 }
@@ -405,20 +403,17 @@ export function collectDiffs(expected, actual) {
       if (!found?.equals(wanted)) diagnostics.push({ family: 'hook', destination, type: found ? 'content' : 'missing', message: 'hooks divergents du registre', safe: true });
       continue;
     }
-    if (!found) diagnostics.push({ family: 'guide', destination, type: 'missing', message: 'sortie absente', safe: true });
+    if (!found) diagnostics.push({ family: 'skill', destination, type: 'missing', message: 'sortie absente', safe: true });
     else if (!found.equals(wanted)) {
       let current;
       try {
         current = utf8.decode(found);
       } catch (error) {
-        diagnostics.push({ family: 'guide', destination, type: 'parse', message: error.message, safe: false });
+        diagnostics.push({ family: 'skill', destination, type: 'parse', message: error.message, safe: false });
         continue;
       }
-      const legacy = Buffer.from(withoutBanner(wanted.toString('utf8')));
       const marked = hasGeneratedBanner(current);
-      const legacyExact = found.equals(legacy);
-      const family = destination.startsWith('.agents/skills/') ? 'skill' : 'guide';
-      diagnostics.push({ family, destination, type: marked || legacyExact ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked || legacyExact });
+      diagnostics.push({ family: 'skill', destination, type: marked ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked });
     }
   }
   for (const [destination, found] of actual) {

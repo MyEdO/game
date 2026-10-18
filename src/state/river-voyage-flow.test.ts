@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
-import { buildRiverPlan, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
+import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
 import { buildApi } from './devtools';
 import { cascadeAppliers } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascadeTestKit';
@@ -72,7 +72,7 @@ function launch(withSavoir = false, km = 45, extra: Partial<MapRouteTrace> = {})
   seedBattleRng(7);
   const g = get();
   g.setParty(crew(withSavoir));
-  g.loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap(km, extra));
+  g.loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(km, extra), projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
   creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 }); // bourse du groupe (péages/auberges) — SOCLE POSSESSIONS #531
 }
@@ -94,6 +94,23 @@ describe('buildRiverPlan — la descente exige un batelier et une embarcation', 
     expect(hasBatelier(crew(), { id: 'voile', spec: 'chaland' })).toBe(true);
     set({ party: noSailors });
     expect(buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])).toBeNull();
+  });
+
+  // MSRC 07 l.74, l.90
+  it('coque à 0 Blessure + batelier → descente jouée ; sans batelier → repli', () => {
+    const r = get().worldMap!.routes[0];
+    set({ vessel: { vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 0, max: 60 } } });
+    try {
+      expect(descenteJouee(get, r, 'barge')).toBe(true);
+      const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', r);
+      expect(plan).not.toBeNull();
+      expect(plan!.vehicle!.wounds.current).toBe(0);
+      set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((s) => s.id !== 'ramer' && s.id !== 'voile') })) });
+      expect(descenteJouee(get, r, 'barge')).toBe(false);
+      expect(buildRiverPlan(get, 'r-reik', 'A', 'B', r)).toBeNull();
+    } finally {
+      set({ vessel: null });
+    }
   });
 });
 

@@ -48,11 +48,30 @@
     "ticket": "#1033"
   },
   {
+    "id": "4e/magie#sorts-de-contact-en-combat",
+    "type": "raw.manifest",
+    "label": "Sorts de Contact en Combat",
+    "ticket": "#2669"
+  },
+  {
+    "id": "4e/magie#incantation-critique",
+    "type": "raw.manifest",
+    "label": "Incantation Critique",
+    "ticket": "#1035"
+  },
+  {
     "id": "4e/religion#colere-des-dieux-declencheur-maladresse",
     "type": "raw.manifest",
     "label": "Colère des dieux — déclencheur Maladresse",
     "ticket": "#1653",
     "bloque": "6 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.61 et l.70 (pénalité de Compétence à durée, hors magie), l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte), l.80 et l.82 (suppression temporaire de Talent) : le vocabulaire de `GameOp` ne les exprime pas encore"
+  },
+  {
+    "id": "4e/combat#tableau-des-incidents-de-tir-d-artillerie-par-salve",
+    "type": "raw.manifest",
+    "label": "Tableau des Incidents de Tir d'Artillerie par Salve",
+    "ticket": "#1595",
+    "bloque": "Réparation des Structures, aucun site ne la résout (train Corr-C) : Test de Métier (Charpentier) ou (Maçon) Accessible (+20) hors combat (AA 10 l.132) ; Test étendu Très Difficile (−30), 20 DR, en combat (AA 10 l.134)"
   },
   {
     "id": "4e/combat#aa-01-tableau-des-armes-a-deux-mains",

@@ -16,10 +16,10 @@ export type CorpusDesComptes = {
   sansSlot: readonly CoupleDeReference[];
   inatteignables: readonly CoupleInatteignable[];
   redeclarations: readonly Redeclaration[];
-  /** Les ops de `OP_DEFS` (`types`) et de `OPS_NON_TYPEES` du schéma mesuré. */
+  /** Les ops de `OP_DEFS` (`types`), de `OPS_NON_TYPEES` et les références à plat de chaque payload (`aPlat`) du schéma mesuré. */
   typage: TypageDesOps;
 };
-export type TypageDesOps = { types: readonly string[]; nonTypees: readonly string[] };
+export type TypageDesOps = { types: readonly string[]; nonTypees: readonly string[]; aPlat: Readonly<Record<string, readonly string[]>> };
 export function estDetteDOp(o: { op: string; signature: string }, typage: TypageDesOps): boolean;
 
 /** Ce que mesure chaque collection à compte dans son corpus. */

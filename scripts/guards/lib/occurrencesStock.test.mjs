@@ -52,18 +52,31 @@ test('HISTOIRE DE COMPTE : fin de ligne et bloc sont vus, dans la collection seu
     '  // 7->8 : un bloc',
     '  { dataset: "a.json", champ: "y", occurrences: 8, motif: "9 → 10" },',
     '  { dataset: "a.json", champ: "z", occurrences: 1 }, // #1902',
+    '  { dataset: "a.json", champ: "w", occurrences: 2 }, // +1 : un delta',
+    '  // +1 (#862) : un delta en bloc',
     '];',
     'export const D = [{ occurrences: 1 }, // 3 → 4',
     '];',
   ].join('\n')
-  assert.deepEqual(histoiresDeCompte(texte, 'C', 'x.mjs'), [{ ligne: 3, commentaire: '// 33 → 34' }, { ligne: 4, commentaire: '// 7->8 : un bloc' }])
-  assert.deepEqual(histoiresDeCompte(texte, 'D', 'x.mjs').map((h) => h.ligne), [8])
+  assert.deepEqual(histoiresDeCompte(texte, 'C', 'x.mjs'), [
+    { ligne: 3, commentaire: '// 33 → 34' },
+    { ligne: 4, commentaire: '// 7->8 : un bloc' },
+    { ligne: 7, commentaire: '// +1 : un delta' },
+    { ligne: 8, commentaire: '// +1 (#862) : un delta en bloc' },
+  ])
+  assert.deepEqual(histoiresDeCompte(texte, 'D', 'x.mjs').map((h) => h.ligne), [10])
 })
 
-test('DETTE D’OP (L1c #1468) : une op typée sans référence à plat n’en est pas ; non typée, inconnue ou à référence à plat, si', () => {
-  const typage = { types: ['reduceDiseaseDays', 'rollTable', 'freeReroll'], nonTypees: ['freeReroll'] }
-  assert.equal(estDetteDOp({ op: 'reduceDiseaseDays', signature: 'days,oncePerDisease,op' }, typage), false, 'typée, à la forme cible')
+test('DETTE D’OP (L1c #1468) : une op typée sans référence à plat n’en est pas ; non typée, inconnue, ou dont une clé est une feuille `idDe` du payload (`aPlat`), si', () => {
+  const typage = {
+    types: ['reduceDiseaseDays', 'contractDisease', 'freeReroll', 'grantWeapon'],
+    nonTypees: ['freeReroll'],
+    aPlat: { reduceDiseaseDays: ['disease'], contractDisease: ['disease'], grantWeapon: ['form'] },
+  }
+  assert.equal(estDetteDOp({ op: 'reduceDiseaseDays', signature: 'days,oncePerDisease,op' }, typage), false, 'typée, sans clé à plat dans la signature')
   assert.equal(estDetteDOp({ op: 'freeReroll', signature: 'op' }, typage), true, 'payload non typé (`OPS_NON_TYPEES`)')
   assert.equal(estDetteDOp({ op: 'inconnue', signature: 'op' }, typage), true, 'op que `OP_DEFS` ne connaît pas')
-  assert.equal(estDetteDOp({ op: 'rollTable', signature: 'op,tableId' }, typage), true, 'typée, référence à plat')
+  assert.equal(estDetteDOp({ op: 'contractDisease', signature: 'disease,op' }, typage), true, 'typée, `disease` feuille `idDe` à plat : le NOM de la clé n’y est pour rien')
+  assert.equal(estDetteDOp({ op: 'grantWeapon', signature: 'damage,label,op,qualities' }, typage), false, 'typée, aucune clé de la signature n’est une feuille `idDe` à plat')
+  assert.equal(estDetteDOp({ op: 'grantWeapon', signature: 'damage,form,label,op' }, typage), true, 'typée, `form` feuille `idDe` à plat')
 })

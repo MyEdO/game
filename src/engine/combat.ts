@@ -11,7 +11,8 @@ import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
-import { isInanimate, isStructure, structureEnduranceMult, structureTaille } from './structures';
+import { peutEtreEmpoigne } from './grapple';
+import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
@@ -27,7 +28,7 @@ import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { groupMatch } from './groups';
-import { ignoredArmourAP, impenetrableAt, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon } from './items';
+import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackMod, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
@@ -38,6 +39,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
+import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -48,6 +50,16 @@ export function reverseRoll(r: number): number {
   let rev = o * 10 + t;
   if (rev === 0) rev = 100;
   return rev;
+}
+
+/** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
+export function lancerDeLaSecondeMain(
+  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau'>,
+  mainRoll: number,
+  rng: RNG,
+  twice: boolean,
+): number {
+  return touche.critical ? (touche.lancerDuTableau ?? lancerDuTableau(rng, twice)) : reverseRoll(mainRoll);
 }
 
 // ── Localisation des coups — FOYER UNIQUE data-driven (`src/data/localisation.json`) ──────────────
@@ -329,6 +341,11 @@ export type DefenseMode = 'parade' | 'esquive' | 'social';
  *  (`base`) + son libellé d'affichage (`label`, ex. « Intimidation »). Thread depuis la couche état. */
 export interface DefenseSub { base: number; label: string }
 
+/** Arme de parade PAR DÉFAUT du défenseur, à défaut d'arme déclarée : la main principale. */
+export function defaultParryWeapon(c: Combatant): Weapon | undefined {
+  return c.weapons[0];
+}
+
 /**
  * Valeur de défense NUE (Parade = Corps à corps avec l'arme parante ; Esquive = Agilité + avances ;
  * Social = valeur de Test de la Compétence substituée, fournie par `socialBase`), au sens de
@@ -338,7 +355,7 @@ export interface DefenseSub { base: number; label: string }
  */
 export function defenseBaseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialBase?: number): number {
   if (mode === 'social') return socialBase ?? 0; // base = Test de la Compétence sociale (Intimidation/Dressage), calculée en amont
-  if (mode === 'parade') return combatBaseValue(c, 'melee', weapon ?? c.weapons[0]);
+  if (mode === 'parade') return combatBaseValue(c, 'melee', weapon ?? defaultParryWeapon(c));
   return skillBaseValue(c, 'esquive', undefined, 'agilite');
 }
 
@@ -356,7 +373,7 @@ export function defenseValueMods(c: Combatant, mode: DefenseMode, weapon?: Weapo
  *  d'Agilité, effets actifs d'Agilité (Esquive = Test de déplacement, #193) — sommés (LDB 14 l.95). */
 export function defenseValueModParts(c: Combatant, mode: DefenseMode, weapon?: Weapon): ModLine[] {
   if (mode === 'social') return []; // valeur fournie clé en main par la couche état
-  if (mode === 'parade') return combatValueModParts(c, 'melee', weapon ?? c.weapons[0]);
+  if (mode === 'parade') return combatValueModParts(c, 'melee', weapon ?? defaultParryWeapon(c));
   const enc = agilityTestPenalty(c);
   return [
     ...(enc ? [{ label: 'Encombrement', value: enc, famille: 'jet' as const, ref: RULE_REF.encombrement }] : []),
@@ -373,7 +390,7 @@ export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, s
 /** Ids du Test de défense, MÊME sélection que `defenseBaseValue` : Parade = `attackTestOf` de mêlée à l'arme
  *  parante, Esquive, ou la Compétence substituée `socialSkillId` (LDB 13 l.161-167). */
 export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): { skill?: string; spec?: string; char?: CharKey } {
-  if (mode === 'parade') return attackTestOf(c, weapon ?? c.weapons[0], 'melee');
+  if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
   if (mode === 'esquive') return { skill: 'esquive' };
   return { skill: socialSkillId };
 }
@@ -466,17 +483,30 @@ export interface RollBreakdown {
   second?: SecondReadLine;
 }
 
+/** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358 ;
+ *  LDB 85 l.134 ; LDB 14 l.159. */
+export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade';
+
+/** Le RNG du tirage de la Localisation relancée, et la Localisation figée d'une re-dérivation du même jet.
+ *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
+export interface TirageDeLocalisation {
+  rng: RNG;
+  fige?: HitLocation;
+}
+
 export interface AttackResult {
   hit: boolean;
   attackerRoll: number;
   defenderRoll?: number;
   netSL: number;
   location?: HitLocation;
-  /** RAW-2 (LDB 17 l.68) : localisation du Coup Critique CHOISIE par le joueur via « Je ne faillirai pas ! »
-   *  — court-circuite le tirage aléatoire dans `applyCriticalToTarget`. Absente = localisation au hasard. */
+  /** Localisation relancée du coup, décidée à sa naissance (`applyHit`) ; absente = Localisation de touche.
+   *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; LDB 17 l.68 ; #1595 c.6226467544. */
   critLocation?: HitLocation;
+  /** Localisation relancée APPLIQUÉE à CE coup (`location`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32. */
+  localisationRelancee?: true;
   damage?: number; // dégâts bruts (avant mitigation)
-  woundsLost?: number; // Blessures réellement perdues
+  woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
    *  Localisation du Critique (`woundsAtCritLocation`) ni en surcroît de Déviation (LDB 63 l.30). Posé une fois,
    *  il voyage avec la touche : un coup qui ré-entre après une fenêtre ne les transfère pas deux fois. */
@@ -485,7 +515,25 @@ export interface AttackResult {
    *  recalculer les Blessures à la localisation RE-TIRÉE d'un Coup Critique (`woundsAtCritLocation`, LDB 18
    *  l.55), où seule l'ignorance de PA (Partielle / Points faibles) dépend de la localisation. */
   apExternal?: number;
+  /** Coup Critique (LDB 13 l.183 ; LDB 62 l.248) — jamais le dépassement, compté par `critiquesDuCoup`. */
   critical: boolean;
+  /** Retenir ses coups effectif sur CE coup (`profilDuCoup`). LDB 18 l.30 ; AA 07 l.59, l.61. */
+  retenu?: true;
+  /** Charge montée de CE coup (`AttackOptions.dmgProxy`) : LDB 14 l.183. */
+  dmgProxy?: AttackOptions['dmgProxy'];
+  /** Blessures critiques INFLIGÉES par CE coup, écrites à l'application (`appliquerLesCritiques`). LDB 18
+   *  l.17 ; AA 07 l.42 ; LDB 63 l.30. */
+  critiques?: number;
+  /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
+   *  LDB 18 l.53. */
+  lancerDuTableau?: number;
+  /** #1595 c.6221792068 Q2. */
+  sansPrise?: SansPrise;
+  /** Les termes de la ligne de touche hors chiffres du coup : `log` en est l'aperçu au jet, `ligneDuCoup` la
+   *  recompose à l'application. Absent quand `log` n'est pas une ligne de touche. */
+  touche?: ToucheDuJournal;
+  /** Lignes posées par les modifiers de touche après le jet, journalisées à la suite de la ligne du coup. */
+  ajouts?: string[];
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée
    *  par la porte (étape de dé), jamais par le moteur. Sa présence dit que le dé est tombé : le registre
    *  de touche APPLIQUE l'issue au lieu d'en redemander un, et un coup qui repasse par le registre après
@@ -925,6 +973,11 @@ function defenseTestSkill(mode: DefenseMode): string | undefined {
   return mode === 'parade' ? 'corps-a-corps' : mode === 'esquive' ? 'esquive' : undefined;
 }
 
+/** Le jet est-il le Test d'attaque, ou un Test de défense de Corps à corps ? LDB 13 l.183 ; LDB 62 l.248. */
+function testDArmeOuDeCorpsACorps(b: RollBreakdown): boolean {
+  return !b.mode || defenseTestSkill(b.mode) === 'corps-a-corps';
+}
+
 /** Caractéristique RÉELLE d'un mode de défense (Parade = Test de CC, Esquive = Agilité) — pour le canal météo
  *  « Tests physiques » (EDOC 8 l.82). La substitution sociale n'est PAS un Test physique → `null` (aucune). */
 function defenseTestChar(mode: DefenseMode): CharKey | null {
@@ -980,9 +1033,7 @@ export interface AttackOptions {
   /** Combat monté — CHARGE (LDB 14 l.183) : pour le calcul des DÉGÂTS seulement, on substitue la Force
    *  (Bonus `sb`) et la Taille de la MONTURE à celles du cavalier (le toucher reste la CC du cavalier). */
   dmgProxy?: { sb: number; size: Combatant['size'] };
-  /** « Retenir ses coups » (Aux Armes 07 l.59-61) : maîtriser sans tuer — déclaré AVANT le jet. N'agit
-   *  qu'en MÊLÉE (jamais tir/sort) et pas avec une arme infligeant *En flammes*. Retire Empaleuse/
-   *  Percutante/Perforante + l'Atout Taille du coup, et supprime le Critique SAUF si la cible tombe à 0. */
+  /** « Retenir vos coups », déclaré avant le jet : LDB 18 l.30 ; AA 07 l.59, l.61 (`peutRetenirSesCoups`). */
   withhold?: boolean;
   /** L'attaque frappe par le FLANC ou le DERRIÈRE de la cible (facing établi par combatFlow) : active le
    *  bonus SUPPLÉMENTAIRE d'Assourdi (+10, LDB 16 l.29) dans `meleeAttackerBonus`. Absent = de face. */
@@ -1047,7 +1098,7 @@ export function rollMeleeDefender(
   mode: DefenseMode,
   rng: RNG = defaultRNG,
   dodgeMods: ModLine[] = [], // lignes d'Esquive du contexte (LDB 14 l.82, l.184) ; n'affectent pas la parade
-  parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + pénalité main 2nde)
+  parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + pénalité main 2nde)
   vsWeapon?: Weapon, // arme de l'ATTAQUANT (Rapide : −10 à la parade d'une arme non-Rapide, LDB 62 l.298-302)
   sub?: DefenseSub, // substitution sociale (mode 'social') : base = Test de la Compétence substituée
 ): TestResult {
@@ -1083,6 +1134,14 @@ export function backstabWeapon(foe: Combatant): Weapon {
   return foe.weapons.find((w) => w.type === 'melee') ?? unarmedWeapon();
 }
 
+/** Arme de MÊLÉE de la main principale de `c`, la plus forte non Défensive ; Mains nues si cette main est
+ *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
+export function armeDeMainPrincipale(c: Combatant): Weapon {
+  const sb = bonus(effectiveChar(c, 'force'));
+  const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
+  return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, sb) >= effectiveWeaponDamage(w, sb) ? m : w), undefined) ?? unarmedWeapon();
+}
+
 /** Arme d'une attaque gratuite, construite depuis sa manœuvre : libellé (`def.label`), NOM unique de la
  *  gratuite lu par tous les écrans ; groupe d'armes (`def.subType`) ; Dégâts de la manœuvre (`def.damage`),
  *  sinon l'Indice de l'instance du trait (BF inclus). STAMPE `attackKind` → la pose/Condition lit le champ
@@ -1109,7 +1168,7 @@ export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RN
     { label: 'Dos tourné (adversaire en fuite)', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] },
   ];
   const atk = rollTest(combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
-  return resolveMeleePassive(foe, target, weapon, atk, undefined, [], undefined, false, composeAttack(mods));
+  return resolveMeleePassive(foe, target, weapon, atk, { rng }, undefined, [], undefined, false, composeAttack(mods));
 }
 
 /** Combine un jet d'attaque et un jet de défense DÉJÀ obtenus en AttackResult
@@ -1122,17 +1181,18 @@ export function finishMelee(
   atk: TestResult,
   def: TestResult,
   defenseMode: DefenseMode,
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   env: ModLine[] = [],
   dodgeMods: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
-  parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + Atouts + pénalité main 2nde)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61)
+  parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + Atouts + pénalité main 2nde)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   sub?: DefenseSub, // substitution sociale (mode 'social') : base + libellé de la Compétence substituée
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
 }
 
 /**
@@ -1151,10 +1211,11 @@ function combineOpposed(
   def: TestResult,
   defenseMode: DefenseMode,
   atkBd: ReturnType<typeof bd>,
+  tirage: TirageDeLocalisation,
   opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub } = {},
 ): AttackResult {
   const { location, dmgProxy } = opts;
-  const parryWeapon = opts.parryWeapon ?? defender.weapons[0];
+  const parryWeapon = opts.parryWeapon ?? defaultParryWeapon(defender);
   const dodgeMods = opts.dodgeMods ?? [];
   const noSize = !!attacker.swarm || !!defender.swarm; // Nuée : ignore toutes les règles de Taille (LDB 85 l.253)
   const parrySizePenalty = defenseMode === 'parade' && !noSize ? 2 * Math.max(0, sizeGap(attacker.size, defender.size)) : 0;
@@ -1210,7 +1271,7 @@ function combineOpposed(
   }
   const critical = atk.isDouble && atk.success;
   // Protectrice (LDB 62 l.296) : opposer l'attaque avec l'arme → Indice PA à toutes les localisations.
-  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon) : 0, opts.withhold);
+  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, tirage, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon) : 0, opts.withhold);
   res.defenderRoll = def.roll;
   res.defenderDetail = defLine;
   res.parryWeapon = usedParry;
@@ -1238,14 +1299,15 @@ export function resolveMeleePassive(
   defender: Combatant,
   weapon: Weapon,
   atk: TestResult,
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   env: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   compo?: DifficultyComposition, // Difficulté FIGÉE par l'orchestrateur (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'melee', location, dmgProxy, withhold);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'melee', tirage, location, dmgProxy, withhold);
 }
 
 /** DR du Test d'ATTAQUE, ajustements compris : SOURCE UNIQUE du Test opposé (`combineOpposed`) et de
@@ -1266,6 +1328,7 @@ function passiveOutcome(
   atk: TestResult,
   atkBd: RollBreakdown,
   kind: 'melee' | 'ranged',
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
   dmgProxy?: AttackOptions['dmgProxy'],
   withhold = false,
@@ -1282,7 +1345,7 @@ function passiveOutcome(
     defenderDefeated: false,
     log: `${attacker.label} manque ${defender.label}.`,
   };
-  const res = applyHit(attacker, defender, weapon, atkBd, dr, atk.isDouble && atk.success, location, dmgProxy, 0, withhold);
+  const res = applyHit(attacker, defender, weapon, atkBd, dr, atk.isDouble && atk.success, tirage, location, dmgProxy, 0, withhold);
   if (kind === 'melee' && res.hit && (attacker.swarm || sizeGap(dmgProxy?.size ?? attacker.size, defender.size) >= 1)) res.cleave = true; // LDB 85 l.362/253 ; LDB 14 l.183
   return res;
 }
@@ -1314,10 +1377,10 @@ export function resolveMelee(
   // d'un contexte plus pauvre (#1153 L4).
   const compo = composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location: opts.location, env: opts.env, flankRear: opts.flankRear }));
   if (defenseMode === 'none') {
-    res = resolveMeleePassive(attacker, defender, weapon, atk, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
+    res = resolveMeleePassive(attacker, defender, weapon, atk, { rng }, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
   } else {
-    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defender.weapons[0], weapon);
-    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defender.weapons[0], opts.withhold, undefined, compo);
+    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defaultParryWeapon(defender), weapon);
+    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, { rng }, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo);
   }
   if (autoKill && res.hit) res.autoKill = true;
   return res;
@@ -1414,7 +1477,7 @@ export function bestRangedDefense(
 ): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon } | undefined {
   const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile);
   if (!modes.length) return undefined;
-  const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defender.weapons[0];
+  const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defaultParryWeapon(defender);
   const valOf = (m: 'parade' | 'esquive') => defenseValue(defender, m, m === 'parade' ? parryWeapon : undefined);
   const best = maxBy(modes, valOf)!.item; // `modes` non vide (garde ci-dessus) ; first-max = mode le plus défensif.
   return { mode: best, parryWeapon: best === 'parade' ? parryWeapon : undefined };
@@ -1431,6 +1494,7 @@ export function resolveRanged(
   env: ModLine[] = [],
   defense?: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] },
   metresPerTile = 2,
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atkVal = combatValue(attacker, 'ranged', weapon);
   const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
@@ -1443,10 +1507,10 @@ export function resolveRanged(
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.62 / tireur Engagé 14 l.70) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
-    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defender.weapons[0], weapon);
-    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods });
+    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defaultParryWeapon(defender), weapon);
+    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { rng }, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
   }
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', location);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', { rng }, location, undefined, withhold);
 }
 
 /** Jet d'attaque FIGÉ d'un TIR (Test de Projectiles, mods de portée/Taille/État inclus) — mirror de
@@ -1476,6 +1540,7 @@ export function finishRanged(
   atk: TestResult,
   def: TestResult,
   defenseMode: DefenseMode, // le tir n'ouvre que Parade/Esquive (cf. rangedDefenseModes) — 'social' n'y parvient jamais
+  tirage: TirageDeLocalisation,
   distanceTiles?: number,
   location?: HitLocation,
   env: ModLine[] = [],
@@ -1483,10 +1548,11 @@ export function finishRanged(
   dodgeMods: ModLine[] = [],
   metresPerTile = 2,
   compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'ranged', location, distanceTiles, env, metresPerTile });
   const atkBd = bd(attackTestLabel(attacker, weapon, 'ranged'), combatValue(attacker, 'ranged', weapon), atk, compo ?? composeAttack(mods));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMods });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, parryWeapon, dodgeMods, withhold });
 }
 
 /**
@@ -1501,10 +1567,12 @@ export function resolveStrayRangedHit(
   weapon: Weapon,
   roll: number,
   effTarget: number,
+  tirage: TirageDeLocalisation,
   /** Ligne du tir d'ORIGINE : sa Difficulté est TRANSPORTÉE (c'est le même jet), et ce qui sépare
    *  `effTarget` de la cible d'origine devient une ligne NOMMÉE — sans quoi la touche déviée
    *  afficherait une cible chargée sans rien pour l'expliquer (#1153 L4). */
   origine?: RollBreakdown,
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atk = evaluateTest(roll, effTarget);
   const base = combatValue(attacker, 'ranged', weapon);
@@ -1518,8 +1586,7 @@ export function resolveStrayRangedHit(
     mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
-  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl));
-  res.log = `Le tir dévie dans la mêlée et touche ${victim.label} !`;
+  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), tirage, withhold);
   return res;
 }
 
@@ -1527,10 +1594,85 @@ export function resolveStrayRangedHit(
  * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
  * (MDG 14 l.128). Réussi → `applyHit` ; Critique : LDB 13 l.183, MDG 13 l.656.
  */
-export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number): AttackResult {
+export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation, withhold = false, dmgProxy?: AttackOptions['dmgProxy']): AttackResult {
   // Arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
   if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} manque ${defender.label}.` };
-  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll));
+  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), tirage, undefined, dmgProxy, 0, withhold);
+}
+
+/** Touche d'une frappe passive, portée par le Test de défense GAGNÉ (`defBd`) au DR du Test opposé. Le
+ *  double de la défense est le Critique d'`applyOpposedCritical` (LDB 14 l.3). LDB 10 l.1037 ; LDB 85 l.71 ;
+ *  AA 13 l.84 ; LDB 13 l.123, l.151, l.183 ; LDB 62 l.248 ; #1595 c.6234104573. */
+export function toucheDuTestDeDefense(defenseur: Combatant, attaquant: Combatant, arme: Weapon, defBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation): AttackResult {
+  return applyHit(defenseur, attaquant, arme, defBd, dr, false, tirage);
+}
+
+/** LDB 18 l.30 ; AA 07 l.61 ; AA 06 l.556. */
+export function peutRetenirSesCoups(weapon: Weapon): boolean {
+  return rule('combat-aa-blessures') !== 'aa' || (weapon.type === 'melee' && !weaponInflictsFlames(weapon));
+}
+
+/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.183 ; LDB 62 l.248) — le double prime.
+ *  LDB 85 l.98 ; #1595 c.6229550544. */
+export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise'>): CauseCoupCritique | null {
+  if (!res.critical || res.sansPrise) return null;
+  return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
+}
+
+/** La cible après `n` Déviations à `loc`, puis sa pièce Bâclée cassée sous `casse`, sur une COPIE.
+ *  LDB 63 l.19, l.21, l.32 ; LDB 60 l.50 ; #1595 c.6228496170 Q1. */
+export function apresDeviations(cible: Combatant, loc: HitLocation, n: number, opts: { casse?: boolean } = {}): Combatant {
+  if (n === 0 && !opts.casse) return cible;
+  const copie = structuredClone(cible);
+  for (let i = 0; i < n; i++) damageArmour(copie, loc);
+  if (opts.casse) casserLaPieceBaclee(copie, loc);
+  return copie;
+}
+
+/** LDB 63 l.78 ; #1595 c.6221792068 Q3, c.6228496170 Q3, Q4a. */
+export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number, cible: Combatant, lieu: HitLocation): CompteDesCritiques {
+  if (jet % 2 !== 1 || !impenetrableAt(cible, lieu)) return compte;
+  return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
+}
+
+/** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
+ *  LDB 18 l.53, l.55. */
+export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; coupCritique: boolean }
+
+/** Le compte d'une touche d'arme après `n` Déviations, au jet comme à l'application ; ne tire rien.
+ *  LDB 18 l.44, l.53, l.55 ; LDB 63 l.19, l.21, l.30, l.32, l.78 ; LDB 60 l.50 ; AA 07 l.65 ;
+ *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
+export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
+  const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
+  const relance = relanceLaLocalisation(cible, coup);
+  const lieu: HitLocation = relance ? res.critLocation! : (res.location ?? 'corps');
+  const devie = apresDeviations(cible, lieu, n);
+  let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
+  if (relance) {
+    blessures = woundsAtCritLocation(res, arme, apresDeviations(cible, lieu, n, { casse: true }), lieu);
+  } else if (coup.prise && n > 0 && !res.degatsTransferes) {
+    const dmg = res.damage ?? 0;
+    blessures += Math.max(0, woundsFromHit(arme, devie, lieu, dmg, 0, 1, attaquant.size) - woundsFromHit(arme, cible, lieu, dmg, 0, 1, attaquant.size));
+  }
+  const compte = critiquesDuCoup(cible, { ...coup, touche: true, relance, blessures });
+  const coupCritique = compte.critiques.some((c) => estUnCoupCritique(c.origine));
+  return { compte: relance ? sansLeCoupCritiqueIgnore(compte, res.attackerRoll, devie, lieu) : compte, lieu, coupCritique };
+}
+
+/** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159 ; #1595 c.6230022636. */
+export function coupAApplique(res: AttackResult, grapple: boolean | undefined, cible: Pick<Combatant, 'bodyShape' | 'inert'>): AttackResult {
+  return grapple && res.hit && peutEtreEmpoigne(cible) ? { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' } : res;
+}
+
+/** L'issue au jet du coup `res` tel que l'appelant le passe : sa ligne de touche et `compteDuCoup`,
+ *  sans les `runHitModifiers` de l'application (`src/state/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
+export function issueAuJet(cible: Combatant, res: AttackResult, arme: Weapon, attaquant: Combatant): { ligne: string; compte: CompteDesCritiques } {
+  const { compte, lieu } = compteDuCoup(res, arme, attaquant, cible, 0);
+  if (!res.touche) return { ligne: res.log, compte };
+  const tete = phraseDeTouche(res.touche, { ...res, location: compte.relance ? lieu : res.location, woundsLost: compte.blessures }, compte.critiques.length > 0, compte.relance);
+  // LDB 14 l.159
+  const empoignade = res.sansPrise === 'empoignade' ? ` ${t('cf.grappleInit', { name: res.touche.attaquant, foe: res.touche.cible })}` : '';
+  return { ligne: `${tete}${empoignade}`, compte };
 }
 
 /** L'arme inflige-t-elle l'État *En flammes* (un onHitEffect posant la Condition `en-flammes`, ex. Épée
@@ -1541,6 +1683,65 @@ export function weaponInflictsFlames(weapon: Weapon): boolean {
   );
 }
 
+/** Le profil de l'arme pour CE coup, sans muter l'objet partagé — SOURCE UNIQUE d'`applyHit` et de
+ *  `woundsAtCritLocation`. `retenu` = Retenir ses coups effectif (`AttackResult.retenu`).
+ *  LDB 62 l.135 ; LDB 18 l.30 ; AA 07 l.59, l.61 ; AA 06 l.556. */
+export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
+  const w = effectiveWeapon(weapon); // LDB 62 l.135 ; enchantements : recomputeLoadout (applyEnchants).
+  if (!retenu || rule('combat-aa-blessures') !== 'aa') return w;
+  // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
+  // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
+  // propre de l'arme, `resolveQualities` la réinjecterait). `noFamilyQualities` bloque cette ré-injection
+  // SANS effacer `subType`/`weaponGroup` — `combatValue` doit voir la MÊME Spé (Retenir ses coups ne
+  // change pas la compétence maniée).
+  const kept = resolveQualities(w)
+    .filter((r) => !r.caps?.withheldOnRestraint)
+    .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+  return { ...w, qualities: kept, noFamilyQualities: true };
+}
+
+/** Les termes d'une ligne de touche que l'application ne change pas. MDG 13 l.605, l.614. */
+export interface ToucheDuJournal {
+  attaquant: string;
+  cible: string;
+  forme?: BodyShape;
+  /** Libellé de la mitigation (`BE+PA`, ou le BE multiplié d'une Structure, AA 10 l.98). */
+  mitigation: string;
+  coque?: 'petites-armes' | 'taille';
+  /** Libellé du Sort d'un Projectile magique (LDB 46 l.30). */
+  sort?: string;
+}
+
+/** La ligne de touche d'un coup : Localisation, Dégâts et Blessures tels que portés par `res`, marque Critique
+ *  selon `critique`, Localisation relancée selon `relance`. Sans prise ni Dégâts sur la cible, la ligne ne chiffre
+ *  rien. LDB 14 l.159 ; LDB 43 l.107 ; LDB 18 l.53, l.55 ; AA 07 l.32. */
+export function phraseDeTouche(
+  touche: ToucheDuJournal,
+  res: Pick<AttackResult, 'location' | 'damage' | 'woundsLost' | 'sansPrise' | 'degatsTransferes'>,
+  critique: boolean,
+  relance: boolean,
+): string {
+  const tete = touche.sort ? `${touche.attaquant} lance ${touche.sort} sur ${touche.cible}` : `${touche.attaquant} touche ${touche.cible}`;
+  if (touche.coque) {
+    return t('touche.sansEffetCoque', { tete, raison: t(touche.coque === 'petites-armes' ? 'touche.coquePetitesArmes' : 'touche.coqueTropPetit') });
+  }
+  const nomme = res.location ? locationLabel(res.location, touche.forme) : '';
+  const lieu = nomme ? ` (${relance ? t('touche.nouvelleLocalisation', { lieu: nomme }) : nomme})` : '';
+  const marque = critique ? ' — CRITIQUE !' : '';
+  const close = (phrase: string): string => (/[!?…]$/.test(phrase) ? phrase : `${phrase}.`);
+  if (res.sansPrise || res.degatsTransferes) return close(`${tete}${lieu}${marque}`);
+  const damage = res.damage ?? 0;
+  const blessures = res.woundsLost ?? 0;
+  return close(`${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${touche.mitigation}) = ${blessures} Blessures${marque}`);
+}
+
+/** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
+ *  et les Blessures critiques infligées (`critiques`), suivie des `ajouts`. LDB 18 l.53, l.55 ; LDB 63 l.32. */
+export function ligneDuCoup(res: AttackResult): string {
+  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, !!res.localisationRelancee) : res.log;
+  return [tete, ...(res.ajouts ?? [])].filter(Boolean).join(' ');
+}
+
 function applyHit(
   attacker: Combatant,
   defender: Combatant,
@@ -1548,39 +1749,30 @@ function applyHit(
   atkBd: RollBreakdown,
   dr: number,
   critical: boolean,
+  tirage: TirageDeLocalisation,
   forcedLoc?: HitLocation,
   dmgProxy?: AttackOptions['dmgProxy'],
   extraAP = 0, // PA conférés par l'arme d'opposition du défenseur (Protectrice, LDB 62 l.296)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61) — voir applyHit, n'agit qu'en mêlée
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
-  // Arme usée à +0 → improvisée (LDB 62 l.135). L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié
-  // dans l'arme active par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
-  weapon = effectiveWeapon(weapon);
-  // Retenir ses coups (Aux Armes 07 l.59-61) : maîtriser sans tuer. N'a d'effet qu'en MÊLÉE, jamais avec
-  // une arme infligeant *En flammes* (l.61). On retire du profil POUR CE COUP (sans muter l'objet
-  // partagé) les qualités déclarant `capabilities.withheldOnRestraint`, et on force `noSize` (ni Atout de
-  // Taille »). Le Critique est ensuite suspendu sauf si la cible tombe à 0 Blessure (calculé plus bas).
-  const withholding = withhold && weapon.type === 'melee' && !weaponInflictsFlames(weapon);
-  // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
-  // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
-  // propre de l'arme, `resolveQualities` la réinjecterait). `noFamilyQualities` bloque cette ré-injection
-  // SANS effacer `subType`/`weaponGroup` — `combatValue` doit voir la MÊME Spé (Retenir ses coups ne
-  // change pas la compétence maniée).
-  if (withholding) {
-    const kept = resolveQualities(weapon)
-      .filter((r) => !r.caps?.withheldOnRestraint)
-      .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
-    weapon = { ...weapon, qualities: kept, noFamilyQualities: true };
-  }
+  const arme = weapon;
+  // LDB 18 l.30 ; AA 07 l.59, l.61.
+  const withholding = withhold && peutRetenirSesCoups(effectiveWeapon(weapon));
+  const perdAtouts = withholding && rule('combat-aa-blessures') === 'aa';
+  weapon = profilDuCoup(weapon, withholding);
   // Un OBJET INANIMÉ (structure/véhicule/affût) n'a PAS de Tableau de Localisation → aucune localisation
   // (l'affichage omet alors le membre, et le résolveur de Blessures l'ignore déjà : armure 0 partout).
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
+  // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
+  // vit dans `critiquesDuCoup` (#1595 c.6220635824).
+  const empale = atkBd.success && testDArmeOuDeCorpsACorps(atkBd) && qualityCritTriggered(weapon, atkBd.roll);
+  const isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.
   if (incomingDamageNullified(defender, attacker, isMagicWeapon(weapon))) {
     return {
       hit: true, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, location: loc,
-      damage: 0, woundsLost: 0, critical: false, advantageTo: 'attacker', defenderDefeated: false,
+      damage: 0, woundsLost: 0, critical: isCritical, ...(withholding ? { retenu: true as const } : {}), sansPrise: 'ethere', advantageTo: 'attacker', defenderDefeated: false,
       log: `${attacker.label} touche ${defender.label}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).`,
     };
   }
@@ -1600,7 +1792,7 @@ function applyHit(
   // par la Taille (attaquant plus grand, LDB 85 l.360) fusionnés via `extra` (qualityDamageStep).
   // Une Nuée ignore toutes les règles de Taille (LDB 85 l.253) : ni Atout ni multiplicateur de Taille.
   // Épuisante (LDB 62 l.319) : Percutante/Dévastatrice de l'arme inertes hors Charge (`charged`).
-  const noSize = !!attacker.swarm || !!defender.swarm || withholding || !!hullAdj; // Retenir ses coups perd l'Atout Taille (Aux Armes 07 l.61) ; coque : tableau MDG à la place (l.616)
+  const noSize = !!attacker.swarm || !!defender.swarm || perdAtouts || !!hullAdj; // AA 07 l.61 ; MDG 13 l.616
   const { dmgDR, bonus: dmgBonus } = qualityDamageStep(weapon, { effDR: dr, units, charged: !!attacker.chargedThisTurn }, noSize ? [] : sizeGrantedQualities(dmgSize, defender.size));
   let damage = weaponDmg + Math.max(0, dmgDR) + dmgBonus;
   // Talents de Dégâts (LDB 10) : Coup puissant (mêlée), Tir précis (distance), Combat déloyal
@@ -1611,29 +1803,15 @@ function applyHit(
   // Coque (MDG 13 l.618-637) : le BE ajusté du tableau (« 3 × BE » / « BE−1 ») est appliqué côté
   // Dégâts (mathématiquement identique, sans écraser le clamp de PA) — « 3 × BE » ⇔ −2×BE de plus.
   if (hullAdj && 'extraTB' in hullAdj) damage -= hullAdj.extraTB;
-  // Coup Critique : double réussi (déjà dans `critical`) ou Atout Empaleuse sur un multiple de
-  // 10 (l.282). L'OVERKILL (Blessures perdues > PB COURANTS, LDB 18 l.17) est désormais
-  // géré par le STORE (pipeline de critique), car il dépend des PB courants de la cible — pas des PB max.
-  // Empaleuse déjà retirée du profil si l'on Retient ses coups → `empale` est alors false (pas de Critique
-  // « multiple de 10 » ni de bypass d'armure Empaleuse).
-  const empale = qualityCritTriggered(weapon, atkBd.roll);
-  let isCritical = critical || empale;
-  // Impénétrable (LDB 63) : « Toutes les Blessures Critiques causées par un nombre impair pour vous
-  // toucher sont ignorées » — pièce Impénétrable à la localisation + jet de toucher impair.
-  if (isCritical && atkBd.roll % 2 === 1 && loc && impenetrableAt(defender, loc)) isCritical = false;
-  // Retenir ses coups (Aux Armes 07 l.59) : le coup est non létal — pour le calcul d'armure, on le traite comme NON
-  // critique (les Blessures normales sont infligées comme d'habitude). Le Critique n'est ré-autorisé que si
-  // la cible tombe à 0 Blessure (juste après, sur `defeated`).
-  const critForArmour = withholding ? false : isCritical;
-  // Partielle / Points faibles (LDB 63) : PA des pièces concernées ignorés par CETTE touche.
-  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: critForArmour, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
+  // LDB 63 l.86, l.90 ; LDB 63 l.78 ; #1595 c.6225326419 R2.
+  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: isCritical, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
   // Tir sûr (LDB 10) : ignore niveau PA de la cible au tir.
   const sureShot = weapon.type === 'ranged' ? talentRangedAPIgnore(attacker) : 0;
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
-  if (hullBlocked) isCritical = false;
-  else if (hullAdj && defender.wounds.current <= 0) isCritical = true; // MDG 13 l.656
+  const sansPrise: SansPrise | undefined = hullBlocked ? 'coque-bloquee'
+    : isStructure(defender) && structureImmune(weapon, defender) ? 'structure-immune' : undefined;
   const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
@@ -1643,48 +1821,45 @@ function applyHit(
     : 'BE+PA';
   const newWounds = defender.wounds.current - woundsLost;
   const defeated = newWounds <= 0;
-  // Retenir ses coups (Aux Armes 07 l.59) : « vous N'infligez de Blessure Critique QUE SI votre adversaire tombe à 0
-  // Blessure ». Sinon le Critique est supprimé (les Blessures normales restent infligées).
-  if (withholding) isCritical = isCritical && defeated;
-  return {
+  const touche: ToucheDuJournal = {
+    attaquant: attacker.label, cible: defender.label, forme: defender.bodyShape, mitigation: mitLabel,
+    ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
+  };
+  // LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544.
+  const coupCritique = causeDuCoupCritique({ critical: isCritical, attackerRoll: atkBd.roll, sansPrise });
+  const relance = relanceLaLocalisation(defender, { coupCritique, prise: !sansPrise, current: defender.wounds.current });
+  const coup: AttackResult = {
     hit: true,
     attackerRoll: atkBd.roll,
     attackerDetail: atkBd,
     netSL: dr,
     location: loc,
+    ...(relance ? { critLocation: critWoundLocation(tirage.rng, defender.bodyShape, tirage.fige) } : {}),
     damage,
     woundsLost,
     apExternal: extraAP - sureShot,
     critical: isCritical,
+    ...(withholding ? { retenu: true as const } : {}),
+    ...(dmgProxy ? { dmgProxy } : {}),
+    ...(sansPrise ? { sansPrise } : {}),
     advantageTo: 'attacker',
     defenderDefeated: defeated,
-    log: hullBlocked
-      ? `${attacker.label} touche ${defender.label}, sans effet sur la coque (${hullAdj.blocked === 'petites-armes'
-          ? 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau'
-          : 'trop petit pour entamer cette coque'} — MDG 13).`
-      : `${attacker.label} touche ${defender.label}${loc ? ` (${locationLabel(loc, defender.bodyShape)})` : ''} : ` +
-        `${damage} dégâts − ${damage - woundsLost} (${mitLabel}) = ${woundsLost} Blessures` +
-        (isCritical ? ' — CRITIQUE !' : '') +
-        '.',
+    touche,
+    log: '',
   };
+  return { ...coup, log: issueAuJet(defender, coup, arme, attacker).ligne };
 }
 
-/**
- * Recalcule les Blessures NON-critiques d'un Coup Critique à sa localisation RE-TIRÉE (`LDB 18 l.55` :
- * « Pour calculer enfin les Dégâts non Critiques d'une Attaque, utilisez la nouvelle Localisation
- * déterminée par la Blessure Critique »). Un Coup Critique re-tire la localisation (1d100 frais, ou choix
- * RAW-2) ; les Dégâts non-critiques utilisent CETTE localisation → PA portée + ignorance de PA (Partielle /
- * Points faibles, `ignoredArmourAP`) RÉ-ÉVALUÉS à la nouvelle localisation. Réutilise EXACTEMENT la queue de
- * `applyHit` : `res.apExternal` (PA location-indépendant : Tir sûr / PA d'opposition) + `ignoredArmourAP` à
- * `location`. Les PB du Critique eux-mêmes ignorent BE+PA (gérés à part, `LDB 18 l.53`).
- */
+/** Blessures non critiques à la Localisation relancée (`CompteDesCritiques.relance`) ; queue d'`applyHit`.
+ *  LDB 18 l.53, l.55 ; LDB 62 l.135 ; LDB 63 l.86, l.90. */
 export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender: Combatant, location: HitLocation): number {
   // AA 10 l.105 — ce site re-tire une Localisation : une Structure ne peut pas y passer, et la Taille de
   // l'attaquant (`AA 10 l.98`) n'y a donc aucun terme à compter (passée `undefined`, jamais omise).
   if (isStructure(defender)) throw new Error(`woundsAtCritLocation : ${defender.label} est une Structure — AA 10 l.105.`);
   if (res.degatsTransferes) return 0;
-  const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(weapon, 'empaleuse') });
-  return woundsFromHit(weapon, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
+  const profil = profilDuCoup(weapon, !!res.retenu);
+  const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(profil, 'empaleuse') });
+  return woundsFromHit(profil, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
 }
 
 
@@ -1745,8 +1920,9 @@ export function rederivePassiveAttack(
   weapon: Weapon,
   atk: TestResult,
   kind: 'melee' | 'ranged',
+  tirage: TirageDeLocalisation,
   location?: HitLocation,
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61) — n'agit qu'en mêlée (gardé par applyHit)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4)
   dmgProxy?: AttackOptions['dmgProxy'], // LDB 14 l.183
 ): AttackResult {
@@ -1754,5 +1930,5 @@ export function rederivePassiveAttack(
   // contexte appauvri (ni distance, ni env, ni flanc/dos) annoncerait une autre Difficulté et
   // laisserait l'écart en chip « autres » — dépenser sa Chance ne change pas la Difficulté du jet.
   const atkBd = bd(attackTestLabel(attacker, weapon, kind), combatValue(attacker, kind, weapon), atk, compo ?? compoDeRepli(attackModifiers(attacker, defender, weapon, { kind, location }), 'rederivePassiveAttack'));
-  return passiveOutcome(attacker, defender, weapon, atk, atkBd, kind, location, dmgProxy, withhold);
+  return passiveOutcome(attacker, defender, weapon, atk, atkBd, kind, tirage, location, dmgProxy, withhold);
 }

@@ -17,7 +17,7 @@ import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
-import { nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
+import { PROJECTION, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -28,7 +28,7 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url))
 const CLAUDE = { CLAUDE_PROJECT_DIR: REPO }
 const CODEX = {}
 const shell = (command, extra = {}) => ({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, ...extra })
-const factice = (nom, evaluer) => ({ nom, outils: ['Bash'], evaluer })
+const factice = (nom, evaluer) => ({ nom, categorie: 'validation', outils: ['Bash'], evaluer })
 
 const patchNatif = (corps, cwd = REPO, phase = 'PreToolUse') => ({ hook_event_name: phase, tool_name: 'apply_patch', cwd, tool_input: { command: `*** Begin Patch\n${corps}\n*** End Patch` } })
 const specifiqueNatif = async (entree) => (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX })).sortie?.hookSpecificOutput
@@ -45,7 +45,7 @@ test('feuille répartiteur : helper production refuse liens et erreurs Pre avant
       const sortie = (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX, resoudrePatch })).sortie?.hookSpecificOutput
       assert.equal(sortie.permissionDecision, 'deny')
       assert.match(sortie.permissionDecisionReason, code === 'lien' ? /feuille symbolique/ : new RegExp(`feuille illisible.*${code}`))
-      assert.match(sortie.permissionDecisionReason, /ctx_patch.*préimage ancrée/)
+      assert.match(sortie.permissionDecisionReason, /canal prescrit : un `apply_patch` dont chaque fichier nomme son chemin et dont la préimage est celle du disque/)
       assert.equal(readFileSync(join(racine, 'f'), 'utf8'), 'avant\n')
     }
   } finally { rmSync(racine, { recursive: true }) }
@@ -93,7 +93,7 @@ test('apply_patch : JSON, baseline multi-hunk et mémoire utilisent les images c
   const { racine } = instanceDeDepot({ fichiers: {
     'src/data/sonde.json': '{}\n',
     'run-guard.test.mjs': "const a = 1\nconst W = { 'a.ts': 2 }\nconst b = 2\n",
-    '.claude/memory/fiche.md': 'Une phrase continue\nancien\nfin\n',
+    '.claude/memory/user-fiche.md': 'Une phrase continue\nancien\nfin\n',
   } })
   try {
     const data = await specifiqueNatif(patchNatif('*** Update File: src/data/sonde.json\n@@\n-{}\n+[]', racine))
@@ -102,9 +102,9 @@ test('apply_patch : JSON, baseline multi-hunk et mémoire utilisent les images c
     assert.equal(baseline, undefined, 'baseline hors hunk conservée sans fausse hausse')
     const hausse = await specifiqueNatif(patchNatif("*** Update File: run-guard.test.mjs\n@@\n-const W = { 'a.ts': 2 }\n+const W = { 'a.ts': 3 }", racine))
     assert.match(hausse.additionalContext, /HAUSSE de baseline/)
-    const continuation = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+obsolète dans cette phrase', racine))
+    const continuation = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/user-fiche.md\n@@\n-ancien\n+obsolète dans cette phrase', racine))
     assert.equal(continuation, undefined, 'ligne précédente hors hunk : continuation, pas un en-tête')
-    const entete = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+## OBSOLÈTE', racine))
+    const entete = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/user-fiche.md\n@@\n-ancien\n+## OBSOLÈTE', racine))
     assert.equal(entete.permissionDecision, 'deny')
     assert.match(entete.permissionDecisionReason, /SUPERSESSION/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
@@ -126,7 +126,8 @@ test('apply_patch : Delete et Move ne contournent ni suivi ni .superpowers ; err
       const refuse = await specifiqueNatif(patchNatif(corps, racine))
       assert.equal(refuse.permissionDecision, 'deny')
       assert.match(refuse.permissionDecisionReason, /non jugeable.*apply_patch/)
-      assert.match(refuse.permissionDecisionReason, /ctx_patch/)
+      assert.match(refuse.permissionDecisionReason, /^\[validation · non retentable\] .*canal prescrit : un `apply_patch`/)
+      assert.doesNotMatch(refuse.permissionDecisionReason, /ctx_/, 'un refus d’apply_patch ne prescrit aucun outil lean-ctx, peut-être absent')
     }
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -164,14 +165,35 @@ test('Post terminal : transitoire disparu ou image inaccessible conserve poison 
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('une garde qui LÈVE ne fait pas perdre le `deny` d’une autre : sa panne part en contexte, jamais en refus', async () => {
-  const verdicts = await evaluerGardes([
-    factice('casse', () => { throw new Error('boum') }),
-    factice('refus', () => ({ decision: 'deny', raison: 'non' })),
-  ], shell('ls'), construireContexte(shell('ls')))
-  const cumul = cumuler(verdicts)
-  assert.deepEqual(cumul.decision, { decision: 'deny', reason: 'non' })
-  assert.equal(cumul.contexte, 'garde casse en panne : boum')
+// #2712, leçon 1.5 du guide de certification.
+test('une garde qui LÈVE refuse l’appel en PreToolUse, avec le geste qui la répare ; en PostToolUse sa panne part en contexte', async () => {
+  const casse = factice('casse', () => { throw new Error('boum') })
+  const pre = cumuler(await evaluerGardes([casse, factice('refus', () => ({ decision: 'deny', raison: 'non' }))], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(pre.decision.decision, 'deny')
+  assert.match(pre.decision.reason, /^\[panne · non retentable\] ⛔ garde casse en panne : boum — corriger le module en panne \(nommé : [^)]*scripts\/hooks\/repartiteur[^)]*\) par une édition de fichier, seul geste admis en session principale\.$/)
+  const post = cumuler(await evaluerGardes([casse], shell('ls', { hook_event_name: 'PostToolUse' }), construireContexte(shell('ls'))))
+  assert.equal(post.decision, null)
+  assert.equal(post.contexte, 'garde casse en panne : boum')
+})
+
+test('une garde qui LÈVE laisse passer les éditions de la session principale, pas celles d’un sous-agent', async () => {
+  const leve = factice('casse', () => { throw new Error('boum') })
+  leve.outils = ['Edit', 'Bash']
+  const appel = (tool_name, tool_input, autres = {}) => ({ hook_event_name: 'PreToolUse', tool_name, tool_input, cwd: process.cwd(), ...autres })
+  const admis = cumuler(await evaluerGardes([leve], appel('Edit', { file_path: 'src/x.ts' }), {}))
+  assert.equal(admis.decision, null)
+  assert.match(admis.contexte, /garde casse en panne : boum/)
+  assert.match(cumuler(await evaluerGardes([leve], appel('Bash', { command: 'ls' }), {})).decision.reason, /corriger le module en panne/)
+  assert.match(cumuler(await evaluerGardes([leve], appel('Edit', { file_path: 'src/x.ts' }, { agent_id: 'a1' }), {})).decision.reason, /garde casse en panne/)
+})
+
+test('une garde PROJECTION qui rend une `decision` est en PANNE : son refus ne part jamais, celui d’une garde de contrôle si', async () => {
+  const deguisee = { ...factice('deguisee', () => ({ decision: 'deny', raison: 'non' })), role: PROJECTION }
+  const cumul = cumuler(await evaluerGardes([deguisee], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(cumul.decision, null)
+  assert.equal(cumul.contexte, 'garde deguisee en panne : une garde de projection ne décide jamais')
+  const controle = cumuler(await evaluerGardes([{ ...deguisee, role: undefined }], shell('ls'), construireContexte(shell('ls'))))
+  assert.deepEqual(controle.decision, { decision: 'deny', reason: '[validation · non retentable] non' })
 })
 
 test('un `deny` court-circuite les gardes suivantes', async () => {
@@ -183,19 +205,32 @@ test('un `deny` court-circuite les gardes suivantes', async () => {
   assert.equal(appelee, false)
 })
 
-test('cumul : les raisons des refus jointes ; les contextes toujours joints', () => {
+test('cumul : les raisons des refus jointes, chacune préfixée de sa catégorie ; les contextes toujours joints', () => {
   const cumul = cumuler([
-    { decision: 'deny', raison: 'a', garde: 'g1' },
+    { decision: 'deny', categorie: 'métier', raison: 'a', garde: 'g1' },
     { contexte: 'c1', garde: 'g2' },
-    { decision: 'deny', raison: 'd', garde: 'g3' },
+    { decision: 'deny', categorie: 'transitoire', raison: 'd', garde: 'g3' },
     { contexte: 'c2', garde: 'g4' },
   ])
-  assert.deepEqual(cumul.decision, { decision: 'deny', reason: 'a || d' })
+  assert.deepEqual(cumul.decision, { decision: 'deny', reason: '[métier · non retentable] a || [transitoire · retentable] d' })
   assert.equal(cumul.contexte, 'c1\n\nc2')
 })
 
+test('un refus prend la catégorie de sa garde, sauf la sienne ; une catégorie inconnue lève', async () => {
+  const garde = factice('g', () => [{ decision: 'deny', raison: 'a' }, { decision: 'deny', categorie: 'permission', raison: 'b' }])
+  const cumul = cumuler(await evaluerGardes([garde], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(cumul.decision.reason, '[validation · non retentable] a || [permission · non retentable] b')
+  assert.throws(() => cumuler([{ decision: 'deny', raison: 'x', garde: 'sans' }]), /catégorie de refus inconnue : undefined/)
+})
+
+test('une garde qui refuse sans catégorie connue est en panne, nommée', async () => {
+  const sans = { nom: 'sans-categorie', outils: ['Bash'], evaluer: () => ({ decision: 'deny', raison: 'non' }) }
+  const { sortie } = await repartir({ PreToolUse: [sans] }, JSON.stringify(shell('ls')))
+  assert.match(sortie.hookSpecificOutput.permissionDecisionReason, /^\[panne · non retentable\] ⛔ garde sans-categorie en panne : refus sans catégorie connue \(undefined\)/)
+})
+
 test('un refus sans raison en porte une qui nomme sa garde', () => {
-  assert.match(cumuler([{ decision: 'deny', raison: '  ', garde: 'muette' }]).decision.reason, /muette/)
+  assert.match(cumuler([{ decision: 'deny', categorie: 'validation', raison: '  ', garde: 'muette' }]).decision.reason, /muette/)
 })
 
 test('projection : Claude porte décision et contexte dans la même sortie ; Codex sans `suppressOutput`', () => {
@@ -222,7 +257,7 @@ test('aucune garde ne demande : exception-add AVERTIT sans décider, memoire-tom
     writeFileSync(garde, "export const W = ['a.ts:1']\n")
     const cas = [
       ['exception-add', { tool_name: 'Write', tool_input: { file_path: garde, content: "export const W = ['a.ts:1', 'b.ts:2']\n" } }, undefined],
-      ['memoire-tombale', { tool_name: 'Write', tool_input: { file_path: join(racine, '.claude', 'memory', 'fiche.md'), content: 'SUPERSÉDÉ par la fiche X.\ncorps\n' } }, 'deny'],
+      ['memoire-tombale', { tool_name: 'Write', tool_input: { file_path: join(racine, '.claude', 'memory', 'user-fiche.md'), content: 'SUPERSÉDÉ par la fiche X.\ncorps\n' } }, 'deny'],
     ]
     for (const [nom, charge, attendue] of cas) {
       const brut = JSON.stringify({ hook_event_name: 'PreToolUse', ...charge })
@@ -501,7 +536,7 @@ test('#2224 la table se lit par SECTION de la doc de git (« The Git Repository 
   })
 })
 
-test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l’écrit ; une lecture qui le nomme est renvoyée à `ctx_search`', async () => {
+test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l’écrit ; une lecture qui le nomme est renvoyée au motif dans un fichier, `ctx_search` pour un shell lean-ctx', async () => {
   await dansUnDepot(async (racine) => {
     const ecritures = [
       ['Bash', 'cmd /c "set GIT_DIR=x && git status"'],
@@ -520,8 +555,11 @@ test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l
     }
     for (const command of ['git grep -n GIT_DIR', 'rg NODE_OPTIONS scripts', 'grep -rn npm_config_prefix . | head -3']) {
       const r = await raison(racine, 'Bash', { command })
-      assert.match(r, /nommé .*canal prescrit : `ctx_search`/, `« ${command} » : ${r}`)
+      assert.match(r, /nommé .*canal prescrit : le motif dans un fichier pour chercher ce nom : `git grep -f <fichier>`/, `« ${command} » : ${r}`)
+      assert.doesNotMatch(r, /ctx_/, `« ${command} » : un shell natif ne reçoit aucun canal lean-ctx`)
     }
+    const lean = await raison(racine, `${LC}ctx_shell`, { command: 'git grep -n GIT_DIR', cwd: racine })
+    assert.match(lean, /nommé .*canal prescrit : `ctx_search`/, `ctx_shell : ${lean}`)
   })
 })
 
@@ -599,7 +637,7 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
     const ECRIT = /canal prescrit : le fichier écrit par l’outil d’écriture de fichier [(]Write[)][.]$/
     const ENV_DU_PROGRAMME = /canal prescrit : la variable posée DANS le programme lancé [(]option `env` de `spawn`\/`execFile`[)], jamais dans la commande[.]$/
     const NOM = /canal prescrit : un nom de variable littéral[.]$/
-    const RECHERCHE = /canal prescrit : `ctx_search`/
+    const RECHERCHE = /canal prescrit : le motif dans un fichier pour chercher ce nom : `git grep -f <fichier>`, l’outil de lecture de fichier [(]Read[)]/
     const cas = [
       ['Bash', 'git --namespace=x commit -m y', LIEU],
       ['Bash', 'git --namespace x commit -m y', LIEU],

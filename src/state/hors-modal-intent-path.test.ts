@@ -107,7 +107,7 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('2ᵉ frappe sous fateSave : le clic appartient à l’attaquant, jamais à la victime', () => {
     setup();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', mainRoll: 34 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
     expect(applyIntent(2, 'battleClickEntity', ['e2'])).toBe('refusé');
     expect(useGame.getState().pendingAttack).toBeNull();
     expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliqué');
@@ -197,7 +197,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('dualStrikeSkip (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
     setup();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', mainRoll: 34 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
     expect(applyIntent(2, 'dualStrikeSkip', [])).toBe('refusé');
     expect(useGame.getState().pendingDualStrike).not.toBeNull();
     expect(applyIntent(1, 'dualStrikeSkip', [])).toBe('appliqué');
@@ -222,7 +222,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
     useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 } });
     useGame.getState().cleaveEnd();
     expect(useGame.getState().pendingCleave).toBeNull();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', mainRoll: 34 } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 } });
     useGame.getState().dualStrikeSkip();
     expect(useGame.getState().pendingDualStrike).toBeNull();
   });

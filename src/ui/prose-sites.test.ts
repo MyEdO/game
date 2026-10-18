@@ -12,7 +12,12 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  *    `renderServiceDetail`, n'est pas un composant : ses appels ne sont pas des sites).
  * 2. SITES TERMINAUX : tout élément JSX d'un porteur dont la prop de markdown n'est PAS la simple
  *    transmission d'une prop du composant courant (identifiant NU). Accès de membre (`item.desc`),
- *    appel (`coreDesc('revenus')`), ternaire, littéral : TERMINAL.
+ *    appel (`coreDesc('revenus')`), ternaire, littéral : TERMINAL. Tout appel de `mdToText` (racine
+ *    TEXTE, hors de `<Prose>`) est un site terminal.
+ *
+ * PROSE DE PAQUET (#686) : un site déclaré `paquet` passe la prop `paquet` (`mdToText(nommer(…))` pour la
+ * racine texte), et lui seul — c'est l'ORIGINE déclarée du texte qui décide, jamais sa place dans l'arbre.
+ * Un site de PROJET (#2206) passe `porteur` ET `paquet` : la prose y est liée à son champ ET nommée.
  *
  * ANGLE MORT DIT (et refusé, jamais hérité) : la garde suit des PROPS, elle ne résout pas les
  * VALEURS. Elle sait qu'un site passe `porteur`, pas que ce porteur nomme le bon champ — c'est la
@@ -24,6 +29,7 @@ import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { SITES_PROSE } from './liage';
+import { CHAMPS_PROSE_DE_SCENE } from '../data/schemas/grammaire/champs-prose-de-scene';
 import { detenteur } from '../detenteur.testkit';
 
 /** Prop de markdown de la racine du point fixe : tout part de `<Prose md>`. */
@@ -122,7 +128,14 @@ function porteursDeProse(): Map<string, Set<string>> {
 interface SiteMesure {
   cle: string;
   porteurPasse: boolean;
+  /** `<Prose paquet>`, ou `mdToText(nommer(…))`. */
+  paquetPasse: boolean;
 }
+
+/** Racine TEXTE du périmètre : `mdToText` rend le markdown en texte brut, hors de `<Prose>`. */
+const RACINE_TEXTE = 'mdToText';
+/** Ce qu'un site `mdToText` appelle pour nommer une prose de paquet (`src/state/identites.ts`). */
+const NOMMEUR = 'nommer';
 
 function mesure(): { sites: SiteMesure[]; anomalies: string[] } {
   const porteurs = porteursDeProse();
@@ -140,6 +153,18 @@ function mesure(): { sites: SiteMesure[]; anomalies: string[] } {
       n.forEachChild(vCreate);
     };
     vCreate(sf);
+    const vTexte = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === RACINE_TEXTE) {
+        const base = `${fichier}#${RACINE_TEXTE}`;
+        const rang = (rangs.get(base) ?? 0) + 1;
+        rangs.set(base, rang);
+        const arg = n.arguments[0];
+        const paquetPasse = !!arg && ts.isCallExpression(arg) && ts.isIdentifier(arg.expression) && arg.expression.text === NOMMEUR;
+        sites.push({ cle: `${base}#${rang}`, porteurPasse: false, paquetPasse });
+      }
+      n.forEachChild(vTexte);
+    };
+    vTexte(sf);
     for (const e of elementsJsx(sf)) {
       const balise = nomDeBalise(e);
       const props = porteurs.get(balise);
@@ -162,7 +187,7 @@ function mesure(): { sites: SiteMesure[]; anomalies: string[] } {
         if (p && p.initializer && ts.isStringLiteral(p.initializer)) {
           anomalies.push(`${fichier}:${ligne(e)} porteur="…" — un porteur est un objet { type, id, chemin }, pas une chaîne`);
         }
-        sites.push({ cle: `${base}#${rang}`, porteurPasse: !!p });
+        sites.push({ cle: `${base}#${rang}`, porteurPasse: !!p, paquetPasse: !!attribut(e, 'paquet') });
       }
     }
   }
@@ -199,6 +224,40 @@ describe('périmètre du liage — les sites de prose sont une liste FERMÉE (#1
       .filter((s) => declare.get(s.cle) !== s.porteurPasse)
       .map((s) => `${s.cle} : porteur ${s.porteurPasse ? 'PASSÉ' : 'absent'} au code, ${declare.get(s.cle) ? 'déclaré' : 'non déclaré'} dans SITES_PROSE`);
     expect(ecarts).toEqual([]);
+  });
+
+  it('la prose de PAQUET suit les identités EXACTEMENT là où la liste la déclare (`paquet`, ou `nommer` sous `mdToText`)', () => {
+    const declare = new Map(SITES_PROSE.map((s) => [s.cle, !!s.paquet?.length]));
+    const ecarts = sites
+      .filter((s) => declare.get(s.cle) !== s.paquetPasse)
+      .map((s) => `${s.cle} : paquet ${s.paquetPasse ? 'PASSÉ' : 'absent'} au code, ${declare.get(s.cle) ? 'déclaré' : 'non déclaré'} dans SITES_PROSE`);
+    expect(ecarts).toEqual([]);
+  });
+
+  it('TOUT site hors catalogue DÉCLARE les proses de paquet qu’il rend (`paquet`, liste vide comprise) : aucun silence', () => {
+    const muets = SITES_PROSE.filter((s) => !s.porteur && !Array.isArray(s.paquet)).map((s) => s.cle);
+    expect(muets).toEqual([]);
+  });
+
+  it('un site porteur rend une prose de paquet SSI il la porte au PROJET (`porteur` = `projet.<chemin nommé>`, `paquet` = [chemin])', () => {
+    const nommees = new Set<string>(CHAMPS_PROSE_DE_SCENE);
+    const cheminDeProjet = (porteur: string): string | undefined => {
+      const chemin = porteur.startsWith('projet.') ? porteur.slice('projet.'.length) : undefined;
+      return chemin !== undefined && nommees.has(chemin) ? chemin : undefined;
+    };
+    const fautifs = SITES_PROSE
+      .filter((s) => s.porteur !== undefined)
+      .filter((s) => {
+        const chemin = cheminDeProjet(s.porteur!);
+        return chemin === undefined ? 'paquet' in s : s.paquet?.length !== 1 || s.paquet[0] !== chemin;
+      })
+      .map((s) => s.cle);
+    expect(fautifs).toEqual([]);
+  });
+
+  it('chaque prose de paquet (`PROSES_NOMMEES`) est rendue au joueur par au moins un site qui la nomme', () => {
+    const rendues = new Set(SITES_PROSE.flatMap((s) => s.paquet ?? []));
+    expect(CHAMPS_PROSE_DE_SCENE.filter((c) => !rendues.has(c))).toEqual([]);
   });
 
   it('une origine SANS porteur ne se déclare jamais porteuse (Y / R / UI)', () => {

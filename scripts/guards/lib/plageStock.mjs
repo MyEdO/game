@@ -49,7 +49,7 @@
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
-import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, refusDeGit, shasDe } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
@@ -192,9 +192,9 @@ const restreinte = (fait, chemins) => {
  * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit` (fusion à plus de deux parents, git
  *   sans `merge-tree --write-tree --stdin`).
  */
-function lecturesDuCommit(depot, sha) {
-  const fait = ceQueFaitLeCommit(depot, sha)
-  const parents = parentsDe(depot, sha) ?? []
+function lecturesDuCommit(depot, commit) {
+  const fait = ceQueFaitLeCommit(depot, commit)
+  const { sha, parents } = commit
   return parents.length < 2 ? { fait, fusion: null } : lecturesDeFusion(depot, { apres: sha, parents, fait })
 }
 
@@ -261,8 +261,8 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
   const troncDesEres = debut && vers === TRONC.branche ? debut : TRONC.suivi
   const revisions = [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : []), ...(origineConfirmee ?? []).map((sha) => `^${sha}`)]
   const plage = revisions.join(' ')
-  const shas = shasDe(depot, revisions)
-  if (shas === null) {
+  const graphe = grapheDe(depot, revisions)
+  if (graphe === null) {
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
     return { depot, commits: null, cumul: [], notes, plage, pannes }
   }
@@ -271,8 +271,9 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
   const { specificateurs, sauver: sauverLesMemos } = memosDAnalyse(depot, { racine: cwd, dossierDesMemos })
   let commits
   try {
-    commits = shas.map((sha) => {
-      const { fait, fusion } = lecturesDuCommit(depot, sha)
+    commits = graphe.map((lu) => {
+      const { sha } = lu
+      const { fait, fusion } = lecturesDuCommit(depot, lu)
       const source = (arbre) => sourceGit({ cwd, arbre, depot })
       const base = source(fait.base)
       const commit = source(sha)
@@ -319,6 +320,17 @@ export async function croissancesDeLaPlage(p = {}) {
   for (const { note } of eres) if (note) notes.push(note)
   return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
 }
+
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: lectureDeLaPlage, lectures: 'corpus' },
+  { fonction: croissancesDeLaPlage, lectures: 'corpus', retour: { type: 'objetPartiel', champs: {
+    refus: { type: 'collection', element: { type: 'objetPartiel', champs: { ere: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } } } },
+    reclassements: { type: 'collection', element: { type: 'objetPartiel', champs: { ere: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } } } },
+    notes: { type: 'collection', element: { type: 'chaine' } },
+    plage: { type: 'chaine' },
+    indisponible: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] },
+  } } },
+]
 
 /** La porte de plage telle qu'une ère la charge (`jugeDeLEre`) : son module, ses deux juges, et sa
  *  VIE, une image JSON-objet dont `entreesNominatives` voit l'entrée. */

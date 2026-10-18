@@ -59,3 +59,14 @@ test('#2537 — `Workflow` : script, scriptPath, name (résolu contre `CLAUDE_PR
     FS.rmSync(racine, { recursive: true, force: true })
   }
 })
+
+// #2712, `.claude/skills/orchestrer-des-agents/SKILL.md`.
+test('#2712 — `Agent` : un `model` passé à un type qui épingle le sien est refusé ; sans `model`, ou type sans épingle, l’appel passe', () => {
+  const agent = (tool_input) => garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_input }, {})
+  const refus = agent({ subagent_type: 'verif-mecanique', model: 'haiku', prompt: 'p' })
+  assert.equal(refus?.decision, 'deny')
+  assert.match(refus.raison, /`verif-mecanique` épingle `model: claude-haiku-5-5`[^]*relancer le même appel sans `model`/)
+  assert.equal(agent({ subagent_type: 'verif-mecanique', prompt: 'p' }), null)
+  assert.equal(agent({ subagent_type: 'general-purpose', model: 'sonnet', prompt: 'p' }), null)
+  assert.ok(garde.outils.includes('Agent') && garde.outils.includes('Task'))
+})

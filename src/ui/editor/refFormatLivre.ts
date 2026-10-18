@@ -7,7 +7,7 @@
  * (`CodexEdit`, fiche créature). `spec` rend un `id` dès qu'elle en RÉSOUT un — d'abord au catalogue
  * de l'entrée, sinon au registre partagé (`specIdOf`) ; sur un domaine à spécialisations OUVERTES,
  * le verbatim saisi est conservé en dernier ressort (« Savoir (Zorglub) » persiste « Zorglub »),
- * faute d'id à désigner. Doctrine « toute LOGIQUE est keyée par id STABLE » (CLAUDE.md).
+ * faute d'id à désigner. Doctrine « toute LOGIQUE est keyée par id STABLE » (AGENTS.md).
  */
 import { byId, findSkill, findTalent, findTalentById, specCatalogOf, specLabel, specResolves, type SkillRef, type TalentRef } from '../../data';
 import { slugId } from '../../data/slug';

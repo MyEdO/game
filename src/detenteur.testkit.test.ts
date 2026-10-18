@@ -3,9 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawn } from 'node:child_process';
 import { VARIABLE_PARTIE } from '../scripts/test/partition.mjs';
-import { tuerArbre } from '../scripts/gates/toutes.mjs';
+import { spawnBorne } from '../scripts/guards/lib/processusBorne.mjs';
 import { detenteur, enCollecte } from './detenteur.testkit';
 
 const PRECHARGE = './detenteur.testkit?precharge';
@@ -51,34 +50,14 @@ describe('destructeur du détenteur', () => {
     const env: NodeJS.ProcessEnv = { ...process.env, WFRP_DETENTEUR_AFTERALL_RAPPORT: fichier };
     delete env[VARIABLE_PARTIE];
     try {
-      const execution = await new Promise<{
-        status: number | null; signal: NodeJS.Signals | null; erreur: Error | undefined;
-        expiree: boolean; stdout: string; stderr: string;
-      }>(resoudre => {
-        const enfant = spawn(process.execPath, [
+      const execution = await spawnBorne({
+        argv: [
           fileURLToPath(new URL('../scripts/test/run.mjs', import.meta.url)),
-          fixture, '--maxWorkers=1', '--config', config,
-        ], { cwd: racine, env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-        let stdout = '';
-        let stderr = '';
-        let erreur: Error | undefined;
-        let expiree = false;
-        enfant.stdout.setEncoding('utf8');
-        enfant.stderr.setEncoding('utf8');
-        enfant.stdout.on('data', texte => { stdout += texte; });
-        enfant.stderr.on('data', texte => { stderr += texte; });
-        enfant.on('error', faute => { erreur = faute; });
-        const minuterie = setTimeout(() => {
-          expiree = true;
-          tuerArbre(enfant.pid);
-        }, 60_000);
-        enfant.on('close', (status, signal) => {
-          clearTimeout(minuterie);
-          resoudre({ status, signal, erreur, expiree, stdout, stderr });
-        });
+          fixture, '--regime=lot', '--maxWorkers=1', '--config', config,
+        ], cwd: racine, env, fichier: join(dossier, 'sortie.log'), limiteMs: 60_000, fluxDistincts: true,
       });
       const diagnostic = `status=${execution.status}, signal=${execution.signal}, expiration=${execution.expiree}\n${execution.stdout}\n${execution.stderr}`;
-      expect(execution.erreur, diagnostic).toBeUndefined();
+      expect(execution.error, diagnostic).toBeNull();
       expect(execution.expiree, diagnostic).toBe(false);
       expect(execution.signal, diagnostic).toBeNull();
       expect(execution.status, diagnostic).toBe(1);

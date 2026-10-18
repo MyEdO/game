@@ -1,4 +1,4 @@
-// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6(c) du CLAUDE.md (pierre tombale,
+// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6 d'AGENTS.md (pierre tombale,
 // tolérance zéro) appliquée à `.claude/memory/**`. Une fiche devenue fausse se RÉÉCRIT au présent ou
 // se SUPPRIME — git porte l'historique ; poser un EN-TÊTE DE SUPERSESSION (les trois mots que `MOTIF`
 // reconnaît plus bas) au-dessus du faux le laisse en place, et la fiche se relit comme une vérité
@@ -21,7 +21,11 @@
 // prescrit (re-sauver la fiche entière) se ferait refuser par les lignes qu'elle conserve.
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
+//
+// SECOND REFUS, sans liste : toute écriture d'un `.claude/memory/*.md` qui n'est ni `MEMORY.md` ni une
+// fiche `user-*` (`estNomDeMemoireAdmis`, scripts/guards/memoire-forme.mjs).
 import { readFileSync } from 'node:fs'
+import { estNomDeMemoireAdmis } from '../guards/memoire-forme.mjs'
 import { OUTILS_ECRITURE, cheminDEcriture, cheminVise, ecrituresDe, texteAvant, texteNeuf, verdictDe } from '../guards/lib/contratGarde.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
@@ -95,6 +99,17 @@ export const estFicheMemoire = (chemin) =>
 export function evaluate(input, lireDisque = () => '') {
   const chemin = String(cheminVise(input) ?? '')
   if (!estFicheMemoire(chemin)) return null
+  const nom = chemin.split(/[\\/]/).at(-1)
+  if (!estNomDeMemoireAdmis(nom)) {
+    return {
+      decision: 'deny',
+      categorie: 'métier',
+      reason:
+        `⛔ Fiche de mémoire hors \`user-*\` (« ${nom} ») : une fiche ne naît que \`user-*\`, pour un arbitrage ` +
+        'utilisateur cité verbatim et daté. Geste : porte la consigne chez son porteur (règle, skill, agent, doc : ' +
+        '`.claude/rules/contexte-agents.md`).',
+    }
+  }
   const neuf = texteNeuf(input)
   if (typeof neuf !== 'string') return null
   const ancien = texteAvant(input, () => lireDisque(chemin))
@@ -127,4 +142,4 @@ function refus(input, base) {
 
 const evaluer = (entree, { dir }) => ecrituresDe(entree).map((input) => refus(input, dir))
 
-export const garde = { nom: 'memoire-tombale', outils: OUTILS_ECRITURE, evaluer }
+export const garde = { nom: 'memoire-tombale', categorie: 'validation', outils: OUTILS_ECRITURE, evaluer }

@@ -67,6 +67,18 @@ function refuserLInfidele(topics, domain) {
   )
 }
 
+/** LÈVE en NOMMANT chaque appel d'agent que le run a perdu (`agentsSansRendu`, `<label> — <cause>`) : un
+ *  inventaire, un survey, une synthèse ou un audit sans rendu laisse la fiche incomplète sans qu'aucun topic
+ *  ne le dise (#2721). */
+function refuserLesPertes(agentsSansRendu, domain) {
+  if (!Array.isArray(agentsSansRendu) || !agentsSansRendu.length) return
+  throw new Error(
+    `assemble-domain: le domaine « ${domain} » a perdu ${agentsSansRendu.length} appel(s) d'agent :\n`
+    + `${agentsSansRendu.map((l) => `- ${l}`).join('\n')}\n`
+    + "Rejouer le domaine (une verification perdue : `--reprise`) avant d'assembler.",
+  )
+}
+
 /**
  * Les domaines qu'un run a SAUTÉS (`sautes`), avec la raison de chacun — PUR.
  * @param {{ sautes?: Array<{ domain?: string, raison?: string }> }} racine
@@ -132,6 +144,7 @@ export function assemble(data, { racine = {}, source = '<entrée>', titleArg, ra
   const title = data.title || titleArg || (domain.charAt(0).toUpperCase() + domain.slice(1))
   const topics = data.topics || []
   refuserLInfidele(topics, domain)
+  refuserLesPertes(data.agentsSansRendu, domain)
   const body = topics.map((t) => withPlaceholderField(t.markdown.trim())).join('\n\n---\n\n')
 
   const page = (toc) => `${enTeteDeFiche(title)}

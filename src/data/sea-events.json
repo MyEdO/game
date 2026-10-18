@@ -379,7 +379,7 @@
   },
   "boardEvents": [
     {
-      "min": -9999,
+      "min": null,
       "max": -65,
       "id": "triton",
       "label": "Triton !",
@@ -1066,7 +1066,7 @@
     },
     {
       "min": 150,
-      "max": 9999,
+      "max": null,
       "id": "manne-de-manann",
       "label": "Manne de Manann",
       "desc": "Manne de Manann. Un banc de stylets saute depuis les vagues et atterrit sur le pont du navire. L'équipage les attrape et en rassemble suffisamment pour se nourrir pendant 1d10 jours. Le Moral augmente de 2d10.",
@@ -1403,7 +1403,7 @@
   "fastVoyage": {
     "paliers": [
       {
-        "min": -999,
+        "min": null,
         "max": 0,
         "id": "desastreux",
         "label": "Voyage désastreux",
@@ -1468,7 +1468,7 @@
       },
       {
         "min": 10,
-        "max": 999,
+        "max": null,
         "id": "parfait",
         "label": "Voyage parfait",
         "desc": "Voyage parfait. Pas de conséquence négative.",

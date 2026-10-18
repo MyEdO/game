@@ -82,22 +82,29 @@ charge — les effets NON-attaque-gratuite ; les Flows `grantFreeAttack` restent
 pas de double frappe, la Frappe réactive part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 (LDB 14 l.7) / dévié (`applyOpposedCritical`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
-Hémorragique) s'appliquent aussi sur ces Critiques. `applyOpposedCritical` reste MACHINERIE (ne nomme
+Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec
+`triggerCtx.origine` ; un effet `coupCritique: true` (Empaleuse, Poings d'ignominie) ne réagit qu'au Coup Critique
+(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien. `applyOpposedCritical` reste MACHINERIE (ne nomme
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 
 **Reste à faire pour « un seul bus » complet** : #315 (exécuteur unique — `runPureFlowLines` à
 supprimer + garde de double-exécution).
 
-## 4. BUG concret relevé (exemple) — « punching-ball à 0 PB » + intégrité hors-combat
+## 4. « Punching-ball à 0 PB » + intégrité hors-combat
 
-> **À CORRIGER PLUS TARD.** Sert d'illustration de l'incohérence : l'état « à terre / mourant /
-> hors-combat » est éclaté, et l'IA lit un demi-état.
+### 4a. Conforme au RAW : acharnement sur un héros à 0 PB pendant plusieurs rounds
 
-### 4a. Confirmé : acharnement sur un héros à 0 PB pendant plusieurs rounds
+> **Constat (#1595, 2026-10-16).** Un héros à 0 PB, conscient, est À Terre et reste une cible : `LDB 18 l.15` ;
+> `LDB 16 l.35` (+20 pour le toucher en mêlée). Il perd connaissance après BE Rounds (`LDB 18 l.15`) ; il
+> meurt Inconscient à 0 quand ses Blessures critiques dépassent son BE (`LDB 18 l.34`), ou par une ligne
+> mortelle du Tableau des Critiques (`LDB 18 l.38`). L'oubli « dans le tumulte du combat » vise ceux qui
+> sont « au sol, apparemment morts » (`LDB 18 l.36`), donc l'Inconscient ; sa mise à mort par un adversaire Engagé (`LDB 18 l.36`) : #2660.
+
 Modèle de mort (RAW LDB 18, `engine/conditions.ts`) :
 - 0 PB → À Terre, **conscient**, `isOutOfAction` FAUX.
-- Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`.
+- Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`,
+  dans les deux modes de `combat-aa-blessures` (#1595 c.6219559935) ; jamais pour un objet inanimé (`isInanimate`).
 - Mort finalisée seulement si **Inconscient + 0 PB + `criticalWounds > BE`** (`inDeathCondition`),
   vérifiée au franchissement de round (`resolveRoundBoundary`, `state/combatFlow.ts`).
 
@@ -111,13 +118,9 @@ Côté IA (`state/ai.ts`, `state/combatFlow.ts`) :
 
 ⇒ Un héros tombé à 0 reste conscient ~**BE rounds** (3-4), focalisé par **tous** les ennemis, chacun
 incrémentant `target.criticalWounds` (`state/combatFlow.ts`), **sans mourir** tant que la porte
-(Inconscient ET `crit > BE`) n'est pas franchie. = « 3 IA, 3 rounds, enchaînement de critiques, on se
-demande s'il va mourir un jour ».
+(Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
-**Correctifs visés** : politique de ciblage IA (ne pas focaliser une cible à 0 PB / À Terre ; répartir) ;
-prédicat unique « neutralisé » lu par l'IA.
-
-### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent
+### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
 - La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
   sites de `state/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.

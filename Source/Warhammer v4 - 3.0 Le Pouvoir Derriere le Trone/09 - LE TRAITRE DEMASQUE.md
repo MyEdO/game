@@ -122,7 +122,7 @@ Le groupe peut aussi faire semblant de vouloir se payer ses services. Ils peuven
 
 ### **LE REPAIRE DES PIONS**
 
-Si les aventuriers suivent « Frau Kenner » après son rendezvous avec Sparsam, ils atteindront le repaire vers 23h30. Les Personnages ont peut-être envisagé de faire intervenir la Garde, mais ce qu'ils sont sur le point de découvrir leur fera certainement changer d'avis. « Frau Kenner » devra attendre un peu devant la porte d'une maison en ruines avant qu'on lui ouvre. À l'extérieur se trouve une charrette chargée de meubles. Les habitants ont l'air d'être sur le point de partir, et les Personnages devront agir vite. Quoi qu'il arrive, la Garde ne fait jamais de patrouilles dans ce quartier de la ville.
+Si les aventuriers suivent « Frau Kenner » après son rendez-vous avec Sparsam, ils atteindront le repaire vers 23h30. Les Personnages ont peut-être envisagé de faire intervenir la Garde, mais ce qu'ils sont sur le point de découvrir leur fera certainement changer d'avis. « Frau Kenner » devra attendre un peu devant la porte d'une maison en ruines avant qu'on lui ouvre. À l'extérieur se trouve une charrette chargée de meubles. Les habitants ont l'air d'être sur le point de partir, et les Personnages devront agir vite. Quoi qu'il arrive, la Garde ne fait jamais de patrouilles dans ce quartier de la ville.
 
 Les quatre vivent dans la cave de la maison en ruines. Il n'y a pas de plan des étages supérieurs de la maison, puisque toute l'action aura lieu dans la cave. Les pièces sont couvertes de poussière, de vieilles planches de bois moisies, de déchets, et sont certaines d'abriter une ou deux araignées ou souris. Les fenêtres sont barrées par des planches, mais un trou de 15 cm a été creusé dans celle du fond pour les pigeons voyageurs. Un Test de **Perception Intermédiaire (+0)** révèle des plumes coincées dans le bois, ainsi que des graines et des fientes sur le sol.
 
@@ -249,7 +249,7 @@ Ce qui se passe ensuite dépend de l'heure à laquelle les Personnages sont arri
 
 Jouez le trajet entièrement, en vous servant de la carte de la ville. C'est une course contre la montre, et les Joueurs devraient le sentir. Chronométrez chaque section du trajet, demandez aux Joueurs quel chemin ils empruntent, et lancez les dés fréquemment. Par exemple :
 
-*« Bon, vous êtes ici, et le Collège royal de Musique se trouve ici (montrezleur sur la carte). Du coup, vous pouvez descendre Fursten Allee et contourner le Grand Parc par le nord, ou vous pouvez passer… par là. OK, par-là. Pour traverser Fursten Allee, il faut 3 minutes* (écrivez « 3 », lancez un dé, consultez le livre). *Bon, il n'y a pas tant de monde que ça dans la rue, et grâce aux gardes qui crient aux passants de vous laisser passer, ils s'écartent assez facilement* (lancez un dé et consultez le livre à nouveau). *Hmm, il y a beaucoup plus de monde quand vous arrivez au parc* (relancez les dés). *Il vous faudra 6 minutes rien que pour traverser le Garten Ring et atteindre l'Ostweg. Bien sûr, vous pouvez aussi remonter la Parade des Panthères et longer Palast Strasse : la distance est plus grande, mais il y aura peut-être moins de monde… »*
+*« Bon, vous êtes ici, et le Collège royal de Musique se trouve ici (montrez-leur sur la carte). Du coup, vous pouvez descendre Fursten Allee et contourner le Grand Parc par le nord, ou vous pouvez passer… par là. OK, par-là. Pour traverser Fursten Allee, il faut 3 minutes* (écrivez « 3 », lancez un dé, consultez le livre). *Bon, il n'y a pas tant de monde que ça dans la rue, et grâce aux gardes qui crient aux passants de vous laisser passer, ils s'écartent assez facilement* (lancez un dé et consultez le livre à nouveau). *Hmm, il y a beaucoup plus de monde quand vous arrivez au parc* (relancez les dés). *Il vous faudra 6 minutes rien que pour traverser le Garten Ring et atteindre l'Ostweg. Bien sûr, vous pouvez aussi remonter la Parade des Panthères et longer Palast Strasse : la distance est plus grande, mais il y aura peut-être moins de monde… »*
 
 Le trajet emprunté ne change rien au cours des événements. Le but, c'est de faire sentir aux Joueurs que chaque minute compte, et faire monter la tension avant le grand final de l'aventure.
 
@@ -304,7 +304,7 @@ Les Middenmarshalls exigeront des explications et un récapitulatif complet des 
 
 <span id="page-106-0" data-folio="104"></span>#### **Une sinistre découverte**
 
-Quand les Middenmarshalls ont fini d'interroger les Personnages, un chevalier apparaît et s'entretient à voix basse avec le commandant Schutzmann. Schutzmann écoute, hoche la tête, avant de se tourner vers le groupe et de leur dire « *Suivezmoi* ». Ils sont conduits dans les appartements de Hoflich, qui ont l'air d'avoir été minutieusement fouillés.
+Quand les Middenmarshalls ont fini d'interroger les Personnages, un chevalier apparaît et s'entretient à voix basse avec le commandant Schutzmann. Schutzmann écoute, hoche la tête, avant de se tourner vers le groupe et de leur dire « *Suivez-moi* ». Ils sont conduits dans les appartements de Hoflich, qui ont l'air d'avoir été minutieusement fouillés.
 
 Un coffre a été traîné au milieu de la pièce. Il est ouvert. Il contient un sac fermé au tissu imperméable, qui a été fendu en son centre pour révéler le corps en décomposition de Joachim Hoflich !
 
@@ -442,7 +442,7 @@ Dans cette pièce, on trouve deux bassines, des serviettes, et de quoi se laver.
 
 ### **Bureau**
 
-Contrairement au reste de la maison, la décoration de cette pièce correspond aux véritables goûts de Wasmeier. Les murs sont presque entièrement recouverts de cartes, d'arbres généalogiques de familles royales, de chronologies historiques, etc. Le sol est jonché de livres sur Middenheim : des traités de droit, de religion, d'architecture, de commerce… chaque aspect de la cité est abordé. Wasmeier la connaît mieux que personne. Un imposant fauteuil en bois sculpté trône au centre de la pièce, entouré de livres. Le seigneur des Lois nourrit des rêves de pouvoir depuis bien longtemps, et c'est sur ce siège qu'il a manigancé son plan machiavélique. Les deux portes sont toujours fermées (considérezles comme des *Portes sécurisées* pour les Tests de **Crochetage**).
+Contrairement au reste de la maison, la décoration de cette pièce correspond aux véritables goûts de Wasmeier. Les murs sont presque entièrement recouverts de cartes, d'arbres généalogiques de familles royales, de chronologies historiques, etc. Le sol est jonché de livres sur Middenheim : des traités de droit, de religion, d'architecture, de commerce… chaque aspect de la cité est abordé. Wasmeier la connaît mieux que personne. Un imposant fauteuil en bois sculpté trône au centre de la pièce, entouré de livres. Le seigneur des Lois nourrit des rêves de pouvoir depuis bien longtemps, et c'est sur ce siège qu'il a manigancé son plan machiavélique. Les deux portes sont toujours fermées (considérez-les comme des *Portes sécurisées* pour les Tests de **Crochetage**).
 
 #### **Chambre**
 

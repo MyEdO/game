@@ -11,7 +11,10 @@ import { aPorteeDe } from '../../state/exploreNav';
 import { startOf } from '../../state/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
+
+/** Ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du geste se joue après. */
+const lireLesDocuments = (): void => { while (useGame.getState().document) useGame.getState().closeDocument(); };
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
@@ -88,7 +91,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 
   it('du relais à la porte sud, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
     const objectifs = () => get().objectives.map((o) => o.id);
-    useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     useGame.getState().acquitterOuverture();
     expect(get().scene?.id).toBe('la-diligence');
 
@@ -110,6 +113,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags, 'l’arrivée au virage ne pose que sa marque `once`')
       .toEqual({ ...drapeauxAvantVirage, '__trigger_edo-ch1-arrivee-virage': true });
     useGame.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    lireLesDocuments();
     expect(get().flags[CORPS]).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
@@ -133,7 +137,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur des cases atteignables', () => {
   const get = () => useGame.getState();
   beforeEach(() => {
-    useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     useGame.getState().acquitterOuverture();
   });
   const entrer = (id: string) => {
@@ -168,6 +172,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
       useGame.getState().moveParty({ x, y });
       expect(get().flags[p.flag], 'le pas seul ne pose rien').toBeFalsy();
       useGame.getState().jouerAction(p.entite, p.action);
+      lireLesDocuments();
       expect(get().flags[p.flag]).toBe(true);
     });
 

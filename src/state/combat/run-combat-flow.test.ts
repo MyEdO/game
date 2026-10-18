@@ -108,6 +108,24 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(live(H.id).wounds.current).toBe(before - (3 + 5 + 7));
   });
 
+  // combatEffects.ts:123 (`drainPendingLog`) · cascade.ts:1352 (`consequences`)
+  it('HÉROS manuel : les lignes de la continuation rejoignent les conséquences de l’étape, la file différée est vide', () => {
+    seedBattleRng(5);
+    const { H } = setup();
+    H.characteristics.force = 90;
+    runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
+    const step = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    useGame.setState({ pendingLogQueue: [] });
+    useGame.getState().cascadeRoll(step.id);
+    useGame.getState().cascadeNext();
+
+    expect(useGame.getState().pendingLogQueue).toEqual([]);
+    expect(useGame.getState().battle!.log.map((e) => e.text).slice(-2)).toEqual([
+      'H subit 5 Blessure(s) (ignorant BE et PA).',
+      'H subit 7 Blessure(s) (ignorant BE et PA).',
+    ]);
+  });
+
   it('ENNEMI : test enfoui → INLINE (branche + after), aucune étape de cascade', () => {
     seedBattleRng(5);
     const { E } = setup();

@@ -40,7 +40,8 @@ function monte() {
   const hero = relu(H);
   hero.pos = { x: gob.pos!.x - 1, y: gob.pos!.y };
   man.pos = { x: gob.pos!.x - 1, y: gob.pos!.y + 1 };
-  gob.wounds.current = 1;
+  gob.wounds.current = 1; // dépassement ≥ BE : pas de −20 (LDB 18 l.17 ; #1595 c.6222318751)
+  gob.important = true; // LDB 18 l.44 : hors Mort subite
   gob.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
   for (const o of foes) if (o !== gob && o !== man && o.pos && Math.abs(o.pos.x - hero.pos.x) <= 1 && Math.abs(o.pos.y - hero.pos.y) <= 1) o.pos = { x: o.pos.x + 6, y: o.pos.y };
   // Un siège MJ tient les ennemis : la Déviation se tranche à l'étape (#1426), elle suspend le coup.
@@ -60,6 +61,10 @@ function monte() {
   const pc = g().pendingCascade!;
   expect(pc.participants[pc.cursor].kind, 'le kit joue l’étape AU CURSEUR : ce doit être la Déviation').toBe('deviation');
   avanceEtapeCascade(g, undefined, () => 'devier');
+  // LDB 18 l.17, l.53 : le coup dépasse les Blessures restantes — 2ᵉ fenêtre, même Localisation ; subie à 100, elle tue.
+  const pc2 = g().pendingCascade!;
+  expect(pc2.participants[pc2.cursor].kind, 'la 2ᵉ Blessure critique, le dépassement').toBe('deviation');
+  avanceEtapeCascade(g, () => 100, () => 'subir');
   return { gob, man };
 }
 
@@ -71,6 +76,8 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
     g().cleaveAttack(man.id);
     g().attackRoll();
+    g().attackSetForcedRoll(21); // LDB 13 l.183
+    expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);
     g().attackConfirm();
     defenseEchoue(man.id);
     expect(g().pendingCleave ?? null).toBeNull();
