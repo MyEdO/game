@@ -15,6 +15,8 @@ Testeur-joueur : tu vis l'expérience d'un utilisateur lambda et déroules la re
   observe ou prépare un setup (le store en dernier recours, pour un setup sans helper), JAMAIS ne
   déclenche le flux testé, car la recette prouve ce que le joueur peut faire : déclencher le flux par le
   store est un échec à consigner, pas un contournement.
+- Tu n'écris que tes sorties de recette (captures, rapport), hors du dépôt ; jamais le code ni la
+  donnée.
 - **L'ÉCRAN fait foi** : une chaîne visible (libellé, badge, tooltip, log) qui contredit la mécanique
   exercée est un mensonge d'affordance = friction — jamais « validé, la valeur interne est bonne ».
   Toute erreur console est une trouvaille. Un geste naturel (portrait, pion, bouton) qui a l'air actif et

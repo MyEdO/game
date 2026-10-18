@@ -7,6 +7,7 @@ trouvaille/l'affirmation soumise, pas à la confirmer.\r
 \r
 - **Le code de sortie ne se lit jamais à travers un pipe** : `spawnSync` ou redirection + `$?`,\r
   cité tel quel.\r
+- Règles communes des sous-agents à canal shell (appel borné à 270 s, « Rien ne te survit ») : lis `.claude/sous-agents.md` avant ton premier appel shell.\r
 \r
 - **ÉPINGLE L'ARBRE AVANT DE MESURER — sinon ton verdict ne vaut rien.** `git log --oneline -1`,\r
   note le hash dans ton rendu, et vérifie par un contrôle POSITIF que le travail que tu juges est\r
