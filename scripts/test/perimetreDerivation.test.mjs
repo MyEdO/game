@@ -316,9 +316,10 @@ const {fermetureSurDisque}=await import(${JSON.stringify(new URL('../guards/lib/
 const version=versionDesMemosDeDerivation(${JSON.stringify(corpus)},{dossierDesMemos:${JSON.stringify(dossier)},lectureSeule:options.mode==='lectureSeule',...(options.format?{format:options.format}:{}),...(options.injecter==='lire'?{lire:(...args)=>readFileSync(...args)}:{}),...(options.injecter==='fermeture'?{fermeture:(...args)=>fermetureSurDisque(...args)}:{})});
 console.log(JSON.stringify({version,appels,normalisations,fermetures}));`)
   const lancer = async (mode = 'ecriture', options = {}) => {
-    const r = await spawnBorne({ argv: [pilote, JSON.stringify({ mode, ...options })], cwd: racine, fichier: join(dossier, 'log'), limiteMs: 10000 })
+    const r = await spawnBorne({ argv: [pilote, JSON.stringify({ mode, ...options })], cwd: racine, fichier: join(dossier, 'log'), limiteMs: 10000, fluxDistincts: true })
     assert.equal(r.code, 0, `${r.expiree ? 'pilote expiré, ' : ''}code ${r.code} : ${r.sortie}`)
-    return JSON.parse(r.sortie.trim())
+    try { return JSON.parse(r.stdout.trim()) }
+    catch (e) { throw new Error(`pilote : stdout hors contrat JSON (${e.message})\nstdout : ${r.stdout}\nstderr : ${r.stderr}`, { cause: e }) }
   }
   return { dossier, corpus, lancer }
 }
