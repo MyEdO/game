@@ -325,6 +325,8 @@ const ATTENDU = {
     'scripts/guards/lib/superviserProcessus.mjs',
     'scripts/agents/compat-cli.mjs',
     'scripts/ops/session-start.test.mjs',
+    // #2528
+    'scripts/hooks/repartition.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
