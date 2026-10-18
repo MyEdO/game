@@ -8,6 +8,8 @@ import { preflightSessionStart } from './session-start.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
 import { verifierProtocoleCodex } from './session-codex.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
 const refuser = (raison, categorie = 'validation') => { throw new Error(`${prefixeDeRefus(categorie)} ${raison}`) }
@@ -233,8 +235,12 @@ export function outilsSession() {
   }
 }
 
-export async function attendreSuivi(sessions, cible, options, { parentVivant = () => { try { process.kill(process.ppid, 0); return true } catch (e) { if (e.code === 'ESRCH') return false; throw e } } } = {}) {
+export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE } = {}) {
   if (options.timeoutMs === 0) refuser('SUIVI : timeout strictement positif requis')
+  if (!parentVivant) {
+    const pidParent = lireParent(), instantParent = horloge()
+    parentVivant = () => estPidVivantDepuis(pidParent, instantParent, identite)
+  }
   let depuis = options.depuis
   do {
     if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }

@@ -49,6 +49,47 @@ test('veille suivie : bornes et aucune réarment avec curseur ; pannes et parent
   assert.equal(optionsSession(['attendre', 'cible', '--suivre']).suivre, true)
 })
 
+test('suivi : parent et instant capturés une fois malgré le réarmement', async () => {
+  let lecturesParent = 0, lecturesHorloge = 0, attentes = 0
+  const mesures = [], fin = { type: 'fin', etat: 'inactif', curseur: 2 }
+  const sessions = {
+    attendre: async () => ++attentes === 1 ? { type: 'aucune', etat: 'indeterminee' } : fin,
+    etat: () => ({ etat: 'vivante' }),
+  }
+  assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10 }, {
+    lireParent: () => ++lecturesParent === 1 ? process.pid : 0,
+    horloge: () => { lecturesHorloge++; return 100 },
+    identite: { lireCreation: (pid) => { mesures.push(pid); return 99 }, toleranceMs: 0 },
+  }), fin)
+  assert.equal(lecturesParent, 1)
+  assert.equal(lecturesHorloge, 1)
+  assert.deepEqual(mesures, [process.pid, process.pid])
+})
+
+test('suivi : parent disparu ou PID réutilisé termine avant toute attente', async () => {
+  for (const pid of [0, process.pid]) {
+    let mesures = 0
+    const resultat = await attendreSuivi({ attendre: async () => ({ type: 'fin', etat: 'inactif' }) }, 'cible', { timeoutMs: 10 }, {
+      lireParent: () => pid,
+      horloge: () => 100,
+      identite: { lireCreation: () => { mesures++; return 101 }, toleranceMs: 0 },
+    })
+    assert.deepEqual(resultat, { etat: 'indeterminee', raison: 'PARENT DISPARU' })
+    assert.equal(mesures, pid === 0 ? 0 : 1)
+  }
+})
+
+test('suivi : parentVivant injecté évite toute mesure native', async () => {
+  const interdit = () => { throw new Error('mesure native indue') }
+  const fin = { type: 'fin', etat: 'inactif' }
+  assert.equal(await attendreSuivi({ attendre: async () => fin }, 'cible', { timeoutMs: 10 }, {
+    parentVivant: () => true,
+    lireParent: interdit,
+    horloge: interdit,
+    identite: { lireCreation: interdit, toleranceMs: 0 },
+  }), fin)
+})
+
 test('signal natif compilé : seul CTRL_CLOSE écrit le témoin', { skip: process.platform !== 'win32' }, (t) => {
   const b = banc(t), script = join(b.dossier, 'signal.ps1'), temoin = join(b.dossier, 'signal.json')
   const source = readFileSync(new URL('./session-process.ps1', import.meta.url), 'utf8').match(/Add-Type -TypeDefinition @'\r?\n([\s\S]*?)\r?\n'@/)[1]

@@ -10,7 +10,7 @@ import { createConnection, createServer } from 'node:net'
 import { attendreSuivi } from './session.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { Writable } from 'node:stream'
-import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, projeterJournalCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
@@ -103,7 +103,7 @@ test('banc : mesure NaN rejette après fermeture du natif sans PowerShell', asyn
     mesurerCreation: (natifPid) => { pid = natifPid; return NaN },
   }), /Création du processus natif mesurée/)
   assert.ok(Number.isInteger(pid))
-  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+  assert.equal(estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), false)
 })
 
 test('thread/start réel au-delà de vingt secondes consomme le budget de démarrage', { timeout: 35000 }, async (t) => {

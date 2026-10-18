@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { setTimeout as attendre } from 'node:timers/promises'
 import { citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const racine = fileURLToPath(new URL('../../', import.meta.url))
 const natif = fileURLToPath(new URL('../guards/lib/processusJob.cs', import.meta.url))
@@ -88,7 +90,7 @@ test('broker : exception du helper classée indéterminée', () => {
 test('broker natif : helper expiré après création, résultat indéterminé et train vivant', {
   skip: process.platform !== 'win32', timeout: 20000,
 }, async () => {
-  const base = mkdtempSync(join(process.env.NATIF_SCRATCHPAD ?? tmpdir(), 'session-broker-course-'))
+  const base = mkdtempSync(join(tmpdir(), 'session-broker-course-'))
   const marqueur = join(base, 'entree.json')
   const fini = join(base, 'fin.json')
   const train = join(base, 'train.mjs')
@@ -106,20 +108,14 @@ test('broker natif : helper expiré après création, résultat indéterminé et
     }), /EINDETERMINE/)
     assert.equal(appels, 1)
     const entree = JSON.parse(readFileSync(marqueur, 'utf8'))
-    process.kill(entree.pid, 0)
+    assert.equal(estPidVivantDepuis(entree.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true)
     assert.equal(existsSync(fini), false)
     await jusqua(() => existsSync(fini), 'train après helper mort')
-    await jusqua(() => {
-      try { process.kill(entree.pid, 0); return false }
-      catch (error) { if (error.code !== 'ESRCH') throw error; return true }
-    }, 'sortie après helper mort')
+    await jusqua(() => !estPidVivantDepuis(entree.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), 'sortie après helper mort')
   } finally {
     if (existsSync(marqueur)) {
       const { pid } = JSON.parse(readFileSync(marqueur, 'utf8'))
-      await jusqua(() => {
-        try { process.kill(pid, 0); return false }
-        catch (error) { if (error.code !== 'ESRCH') throw error; return true }
-      }, 'nettoyage train course')
+      await jusqua(() => !estPidVivantDepuis(pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), 'nettoyage train course')
     }
     rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
   }
@@ -127,7 +123,7 @@ test('broker natif : helper expiré après création, résultat indéterminé et
 
 for (const mode of ['racine', 'entree', 'parent-bloquant']) {
   test('train natif : ' + mode + ', détaché sélectif et clôture', { skip: process.platform !== 'win32', timeout: 45000 }, async (t) => {
-    const base = mkdtempSync(join(process.env.NATIF_SCRATCHPAD ?? tmpdir(), 'session-train-'))
+    const base = mkdtempSync(join(tmpdir(), 'session-train-'))
     const controle = join(base, 'controle'), generation = randomUUID()
     mkdirSync(controle); mkdirSync(join(controle, 'requetes')); mkdirSync(join(controle, 'reponses'))
     writeFileSync(join(controle, 'configuration.json'), JSON.stringify({ version: 1, generation, delaiArretMs: 2000 }))
@@ -191,13 +187,13 @@ catch(error){fs.writeFileSync(base+'/resultat.json',JSON.stringify({erreur:error
     assert.equal(certificat.zero, true)
     assert.deepEqual(certificat.erreurs, [])
     t.diagnostic(JSON.stringify({ mode, hote: hote.pid, train: resultat.pid, ordinaire: ordinaire.pid, debut, certificat }))
-    assert.throws(() => process.kill(ordinaire.pid, 0), { code: 'ESRCH' })
+    assert.equal(estPidVivantDepuis(ordinaire.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), false)
     {
       assert.equal(existsSync(join(base, 'fin.json')), false, 'train encore en vol à la clôture')
-      process.kill(resultat.pid, 0)
+      assert.equal(estPidVivantDepuis(resultat.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), true)
       writeFileSync(join(base, 'fin.json.autoriser'), '')
       assert.equal((await jusqua(() => lire('fin.json'), 'survie du train')).pid, resultat.pid)
-      await jusqua(() => { try { process.kill(resultat.pid, 0); return false } catch (error) { if (error.code !== 'ESRCH') throw error; return true } }, 'sortie du train')
+      await jusqua(() => !estPidVivantDepuis(resultat.pid, NAISSANCE_ABSENTE, IDENTITE_MESUREE), 'sortie du train')
     }
   })
 }
