@@ -1081,7 +1081,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Rude épreuve), [Humeur de Manann et événements en mer (MDG)](#humeur-de-manann-et-événements-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.133-202) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `BandeOuverte`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `doc`, `un-officier-pour-10`, `MoraleBand`, +86 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/localisation.json`, `src/data/maladies.json`, `src/data/regles.json`, +21 fichiers
+- `MDG 14` (l.133-202) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `BandeOuverte`, `VolleyShot`, `capitaine-competent`, `faveur-de-manann`, `doc`, `un-officier-pour-10`, `MoraleBand`, +86 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/localisation.json`, `src/data/maladies.json`, `src/data/regles.json`, +21 fichiers
 
 ---
 
