@@ -324,11 +324,12 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     cause(e.message?.startsWith('[') ? e : refus('panne', e.message || String(e)))
     try { publier('erreur', { etat: 'erreur', cause: premiereCause, native: e.native }) } catch (erreur) { cause(erreur); journal({ erreur: erreur.message }) }
   }
-  function requete(method, params) {
+  function requete(method, params, timeoutMs = 20_000) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return Promise.reject(refus('transitoire', `Borne native ${method} atteinte avant émission : échéance de démarrage épuisée`))
     if (mort || natif.stdin.destroyed) return Promise.reject(refus('panne', 'App-server Codex arrêté'))
     return new Promise((resolve, reject) => {
       const id = ++numero
-      const timer = setTimeout(() => { attentes.delete(id); reject(refus('transitoire', `Borne native ${method} atteinte`)) }, 20_000)
+      const timer = setTimeout(() => { attentes.delete(id); reject(refus('transitoire', `Borne native ${method} atteinte`)) }, timeoutMs)
       attentes.set(id, { resolve, reject, timer })
       natif.stdin.write(`${JSON.stringify({ id, method, params })}\n`, (e) => {
         if (e && attentes.delete(id)) { clearTimeout(timer); reject(refus('panne', e.message)) }
@@ -513,7 +514,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   const pret = (async () => {
     await requete('initialize', { clientInfo: { name: 'wfrp-session', version: '1' }, capabilities: { experimentalApi: true } })
     natif.stdin.write(`${JSON.stringify({ method: 'initialized', params: {} })}\n`)
-    const r = await requete('thread/start', { cwd: carte.worktree })
+    const r = await requete('thread/start', { cwd: carte.worktree }, carte.demarrageJusqua - Date.now())
     if (typeof r?.thread?.id !== 'string') throw refus('panne', 'Réponse thread/start sans identité')
     projection.threadId = r.thread.id
     await demarrerTour(consigne)

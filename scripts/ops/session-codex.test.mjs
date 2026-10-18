@@ -30,27 +30,46 @@ notify('item/completed',{turnId:id,item:{id:'answer',type:'agentMessage',text:re
 const fin={turn:{id,status:'completed',items:[],durationMs:321}};notify('turn/completed',fin);if(text==='DUPLICATE')notify('turn/completed',fin);active=null;}
 createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(!q.method)return;const p=q.params||{};
 if(q.method==='initialize')send({id:q.id,result:{userAgent:'fixture'}});
-if(q.method==='thread/start')send({id:q.id,result:{thread:{id:tid}}});
+if(q.method==='thread/start')setTimeout(()=>send({id:q.id,result:{thread:{id:tid}}}),Number(process.argv[2]));
 if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});setTimeout(()=>{started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
 if(q.method==='turn/steer'){if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
 if(q.method==='turn/interrupt'){if(!started)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
-async function banc(t, { consigne = 'BUSY', validation = () => {}, echo } = {}) {
+async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-pont-banc-'))
   const fixture = join(dossier, 'app-server.mjs')
   writeFileSync(fixture, FIXTURE)
   const sessionId = randomUUID(), jeton = 'secret-exclusif-pont'
-  const projections = [], affichage = []
-  let natif, naissanceNatif, vivantALaRupture = false
-  const pont = lancerPontCodex({
-    plan: { executable: process.execPath, args: [fixture] },
-    carte: { sessionId, worktree: dossier, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
+  const projections = [], affichage = [], requetesEmises = []
+  let natif, pont, fermetureNatif, nettoyage, naissanceNatif, vivantALaRupture = false
+  const nettoyer = () => nettoyage ??= (async () => {
+    const secours = setTimeout(() => natif?.kill('SIGKILL'), 3000)
+    try {
+      if (pont) pont.child.kill()
+      else natif?.kill()
+      await fermetureNatif
+    } finally {
+      clearTimeout(secours)
+      rmSync(dossier, { recursive: true, force: true })
+    }
+  })()
+  t.after(nettoyer)
+  try {
+    pont = lancerPontCodex({
+    plan: { executable: process.execPath, args: [fixture, String(delaiDemarrageMs)] },
+    carte: { sessionId, worktree: dossier, demarrageJusqua, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
     dossier, consigne, schema: { type: 'object' }, env: process.env,
     echo: echo && typeof echo !== 'function' ? echo : (texte) => { affichage.push(texte); echo?.(texte) },
     notifier(p) { validation(p); projections.push(p) }, lancer(...args) {
       natif = spawn(...args)
-      naissanceNatif = IDENTITE_MESUREE.lireCreation(natif.pid)
+      fermetureNatif = once(natif, 'close')
+      const ecrire = natif.stdin.write.bind(natif.stdin)
+      natif.stdin.write = (texte, ...options) => {
+        requetesEmises.push(JSON.parse(String(texte)))
+        return ecrire(texte, ...options)
+      }
+      naissanceNatif = mesurerCreation(natif.pid)
       assert.ok(Number.isFinite(naissanceNatif), 'Création du processus natif mesurée')
       let flux = ''
       natif.stdout.on('data', (b) => {
@@ -63,20 +82,61 @@ async function banc(t, { consigne = 'BUSY', validation = () => {}, echo } = {}) 
       })
       return natif
     },
-  })
+    })
+  } catch (erreur) {
+    await nettoyer()
+    throw erreur
+  }
   const sortie = once(pont.child, 'exit')
-  t.after(async () => {
-    const secours = setTimeout(() => natif.kill('SIGKILL'), 3000)
-    try { pont.child.kill(); await sortie } finally { clearTimeout(secours); rmSync(dossier, { recursive: true, force: true }) }
-  })
   const base = { dossier, sessionId, jeton, timeoutMs: 2000 }
-  return { ...base, pont, projections, affichage, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
+  return { ...base, pont, projections, affichage, requetesEmises, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
 }
 async function sousBorne(promesse, ms) {
   let timer
   try { return await Promise.race([promesse, new Promise((_, reject) => { timer = setTimeout(() => reject(Error('Processus natif toujours vivant après borne')), ms) })]) }
   finally { clearTimeout(timer) }
 }
+
+test('banc : mesure NaN rejette après fermeture du natif sans PowerShell', async (t) => {
+  let pid
+  await assert.rejects(banc(t, {
+    mesurerCreation: (natifPid) => { pid = natifPid; return NaN },
+  }), /Création du processus natif mesurée/)
+  assert.ok(Number.isInteger(pid))
+  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+})
+
+test('thread/start réel au-delà de vingt secondes consomme le budget de démarrage', { timeout: 35000 }, async (t) => {
+  const debut = Date.now()
+  const b = await banc(t, {
+    consigne: 'AUTO',
+    delaiDemarrageMs: 21000,
+    demarrageJusqua: debut + 32000,
+  })
+  let transition
+  do {
+    transition = await veillerCodex({ ...b, depuis: transition?.seq ?? 0, timeoutMs: 30000 })
+    assert.notEqual(transition.type, 'erreur', transition.cause)
+  } while (transition.type !== 'fin')
+  assert.ok(Date.now() - debut >= 21000)
+  assert.deepEqual(transition.rapport, { resultat: 'AUTO', sessionId: 'fixture' })
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'thread/start').length, 1)
+  assert.equal(b.requetesEmises.filter((q) => q.method === 'turn/start').length, 1)
+  assert.equal(b.pont.cause(), '')
+  t.diagnostic(JSON.stringify({ dureeMs: Date.now() - debut, rapport: transition.rapport }))
+})
+
+test('thread/start avec échéance épuisée refuse avant toute émission native', { timeout: 5000 }, async (t) => {
+  const b = await banc(t, { demarrageJusqua: Date.now() - 1 })
+  await veillerCodex({ ...b, timeoutMs: 2000 })
+  assert.equal(b.requetesEmises.some((q) => q.method === 'initialize'), true)
+  assert.equal(b.requetesEmises.some((q) => q.method === 'thread/start'), false)
+  assert.equal(b.requetesEmises.some((q) => q.method === 'turn/start'), false)
+  assert.ok(b.pont.cause().startsWith(prefixeDeRefus('transitoire')))
+  assert.match(b.pont.cause(), /thread\/start atteinte avant émission : échéance de démarrage épuisée/)
+  await sousBorne(b.sortie, 3000)
+  assert.ok(b.projections.some((p) => p.etat === 'fermee'))
+})
 
 test('projection réelle : enfant natif, progression, outils, fin et journal unique', async (t) => {
   const b = await banc(t)
@@ -189,7 +249,7 @@ test('projection : spawn ENOENT sans exit libère son écouteur après close', a
   let fermeture
   const pont = lancerPontCodex({
     plan: { executable: join(dossier, 'executable-absent'), args: [] },
-    carte: { sessionId: randomUUID(), worktree: dossier, empreinteJeton: 'a'.repeat(64) },
+    carte: { sessionId: randomUUID(), worktree: dossier, demarrageJusqua: Date.now() + 60_000, empreinteJeton: 'a'.repeat(64) },
     dossier, consigne: 'test', schema: {}, env: process.env, notifier() {}, echo: sortie,
     lancer(...args) {
       const natif = spawn(...args)
