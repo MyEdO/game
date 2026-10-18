@@ -592,13 +592,17 @@ function noeudASpecialisation<T extends TypeEntite>(
     return `« ${String((input as { id?: unknown } | null)?.id)} » : ce champ DÉSIGNE une spécialisation — « choix » (emplacement non désigné) n'y est pas admis, seul « spec » l'est (catalogue des ${catalogue}, ${espace}).`
       + (autres.length ? ` Clés non reconnues aussi : ${autres.join(', ')}.` : '');
   };
+  const champs = {
+    id: idDe(type),
+    spec: z.string().min(1).optional(),
+    choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional(),
+    ...((extra ?? {}) as Record<string, z.ZodType>),
+  };
+  const { choix: _choix, ...designe } = champs;
+  const metas = { id: { label: "identifiant", texte: { regime: 'technique' as const, usage: 'ids stables du registre de références' } }, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
+  const { choix: _metaChoix, ...metasDesignees } = metas;
   return nommerChamps(z
-    .strictObject({
-      id: idDe(type),
-      spec: z.string().min(1).optional(),
-      ...(admetChoix ? { choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional() } : {}),
-      ...((extra ?? {}) as Record<string, z.ZodType>),
-    }, {
+    .strictObject(admetChoix ? champs : (designe as typeof champs), {
       error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
     })
     .superRefine((v, ctx) => {
@@ -625,7 +629,7 @@ function noeudASpecialisation<T extends TypeEntite>(
         if (r !== motif) continue;
         ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
       }
-    }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, spec: { label: "spécialisation", texte: { regime: 'designation' } }, ...(admetChoix ? { choix: { label: "choix", texte: { regime: 'designation' } } } : {}), ...metasExtra(extra) });
+    }), admetChoix ? metas : (metasDesignees as typeof metas));
 }
 
 /**

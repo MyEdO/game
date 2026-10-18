@@ -1216,6 +1216,9 @@ export const fr = {
   // balayage des trop sobres) vit dans la DÉCLARATION du jeu (`throwerPenalty.lines`) : il est propre
   // à CE jeu, et un second jeu à lanceurs en déclare un autre.
   'tavern.torchonFinal': '{mien} points contre {sien} en {lancers} lancers.',
+  'tavern.finDePartie': '{jeu} — {who} contre {adversaire} : {log}{enjeu}',
+  'tavern.enjeuGain': ' — gain {montant}',
+  'tavern.enjeuPerte': ' — perte {montant}',
   'tavern.torchonTouche': '{who} touche {ou} : {points} point{s} ({dr} DR).',
   'tavern.danseur': 'Danseur {rang} ({camp})',
   'tavern.equipier': 'Équipier {rang}',

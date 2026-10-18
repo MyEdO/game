@@ -538,9 +538,7 @@ export const difficultySchema = enumNomme(DIFFICULTY_LABELS);
  * `engine/cover.ts`). DÉRIVE du tuple canon `COUVERT_DIFFICULTES` (`src/engine/types.ts`) et des
  * libellés canon `DIFFICULTY_LABELS` — il ne re-tape rien, et garde ses libellés (son propre `enumNomme`).
  */
-export const couvertDifficultySchema = enumNomme(
-  Object.fromEntries(COUVERT_DIFFICULTES.map((d) => [d, DIFFICULTY_LABELS[d]])) as Record<(typeof COUVERT_DIFFICULTES)[number], string>,
-);
+export const couvertDifficultySchema = enumNomme(tableTotale(COUVERT_DIFFICULTES, (d) => DIFFICULTY_LABELS[d]));
 
 /**
  * `CharKey` (`src/engine/types.ts`) — les 10 Caractéristiques. Réf récurrente (Conditions `compare`,

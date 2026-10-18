@@ -2494,6 +2494,6 @@ function finalizeTavernGame(
     ...(fin.detail ? { detail: fin.detail } : {}),
   };
   set({ tavernGames: { result } });
-  const stakeTxt = netBrass > 0 ? ` — gain ${formatMoney(fromBrass(netBrass))}` : netBrass < 0 ? ` — perte ${formatMoney(fromBrass(-netBrass))}` : '';
-  get().log(`${game.label} — ${challenger.label} contre ${opponentName} : ${log}${stakeTxt}`);
+  const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
+  get().log(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, log, enjeu }));
 }
