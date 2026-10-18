@@ -450,11 +450,15 @@ describe('sauvetage du focus (`useModalA11y`) — le dernier contrôle disparu, 
     expect(focusNomme()).toBe('d1');
   });
 
+  // Le blur, ses micro-tâches (le rappel du `MutationObserver`) et le focus du champ suivant tiennent dans
+  // la MÊME tâche, comme au clic d'un navigateur. Un `act` ASYNC rend la main par une tâche
+  // (`enqueueTask`, react 19.3) : il ouvrirait entre eux la tâche suivante, où le sauvetage lit le focus.
   it('S2 : un blur qui enregistre, puis le focus passe à un autre champ — ce champ garde le focus', async () => {
     act(() => root.render(<Formulaire />));
     act(() => { champ('page').focus(); });
     saisir(champ('page'), '24');
-    await act(async () => { champ('page').blur(); });
+    act(() => { champ('page').blur(); });
+    await Promise.resolve();
     expect(focusNomme(), 'personne ne prend le focus pendant la transition').toBe('BODY');
     act(() => { champ('note').focus(); });
     await tache();
@@ -464,7 +468,8 @@ describe('sauvetage du focus (`useModalA11y`) — le dernier contrôle disparu, 
   it('S2bis : un blur qui démonte le champ, puis le focus passe à un autre champ — ce champ garde le focus', async () => {
     act(() => root.render(<EnPlace />));
     act(() => { champ('titre').focus(); });
-    await act(async () => { champ('titre').blur(); });
+    act(() => { champ('titre').blur(); });
+    await Promise.resolve();
     expect(focusNomme(), 'personne ne prend le focus pendant la transition').toBe('BODY');
     act(() => { champ('note').focus(); });
     await tache();
