@@ -173,7 +173,7 @@ function rendu() {
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
 
-  const HOOK = ancre('scripts/hooks/data-edit-guard.mjs', 'hook de check-first')
+  const REGLE = ancre('.claude/rules/donnees.md', 'règle de check-first')
   const SERIALIZE = ancre('src/data/serialize.ts', 'canonicalisation')
   if (!/export function serializeDataset/.test(readFileSync(SERIALIZE, 'utf8'))) {
     abandon(`\`serializeDataset\` n'est plus exportée par ${SERIALIZE}`)
@@ -222,8 +222,8 @@ grep -rniE '<id-candidat>|<label>|<concept>' ${DATA}/*.json
 
 Le concept vit peut-être **déjà** dans un autre sous-système (#148 : le Bélier était dans 6 fichiers).
 S'il existe → **ne duplique pas** : étends-le là où il vit, ou re-scope la tâche. Carte et pièges
-d'homonymes : \`docs/donnees.md\`. Le hook \`${HOOK}\` rappelle ce check à chaque
-écriture d'un \`${DATA}/*.json\` (il atteint aussi les sous-agents, où les skills ne se déclenchent pas).
+d'homonymes : \`docs/donnees.md\`. La règle \`${REGLE}\` porte ce check dès la lecture ou
+l'écriture d'un \`${DATA}/*.json\`, sous-agents compris.
 
 ## 2. Choisir le fichier — et sa FAMILLE
 

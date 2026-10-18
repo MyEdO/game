@@ -84,17 +84,16 @@ const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'mj-de-table', raison: 'le MJ DÉCIDE ce qui arrive à la table, rôle que le prompt de `lecteur` (« tu ne décides rien ») contredit (`.claude/agents/mj-de-table.md`)' },
 ];
-/** Les couples (type, modèle) de la table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`, seule source
+/** Les couples (type, modèle) de la table de `.claude/skills/orchestrer-des-agents/calibrage.md`, seule source
  *  du modèle d'un type (#2537). PUR.
- *  @param {string} skill @returns {{ type: string, modele: string }[]} */
-const couplesDuCalibrage = (skill) => {
-  const section = skill.split(/^## /m).find((s) => s.startsWith('Calibrage\n')) ?? '';
-  return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+ *  @param {string} calibrage @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (calibrage) => {
+  return [...calibrage.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
 };
 /** Les types déclarés sous `.claude/agents/` (`name:` du frontmatter). */
 const TYPES_DECLARES = new Set(FICHES.keys());
 /** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
-const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/SKILL.md'), 'utf8'))
+const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/calibrage.md'), 'utf8'))
   .filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele));
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
 

@@ -248,7 +248,7 @@ export function optionDuSite(site, champ) {
  * Défauts PAR APPEL des sites `agent(…)` d'un script de workflow. PUR.
  * Universel : options littérales et FERMÉES ; `agentType` présent, littéral, et nom d'un type de
  * `typesDeclares` (le `name:` du frontmatter d'une fiche de `.claude/agents/`) — Calibrage de
- * `.claude/skills/orchestrer-des-agents/SKILL.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
+ * `.claude/skills/orchestrer-des-agents/calibrage.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
  * `arguments` de l'enveloppe, ni déclaration qui lie `agent`, ni référence à `agent` hors d'un appel
  * direct `agent(…)` — sinon un appel échappe aux sites lus.
  * Dépôt (`regimes`, absent hors de la porte) : `phase`, `model` et `effort` littéraux ; étage de la
