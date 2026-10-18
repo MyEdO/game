@@ -7,6 +7,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createConnection } from 'node:net'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
 const FIXTURE = `
@@ -40,7 +41,7 @@ async function banc(t, { consigne = 'BUSY', validation = () => {} } = {}) {
       natif.stdout.on('data', (b) => {
         flux += b.toString()
         if (flux.includes('fixture/perte-protocole')) {
-          process.kill(natif.pid, 0)
+          assert.equal(estPidVivant(natif.pid), true)
           vivantALaRupture = true
           natif.stdout.destroy()
         }
@@ -67,7 +68,7 @@ test('EOF vivant : perte du protocole tue le processus natif sous borne, sans fa
   const [code, signal] = await sousBorne(b.sortie, 2800)
   assert.equal(b.vivantALaRupture(), true)
   assert.ok(code !== 0 || signal)
-  assert.throws(() => process.kill(b.pont.child.pid, 0), /ESRCH|no such process/i)
+  assert.equal(estPidVivant(b.pont.child.pid), false)
   const transitions = readFileSync(join(b.dossier, `${b.sessionId}.codex.jsonl`), 'utf8').split('\n').filter(Boolean).map(JSON.parse).flatMap((x) => x.transition ? [x.transition] : [])
   assert.ok(transitions.some((x) => x.type === 'mort'))
   assert.equal(transitions.some((x) => x.type === 'fin'), false)

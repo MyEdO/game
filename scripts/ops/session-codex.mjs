@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createInterface } from 'node:readline'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 export const VERSION_PROTOCOLE_CODEX = '0.163.0'
 export const MAX_MESSAGE_CODEX = 64 * 1024
@@ -60,7 +61,7 @@ const METHODES = {
 function forme(schema, segments, definitions = schema?.definitions || {}) {
   if (!schema) return null
   if (schema.$ref) return forme(definitions[schema.$ref.split('/').at(-1)], segments, definitions)
-  const base = Object.fromEntries(['type', 'enum', 'const'].filter((k) => Object.hasOwn(schema, k)).map((k) => [k, schema[k]]))
+  const base = tableTotale(['type', 'enum', 'const'].filter((k) => Object.hasOwn(schema, k)), (k) => schema[k])
   if (!segments.length) return base
   if (segments[0].startsWith('@') && schema.properties?.type?.enum?.includes(segments[0].slice(1))) return forme(schema, segments.slice(1), definitions)
   const alternatives = schema.oneOf || schema.anyOf || schema.allOf
@@ -84,7 +85,7 @@ export function verifierProtocoleCodex({ executable, executer = spawnSync }) {
     if (genere.error || genere.status !== 0) throw refus('panne', 'Schéma Codex invérifiable', genere.error?.message || genere.stderr)
     for (const [nom, attendu] of Object.entries(EMPREINTES)) {
       const document = JSON.parse(readFileSync(join(scratch, `${nom}.json`), 'utf8'))
-      const mesuree = empreinte(JSON.stringify(Object.fromEntries(CHAMPS[nom].map((p) => [p, forme(document, p.split('.'))]))))
+      const mesuree = empreinte(JSON.stringify(tableTotale(CHAMPS[nom], (p) => forme(document, p.split('.')))))
       if (mesuree !== attendu) throw refus('validation', `Protocole Codex incompatible : ${nom} (${mesure})`)
     }
     for (const [enveloppe, methodes] of Object.entries(METHODES)) {
@@ -94,7 +95,7 @@ export function verifierProtocoleCodex({ executable, executer = spawnSync }) {
         const requis = ['method', ...(nom ? ['params'] : []), ...(enveloppe === 'ClientRequest' ? ['id'] : [])]
         if (branche?.type !== 'object' || branche.properties.method.type !== 'string' || requis.some((k) => !branche.required?.includes(k))) throw refus('validation', `Méthode Codex incompatible : ${methode}`)
         if (nom) {
-          const mesuree = empreinte(JSON.stringify(Object.fromEntries(CHAMPS[nom].map((p) => [p, forme(branche.properties.params, p.split('.'), document.definitions)]))))
+          const mesuree = empreinte(JSON.stringify(tableTotale(CHAMPS[nom], (p) => forme(branche.properties.params, p.split('.'), document.definitions))))
           if (mesuree !== EMPREINTES[nom]) throw refus('validation', `Paramètres de méthode Codex incompatibles : ${methode}`)
         }
       }

@@ -60,14 +60,14 @@ test('CLI : envoi sans requestId génère une identité réutilisable à la cout
 test('CLI : envoi reçoit la capacité stdin ; outils expose le contrat et refuse options étrangères', async () => {
   const id = 'd4afafad-8b29-4df4-9847-8f8f15e58a5c', appels = []
   const sessions = { envoyer: async (...p) => { appels.push(p); return { ok: true } }, etat: (cible) => ({ sessionId: cible }) }
-  const dependances = { stdout: { write() {} }, contexte: () => ({ gitCommun: 'C:/registre' }), sessionsDe: () => sessions, stdin: (async function* () { yield '{"jeton":"capacité"}' })(), env: {} }
+  const dependances = { stdout: { write() {} }, contexte: () => ({ gitCommun: racineScripts }), sessionsDe: () => sessions, stdin: (async function* () { yield '{"jeton":"capacité"}' })(), env: {} }
   assert.equal(await commandeSession(['envoyer', id, '--message', 'ajuste', '--request-id', id, '--timeout-ms', '12'], dependances), 0)
   assert.deepEqual(appels[0], [id, 'capacité', { message: 'ajuste', requestId: id, timeoutMs: 12 }])
   const outils = outilsSession()
   assert.deepEqual(outils.outils.map((o) => o.name), ['codex_envoyer', 'codex_attendre', 'codex_etat'])
   assert.ok(outils.outils.every((o) => o.description.length > 100 && o.inputSchema.additionalProperties === false))
   assert.match(outils.refusTechnique, /^\[panne · non retentable\]/)
-  assert.deepEqual(refusSession(new Error('[permission · non retentable] Jeton incorrect')), { prefixe: '[permission · non retentable]', categorie: 'permission', retentable: false, description: 'Jeton incorrect' })
+  assert.deepEqual(refusSession(new Error('[permission · non retentable] Jeton incorrect')), { prefixe: '[permission · non retentable]', categorie: 'permission', retentable: false, raison: 'Jeton incorrect' })
   assert.equal(refusSession(new Error('I/O inconnu')).categorie, 'panne')
   assert.deepEqual(outils.prefixesDeRefus.length, 5)
   assert.equal(outils.outils.find((o) => o.name === 'codex_attendre').inputSchema.properties.timeoutMs.maximum, 240_000)
@@ -89,8 +89,8 @@ test('lanceur Codex : version et protocole contrôlés avant réservation et fen
 
 test('préflights Codex : chaque exécuteur reçoit le même environnement nettoyé et garde les réglages utilisateur', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2528.md'); writeFileSync(consigne, 'faire')
-  const env = { WFRP_SESSION_JETON: 'parent', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', WFRP_SESSION_START: 'reçu-parent', GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur', PATH: 'natif' }
-  const propre = { GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur', PATH: 'natif' }, appels = []
+  const env = { WFRP_SESSION_JETON: 'parent', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', WFRP_SESSION_START: 'reçu-parent', GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }
+  const propre = { GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }, appels = []
   const executer = (exe, args, options) => {
     assert.equal(exe, b.fichiers.codex)
     assert.deepEqual(options.env, propre)

@@ -37,8 +37,8 @@ export function lire<T>(resultat: ProcessRunResult, { codes = [0] }: { codes?: r
 
 export function refusNatif(valeur: Record<string, unknown>, prefixes: readonly string[]): string | null {
   const refus = valeur.refus
-  return objet(refus) && texte(refus.description) && prefixes.some((prefixe) => prefixe === refus.prefixe)
-    ? `${refus.prefixe} ${refus.description}` : null
+  return objet(refus) && texte(refus.raison) && prefixes.some((prefixe) => prefixe === refus.prefixe)
+    ? `${refus.prefixe} ${refus.raison}` : null
 }
 
 function objet(valeur: unknown): valeur is Record<string, unknown> {

@@ -6,7 +6,7 @@ import { stripTypeScriptTypes } from 'node:module'
 const hooks = new URL('../../.claude/skills/harnais/hooks/', import.meta.url)
 const { outilsSession, refusSession } = await import('./session.mjs')
 const definitions = outilsSession()
-const refus = (description) => ({ exitCode: 1, stdout: JSON.stringify({ refus: refusSession(new Error(description)) }), stderr: '' })
+const refus = (raison) => ({ exitCode: 1, stdout: JSON.stringify({ refus: refusSession(new Error(raison)) }), stderr: '' })
 const json = (value) => ({ exitCode: 0, stdout: JSON.stringify(value), stderr: '' })
 
 function charger(nom, dependances) {
@@ -125,7 +125,9 @@ test('les refus natifs gardent leur catégorie ; pannes locales utilisent le ref
   for (const [reponse, attendu] of [
     [refus('[permission · non retentable] SESSION INTERDITE'), '[permission · non retentable] SESSION INTERDITE'],
     [{ exitCode: 1, stdout: '', stderr: 'Error: panne Node' }, definitions.refusTechnique],
-    [{ ...json({ refus: { prefixe: 'préfixe-inconnu', description: 'interdit' } }), exitCode: 1 }, definitions.refusTechnique],
+    [{ ...json({ refus: { prefixe: 'préfixe-inconnu', raison: 'interdit' } }), exitCode: 1 }, definitions.refusTechnique],
+    [{ ...json({ refus: { prefixe: definitions.prefixesDeRefus[0], raison: 42 } }), exitCode: 1 }, definitions.refusTechnique],
+    [{ ...json({ refus: { prefixe: definitions.prefixesDeRefus[0] } }), exitCode: 1 }, definitions.refusTechnique],
     [{ ...json({}), exitCode: 1 }, definitions.refusTechnique],
     [{ exitCode: 1, stdout: '', stderr: '' }, definitions.refusTechnique],
     [{ exitCode: 0, stdout: 'illisible', stderr: '' }, definitions.refusTechnique],
@@ -150,6 +152,35 @@ test('options facultatives omises, curseur zéro conservé, délai envoyer trans
   assert.deepEqual(b.appels.at(-1).argv.slice(2), ['attendre', sessionId, '--depuis', '0', '--timeout-ms', '0', '--json'])
   await b.declencher('tool.call', { tool: 'mcp__harnais__codex_envoyer', sessionId, jeton: 'secret-test', message: 'x', timeoutMs: 200 })
   assert.deepEqual(b.appels.at(-1).argv.slice(2), ['envoyer', sessionId, '--message', 'x', '--timeout-ms', '200', '--json'])
+})
+
+test('les arguments non textuels des outils enregistrés sont refusés avant tout effet', async () => {
+  const b = banc()
+  await b.declencher('session.start')
+  await b.declencher('tool.call', { tool: 'mcp__harnais__codex_etat', sessionId })
+  const avant = {
+    etat: structuredClone(b.atomes.get('codex')),
+    appels: structuredClone(b.appels),
+    status: [...b.status],
+    toasts: [...b.toasts],
+    logs: [...b.logs],
+  }
+  for (const valeur of [undefined, null, 42, false, ['secret-test'], { secret: 'secret-test' }]) {
+    for (const evenement of [
+      { tool: 'mcp__harnais__codex_envoyer', sessionId: valeur, message: 'x', jeton: 'secret-test' },
+      { tool: 'mcp__harnais__codex_envoyer', sessionId, message: valeur, jeton: 'secret-test' },
+      { tool: 'mcp__harnais__codex_attendre', sessionId: valeur },
+      { tool: 'mcp__harnais__codex_etat', sessionId: valeur },
+      ...(valeur ? [{ tool: 'mcp__harnais__codex_envoyer', sessionId, message: 'x', requestId: valeur, jeton: 'secret-test' }] : []),
+    ]) {
+      assert.deepEqual(await b.declencher('tool.call', evenement), { deny: definitions.refusTechnique })
+      assert.deepEqual(b.atomes.get('codex'), avant.etat)
+      assert.deepEqual(b.appels, avant.appels)
+      assert.deepEqual(b.status, avant.status)
+      assert.deepEqual(b.toasts, avant.toasts)
+      assert.deepEqual(b.logs, avant.logs)
+    }
+  }
 })
 
 test('startup malformé, absent ou enregistrement manqué ne rendent jamais les outils actifs', async () => {

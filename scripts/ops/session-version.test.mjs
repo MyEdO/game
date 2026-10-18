@@ -1,5 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { comparerVersions, verifierVersionCodex } from './session-version.mjs'
 
 test('version Codex : comparaison semver et préversions', () => {
@@ -13,7 +15,7 @@ test('version Codex : comparaison semver et préversions', () => {
 })
 
 test('version Codex : retard refuse la même executable avant tout lancement', async () => {
-  const executable = 'C:/propre/codex.exe'
+  const executable = join(tmpdir(), 'session-version', 'codex.exe')
   const executer = (exe, args, options) => {
     assert.equal(exe, executable); assert.deepEqual(args, ['--version']); assert.equal(options.shell, false); assert.ok(options.timeout <= 10_000)
     return { status: 0, stdout: 'codex-cli 0.162.1\n' }

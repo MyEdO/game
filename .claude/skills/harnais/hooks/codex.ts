@@ -6,9 +6,10 @@ import { appel, lire, outilsCodex, refusNatif } from './ops'
 const atome = atom({ plugin: 'harnais', key: 'codex' } as const, { outils: null, texte: null } as HarnaisCodex)
 const BORNE_MS = 265 * 1000
 
-async function executer($: EngineInterface, args: readonly string[], stdin?: string) {
+async function executer($: EngineInterface, args: readonly unknown[], stdin?: string) {
   const { outils } = await read($, atome)
   if (!outils) return null
+  if (!args.every((arg): arg is string => typeof arg === 'string')) return { deny: outils.refusTechnique }
   try {
     const lu = lire<Record<string, unknown>>(await $.process.run(...appel($.plugin.root, 'session', args, { borneMs: BORNE_MS, stdin })), { codes: [0, 1, 3] })
     if (!lu.ok) return { deny: outils.refusTechnique }

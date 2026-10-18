@@ -16,7 +16,7 @@ export function refusSession(erreur) {
   const message = erreur instanceof Error ? erreur.message : String(erreur)
   const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? 'panne'
   const prefixe = prefixeDeRefus(categorie)
-  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], description: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message }
+  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message }
 }
 
 /** `true` si ces arguments ATTENDENT une session (`attendre`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
@@ -164,15 +164,52 @@ async function jetonDe(env, stdin) {
 }
 
 export function outilsSession() {
-  const sessionId = { type: 'string', format: 'uuid', description: 'UUID d’une session inscrite au registre ops:session. Aucune identité de thread libre.' }
-  const timeoutMs = { type: 'integer', minimum: 0, maximum: 3_600_000, description: 'Délai maximum en millisecondes ; 0 effectue une observation immédiate.' }
-  const outil = (name, description, properties, required) => ({ name, description, inputSchema: { type: 'object', properties, required, additionalProperties: false } })
+  const sessionId = { type: 'string', format: 'uuid' }
+  const timeoutMs = { type: 'integer', minimum: 0, maximum: 3_600_000 }
+  const envoyer = {
+    name: 'codex_envoyer',
+    description: 'Envoie un message à une session Codex vivante inscrite. Le pont le sérialise avec les tours natifs ; le résultat confirme la livraison, pas la fin du travail. Le jeton autorise exclusivement cette session. Réutiliser requestId pour un nouvel essai du même envoi.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { ...sessionId, description: 'UUID d’une session inscrite au registre ops:session. Aucune identité de thread libre.' },
+        jeton: { type: 'string', minLength: 1, description: 'Capacité remise au lancement, transmise par stdin et jamais en argument de processus.' },
+        message: { type: 'string', minLength: 1, maxLength: 65536, description: 'Consigne à livrer à la session.' },
+        requestId: { type: 'string', format: 'uuid', description: 'Identifiant de déduplication de cet envoi.' },
+        timeoutMs: { ...timeoutMs, minimum: 1, maximum: 240_000, description: 'Délai maximum de livraison en millisecondes ; 1..240000.' },
+      },
+      required: ['sessionId', 'jeton', 'message'],
+      additionalProperties: false,
+    },
+  }
+  const attendre = {
+    name: 'codex_attendre',
+    description: 'Attend une transition native de la session Codex inscrite après le curseur depuis. Retourne une transition avec son curseur, son état et le rapport final validé lorsqu’il existe. Une fin de tour laisse le pont vivant. Réutiliser le curseur reçu pour la veille suivante.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { ...sessionId, description: 'UUID d’une session inscrite au registre ops:session. Aucune identité de thread libre.' },
+        depuis: { type: 'integer', minimum: 0, description: 'Dernier curseur consommé ; 0 rejoue depuis le début.' },
+        timeoutMs: { ...timeoutMs, maximum: 240_000, description: 'Délai maximum en millisecondes ; 0 effectue une observation immédiate.' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  }
+  const etat = {
+    name: 'codex_etat',
+    description: 'Lit la carte publique d’une session inscrite : état du processus, projection native Codex, jetons, durée, appels d’outils et rapport validé. Ne retourne aucune capacité de contrôle.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { ...sessionId, description: 'UUID d’une session inscrite au registre ops:session. Aucune identité de thread libre.' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  }
   return {
-    outils: [
-      outil('codex_envoyer', 'Envoie un message à une session Codex vivante inscrite. Le pont le sérialise avec les tours natifs ; le résultat confirme la livraison, pas la fin du travail. Le jeton autorise exclusivement cette session. Réutiliser requestId pour un nouvel essai du même envoi.', { sessionId, jeton: { type: 'string', minLength: 1, description: 'Capacité remise au lancement, transmise par stdin et jamais en argument de processus.' }, message: { type: 'string', minLength: 1, maxLength: 65536, description: 'Consigne à livrer à la session.' }, requestId: { type: 'string', format: 'uuid', description: 'Identifiant de déduplication de cet envoi.' }, timeoutMs: { ...timeoutMs, minimum: 1, maximum: 240_000, description: 'Délai maximum de livraison en millisecondes ; 1..240000.' } }, ['sessionId', 'jeton', 'message']),
-      outil('codex_attendre', 'Attend une transition native de la session Codex inscrite après le curseur depuis. Retourne une transition avec son curseur, son état et le rapport final validé lorsqu’il existe. Une fin de tour laisse le pont vivant. Réutiliser le curseur reçu pour la veille suivante.', { sessionId, depuis: { type: 'integer', minimum: 0, description: 'Dernier curseur consommé ; 0 rejoue depuis le début.' }, timeoutMs: { ...timeoutMs, maximum: 240_000 } }, ['sessionId']),
-      outil('codex_etat', 'Lit la carte publique d’une session inscrite : état du processus, projection native Codex, jetons, durée, appels d’outils et rapport validé. Ne retourne aucune capacité de contrôle.', { sessionId }, ['sessionId']),
-    ],
+    outils: [envoyer, attendre, etat],
     refusTechnique: `${prefixeDeRefus('panne')} Réponse ou transport ops:session invalide`,
     prefixesDeRefus: Object.keys(CATEGORIES_DE_REFUS).map(prefixeDeRefus),
   }
@@ -207,7 +244,7 @@ if (import.meta.main) {
   catch (e) {
     const refus = refusSession(e)
     if (process.argv.includes('--json')) process.stdout.write(`${JSON.stringify({ refus })}\n`)
-    else process.stderr.write(`${refus.prefixe} ${refus.description}\n`)
+    else process.stderr.write(`${refus.prefixe} ${refus.raison}\n`)
     process.exitCode = 1
   }
 }
