@@ -71,18 +71,17 @@ export function execFileResilient(
 /**
  * Rejoue un lancement ASYNCHRONE tant qu'il rend le code du loader. `lancer()` doit RE-CRÉER tout ce
  * qui est jeté par un essai (un descripteur de fichier de sortie se réouvre en `'w'`, sans quoi le
- * second essai écrirait à la suite du premier). REND le dernier résultat, rejoué ou non. `signal` réveille l'attente
- * et clôt le rejeu : aborté, le dernier résultat est rendu sans nouvel essai.
+ * second essai écrirait à la suite du premier). REND le dernier résultat, rejoué ou non. `signal` abrège l'attente
+ * d'un rejeu sans le décider : l'essai suivant, que `lancer` mène sous ce signal, rend l'annulation.
  */
 export async function reessayerAuChargement(lancer, { site = '?', journal = process.stderr, attendre, signal } = {}) {
-  const patienter = attendre ?? ((ms) => delai(ms, undefined, { signal }).catch(() => {}))
+  const patienter = attendre ?? ((ms) => delai(ms, undefined, { signal: signal ?? undefined }).catch((e) => { if (e?.name !== 'AbortError') throw e }))
   for (let essai = 0; ; essai += 1) {
     const resultat = await lancer(essai)
-    if (!estEchecDeChargement(resultat?.code) || essai >= BACKOFFS_MS.length || signal?.aborted) return resultat
+    if (!estEchecDeChargement(resultat?.code) || essai >= BACKOFFS_MS.length) return resultat
     rejeux.total += 1
     journal.write(`${MARQUE_REJEU} : ${site} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
     await patienter(BACKOFFS_MS[essai], signal)
-    if (signal?.aborted) return resultat
   }
 }
 

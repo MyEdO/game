@@ -129,11 +129,15 @@ function controleAFinRejetee(cause, { spontanee = false } = {}) {
 
 test('fin native rejetée : arrêt indéterminé nommé par sa cause, jamais un rejet ni une demande d’arrêt sans motif', async (t) => {
   const cause = Object.assign(new Error('fin native rompue'), { code: 'EFIN' })
-  const arretAttendu = { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue' }] }
+  const arretAttendu = { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue', cause }] }
   const seule = controleAFinRejetee(cause, { spontanee: true })
   const r = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: seule.controle }) })
-  assert.equal(r.code, 1); assert.deepEqual(r.arret, arretAttendu); assert.equal(r.error.code, 'EFIN')
+  assert.equal(r.code, 1); assert.deepEqual(r.arret, arretAttendu); assert.equal(r.error.code, 'EFIN'); assert.equal(r.error.cause, cause)
   assert.deepEqual(seule.demandes, [])
+  const sansPret = controleAFinRejetee(cause, { spontanee: true })
+  sansPret.controle.pret = new Promise(() => {})
+  const p = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: sansPret.controle }) })
+  assert.deepEqual(p.arret, arretAttendu, 'une fin rejetée ne garantit plus pret : son attente ne retient pas le rendu')
   const surException = controleAFinRejetee(cause)
   const s = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: surException.controle }),
     surControle() { throw Object.assign(new Error('callback impossible'), { code: 'ECALLBACK' }) } })
@@ -141,7 +145,7 @@ test('fin native rejetée : arrêt indéterminé nommé par sa cause, jamais un 
   assert.equal(surException.demandes.length, 1)
 })
 
-test('rejeu au chargement : l’annulation réveille l’attente du rejeu, sans second lancement', async (t) => {
+test('rejeu au chargement : l’annulation réveille l’attente du rejeu et rend l’annulation, sans second lancement', async (t) => {
   const annulation = new AbortController(); let lancements = 0
   const debut = Date.now()
   const r = await spawnBorne({ ...banc(t), argv: [], signal: annulation.signal, superviser: async () => {
@@ -151,7 +155,8 @@ test('rejeu au chargement : l’annulation réveille l’attente du rejeu, sans 
     return { hote: {}, controle: { pid: 5, pret: Promise.resolve({ pidCible: 5, instanceCible: 'fixture' }), fin, finPhysique: Promise.resolve(), demanderArret() {} } }
   } })
   const duree = Date.now() - debut
-  assert.equal(lancements, 1); assert.equal(r.status, STATUS_DLL_INIT_FAILED)
+  assert.equal(lancements, 1)
+  assert.deepEqual({ code: r.code, annulee: r.annulee, status: r.status }, { code: 1, annulee: true, status: null })
   assert.ok(duree < BACKOFFS_MS[0] / 2, `sortie à ${duree} ms, attente de rejeu ${BACKOFFS_MS[0]} ms`)
 })
 
@@ -163,13 +168,26 @@ test('tuerArbre : demande immédiate et résultat de l’unique fin', async () =
   const attente = tuerArbre(controle, 'cause')
   assert.deepEqual(demandes, ['cause'])
   finir({ arret }); assert.equal(await attente, arret)
-  assert.deepEqual(await tuerArbre(null), { pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'controle', pid: undefined, code: 'CONTROLE_ABSENT', message: 'arrêt sans propriétaire natif' }] })
+  const absent = Object.assign(new Error('arrêt sans propriétaire natif'), { code: 'CONTROLE_ABSENT' })
+  assert.deepEqual(await tuerArbre(null), { pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'controle', pid: undefined, code: 'CONTROLE_ABSENT', message: 'arrêt sans propriétaire natif', cause: absent }] })
 })
 
 test('tuerArbre : une fin rejetée rend l’arrêt indéterminé nommé par sa cause', async () => {
-  const { controle, demandes } = controleAFinRejetee(Object.assign(new Error('fin native rompue'), { code: 'EFIN' }))
-  assert.deepEqual(await tuerArbre(controle, 'cause'), { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue' }] })
+  const cause = Object.assign(new Error('fin native rompue'), { code: 'EFIN' })
+  const { controle, demandes } = controleAFinRejetee(cause)
+  assert.deepEqual(await tuerArbre(controle, 'cause'), { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue', cause }] })
   assert.deepEqual(demandes, ['cause'])
+})
+
+test('tuerArbre : une cause sans code garde sa chaîne, jamais son nom de classe pour code', async () => {
+  const racine = Object.assign(new Error('pipe rompu'), { code: 'EPIPE' })
+  const cause = new AggregateError([racine], 'fins natives rompues')
+  const arret = await tuerArbre(controleAFinRejetee(cause).controle, 'cause')
+  assert.deepEqual(arret.erreurs.map(({ operation, code, message }) => ({ operation, code, message })), [{ operation: 'fin', code: undefined, message: 'fins natives rompues' }])
+  assert.equal(arret.erreurs[0].cause, cause)
+  const lignes = []
+  diagnosticArret({ arret }, (l) => lignes.push(l))
+  assert.deepEqual(lignes.slice(0, 3), ['[gates] arrêt indéterminé : fin PID 77 fins natives rompues', '[gates] cause : AggregateError — fins natives rompues', '[gates] cause agrégée : EPIPE — pipe rompu'])
 })
 
 test('bornes : refus avant toute factory et ouverture', () => {

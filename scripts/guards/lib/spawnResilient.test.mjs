@@ -86,18 +86,38 @@ test('un VRAI rouge n’est jamais rejoué : un seul essai, aucun rejeu compté'
   assert.deepEqual(journal.lignes, [])
 })
 
-test('le signal réveille l’attente du rejeu et rend le dernier résultat, sans nouvel essai', async () => {
+test('le signal abrège l’attente du rejeu ; l’essai suivant, mené sous ce signal, rend l’annulation', async () => {
   for (const [nom, poser] of [['aborté pendant l’attente', (a) => setTimeout(() => a.abort(), 30)], ['aborté avant l’attente', (a) => a.abort()]]) {
     const journal = journalDeTest(); const annulation = new AbortController(); const essais = []
     const debut = Date.now()
     const r = await reessayerAuChargement((essai) => {
-      essais.push(essai); poser(annulation)
+      essais.push(essai)
+      if (annulation.signal.aborted) return Promise.resolve({ code: 1, annulee: true })
+      poser(annulation)
       return Promise.resolve({ code: STATUS_DLL_INIT_FAILED })
     }, { site: 'sonde', journal, signal: annulation.signal })
     const duree = Date.now() - debut
-    assert.deepEqual(essais, [0], nom); assert.equal(r.code, STATUS_DLL_INIT_FAILED, nom)
+    assert.deepEqual(essais, [0, 1], nom); assert.deepEqual(r, { code: 1, annulee: true }, nom)
     assert.ok(duree < BACKOFFS_MS[0] / 2, `${nom} : sortie à ${duree} ms, attente de rejeu ${BACKOFFS_MS[0]} ms`)
   }
+})
+
+test('attente du rejeu : un signal nul attend le plein backoff, toute faute autre qu’un abandon remonte', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const essais = []
+  const attente = reessayerAuChargement((essai) => {
+    essais.push(essai)
+    return Promise.resolve({ code: essai === 0 ? STATUS_DLL_INIT_FAILED : 0 })
+  }, { site: 'sonde', journal: journalDeTest(), signal: null })
+  await new Promise((ok) => setImmediate(ok))
+  t.mock.timers.tick(BACKOFFS_MS[0] - 1)
+  await new Promise((ok) => setImmediate(ok))
+  assert.deepEqual(essais, [0], 'le second essai part avant la fin du backoff')
+  t.mock.timers.tick(1)
+  assert.deepEqual(await attente, { code: 0 })
+  assert.deepEqual(essais, [0, 1])
+  await assert.rejects(reessayerAuChargement(() => Promise.resolve({ code: STATUS_DLL_INIT_FAILED }),
+    { site: 'sonde', journal: journalDeTest(), signal: 'pas un signal' }), { code: 'ERR_INVALID_ARG_TYPE' })
 })
 
 test('`lancer` est rappelé À CHAQUE essai : ce qu’un essai consomme est re-créé', async () => {

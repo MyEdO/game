@@ -7,6 +7,7 @@ import { StringDecoder } from 'node:string_decoder'
 import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
+import { arretIndetermine, finNative } from './arretNatif.mjs'
 import { ecrireJsonAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { LANCEMENTS_SUPERVISES, relancerApresNettoyage } from './controleEcritures.mjs'
 import { citerArgv } from './lancerDetache.mjs'
@@ -323,12 +324,12 @@ async function lancerSousHote(commande, args, options, lancement) {
     })()
     controle.finPhysique.catch(() => {})
     controle.fin = (async () => {
-      let arret = { pid: null, etat: 'indetermine', erreurs: [] }
+      let arret
       let completDansBorne = false
       try {
         const terminaison = await Promise.race([complet.then(([ferme]) => ({ ferme })), defautCloture.attente.then((cause) => ({ cause }))])
         if (terminaison.cause) {
-          arret = { pid, etat: 'indetermine', erreurs: [{ operation: 'cloture', pid, code: terminaison.cause.code, message: terminaison.cause.message }] }
+          arret = arretIndetermine({ operation: 'cloture', pid, cause: terminaison.cause })
           let certificat
           try { certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8')) } catch {}
           if (certificat?.version === 1 && certificat.generation === generation) Object.assign(arret, { echeance: certificat.echeance, methode: certificat.methode, zeroNatif: certificat.zero === true })
@@ -349,15 +350,16 @@ async function lancerSousHote(commande, args, options, lancement) {
             !['job-windows', 'subreaper-linux'].includes(certificat.methode) || certificat.echeance !== fermeture.echeance || typeof certificat.zero !== 'boolean' || !Array.isArray(certificat.erreurs)) throw erreur('ECONTROLE', 'certificat natif incohérent')
         } catch (e) { interruption ??= erreur('ECONTROLE', 'certificat natif absent ou invalide : ' + e.message) }
         const mort = !clotureDefaillante && ferme.status === 0 && certificat?.zero === true && certificat.erreurs.length === 0 && certificat.echeance === fermeture?.echeance && !['ECONTROLE', 'ERESULTAT'].includes(interruption?.code)
+        const indetermine = !mort && (interruption ? arretIndetermine({ operation: 'cloture', pid, cause: interruption }) : arretIndetermine({ operation: 'cloture', pid, message: 'zéro natif non confirmé' }))
         arret = { pid, etat: mort ? 'mort' : 'indetermine', echeance: fermeture?.echeance, methode: certificat?.methode,
-          erreurs: mort ? [] : [{ operation: 'cloture', pid, code: interruption?.code ?? 'ARRET_INDETERMINE', message: interruption?.message ?? 'zéro natif non confirmé' }, ...(certificat?.erreurs ?? [])] }
+          erreurs: mort ? [] : [...indetermine.erreurs, ...(certificat?.erreurs ?? [])] }
         let resultatCible = resultat ?? { status: null, signal: null }
         if (interruption) resultatCible = { ...resultatCible, error: { code: interruption.code ?? 'ECONTROLE', message: interruption.message } }
         resultatCible = { ...resultatCible, status: transaction.finaliser(resultatCible.status) }
         resultatPublie = { resultatCible, arret }
         return resultatPublie
       } catch (e) {
-        resultatPublie = { resultatCible: { status: null, signal: null, error: { code: e.code ?? 'ECONTROLE', message: e.message } }, arret }
+        resultatPublie = { resultatCible: { status: null, signal: null, error: { code: e.code ?? 'ECONTROLE', message: e.message } }, arret: arret ?? arretIndetermine({ operation: 'cloture', pid, cause: e }) }
         return resultatPublie
       } finally {
         if (pid === null) pret.rejeter(interruption ?? erreur('ERESULTAT', 'cible absente'))
@@ -387,26 +389,27 @@ async function lancerSousHote(commande, args, options, lancement) {
 lancerProcessusSupervise.optionsEffectives = LANCEMENTS_SUPERVISES.projeter
 
 /**
- * `lancerProcessusSupervise`, sorties drainées : rend `{ status, signal, error?, stdout, stderr, arret }`, et
- * `{ status: null, signal: null, error }` sans `arret` sur un lancement refusé (#2586).
+ * `superviser` (défaut `lancerProcessusSupervise`), sorties drainées : rend `{ status, signal, error?, stdout, stderr,
+ * arret }` de l'unique `fin` native, et `{ status: null, signal: null, error }` sans `arret` sur un lancement refusé
+ * (#2586).
  */
-export async function superviserProcessus({ commande, args = [], entree, heriter = false, stdio, ...options }) {
+export async function superviserProcessus({ commande, args = [], entree, heriter = false, stdio, superviser = lancerProcessusSupervise, ...options }) {
   let stdout = ''; let stderr = ''
   const sortie = new StringDecoder('utf8')
   const erreurs = new StringDecoder('utf8')
   try {
-    const { hote, controle } = await lancerProcessusSupervise(commande, args, { ...options, stdio: stdio ?? (heriter ? 'inherit' : ['pipe', 'pipe', 'pipe']) })
+    const { hote, controle } = await superviser(commande, args, { ...options, stdio: stdio ?? (heriter ? 'inherit' : ['pipe', 'pipe', 'pipe']) })
     hote.stdout?.on('data', (b) => { stdout += sortie.write(b) })
     hote.stderr?.on('data', (b) => { stderr += erreurs.write(b) })
     if (!heriter) { hote.stdin?.on('error', () => {}); hote.stdin?.end(entree) }
-    const { resultatCible, arret } = await controle.fin
+    const { resultatCible, arret } = await finNative(controle)
     stdout += sortie.end(); stderr += erreurs.end()
     return { ...resultatCible, stdout, stderr, arret }
   } catch (e) { return { status: null, signal: null, stdout, stderr, error: { code: e.code ?? 'ECONTROLE', message: e.message } } }
 }
 
 export function sortieDeSupervision(resultat, journal = process.stderr) {
-  if (resultat.error) { journal.write(`[supervision] ${resultat.error.code} : ${resultat.error.message}\n`); return 1 }
+  if (resultat.error) { journal.write(`[supervision] ${resultat.error.code ? `${resultat.error.code} : ` : ''}${resultat.error.message}\n`); return 1 }
   return resultat.status ?? 1
 }
 
