@@ -39,7 +39,10 @@ import {
   reverseRoll,
   lancerDeLaSecondeMain,
   woundsFromHit,
-  woundsAtCritLocation,
+  compteDuCoup,
+  apresDeviations,
+  sansLeCoupCritiqueIgnore,
+  type CompteDuCoup,
   toucheAuJetPose,
   rangeBandModifier,
   rangeBandName,
@@ -159,7 +162,7 @@ import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, impenetrableAt, piecesPorteesA, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
@@ -179,7 +182,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -324,6 +327,13 @@ export function attackWeaponOf(battle: BattleState, attacker: Combatant, target:
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
   // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
   return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut);
+}
+
+/** Combattant qui ENCAISSE la touche d'une attaque PILOTÉE (`PendingAttack`) — SOURCE UNIQUE de l'aperçu
+ *  au jet, de l'application (`attackConfirm`), de la fenêtre de Défense et du réticule. LDB 14 l.106 ;
+ *  LDB 14 l.116 ; LDB 18 l.53 */
+export function victimeDuCoup(battle: BattleState, target: Combatant, pa: PendingAttack): Combatant {
+  return pa.victimId ? inBattleId(battle, pa.victimId) ?? target : target;
 }
 
 /** Arme SYNTHÉTISÉE d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
@@ -2176,15 +2186,9 @@ registerCascadeTableFold('deviation', (step, get) => {
   return { ...step, deviation: dev, ...(step.options ? { reveal } : {}) };
 });
 
-/** Une armure Bâclée frappée par un Coup Critique à sa localisation casse (LDB 60 l.50) — héros (pièces). */
+/** LDB 60 l.50. */
 function breakBacleArmour(target: Combatant, loc: HitLocation, log: string[]): void {
-  const piece = piecesPorteesA(target, loc).find(
-    (i) => hasQuality(i, 'bacle'),
-  );
-  if (!piece) return;
-  piece.damageTaken = (piece.pa ?? 0) + 1; // LDB 63 l.21
-  recomputeLoadout(target);
-  log.push(tr('cf.shoddyBreaks', { name: target.label, loc: locationLabel(loc, target.bodyShape) }));
+  if (casserLaPieceBaclee(target, loc)) log.push(tr('cf.shoddyBreaks', { name: target.label, loc: locationLabel(loc, target.bodyShape) }));
 }
 
 /** « Arme possédant une lame » (Piège-lame, LDB 62 l.278) — flag maison éditable (le RAW ne liste
@@ -2350,46 +2354,6 @@ function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, 
   return [];
 }
 
-/** La cible APRÈS `n` Déviations à `loc` (LDB 63 l.19, l.21, l.32), puis la casse de sa pièce Bâclée sous
- *  `casse` (LDB 60 l.50 ; #1595 c.6228496170 Q1), sur une COPIE : le compte se refait sans muter la cible
- *  avant la dernière décision. */
-function apresDeviations(target: Combatant, loc: HitLocation, n: number, opts: { casse?: boolean } = {}): Combatant {
-  if (n === 0 && !opts.casse) return target;
-  const copie = structuredClone(target);
-  for (let i = 0; i < n; i++) damageArmour(copie, loc);
-  if (opts.casse) breakBacleArmour(copie, loc, []);
-  return copie;
-}
-
-/** Le compte sans le Coup Critique qu'une pièce Impénétrable ignore à `lieu` sur le jet impair `jet` :
- *  LDB 63 l.78 ; #1595 c.6221792068 Q3, c.6228496170 Q3, Q4a. */
-function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number, cible: Combatant, lieu: HitLocation): CompteDesCritiques {
-  if (jet % 2 !== 1 || !impenetrableAt(cible, lieu)) return compte;
-  return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
-}
-
-/** Le compte d'une touche d'arme sur la cible après `n` Déviations : `critiquesDuCoup`, avec la Localisation
- *  du Coup Critique relancée puis FIGÉE sur `res.critLocation` (LDB 18 l.53, l.55), et l'Impénétrable lu à
- *  CETTE Localisation (LDB 63 l.78 ; #1595 c.6221792068 Q3). `blessures` = Blessures normales du coup. */
-function compterLesCritiques(
-  res: AttackResult, weapon: Weapon, attacker: Combatant, target: Combatant, n: number,
-): CompteDuCoup & { relance: boolean } {
-  const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current };
-  const relance = relanceLaLocalisation(target, coup);
-  const lieu: HitLocation = relance ? (res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape)) : (res.location ?? 'corps');
-  const devie = apresDeviations(target, lieu, n);
-  let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
-  if (relance) {
-    blessures = woundsAtCritLocation(res, weapon, apresDeviations(target, lieu, n, { casse: true }), lieu);
-  } else if (coup.prise && n > 0 && !res.degatsTransferes) {
-    const dmg = res.damage ?? 0;
-    blessures += Math.max(0, woundsFromHit(weapon, devie, lieu, dmg, 0, 1, attacker.size) - woundsFromHit(weapon, target, lieu, dmg, 0, 1, attacker.size));
-  }
-  const compte = critiquesDuCoup(target, { ...coup, touche: true, relance, blessures });
-  const coupCritique = compte.critiques.some((c) => estUnCoupCritique(c.origine));
-  return { compte: relance ? sansLeCoupCritiqueIgnore(compte, res.attackerRoll, devie, lieu) : compte, lieu, relance, blessures, coupCritique };
-}
-
 /** Le compte d'une touche de Projectile sur la cible après `n` Déviations, ses Blessures relues à PA−n à sa
  *  Localisation : LDB 63 l.30, l.32 ; LDB 18 l.53 ; LDB 63 l.78. */
 function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Combatant, cible: Combatant, n: number): CompteDuCoup {
@@ -2403,13 +2367,9 @@ function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Com
   const compte = critiquesDuCoup(cible, { coupCritique: causeDuProjectile(touche), prise: true, current: cible.wounds.current, touche: true, relance, blessures });
   return {
     compte: relance ? sansLeCoupCritiqueIgnore(compte, mres.roll ?? 0, apresDeviations(cible, loc, n), loc) : compte,
-    lieu: loc, blessures, coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)),
+    lieu: loc, coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)),
   };
 }
-
-/** Le compte d'un coup après ses Déviations : les Critiques, leur Localisation UNIQUE (LDB 18 l.53, l.55),
- *  les Blessures du coup, et s'il porte un Coup Critique AVANT tout filtre (Bâclée, LDB 60 l.50). */
-interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; blessures: number; coupCritique: boolean }
 
 /** Ce que le plan des Blessures critiques d'un coup lit — arme ou Projectile. */
 interface PlanDesCritiques<C extends CompteDuCoup> {
@@ -2559,7 +2519,7 @@ interface EncaissementDuCoup {
  *  LDB 18 l.53 ; AA 07 l.25. */
 function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; infligees: number } {
   const { get, set, cible, log } = e;
-  const { lieu, blessures } = e.compte;
+  const { lieu, compte: { blessures } } = e.compte;
   const currentBefore = cible.wounds.current;
   cible.wounds.current = Math.max(0, currentBefore - blessures);
   if (!isInanimate(cible)) {
@@ -2612,7 +2572,7 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
   const attaquant = garanti(inBattleId(battle, coup.attackerId), coup.attackerId, "auteur du coup qui porte le Critique d'Équipage");
   const marin = garanti(inBattleId(battle, coup.marinId), coup.marinId, "marin d'un Critique d'Équipage (MDG 13 l.584)");
   const touche = coup.mode === 'melee'
-    ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label, recompter: (n: number): CompteDuCoup => compterLesCritiques(coup.res, coup.weapon, attaquant, marin, n) }
+    ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label, recompter: (n: number): CompteDuCoup => compteDuCoup(coup.res, coup.weapon, attaquant, marin, n) }
     : { hit: !!coup.touche.mres.hit, roll: coup.touche.mres.roll ?? 0, arme: undefined, libelle: coup.touche.spell.label, recompter: (n: number): CompteDuCoup => compterLesCritiquesDuProjectile(coup.touche, attaquant, marin, n) };
   const lignes: string[] = [];
   if (!touche.hit) return lignes;
@@ -2622,7 +2582,7 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null;
-  if (planifie.compte.blessures > 0) lignes.push(tr('op.wounds', { name: marin.label, n: planifie.compte.blessures, mitig: '' }));
+  if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.wounds', { name: marin.label, n: planifie.compte.compte.blessures, mitig: '' }));
   encaisserLeCoup({
     get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme,
     ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: touche.libelle, ...(touche.arme ? { weaponObj: touche.arme } : {}), critTwice: twice },
@@ -2760,10 +2720,12 @@ function appliquerLaTouche(
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
+  // #1595 c.6247370933
+  if (relanceLaLocalisation(target, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current })) res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
-    recompter: (n) => compterLesCritiques(res, weapon, attacker, target, n),
+    recompter: (n) => compteDuCoup(res, weapon, attacker, target, n),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(target, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
@@ -2803,7 +2765,8 @@ function appliquerLaTouche(
   const ctxCrit: DeviationCtx = {
     attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice, coup: suspendu,
   };
-  const { compte, lieu, relance, blessures, coupCritique } = coupCompte;
+  const { compte, lieu, coupCritique } = coupCompte;
+  const { relance, blessures } = compte;
   if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
     if (relance) { res.critLocation = lieu; res.location = lieu; }
@@ -3737,8 +3700,7 @@ export function maybeOpenDefense(
 export function surfacedDefensePending(s: GameState, attacker: Combatant, target: Combatant, weapon: Weapon, pa: PendingAttack): boolean {
   if (pa.defended || !pa.result?.attackerDetail || pa.result.defenderDetail) return false;
   if (pa.siege) return false;
-  const victimId = (pa.victimId && s.battle ? inBattleId(s.battle, pa.victimId)?.id : undefined) ?? target.id;
-  if (victimId !== target.id) return false;
+  if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
   const dist = combatDistance(attacker, target);
   if (weapon.type === 'ranged') return rangedDefenseModes(attacker, target, weapon, dist, true, sceneMetresPerTile(s.scene)).length > 0;
@@ -5969,14 +5931,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
-  cible.wounds.current = Math.max(0, currentBefore - compte.blessures);
+  cible.wounds.current = Math.max(0, currentBefore - compte.compte.blessures);
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
   const mReinj = reinjuryBleed(cible, loc);
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
   const { infligees } = appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, currentBefore, roll: mres.roll ?? 0,
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
-    apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.blessures }),
+    apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
   });
   // 0 PB → À Terre (LDB 18 l.15).
   if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
@@ -6008,14 +5970,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // plus que les PB perdus par la cible). Le missile ne joue pas le sous-Flow `caster`, on applique
   // donc la/les op(s) lifeSteal directement avec les Blessures infligées en contexte.
   {
-    const dealt = Math.min(compte.blessures, currentBefore);
+    const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
     if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'spell', id: spell.id } }));
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.blessures, critiques: infligees }), { ...mres, woundsLost: compte.blessures }, infligees);
+  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees }), { ...mres, woundsLost: compte.compte.blessures }, infligees);
 }
 
 /** La Localisation relancée d'une touche de Projectile sur `cible`, décidée à sa naissance par

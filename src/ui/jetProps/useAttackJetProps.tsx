@@ -9,7 +9,7 @@ import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { peutEtreEmpoigne } from '../../engine/grapple';
 import { combatDistance } from '../../state/footprint';
-import { attackWeaponOf, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
+import { attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
 import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
 import { objetSourceDeLArme } from '../../engine/weaponLoad';
@@ -90,7 +90,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // MOTEUR, la même que celle qui pèsera sur la cible (`attackModifiers`).
   const offPen = offHandPenalty(attacker);
   const res = pa.result;
-  const issue = res ? issueAuJet(target, coupAApplique(res, pa.grapple, target)) : null;
+  const victime = victimeDuCoup(battle, target, pa);
+  const issue = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), weapon, attacker) : null;
   const rolled = !!res;
   // LDB 10 l.767-773
   const dualEligible = !res && armeTenue && attacker.kind === 'hero' && attackModesFor(attacker).includes('dual-wield')
