@@ -14,13 +14,13 @@ func _ready() -> void:
 
 ## Lance les modes demandés dans l'URL ; `vue` = la vue rendue par `demarrer`.
 func lancer(vue: Dictionary) -> void:
-	if _parametre("sonde") == "exception":
+	if Pont.parametre("sonde") == "exception":
 		var r: Variant = Pont.sonder_exception_nue()
 		print("[sonde-exception] recu=", type_string(typeof(r)), " valeur=", str(r))
 		Pont.relever_erreurs_globales("sondeExceptionNue")
-	if _parametre("sonde") == "erreur-gdscript":
+	if Pont.parametre("sonde") == "erreur-gdscript":
 		_sonder_erreur_gdscript()
-	if _parametre("mesure") == "pont":
+	if Pont.parametre("mesure") == "pont":
 		_mesurer_pont(vue)
 
 
@@ -30,10 +30,6 @@ func _sonder_erreur_gdscript() -> void:
 	print("[sonde-erreur-gdscript] avant l'appel sur null")
 	vide.get_instance_id()
 	print("[sonde-erreur-gdscript] après l'appel sur null")
-
-
-func _parametre(cle: String) -> String:
-	return str(Pont.evaluer("String(new URLSearchParams(location.search).get('%s') ?? '')" % cle))
 
 
 func _mesurer_pont(vue: Dictionary) -> void:

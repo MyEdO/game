@@ -10,8 +10,7 @@ const OPACITE_HORS_DE_COMBAT := 0.35
 
 @onready var _jeton: Sprite2D = $Jeton
 @onready var _selection: Sprite2D = $Selection
-@onready var _nom: Label = $Nom
-@onready var _blessures: ProgressBar = $Blessures
+@onready var _etiquette: Etiquette = $Etiquette
 
 
 func configurer(combattant: Dictionary) -> void:
@@ -20,9 +19,7 @@ func configurer(combattant: Dictionary) -> void:
 
 
 func mettre_a_jour(combattant: Dictionary, actif: bool) -> void:
-	_nom.text = combattant.libelle
-	_blessures.max_value = maxf(1.0, combattant.blessuresMax)
-	_blessures.value = combattant.blessures
+	_etiquette.afficher(combattant)
 	_selection.visible = actif and not combattant.horsDeCombat
 	if combattant.horsDeCombat:
 		modulate.a = OPACITE_HORS_DE_COMBAT

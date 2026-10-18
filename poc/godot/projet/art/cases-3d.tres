@@ -1,0 +1,81 @@
+[gd_resource type="MeshLibrary" load_steps=13 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Materiau_sol"]
+albedo_color = Color(0.46, 0.39, 0.29, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Materiau_sol_sombre"]
+albedo_color = Color(0.4, 0.34, 0.25, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Materiau_bloquant"]
+albedo_color = Color(0.43, 0.43, 0.46, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Materiau_atteignable"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.35, 0.78, 0.4, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="Materiau_cible"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.9, 0.22, 0.16, 0.65)
+
+[sub_resource type="StandardMaterial3D" id="Materiau_survol"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.88, 0.4, 0.6)
+
+[sub_resource type="BoxMesh" id="Mesh_sol"]
+material = SubResource("Materiau_sol")
+size = Vector3(0.97, 0.2, 0.97)
+
+[sub_resource type="BoxMesh" id="Mesh_sol_sombre"]
+material = SubResource("Materiau_sol_sombre")
+size = Vector3(0.97, 0.2, 0.97)
+
+[sub_resource type="BoxMesh" id="Mesh_bloquant"]
+material = SubResource("Materiau_bloquant")
+size = Vector3(0.92, 1, 0.92)
+
+[sub_resource type="PlaneMesh" id="Mesh_atteignable"]
+material = SubResource("Materiau_atteignable")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="PlaneMesh" id="Mesh_cible"]
+material = SubResource("Materiau_cible")
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="PlaneMesh" id="Mesh_survol"]
+material = SubResource("Materiau_survol")
+size = Vector2(0.9, 0.9)
+
+[resource]
+item/0/name = "sol"
+item/0/mesh = SubResource("Mesh_sol")
+item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+item/0/shapes = []
+item/1/name = "bloquant"
+item/1/mesh = SubResource("Mesh_bloquant")
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+item/1/shapes = []
+item/2/name = "atteignable"
+item/2/mesh = SubResource("Mesh_atteignable")
+item/2/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012, 0)
+item/2/mesh_cast_shadow = 0
+item/2/shapes = []
+item/3/name = "cible"
+item/3/mesh = SubResource("Mesh_cible")
+item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012, 0)
+item/3/mesh_cast_shadow = 0
+item/3/shapes = []
+item/4/name = "survol"
+item/4/mesh = SubResource("Mesh_survol")
+item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.014, 0)
+item/4/mesh_cast_shadow = 0
+item/4/shapes = []
+item/5/name = "sol_sombre"
+item/5/mesh = SubResource("Mesh_sol_sombre")
+item/5/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+item/5/shapes = []

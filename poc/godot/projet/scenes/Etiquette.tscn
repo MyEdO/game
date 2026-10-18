@@ -1,0 +1,47 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/etiquette.gd" id="1_etiquette"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fond"]
+bg_color = Color(0.1, 0.08, 0.07, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rempli"]
+bg_color = Color(0.78, 0.2, 0.17, 1)
+
+[node name="Etiquette" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 140.0
+offset_bottom = 25.0
+mouse_filter = 2
+script = ExtResource("1_etiquette")
+
+[node name="Nom" type="Label" parent="."]
+layout_mode = 0
+offset_right = 140.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.92, 0.82, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Blessures" type="ProgressBar" parent="."]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 19.0
+offset_right = 90.0
+offset_bottom = 25.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_fond")
+theme_override_styles/fill = SubResource("StyleBoxFlat_rempli")
+max_value = 1.0
+value = 1.0
+show_percentage = false

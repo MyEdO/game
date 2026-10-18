@@ -1,39 +1,39 @@
-## Combat isométrique du prototype #2793 : géométrie (grille, chemin, adjacence), saisie, affichage et
-## politique de l'IA adverse. Jets, Blessures, Avantage, initiative, Mouvement et issue viennent de `Pont`.
-extends Node2D
+## Combat des prototypes #2793 et #2809 : grille, chemin, adjacence, tour, modes et IA adverse, rendus par un `Plateau`
+## (3D par défaut, `?vue=2d`). Jets, Blessures, Avantage, initiative, Mouvement et issue viennent de `Pont`.
+extends Node
 
-const SOURCE_ATTEIGNABLE := 2
-const SOURCE_SURVOL := 3
-const SOURCE_CIBLE := 4
 const POIDS_OCCUPE := 1000.0
 const DELAI_IA_S := 0.6
 const GRAINE := 1
+const HORS_CARTE := Vector2i(-1, -1)
 const VOISINS: Array[Vector2i] = [
 	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
 	Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1),
 ]
 
-@export var scene_unite: PackedScene
+@export var scene_plateau_2d: PackedScene
+@export var scene_plateau_3d: PackedScene
 
-@onready var _sol: TileMapLayer = $Sol
-@onready var _surbrillance: TileMapLayer = $Surbrillance
-@onready var _unites: Node2D = $Unites
-@onready var _departs_heros: Node2D = $Departs/Heros
-@onready var _departs_adversaires: Node2D = $Departs/Adversaires
 @onready var _interface: InterfaceCombat = $Interface
 @onready var _mesures: Node = $Mesures
 
+var _plateau: Plateau
 var _astar := AStarGrid2D.new()
 var _vue: Dictionary = {}
 var _positions: Dictionary = {}
-var _jetons: Dictionary = {}
 var _mode := ""
 var _occupe := false
-var _case_survolee := Vector2i(-1, -1)
+var _case_survolee := HORS_CARTE
 var _atteignables: Dictionary = {}
 
 
 func _ready() -> void:
+	var vue_2d := Pont.est_web and Pont.parametre("vue") == "2d"
+	_plateau = (scene_plateau_2d if vue_2d else scene_plateau_3d).instantiate()
+	add_child(_plateau)
+	print("[vue] ", "2d" if vue_2d else "3d")
+	_plateau.case_survolee.connect(_survoler)
+	_plateau.case_cliquee.connect(_cliquer)
 	_construire_grille()
 	_interface.demande_mode.connect(_basculer_mode)
 	_interface.demande_fin_de_tour.connect(_fin_de_tour_joueur)
@@ -62,13 +62,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_basculer_mode("deplacer")
 	elif event.is_action_pressed("mode_attaquer"):
 		_basculer_mode("attaquer")
-	elif event is InputEventMouseMotion:
-		var case := _sol.local_to_map(_sol.get_local_mouse_position())
-		if case != _case_survolee:
-			_case_survolee = case
-			_peindre_surbrillance()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_cliquer(_sol.local_to_map(_sol.get_local_mouse_position()))
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -77,25 +70,13 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- Géométrie ---------------------------------------------------------------------------------
 
 func _construire_grille() -> void:
-	_astar.region = _sol.get_used_rect()
-	_astar.cell_size = Vector2(_sol.tile_set.tile_size)
-	_astar.cell_shape = AStarGrid2D.CELL_SHAPE_ISOMETRIC_DOWN
+	_astar.region = Rect2i(Vector2i.ZERO, _plateau.carte.taille)
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_CHEBYSHEV
 	_astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_CHEBYSHEV
 	_astar.update()
-	for case in _cases():
-		var donnees := _sol.get_cell_tile_data(case)
-		_astar.set_point_solid(case, donnees == null or donnees.get_custom_data("bloquant"))
-
-
-func _cases() -> Array[Vector2i]:
-	var cases: Array[Vector2i] = []
-	var zone := _astar.region
-	for y in range(zone.position.y, zone.end.y):
-		for x in range(zone.position.x, zone.end.x):
-			cases.append(Vector2i(x, y))
-	return cases
+	for case in _plateau.cases():
+		_astar.set_point_solid(case, _plateau.est_bloquante(case))
 
 
 func _occupant(case: Vector2i) -> String:
@@ -111,7 +92,7 @@ func _adjacent(a: Vector2i, b: Vector2i) -> bool:
 
 ## Plus court chemin (départ et arrivée compris) ; les cases occupées hors `libres` sont exclues.
 func _chemin(depart: Vector2i, arrivee: Vector2i, libres: Array) -> Array[Vector2i]:
-	for case in _cases():
+	for case in _plateau.cases():
 		_astar.set_point_weight_scale(case, 1.0)
 	for id in _positions:
 		if not libres.has(_positions[id]):
@@ -129,7 +110,7 @@ func _calculer_atteignables(c: Dictionary) -> Dictionary:
 		return resultat
 	var depart: Vector2i = _positions[c.id]
 	var portee := int(c.mouvement)
-	for case in _cases():
+	for case in _plateau.cases():
 		if case == depart or _astar.is_point_solid(case) or _occupant(case) != "":
 			continue
 		if maxi(absi(case.x - depart.x), absi(case.y - depart.y)) > portee:
@@ -155,26 +136,21 @@ func _adversaires_adjacents(c: Dictionary) -> Array[String]:
 func _placer(vue: Dictionary) -> void:
 	var rangs := {heros = 0, adversaires = 0}
 	for c in vue.combattants:
-		var departs: Node2D = _departs_heros if c.camp == "heros" else _departs_adversaires
+		var departs := _plateau.departs(c.camp)
 		var rang: int = rangs[c.camp]
 		rangs[c.camp] = rang + 1
-		if rang >= departs.get_child_count():
+		if rang >= departs.size():
 			push_error("[combat] aucun point de départ pour ", c.id, " (camp ", c.camp, ")")
 			continue
-		var case := _sol.local_to_map(_sol.to_local(departs.get_child(rang).global_position))
-		var jeton: Unite = scene_unite.instantiate()
-		jeton.position = _sol.map_to_local(case)
-		_unites.add_child(jeton)
-		jeton.configurer(c)
-		_positions[c.id] = case
-		_jetons[c.id] = jeton
+		_plateau.placer(c, departs[rang])
+		_positions[c.id] = departs[rang]
 
 
 func _appliquer_vue(vue: Dictionary) -> void:
 	_vue = vue
 	for c in vue.combattants:
-		if _jetons.has(c.id):
-			_jetons[c.id].mettre_a_jour(c, c.id == vue.actif)
+		if _positions.has(c.id):
+			_plateau.mettre_a_jour(c, c.id == vue.actif)
 		if c.horsDeCombat:
 			_positions.erase(c.id)
 	_interface.afficher_vue(vue)
@@ -212,17 +188,23 @@ func _rafraichir() -> void:
 
 
 func _peindre_surbrillance() -> void:
-	_surbrillance.clear()
+	var atteignables: Array[Vector2i] = []
+	var cibles: Array[Vector2i] = []
 	if not _tour_du_joueur():
+		_plateau.peindre(atteignables, cibles, HORS_CARTE)
 		return
-	for case in _atteignables:
-		_surbrillance.set_cell(case, SOURCE_ATTEIGNABLE, Vector2i.ZERO)
+	atteignables.assign(_atteignables.keys())
 	var c := _actif()
 	if not c.aAttaque and _mode != "":
 		for id in _adversaires_adjacents(c):
-			_surbrillance.set_cell(_positions[id], SOURCE_CIBLE, Vector2i.ZERO)
-	if _astar.is_in_boundsv(_case_survolee):
-		_surbrillance.set_cell(_case_survolee, SOURCE_SURVOL, Vector2i.ZERO)
+			cibles.append(_positions[id])
+	_plateau.peindre(atteignables, cibles, _case_survolee if _astar.is_in_boundsv(_case_survolee) else HORS_CARTE)
+
+
+func _survoler(case: Vector2i) -> void:
+	if case != _case_survolee:
+		_case_survolee = case
+		_peindre_surbrillance()
 
 
 # --- Gestes ------------------------------------------------------------------------------------
@@ -274,14 +256,10 @@ func _fin_de_tour_joueur() -> void:
 
 
 func _deplacer(id: String, chemin: Array[Vector2i]) -> bool:
-	var points: Array[Vector2] = []
-	for case in chemin:
-		points.append(_sol.map_to_local(case))
-	var jeton: Unite = _jetons[id]
-	await jeton.parcourir(points)
+	await _plateau.parcourir(id, chemin)
 	var reponse := Pont.appeler("deplacer", {id = id, cases = chemin.size() - 1})
 	if not reponse.get("ok", false):
-		jeton.position = points[0]
+		_plateau.poser(id, chemin[0])
 		return false
 	_positions[id] = chemin[-1]
 	print("[deplacement] ", id, " ", chemin[0], " -> ", chemin[-1], " cases=", chemin.size() - 1)

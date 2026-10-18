@@ -106,3 +106,8 @@ func _erreur_transport(methode: String, entree: Variant, message: String, partie
 func _signaler(erreur: Dictionary) -> void:
 	push_error("[pont] ", JSON.stringify(erreur))
 	erreur_pont.emit(erreur)
+
+
+## Paramètre `cle` de `location.search` (`""` s'il est absent).
+func parametre(cle: String) -> String:
+	return str(evaluer("String(new URLSearchParams(location.search).get('%s') ?? '')" % cle))
