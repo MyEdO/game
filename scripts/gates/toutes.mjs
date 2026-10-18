@@ -223,8 +223,8 @@ export const ECRIT_LU = {
       'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
       '`merge-base origin/main..HEAD`, et les images de `src/` et `Source/` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
       'et pose chacune sous un `mkdtempSync` d’os.tmpdir(), effacé en finally, deux fois : avec une COPIE de `scripts/`, `package.json` ' +
-      'et `tsconfig.json` de l’arbre (le détecteur de la tête), puis avec ceux du commit de base lus par git (`detecteurDuCommit`), `node_modules` lié (`lierDependances`) et les cibles de code produites ' +
-      'DANS l’image (`genererCodeSansCertifier`, cwd = l’image) ; chaque image se mesure dans un processus tsx fils ; ' +
+      'et `tsconfig.json` de l’arbre (le détecteur de la tête), puis avec ceux du commit de base lus par git (`detecteurDuCommit`), `node_modules` lié (`lierDependances`) et les cibles de code produites et certifiées ' +
+      'DANS l’image (`genererCode`, cwd = l’image) ; chaque image se mesure dans un processus tsx fils ; ' +
       'aucune écriture dans l’arbre',
   },
   'test:corpus': {
@@ -246,6 +246,7 @@ export const ECRIT_LU = {
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
       'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; le contrôle du protocole génère ses schémas sous un mkdtempSync de os.tmpdir(), retiré en finally ; ' +
+      'session-train.test.mjs écrit ses scripts Node et PowerShell, requêtes, réponses, certificats, marqueurs JSON et journal dans ses mkdtempSync sous os.tmpdir(), retirés en finally ou t.after après la fin des processus ; le cwd réel et processusJob.cs sont seulement lus ; ' +
       'session-version.mjs et son banc vérifient version et registre sans écriture fs ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
       'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
@@ -464,8 +465,8 @@ export const ECRIT_LU = {
       'docs/':
         'les mesures docs/.sources-lues.json sont écrites par build-all.mjs ; ' +
         'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
-        '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
-        'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',
+        '(`rendreCible`, scripts/docs/build-all.mjs) ; `ecrireOuVerifier` écrit les cibles pures ' +
+        'dont le rendu diffère, et `Arbre inchangé` contrôle les fichiers suivis dans le même job',
       'src/':
         'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
         'ne réécrit pas un rendu identique',
@@ -481,17 +482,11 @@ export const ECRIT_LU = {
   'test:raw': {
     ecrit: [],
     ecritFerme: {
-      // Le GLOB, pas une page : l’écrivain tient le routeur de l’Atlas ET l’index de chaque cœur,
-      // et la population des cœurs est DÉRIVÉE (#1825) ; un chemin de cœur écrit ici sous-déclarerait
-      // dès le cœur suivant. Même glob qu’à sa déclaration de générateur (`injecte`,
-      // scripts/docs/build-all.mjs).
-      'docs/raw/**/00-index.md':
-        '`build-atlas-index.test.mjs` IMPORTE l’écrivain des blocs des index de l’Atlas (cœurs du ' +
-        'routeur, domaines de chaque cœur) ; son unique écriture (`ecrireDoc`) vit dans `main()`, sous sa ' +
-        'porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc n’appelle que ses fonctions ' +
-        'PURES (`lignesDesCoeurs`, `lignesDesDomaines`, `blocsDeLAtlas`, `injecter`). Le cas `--check` ' +
-        'le LANCE, mais dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : ce sont ces ' +
-        'pages-là qu’il écrit, jamais celles du dépôt',
+      'docs/raw/atlas.generated.md':
+        '`build-atlas-index.test.mjs` IMPORTE le générateur de la cible pure de l’Atlas ; son écriture ' +
+        'vit sous sa porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc appelle ' +
+        'ses fonctions PURES (`rendre`, `lignesDesCoeurs`, `lignesDesDomaines`). Le cas `--check` ' +
+        'le LANCE dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : seule sa cible y est écrite',
       // Le GLOB, pas un dossier : le re-coupeur sert TOUT livre à liste de découpe
       // (`scripts/raw/decoupes/<id>.json`), et recale tout stock nominatif keyé par ses fichiers.
       'Source/**/*.md':
@@ -517,6 +512,11 @@ export const ECRIT_LU = {
     },
     lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', 'src/', '.claude/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
+      'les lecteurs des cibles pures atteignent build-all.mjs, fraicheur-docs.mjs, enregistreur-lectures.mjs et journal.mjs ; ' +
+      'les lecteurs RAW appellent rendreCible/renduDe, sans passer par executerLesGenerateurs ou genererCode, ' +
+      'ni par la certification ou la copie de fraîcheur ; ces chemins de rendu n’appellent pas le journal hérité ; ' +
+      'build-atlas-index.test.mjs appelle installer sur sa racine rawDir jetable ; l’autoactivation du collecteur reste ' +
+      'conditionnée par WFRP_LECTURES_RACINE/WFRP_LECTURES_SORTIE, et testsSansEcriture refuse toute écriture dans l’arbre réel ; ' +
       'harnais de l’Atlas : il lit les fiches que les trois rapports écrivent ; éprouvant les scripts ' +
       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
@@ -541,7 +541,10 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
-      'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
+      'les écrivains acquis par le producteur pur d’Implémente (ecriture-derives.mjs, ecritureJsonAtomique.mjs, ' +
+      'renommageResilient.mjs, test/verrou.mjs) ne sont pas appelés par rendreCible/renduDe ; ' +
+      'la commande appelle ces lectures, sans exécution des générateurs ni certification ou copie ; ' +
+      'LIT le registre de livres et le normaliseur de références ' +
       '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
@@ -558,6 +561,8 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
+      'le lecteur de l’Atlas importe build-all.mjs et ses écrivains ; rendreCible/renduDe n’appellent ni ' +
+      'executerLesGenerateurs ou genererCode, ni la certification, la copie ou le journal hérité ; ' +
       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
       + 'donc un renvoi mort est un renvoi faux, jamais un héritage à geler. LIT les pages de l’Atlas, '
       + 'le registre de livres (énumération des cœurs, `pagesDeLAtlas`) et l’extracteur de liens partagé '

@@ -12,7 +12,7 @@ import { livreDuSigle } from '../_lib.mjs'
 import { scanDeadCodeRefs, scanEmptyLineCodeRefs } from '../check-code-refs.mjs'
 import { scanTout } from '../citation-graphy-guard.mjs'
 import { scanBlindRefs } from '../../guards/lib/rawRefIntegrity.mjs'
-import { indexCode } from '../build-implemente.mjs'
+import { indexCode, rendre as rendreImplementation, RAPPORT as RAPPORT_IMPLEMENTATION, validerDette, registresDeFiches } from '../build-implemente.mjs'
 import { computeReconciliation } from '../reconcile.mjs'
 
 const CODE = 'EDOC'
@@ -61,6 +61,10 @@ test('CODE : le champ `Implémente` ignore les dossiers (build-implemente)', () 
 })
 
 test("CODE : la réconciliation à l'Atlas ignore les dossiers (reconcile)", () => {
-  const { codeBooks } = computeReconciliation({ manifestPath: 'raw.manifest.json', catalogues: () => new Map() })
+  const fiches = []
+  const rapportImplementation = rendreImplementation({
+    fiches, index: indexCode(), closure: new Set(), dette: validerDette([], registresDeFiches(fiches)),
+  }).get(RAPPORT_IMPLEMENTATION)
+  const { codeBooks } = computeReconciliation({ manifestPath: 'raw.manifest.json', catalogues: () => new Map(), rapportImplementation })
   assert.deepEqual([...codeBooks], [CODE], 'reconcile')
 })

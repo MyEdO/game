@@ -67,7 +67,6 @@ export function signalDe(lien: { distance: number }, liaisons: { forme: string; 
 export function declarationsExportees(rel: string, texte: string | null): Map<string, string>;
 export function exportsTouches(rel: string, avant: string | null, apres: string | null): Set<string>;
 export const lireDuDisque: (racine: string) => (rels: string[]) => Map<string, string | null>;
-export const estTestNode: (rel: string) => boolean;
 export const CACHE: string;
 export const RANG_SETUP: number;
 export const RANG_TOOLCHAIN: number;

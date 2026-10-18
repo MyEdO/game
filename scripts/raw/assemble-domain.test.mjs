@@ -187,7 +187,8 @@ test('assemble : la fiche ne porte AUCUNE mesure du run, même quand le rendu le
     for (const mesure of ['éléments inventoriés', "boucle(s) d'audit", 'Hors-taxonomie', 'un gist hors taxonomie', 'Couverture du survey', 'LIVRE 7']) {
       assert.equal(page.includes(mesure), false, `la fiche ne doit pas porter « ${mesure} »`)
     }
-    assert.match(page, /jamais écrit à la main\.\n/)
+    assert.match(page, /rapport calculé\]\(\.\.\/implemente\.generated\.md\)/)
+    assert.match(page, /\*\*Implémente :\*\* \[État calculé\]\(\.\.\/implemente\.generated\.md#[^)]+\)/)
   })
 })
 

@@ -7,13 +7,13 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, executer, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { codeDeLaPasse, lotDuPostMerge, reconstruireApresGit, touchedFiles } from './docs-rebuild.mjs'
+import { codeDeLArbre, codeDeLaPasse, lotDuPostMerge, reconstruireApresGit, touchedFiles } from './docs-rebuild.mjs'
 import {
   ATTENTE_DU_TENANT, attendreLaReconstruction, cheminsDeLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, demandesDe, passeDesDerives, REJEUX_SUR_SOURCE_MODIFIEE,
   servirLesDemandes,
@@ -21,6 +21,17 @@ import {
 import { pathspecsDeRequeteGit, selectionDesGenerateurs, touchesDocSources } from './selection-des-derives.mjs'
 import { couvertParPathspec } from '../guards/lib/lister.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
+
+test('codeDeLArbre : la vraie couture CLI mesure et certifie les seuls codes périmés', () => {
+  const cwd = RACINE
+  const lancer = (_node, args, options) => {
+    assert.deepEqual(args, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--perimes'])
+    assert.equal(options.cwd, cwd)
+    return { status: 17 }
+  }
+  assert.equal(codeDeLArbre(cwd, lancer), 17)
+  assert.equal(codeDeLArbre(cwd, () => ({ error: new Error('absent') })), 1)
+})
 import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
@@ -322,12 +333,8 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
     assert.deepEqual(selection(['notes/neuf/plus/bas.txt']).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection([doc('a')]).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection(['public/independent.svg']).scripts, [])
-    const mixte = [{ ...generateurs[1], targets: [], injecte: [doc('a')] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
     assert.deepEqual(selection(['lus/b.txt']).scripts, ['g/b.mjs'], 'un lecteur retenu ne tire pas son producteur aux sources intactes')
-    assert.deepEqual(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/b.mjs'],
-      'un mixte retenu seul ne tire pas les générateurs de code')
-    assert.deepEqual(selectionDesGenerateurs({ lot: ['data/code.json'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/code.mjs', 'g/b.mjs'],
-      'témoin : un générateur de code retenu tire les mixtes (#2193)')
+    assert.deepEqual(selection(['data/code.json']).scripts, ['g/code.mjs'])
     assert.equal(selection(null).complete, true)
     assert.equal(selection(['notes/a.txt'], { 'g/a.mjs': mesure['g/a.mjs'] }).complete, true)
     assert.equal(selection(['scripts/docs/lib/enregistreur-lectures.mjs']).complete, true)
@@ -646,7 +653,7 @@ test('checkout existant sans mesure : la passe servie génère et atteste, la su
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, CODE synchrone si et seulement si la sélection le contient', () => {
+test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, CODE synchrone selon attestation', () => {
   const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const module = pathToFileURL(join(RACINE, 'scripts/docs/build-all.mjs')).href
   const doc = (nom) => ['docs', `${nom}.md`].join('/')
@@ -683,7 +690,10 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
   }
   const hook = (nom, injections) => reconstruireApresGit({ cwd: racine, hook: nom, generateurs, annoncer: () => {}, demander: demanderSansDetache, ...injections })
   const servir = (construire, annonces = []) => servirAvec(racine, { generateurs, construire, annonces })
-  const codeDuBanc = (cwd) => genererCode({ cwd, generateurs, quiet: true })
+  const codeDuBanc = (cwd) => codeDeLArbre(cwd, (_node, args) => {
+    assert.deepEqual(args, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--perimes'])
+    return spawnSync(process.execPath, [harnais, ...args.slice(1)], { cwd, encoding: 'utf8' })
+  })
   try {
     const complet = jouer()
     git('add', 'docs', 'notes', 'scripts', 'g', 'src', 'commun.txt', '.gitignore')
@@ -734,6 +744,10 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs en fond, 
     servir(() => { horsLot = jouer(['--perimes']); return 0 })
     assert.equal(horsLot.compte, 1)
     assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /c hors lot/)
+    writeFileSync(join(racine, 'notes/code/source.txt'), 'code hors lot')
+    assert.equal(hook('post-commit', { code: codeDuBanc }).code, 0)
+    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code hors lot/)
+    servir(() => { jouer(['--perimes']); return 0 })
     writeFileSync(join(racine, 'notes/code/source.txt'), 'code modifié')
     git('add', 'notes/code/source.txt')
     git('commit', '-q', '-m', 'source code')
@@ -1159,13 +1173,24 @@ test('(i) le détaché de la reconstruction naît sans `GIT_INDEX_FILE` ni jeton
   process.env.WFRP_VERROU_BANC = 'jeton'
   try {
     for (const plateforme of ['linux', 'win32']) {
-      const envs = []
+      const envs = [], helpers = []
       demanderLaReconstruction(racine, { detacher: (opts) => lancerDetache({ ...opts, plateforme,
         detacher: (_node, _argv, options) => { envs.push(options.env); return { pid: 4244, unref: () => {} } },
-        executerSync: (_cmd, _args, options) => { envs.push(options.env); return { stdout: '4244\n', stderr: '' } },
+        executerSync: (_cmd, _args, options) => {
+          helpers.push(options.env)
+          envs.push(Object.fromEntries(JSON.parse(options.input).environment.map((entree) => {
+            const egal = entree.indexOf('=')
+            return [entree.slice(0, egal), entree.slice(egal + 1)]
+          })))
+          return { status: 0, stdout: JSON.stringify({ ReturnValue: 0, ProcessId: 4244 }), stderr: '' }
+        },
       }) })
       assert.equal(envs.length, 1, plateforme)
-      assert.deepEqual(['GIT_INDEX_FILE' in envs[0], 'WFRP_VERROU_BANC' in envs[0], envs[0].PATH === process.env.PATH], [false, false, true], plateforme)
+      const pathDe = (env) => Object.entries(env).find(([cle]) => cle.toUpperCase() === 'PATH')?.[1]
+      assert.ok(pathDe(process.env), 'PATH du processus de test')
+      for (const env of [...envs, ...helpers]) {
+        assert.deepEqual(['GIT_INDEX_FILE' in env, 'WFRP_VERROU_BANC' in env, pathDe(env) === pathDe(process.env)], [false, false, true], plateforme)
+      }
     }
   } finally {
     for (const [cle, valeur] of Object.entries(avant)) {
@@ -1188,7 +1213,7 @@ function attendreLesDetaches(pids) {
 /** Un `build-all` FACTICE : `--code` rend 0 ; `--perimes` pose `.git/perimes-entame` puis attend `.git/debloquer`. */
 const BUILD_ALL_FACTICE = [
   "import { existsSync, writeFileSync } from 'node:fs'",
-  "if (process.argv.includes('--perimes')) {",
+  "if (process.argv.includes('--perimes') && !process.argv.includes('--code')) {",
   "  writeFileSync('.git/perimes-entame', '')",
   '  const fin = Date.now() + 60_000',
   "  while (!existsSync('.git/debloquer') && Date.now() < fin) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)",

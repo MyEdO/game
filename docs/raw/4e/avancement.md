@@ -1,7 +1,7 @@
 # Atlas RAW — Avancement (Points d'Expérience)
 
 > Référentiel autosuffisant des règles WFRP4 (RAW). Chaque règle cite `LDB NN l.X` (source = dernier recours). Voir [`sources.md`](../sources.md), [`00-index.md`](00-index.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 Ce fichier couvre tout ce qui concerne **l'acquisition et la dépense de Points d'Expérience (PX)** : gain par le MJ, coûts d'Augmentation (Caractéristique / Compétence / Talent), complétion de Niveau, changement de Carrière, règles hors carrière. Il renvoie à [`carrieres.md`](carrieres.md) pour la structure des Carrières (niveaux, schéma de progression, liste des compétences/talents disponibles) et à [`competences.md`](competences.md) / [`talents.md`](talents.md) pour les définitions.
 
@@ -97,8 +97,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 
 **Voir aussi** : [`carrieres.md`](carrieres.md) pour la structure du Schéma de Progression par Carrière.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.41-72) → `adv-0-5`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `adv-16-20`, `adv-21-25`, `buyCharAdvance`, `doc`, +18 — `src/data/advancementCosts.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/tables.ts`, +2 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementaugmentation-de-caracteristique)
 
 ---
 
@@ -118,9 +117,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 
 **Voir aussi** : [`competences.md`](competences.md) pour la définition des Compétences et la règle des Spécialisations.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.75-84) → `adv-0-5`, `feu`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, +30 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/activities.ts`, +8 fichiers
-- `LDB 9` (l.44) → `renforcerCompetence`, `specIdOf`, `traders`, `art`, `buySkillAdvance`, `athletisme`, `doc`, `buildAdvancementView`, `slotCovers`, `designateSpec`, +22 — `src/data/activities.json`, `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +19 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementaugmentation-de-competence)
 
 ---
 
@@ -142,8 +139,7 @@ Résumé :
 
 **Sources RAW** : `LDB 07 l.88-93`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.88-93) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `adv-26-30`, `buySkillAdvance`, +25 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementaugmentations-hors-carriere-cout-double)
 
 ---
 
@@ -175,8 +171,7 @@ Formule : **coût de la N+1ᵉ acquisition = 100 × (N + 1)** où N = nombre d'a
 
 **Voir aussi** : [`talents.md`](talents.md) pour la liste des Talents et les restrictions de multi-achat.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `talentSlots`, `careerChangeCost`, `buildAdvancementView`, +11 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementaugmentation-de-talent)
 
 ---
 
@@ -204,8 +199,7 @@ Pour compléter un Niveau de Carrière, il faut (`LDB 07 l.124`) :
 
 **Sources RAW** : `LDB 07 l.121-133`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.121-133) → `feu`, `careerCompletionAdvances`, `lumiere`, `isCareerLevelComplete`, `careerChangeCost`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, +8 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementcompleter-un-niveau-de-carriere)
 
 ---
 
@@ -227,8 +221,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 
 **Sources RAW** : `LDB 07 l.136-139`, `LDB 07 l.140`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementchanger-de-niveau-au-sein-de-la-meme-carriere)
 
 ---
 
@@ -252,9 +245,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 
 **Sources RAW** : `LDB 07 l.144-148`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
-- `LDB 23` (l.104) → `craft`, `learn`, `entrainement`, `interlude-elf-duty`, `dressage`, `Combatant` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/types.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementchanger-pour-une-nouvelle-carriere)
 
 ---
 
@@ -271,8 +262,7 @@ Verbatim depuis `LDB 07 l.152-159` (tableau « Coût des Changements de Carrièr
 
 **Sources RAW** : `LDB 07 l.152-159`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.152-159) → `AdvancementView`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `changeCareer`, `advancement-career-jump` — `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementtable-de-synthese-des-couts-de-carriere)
 
 ---
 
@@ -308,9 +298,7 @@ Le **Pouvoir derrière le Trône** (Tome 3) propose en Annexe IV le barème de P
 
 **Sources RAW** : `PDT 13 l.1-73`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `PDT 13` (l.1-73) → `giveXpSchema` — `src/data/schemas/defs-scenes/effets.ts`
-- sans code : `PDT 13` (l.78)
+**Implémente :** [État calculé](../implemente.generated.md#4eavancementregles-optionnelles-de-scenario-t3-attribution-evenementielle)
 
 ---
 

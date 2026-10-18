@@ -83,6 +83,45 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(coupesAuCaractere([{ rel: 'copie.mjs', text: foyer.text }])).toHaveLength(1);
   });
 
+  it('voit les pré-coupes transmises à coupeAuMot, directement ou sous des appels et chaînes', () => {
+    expect(vus('coupeAuMot(s.slice(0, 8192), 4096);')).toEqual(['temoin.tsx:1']);
+    expect(vus('coupeAuMot(String(s).substring(0, 8192).trim(), 4096);')).toEqual(['temoin.tsx:1']);
+    expect(vus('coupeAuMot(stripVTControlCharacters(String(s).substr(0, 8192)).replace(/x/g, "").trim(), 4096);'))
+      .toEqual(['temoin.tsx:1']);
+    expect(vus('const net = stripVTControlCharacters(String(texte).slice(0, 8192)).replace(/x/g, "").trim();\necho(coupeAuMot(net, 4096));'))
+      .toEqual(['temoin.tsx:1']);
+    expect(vus('const net = "été 🐈".slice(0, 3);\nfunction afficher() { return coupeAuMot(net, 2); }'))
+      .toEqual(['temoin.tsx:1']);
+  });
+
+  it('voit les tableaux de caractères pré-coupés redevenus texte, sous wrappers et constantes', () => {
+    for (const source of [
+      "coupeAuMot([...s].slice(0, 20).join(''), 10);",
+      "coupeAuMot(Array.from(s).slice(0, 20).join('').trim(), 10);",
+      "coupeAuMot(String(([...s]).slice(0, 20).join('')).trim(), 10);",
+      "const caracteres = Array.from(s); coupeAuMot(caracteres.slice(0, 20).join(''), 10);",
+      "const net = [...s].slice(0, 20).join(''); coupeAuMot(formater(net), 10);",
+      "const prefixe = [...s].slice(0, 20); const net = prefixe.join(''); coupeAuMot(net, 10);",
+    ]) expect(vus(source), source).toEqual(['temoin.tsx:1']);
+    expect(vus("coupeAuMot([...s].slice(0, 20), 10);")).toEqual([]);
+    expect(vus("coupeAuMot(Array.from(s).slice(0, 20).join(','), 10);")).toEqual([]);
+  });
+
+  it('résout par symbole la constante pré-coupée et respecte les frontières de fonction', () => {
+    expect(vus('const net = String(s).slice(0, 8192);\nfunction f(net) { return coupeAuMot(net, 4096); }')).toEqual([]);
+    expect(vus('const net = String(s).slice(0, 8192);\nfunction f() { const net = "texte"; return coupeAuMot(net, 4096); }')).toEqual([]);
+    expect(vus('function f() { const net = String(s).slice(0, 8192); }\nconst net = "texte";\ncoupeAuMot(net, 4096);')).toEqual([]);
+    expect(vus('coupeAuMot(() => String(s).slice(0, 8192), 4096);')).toEqual([]);
+    expect(vus('coupeAuMot(s, calcul(String(n).slice(0, 2)));')).toEqual([]);
+  });
+
+  it('laisse les préfixes structurels de tableaux, dates et SHA hors de cette classe', () => {
+    expect(vus('const xs = ["a", "b"]; coupeAuMot(xs.slice(0, 1).join(","), 10);')).toEqual([]);
+    expect(vus('function f(xs: string[]) { return coupeAuMot(formater(xs.slice(0, 1)), 10); }')).toEqual([]);
+    expect(vus('coupeAuMot(["a", "b"].slice(0, 1).join(","), 10);')).toEqual([]);
+    expect(vus('const sha = hash.slice(0, 9);\nconst date = new Date().toISOString().slice(0, 10);\ncoupeAuMot(texte, 4096);')).toEqual([]);
+  });
+
   it('aucun site sous `src/` ni `scripts/`', { timeout: 120_000 }, () => {
     const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
     expect(coupesAuCaractere(corpus)).toEqual([]);

@@ -20,7 +20,7 @@
 import { basename } from 'node:path';
 import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
-import { exigeSource } from '../../../src/data/schemas/grammaire/sans-livre.ts';
+import { provenanceMesuree } from '../../../src/data/schemas/grammaire/sans-livre.ts';
 
 /** Signature canonique d'un objet : ses clés triées, jointes par des virgules. */
 export const signature = (cles: readonly string[]): string => [...cles].sort().join(',');
@@ -125,7 +125,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Quatre familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`, `etat`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534) ; `stade` (effet `revealClue`), dont la cible est un stade de l’indice que nomme son `indiceId`, résolu par `projetSchema` (#686).',
   'Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.',
   'La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).',
-  'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `source` où la grammaire l’exige — `exigeSource` —, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
+  'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `label` sur les familles `entité`/`table`, `source` ou `maison` sur tout type dont la provenance se mesure — `provenanceMesuree`, `src/data/schemas/grammaire/sans-livre.ts`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
   'Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.',
   'Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).',
   'La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.',
@@ -637,6 +637,40 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['prix'],
   },
+  // Porte : `provenanceDeValeurSchema` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`), `source` OU `maison` ; déclaré
+  // pour le détecteur de la base de sa plage (`scripts/guards/lib/corpusDesComptes.mts`).
+  // SITE : la valeur qu'elle justifie sous `provenances` ; `coPresence` laisse au hors-strate le record
+  // `speed` d'une route (`{diligence: 15}`), porté par la même clé. #2533.
+  {
+    id: 'provenance-de-valeur',
+    label: 'provenance d’une valeur d’auteur de route (`ProvenanceDeValeur`)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    champs: ['perilDie', 'speed', 'km'],
+    coPresence: ['source', 'maison'],
+    signatures: [
+      { sig: 'source', statut: 'cible' },
+      { sig: 'maison', statut: 'cible' },
+    ],
+  },
+  // Porte : `mapRouteSchema.provenances` de #2533 (`src/data/schemas/defs-scenes/worldmap.ts`) : chaque clé est
+  // OPTIONNELLE, les sept combinaisons sont la forme cible. #2533.
+  {
+    id: 'provenances-de-route',
+    label: 'provenances des valeurs d’une route (`MapRoute.provenances`)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    champs: ['provenances'],
+    signatures: [
+      { sig: 'km', statut: 'cible' },
+      { sig: 'perilDie', statut: 'cible' },
+      { sig: 'speed', statut: 'cible' },
+      { sig: 'km,perilDie', statut: 'cible' },
+      { sig: 'km,speed', statut: 'cible' },
+      { sig: 'perilDie,speed', statut: 'cible' },
+      { sig: 'km,perilDie,speed', statut: 'cible' },
+    ],
+  },
   // Porte : `weaponDamageSpecSchema` (`src/data/schemas/grammaire/valeurs.ts`), union de deux branches
   // aux clés DISJOINTES, `{literal}` et `{plusBF, flat, bare?}` — d'où `noyauMin: 1`. `flat` n'est pas
   // au noyau : `sea-events › effect {d10, flat, sign}` (`manannFactor`) le porte aussi. La
@@ -881,17 +915,18 @@ export type RoleEnveloppe = {
   /** Requise sur les seules familles de document citées (`entité`, `table`). */
   requiseSurFamilles?: readonly string[];
   /**
+   * Régime déclaré PAR TYPE de document : la mesure ne compte l'absence du rôle que sur les types pour
+   * lesquels ce prédicat est vrai. Le prédicat vit À CÔTÉ de celui de la fabrique (`provenanceMesuree`,
+   * `src/data/schemas/grammaire/sans-livre.ts`), jamais une liste recopiée.
+   */
+  requiseSelon?: (type: string) => boolean;
+  /**
    * Clé qui SATISFAIT le rôle à la place de la cible : le rôle est alors une ALTERNATIVE, et
    * l'absence de la cible n'est une divergence que si cette clé manque aussi. Cale le lexique sur
    * la grammaire (refine de PROVENANCE de `document`, `src/data/schemas/grammaire/document.ts` :
    * `source` OU `maison`).
    */
   alternative?: string;
-  /**
-   * Le DOCUMENT est-il sommé du rôle ? Le régime d'exemption est celui de la grammaire, jamais un
-   * second : `exigeSource` (`src/data/schemas/grammaire/sans-livre.ts`) pour la provenance.
-   */
-  exigible?: (document: string) => boolean;
   /**
    * La cible se porte sur TOUTES les entrées du groupe, PORTÉE EMBARQUÉE COMPRISE : un groupe qui
    * ne la porte que sur une partie des siennes est une divergence (motif `cible partielle`, détail
@@ -950,7 +985,7 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // `customStatblockSchema` de `defs-scenes/communs.ts` du statbloc) — d'où `entiere`, qui met les
   // portées embarquées au dénominateur.
   'type de document': { cible: 'type', divergentes: [], typeAttendu: 'string', requise: true, entiere: true },
-  source: { cible: 'source', divergentes: [], typeAttendu: 'object', requise: true, alternative: 'maison', exigible: (document) => exigeSource(basename(document, '.json')) },
+  source: { cible: 'source', divergentes: [], typeAttendu: 'object', requise: true, alternative: 'maison', requiseSelon: provenanceMesuree },
   maison: { cible: 'maison', divergentes: [], typeAttendu: 'string' },
   'méta libre': { cible: null, divergentes: ['_source', '_comment', '_doc', '__genere', '__lecture', '__livres'] },
 };

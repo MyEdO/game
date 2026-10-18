@@ -208,7 +208,8 @@ function rendu() {
 
   out += '### 2.3 Divergences nominatives d’enveloppe (strate Document)\n\n';
   out += 'Un même RÔLE porté par des noms de clé différents selon le document — l’objet du lot L1b (#1467).\n';
-  out += 'Les ENTRÉES DE RACINE doivent porter `id` et `source` (et `label` sur les familles `entité`/`table`) :\n';
+  out += 'Les ENTRÉES DE RACINE doivent porter `id` partout, `label` sur les familles `entité`/`table`, et `source` ou\n';
+  out += '`maison` sur tout type dont la provenance se mesure (`provenanceMesuree`) :\n';
   out += 'leur absence est une divergence. Un DOCUMENT EMBARQUÉ (étape de Flow, rangée de table, nœud de\n';
   out += 'dialogue) n’est sommé de rien : on n’y compte que les clés DIVERGENTES.\n\n';
   {
@@ -239,9 +240,9 @@ function rendu() {
       scan.enveloppeParMotif.map((m) => [m.role, m.motif, m.documents]),
     );
     const sourceAbsente = scan.enveloppe.filter((e) => e.role === 'source' && e.motif === 'clé absente');
-    out += 'Documents dont la grammaire EXIGE la provenance (`exigeSource`, `src/data/schemas/grammaire/sans-livre.ts`)\n';
-    out += `et dont une ENTRÉE DE RACINE ne porte ni \`source\` ni \`maison\` : **${sourceAbsente.length}** —\n`;
-    out += `${sourceAbsente.map((e) => `\`${e.document}\`(${e.entrees})`).join(' ')}\n\n`;
+    out += `Documents dont AUCUNE ENTRÉE DE RACINE ne porte \`source\` ni \`maison\`, hors des types dont la provenance ne se mesure pas\n`;
+    out += `(\`provenanceMesuree\`, \`src/data/schemas/grammaire/sans-livre.ts\`) : **${sourceAbsente.length}** (lot \`L1d #1469\`) —\n`;
+    out += `${sourceAbsente.map((e) => `\`${e.document}\`(${e.entrees})`).join(' ') || '—'}\n\n`;
     out += `Documents de racine ne portant AUCUNE clé \`source\` à quelque profondeur que ce soit : **${scan.documentsSansSource.length}**\n`;
     out += `(lot \`L1d #1469\`) — ${scan.documentsSansSource.map((d) => `\`${d}\``).join(' ')}\n\n`;
     out += 'Documents EMBARQUÉS mesurés, par chemin :\n\n';

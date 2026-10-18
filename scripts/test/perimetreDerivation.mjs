@@ -6,8 +6,8 @@ import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_thread
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
 import { APPEL_DE_LECTURE, certifierLecture, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
-import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
-import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
+import { estDeLaSuiteVitest } from '../guards/lib/racinesDeLaSuite.mjs'
+import { estTestNode } from '../gates/testsParGate.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES } from '../git-hooks/selection-des-derives.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
@@ -38,10 +38,6 @@ const blobDe = (texte) => {
   const octets = Buffer.from(texte, 'utf8')
   return createHash('sha1').update(`blob ${octets.length}\0`).update(octets).digest('hex')
 }
-
-/** Le test est-il une suite Vitest (`RACINES_DE_LA_SUITE`) ? une suite `node --test` (`scripts/**\/*.test.mjs`) ? */
-const estTestVitest = (rel) => RACINES_DE_LA_SUITE.some(({ dir, exts }) => rel.startsWith(`${dir}/`) && exts.some((e) => rel.endsWith(e)) && estSuiteVitest(rel))
-export const estTestNode = (rel) => rel.startsWith('scripts/') && rel.endsWith('.test.mjs')
 
 /** La racine `r` couvre-t-elle `chemin` (égalité, ou ANCÊTRE : `ancetresDe`) ? */
 const couvre = (r, chemin) => chemin === r || ancetresDe(chemin).includes(r)
@@ -97,7 +93,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const rel = (a) => a.slice(base.length + 1)
   const presents = new Set(post)
   const ensemble = new Set([...post, ...avant])
-  const vitest = post.filter(estTestVitest)
+  const vitest = post.filter(estDeLaSuiteVitest)
   const node = post.filter(estTestNode)
   const setup = setupFilesDe(lire([CONFIG_VITEST]).get(CONFIG_VITEST) ?? null, analyser)
   const textes = new Map()
@@ -132,7 +128,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     clotureSetup.add(rel(a))
     for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
   }
-  const estTest = (f) => presents.has(f) && (estTestVitest(f) || estTestNode(f))
+  const estTest = (f) => presents.has(f) && (estDeLaSuiteVitest(f) || estTestNode(f))
 
   /** Tests qui atteignent `depart`, avec leur distance et la chaîne la plus courte (test → … → depart). */
   const remontees = new Map()

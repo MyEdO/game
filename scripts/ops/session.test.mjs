@@ -1,4 +1,6 @@
 import test from 'node:test'
+import { createServer } from 'node:net'
+import { veillerCodex } from './session-codex.mjs'
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
@@ -8,7 +10,7 @@ import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
-import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, refusSession } from './session.mjs'
+import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, refusSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
@@ -20,6 +22,143 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
+
+test('veille IPC réelle : borne identifiée et raccord sans transition perdue', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex' }), id = r.carte.sessionId
+  const adresse = process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${id}` : join(b.dossier, `${id}.codex.sock`)
+  const sockets = new Set(), fin = { sessionId: id, type: 'fin', etat: 'inactif', seq: 1, curseur: 1 }
+  let connexions = 0
+  const serveur = createServer((socket) => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)); if (++connexions === 2) socket.end(JSON.stringify(fin) + '\n') })
+  await new Promise((ok, non) => { serveur.once('error', non); serveur.listen(adresse, ok) })
+  t.after(async () => { for (const socket of sockets) socket.destroy(); await new Promise((ok) => serveur.close(ok)) })
+  await assert.rejects(veillerCodex({ dossier: b.dossier, sessionId: id, timeoutMs: 50 }), (e) => e.code === 'BORNE_IPC_CODEX')
+  assert.deepEqual(await attendreSuivi({ attendre: (_c, o) => veillerCodex({ dossier: b.dossier, sessionId: id, ...o }), etat: () => ({ etat: 'vivante' }) }, id, { timeoutMs: 200, depuis: 0 }, { parentVivant: () => true }), fin)
+})
+
+test('veille suivie : bornes et aucune réarment avec curseur ; pannes et parent terminent', async () => {
+  const appels = [], fin = { type: 'fin', etat: 'inactif', curseur: 9 }
+  const reponses = [Object.assign(new Error('borne'), { code: 'BORNE_IPC_CODEX' }), { type: 'aucune', etat: 'indeterminee', curseur: 8 }, fin]
+  const sessions = { etat: () => ({ etat: 'vivante' }), attendre: async (_c, o) => { appels.push(o); const r = reponses.shift(); if (r instanceof Error) throw r; return r } }
+  assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10, depuis: 7 }, { parentVivant: () => true }), fin)
+  assert.deepEqual(appels.map((o) => o.depuis), [7, 7, 8])
+  for (const code of ['EOF', 'EACCES', 'EPROTO', undefined]) {
+    const panne = Object.assign(new Error('Borne IPC Codex atteinte'), { code })
+    await assert.rejects(attendreSuivi({ attendre: async () => { throw panne } }, 'cible', { timeoutMs: 10 }, { parentVivant: () => true }), (e) => e === panne)
+  }
+  assert.equal((await attendreSuivi({}, 'cible', { timeoutMs: 10 }, { parentVivant: () => false })).raison, 'PARENT DISPARU')
+  assert.equal(optionsSession(['attendre', 'cible', '--suivre']).suivre, true)
+})
+
+test('suivi : parent et instant capturés une fois malgré le réarmement', async () => {
+  let lecturesParent = 0, lecturesHorloge = 0, attentes = 0
+  const mesures = [], fin = { type: 'fin', etat: 'inactif', curseur: 2 }
+  const sessions = {
+    attendre: async () => ++attentes === 1 ? { type: 'aucune', etat: 'indeterminee' } : fin,
+    etat: () => ({ etat: 'vivante' }),
+  }
+  assert.equal(await attendreSuivi(sessions, 'cible', { timeoutMs: 10 }, {
+    lireParent: () => ++lecturesParent === 1 ? process.pid : 0,
+    horloge: () => { lecturesHorloge++; return 100 },
+    identite: { lireCreation: (pid) => { mesures.push(pid); return 99 }, toleranceMs: 0 },
+  }), fin)
+  assert.equal(lecturesParent, 1)
+  assert.equal(lecturesHorloge, 1)
+  assert.deepEqual(mesures, [process.pid, process.pid])
+})
+
+test('suivi : parent disparu ou PID réutilisé termine avant toute attente', async () => {
+  for (const pid of [0, process.pid]) {
+    let mesures = 0
+    const resultat = await attendreSuivi({ attendre: async () => ({ type: 'fin', etat: 'inactif' }) }, 'cible', { timeoutMs: 10 }, {
+      lireParent: () => pid,
+      horloge: () => 100,
+      identite: { lireCreation: () => { mesures++; return 101 }, toleranceMs: 0 },
+    })
+    assert.deepEqual(resultat, { etat: 'indeterminee', raison: 'PARENT DISPARU' })
+    assert.equal(mesures, pid === 0 ? 0 : 1)
+  }
+})
+
+test('suivi : parentVivant injecté évite toute mesure native', async () => {
+  const interdit = () => { throw new Error('mesure native indue') }
+  const fin = { type: 'fin', etat: 'inactif' }
+  assert.equal(await attendreSuivi({ attendre: async () => fin }, 'cible', { timeoutMs: 10 }, {
+    parentVivant: () => true,
+    lireParent: interdit,
+    horloge: interdit,
+    identite: { lireCreation: interdit, toleranceMs: 0 },
+  }), fin)
+})
+
+test('signal natif compilé : seul CTRL_CLOSE écrit le témoin', { skip: process.platform !== 'win32' }, (t) => {
+  const b = banc(t), script = join(b.dossier, 'signal.ps1'), temoin = join(b.dossier, 'signal.json')
+  const source = readFileSync(new URL('./session-process.ps1', import.meta.url), 'utf8').match(/Add-Type -TypeDefinition @'\r?\n([\s\S]*?)\r?\n'@/)[1]
+  const ps = (s) => `'${s.replaceAll("'", "''")}'`
+  writeFileSync(script, `Add-Type -TypeDefinition @'\n${source}\n'@\n$f=[Reflection.BindingFlags]'NonPublic,Static'\n[SessionTerminal].GetField('path',$f).SetValue($null,${ps(temoin)})\n[SessionTerminal].GetField('contenu',$f).SetValue($null,'preuve')\nforeach($s in @(0,1,5,6)){ [void][SessionTerminal].GetMethod('OnSignal',$f).Invoke($null,@([uint32]$s)); if(Test-Path -LiteralPath ${ps(temoin)}){throw "Signal $s a écrit"} }\n[void][SessionTerminal].GetMethod('OnSignal',$f).Invoke($null,@([uint32]2))\nif(!(Test-Path -LiteralPath ${ps(temoin)})){throw 'CTRL_CLOSE sans témoin'}\n`)
+  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-File', script], { encoding: 'utf8', windowsHide: true, timeout: 20_000 })
+  assert.equal(vu.status, 0, vu.stderr)
+  assert.equal(readFileSync(temoin, 'utf8'), 'preuve')
+})
+
+test('diagnostic terminal : course sortie, première cause et purge après absence complète', (t) => {
+  for (const chemin of ['sortie', 'sortie-avant-temoin', 'nettoyage', 'controle', 'controle-avant-temoin']) {
+    for (const premiere of [undefined, 'première cause', 'AGENT SORTI EN 1']) {
+      const b = banc(t), r = b.reserver(); b.revendiquer(r)
+      const id = r.carte.sessionId, signal = join(b.dossier, `${id}.terminal-close`), log = join(b.dossier, `${id}.jobhost.log`)
+      if (premiere) b.sessions.muter(id, (c) => { c.raison = premiere })
+      if (chemin === 'nettoyage') b.sessions.sortie(id, { codeAgent: 0 })
+      if (chemin === 'sortie-avant-temoin') b.sessions.sortie(id, { codeAgent: 1, raison: 'AGENT SORTI EN 1', raisonOrigine: 'generique' })
+      if (chemin === 'controle-avant-temoin') { b.vivants.clear(); b.sessions.lister() }
+      writeFileSync(signal, JSON.stringify({ sessionId: id, jobHost: identite(30) }))
+      writeFileSync(log, '[session JobHost] création impossible')
+      if (chemin === 'sortie') b.sessions.sortie(id, { codeAgent: 1, raison: 'AGENT SORTI EN 1' })
+      assert.equal(existsSync(signal), true)
+      b.vivants.clear()
+      const c = b.sessions.lister().cartes[0]
+      assert.equal(c.raison, premiere ?? 'terminal fermé')
+      assert.equal(c.issueSortie, 'echec')
+      assert.equal(c.diagnosticJobHost, '[session JobHost] création impossible')
+      assert.equal(existsSync(signal), false); assert.equal(existsSync(log), false)
+      assert.ok(c.observations.includes('[session JobHost] création impossible'))
+      if (chemin.startsWith('sortie') && premiere !== 'AGENT SORTI EN 1') assert.equal(c.observations.filter((o) => o === 'AGENT SORTI EN 1').length, 1)
+      if (!premiere) assert.equal(c.observations.includes('terminal fermé'), false)
+      assert.equal(b.sessions.lister().cartes[0].raison, c.raison)
+    }
+  }
+})
+
+test('diagnostic terminal : origine portée par la supervision réelle et cause native préservée', async (t) => {
+  for (const cause of ['', 'AGENT SORTI EN 1']) {
+    const b = banc(t), r = b.reserver(); b.revendiquer(r)
+    const id = r.carte.sessionId
+    const fin = await b.sessions.superviser(id, {
+      lancer: () => spawn(process.execPath, ['-e', 'process.exit(1)'], { windowsHide: true, stdio: 'ignore' }),
+      causeSortie: async () => cause,
+      lireRapport: () => assert.fail('rapport lu'),
+    })
+    assert.equal(fin.raisonOrigine, cause ? 'diagnostic' : 'generique')
+    writeFileSync(join(b.dossier, `${id}.terminal-close`), JSON.stringify({ sessionId: id, jobHost: identite(30) }))
+    b.vivants.clear()
+    assert.equal(b.sessions.lister().cartes[0].raison, cause ? fin.raison : 'terminal fermé')
+  }
+})
+
+test('diagnostic terminal : témoin écrit pendant la mesure finale des processus', (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, signal = join(b.dossier, `${id}.terminal-close`)
+  b.sessions.sortie(id, { codeAgent: 1, raison: 'AGENT SORTI EN 1', raisonOrigine: 'generique' })
+  let mesures = 0
+  const sessions = creerSessions({ dossier: b.dossier, inventaire: () => {
+    mesures++
+    writeFileSync(signal, JSON.stringify({ sessionId: id, jobHost: identite(30) }))
+    return []
+  } })
+  const carte = sessions.lister().cartes[0]
+  assert.equal(mesures, 1)
+  assert.equal(carte.etat, 'fermee'); assert.equal(carte.raison, 'terminal fermé')
+  assert.equal(existsSync(signal), false)
+  assert.equal(JSON.parse(readFileSync(join(b.dossier, `${id}.json`), 'utf8')).raison, 'terminal fermé')
+})
 
 test('Codex : cible canonique, envoi authentifié, veille native sans sondage et état sans secret', async (t) => {
   const appels = []
@@ -954,7 +1093,7 @@ test('inventaire : PID historique recyclé avec date différente reste Codex NON
   assert.equal(codex.creation, 'autre-date'); assert.equal(codex.etatMesure, 'NON INSCRIT'); assert.equal(codex.stoppable, false)
 })
 
-test('fermeture onglet : témoin concordant et absence complète requis, fin normale prioritaire', (t) => {
+test('fermeture terminal : témoin concordant conservé sur chaque chemin terminal', (t) => {
   for (const mode of ['valide', 'etranger', 'recycle', 'corrompu', 'absent', 'normal']) {
     const b = banc(t), r = b.reserver(); b.revendiquer(r); b.sessions.agentDemarre(r.carte.sessionId, identite(20))
     const signal = { sessionId: mode === 'etranger' ? 'autre' : r.carte.sessionId, jobHost: mode === 'recycle' ? { ...identite(30), creation: 'recycle' } : identite(30) }
@@ -965,7 +1104,7 @@ test('fermeture onglet : témoin concordant et absence complète requis, fin nor
     b.vivants.delete(20)
     const carte = b.sessions.lister().cartes[0]
     assert.equal(carte.etat, mode === 'normal' ? 'fermee' : 'echec-controle')
-    assert.equal(carte.raison, mode === 'normal' ? undefined : mode === 'valide' ? 'onglet fermé' : 'contrôle perdu, sortie inconnue')
+    assert.equal(carte.raison, ['normal', 'valide'].includes(mode) ? 'terminal fermé' : 'contrôle perdu, sortie inconnue')
   }
 })
 
@@ -994,7 +1133,7 @@ test('lanceur catégorie transitoire : carte sortie porte le refus initial', asy
 
 test('mesure transitoire avant réservation : aucune carte ni fenêtre créée', async (t) => {
   const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
-  const sessions = creerSessions({ dossier: b.dossier, inventaire: () => { throw new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT') } })
+  const sessions = creerSessions({ dossier: b.dossier, lanceur: () => identite(99), inventaire: () => { throw new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT') } })
   await assert.rejects(lancerSession({ ticket: 2461, agent: 'claude', consigne }, {
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
     terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
@@ -1036,7 +1175,7 @@ test('lanceur carte active sans reçu : conserve le refus et la capacité après
   }), (e) => {
     const refus = refusSession(e)
     assert.equal(retourAttente.etat, 'arret-demande'); assert.equal(retourAttente.recuSessionStart, undefined)
-    assert.equal(refus.categorie, 'transitoire'); assert.equal(refus.retentable, true)
+    assert.equal(refus.categorie, 'métier'); assert.equal(refus.retentable, false)
     assert.match(refus.raison, /DÉMARRAGE ÉCHOUÉ : MESURE WINDOWS INDISPONIBLE : ETIMEDOUT/)
     assert.equal(refus.reprise?.sessionId, r.carte.sessionId); assert.equal(refus.reprise?.jeton, r.jeton)
     assert.equal(refus.reprise.action, 'fermer'); assert.equal(refus.reprise.transport, 'stdin')
@@ -1045,6 +1184,11 @@ test('lanceur carte active sans reçu : conserve le refus et la capacité après
     return true
   })
   assert.equal(b.sessions.lire(r.carte.sessionId).etat, 'arret-demande')
+  await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
+    sessionsDe: () => b.sessions, lancerWT: () => assert.fail('fenêtre seconde créée'),
+  }), /\[métier · non retentable\].*COLLISION/)
 })
 
 test('échec démarrage revendiqué : mesure retentée, arrêt propre ; panne persistante rend capacité de reprise', async (t) => {
@@ -1063,7 +1207,8 @@ test('échec démarrage revendiqué : mesure retentée, arrêt propre ; panne pe
       sessionsDe: () => ({ ...sessions, reserver: (p) => { r = sessions.reserver(p); return r }, attenteDemarrage: async () => { indisponible = true; throw panne } }),
       lancerWT: () => { sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
     }), (e) => {
-      assert.equal(e, panne); assert.equal(refusSession(e).categorie, 'transitoire')
+      assert.equal(refusSession(e).categorie, persiste ? 'métier' : 'transitoire')
+      assert.equal(persiste ? e.cause : e, panne)
       if (persiste) { assert.equal(e.reprise.sessionId, r.carte.sessionId); assert.equal(e.reprise.jeton, r.jeton); assert.equal(e.reprise.transport, 'stdin') }
       else assert.equal(e.reprise, undefined)
       return true

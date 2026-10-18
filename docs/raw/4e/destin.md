@@ -1,7 +1,7 @@
 # Atlas RAW — Destin, Résilience & Détermination
 
 > Référentiel autosuffisant des règles WFRP4 (RAW). Chaque règle cite `LDB NN l.X-Y` (source = dernier recours). Voir [`sources.md`](../sources.md), [`00-index.md`](00-index.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 
@@ -92,8 +92,7 @@ Dépenser 1 Point de Chance offre l'une de ces trois options (au choix du joueur
 
 **Voir aussi** : [Influencer un test — Chance, Résilience, Talents](tests.md#influencer-un-test--chance-résilience-talents) (dans `tests.md`) pour le contexte d'intégration avec les Tests et les Degrés de Réussite.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.21-25) → `canReroll`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `canActFirst`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, `REPORT_DE_COMBATTANT`, +27 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, +14 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestindepenser-de-la-chance)
 
 ---
 
@@ -122,8 +121,7 @@ Le MJ décrit la façon dont le personnage survit après la dépense.
 
 **Voir aussi** : [Personnages Sacrifiés](#personnages-sacrifiés-destin-au-moment-de-la-mort) ci-dessous (usage du Destin face à la mort au Tableau des Critiques).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.29-37) → `canReroll`, `restoreFortune`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `canActFirst`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, +33 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/fortune.ts`, `src/engine/ops.ts`, +18 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestinoption-b-comment-ca-a-pu-rater)
 
 ---
 
@@ -138,8 +136,7 @@ La restauration se fait jusqu'à la valeur courante de Destin (pas la valeur de 
 
 **Sources RAW** : `LDB 17 l.41`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.41) → `restoreFortune`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `REPORT_DE_COMBATTANT`, `fortune-mid-session`, `RollFlowLens`, `je-ne-faillirai-pas`, `je-te-renie`, `determination`, +12 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/fortune.ts`, `src/engine/ops.ts`, +8 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestinchance)
 
 ### Option : Longues Séances de Jeu
 
@@ -150,8 +147,7 @@ Règle optionnelle du MJ : restauration intermédiaire au cours d'une longue ses
 
 **Sources RAW** : `LDB 17 l.46-47`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.46-47) → `restoreFortune`, `fateSaveOrDie`, `EnemyAction`, `fortune-mid-session`, `RollFlowLens`, `je-ne-faillirai-pas`, `je-te-renie`, `determination`, `restoreFortuneSchema`, `endSession`, +7 — `src/data/characteristics.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/types.ts`, +6 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestinoption-longues-seances-de-jeu)
 
 ### Destin
 
@@ -162,8 +158,7 @@ Les Points de Destin se renouvellent très rarement — uniquement sur décision
 
 **Sources RAW** : `LDB 17 l.43`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.43) → `restoreFortune`, `fateSaveOrDie`, `fortune-mid-session`, `RollFlowLens`, `je-ne-faillirai-pas`, `je-te-renie`, `determination`, `restoreFortuneSchema`, `fate-save-choice`, `fate-save-survive`, +7 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/fortune.ts`, `src/engine/ops.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestindestin)
 
 ---
 
@@ -194,8 +189,7 @@ Dépenser 1 Point de Détermination offre l'une de ces trois options :
 
 **Voir aussi** : [`etats.md`](etats.md) pour la liste des États retirables.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.56-61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `restoreFortune`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +49 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestindepenser-de-la-determination)
 
 ---
 
@@ -230,8 +224,7 @@ Règles précises :
 
 **Voir aussi** : [Influencer un test — Chance, Résilience, Talents](tests.md#influencer-un-test--chance-résilience-talents) (dans `tests.md`) — c'est là que le mécanisme est décrit dans son contexte d'intégration au Test ; la présente section n'en donne que la définition.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.64-72) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `regainDetermination`, `CorruptionModal`, `suspendSource`, +95 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +50 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestinoption-b-je-ne-faillirai-pas-forcer-le-succes)
 
 ---
 
@@ -259,8 +252,7 @@ Encore plus rare que l'octroi de Points de Destin. Uniquement pour des actions d
 
 **Sources RAW** : `LDB 17 l.85-87`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.81-83, l.85-87) → `regainDetermination`, `fortune-mid-session`, `je-ne-faillirai-pas`, `je-te-renie`, `determination`, `sessionEndSchema`, `FLOWS` — `src/data/characteristics.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/session.ts`, `src/state/rollFlowSpecs.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4edestinresilience)
 
 ---
 
@@ -283,8 +275,7 @@ Autres exemples listés : Perfectionniste, Protectrice, Homme de paix, Martyr p�
 
 **Sources RAW** : `LDB 05 l.421-445`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 5` (l.421-445) → `force`, `endurance`, `initiative`, `agilite`, `dexterite`, `intelligence`, `force-mentale`, `sociabilite`, `blessure`, `destin`, +5 — `src/data/characteristics.json`, `src/ui/creator/CharacterCreator.tsx`
+**Implémente :** [État calculé](../implemente.generated.md#4edestinmotivation)
 
 ---
 
@@ -305,8 +296,7 @@ La mort survient sans dépense de Destin dans ces cas :
 
 **Voir aussi** : [`traumatisme.md`](traumatisme.md) pour le fonctionnement complet des Blessures critiques et de la mort.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.34, l.38, l.40) → `rederiveAttack`, `useAttackJetProps`, `appliquerMortSubite`, `EtatPanel`, `combat-sudden-death`, `relanceLaLocalisation`, `critiquesDuCoup`, `AttackResult`, `resolveAttack`, `usesSuddenDeath`, +17 — `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4edestinpersonnages-sacrifies-destin-au-moment-de-la-mort)
 
 ---
 
@@ -319,5 +309,4 @@ Les PNJ ordinaires n'ont pas de Points de Destin ni de Résilience. C'est une pr
 
 **Sources RAW** : `LDB 17 l.9`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.9) → `ReservesSeuilsBand`, `fate-save-choice`, `fate-save-survive`, `fate-save-negate`, `Combatant` — `src/data/flow-stakes.json`, `src/engine/types.ts`, `src/ui/EtatPanel.tsx`
+**Implémente :** [État calculé](../implemente.generated.md#4edestinpnj-et-points-de-destin-resilience)

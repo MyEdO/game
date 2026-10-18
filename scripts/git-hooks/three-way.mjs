@@ -1,6 +1,6 @@
 // Fusion 3-voies d'un texte, déléguée à `git merge-file -p` par l'hôte des commandes git des portes
-// (`fusionDeTextes`, `scripts/guards/lib/gitPorte.mjs`). Consommée par les pilotes de fusion
-// `merge-docs.mjs` et `merge-stocks.mjs`.
+// (`fusionDeTextes`, `scripts/guards/lib/gitPorte.mjs`). Consommée par le pilote de fusion
+// `merge-stocks.mjs`.
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
