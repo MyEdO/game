@@ -20,7 +20,7 @@ export type SpellRange =
  *  énumération de camp propre au sort.
  *
  *  `maison` : valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
- *  — CLAUDE.md règle 7. */
+ *  — AGENTS.md règle 7. */
 export type SpellTarget =
   | { kind: 'self' } // « Vous »
   | { kind: 'count'; n: Formula } // 1, « (Bonus d'Intelligence) alliés »

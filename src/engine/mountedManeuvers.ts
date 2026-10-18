@@ -83,7 +83,7 @@ export interface BoardMountResult extends BoardingResult {
  *
  * Deux points de résolution que le passage ne chiffre pas :
  *  - échec au Test de Chevaucher du Trait Nerveux → le sauteur tombe de 2 m — arbitrage MAISON
- *    (CLAUDE.md règle 7) : l.328 est muet sur cet échec, la hauteur est extrapolée des autres chutes
+ *    (AGENTS.md règle 7) : l.328 est muet sur cet échec, la hauteur est extrapolée des autres chutes
  *    de selle du chapitre (EDOC 07 l.167, l.174, l.178) ;
  *  - égalité au Test opposé → statu quo de `resolveOpposed` (`winner === 'tie'`) : nul n'est éjecté, la
  *    monture reste à son cavalier et le sauteur, qui n'a pas pris la selle, chute de 2 m.

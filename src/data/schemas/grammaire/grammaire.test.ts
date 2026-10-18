@@ -44,7 +44,7 @@ const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
 /** Livre VF RÉEL dont `books.json` ne porte AUCUN `dir` : rien n'est extrait, donc rien n'est
  *  adressable — une prose y reste inline légitimement (verrou V3, `grammaire/prose.ts`).
  *  Fixture SYNTHÉTIQUE : `page: 1` est un remplissage de forme, PAS une citation — aucun folio de ce
- *  livre n'est allégué ici. Le livre, lui, est bien VF (CLAUDE.md § Sources VF : la VO ne se cite pas). */
+ *  livre n'est allégué ici. Le livre, lui, est bien VF (AGENTS.md § Sources VF : la VO ne se cite pas). */
 const SOURCE_SANS_EXTRACTION = { book: 'boite-d-initiation', page: 1 };
 const EXPOSITION: Exposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
 

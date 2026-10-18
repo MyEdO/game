@@ -271,7 +271,7 @@ export function applyHullCritical(
 
   // Aucun marin exposé : le coup NE SE PERD PAS — il retombe sur la Localisation que le jeu de tables
   // AUTHORE (`replisSansExpose`). MDG 13 l.584 l'imprime ; MSRC 07 l.70 le laissait au MJ, et il n'y a
-  // pas de MJ (CLAUDE.md règle 7) : l'arbitrage vit en donnée, éditable.
+  // pas de MJ (AGENTS.md règle 7) : l'arbitrage vit en donnée, éditable.
   if (hit.crewHit && !exposed.length) {
     const cible = set.replisSansExpose.cible;
     lines.push(t('shipCrit.crewNoneExposed', { loc: shipLocationLabel(cible) }));

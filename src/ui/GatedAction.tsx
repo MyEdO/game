@@ -38,7 +38,7 @@ export const lieeA = (id: string | undefined | null): PropsDeRaison =>
  *    un contexte inline.
  *
  * Dans TOUTES les formes, un contrôle refusé porte `aria-disabled` et JAMAIS `disabled` : il reste
- * atteignable au clavier, à la manette et au doigt (table des primitives, CLAUDE.md).
+ * atteignable au clavier, à la manette et au doigt (table des primitives, docs/primitives.md).
  */
 /** TON d'un bouton, en STRUCTURE : mis en avant (`primary`), classe d'appelant (`btnClassName`). */
 export type TonBouton = { primary: boolean; btnClassName?: string };

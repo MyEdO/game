@@ -2,7 +2,7 @@
 /**
  * Détermination en modale de jet (`LDB 17 l.59-61`) : le mini-picker des États présents s'affiche en
  * LIBELLÉS (`conditionLabel`) — un id de donnée (`inconscient`, `a-terre`) n'est pas du texte joueur
- * (doctrine « la LOGIQUE est keyée par id, le `label` est de l'AFFICHAGE », CLAUDE.md).
+ * (doctrine « la LOGIQUE est keyée par id, le `label` est de l'AFFICHAGE », AGENTS.md).
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';

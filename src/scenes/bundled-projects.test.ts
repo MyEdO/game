@@ -377,7 +377,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
  * Règle stricte 5 — une prose de campagne qui DÉCLARE sa source en est un COPIÉ/COLLÉ : chacun de ses
  * paragraphes se retrouve À L'OCTET dans le livre déclaré. Le livre se résout par le REGISTRE
  * (`books.json`, champ `dir` — patron `src/data/book-source-integrity.test.ts`), jamais par un chemin
- * écrit à la main, et AUCUN numéro de ligne du `Source/` n'est cité (CLAUDE.md § Sources VF : la
+ * écrit à la main, et AUCUN numéro de ligne du `Source/` n'est cité (AGENTS.md § Sources VF : la
  * ré-extraction Marker 2026-06-22 les a fait dériver, le texte non). Garde TRANSVERSE : le même glob de
  * paquets livrés, aucune scène ni aucun titre nommé.
  */
