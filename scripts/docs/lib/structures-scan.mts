@@ -1254,7 +1254,7 @@ export function scanDuCorpus(root: string) {
  *   `clé divergente`  — le rôle est porté sous un autre nom que sa cible (`key`/`nom` pour l'identité) ;
  *   `type divergent`  — la clé cible est là, sa classe de type ne l'est pas (`source` en chaîne) ;
  *   `clé absente`     — une ENTRÉE DE RACINE ne porte nulle part la clé cible d'un rôle requis
- *                       (`id`, `type` et `source` partout, `label` sur les familles `entité`/`table`),
+ *                       (`id` et `type` partout, `source` où la grammaire l’exige (`exigeSource`), `label` sur les familles `entité`/`table`),
  *                       ni l'`alternative` déclarée par le rôle (`maison` pour `source`) ;
  *   `cible partielle` — un rôle `entiere` (le `type` du document) est porté par une PARTIE des
  *                       entrées du groupe, de racine ou EMBARQUÉ.
@@ -1274,7 +1274,7 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
       if (!def.cible) continue;
       const cible = parCle.get(def.cible);
       if (!cible) {
-        const requise = def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false);
+        const requise = (def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false)) && (def.exigible?.(g.document) ?? true);
         const porteeParCle = role === 'identité' && g.identiteParCle;
         const satisfaitAutrement = def.alternative !== undefined && parCle.has(def.alternative);
         if (requise && !porteeParCle && !satisfaitAutrement && g.portee === 'racine' && g.nbEntrees > 0)

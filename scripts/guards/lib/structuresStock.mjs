@@ -31,7 +31,7 @@
 //   - Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Quatre familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`, `etat`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534) ; `stade` (effet `revealClue`), dont la cible est un stade de l’indice que nomme son `indiceId`, résolu par `projetSchema` (#686).
 //   - Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.
 //   - La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).
-//   - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
+//   - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `source` où la grammaire l’exige — `exigeSource` —, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
 //   - Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.
 //   - Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).
 //   - La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.
@@ -820,7 +820,7 @@ export const STRUCTURES_REDECLARATIONS = [
 /** Une divergence d'ENVELOPPE de document encore observée (strate Document). Quatre motifs :
  *  `clé divergente` (le rôle est porté sous un autre nom que sa cible), `type divergent` (la clé
  *  cible est là, sa classe de type ne l'est pas), `clé absente` (une ENTRÉE DE RACINE ne porte
- *  nulle part la clé cible d'un rôle requis — `id`, `type` et `source` partout, `label` sur les
+ *  nulle part la clé cible d'un rôle requis — `id` et `type` partout, `source` où la grammaire l’exige (`exigeSource`), `label` sur les
  *  familles `entité`/`table` — ni l'alternative que le rôle déclare : `maison` pour `source`),
  *  `cible partielle` (un rôle `entiere` porté par une PARTIE des entrées du groupe, portée
  *  EMBARQUÉE comprise). Hors rôle `entiere`, un document EMBARQUÉ n'est jamais sommé de porter un
@@ -831,47 +831,6 @@ export const STRUCTURES_REDECLARATIONS = [
  *  portent (`entrees` du scan) : collection à compte (#2705), une entrée de plus sans sa clé cible est
  *  une dette qui grandit. */
 export const STRUCTURES_ENVELOPPE = [
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "ambiance.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "arcane-phenomena.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "books.json", chemin: "(entrées)", occurrences: 30, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "breath-types.json", chemin: "(entrées)", occurrences: 6, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "calendarPhases.json", chemin: "(entrées)", occurrences: 7, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "crew-test-types.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "damage-types.json", chemin: "(entrées)", occurrences: 4, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "details.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "disponibilite.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "donnees.manifest.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "land-cargo.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "lieux-services.json", chemin: "(entrées)", occurrences: 7, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "lightLevels.json", chemin: "(entrées)", occurrences: 5, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "lightTones.json", chemin: "(entrées)", occurrences: 4, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "localisation.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "mass-battle.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "materials.json", chemin: "(entrées)", occurrences: 16, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "merchantFamilies.json", chemin: "(entrées)", occurrences: 7, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "merchants.json", chemin: "(entrées)", occurrences: 6, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "names.json", chemin: "(entrées)", occurrences: 7, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "naval-progression.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "pregens.json", chemin: "(entrées)", occurrences: 8, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "primitives.manifest.json", chemin: "(entrées)", occurrences: 211, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "progression-schemas.derived.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "qualitySubtypes.json", chemin: "(entrées)", occurrences: 3, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "qualityTypes.json", chemin: "(entrées)", occurrences: 2, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "raceAppearance.json", chemin: "(entrées)", occurrences: 21, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "raw.manifest.json", chemin: "(entrées)", occurrences: 17, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "renduMonte.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "river-perils.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sea-cargo.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sea-events.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sea-navigation.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sea-perils.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sea-weather.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "ship-construction.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "sizes.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "speciesRace.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "structureAppearance.json", chemin: "(entrées)", occurrences: 18, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "systemes.manifest.json", chemin: "(entrées)", occurrences: 16, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "weather.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
 ];
 
 /** Objet qui ANNONCE une référence (clé `…Id`/`…Ids`/`…Ref`, clé réservée, clé d'identité) et qui

@@ -239,10 +239,9 @@ function rendu() {
       scan.enveloppeParMotif.map((m) => [m.role, m.motif, m.documents]),
     );
     const sourceAbsente = scan.enveloppe.filter((e) => e.role === 'source' && e.motif === 'clé absente');
-    out += `Documents dont AUCUNE ENTRÉE DE RACINE ne porte \`source\` : **${sourceAbsente.length}** (lot \`L1d #1469\`) —\n`;
+    out += 'Documents dont la grammaire EXIGE la provenance (`exigeSource`, `src/data/schemas/grammaire/sans-livre.ts`)\n';
+    out += `et dont une ENTRÉE DE RACINE ne porte ni \`source\` ni \`maison\` : **${sourceAbsente.length}** —\n`;
     out += `${sourceAbsente.map((e) => `\`${e.document}\`(${e.entrees})`).join(' ')}\n\n`;
-    out += 'Le DoD ajouté de #1465 annonçait « 13 datasets sans `source` » : la mesure en trouve\n';
-    out += `**${sourceAbsente.length}** — le chiffre de 13 n’a pas de porteur dans l’arbre, il ne se recopie pas.\n\n`;
     out += `Documents de racine ne portant AUCUNE clé \`source\` à quelque profondeur que ce soit : **${scan.documentsSansSource.length}**\n`;
     out += `(lot \`L1d #1469\`) — ${scan.documentsSansSource.map((d) => `\`${d}\``).join(' ')}\n\n`;
     out += 'Documents EMBARQUÉS mesurés, par chemin :\n\n';
