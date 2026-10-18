@@ -2,7 +2,7 @@ import { lstatSync, readFileSync, rmdirSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
-import { DELAI_MESURE_PROCESSUS_MS, liensProcessus, mesurerProcessusWorktrees, normaliserErreurProcessus, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
+import { DELAI_MESURE_PROCESSUS_MS, liensProcessus, lireCause, mesurerProcessusWorktrees, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
 import { ancetresValidesDe } from './arbreProcessus.mjs'
 import { CATEGORIES_DE_REFUS, prefixeDeRefus } from './categorieDeRefus.mjs'
 import { CACHE_FRAICHEUR } from '../../docs/lib/cache-fraicheur.mjs'
@@ -16,29 +16,19 @@ const enumeration = (libelle, elements, separateur = ', ') => libelle + ' (' + e
   + (elements.length > ELEMENTS_CITES ? separateur + '+' + (elements.length - ELEMENTS_CITES) + ' autres' : '')
 
 const texteDeCause = (cause) => typeof cause === 'string' ? cause : cause.message ?? String(cause)
+/** La catégorie d'un code d'erreur : `errno` de Node, `win32 <n>` du collecteur Windows
+ *  (learn.microsoft.com/windows/win32/debug/system-error-codes--0-499-), `instable` des deux collecteurs. */
+const CATEGORIES_DE_CODE = Object.freeze({
+  EACCES: 'permission', EPERM: 'permission', 'win32 5': 'permission',
+  ETIMEDOUT: 'transitoire', ESRCH: 'transitoire', ENOENT: 'transitoire', MESURE_PROCESSUS_EXPIREE: 'transitoire', 'win32 299': 'transitoire', instable: 'transitoire',
+  EINVAL: 'validation',
+})
 function categorieDeCause(cause) {
   if (Object.hasOwn(CATEGORIES_DE_REFUS, cause?.categorie)) return cause.categorie
-  if (cause?.code) {
-    if (['EACCES', 'EPERM'].includes(cause.code)) return 'permission'
-    if (['ETIMEDOUT', 'ESRCH', 'ENOENT', 'MESURE_PROCESSUS_EXPIREE'].includes(cause.code)) return 'transitoire'
-    return cause.code === 'EINVAL' ? 'validation' : 'panne'
-  }
-  const texte = normaliserErreurProcessus(texteDeCause(cause))
-  if (/identite.*(?:modifie|change|instable)/.test(texte)) return 'transitoire'
-  if (/EACCES|EPERM|acces refuse|access denied|permission denied/i.test(texte)) return 'permission'
-  if (/ETIMEDOUT|ESRCH|ENOENT|partiel|partial|disparu|identite.*(?:modifie|change|instable)|MESURE_PROCESSUS_EXPIREE/i.test(texte)) return 'transitoire'
-  if (/EINVAL|invalide|non absolu|non attribuable/i.test(texte)) return 'validation'
-  return 'panne'
+  const { code } = lireCause(cause)
+  return Object.hasOwn(CATEGORIES_DE_CODE, code) ? CATEGORIES_DE_CODE[code] : 'panne'
 }
-
-function defautDeCollecte(cause, erreursLecture) {
-  const texte = normaliserErreurProcessus(texteDeCause(cause))
-  if (/canonisation|identite.*(?:modifie|change|instable)/.test(texte)) return false
-  if (typeof cause === 'string' && erreursLecture.includes(cause)) return true
-  if (!/^(?:cwd|commande|image|proprietaire|creation) illisible(?:\s*:|$)/.test(texte)) return false
-  if (typeof cause === 'string' && /^(?:cwd|commande|image|proprietaire|creation) illisible$/.test(texte)) return true
-  return ['permission', 'transitoire'].includes(categorieDeCause(cause))
-}
+const refusDeLecture = (cause) => lireCause(cause).champ !== null && categorieDeCause(cause) === 'permission'
 
 /** Un processus nommé sur UNE ligne bornée : PID, exécutable, commande coupée au mot. */
 export const designerProcessus = (p) => 'PID ' + p.pid + (p.nom ? ' ' + p.nom : '') + ' — ' + citation(p.commande)
@@ -60,7 +50,7 @@ export function ignoresAuthores(racine, ignores) {
       }
       return
     }
-    if (!stat) throw new Error('ignoré disparu pendant mesure : ' + rel)
+    if (!stat) throw Object.assign(new Error('ignoré disparu pendant mesure : ' + rel), { categorie: 'transitoire' })
     if (!stat.isDirectory() || stat.isSymbolicLink()) { authores.push(rel); return }
     const enfants = listerDossier(chemin, { absent: 'vide' })
     if (!enfants.length) authores.push(rel + '/')
@@ -108,7 +98,7 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
           if (!groupes.has(categorie)) groupes.set(categorie, new Set())
           groupes.get(categorie).add(texteDeCause(cause))
         }
-        const exclu = p.cwd === null && !liens.length && causes.some((c) => /^cwd illisible/i.test(texteDeCause(c))) && causes.every((c) => defautDeCollecte(c, p.erreursLecture ?? []))
+        const exclu = p.cwd === null && !liens.length && causes.some((c) => lireCause(c).champ === 'cwd') && causes.every(refusDeLecture)
         for (const [categorie, textes] of groupes) {
           const diagnostic = prefixeDeRefus(categorie) + ' PID ' + p.pid + ' ' + (p.nom ?? '') + (p.image ? ' image=' + p.image : '') + ' : ' + citation([...textes].join('; '))
           ;(exclu ? horsMesure : indeterminees).push(diagnostic)
@@ -132,7 +122,7 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     for (const { nom } of lues.entrees.filter((e) => e.nom.endsWith('.json'))) {
       const fichier = join(dossier, nom)
       const carte = JSON.parse(readFileSync(fichier, 'utf8'))
-      if (!carte || typeof carte.worktree !== 'string' || !isAbsolute(carte.worktree) || typeof carte.etat !== 'string') throw new Error('carte session non attribuable : ' + fichier)
+      if (!carte || typeof carte.worktree !== 'string' || !isAbsolute(carte.worktree) || typeof carte.etat !== 'string') throw Object.assign(new Error('carte session non attribuable : ' + fichier), { categorie: 'validation' })
       if (!sousArbre(carte.worktree, chemin)) continue
       if (carte.etat !== 'fermee') refus.push(prefixeDeRefus('métier') + ' session ' + fichier + ' — ' + carte.etat)
       if (carte.etat === 'fermee' && (!carte.controleur || !carte.jobHost)) throw new Error('projection session fermée incomplète : ' + fichier)
