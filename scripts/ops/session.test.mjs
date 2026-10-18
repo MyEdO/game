@@ -14,6 +14,8 @@ import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
+import { projeter, surfaceDe } from '../hooks/repartition.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
@@ -87,11 +89,26 @@ test('lanceur Codex : version et protocole contrôlés avant réservation et fen
   }
 })
 
+test('environnement agent : contrôle parent sans casse, projection Codex et configuration préservée', () => {
+  const configuration = { CODEX_HOME: 'configuration-utilisateur', GH_TOKEN: 'jeton-banc', WFRP_SESSION_START: 'contexte-enfant' }
+  const controles = ['WFRP_SESSION_JETON', 'WFRP_SESSION_REVENDICATION', 'CLAUDE_CODE_CHILD_SESSION', 'CLAUDE_PROJECT_DIR']
+  const env = Object.freeze({ ...configuration, ...tableTotale(controles.flatMap((cle) => [cle, cle.toLowerCase(), cle[0] + cle.slice(1).toLowerCase()]), () => 'parent') })
+  const avant = { ...env }, propre = envAgent(env)
+  assert.equal(surfaceDe(propre), 'codex')
+  assert.deepEqual(propre, configuration)
+  assert.deepEqual(env, avant)
+  assert.deepEqual(projeter({ decision: { decision: 'deny', reason: 'refus du banc' }, contexte: null }, 'PreToolUse', surfaceDe(propre)), {
+    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'refus du banc' },
+  })
+})
+
 test('préflights Codex : chaque exécuteur reçoit le même environnement nettoyé et garde les réglages utilisateur', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2528.md'); writeFileSync(consigne, 'faire')
   const env = { WFRP_SESSION_JETON: 'parent', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', WFRP_SESSION_START: 'reçu-parent', GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }
   const propre = { GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }, appels = []
+  env.CLAUDE_PROJECT_DIR = 'projet-parent'
   const executer = (exe, args, options) => {
+    assert.equal(options.env.CLAUDE_PROJECT_DIR, undefined)
     assert.equal(exe, b.fichiers.codex)
     assert.deepEqual(options.env, propre)
     appels.push(args.join(' '))

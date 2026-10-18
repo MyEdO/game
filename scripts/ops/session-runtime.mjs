@@ -47,11 +47,7 @@ const sommeil = (ms) => new Promise((r) => setTimeout(r, ms))
 const lireJSON = (chemin) => JSON.parse(fs.readFileSync(chemin, 'utf8'))
 
 export function envAgent(env) {
-  const propre = { ...env }
-  delete propre.WFRP_SESSION_JETON
-  delete propre.WFRP_SESSION_REVENDICATION
-  delete propre.CLAUDE_CODE_CHILD_SESSION
-  return propre
+  return Object.fromEntries(Object.entries(env).filter(([cle]) => !/^(?:WFRP_SESSION_JETON|WFRP_SESSION_REVENDICATION|CLAUDE_CODE_CHILD_SESSION|CLAUDE_PROJECT_DIR)$/i.test(cle)))
 }
 
 export function lireJsonc(texte) {
