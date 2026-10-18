@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { CATEGORIES_DE_REFUS, prefixeDeRefus } from './categorieDeRefus.mjs'
 import { PREFIXES_DE_REFUS } from '../../hooks/barriere-outil.mjs'
 import { REGISTRE } from '../../hooks/registre.mjs'
-import { PROJECTION } from './contratGarde.mjs'
+import { PROJECTION, verdictDe } from './contratGarde.mjs'
+import { REFUS_SATURE } from './commandeShell.mjs'
 import { listerDossier } from './lister.mjs'
 
 test('seul un refus transitoire est retentable', () => {
@@ -32,4 +33,9 @@ test('une garde du registre déclare une catégorie connue si et seulement si so
     if (refuse) assert.ok(Object.hasOwn(CATEGORIES_DE_REFUS, garde.categorie), `${garde.nom} refuse sans catégorie connue (${garde.categorie})`)
     else assert.equal(garde.categorie, undefined, `${garde.nom} ne refuse jamais : aucune catégorie`)
   }
+})
+
+test('un refus d’évaluateur garde sa catégorie jusqu’au verdict : une commande saturée est une validation', () => {
+  assert.equal(verdictDe(REFUS_SATURE).categorie, 'validation')
+  assert.equal(Object.hasOwn(verdictDe({ reason: 'x' }), 'categorie'), false)
 })

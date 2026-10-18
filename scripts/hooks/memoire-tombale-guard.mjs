@@ -103,6 +103,7 @@ export function evaluate(input, lireDisque = () => '') {
   if (!estNomDeMemoireAdmis(nom)) {
     return {
       decision: 'deny',
+      categorie: 'métier',
       reason:
         `⛔ Fiche de mémoire hors \`user-*\` (« ${nom} ») : une fiche ne naît que \`user-*\`, pour un arbitrage ` +
         'utilisateur cité verbatim et daté. Geste : porte la consigne chez son porteur (règle, skill, agent, doc : ' +

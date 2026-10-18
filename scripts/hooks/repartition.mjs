@@ -9,7 +9,7 @@ import { dirname, isAbsolute, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { RACINE } from './barriere-outil.mjs'
 import { panneDe } from './panne-outil.mjs'
-import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { CATEGORIES_DE_REFUS, prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import {
   EDITION, PROJECTION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert, racineDeLeanCtx,
 } from '../guards/lib/contratGarde.mjs'
@@ -207,12 +207,17 @@ function lieuxPosesParLaCommande(command, outil) {
   ]
 }
 
+/** Le canal d'une LECTURE qui nomme un lieu posé, dans la famille de l'outil refusé (#2726). */
+const CANAL_LECTURE_LEAN_CTX = '`ctx_search` pour chercher ce nom (une recherche qui le nomme n’est pas jugeable en shell)'
+const CANAL_LECTURE_NATIF = 'le motif dans un fichier pour chercher ce nom : `git grep -f <fichier>`, l’outil de lecture de fichier (Read) pour lire un fichier qui le porte (une commande qui le nomme n’est pas jugeable en shell)'
+
 /** Le refus d'une commande dont `lieuxPosesParLaCommande` rend des `poses` : raisons et canaux sans
- *  doublon ; `ctx_search` seul quand la commande ne fait que LIRE (`commandeDeLecture`). */
-function refusDesLieuxPoses(command, poses) {
+ *  doublon ; le canal de lecture de la famille d'`outil` seul quand la commande ne fait que LIRE
+ *  (`commandeDeLecture`). */
+function refusDesLieuxPoses(command, poses, outil) {
   const raison = `environnement ou dépôt posé par la commande — ${[...new Set(poses.map((p) => p.raison))].join(' ; ')}`
   const canal = commandeDeLecture(command)
-    ? '`ctx_search` pour chercher ce nom (une recherche qui le nomme n’est pas jugeable en shell)'
+    ? (nomLeanCtx(outil) === null ? CANAL_LECTURE_NATIF : CANAL_LECTURE_LEAN_CTX)
     : [...new Set(poses.map((p) => p.canal))].join(' ; ')
   return nonJugeable(raison, canal).nonJugeable
 }
@@ -238,7 +243,7 @@ export function construireContexte(entree, { env = process.env, cwd = process.cw
   const dir = cible.dir ?? lieu.base
   const racineNpm = racineNpmDe(dir)
   const poses = sousRacineNpm(racineNpm, () => lieuxPosesParLaCommande(command, entree?.tool_name))
-  if (poses.length) return { ...commun, baseDeLAppel: lieu.base, dir: null, racineNpm: null, cibleIgnoree: cible.ignore, nonJugeable: refusDesLieuxPoses(command, poses) }
+  if (poses.length) return { ...commun, baseDeLAppel: lieu.base, dir: null, racineNpm: null, cibleIgnoree: cible.ignore, nonJugeable: refusDesLieuxPoses(command, poses, entree?.tool_name) }
   return { ...commun, baseDeLAppel: lieu.base, dir, racineNpm, cibleIgnoree: cible.ignore, nonJugeable: null }
 }
 
@@ -252,8 +257,8 @@ export function verdictDePanne(quoi, e, entree, racine = RACINE) {
 }
 
 /**
- * Les verdicts des `gardes`, dans l'ordre, chacun étiqueté de sa garde. Une garde qui LÈVE rend son
- * `verdictDePanne` ; une garde `PROJECTION` qui rend une `decision` rend un contexte qui la nomme, jamais
+ * Les verdicts des `gardes`, dans l'ordre, chacun étiqueté de sa garde. Une garde qui LÈVE, ou qui refuse
+ * sans catégorie connue (`CATEGORIES_DE_REFUS`), rend son `verdictDePanne` ; une garde `PROJECTION` qui rend une `decision` rend un contexte qui la nomme, jamais
  * un refus ; un `deny` court-circuite les suivantes.
  */
 export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
@@ -262,6 +267,8 @@ export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
     let rendus
     try {
       rendus = [await sousRacineNpm(contexte.racineNpm, () => garde.evaluer(entree, contexte))].flat().filter(Boolean)
+      const sansCategorie = garde.role === PROJECTION ? undefined : rendus.find((v) => v.decision && !Object.hasOwn(CATEGORIES_DE_REFUS, v.categorie ?? garde.categorie))
+      if (sansCategorie) throw new Error(`refus sans catégorie connue (${sansCategorie.categorie ?? garde.categorie}) : déclarer \`categorie\` sur la garde ou sur son verdict`)
     } catch (e) {
       rendus = [verdictDePanne(`garde ${garde.nom}`, e, entree, racine)]
     }

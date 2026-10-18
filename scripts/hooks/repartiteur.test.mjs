@@ -223,10 +223,10 @@ test('un refus prend la catégorie de sa garde, sauf la sienne ; une catégorie 
   assert.throws(() => cumuler([{ decision: 'deny', raison: 'x', garde: 'sans' }]), /catégorie de refus inconnue : undefined/)
 })
 
-test('une garde qui refuse sans catégorie connue fait refuser le répartiteur en panne', async () => {
+test('une garde qui refuse sans catégorie connue est en panne, nommée', async () => {
   const sans = { nom: 'sans-categorie', outils: ['Bash'], evaluer: () => ({ decision: 'deny', raison: 'non' }) }
   const { sortie } = await repartir({ PreToolUse: [sans] }, JSON.stringify(shell('ls')))
-  assert.match(sortie.hookSpecificOutput.permissionDecisionReason, /^\[panne · non retentable\] ⛔ répartiteur en panne : catégorie de refus inconnue : undefined/)
+  assert.match(sortie.hookSpecificOutput.permissionDecisionReason, /^\[panne · non retentable\] ⛔ garde sans-categorie en panne : refus sans catégorie connue \(undefined\)/)
 })
 
 test('un refus sans raison en porte une qui nomme sa garde', () => {
@@ -536,7 +536,7 @@ test('#2224 la table se lit par SECTION de la doc de git (« The Git Repository 
   })
 })
 
-test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l’écrit ; une lecture qui le nomme est renvoyée à `ctx_search`', async () => {
+test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l’écrit ; une lecture qui le nomme est renvoyée au motif dans un fichier, `ctx_search` pour un shell lean-ctx', async () => {
   await dansUnDepot(async (racine) => {
     const ecritures = [
       ['Bash', 'cmd /c "set GIT_DIR=x && git status"'],
@@ -555,8 +555,11 @@ test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l
     }
     for (const command of ['git grep -n GIT_DIR', 'rg NODE_OPTIONS scripts', 'grep -rn npm_config_prefix . | head -3']) {
       const r = await raison(racine, 'Bash', { command })
-      assert.match(r, /nommé .*canal prescrit : `ctx_search`/, `« ${command} » : ${r}`)
+      assert.match(r, /nommé .*canal prescrit : le motif dans un fichier pour chercher ce nom : `git grep -f <fichier>`/, `« ${command} » : ${r}`)
+      assert.doesNotMatch(r, /ctx_/, `« ${command} » : un shell natif ne reçoit aucun canal lean-ctx`)
     }
+    const lean = await raison(racine, `${LC}ctx_shell`, { command: 'git grep -n GIT_DIR', cwd: racine })
+    assert.match(lean, /nommé .*canal prescrit : `ctx_search`/, `ctx_shell : ${lean}`)
   })
 })
 
@@ -634,7 +637,7 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
     const ECRIT = /canal prescrit : le fichier écrit par l’outil d’écriture de fichier [(]Write[)][.]$/
     const ENV_DU_PROGRAMME = /canal prescrit : la variable posée DANS le programme lancé [(]option `env` de `spawn`\/`execFile`[)], jamais dans la commande[.]$/
     const NOM = /canal prescrit : un nom de variable littéral[.]$/
-    const RECHERCHE = /canal prescrit : `ctx_search`/
+    const RECHERCHE = /canal prescrit : le motif dans un fichier pour chercher ce nom : `git grep -f <fichier>`, l’outil de lecture de fichier [(]Read[)]/
     const cas = [
       ['Bash', 'git --namespace=x commit -m y', LIEU],
       ['Bash', 'git --namespace x commit -m y', LIEU],

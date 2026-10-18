@@ -407,8 +407,8 @@ export function texteAvant(ecrit, lire) {
   return lignesVisees(ecrit, lire()) ?? ''
 }
 
-/** Le verdict d'un refus d'évaluateur `{ reason }`, `null` sans refus. */
-export const verdictDe = (d) => (d ? { decision: 'deny', raison: d.reason } : null)
+/** Le verdict d'un refus d'évaluateur `{ reason, categorie? }` (sa catégorie prime celle de la garde), `null` sans refus. */
+export const verdictDe = (d) => (d ? { decision: 'deny', raison: d.reason, ...(d.categorie ? { categorie: d.categorie } : {}) } : null)
 
 /**
  * Décision d'ensemble d'un cumul de refus `{ reason }` : `null` sans refus, sinon un `deny` qui porte

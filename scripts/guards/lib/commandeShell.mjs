@@ -1905,6 +1905,7 @@ export const nouveauBudget = () => ({ sature: false })
  *  au-delà de ses bornes. */
 export const REFUS_SATURE = Object.freeze({
   decision: 'deny',
+  categorie: 'validation',
   reason:
     `⛔ commande trop imbriquée pour être jugée : au-delà de ${PROFONDEUR_MAX_ENROBEURS} niveaux de porteurs, de ` +
     `scripts npm ou de substitutions, la lecture s'arrête et ne voit pas ce que la commande exécute. Aplatir la ` +
