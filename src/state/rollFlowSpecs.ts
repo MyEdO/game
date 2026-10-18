@@ -43,7 +43,7 @@ import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
-import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
@@ -102,17 +102,17 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
-/** Arme de parade DÉCLARÉE à la fenêtre de Défense (`defenseSetParryWeapon`), lue par tout chemin du jet. */
-function declaredParry(defender: Combatant, p: PendingDefense): Weapon | undefined {
-  return p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
+/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (`defenseSetParryWeapon`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
+export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | undefined {
+  return (p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined) ?? defaultParryWeapon(defender);
 }
 
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
- *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est celle DÉCLARÉE (`declaredParry`). */
+ *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est `parryWeaponOf`. */
 function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], metresPerTile = 2): AttackResult {
   const sub = defenseSubOf(defender, p);
-  const parry = declaredParry(defender, p);
+  const parry = parryWeaponOf(defender, p);
   const atk = forcedOpposedAtk(p, def);
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
@@ -678,7 +678,7 @@ export const FLOWS = {
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
       const dodgeMods = defenseDodgeMods(s, actor);
-      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, declaredParry(actor, p), p.weapon, defenseSubOf(actor, p));
+      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, parryWeaponOf(actor, p), p.weapon, defenseSubOf(actor, p));
       return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, mpt) };
     },
     outcome: (p) => testOutcome(p.def),

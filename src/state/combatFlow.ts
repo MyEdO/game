@@ -67,6 +67,7 @@ import {
   ligneDuCoup,
   freeAttackWeapon,
   causeDuCoupCritique,
+  defaultParryWeapon,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
@@ -886,8 +887,8 @@ export function resolveDualSecond(
   const compo = composeAttack(mods);
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'none' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'none') return resolveMeleePassive(attacker, target, offWeapon, atk, opts?.location, env, undefined, false, compo);
-  const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), target.weapons[0], offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, defenseDodgeMods(get(), target), undefined, target.weapons[0], false, undefined, compo);
+  const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -1016,7 +1017,7 @@ export function previewDefense(
   ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[] },
 ): { label: string; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
   const mode = ctx?.mode ?? bestDefenseMode(defender);
-  const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defender.weapons[0];
+  const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defaultParryWeapon(defender);
   const line = rollLine({
     difficulty: 'intermediaire', // LDB 13 l.118
     valeur: defenseValue(defender, mode, arme), valeurEtrangere: true,
@@ -3100,7 +3101,7 @@ function maladresseDeLAttaquant(get: Get, set: SetFn, attacker: Combatant, weapo
 /** Maladresse du DÉFENSEUR (Test opposé, LDB 14 l.13) : sa Parade/Esquive ratée sur un double, sur
  *  l'arme qui a PARÉ. Substitution sociale : pas un Test d'arme, aucune Maladresse. */
 function maladresseDuDefenseur(get: Get, set: SetFn, target: Combatant, res: AttackResult, suivant: QueueDuCoup): boolean {
-  const arme = res.parryWeapon ?? target.weapons[0];
+  const arme = res.parryWeapon ?? defaultParryWeapon(target);
   if (!arme || !res.defenderDetail || res.defenderDetail.mode === 'social' || isOutOfAction(target)) return false;
   if (!defenderFumbled(res, arme, target)) return false;
   return ecrireLaMaladresse(get, set, target, arme, suivant);

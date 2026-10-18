@@ -341,6 +341,11 @@ export type DefenseMode = 'parade' | 'esquive' | 'social';
  *  (`base`) + son libellé d'affichage (`label`, ex. « Intimidation »). Thread depuis la couche état. */
 export interface DefenseSub { base: number; label: string }
 
+/** Arme de parade PAR DÉFAUT du défenseur, à défaut d'arme déclarée : la main principale. */
+export function defaultParryWeapon(c: Combatant): Weapon | undefined {
+  return c.weapons[0];
+}
+
 /**
  * Valeur de défense NUE (Parade = Corps à corps avec l'arme parante ; Esquive = Agilité + avances ;
  * Social = valeur de Test de la Compétence substituée, fournie par `socialBase`), au sens de
@@ -350,7 +355,7 @@ export interface DefenseSub { base: number; label: string }
  */
 export function defenseBaseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialBase?: number): number {
   if (mode === 'social') return socialBase ?? 0; // base = Test de la Compétence sociale (Intimidation/Dressage), calculée en amont
-  if (mode === 'parade') return combatBaseValue(c, 'melee', weapon ?? c.weapons[0]);
+  if (mode === 'parade') return combatBaseValue(c, 'melee', weapon ?? defaultParryWeapon(c));
   return skillBaseValue(c, 'esquive', undefined, 'agilite');
 }
 
@@ -368,7 +373,7 @@ export function defenseValueMods(c: Combatant, mode: DefenseMode, weapon?: Weapo
  *  d'Agilité, effets actifs d'Agilité (Esquive = Test de déplacement, #193) — sommés (LDB 14 l.95). */
 export function defenseValueModParts(c: Combatant, mode: DefenseMode, weapon?: Weapon): ModLine[] {
   if (mode === 'social') return []; // valeur fournie clé en main par la couche état
-  if (mode === 'parade') return combatValueModParts(c, 'melee', weapon ?? c.weapons[0]);
+  if (mode === 'parade') return combatValueModParts(c, 'melee', weapon ?? defaultParryWeapon(c));
   const enc = agilityTestPenalty(c);
   return [
     ...(enc ? [{ label: 'Encombrement', value: enc, famille: 'jet' as const, ref: RULE_REF.encombrement }] : []),
@@ -385,7 +390,7 @@ export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, s
 /** Ids du Test de défense, MÊME sélection que `defenseBaseValue` : Parade = `attackTestOf` de mêlée à l'arme
  *  parante, Esquive, ou la Compétence substituée `socialSkillId` (LDB 13 l.161-167). */
 export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): { skill?: string; spec?: string; char?: CharKey } {
-  if (mode === 'parade') return attackTestOf(c, weapon ?? c.weapons[0], 'melee');
+  if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
   if (mode === 'esquive') return { skill: 'esquive' };
   return { skill: socialSkillId };
 }
@@ -1084,7 +1089,7 @@ export function rollMeleeDefender(
   mode: DefenseMode,
   rng: RNG = defaultRNG,
   dodgeMods: ModLine[] = [], // lignes d'Esquive du contexte (LDB 14 l.82, l.184) ; n'affectent pas la parade
-  parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + pénalité main 2nde)
+  parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + pénalité main 2nde)
   vsWeapon?: Weapon, // arme de l'ATTAQUANT (Rapide : −10 à la parade d'une arme non-Rapide, LDB 62 l.298-302)
   sub?: DefenseSub, // substitution sociale (mode 'social') : base = Test de la Compétence substituée
 ): TestResult {
@@ -1171,7 +1176,7 @@ export function finishMelee(
   env: ModLine[] = [],
   dodgeMods: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
-  parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + Atouts + pénalité main 2nde)
+  parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + Atouts + pénalité main 2nde)
   withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   sub?: DefenseSub, // substitution sociale (mode 'social') : base + libellé de la Compétence substituée
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
@@ -1199,7 +1204,7 @@ function combineOpposed(
   opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub } = {},
 ): AttackResult {
   const { location, dmgProxy } = opts;
-  const parryWeapon = opts.parryWeapon ?? defender.weapons[0];
+  const parryWeapon = opts.parryWeapon ?? defaultParryWeapon(defender);
   const dodgeMods = opts.dodgeMods ?? [];
   const noSize = !!attacker.swarm || !!defender.swarm; // Nuée : ignore toutes les règles de Taille (LDB 85 l.253)
   const parrySizePenalty = defenseMode === 'parade' && !noSize ? 2 * Math.max(0, sizeGap(attacker.size, defender.size)) : 0;
@@ -1361,8 +1366,8 @@ export function resolveMelee(
   if (defenseMode === 'none') {
     res = resolveMeleePassive(attacker, defender, weapon, atk, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
   } else {
-    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defender.weapons[0], weapon);
-    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defender.weapons[0], opts.withhold, undefined, compo);
+    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defaultParryWeapon(defender), weapon);
+    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo);
   }
   if (autoKill && res.hit) res.autoKill = true;
   return res;
@@ -1459,7 +1464,7 @@ export function bestRangedDefense(
 ): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon } | undefined {
   const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile);
   if (!modes.length) return undefined;
-  const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defender.weapons[0];
+  const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defaultParryWeapon(defender);
   const valOf = (m: 'parade' | 'esquive') => defenseValue(defender, m, m === 'parade' ? parryWeapon : undefined);
   const best = maxBy(modes, valOf)!.item; // `modes` non vide (garde ci-dessus) ; first-max = mode le plus défensif.
   return { mode: best, parryWeapon: best === 'parade' ? parryWeapon : undefined };
@@ -1489,7 +1494,7 @@ export function resolveRanged(
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.62 / tireur Engagé 14 l.70) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
-    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defender.weapons[0], weapon);
+    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defaultParryWeapon(defender), weapon);
     return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
   }
   return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'ranged', location, undefined, withhold);
