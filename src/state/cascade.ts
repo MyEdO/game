@@ -1040,7 +1040,7 @@ export function annoterEtapeDeLaFenetre(id: string, meta: CascadeStepMeta): bool
 
 /**
  * ID de la DERNIÈRE étape poussée pendant l'application en cours (#1508), ou `null` hors fenêtre. La
- * couture de continuation (`state/combatEffects.differerLaSuite`) confie sa suite à CELLE-LÀ : « la
+ * couture de continuation (`state/combatEffects.confierLaSuite`) confie sa suite à CELLE-LÀ : « la
  * dernière étape ouverte » est un fait de POUSSÉE, pas de position — depuis que les étapes s'insèrent,
  * la dernière du tableau peut être une étape ANTÉRIEURE d'un autre porteur.
  */
@@ -1399,7 +1399,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   let next = base.map((x, k) => {
     if (k !== i) return x;
     const { foldMemo: _joue, ...sansMemo } = x;
-    const { apresFlow: _af, apresClotures: _ac, apresMode: _am, apresLabel: _al, ...meta } = x.meta ?? {};
+    const { apresSuite: _suite, ...meta } = x.meta ?? {};
     return { ...sansMemo, ...(x.meta ? { meta } : {}), ...(step.result ? { result: step.result } : {}), committed: true, outcome: shown };
   });
   // LES DEUX voies d'insertion d'un applier, fusionnées ICI et nulle part ailleurs (#1508) : ce qu'il

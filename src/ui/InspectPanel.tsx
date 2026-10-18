@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Combatant } from '../engine/types';
 import { useGame } from '../state/store';
 import { presetPnjById } from '../state/campaignData';
+import { porteurDuNarratif } from './porteurDeProjet';
 import { Modal } from './Modal';
 import { CharFrame } from './CharFrame';
 import { PortraitTile } from './PortraitTile';
@@ -25,7 +26,7 @@ import { WoundsBadge } from './WoundsBadge';
  * Plus de panneau recopié ni de sous-ensemble de caractéristiques — une seule vérité de rendu.
  *
  * ONGLETS (#2206) : « Profil » (le statbloc) et « Description » (`proseDeFiche` : la `desc` de la fiche,
- * avec l'entrée qui la porte). Sans prose, ni onglet ni barre : le statbloc seul.
+ * avec l'entrée ou le champ du projet qui la porte). Sans prose, ni onglet ni barre : le statbloc seul.
  *
  * COQUE (navire/engin, #240) : le statbloc-personnage n'a aucun sens (caracs nulles) → on inspecte l'objet
  * visible via `ShipInspectBody` (Coque, cap, postes, Traits/Améliorations dont la Proue-idole #221) — même
@@ -35,9 +36,10 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
   const c = combatant;
   const battle = useGame((s) => s.battle);
   const facing = useGame((s) => s.facing);
+  const campaignDoc = useGame((s) => s.campaignDoc);
   const hull = isVehicle(c) || isEngin(c);
   const fx = summarizeEffects(c.conditions, c.activeEffects ?? [], Infinity, combatantFlags(c));
-  const prose = hull ? null : proseDeFiche(c, presetPnjById);
+  const prose = hull ? null : proseDeFiche(c, presetPnjById, (cle, id, suite) => porteurDuNarratif({ campaignDoc }, cle, id, suite));
   const [onglet, setOnglet] = useState<'profil' | 'description'>('profil');
   const crew = hull ? (c.crewIds ?? []).map((id) => battle?.combatants.find((x) => x.id === id)).filter((x): x is Combatant => !!x) : [];
 

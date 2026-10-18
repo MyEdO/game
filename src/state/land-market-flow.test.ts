@@ -79,7 +79,7 @@ function launchAtA(): void {
   const g = get();
   const h = trader();
   g.setParty([h]);
-  g.loadProject([marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], 'marche-a', tradeMap());
+  g.loadProject({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
   // trader() n'a pas de bourse → partyMoneyTotal = 0 ; le registre de possessions REMPLACE tout auto-semis
   // de dotation carrière (marchand niveau 1 porte une mule) par LE porteur déterministe du test.
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });

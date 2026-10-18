@@ -419,9 +419,18 @@
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
     "css": "src/ui/styles/team-segments.css",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
+    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée ; `paquet` : prose de paquet nommée par les identités en vigueur (`nommer`), exclusive des annotations",
     "perimetre": "tout champ de prose RAW",
-    "verrou": "no-html-in-prose.test.ts"
+    "verrou": "no-html-in-prose.test.ts, src/ui/prose-sites.test.ts"
+  },
+  {
+    "id": "identites",
+    "type": "primitives.manifest",
+    "label": "nommer/identitesResolues/useIdentites",
+    "fichier": "src/state/identites.ts",
+    "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
+    "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
+    "verrou": "src/state/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "resolveRender",
@@ -757,7 +766,7 @@
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
     "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
-    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
   },
@@ -805,6 +814,15 @@
     "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
     "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
+  },
+  {
+    "id": "suite",
+    "type": "primitives.manifest",
+    "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
+    "fichier": "src/state/combatEffects.ts",
+    "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
+    "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
+    "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "creatorDice",

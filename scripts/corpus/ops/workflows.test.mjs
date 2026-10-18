@@ -41,7 +41,7 @@ import { bancsDeWorkflowDuDepot, reconnaissanceDuDepot } from '../../guards/lib/
 import { etagesDe, REGIMES, EXCEPTIONS_MECANIQUES, TABLES, estTexte, analyser as analyserForme } from '../../guards/lib/formeDeWorkflow.mjs'
 import { FICHES, TYPES_DECLARES, RACINE, muter, vus as voirDefauts } from '../../test/lib/bancWorkflows.mjs'
 
-const CALIBRAGE = readFileSync(new URL('../../../.claude/skills/orchestrer-des-agents/SKILL.md', import.meta.url), 'utf8')
+const CALIBRAGE = readFileSync(new URL('../../../.claude/skills/orchestrer-des-agents/calibrage.md', import.meta.url), 'utf8')
 const ETAGES = etagesDe(FICHES)
 const CE_FICHIER = fileURLToPath(import.meta.url);
 
@@ -85,7 +85,8 @@ export function defautsDesTables(tables, { scripts, phases, typesDeclares }) {
     if (String(e.raison ?? '').length < 20) defauts.push(`${ou} : raison de moins de 20 caractères`);
     if (!typesDeclares.has(e.type)) defauts.push(`${ou} : type \`${e.type}\` non déclaré sous \`.claude/agents/\` (\`name:\` du frontmatter)`);
   }
-  return defauts;
+  // Deux exceptions d'une même phase portent le même défaut de phase : il se dit une fois.
+  return [...new Set(defauts)];
 }
 
 /**
@@ -203,9 +204,9 @@ test('COUVERTURE : chaque script de workflow reconnu est nommé par un banc', ()
 
 test('la porte MORD quand une phase de RÉDACTION part sur un autre type ou un autre modèle', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge-de-source', model: 'sonnet'");
   assert.deepEqual(vus(mute, fichier), [
-    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge`)",
+    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge-de-source`)",
     "agent : phase de RÉDACTION `Synthese` : `model: 'opus'` exigé AUSSI (lu : `sonnet`) — un sous-agent ne tourne jamais sur le modèle de session",
   ]);
 });
@@ -214,7 +215,7 @@ test('défaut 8 — une phase de JUGEMENT renommée et rétrogradée rougit la p
   const fichier = '.claude/workflows/dossier-de-chapitre.js';
   const source = sources.get(fichier);
   const mute = source.split('Complétude').join('Relecture')
-    .replace(/(phase: 'Relecture'[^}]*?)agentType: 'juge', model: 'opus'/, "$1agentType: 'lecteur', model: 'sonnet'");
+    .replace(/(phase: 'Relecture'[^}]*?)agentType: 'juge-de-source', model: 'opus'/, "$1agentType: 'lecteur', model: 'sonnet'");
   assert.notEqual(mute, source, 'la mutation s’applique — sinon ce test ne prouve rien');
   assert.match(mute, /phase: 'Relecture'[^}]*agentType: 'lecteur', model: 'sonnet'/, 'le site est rétrogradé');
   const phases = new Map([...analyses].map(([f, a]) => [f, f === fichier ? analyser(mute, f) : a]));
@@ -235,7 +236,7 @@ test('dossier-de-chapitre : la racine de chaque schéma reste LITTÉRALE, seule 
 
 test('une phase de REGIMES n’est employée que par le `phase:` d’un SITE — un `phase(…)` de progression ne la couvre pas', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Audit', agentType: 'juge', model: 'opus'", "phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Audit', agentType: 'juge-de-source', model: 'opus'", "phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet'");
   assert.match(mute, /phase\('Audit'\)/, 'la progression `phase(\'Audit\')` reste');
   assert.deepEqual(vus(mute, fichier), [], 'le site rétrogradé a une forme MÉCANIQUE permise : seule la table le voit');
   const phases = new Map([...analyses].map(([f, a]) => [f, f === fichier ? analyser(mute, f) : a]));

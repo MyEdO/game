@@ -59,7 +59,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   // émet — elles vivent au registre clavier (`state/keybindings.ts`), hors du périmètre de ce scan.
   setScreen: CLIENT('écran courant'),
   setGameMenu: CLIENT('menu système'),
-  closeDocument: CLIENT('document lu'),
+  closeDocument: HOTE('fermeture d’un document remis : rejoue la suite du Flow (Effet `document` suspensif)'),
   openCodex: CLIENT('codex'),
   closeCodexOverlay: CLIENT('codex'),
   setKeyBinding: CLIENT('raccourcis clavier'),

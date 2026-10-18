@@ -30,6 +30,8 @@ export interface RecapLine {
   /** Phase du jour (clé de `DAY_PHASE_CATALOG`) — posée quand la ligne provient d'une étape de
    *  cascade (`kind` connu) ; absente pour les notes hors-cascade (météo, entretien, soins d'arrivée). */
   phase?: string;
+  /** Le texte est une prose de PAQUET (`SITES_PROSE`, `src/ui/liage.ts`) : nommé par les identités en vigueur. */
+  paquet?: true;
 }
 
 /** Enveloppe des textes SIMPLES en `RecapLine[]` — repli neutre (ni icône ni ton), pour les

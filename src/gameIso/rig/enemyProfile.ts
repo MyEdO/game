@@ -27,6 +27,8 @@ import { coiffureRetombee } from './parts/cosmetic';
 import { sexeDeCoiffure } from '../../data/schemas/grammaire/art';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetPnjById } from '../../state/campaignData';
 
 export interface EnemyRigProfile {
   appearance: Appearance;
@@ -290,7 +292,10 @@ export function refOf(ent: Pick<SceneEntity, 'ref'>): string | undefined {
 export function entityRigProfileFor(ent: SceneEntity, enrolled?: boolean): EnemyRigProfile | null {
   const refName = refOf(ent);
   if (import.meta.env?.DEV && !refName && !ent.appearance?.species)
-    diagOnce(`rig:entite:${diagSubject() || ent.id}`, () => console.error(`[rig] entité « ${ent.id} » (${ent.label ?? 'sans libellé'}) : ni réf de créature ni Espèce — donnée de scène à corriger.`));
+    diagOnce(`rig:entite:${diagSubject() || ent.id}`, () => {
+      const nom = nomDEntite(ent, presetPnjById);
+      console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
+    });
   return entityRigProfile(refName, hashSeed(ent.id), {
     ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled,
   });

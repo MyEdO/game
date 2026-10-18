@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { API, Snapshot, SymbolFlags } from 'typescript/unstable/sync';
+import { API, Checker, Snapshot, SymbolFlags } from 'typescript/unstable/sync';
 import { typescript } from './dialecte.mjs';
 import { virtualProgram, syntaxProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
@@ -355,4 +355,38 @@ test('virtualProgram refuse encore les racines JavaScript sans activation explic
       assert.ok(diagnostics(session.program).some((d) => d.code === 6504));
     } finally { session.dispose(); }
   }
+});
+
+test('checker de session : une question pure posée deux fois n’atteint le natif qu’une fois', () => {
+  const natif = Checker.prototype.getTypeAtLocation;
+  const appels = mock.method(Checker.prototype, 'getTypeAtLocation', function (...args) { return natif.apply(this, args); });
+  const session = virtualProgram({ 'a.ts': 'export const objet = { a: 1 };' });
+  try {
+    const [objet] = identifiers(session.program.getSourceFile(chemin('a.ts')), 'objet');
+    const type = session.checker.getTypeAtLocation(objet);
+    assert.equal(session.checker.getTypeAtLocation(objet), type);
+    assert.equal(appels.mock.callCount(), 1);
+  } finally { appels.mock.restore(); session.dispose(); }
+});
+
+test('checker de session : la réponse mémorisée est clée par TOUS les arguments', () => {
+  const session = virtualProgram({ 'a.ts': "export const objet = { a: 1, b: 'x' };" });
+  try {
+    const [objet] = identifiers(session.program.getSourceFile(chemin('a.ts')), 'objet');
+    const type = session.checker.getTypeAtLocation(objet);
+    assert.equal(session.checker.getPropertyOfType(type, 'a').name, 'a');
+    assert.equal(session.checker.getPropertyOfType(type, 'b').name, 'b');
+  } finally { session.dispose(); }
+});
+
+test('checker de session : après dispose, une question déjà posée lève comme le natif', () => {
+  const session = virtualProgram({ 'a.ts': 'export const objet = { a: 1 };' });
+  const [objet] = identifiers(session.program.getSourceFile(chemin('a.ts')), 'objet');
+  const { checker } = session;
+  checker.getTypeAtLocation(objet);
+  session.dispose();
+  let natif;
+  try { checker.getContextualType(objet); } catch (erreur) { natif = erreur; }
+  assert.ok(natif);
+  assert.throws(() => checker.getTypeAtLocation(objet), erreur => erreur.constructor === natif.constructor && erreur.message === natif.message);
 });

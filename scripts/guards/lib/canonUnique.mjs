@@ -44,6 +44,7 @@ export function contexteImports(sf, verificateur) {
   let index;
   const absent = [];
   const modules = new Map();
+  const declarations = new Map();
   const lireLiaisons = () => liaisons ??= liaisonsDe(sf.fileName, sf);
   return {
     get source() { return sf; },
@@ -60,6 +61,10 @@ export function contexteImports(sf, verificateur) {
         }
       }
       return index.get(nom) ?? absent;
+    },
+    declarationsDuScope: (scope) => {
+      if (!declarations.has(scope)) declarations.set(scope, declarationsDe(scope));
+      return declarations.get(scope);
     },
     checker: () => {
       if (!verificateur) throw new TypeError('Vérificateur natif emprunté absent du contexte d’import');
@@ -78,6 +83,40 @@ export function contexteImports(sf, verificateur) {
       return modules.get(spec);
     },
   };
+}
+
+/** Les déclarations et affectations de chaque nom d'une portée, en pré-ordre, sans descendre dans une
+ *  portée imbriquée ; une fonction ou classe nommée `N` tait `N` dans son corps.
+ * @param {ts.Node} scope @returns {Map<string, import('./canonUnique.mjs').EvenementDeNom[]>} */
+function declarationsDe(scope) {
+  const parNom = new Map();
+  const noter = (nom, evenement, exclus) => {
+    if (exclus.has(nom)) return;
+    if (!parNom.has(nom)) parNom.set(nom, []);
+    parNom.get(nom).push(evenement);
+  };
+  const marcher = (n, exclus) => {
+    if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name) {
+      noter(n.name.text, { genre: 'declaration', noeud: n }, exclus);
+      if (n !== scope && ts.isFunctionLikeDeclaration(n)) return;
+      exclus = new Set(exclus).add(n.name.text);
+    } else if (n !== scope && (ts.isFunctionLikeDeclaration(n) || ts.isBlock(n))) return;
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left)) noter(n.left.text, { genre: 'affectation', fin: n.end, droite: n.right }, exclus);
+    if (ts.isVariableDeclaration(n)) {
+      if (ts.isIdentifier(n.name)) noter(n.name.text, { genre: 'declaration', noeud: n }, exclus);
+      else if (ts.isObjectBindingPattern(n.name)) {
+        const vus = new Set();
+        for (const element of n.name.elements) {
+          if (!ts.isIdentifier(element.name) || vus.has(element.name.text)) continue;
+          vus.add(element.name.text);
+          noter(element.name.text, { genre: 'declaration', noeud: n, membre: (element.propertyName ?? element.name).text }, exclus);
+        }
+      }
+    }
+    n.forEachChild(m => marcher(m, exclus));
+  };
+  marcher(scope, new Set());
+  return parNom;
 }
 
 /** @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
@@ -487,20 +526,14 @@ function origineConstruction(expression, sf, contexte, vus = new Set()) {
     let declaration;
     let membre;
     let affectation;
-    const chercher = n => {
-      if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name?.text === e.text) { declaration = n; return; }
-      if (n !== scope && (ts.isFunctionLikeDeclaration(n) || ts.isBlock(n))) return;
-      if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && n.left.text === e.text && n.end <= e.pos) affectation = n.right;
-      if (ts.isVariableDeclaration(n)) {
-        if (ts.isIdentifier(n.name) && n.name.text === e.text) declaration = n;
-        else if (ts.isObjectBindingPattern(n.name)) {
-          const element = n.name.elements.find(el => ts.isIdentifier(el.name) && el.name.text === e.text);
-          if (element) { declaration = n; membre = (element.propertyName ?? element.name).text; }
-        }
+    for (const evenement of contexte.declarationsDuScope(scope).get(e.text) ?? []) {
+      if (evenement.genre === 'affectation') {
+        if (evenement.fin <= e.pos) affectation = evenement.droite;
+        continue;
       }
-      n.forEachChild(chercher);
-    };
-    chercher(scope);
+      declaration = evenement.noeud;
+      if (evenement.membre !== undefined) membre = evenement.membre;
+    }
     if (declaration) {
       const valeur = affectation ?? declaration.initializer;
       const origine = valeur && origineConstruction(valeur, sf, contexte, vus);

@@ -192,7 +192,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     skill(gunnar, 'voile', 45);
     const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
     get().setParty([gunnar, otto]);
-    get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap());
+    get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(), projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id, otto.id); // tout le bord est à l'invité
     expect(humanControlled(get(), gunnar), 'chez l’hôte, il ne pilote pas le batelier de l’invité…').toBe(false);
@@ -215,7 +215,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     get().setParty([gunnar]);
-    get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }));
+    get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }), projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id);
     addCondition(get().party[0], COND.inconscient);
@@ -245,15 +245,16 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
     const aide = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', seed: 22, id: 't-aide' });
     skill(aide, 'conduite-d-attelage', 5);
     useGame.setState({ party: [lead, aide], travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
-    get().loadProject(
-      [buildScene({ id: 'lieu-a', label: 'A', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] }),
+    get().loadProject({
+      scenes: [buildScene({ id: 'lieu-a', label: 'A', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] }),
         buildScene({ id: 'lieu-b', label: 'B', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] })],
-      'lieu-a',
-      { id: 'c', label: 'c', places: [
+      entryId: 'lieu-a',
+      worldMap: { id: 'c', label: 'c', places: [
         { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a' },
         { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b' },
       ], routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap,
-    );
+      projet: null,
+    });
     creditBourse(get, set, lead.id, { gold: 500, silver: 0, brass: 0 });
     deuxSieges(lead.id, aide.id); // l'attelage entier est conduit depuis le siège de l'invité
     expect(humanControlled(get(), lead), 'chez l’hôte, le conducteur de l’invité n’est pas « à la main »').toBe(false);

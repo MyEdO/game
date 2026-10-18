@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BORNE_D_APPEL_MS, garde } from './appel-borne-guard.mjs'
 import { codeDe } from '../ops/sonde.mjs'
+import { REGLES_COMMUNES } from './contexte-sous-agent.mjs'
 
 const SOUS_AGENT = { session_id: 's', agent_id: 'a1', agent_type: 'codeur' }
 const PRINCIPAL = { session_id: 's' }
@@ -51,16 +52,18 @@ test('#2596 — acceptés : sous-agent borné à BORNE_D_APPEL_MS ou sans timeou
   }
 })
 
-test('#2596 — définitions d’agents : aucune n’interdit le fond ; codeur et artiste, aux deux surfaces, portent la règle des 270 s et la sonde', () => {
+test('#2596 — définitions d’agents : aucune n’interdit le fond ; la règle des 270 s et la sonde vivent dans les règles communes injectées à tout sous-agent à shell et dans les profils Codex codeur et artiste', () => {
   const racine = fileURLToPath(new URL('../..', import.meta.url))
+  const porteRegle = (texte, ou) => {
+    assert.match(texte, /aucun appel d'outil ne dure plus de 270 s/i, ou)
+    assert.match(texte, /node scripts\/ops\/sonde\.mjs <base>\.code/, ou)
+  }
+  porteRegle(readFileSync(join(racine, REGLES_COMMUNES), 'utf8'), REGLES_COMMUNES)
   for (const dossier of ['.claude/agents', '.codex/agents']) {
     for (const nom of readdirSync(join(racine, dossier))) {
       const texte = readFileSync(join(racine, dossier, nom), 'utf8')
       assert.doesNotMatch(texte, /Jamais de `run_in_background`/, `${dossier}/${nom}`)
-      if (/^(codeur|artiste)\./.test(nom)) {
-        assert.match(texte, /Aucun appel d'outil ne dure plus de 270 s/, `${dossier}/${nom}`)
-        assert.match(texte, /node scripts\/ops\/sonde\.mjs <base>\.code/, `${dossier}/${nom}`)
-      }
+      if (dossier === '.codex/agents' && /^(codeur|artiste)\./.test(nom)) porteRegle(texte, `${dossier}/${nom}`)
     }
   }
 })

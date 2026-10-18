@@ -6,11 +6,12 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
+import { coupleDIdentite } from './identites';
 import type { BattleActionMode } from './actionRegistry';
 import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -154,7 +155,7 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
@@ -179,11 +180,13 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
+import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
 import { createCombatSlice } from './combatSlice';
+import { nomDEntite } from './sceneNpc';
+import { presetPnjById } from './campaignData';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -357,6 +360,19 @@ export interface CampaignDoc {
   worldMap?: import('./worldMap').WorldMap | null;
   narratif: NarratifBlock;
   startSceneId: string;
+  /** Identité du document de projet chargé : l'`id` du `ProjectDoc` PARSÉ, jamais la clé d'une entrée
+   *  de bibliothèque (#2206). `null` = scénario de test, sans document de projet. */
+  projet: { id: string } | null;
+}
+
+/** Ce que LANCE `loadProject` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
+ *  l'identité de son document (`CampaignDoc.projet`, OBLIGATOIRE : `null` déclare un scénario). */
+export interface PaquetALancer {
+  scenes: Scene[];
+  entryId: string;
+  worldMap?: import('./worldMap').WorldMap | null;
+  narratif?: NarratifBlock;
+  projet: CampaignDoc['projet'];
 }
 
 /** Déplacement-puis-interaction : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
@@ -507,6 +523,9 @@ export interface GameState extends RollFlowActionsMap {
    *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
    *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
   etats: Record<string, string>;
+  /** Espèce (`refChar`) et sexe du héros désigné par un état `heros`, FIGÉS au choix (`designerHerosChoisir`,
+   *  EDO 02 l.114) : la ligne d'identité qu'on lit (`identitesResolues`). Traversent les scènes ; vidés en nouvelle partie. */
+  identitesFigees: Record<string, { espece: RaceKey; sexe: Sexe }>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
@@ -779,15 +798,20 @@ export interface GameState extends RollFlowActionsMap {
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
-  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string; source?: SourceRef } | null;
+  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
+   *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
+   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par `closeDocument`. */
+  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Flow; remise: number } | null;
+  /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
+  remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
    *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
-   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
-  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. `projet` : l'id du
+   *  DOCUMENT lancé (`CampaignDoc.projet`), distinct de `id` pour une entrée de bibliothèque (#2206). */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -943,7 +967,7 @@ export interface GameState extends RollFlowActionsMap {
   startScene: (scene: Scene, narratif?: NarratifBlock) => void;
   /** Enregistre plusieurs scènes (projet multi-scènes) puis démarre l'entrée. `worldMap` = carte du
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
-  loadProject: (scenes: Scene[], entryId: string, worldMap?: import('./worldMap').WorldMap | null, narratif?: NarratifBlock) => void;
+  loadProject: (paquet: PaquetALancer) => void;
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
@@ -1040,6 +1064,9 @@ export interface GameState extends RollFlowActionsMap {
    *  (l.80) reste figé sur Résistance et ignore cet appel. */
   corruptionSetSkill: (skill: 'resistance' | 'calme') => void;
   resolveCorruption: () => void;
+  /** Remet un document : l'estampille d'une remise neuve (`remise`). */
+  remettreDocument: (doc: Omit<NonNullable<GameState['document']>, 'remise'>) => void;
+  /** Ferme le document et rejoue sa `suite` ; inerte chez l'invité. */
   closeDocument: () => void;
 
   /** Réensemence le RNG de combat (déterminisme des tests + future coop réseau). */
@@ -2058,6 +2085,8 @@ export const useGame = create<GameState>((set, get) => ({
   lightLevel: null,
   flags: {},
   etats: {},
+  identitesFigees: {},
+  remisesDeDocument: 0,
   objectives: [],
   objectifsSoldes: [],
   chapitreDepuis: null,
@@ -2282,10 +2311,10 @@ export const useGame = create<GameState>((set, get) => ({
     // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
     // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
     // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte] }, { own: true });
+    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
   },
 
-  loadProject: (scenes, entryId, worldMap, narratif) => {
+  loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
     // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
     // résolvent leurs intérieurs), puis démarre la scène d'entrée.
     const entry = scenes.find((s) => s.id === entryId);
@@ -2301,7 +2330,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
-    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
+    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id, projet } });
   },
 
   /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
@@ -2376,7 +2405,7 @@ export const useGame = create<GameState>((set, get) => ({
     // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
     // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
     // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte] }, { own: true });
+    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
   },
 
   moveParty: (pt) => {
@@ -2605,7 +2634,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Actions authorées toutes ÉPUISÉES et rien d'autre à offrir : on le dit (le halo, lui, s'est
     // déjà éteint). Le décor en PORTE (l'auteur en a posé), aucune n'est plus jouable.
     if (!horsPortee && ent.usable?.actions?.length && !actionsAuthorees(ent, get().flags).length)
-      get().log(t('store.searchedAlready', { what: ent.label ?? t('store.searchedFallback') }));
+      get().log(t('store.searchedAlready', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchedFallback') }));
   },
 
   /**
@@ -2639,13 +2668,13 @@ export const useGame = create<GameState>((set, get) => ({
     }
     const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
     if (!action) return;
-    get().log(t('store.actionJouee', { what: ent.label ?? t('store.searchPlaceFallback'), action: offre.label }));
+    get().log(t('store.actionJouee', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchPlaceFallback'), action: offre.label }));
     // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).
     // CLÔTURES (#1508) : l'horloge (« tout est horodaté ») puis le sort du décor. L'horloge tire les
     // effets PROGRAMMÉS et les ticks — jouée devant un dé de chute, elle les tirerait sur des
     // Blessures qui n'ont pas encaissé. Le coût de temps est une DONNÉE d'auteur (`minutes`) ; absent,
     // c'est celui de la fouille.
-    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), ent.label ?? offre.label), [
+    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), nomDEntite(ent, presetPnjById) ?? offre.label), [
       { verbe: 'avancerHorloge', minutes: action.minutes ?? TIME_COST.search },
       ...(action.consume ? [{ verbe: 'retirerEntite' as const, entityId }] : []),
       ...(action.unique ? [{ verbe: 'marquerActionJouee' as const, entityId, actionId }] : []),
@@ -2702,7 +2731,8 @@ export const useGame = create<GameState>((set, get) => ({
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
-    const speaker = speakerLabel(st.scene?.entities ?? [], node, st.dialogue);
+    const locuteur = speakerEntity(st.scene?.entities ?? [], node, st.dialogue);
+    const speaker = locuteur && nomDEntite(locuteur, presetPnjById);
     // Archive verbatim du tour (#718) — au moment où le choix est FAIT, pas à la reprise d'un
     // Test différé (`choice.flow` peut suspendre plus bas : le tour est déjà enregistré ici).
     const turn: DialogueTurn = {
@@ -2802,8 +2832,8 @@ export const useGame = create<GameState>((set, get) => ({
     let issue = leftoverGear.length ? applyEffects(get, set, leftoverGear) : undefined;
     if (cont?.length) {
       // #9 : téléport/dialogue de onVictory APRÈS « Continuer ». Si le butin a différé, ce lot-ci est SA
-      // suite — confié tel quel : `differerLaSuite` COMPOSE (le reste du butin est déjà sur l'étape).
-      if (issue) differerLaSuite(set, flowFromEffects(cont), 'scene');
+      // suite — confié en APPEND derrière le reste du butin (`confierLaSuite`).
+      if (issue) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: flowFromEffects(cont) }]);
       else issue = applyEffects(get, set, cont);
     }
     cloturer(get, set, issue, [{ verbe: 'teardownDeVictoire', kills, batailleDeMasse: inMassBattleCombat }]);
@@ -2993,7 +3023,16 @@ export const useGame = create<GameState>((set, get) => ({
     if (!p) return;
     const vivants = get().party.filter((h) => !h.dead);
     if (heroId === undefined ? vivants.length > 0 : !vivants.some((h) => h.id === heroId)) return;
-    set((st) => ({ etats: heroId === undefined ? st.etats : { ...st.etats, [p.etat]: heroId }, pendingDesignationHeros: null }));
+    set((st) => {
+      if (heroId === undefined) return { pendingDesignationHeros: null };
+      const couple = coupleDIdentite(st.party.find((h) => h.id === heroId));
+      const { [p.etat]: _ancien, ...autres } = st.identitesFigees;
+      return {
+        etats: { ...st.etats, [p.etat]: heroId },
+        identitesFigees: couple ? { ...autres, [p.etat]: couple } : autres,
+        pendingDesignationHeros: null,
+      };
+    });
     reprendreLaSuite(get, set, p.suite);
   },
 
@@ -3084,7 +3123,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
-    // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
+    // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
     // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
     // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
     const branch = effSuccess ? pt.onSuccess : pt.onFailure;
@@ -3103,7 +3142,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
     cloturer(get, set, issue, clotures);
   },
-  closeDocument: () => set({ document: null }),
+  remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+  // COOP : l'hôte ferme (patron `acquitterOuverture`) ; chez l'invité, la suite ne se joue jamais.
+  closeDocument: () => {
+    const doc = get().document;
+    if (!doc || get().net.mode === 'guest') return;
+    set({ document: null });
+    reprendreLaSuite(get, set, doc.suite);
+  },
 
   // PUITS UNIQUE du journal : c'est ici — et nulle part ailleurs — qu'un jet dont le joueur a SAISI la
   // valeur laisse sa trace écrite (arbitrage #939 : marqué PARTOUT, rangée ET journal).

@@ -132,9 +132,10 @@ export function nomDeProjet(label: string | undefined | null): string {
  *  écran qui la joue (« Jouer » de la bibliothèque, « Choisir » du picker de `PartyScreen`) : le
  *  document passe la porte `parseProject` et un refus lève `ProjetRefuse`, laissé à l'appelant. Le
  *  `label` est celui du document PARSÉ ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du
- *  picker), et une scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
+ *  picker), `projet` est l'id du DOCUMENT parsé (#2206), et une scène d'entrée absente du document
+ *  lève `ProjetRefuse` de cause `'entree'`. */
 export function campagneDeLEntree(p: EntreeListee): NonNullable<GameState['pendingCampaign']> {
-  const { label, scenes, worldMap, activeAxes, narratif } = projetDeLEntree(p);
+  const { id, label, scenes, worldMap, activeAxes, narratif } = projetDeLEntree(p);
   // #1627
   if (!scenes.some((s) => s.id === p.startSceneId)) {
     refuseesAuGeste.add(p.id);
@@ -148,6 +149,7 @@ export function campagneDeLEntree(p: EntreeListee): NonNullable<GameState['pendi
     worldMap: worldMap ?? null,
     ...(activeAxes !== undefined ? { activeAxes } : {}),
     narratif,
+    projet: { id },
   };
 }
 

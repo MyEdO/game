@@ -19,20 +19,21 @@
 // `SessionStart` en sortie 2 ne montre son stderr qu'à l'utilisateur, et chaque hook `PreToolUse`
 // rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
 // garde ne le déclenche pas.
+//
+// Il imprime aussi l'index de la mémoire committée (`INDEX_MEMOIRE`), que seule une session locale
+// charge : c'est sa seule sortie quand le conteneur est conforme (#2710).
 import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { verrouOutillageDe } from './barriere-outil.mjs'
+import { RACINE_DU_DEPOT, estConteneurDistant, memoireDuConteneur } from './memoire-du-depot.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
-import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { GENERATORS, ciblesLitterales } from '../docs/build-all.mjs'
 import { demanderLaReconstruction } from '../git-hooks/reconstruction.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
-
-/** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
-export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
 
 /** Plafond d'un rapport d'échec entrant au contexte de la session. */
 const PLAFOND_RAPPORT = 400
@@ -91,7 +92,8 @@ export function sousOutillage(racine, geste) {
 export const GESTES_DU_CONTENEUR = Object.freeze({
   estSuperficiel, dossierDesHooks,
   approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
-  docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
+  // #2710 : le `postinstall` écrit `SOURCES_LUES` pour les seuls générateurs de code ; la mesure lit les cibles.
+  docsMesures: (racine) => ciblesLitterales(GENERATORS.flatMap((g) => g.targets)).every((cible) => existsSync(join(racine, cible))),
   demanderLesDerives,
   sousOutillage,
 })
@@ -117,7 +119,15 @@ export function mettreEnConformite(contexte, prerequis = PREREQUIS) {
       lignes.push(`[conteneur] ${p.nom} : NON MESURÉ, git indisponible — ${borner(contexte.pannes.at(-1))}`)
       continue
     }
+    if (manque?.nonMesure) {
+      lignes.push(`[conteneur] ${p.nom} : NON MESURÉ — ${borner(manque.nonMesure)}`)
+      continue
+    }
     if (!manque) continue
+    if (!p.poser) {
+      lignes.push(`[conteneur] ${p.nom} : MANQUANT — ${p.consequence}.`)
+      continue
+    }
     const vu = p.poser({ ...contexte, budget: p.budget })
     lignes.push(
       vu.ok
@@ -136,9 +146,11 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
-export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
+export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), depot = RACINE_DU_DEPOT, entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
   const lignes = bootstrap(env, racine, run, gestes)
   if (lignes.length) output.write(`${lignes.join('\n')}\n`)
+  const memoire = memoireDuConteneur(env, depot)
+  if (memoire) output.write(memoire)
   produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
   return lignes
 }

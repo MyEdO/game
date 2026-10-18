@@ -1,6 +1,6 @@
 import { ast } from '../guards/lib/dialecte.mjs'
 import { readFileSync as lireCalibrage } from 'node:fs'
-const CALIBRAGE = lireCalibrage(new URL('../../.claude/skills/orchestrer-des-agents/SKILL.md', import.meta.url), 'utf8')
+const CALIBRAGE = lireCalibrage(new URL('../../.claude/skills/orchestrer-des-agents/calibrage.md', import.meta.url), 'utf8')
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { defautsDesSitesDAgent, lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs'
@@ -16,7 +16,7 @@ const SCOUT = "{ label: 'scout', phase: 'Scout', schema: LIST,";
 
 const STATS = 'const STATS_VIDES = ';
 
-const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' }";
+const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'high' }";
 
 const NON_UNIQUE = (n) => `racine : racine non littérale — \`schema\` : \`LIST\` ne se résout pas en \`const\` de premier niveau, UNIQUE, initialisée d’un objet littéral (${n} déclaration(s) du nom)`;
 
@@ -206,15 +206,15 @@ test('la porte MORD quand le schéma cesse d’exiger la clé que le script lit'
 
 test('défaut 28 — l’effort est LITTÉRAL et présent à chaque site, et vaut celui de l’étage', () => {
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: String(args) }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: String(args) }")),
     ["options : `effort` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus' }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus' }")),
     ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : absent)"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'low' }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'low' }")),
     ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : `low`)"],
   );
   assert.deepEqual(
@@ -248,7 +248,7 @@ test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : dé
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'general-purpose', model: 'opus', effort: 'high' }")),
     [
       `agent : \`agentType\` \`general-purpose\` : aucun type de ce nom déclaré sous \`.claude/agents/\` (${declares})`,
-      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge'` exigé (lu : `general-purpose`)",
+      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge-de-source'` exigé (lu : `general-purpose`)",
     ],
   );
 });
@@ -256,7 +256,7 @@ test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : dé
 test('#2537 — la couche UNIVERSELLE seule (la garde de l’outil `Workflow`) n’exige ni phase, ni modèle, ni effort', () => {
   const universel = (source) => defautsDesSitesDAgent(ast({ rel: 'w.js', text: source }), { typesDeclares: TYPES_DECLARES }).map((d) => sansLieu(d.message));
   assert.deepEqual(universel("await agent('p', { agentType: 'lecteur' })"), []);
-  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge' }")), []);
+  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge-de-source' }")), []);
   assert.deepEqual(universel("await agent('p', { label: 'x' })"), [`\`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${[...TYPES_DECLARES].join('/')})`]);
   assert.deepEqual(universel("await agent('p', { agentType: T })"), ["`agentType` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"]);
   assert.deepEqual(universel("await agent('p', OPTIONS)"), ["options de l'agent non littérales — la porte ne peut pas lire son étage"]);

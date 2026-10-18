@@ -247,7 +247,7 @@ export function optionDuSite(site, champ) {
  * Défauts PAR APPEL des sites `agent(…)` d'un script de workflow. PUR.
  * Universel : options littérales et FERMÉES ; `agentType` présent, littéral, et nom d'un type de
  * `typesDeclares` (le `name:` du frontmatter d'une fiche de `.claude/agents/`) — Calibrage de
- * `.claude/skills/orchestrer-des-agents/SKILL.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
+ * `.claude/skills/orchestrer-des-agents/calibrage.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
  * `arguments` de l'enveloppe, ni déclaration qui lie `agent`, ni référence à `agent` hors d'un appel
  * direct `agent(…)` — sinon un appel échappe aux sites lus.
  * Dépôt (`regimes`, absent hors de la porte) : `phase`, `model` et `effort` littéraux ; étage de la
@@ -345,14 +345,14 @@ const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
  *  type d'agent permis en plus des mécaniques. Cliquet (`defautsDesTables`) : plafond, liste NOMMÉE. #2099 */
 export const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
+  { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'mj-de-table', raison: 'le MJ DÉCIDE ce qui arrive à la table, rôle que le prompt de `lecteur` (« tu ne décides rien ») contredit (`.claude/agents/mj-de-table.md`)' },
 ];
 
-/** Les couples (type, modèle) de la table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`, seule source
+/** Les couples (type, modèle) de la table de `.claude/skills/orchestrer-des-agents/calibrage.md`, seule source
  *  du modèle d'un type (#2537). PUR.
- *  @param {string} skill @returns {{ type: string, modele: string }[]} */
-const couplesDuCalibrage = (skill) => {
-  const section = skill.split(/^## /m).find((s) => s.startsWith('Calibrage\n')) ?? '';
-  return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+ *  @param {string} calibrage @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (calibrage) => {
+  return [...calibrage.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
 };
 
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
@@ -361,10 +361,11 @@ export const TABLES = {
   regimes: REGIMES,
   exceptions: EXCEPTIONS_MECANIQUES,
   /** Liste DÉCROISSANTE : en retirer est libre, en ajouter se justifie au commit. */
-  plafond: 1,
+  plafond: 2,
   /** Les exceptions NOMMÉES : une entrée qui change de nom se relit au commit. */
   nommees: [
     '.claude/workflows/table-simulee.js / Partie / joueur',
+    '.claude/workflows/table-simulee.js / Partie / mj-de-table',
   ],
 };
 
@@ -385,12 +386,12 @@ export function etagesDe(fiches) {
     if (!model || !effort) throw new Error(`étage ${nom} : \`.claude/agents/${type}.md\` sans \`model\` ou \`effort\` au frontmatter`);
     return { nom, type, modele: model, effort };
   };
-  return { jugement: etage('JUGEMENT', 'juge'), redaction: etage('RÉDACTION', 'redacteur') }
+  return { jugement: etage('JUGEMENT', 'juge-de-source'), redaction: etage('RÉDACTION', 'redacteur') }
 }
 
 /**
  * Analyse de forme d'un script de workflow. PUR.
- * @param {string} calibrage le texte de `.claude/skills/orchestrer-des-agents/SKILL.md`
+ * @param {string} calibrage le texte de `.claude/skills/orchestrer-des-agents/calibrage.md`
  * @param {Map<string, { model?: string, effort?: string }>} fiches `fichesDAgent`
  * @returns {{ defauts: { regle: string, message: string }[], declarees: Set<string>, deSites: Set<string>, sites: number }}
  *   `deSites` = les phases d'au moins un SITE `agent(` — un `phase(…)` de progression n'en est pas un

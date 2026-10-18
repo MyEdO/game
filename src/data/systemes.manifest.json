@@ -166,7 +166,7 @@
       "src/ui/PortView.tsx"
     ],
     "etat": "partiel",
-    "ticket": "#298 (bargainPct forké portFlow.ts:126≡landMarketFlow.ts:157 ; Marchandage résolu hors modale portFlow.ts:12-14)",
+    "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts landBuyCargo / landSellCargo → bargainOpposed, opposedTest direct) — #2687",
     "notes": "—"
   },
   {

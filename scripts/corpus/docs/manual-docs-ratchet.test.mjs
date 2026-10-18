@@ -166,7 +166,7 @@ test('section « Périmètre mesuré / angles morts » présente dans chaque doc
  * document lui-même routé — est invisible, quelle que soit sa qualité. Cette garde n'a PAS de stock
  * cliqueté : tout doc non routé la fait échouer, sans marge — une liste d'exceptions « qui décroît »
  * se maintient à jamais et se contourne
- * (`.claude/memory/game-garde-exemption-au-site-jamais-au-fichier.md`).
+ * (`.claude/memory/user-doctrine-garde-exemption-au-site-forme-et-catalogue.md`).
  *
  * « Routé » = atteint depuis la table par une clôture transitive de citations `docs/<fichier>.md`
  * (motif explicite, chemin depuis la racine du dépôt) : la table cite directement des docs, et tout

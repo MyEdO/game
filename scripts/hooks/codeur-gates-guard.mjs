@@ -244,7 +244,7 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
     const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
     if (LECTEURS.test(segment)) continue
     // Un `npm run` `deploye` est rendu à part par son corps résolu, qui compte le lancement ; ce corps reçoit aussi
-    // les drapeaux que npm consomme (`commandeScriptNpm`) : quand ils le font lister seul, le lancement compte ici.
+    // les drapeaux que npm consomme (`commandeDeScript`) : quand ils le font lister seul, le lancement compte ici.
     if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) {
       const corpsCompte = deploye && script === PERIMETRE && !listeSeule(tokens.slice(tokens.indexOf(PERIMETRE) + 1).filter((t) => t !== '--'))
       if (!corpsCompte && !listeSeule(argumentsDuPerimetre(tokens, script === PERIMETRE))) perimetres += 1

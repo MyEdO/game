@@ -1,5 +1,5 @@
 // ── Bloc NARRATIF d'un paquet de campagne (#765) ────────────────────────────────────────────────
-// Frontière RÉFÉRENCE vs NARRATIF (doctrine `game-campagne-json-portable-frontiere-reference-narratif`) :
+// Frontière RÉFÉRENCE vs NARRATIF (doctrine `user-doctrine-campagne-json-portable-frontiere-reference-narratif`) :
 // le narratif est EMBARQUÉ dans le JSON du projet (auto-suffisant, révélé seulement en jeu) et RÉFÉRENCE
 // la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée dans `src/data` global. Cet
 // invariant est GARDÉ par le schéma du document (`narratifSchema`, `src/data/schemas/defs-scenes/`),

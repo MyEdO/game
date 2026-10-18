@@ -1,6 +1,6 @@
 export const meta = {
   name: 'table-simulee',
-  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté, mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie) est contrainte par le SCHÉMA de son appel — enum, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite, déclencheur non joué sans motif, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date } — `dossier` = l'OBJET de la fiche commitée du chapitre (`docs/dossiers/<livre>/<chapitre>.json`, schéma `ficheDeDossier`), chargé et gardé par le lanceur : `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`.",
+  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté sur le journal PROJETÉ de la partie (ses sorties, ni l'état privé du MJ ni son classement), mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie, catégorie d'IMPRO selon la source) est contrainte par le SCHÉMA de son appel — enum, branche par cas, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. En préparation, un agent qui échoue (fiches des PJ, sosie) ARRÊTE le run, sa cause aux `manques` ; en partie et à l'analyse, il ne le coupe pas : sa cause entre aux `trous`, le journal garde les échanges joués. Un rendu du MJ anomal (tirage hors suite, déclencheur non joué sans motif) lui est RENVOYÉ (prompt d'origine, sortie fautive, anomalies précises), 2 fois au plus ; un renvoi sans rendu nomme sa cause au journal de l'échange. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite ou déclencheur non joué sans motif restés après les renvois, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, typeDePointAuMJ, seed, maxEchanges?, personas?, worktree, date } — `dossier` = l'OBJET de la fiche commitée du chapitre (`docs/dossiers/<livre>/<chapitre>.json`, schéma `ficheDeDossier`), chargé et gardé par le lanceur ; `typeDePointAuMJ` = la forme projetée du type d'un point au MJ, dont les catégories d'IMPRO dérivent : `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`.",
   whenToUse: "Sur un chapitre à forte ambiguïté (méthode de #665, étape 4), APRÈS la fiche commitée de son dossier de chapitre, qu'elle consomme : pour mesurer ce que des joueurs FONT du chapitre — intentions prévues, improvisées, refusées, hors livre — avant d'en décider les médias et les besoins. Le verdict THÉÂTRE dit que les personas adverses n'ont pas joué : le run ne prouve rien.",
   phases: [
     { title: 'Préparation', detail: 'fiches des 4 PJ au groupe canonique, puis sosie désigné sur le dossier et la liste des PJ — le lecteur des fiches des PJ ne voit pas le chapitre ; la fiche du MJ vient du dossier' },
@@ -20,6 +20,8 @@ const PERSONAS = Array.isArray(input.personas) ? input.personas.map(String) : ['
 const WORKTREE = String(input.worktree || '')
 const DATE = String(input.date || '')
 const DOSSIER = input.dossier && typeof input.dossier === 'object' ? input.dossier : null
+/** La forme projetée du `type` d'un point au MJ (`ficheDeDossier`, src/data/source/dossier.ts) : `{ enum, description }`. */
+const TYPE_DE_POINT_AU_MJ = input.typeDePointAuMJ && typeof input.typeDePointAuMJ === 'object' && Array.isArray(input.typeDePointAuMJ.enum) ? input.typeDePointAuMJ : null
 
 /** Le jeu de chaque persona — la clé est l'id passé en `args.personas`. */
 const JEUX_DE_PERSONA = {
@@ -30,8 +32,13 @@ const JEUX_DE_PERSONA = {
 }
 /** Personas ADVERSES imposées à toute table (skill `adapter-une-campagne`, « Règles de lecture »). */
 const PERSONAS_ADVERSES = ['saboteur', 'hors-cadre']
-/** Catégories d'IMPRO du MJ — ids STABLES, communs au MJ et au juge. */
-const CATEGORIES_IMPRO = ['veracite-rumeur', 'consequence-ouverte', 'rythme-deblocage', 'variante-pnj', 'encart-optionnel', 'hors-livre']
+/** Catégories d'IMPRO du MJ — ids STABLES, communs au MJ et au juge : ce que le livre laisse au MJ (les types
+ *  d'un point au MJ du dossier), ou ce dont il ne dit rien. */
+const CATEGORIES_IMPRO = [...(TYPE_DE_POINT_AU_MJ?.enum ?? []), 'hors-livre']
+const CATEGORIE_IMPRO = {
+  enum: CATEGORIES_IMPRO,
+  description: `${TYPE_DE_POINT_AU_MJ?.description ?? ''} \`hors-livre\` = le livre ne dit rien de la situation : ni passage, ni point laissé au MJ.`,
+}
 /** Fenêtre des échanges publics passés au MJ et aux joueurs ; le reste vit dans leurs résumés et notes. */
 const DERNIERS_ECHANGES = 3
 /** Plafond par beat du dossier quand `args.maxEchanges` est absent. Mesure #1993 (EDO 01, 2026-09-29) : ≈2 échanges
@@ -65,6 +72,7 @@ const manquesDArgs = [
   ...[...new Set(PERSONAS.filter((p, rang) => PERSONAS.indexOf(p) !== rang))].map((p) => `args.personas — « ${p} » en double : une persona par joueur`),
   WORKTREE ? null : 'args.worktree — chemin ABSOLU de l’arbre où l’outil de dés et le Source/ se lisent',
   DATE ? null : 'args.date — AAAA-MM-JJ (aucune horloge dans un script : la reprise doit rendre le même run)',
+  TYPE_DE_POINT_AU_MJ?.enum.length ? null : `args.typeDePointAuMJ — la forme projetée du \`type\` d’un point au MJ (\`ficheDeDossier\`), d’où dérivent les catégories d’IMPRO : ${LANCEUR}`,
   ...manquesDuDossier(),
 ].filter(Boolean)
 if (manquesDArgs.length) {
@@ -73,22 +81,72 @@ if (manquesDArgs.length) {
 }
 const MAX_ECHANGES = MAX_ECHANGES_EXPLICITE ?? ECHANGES_PAR_BEAT * DOSSIER.beats.length
 
+// ── Appels d'agent : un échec se NOMME, une sortie anomale se RENVOIE (#2721) ─────────────────────
+/** L'appel `lancer()`, qui ne lève jamais : `{ rendu, cause: null }`, ou `{ rendu: null, cause }` — l'erreur
+ *  levée (schéma non tenu après les essais du harnais, erreur d'API) ou l'absence de rendu. */
+const capturer = async (lancer) => {
+  try {
+    const rendu = await lancer()
+    return rendu ? { rendu, cause: null } : { rendu: null, cause: 'rien rendu' }
+  } catch (erreur) {
+    return { rendu: null, cause: `échec : ${erreur?.message ?? String(erreur)}` }
+  }
+}
+/** Renvois d'une sortie anomale à son agent, au plus. */
+const ESSAIS_DE_CORRECTION = 2
+/** Le prompt d'un renvoi : le prompt d'origine, la sortie fautive, chaque anomalie précise. */
+const renvoiDeCorrection = (prompt, rendu, anomalies) => `${prompt}
+
+SORTIE À CORRIGER — ta sortie précédente à ce même message :
+${JSON.stringify(rendu, null, 1)}
+
+ANOMALIES (chacune se corrige ; le reste de la sortie se garde) :
+${anomalies.map((a) => `- ${a}`).join('\n')}
+Rends la sortie ENTIÈRE, corrigée.`
+/** `lancer(prompt, essai)` (essai 0 = l'appel, puis chaque renvoi), validé par `anomaliesDe(rendu)` : une
+ *  sortie anomale est renvoyée `ESSAIS_DE_CORRECTION` fois au plus. Rend le dernier rendu, ses anomalies
+ *  restantes, la cause d'un premier appel sans rendu, et le nombre de renvois joués ; un renvoi sans rendu
+ *  garde le rendu précédent et nomme sa cause parmi les anomalies. */
+const appelValide = async (prompt, lancer, anomaliesDe) => {
+  const premier = await capturer(() => lancer(prompt, 0))
+  let { rendu } = premier
+  let anomalies = rendu ? anomaliesDe(rendu) : []
+  let renvois = 0
+  while (rendu && anomalies.length && renvois < ESSAIS_DE_CORRECTION) {
+    renvois += 1
+    const corrige = await capturer(() => lancer(renvoiDeCorrection(prompt, rendu, anomalies), renvois))
+    if (!corrige.rendu) {
+      anomalies = [...anomalies, `renvoi ${renvois} sans rendu — ${corrige.cause}`]
+      break
+    }
+    rendu = corrige.rendu
+    anomalies = anomaliesDe(rendu)
+  }
+  return { rendu, cause: premier.cause, anomalies, renvois }
+}
+
+/** L'outil de dés du moteur, par son chemin ABSOLU dans l'arbre : le répertoire courant du shell n'est pas forcément l'arbre. */
+const COMMANDE_DES = `npx tsx ${WORKTREE}/scripts/ops/table-des.mts`
 /** Comment un agent de ce workflow EXÉCUTE : un agent de fond dont la commande attend une autorisation
  *  reste bloqué sans fin. */
-const EXECUTION = `Toute commande passe par l'outil \`ctx_shell\`, son paramètre \`cwd\` = l'arbre ci-dessus : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, sans variable d'environnement en tête ; UN SEUL appel \`ctx_shell\` par message, jamais plusieurs en parallèle. Une sonde est une commande (\`npx tsx -e "…"\`, \`git grep …\`), jamais un fichier écrit ; tout processus lancé est TUÉ avant ton rendu.`
+const EXECUTION = `Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre. Toute commande passe par l'outil \`ctx_shell\` s'il est disponible (poste), son paramètre \`cwd\` = l'arbre, sinon par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, sans variable d'environnement en tête, chaque chemin ABSOLU sous l'arbre (le répertoire courant du shell n'est pas forcément l'arbre) ; UN SEUL appel shell par message, jamais plusieurs en parallèle. Une sonde est une commande (\`npx tsx -e "…"\`), jamais un fichier écrit ; tout processus lancé est TUÉ avant ton rendu.`
 /** Le cadre d'un agent qui ne lit PAS le livre : le lecteur des fiches des PJ, qui ne doit rien en savoir. */
 const CADRE_ARBRE = `Arbre (chemin ABSOLU, à utiliser tel quel) : ${WORKTREE}
 Date du jour : ${DATE}
 LECTURE SEULE : tu n'écris AUCUN fichier, ni sous l'arbre ni ailleurs. Aucun git écrivain, aucune suite de tests, aucune gate.
 ${EXECUTION}`
-const RENDU_AU_SCHEMA = `Ton rendu = l'objet du schéma, rien d'autre.`
+const RENDU_AU_SCHEMA = `Chaque champ du schéma porte sa définition (\`description\`) : elle fait foi. Ton rendu = l'objet du schéma, rien d'autre.`
 
-const CADRE = `${CADRE_ARBRE} Toute référence au livre est NUE : \`${LIVRE} ${CHAPITRE} l.<ligne>\` (ligne du fichier Source/). Un numéro de ligne se prend sur une lecture BRUTE numérotée (\`grep -n\`, \`sed -n 'X,Yp'\`, \`ctx_read\` en mode \`raw\`), jamais sur une vue résumée ou compressée ; toute réf se vérifie en relisant la ligne citée avant d'être rendue. Une absence se prouve par une sonde et son périmètre, jamais par « je n'ai pas trouvé ».
+const CADRE = `${CADRE_ARBRE} Toute référence au livre est NUE : \`${LIVRE} ${CHAPITRE} l.<ligne>\` (ligne du fichier Source/). Un numéro de ligne se prend sur une lecture BRUTE numérotée (\`Read\`, ou \`Grep\` avec ses numéros de ligne), jamais sur une vue résumée ou compressée ; toute réf se vérifie en relisant la ligne citée avant d'être rendue. Une absence se prouve par une recherche et son périmètre, jamais par « je n'ai pas trouvé ».
 ${RENDU_AU_SCHEMA}`
 
 const CHAPITRE_LU = `Chapitre : ${LIVRE} ${CHAPITRE} — fichiers Source/ (relatifs à l'arbre) : ${FICHIERS.join(' · ')}`
 
-const REF = { type: 'object', additionalProperties: false, properties: { texte: { type: 'string' }, ref: { type: 'string' } }, required: ['texte', 'ref'] }
+/** Une réf nue au livre : jamais un texte blanc. */
+const REF_NUE = { type: 'string', pattern: '\\S', description: `Réf NUE au livre : \`${LIVRE} ${CHAPITRE} l.<ligne>\`.` }
+/** Le texte vide : ce qui ne s'applique pas. */
+const VIDE = { enum: [''] }
+const REF = { type: 'object', additionalProperties: false, properties: { texte: { type: 'string' }, ref: REF_NUE }, required: ['texte', 'ref'] }
 
 const PREPARATION_PJ = {
   type: 'object', additionalProperties: false,
@@ -124,21 +182,30 @@ const proprietesPar = (cles, forme) => Object.fromEntries(cles.map((cle) => [cle
  *  (sa condition ou son délai n'est pas atteint), `ecarte` (la fiction l'a rendu impossible). */
 const STATUTS_DE_DECLENCHEUR = ['joue', 'non-echu', 'ecarte']
 
-/** La résolution d'UNE intention, sous l'id du PJ qui l'a eue (schéma du MJ, à chaque échange). */
+/** La résolution d'UNE intention, sous l'id du PJ qui l'a eue (schéma du MJ, à chaque échange) : une
+ *  branche par source, chacune avec SA réf et SA catégorie. */
+const RESOLUTION_DITE = { type: 'string', description: "Ce qui arrive à l'intention, tel que les joueurs l'entendent." }
 const RESOLUTION = {
-  type: 'object', additionalProperties: false,
-  properties: {
-    source: { enum: ['livre', 'IMPRO'] },
-    ref: { type: 'string' },
-    categorie: { enum: ['', ...CATEGORIES_IMPRO] },
-    resolution: { type: 'string' },
-  },
-  required: ['source', 'ref', 'categorie', 'resolution'],
+  anyOf: [
+    {
+      type: 'object', additionalProperties: false,
+      properties: { source: { enum: ['livre'] }, ref: { ...REF_NUE, description: 'La réf nue de la ligne qui prévoit cette résolution.' }, categorie: VIDE, resolution: RESOLUTION_DITE },
+      required: ['source', 'ref', 'categorie', 'resolution'],
+    },
+    {
+      type: 'object', additionalProperties: false,
+      properties: { source: { enum: ['IMPRO'] }, ref: VIDE, categorie: CATEGORIE_IMPRO, resolution: RESOLUTION_DITE },
+      required: ['source', 'ref', 'categorie', 'resolution'],
+    },
+  ],
 }
 /** Le sort d'UN déclencheur en attente, sous son id (schéma du MJ, à chaque échange). */
 const SORT_DE_DECLENCHEUR = {
   type: 'object', additionalProperties: false,
-  properties: { statut: { enum: STATUTS_DE_DECLENCHEUR }, motif: { type: 'string' } },
+  properties: {
+    statut: { enum: STATUTS_DE_DECLENCHEUR, description: "`joue` = l'événement arrive dans cette narration ; `non-echu` = sa condition ou son délai n'est pas atteint ; `ecarte` = la fiction l'a rendu impossible." },
+    motif: { type: 'string', description: "Pour `non-echu`, la condition qui manque ; pour `ecarte`, ce qui l'a rendu impossible." },
+  },
   required: ['statut', 'motif'],
 }
 const JETS = {
@@ -162,27 +229,46 @@ const JOUEUR = {
   required: ['jeu'],
 }
 
-/** Le classement d'UNE intention, sous son échange puis la persona qui l'a eue (schéma du juge). */
+/** Le classement d'UNE intention, sous son échange puis la persona qui l'a eue (schéma du juge) : une
+ *  branche par classe, chacune avec SA réf et SA catégorie. */
 const CLASSEMENT_D_INTENTION = {
-  type: 'object', additionalProperties: false,
-  properties: {
-    classe: { enum: ['prevu', 'IMPRO', 'refuse', 'hors-livre'] },
-    ref: { type: 'string' },
-    categorie: { enum: ['', ...CATEGORIES_IMPRO] },
-  },
-  required: ['classe', 'ref', 'categorie'],
+  anyOf: [
+    {
+      type: 'object', additionalProperties: false,
+      properties: { classe: { enum: ['prevu'] }, ref: { ...REF_NUE, description: 'La réf nue de la ligne qui prévoit cette intention.' }, categorie: VIDE },
+      required: ['classe', 'ref', 'categorie'],
+    },
+    {
+      type: 'object', additionalProperties: false,
+      properties: { classe: { enum: ['IMPRO'], description: "Le livre ne la prévoit pas : le MJ a dû improviser." }, ref: VIDE, categorie: CATEGORIE_IMPRO },
+      required: ['classe', 'ref', 'categorie'],
+    },
+    {
+      type: 'object', additionalProperties: false,
+      properties: { classe: { enum: ['refuse', 'hors-livre'], description: '`refuse` = la fiction l’a refusée ; `hors-livre` = elle sort du cadre du chapitre.' }, ref: VIDE, categorie: VIDE },
+      required: ['classe', 'ref', 'categorie'],
+    },
+  ],
 }
 /** Le jugement d'UN déclencheur non joué ou écarté, sous son id (schéma du juge). */
 const JUGEMENT_DE_DECLENCHEUR = {
   type: 'object', additionalProperties: false,
-  properties: { manque: { type: 'boolean' }, constat: { type: 'string' }, ref: { type: 'string' } },
+  properties: {
+    manque: { type: 'boolean', description: 'Vrai quand la partie jouée remplissait sa condition au livre et que le MJ ne l’a pas joué, ou l’a écarté à tort.' },
+    constat: { type: 'string' },
+    ref: REF_NUE,
+  },
   required: ['manque', 'constat', 'ref'],
 }
 const BESOINS = {
   type: 'array',
   items: {
     type: 'object', additionalProperties: false,
-    properties: { besoin: { type: 'string' }, personas: { type: 'array', uniqueItems: true, items: { enum: PERSONAS } }, ref: { type: 'string' } },
+    properties: {
+      besoin: { type: 'string' },
+      personas: { type: 'array', uniqueItems: true, items: { enum: PERSONAS } },
+      ref: { type: 'string', description: "La réf nue de la ligne qui prévoit l'intention, ou '' si le livre ne la prévoit pas." },
+    },
     required: ['besoin', 'personas', 'ref'],
   },
 }
@@ -192,27 +278,26 @@ const SYNTHESE = {
   required: ['markdown'],
 }
 
-const COMMANDE_DES = 'npx tsx scripts/ops/table-des.mts'
-
 // ── Préparation ──────────────────────────────────────────────────────────────────────────────
 // Deux lecteurs en SÉQUENCE : l'auteur des fiches que les joueurs reçoivent ne voit ni le chapitre ni
 // ses secrets (`EDO 02 l.40`) ; le lecteur du chapitre reçoit la liste des PJ, jamais leurs fiches.
-const fichesPJ = await agent(`Tu PRÉPARES les personnages d'une table papier simulée : tu lis le dépôt, tu ne joues pas.
+const fichesPJ = await capturer(() => agent(`Tu PRÉPARES les personnages d'une table papier simulée : tu lis le dépôt, tu ne joues pas.
 ${CADRE_ARBRE}
 ${RENDU_AU_SCHEMA}
 
-Rends les fiches des 4 PJ du GROUPE PRÉTIRÉ CANONIQUE du dépôt : \`makeShowcaseParty()\` (src/data/pregens.ts), sur les entrées de src/data/pregens.json. Construis-les par UNE sonde \`npx tsx -e "…"\`, sans fichier écrit, qui importe ce module de l'arbre : pour chaque héros, espèce, carrière, caractéristiques effectives (\`effectiveChar\`, src/engine/characteristics.ts), valeurs de Test de ses compétences (\`testValue\`, src/engine/skills.ts), talents, possessions, points de Destin/Résilience, motivation et ambitions. \`fiche\` = cette fiche en Markdown court, valeurs chiffrées comprises (les jets se tireront sur ces valeurs) : c'est le texte que le JOUEUR de ce héros reçoit, tel quel. \`id\` = l'id du héros ; \`nom\`, \`espece\`, \`carriere\` = ceux de sa fiche.
+Rends les fiches des 4 PJ du GROUPE PRÉTIRÉ CANONIQUE du dépôt : \`makeShowcaseParty()\` (src/data/pregens.ts), sur les entrées de src/data/pregens.json. Construis-les par UNE sonde \`npx tsx -e "…"\`, sans fichier écrit, qui importe ce module de l'arbre par son chemin ABSOLU : pour chaque héros, espèce, carrière, caractéristiques effectives (\`effectiveChar\`, src/engine/characteristics.ts), valeurs de Test de ses compétences (\`testValue\`, src/engine/skills.ts), talents, possessions, points de Destin/Résilience, motivation et ambitions. \`fiche\` = cette fiche en Markdown court, valeurs chiffrées comprises (les jets se tireront sur ces valeurs) : c'est le texte que le JOUEUR de ce héros reçoit, tel quel. \`id\` = l'id du héros ; \`nom\`, \`espece\`, \`carriere\` = ceux de sa fiche.
 \`groupe.source\` = la source exacte du groupe (fonction, fichier:ligne, ids) ; \`groupe.commande\` = la commande de ta sonde.`,
-  { label: 'fiches-pj', phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'lecteur', model: 'sonnet', effort: 'medium' })
+  { label: 'fiches-pj', phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'lecteur', model: 'sonnet', effort: 'medium' }))
 
-if (!fichesPJ) {
-  log('ARRÊT : les fiches des PJ n’ont rien rendu — aucune partie sans fiches des PJ.')
-  return { verdict: 'ARRÊT', manques: ['fiches des PJ sans rendu'], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 1, mj: 0, joueurs: 0, analyse: 0, total: 1 }, date: DATE }
+if (!fichesPJ.rendu) {
+  log(`ARRÊT : les fiches des PJ n’ont rien rendu (${fichesPJ.cause}) — aucune partie sans fiches des PJ.`)
+  return { verdict: 'ARRÊT', manques: [`fiches des PJ sans rendu — ${fichesPJ.cause}`], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 1, mj: 0, joueurs: 0, analyse: 0, total: 1 }, date: DATE }
 }
+const { pjs: PJS, groupe: GROUPE } = fichesPJ.rendu
 /** Chaque joueur est keyé par l'id de son PJ : un id vide ou en double confondrait deux joueurs. */
-const idsDesPJ = fichesPJ.pjs.map((pj) => pj.id)
+const idsDesPJ = PJS.map((pj) => pj.id)
 const idsDePJInvalides = [
-  ...fichesPJ.pjs.flatMap((pj, rang) => (pj.id.trim() ? [] : [`fiches des PJ — PJ ${rang + 1} (« ${pj.nom} ») sans id`])),
+  ...PJS.flatMap((pj, rang) => (pj.id.trim() ? [] : [`fiches des PJ — PJ ${rang + 1} (« ${pj.nom} ») sans id`])),
   ...[...new Set(idsDesPJ.filter((id, rang) => id.trim() && idsDesPJ.indexOf(id) !== rang))].map((id) => `fiches des PJ — id « ${id} » en double`),
 ]
 if (idsDePJInvalides.length) {
@@ -222,8 +307,8 @@ if (idsDePJInvalides.length) {
 
 /** La fiche du MJ, TIRÉE du dossier de chapitre : le livre n'est relu que pour citer une ligne. */
 const ficheMJ = Object.fromEntries(CHAMPS_DE_LA_FICHE.map((champ) => [champ, DOSSIER[champ]]))
-const LISTE_DES_PJ = fichesPJ.pjs.map((pj) => ({ id: pj.id, nom: pj.nom, espece: pj.espece, carriere: pj.carriere }))
-const choixDuSosie = await agent(`Tu PRÉPARES une table papier simulée : tu désignes, s'il y a lieu, le PJ SOSIE d'un PNJ. Tu lis, tu ne joues pas.
+const LISTE_DES_PJ = PJS.map((pj) => ({ id: pj.id, nom: pj.nom, espece: pj.espece, carriere: pj.carriere }))
+const choixDuSosie = await capturer(() => agent(`Tu PRÉPARES une table papier simulée : tu désignes, s'il y a lieu, le PJ SOSIE d'un PNJ. Tu lis, tu ne joues pas.
 ${CADRE}
 ${CHAPITRE_LU}
 
@@ -247,23 +332,23 @@ Si le chapitre exige qu'un PJ ressemble à un PNJ (le sosie de Kastor Lieberung,
       },
       required: ['sosie'],
     },
-  })
+  }))
 
-if (!choixDuSosie) {
-  log('ARRÊT : le choix du sosie n’a rien rendu — aucune partie sans ce choix.')
-  return { verdict: 'ARRÊT', manques: ['choix du sosie sans rendu'], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 2, mj: 0, joueurs: 0, analyse: 0, total: 2 }, date: DATE }
+if (!choixDuSosie.rendu) {
+  log(`ARRÊT : le choix du sosie n’a rien rendu (${choixDuSosie.cause}) — aucune partie sans ce choix.`)
+  return { verdict: 'ARRÊT', manques: [`choix du sosie sans rendu — ${choixDuSosie.cause}`], journal: null, analyse: null, ...SANS_DECLENCHEURS, agents: { preparation: 2, mj: 0, joueurs: 0, analyse: 0, total: 2 }, date: DATE }
 }
 
-const sosieRendu = choixDuSosie.sosie
+const sosieRendu = choixDuSosie.rendu.sosie
 const anomaliesDeSosie = !sosieRendu.id && sosieRendu.ref.trim() ? [`id vide avec ref « ${sosieRendu.ref} » : un passage cité sans PJ désigné`] : []
 const sosie = sosieRendu.id ? sosieRendu : null
 if (anomaliesDeSosie.length) log(`Préparation : anomalie de sosie — ${anomaliesDeSosie[0]} ; aucun PJ n’est marqué, le MJ ne reçoit aucun sosie.`)
-const joueurs = PERSONAS.map((persona, rang) => ({ persona, pj: fichesPJ.pjs[rang], sosie: Boolean(sosie) && fichesPJ.pjs[rang].id === sosie.id }))
+const joueurs = PERSONAS.map((persona, rang) => ({ persona, pj: PJS[rang], sosie: Boolean(sosie) && PJS[rang].id === sosie.id }))
 
 /** Les déclencheurs de la fiche, un par id : le lanceur ne projette qu'une fiche au schéma `ficheDeDossier`,
  *  dont les ids sont uniques. */
 const DECLENCHEURS = ficheMJ.declencheurs
-log(`Préparation : ${ficheMJ.beats.length} beats, ${ficheMJ.imperatifs.length} impératifs, ${DECLENCHEURS.length} déclencheur(s), tirés du dossier ; groupe ${fichesPJ.groupe.source} (sonde : ${fichesPJ.groupe.commande}). PJ par persona : ${joueurs.map((j) => `${j.persona} → ${j.pj.nom}${j.sosie ? ' (sosie)' : ''}`).join(', ')} ; sosie ${sosie ? sosie.id : 'aucun'} — ${sosieRendu.motif}.`)
+log(`Préparation : ${ficheMJ.beats.length} beats, ${ficheMJ.imperatifs.length} impératifs, ${DECLENCHEURS.length} déclencheur(s), tirés du dossier ; groupe ${GROUPE.source} (sonde : ${GROUPE.commande}). PJ par persona : ${joueurs.map((j) => `${j.persona} → ${j.pj.nom}${j.sosie ? ' (sosie)' : ''}`).join(', ')} ; sosie ${sosie ? sosie.id : 'aucun'} — ${sosieRendu.motif}.`)
 log(`Partie : ${MAX_ECHANGES} échanges au plus ; MJ et joueurs reçoivent les ${DERNIERS_ECHANGES} derniers échanges publics, le reste vit dans le résumé privé du MJ et les notes de chaque joueur.`)
 
 // ── Partie ───────────────────────────────────────────────────────────────────────────────────
@@ -289,7 +374,7 @@ let fin = false
 let interrompue = null
 let agentsMJ = 0
 let agentsJoueurs = 0
-/** Chaque joueur sans rendu, à son échange : un trou de la partie. */
+/** Chaque joueur sans rendu, à son échange et avec sa cause : un trou de la partie. */
 const joueursSansRendu = []
 
 const publicsRecents = () => echanges.slice(-DERNIERS_ECHANGES).map((e) =>
@@ -302,7 +387,7 @@ for (let numero = 1; numero <= MAX_ECHANGES; numero += 1) {
   const declencheursPourLeMJ = etatDesDeclencheurs()
   const pjsAResoudre = intentions.map((i) => i.pj)
   const enAttente = DECLENCHEURS.filter((d) => etatDe.get(d.id).etat === 'attente').map((d) => d.id)
-  const mj = await agent(`Tu es le MJ d'une table papier SIMULÉE de ${LIVRE} ${CHAPITRE}.
+  const promptDuMJ = `Tu es le MJ d'une table papier SIMULÉE de ${LIVRE} ${CHAPITRE}.
 ${CADRE}
 ${CHAPITRE_LU}
 Tu peux relire le chapitre au Source/ pour citer la ligne exacte.
@@ -326,15 +411,24 @@ ${intentions.map((i) => `- ${designationDe.get(i.pj)} : ${i.intention}`).join('\
 
 Règles de ta table :
 - \`resolutions\` est un objet dont chaque clé est l'id NU d'un PJ qui a une intention ci-dessus (${pjsAResoudre.map((pj) => `\`${pj}\``).join(', ') || "aucune clé : l'objet est vide"}), jamais sa désignation « Nom (id) » ; sa valeur est LA résolution de cette intention : \`source: 'livre'\` avec la réf nue de la ligne qui la prévoit, ou \`source: 'IMPRO'\` avec \`ref: ''\` et une \`categorie\` parmi ${CATEGORIES_IMPRO.join(', ')} (\`categorie: ''\` quand la source est le livre). Tu ne refuses jamais en silence : un refus de la fiction se résout et se dit.
-- TOUT jet passe par l'outil de dés du moteur, jamais de tête : une commande par jet, lancée par \`ctx_shell\` avec \`cwd\` = l'arbre. Test simple :
+- TOUT jet passe par l'outil de dés du moteur, jamais de tête : une commande par jet, lancée par \`ctx_shell\` (poste) ou Bash. Test simple :
   ${COMMANDE_DES} simple --seed "${SEED}" --tirage <n> --valeur <valeur de Test> --difficulte <id>
   Test opposé :
   ${COMMANDE_DES} oppose --seed "${SEED}" --tirage <n> --valeur <v> --difficulte <id> --valeur-oppose <v> --difficulte-oppose <id>
   Les ids de difficulté sont ceux de \`DIFFICULTY_LADDER\` (src/engine/tests.ts) — l'outil refuse un libellé. Les tirages de cet échange commencent à ${premierTirage} et se suivent sans trou : ${premierTirage}, ${premierTirage + 1}… Chaque commande lancée consomme son tirage, erreur comprise. Chaque jet se journalise dans \`jets\` : tirage, objet (qui teste quoi, pourquoi), commande EXACTE, sortie EXACTE.
 - AVANT de résoudre les intentions, relis les déclencheurs en attente : tout déclencheur ÉCHU (sa condition est remplie, son délai est écoulé) se JOUE dans cette narration, que les joueurs l'aient cherché ou non. \`tour.declencheurs\` est un objet dont chaque clé est l'id NU d'un déclencheur EN ATTENTE (${enAttente.map((id) => `\`${id}\``).join(', ') || "aucune clé : l'objet est vide"}) ; sa valeur est son sort à cet échange : \`statut\` = \`joue\`, \`non-echu\` (\`motif\` = quelle condition manque) ou \`ecarte\` (\`motif\` = ce qui l'a rendu impossible). Un déclencheur JOUÉ ou ÉCARTÉ ne reçoit plus de sort.
-- \`tour.narration\` = ce que les joueurs entendent, rien de la fiche privée qu'ils n'ont pas découvert. \`tour.etatPrive\` = ton nouveau résumé privé (où en est le chapitre, ce que chaque PNJ sait et veut, les fils ouverts). \`tour.beat\` = l'id du beat courant de la fiche. \`fin: true\` quand le chapitre est clos selon le livre.`,
+- \`tour.narration\` = ce que les joueurs entendent, rien de la fiche privée qu'ils n'ont pas découvert. \`tour.etatPrive\` = ton nouveau résumé privé (où en est le chapitre, ce que chaque PNJ sait et veut, les fils ouverts). \`tour.beat\` = l'id du beat courant de la fiche. \`fin: true\` quand le chapitre est clos selon le livre.`
+  /** Les tirages d'un rendu du MJ hors de la suite de cet échange, ou sans la graine et le tirage dans leur commande. */
+  const anomaliesDeTirageDe = (rendu) => rendu.jets.flatMap((jet, rang) => [
+    ...(jet.tirage === premierTirage + rang ? [] : [`jet ${rang + 1} : tirage ${jet.tirage}, attendu ${premierTirage + rang} — relance sa commande au tirage ${premierTirage + rang} ; la résolution et la narration qui dépendent de ce jet suivent sa nouvelle sortie`]),
+    ...(jet.commande.includes(`--seed "${SEED}"`) && new RegExp(`--tirage ${jet.tirage}(?!\\d)`).test(jet.commande) ? [] : [`jet ${rang + 1} : commande sans --seed "${SEED}" ou sans --tirage ${jet.tirage}`]),
+  ])
+  /** Les déclencheurs d'un rendu du MJ non joués sans motif. */
+  const anomaliesDeDeclencheursDe = (rendu) => enAttente.filter((id) => rendu.tour.declencheurs[id].statut !== 'joue' && !rendu.tour.declencheurs[id].motif.trim())
+    .map((id) => `déclencheur « ${id} » : statut « ${rendu.tour.declencheurs[id].statut} » sans motif`)
+  const appelDuMJ = await appelValide(promptDuMJ, (prompt, essai) => agent(prompt,
     {
-      label: `mj:${numero}`, phase: 'Partie', agentType: 'lecteur', model: 'sonnet', effort: 'medium',
+      label: essai ? `mj:${numero}:renvoi${essai}` : `mj:${numero}`, phase: 'Partie', agentType: 'mj-de-table', model: 'sonnet', effort: 'medium',
       schema: {
         type: 'object', additionalProperties: false,
         properties: {
@@ -354,32 +448,33 @@ Règles de ta table :
         },
         required: ['resolutions', 'jets', 'tour', 'fin'],
       },
-    })
-  agentsMJ += 1
+    }),
+  (rendu) => [...anomaliesDeTirageDe(rendu), ...anomaliesDeDeclencheursDe(rendu)])
+  agentsMJ += 1 + appelDuMJ.renvois
+  const mj = appelDuMJ.rendu
   if (!mj) {
-    interrompue = { echange: numero, cause: 'le MJ n’a rien rendu', intentionsNonResolues: intentions }
-    log(`Échange ${numero} : le MJ n’a rien rendu — partie INTERROMPUE après ${echanges.length} échange(s) joué(s), ${intentions.length} intention(s) de joueur restée(s) sans résolution.`)
+    interrompue = { echange: numero, cause: `MJ — ${appelDuMJ.cause}`, intentionsNonResolues: intentions }
+    log(`Échange ${numero} : le MJ n’a rien rendu (${appelDuMJ.cause}) — partie INTERROMPUE après ${echanges.length} échange(s) joué(s), ${intentions.length} intention(s) de joueur restée(s) sans résolution.`)
     break
   }
+  if (appelDuMJ.renvois) log(`Échange ${numero} : ${appelDuMJ.renvois} renvoi(s) au MJ pour anomalie(s) ; ${appelDuMJ.anomalies.length} restée(s).`)
+  /** Ce que les renvois ont perdu : un renvoi sans rendu, et sa cause. */
+  const anomaliesDeRenvoi = appelDuMJ.anomalies.filter((a) => !anomaliesDeTirageDe(mj).includes(a) && !anomaliesDeDeclencheursDe(mj).includes(a))
   const declencheursDeLEchange = enAttente.map((id) => ({ id, ...mj.tour.declencheurs[id] }))
-  const anomaliesDeDeclencheurs = declencheursDeLEchange.filter((d) => d.statut !== 'joue' && !d.motif.trim()).map((d) => `déclencheur « ${d.id} » : statut « ${d.statut} » sans motif`)
+  const anomaliesDeDeclencheurs = anomaliesDeDeclencheursDe(mj)
   for (const d of declencheursDeLEchange) {
     if (d.statut === 'joue') etatDe.set(d.id, { etat: 'joue', echange: numero })
     else if (d.statut === 'ecarte') etatDe.set(d.id, { etat: 'ecarte', echange: numero, motif: d.motif })
     else etatDe.set(d.id, { etat: 'attente', dernierStatut: d.statut, motif: d.motif })
   }
   if (anomaliesDeDeclencheurs.length) log(`Échange ${numero} : ${anomaliesDeDeclencheurs.length} anomalie(s) de déclencheur — ${anomaliesDeDeclencheurs.join(' · ')}.`)
-  const anomaliesDeTirage = []
-  mj.jets.forEach((jet, rang) => {
-    if (jet.tirage !== premierTirage + rang) anomaliesDeTirage.push(`jet ${rang + 1} : tirage ${jet.tirage}, attendu ${premierTirage + rang}`)
-    if (!jet.commande.includes(`--seed "${SEED}"`) || !jet.commande.includes(`--tirage ${jet.tirage}`)) anomaliesDeTirage.push(`jet ${rang + 1} : commande sans --seed "${SEED}" ou sans --tirage ${jet.tirage}`)
-  })
+  const anomaliesDeTirage = anomaliesDeTirageDe(mj)
   tirageSuivant = mj.jets.reduce((m, jet) => Math.max(m, jet.tirage + 1), premierTirage + mj.jets.length)
   if (anomaliesDeTirage.length) log(`Échange ${numero} : ${anomaliesDeTirage.length} anomalie(s) de tirage — ${anomaliesDeTirage.join(' · ')}. Tirage suivant : ${tirageSuivant}.`)
   etatPrive = mj.tour.etatPrive
   echanges.push({
     numero, intentions, resolutions: intentions.map((i) => ({ persona: i.persona, pj: i.pj, intention: i.intention, ...mj.resolutions[i.pj] })), jets: mj.jets, anomaliesDeTirage, declencheurs: declencheursDeLEchange, anomaliesDeDeclencheurs,
-    narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
+    renvois: appelDuMJ.renvois, anomaliesDeRenvoi, narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
   })
   if (mj.fin) {
     fin = true
@@ -388,7 +483,7 @@ Règles de ta table :
   if (numero === MAX_ECHANGES) break
 
   const recentsPourLesJoueurs = publicsRecents()
-  const rendus = await parallel(joueurs.map((j, rang) => () => agent(`Tu JOUES un personnage à une table de jeu de rôle (Warhammer). Tu ne sais du monde que ce que la narration du MJ t'a dit.
+  const rendus = await parallel(joueurs.map((j, rang) => () => capturer(() => agent(`Tu JOUES un personnage à une table de jeu de rôle (Warhammer). Tu ne sais du monde que ce que la narration du MJ t'a dit.
 Tu n'ouvres AUCUN fichier et tu ne lances AUCUNE commande : tu joues depuis ce message seul, jamais depuis le livre ni le dépôt.
 
 TA PERSONA — ${JEUX_DE_PERSONA[j.persona]}
@@ -402,18 +497,18 @@ CE QUE LE MJ A RACONTÉ (derniers échanges publics) :
 ${recentsPourLesJoueurs}
 
 Rends \`jeu.intention\` : ce que ton personnage fait ou dit MAINTENANT, en une ou deux phrases à la première personne, fidèle à ta persona. Rends \`jeu.notes\` : tes notes privées mises à jour (soupçons, noms, plans), elles te seront rendues au prochain échange.`,
-    { label: `joueur:${j.persona}:${numero}`, phase: 'Partie', schema: JOUEUR, agentType: 'joueur', model: 'sonnet', effort: 'low' })))
+    { label: `joueur:${j.persona}:${numero}`, phase: 'Partie', schema: JOUEUR, agentType: 'joueur', model: 'sonnet', effort: 'low' }))))
   agentsJoueurs += joueurs.length
   intentions = []
   rendus.forEach((r, rang) => {
     const j = joueurs[rang]
-    if (!r) {
-      log(`Échange ${numero} : le joueur ${j.persona} n’a rien rendu — aucune intention de sa part à cet échange.`)
-      joueursSansRendu.push(`échange ${numero} : ${j.persona}`)
+    if (!r.rendu) {
+      log(`Échange ${numero} : le joueur ${j.persona} n’a rien rendu (${r.cause}) — aucune intention de sa part à cet échange.`)
+      joueursSansRendu.push(`échange ${numero} : ${j.persona} — ${r.cause}`)
       return
     }
-    notes[rang] = r.jeu.notes
-    intentions.push({ persona: j.persona, pj: j.pj.id, intention: r.jeu.intention })
+    notes[rang] = r.rendu.jeu.notes
+    intentions.push({ persona: j.persona, pj: j.pj.id, intention: r.rendu.jeu.intention })
   })
   if (joueursSansRendu.length) {
     log(`Partie arrêtée à l’échange ${numero} : un joueur sans rendu fixe déjà le verdict PARTIE INCOMPLÈTE.`)
@@ -425,9 +520,22 @@ if (plafondAtteint) log(`Partie : plafond de ${MAX_ECHANGES} échanges atteint S
 
 const journal = {
   livre: LIVRE, chapitre: CHAPITRE, fichiers: FICHIERS, seed: SEED, maxEchanges: MAX_ECHANGES,
-  preparation: { pjs: fichesPJ.pjs, groupe: fichesPJ.groupe, ficheMJ, sosie: sosieRendu, anomaliesDeSosie },
+  preparation: { pjs: PJS, groupe: GROUPE, ficheMJ, sosie: sosieRendu, anomaliesDeSosie },
   joueurs: joueurs.map((j) => ({ persona: j.persona, pj: j.pj.id, nom: j.pj.nom, sosie: j.sosie })),
   echanges, notesFinales: joueurs.map((j, rang) => ({ persona: j.persona, pj: j.pj.id, notes: notes[rang] })), tiragesConsommes: tirageSuivant, fin, plafondAtteint, interrompue,
+}
+/** Ce que le juge reçoit de la partie : ses SORTIES — intentions, résolutions dites, jets, sorts des
+ *  déclencheurs, narration, beat — jamais l'état privé du MJ, son classement de ses propres résolutions ni
+ *  les notes privées des joueurs (#2721 : le relecteur ne voit que la sortie). */
+const journalDuJuge = {
+  livre: LIVRE, chapitre: CHAPITRE, maxEchanges: MAX_ECHANGES,
+  preparation: { pjs: PJS, ficheMJ, sosie: sosieRendu },
+  joueurs: journal.joueurs,
+  echanges: echanges.map((e) => ({
+    numero: e.numero, intentions: e.intentions, resolutions: e.resolutions.map((r) => ({ persona: r.persona, pj: r.pj, resolution: r.resolution })),
+    jets: e.jets, declencheurs: e.declencheurs.map((d) => ({ id: d.id, statut: d.statut })), narration: e.narration, beat: e.beat, fin: e.fin,
+  })),
+  fin, plafondAtteint, interrompue,
 }
 
 /** Ce que la partie n'a pas joué du livre : rendu, journalisé, et jugé par une rubrique de l'analyse. */
@@ -440,7 +548,7 @@ const bilanDesDeclencheurs = `déclencheurs : ${declencheursNonJoues.length} NON
 /** Les anomalies d'une espèce, sur toute la partie, chacune à son échange. */
 const anomaliesDesEchanges = (espece) => echanges.flatMap((e) => e[espece].map((a) => `échange ${e.numero} : ${a}`))
 /** Les TROUS du run, par espèce, chacune sous le verdict qui la nomme, dans l'ordre où elles le priment :
- *  SIGNAL ou THÉÂTRE ne se rend que si toutes sont vides. */
+ *  SIGNAL ou THÉÂTRE ne se rend que si toutes sont vides. Chaque trou d'agent nomme sa cause. */
 const trousDuRun = ({ fuites = [], analyseSansRendu = [] } = {}) => [
   { espece: 'interruption', verdict: 'INTERROMPU', liste: interrompue ? [`échange ${interrompue.echange} : ${interrompue.cause}, ${interrompue.intentionsNonResolues.length} intention(s) sans résolution`] : [] },
   { espece: 'joueursSansRendu', verdict: 'PARTIE INCOMPLÈTE', liste: joueursSansRendu },
@@ -473,19 +581,19 @@ const NUMEROS_D_ECHANGE = echanges.map((e) => e.numero)
 const IDS_DES_SECRETS = ficheMJ.secrets.map((s) => s.id)
 /** La réf de chaque secret de la fiche, par id : le juge nomme le secret, le script en porte la réf. */
 const refDuSecret = new Map(ficheMJ.secrets.map((s) => [s.id, s.ref]))
-const analyse = await agent(`Tu ANALYSES une table papier simulée de ${LIVRE} ${CHAPITRE}. Relis le chapitre au Source/ : le journal dit ce qui s'est joué, le livre dit ce qui était prévu.
+const analyse = await capturer(() => agent(`Tu ANALYSES une table papier simulée de ${LIVRE} ${CHAPITRE}. Relis le chapitre au Source/ : le journal dit ce qui s'est joué, le livre dit ce qui était prévu.
 ${CADRE}
 ${CHAPITRE_LU}
 
-JOURNAL COMPLET :
-${JSON.stringify(journal, null, 1)}
+JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions, ni ses motifs) :
+${JSON.stringify(journalDuJuge, null, 1)}
 
 DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :
-${JSON.stringify([...declencheursNonJoues, ...declencheursEcartes], null, 1)}
+${JSON.stringify([...declencheursNonJoues.map(({ id, evenement, ref }) => ({ id, evenement, ref })), ...declencheursEcartes.map(({ id, evenement, ref, echange }) => ({ id, evenement, ref, echange }))], null, 1)}
 
 Rends :
-- intentions : un objet dont chaque clé est le numéro d'un échange qui porte des intentions (${echangesClasses.map((n) => `\`${n}\``).join(', ') || "aucune clé : l'objet est vide"}), et sa valeur un objet dont chaque clé est la persona d'une intention de cet échange (\`echanges[].intentions[].persona\`) : chacune classée par toi, au livre, sans reprendre le classement du MJ : \`prevu\` (réf nue de la ligne qui la prévoit), \`IMPRO\` (le livre ne la prévoit pas et le MJ a dû improviser — \`categorie\` parmi ${CATEGORIES_IMPRO.join(', ')}), \`refuse\` (la fiction l'a refusée), \`hors-livre\` (elle sort du cadre du chapitre). \`ref: ''\` et \`categorie: ''\` quand ils ne s'appliquent pas.
-- tempsMorts : chaque suite de BEATS du livre traversés sans décision de joueur (\`beats\` = ids des beats de la fiche du MJ, \`echanges\` = numéros des échanges concernés, constat). Un temps mort se mesure en beats, jamais en nombre d'échanges. ${journal.plafondAtteint ? `La partie s'est arrêtée au plafond de ${MAX_ECHANGES} échanges (\`plafondAtteint\`), chapitre non clos : un beat qu'elle n'a pas atteint n'est pas un temps mort.` : "La partie ne s'est pas arrêtée au plafond d'échanges (`plafondAtteint: false`)."}
+- intentions : un objet dont chaque clé est le numéro d'un échange qui porte des intentions (${echangesClasses.map((n) => `\`${n}\``).join(', ') || "aucune clé : l'objet est vide"}), et sa valeur un objet dont chaque clé est la persona d'une intention de cet échange (\`echanges[].intentions[].persona\`) : chacune classée par toi, au livre : \`prevu\` (réf nue de la ligne qui la prévoit), \`IMPRO\` (le livre ne la prévoit pas et le MJ a dû improviser — \`categorie\` parmi ${CATEGORIES_IMPRO.join(', ')}), \`refuse\` (la fiction l'a refusée), \`hors-livre\` (elle sort du cadre du chapitre). \`ref: ''\` et \`categorie: ''\` quand ils ne s'appliquent pas.
+- tempsMorts : chaque suite de BEATS du livre traversés sans décision de joueur (\`beats\` = ids des beats de la fiche du MJ, \`echanges\` = numéros des échanges concernés, constat). Un temps mort se mesure en beats, jamais en nombre d'échanges. ${plafondAtteint ? `La partie s'est arrêtée au plafond de ${MAX_ECHANGES} échanges (\`plafondAtteint\`), chapitre non clos : un beat qu'elle n'a pas atteint n'est pas un temps mort.` : "La partie ne s'est pas arrêtée au plafond d'échanges (`plafondAtteint: false`)."}
 - pistesRatees : indices et accroches du livre que la table n'a pas saisis, avec réf.
 - declencheurs : un objet dont chaque clé est l'id d'un déclencheur de la liste ci-dessus (${aJuger.map((id) => `\`${id}\``).join(', ') || "aucune clé : l'objet est vide"}) : \`manque: true\` quand la partie jouée remplissait sa condition au livre et que le MJ ne l'a pas joué (ou l'a écarté à tort), \`false\` sinon ; \`constat\` dit pourquoi, \`ref\` = la réf nue qui le prouve.
 - fuites : chaque narration du MJ qui révèle un secret de sa fiche (\`preparation.ficheMJ.secrets\`, par son id) sans que les joueurs aient trouvé d'indice (\`preparation.ficheMJ.indices\`) qui y mène : \`echange\` = son numéro, \`secret\` = l'id du secret, \`constat\` = ce que la narration révèle et pourquoi aucun indice trouvé n'y mène. Un test réussi sur une piste qu'aucun indice de la fiche ne couvre N'EST PAS un indice trouvé : la narration qui en tire un secret reste une fuite. Une fuite fausse la partie : les joueurs jouent ensuite sur une information volée.
@@ -493,7 +601,7 @@ Rends :
 - synthese.markdown : une synthèse courte.
 Un jet du journal se vérifie en rejouant sa commande : l'outil est déterministe.`,
   {
-    label: 'analyse', phase: 'Analyse', agentType: 'juge', model: 'opus', effort: 'high',
+    label: 'analyse', phase: 'Analyse', agentType: 'juge-de-source', model: 'opus', effort: 'high',
     schema: {
       type: 'object', additionalProperties: false,
       properties: {
@@ -529,23 +637,24 @@ Un jet du journal se vérifie en rejouant sa commande : l'outil est déterminist
       },
       required: ['intentions', 'tempsMorts', 'pistesRatees', 'declencheurs', 'fuites', 'besoins', 'synthese'],
     },
-  })
+  }))
 
 const agents = { preparation: 2, mj: agentsMJ, joueurs: agentsJoueurs, analyse: 1, total: 3 + agentsMJ + agentsJoueurs }
-if (!analyse) {
-  log(`Analyse : le juge n’a rien rendu — le journal est rendu sans classement ; ${bilanDesDeclencheurs}.`)
-  return { ...conclusion(trousDuRun({ analyseSansRendu: ['analyse'] }), null), journal, analyse: null, declencheursNonJoues, declencheursEcartes, agents, date: DATE }
+if (!analyse.rendu) {
+  log(`Analyse : le juge n’a rien rendu (${analyse.cause}) — le journal est rendu sans classement ; ${bilanDesDeclencheurs}.`)
+  return { ...conclusion(trousDuRun({ analyseSansRendu: [`analyse — ${analyse.cause}`] }), null), journal, analyse: null, declencheursNonJoues, declencheursEcartes, agents, date: DATE }
 }
 
 /** Le classement du juge, remis à la forme du journal : une entrée par intention, une par déclencheur jugé. */
-const intentionsClassees = echanges.flatMap((e) => e.intentions.map((i) => ({ echange: e.numero, persona: i.persona, intention: i.intention, ...analyse.intentions[e.numero][i.persona] })))
-const declencheursJuges = aJuger.map((id) => ({ id, ...analyse.declencheurs[id] }))
+const classement = analyse.rendu
+const intentionsClassees = echanges.flatMap((e) => e.intentions.map((i) => ({ echange: e.numero, persona: i.persona, intention: i.intention, ...classement.intentions[e.numero][i.persona] })))
+const declencheursJuges = aJuger.map((id) => ({ id, ...classement.declencheurs[id] }))
 const adverses = intentionsClassees.filter((i) => PERSONAS_ADVERSES.includes(i.persona) && (i.classe === 'refuse' || i.classe === 'hors-livre'))
-const besoins = analyse.besoins.map((b) => ({ ...b, retenu: b.personas.length >= 2 || b.ref !== '' }))
-const fuitesSourcees = analyse.fuites.map((f) => ({ ...f, ref: refDuSecret.get(f.secret) }))
+const besoins = classement.besoins.map((b) => ({ ...b, retenu: b.personas.length >= 2 || b.ref !== '' }))
+const fuitesSourcees = classement.fuites.map((f) => ({ ...f, ref: refDuSecret.get(f.secret) }))
 const fuites = fuitesSourcees.map((f) => `échange ${f.echange} : secret « ${f.secret} » — ${f.constat} (${f.ref.join(' ; ')})`)
 const manquesDuMJ = declencheursJuges.filter((d) => d.manque)
 const { verdict, trous } = conclusion(trousDuRun({ fuites }), adverses.length ? 'SIGNAL' : 'THÉÂTRE')
-log(`Analyse : ${verdict} — ${intentionsClassees.length} intention(s) classée(s), dont ${adverses.length} refusée(s) ou hors livre jouée(s) par les personas adverses (${PERSONAS_ADVERSES.join(', ')}) ; ${analyse.tempsMorts.length} temps mort(s) ; ${fuites.length} fuite(s) de secret ; ${bilanDesDeclencheurs}, dont ${manquesDuMJ.length} MANQUÉ(S) par le MJ ; besoins ${besoins.filter((b) => b.retenu).length} retenu(s) sur ${besoins.length} ; ${agents.total} agents joués (2 de préparation, ${agentsMJ} MJ, ${agentsJoueurs} joueurs, 1 juge).`)
-const { synthese, ...classement } = analyse
-return { verdict, trous, journal, analyse: { ...classement, intentions: intentionsClassees, declencheurs: declencheursJuges, fuites: fuitesSourcees, besoins, synthese_markdown: synthese.markdown }, declencheursNonJoues, declencheursEcartes, agents, date: DATE }
+log(`Analyse : ${verdict} — ${intentionsClassees.length} intention(s) classée(s), dont ${adverses.length} refusée(s) ou hors livre jouée(s) par les personas adverses (${PERSONAS_ADVERSES.join(', ')}) ; ${classement.tempsMorts.length} temps mort(s) ; ${fuites.length} fuite(s) de secret ; ${bilanDesDeclencheurs}, dont ${manquesDuMJ.length} MANQUÉ(S) par le MJ ; besoins ${besoins.filter((b) => b.retenu).length} retenu(s) sur ${besoins.length} ; ${agents.total} agents joués (2 de préparation, ${agentsMJ} MJ, ${agentsJoueurs} joueurs, 1 juge).`)
+const { synthese, ...reste } = classement
+return { verdict, trous, journal, analyse: { ...reste, intentions: intentionsClassees, declencheurs: declencheursJuges, fuites: fuitesSourcees, besoins, synthese_markdown: synthese.markdown }, declencheursNonJoues, declencheursEcartes, agents, date: DATE }

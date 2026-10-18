@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { jouerWorkflow } from '../../guards/lib/jouer-workflow.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-import { argsDeDossierDeChapitre } from '../../raw/workflow-args.mjs'
+import { argsDeDossierDeChapitre, famillesDeLaFiche } from '../../raw/workflow-args.mjs'
 import { readFileSync } from 'node:fs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
@@ -30,8 +30,10 @@ const DOSSIER_DU_CHAPITRE = {
   pnj: [{ id: 'pnj1', nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }],
   lieux: [], textes: [], tests: [], rencontres: [], recompenses: [], etats: [], dureeEtDifficulte: [], matiereCompagnons: [],
 };
+/** La forme projetée du type d'un point au MJ (`ficheDeDossier`), d'où la table dérive ses catégories d'IMPRO. */
+const TYPE_DE_POINT_AU_MJ = famillesDeLaFiche().pointsAuMJ.entree.properties.type;
 const ARGS_TABLE = {
-  livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], dossier: DOSSIER_DU_CHAPITRE, seed: 'graine', maxEchanges: 3,
+  livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], dossier: DOSSIER_DU_CHAPITRE, typeDePointAuMJ: TYPE_DE_POINT_AU_MJ, seed: 'graine', maxEchanges: 3,
   worktree: ARBRE, date: DATE,
 };
 const FICHES_PJ = {
@@ -45,6 +47,8 @@ const jetsDe = (premier, n) => Array.from({ length: n }, (_, i) => ({
 /** Le texte JSON d'un prompt entre deux marqueurs : ce que le script ENVOIE au juge. */
 const jsonEntre = (prompt, debut, fin) => JSON.parse(prompt.slice(prompt.indexOf(debut) + debut.length, prompt.indexOf(fin)));
 const declencheursEnvoyes = (prompt) => jsonEntre(prompt, 'DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :\n', '\n\nRends :');
+/** Le classement d'une intention de classe `classe`, à la branche de cette classe dans le schéma du juge. */
+const classementDe = (classe) => ({ classe, ref: classe === 'prevu' ? 'EDO 01 l.1' : '', categorie: classe === 'IMPRO' ? 'hors-livre' : '' });
 /**
  * Un juge d'analyse au CONTRAT, à la forme du schéma qu'il REÇOIT : chaque intention exigée classée,
  * chaque déclencheur exigé jugé, aucune fuite. `classeDe(persona, echange)` rend la classe ;
@@ -54,7 +58,7 @@ const analyseCouvrante = (classeDe = () => 'prevu', besoins = [], retouche = (a)
   const { intentions, declencheurs } = opts.schema.properties;
   const refDe = new Map(declencheursEnvoyes(prompt).map((d) => [d.id, d.ref[0]]));
   return retouche({
-    intentions: tableTotale(intentions.required, (numero) => tableTotale(intentions.properties[numero].required, (persona) => ({ classe: classeDe(persona, Number(numero)), ref: '', categorie: '' }))),
+    intentions: tableTotale(intentions.required, (numero) => tableTotale(intentions.properties[numero].required, (persona) => classementDe(classeDe(persona, Number(numero))))),
     tempsMorts: [], pistesRatees: [],
     declencheurs: tableTotale(declencheurs.required, (id) => ({ manque: false, constat: 'c', ref: refDe.get(id) })),
     fuites: [], besoins, synthese: { markdown: 's' },
@@ -66,7 +70,7 @@ const repondreALaTable = (mjDe, analyseDe = analyseCouvrante(), fichesPJ = FICHE
   if (opts.phase === 'Analyse') return analyseDe(prompt, opts);
   if (opts.label.startsWith('mj:')) {
     const premier = Number(prompt.match(/commencent à (\d+)/)[1]);
-    return mjDe(Number(opts.label.slice(3)), premier, opts.schema);
+    return mjDe(Number.parseInt(opts.label.slice(3), 10), premier, opts.schema);
   }
   return { jeu: { intention: `intention de ${opts.label}`, notes: `notes de ${opts.label}` } };
 };
@@ -171,7 +175,7 @@ const verdicts = await parallel(trouvees.filter(Boolean).flatMap((r) => r.findin
     ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
     : null
   return lue && lue.citationPresente
-    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' })
+    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'high' })
     : null
 }))
 return { verdict: 'AUDIT', verdicts, stats: STATS_VIDES }
@@ -192,4 +196,4 @@ const muter = (fichier, ...paires) => {
 };
 const vus = (mute, fichier = TEMOIN, calibrage) => analyser(mute, fichier, TABLES_DU_TEMOIN, calibrage, FICHES).defauts.map((d) => `${d.regle} : ${sansLieu(d.message)}`);
 
-export { ARBRE, ARGS_DOSSIER, ARGS_TABLE, COMMIT, D1, DATE, DOSSIER, DOSSIER_DU_CHAPITRE, ENTREE_BEAT, FICHES_PJ, RACINE, RESOLUTION, SANS_SOSIE, SECRET, SOURCE_TEMOIN, TEMOIN, analyseCouvrante, analyseSignal, argsDossier, completude, declencheursEnvoyes, fichierDeFixture, jetsDe, jouer, jouerDossier, jouerTable, jsonEntre, mjAuxSorts, mjSansFin, muter, repondreALaTable, repondreAuDossier, sauf, vus }
+export { ARBRE, ARGS_DOSSIER, ARGS_TABLE, COMMIT, D1, DATE, DOSSIER, DOSSIER_DU_CHAPITRE, FICHES_PJ, LECTURES, RACINE, RESOLUTION, SANS_SOSIE, SECRET, SOURCE_TEMOIN, TEMOIN, TYPE_DE_POINT_AU_MJ, analyseCouvrante, analyseSignal, argsDossier, completude, declencheursEnvoyes, fichierDeFixture, jetsDe, jouer, jouerDossier, jouerTable, jsonEntre, mjAuxSorts, mjSansFin, muter, repondreALaTable, repondreAuDossier, sauf, vus }

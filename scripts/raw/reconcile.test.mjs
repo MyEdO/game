@@ -16,7 +16,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { computeReconciliation, renderReport, trousDurs, ecartsTrousDurs, lireStock, STOCK_PATH, PREFIXE_B2, decodeCle, coeursEtrangers } from './reconcile.mjs'
+import { computeReconciliation, renderReport, sansProvenanceAdaptee, trousDurs, ecartsTrousDurs, lireStock, STOCK_PATH, PREFIXE_B2, decodeCle, coeursEtrangers } from './reconcile.mjs'
 import { BOOKS, coeurDe, coeursDe } from './_lib.mjs'
 import { parseFiche, registresDeFiches, validerDette, orphelinsDeDette } from './build-implemente.mjs'
 import { coeurDeBanc } from './atlasFixture.mjs'
@@ -464,6 +464,34 @@ test('Sens A (autres livres) : deux livres distincts n\'interfèrent pas l\'un a
       assert.equal(data.softA.length, 0)
     },
   )
+})
+
+test('Sens A : une provenance ADAPTÉE (`adapteDe` JSON) cite une prose, jamais une règle — la `source` voisine reste comptée', () => {
+  const doc = {
+    valeurs: [
+      { repere: 'civilite', valeur: 'Frau X', adapteDe: { book: 'ennemi-dans-l-ombre', page: 48, note: 'AA 07 l.3 · l.5' } },
+      { repere: 'nom', valeur: 'X', source: { book: 'ennemi-dans-l-ombre', page: 27, note: 'ZI 02 l.9' } },
+    ],
+  }
+  withFixtures(
+    { 'joli.json': JSON.stringify(doc, null, 1), 'compact.json': JSON.stringify(doc) },
+    { 'fiche.md': 'rien à voir\n' },
+    (opts) => {
+      const data = computeReconciliation(opts)
+      assert.deepEqual(data.hardA.map((h) => `${h.book} ${h.ch}`), ['ZI 2'])
+      assert.deepEqual(data.hardA[0].sample.map((s) => s.file.split('/').pop()).sort(), ['compact.json', 'joli.json'])
+    },
+  )
+})
+
+test('`sansProvenanceAdaptee` : seule la VALEUR de la clé est blanchie, lignes conservées, chaînes lues', () => {
+  const texte = '{\n "note": "adapteDe: { AA 07 l.3 }",\n "adapteDe": {\n  "note": "ZI 02 l.9 }"\n },\n "suite": "ZI 03 l.4"\n}'
+  const masque = sansProvenanceAdaptee(texte)
+  assert.equal(masque.length, texte.length)
+  assert.equal(masque.split('\n').length, texte.split('\n').length)
+  assert.ok(masque.includes('"adapteDe: { AA 07 l.3 }"'))
+  assert.ok(!masque.includes('ZI 02'))
+  assert.ok(masque.includes('"suite": "ZI 03 l.4"'))
 })
 
 // --- CLIQUET des trous durs (#1709 lot D2, #925) : la gate rougit, et le stock décroît ---

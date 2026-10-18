@@ -9,7 +9,8 @@
 //     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression` ; tout le reste de la ligne, joint
 //     par des espaces, après `cmd /c`/`/k` (ou `//c`/`//k`, graphie Git Bash) et `eval` ; le texte
 //     qu'exécute l'hôte `powershell`/`pwsh`, lu selon SA grammaire (`GRAMMAIRES_HOTE_POWERSHELL`, #2292) ;
-//     la chaîne de `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     la chaîne de `env -S`/`--split-string` suivie des arguments restants ; et le script `<x>` d'un lanceur de `package.json#scripts`
+//     (`LANCEURS_DE_SCRIPTS` : `npm run <x>`, `node --run <x>`, `pnpm`/`yarn`/`bun [run] <x>`, sous `corepack`), dont le script est
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
 //     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
@@ -728,6 +729,7 @@ const ENROBEURS_TETE = new Map([
   ['xargs', { flags: ['-I', '-i', '-n', '-P', '-d', '-E', '-e', '-s', '-a', '-L'] }],
   ['stdbuf', { flags: ['-i', '-o', '-e', '--input', '--output', '--error'] }],
   ['nice', { flags: ['-n', '--adjustment'] }],
+  ['corepack', {}],
 ])
 
 /** Le lanceur d'un outil de cet arbre, `node scripts/lancer-local.mjs <paquet> [--cwd <dossier>] -- <cmd>` (`separerInvocation`) :
@@ -934,10 +936,17 @@ function epluchageTete(jetons) {
 const PROFONDEUR_MAX_ENROBEURS = 4
 
 // ── `npm run <x>` : le corps du script est LU dans package.json ─────────────────────────────────
-// Sous-commandes de `npm` qui lancent un script : `run`/`run-script` nomment leur script, les
-// quatre raccourcis portent leur nom pour nom (`npm test` lance `scripts.test`).
-const SOUS_COMMANDES_RUN = ['run', 'run-script']
-const RACCOURCIS_NPM = ['test', 'start', 'stop', 'restart']
+/** Les lanceurs de `package.json#scripts` : `run` = les jetons qui nomment le script qui les suit (`node --run` est un
+ *  drapeau) ; `raccourcis` = les sous-commandes qui lancent le script de leur nom (`npm test` lance `scripts.test`) ;
+ *  `nomNu` = tout nom de script lance ce script (`yarn relay:deploy`). */
+const RACCOURCIS = ['test', 'start', 'stop', 'restart']
+const LANCEURS_DE_SCRIPTS = new Map([
+  ['npm', { run: ['run', 'run-script'], raccourcis: RACCOURCIS, nomNu: false }],
+  ['pnpm', { run: ['run', 'run-script'], raccourcis: RACCOURCIS, nomNu: true }],
+  ['yarn', { run: ['run'], raccourcis: RACCOURCIS, nomNu: true }],
+  ['bun', { run: ['run'], raccourcis: [], nomNu: true }],
+  ['node', { run: ['--run'], raccourcis: [], nomNu: false }],
+])
 
 // Dépôt où `npm run <x>` se résout quand l'appelant ne le dit pas : celui de la portée de la garde
 // (`racineNpmCourante`, la racine npm du contexte du répartiteur, `racineNpmDe`) — sans lui, un
@@ -970,26 +979,28 @@ export function citeArgument(texte) {
   return MOT_NU_RE.test(texte) ? texte : `"${texte.replace(/["\\`$]/g, (c) => `\\${c}`)}"`
 }
 
-/** Commande RÉELLE d'un segment `npm run <x>` (script résolu dans `scripts`, arguments de la ligne
- *  recollés derrière lui comme npm le fait), ou `null` si le segment ne lance aucun script connu.
+/** Commande RÉELLE d'un segment qui lance un script (`LANCEURS_DE_SCRIPTS` : script résolu dans `scripts`, arguments de
+ *  la ligne recollés derrière lui comme npm le fait), ou `null` si le segment ne lance aucun script connu.
  *  `jetons` : ceux du segment (`tokenizeCommand`). Chaque argument recollé est CITÉ (`citeArgument`) :
  *  la re-tokenisation du corps rend le même argv, `"tour 10 publié"` reste UN argument ; un jeton
  *  NU d'opérateur (redirection, heredoc : `OPERATEUR_SHELL_RE`) reste nu, donc opérateur. La même tokenisation
  *  lit un segment POSIX comme PowerShell : la citation vaut pour les deux. */
-export function commandeScriptNpm(jetons, scripts) {
+export function commandeDeScript(jetons, scripts) {
   const segment = jetons.map((j) => j.text)
   const start = segment[0] === '&' ? 1 : 0
-  if (basenameExecutable(segment[start] ?? '') !== 'npm') return null
-  // Les flags PROPRES à npm (`--silent`, `-s`…) précèdent aussi bien la sous-commande que le nom du
+  const lanceur = LANCEURS_DE_SCRIPTS.get(basenameExecutable(segment[start] ?? ''))
+  if (lanceur === undefined) return null
+  // Les flags PROPRES au lanceur (`--silent`, `-s`…) précèdent aussi bien la sous-commande que le nom du
   // script : ils se sautent aux deux crans. `--` n'en est pas un — il OUVRE les arguments du script.
   const apresFlags = (i) => {
-    while (segment[i] !== undefined && segment[i].startsWith('-') && segment[i] !== '--') i += 1
+    while (segment[i] !== undefined && segment[i].startsWith('-') && segment[i] !== '--' && !lanceur.run.includes(segment[i])) i += 1
     return i
   }
   const iSub = apresFlags(start + 1)
   const sub = segment[iSub]
-  const iNom = SOUS_COMMANDES_RUN.includes(sub) ? apresFlags(iSub + 1) : iSub
-  const nom = SOUS_COMMANDES_RUN.includes(sub) ? segment[iNom] : (RACCOURCIS_NPM.includes(sub) ? sub : undefined)
+  const parRun = lanceur.run.includes(sub)
+  const iNom = parRun ? apresFlags(iSub + 1) : iSub
+  const nom = parRun ? segment[iNom] : (lanceur.raccourcis.includes(sub) || (lanceur.nomNu && Object.hasOwn(scripts ?? {}, sub ?? '')) ? sub : undefined)
   const corps = nom === undefined ? undefined : scripts?.[nom]
   if (typeof corps !== 'string') return null
   // npm colle les arguments de la ligne derrière le script, `--` retiré (il n'est qu'un séparateur).
@@ -1316,7 +1327,7 @@ const lanceEnFond = (jetons) => jetons.some((j, k) => k > 0 && jetonNu(j) && j.t
  * La BORNE DE VIE d'un segment de `pipelinesDeJetons`, en secondes : la durée du premier `timeout` épluché en tête
  * de lui ou des segments qui le contiennent (`deploiePar`, puis `bloc`), `null` sans borne. Un segment lancé en fond
  * (`enFond`) n'hérite pas de la borne de son porteur, sauf si ce porteur est lui-même lancé en fond : npm recolle
- * le `&` de sa ligne derrière son script (`commandeScriptNpm`). Réf : #2603, constat 22 (E4). PURE.
+ * le `&` de sa ligne derrière son script (`commandeDeScript`). Réf : #2603, constat 22 (E4). PURE.
  * @returns {number|null}
  */
 export function borneDeVie(segment) {
@@ -1452,7 +1463,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
           if (marquee) ici.fonctions.set(nom, { ...marquee, exportee: attribut.exportee })
         }
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes, segment)
-        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
+        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeDeScript(segment, scripts))
         if (inner !== null) {
           const debutSuite = porteur?.suite ?? null
           const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)

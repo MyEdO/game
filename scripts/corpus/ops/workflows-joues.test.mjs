@@ -49,9 +49,9 @@ const RUNS_COUVRANTS = {
  *  enchaînement, shell prescrit, fichier de sonde écrit ou lu par redirection. */
 const INTERDITS_D_EXECUTION = /(^|[\s`"(])cd\s|&&|Shell = Bash|git -C|dossier de sondes|s'écrit sous|redirection fichier/i;
 
-const CONTRAT_D_EXECUTION = /Toute commande passe par l'outil `ctx_shell`, son paramètre `cwd` = l'arbre[^:\n]* : UNE commande simple par appel, [^\n]*; UN SEUL appel `ctx_shell` par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
+const CONTRAT_D_EXECUTION = /Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre\. Toute commande passe par l'outil `ctx_shell` s'il est disponible \(poste\), son paramètre `cwd` = l'arbre, sinon par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, [^\n]*chaque chemin ABSOLU sous l'arbre [^\n]*; UN SEUL appel shell par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
 
-test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme `ctx_shell` ou une sonde reçoit le contrat entier', async () => {
+test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme un shell ou une sonde reçoit le contrat entier', async () => {
   assert.deepEqual(Object.keys(RUNS_COUVRANTS).sort(), scriptsDeWorkflowDuDepot(RACINE).map(nomDe).sort(), 'chaque script reconnu est joué');
   const executants = [];
   for (const [script, runs] of Object.entries(RUNS_COUVRANTS)) {
@@ -59,7 +59,7 @@ test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de 
       assert.ok(promptsParLabel.size > 0, `${script} : aucun agent atteint`);
       for (const [cle, prompt] of promptsParLabel) {
         assert.doesNotMatch(prompt, INTERDITS_D_EXECUTION, `${script} ${cle}`);
-        if (/ctx_shell|\bsondes?\b/.test(prompt)) {
+        if (/\bctx_shell\b|\bBash\b|\bsondes?\b/.test(prompt)) {
           assert.match(prompt, CONTRAT_D_EXECUTION, `${script} ${cle}`);
           executants.push(script);
         }
@@ -91,7 +91,7 @@ const VERDICTS_DE_SUCCES = {
     trous: {
       lentillesSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique')),
       completudeSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'completude')),
-      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] }),
+      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.9'], motif: 'm' }, { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.8'], motif: 'm' }] }),
     },
   },
 };
