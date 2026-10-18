@@ -101,7 +101,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
  *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
-const { defs: DEFS, declares: DECLARES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
+const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
 /** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
 const CORPUS = corpusDuScan({ scan, defs: DEFS }, redeclarations);
@@ -1129,7 +1129,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
     const copie = mkdtempSync(join(tmpdir(), 'structures-text-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, DEFS, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
       expect(temoin.formes.length, 'la COPIE non mutée ne mesure pas comme l’arbre.').toBe(scan.formes.length);
       expect(forme(temoin, 'text'), 'la forme `text` déclarée a disparu du témoin.').toMatchObject({ statut: 'declaree' });
       expect(
@@ -1151,7 +1151,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
         { text: 'Assistant' },
       ];
       writeFileSync(chemin, JSON.stringify(niveaux), 'utf8');
-      const apres = scannerDonnees(copie, DEFS, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
 
       expect(
         forme(apres, 'text (résolvable)')?.occurrences,
@@ -1188,7 +1188,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
         flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } }] },
       });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
-      const apres = scannerDonnees(copie, DEFS, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
       const ecarts = ecartsDeFormes(apres);
       const site = (f: { dataset: string; champ: string; signature: string }) =>
         f.dataset === 'diligence-projet.json' && f.champ === 'scene' && f.signature === 'id-nu';
@@ -1209,7 +1209,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, DEFS, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1227,7 +1227,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, DEFS, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
@@ -1267,7 +1267,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         'utf8',
       );
       const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde, { valeurRecord: z.string() });
-      const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX);
+      const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX, CHOIX_OPS);
       const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
       expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
         'sonde-record.json',
