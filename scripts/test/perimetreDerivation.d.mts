@@ -52,14 +52,15 @@ export function deriverPerimetre(entree: {
   lireAvant?: (rels: string[]) => Map<string, string | null>;
   memos?: Memos;
   stade?: (nom: string, module: string | null) => void;
-  ferme?: boolean;
   tailleLot?: number;
   analyser?: (entrees: { rel: string; text: string }[], tailleLot?: number) => Iterable<{ fichier: { rel: string; text: string }; sourceFile: unknown; diagnostics: unknown[] }>;
   evaluerLot?: (lot: { lectures: [string, unknown][]; resolutions: [string, string, string | null][]; lecteurs: string[]; questions: { nature: string; f: string }[] }, stade?: (nom: string, module: string | null) => void) => { nature: string; f: string; resultat: unknown; requetes: string[] }[];
   limiteIR?: number;
 }): Derivation;
 export function produireDTO(entree: { racine: string; base?: string; tete?: string; dossierDesMemos?: string; lectureSeule?: boolean; mode?: string }, stade?: (nom: string, module: string | null) => void): object;
-export function marqueurDeStade(chemin: string, options?: { pas?: number; delaiDArretMs?: number }): { stade: (nom: string, module: string | null) => void; fermer: () => void };
+export type MarqueurDeStade = { stade: (nom: string, module: string | null) => void; fermer: () => void };
+export function marqueurDeStade(chemin: string, options?: { pas?: number; delaiDArretMs?: number }): MarqueurDeStade;
+export function deriverDansLEnfant(argv: string[], options?: { produire?: (entree: never, stade: (nom: string, module: string | null) => void) => unknown; marqueurDe?: (chemin: string) => MarqueurDeStade }): number;
 export function enDTO(images: Images, derive: Derivation): object;
 export function depuisDTO(dto: unknown): Images & Derivation;
 export function signalDe(lien: { distance: number }, liaisons: { forme: string; importe: { nom: string } | null }[], touches: Set<string>): { signal: string; noms: string[] };

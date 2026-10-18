@@ -5,7 +5,7 @@ import path, { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mesurerProcessusWorktrees, argumentsProcessus } from '../guards/lib/processusWorktrees.mjs'
 import { canoniser } from '../docs/lib/chemin-mesure.mjs'
-import { spawnBorne, diagnosticDuLancement, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { spawnBorne, diagnosticDuLancement, diagnosticArret, tuerArbre } from '../guards/lib/processusBorne.mjs'
 import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
@@ -408,7 +408,6 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
   let minuterie
   let resultat
   let controle
-  let demarrageCollecte
   const annulationCollecte = new AbortController()
   const signalCompose = signal ? AbortSignal.any([signal, annulationCollecte.signal]) : annulationCollecte.signal
   let defautSignale = false
@@ -420,24 +419,22 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
       surControle: (vu) => {
         controle = vu
         surControle?.(vu)
-        demarrageCollecte = vu.pret.then(({ pidCible }) => {
-          collecte = collecterMemoire({ controle: vu, pid: pidCible, fichiers, racine, dossier, generation, mesurer })
-          const echantillonner = () => {
-            if (vu.phase !== 'execution') { clearInterval(minuterie); return }
-            collecte.echantillonner()
-            if (collecte.cloturee) { clearInterval(minuterie); return }
-            if (collecte.defaut && !defautSignale) {
-              defautSignale = true
-              journal('[memoire] défaut initial : ' + JSON.stringify(diagnosticDuLancement({ defautCollecte: collecte.defaut })))
-              annulationCollecte.abort(collecte.defaut)
-            }
+      },
+      surPid: (pidCible) => {
+        collecte = collecterMemoire({ controle, pid: pidCible, fichiers, racine, dossier, generation, mesurer })
+        const echantillonner = () => {
+          if (controle.phase !== 'execution') { clearInterval(minuterie); return }
+          collecte.echantillonner()
+          if (collecte.cloturee) { clearInterval(minuterie); return }
+          if (collecte.defaut && !defautSignale) {
+            defautSignale = true
+            journal('[memoire] défaut initial : ' + JSON.stringify(diagnosticDuLancement({ defautCollecte: collecte.defaut })))
+            annulationCollecte.abort(collecte.defaut)
           }
-          echantillonner()
-          if (!collecte.defaut) minuterie = setInterval(echantillonner, 100)
-        }).catch((cause) => { annulationCollecte.abort(cause) })
+        }
+        echantillonner()
+        if (!collecte.defaut) minuterie = setInterval(echantillonner, 100)
       } })
-    await demarrageCollecte
-    if (controle) await controle.fin
     clearInterval(minuterie)
     if (resultat.annulee || resultat.expiree || resultat.arret?.etat !== 'mort' || resultat.error) throw Object.assign(erreur('lancement interrompu ou arrêt non confirmé'), { cause: collecte?.defaut ?? resultat.error })
     if (profils.entrees.some((e) => empreinte(lire(resolve(racine, e.fichier))) !== e.blob)) throw erreur('source modifiée pendant la mesure')
@@ -458,11 +455,8 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     return { ...resultat, acquisition, concurrence, memoire: observe }
   } catch (cause) {
     clearInterval(minuterie)
-    let echecArret
-    if (controle) { controle.demanderArret(cause); await controle.fin.catch((causeArret) => { echecArret = causeArret }) }
-    const rendu = { ...resultat, code: resultat?.code || 1, error: cause, acquisition, concurrence, defautCollecte: collecte?.defaut, qualiteCollecte: collecte && { ...collecte.qualite, resultat: 'incomplete' } }
-    if (echecArret) rendu.arret = { ...rendu.arret, etat: 'indetermine', erreurs: [...(rendu.arret?.erreurs ?? []),
-      { operation: 'fin', pid: controle.pid, code: echecArret.code ?? 'ARRET_INDETERMINE', message: echecArret.message, cause: echecArret }] }
+    const arret = resultat ? resultat.arret : controle && await tuerArbre(controle, cause)
+    const rendu = { ...resultat, code: resultat?.code || 1, error: cause, arret, acquisition, concurrence, defautCollecte: collecte?.defaut, qualiteCollecte: collecte && { ...collecte.qualite, resultat: 'incomplete' } }
     const diagnostic = { ...diagnosticDuLancement({ ...rendu, dossier }), qualiteCollecte: rendu.qualiteCollecte }
     journal('[memoire] MESURE_MEMOIRE_INCOMPLETE : ' + cause.message)
     diagnosticArret(rendu, journal, '[memoire] ')

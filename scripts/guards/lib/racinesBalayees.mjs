@@ -781,7 +781,7 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 const lecturesCertifiees = new WeakMap()
 
 /** Les TÉMOINS d'illisibilité que rend `certifierLecture` pour un module illisible : certifiés comme toute lecture,
- *  lus `null` par le noyau fermé et par `evaluateurDuDepot`. */
+ *  lus `null` par le noyau fermé. */
 const lecturesIllisibles = new WeakSet()
 
 /** Un module du lot : une chaîne non vide. @param {unknown} v @returns {v is string} */
@@ -793,7 +793,7 @@ const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu))
 /**
  * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`) : décodée (`decoderLecture`), sans
  * nœud `lie`, gelée en profondeur. Pour un module illisible (`pool` = `null`), un TÉMOIN gelé sans clé, certifié et lié
- * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
+ * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` lit `null`. Lève comme
  * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
  * une racine qui n'est pas un objet ; un `module` hors domaine (`estModuleDuLot`) lève
  * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`. `stade('décodage', module)` observe chaque décodage.
@@ -947,7 +947,7 @@ export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lec
     lecture: lire,
     cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
     peutLire: (module) => { exiger(lus, module, 'peutLire'); return lisibles.has(module) },
-    clesStructurelles: true, memoiserBooleens: false, stade,
+    stade,
   }, true)
   for (const { nature, f } of questions) {
     try {
@@ -978,23 +978,51 @@ export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lec
 }
 
 /**
- * L'ÉVALUATEUR du dépôt : les racines lues par chaque site, relais et valeurs de retour résolus d'un
- * module à l'autre.
+ * L'ÉVALUATEUR OUVERT du dépôt, celui d'`evaluer` : les racines lues par chaque site, relais et valeurs de retour
+ * résolus d'un module à l'autre, clés textuelles, preuves booléennes mémoïsées.
  * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
  * mémos internes compris — son résultat ne dépend que de leurs réponses.
- * @param {{ lecture: (f: string) => Lecture | LectureIllisible | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
- *   `lecture` : la lecture d'un module (null ou témoin d'illisibilité de `certifierLecture`, lu `null`, s'il est
- *   illisible) ; `cible` : le module qu'un spécificateur désigne ;
+ * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean }} acces
+ *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
- *   `clesStructurelles` : IR DATA de `lectureDeModule`, noms propres, sans hook exécutable ; refus nommé si la qualification échoue.
  */
-export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true, clesStructurelles = false, memoiserBooleens = true }) {
-  return construireEvaluateur({ lecture: (f) => lectureOuNull(lectureDe(f)), cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
+export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
+  return construireEvaluateur({ lecture, cible, peutLire }, false)
 }
 
-function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens, stade = () => {} }, ferme = false) {
+/** Les évaluations d'expression qui ne reçoivent pas le contexte de l'expression : l'expression et l'évaluateur
+ *  (`valeurs`) seulement. Seule source de « l'évaluation lit son contexte » : `valeurs` y aiguille, la clé d'un
+ *  argument (`clesDeLEvaluateur`) n'en porte pas le contexte. */
+const EVALUATIONS_SANS_CONTEXTE = Object.freeze({
+  lie: (e, valeurs) => valeurs(e.de, e.ctx),
+  booleen: (e) => [{ booleen: e.v }],
+  scalaire: (e) => [{ scalaire: e.v }],
+  native: (e) => [{ native: e.nom }],
+  lit: (e) => [{ texte: e.v }],
+  chemin: (e) => [borne(posix.normalize(e.v || '.'))],
+  espace: (e) => [{ espace: e.racine, cheminExterne: e.chemin }],
+  couverture: (e) => [couverture(e.origine, e.raison)],
+  non: (e) => [{ non: e.raison }],
+  transforme: (e) => [{ non: e.raison }],
+})
+
+/** Le contexte que reçoit une évaluation paresseuse (éléments, collections, chaîne, aplatissement, déstructuration)
+ *  d'une expression sans contexte (`EVALUATIONS_SANS_CONTEXTE`) : tout accès lève `CONTEXTE_HORS_CLE`, car la clé de
+ *  l'argument qui la porte n'en tient pas (`clesDeLEvaluateur`). */
+const CONTEXTE_HORS_CLE = new Proxy({}, new Proxy({}, { get: () => () => { throw new Error('CONTEXTE_HORS_CLE') } }))
+/** L'évaluation paresseuse `evaluer(e, ctx, ...)`, contexte retiré quand `e` s'évalue sans contexte : même source que
+ *  la clé d'argument et `valeurs`. */
+const paresseuse = (evaluer) => (e, ctx, ...reste) => evaluer(e, Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e.k) ? CONTEXTE_HORS_CLE : ctx, ...reste)
+
+/** Les clés canoniques de l'évaluateur du régime `ferme` (`clesCanoniques`) : la forme d'un argument porte son contexte
+ *  sauf si son expression a une évaluation sans contexte (`EVALUATIONS_SANS_CONTEXTE`). */
+export const clesDeLEvaluateur = (ferme) => clesCanoniques({ ferme, litSonContexte: (e) => !Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e?.k) })
+
+/** L'évaluateur du régime `ferme` : noyau fermé d'un lot (`evaluerLotDuDepot`), clés structurelles, preuves booléennes
+ *  recalculées ; sinon l'évaluateur ouvert (`evaluateurDuDepot`). */
+function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, stade = () => {} }, ferme) {
   stade('noyau', null)
-  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesCanoniques({ ferme, clesStructurelles })
+  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesDeLEvaluateur(ferme)
   /** Les requêtes de chaque évaluation tracée en cours, la plus interne au sommet. */
   const traces = []
   const noter = (requete) => { if (traces.length) traces[traces.length - 1].add(requete) }
@@ -1011,7 +1039,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const observationsDePreuve = []
   const clesDesReponses = new WeakMap()
   const cleDeReponse = (reponse) => cleCanonique(({ referenceDe }) => referenceDe(reponse), reponse,
-    reponse && typeof reponse === 'object' ? clesDesReponses : null, { strict: true })
+    reponse && typeof reponse === 'object' ? clesDesReponses : null, 'strict')
   const observerReponse = (nature, args, reponse) => {
     if (!observationsDePreuve.length) return reponse
     const cle = cleDeReponse(reponse)
@@ -1072,15 +1100,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       const vs = valeurs(e, { ...ctx, preuveBooleenne: true })
       return vs.length && vs.every((v) => 'booleen' in v && v.booleen === vs[0].booleen) ? vs[0].booleen : null
     }
-    if (!memoiserBooleens) return calculer()
+    if (ferme) return calculer()
     const entree = { e, ctx, pile: [...pile] }
-    const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true })
+    const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules')
     if (cle === null) return calculer()
     const deja = preuvesBooleennes.get(cle)
     if (deja && deja.reponses.every(({ nature, args, cle: avant }) => {
       const reponse = nature === 'lecture' ? lecture(...args) : nature === 'cible' ? cible(...args) : peutLire(...args)
       return cleDeReponse(reponse) === avant
-    }) && cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle) {
+    }) && cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules') === cle) {
       fusionner(deja.requetes)
       return deja.resultat
     }
@@ -1090,7 +1118,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     try { preuve = tracer(() => memoisable(calculer)) } finally { observationsDePreuve.pop() }
     const { resultat: { resultat, stable }, requetes } = preuve
     if (stable && observation.inerte && (typeof resultat === 'boolean' || resultat === null) &&
-      cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle)
+      cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules') === cle)
       preuvesBooleennes.set(cle, { resultat, requetes, reponses: observation.reponses })
     return resultat
   }
@@ -1128,7 +1156,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     if (forme) return forme
     return decl?.defaut ? { e: decl.defaut, ctx: { ...ctx, env } } : null
   }
-  const collectionsOpaquesDe = (de, ctx) => {
+  const collectionsOpaquesDe = paresseuse((de, ctx) => {
     const forme = formeLiee(de, ctx)
     return forme ? expressionsLiees(collectionsOpaquesDe, forme.e, forme.ctx)
     : de.k === 'collection' || de.k === 'repertoire' ? []
@@ -1141,8 +1169,8 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => collectionsOpaquesDe(x, ctx))
     : de.k === 'projection' ? collectionsOpaquesDe(de.de, ctx)
     : [de]
-  }
-  const elementsDe = (de, ctx) => {
+  })
+  const elementsDe = paresseuse((de, ctx) => {
     const forme = formeLiee(de, ctx)
     return forme ? expressionsLiees(elementsDe, forme.e, forme.ctx)
     : de.k === 'collection' ? [de.element]
@@ -1156,11 +1184,11 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => elementsDe(x, ctx))
     : de.k === 'projection' ? (elementsDe(de.de, ctx).length ? [...(de.aplatie ? de.v.flatMap((x) => elementsDe(x, ctx)) : de.v), ...collectionsOpaquesDe(de.de, ctx)] : [])
     : [de]
-  }
+  })
   const aplatirDe = (e, ctx) => {
     const profondeur = valeurs(e.profondeur, ctx)
     if (profondeur.length !== 1 || profondeur[0].scalaire !== '1') return [{ k: 'non', raison: 'profondeur flat non prouvée' }]
-    const descendre = (de, c) => {
+    const descendre = paresseuse((de, c) => {
       const forme = formeLiee(de, c)
       if (forme) return expressionsLiees(descendre, forme.e, forme.ctx)
       if (de.k === 'lie') return expressionsLiees(descendre, de.de, de.ctx)
@@ -1168,15 +1196,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       if (de.k === 'appel') return collectionsDAppel(de, c, (x, contexte) => descendre(x, contexte))
       if (de.k === 'liste' || de.k === 'collection') return elementsDe(de, c).flatMap((x) => niveau(x, c))
       return [{ k: 'non', raison: 'receveur flat non prouvé' }]
-    }
-    const niveau = (de, c) => {
+    })
+    const niveau = paresseuse((de, c) => {
       const forme = formeLiee(de, c)
       if (forme) return expressionsLiees(niveau, forme.e, forme.ctx)
       if (de.k === 'lie') return expressionsLiees(niveau, de.de, de.ctx)
       if (de.k === 'union') return de.v.flatMap((x) => niveau(x, c))
       if (de.k === 'appel') return collectionsDAppel(de, c, niveau)
       return de.k === 'liste' || de.k === 'collection' ? elementsDe(de, c) : [de]
-    }
+    })
     return descendre(e.de, ctx)
   }
   const repertoireDe = (e, ctx) => {
@@ -1214,7 +1242,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   }
   const argumentDElement = (e, ctx) => e.k === 'lie' ? argumentDElement(e.de, e.ctx)
     : e.k === 'liste' ? [{ non: 'élément de rappel non scalaire' }] : argumentDe(e, ctx)
-  const chaineDe = (e, ctx) => {
+  const chaineDe = paresseuse((e, ctx) => {
     const forme = formeLiee(e, ctx)
     if (forme) return chaineDe(forme.e, forme.ctx)
     if (e.k === 'appel') return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, e.args.map((a) => argumentDe(a, ctx)), chaineDe)
@@ -1229,26 +1257,19 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       : 'booleen' in v ? { texte: String(v.booleen) } : 'scalaire' in v ? { texte: v.scalaire }
         : 'non' in v ? v.non === VALEUR_NULLE ? { non: 'conversion String de valeur nulle' } : v
           : 'relais' in v ? v : { non: 'conversion String non scalaire' })
-  }
+  })
 
   /** Évalue `e` dans le module `ctx.f`, paramètres de `ctx.env.fn` liés à `ctx.env.args` (null : relais). */
   function valeurs(e, ctx) {
-    switch (e.k) {
-      case 'lie': return valeurs(e.de, e.ctx)
-      case 'booleen': return [{ booleen: e.v }]
-      case 'scalaire': return [{ scalaire: e.v }]
-      case 'native': return [{ native: e.nom }]
+    const k = e.k
+    if (Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, k)) return EVALUATIONS_SANS_CONTEXTE[k](e, valeurs)
+    switch (k) {
       case 'negation': {
         const b = booleenDe(e.de, ctx)
         return b === null ? [{ non: 'booléen indécidable' }] : [{ booleen: !b }]
       }
       case 'garde': return gardePossible(e, ctx) ? valeurs(e.de, ctx) : []
       case 'chaine': return chaineDe(e.de, ctx)
-      case 'lit': return [{ texte: e.v }]
-      case 'chemin': return [borne(posix.normalize(e.v || '.'))]
-      case 'hors': return [{ hors: true }]
-      case 'espace': return [{ espace: e.racine, cheminExterne: e.chemin }]
-      case 'couverture': return [couverture(e.origine, e.raison)]
       case 'temporaire': return valeurs(e.prefixe, ctx).map((v) => {
         if ('espace' in v) return { ...v, cheminExterne: posix.dirname(v.cheminExterne || '.') }
         const prefixe = 'texte' in v ? ancrer(v.texte) : v
@@ -1273,8 +1294,6 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
           return cs.map((c) => 'texte' in c && 'chemin' in ancrer(c.texte) && !/[*?[:]/.test(c.texte) ? { chemin: prefixeDeMotif(c.texte), sous: `image Git : ${image.map((v) => texteDeCle(cleDe(v))).join(',')}` } : couverture(e.origine, `pathspec indéterminé : ${texteDeCle(cleDe(c))}`))
         })
       }
-      case 'non': return [{ non: e.raison }]
-      case 'transforme': return [{ non: e.raison }]
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'projection': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'etale': return valeurs(e.de, ctx)
@@ -1317,15 +1336,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         return uniques((arg ? arg.flatMap((v) => 'absent' in v ? defaut() : [v]) : defaut()).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v))
       }
       case 'indice': {
-        const selectionner = (de, contexte = ctx) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
+        const selectionner = paresseuse((de, contexte) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
           : de.k === 'appel' ? valeurs(de.cible, contexte).flatMap((c) => 'fn' in c ? retour(c.fn, de.args.map((a) => argumentDe(a, contexte)), selectionner) : [{ non: `déstructuration de tableau ${e.texte}` }])
           : de.k === 'liste' ? (de.v[e.nom] && !(de.v[e.nom].k === 'non' && de.v[e.nom].raison === 'forme OmittedExpression') ? valeurs(de.v[e.nom], contexte) : e.defaut ? valeurs(e.defaut, contexte) : [{ absent: true }])
           : de.k === 'lie' ? selectionner(de.de, de.ctx)
           : de.k === 'union' ? uniques(de.v.flatMap((x) => selectionner(x, contexte)))
           : de.k === 'garde' ? (gardePossible(de, contexte) ? selectionner(de.de, contexte) : [])
           : de.k === 'elementItere' ? uniques(elementsDe(de.de, contexte).flatMap((x) => selectionner(x, contexte)))
-          : [{ non: `déstructuration de tableau ${e.texte}` }]
-        return selectionner(e.de)
+          : [{ non: `déstructuration de tableau ${e.texte}` }])
+        return selectionner(e.de, ctx)
       }
       case 'champ': return valeurs(e.de, ctx).flatMap((o) => ctx.preuveBooleenne && 'objet' in o && !o.preuveDirecte ? [{ non: `option ${e.texte} indécidable` }]
         : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)

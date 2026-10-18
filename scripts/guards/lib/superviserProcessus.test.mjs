@@ -84,6 +84,19 @@ test('une erreur de supervision refuse la sortie même après un enfant réussi'
   assert.equal(sortieDeSupervision({ status: 3 }, journal), 3)
 })
 
+test('superviserProcessus : une fin native rejetée rend l’arrêt indéterminé nommé par sa cause, jamais une erreur sans arrêt', async () => {
+  const cause = Object.assign(new Error('fin native rompue'), { code: 'EFIN' })
+  const fin = Promise.reject(cause)
+  fin.catch(() => {})
+  const vu = await superviserProcessus({ commande: 'cible', superviser: async () => ({ hote: {}, controle: { pid: 31, fin } }) })
+  assert.deepEqual(vu, { status: null, signal: null, stdout: '', stderr: '',
+    error: { operation: 'fin', pid: 31, code: 'EFIN', message: 'fin native rompue', cause },
+    arret: { pid: 31, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 31, code: 'EFIN', message: 'fin native rompue', cause }] } })
+  let diagnostic = ''
+  assert.equal(sortieDeSupervision({ status: 0, error: { message: 'sans code' } }, { write: (texte) => { diagnostic += texte } }), 1)
+  assert.equal(diagnostic, '[supervision] sans code\n')
+})
+
 test('la filiation coupe les PID parents réutilisés à chaque profondeur', () => {
   const vue = [
     { pid: 1, ppid: 0, creation: '2026-10-16T00:00:00.0000000Z' },
@@ -547,7 +560,7 @@ test('factory : sous la précharge, la projection porte l’intercepteur sans no
   assert.deepEqual(JSON.parse(r.stdout), { env: { TEMOIN: 'intact' }, args: ['--test', 'cible.test.mjs'], intercepte: true, nonce: false, autreIdentite: true })
 })
 
-for (const mode of ['persistant', 'close-en-file']) test('clôture bornée : hôte de protocole réel ' + mode, { timeout: 10000 }, async (t) => {
+for (const mode of ['persistant', 'close-en-file', 'zero-refute']) test('clôture bornée : hôte de protocole réel ' + mode, { timeout: 10000 }, async (t) => {
   const b = bancSupervision(t)
   const liberation = join(b.dossier, 'liberer-hote')
   const atomique = new URL('./ecritureJsonAtomique.mjs', import.meta.url).href
@@ -574,9 +587,9 @@ canal.on('data', (d) => {
   enfant.once('close', (status, signal) => {
     publierJsonSiAbsent(join(dossier, 'cloture.json'), {version:1,generation:configuration.generation,echeance:Date.now()+configuration.delaiArretMs})
     const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
-    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'subreaper-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'subreaper-linux',zero:mode!=='zero-refute',echeance:cloture.echeance,erreurs:[]})
     canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-exacte',resultat:{status,signal,pid:enfant.pid}})+'\\n')
-    if (mode === 'close-en-file') process.exit(0)
+    if (mode !== 'persistant') process.exit(0)
     const attente = setInterval(() => { if (existsSync(liberation) || !estPidVivantDepuis(process.ppid, Number(naissanceParent), identiteParent)) { clearInterval(attente); process.exit(0) } }, 5)
   })
 })
@@ -624,6 +637,9 @@ try {
   if (${JSON.stringify(mode)} === 'persistant') {
     assert.equal(fin.arret.etat, 'indetermine')
     assert.equal(fin.arret.zeroNatif, true)
+    const [cloture] = fin.arret.erreurs
+    assert.deepEqual([cloture.operation, cloture.pid, cloture.code, cloture.message], ['cloture', fin.arret.pid, cloture.cause.code, cloture.cause.message], JSON.stringify(fin))
+    assert.ok(cloture.cause instanceof Error, JSON.stringify(fin))
     assert.equal(hote.exitCode, null)
     assert.equal(controle.phase, 'cloture')
     assert.equal(existsSync(dossier), true)
@@ -631,6 +647,9 @@ try {
     await controle.finPhysique
     assert.equal(fin.arret.etat, 'indetermine')
     assert.equal(await controle.fin, fin)
+  } else if (${JSON.stringify(mode)} === 'zero-refute') {
+    assert.deepEqual(fin.arret.erreurs, [{ operation: 'cloture', pid: fin.arret.pid, code: undefined, message: 'zéro natif non confirmé' }], JSON.stringify(fin))
+    assert.equal(fin.arret.etat, 'indetermine')
   } else {
     assert.ok(closeEnFile); assert.equal(closeDistribue, true)
     assert.equal(fin.arret.etat, 'mort')
