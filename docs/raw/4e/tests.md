@@ -198,7 +198,7 @@ Si aucune Difficulté n'est indiquée pour un **Test opposé**, on considère qu
 
 **Voir aussi** : [Modificateurs de test](#modificateurs-de-test), [Tests opposés](#tests-opposés)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.133-139, l.141-150, l.166) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `AuContactModal`, `MedicState`, `amazingTestLabel`, +95 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/tavernGames.ts`, `src/data/schemas/grammaire/mecanique.ts`, +49 fichiers
+- `LDB 12` (l.133-139, l.141-150, l.166) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `AuContactModal`, `MedicState`, `amazingTestLabel`, +96 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/tavernGames.ts`, `src/data/schemas/grammaire/mecanique.ts`, +49 fichiers
 
 ---
 
@@ -226,9 +226,9 @@ Quand **plusieurs facteurs** affectent un même test, on **somme** leurs modific
 
 **Voir aussi** : [Difficulté — table complète](#difficulté--table-complète), [Modificateurs de test](#modificateurs-de-test), [Extensions de Difficulté (EDO)](#extensions-de-difficulté--presque-impossible-et-impossible-edo)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.189) → `useExtendedTestJetProps`, `porteADecouvrir`, `BargainModalView`, `soutien`, `SequenceParams`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `buildStageSteps`, `PendingTest`, +36 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +23 fichiers
-- `LDB 14` (l.48, l.91-96) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `doc`, `fr`, `SANS_LIVRE`, `poolDeNonCumul`, `10-a-votre-action-au-prochain-round`, +80 — `src/data/actions.json`, `src/data/oups.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +29 fichiers
-- `LDB 16` (l.11) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
+- `LDB 12` (l.189) → `useExtendedTestJetProps`, `porteADecouvrir`, `BargainModalView`, `soutien`, `SequenceParams`, `test-extended-min-sl`, `runSceneConsumableFlow`, `RollRequest`, `buildStageSteps`, `PendingTest`, +36 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +23 fichiers
+- `LDB 14` (l.48, l.91-96) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `doc`, `fr`, `SANS_LIVRE`, `poolDeNonCumul`, `10-a-votre-action-au-prochain-round`, +82 — `src/data/actions.json`, `src/data/oups.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +29 fichiers
+- `LDB 16` (l.11) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
 ---
 
@@ -262,7 +262,8 @@ Autrement dit, on soustrait le **chiffre des dizaines du résultat obtenu** au *
 
 **Voir aussi** : [Table des Résultats](#table-des-résultats), [Tests opposés](#tests-opposés), [Succès et échec automatiques](#succès-et-échec-automatiques)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `bargainBuyDiscountPct`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `useTestJetProps`, `forceCrewRole`, `opposedForcedFloor`, `evaluateTest`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
+- `LDB 10` (l.19) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `ChoixDeCreation`, `affinite-avec-les-animaux`, `buyTalent`, `ambidextre`, `ame-pure`, `artilleur`, `slotCovers`, +20 — `src/data/schemas/grammaire/ref.ts`, `src/data/talents.json`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/character.ts`, `src/engine/combat.ts`, +4 fichiers
+- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `BARGAIN_ASTOUNDING_PCT`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `useTestJetProps`, `forceCrewRole`, `opposedForcedFloor`, `evaluateTest`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
 
 ---
 
@@ -289,7 +290,7 @@ Le niveau de succès ou d'échec est qualifié par la Table des Résultats, qui 
 
 **Voir aussi** : [Degrés de Réussite (DR)](#degrés-de-réussite-dr), [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.105-114, l.116-117) → `bargainBuyDiscountPct`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `forceCrewRole`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
+- `LDB 12` (l.105-114, l.116-117) → `BARGAIN_ASTOUNDING_PCT`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `forceCrewRole`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
 
 ---
 
@@ -320,7 +321,7 @@ Un test opposé est utilisé lorsqu'un personnage doit confronter ses capacités
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire), [Degrés de Réussite (DR)](#degrés-de-réussite-dr)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.17) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `BargainModalView`, `useTestJetProps`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +30 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/activities.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, +20 fichiers
-- `LDB 12` (l.152-169) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `soutien`, `AuContactModal`, `MedicState`, +91 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, +43 fichiers
+- `LDB 12` (l.152-169) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `soutien`, `AuContactModal`, `MedicState`, +92 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, +43 fichiers
 
 ---
 
@@ -374,7 +375,7 @@ Lorsque plusieurs personnages travaillent ensemble à la même tâche, ceux qui 
 
 **Voir aussi** : [Modificateurs de test](#modificateurs-de-test)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `runSceneConsumableFlow`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
+- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `test-extended-min-sl`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
 
 ---
 
@@ -395,7 +396,7 @@ Parfois, une situation requiert qu'un personnage réussisse deux Compétences di
 
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +37 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +24 fichiers
+- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `RollRowCore`, `test-extended-min-sl`, `runSceneConsumableFlow`, `RollRequest`, `PendingTest`, +37 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +24 fichiers
 
 ---
 
@@ -501,7 +502,7 @@ En dépensant un Point de Résilience, un personnage peut choisir *lui-même* le
 
 **Voir aussi** : [Relance et inversion du dé](#relance-et-inversion-du-dé), [Tests opposés](#tests-opposés), Destin et Résilience (domaine propre)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.17-25, l.46-48, l.57-61, l.67-68) → `ResilienceButton`, `canReroll`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `restoreFortune`, `RunModal`, `FateSaveModal`, `hasMeaningfulOption`, `sourceSuspended`, +125 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/etats.ts`, +60 fichiers
+- `LDB 17` (l.17-25, l.46-48, l.57-61, l.67-68) → `ResilienceButton`, `canReroll`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `restoreFortune`, `RunModal`, `FateSaveModal`, `hasMeaningfulOption`, `sourceSuspended`, +126 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/etats.ts`, +60 fichiers
 
 ---
 
@@ -545,7 +546,7 @@ Autrement dit : chaque fois qu'un personnage *réussit* un test utilisant une Co
 
 **Voir aussi** : [Degrés de Réussite (DR)](#degrés-de-réussite-dr), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.11-20, l.62, l.89, l.123, l.263, l.411, l.453, l.520, l.605, l.759, l.787) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `ChoixDeCreation`, `affinite-avec-les-animaux`, `useAttackJetProps`, `buyTalent`, `ambidextre`, `ame-pure`, `artilleur`, +120 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/schemas/grammaire/ref.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/advancement.ts`, +18 fichiers
+- `LDB 10` (l.11-20, l.62, l.89, l.123, l.263, l.411, l.453, l.520, l.605, l.759, l.787) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `ChoixDeCreation`, `affinite-avec-les-animaux`, `buyTalent`, `useAttackJetProps`, `ambidextre`, `ame-pure`, `artilleur`, +121 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/schemas/grammaire/ref.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/advancement.ts`, +18 fichiers
 
 ---
 
@@ -625,6 +626,6 @@ Ces mécaniques constituent des extensions légitimes du système de DR dans des
 
 **Voir aussi** : [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse), [Influencer un test — Chance, Résilience, Talents](#influencer-un-test--chance-résilience-talents), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.124-127, l.160) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `test-fast-sl`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `AuContactModal`, `MedicState`, +90 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/combat.ts`, +45 fichiers
+- `LDB 12` (l.124-127, l.160) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `test-fast-sl`, `BargainModalView`, `GrappleModal`, `TraceOpposed`, `AuContactModal`, `MedicState`, +91 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/combat.ts`, +45 fichiers
 - `LDB 17` (l.23) → `canReroll`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `canActFirst`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, `REPORT_DE_COMBATTANT`, +23 — `src/data/flow-stakes.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, `src/engine/tests.ts`, `src/state/actionRegistry.ts`, +12 fichiers
 - `NADJ 16` (l.7, l.11, l.19, l.25, l.34, l.57, l.82, l.97, l.105) → `SequenceTableRow`, `SequenceRoundOps`, `TavernSpecial`, `specialSchema`, `SequenceDice`, `TavernGame`, `al-zahr`, `joueUnTest`, `SequenceParams`, `doc`, +52 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, +9 fichiers

@@ -15,6 +15,7 @@
  *   node scripts/docs/build-map-authoring.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
+import path from 'node:path'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
@@ -126,13 +127,32 @@ function rendu() {
     return new Map(lireProprietesZod(entree.decl.initializer, entree).filter(p => p.nom).map(p => [p.nom, p]))
   }
 
+  /** Littéral objet d'un argument : écrit en place, ou constante IMPORTÉE par nom depuis un module
+   *  relatif du fichier de `entree` (`enumNomme(DIFFICULTY_LABELS)`) ; `undefined` au-delà. */
+  function litteralObjet(expr, entree) {
+    const nu = (e) => (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression(e)) ? nu(e.expression) : e)
+    if (ts.isObjectLiteralExpression(expr)) return expr
+    if (!ts.isIdentifier(expr) || !entree) return undefined
+    let source
+    entree.sf.forEachChild((n) => {
+      const liens = ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? n.importClause?.namedBindings : undefined
+      const lien = liens && ts.isNamedImports(liens) && liens.elements.find((e) => e.name.text === expr.text)
+      if (lien) source = { module: n.moduleSpecifier.text, nom: lien.propertyName?.text ?? lien.name.text }
+    })
+    if (!source?.module.startsWith('.')) return undefined
+    const base = path.resolve(path.dirname(entree.chemin), source.module).replace(/\.(?:m?js)$/, '')
+    const fichier = ['.ts', '.mts', '.tsx'].map((x) => base + x).find((f) => existsSync(f))
+    const init = fichier && nu(indexerConstantes([path.relative(process.cwd(), fichier)]).get(source.nom)?.decl.initializer)
+    return init && ts.isObjectLiteralExpression(init) ? init : undefined
+  }
+
   /** Options d'un `enumNomme({ valeur: 'Libellé', … })` (`grammaire/valeurs.ts`) : les CLÉS de son
-   *  littéral, dans leur ordre ; `undefined` si le nœud n'a pas cette forme. */
-  function clesDEnumNomme(init) {
+   *  littéral, écrit en place ou importé (`litteralObjet`), dans leur ordre ; `undefined` si le nœud n'a
+   *  pas cette forme. */
+  function clesDEnumNomme(init, entree) {
     if (!init || !ts.isCallExpression(init) || !ts.isIdentifier(init.expression) || init.expression.text !== 'enumNomme') return undefined
-    const valeurs = init.arguments[0]
-    if (!valeurs || !ts.isObjectLiteralExpression(valeurs)) return undefined
-    return valeurs.properties.map((p) => p.name.text)
+    const valeurs = init.arguments[0] && litteralObjet(init.arguments[0], entree)
+    return valeurs?.properties.map((p) => p.name.text)
   }
 
   /** Type TS d'un membre zod de SOUS-CHAMP : primitif (`typeZod`), `z.enum([...])` littéral, ou
@@ -146,7 +166,7 @@ function rendu() {
       const nomme = SCHEMAS.get(texte)
       const src = nomme?.decl.initializer?.getText(nomme.sf) ?? ''
       if (/^z\.enum\(\[/.test(src)) return litteraux(src)
-      const cles = clesDEnumNomme(nomme?.decl.initializer)
+      const cles = clesDEnumNomme(nomme?.decl.initializer, nomme)
       if (cles) return cles.map((c) => `'${c}'`).join(String.raw` \| `)
       abandon(`sous-champ « ${cle} » de \`${schema}\` : \`${texte}\` n'est pas une énumération lisible — étendre \`typeSousChamp\` dans ${OUTIL}`)
     }
