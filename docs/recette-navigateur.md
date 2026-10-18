@@ -1447,7 +1447,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   patron `scripts/qc/capture-jeu.mjs`). Une capture versionnée sort du `shot` du kit, jamais du volet
   intégré, qui sert à regarder.
 - **« Browser already in use » / « Target page… has been closed » PERSISTANT (2026-07-16)** : si
-  l'erreur persiste aussi par le kit, ce n'est PAS une contention active mais un lock Chrome MORT
+  l'erreur revient au volet intégré alors qu'aucune session de même racine n'est ouverte, ce n'est PAS une contention active mais un lock Chrome MORT
   (reliquat d'une session Playwright jamais fermée proprement, pipe `--remote-debugging-pipe`
   orphelin) — signature : les PID `chrome.exe` du profil concerné restent FIGÉS (zéro churn) entre
   deux vérifications. Récupération : identifier UNIQUEMENT les processus du profil dédié
