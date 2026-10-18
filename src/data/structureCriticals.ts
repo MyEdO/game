@@ -17,7 +17,8 @@ import structureCriticalsJson from './structure-criticals.json';
  */
 export interface StructureCritEntry {
   min: number;
-  max: number;
+  /** `null` : « 96 ou plus », AA 10 l.127 (`BandeOuverte`, `engine/tables`). */
+  max: number | null;
   /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
   id: string;
   label: string;

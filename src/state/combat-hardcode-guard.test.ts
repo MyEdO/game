@@ -109,7 +109,7 @@ const BASELINES: Record<string, number> = {
   // garde promeut. Une SECONDE occurrence dans ce fichier, elle, échouera.
   'src/engine/ruleRefs.ts': 1,
   // #413 (2026-07-14) — stock révélé par la fermeture du loophole d'instrumentation, GELÉ
-  'src/engine/conditions.ts': 1, // isOutOfAction coque — hasCondition(c, 'naufrage') derrière gate wounds<=0 (l.446)
+  'src/engine/conditions.ts': 2, // isOutOfAction coque — hasCondition(c, 'naufrage') (MDG 13 l.674) ; usesSuddenDeath — hasTalent(c, 'chanceux') (AA 07 l.67)
   'src/engine/exposure.ts': 1, // gate hypothermie — hasCondition(c, 'inconscient') derrière wounds<=0 (l.111)
   'src/state/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
   'src/state/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)

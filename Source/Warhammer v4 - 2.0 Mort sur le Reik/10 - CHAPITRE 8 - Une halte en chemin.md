@@ -72,7 +72,7 @@ Si les aventuriers engagent activement la conversation avec d'autres clients (ou
 
 Ce marchand sociable et quelque peu rustre vient de vendre sa cargaison à un bon prix et offre à boire à quiconque veut bien écouter les récits fastidieux et emplis d'autosatisfaction de ses relations commerciales. Après-demain, il prévoit de descendre le fleuve jusqu'à Altdorf, où il amarrera son bateau et se rendra au nord, à Middenheim, pour le carnaval de la ville.
 
-« *Vous ne connaissez pas le carnaval ? Mes amis, qu'attendezvous ! À côté, la Schaffenfest de Bögenhafen est un spectacle de foire, je vous assure ! Une semaine entière de spectacles, d'expositions, de boissons, de jeunes créatures et de tout ce qui vous fait envie. Oui, je sais ce que vous allez me dire : les habitants du Middenland n'ont*  
+« *Vous ne connaissez pas le carnaval ? Mes amis, qu'attendez-vous ! À côté, la Schaffenfest de Bögenhafen est un spectacle de foire, je vous assure ! Une semaine entière de spectacles, d'expositions, de boissons, de jeunes créatures et de tout ce qui vous fait envie. Oui, je sais ce que vous allez me dire : les habitants du Middenland n'ont*  
 
 <span id="page-128-0" data-folio="129"></span>
 *aucun sens de l'humour, et en temps normal, j'aurais été d'accord avec vous. Mais pendant le carnaval... c'est une tout autre paire de manches, voyez-vous ! Ma foi, il faut bien qu'ils se détendent d'une manière ou d'une autre, et ils le font lors de cette semaine de folie. Ils relâchent toute la pression pour être à nouveau prêts à passer le reste de l'année aussi impassibles qu'une statue de nain. Sans vouloir les vexer, très chers camarades. Une autre tournée ? Aubergiste !* »

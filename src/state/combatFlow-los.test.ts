@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveAttack, strayShotVictim } from './combatFlow';
 import { seedBattleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
 import { Scene } from './scene';
 import { Combatant } from '../engine/types';
 import type { ModLine, RollBreakdown } from '../engine/combat';
@@ -137,15 +138,24 @@ describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => 
   const miss = (roll: number, t: number) => ({ hit: false, attackerRoll: roll, attackerDetail: { target: t } }) as any;
 
   it('le -20 a fait rater (jet ≤ cible+20) + allié Engagé → redirige vers l’allié', () => {
-    expect(strayShotVictim(miss(40, 30), att, tgt, battle)?.id).toBe('ALLY'); // 40 ≤ 30+20
+    expect(strayShotVictim(miss(40, 30), att, tgt, battle, makeRNG(1))?.id).toBe('ALLY'); // 40 ≤ 30+20
+  });
+  it('trois alliés Engagés : la victime est tirée au hasard, deux graines, deux victimes', () => {
+    const allie = (id: string) => ({ id, kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
+    const trois = [allie('A1'), allie('A2'), allie('A3')];
+    const cible = target({ pos: { x: 6, y: 0 }, engagedWith: ['A1', 'A2', 'A3'] });
+    const b = { combatants: [att, cible, ...trois] } as any;
+    const victimes = [1, 2, 3, 4, 5, 6].map((graine) => strayShotVictim(miss(40, 30), att, cible, b, makeRNG(graine))?.id);
+    expect(victimes.every((id) => ['A1', 'A2', 'A3'].includes(id!))).toBe(true);
+    expect(new Set(victimes).size).toBeGreaterThan(1);
   });
   it('jet > cible+20 (aurait raté de toute façon) → pas de redirection', () => {
-    expect(strayShotVictim(miss(60, 30), att, tgt, battle)).toBeNull();
+    expect(strayShotVictim(miss(60, 30), att, tgt, battle, makeRNG(1))).toBeNull();
   });
   it('le tir a touché → pas de redirection', () => {
-    expect(strayShotVictim({ hit: true } as any, att, tgt, battle)).toBeNull();
+    expect(strayShotVictim({ hit: true } as any, att, tgt, battle, makeRNG(1))).toBeNull();
   });
   it('cible non engagée avec un allié → pas de redirection', () => {
-    expect(strayShotVictim(miss(40, 30), att, target({ pos: { x: 6, y: 0 } }), battle)).toBeNull();
+    expect(strayShotVictim(miss(40, 30), att, target({ pos: { x: 6, y: 0 } }), battle, makeRNG(1))).toBeNull();
   });
 });

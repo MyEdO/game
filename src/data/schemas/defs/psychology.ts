@@ -93,7 +93,11 @@ const doc = document(
     codex: { keys: ['psychologies'] },
     edit: { dataset: 'psychologies' },
   },
-  { exiges: ['desc', 'source'] },
+  {
+    exiges: ['desc', 'source'],
+    // `psychImmune` : sous-liste marquée de `traits.json › capabilities.psychType`.
+    espace: { marqueurs: ['psychImmune'] },
+  },
 );
 
 export const schema = doc.schema;

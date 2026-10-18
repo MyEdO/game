@@ -107,7 +107,7 @@ describe('Scénario Bataille navale — chaîne navale jouable', () => {
       const crew = roster.filter((c) => ship.crewIds!.includes(c.id));
       const before = crew.map((c) => c.wounds.current);
       const get = (() => ({ battle: { combatants: roster } })) as never;
-      applyCriticalToTarget(ship, 'corps', true, 0, [], (() => {}) as never, { get });
+      applyCriticalToTarget(ship, 'corps', 0, [], (() => {}) as never, { get });
       const hullState = ship.conditions.length > 0;
       const crewHurt = crew.some((c, i) => c.wounds.current < before[i] || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
       navalEffect = hullState || crewHurt;

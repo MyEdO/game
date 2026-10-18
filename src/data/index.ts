@@ -1750,6 +1750,8 @@ export interface TraitCapabilities {
    *  le talent Riposte (`CombatFeature.counterOnDefenseWin`) — un seul concept pour traits ET talents. */
   counterOnDefenseWin?: boolean;
   counterRequiresFastParry?: boolean;
+  /** `CombatFeature.counterDeclaredPerLevel`. */
+  counterDeclaredPerLevel?: boolean;
   unstable?: boolean;
   painless?: boolean;
   /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */
@@ -1810,9 +1812,8 @@ export interface TraitCapabilities {
   /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */
   noRun?: boolean;
   seesInDark?: boolean;
-  /** Portée de vision dans le noir, en cases (Vision nocturne 20 m/niv = 10 — `LDB 11 l.176` ;
-   *  Infravision = illimité, grande valeur — `LDB 85 l.191`). Lue par `darkSightTiles`. */
-  darkSightTiles?: number;
+  /** `LDB 11 l.176` ; `null` : `LDB 85 l.191`, portée du niveau de lumière `jour`. Lue par `darkSightTiles`. */
+  darkSightTiles?: number | null;
   /** Salive analgésique (MSRC 15) : la morsure INDOLORE de la créature ne RÉVEILLE pas une proie
    *  endormie (Inconscient magique) — elle s'y accroche sans être détectée. Lu par le modifier `wake-sleeper`. */
   wakelessBite?: boolean;
@@ -1929,7 +1930,6 @@ export interface QualityCapabilities {
   encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
   // Armure (LDB 63)
   layerable?: boolean;          // Flexible : superposition sous une couche non Flexible
-  critImmuneOdd?: boolean;      // Impénétrable : Critiques sur jet impair ignorés
   apIgnoredOnEven?: boolean;    // Partielle : PA ignorés sur jet pair ou Critique
   apIgnoredOnImpaleCrit?: boolean; // Points faibles : PA ignorés sur Critique Empaleuse
   // Siège (ADE II 8)

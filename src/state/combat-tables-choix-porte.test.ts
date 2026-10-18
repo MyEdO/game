@@ -145,7 +145,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     // est donc tenue par l'HÔTE, et le second héros par l'invité — la possession se mesure des deux côtés.
     const { H, E } = combat(2, 7, [1]);
     const hero = H[0];
-    hero.armour = { ...SANS_PA }; // aucune PA → aucune voie de Déviation : on isole le seul tirage
+    hero.items = (hero.items ?? []).filter((i) => i.kind !== 'armor'); hero.armour = { ...SANS_PA }; // aucune PA → aucune voie de Déviation : on isole le seul tirage
     setDesFixes(true);
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, E[0], hero, hache, critHit('corps'));
     expect(suspendu).toBe(OPS_DIFFEREES);

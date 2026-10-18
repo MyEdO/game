@@ -19,6 +19,7 @@
  *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
  */
 import { tableTotale } from '../../lib/tableTotale';
+import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../combatFlow';
@@ -380,9 +381,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // `res` FORGÉ passé DIRECTEMENT à `applyAttackResult` — ce qui court-circuite `maybeOpenDefense`.
     // S'y ajoute la Protection (6+) du porteur : la SAUVEGARDE s'ouvre d'abord, la DÉVIATION ensuite, sur
     // le MÊME coup. La suite sous contrat est l'Avantage DIFFÉRÉ du Maniement de deux armes (LDB 10
-    // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (l'attaque GRATUITE et le
-    // maillon de balayage entrent, eux, en `sousAttaque` — un enchaînement n'ouvre PAS de fenêtre de
-    // Déviation imbriquée, `ApplicationDuCoup.sousAttaque`).
+    // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (`ApplicationDuCoup.sousAttaque`).
     const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
     const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
     const porteur = mk('hero', 'porteur', {
@@ -509,7 +508,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
 
   it('(iii) MANIEMENT DE DEUX ARMES : la 2ᵉ frappe s’ouvre à la reprise, avec la valeur du Critique', () => {
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
     setBattle([heros, demon]);
     const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
@@ -520,12 +519,78 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const ds = useGame.getState().pendingDualStrike;
     expect(ds, 'la 2ᵉ frappe s’ouvre à la reprise').not.toBeNull();
     expect(ds!.offWeaponUid, 'la main secondaire est celle du héros').toBe('o');
-    expect(ds!.mainRoll, 'le jet de la main directrice voyage avec la suite').toBe(30);
     const crit = [...(useGame.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
-    expect(ds!.critValue, 'la 2ᵉ frappe lit la valeur du tableau des Critiques (LDB 10 l.767-773)').toBe(crit!.reveal?.dice);
+    expect(ds!.jet, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
     expect(useGame.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
   });
+
+  it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: { current: 2, max: 30 } } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
+    setBattle([heros, demon, voisin]);
+    const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
+    useGame.getState().attackConfirm();
+    expect(etapeCourante()?.kind).toBe('sauvegarde');
+    poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
+    const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
+    expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
+    expect(useGame.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
+    expect(useGame.getState().pendingDualStrike!.jet, 'jamais le d100 du dépassement').not.toBe(crits[1].reveal?.dice);
+  });
+
+  /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
+  function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
+    setRule('combat-aa-blessures', 'aa');
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 }, ...cibleOver } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+    setBattle([heros, cible, voisin]);
+    const premiere = { ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
+    useGame.getState().attackConfirm();
+    const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    return { crits, jet: useGame.getState().pendingDualStrike?.jet };
+  }
+
+  it("(iii ter) 'aa', Coup Critique qui fait aussi passer à 0 : la 2ᵉ frappe lit le d100 NU, pas le jet décalé (LDB 10 l.773 ; AA 07 l.36, l.42)", () => {
+    try {
+      const { crits, jet } = secondeMainEnAA(true, 2);
+      expect(crits.map((s) => s.reveal?.origine), 'une seule Blessure critique (AA 07 l.42)').toEqual(['coup-critique']);
+      const dice = crits[0].reveal!.dice!;
+      expect(jet).toBeDefined();
+      expect(dice - jet!, 'le +10 par Blessure au-delà de 0 est hors de la valeur').toBeGreaterThan(0);
+      expect((dice - jet!) % 10).toBe(0);
+    } finally {
+      resetRule('combat-aa-blessures');
+    }
+  });
+
+  it("(iii ter bis) 'aa', Coup Critique sur un dormeur réveillé : la 2ᵉ frappe lit le d100 du Critique appliqué (LDB 10 l.773 ; LDB 47 l.277)", () => {
+    try {
+      const dormeur = { conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }] } as unknown as Partial<Combatant>;
+      const { crits, jet } = secondeMainEnAA(true, 30, dormeur);
+      expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+      expect(jet).toBe(crits[0].reveal!.dice);
+    } finally {
+      resetRule('combat-aa-blessures');
+    }
+  });
+
+  for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
+    it(`(iii quater) 'aa', ${branche}, sans double : aucun Critique au jet, la 2ᵉ frappe vaut le jet inversé (LDB 10 l.773 ; LDB 13 l.183 ; #1595 c.6229354257)`, () => {
+      try {
+        const { crits, jet } = secondeMainEnAA(false, current);
+        expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+        expect(jet, '30 inversé').toBe(3);
+      } finally {
+        resetRule('combat-aa-blessures');
+      }
+    });
+  }
 
   it('(iv) `defenseConfirm` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
     const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);

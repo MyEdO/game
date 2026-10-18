@@ -56,6 +56,7 @@ function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } =
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  E.important = true; // LDB 18 l.44 : hors Mort subite
   const pa = opts.pa ?? SANS_PA;
   H.armour = { ...pa };
   E.armour = { ...pa };

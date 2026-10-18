@@ -59,7 +59,7 @@ de 10 % d'équipage manquant**).
 comme ressource](#léquipage-comme-ressource--le-round-naval) · [`tests.md`](tests.md) (DR, Succès Minime).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.9, l.13, l.19, l.39, l.53) → `crew`, `VolleyShot`, `progression`, `resolveVolley`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `maneuverCrewTotal`, `roleDePropulsion`, `equipageApte`, +47 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +19 fichiers
+- `MDG 14` (l.9, l.13, l.19, l.39, l.53) → `crew`, `VolleyShot`, `progression`, `resolveVolley`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `maneuverCrewTotal`, `roleDePropulsion`, `equipageApte`, +48 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +19 fichiers
 
 **État du code.** ✅ somme des DR, essentiel ×2, Moral, « un jet par poste » (PJ + 1 marin représentant).
 ✅ **Manque de bras** : cumul 2 rôles = +2 crans (`crewActed` + `easeDifficulty(-2)`) ET sous-effectif d'équipage
@@ -117,8 +117,8 @@ choisit**.
 (rôles parallèles) · `MDG 14 l.53` (cumul = +2 crans).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `construireScene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `lighthouseOrientationDR`, `sea-navigation`, `pursuitLowMPenalty`, `pursuitDistanceGain`, `WorldMapPlacePanel`, +13 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +11 fichiers
-- `MDG 14` (l.37, l.53) → `crew`, `VolleyShot`, `progression`, `resolveVolley`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `roleDePropulsion`, `equipageApte`, `buildTokens`, +33 — `src/data/crew-test-types.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, `src/engine/types.ts`, +15 fichiers
+- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `construireScene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `sea-navigation`, `lighthouseOrientationDR`, `pursuitLowMPenalty`, `WorldMapPlacePanel`, `pursuitDistanceGain`, +13 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +11 fichiers
+- `MDG 14` (l.37, l.53) → `crew`, `VolleyShot`, `progression`, `resolveVolley`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `roleDePropulsion`, `equipageApte`, `buildTokens`, +34 — `src/data/crew-test-types.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, `src/engine/types.ts`, +15 fichiers
 
 **État du code.** ✅ (R3) `battle.crewActed` (par navire, reset au round-start `enterRoundStartPause`) recense les
 marins ayant contribué à un Test ce Round. Les rôles Capitaine/Chansonnier/Mousse/Timonier étant dans `manoeuvre`
@@ -148,7 +148,7 @@ décide) · `MDG 14 l.13`, `l.76` (Test d'équipage : total ≥ 1 DR, Man compri
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.11) → `canReroll`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, `rollTest`, `ManeuverResult`, `RollFlowLens`, `deriveManeuver`, `bumpResultSL`, +2 — `src/engine/fortune.ts`, `src/engine/tests.ts`, `src/state/rollFlowFactory.ts`, `src/state/rollFlowSpecs.ts`, `src/state/shipManeuver.ts`, `src/ui/RollRow.tsx`, +2 fichiers
 - `MDG 12` (l.92-94) → `shipboardSouls`, `sea-cargo`, `esquif`, `caraque`, `galere-de-guerre`, `croiseur`, `galion-bretonnien`, `chebec-arabien`, `boutre-d-inja`, `bateau-tresor-cathayen` — `src/data/sea-cargo.json`, `src/data/skills.json`, `src/gameIso/rig/ship/defs/bateau-de-patrouille.ts`, `src/state/shipCrew.ts`
-- `MDG 13` (l.119, l.173, l.376, l.378-399) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `equipageImplique`, `exhaustionDifficulty`, `OverspeedRow`, `overspeedRow`, `sea-overspeed`, +43 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +11 fichiers
+- `MDG 13` (l.119, l.173, l.376, l.378-399) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `equipageImplique`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `overspeedRow`, `sea-overspeed`, +43 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +11 fichiers
 - `MDG 14` (l.13) → `resolveVolley`, `maneuverCrewTotal`, `deriveManeuverFromCrew`, `shipCrewAssignments`, `CREW_TEST_SUCCESS_RULE`, `ManeuverResult`, `cascadeSuccessRules`, `crewTestSuccess`, `buildVoyageCrewStep`, `ShipManeuverParticipant`, +7 — `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/crewMorale.ts`, `src/engine/volley.ts`, `src/i18n/messages/fr.ts`, `src/state/cascade.ts`, +6 fichiers
 
 **État du code.** ✅ Test d'équipage (Timonier ★, total ≥ 1 DR Man compris), barreur seul (réussite du d100), Man en ±DR, Progression,
@@ -270,8 +270,8 @@ peut aussi considérer un résultat de 0 comme un succès en fonction des circon
 · [Dégâts aux navires](#infliger-des-dégâts-aux-navires) · [L'équipage comme ressource](#léquipage-comme-ressource--le-round-naval).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.656) → `RepairTick`, `sea-navigation`, `voie-d-eau`, `usesSuddenDeath`, `isOutOfAction`, `toucheAuJetPose`, `applyHit`, `applyCriticalToTarget`, `appliquerLaTouche` — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/state/combatFlow.ts`
-- `MDG 14` (l.13, l.126-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +78 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
+- `MDG 13` (l.656) → `WorldMapView`, `resolveShipUnits`, `OrigineCritique`, `RepairTick`, `RegimeDePorteur`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, `isOutOfAction`, +6 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/shipBuild.ts`, +6 fichiers
+- `MDG 14` (l.13, l.126-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +77 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
 
 **État du code.** ✅ **(1)(2)(3)(4-Dégâts)(5)** après refonte : Test d'équipage multi (Artilleur ★) → DR partagé →
 chaque pièce préparée comme le tir individuel (effectif via `crewedFireWeapon`, munition via `weaponWithAmmo`) → Dégâts
@@ -346,7 +346,7 @@ exposé. Le **corps-à-corps** contre la coque touche auto (Localisation au choi
 **Citation** `l.571` : « inversez le résultat obtenu sur le jet d'attaque… **ou lancez 1d100.** »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.567-584, l.616-637) → `meleeVsHullBE`, `riverLocLabel` ⚠sans-appelant, `areaTargets`, `ShipCritSet`, `PortView`, `exposedCrew`, `applyHullCritical`, `RepairTick`, `sea-navigation`, `replisSansExposeSchema`, +3 — `src/data/river-criticals.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/sea-navigation.json`, `src/data/shipCriticals.ts`, `src/engine/combat.ts`, +9 fichiers
+- `MDG 13` (l.567-584, l.616-637) → `peutEtreEmpoigne`, `meleeVsHullBE`, `riverLocLabel` ⚠sans-appelant, `areaTargets`, `ShipCritSet`, `PortView`, `exposedCrew`, `HullCriticalOutcome`, `applyHullCritical`, `RepairTick`, +14 — `src/data/etats.json`, `src/data/river-criticals.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/sea-navigation.json`, `src/data/shipCriticals.ts`, +15 fichiers
 
 **État du code.** ✅ localisation 1d100 par gréement (bordée), BE déduit, plancher 0 (vs plancher 1 perso).
 ⬜ petites armes vs artillerie (seuil de Dégâts), corps-à-corps contre coque, table Taille.
@@ -365,6 +365,15 @@ d'eau (Indice)** → total cumulé +Indice/Round ; à E/2 → −1 M et −1 DR 
 **Citation** `l.656` : « Quand un jet d'attaque réussi contre un bateau **donne un double, il subit un Critique.
 De plus, tous les coups qui touchent une fois que le score de Blessures… est tombé à 0 sont des Critiques.** »
 
+> Éclairage VO : Sea of Claws 22 l.484 — la VF dit « le Critique le plus proche en termes de gravité », la VO « the next most serious Critical Hit » ; la valeur reste celle de la VF
+
+**Renvoi d'AA vers le MSRC.** `AA 10 l.13-15` : « mieux vaut utiliser les règles de **L'Ennemi dans l'Ombre -
+Compagnon** (pour les Dégâts infligés aux véhicules) et de **Mort sur le Reik - Compagnon** (pour les Dégâts infligés
+aux navires) ». Bateau fluvial : `MSRC 07 l.74` (« Une fois le bateau réduit à zéro Point de Blessure, chaque nouveau
+coup reçu est considéré comme Critique ») ; `MSRC 07 l.90` (« Il coule en un nombre de minutes égal à son Endurance »).
+Un navire n'a pas d'Effondrement (`AA 10 l.127` vise la Structure) : il coule, `MDG 13 l.674` (« Quand l'Indice devient
+égal au score d'Endurance du navire, il coule. »).
+
 > **Bordée.** Le Test d'équipage de Tir de batterie EST le jet d'attaque de toutes les pièces (`MDG 14 l.128` :
 > « plutôt que de lancer les dés pour toucher pour chaque canon ») ; il est **réussi** à un total ≥ 1 DR
 > (`MDG 14 l.13`). Sur un Test **réussi**, le 1d100 de localisation (`l.571` « ou lancez 1d100 ») **substitue** le
@@ -372,9 +381,22 @@ De plus, tous les coups qui touchent une fois que le score de Blessures… est t
 > inversé). Sur un Test **raté**, il n'y a ni coup porté ni Critique — `l.656` gate les DEUX cas (« jet d'attaque
 > **réussi** », « tous les coups qui **touchent** ») sur une touche.
 
+**Table au d10, et Critique obtenu.** Les tables de Critiques de navire se lancent au **d10**, pas au d100 des
+personnages : colonne *Résultat du d10* des tables (`MDG 13 l.696`) ; « la colonne Résultat du d10 du tableau des Blessures
+Critiques » (`MDG 13 l.692`). Le double d'un jet d'attaque réussi fait obtenir le Critique à l'attaquant
+(`MDG 13 l.656`) ; sur un bateau fluvial, « Quand un double est obtenu au jet de dés, le bateau subit un Coup Critique
+là où il a été touché. » (`MSRC 07 l.74`), sans table à lancer. **Silence du texte** : la seconde frappe du talent
+*Maniement de deux armes* prend « le lancer du tableau des Critiques » (`LDB 10 l.773`), le second d100 du Coup Critique
+d'un personnage (`LDB 18 l.53`) ; ni MDG ni MSRC ne disent quel lancer elle prend contre un navire (voir
+[combat.md, Talent *Maniement de deux armes*](combat.md#talent-maniement-de-deux-armes--ldb-10-l773)).
+
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.654-674) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `stationAsPoste`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, `applyFall`, +25 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +20 fichiers
-- `MDG 14` (l.13, l.128) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +78 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
+- `LDB 10` (l.773) → `lancerDeLaSecondeMain`, `useAttackJetProps`, `CriticalResolved`, `TEST_PROLONGATION`, `PendingAttack`, `dualAffordance`, `PendingDualStrike`, `AttackResult`, `RevealEntry`, `resolveDualSecond`, +18 — `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/types.ts`, `src/state/combat/roundHooks.ts`, `src/state/combatFlow.ts`, +5 fichiers
+- `LDB 18` (l.53) → `criticals-ldb-tete`, `CritEntry`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `appliquerMortSubite`, `CritEscalation`, `coup-percutant`, `il-au-beurre-noir`, +49 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +11 fichiers
+- `AA 10` (l.13-15, l.127) → `StructureCritEntry`, `BandeOuverte`, `isHealable`, `woundsFromHit`, `cranDeCouvertEnMoins`, `tableDesCritiquesDeStructure`, `soinMagiqueOperant`, `doc`, `rollStructureCritical`, `REPORT_DE_COMBATTANT`, +31 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/data/structures.json`, `src/data/trappings.json`, +16 fichiers
+- `MDG 13` (l.654-674, l.692, l.696) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `greement`, `stationAsPoste`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, +31 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +24 fichiers
+- `MDG 14` (l.13, l.128) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +77 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
+- `MSRC 7` (l.74, l.90) → `river-criticals`, `cale`, `CrewTarget`, `ShipStationsPanel`, `river-control-repair`, `calme`, `ShipCrewHit`, `groupe`, `debris`, `river-nav`, +48 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/regles.json`, `src/data/river-criticals.json`, +22 fichiers
 
 **État du code.** ✅ `applyHullCritical` (localisation, Équipage, Éclats, Voie d'eau, En flammes en GameOp, Critiques
 de Coque récursifs). ✅ (R1) **« tout coup à B=0 = Critique »** : `resolveVolley` critique sur `wounds.current ≤ 0`.

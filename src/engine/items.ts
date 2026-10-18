@@ -962,11 +962,7 @@ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInsta
 }
 
 /**
- * PA portés à `loc` IGNORÉS par cette touche (LDB 63, Qualités des armures) :
- *  - Partielle : « Un adversaire qui obtient un nombre pair pour vous toucher, ou obtient un
- *    Coup Critique, ignore les PA de l'armure Partielle » ;
- *  - Points faibles : « Si votre adversaire possède une arme avec l'Atout Empaleuse et obtient
- *    un Critique, les PA de votre armure sont ignorés ».
+ * PA portés à `loc` IGNORÉS par cette touche : LDB 63 l.86 (Partielle), l.90 (Points faibles).
  * Différence entre les PA dérivés avec et sans les pièces ignorées (gère la superposition Flexible).
  */
 export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: number; critical: boolean; empaleuse: boolean }): number {
@@ -980,28 +976,34 @@ export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: num
   return Math.max(0, wornArmourPoints(items)[loc] - wornArmourPoints(items, ignored)[loc]);
 }
 
-/** La localisation `loc` est-elle protégée par une pièce Impénétrable (LDB 63 : les Coups
- *  Critiques obtenus sur un jet de toucher IMPAIR sont ignorés) ? */
+/** La localisation `loc` est-elle protégée par une pièce Impénétrable ? LDB 63 l.78. */
 export function impenetrableAt(c: Combatant, loc: HitLocation): boolean {
-  return (c.items ?? []).some(
-    (i) => i.equipped && i.kind === 'armor' && i.locs?.includes(loc) && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0 && hasQuality(i, 'impenetrable'),
-  );
+  return piecesPorteesA(c, loc).some((i) => hasQuality(i, 'impenetrable'));
 }
 
-/** PA d'armure SACRIFIABLE pour la Déviation Critique (LDB 63 l.30) à `loc` : `c.armour[loc]` (armure portée +
- *  statbloc créature + PA naturels de mutation) MOINS les PA marqués hors-Déviation (Écailles, EDO App.2 l.196).
- *  Le PA de sort (activeEffects) n'est pas une pièce d'armure et n'entre pas. > 0 ⇔ « protégé par une armure ». */
-export function deviatableArmourAt(c: Combatant, loc: HitLocation): number {
-  return (c.armour?.[loc] ?? 0) - nonDeviatableMutationAP(c, loc);
+/** Pièce d'armure utilisable : PA nette ≥ 0 (LDB 63 l.19, l.21). */
+export function armureUtilisable(i: ItemInstance): boolean {
+  return !i.destroyed && (i.pa ?? 0) - (i.damageTaken ?? 0) >= 0;
+}
+
+/** Pièces d'armure équipées et utilisables qui protègent `loc`. */
+export function piecesPorteesA(c: Combatant, loc: HitLocation): ItemInstance[] {
+  return (c.items ?? []).filter((i) => i.equipped && i.kind === 'armor' && (i.pa ?? 0) > 0 && !!i.locs?.includes(loc) && armureUtilisable(i));
+}
+
+/** `loc` est-elle « protégée par une armure » pour la Déviation Critique (LDB 63 l.30) ? Une pièce portée
+ *  utilisable, même à 0 PA (LDB 63 l.19, l.21) ; à défaut de pièce, la PA plate (statbloc, Trait Armure, PA de
+ *  mutation) MOINS les PA hors Déviation (EDO App.2 l.196), > 0. Le PA de sort (activeEffects) n'entre pas. */
+export function deviatableArmourAt(c: Combatant, loc: HitLocation): boolean {
+  return piecesPorteesA(c, loc).length > 0 || (c.armour?.[loc] ?? 0) - nonDeviatableMutationAP(c, loc) > 0;
 }
 
 /** Endommage de 1 PA l'armure de `c` à la localisation `loc` (LDB 63 l.19-21). Héros : endommage la
  *  pièce la plus solide (damageTaken+1) puis re-dérive ; ennemi/figurant (armure plate du statblock,
- *  sans items) : décrément direct. RETOURNE true si une PA a été retirée. */
+ *  sans items) : décrément direct. RETOURNE true si une PA a été retirée, ou si une pièce à 0 PA
+ *  devient inutilisable. */
 export function damageArmour(c: Combatant, loc: HitLocation): boolean {
-  const pieces = (c.items ?? []).filter(
-    (i) => i.equipped && i.kind === 'armor' && i.locs?.includes(loc) && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
-  );
+  const pieces = piecesPorteesA(c, loc);
   if (pieces.length) {
     const piece = pieces.sort((a, b) => ((b.pa ?? 0) - (b.damageTaken ?? 0)) - ((a.pa ?? 0) - (a.damageTaken ?? 0)))[0];
     piece.damageTaken = (piece.damageTaken ?? 0) + 1;

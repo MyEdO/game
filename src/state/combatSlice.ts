@@ -43,7 +43,7 @@ import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
-import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, type DefenseMode } from '../engine/combat';
+import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, apercuDesCritiques, coupAApplique, type DefenseMode } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -1479,10 +1479,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
       const dr = undercrew.capSuccesMinime ? capToSuccesMinime(crewTest.total) : crewTest.total;
-      const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
-      const bB = get().battle!;
       const gunners = assignments.map((a) => a.crew.id);
-      set({ battle: { ...bB, crewActed: withCrewActed(bB.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
+      const bA = markActed(get, set); // AVANT la volée : `actedAvant` le capture, chaque reprise de coup le rend (#1852 ; #1595)
+      set({ battle: { ...bA, crewActed: withCrewActed(bA.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
+      const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
       if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
       return true;
@@ -2301,7 +2301,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     attackSetWithhold: (v: boolean) => {
       const pa = get().pendingAttack;
-      if (!pa || pa.result) return; // « Retenir ses coups » se déclare AVANT le jet (Aux Armes 07 l.59)
+      if (!pa || pa.result) return; // LDB 18 l.30 ; AA 07 l.59
       set({ pendingAttack: { ...pa, withhold: v } });
     },
     attackSetGrapple: (v: boolean) => {
@@ -2311,8 +2311,9 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     attackSetCritLocation: (loc: HitLocation) => {
       const pa = get().pendingAttack;
-      // RAW-2 (LDB 17 l.68) : réservé à un Coup Critique issu d'un succès FORCÉ (« Je ne faillirai pas ! »).
-      if (!pa || !pa.forced || !pa.result?.critical) return;
+      // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
+      const cible = pa ? inBattleId(get().battle, pa.targetId) : undefined;
+      if (!pa || !pa.forced || !pa.result || !cible || !apercuDesCritiques(cible, coupAApplique(pa.result, pa.grapple, cible)).relance) return;
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     attackRoll: () => {
@@ -2325,7 +2326,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
       // d'une gratuite de créature comprise.
       const weapon = attackWeaponOf(battle, attacker, target, pa);
-      const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // charge montée → Force+Taille de la monture aux dégâts (LDB 14 l.183) ; pa.withhold = Retenir ses coups (AA)
+      const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
       if (!r) {
         get().log(weapon.type === 'ranged' ? t('cf.noLoSMasked') : t('cs.meleeOutOfRange'));
         set({ pendingAttack: null });
@@ -2468,6 +2469,7 @@ export function createCombatSlice(get: Get, set: Set) {
           enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'hero', wasChain } : { mode: 'aucun' },
           ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
+          ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
         };
         jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, pa.result, { suite }));
       }
@@ -2549,8 +2551,8 @@ export function createCombatSlice(get: Get, set: Set) {
         } });
         return;
       }
-      // 2ᵉ frappe : jet IMPOSÉ (inversé / valeur du Critique) + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
-      const res = resolveDualSecond(get, attacker, target, off, ds.mainRoll, { critValue: ds.critValue });
+      // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
+      const res = resolveDualSecond(get, attacker, target, off, ds.jet);
       poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
     },
     dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
@@ -2606,6 +2608,12 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pd) return;
       set({ pendingDefense: { ...pd, shieldReaction: kind ?? undefined } });
     },
+    // Riposte (LDB 10 l.1037) déclarée ou refusée avant l'Appliquer.
+    defenseSetRiposte: (riposte: boolean) => {
+      const pd = get().pendingDefense;
+      if (!pd) return;
+      set({ pendingDefense: { ...pd, riposte } });
+    },
     // Cycle unifié (spec `defense`) : jet initial = résolution pure (`atk` figé) ; Chance/Pacte ici,
     // Résilience (forceSuccess/setForcedRoll) plus bas. PAS de `cancel` : le RAW n'offre aucun « Subir »
     // volontaire (mêlée = Test opposé, LDB 13 l.123) → une fois offerte, la défense est obligatoire.
@@ -2652,15 +2660,16 @@ export function createCombatSlice(get: Get, set: Set) {
       // Réaction de Porte-Bouclier (variante AA 13 l.84) DÉCLARÉE à cette fenêtre : elle entre avec le
       // coup, et son temps d'après-coup la joue APRÈS l'application.
       const reaction = pd.shieldReaction && pd.mode === 'parade' ? pd.shieldReaction : undefined;
+      const riposte = pd.riposte != null ? { riposte: pd.riposte } : {};
       if (suite.mode === 'pilotee' && attacker && defender) {
-        set({ pendingAttack: { ...suite.pa, result: pd.result, location: pd.result.location ?? suite.pa.location, ...(reaction ? { reaction } : {}) } });
+        set({ pendingAttack: { ...suite.pa, result: pd.result, location: pd.result.location ?? suite.pa.location, ...(reaction ? { reaction } : {}), ...riposte } });
         get().attackConfirm();
         return;
       }
       // Le coup ENTIER (application + après-coup) : `true` = une fenêtre tient la main (sauvegarde,
       // Déviation, Maladresse, dé de casse), et c'est sa reprise qui jouera le reste.
       const tient = suite.mode === 'machine' && !!attacker && !!defender
-        && applyAttackResult(get, set, attacker, defender, pd.weapon, pd.result, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}) } });
+        && applyAttackResult(get, set, attacker, defender, pd.weapon, pd.result, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}), ...riposte } });
       // Attaques GRATUITES de l'attaquant après CE coup : d'Arme « disponibles » (Frénésie LDB 21 l.33)
       // — jamais après une gratuite, que la suite de la fenêtre nomme — puis celles de créature. UNE file,
       // qui S'ARRÊTE à la première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite

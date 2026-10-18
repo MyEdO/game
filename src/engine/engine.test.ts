@@ -132,6 +132,12 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const plain = fighter(60);
     expect(resolveMelee(plain, fighter(30), plain.weapons[0], rngOf(20), { defense: 'none' }).critical).toBe(false);
   });
+  it('Empaleuse : un Test RATÉ sur un multiple de 10, Test opposé gagné, ne génère aucun Critique (LDB 13 l.183)', () => {
+    const emp = fighter(30, { qualities: [{ id: 'empaleuse' }] });
+    const r = finishMelee(emp, fighter(30), emp.weapons[0], evaluateTest(40, 30), evaluateTest(96, 30), 'parade');
+    expect(r.hit).toBe(true);
+    expect(r.critical).toBe(false);
+  });
   it("Précise : +10 au Test (touche là où l'arme nue échoue, même jet)", () => {
     const def = fighter(30);
     const plain = fighter(40); // CC 40, jet 45 → échec

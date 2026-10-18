@@ -6,8 +6,11 @@ describe('repair — réparation armure (LDB 63 l.64)', () => {
     expect(repairCostBrass({ pa: 2, damageTaken: 1 } as any, 120)).toBe(12); // 1 PA perdu × 10 % de 120
     expect(repairCostBrass({ pa: 3, damageTaken: 2 } as any, 120)).toBe(24); // 2 PA × 10 %
   });
-  it('pièce brisée (PA nette 0) → 30 % du prix de base', () => {
-    expect(repairCostBrass({ pa: 1, damageTaken: 1 } as any, 100)).toBe(30); // brisée → 30 %
+  it('pièce brisée (PA nette < 0, LDB 63 l.21) → 30 % du prix de base', () => {
+    expect(repairCostBrass({ pa: 1, damageTaken: 2 } as any, 100)).toBe(30);
+  });
+  it('pièce à 0 PA nette : encore utilisable, 10 % par PA perdu (LDB 63 l.19, l.64)', () => {
+    expect(repairCostBrass({ pa: 1, damageTaken: 1 } as any, 100)).toBe(10);
   });
   it('non endommagée → 0', () => {
     expect(repairCostBrass({ pa: 2, damageTaken: 0 } as any, 100)).toBe(0);

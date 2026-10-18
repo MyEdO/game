@@ -3,8 +3,9 @@ import type { Combatant } from './types';
 import {
   HEAL_SKILL, isHealable, availableHealModes, healableTargets,
   healWoundsDelta, stopBleedOutcome, applyHealWounds, applyStopBleed,
-  lodgedAmmoCount, resolveExtractLodgedAmmo, healDifficulty,
+  lodgedAmmoCount, resolveExtractLodgedAmmo, healDifficulty, soinMagiqueOperant,
 } from './healing';
+import { applyOps } from './ops';
 import { setRule, resetRule } from './policy';
 import { possesses } from './skills';
 
@@ -31,6 +32,32 @@ describe('engine/healing — gate compétence & cibles', () => {
     expect(isHealable(hero({ wounds: { current: 5, max: 12 } }))).toBe(true);
     expect(isHealable(hero({ wounds: { current: 12, max: 12 }, conditions: [{ id: 'hemorragique', value: 1 }] }))).toBe(true);
     expect(isHealable(hero({ wounds: { current: 5, max: 12 }, dead: true }))).toBe(false);
+  });
+
+  describe('Structure (AA 10 l.134) : Guérison sans effet ; soin magique selon la règle maison structure-soin-magique', () => {
+    afterEach(() => resetRule('structure-soin-magique'));
+    const mur = () => hero({ id: 'mur', kind: 'npc', bodyShape: 'structure', wounds: { current: 5, max: 40 }, skills: [] } as Partial<Combatant>);
+    it('la Guérison ne cible jamais une Structure blessée ; un Personnage blessé, si (contrôle)', () => {
+      expect(isHealable(mur())).toBe(false);
+      expect(isHealable(hero({ wounds: { current: 5, max: 12 } }))).toBe(true);
+    });
+    it('défaut (désactivée) : un soin magique ne rend aucune Blessure à une Structure, mais à un Personnage', () => {
+      const s = mur();
+      expect(soinMagiqueOperant(s)).toBe(false);
+      applyOps(s, [{ op: 'heal', amount: 3 }]);
+      expect(s.wounds.current).toBe(5);
+      const p = hero({ wounds: { current: 5, max: 12 } });
+      applyOps(p, [{ op: 'heal', amount: 3 }]);
+      expect(p.wounds.current).toBe(8);
+    });
+    it('activée : le soin magique rend ses Blessures à la Structure ; la Guérison reste sans effet', () => {
+      setRule('structure-soin-magique', true);
+      const s = mur();
+      expect(soinMagiqueOperant(s)).toBe(true);
+      applyOps(s, [{ op: 'heal', amount: 3 }]);
+      expect(s.wounds.current).toBe(8);
+      expect(isHealable(s)).toBe(false);
+    });
   });
 
   it('availableHealModes : « wounds » bloqué si déjà soigné cette rencontre ; « bleed » indépendant', () => {

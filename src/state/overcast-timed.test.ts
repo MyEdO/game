@@ -98,7 +98,7 @@ function stub(id: string, kind: 'hero' | 'enemy', x: number, wounds = 12): Comba
 describe('overcastTargetCandidates — cibles supplémentaires proposables (modale, LDB 47 l.28-31)', () => {
   it('Projectile : exclut la cible principale, le figurant tombé à 0 PB (hors de combat) et le mort', () => {
     const caster = stub('w', 'hero', 0);
-    const downed = stub('e3', 'enemy', 3, 0); // Mort Subite (LDB 18 l.42-46) : à 0 PB il est « mort » sur le plateau
+    const downed = { ...stub('e3', 'enemy', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
     const dead = { ...stub('e4', 'enemy', 4), dead: true };
     const pool = [caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), downed, dead];
     const ids = overcastTargetCandidates(pool, caster, 'e1', findSpell('Carreau')!, true, 'arcane', 0).map((c) => c.id);

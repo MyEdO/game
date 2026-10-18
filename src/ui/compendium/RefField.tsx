@@ -16,14 +16,15 @@ import type { JSX } from 'react';
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
-import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
+import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
 import { slugId } from '../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from './libellesNarratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
-import { CATEGORY_DATASET_DERIVE } from '../../data/schemas/exposition-derivee';
+import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../data/schemas/exposition-derivee';
 import { categoryByKey } from './registry';
+import { videDuNoeud } from './editFields';
 
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
@@ -49,7 +50,8 @@ export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
  *  Trois formes, lues sur l'entrée elle-même : une LISTE d'ids d'un dataset (`ds`), un id SEUL
  *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` et `freeText` sont posés par
- *  les appelants directs du composant, jamais ici.
+ *  les appelants directs du composant, jamais ici. Un champ dont la feuille est un `idDe` FERMÉ n'y
+ *  entre pas : `Field` (`CodexEdit.tsx`) le route par `cfgDeLaFeuille`.
  */
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
@@ -64,21 +66,10 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   'careers.class': { ds: 'classes', single: true },
   'careerLevels.career': { ds: 'careers', single: true },
   'locations.parent': { ds: 'locations', single: true },
-  'pregens.species': { ds: 'species', single: true },
-  'pregens.career': { ds: 'careers', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
   // dataset `characteristics` (mesuré : 10/10 valeurs distinctes résolues par `id`, 0/10 par `abr` ou
   // `label`), donc valeur d'option = `id` (défaut). `abr` y est vide sur 7 des 19 entrées.
   'skills.characteristic': { ds: 'characteristics', single: true },
-  // Décor posé sur chaque case d'un terrain (#1690) : le champ porte un id de `props.json`
-  // (`idDe('prop')` au schéma) — SÉLECTEUR dans le catalogue, jamais un champ texte où une faute de
-  // frappe ne se verrait qu'au refus de parse. Facultatif : `nullable` ouvre le choix vide.
-  'terrains.overlayProp': { ds: 'props', single: true },
-  // Matière des flancs d'un terrain à BLOC PLEIN (#1691) et couverture par défaut d'un bâtiment
-  // (#1715) : ids de `materials.json`, restreints à la sous-liste que déclare la feuille du champ
-  // (`idDe('material', 'relief')`, `idDe('material', 'roof')`), lue sur le nœud.
-  'terrains.matiere': { ds: 'materials', single: true },
-  'buildings.roofMaterial': { ds: 'materials', single: true },
   // ── vocab (valeurs distinctes d'un champ) ───────────────────────────────────
   // refChar/refCareer n'existent QUE sur les espèces → repli global par nom (la catégorie Codex
   // d'`species.json` est `races`, pas `species` ; un nom de champ unique évite de la coder en dur).
@@ -91,6 +82,16 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
 /** Résout la config d'un champ : clé (catégorie, champ) puis repli global par champ. */
 export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg | undefined {
   return REF_FIELD[`${categoryKey}.${fieldKey}`] ?? REF_FIELD[fieldKey];
+}
+
+/** Config `single` d'un champ dont le NŒUD est une feuille `idDe` FERMÉE : le dataset de racine de
+ *  l'espace de son type (`DATASET_FICHIER_DERIVE`), `undefined` sinon. */
+export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
+  const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
+  if (!feuille || feuille.ouverte) return undefined;
+  const espace = espaceDe(feuille.type);
+  const ds = Object.keys(DATASET_FICHIER_DERIVE).find((d) => DATASET_FICHIER_DERIVE[d] === espace && DATASET_SUITE_DERIVE[d] === '');
+  return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }
 
 const isVocab = (cfg: RefFieldCfg): cfg is { vocabFrom: string } => 'vocabFrom' in cfg;
@@ -147,7 +148,7 @@ export function RefField(
   const affiche = label ?? fieldKey;
   const champ = { noeud, entreesEnTete, title };
   const a11y = { ariaLabel, invalide, describedBy };
-  if (isVocab(cfg)) return <VocabField label={affiche} title={title} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
+  if (isVocab(cfg)) return <VocabField label={affiche} title={title} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} noeud={noeud} {...a11y} />;
   const single = (c: SingleCfg) => <SingleRefField label={affiche} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
   if (fournies(cfg)) return single(cfg);
   if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
@@ -231,7 +232,7 @@ function SingleRefField(
   const id = cur.id ?? '';
   const known = id === '' || options.some((o) => o.v === id);
   const emit = (nextId: string, nextSpec?: string) => {
-    if (nextId === '') { onChange(nullable ? null : ''); return; }
+    if (nextId === '') { onChange(nullable ? videDuNoeud(champ.noeud) : ''); return; }
     if (avecSpec) { const v: SpecRef = { id: nextId }; if (nextSpec) v.spec = nextSpec; onChange(v); }
     else onChange(nextId);
   };
@@ -311,8 +312,8 @@ function FreeRefField(
 
 /** Mode `vocab` : `<input list>` + `<datalist>` des valeurs distinctes d'un champ `'<ds>.<champ>'`. */
 function VocabField(
-  { label, title, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable }:
-  Accessibilite & { label?: string; title?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, title, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable, noeud }:
+  Accessibilite & { label?: string; title?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; noeud?: unknown },
 ) {
   const [ds, field] = vocabFrom.split('.') as [DatasetKey, string];
   const dlId = `dl-vocab-${ds}-${field}`;
@@ -325,7 +326,7 @@ function VocabField(
       <span>{label}{indiceDe('valeurs déjà saisies, ou saisie libre')}</span>
       <input list={dlId} value={(value as string) ?? ''}
         aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
-        onChange={(e) => onChange(e.target.value === '' && nullable ? null : e.target.value)} />
+        onChange={(e) => onChange(e.target.value === '' && nullable ? videDuNoeud(noeud) : e.target.value)} />
       <datalist id={dlId}>{values.map((v) => <option key={v} value={v} />)}</datalist>
     </div>
   );

@@ -27,6 +27,7 @@ import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
+import { fourchette } from '../engine/tables';
 import { estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
@@ -58,13 +59,6 @@ export function jetStepPresentable(step: CascadeStep, actor: Combatant | undefin
  *  key »). Site UNIQUE de la clé, partagé par la pile figée et la rangée batch courante. */
 export const witnessRowKey = (stepId: string, participantId?: string): string =>
   participantId != null ? `${stepId}:${participantId}` : stepId;
-
-/** Fourchette d'une ligne de table, telle qu'elle se lit sur le tableau imprimé : bornes cadrées sur
- *  les faces du dé (d100 → « 01-50 », d10 → « 1-5 »). Une ligne à borne unique ne s'écrit pas « 7-7 ». */
-export function fourchette(min: number, max: number, dieMax: number): string {
-  const pad = (n: number) => (dieMax >= 100 ? String(n).padStart(2, '0') : String(n));
-  return min === max ? pad(min) : `${pad(min)}-${pad(max)}`;
-}
 
 /** GRAPHIE UNIQUE du seuil d'un dé (#1508) : le Trait à son Indice, et sa PROVENANCE quand une zone
  *  l'octroie (« Protection (6+) du Dôme »). Dite AVANT le lancer, dans la cellule centrale de la
@@ -550,7 +544,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
               récapitulatif reste plus lisible que N infobulles identiques. */}
           {unreachable > 0 && (
             <p className="hint" id={`${s.id}-unreachable`}>
-              {unreachable} ligne{unreachable > 1 ? 's' : ''} grisée{unreachable > 1 ? 's' : ''} : hors d'atteinte avec le modificateur {mod > 0 ? '+' : '−'}{Math.abs(mod)} (dé de 1 à {dieMax}).
+              {unreachable} ligne{unreachable > 1 ? 's' : ''} grisée{unreachable > 1 ? 's' : ''} : hors d'atteinte{mod !== 0 ? ` avec le modificateur ${mod > 0 ? '+' : '−'}${Math.abs(mod)}` : ''} (dé de 1 à {dieMax}).
             </p>
           )}
         </>

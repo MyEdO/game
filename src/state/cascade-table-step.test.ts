@@ -5,7 +5,7 @@ import { makeRNG } from '../engine/dice';
 import { startCascade, registerTableStep, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableStepDie, naturalRollForTableRow } from './cascade';
 import { spyApplier } from './cascadeTestKit';
 import { STRUCTURE_CRIT_TABLE } from './combatFlow';
-import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
+import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { stripBookMarker, hasBookMarker } from '../data/bookMarker';
 import { combatStakeRef, resolveStake } from '../data';
 import { findTableEntry } from '../engine/tables';
@@ -128,11 +128,11 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
 
   it("registre : la table de Critiques de Structure est déclarée par son module de domaine, fourchettes = la DONNÉE", () => {
     expect(tableStepDef(STRUCTURE_CRIT_TABLE)).toBeDefined();
-    expect(tableStepDef(STRUCTURE_CRIT_TABLE)!.rows).toBe(STRUCTURE_CRITICALS);
+    expect(tableStepDef(STRUCTURE_CRIT_TABLE)!.rows).toBe(tableDesCritiquesDeStructure());
     // Le résolveur GÉNÉRIQUE trouve la même ligne que le lookup partagé sur la donnée verbatim.
-    for (const die of [10, 40, 85, 98]) {
+    for (const die of [10, 40, 85, 98, 130]) {
       expect(rollTableStep({ tableId: STRUCTURE_CRIT_TABLE, forcedRoll: die }, makeRNG(1)).id)
-        .toBe(findTableEntry(STRUCTURE_CRITICALS, die).id);
+        .toBe(findTableEntry(tableDesCritiquesDeStructure(), die).id);
     }
   });
 
@@ -365,7 +365,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1', 40)] });
     useGame.getState().cascadeTableRoll('s1');
     const st = useGame.getState().pendingCascade!.participants[0];
-    expect(st.table!.result!.id).toBe(findTableEntry(STRUCTURE_CRITICALS, 40).id);
+    expect(st.table!.result!.id).toBe(findTableEntry(tableDesCritiquesDeStructure(), 40).id);
     expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: st.table!.result!.id });
   });
 
@@ -373,10 +373,10 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1')] });
     useGame.getState().cascadeTableSetForcedRoll('s1', 10);
     const bas = useGame.getState().pendingCascade!.participants[0];
-    expect(ruleOf(bas)).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 10).id });
+    expect(ruleOf(bas)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 10).id });
     useGame.getState().cascadeTableSetForcedRoll('s1', 98);
     const haut = useGame.getState().pendingCascade!.participants[0];
-    expect(ruleOf(haut)).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 98).id });
+    expect(ruleOf(haut)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 98).id });
     expect(ruleOf(haut)).not.toEqual(ruleOf(bas)); // la re-pose SUIT le dé, elle ne se fige pas au premier
   });
 
@@ -384,10 +384,10 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [structureStep('s1', 85)] });
     useGame.getState().cascadeResolveAll();
     const st = useGame.getState().pendingCascade!.participants[0];
-    expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 85).id });
+    expect(ruleOf(st)).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 85).id });
     useGame.getState().cascadeFinish();
     const out = runCascadeImmediate(useGame.getState, useGame.setState, [structureStep('s2', 20)])!;
-    expect(ruleOf(out[0])).toEqual({ category: 'structureCriticals', id: findTableEntry(STRUCTURE_CRITICALS, 20).id });
+    expect(ruleOf(out[0])).toEqual({ category: 'structureCriticals', id: findTableEntry(tableDesCritiquesDeStructure(), 20).id });
   });
 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {

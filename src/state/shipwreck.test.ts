@@ -328,20 +328,27 @@ describe('beginShipwreck — repli IA/rafale (aucun pilote humain à bord) : inl
   });
 });
 
-describe('détection au voyage — coque à 0 → naufrage', () => {
+describe('voyage — une coque à 0 Blessure navigue (MDG 13 l.656, l.674)', () => {
   beforeEach(freshState);
 
-  it('runSeaDay intercepte une coque coulée avant de dérouler la journée', () => {
+  it('runSeaDay déroule la journée sur une coque à 0 : ni naufrage ni perte du navire', () => {
     setRule('sea-shipwreck-swim', 'intermediaire');
     set({ party: get().party.map((h) => swim(h, 200)) } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-    plan.vehicle!.wounds.current = 0; // avarie (Tourbillon/Collision/usure) → coque coulée
+    plan.vehicle!.wounds.current = 0;
     set({ travelPlan: plan });
     runSeaDay(get, set);
-    drainSwimCascade();
-    expect(get().vessel).toBeNull();               // séquence de naufrage jouée
-    expect(get().document?.title).toBe('Naufrage');
-    expect(get().party.every((h) => !h.dead)).toBe(true); // tous bons nageurs → rescapés
+    expect(get().vessel).not.toBeNull();
+    expect(get().document?.title).not.toBe('Naufrage');
+    expect(get().journal.join('\n')).not.toContain('— NAUFRAGE —');
+    expect(get().travelPlan, 'la traversée continue').not.toBeNull();
+  });
+
+  it('buildSeaPlan arme une traversée sur un navire de campagne à 0 Blessure', () => {
+    set({ vessel: { ...get().vessel!, wounds: { current: 0, max: 30 } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0]);
+    expect(plan).not.toBeNull();
+    expect(plan!.vehicle!.wounds.current).toBe(0);
   });
 });
 
@@ -383,13 +390,33 @@ describe('beginShipwreck — cascade Possession (#618 SOCLE POSSESSIONS, dernier
 describe('détection en combat — coque de campagne coulée → naufrage (pas défaite)', () => {
   beforeEach(freshState);
 
-  it('checkBattleOver route l’équipage par-dessus bord vers la survie', () => {
-    setRule('sea-shipwreck-swim', 'intermediaire');
-    const heroes = get().party.slice(0, 2).map((h) => swim(h, 200)); // bons nageurs → rescapés
+  const coqueDeCampagne = (heroes: Combatant[], coulee: boolean): Combatant => {
     const hull = vehicleCombatant(findVehicleById('cogue')!)!;
     hull.id = 'hull-campagne'; hull.kind = 'enemy';
     hull.crewIds = heroes.map((h) => h.id);
-    hull.wounds = { current: 0, max: hull.wounds.max }; // coque coulée (0 PB)
+    hull.wounds = { current: 0, max: hull.wounds.max };
+    if (coulee) addCondition(hull, 'naufrage'); // MDG 13 l.674
+    return hull;
+  };
+
+  it('coque à 0 Blessure sans État naufrage : le combat continue, le navire reste (MDG 13 l.656)', () => {
+    const heroes = get().party.slice(0, 2).map((h) => swim(h, 200));
+    const hull = coqueDeCampagne(heroes, false);
+    const battle = {
+      combatants: [hull, ...heroes], order: [], turn: 0, round: 1, action: null, selectedSpellId: null,
+      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+    } as never;
+    set({ party: heroes, battle } as never);
+    checkBattleOver(get, set);
+    expect(get().vessel).not.toBeNull();
+    expect(get().document?.title).not.toBe('Naufrage');
+    expect(heroes.every((h) => !h.outOfRencontre)).toBe(true);
+  });
+
+  it('checkBattleOver route l’équipage par-dessus bord vers la survie', () => {
+    setRule('sea-shipwreck-swim', 'intermediaire');
+    const heroes = get().party.slice(0, 2).map((h) => swim(h, 200)); // bons nageurs → rescapés
+    const hull = coqueDeCampagne(heroes, true);
     const battle = {
       combatants: [hull, ...heroes], order: [], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

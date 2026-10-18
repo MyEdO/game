@@ -1511,6 +1511,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
       'src/state/combatFlow.ts drainerLesGratuites',
       'src/state/combatFlow.ts freeAttackHookImpl',
       'src/state/combatFlow.ts jouerLApresCoup',
+      'src/state/combatFlow.ts jouerLaFrappePassive',
       'src/state/combatFlow.ts jouerLaSuiteDuCoup',
       'src/state/combatFlow.ts jouerLesTirsDeBordee',
       'src/state/combatFlow.ts resumeCleaveChain',

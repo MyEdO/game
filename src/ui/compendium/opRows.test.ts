@@ -163,8 +163,13 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       if (firstOpRow.t === 'ref') expect(firstOpRow.category).toBe('traits');
     });
 
+    it('un `rollTable` sur une table d100 écrit ses bandes sur les faces de son dé (AA Annexe II)', () => {
+      const rows = opRows([{ op: 'rollTable', tableId: 'contremaitre-lieu' }]);
+      expect(rows[0]).toEqual({ t: 'sub', label: '01–05 · Une cabane sinistre à l\'orée des bois.' });
+    });
+
     it('rangée IMBRIQUÉE portant `rollMutation` (allure-demoniaque-nurgle, rangée 8) : lien codex vers la table de Corruption, pas d’expansion', () => {
-      const rows = tableRows(effectTables.find((t) => t.id === 'allure-demoniaque-nurgle')!.rows);
+      const rows = tableRows(effectTables.find((t) => t.id === 'allure-demoniaque-nurgle')!);
       const mutationRow = rows.find((r) => r.t === 'ref' && r.category === 'mutationTables');
       expect(mutationRow, 'aucune ligne « mutationTables » — la rangée Mutation ne se rend pas en lien codex').toBeTruthy();
       if (mutationRow?.t === 'ref') {

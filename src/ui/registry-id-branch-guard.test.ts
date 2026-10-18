@@ -101,9 +101,6 @@ const KNOWN: Record<string, number> = {
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
   'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
-  // Sortie : `label` porté par les 4 Traits de construction de `ship-construction.json` (MDG 12 l.167-193)
-  // + schéma, la table de libellés supprimée — mouvement de DONNÉE, à commissionner.
-  'src/ui/compendium/registry.ts': 1, // `CONSTRUCTION_TRAIT_LABEL[t.id]`
   // Sortie : table de MIGRATION gelée (#1897) — hors de `isRegistryIdBranchExcluded` par son seul chemin.
   'src/data/sortsFusionnes.ts': 1, // `CORRESPONDANCE.get(id)` (`new Map(Object.entries(SORTS_FUSIONNES_1897))`)
 };

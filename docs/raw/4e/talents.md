@@ -260,7 +260,7 @@ Vous savez comment frapper fort ! Vous infligez votre niveau de Coup puissant en
 **Source :** LDB 10 p.135  
 **Maxi :** Aucun  
 
-Vous êtes un criminel actif qui gagne de l'argent grâce à des sources illégales, et vous n'êtes pas toujours discret à ce sujet. Pour calculer vos revenus, que ce soit quand vous Gagnez de l'argent ou quand vous effectuez une Activité Revenus, référez- vous au tableau suivant :<br><br><table><tr><td>Standing de Carrière</td><td>Bonus d'argent par fois où le Talent est pris</td></tr><tr><td>1</td><td>+2d10 sous de cuivre</td></tr><tr><td>2</td><td>+1d10 pistoles d'argent</td></tr><tr><td>3</td><td>+2d10 pistoles d'argent</td></tr><tr><td>4</td><td>+1 couronne d'or</td></tr></table><br><br>À cause de votre nature criminelle évidente, les autres vous considèrent d'un Statut inférieur, à moins qu'ils ne possèdent également le Talent Criminel. Dans ce cas, le Statut est comparé normalement – vous possédez peut-être des tatouages de gang, avez l'air louche, ou êtes juste un peu brute, vous avez le choix. À cause de cela, les forces de l'ordre locales se montrent toujours méfiantes et doutent de vos motivations. Plus vous prenez ce Talent, plus cela empire, les répercussions exactes étant déterminées par le MJ. Ceux qui transgressent la loi sans posséder le Talent Criminel gagnent bien moins d'argent, mais comme ce n'est pas notoire, ils conservent donc leur Statut. Avec l'accord du MJ, vous pouvez retirer des niveaux du Talent Criminel pour le même montant de PX que leur coût d'achat.
+Vous êtes un criminel actif qui gagne de l'argent grâce à des sources illégales, et vous n'êtes pas toujours discret à ce sujet. Pour calculer vos revenus, que ce soit quand vous Gagnez de l'argent ou quand vous effectuez une Activité Revenus, référez-vous au tableau suivant :<br><br><table><tr><td>Standing de Carrière</td><td>Bonus d'argent par fois où le Talent est pris</td></tr><tr><td>1</td><td>+2d10 sous de cuivre</td></tr><tr><td>2</td><td>+1d10 pistoles d'argent</td></tr><tr><td>3</td><td>+2d10 pistoles d'argent</td></tr><tr><td>4</td><td>+1 couronne d'or</td></tr></table><br><br>À cause de votre nature criminelle évidente, les autres vous considèrent d'un Statut inférieur, à moins qu'ils ne possèdent également le Talent Criminel. Dans ce cas, le Statut est comparé normalement – vous possédez peut-être des tatouages de gang, avez l'air louche, ou êtes juste un peu brute, vous avez le choix. À cause de cela, les forces de l'ordre locales se montrent toujours méfiantes et doutent de vos motivations. Plus vous prenez ce Talent, plus cela empire, les répercussions exactes étant déterminées par le MJ. Ceux qui transgressent la loi sans posséder le Talent Criminel gagnent bien moins d'argent, mais comme ce n'est pas notoire, ils conservent donc leur Statut. Avec l'accord du MJ, vous pouvez retirer des niveaux du Talent Criminel pour le même montant de PX que leur coût d'achat.
 
 ### Désarmer
 **Source :** LDB 10 p.135  
@@ -658,11 +658,13 @@ Vous êtes un maître des jeux de dés, et tous ceux qui affirment que vous tric
 Vous avez accumulé des années d'expérience au combat, ce qui vous permet de tenir facilement les combattants les plus faibles à distance. Pour chaque fois que vous avez ce Talent, vous comptez comme une personne supplémentaire lors du calcul pour déterminer si l'un des camps dépasse l'autre en nombre. Ce Talent n'entre en jeu que lorsque vous êtes dépassé en nombre. Voir page 162 pour les règles concernant ce cas.
 
 ### Maniement de deux armes
-**Source :** LDB 10 p.141  
+**Source :** LDB 10 l.773  
 **Maxi :** Bonus d'Agilité  
 **Tests :** Corps à corps ou Projectiles si vous attaquez avec deux armes  
 
-Quand vous êtes équipé de deux armes, vous pouvez attaquer avec les deux pour votre Action. Effectuez un lancer pour toucher avec l'arme tenue par votre main principale. Si vous touchez, déterminez les Dégâts normalement, mais rappelez- vous de conserver votre lancer de dés, car vous l'utiliserez de nouveau. Si la première frappe est réussie, une fois résolue, l'arme dans votre main secondaire peut ensuite viser un adversaire disponible de votre choix en utilisant le même lancer de dés que celui de la première frappe, mais inversé. Donc, si vous avez obtenu 34 pour toucher avec la première arme, vous obtenez 43 pour toucher avec la seconde. Rappelez- vous de modifier ce second lancer avec la pénalité de votre mauvaise main (-20 à moins que vous ne possédiez le Talent Ambidextre). Cette seconde attaque est opposée à un nouveau lancer de défense et les Dégâts pour cette seconde frappe sont calculés normalement. Une exception à cela : si vous obtenez un Critique pour votre première frappe. Si cela se produit, utilisez le lancer du tableau des Critiques pour servir de lancer à la seconde attaque. Donc, si vous infligez un Critique à la tête et lancez un 56 sur le tableau des Critiques et obtenez une Blessure majeure à l'œil, votre seconde attaque aurait donc une valeur de 56. Si vous choisissez d'attaquer avec les deux armes, tous vos lancers défensifs subissent une pénalité de -10 jusqu'au début de votre prochain Tour. Vous ne gagnez pas d'Avantage quand vous réussissez à frapper ou à infliger une Blessure à un adversaire avec le Maniement de deux armes sauf si les deux attaques touchent.
+Quand vous êtes équipé de deux armes, vous pouvez attaquer avec les deux pour votre Action. Effectuez un lancer pour toucher avec l'arme tenue par votre main principale. Si vous touchez, déterminez les Dégâts normalement, mais rappelez-vous de conserver votre lancer de dés, car vous l'utiliserez de nouveau. Si la première frappe est réussie, une fois résolue, l'arme dans votre main secondaire peut ensuite viser un adversaire disponible de votre choix en utilisant le même lancer de dés que celui de la première frappe, mais inversé. Donc, si vous avez obtenu 34 pour toucher avec la première arme, vous obtenez 43 pour toucher avec la seconde. Rappelez-vous de modifier ce second lancer avec la pénalité de votre mauvaise main (-20 à moins que vous ne possédiez le Talent Ambidextre). Cette seconde attaque est opposée à un nouveau lancer de défense et les Dégâts pour cette seconde frappe sont calculés normalement. Une exception à cela : si vous obtenez un Critique pour votre première frappe. Si cela se produit, utilisez le lancer du tableau des Critiques pour servir de lancer à la seconde attaque. Donc, si vous infligez un Critique à la tête et lancez un 56 sur le tableau des Critiques et obtenez une Blessure majeure à l'œil, votre seconde attaque aurait donc une valeur de 56. Si vous choisissez d'attaquer avec les deux armes, tous vos lancers défensifs subissent une pénalité de -10 jusqu'au début de votre prochain Tour. Vous ne gagnez pas d'Avantage quand vous réussissez à frapper ou à infliger une Blessure à un adversaire avec le Maniement de deux armes sauf si les deux attaques touchent.
+
+**Voir aussi** : [Combat à Deux Armes, talent](combat.md#talent-maniement-de-deux-armes--ldb-10-l773) (déclencheur `LDB 13 l.183`, valeur, silences) ; [Critiques](combat.md#critiques-et-frappe-mortelle) ; [Déviation Critique](combat.md#5-déviation-critique-par-larmure-ldb-63) ; [*Aux Armes*, jet de table au d100 nu](combat.md#6-système-alternatif-daux-armes-remplace-les-tables-ldb).
 
 ### Marinier
 **Source :** LDB 10 p.141  
@@ -887,7 +889,7 @@ Votre forte constitution vous permet de survivre plus facilement à une menace s
 Vous êtes très résistant à la magie. Le DR de tout Sort vous affectant est réduit de 2 par point que vous possédez dans ce Talent. Le DR d'un Sort est uniquement modifié par le plus haut score du Talent Résistance à la Magie dans la zone de sa cible. De plus, vous ne pourrez jamais apprendre les Talents Béni, Invocation, Magie des Arcanes, Magie mineure et Sorcier !.
 
 ### Riposte
-**Source :** LDB 10 p.144  
+**Source :** LDB 10 l.1028-1037  
 **Maxi :** Bonus d'Agilité  
 **Tests :** Corps à corps quand vous vous défendez  
 
@@ -1116,8 +1118,9 @@ Vous pouvez voir parfaitement dans les ténèbres naturelles. En présumant que 
 **Voir aussi :** `vision.md` — brouillard de guerre, zones éclairées, états lumineux par case ; `equipement.md` § Éclairage — rayons de Bougie (10 m) et Lanterne (20 m), étendus de +20 m / niveau par ce Talent.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.1039-1043, l.1045-1051, l.1053-1057, l.1059-1063, l.1065-1071, l.1073-1077, l.1079-1085, l.1087-1091) → `fearImmuneVs`, `fearSourceFor`, `CombatFeature`, `resolvePsychAI`, `sansPeurVs`, `resolvePeurTest`, `resolveTerreurTest`, `CascadeStepMeta`, `pharmacologie`, `pied-marin`, +21 — `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/psychology.ts`, `src/state/combat/turnHooks.ts`, `src/state/combatFlow.ts`, +1 fichiers
+- `LDB 10` (l.773, l.1028-1037, l.1039-1043, l.1045-1051, l.1053-1057, l.1059-1063, l.1065-1071, l.1073-1077, l.1079-1085, l.1087-1091) → `ResistButton`, `restoreFortune`, `menaceIds`, `CorruptionModal`, `lancerDeLaSecondeMain`, `resistanceImproves`, `fearImmuneVs`, `useDefenseJetProps`, `useAttackJetProps`, `CombatFeature`, +88 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/critical.ts`, +26 fichiers
 - `LDB 11` (l.176) → `ambush-vigilance`, `TraitCapabilities`, `trappeur`, `travailleur-qualifie`, `tres-fort`, `tres-resistant`, `tricheur`, `tueur`, `veloce`, `vigilance`, +5 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/talents.json`, `src/state/vision.ts`
+- `LDB 13` (l.183) → `localisation`, `FLOW_VERBS`, `OrigineCritique`, `CauseCoupCritique`, `estUnCoupCritique`, `AttackResult`, `createCombatSlice`, `testDArmeOuDeCorpsACorps`, `FLOWS`, `toucheAuJetPose`, +3 — `src/data/localisation.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, `src/state/flowVerbs.ts`, +1 fichiers
 - `EDOC 13` (l.254-256) → `chaosDomainOf`, `allure-demoniaque-nurgle`, `allure-demoniaque-slaanesh`, `allure-demoniaque-tzeentch`, `allure-demoniaque-indivisible`, `GameOp`, `OpsCtx`, `empreint-de-la-magie`, `allure-demoniaque`, `aspect-sublime` — `src/data/spells.json`, `src/data/tables.json`, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/ops.ts`
 - `NADJ 15` (l.47) → `empreint-d-ulgu` — `src/data/talents.json`
 
@@ -1270,10 +1273,14 @@ Un Personnage doté de ce Talent a l'habitude de gérer des équipes maniant des
 **Description :** non trouvée dans le MD AA VF disponible. Stub à compléter.
 
 #### Porte-Bouclier (mise à jour AA)
-**Source :** AA Annexe III l.4511-4514  
+**Source :** AA 13 l.76-84  
 **Maxi :** Bonus de Force  
 **Tests :** n'importe quel Test pour vous défendre avec un bouclier  
-**Changement AA :** Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser **2 Avantages** soit pour **causer des Dégâts** comme si c'était votre Action, soit pour **pousser votre adversaire sur 2 mètres** et ne plus être Engagé (vs LDB : dépenser des Avantages pour des effets).
+**Condition :** règle d'Avantage de groupe seulement (AA 11 l.71) : « Plusieurs Talents ont été modifiés pour correspondre à ces règles d'Avantage alternatives. […] Portebouclier […] »  
+
+> « Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser 2 Avantages soit pour causer des Dégâts quand vous êtes attaqué comme s'il s'agissait de votre Action, soit pour pousser votre adversaire sur 2 mètres dans la direction directement opposée à vous et ne plus être considéré comme Engagé. » — AA 13 l.84
+
+> LDB : « Quand vous utilisez un Bouclier pour vous défendre, vous gagnez un nombre d'Avantages égal au nombre de Niveaux que vous possédez en Porte-bouclier si vous perdez le Test opposé. » — LDB 10 l.972
 
 #### Rechargement rapide (mise à jour AA)
 **Source :** AA Annexe III l.4516-4519  

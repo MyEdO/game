@@ -775,9 +775,9 @@
     "label": "En flammes (navire)",
     "source": {
       "book": "mer-des-griffes",
-      "page": 124
+      "page": 115
     },
-    "desc": "Un navire en flammes subit 1 Blessure par Tour et par État En flammes (MDG 13). Un seul État En flammes ne peut affecter qu'une seule Localisation du vaisseau à la fois ; le feu peut se répandre ou s'intensifier (tableau Intensité du feu).",
+    "desc": "Les États *En flammes* affectent un navire à peu près de la même manière qu'un personnage. Un bateau subit 1 Blessure par tour et par État *En flammes*. Un seul et même État *En flammes* ne peut affecter qu'une seule Localisation du vaisseau à la fois.",
     "effects": [
       {
         "trigger": "onRoundEnd",
@@ -793,7 +793,6 @@
                 "amount": {
                   "stacks": "self"
                 },
-                "min": 1,
                 "ignoreTB": true,
                 "ignoreAP": true
               }

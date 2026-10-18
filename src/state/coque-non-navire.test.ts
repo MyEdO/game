@@ -36,7 +36,7 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     poser([dil]);
     const avant = { conditions: [...dil.conditions], criticalWounds: dil.criticalWounds };
     const log: string[] = [];
-    const mort = applyCriticalToTarget(dil, 'corps', true, 0, log, useGame.setState, { get: useGame.getState });
+    const mort = applyCriticalToTarget(dil, 'corps', 0, log, useGame.setState, { get: useGame.getState });
     expect(mort).toBe(false);
     expect(dil.criticalWounds).toBe(avant.criticalWounds);
     expect(dil.conditions).toEqual(avant.conditions);

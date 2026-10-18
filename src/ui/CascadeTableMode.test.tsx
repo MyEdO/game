@@ -125,8 +125,8 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     // La FOURCHETTE est portée par CHAQUE tuile (verdict vision #942 L7) : c'est ce qui fait lire
     // une table d100 et non un choix libre — libellée ou pas, la ligne annonce ses bornes. Elle est
     // une SURFACE à elle (`.rm-range`, option-chooser.css), qui porte son ton et son écart au libellé.
-    expect(rowButtons().map((b) => b.querySelector('.rm-range')?.textContent ?? null)).toEqual(['01-50', '51-100']);
-    expect(rowButtons().map((b) => b.textContent)).toEqual(['Ligne basse01-50', '51-100']);
+    expect(rowButtons().map((b) => b.querySelector('.rm-range')?.textContent ?? null)).toEqual(['01–50', '51–100']);
+    expect(rowButtons().map((b) => b.textContent)).toEqual(['Ligne basse01–50', '51–100']);
     // L'écart se lit au CSS (`.rm-range` / `.rm-range:first-child`) : un libellé est un ÉLÉMENT, sinon
     // la fourchette est toujours premier enfant et se colle au nom de la ligne.
     expect(rowButtons().map((b) => b.querySelector('.rm-range')?.previousElementSibling?.textContent ?? null)).toEqual(['Ligne basse', null]);
@@ -137,7 +137,7 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     setDesFixes(true);
     openTable(-10);
     render();
-    act(() => { rowButton('51-100')!.click(); });
+    act(() => { rowButton('51–100')!.click(); });
     // Poser la borne BRUTE (51) donnerait un dé effectif de 41 → ligne 'basse' : la ligne cliquée glisserait.
     expect(result()).toMatchObject({ roll: 61, die: 51, id: 'haute' });
   });
@@ -158,8 +158,8 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     expect(basse.title, 'plus de raison en infobulle native').toBe('');
     const raison = host.querySelector(`#${basse.getAttribute('aria-describedby')}`);
     expect(raison?.textContent, 'la raison est à l’écran, et le bouton la DÉSIGNE').toContain("hors d'atteinte");
-    expect(rowButton('51-100')!.getAttribute('aria-disabled'), 'une ligne OFFERTE n’est pas éteinte').toBeNull();
-    expect(rowButton('51-100')!.getAttribute('aria-describedby'), 'une ligne atteignable ne désigne aucun refus').toBeNull();
+    expect(rowButton('51–100')!.getAttribute('aria-disabled'), 'une ligne OFFERTE n’est pas éteinte').toBeNull();
+    expect(rowButton('51–100')!.getAttribute('aria-describedby'), 'une ligne atteignable ne désigne aucun refus').toBeNull();
     act(() => { basse.click(); });
     expect(result(), 'une ligne inatteignable ne pose aucun dé').toBeUndefined();
   });
@@ -191,7 +191,7 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
     pressEnter(input!);
     expect(result()).toMatchObject({ roll: 12, id: 'basse' });
     // La grille reste servie elle aussi : re-choisir une ligne re-pose le dé.
-    act(() => { rowButton('51-100')!.click(); });
+    act(() => { rowButton('51–100')!.click(); });
     expect(result()).toMatchObject({ roll: 51, id: 'haute' });
   });
 
@@ -315,7 +315,7 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
     // deux frappes laisserait le roulement en cours, pas le verdict).
     openTable(10);
     render();
-    act(() => { rowButton('51-100')!.click(); });
+    act(() => { rowButton('51–100')!.click(); });
     render();
     const chip = host.querySelector('.rm-roll.table .rm-roll-dice')?.textContent ?? '';
     expect(chip, 'la pastille porte le dé naturel, pas celui qui a résolu la ligne').toContain('51');
@@ -326,7 +326,7 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
     setDesFixes(true);
     openTable(-10);
     render();
-    act(() => { rowButton('51-100')!.click(); });
+    act(() => { rowButton('51–100')!.click(); });
     render();
     // La PASTILLE de dé (et elle seule) : le libellé de la ligne contient déjà « 51 », il ne prouve rien.
     const chip = host.querySelector('.rm-roll.table .rm-roll-dice')?.textContent ?? '';
@@ -358,6 +358,24 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
     const noteId = off[0].getAttribute('aria-describedby');
     expect(noteId, 'la ligne éteinte ne pointe aucune raison visible').toBeTruthy();
     expect(host.querySelector(`#${noteId}`)?.textContent ?? '').toContain('grisée');
+  });
+
+  it('RAISON du grisage : elle nomme le modificateur quand il y en a un, et lui seul', () => {
+    const raison = () => host.querySelector('[id$="-unreachable"]')?.textContent ?? '';
+    setDesFixes(true);
+    openTable(-60);
+    render();
+    expect(raison()).toContain("hors d'atteinte avec le modificateur −60 (dé de 1 à 100).");
+    const T_HORS = 'test-table-mode-ui-hors-faces';
+    registerTableStep(T_HORS, {
+      label: 'Table au-delà des faces',
+      die: 100,
+      rows: [{ min: 1, max: 100, id: 'dans' }, { min: 101, max: 150, id: 'au-dela' }],
+      lines: (die) => [`dé ${die}`],
+    });
+    openTable(undefined, T_HORS);
+    render();
+    expect(raison()).toBe("1 ligne grisée : hors d'atteinte (dé de 1 à 100).");
   });
 
   it('POSITION STABLE du champ : même ordre à l’écran avant et après le tirage', () => {

@@ -17,7 +17,7 @@ const mkEnemy = (id: string): Combatant =>
     id, name: id, kind: 'enemy', size: 'moyenne',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: { current: 12, max: 12, base: 12 }, conditions: [], skills: [], talents: [], items: [],
-    weapons: [], armour: {}, advantage: 0, traits: [], bodyShape: 'biped',
+    weapons: [], armour: {}, advantage: 0, traits: [], bodyShape: 'humanoide',
   }) as unknown as Combatant;
 
 // Les deux describes arment `vi.useFakeTimers()` en beforeEach : on RESTAURE les vrais timers après
@@ -33,7 +33,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
 
   it('Critique ennemi↔ennemi → AUCUNE modale (journal seul)', () => {
     const log: string[] = [];
-    applyCriticalToTarget(mkEnemy('e1'), 'corps', true, 0, log, useGame.setState,
+    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, useGame.setState,
       { ctx: { attackerId: 'e2', attackerKind: 'enemy' }, get: useGame.getState });
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(log.length).toBeGreaterThan(0); // le détail vit dans le journal
@@ -41,7 +41,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
 
   it('un HÉROS inflige le Critique à un ennemi → séquence inline (panneau grave)', () => {
     const log: string[] = [];
-    applyCriticalToTarget(mkEnemy('e1'), 'corps', true, 0, log, useGame.setState,
+    applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, useGame.setState,
       { ctx: { attackerId: 'h1', attackerKind: 'hero' }, get: useGame.getState });
     const crit = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();
@@ -51,7 +51,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
   it('un HÉROS subit le Critique → séquence inline (panneau grave)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     const log: string[] = [];
-    applyCriticalToTarget(hero, 'corps', true, 0, log, useGame.setState,
+    applyCriticalToTarget(hero, 'corps', 0, log, useGame.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: useGame.getState });
     const crit = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();

@@ -6,7 +6,7 @@
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { Fragment, useEffect, useId, useMemo, useState } from 'react';
+import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
@@ -15,7 +15,7 @@ import { serializeDataset } from '../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../data/schemas/validate';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import * as fs from '../../data/fsPersist';
-import { estDerive, inferFields, type FieldDesc } from './editFields';
+import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from './editFields';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from './registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../engine/activities';
@@ -24,7 +24,7 @@ import { weatherCondition } from '../../engine/travelStages';
 import { weatherIdSchema } from '../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../data/schemas/defs/water-exposure';
-import { RefField, refFieldCfg, libelleDeDataset } from './RefField';
+import { RefField, cfgDeLaFeuille, refFieldCfg, libelleDeDataset } from './RefField';
 import { DescRefField } from './DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { Icon } from '../Icon';
@@ -246,8 +246,8 @@ function ruleValueErrors(entry: Entry): string[] {
     if (kind === 'flag' && typeof v !== 'boolean') out.push(`${champ} : un interrupteur (kind « flag ») vaut un booléen, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
     if (kind === 'param' && typeof v !== 'number') out.push(`${champ} : un nombre (kind « param ») vaut un nombre, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
     if (kind === 'mode') {
-      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs de \`options\``);
-      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des \`options\` (${options.join(', ')})`);
+      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs proposées`);
+      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des valeurs proposées (${options.join(', ')})`);
     }
   };
   check('default', entry.default);
@@ -299,6 +299,12 @@ function LignesFormatLivreField({ label, hint, value, onCommit }: { label: strin
 /** Axes du PROFIL de manœuvre rendus par `ManeuverDefField` (selects/checkbox). */
 const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'advantageCost', 'advantageMode', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic'];
 
+/** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
+const porteAlsoIn = (categoryKey: string): boolean => {
+  const ds = editableDataset(categoryKey);
+  return ds !== undefined && noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+};
+
 /**
  * Clés de champ COUVERTES par un éditeur dédié (sorties du formulaire générique inféré), PAR catégorie.
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
@@ -330,7 +336,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657)
   if (categoryKey === 'talents') add('combat', 'test');
   if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563)
-  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
+  if (porteAlsoIn(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
   if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
@@ -411,7 +417,26 @@ export function editableEntries(categoryKey: string): Entry[] {
 type CodexEditProps = { categoryKey: string; onClose: () => void }
   & ({ isNew: true; id?: undefined } | { isNew?: false; id: string });
 
-export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
+/** Connexion au dossier `src/data` : elle survit au changement d'entrée, qui remonte l'atelier. */
+type ConnexionDonnees = { dir: FileSystemDirectoryHandle | null; needsGrant: boolean; echec: string };
+type ConnexionProps = { connexion: ConnexionDonnees; setConnexion: Dispatch<SetStateAction<ConnexionDonnees>> };
+
+/** Identité de l'entrée éditée (`catégorie#id`) : un changement d'entrée REMONTE l'atelier, dont l'état
+ *  (`entry`, brouillon, erreurs) ne rend jamais l'entrée précédente sous la catégorie suivante. */
+const identiteDEntree = (categoryKey: string, id: string | undefined, isNew: boolean | undefined): string => `${categoryKey}#${isNew ? '(neuve)' : (id ?? '')}`;
+
+export function CodexEdit(props: CodexEditProps) {
+  const [connexion, setConnexion] = useState<ConnexionDonnees>({ dir: null, needsGrant: false, echec: '' });
+  useEffect(() => {
+    fs.restoreDataDir().then(
+      (r) => { if (r) setConnexion((c) => ({ ...c, dir: r.handle, needsGrant: !r.granted })); },
+      (e) => setConnexion((c) => ({ ...c, echec: `Échec de la reconnexion à src/data : ${String(e)}` })),
+    );
+  }, []);
+  return <AtelierDEntree key={identiteDEntree(props.categoryKey, props.id, props.isNew)} {...props} connexion={connexion} setConnexion={setConnexion} />;
+}
+
+function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexion }: CodexEditProps & ConnexionProps) {
   // SOURCE de données UNIFIÉE (tableau d'entités OU dataset-objet) → la même UI de formulaire édite les
   // deux formes : tableau (une entité par item Codex) et objet unique (`details`, fiches de règle).
   // `entries` = échantillons pour `inferFields` ; `initial` = l'objet édité ;
@@ -446,22 +471,13 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
   // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
   const libelle = entryKey(entry).trim() || categoryByKey(categoryKey)!.label;
-  const [dir, setDir] = useState<FileSystemDirectoryHandle | null>(null);
-  const [needsGrant, setNeedsGrant] = useState(false);
+  const { dir, needsGrant } = connexion;
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
   const fsApi = fs.fsApiDisponible();
   // Refus de SCHÉMA (contrat de donnée #176) : message champ-par-champ (validateDataset) quand la donnée
   // sérialisée ne parse pas son schéma zod — l'écriture disque est bloquée. Effacé à toute ré-édition.
   const [schemaError, setSchemaError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fs.restoreDataDir().then(
-      (r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } },
-      (e) => setMsg(`Échec de la reconnexion à src/data : ${String(e)}`),
-    );
-  }, []);
-  useEffect(() => { setEntry(structuredClone(src.initial)); setDirty(false); setMsg(''); setSchemaError(null); }, [src]);
 
   // L'apparence (MonsterPartsFields) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
   // sort du formulaire générique (sinon rendus en JSON brut). Les autres champs gardent le formulaire
@@ -519,7 +535,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
   // éditeurs DÉRIVENT de la liste blanche du dataset (`VARIANT_FIELDS_BY_CATEGORY`).
   const variantFields = VARIANT_FIELDS_BY_CATEGORY[categoryKey];
   // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563) — AlsoInField.
-  const hasAlsoIn = ['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures'].includes(categoryKey);
+  const hasAlsoIn = porteAlsoIn(categoryKey);
   // Compétence/Talent : `specs` = SpecEntry[] ({id,label}).
   const hasSpecs = categoryKey === 'skills' || categoryKey === 'talents';
   // Avancement (espèce / niveau de carrière) : `skills`/`talents` = AdvancementRef[] (réf/joker/choix/aléatoire).
@@ -620,8 +636,8 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
   // Une saisie que l'enregistrement ne poserait pas (source incomplète, rangée `alsoIn`, clé de record en conflit) le bloque.
   const saisies = useSuiviDesSaisies();
   const canSave = dirty && errors.length === 0 && !saisies.enCours && rangee.faute === undefined;
-  // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs ; le formulaire se remonte quand elle change.
-  const porteurEntree = `${categoryKey}#${isNew ? '(neuve)' : (id ?? '')}`;
+  // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs.
+  const porteurEntree = identiteDEntree(categoryKey, id, isNew);
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
 
   const save = async () => {
@@ -656,16 +672,16 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
       <div className="codex-edit-bar">
         {!fsApi && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
         {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
-          (h) => { if (h) { setDir(h); setNeedsGrant(false); } },
+          (h) => { if (h) setConnexion((c) => ({ ...c, dir: h, needsGrant: false })); },
           (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
         )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
         {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
-          (ok) => { if (ok) setNeedsGrant(false); },
+          (ok) => { if (ok) setConnexion((c) => ({ ...c, needsGrant: false })); },
           (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
         )}>Autoriser l'écriture</button>}
         {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
         <span className="de-spacer" />
-        {msg && <span className="de-msg">{msg}</span>}
+        {(msg || connexion.echec) && <span className="de-msg">{msg || connexion.echec}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
         <button className="btn small btn-primary" disabled={!canSave} onClick={save}>Enregistrer{dirty ? ' •' : ''}</button>
       </div>
@@ -682,13 +698,13 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         </ul>
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
-      <div className="codex-edit-form" key={porteurEntree}>
+      <div className="codex-edit-form">
         {hasAppearance && <AppearanceField label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
             racine="critique"
-            desc="jet de la rangée (nœud `test` — Difficulté, compétence, conséquences des deux branches)"
+            desc="jet de la rangée (Difficulté, compétence, conséquences des deux branches)"
             value={entry.test as NoeudTest | undefined}
             onChange={(v) => edit('test', v)}
           />
@@ -829,7 +845,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {isDetails && <DetailsTextsField value={entry.texts as DetailsTexts | undefined} onChange={(v) => edit('texts', v)} />}
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
         {isStructure && <TraitListField label="Atouts" hint="(Résistant/Impénétrable — ADE II 8)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
-        {isRace && <TraitListField label="Trait racial" hint="(#572 — Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
+        {isRace && <TraitListField label="Trait racial" hint="(Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
         {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
@@ -1276,7 +1292,7 @@ function AlsoInField({ chemin, value, onChange }: { chemin: string; value: Secon
   };
   return (
     <div className="ed-field">
-      <span>autres emplacements (`alsoIn`, #563) — l'ancre (`source`) ci-dessus reste seule à porter la desc</span>
+      <span>Autres emplacements dans les livres — la description se lit à la source principale ci-dessus</span>
       {rangees.map((r, i) => (
         <div className="ed-field" key={r.cle}>
           <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
@@ -1319,7 +1335,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
   const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
-      <span>variantes réglées par règle optionnelle (#563/#564 — gatées par le MODULE, jamais par la source)</span>
+      <span>Variantes selon une règle optionnelle — chacune s'applique quand sa règle est activée</span>
       {list.map((v, i) => (
         <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
@@ -1794,6 +1810,8 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
 
+  const cfgDId = kind === 'text' ? cfgDeLaFeuille(field.noeud) : undefined;
+  if (cfgDId) return <RefField cfg={cfgDId} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
   if (kind === 'stringList') {
     const list = (value as string[]) ?? [];
     const set = (next: string[]) => onChange(next);
@@ -1834,7 +1852,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     const valeurs = field.valeurs;
     return (
       <label className="ed-field"><span>{label}</span>
-        <select aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value || (field.nullable ? null : e.target.value))}>
+        <select aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value || (field.nullable ? videDuNoeud(field.noeud) : e.target.value))}>
           {field.nullable && <option value="">— (aucun)</option>}
           {Object.keys(valeurs).map((v) => <option key={v} value={v}>{valeurs[v]}</option>)}
         </select>
@@ -1846,14 +1864,14 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       <div className="ed-field">
         <span>{label}</span>
         <EnsembleDeCases nom={nom} options={Object.entries(field.valeurs)} value={value as string[] | undefined}
-          facultatif={admetLAbsence(field.noeud) ?? field.nullable} onChange={onChange} />
+          facultatif={field.nullable} onChange={onChange} />
       </div>
     );
   }
   if (kind === 'textarea')
     return <ProseField label={label} ariaLabel={nomPositionne} value={(value as string) ?? ''} onChange={onChange} />;
   if (kind === 'number')
-    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? null : 0))} /></label>;
+    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? videDuNoeud(field.noeud) : 0))} /></label>;
   if (kind === 'checkbox')
     return <label className="ed-check"><input type="checkbox" aria-label={nomPositionne} checked={!!value} onChange={(e) => onChange(e.target.checked)} /><span>{label}</span></label>;
   if (kind === 'source') return <SourceRefField identite={chemin} label={label} sujet={sujet} facultative={field.nullable} value={value as SourceRef | undefined} onChange={onChange} />;
@@ -1873,22 +1891,16 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     // `no-json-fields.test`) retombe sur le MÊME éditeur générique que les tableaux top-level
     // (`GenericArrayField`) plutôt que `JsonField` — y compris quand CETTE instance vaut `null`/absent
     // (champ optionnel non renseigné sur cette entrée : `GenericArrayField` démarre vide, « + Ajouter »
-    // fonctionnel). `JsonField` ne reste qu'un filet pour une forme vraiment hors gabarit (tableau de
-    // tableaux…), aucun cas réel actuel.
-    if (value == null || (Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x))))
+    // fonctionnel) quand son nœud admet une liste. `JsonField` reste le filet d'une forme hors gabarit
+    // (tableau de tableaux, nœud sans contrôle typé).
+    if (offreDesRangees(field, value))
       return <GenericArrayField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown>[] | undefined} noeud={field.noeud} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
     return <JsonField label={label} sujet={sujet} value={value} onChange={onChange} />;
   }
   // `fige` : valeur POSÉE par le def — affichée, jamais saisie (un champ ouvert à la frappe dont une
   // seule valeur parse est une affordance qui ment).
   if (field.fige) return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} readOnly /></label>;
-  return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(field.nullable && e.target.value === '' ? null : e.target.value)} /></label>;
-}
-
-/** Le NŒUD du champ admet-il l'absence ? `undefined` quand l'appelant ne tient pas de nœud. */
-function admetLAbsence(noeud: unknown): boolean | undefined {
-  const n = noeud as { safeParse?: (v: unknown) => { success: boolean } } | undefined;
-  return n?.safeParse ? n.safeParse(undefined).success : undefined;
+  return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(field.nullable && e.target.value === '' ? videDuNoeud(field.noeud) : e.target.value)} /></label>;
 }
 
 /** ENSEMBLE de valeurs d'un enum : une case par option, cochée quand la valeur est portée. Une valeur
@@ -2022,9 +2034,8 @@ function retenirLesCles(rangees: readonly RangeeDeRecord[]): RangeeDeRecord[] {
  *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. */
 function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown> | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>) => void }) {
   const obj = value ?? {};
-  // Régime PROFONDEUR : un sous-champ nommé `id`/`maison` n'est pas le champ d'enveloppe du même nom —
-  // il reste en clé technique, sa méta relève de la dérivation des widgets (#1466 L6). Le NŒUD, lui,
-  // redescend : les libellés de VALEURS d'un enum nommé valent à toute profondeur (#1694).
+  // Régime PROFONDEUR (`libelleDuChamp`) : un sous-champ se nomme par la méta de SON nœud objet, jamais
+  // par l'enveloppe ; le nœud porte aussi les libellés de VALEURS de ses enums nommés (#1694).
   const subFields = useMemo(() => inferFields([obj], { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [obj, noeud]);
   return (
     <div className="ed-field ed-subform">
@@ -2051,8 +2062,7 @@ function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin:
  *  de champs) ou démarre vide si le tableau l'est. */
 function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, columns }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown>[] | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>[]) => void; columns?: FieldDesc[] }) {
   const list = value ?? [];
-  // Colonnes de PROFONDEUR : même frontière que `ObjectField` (méta de profondeur = #1466 L6 ; le nœud
-  // de rangée porte, lui, les libellés de valeurs de ses enums nommés, #1694).
+  // Colonnes de PROFONDEUR : même régime que `ObjectField`, nommées par le nœud de rangée.
   const selfCols = useMemo(() => inferFields(list, { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [list, noeud]);
   const cols = columns ?? selfCols;
   const nestedCols = useMemo(() => {

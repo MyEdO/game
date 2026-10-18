@@ -69,7 +69,7 @@ describe('cannotStopOn — qui interdit l\'arrêt sur quelle case', () => {
 
   it('ignore les combattants hors d\'action et soi-même', () => {
     const hero = C('h', 6, 10, 'moyenne');
-    const dead = { ...C('d', 8, 10, 'petite'), wounds: { current: 0, max: 10 } } as Combatant;
+    const dead = { ...C('d', 8, 10, 'petite'), dead: true } as Combatant;
     expect(cannotStopOn(battleOf([hero, dead]), hero).has('8,10')).toBe(false);
   });
 });

@@ -3,9 +3,11 @@ import { useGame } from '../../state/store';
 import { FLOWS } from '../../state/rollFlowSpecs';
 import { HitLocation, type Combatant, type Weapon } from '../../engine/types';
 import type { RollLabelRef } from '../RollLine';
-import { crowdMod, bestRangedDefense, locationLabel, weaponInflictsFlames, attackTestOf, isHelplessTarget } from '../../engine/combat';
+import { rule } from '../../engine/policy';
+import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique } from '../../engine/combat';
 import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
+import { peutEtreEmpoigne } from '../../engine/grapple';
 import { combatDistance } from '../../state/footprint';
 import { attackWeaponOf, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
 import { t } from '../../i18n';
@@ -88,6 +90,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // MOTEUR, la même que celle qui pèsera sur la cible (`attackModifiers`).
   const offPen = offHandPenalty(attacker);
   const res = pa.result;
+  const issue = res ? issueAuJet(target, coupAApplique(res, pa.grapple, target)) : null;
   const rolled = !!res;
   // LDB 10 l.767-773
   const dualEligible = !res && armeTenue && attacker.kind === 'hero' && attackModesFor(attacker).includes('dual-wield')
@@ -119,10 +122,10 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // ADE II 02 l.677
   const objetSource = weapon ? objetSourceDeLArme(attacker, weapon) : undefined;
   const canHarpoonRopeCut = !res && weapon?.type === 'ranged' && attacker.kind === 'hero' && !!objetSource && itemCapability(objetSource, 'ropeMode');
-  // AA 07 l.59-61
-  const canWithhold = !res && weapon?.type === 'melee' && attacker.kind === 'hero' && !weaponInflictsFlames(weapon);
+  // LDB 18 l.30 ; AA 07 l.59, l.61
+  const canWithhold = !res && attacker.kind === 'hero' && !!weapon && peutRetenirSesCoups(weapon);
   // LDB 14 l.159
-  const canGrapple = !res && weapon?.type === 'melee' && isUnarmed(weapon) && attacker.kind === 'hero';
+  const canGrapple = !res && weapon?.type === 'melee' && isUnarmed(weapon) && attacker.kind === 'hero' && peutEtreEmpoigne(target);
   // Panneau pré-rempli (l'avant-jet = le résultat, pré-rempli) : MA ligne (score + mods) recalculée à
   // chaque changement d'option ; la ligne adverse via `previewDefense` (compétence + mods, sans valeur).
   const preview = !res ? previewAttack(useGame.getState, attacker, target, pa.location ?? undefined, { intoCrowd: pa.intoCrowd, heldGround: pa.heldGround, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon }) : null;
@@ -309,7 +312,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
                 <Icon id="melee/pulled-punch" size="sm" /> Retenir ses coups
               </button>
               <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
-              {pa.withhold && <span className="rm-note" data-ton="discret">Non létal : Critique seulement si la cible tombe à 0 ; sans Empaleuse/Percutante/Perforante/Taille.</span>}
+              {pa.withhold && <span className="rm-note" data-ton="discret">{rule('combat-aa-blessures') === 'aa'
+                ? 'Non létal : Critique seulement si la cible tombe à 0 ; sans Empaleuse/Percutante/Perforante/Taille.'
+                : 'Non létal : tout Coup Critique est ignoré.'}</span>}
             </Row>
           )}
           {canGrapple && (
@@ -335,22 +340,22 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     rows,
     winnerIndex: res?.defenderDetail ? (res.hit ? 0 : 1) : undefined,
     netSL: res?.defenderDetail ? res.netSL : undefined,
-    // Issue = LA ligne de journal du moteur (`res.log` : « X touche Y (loc) : N − (BE+PA) = Z Blessures »),
-    // pas une ligne condensée dupliquée. Source unique, le calcul des Dégâts est visible dans la popin.
+    // Issue = LA ligne de touche du moteur (`issueAuJet`), pas une ligne condensée dupliquée.
     // #1004 : quand une fenêtre de Défense va s'interposer (`surfacedDefensePending`, MÊME prédicat que
     // `openSurfacedDefense`), `res` est une résolution `defense:'none'` contre PERSONNE — son verdict et
     // ses Dégâts seraient invalidés par l'opposition qui suit. Il n'y a alors AUCUNE issue : seule une
     // ATTENTE s'affiche (zone d'état, `postRollExtra`) ; le verdict réel s'énonce après la Défense.
     outcome: res && !awaitingDefense
       ? [recapLineOfEvent(
-          ev(res.critical ? 'crit' : res.hit ? 'damage' : 'attack', res.log, attacker.id, target.id),
+          ev(issue?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : 'attack', issue?.ligne ?? res.log, attacker.id, target.id),
           battle.combatants,
         )]
       : undefined,
     postRollExtra: res && awaitingDefense
       ? <p className="rm-note" data-ton="attente">{t('defense.awaiting', { cible: target.label })}</p>
       : undefined,
-    forcedExtra: res?.critical && pa.forced ? <CritLocationPicker current={res.critLocation} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
+    // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
+    forcedExtra: res && pa.forced && issue?.compte.relance ? <CritLocationPicker current={res.critLocation} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
       { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' } as RollAction,
       confirmerLeCoup(awaitingDefense, confirm),

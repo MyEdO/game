@@ -6,7 +6,8 @@ import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { draineCascade } from './cascadeTestKit';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
-import { resolveCritique, critTableRows, critSeverityReduction } from '../engine/critical';
+import { resolveCritique, critTableRows } from '../engine/critical';
+import { bonus, effectiveChar } from '../engine/characteristics';
 import { critiqueTable, critTableKeyFor } from '../data/criticals';
 import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
@@ -26,9 +27,8 @@ import { OPS_DIFFEREES } from './combatEffects';
 /**
  * SÉVÉRITÉ d'une Blessure critique en SEAM (#942 L4) — le d100 du Tableau des Critiques (LDB 18) est
  * une étape à TABLE de la séquence : tiré par le résolveur unique `rollTableStep`, injecté au moteur
- * en `forcedRoll` (dé NATUREL — `resolveCritique` applique LUI-MÊME la réduction d'overkill, LDB 18 l.17
- * verbatim « vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de
- * 01 »), et POSABLE (option « Dés fixés » + siège qui contrôle la victime) avant que le coup ne soit
+ * en `forcedRoll` (dé NATUREL — `resolveCritique` applique LUI-MÊME le modificateur du régime,
+ * LDB 18 l.17), et POSABLE (option « Dés fixés » + siège qui contrôle la victime) avant que le coup ne soit
  * résolu. Sans l'option, le chemin reste bit-à-bit celui d'avant (sonde différentielle ci-dessous).
  */
 
@@ -48,7 +48,7 @@ function startFight(seed = 7) {
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const E = b.combatants.find((c) => c.kind === 'enemy')!;
-  H.armour = { ...SANS_PA }; // aucune PA → la Déviation Critique (LDB 63) ne s'offre pas : on isole la fenêtre de sévérité
+  H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); H.armour = { ...SANS_PA }; // aucune PA → la Déviation Critique (LDB 63) ne s'offre pas : on isole la fenêtre de sévérité
   return { H, E };
 }
 
@@ -69,34 +69,37 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(desFixes()).toBe(false);
   });
 
-  it('registre : une table déclarée par TABLE de rattachement, lignes = la DONNÉE `criticals.json` (par référence)', () => {
+  it('registre : une table déclarée par TABLE de rattachement, lignes = la DONNÉE `criticals.json` lue par `critTableRows`', () => {
     for (const key of ['tete', 'bras', 'corps', 'jambe'] as const) {
       const def = tableStepDef(CRIT_TABLE_IDS[key])!;
       expect(def, `table « ${key} » non enregistrée`).toBeDefined();
-      expect(def.rows).toBe(critTableRows('ldb', key)); // par RÉFÉRENCE : zéro duplication de fourchettes
+      expect(def.rows).toBe(critTableRows('ldb', key));
       expect(def.die).toBe(100);
     }
     // La projection Localisation → table est celle du moteur (repli Bras compris) : un seul chemin.
-    for (const loc of LOCS) expect(critTableRows('ldb', critTableKeyFor(loc))).toBe(critiqueTable('ldb', loc));
+    for (const loc of LOCS) expect(critTableRows('ldb', critTableKeyFor(loc)).map((r) => r.id)).toEqual(critiqueTable('ldb', loc).map((r) => r.id));
     // La ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
     expect(rollTableStep({ tableId: CRIT_TABLE_IDS.corps, forcedRoll: 46 }, makeRNG(1)).lines[0])
-      .toBe(findTableEntry(critiqueTable('ldb', 'corps'), 46).label);
+      .toBe(findTableEntry(critTableRows('ldb', 'corps'), 46).label);
   });
 
-  it('déclaration : la réduction d’overkill est un `mod` NÉGATIF, et la table BORNE à 01 (LDB 18 l.17)', () => {
+  it('déclaration : le −20 de 0 < dépassement < BE est un `mod` NÉGATIF, et la table BORNE à 01 (LDB 18 l.17 ; #1595 c.6222318751)', () => {
     const { H } = startFight();
-    expect(critSeverityReduction(H, 0)).toBe(0);
-    const gros = 99; // dépassement très supérieur au Bonus d'Endurance → réduction
-    expect(critSeverityReduction(H, gros)).toBe(20);
-    const decl = critSeverityDecl(H, 'corps', gros);
+    const be = bonus(effectiveChar(H, 'endurance'));
+    expect(be).toBeGreaterThan(1);
+    expect(critSeverityDecl(H, 'corps', 0).mod).toBe(0);
+    expect(critSeverityDecl(H, 'corps', be).mod, 'égalité : pas de −20').toBe(0);
+    expect(critSeverityDecl(H, 'corps', be + 2).mod).toBe(0);
+    const petit = be - 1;
+    const decl = critSeverityDecl(H, 'corps', petit);
     expect(decl).toMatchObject({ tableId: CRIT_TABLE_IDS.corps, spec: { n: 1, sides: 100 }, mod: -20, clamp: true });
     // Dé naturel 7 sous −20 : le dé effectif est BORNÉ à 01 (jamais une levée hors plage), même ligne
     // que le lookup moteur (qui fait son propre `Math.max(1, …)`).
     const rolled = rollTableStep({ ...decl, forcedRoll: 7 }, makeRNG(1));
     expect(rolled).toMatchObject({ roll: 7, die: 1 });
-    expect(rolled.id).toBe(findTableEntry(critiqueTable('ldb', 'corps'), 1).id);
+    expect(rolled.id).toBe(findTableEntry(critTableRows('ldb', 'corps'), 1).id);
     seedBattleRng(3);
-    expect(resolveCritique('ldb', H, 'corps', battleRng(), { overkill: gros, forcedRoll: 7 }).roll).toBe(1);
+    expect(resolveCritique('ldb', H, 'corps', battleRng(), { overkill: petit, forcedRoll: 7 }).roll).toBe(1);
   });
 
   it('SONDE DIFFÉRENTIELLE (option ÉTEINTE) : même ligne ET même flux RNG que le tirage moteur d’avant', () => {
@@ -217,8 +220,9 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // socle la résout au rang du curseur (`cascade.poserLeCurseur`) et le bilan la montre. C'est le
     // MÊME code que pour une table de monde (Météo, événement de bord).
     const { H, E } = startFight();
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     setDesFixes(true);
-    const suspended = applyAttackResult(useGame.getState, useGame.setState, H, E, hache, critHit('corps', 99));
+    const suspended = applyAttackResult(useGame.getState, useGame.setState, H, E, hache, critHit('corps'));
     expect(suspended).toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
@@ -272,7 +276,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       const { crit, table } = resolveCritSeverity(H, 'corps', 0, true);
       expect(table!.result!.roll).toBe(Math.max(a, b));
       expect(crit.roll).toBe(Math.max(a, b));
-      expect(crit.entryId).toBe(findTableEntry(critiqueTable('ldb', 'corps'), Math.max(a, b)).id);
+      expect(crit.entryId).toBe(findTableEntry(critTableRows('ldb', 'corps'), Math.max(a, b)).id);
     }
   });
 
@@ -287,7 +291,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     seedBattleRng(5);
     const { crit } = resolveCritSeverity(H, 'corps', 0, true, 42);
     expect(crit.roll, 'le dé posé a été écrasé par le multiplicateur de lancers').toBe(42);
-    expect(crit.entryId).toBe(findTableEntry(critiqueTable('ldb', 'corps'), 42).id);
+    expect(crit.entryId).toBe(findTableEntry(critTableRows('ldb', 'corps'), 42).id);
   });
 
   /**

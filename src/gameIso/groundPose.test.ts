@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { groundStateOf } from './groundPose';
+import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
 const mk = (over: Partial<Combatant>): Combatant =>
@@ -18,8 +19,17 @@ describe('état au sol pour le rendu (groundStateOf)', () => {
   it('Inconscient ou hors de combat → corpse (effondré) — prime sur À Terre', () => {
     expect(groundStateOf(mk({ conditions: [{ id: 'inconscient', value: 1 }, { id: 'a-terre', value: 1 }] } as Partial<Combatant>))).toBe('corpse');
     expect(groundStateOf(mk({ dead: true }))).toBe('corpse');
-    // Figurant (Mort Subite) à 0 PB → hors de combat ; un HÉROS à 0 PB reste actif (LDB 18 l.15).
-    expect(groundStateOf(mk({ kind: 'enemy', wounds: { current: 0, max: 10 } }))).toBe('corpse');
-    expect(groundStateOf(mk({ wounds: { current: 0, max: 10 } }))).toBeNull();
+  });
+
+  describe('figurant à 0 PB exact', () => {
+    afterEach(() => resetRule('combat-aa-blessures'));
+    it("'ldb' : pas de dépassement, toujours en jeu (LDB 18 l.15, l.46)", () => {
+      expect(groundStateOf(mk({ kind: 'enemy', wounds: { current: 0, max: 10 } }))).toBeNull();
+    });
+    it("'aa' : Mort Subite à 0 Blessure → corpse (AA 07 l.65) ; un HÉROS à 0 reste actif (AA 07 l.67)", () => {
+      setRule('combat-aa-blessures', 'aa');
+      expect(groundStateOf(mk({ kind: 'enemy', wounds: { current: 0, max: 10 } }))).toBe('corpse');
+      expect(groundStateOf(mk({ wounds: { current: 0, max: 10 } }))).toBeNull();
+    });
   });
 });

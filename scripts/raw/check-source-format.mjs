@@ -48,6 +48,11 @@
 // `node scripts/raw/reparer-titres.mjs <id>`. Le prédicat est celui de la réparation
 // (`lib/titres-soudes.mjs`), importé, jamais redit.
 //
+// TRAIT D'UNION VERBE-PRONOM (famille `imperatif-soude`, #1595) : sur tous les `.md` de tout dossier FR,
+// un pronom soudé à son verbe ou détaché d'une espace est un ROUGE NOMMÉ, sans stock — le geste est
+// de rendre le trait d'union au `.md`, puis `npm run raw:reanchor`. Le prédicat et ses exemptions au
+// site vivent dans `scripts/guards/lib/imperatifSoude.mjs`.
+//
 // Re-run    : node scripts/raw/check-source-format.mjs
 // Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs [--lot <#N …>] — le
 // lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
@@ -61,9 +66,10 @@ import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from
 import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
 import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
-import { exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
+import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
+import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-format-stock.json')
 
@@ -351,13 +357,13 @@ export const grainAll = (dossiers = dossiersFR()) => dossiers.flatMap((d) => gra
  * chaque site NON exempté, puis chaque exemption qui ne couvre pas exactement ses `jetons` sites —
  * `{ file, ref }`. PURE.
  */
-export const rougesDuMobilier = (sites, exemptions = EXEMPTIONS_MOBILIER) => [
+export const rougesAuSite = (sites, exemptions = EXEMPTIONS_MOBILIER) => [
   ...sites.filter((s) => !s.exemption).map((s) => ({ file: s.fichier, ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}` })),
   ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ file: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.motif}` })),
 ]
 
 /**
- * MOBILIER DE PAGE de tous les dossiers FR dont le livre a des `onglets` (`rougesDuMobilier`).
+ * MOBILIER DE PAGE de tous les dossiers FR dont le livre a des `onglets` (`rougesAuSite`).
  * @param {string[]} [dossiers] @param {object[]} [exemptions]
  */
 export function mobilierAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_MOBILIER, avecListe = livresDecoupes()) {
@@ -367,7 +373,19 @@ export function mobilierAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_MOB
     const textes = new Map(lireDossier(d).map((f) => [f.nom, f.texte]))
     return mobilierDuDossier(cheminDe(d), (nom) => textes.get(nom) ?? '', decoupeDe(livre.id), ongletsDe(livre.id), { exemptions })
   })
-  return rougesDuMobilier(sites, exemptions)
+  return rougesAuSite(sites, exemptions)
+}
+
+/**
+ * TRAIT D'UNION VERBE-PRONOM de tous les `.md` des dossiers FR (`rougesAuSite`).
+ * @param {string[]} [dossiers] @param {object[]} [exemptions] @param {(d: string) => { nom: string, texte: string }[]} [lire]
+ */
+export function imperatifsSoudesAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_IMPERATIF_SOUDE, lire = lireDossier) {
+  const sites = dossiers.flatMap((d) => lire(d).flatMap(({ nom, texte }) => {
+    const fichier = `${cheminDe(d)}/${nom}`
+    return exempter(sitesImperatifSoude(texte).map((s) => ({ ...s, fichier })), fichier, exemptions)
+  }))
+  return rougesAuSite(sites, exemptions)
 }
 
 /** Les ROUGES de la famille `titre-soude` d'UN dossier de livre, fichier par fichier dans l'ordre de sa
@@ -498,6 +516,13 @@ function main() {
     for (const t of soudes) console.log(`  ${t.file} — ${t.ref}`)
   }
 
+  // TRAIT D'UNION VERBE-PRONOM : rouge nommé, jamais stocké — son geste est de rendre le trait d'union au `.md`.
+  const imperatifs = imperatifsSoudesAll(dossiers)
+  if (imperatifs.length) {
+    console.log(`TRAIT D'UNION VERBE-PRONOM — ${imperatifs.length} site(s) (geste : rendre le trait d'union au .md, puis npm run raw:reanchor) :`)
+    for (const t of imperatifs) console.log(`  ${t.file} — ${t.ref}`)
+  }
+
   const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-format-stock.json' })
   if (neuves.length) {
     console.log('RÉGRESSION — écart(s) hors du stock :')
@@ -507,8 +532,8 @@ function main() {
     console.log('Entrée(s) SOLDÉE(s) (livre ré-extrait) :')
     for (const s of perimees) console.log(`  ${s}`)
   }
-  if (!neuves.length && !perimees.length && !grain.length && !mobilier.length && !soudes.length) {
-    console.log('OK — cliquet aligné, aucune régression, aucun écart au grain, aucun mobilier de page, aucun titre soudé.')
+  if (!neuves.length && !perimees.length && !grain.length && !mobilier.length && !soudes.length && !imperatifs.length) {
+    console.log('OK — cliquet aligné, aucune régression, aucun écart au grain, aucun mobilier de page, aucun titre soudé, aucun trait d’union verbe-pronom perdu.')
     return
   }
   process.exitCode = 1

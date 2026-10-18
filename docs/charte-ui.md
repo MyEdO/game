@@ -581,6 +581,15 @@ l'`actionLabel` écrit au call-site est un **groupe nominal capitalisé sans pon
 rythme », « Mal de mer par mauvais temps »), jamais une valeur dynamique entre parenthèses, un usage
 (« … (boire) ») ni une situation après un tiret. Cliquet : `src/state/roll-action-label-guard.test.ts`.
 
+**Bande de table** : le **tiret demi-cadratin** « – » sépare ses bornes (« 1d100 01–35 », « 1d10 9–10 »,
+« 81+ m »), jamais le trait d'union, qui est le signe d'un modificateur (« -20 »), ni le tiret long,
+séparateur acteur/action. La bande ouverte en haut s'écrit « 96+ », son miroir ouvert en bas « ≤50 » :
+le signe de comparaison ne se lit pas comme un modificateur, ce que ferait « 50− » ou « –50 ». Une borne
+négative prend le signe moins « − » et la bande le séparateur « à » (« DR −4 à −3 », « DR −2 à 0 »,
+« DR ≤−5 ») : « -4–-3 » enchaîne deux traits que l'œil ne départage pas, et le livre écrit lui-même
+« –3 à –4 » (MDG 13 l.74). Graphie unique : `fourchette` (`src/engine/tables.ts`) ; précédée du libellé de
+son dé (« 1d100 01–35 »), `bandeAuDe`, même fichier. Cliquet : `src/ui/bande-en-ligne-guard.test.ts`.
+
 **Règle transverse** : toute nouvelle surface de jet **compose** ces primitives — jamais un markup
 recomposé, jamais une classe de rôle empruntée (`.rm-vs` appartient à `VsHeader`, cliquet
 `src/ui/roll-display-contract.test.tsx`). Une information qui manque se sert par sa zone ; si aucune

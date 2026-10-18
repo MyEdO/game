@@ -143,7 +143,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     seedBattleRng(4);
     setRule('combat-aa-blessures', 'aa');
     const H = setupCoop();
-    H.characteristics.endurance = 1; // Résistance ratée garantie si le jet avait lieu
+    H.characteristics.endurance = 10; // BE 1 : 1 Round à 0 n’excède pas BE (LDB 18 l.15), `tick-death` le laisse conscient
     H.wounds.current = 0;
     addCondition(H, COND.hemorragique, 1);
 
@@ -156,6 +156,21 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     expect(step!.actorId).toBe(H.id);
     expect(modalOwnerOf(g())).toBe(H.id);
     expect(seatOwns(g(), 1, H.id), 'la fenêtre est au siège 1, qui possède le porteur').toBe(true);
+  });
+
+  it('Perte de sang AA, à 0 PB depuis plus de BE Rounds : `tick-death` (LDB 18 l.15 ; #1595 c.6219559935) le fait tomber, pas de Test', () => {
+    seedBattleRng(4);
+    setRule('combat-aa-blessures', 'aa');
+    const H = setupCoop();
+    H.characteristics.endurance = 1; // BE 0 : dès le 1er Round à 0
+    H.wounds.current = 0;
+    addCondition(H, COND.hemorragique, 1);
+
+    franchitLeRound();
+
+    const h = g().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(hasCondition(h, COND.inconscient)).toBe(true);
+    expect(etapes().some((s) => s.kind === 'aaBleedUnconscious'), 'déjà Inconscient : aucun Test à lui soumettre').toBe(false);
   });
 
   it('Durée « + » (LDB 47 l.311) : la prolongation n’est pas tentée d’office, elle devient un CHOIX du porteur', () => {
