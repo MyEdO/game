@@ -638,10 +638,10 @@ test('dérivation : lecture prélue ou directe, mémos passés par JSON froids p
   }
   const stades = []
   const analyses = []
-  const lectures = () => Object.fromEntries([prelu, direct].map((m) => [m, {
+  const lectures = () => tableTotale([prelu, direct], (m) => ({
     stades: stades.filter(([nom, f]) => f === m && (nom === 'prélire' || nom === 'lecture')).map(([nom]) => nom),
     analyses: analyses.filter((f) => f === m).length,
-  }]))
+  }))
   const entree = { racine: dossierDe(t), touches: ['src/a.json'], post: [...modules.keys(), 'src/a.json'], avant: [], memos,
     lire: (rels) => new Map(rels.map((f) => [f, modules.get(f) ?? null])), stade: (nom, f) => { stades.push([nom, f]) },
     analyser: (entrees) => { const lus = [...entrees]; analyses.push(...lus.map((e) => e.rel)); return analyserEnLots(lus) } }

@@ -519,12 +519,6 @@
     },
     {
       "famille": "import non suivi",
-      "fichier": "scripts/guards/lib/tsProgram.test.mjs",
-      "ref": "existsSync : import par défaut ou espace path",
-      "occurrence": 1
-    },
-    {
-      "famille": "import non suivi",
       "fichier": "src/data/racines-vivantes.test.ts",
       "ref": "readFileSync : import ./schemas/_registry.generated non résolu",
       "occurrence": 1
