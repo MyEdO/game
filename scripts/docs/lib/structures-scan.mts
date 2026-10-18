@@ -27,6 +27,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
@@ -309,6 +310,9 @@ export type GroupeEnveloppe = {
   famille: string;
   /** Record : l'identité est portée par la CLÉ de l'entrée, pas par une clé de l'objet. */
   identiteParCle?: boolean;
+  /** `type` du document de RACINE (`typeDuDocument`) : il ouvre les régimes déclarés par type
+   *  (`requiseSelon` d'un rôle). Sans lui, aucun régime d'exemption ne s'applique. */
+  type?: string;
   nbEntrees: number;
   cles: CleNiveau1[];
 };
@@ -1106,6 +1110,7 @@ export function scannerDonnees(
       portee: 'racine',
       famille: p.famille,
       identiteParCle: p.regime === 'valeurs',
+      type: typeDuDocument(p.brut, p.chemin),
       nbEntrees: p.entrees.length,
       cles: documents.find((d) => d.chemin === p.chemin)!.clesNiveau1,
     })),
@@ -1254,8 +1259,9 @@ export function scanDuCorpus(root: string) {
  *   `clé divergente`  — le rôle est porté sous un autre nom que sa cible (`key`/`nom` pour l'identité) ;
  *   `type divergent`  — la clé cible est là, sa classe de type ne l'est pas (`source` en chaîne) ;
  *   `clé absente`     — une ENTRÉE DE RACINE ne porte nulle part la clé cible d'un rôle requis
- *                       (`id`, `type` et `source` partout, `label` sur les familles `entité`/`table`),
- *                       ni l'`alternative` déclarée par le rôle (`maison` pour `source`) ;
+ *                       (`id` et `type` partout, `label` sur les familles `entité`/`table`, `source`
+ *                       sur tout type dont la provenance se mesure, `requiseSelon`), ni
+ *                       l'`alternative` déclarée par le rôle (`maison` pour `source`) ;
  *   `cible partielle` — un rôle `entiere` (le `type` du document) est porté par une PARTIE des
  *                       entrées du groupe, de racine ou EMBARQUÉ.
  * Hors rôle `entiere`, un document EMBARQUÉ ne compte que ses clés DIVERGENTES : il n'est jamais
@@ -1274,7 +1280,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
       if (!def.cible) continue;
       const cible = parCle.get(def.cible);
       if (!cible) {
-        const requise = def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false);
+        const requise =
+          (def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false)) &&
+          (def.requiseSelon === undefined || g.type === undefined || def.requiseSelon(g.type));
         const porteeParCle = role === 'identité' && g.identiteParCle;
         const satisfaitAutrement = def.alternative !== undefined && parCle.has(def.alternative);
         if (requise && !porteeParCle && !satisfaitAutrement && g.portee === 'racine' && g.nbEntrees > 0)

@@ -41,6 +41,7 @@ import {
   signature,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
+import { CONTENU_A_SOURCER, SANS_LIVRE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
 
@@ -1039,6 +1040,30 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
     expect(provenance('muet.json', []), 'ni folio ni arbitrage : le document reste au dénominateur.').toEqual([
       'source | source | clé absente',
     ]);
+  });
+
+  /**
+   * Le rôle `source` se mesure selon `provenanceMesuree` (`src/data/schemas/grammaire/sans-livre.ts`) :
+   * un type cité EN PROFONDEUR ou définitivement SANS LIVRE n'est pas compté ; le CONTENU dont le
+   * sourçage reste dû (L1d #1469) l'est, bien que la fabrique l'exempte.
+   */
+  it('le rôle `source` compte l’absence selon le régime mesuré du type', () => {
+    const muet = (type: string | undefined) =>
+      mesurerEnveloppe([
+        {
+          document: `${type ?? 'anonyme'}.json`, chemin: '(entrées)', portee: 'racine', famille: 'entité', nbEntrees: 2, type,
+          cles: [cle('id', 'string', 2), cle('type', 'string', 2), cle('label', 'string', 2)],
+        },
+      ]).map((e) => `${e.role} | ${e.cle} | ${e.motif}`);
+    const absente = ['source | source | clé absente'];
+    const [enProfondeur] = Object.keys(SOURCE_EN_PROFONDEUR);
+    const definitif = Object.keys(SANS_LIVRE).find((t) => !(t in CONTENU_A_SOURCER));
+    const [aSourcer] = Object.keys(CONTENU_A_SOURCER);
+    expect(muet(enProfondeur), 'EN PROFONDEUR : la racine ne porte jamais de source.').toEqual([]);
+    expect(muet(definitif), 'SANS LIVRE définitif : rien d’exigible.').toEqual([]);
+    expect(muet(aSourcer), 'contenu à sourcer : la dette L1d reste au dénominateur.').toEqual(absente);
+    expect(muet('hors-regime'), 'hors régime : l’absence reste au dénominateur.').toEqual(absente);
+    expect(muet(undefined), 'sans type : aucun régime ne s’applique.').toEqual(absente);
   });
 
   /**
