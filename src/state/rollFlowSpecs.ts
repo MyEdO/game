@@ -1845,11 +1845,9 @@ export const FLOWS = {
       }
       const actorT = { ...rollTest(p.skillValue, p.difficulty, battleRng()), base: p.skillBase };
       if (p.opposition) {
-        // LDB 12 l.160 : les DEUX camps portent leur nue (`resolveRecoverTest`), jamais un seul.
-        // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `p.difficulty` (donnée), l'entrave
-        // roule `intermediaire` — MÊME choix qu'à la voie IA (`runEnemyAI`, `case 'recover'`),
-        // verrouillé par `combat/ai-recover-departage-nue.test`.
-        const oppT = { ...rollTest(p.opposition.value, 'intermediaire', battleRng()), base: p.opposition.base };
+        // LDB 12 l.160 : les DEUX camps portent leur nue ET leur Difficulté (`resolveRecoverTest`), comme
+        // la voie IA (`runEnemyAI`, `case 'recover'`).
+        const oppT = { ...rollTest(p.opposition.value, p.opposition.difficulty, battleRng()), base: p.opposition.base };
         const opp = resolveOpposed(actorT, oppT);
         return { roll: actorT, opponentRoll: oppT, netSL: opp.netSL, success: opp.attackerWins };
       }

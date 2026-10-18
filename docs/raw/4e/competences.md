@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `RecoverResolution`, `ParticipantRow`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `rollCrewRole`, +105 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
+- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `rollCrewRole`, +105 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
 
 ---
 
@@ -636,7 +636,7 @@ Activité Artisanat entre aventures utilise Métier (voir [Activités](activites
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.30, l.298, l.305-308, l.310-312, l.344-346, l.349-364) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `altCharKey`, `ParticipantRow`, `skillAdvantageCap`, `specIdOf`, `rollCrewRole`, `traders`, +86 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/reglesOptionnelles.json`, +48 fichiers
 - `LDB 10` (l.650) → `deplierAjouts`, `lecture-rapide`, `linguistique`, `lire-ecrire`, `lire-sur-les-levres`, `loup-de-mer`, `machoires-d-acier`, `mage-de-guerre`, `magie-des-arcanes`, `magie-du-chaos`, +1 — `src/data/talents.json`, `src/engine/talentEffects.ts`
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `gueule`, `possession-pas-a-sa-taille`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 
 ---
 
@@ -972,7 +972,7 @@ l'Intelligence. (Voir section dédiée.)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.293-294, l.358) → `altCharKey`, `useDefenseJetProps`, `rederiveAttack`, `test-metier-int`, `defenseSubOf`, `heal-wounds`, `heal-bleed`, `skill-advantage`, `guerison`, `intimidation`, +9 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/skills.ts`, +4 fichiers
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `gueule`, `possession-pas-a-sa-taille`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 
 ---
 
@@ -989,7 +989,7 @@ l'Intelligence (Int) pour leur Compétence Langue (Magick).**
 **Sources RAW :** ADE II 2 l.728
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `gueule`, `possession-pas-a-sa-taille`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 
 ---
 

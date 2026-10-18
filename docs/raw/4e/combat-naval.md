@@ -231,7 +231,7 @@ Dangereuse = Incident).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.187-198) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `BargainModalView`, `soutien`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `test-extended-min-sl`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
-- `MDG 12` (l.440-464) → `crewedPenalty`, `warMachineCrewPenalty`, `ReloadModalView`, `placementPenalty`, `crewedFireWeapon`, `shipManeuverParams`, `firedWeapon`, `Weapon`, `tir-de-zone`, `attackModifiers`, +3 — `src/data/qualities.json`, `src/engine/combat.ts`, `src/engine/crewedWeapon.ts`, `src/engine/types.ts`, `src/engine/warMachineCrew.ts`, `src/state/combatArea.ts`, +6 fichiers
+- `MDG 12` (l.440-464) → `crewedPenalty`, `warMachineCrewPenalty`, `ReloadModalView`, `placementPenalty`, `crewedFireWeapon`, `shipManeuverParams`, `crewedTeamRedoublePenalty`, `firedWeapon`, `Weapon`, `tir-de-zone`, +4 — `src/data/qualities.json`, `src/engine/combat.ts`, `src/engine/crewedWeapon.ts`, `src/engine/qualities/dispatch.ts`, `src/engine/types.ts`, `src/engine/warMachineCrew.ts`, +7 fichiers
 
 **État du code.** ✅ (R1) `resolveVolley` dérive l'arme effective de chaque pièce via `crewedFireWeapon(item,
 servantsPrésents)` (exposés non-incapacités) AVANT le calcul de Dégâts → un Canon moyen (Arme d'équipe 3) à 1 servant
@@ -313,7 +313,7 @@ générique (cible = personnage, distance via `sceneMetresPerTile`) l'attrape. L
 [Tir de batterie](#tir-de-batterie-la-bordée) · [Pièces et munitions](#artillerie--pièces-et-munitions).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.466-472) → `crewedPenalty`, `ReloadModalView`, `crewedFireWeapon`, `firedWeapon`, `Weapon`, `tir-de-zone`, `attackModifiers`, `GameState`, `createCombatSlice`, `applyOups` — `src/data/qualities.json`, `src/engine/combat.ts`, `src/engine/crewedWeapon.ts`, `src/engine/types.ts`, `src/state/combatArea.ts`, `src/state/combatFlow.ts`, +3 fichiers
+- `MDG 12` (l.466-472) → `crewedPenalty`, `ReloadModalView`, `crewedFireWeapon`, `crewedTeamRedoublePenalty`, `firedWeapon`, `Weapon`, `tir-de-zone`, `attackModifiers`, `GameState`, `createCombatSlice`, +1 — `src/data/qualities.json`, `src/engine/combat.ts`, `src/engine/crewedWeapon.ts`, `src/engine/qualities/dispatch.ts`, `src/engine/types.ts`, `src/state/combatArea.ts`, +4 fichiers
 
 **État du code.** ✅ Tir de zone (3 bandes RAW, corrige l'ancien +Indice Blessures brut → +Indice Dégâts ; ajoute la
 bande Extrême) ; ✅ Explosion (rayon Indice + États propagés) ; ✅ branche navale (équipage exposé) ; ✅ extensibilité
@@ -391,7 +391,7 @@ d'un personnage (`LDB 18 l.53`) ; ni MDG ni MSRC ne disent quel lancer elle pren
 [combat.md, Talent *Maniement de deux armes*](combat.md#talent-maniement-de-deux-armes--ldb-10-l773)).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.773) → `lancerDeLaSecondeMain`, `useAttackJetProps`, `CriticalResolved`, `TEST_PROLONGATION`, `PendingAttack`, `dualAffordance`, `PendingDualStrike`, `AttackResult`, `RevealEntry`, `resolveDualSecond`, +18 — `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/types.ts`, `src/state/combat/roundHooks.ts`, `src/state/combatFlow.ts`, +5 fichiers
+- `LDB 10` (l.773) → `CombatFeature`, `lancerDeLaSecondeMain`, `dualStrikeDefensePenalty`, `useAttackJetProps`, `CriticalResolved`, `TEST_PROLONGATION`, `PendingAttack`, `dualAffordance`, `PendingDualStrike`, `AttackResult`, +20 — `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/critical.ts`, `src/engine/types.ts`, +7 fichiers
 - `LDB 18` (l.53) → `criticals-ldb-tete`, `CritEntry`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `coup-a-l-il`, `finishDefenseResult`, `frappe-a-l-oreille`, `appliquerMortSubite`, `CritEscalation`, +58 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +13 fichiers
 - `AA 10` (l.13-15, l.127) → `StructureCritEntry`, `BandeOuverte`, `isHealable`, `woundsFromHit`, `cranDeCouvertEnMoins`, `tableDesCritiquesDeStructure`, `soinMagiqueOperant`, `doc`, `rollStructureCritical`, `REPORT_DE_COMBATTANT`, +31 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/data/structures.json`, `src/data/trappings.json`, +16 fichiers
 - `MDG 13` (l.654-674, l.692, l.696) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `greement`, `stationAsPoste`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, +32 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +24 fichiers

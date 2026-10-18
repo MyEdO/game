@@ -307,7 +307,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
   it('MODS AU JET : la 2ᵉ frappe subit la somme ENTIÈRE des pénalités du jeteur (−40)', () => {
     // État Aveuglé ×2 (−20, `LDB 16`) + Maladresse du Round précédent (`LDB 14 l.26` ; −20 en fixture) : deux
     // modificateurs du JETEUR, hors table des Difficultés de Combat — rien à plafonner (l.48/95).
-    const a = combatant({ id: 'A', conditions: [{ id: 'aveugle', value: 2 }] as never, nextActionPenalty: 20, weapons: [
+    const a = combatant({ id: 'A', conditions: [{ id: 'aveugle', value: 2 }] as never, nextActionPenalty: -20, weapons: [
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'main', hands: 1, uid: 'm' },
       { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'main', hands: 1, uid: 'o' },
     ] as never } as never);

@@ -396,7 +396,7 @@ La créature cause la Peur (Indice) aux adversaires. Applique les règles de Peu
 **Sources RAW** : `LDB 85 l.266` — renvoi LDB 21 + Indice défini dans le statbloc
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.253, l.266) → `TraitDef`, `morsure`, `parsePsychTraits`, `StatblockEditor`, `REPORT_DE_COMBATTANT`, `applySwarmBuild`, `spawnMutations`, `attacherMutationsDeSpawn`, `TEST_PROLONGATION`, `effectiveMaxWounds`, +60 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/traits.json`, `src/engine/characteristics.ts`, `src/engine/combat.ts`, +13 fichiers
+- `LDB 85` (l.253, l.266) → `TraitDef`, `morsure`, `parsePsychTraits`, `StatblockEditor`, `REPORT_DE_COMBATTANT`, `applySwarmBuild`, `spawnMutations`, `attacherMutationsDeSpawn`, `TEST_PROLONGATION`, `effectiveMaxWounds`, +61 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/traits.json`, `src/engine/characteristics.ts`, `src/engine/combat.ts`, +13 fichiers
 
 ---
 
@@ -619,7 +619,7 @@ Cette immunité ne supprime pas les afflictions déjà actives de façon permane
 - `LDB 10` (l.1051) → `fearImmuneVs`, `fearSourceFor`, `CombatFeature`, `resolvePsychAI`, `sansPeurVs`, `resolvePeurTest`, `resolveTerreurTest`, `CascadeStepMeta`, `robuste`, `sans-peur`, +8 — `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/psychology.ts`, `src/state/combat/turnHooks.ts`, `src/state/combatFlow.ts`, +1 fichiers
 - `LDB 17` (l.59) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `fr`, +93 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
 - `LDB 21` (l.5-95) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `encounterPsych`, `traitCapabilitiesSchema`, `REPORT_DE_COMBATTANT`, `nightmare`, `PsychAffliction`, `combat-psych`, +83 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +36 fichiers
-- `LDB 85` (l.178-179, l.382-383) → `TraitDef`, `morsure`, `doc`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `attaqueDEcart`, `Formula`, `attaquesNaturelles`, `spawnMutations`, +93 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/traits.json`, +22 fichiers
+- `LDB 85` (l.178-179, l.382-383) → `TraitDef`, `morsure`, `doc`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `attaqueDEcart`, `attaquesNaturelles`, `Formula`, `spawnMutations`, +93 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/traits.json`, +22 fichiers
 
 ---
 

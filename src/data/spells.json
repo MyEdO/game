@@ -13577,6 +13577,7 @@
                 "radius": {
                   "bonusOf": "sociabilite"
                 },
+                "mod": -20,
                 "perSL": {
                   "every": 2,
                   "radiusFormula": {

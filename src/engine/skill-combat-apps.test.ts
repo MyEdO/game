@@ -71,7 +71,7 @@ describe('Applications de combat — substitution sociale (LDB 09 l.207/287)', (
 
 describe('Mode de défense « social » branché dans le moteur (LDB 09 l.287)', () => {
   const fist: Weapon = { name: 'Mains nues', type: 'melee', damage: 0, group: 'brawling', qualities: [] } as unknown as Weapon;
-  const defender = () => mk({ id: 'def', weapons: [fist], skills: [{ id: 'intimidation', advances: 4 } as never], dualStrikeDefensePenalty: true });
+  const defender = () => mk({ id: 'def', weapons: [fist], skills: [{ id: 'intimidation', advances: 4 } as never], dualStrikeDefensePenalty: -10 });
   const attacker = () => mk({ id: 'atk', weapons: [fist], psychState: [{ type: 'peur', sourceId: 'def', indice: 2, calmeDR: 0 } as never] });
 
   it('defenseValue(social) renvoie la base sociale fournie, pas Corps à corps ni Agilité', () => {

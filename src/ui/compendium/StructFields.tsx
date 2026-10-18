@@ -296,7 +296,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
 
 /** Clés NON-booléennes de `CombatFeature` (rendues par des contrôles dédiés) — le RESTE est traité
  *  génériquement comme un drapeau booléen. Source unique pour ne PAS les compter comme des cases. */
-const COMBAT_NON_BOOL = new Set<keyof CombatFeature>(['offHandPenalty', 'attackModes', 'castingKind', 'reverseFailed']);
+const COMBAT_NON_BOOL = new Set<keyof CombatFeature>(['offHandPenalty', 'attackModes', 'dualStrikeDefense', 'castingKind', 'reverseFailed']);
 
 /** Drapeaux booléens de `CombatFeature` (LDB 10) — DÉRIVÉS de la donnée existante (union des clés
  *  présentes dans `talents.json`, moins les clés spéciales) → un nouveau drapeau câblé dans la donnée
@@ -360,6 +360,9 @@ export function CombatField(
             <label className="dr">nulle à<NumberField variant="nu" label="Pénalité de main secondaire — nulle à" value={offHand.zeroAt} onChange={(zeroAt) => emit({ ...c, offHandPenalty: { ...offHand, zeroAt } })} /></label>
           </>
         )}
+      </div>
+      <div className="tf-row">
+        <label className="dr">Pénalité de défense après double frappe<NumberField variant="nu" label="Pénalité de défense après double frappe" value={c.dualStrikeDefense ?? 0} onChange={(v) => emit({ ...c, dualStrikeDefense: v || undefined })} /></label>
       </div>
       <div className="tf-row">
         <label className="dr"><input type="checkbox" checked={!!c.reverseFailed} onChange={(e) => emit({ ...c, reverseFailed: e.target.checked ? { skills: [{ id: '' }] } : undefined })} /> Inverse un Test raté (Sociable…)</label>

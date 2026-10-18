@@ -35,6 +35,9 @@ export interface CombatFeature {
   offHandPenalty?: { perLevel: number; zeroAt: number };
   /** Modes d'attaque ajoutés par la capacité (Maniement de deux armes → ['dual-wield']). */
   attackModes?: string[];
+  /** Pénalité aux défenses du porteur après une double frappe, jusqu'au début de son prochain Tour
+   *  (Maniement de deux armes, LDB 10 l.773). Lue par `dualStrikeDefensePenalty(c)`. */
+  dualStrikeDefense?: number;
   // ── Dégâts (× niveau) ──────────────────────────────────────────────────────
   /** Coup puissant : +niveau Dégâts avec les armes de Corps à corps. */
   meleeDamageBonus?: boolean;

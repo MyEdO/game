@@ -42,6 +42,7 @@ const doc = document(
     min: z.number().optional(),
     max: z.number().optional(),
     kind: enumNomme(KINDS),
+    mod: z.number().optional(),
   },
   {
     min: { label: 'Borne basse du d100' },
@@ -50,6 +51,7 @@ const doc = document(
       label: 'Effet mécanique',
       hint: 'misfire = Incident de Tir, HORS table (LDB 14 folio 160)',
     },
+    mod: { label: 'Modificateur de l’Action suivante', hint: 'Malus d’Action seulement' },
   },
   {
     codex: { keys: ['oups'] },
@@ -59,7 +61,14 @@ const doc = document(
     exiges: ['source'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { kind?: string; min?: number; max?: number };
+        const e = v as { kind?: string; min?: number; max?: number; mod?: number };
+        if ((e.kind === 'actionPenalty') !== (e.mod !== undefined)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['mod'],
+            message: `oups : le modificateur est porté par le seul Malus d’Action (kind « ${e.kind} »).`,
+          });
+        }
         const borne = e.min !== undefined || e.max !== undefined;
         if (e.kind === 'misfire' && borne) {
           ctx.addIssue({

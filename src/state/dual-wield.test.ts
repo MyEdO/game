@@ -123,14 +123,14 @@ describe('applyAttackResult : defer de l’Avantage de l’attaquant', () => {
 describe('−10 à toutes les défenses du dual-wield (LDB 10 l.767-773)', () => {
   it('un défenseur avec le flag pare 10 plus bas (cible) qu’un défenseur sans', () => {
     const { f1 } = setupBattle();
-    const withPen = { ...f1, dualStrikeDefensePenalty: true } as Combatant;
+    const withPen = { ...f1, dualStrikeDefensePenalty: -10 } as Combatant;
     const a = rollMeleeDefender(f1, 'parade', makeRNG(1));
     const c = rollMeleeDefender(withPen, 'parade', makeRNG(1));
     expect(a.target - c.target).toBe(10);
   });
   it('s’applique aussi à l’Esquive (« tous vos lancers défensifs »)', () => {
     const { f1 } = setupBattle();
-    const withPen = { ...f1, dualStrikeDefensePenalty: true } as Combatant;
+    const withPen = { ...f1, dualStrikeDefensePenalty: -10 } as Combatant;
     const a = rollMeleeDefender(f1, 'esquive', makeRNG(2));
     const c = rollMeleeDefender(withPen, 'esquive', makeRNG(2));
     expect(a.target - c.target).toBe(10);
@@ -142,15 +142,18 @@ const hitRes = (over: Partial<AttackResult> = {}): AttackResult => ({
   woundsLost: 0, location: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 2 }, log: 'touche', ...over,
 } as unknown as AttackResult);
 
+/** L'Action « des deux armes » est celle du talent (LDB 10 l.773). */
+const DEUX_ARMES: Partial<Combatant> = { talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] };
+
 describe('chaînage de l’Action « des deux armes »', () => {
   it('main touche → pendingDualStrike ouvert + −10 défense posé ; dualStrikeAttack → 2ᵉ frappe pré-résolue ; confirm → fermé', () => {
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true } as any });
     useGame.getState().attackConfirm();
     const ds = useGame.getState().pendingDualStrike;
     expect(ds).not.toBeNull();
     expect(ds!.offWeaponUid).toBe('o');
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(true);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
 
     useGame.getState().dualStrikeAttack('f2');
     const pa = useGame.getState().pendingAttack;
@@ -162,15 +165,15 @@ describe('chaînage de l’Action « des deux armes »', () => {
   });
 
   it('main MANQUE → pas de 2ᵉ frappe (pendingDualStrike reste null), mais −10 défense quand même posé', () => {
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualMode: true } as any });
     useGame.getState().attackConfirm();
     expect(useGame.getState().pendingDualStrike).toBeNull();
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(true);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
   });
 
   it('main touche et TUE la seule cible à portée → aucun « adversaire disponible » (LDB 10 l.773) : pas de 2ᵉ frappe', () => {
-    const { f1, f2 } = setupBattle();
+    const { f1, f2 } = setupBattle(DEUX_ARMES);
     f2.pos = { x: 7, y: 3 }; // hors d'Allonge de la main secondaire
     f1.wounds.current = 8; // dépassement : Mort Subite du figurant (LDB 18 l.46)
     useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 9, woundsLost: 9 }), dualMode: true } as any });
@@ -180,7 +183,7 @@ describe('chaînage de l’Action « des deux armes »', () => {
     expect(useGame.getState().pendingDualStrike).toBeNull();
     const h = useGame.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(h.advantage, 'une seule frappe a touché : aucun Avantage (LDB 10 l.773)').toBe(0);
-    expect(h.dualStrikeDefensePenalty, 'les deux armes ont été choisies : −10 aux défenses (LDB 10 l.773)').toBe(true);
+    expect(h.dualStrikeDefensePenalty, 'les deux armes ont été choisies : −10 aux défenses (LDB 10 l.773)').toBe(-10);
   });
 });
 
@@ -291,14 +294,14 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
 
   it('survit aux Tours adverses puis est purgé quand le porteur (order[0]) rejoue', () => {
     const { h } = setupBattle();
-    h.dualStrikeDefensePenalty = true;
+    h.dualStrikeDefensePenalty = -10;
     useGame.setState({ battle: { ...useGame.getState().battle!, turn: 0 } });
     useGame.getState().battleEndTurn(); vi.clearAllTimers(); // → f1 : flag de h conservé
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(true);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
     useGame.getState().battleEndTurn(); vi.clearAllTimers(); // → f2 : conservé
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(true);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
     useGame.getState().battleEndTurn(); vi.clearAllTimers(); // franchissement de Round → h (order[0]) : purgé
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(false);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBeUndefined();
   });
 });
 
