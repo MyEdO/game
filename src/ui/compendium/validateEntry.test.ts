@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateEntry } from './CodexEdit';
+import { validateEntry } from '../editor/codex/CodexEdit';
 import { traits, creatures } from '../../data';
 import { datasetArray, DATASET_KEYS } from '../../data/overrides';
 import { entryKey } from './registry';

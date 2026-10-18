@@ -7,7 +7,7 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { CombatField } from './StructFields';
+import { CombatField } from '../editor/codex/StructFields';
 import type { CombatFeature } from '../../engine/combatFeatures/types';
 
 beforeAll(() => {

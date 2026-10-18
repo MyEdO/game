@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
-import { GameOpEditor, OP_LABEL, OP_REF_FIELDS, opRefValue } from './GameOpEditor';
+import { GameOpEditor } from './GameOpEditor';
+import { OP_LABEL, OP_REF_FIELDS, opRefValue } from './refsDOp';
 import type { GameOp } from '../../engine/ops';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';

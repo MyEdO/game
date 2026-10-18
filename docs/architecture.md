@@ -89,6 +89,15 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 
 ## Arborescence
 
+Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
+se réexporte jamais hors de `X/interne/` : la porte de `X/` expose des fonctions qu'elle écrit
+elle-même. Le mur `murs/interne` la tient (`scripts/guards/lib/interneLint.mjs`, câblé dans
+`oxlint.config.mjs`), par la place du fichier dans l'arbre, sans liste, sur les formes que son en-tête
+énumère. Hors de sa portée : le spécificateur calculé, le motif de glob joker sans segment `interne`,
+la liaison réexportée en valeur (`export const p = b`), le requireur renommé ou réaffecté
+(`createRequire as cr`, `var req = require`) et l'accès calculé (`module['require']`).
+Premier consommateur : `src/ui/editor/interne/` (résumeurs d'atelier `resumeDOp.ts`, `resumeDeCondition.ts`).
+
 ```
 Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, AGENTS.md § Sources VF)
 src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans le Compendium) + index.ts (accès typé), pregens.ts
@@ -493,7 +502,8 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),
-                              useSceneHistory (undo/redo), useEditorView (caméra)
+                              useSceneHistory (undo/redo), useEditorView (caméra) ; interne/ :
+                              résumeurs d'atelier, fermés à editor/ par `murs/interne`
 src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
                             projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).
                             Ce GÉNÉRATEUR (cartes ASCII → JSON) est le propriétaire EXCLUSIF du paquet : le JSON

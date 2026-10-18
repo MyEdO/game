@@ -26,12 +26,12 @@ const FOYER = [
 const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ (`REF_LIST_DATASET`, `NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'AtelierDEntree › save', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'AtelierDEntree › save', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'RefDatalist', appele: 'datasetArray', raison: 'libellés d’un dataset, proposés à une saisie libre' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ (`REF_LIST_DATASET`, `NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'AtelierDEntree › save', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'AtelierDEntree › save', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'RefDatalist', appele: 'datasetArray', raison: 'libellés d’un dataset, proposés à une saisie libre' },
+  { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
   { rel: 'src/ui/compendium/RefField.tsx', englobante: 'useUnivers', appele: 'datasetArray', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
   { rel: 'src/ui/compendium/RefField.tsx', englobante: 'VocabField', appele: 'datasetArray', raison: 'vocabulaire des valeurs d’un champ, jamais des ids' },
 ];
@@ -77,8 +77,8 @@ describe('lecture brute des trappings hors de la vue', () => {
   });
 
   it('un site admis ne l’est qu’à SA déclaration englobante, jamais au fichier', () => {
-    const texte = "import { datasetArray } from '../../data/overrides';\nfunction ProsthesisField() { return datasetArray('trappings'); }\nfunction Autre() { return datasetArray('trappings'); }";
-    expect(lignes(texte, 'src/ui/compendium/CodexEdit.tsx')).toEqual([3]);
+    const texte = "import { datasetArray } from '../../../data/overrides';\nfunction ProsthesisField() { return datasetArray('trappings'); }\nfunction Autre() { return datasetArray('trappings'); }";
+    expect(lignes(texte, 'src/ui/editor/codex/CodexEdit.tsx')).toEqual([3]);
   });
 
   it('admet les deux lectures de recette seulement dans leur fonction d’observation nommée', () => {

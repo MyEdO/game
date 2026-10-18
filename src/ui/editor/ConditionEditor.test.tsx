@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ConditionEditor, WhenEditor, condSummary, recast } from './ConditionEditor';
+import { ConditionEditor, WhenEditor, recast } from './ConditionEditor';
+import { condSummary } from './interne/resumeDeCondition';
 import type { Condition } from '../../state/flow';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';

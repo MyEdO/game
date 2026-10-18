@@ -1,17 +1,16 @@
-import { nommerChamps, nommerNoeud, libelleDeValeur } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Vocabulaire FEUILLE partagé par les schémas d'une racine `src/scenes` — les formes que la SCÈNE
  * (`./scene.ts`) et les EFFETS (`./effets.ts`) posent l'une comme l'autre. Un concept = une
  * définition : ce module existe pour qu'aucune des deux ne recopie l'autre (et pour que le cycle
  * `scene ⇄ effets` n'ait pas lieu — la scène porte des Flows, les effets portent des cases).
  */
-import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import type { SkillRef } from '../../index';
-import { charStatKeySchema, sizeCategorySchema } from '../grammaire/valeurs';
+import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
 
 /** `Pt` (`state/path.ts`) — case, `z` = couche d'empilement (absent = base). */
@@ -40,13 +39,8 @@ export const couvreSchema = listeCle(entreeDeFicheSchema, { nom: 'entrée de fic
  *  `CustomStatblock` porte des ids nus (`byId`, `src/data/index.ts`), l'éditeur les saisit au `<select>`. */
 const sortsConnusSchema: z.ZodType<string[], string[]> = refs('spell');
 
-/** `CustomStatblock.char` — `Partial<Record<CharKey | 'M' | 'B', number>>` : toutes les clés sont
- *  FERMÉES et chacune est facultative (un profil n'imprime que ce que le livre imprime). Écrit en objet
- *  à champs optionnels, jamais en `z.record` : `z.record(z.enum, …)` est EXHAUSTIF en zod 4 (il
- *  EXIGERAIT les 12 clés), et un `z.record(z.string(), …)` accepterait n'importe quelle clé. */
-export const charStatsSchema = nommerChamps(z.strictObject(
-  tableTotale(charStatKeySchema.options, () => z.number().optional()),
-), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) })));
+/** `CustomStatblock.char` — `Partial<Record<CharKey | 'M' | 'B', number>>`. */
+export const charStatsSchema = profilChiffreSchema(z.number());
 
 /**
  * `CustomStatblock` (`engine/statblock.ts`) — profil PNJ/bête custom d'éditeur, DOCUMENT EMBARQUÉ du

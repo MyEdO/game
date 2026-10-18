@@ -3,7 +3,7 @@ import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLook
 import { woundsForSize } from '../../engine/size';
 import { codexMatch, filterItems, facetValues } from './search';
 import { replier } from '../../lib/ordre.mjs';
-import { isEditableCategory } from './CodexEdit';
+import { isEditableCategory } from '../editor/codex/CodexEdit';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';

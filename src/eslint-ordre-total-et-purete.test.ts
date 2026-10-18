@@ -22,8 +22,9 @@ import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  *
  * CE QUE LA POLICE NE VOIT PAS, et pourquoi : les formes ÉLIDÉES à la compilation (`import type
  * … from`, `import { type X }` tout-type, la référence inline `import('…').T`) ne créent aucune
- * arête d'exécution — le critère est STRUCTUREL, jamais nominatif. Reste hors de portée, comme pour
- * toute police d'accès : la recopie qui ne passe par aucun import, et `require()`.
+ * arête d'exécution — le critère est STRUCTUREL, jamais nominatif. Une couche dont la frontière est
+ * TOTALE (`typesAussi`) les refuse aussi (#2724). Reste hors de portée, comme pour toute police
+ * d'accès : la recopie qui ne passe par aucun import.
  *
  * SECOND MUR MESURÉ ICI — L'ORDRE TOTAL DANS LES TESTS DE `src` (#1709 C3c-1). Même raison d'être :
  * le `files:` du bloc est POSIX, donc un `src/` réorganisé ou un `ignores` élargi le rendrait MUET
@@ -40,20 +41,21 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REF = '#1709';
 const eslint = creerBancLint();
 
-/** Les couches gardées, et leurs avals interdits. */
-const COUCHES = [
-  { amont: 'src/engine', avals: ['state', 'ui', 'gameIso'] },
-  { amont: 'src/state', avals: ['ui', 'gameIso'] },
-  { amont: 'src/data', avals: ['ui', 'state', 'gameIso'] },
-] as const;
+/** Les couches gardées, leurs avals interdits, et ceux interdits même pour un TYPE. */
+const COUCHES: { amont: string; avals: readonly string[]; typesAussi: readonly string[] }[] = [
+  { amont: 'src/engine', avals: ['state', 'ui', 'gameIso'], typesAussi: [] },
+  { amont: 'src/state', avals: ['ui', 'gameIso'], typesAussi: ['gameIso'] },
+  { amont: 'src/data', avals: ['ui', 'state', 'gameIso'], typesAussi: [] },
+];
 
-/** Les 7 formes d'import vers `p`, et la règle qui DOIT les prendre (`null` = passe : élidée). */
-const FORMES: { nom: string; code: (p: string) => string; regle: string | null }[] = [
+/** Les 7 formes d'import vers `p`, la règle qui DOIT les prendre (`null` = passe : élidée), et
+ *  celle qui prend une forme élidée quand la frontière est totale (`typesAussi`). */
+const FORMES: { nom: string; code: (p: string) => string; regle: string | null; regleSiTypes?: string }[] = [
   { nom: 'statique nommé', code: (p) => `import { X } from '${p}';\nexport const a = X;\n`, regle: 'murs/purete-imports' },
   { nom: 'side-effect', code: (p) => `import '${p}';\n`, regle: 'murs/purete-imports' },
   { nom: 'dynamique', code: (p) => `export const f = async () => (await import('${p}')).X;\n`, regle: 'murs/purete' },
-  { nom: 'inline type `import(…).T`', code: (p) => `export type A = import('${p}').X;\n`, regle: null },
-  { nom: 'import type … from', code: (p) => `import type { X } from '${p}';\nexport type A = X;\n`, regle: null },
+  { nom: 'inline type `import(…).T`', code: (p) => `export type A = import('${p}').X;\n`, regle: null, regleSiTypes: 'murs/purete' },
+  { nom: 'import type … from', code: (p) => `import type { X } from '${p}';\nexport type A = X;\n`, regle: null, regleSiTypes: 'murs/purete-imports' },
   { nom: 'mixte { type X, y }', code: (p) => `import { type X, y } from '${p}';\nexport const a = y;\nexport type B = X;\n`, regle: 'murs/purete-imports' },
   { nom: 'export … from', code: (p) => `export { X } from '${p}';\n`, regle: 'murs/purete-imports' },
 ];
@@ -95,7 +97,7 @@ function specifieur(rel: string, aval: string): string {
 }
 
 describe('pureté de couche — la doctrine vit dans oxlint.config.mjs, mesurée sur la config RÉSOLUE (#1709)', () => {
-  for (const { amont, avals } of COUCHES) {
+  for (const { amont, avals, typesAussi } of COUCHES) {
     it(`${amont} : des fichiers RÉELS de la couche (racine ET sous-dossier) sont sous les deux règles`, { timeout: 30_000 }, async () => {
       for (const rel of sondes(amont)) {
         const cfg = await eslint.calculateConfigForFile(`${ROOT}/${rel}`);
@@ -104,14 +106,14 @@ describe('pureté de couche — la doctrine vit dans oxlint.config.mjs, mesurée
           expect(
             messages,
             `Bloc de pureté ${amont}→src/${aval} MUET : il ne s’applique à aucun fichier réel de la couche (glob décalé ? dossier renommé ?). Fichier sondé : ${rel}`,
-          ).toContain(`src/${aval} à l’EXÉCUTION`);
+          ).toContain(typesAussi.includes(aval) ? `src/${aval} ni à l’EXÉCUTION ni pour un TYPE` : `src/${aval} à l’EXÉCUTION`);
         }
       }
     });
 
     for (const aval of avals) {
       it(`${amont} → src/${aval} : les 7 formes rendent le verdict attendu (racine ET sous-dossier)`, { timeout: 30_000 }, async () => {
-        const attendu = Object.fromEntries(FORMES.map((f) => [f.nom, f.regle ?? 'passe']));
+        const attendu = Object.fromEntries(FORMES.map((f) => [f.nom, f.regle ?? (typesAussi.includes(aval) ? f.regleSiTypes : undefined) ?? 'passe']));
         for (const rel of sondes(amont)) {
           const chemin = `${ROOT}/${rel}`;
           const p = specifieur(rel, aval);

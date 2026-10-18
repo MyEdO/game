@@ -32,7 +32,7 @@ import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
 import { t } from '../i18n';
-import type { Get, Set } from './flowTypes';
+import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { planClimb } from './climbMove';
 import { planFranchissement, metresRetenus, phaseDeChute, mouvementDeLaChute, mouvementDeLAllege } from './fallMove';
 import { gesteDepuis, porteurDExploration, refusDuTestDeChute, refusDeLaSuspension, REFUS_FRANCHISSEMENT } from './gesteDArete';
@@ -89,7 +89,7 @@ export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Pa
 /** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
  *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
  *  Le merge partiel de zustand préserve les actions du store. */
-function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): void {
+function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const data = { ...(save.data as Partial<GameState>) };
   // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
@@ -1734,7 +1734,7 @@ export interface CampaignVessel {
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
  *  `chooseDialogue` (cas sans Test) et `resolveTest` (reprise après un Test suspendu par `choice.flow`). */
-function applyDialogueTransition(get: () => GameState, set: (s: Partial<GameState>) => void, tr: DialogueTransition): void {
+function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): void {
   if (tr === 'close') {
     if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture (no-op si un Effect a déjà fermé)
     set({ dialogue: null });
@@ -1803,7 +1803,7 @@ function arriveeOccupee(battle: BattleState, mover: Combatant, to: Pt): boolean 
 /** SOLDE de l'Action/du Mouvement d'un tour à la tentative de saut (`settleFall`) — nommé pour être
  *  joué AVANT l'atterrissage, là où il ne dépend d'aucun dé (LDB 13 l.86-88). `mouvement` = cases
  *  dépensées (`mouvementDeLaChute`). */
-function soldeDeLAction(get: () => GameState, set: (s: Partial<GameState>) => void, actionSpent: boolean, mouvement: number): void {
+function soldeDeLAction(get: Get, set: Set, actionSpent: boolean, mouvement: number): void {
   const bB = get().battle;
   if (get().mode === 'battle' && bB) {
     set({ battle: { ...bB, acted: actionSpent ? true : bB.acted, action: null, movementUsed: (bB.movementUsed ?? 0) + mouvement, movedPreAction: bB.movedPreAction || !bB.acted, reachable: new Map(), preview: null } });
@@ -2183,7 +2183,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   net: netFlow.initialNet(),
   netHostStart: (name) => netFlow.netHostStart(get, set, name),
-  netJoin: (code, name) => netFlow.netJoin(get, set, code, name),
+  netJoin: (code, name) => netFlow.netJoin(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
   netAssign: (heroId, seat) => netFlow.netAssign(get, set, heroId, seat),
   setGmSeat: (seat) => netFlow.setGmSeat(get, set, seat),
   netAssignSlot: (slot, seat) => netFlow.netAssignSlot(get, set, slot, seat),
