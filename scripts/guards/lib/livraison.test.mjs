@@ -86,6 +86,22 @@ const juge = (sha) => `JUGE: juge de diff sur la résolution de ${sha.slice(0, 9
 const refutation = (sha) => `REFUTATION: le juge a attaqué la résolution de ${sha.slice(0, 9)}, aucune faille`
 const vision = (sha) => `JUGE-VISION: captures de l'écran que touche ${sha.slice(0, 9)} jugées conformes`
 
+for (const nom of ['JUGE', 'REFUTATION', 'JUGE-VISION']) {
+  test(`#2767 plage : ${nom} exige une ligne de trailer`, () => {
+    const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/ui/E.tsx', 12))
+    const preuve = `preuve indépendante sur la résolution ${fusion.slice(0, 9)}, verdict conforme`
+    const autres = ['JUGE', 'REFUTATION', 'JUGE-VISION'].filter((n) => n !== nom).map((n) => `${n}: ${preuve}`).join('\n')
+    try {
+      for (const texte of [`Sonde du ${nom}: ${preuve}`, `${nom.toLowerCase()}: ${preuve}`, `${nom}:\n${preuve}`, `${nom}\n: ${preuve}`, `${nom}: bref`]) {
+        poser({}, `chore: refs #2767\n\n${autres}\n${texte}`)
+        assert.deepEqual(juger().refus.map((r) => r.manque), [[nom]], texte)
+      }
+      poser({}, `chore: refs #2767\n\n${autres}\nSonde du ${nom}: bref\n${nom}: bref\n\t${nom} : ${preuve}\r\n`)
+      assert.deepEqual(juger().refus, [])
+    } finally { rmSync(racine, { recursive: true, force: true }) }
+  })
+}
+
 test('#2328 DoD 2 — une résolution de 15 lignes changées sous src/ sans juge est REFUSÉE en nommant son sha ; un commit postérieur qui la NOMME la fait passer', () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {

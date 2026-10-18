@@ -13,12 +13,11 @@ import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, jou
 export const SUBSTANTIVE_MIN_LINES = 10
 
 /** Les trailers de livraison : la ligne du message, le titre de la section d'un solde
- *  (`.claude/soldes/ref-<N>.md`, `<N>.md` ; un motif de `sectionDe`), et la longueur minimale de leur texte. `JUGE` n'accroche
- *  jamais `JUGE-VISION:` : le tiret casse le motif `JUGE\s*:`. */
+ *  (`.claude/soldes/ref-<N>.md`, `<N>.md` ; un motif de `sectionDe`), et la longueur minimale de leur texte. Les clés majuscules ouvrent une ligne ; seuls les blancs horizontaux entourent le séparateur. */
 export const TRAILERS = Object.freeze({
-  JUGE: Object.freeze({ ligne: /\bJUGE\s*:\s*(.+)/i, section: 'Juge', min: 40 }),
-  REFUTATION: Object.freeze({ ligne: /\bREFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
-  'JUGE-VISION': Object.freeze({ ligne: /\bJUGE-VISION\s*:\s*(.+)/i, section: 'Juge-Vision', min: 40 }),
+  JUGE: Object.freeze({ ligne: /^[ \t]*JUGE[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge', min: 40 }),
+  REFUTATION: Object.freeze({ ligne: /^[ \t]*REFUTATION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'R[ée]futation', min: 40 }),
+  'JUGE-VISION': Object.freeze({ ligne: /^[ \t]*JUGE-VISION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge-Vision', min: 40 }),
 })
 
 /** Fichier d'ÉCRAN : ce que l'utilisateur VOIT — un composant `.tsx` de `src/ui/**`/`src/gameIso/**`
@@ -60,13 +59,13 @@ const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\
  *  jugent rien. PURE. */
 const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
   .map((ligne) => TRAILERS[nom].ligne.exec(ligne))
-  .filter((m) => m !== null && m.input.slice(0, m.index).trim() === '')
+  .filter((m) => m !== null)
   .map((m) => m[1].trim())
   .filter((texte) => texte.length >= TRAILERS[nom].min)
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
  *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */
-const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
+export const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue qui nomme `sha`. PURE. */
 const messageNomme = (message, nom, sha) => lignesDuTrailer(message, nom).some((texte) => nommeLeSha(texte, sha))
