@@ -786,8 +786,8 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
 /**
  * Modificateurs étiquetés d'un Test d'attaque (source UNIQUE : le moteur les somme pour le jet,
  * l'UI les affiche). Les valeurs des règles chiffrées se lisent dans leur fiche (`ligneDeRegle`) :
- * Avantage (LDB 14 l.215), portée (l.54-84), Viser (l.61), Précise (LDB 62 l.304), Localisation visée
- * (l.73), Cible vulnérable (l.64).
+ * Avantage (LDB 14 l.215), portée (LDB 14 l.54-84), Viser (LDB 14 l.61), Précise (LDB 62 l.292),
+ * Localisation visée (LDB 14 l.73), Cible vulnérable (LDB 14 l.64).
  */
 /** Lignes de mod des ÉTATS d'un combattant — SOURCE UNIQUE des trois producteurs (attaque, défense,
  *  Test de combat « brut »). Chaque composante de la pénalité arrive NOMMÉE et liée au Codex
