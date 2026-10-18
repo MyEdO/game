@@ -3,8 +3,9 @@ import assert from 'node:assert/strict'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  CARACTERES_PAR_TOKEN, PORTEUR_DU_PLAFOND, PORTE_DE_BUDGET, controlerBudgetDeLaPlage,
+  CARACTERES_PAR_TOKEN, PORTEUR_DU_PLAFOND, PORTE_DE_BUDGET, REGLE_PERMANENTE, controlerBudgetDeLaPlage,
   estCheminDuBudget, estRegleSansPaths, importsDe, ligneDeDescription, mesurerBudget, postesQuiGrossissent, refusDeBudget,
+  reglesPermanentesHorsContrat,
 } from './budget-contexte.mjs'
 import { Buffer } from 'node:buffer'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
@@ -135,6 +136,44 @@ describe('budget-contexte', () => {
     const refus = refusDeBudget({ mesure, reference, message })
     assert.ok(refus, 'un `+1` de tampon couvrirait toutes les accrétions suivantes')
     assert.match(refus.reason, /annonce `\+1`, pas \+1024/)
+  })
+
+  /** La mesure d'un arbre forgé dont `.claude/rules/` porte `regles` (nom → texte). */
+  const mesureAvecRegles = (regles) => mesurerBudget('/nulle-part', {
+    lireTout: parLot({ ...FAUX, ...Object.fromEntries(Object.entries(regles).map(([n, t]) => [`.claude/rules/${n}`, t])) }),
+    lister: (dossier) => (dossier === '.claude/rules' ? Object.keys(regles).sort() : io.lister(dossier)),
+  })
+  const sansPaths = (octets) => `# R\n${'a'.repeat(octets - 5)}\n`
+  const ciblee = '---\npaths:\n  - "src/**"\n---\n\n# Ciblée\n'
+
+  test('la règle permanente unique, sous sa borne, passe ; une règle à `paths:` à côté ne compte pas', () => {
+    const mesure = mesureAvecRegles({ 'outils.md': sansPaths(REGLE_PERMANENTE.octetsMax), 'ui.md': ciblee })
+    assert.equal(REGLE_PERMANENTE.chemin, '.claude/rules/outils.md')
+    assert.deepEqual(reglesPermanentesHorsContrat(mesure), [])
+    assert.equal(refusDeBudget({ mesure, reference: mesure, message: 'docs: rien' }), null)
+  })
+
+  test('une DEUXIÈME règle sans `paths:` est refusée, même quand le CLIQUET couvre la montée', () => {
+    const reference = mesureAvecRegles({ 'outils.md': sansPaths(100) })
+    const mesure = mesureAvecRegles({ 'outils.md': sansPaths(100), 'docs-et-generes.md': '# Docs\n- consigne\n' })
+    const montee = mesure.total - reference.total
+    const message = `docs: règle\n\nCLIQUET: ${PORTEUR_DU_PLAFOND} +${montee} — une règle de plus chargée partout, voulue`
+    const refus = refusDeBudget({ mesure, reference, message })
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.reason, /\.claude\/rules\/docs-et-generes\.md \(\d+ octets\) n'a pas d'en-tête `paths:`/)
+  })
+
+  test('la règle permanente AU-DELÀ de sa borne est refusée, même quand le CLIQUET couvre la montée', () => {
+    const reference = mesureAvecRegles({ 'outils.md': sansPaths(REGLE_PERMANENTE.octetsMax) })
+    const mesure = mesureAvecRegles({ 'outils.md': sansPaths(REGLE_PERMANENTE.octetsMax + 1) })
+    const message = `docs: outils\n\nCLIQUET: ${PORTEUR_DU_PLAFOND} +1 — un octet de plus chargé partout, voulu`
+    const refus = refusDeBudget({ mesure, reference, message })
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.reason, new RegExp(`outils\\.md pèse ${REGLE_PERMANENTE.octetsMax + 1} octets pour une borne de ${REGLE_PERMANENTE.octetsMax}`))
+  })
+
+  test('ARBRE RÉEL : les règles chargées au démarrage tiennent le contrat de REGLE_PERMANENTE', () => {
+    assert.deepEqual(reglesPermanentesHorsContrat(mesurerBudget(RACINE)), [])
   })
 
   test('le périmètre de la porte suit les IMPORTS @ de CLAUDE.md, jamais une liste figée', () => {
