@@ -228,7 +228,7 @@ Quand **plusieurs facteurs** affectent un même test, on **somme** leurs modific
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.189) → `useExtendedTestJetProps`, `porteADecouvrir`, `BargainModalView`, `soutien`, `SequenceParams`, `test-extended-min-sl`, `runSceneConsumableFlow`, `RollRequest`, `buildStageSteps`, `PendingTest`, +36 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +23 fichiers
 - `LDB 14` (l.48, l.91-96) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `doc`, `fr`, `SANS_LIVRE`, `poolDeNonCumul`, `10-a-votre-action-au-prochain-round`, +82 — `src/data/actions.json`, `src/data/oups.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +29 fichiers
-- `LDB 16` (l.11) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
+- `LDB 16` (l.11) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
 ---
 
