@@ -13,10 +13,7 @@ ci-dessous, eux, couvrent **tous les livres**, tous cœurs confondus.
 La liste sort du registre des livres (`src/data/books.json`, champ `coeur`) — un cœur de plus y est
 UNE entrée plus un dossier.
 
-<!-- ATLAS-COEURS:DEBUT -->
-- [`4e/`](4e/00-index.md) — livre(s) de cœur : LDB
-- [`5e/`](5e/00-index.md) — livre(s) de cœur : CRB
-<!-- ATLAS-COEURS:FIN -->
+[Cœurs de l’Atlas](atlas.generated.md#cœurs)
 
 ## ⚠ Fichiers au-dessus du seuil d'outillage (512 Ko)
 

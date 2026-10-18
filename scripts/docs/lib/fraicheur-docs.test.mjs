@@ -28,6 +28,31 @@ const poser = (racine, rel, bytes) => {
   writeFileSync(path.join(racine, rel), bytes)
 }
 
+test('portée code : vues, préparation et certificat étranger restent bornés', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'g/code.mjs': 'code', 'data/code.txt': 'source' } })
+  const g = options.generateurs[2]
+  const opts = { ...options, selection: [g] }
+  const entree = { fichiers: [g.script, 'data/code.txt'], dossiers: [], cibles: [code], git: [], sondes: [], incomplet: [] }
+  const etranger = { mesure: { fichiers: ['docs/interdit'], dossiers: ['docs/interdit'], git: [], sondes: [] } }
+  try {
+    poser(racine, doc('interdit'), 'étranger')
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree, 'g/a.mjs': etranger.mesure }))
+    const preparation = preparerPreuves(racine, opts)
+    assert.equal(preparation.vue.hashes.has('docs/interdit'), false)
+    assert.equal(preparation.dossiers.has('docs/interdit'), false)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, code, 'sortie')
+    const certification = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(certification.ok, true, certification.raison)
+    preparation.cache.generateurs['g/a.mjs'] = etranger
+    const records = new Map([[g.script, certification.record]])
+    const preuve = enregistrerPreuve(racine, opts, preparation, records).preuve
+    assert.deepEqual(preuve.generateurs['g/a.mjs'], etranger)
+    assert.equal(preuveValide(racine, opts, preuve).ok, true)
+    assert.equal(nouvelleVue(racine, opts, preuve).hashes.has('docs/interdit'), false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 for (const [fichier, champ] of [['package.json', 'outils'], ['.gitignore', 'perimetre']]) test(`contexte initial autoritaire : mutation de ${fichier} avant rang suivant`, () => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'package.json': '{"name":"banc"}', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
   const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }

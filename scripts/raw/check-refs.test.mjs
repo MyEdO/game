@@ -13,6 +13,15 @@ import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/
 // borne sans toucher au vrai docs/raw/. La fiche vit SOUS un cœur : l'Atlas est partitionné.
 const withTempRawDir = (content, fn) => avecAtlasFixture({ 'fixture.md': content }, fn, { prefixe: 'check-refs-' })
 
+test('clone sans catalogue : les références du rendu sont vérifiées en mémoire', () => {
+  avecAtlasFixture({ 'fixture.md': '# Fixture\n' }, (rawDir, coeur) => {
+    const catalogue = `${coeur}/catalogue-fixture.md`
+    const dead = scanDeadRefs(rawDir, ['fiche', 'catalogue'], () => new Map([[catalogue, 'LDB 06 l.999999\n']]))
+    assert.equal(dead.length, 1)
+    assert.equal(dead[0].doc, catalogue)
+  })
+})
+
 // Chemins RELATIFS à l'Atlas, cœur pris au registre — un site de cliquet PORTE son cœur.
 const FICHE = `${coeurDeBanc()}/combat.md`
 const AUTRE_FICHE = `${coeurDeBanc()}/magie.md`

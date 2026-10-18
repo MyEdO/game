@@ -1645,8 +1645,8 @@
     "label": "threeWay",
     "fichier": "scripts/git-hooks/three-way.mjs",
     "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilotes de fusion des docs dérivés et des stocks de sites",
-    "verrou": "merge-docs.test.mjs, merge-stocks.test.mjs"
+    "perimetre": "pilote de fusion des stocks de sites",
+    "verrou": "merge-stocks.test.mjs"
   },
   {
     "id": "litteralJs",

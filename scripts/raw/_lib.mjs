@@ -598,7 +598,7 @@ export { normalize, ELLIPSIS_SENTINEL }
 // - RAWDOC_AUTHOR_META : pages d'auteur (index, conventions de sourcing) qui PEUVENT citer un chapitre
 //   réel à titre d'illustration, sans citation verbatim vivante à ré-ancrer (classe `auteur`).
 // Chaque lecteur déclare les classes qu'il accepte par ses `CLASSES`, passées à `pagesDeLAtlas`.
-export const RAWDOC_META_GENERATED = new Set(['coverage.md', 'reconciliation.md', 'reanchor.md'])
+export const RAWDOC_META_GENERATED = new Set(['coverage.md', 'reconciliation.md', 'reanchor.md', 'implemente.generated.md', 'atlas.generated.md'])
 export const RAWDOC_AUTHOR_META = new Set(['00-index.md', 'sources.md', 'code-map.md'])
 export const isRawEpreuve = (name) => /^epreuve-/.test(name)
 

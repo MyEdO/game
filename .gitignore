@@ -111,6 +111,8 @@ __pycache__/
 /docs/map-authoring.md
 /docs/orphelines-donnees.md
 /docs/primitives.md
+/docs/raw/atlas.generated.md
+/docs/raw/implemente.generated.md
 /docs/raw/coverage.md
 /docs/raw/reanchor.md
 /docs/raw/reconciliation.md

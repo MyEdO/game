@@ -126,10 +126,9 @@ const ATTENDU = {
     // +1 le 2026-10-13 (#2603) : le banc du journal forge ses arbres sous `mkdtempSync` d'os.tmpdir(), `rmSync`
     // en finally ; l'arbre n'est jamais écrit.
     'scripts/git-hooks/journal.test.mjs',
-    'scripts/git-hooks/merge-docs.mjs',
-    // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
+    // +3 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
-    // la fusion 3-voies qu'ils partagent avec `merge-docs.mjs`) ; le banc des formats pose ses
+    // la fusion 3-voies du pilote) ; le banc des formats pose ses
     // fixtures sous un `mkdtempSync` de `os.tmpdir()`, retirées par `rmSync`. L'arbre du dépôt n'est
     // jamais écrit.
     'scripts/git-hooks/merge-stocks.mjs',

@@ -1,12 +1,8 @@
-// Générateur du champ `**Implémente :**` des fiches docs/raw/*.md (#487) : le champ est DÉRIVÉ du
-// code (jamais écrit à la main — cf. user-doctrine-doc-generee-jamais-ecrite-a-la-main). Patron de
-// build-systemes.mjs : manifest éditorial (src/data/raw.manifest.json) + calcul. Mode `--check` : fiche
-// périmée, dette orpheline ou sans objet = sortie 1.
-// Re-run : node scripts/raw/build-implemente.mjs (npm run raw:implemente).
 import { readFileSync } from 'node:fs'
-import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
+import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+import { ancreDeTitre } from './lib/ancres.mjs'
+import { join, posix } from 'node:path'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
-import { join } from 'node:path'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
@@ -477,14 +473,22 @@ function renderSansCode(groups) {
   return line
 }
 
-/** Régénère le contenu d'une fiche (SEULS les blocs de champs changent). */
-export function regenerateFiche(relatif, content, ctx) {
-  const { fields } = parseFiche(relatif, content)
-  if (!fields.length) return content
-  const lines = content.split('\n')
-  const reps = fields.map((f) => ({ f, block: renderBlock(f, ctx) })).sort((a, b) => b.f.headerIdx - a.f.headerIdx)
-  for (const { f, block } of reps) lines.splice(f.headerIdx, f.endIdx - f.headerIdx, ...block)
-  return lines.join('\n')
+export const RAPPORT = 'docs/raw/implemente.generated.md'
+export const ancreDuTopic = (topic) => ancreDeTitre(topic)
+export const referenceImplementation = (doc, topic) => `**Implémente :** [État calculé](${posix.relative(posix.dirname(doc), 'implemente.generated.md')}#${ancreDuTopic(topic)})`
+
+export function etatsDuRapport(texte) {
+  if (typeof texte !== 'string') throw new Error('rapportImplementation obligatoire')
+  const etats = new Map()
+  let topic
+  texte.split('\n').forEach((ligne, i) => {
+    const titre = /^## `(.+)`$/.exec(ligne)
+    if (titre) topic = titre[1]
+    if (!FIELD_START_RE.test(ligne)) return
+    if (!topic || etats.has(topic)) throw new Error('rapport Implementation : topic absent ou dupliqué')
+    etats.set(topic, { topic, implemente: !ligne.includes(NOT_IMPL), row: i + 1, text: ligne })
+  })
+  return etats
 }
 
 /** Le stem de fiche porté par un `id` de dette : `<fiche>#<slug>` → `<fiche>` ; un stem est le sien. */
@@ -660,63 +664,32 @@ function printFolioStats(fs) {
   for (const [book, s] of rows) console.log(`  ${book} : ${s.resolved} résolus · ${s.notFound} introuvables · ${s.ambiguous} ambigus`)
 }
 
-/** Chemin d'une fiche de `ctx`, séparateurs normalisés. */
-const cheminDeFiche = (ctx, doc) => `${ctx.rawDir}/${doc}`.replace(/\\/g, '/')
-
-/**
- * Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : chaque fiche → son texte, champ
- * Implémente réinjecté, sans écrire. Le texte EXISTANT des fiches vient de `ctx` (`buildContext`,
- * le disque par défaut) : seul ce champ est dérivé, le reste de la fiche est manuscrit.
- */
 export function rendre(ctx = buildContext()) {
-  return new Map(ctx.fiches.map((fi) => [cheminDeFiche(ctx, fi.doc), regenerateFiche(fi.doc, fi.content, ctx)]))
+  const lignes = ['# Atlas RAW — Implémentation', '', '> Généré par `npm run raw:implemente`.', '']
+  const ancres = new Set()
+  for (const fi of ctx.fiches) for (const field of fi.parsed.fields) {
+    const ancre = ancreDuTopic(field.topic)
+    if (ancres.has(ancre)) throw new Error(`ancre de topic dupliquée : ${field.topic}`)
+    ancres.add(ancre)
+    lignes.push(`## \`${field.topic}\``, '', ...renderBlock(field, ctx), '')
+  }
+  return new Map([[RAPPORT, lignes.join('\n')]])
 }
 
 function main() {
-  const args = process.argv.slice(2)
-  const CHECK = args.includes('--check')
-  const DRY = args.includes('--dry')
   const ctx = buildContext()
-
   const all = etatsDesTopics(ctx)
   const orphans = orphelinsDeDette(ctx, all)
   const sansObjet = dettesDeFicheSansObjet(ctx, all)
-
-  const rendu = rendre(ctx)
-  const regenerated = ctx.fiches.map((fi) => ({ doc: fi.doc, content: rendu.get(cheminDeFiche(ctx, fi.doc)), orig: fi.content }))
-  const touched = regenerated.filter((r) => r.content !== r.orig)
-
-  if (DRY) {
-    printStats(ctx, all, touched.length)
-    if (orphans.length) printOrphans(orphans)
-    if (sansObjet.length) printSansObjet(sansObjet)
-    console.log('--- topics ---')
-    for (const t of all.perTopic) {
-      const state = t.implemente ? `implémenté(${t.fichiers.size} fichiers)` : citeParTestsSeulement(t) ? 'tests seulement' : 'non implémenté'
-      console.log(`${t.topic} → ${state}`)
-    }
-    return
-  }
-
-  if (CHECK) {
-    if (touched.length) {
-      console.error(`raw:implemente — ${touched.length} fiche(s) PÉRIMÉE(s) (champ Implémente divergent du code) :`)
-      for (const r of touched) console.error(`  docs/raw/${r.doc}`)
-      console.error('  → relancer `npm run raw:implemente` et committer.')
-      process.exitCode = 1
-    }
-    if (orphans.length) printOrphans(orphans)
-    if (sansObjet.length) printSansObjet(sansObjet)
-    if (orphans.length || sansObjet.length) process.exitCode = (Number(process.exitCode) || 0) | 1
-    if (!process.exitCode) console.log('raw:implemente — OK (champs Implémente à jour · tout non-implémenté ticketé · toute dette de fiche couvre un topic)')
-    return
-  }
-
-  for (const r of touched) ecrireDoc(join(ctx.rawDir, r.doc), r.content)
-  printStats(ctx, all, touched.length)
+  if (!process.argv.includes('--dry')) for (const [path, out] of rendre(ctx)) ecrireOuVerifier({
+    path, out, check: process.argv.includes('--check'),
+    staleMsg: `raw:implemente — ${path} PÉRIMÉ`,
+    rerunMsg: '→ npm run raw:implemente',
+  })
+  printStats(ctx, all, 0)
   if (orphans.length) printOrphans(orphans)
   if (sansObjet.length) printSansObjet(sansObjet)
-  if (orphans.length || sansObjet.length) process.exit(1)
+  if (orphans.length || sansObjet.length) process.exitCode = 1
 }
 
 if (import.meta.main) main()

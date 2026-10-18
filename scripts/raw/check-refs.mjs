@@ -12,7 +12,8 @@
 // Re-run : node scripts/raw/check-refs.mjs
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { refRe, span, chapterFile, bookOf, pagesDeLAtlas, readText } from './_lib.mjs'
+import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
+import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
@@ -46,10 +47,10 @@ function lineCount(path) {
 }
 
 /** Parcourt `rawDir` (docs/raw par défaut) et retourne les réfs mortes : `{ doc, row, ref, hi, chapterLines, file }`. */
-export function scanDeadRefs(rawDir = RAWDIR, classes = CLASSES) {
+export function scanDeadRefs(rawDir = RAWDIR, classes = CLASSES, catalogues) {
   const dead = []
-  for (const { relatif: doc, chemin } of pagesDeLAtlas(rawDir, { classes })) {
-    const lines = readText(chemin).split('\n')
+  for (const { relatif: doc, texte } of pagesDeLAtlasRendues(rawDir, { classes }, catalogues)) {
+    const lines = texte.split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, hi } of refsInLine(ln)) {
         const cf = chapterFile(abbr, nn)

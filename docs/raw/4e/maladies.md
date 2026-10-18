@@ -3,12 +3,12 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite sa source `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/engine/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > Scope : possède Maladies/Infections. Renvoie à `competences.md § Guérison` pour les soins.
 > **ZÉRO invention** — tout ce qui n'est pas citable est marqué « RAW tronqué » ou absent.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 
@@ -559,8 +559,7 @@ compte des Rounds de combat, `LDB 16 l.97`). Le Test est donc roulé à chaque j
 
 Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les pénalités sont **permanentes** (seuls des moyens magiques ou miraculeux peuvent les annuler).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `KINDS_SOUS_ORDRES`, `doc`, `onTickSchema`, `autoExposureMods`, `DiseaseDef`, `water-exposure`, `OPS_FIELDS`, +42 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +22 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesvers-de-carie-msrc-16-l-71-86)
 
 ---
 
@@ -578,8 +577,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Traitement** (`MSRC 16 l.109-111`) : Aucun remède à base d'herbes n'est plus efficace qu'un autre. Seul vrai traitement : s'hydrater (compenser la perte de liquides) et attendre.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.104-118) → `water-exposure`, `crampes-abdominales`, `applyOnFailInline`, `colique`, `vers-de-carie`, `vers-du-reik`, `tickDisease`, `GameOp`, `exposition-hydrique`, `SymptomCapabilities`, +1 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/symptoms.json`, `src/engine/disease.ts`, +1 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiescolique-msrc-16-l-104-118)
 
 ---
 
@@ -603,8 +601,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Traitement** : aucun traitement connu. Toute tentative d'extraction chirurgicale fait plus de mal que de bien.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.121-144) → `doc`, `onTickSchema`, `DiseaseDef`, `OPS_FIELDS`, `Disease`, `diseaseTestModLines`, `snapshotInfectionResidual`, `crampes-abdominales`, `resolveInlineFlowTest`, `colique`, +14 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/maladies.ts`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, +10 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesvers-du-reik-msrc-16-l-121-144)
 
 ---
 
@@ -622,8 +619,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Traitement** (`MSRC 16 l.160`) : infusion d'écorce de saule → bonus de +10 à tous les Tests résultant de la colique pendant 1d10 heures. Pas d'autre traitement.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.149-160) → `onTickSchema`, `doc`, `Disease`, `crampes-abdominales`, `resolveInlineFlowTest`, `colique`, `firingOwnTestFailed`, `combatTestPenaltyParts`, `vers-du-reik`, `EffectTrigger`, +9 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, `src/engine/disease.ts`, +7 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesnouveau-symptome-crampes-abdominales-msrc-16-l-149-160)
 
 ---
 
@@ -654,8 +650,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Disponibilité** : Limitée. **Saison** : Hiver, Printemps. **Emplacement** : Forêts mixtes. **Coût** : 15/–.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 4` (l.184-245) → `blessDiseaseDuration`, `GameOp`, `applyOps`, `gesundheit`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`, `src/engine/ops.ts`, `src/engine/rest.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesgesundheit-msrc-04-l-184-189)
 
 ---
 
@@ -669,8 +664,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Disponibilité** : Rare. **Saison** : Automne, Hiver. **Emplacement** : Clairières, Cimetières. **Coût** : 5 CO.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 4` (l.204-229) → `gesundheit`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesracine-des-tombes-msrc-04-l-204-229)
 
 ---
 
@@ -688,8 +682,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 **Disponibilité** : Rare. **Saison** : Printemps. **Emplacement** : Collines. **Coût** : 2 CO.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 4` (l.241-252) → `blessDiseaseDuration`, `GameOp`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`, `src/engine/ops.ts`, `src/engine/rest.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesrouille-mouchetee-msrc-04-l-241-252)
 
 ---
 
@@ -753,8 +746,7 @@ La promiscuité à bord et la mauvaise qualité de la nourriture et de la boisso
 
 **Voir aussi** : [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Toux et Éternuements) ; [Litanie de la Pestilence — 9 maladies LDB](#litanie-de-la-pestilence--9-maladies-ldb) (peste noire / flux sanglant / courante galopante / vérole urticante) ; [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (petite bière) ; `docs/raw/4e/etats.md`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.204-209) → `BandeOuverte`, `doc`, `MoraleBand`, `DiseaseDef`, `SeaVoyageState`, `mene-de-main-de-maitre`, `excellent-equipage`, `equipage-satisfait`, `canailles`, `mal-de-mer`, +11 — `src/data/crew-morale.json`, `src/data/maladies.json`, `src/data/schemas/defs/maladies.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesmaladies-a-bord-contagion-et-tonneaux-contamines-mdg)
 
 ---
 
@@ -784,8 +776,7 @@ Maladie spécifique de la navigation. La plupart des gens en souffrent à leur p
 
 **Voir aussi** : [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Malaise → Exténué, Nausée → Sonné) ; [Cycle de vie d'une maladie](#cycle-de-vie-dune-maladie) ; `docs/raw/4e/etats.md`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.211-222) → `doc`, `MoraleBand`, `DiseaseDef`, `SeaVoyageState`, `mene-de-main-de-maitre`, `excellent-equipage`, `equipage-satisfait`, `canailles`, `mal-de-mer`, `scorbut`, +12 — `src/data/crew-morale.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/maladies.ts`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesmal-de-mer-maladie-mdg)
 
 ---
 
@@ -809,8 +800,7 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 
 **Voir aussi** : [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (soupe de chou fermenté ; biscuits de mer ≠ nourriture correcte) ; [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Blessé, Intoxication Alimentaire, Malaise, Nausée) ; `docs/raw/4e/etats.md`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.224-234) → `mousse`, `scenario`, `SeaVoyageState`, `shipboardSouls`, `dailyWaterLitres`, `chirurgien`, `mene-de-main-de-maitre`, `excellent-equipage`, `consumeCrewProvisions`, `equipage-satisfait`, +13 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +7 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesscorbut-maladie-de-privation-mdg)
 
 ---
 
@@ -844,7 +834,5 @@ Planifier l'approvisionnement est vital pour un long voyage : l'équipage fourni
 
 **Voir aussi** : [Scorbut (maladie de privation MDG)](#scorbut-maladie-de-privation-mdg) (soupe de chou fermenté ; biscuits ≠ nourriture correcte) ; [Maladies à bord — contagion et tonneaux contaminés (MDG)](#maladies-à-bord--contagion-et-tonneaux-contaminés-mdg) (tonneau d'eau / petite bière) ; `docs/raw/4e/deplacement.md` (le voyage lui-même). Hors domaine : modificateurs de Moral liés à la nourriture (biscuits seuls / ration insuffisante) — `MDG 14 l.166`, `MDG 14 l.171`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.166, l.171, l.236-271) → `ship-criticals`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `un-officier-pour-10`, `capitaine-vaillant`, `nourriture-au-dessus-des-rations`, `sealskinDR`, `bon-presage`, `paie-reguliere`, +54 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, +15 fichiers
-- `MDG 15` (l.169-170) → `triton`, `maelstrom`, `puissant-monstre-marin`, `ouragan`, `puissant-vortex`, `nemesis`, `langskip-skaeling`, `bateau-endommage`, `culte-de-la-personnalite`, `infestation-de-rats-geants`, +12 — `src/data/reglesOptionnelles.json`, `src/data/sea-events.json`, `src/i18n/messages/fr.ts`, `src/scenes/loup-et-saumure/loup-et-saumure-projet.json`, `src/state/seaVoyageFlow.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesprovisions-et-privations-en-mer-eau-rations-faim-mdg)
 

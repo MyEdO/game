@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 // Les LECTEURS de l'Atlas, importés pour leur acceptation DÉCLARÉE (`CLASSES`) — la table du
@@ -25,6 +25,7 @@ import { CLASSES as CLASSES_INDEX } from './build-atlas-index.mjs'
 import { CLASSES as CLASSES_CROISSANCE } from '../migrations/lib/croissance.mjs'
 import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, entitesDe, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, plagesDEntites, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
 import booksData from '../../src/data/books.json' with { type: 'json' }
+import { GENERATORS, ciblesLitterales } from '../docs/lib/cibles-generees.mjs'
 
 // Des sigles RÉELS, pris au registre par leur RÉGIME (livre de cœur) — jamais recopiés : le test dit
 // le contrat de graphie, pas l'identité d'un livre. Résolveur PARTAGÉ avec les autres bancs
@@ -488,6 +489,13 @@ test('classeDePage : les cinq classes se dérivent du NOM, depuis les ensembles 
   assert.equal(classeDePage('epreuve-2000-01-01.md'), 'epreuve')
   assert.equal(classeDePage('catalogue-z.md'), 'catalogue')
   assert.equal(classeDePage('domaine.md'), 'fiche')
+})
+
+test('classeDePage : toutes les cibles RAW littérales du registre sont générées', () => {
+  const cibles = ciblesLitterales(GENERATORS.flatMap(({ targets }) => targets))
+    .filter((cible) => cible.startsWith('docs/raw/'))
+  assert.ok(cibles.length > 0)
+  for (const cible of cibles) assert.equal(classeDePage(basename(cible)), 'generee', cible)
 })
 
 test('pagesDeLAtlas : une page porte son CŒUR, son nom, son chemin RELATIF et sa classe ; une page de racine a `coeur` null', () => {

@@ -1,22 +1,17 @@
-// scripts/docs/build-all.mjs — produit TOUS les dérivés (`npm run docs:build`), ou leurs seules cibles
-// de CODE (`--code`, `npm run gen`), ou les seuls MIXTES et leurs préalables (`--mixtes`, l'étape
-// `docs` du train, #2193), ou ses cibles de CODE sans mesure ni certificat (`--code --sans-certifier`, le
-// post-hook, #2603).
+// scripts/docs/build-all.mjs — produit et certifie les dérivés (`npm run docs:build`), ou leurs seules
+// cibles de CODE (`--code`, `npm run gen`). `--perimes` consulte leurs attestations avant chaque rang.
 // SOURCE UNIQUE de la liste des dérivés : `GENERATORS`. Une cible de `targets` sort EN ENTIER de son
 // générateur : elle n'est PAS commitée (#2203 A2 — `ciblesPures`, bloc de `.gitignore`, garde
 // scripts/docs/cibles-pures.test.mjs) et se produit là où on la lit. Ses cibles de CODE (`ciblesDeCode`)
 // par `genererCode` : `postinstall`, hooks post-checkout / post-merge / post-rewrite, `buildStart` de
-// vite.config.ts ; ses docs par `docs:build`. Un fichier où un générateur n'injecte qu'un BLOC
-// (`injecte`) est MIXTE : il reste commité, et la CI le juge par `docs:build` puis `Arbre inchangé`.
+// vite.config.ts ; ses docs par `docs:build`.
 // `--check` (`npm run docs:check`) rend chaque générateur et compare son rendu au disque sans rien
 // écrire.
 // VERROU MACHINE (#2603) : la CLI d'un geste lourd (`estGesteLourd`) prend `verrouGestesLourds` avant
 // `executer`, qu'appellent aussi en processus `genererCode` et replay-head ; tenu à l'échéance, elle sort
 // en `CODE_DIFFERE` (`sousGestesLourds`).
 // Ordre motivé : les registres générés passent EN TÊTE (les générateurs de docs lisent `src/`) ; les
-// rapports d'Atlas LISENT les fiches docs/raw (`pagesLues` de coverage.mjs, `computeReconciliation`
-// de reconcile.mjs, `scan` de reanchor.mjs), ils passent donc APRÈS build-implemente qui y injecte ;
-// leurs catalogues sont le rendu de build-catalogs (`pagesDeLAtlasRendues`). C'est cet ordre qui
+// rapports d'Atlas lisent les vues dérivées d'Atlas et passent après leurs producteurs. Cet ordre
 // autorise une source elle-même GÉNÉRÉE : une source écrite par un générateur PLUS TARD dans la liste
 // serait lue périmée, et se fait refuser par nom.
 //
@@ -59,14 +54,6 @@ export const generateursDeCode = (generateurs = GENERATORS) => generateurs.filte
 
 const ecritDuCode = (g) => g.targets.some((t) => !estUnDocMarkdown(t))
 
-/** Le PÉRIMÈTRE de `--mixtes`, dans l'ordre de `generateurs` : les générateurs à `injecte` non vide, et
- *  leurs préalables, les générateurs de CODE (`generateursDeCode`) — `build-implemente.mjs` traverse les
- *  sorties gitignorées de `gen-registry.mjs`, que la mesure ne voit pas (`ignoresGit`) (#2193).
- *  `generateurs` sans défaut : l'étape `docs` du train l'importe, et `GENERATORS` n'entre pas dans sa
- *  clôture. */
-export const perimetreDesMixtes = (generateurs) =>
-  generateurs.filter((g) => ecritDuCode(g) || (g.injecte ?? []).length > 0)
-
 /**
  * Produit et certifie les cibles de CODE (`generateursDeCode`).
  * fonction des points de génération du code — `npm run gen`, `postinstall`, les hooks git
@@ -75,26 +62,6 @@ export const perimetreDesMixtes = (generateurs) =>
  */
 export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
   return executer({ cwd, argv: ['--code', ...(quiet ? ['--quiet'] : [])], generateurs })
-}
-
-/**
- * Les cibles de CODE (`generateursDeCode`) écrites SANS mesure ni certificat : leurs certificats retirés
- * (`invaliderPreuve`), puis chaque générateur joué par sa porte `import.meta.main`. La passe des dérivés qui
- * suit les certifie (#2603). REND 0, ou 1 au premier rouge, nommé.
- */
-export function genererCodeSansCertifier({ cwd, generateurs = GENERATORS }) {
-  const code = generateursDeCode(generateurs)
-  invaliderPreuve(cwd, code.map((g) => g.script))
-  const tsxEsm = tsxEsmPour(code, cwd)
-  for (const g of code) {
-    try {
-      etapeProfilee(`[docs:code] ${g.script}`, () => run(g, { cwd, quiet: false, mode: 'ecrire', tsxEsm }), { mesurer: etapeHeritee(cwd) })
-    } catch (e) {
-      process.stderr.write(`docs:build — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : cibles de code incomplètes.\n`)
-      return 1
-    }
-  }
-  return 0
 }
 
 /** Étapes de `--check` qui ne GÉNÈRENT rien (vérificateurs purs, sans `--check`) : `build-all.mjs`
@@ -376,7 +343,7 @@ function argumentsDe(argv, drapeau) {
 }
 
 /**
- * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes` ou `--check`
+ * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`) ou `--check`
  * (vérification). REND le code de sortie.
  * En écriture, le premier rouge ARRÊTE : un générateur rouge laisse docs/ à moitié régénéré, et
  * enchaîner les suivants fabriquerait un lot incohérent que le hook annoncerait « à committer ».
@@ -409,10 +376,9 @@ function executerLesGenerateurs({
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
   const perimes = argv.includes('--perimes') && !check
-  const modeSelectif = argv.includes('--code') || argv.includes('--mixtes')
-  const selection = argv.includes('--code') ? generateursDeCode(generateurs) : argv.includes('--mixtes') ? perimetreDesMixtes(generateurs) : generateurs
+  const modeSelectif = argv.includes('--code')
+  const selection = modeSelectif ? generateursDeCode(generateurs) : generateurs
   const only = argumentsDe(argv, '--only')
-  const fraicheur = { generateurs, verificateurs, ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES }
   if (only !== null) {
     const connus = new Set([...generateurs.map((g) => g.script), ...verificateurs])
     const inconnus = only.filter((script) => !connus.has(script))
@@ -422,6 +388,8 @@ function executerLesGenerateurs({
     }
   }
   const seulement = only && new Set(only)
+  const eligibles = selection.filter((g) => !seulement || seulement.has(g.script))
+  const fraicheur = { generateurs, selection: eligibles, verificateurs, ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES }
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
   const tsxEsm = tsxEsmPour(selection, cwd)
   const { doublons } = proprietairesDeCibles(cwd, generateurs)
@@ -465,7 +433,6 @@ function executerLesGenerateurs({
       for (const script of absents) refuser(`docs:build — ARRÊT : certificat final absent : ${script}`)
       return absents.length === 0
     }
-    const eligibles = generateurs.filter((g) => selection.includes(g) && (!seulement || seulement.has(g.script)))
     if (perimes) for (const g of eligibles) {
       const record = preparation.cache.generateurs[g.script]
       if (record) records.set(g.script, record)
@@ -669,10 +636,6 @@ async function main() {
     return
   }
   const argv = process.argv.slice(2)
-  if (argv.includes('--code') && argv.includes('--sans-certifier')) {
-    process.exitCode = genererCodeSansCertifier({ cwd })
-    return
-  }
   if (!estGesteLourd(argv)) {
     process.exitCode = await executer({ cwd })
     return

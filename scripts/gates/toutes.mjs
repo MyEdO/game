@@ -453,8 +453,8 @@ export const ECRIT_LU = {
       'docs/':
         'les mesures docs/.sources-lues.json sont écrites par build-all.mjs ; ' +
         'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
-        '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
-        'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',
+        '(`rendreCible`, scripts/docs/build-all.mjs) ; `ecrireOuVerifier` écrit les cibles pures ' +
+        'dont le rendu diffère, et `Arbre inchangé` contrôle les fichiers suivis dans le même job',
       'src/':
         'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
         'ne réécrit pas un rendu identique',
@@ -470,17 +470,11 @@ export const ECRIT_LU = {
   'test:raw': {
     ecrit: [],
     ecritFerme: {
-      // Le GLOB, pas une page : l’écrivain tient le routeur de l’Atlas ET l’index de chaque cœur,
-      // et la population des cœurs est DÉRIVÉE (#1825) ; un chemin de cœur écrit ici sous-déclarerait
-      // dès le cœur suivant. Même glob qu’à sa déclaration de générateur (`injecte`,
-      // scripts/docs/build-all.mjs).
-      'docs/raw/**/00-index.md':
-        '`build-atlas-index.test.mjs` IMPORTE l’écrivain des blocs des index de l’Atlas (cœurs du ' +
-        'routeur, domaines de chaque cœur) ; son unique écriture (`ecrireDoc`) vit dans `main()`, sous sa ' +
-        'porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc n’appelle que ses fonctions ' +
-        'PURES (`lignesDesCoeurs`, `lignesDesDomaines`, `blocsDeLAtlas`, `injecter`). Le cas `--check` ' +
-        'le LANCE, mais dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : ce sont ces ' +
-        'pages-là qu’il écrit, jamais celles du dépôt',
+      'docs/raw/atlas.generated.md':
+        '`build-atlas-index.test.mjs` IMPORTE le générateur de la cible pure de l’Atlas ; son écriture ' +
+        'vit sous sa porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc appelle ' +
+        'ses fonctions PURES (`rendre`, `lignesDesCoeurs`, `lignesDesDomaines`). Le cas `--check` ' +
+        'le LANCE dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : seule sa cible y est écrite',
       // Le GLOB, pas un dossier : le re-coupeur sert TOUT livre à liste de découpe
       // (`scripts/raw/decoupes/<id>.json`), et recale tout stock nominatif keyé par ses fichiers.
       'Source/**/*.md':
