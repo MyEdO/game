@@ -1,4 +1,4 @@
-/** #2427 — chemins en notation `scripts/source/adresses.mjs`. */
+/** #2427 ; #2684. */
 export const PROSES_NOMMEES = {
   'narratif.ouverture.pitch': { champ: 'pitch', label: 'texte', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'narratif.indices[].stades[].prose': { champ: 'prose', label: 'texte', regime: 'narration', presence: 'optionnel', porteur: 'folio' },
@@ -15,6 +15,7 @@ export const PROSES_NOMMEES = {
   'flow.choice.prompt': { champ: 'prompt', label: 'invite', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'dialogues[].nodes[].desc': { champ: 'desc', label: 'réplique', regime: 'narration', presence: 'requis', porteur: 'adresse' },
   'journal.desc': { champ: 'desc', label: 'texte', regime: 'narration', presence: 'requis', porteur: 'adresse' },
+  'designerHeros.invite': { champ: 'invite', label: 'invite', regime: 'narration', presence: 'optionnel', porteur: 'folio' },
 } as const;
 
 export type CheminProseDeScene = keyof typeof PROSES_NOMMEES;

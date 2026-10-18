@@ -18,6 +18,8 @@
 import type { GameState } from './store';
 import { activeCombatant, useGame } from './store';
 import { actorIn } from './combatants';
+import { nomDEntite } from './sceneNpc';
+import { presetPnjById } from './campaignData';
 import { controlsActive } from './netOwnership';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
 import { ACTIONS, type ActionDef } from '../data/index';
@@ -112,7 +114,7 @@ export function entityGestes(state: GameState): OffresRenduesParPorteur[] {
   return offresDuRegistre('pastille-entite', { active, battle, netMode: state.net.mode, state }).map((g) => ({
     porteurId: g.porteurId,
     // Le nom du porteur à l'écran : le combattant qui le porte, ou l'entité de scène (un tas au sol).
-    porteurLabel: actorIn(state, g.porteurId)?.label ?? state.scene?.entities.find((e) => e.id === g.porteurId)?.label,
+    porteurLabel: actorIn(state, g.porteurId)?.label ?? state.scene?.entities.filter((e) => e.id === g.porteurId).map((e) => nomDEntite(e, presetPnjById))[0],
     offres: g.offres.map(rendreOffre),
   }));
 }

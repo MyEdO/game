@@ -4,11 +4,14 @@
 //   - `{ decision: 'deny', raison }` — un refus, dont la raison dit quoi faire à la place ;
 //   - `{ contexte }` — du contexte transmis à l'agent ;
 //   - `{ trace: { fichier, ligne } }` — une ligne que le répartiteur AJOUTE au fichier.
+// Une garde au `role` `PROJECTION` ne fait que transmettre du contexte : le répartiteur tient pour une panne
+// toute `decision` qu'elle rendrait (`evaluerGardes`), et les règles de couverture des gardes de CONTRÔLE ne
+// la visent pas.
 // Le répartiteur (`scripts/hooks/repartition.mjs`) lit, construit le contexte, évalue et cumule.
 // Aucune garde ne DEMANDE (`ask`) : doctrine `user-doctrine-gardes-jamais-de-ask` (2026-09-28).
 import { dirname, relative, resolve, sep } from 'node:path'
 import { ancetreExistant, canoniser } from '../../docs/lib/chemin-mesure.mjs'
-import { depotAuxPannes, estIgnore, racineSurDisque } from './gitPorte.mjs'
+import { arbrePrincipal, depotAuxPannes, depotDe, estIgnore, racineSurDisque } from './gitPorte.mjs'
 import { versCheminNatif } from './commandeShell.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
@@ -38,6 +41,13 @@ export const LECTURE = 'lecture'
 export const EDITION = 'edition'
 export const SHELL = 'shell'
 export const PASSERELLE = 'passerelle'
+
+/** Le `role` d'une garde qui ne décide jamais : elle projette du contexte. */
+export const PROJECTION = 'projection'
+
+/** La racine contre laquelle lean-ctx résout un `path` ou un `cwd` relatif : l'arbre principal du dépôt de
+ *  `hook` (`arbrePrincipal`), `{ disponible, valeur }` ou `{ disponible: false, raison }`. */
+export const racineDeLeanCtx = (hook) => arbrePrincipal(depotDe(hook))
 
 export const PREFIXES_LEAN_CTX = Object.freeze({ claude: 'mcp__lean-ctx__', codex: 'mcp__lean_ctx__' })
 const PREFIXE_LEAN_CTX = PREFIXES_LEAN_CTX.claude

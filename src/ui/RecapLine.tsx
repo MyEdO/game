@@ -18,7 +18,7 @@ export function RecapLineRow({ line }: { line: RecapLine }) {
   return (
     <Row className={`recap-line ${line.tone ?? ''}`} align="start" gap="xs" wrap={false}>
       {line.icon && <Icon id={line.icon} size="sm" />}
-      {line.segments ? <TeamSegments segments={line.segments} /> : <Prose md={line.text} compact />}
+      {line.segments ? <TeamSegments segments={line.segments} /> : <Prose md={line.text} compact paquet={line.paquet === true} />}
     </Row>
   );
 }

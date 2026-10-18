@@ -154,8 +154,7 @@ export interface CombatFeature {
    *  (Pilote → Ramer OU Voile, LDB 10 l.964). */
   reverseFailed?: { skills: RefDesignee[]; capDR?: number };
   // ── Économie / social ──────────────────────────────────────────────────────
-  /** Négociateur (LDB 59 l.43) : un Marchandage GAGNÉ réduit le prix de 20 % (au lieu de 10 %) même
-   *  sans Succès Stupéfiant (DR net ≥ 6). Lu par merchantFlow lors de la conclusion du Marchandage. */
+  /** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
   bargainBonus?: boolean;
   // ── Capacités diverses (hors combat direct) ──────────────────────────────────
   /** Costaud (LDB 10) : limite d'Encombrement +2 × niveau (items.maxEncumbrance). */

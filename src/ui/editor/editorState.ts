@@ -5,7 +5,7 @@ import type { Pt as ScenePt } from '../../state/path';
 import { walkFlow, type Flow } from '../../state/flow';
 import { nextEntityId } from '../../state/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
-import { creatureLabel, findCreatureById } from '../../data';
+import { findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
@@ -547,13 +547,14 @@ export type EntityTool = Extract<Tool, { mode: 'entity' }>;
  *  fiche, son apparence se dérive du record (#1882). Une fiche absente du bestiaire lève. */
 export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
-  const base: SceneEntity = { id, kind: outil.kind, pos: { ...p }, label: libelleDeValeur(entityKindSchema, outil.kind) };
+  const base: SceneEntity = { id, kind: outil.kind, pos: { ...p } };
   if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
     throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
+  // #1463 S3 · #1882 : `nomDEntite`.
   const ent: SceneEntity = outil.kind === 'prop'
     ? { ...base, ...propRefPatch(outil.ref, undefined), label: PROPS[outil.ref]?.label }
     : outil.kind === 'personnage'
-      ? { ...base, ref: outil.ref, label: creatureLabel(outil.ref) }
-      : base;
+      ? { ...base, ref: outil.ref }
+      : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }

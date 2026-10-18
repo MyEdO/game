@@ -33,6 +33,7 @@ import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from '.
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { OPS_DIFFEREES } from './combatEffects';
+import { t } from '../i18n';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -3114,7 +3115,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
     useGame.getState().transitionTo('b', 'porte');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(useGame.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
@@ -3127,7 +3128,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a2');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
     useGame.getState().transitionTo('b2');
     expect(capDuGroupe(useGame.getState())).toBe('NE');
   });
@@ -3218,7 +3219,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
       gameTime: campaignStart() + 99_999,
       facing: { fantome: 4 } as any,
       previousScene: { id: 'vieux', pos: { x: 9, y: 9 } },
-      document: { title: 'x', text: 'y' },
+      document: { title: 'x', text: 'y', remise: 1 },
       dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', text: '', choices: [] }] }, nodeId: 'n' } as any,
       pendingFateSave: { heroId: 'mort', source: 'slow' } as any,
       pendingCast: { x: 1 } as any,
@@ -3512,7 +3513,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const pb = useGame.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('bargainConfirm : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
@@ -3531,7 +3532,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().startBargain('buy'); // achat déjà négocié → no-op
     expect(useGame.getState().pendingBargain).toBeNull();
     useGame.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(useGame.getState().pendingBargain?.mode).toBe('sell');
+    expect(useGame.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
   it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
@@ -3566,7 +3567,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(discounted).toBeLessThan(full);
   });
 
-  it('vente (panier) : Option 2 — défaut/perdu = ¼ (lowball), marchandage de vente GAGNÉ = ½ (#2c)', () => {
+  it('vente (panier), LDB 59 l.54 + arbitrage #2547 : défaut/perdu = ¼, GAGNÉ = ½, gagné + Négociateur = ½ × 1,1', () => {
     const sellWith = (bargainSell: { won: boolean; drNet: number; negotiator: boolean } | null): number => {
       const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
       reset();
@@ -3581,8 +3582,12 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
     const won = sellWith({ won: true, drNet: 2, negotiator: false }); // ½ (on a tenu notre prix)
     const lost = sellWith({ won: false, drNet: 0, negotiator: false }); // ¼ (rabaissé)
-    expect(won).toBeGreaterThan(lowball); // gagner le marchandage double le gain
+    const wonNegotiator = sellWith({ won: true, drNet: 2, negotiator: true });
+    const lostNegotiator = sellWith({ won: false, drNet: 1, negotiator: true });
+    expect(won).toBe(2 * lowball); // gagner le marchandage double le gain
+    expect(wonNegotiator).toBe(Math.round(won * 1.1)); // Négociateur : +10 % (LDB 10 l.818)
     expect(lost).toBe(lowball); // perdre = ne pas négocier = ¼
+    expect(lostNegotiator).toBe(lowball);
   });
 
   it('buyItem : applique la majoration d’achat paramétrable (buyMarkup) — marchand plus cher (#2)', () => {

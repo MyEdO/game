@@ -28,7 +28,7 @@
 //   - Le partage d’un SITE tranche entre référence cassée et document embarqué, mais les TELLS de document passent avant le ratio (`label` + `source`, ou `label` + ≥ 2 clés de charge utile) et l’égalité tranche pour le DOCUMENT ; un site à UNE seule valeur est un document, sauf si la clé est `…Id`/`…Ids`/`…Ref`.
 //   - L’ORDRE DES PASSES est un angle mort déclaré : l’index est complété par les documents EMBARQUÉS (passe 3) AVANT que la résolution ne soit mesurée (passe 4) — un site comme `arene-projet.json › members {entityId}` ne résout que grâce à cet ordre.
 //   - Une clé dont la valeur est un LITTÉRAL D’ENUM du schéma zod du document n’ouvre jamais de référence (discriminants `kind`/`type`/`class`/`op`…). Depuis #1466 L1a les DEUX racines sont au registre (`SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`, joints par BASENAME) : les discriminants des scènes sont fermés comme les autres. La fermeture reste bornée à ce que l’introspection atteint — un littéral sous une enveloppe qu’`enfantsDe` ne traverse pas y échappe.
-//   - Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Deux familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679).
+//   - Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Quatre familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`, `etat`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534) ; `stade` (effet `revealClue`), dont la cible est un stade de l’indice que nomme son `indiceId`, résolu par `projetSchema` (#686).
 //   - Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.
 //   - La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).
 //   - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
@@ -115,6 +115,20 @@ export const STRUCTURES_CIBLES = [
   // `vehicles.ts › ship.sail`/`ship.oars` et `ship-construction.ts` valident, rien à migrer.
   { concept: "profil-de-propulsion", signature: "crew,m", date: "2026-10-15" },
   { concept: "profil-de-propulsion", signature: "crew,m,spec", date: "2026-10-15" },
+  // #2534 / #2539 (2026-10-16) — billet de route, son marchandage et ses paliers, forme d'un état de
+  // campagne : nés CIBLES, ce sont les formes que `worldmap.ts` et `narratif.ts` valident, rien à migrer.
+  { concept: "palier-de-billet", signature: "drMin,prix", date: "2026-10-16" },
+  { concept: "marchandage-de-billet", signature: "paliers,presetId", date: "2026-10-16" },
+  { concept: "marchandage-de-billet", signature: "presetId", date: "2026-10-16" },
+  // #2662 (2026-10-17) — la forme d'un état passe à ses clés RÉELLES, au seul site des projets.
+  { concept: "forme-d-etat", signature: "kind", date: "2026-10-17" },
+  { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },
+  { concept: "forme-d-etat", signature: "identite,kind", date: "2026-10-17" },
+  { concept: "identite-de-heros", signature: "ancres,lignes,reperes", date: "2026-10-17" },
+  { concept: "ligne-d-identite", signature: "espece,sexe,valeurs", date: "2026-10-17" },
+  { concept: "valeur-d-identite", signature: "repere,valeur+…", date: "2026-10-17" },
+  { concept: "billet-de-route", signature: "prix", date: "2026-10-16" },
+  { concept: "billet-de-route", signature: "prix+…", date: "2026-10-16" },
   // #1389 (épique #1388, 2026-09-07) — l'ADRESSE de prose et son FRAGMENT naissent CIBLES : ce sont
   // les formes que le parseur `src/data/source/decoupe.ts` PRODUIT et que `descRefSchema`
   // (`grammaire/valeurs.ts`) est seul à accepter — il n'y a rien à migrer vers une autre graphie.
@@ -169,9 +183,17 @@ export const STRUCTURES_CIBLES = [
   { concept: "ouverture", signature: "pitch,titre+…", date: "2026-09-01" },
   { concept: "cloture", signature: "titre,when", date: "2026-09-01" },
   { concept: "cloture", signature: "titre,when+…", date: "2026-09-01" },
-  { concept: "narratif", signature: "affaires,documents,indices,objets,presetsPnj", date: "2026-09-29" },
-  { concept: "narratif", signature: "affaires,documents,indices,objets,presetsPnj+…", date: "2026-09-29" },
+  // #2539 (2026-10-16) — le registre `etats` est REQUIS par `formeNarratif` : il entre au noyau.
+  { concept: "narratif", signature: "affaires,documents,etats,indices,objets,presetsPnj", date: "2026-10-16" },
+  { concept: "narratif", signature: "affaires,documents,etats,indices,objets,presetsPnj+…", date: "2026-10-16" },
   { concept: "condition", signature: "expr,kind", date: "2026-09-01" },
+  // #2539 (2026-10-16) — l'Effet qui ÉCRIT un état de campagne naît CIBLE : `poserEtatSchema` et
+  // `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) le valident, rien à migrer.
+  { concept: "effet-d-etat", signature: "etat,type,valeur", date: "2026-10-16" },
+  { concept: "effet-d-etat", signature: "etat,invite,type", date: "2026-10-16" },
+  { concept: "effet-d-etat", signature: "etat,invite,type+…", date: "2026-10-16" },
+  { concept: "effet-narratif", signature: "documentId,type", date: "2026-10-17" },
+  { concept: "effet-narratif", signature: "indiceId,stade,type", date: "2026-10-17" },
 ];
 
 /** Une forme de donnée encore observée, à éteindre : `historique` (graphie reconnue au lexique) ou

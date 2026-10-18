@@ -4,8 +4,9 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   CARACTERES_PAR_TOKEN, PORTEUR_DU_PLAFOND, PORTE_DE_BUDGET, controlerBudgetDeLaPlage,
-  estCheminDuBudget, importsDe, ligneDeDescription, mesurerBudget, postesQuiGrossissent, refusDeBudget,
+  estCheminDuBudget, estRegleSansPaths, importsDe, ligneDeDescription, mesurerBudget, postesQuiGrossissent, refusDeBudget,
 } from './budget-contexte.mjs'
+import { Buffer } from 'node:buffer'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { instanceDeDepot, sousGitFeint } from './lib/depotGabarit.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
@@ -46,6 +47,32 @@ describe('budget-contexte', () => {
     // Seule la LIGNE `description:` entre, jamais le corps : `description: dix` = 16 octets.
     assert.equal(postes.at(-2).octets, 16)
     assert.equal(total, postes.reduce((n, p) => n + p.octets, 0))
+  })
+
+  test('une règle `.claude/rules/*.md` SANS `paths:` compte en entier ; une règle à `paths:` ne compte pas', () => {
+    const sans = '# Outils\n\n- consigne\n'
+    const avecFm = '---\ndescription: d\n---\n\n# Docs\n'
+    const textes = {
+      ...FAUX,
+      '.claude/rules/outils.md': sans,
+      '.claude/rules/docs.md': avecFm,
+      '.claude/rules/tests.md': '---\npaths:\n  - "**/*.test.mjs"\n---\n\n# Tests\n',
+      '.claude/rules/note.txt': 'pas une règle\n',
+    }
+    const regles = ['docs.md', 'note.txt', 'outils.md', 'tests.md']
+    const { postes } = mesurerBudget('/nulle-part', {
+      lireTout: parLot(textes),
+      lister: (dossier) => (dossier === '.claude/rules' ? regles : io.lister(dossier)),
+    })
+    const deRegles = postes.filter((p) => p.nom.startsWith('.claude/rules/'))
+    assert.deepEqual(deRegles, [
+      { nom: '.claude/rules/docs.md', octets: Buffer.byteLength(avecFm) },
+      { nom: '.claude/rules/outils.md', octets: Buffer.byteLength(sans) },
+    ])
+    assert.equal(estRegleSansPaths('---\npaths: ["a"]\n---\n'), false)
+    assert.equal(estRegleSansPaths('---\nname: x\n---\npaths: leurre\n'), true)
+    assert.ok(estCheminDuBudget('.claude/rules/outils.md'))
+    assert.equal(estCheminDuBudget('.claude/rules/sous/x.md'), false)
   })
 
   test('un fichier en CRLF pèse le même nombre d’octets qu’en LF (worktree du harnais)', () => {

@@ -285,14 +285,29 @@ export interface PendingStateRecovery {
   success: boolean;
   rerolled?: boolean;
 }
-/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (marchand).
- *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance ; gagner réduit le prix de 10 %
- *  (20 % avec Succès Stupéfiant DR≥6 ou le talent Négociateur). 1 jet verrouillé par visite. */
+/** Ce que le Marchandage négocie : les prix d'un marchand (achat ou vente, LDB 59 l.43), ou un
+ *  billet de passage (EDO 01 l.142), avec le titre de sa modale. La confirmation
+ *  (`merchantFlow.bargainConfirm`) y aiguille l'issue. */
+export type ContrepartieDeMarchandage = { titre: PlayerText } & (
+  | { kind: 'marchand'; mode: 'buy' | 'sell' }
+  | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
+);
+
+/** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
+ *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
+export interface OpposantDeMarchandage {
+  label: string;
+  valeur: number;
+  portrait?: Combatant;
+}
+
+/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (opposant).
+ *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
   playerName: string;
-  merchantName: string;
-  merchantValue: number; // valeur Marchandage du marchand (opposant)
+  contrepartie: ContrepartieDeMarchandage;
+  opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)
   /** SOUTIEN (LDB 12) des conseillers du groupe, déjà fondu dans `playerSkill` — porté pour l'affichage. */
   support?: SupportDetail;
@@ -302,12 +317,11 @@ export interface PendingBargain {
    *  `playerSkill` : celle-ci porte le Soutien et TOUS les modificateurs de la valeur de Test
    *  (inventaire exhaustif : `skills.testValueParts`). */
   playerBase: number;
-  mode: 'buy' | 'sell';
-  /** Le négociateur possède-t-il le talent Négociateur (−20 % même sans Succès Stupéfiant) ? */
+  /** Le négociateur possède-t-il le talent Négociateur (LDB 10 l.818) ? */
   negotiator: boolean;
   /** Jet du joueur ; null tant que pas lancé (Chance possible ensuite). */
   roll: TestResult | null;
-  /** Jet du marchand, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
+  /** Jet de l'opposant, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
   merchantRoll: TestResult | null;
   /** Résultat opposé (joueur = attaquant). */
   result: OpposedResult | null;
@@ -748,6 +762,8 @@ export interface RevealEntry {
   title: string;
   dice?: number; // d100/d10 à afficher (le jet), si pertinent
   lines: string[]; // détail (résultat, effets)
+  /** Entrée de zone : la scène dont `lines` porte le `startMessage` (#2206). */
+  sceneId?: string;
   /** Gravité de ce qui est révélé : 'minor' = informative (entretien, interruptions…), 'grave' =
    *  critique/mutation sur un héros. Elle QUALIFIE la révélation (rendu, cadence choisie quand un site
    *  déclare une auto-fermeture) ; elle n'en arme aucune d'elle-même (#1270). */
@@ -1459,6 +1475,17 @@ export interface PendingForceDoor extends MultiPending<ForceDoorParticipant> {
   doorBmax: number; // Blessures initiales (jauge)
   /** Flag de scène posé quand la porte cède (ouverture en jeu) — optionnel. */
   flag?: string;
+  /** SUITE du Flow qui a ouvert l'enfoncement (Effet `forceDoor`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
+}
+
+/** DÉSIGNATION d'un héros pour l'état de campagne `etat` (Effet `designerHeros`, EDO 02 l.91) : décision
+ *  de GROUPE, non annulable, refermée par `designerHerosChoisir` qui rejoue `suite`. `invite` = la prose
+ *  de l'Effet affichée par la modale. */
+export interface PendingDesignationHeros {
+  etat: string;
+  invite?: string;
+  suite?: Flow;
 }
 
 /** UN dé du lot d'étal : une rangée POSABLE, sans acteur — c'est le MONDE qui le lance. `value` est
@@ -1517,6 +1544,8 @@ export interface PendingExtendedTest extends PendingBase {
   outcome?: { kind: string; meta?: CascadeStepMeta };
   /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
   stake?: StakeRef;
+  /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
 }
 
 /** Paramètres SÉRIALISABLES de la conséquence d'une étape (jamais de closure — coop : le pending est
@@ -1629,35 +1658,45 @@ export type Cloture =
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
   /** Teardown de fin de combat : reprise de la bataille de masse puis de la séquence parquée. */
-  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean };
+  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean }
+  /** Reste d'un lot d'Effets d'auteur, rejoué par le walker de SCÈNE (`runFlow`). */
+  | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
+  /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
+   *  sa cible et avec le contexte porté de sa pile. */
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string };
+
+/**
+ * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`
+ * (`engine/ops`) : la part GELÉE voyage telle quelle (`gelerOpsCtx`), les Combattants par ID, le reste
+ * se rebâtit (`combatEffects.ctxRepris`).
+ */
+export interface OpsCtxPorte {
+  gele: OpsCtxGele;
+  casterId?: string;
+  hullId?: string;
+  crewIds?: string[];
+}
+
+/**
+ * SUITE confiée au porteur qui tient la main (#2689) : une liste ORDONNÉE de clôtures, rejouée dans
+ * l'ordre de la confidence (`combatEffects.confierLaSuite`, `jouerLesClotures`).
+ */
+export type Suite = Cloture[];
 
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxGele | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un dé (#1508) : le lot/la pile qui l'a
-   *  produite lui confie SA SUITE (`apresFlow`) au lieu de continuer par-dessus le dé en vol. Posé par
+   *  produite lui confie SA SUITE (`apresSuite`) au lieu de continuer par-dessus le dé en vol. Posé par
    *  les mints du canal (`opsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
    *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
-  /** CLÔTURES confiées AVEC la continuation (#1508) — les verbes que le site allait jouer après son
-   *  Flow, en donnée. Rejouées APRÈS `apresFlow`, dans l'ordre du site, à la DERNIÈRE étape de la
-   *  grappe : si le Flow rouvre un dé, elles repartent avec lui. */
-  apresClotures?: Cloture[];
-  /** CONTINUATION confiée par le walker qui a différé — le reste de son lot/de sa pile, en Flow pur
-   *  (sérialisable). Rejouée par l'applier de l'étape APRÈS la conséquence, jamais avant. */
-  apresFlow?: Flow;
-  /** QUEL walker rejoue `apresFlow` : `'scene'` (`runFlow` — lot d'Effets d'auteur) ou `'combat'`
-   *  (`runCombatFlow` — pile d'un Flow d'effet déclenché, qui porte cible/lanceur et la cadence). C'est
-   *  l'identité du PRODUCTEUR (`ExecCtx.mode`, déjà nommée par le socle), pas une classe de situation :
-   *  un lot de scène rejoué par le walker de combat perdrait ses Effets non-`ops`, et l'inverse
-   *  perdrait cible et lanceur. */
-  apresMode?: 'scene' | 'combat';
-  /** CONTEXTE de la feuille d'ops différée, part GELÉE (`engine/ops.gelerOpsCtx` — partition TOTALE
-   *  `OPS_CTX_GELES`). Ce qui n'est pas gelable voyage à côté (`casterId`/`hullId`/`opsDeCrewIds`) ou se
-   *  rebâtit (rng, hook de Corruption, dés). Sans lui, une reprise appliquait la feuille avec un
-   *  contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
-  opsDeCtx?: OpsCtxGele;
-  /** ÉQUIPAGE (`OpsCtx.crew`) d'une feuille différée, en ids — résolus par `actorIn` à la reprise. */
-  opsDeCrewIds?: string[];
+  /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
+   *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
+   *  lui. */
+  apresSuite?: Suite;
+  /** CONTEXTE PORTÉ de la feuille d'ops différée (`combatEffects.porterOpsCtx`). Sans lui, une reprise
+   *  appliquait la feuille avec un contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
+  opsDeCtx?: OpsCtxPorte;
   /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
   manieurs?: string[];
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses

@@ -70,8 +70,8 @@ describe('le seuil DÉCLARÉ à la porte voyage jusqu’à l’étape', () => {
 /**
  * F — UNE CONSÉQUENCE JOUÉE EN COMBAT S'ÉCRIT LÀ OÙ LE JOUEUR REGARDE (`battle.log`).
  *
- * Invariant : « Faut partir du fait que personne ne lit le journal » (fiche
- * `feedback-personne-ne-lit-le-journal`). Pendant un combat, `state.journal` n'est pas ouvrable : une
+ * Invariant : « Faut partir du fait que personne ne lit le journal » (`docs/campagne-authoring.md`,
+ * « Personne ne lit le journal »). Pendant un combat, `state.journal` n'est pas ouvrable : une
  * ligne de dénouement de cascade qui n'atterrit que là « finit en rien ». Le routage est porté par
  * `combatLog.journaliser`, consommé par `cascade.commitStep` (traces, conséquences, tests ratés).
  *

@@ -1,30 +1,41 @@
 // #2626
-import { appendFileSync, closeSync, mkdirSync, writeSync } from 'node:fs'
+import { closeSync, mkdirSync, writeSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GitIndisponible, brancheDe, depotDe, racineDe, refusDeGit } from '../guards/lib/gitPorte.mjs'
+import { brancheDe, depotDe, racineDe } from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { ENV_PUBLICATION, publicationDe, publierDepuisSnapshot } from './publicationIsolee.mjs'
 import {
-  CODE_ARRET_MOTEUR, cheminsDeJournal, codeDeVerdict, commandeDeVeille, entameDuRun,
+  CODE_ARRET_MOTEUR, cheminsDeJournal, chuteMoteur, commandeDeVeille, entameDuRun,
   envDeLancement, filetDuTrainEnfant, idDeRun, lancementDe, lancementNpm, ligneDeDetachement,
-  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe, vivant,
+  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe, raisonDeLErreur, refusDOptions, runEnVol, sortirHorsJournal,
 } from './publicationDonnee.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 export const estUneAttente = (argv) => optionsDe(argv).veiller !== null
 
-async function main() {
-  if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG)
-    filetDuTrainEnfant({ chemin: process.env.WFRP_PUBLIER_LOG })
+/** La sortie de l'enfant de `--detache` : son log et son run (`sortirHorsJournal`, #2603) ; `null` hors d'un enfant,
+ *  et pour le train de son snapshot (`ENV_PUBLICATION`), dont le stderr est le log et le run celui de l'enfant. */
+const sortieDeLEnfant = () => (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG && !process.env[ENV_PUBLICATION]
+  ? { log: process.env.WFRP_PUBLIER_LOG, run: idDeRun({ pid: process.pid, lancement: lancementDe(process.env) }) }
+  : null)
+
+/** @param {{log:string, run:string}|null} sortie */
+async function main(sortie) {
+  if (sortie) filetDuTrainEnfant({ chemin: sortie.log, run: sortie.run })
+  /** Le refus d'un run sans verdict au journal : `sortirHorsJournal` pour l'enfant de `--detache`, `ecrire` sinon (#2603). */
+  const refuser = (raison, code, ecrire) => {
+    if (sortie) return sortirHorsJournal({ ...sortie, raison })
+    ecrire(`${raison}\n`)
+    return code
+  }
   const args = process.argv.slice(2)
   const options = optionsDe(args)
-  if (options.inconnus.length) {
-    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n`)
-    return 1
-  }
+  if (options.inconnus.length)
+    return refuser(refusDOptions(options.inconnus), 1, (texte) => process.stderr.write(texte))
   if (process.env[ENV_PUBLICATION]) {
     publicationDe(process.env, RACINE)
     return (await import('./publierTrain.mjs')).executerPublication()
@@ -62,7 +73,7 @@ async function main() {
   }
   const entamer = () => {
     const journal = lireJournal(chemins.json, branche)
-    entameDuRun(journal, { run, pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
+    entameDuRun(journal, { run, pid: process.pid, creation: performance.timeOrigin, fileTimeoutMin: options.fileTimeoutMin })
     ecrireJsonAtomique(chemins.json, journal)
   }
   return publierDepuisSnapshot({
@@ -74,7 +85,7 @@ async function main() {
       if (enfant) writeSync(fdLog, ligneDeDetachement({ pid: process.pid, log: chemins.log, args: process.argv.slice(2) }))
       return ['ignore', fdLog, fdLog]
     },
-    entamer, ecrire,
+    entamer, ecrire, refuser: (raison) => refuser(raison, 1, ecrire),
     achever: (verdict) => {
       const journal = lireJournal(chemins.json, branche)
       journal.verdict = verdict
@@ -83,27 +94,31 @@ async function main() {
     },
     echouer: (e) => {
       const journal = lireJournal(chemins.json, branche)
-      if (journal.pid && journal.pid !== process.pid && !journal.verdict && vivant(journal.pid)) {
-        ecrire(`[publier] REFUS : ${e.message}\n`)
-        return CODE_ARRET_MOTEUR
-      }
+      if (journal.pid !== process.pid && runEnVol(journal, IDENTITE_MESUREE))
+        return refuser(`[publier] REFUS : ${e.message}`, CODE_ARRET_MOTEUR, ecrire)
       entamer()
       const courant = lireJournal(chemins.json, branche)
-      courant.verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : String(e?.message ?? e) }
+      const { verdict, texte, code } = chuteMoteur(raisonDeLErreur(e), { tete: courant.tete })
+      courant.verdict = verdict
       ecrireJsonAtomique(chemins.json, courant)
-      ecrire(`${courant.verdict.raison}\n${ligneDePublication(courant.verdict, courant.tete)}\n`)
-      return CODE_ARRET_MOTEUR
+      ecrire(texte)
+      return code
     },
     fermer: () => { if (fdLog !== null) closeSync(fdLog) },
   })
 }
 
-if (import.meta.main) try {
-  process.exitCode = await main()
-} catch (e) {
-  const verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : String(e?.message ?? e) }
-  const ligne = `${verdict.raison}\n${ligneDePublication(verdict)}\n`
-  if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
-  else process.stderr.write(ligne)
-  process.exitCode = codeDeVerdict(verdict)
+if (import.meta.main) {
+  const sortie = sortieDeLEnfant()
+  try {
+    process.exitCode = await main(sortie)
+  } catch (e) {
+    const raison = raisonDeLErreur(e)
+    if (sortie) process.exitCode = sortirHorsJournal({ ...sortie, raison })
+    else {
+      const { texte, code } = chuteMoteur(raison)
+      process.stderr.write(texte)
+      process.exitCode = code
+    }
+  }
 }

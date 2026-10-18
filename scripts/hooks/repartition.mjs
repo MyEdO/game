@@ -7,12 +7,14 @@ import '../node-requis.mjs'
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
+import { RACINE } from './barriere-outil.mjs'
+import { panneDe } from './panne-outil.mjs'
 import {
-  EDITION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert,
+  EDITION, PROJECTION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert, racineDeLeanCtx,
 } from '../guards/lib/contratGarde.mjs'
 import { normaliserPatchCodex, resoudreCheminPatchCodex } from '../guards/lib/patchCodex.mjs'
 import { racineNpmDe, sousRacineNpm } from '../guards/lib/racineNpm.mjs'
-import { arbrePrincipal, depotDe, estRepertoire } from '../guards/lib/gitPorte.mjs'
+import { estRepertoire } from '../guards/lib/natureDuChemin.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import {
   NOM_NON_LITTERAL, affectationsDEnvironnement, canauxDesMessages, cibleDeLaCommande, commandeDeLecture, configsGitDeLaCommande, gitSubcommand,
@@ -87,7 +89,7 @@ const CANAL_CWD = 'passer `cwd` ABSOLU, dans l’arbre principal (ses `.wt-*` co
  * le `cwd` de l'entrée de hook, sinon celui du processus. Shell lean-ctx sans `command` (`job_id`,
  * `background_action`) : rien ne s'exécute, sa base est celle du hook. Avec : son `cwd`, qui doit être
  * absolu, exister tel que lean-ctx le lit (sans conversion MSYS : `/c/x` y est le `c/x` du disque courant, #2224), et
- * tenir dans l'arbre principal (`arbrePrincipal`) — absent, il vaut le dernier `cwd` passé (lean-ctx `LEAN_CTX_VERSION` : « Working dir
+ * tenir dans l'arbre principal (`racineDeLeanCtx`) — absent, il vaut le dernier `cwd` passé (lean-ctx `LEAN_CTX_VERSION` : « Working dir
  * (persists across calls) ») ; relatif, il se résout contre la racine de lean-ctx ; hors de cet arbre,
  * lean-ctx l'exécute à sa racine (#2224). Écriture lean-ctx : un `path` relatif se résout contre la
  * racine de lean-ctx, jamais contre celle du hook.
@@ -108,7 +110,7 @@ function baseDeLAppel(entree, cwd, platform) {
   if (!isAbsolute(brut)) return nonJugeable(`\`cwd\` relatif (${brut}) : lean-ctx le résout contre SA racine`, CANAL_CWD)
   const natif = resolve(brut)
   if (!estRepertoire(natif)) return nonJugeable(`\`cwd\` inexistant tel que lean-ctx le lit (${brut} → ${natif})`, CANAL_CWD)
-  const principal = arbrePrincipal(depotDe(hook))
+  const principal = racineDeLeanCtx(hook)
   if (!principal.disponible) return nonJugeable(`\`cwd\` invérifiable (${principal.raison})`, CANAL_CWD)
   if (relatifSousRacine(canoniser(principal.valeur), natif) === null) {
     return nonJugeable(`\`cwd\` hors de l’arbre principal ${principal.valeur} (${brut}) : lean-ctx l’exécute à sa racine`, CANAL_CWD)
@@ -239,18 +241,31 @@ export function construireContexte(entree, { env = process.env, cwd = process.cw
   return { ...commun, baseDeLAppel: lieu.base, dir, racineNpm, cibleIgnoree: cible.ignore, nonJugeable: null }
 }
 
+/** Le verdict d'une PANNE `e` sur `entree` (#2712) : en PreToolUse, un refus nommé avec son geste de
+ *  réparation, sauf l'appel qui la franchit (`franchitLaPanne`) ; ailleurs, ou franchie, un contexte. */
+export function verdictDePanne(quoi, e, entree, racine = RACINE) {
+  const panne = panneDe(e, entree, racine)
+  const texte = `${quoi} en panne : ${panne.message}`
+  if (entree?.hook_event_name !== 'PreToolUse' || panne.franchit) return { contexte: texte }
+  return { decision: 'deny', raison: `⛔ ${texte} — ${panne.geste}.` }
+}
+
 /**
- * Les verdicts des `gardes`, dans l'ordre, chacun étiqueté de sa garde. Une garde qui LÈVE rend un
- * contexte qui la nomme, jamais un refus ; un `deny` court-circuite les suivantes.
+ * Les verdicts des `gardes`, dans l'ordre, chacun étiqueté de sa garde. Une garde qui LÈVE rend son
+ * `verdictDePanne` ; une garde `PROJECTION` qui rend une `decision` rend un contexte qui la nomme, jamais
+ * un refus ; un `deny` court-circuite les suivantes.
  */
-export async function evaluerGardes(gardes, entree, contexte) {
+export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
   const verdicts = []
   for (const garde of gardes) {
     let rendus
     try {
       rendus = [await sousRacineNpm(contexte.racineNpm, () => garde.evaluer(entree, contexte))].flat().filter(Boolean)
     } catch (e) {
-      rendus = [{ contexte: `garde ${garde.nom} en panne : ${e?.message ?? e}` }]
+      rendus = [verdictDePanne(`garde ${garde.nom}`, e, entree, racine)]
+    }
+    if (garde.role === PROJECTION && rendus.some((v) => v.decision)) {
+      rendus = [{ contexte: `garde ${garde.nom} en panne : une garde de projection ne décide jamais` }]
     }
     verdicts.push(...rendus.map((v) => ({ ...v, garde: garde.nom })))
     if (rendus.some((v) => v.decision === 'deny')) break
@@ -301,26 +316,26 @@ export async function repartir(registre, brut, { env = process.env, cwd = proces
     return { sortie: null, traces: [] }
   }
   const evenement = entree?.hook_event_name
-  entree = { ...entree, tool_name: normaliserNomOutil(entree?.tool_name) }
-  if (entree.tool_name === 'apply_patch') {
-    const { base } = baseDeLAppel(entree, cwd, platform)
-    entree = normaliserPatchCodex(entree, {
-      base,
-      resoudre: (path) => resoudrePatch(resolve(base, versCheminNatif(path, platform)), { evenement }),
-      lire: (path) => {
-        try { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(readFileSync(path)) } catch (e) { if (e.code === 'ENOENT') return null; throw e }
-      },
-    })
-  }
-  const gardes = (registre[evenement] ?? []).filter((g) => outilCouvert(g.outils, entree?.tool_name))
-  if (gardes.length === 0) return { sortie: null, traces: [] }
   let cumul
   try {
+    entree = { ...entree, tool_name: normaliserNomOutil(entree?.tool_name) }
+    if (entree.tool_name === 'apply_patch') {
+      const { base } = baseDeLAppel(entree, cwd, platform)
+      entree = normaliserPatchCodex(entree, {
+        base,
+        resoudre: (path) => resoudrePatch(resolve(base, versCheminNatif(path, platform)), { evenement }),
+        lire: (path) => {
+          try { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(readFileSync(path)) } catch (e) { if (e.code === 'ENOENT') return null; throw e }
+        },
+      })
+    }
+    const gardes = (registre[evenement] ?? []).filter((g) => outilCouvert(g.outils, entree?.tool_name))
+    if (gardes.length === 0) return { sortie: null, traces: [] }
     cumul = cumuler(await evaluerGardes(gardes, entree, construireContexte(entree, { env, cwd, platform })))
   } catch (e) {
-    cumul = { decision: null, contexte: `répartiteur en panne : ${e?.message ?? e}`, traces: [] }
+    cumul = { ...cumuler([{ ...verdictDePanne('répartiteur', e, entree), garde: 'répartiteur' }]), traces: [] }
   }
-  if (entree.diagnosticPost) cumul.contexte = [cumul.contexte, entree.diagnosticPost].filter(Boolean).join('\n\n')
+  if (entree?.diagnosticPost) cumul.contexte = [cumul.contexte, entree.diagnosticPost].filter(Boolean).join('\n\n')
   return { sortie: projeter(cumul, evenement, surfaceDe(env)), traces: cumul.traces }
 }
 

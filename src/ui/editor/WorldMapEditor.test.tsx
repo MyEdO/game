@@ -7,7 +7,7 @@
  * Couverture (confrontée aux types `MapPlace`/`MapRoute`/`WorldMapParams`, `src/state/worldMap.ts`) :
  * lieu (nom, icône, fond, scène, entrée, services), lieu/commerce (marché : taille/richesse/produits ;
  * port : catalogue/taille/richesse/cosmopolite/phare), lieu/plan (POI : ajout, libellé, icône,
- * position, cible scène OU service), route/trajet (distance, sens, modes, prix, vitesse, seuil de
+ * position, cible scène OU service), route/trajet (distance, sens, modes, billet, vitesse, seuil de
  * péripétie, auberges, maritime + cap), route/péripéties (embuscade : scène/rencontre/entrée/ancrage
  * en mer, péripéties d'auteur : libellé/probabilité/effet), paramètres de carte (nom, heures/jour,
  * marche forcée, seuil de péripétie).
@@ -51,18 +51,18 @@ function baseMap(): WorldMap {
   return { ...m, places: [place, place2], routes: [route] };
 }
 
-function Harness({ narratif }: { narratif: NarratifBlock }) {
-  const [m, setM] = useState<WorldMap | null>(baseMap());
+function Harness({ narratif, initial }: { narratif: NarratifBlock; initial: WorldMap }) {
+  const [m, setM] = useState<WorldMap | null>(initial);
   const [axes, setAxes] = useState<string[] | undefined>(undefined);
   lastMap = m;
   return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} narratif={narratif} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
 }
 
-function mount(narratif: NarratifBlock = emptyNarratif()) {
+function mount(narratif: NarratifBlock = emptyNarratif(), initial: WorldMap = baseMap()) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<Harness narratif={narratif} />); });
+  act(() => { root.render(<Harness narratif={narratif} initial={initial} />); });
 }
 
 afterEach(() => {
@@ -237,7 +237,7 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
 });
 
 describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
-  it('édite distance, sens, modes de voyage, prix/vitesse par mode, seuil de péripétie et auberges', () => {
+  it('édite distance, sens, modes de voyage, billet/vitesse par mode, seuil de péripétie et auberges', () => {
     mount();
     click(routeG());
     setValue(input('Distance (km)'), '42');
@@ -249,8 +249,18 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
     click(checkbox('Diligence'));
     expect(lastMap!.routes[0].modes).toContain('diligence');
 
-    setValue(input('Diligence — prix'), '12');
-    expect(lastMap!.routes[0].prices?.diligence).toBe(12);
+    click(checkbox('Diligence — billet d'));
+    expect(lastMap!.routes[0].billets?.diligence).toEqual({ prix: {} });
+    setValue(input('Diligence — Extérieur billet'), '48');
+    setValue(input('Diligence — Intérieur billet'), '96');
+    expect(lastMap!.routes[0].billets?.diligence?.prix).toEqual({ exterieur: 48, interieur: 96 });
+    // Route à sens unique : le billet part de `from`, aucun « départ » à choisir ; à double sens, il l'exige.
+    expect(() => input('Diligence — billet au départ de')).toThrow();
+    setValue(input('Sens'), '');
+    setValue(input('Diligence — billet au départ de'), 'p1');
+    expect(lastMap!.routes[0].billets?.diligence?.depuis).toBe('p1');
+    setValue(input('Diligence — raison maison du billet'), 'tarif de la compagnie');
+    expect(lastMap!.routes[0].billets?.diligence?.maison).toBe('tarif de la compagnie');
 
     setValue(input('Diligence — Déplacement'), '9');
     expect(lastMap!.routes[0].speed?.diligence).toBe(9);
@@ -260,6 +270,19 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
 
     click(checkbox('Relais d'));
     expect(lastMap!.routes[0].inns).toBe(true);
+  });
+
+  it('route couverte par la suite d’un autre billet du véhicule : lecture seule, aucune case de billet d’auteur', () => {
+    const m = baseMap();
+    const p3: MapPlace = { id: 'p3', label: 'Nuln', pos: { x: 70, y: 30 }, scene: 's2' };
+    const r1: MapRoute = { id: 'r1', a: 'p1', b: 'p2', from: 'p1', km: 20, modes: ['diligence'], billets: { diligence: { prix: { exterieur: 10 }, suite: ['r2'], maison: 'compagnie' } } };
+    const r2: MapRoute = { id: 'r2', a: 'p2', b: 'p3', from: 'p2', km: 30, modes: ['diligence'] };
+    mount(emptyNarratif(), { ...m, places: [...m.places, p3], routes: [r1, r2] });
+    click(container.querySelectorAll('svg g[style*="cursor: pointer"]')[1]);
+    expect(container.textContent).toContain('Diligence : couverte par le billet de Altdorf → Marienburg');
+    expect(() => checkbox('Diligence — billet d')).toThrow();
+    click(routeG());
+    expect(checkbox('Diligence — billet d').checked).toBe(true);
   });
 
   it('active la route maritime et le cap', () => {

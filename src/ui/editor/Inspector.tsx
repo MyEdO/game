@@ -24,6 +24,8 @@ import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetDuNarratif } from '../../state/campaignData';
 import type { Settlement } from '../../engine/disponibilite';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
@@ -359,7 +361,7 @@ export function Inspector({
   };
 
   const title = ent
-    ? <>{entIcon(ent)} {ent.label ?? ent.ref ?? libelleDeValeur(entityKindSchema, ent.kind)}</>
+    ? <>{entIcon(ent)} {nomDEntite(ent, presetDuNarratif(narratif)) ?? libelleDeValeur(entityKindSchema, ent.kind)}</>
     : selT
         ? <><Icon id="map-tool/zone" size="sm" /> {selT.id}</>
         : zone
@@ -813,7 +815,7 @@ export function Inspector({
                   ) : (
                     <label className="ed-field">
                       Remplacer par une fiche du bestiaire
-                      <select value="" onChange={(e) => { const cid = e.target.value; updateSel({ statblock: undefined, ref: cid, label: ent.label ?? creatureLabel(cid) }); }}>
+                      <select value="" onChange={(e) => { const cid = e.target.value; updateSel({ statblock: undefined, ref: cid }); }}>
                         <option value="" disabled>— fiche —</option>
                         {enemyCreatures.map((c) => (
                           <option key={c.id} value={c.id}>{c.label}</option>
@@ -827,7 +829,7 @@ export function Inspector({
                   <label className="ed-field">
                     Fiche (bestiaire)
                     {/* #1882 : aucune option ne retire la fiche ; la mention vide n'existe que tant qu'aucune n'est choisie. */}
-                    <select value={ent.ref ?? ''} onChange={(e) => { const cid = e.target.value; updateSel({ ref: cid, label: ent.label ?? creatureLabel(cid) }); }}>
+                    <select value={ent.ref ?? ''} onChange={(e) => { const cid = e.target.value; updateSel({ ref: cid }); }}>
                       {ent.ref === undefined && <option value="" disabled>— fiche —</option>}
                       {enemyCreatures.map((c) => (
                         <option key={c.id} value={c.id}>{c.label}</option>
@@ -862,7 +864,7 @@ export function Inspector({
                       </>
                     );
                   })()}
-                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(ent.label ?? (ent.ref !== undefined ? creatureLabel(ent.ref) : undefined)) })}><Icon id="ui/settings" size="sm" /> Profil personnalisé…</button>
+                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(nomDEntite(ent, presetDuNarratif(narratif))) })}><Icon id="ui/settings" size="sm" /> Profil personnalisé…</button>
                 </>
               )}
               <div className="mini-title">Rencontres</div>
@@ -1310,7 +1312,7 @@ export function Inspector({
           )}
         </>
       ) : (
-        <SceneProps scene={scene} setScene={setScene} setSel={setSel} resizeScene={resizeScene} />
+        <SceneProps scene={scene} narratif={narratif} setScene={setScene} setSel={setSel} resizeScene={resizeScene} />
       )}
     </aside>
   );
@@ -1478,7 +1480,7 @@ function EntityPanel({
       <Fold title="Identité" open>
         <label className="ed-field">
           Libellé
-          <input value={ent.label ?? ''} onChange={(e) => updateSel({ label: e.target.value })} />
+          <input value={ent.label ?? ''} placeholder={nomDEntite({ ...ent, label: undefined }, presetDuNarratif(narratif))} onChange={(e) => updateSel({ label: e.target.value || undefined })} />
         </label>
         <SelecteurDOrientation ent={ent} updateSel={updateSel} />
         <LayerField z={ent.z} layers={sceneLayerZs(scene)} onChange={(z) => updateSel({ z: z || undefined })} />
@@ -2044,10 +2046,10 @@ type ContentRow = { key: string; icon: JSX.Element; label: string; at: string; t
 /** TOUT ce que le plan porte, en UNE liste — entités, zones, points d'entrée, zones de repos.
  *  UNE liste et UN champ de filtre : chercher un élément par son nom ne demande de savoir ni sa
  *  famille, ni quel repli la porte. Une famille de plus s'ajoute ICI, jamais dans une n-ième liste. */
-function sceneContent(scene: Scene): ContentRow[] {
+function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
   const rows: ContentRow[] = [];
   for (const e of scene.entities)
-    rows.push({ key: `ent:${e.id}`, icon: entIcon(e), label: e.label ?? e.ref ?? e.id, at: `(${e.pos.x},${e.pos.y})`, z: e.z, sel: { type: 'entity', id: e.id } });
+    rows.push({ key: `ent:${e.id}`, icon: entIcon(e), label: nomDEntite(e, presetDuNarratif(narratif)) ?? e.id, at: `(${e.pos.x},${e.pos.y})`, z: e.z, sel: { type: 'entity', id: e.id } });
   (scene.effectZones ?? []).forEach((efz, i) => {
     const r = effectZoneRect(efz.area);
     rows.push({
@@ -2080,16 +2082,18 @@ const LIBELLE_DE_PARTIE: Record<keyof ReliefDefaults, string> = {
 function SceneProps({
   scene,
   setScene,
+  narratif,
   setSel,
   resizeScene,
 }: {
   scene: Scene;
+  narratif: NarratifBlock;
   setScene: (s: Scene) => void;
   setSel: (s: Sel) => void;
   resizeScene: (w: number, h: number) => void;
 }) {
   const [filter, setFilter] = useState('');
-  const content = sceneContent(scene);
+  const content = sceneContent(scene, narratif);
   const shown = filterByLabel(content, (row) => `${row.label} ${row.key}`, filter);
   const layerZs = sceneLayerZs(scene);
   const patchStation = (i: number, patch: Partial<SceneStationAnchor>) =>

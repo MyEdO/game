@@ -520,6 +520,13 @@ export const actorFieldSchema = enumNomme({ woundsCurrent: 'PB courants', wounds
  *  au module : sous le `lazy` de `conditionSchema`, ses cinq sites rendaient 1 475 nœuds jumeaux. */
 export const partyWhoSchema = enumNomme({ any: 'un héros au moins', all: 'tout le groupe' });
 
+/** SÉLECTEUR de héros (`PartySelector`, `engine/flowCore.ts`) : le quantificateur, ou le héros que désigne
+ *  un état de campagne de forme `heros` (`{ etat }`). */
+export const partySelectorSchema = z.union([
+  partyWhoSchema,
+  nommerChamps(z.strictObject({ etat: z.string().min(1, 'Sélecteur « etat » : nommez l’état de campagne qui désigne le héros.') }), { etat: { label: "héros désigné par l’état" , texte: { regime: "technique"} } }),
+]);
+
 /** Cause d'effarouchement testée par la Condition `startleCause` (Nerveux, `LDB 85 l.197`). */
 export const startleCauseSchema = enumNomme({ noise: 'Bruits forts', magic: 'Magie' });
 
@@ -568,11 +575,12 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
       kind: z.literal('money'),
       atLeast: nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }),
     }), { kind: { label: "type"  }, atLeast: { label: "minimum" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partyWhoSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('skill'), id: z.string(), spec: z.string().optional(), advances: z.number().optional(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} }, advances: { label: "augmentations" }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
-    nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partySelectorSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ kind: z.literal('skill'), id: z.string(), spec: z.string().optional(), advances: z.number().optional(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} }, advances: { label: "augmentations" }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
     nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }),
     nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
     nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }),

@@ -3,7 +3,7 @@ import { Characteristics, Combatant, ItemInstance } from './types';
 import { makeRNG } from './dice';
 import { stacks } from './conditions';
 import {
-  partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, forcedMarchTest, applyTravelFatigue,
+  partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, billetImplicite, classeLaMoinsChere, prixParPassager, forcedMarchTest, applyTravelFatigue,
   vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
 import { toBrass } from './money';
@@ -64,23 +64,30 @@ describe('travelPlanCalc (LDB 51 l.195 : 6 h/jour sans Test)', () => {
   });
 });
 
-describe('transportCost (LDB 51 l.180-189 : prix par km par passager)', () => {
+describe('transportCost — billet implicite (LDB 51 l.178 : prix par km par passager)', () => {
+  const implicite = (km: number, mode: string) => billetImplicite(km, mode)!;
   it('diligence Intérieur 2 sous/km : 10 km × 4 passagers = 80 sous', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'interieur', 4)!)).toBe(80);
+    expect(toBrass(transportCost(implicite(10, 'diligence'), 'interieur', 4))).toBe(80);
   });
   it('diligence Extérieur 1 sou/km ; barge Cabine 5 / Pont 2', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'exterieur', 1)!)).toBe(10);
-    expect(toBrass(transportCost(10, 'barge', 'cabine', 1)!)).toBe(50);
-    expect(toBrass(transportCost(10, 'barge', 'pont', 1)!)).toBe(20);
-  });
-  it('prix d’auteur (override par route) respecté', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'interieur', 1, 4)!)).toBe(40);
+    expect(toBrass(transportCost(implicite(10, 'diligence'), 'exterieur', 1))).toBe(10);
+    expect(toBrass(transportCost(implicite(10, 'barge'), 'cabine', 1))).toBe(50);
+    expect(toBrass(transportCost(implicite(10, 'barge'), 'pont', 1))).toBe(20);
   });
   it('km fractionnaires arrondis au sou supérieur', () => {
-    expect(toBrass(transportCost(2.5, 'diligence', 'exterieur', 1)!)).toBe(3);
+    expect(toBrass(transportCost(implicite(2.5, 'diligence'), 'exterieur', 1))).toBe(3);
   });
-  it('mode « mer » (navire de campagne, pas un passage payant à la classe) → null, jamais de throw', () => {
-    expect(transportCost(100, 'mer', '', 1)).toBeNull();
+  it('classe absente du tarif → la moins chère (Extérieur)', () => {
+    expect(classeLaMoinsChere(implicite(10, 'diligence'))).toBe('exterieur');
+    expect(toBrass(transportCost(implicite(10, 'diligence'), '', 1))).toBe(10);
+  });
+  it('mode « mer » (navire de campagne, pas un passage payant à la classe) → aucun billet, jamais de throw', () => {
+    expect(billetImplicite(100, 'mer')).toBeNull();
+  });
+  it('sans paliers, le Marchandage gagné applique la remise RAW (LDB 59 l.43)', () => {
+    expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: true, drNet: 1, negotiator: false })).toBe(90);
+    expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: false, drNet: 3, negotiator: true })).toBe(100);
+    expect(prixParPassager(implicite(100, 'diligence'), 'exterieur', { won: true, drNet: 6, negotiator: true })).toBe(70);
   });
 });
 

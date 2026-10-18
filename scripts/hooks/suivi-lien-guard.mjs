@@ -11,7 +11,7 @@
 //
 // LES ARGUMENTS se lisent jeton par jeton, citations comprises : un geste du CLI a une arité FIXE, et son
 // texte cité est UN argument. Un `npm run ops:suivi -- …` se lit sur le segment `node scripts/ops/suivi.mjs …`
-// que le socle en déplie (`commandeScriptNpm` y CITE chaque argument recollé), sans ses redirections
+// que le socle en déplie (`commandeDeScript` y CITE chaque argument recollé), sans ses redirections
 // (`sansRedirections`, sur les jetons : un argument CITÉ qui commence par `>` reste un argument).
 //
 // Le lien se trace en PreToolUse, AVANT la commande, jamais en PostToolUse : un PostToolUse sur les

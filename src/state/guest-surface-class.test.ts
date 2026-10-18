@@ -59,7 +59,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   // émet — elles vivent au registre clavier (`state/keybindings.ts`), hors du périmètre de ce scan.
   setScreen: CLIENT('écran courant'),
   setGameMenu: CLIENT('menu système'),
-  closeDocument: CLIENT('document lu'),
+  closeDocument: HOTE('fermeture d’un document remis : rejoue la suite du Flow (Effet `document` suspensif)'),
   openCodex: CLIENT('codex'),
   closeCodexOverlay: CLIENT('codex'),
   setKeyBinding: CLIENT('raccourcis clavier'),
@@ -76,6 +76,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   openWorldMap: MIROIR('carte du monde'),
   closeWorldMap: MIROIR('carte du monde'),
   startTravel: MIROIR('départ en voyage'),
+  startBilletBargain: MIROIR('marchandage du billet de départ'),
   resumeTravel: MIROIR('reprise de voyage'),
   departWaitDawn: MIROIR('départ à l’aube'),
   departCancel: MIROIR('porte de départ'),
@@ -185,6 +186,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   cloreChapitre: HOTE('clôture du chapitre'),
   ajournerChapterRecap: HOTE('clôture du chapitre'),
   chooseDialogue: HOTE('dialogue (jeton unique, #669)'),
+  designerHerosChoisir: HOTE('désignation d’un héros pour un état de campagne (décision de groupe, comme le dialogue)'),
   // ── Interlude : ouverture/clôture et bataille de masse ────────────────────────────────────────
   interludeEnd: HOTE('clôture de l’interlude'),
   interludeEntrainement: HOTE('entraînement (bourse du groupe)'),

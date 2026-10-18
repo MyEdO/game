@@ -62,6 +62,7 @@ const ATTENDU = {
     'scripts/guards/lib/processusWorktrees.test.mjs',
     // #2626
     'scripts/guards/lib/superviserProcessus.test.mjs',
+    'scripts/guards/lib/superviserProcessus.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',
     'scripts/hooks/superpowers-ecriture-guard.test.mjs',
@@ -235,9 +236,19 @@ const ATTENDU = {
     // +1 le 2026-10-12 (#2537) : le banc de la garde des types en lecture seule pose ses scripts sous le
     // scratchpad FORGÉ de sa session, sous os.tmpdir() (`rmSync` en finally) ; la garde juge, rien n'est exécuté.
     'scripts/hooks/lecture-seule-guard.test.mjs',
+    // +1 le 2026-10-17 (#2712, #2725) : le banc du contexte des sous-agents pose son dépôt JETABLE sous
+    // os.tmpdir() (`mkdtempSync`, `rmSync` en finally) ; le hook lit l'index et les règles communes, rien
+    // n'est écrit dans l'arbre.
+    'scripts/hooks/contexte-sous-agent.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
+    // +1 le 2026-10-17 (#2712) : la garde de la racine de confiance copie le texte candidat sous un
+    // `mkdtempSync` d'os.tmpdir() pour en juger la syntaxe (`rmSync` en finally) ; l'arbre n'est jamais écrit.
+    'scripts/hooks/racine-de-confiance-guard.mjs',
+    // +1 le 2026-10-17 (#2683) : le banc de la garde de projection des règles pose ses racines JETABLES sous
+    // os.tmpdir() (`mkdtempSync`, `rmSync` en finally) ; l'arbre versionné n'est jamais écrit.
+    'scripts/hooks/regles-projection-guard.test.mjs',
     // +2 −1 le 2026-09-28 (#2125), net +1 : le répartiteur AJOUTE au fichier la trace que rend une garde
     // (`{ trace: { fichier, ligne } }`, la dérogation `SKIP_NEW_SRC_GUARD` vers
     // `.claude/logs/new-src-guard-skips.log`) ; son banc pose des `package.json` jetables sous `os.tmpdir()` (`rmSync` en finally)
@@ -311,6 +322,8 @@ const ATTENDU = {
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2626
+    'scripts/guards/lib/superviserProcessus.mjs',
     'scripts/agents/compat-cli.mjs',
     'scripts/ops/session-start.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un

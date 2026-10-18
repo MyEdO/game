@@ -10,6 +10,8 @@ import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/sc
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetDuNarratif } from '../../state/campaignData';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -158,7 +160,7 @@ function TriggersTab({
             key={x.id}
             selected={x.id === sel}
             onClick={() => setSel(x.id)}
-            label={<><b>{x.id}</b> ({x.rect.x},{x.rect.y}) {x.rect.w}×{x.rect.h}{condSummary(x.when) ? ` · si ${condSummary(x.when)}` : ''}</>}
+            label={<><b>{x.id}</b> ({x.rect.x},{x.rect.y}) {x.rect.w}×{x.rect.h}{condSummary(x.when, ctx.narratif) ? ` · si ${condSummary(x.when, ctx.narratif)}` : ''}</>}
           >
             <LayerChip z={x.rect.z} layers={sceneLayerZs(scene)} />
             <span className="count">{flowEffectCount(x.flow)}</span>
@@ -204,7 +206,7 @@ function TriggersTab({
           </Row>
           <CouvreField value={t.couvre} sujet="du déclencheur" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title" title="Le trigger ne se déclenche qu'en entrant dans la zone si la condition est vraie (flag, créneau horaire, ET/OU/NON).">Condition de déclenchement</div>
-          <WhenEditor when={t.when} onChange={(when) => upd({ when })} />
+          <WhenEditor when={t.when} narratif={ctx.narratif} onChange={(when) => upd({ when })} />
           <div className="mini-title">Au déclenchement (effets · conditions · tests)</div>
           <FlowEditor flow={t.flow} onChange={(flow) => upd({ flow })} ctx={ctx} />
         </div>
@@ -359,7 +361,7 @@ function EncountersTab({
                     <ListRow
                       onClick={() => onSelectEntity(m.entityId)}
                       title="Sélectionner sur la carte → éditer le profil/apparence dans l'inspecteur"
-                      label={e ? `${e.label ?? e.ref ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
+                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
                     />
                     <button className="btn small danger" onClick={() => setScene(removeMember(scene, enc.id, m.entityId))} title="Retirer de la rencontre (l'entité reste sur la carte)">
                       ✕

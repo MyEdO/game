@@ -15,7 +15,9 @@ import { emptyScene, type Scene } from './scene';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import type { WorldMap } from './worldMap';
 import { makePregens } from '../data/pregens';
-import { campagneALancer, lancerCampagne } from '../scenes/campaign';
+import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
+import { applyEffects } from './combatFlow';
+import { netSnapshot, applyNetSnapshot } from './netFlow';
 
 function fakeStorage(): Storage {
   const m = new Map<string, string>();
@@ -61,9 +63,9 @@ describe('loadProject — la scène d’entrée est une scène du paquet, ou le 
     ['id inconnu', [scene('sa'), scene('sb')], 'INEXISTANTE', /« INEXISTANTE » absente \(sa, sb\)/],
     ['paquet sans scène', [], 'x', /« x » absente \(\)/],
   ] as const)('%s : aucune scène démarrée ni enregistrée, aucun `campaignDoc` écrit', (_nom, scenes, entree, motif) => {
-    useGame.getState().loadProject([scene('avant')], 'avant');
+    useGame.getState().loadProject({ scenes: [scene('avant')], entryId: 'avant', projet: null });
     const docAvant = useGame.getState().campaignDoc;
-    expect(() => useGame.getState().loadProject([...scenes], entree)).toThrow(motif);
+    expect(() => useGame.getState().loadProject({ scenes: [...scenes], entryId: entree, projet: null })).toThrow(motif);
     expect(useGame.getState().scene?.id).toBe('avant');
     expect(useGame.getState().campaignDoc).toBe(docAvant);
     useGame.getState().transitionTo('sb');
@@ -81,7 +83,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
   it('reload (registre vidé) : campaignDoc re-registre la scène B → transitionTo réussit', () => {
     // 1. Charge un projet MULTI-scènes par le chemin réel, puis sauve.
     useGame.setState({ party: makePregens().slice(0, 1), battle: null });
-    useGame.getState().loadProject([scene('scene-a'), scene('scene-b')], 'scene-a', worldMap, narratif);
+    useGame.getState().loadProject({ scenes: [scene('scene-a'), scene('scene-b')], entryId: 'scene-a', worldMap, narratif, projet: null });
     expect(useGame.getState().scene?.id).toBe('scene-a');
     expect(useGame.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(['scene-a', 'scene-b']);
     expect(useGame.getState().saveGame(1)).toBe(true);
@@ -89,7 +91,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     // 2. Reload : `sceneRegistry` reparti de zéro, scene-b INCONNUE.
     resetSceneRegistry();
     useGame.setState({ party: makePregens().slice(0, 1) });
-    useGame.getState().loadProject([scene('scene-solo')], 'scene-solo');
+    useGame.getState().loadProject({ scenes: [scene('scene-solo')], entryId: 'scene-solo', projet: null });
     useGame.getState().transitionTo('scene-b');
     expect(useGame.getState().scene?.id).toBe('scene-solo'); // scene-b introuvable → transition ignorée
 
@@ -118,5 +120,43 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(useGame.getState().worldMap?.id).toBe(arene.worldMap?.id);
     useGame.getState().transitionTo('arene-hub');
     expect(useGame.getState().scene?.id).toBe('arene-hub');
+  });
+});
+
+describe('#2206 — l’identité du projet et la provenance du document remis survivent à la save et à la coop', () => {
+  const avecDocument: NarratifBlock = { ...narratif, documents: [{ id: 'snap-doc', titre: 'Lettre', prose: 'Une lettre.' }] };
+
+  /** Un projet `snap-projet` chargé par le chemin réel, son document remis par l'effet `document`. */
+  function charger(): void {
+    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    useGame.getState().loadProject({ scenes: [scene('scene-a')], entryId: 'scene-a', narratif: avecDocument, projet: { id: 'snap-projet' } });
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'document', documentId: 'snap-doc' }]);
+  }
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    resetSceneRegistry();
+    useGame.setState(useGame.getInitialState());
+  });
+
+  it('save → load : `campaignDoc.projet` et `document.documentId` reviennent', () => {
+    charger();
+    expect(useGame.getState().saveGame(1)).toBe(true);
+    useGame.setState(useGame.getInitialState());
+    expect(useGame.getState().campaignDoc).toBeNull();
+    expect(useGame.getState().loadGame(1)).toBe(true);
+    expect(useGame.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });
+    expect(useGame.getState().document?.documentId).toBe('snap-doc');
+  });
+
+  it('snapshot coop : l’invité adopte `campaignDoc.projet`, `document.documentId` et `pendingCampaign.projet`', () => {
+    charger();
+    useGame.getState().setPendingCampaign(campagneDuJeu(diligenceCampaign));
+    const data = JSON.parse(JSON.stringify(netSnapshot(useGame.getState))) as Record<string, unknown>;
+    useGame.setState(useGame.getInitialState());
+    applyNetSnapshot(useGame.setState, data);
+    expect(useGame.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });
+    expect(useGame.getState().document?.documentId).toBe('snap-doc');
+    expect(useGame.getState().pendingCampaign?.projet).toEqual({ id: diligenceCampaign.id });
   });
 });

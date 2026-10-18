@@ -1,7 +1,7 @@
 /**
  * LA FICHE d'une entité de scène — projection UNIQUE `SceneEntity` → `Combatant`, lue par le spawn de
  * rencontre (`combatSlice`), la Psychologie à la rencontre (`encounterPsychFlow`) et tous les flux qui
- * font JOUER un PNJ hors combat (table de taverne, marchandage, infirmerie payante). Un PNJ a UNE
+ * font JOUER un PNJ hors combat (table de taverne, marchandage, billet, infirmerie payante). Un PNJ a UNE
  * fiche, quelle que soit la porte par laquelle la partie le rencontre (#1882).
  */
 import type { Combatant } from '../engine/types';
@@ -9,9 +9,10 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { Scene, SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../engine/statblock';
-import { resolvePresetCreature } from './campaignData';
+import { nomDePreset, presetPnjById, resolvePresetCreature } from './campaignData';
+import type { PresetPnj } from './campaignNarratif';
 import { typeNonNomme } from '../data/schemas/defs-scenes/scene';
-import { profilsStandard, refEntiteResolue } from '../data';
+import { findCreatureById, profilsStandard, refEntiteResolue } from '../data';
 
 /** Le porteur de fiche d'une entité et l'apparence qui l'accompagne — preset de PNJ nommé (#671),
  *  statbloc, puis réf, dans cet ordre ; `undefined` si elle n'en porte aucun, ou si son preset ou sa réf
@@ -26,7 +27,23 @@ function porteurDeFiche(ent: SceneEntity): { porteur: PorteurDeFiche; appearance
   return undefined;
 }
 
-/** La fiche sous le NOM de l'entité (#1463 S3, #1882) : la fiche donne les valeurs, l'entité le nom —
+/**
+ * Le NOM d'une entité de scène (#1463 S3, #1882) : celui que l'auteur écrit (`label`), sinon celui de sa
+ * fiche, dans l'ordre de `porteurDeFiche` (preset, statbloc, réf). `presetDe` résout un preset : le
+ * narratif de la partie (`presetPnjById`) en jeu, celui du projet édité (`presetDuNarratif`) dans l'éditeur.
+ */
+export function nomDEntite(ent: SceneEntity, presetDe: (id: string) => PresetPnj | undefined): string | undefined {
+  if (ent.label) return ent.label;
+  if (ent.kind !== 'personnage') return undefined;
+  if (ent.presetId) {
+    const preset = presetDe(ent.presetId);
+    return preset && nomDePreset(preset);
+  }
+  if (ent.statblock) return ent.statblock.label;
+  return ent.ref !== undefined ? findCreatureById(ent.ref)?.label : undefined;
+}
+
+/** La fiche sous le NOM de l'entité (`nomDEntite`) : la fiche donne les valeurs, l'entité le nom —
  *  en combat comme hors combat. */
 function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>): Combatant {
   const c = spawnEnemy(p.porteur, ent.id, ent.z ? { ...ent.pos, z: ent.z } : { ...ent.pos }, {
@@ -37,7 +54,8 @@ function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche
     postes: ent.postes, // MDG 12-13
     upgrades: ent.upgrades, // MDG 12
   });
-  if (ent.label) c.label = ent.label;
+  const nom = nomDEntite(ent, presetPnjById);
+  if (nom) c.label = nom;
   return c;
 }
 
@@ -64,6 +82,14 @@ export function ficheDEntite(ent: SceneEntity): Combatant {
  *  `profilsStandard`), sous le libellé de cette fiche. `undefined` hors des profils standard. */
 export function pnjAuProfil(profil: string, id: string): Combatant | undefined {
   return profilsStandard().includes(profil) ? spawnEnemy({ ref: profil }, id, { x: 0, y: 0 }) : undefined;
+}
+
+/** UN PNJ SANS ENTITÉ DE SCÈNE, nommé par un preset du narratif (#671) — le vendeur d'un billet
+ *  marchandé (`billetFlow`) : sa fiche est celle du preset, sous son libellé. `undefined` si le preset
+ *  ne se résout pas. */
+export function pnjAuPreset(presetId: string, id: string): Combatant | undefined {
+  const preset = resolvePresetCreature(presetId);
+  return preset && spawnEnemy({ presetCreature: preset.creature, presetId }, id, { x: 0, y: 0 }, { appearance: preset.apparence });
 }
 
 /**

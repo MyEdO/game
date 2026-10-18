@@ -5,7 +5,7 @@ import { PROSES_NOMMEES } from './champs-prose-de-scene';
 import { declarationProseNommee, proseNommee, sourceHeritee } from './prose';
 import { projetSchema } from '../defs-scenes/projet';
 import { indiceStadeSchema, documentNarratifSchema, ouvertureSchema, sousTitreOuvertureSchema, sousTitreClotureSchema } from '../defs-scenes/narratif';
-import { massBattleSpecSchema, setObjectiveSchema, grantFavorSchema, journalSchema, sceneFlowSchema } from '../defs-scenes/effets';
+import { massBattleSpecSchema, setObjectiveSchema, grantFavorSchema, journalSchema, designerHerosSchema, sceneFlowSchema } from '../defs-scenes/effets';
 import { dialogueNodeSchema, messageIntroductionSchema } from '../defs-scenes/scene';
 import { refusRouteSchema } from '../defs-scenes/worldmap';
 import { authoredStakeSchema, OP_DEFS, gameOpSchema, OPS_NON_TYPEES } from './mecanique';
@@ -31,6 +31,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'setObjective.desc': { schema: setObjectiveSchema, nu: { type: 'setObjective', id: 'objectif', desc: 'Texte.' } },
   'grantFavor.desc': { schema: grantFavorSchema, nu: { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', desc: 'Texte.' } },
   'journal.desc': { schema: journalSchema, nu: { type: 'journal', desc: 'Texte.' } },
+  'designerHeros.invite': { schema: designerHerosSchema, nu: { type: 'designerHeros', etat: 'etat', invite: 'Texte.' } },
   'dialogues[].nodes[].desc': { schema: dialogueNodeSchema, nu: { id: 'n', choices: [], desc: 'Texte.' } },
   'stake.authored': { schema: authoredStakeSchema, nu: { authored: 'Texte.' } },
   'narrative.text': { schema: OP_DEFS.narrative, nu: { op: 'narrative', text: 'Texte.' } },

@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
+import { EDITION, LECTURE, SHELL, familleLeanCtx, matcherDOutils, nomLeanCtx } from '../guards/lib/contratGarde.mjs';
 import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
 import { racinesDeModsParmi } from '../mods/racines.mjs';
 
@@ -113,14 +113,16 @@ export function transformSkillTree(sourceFiles) {
   for (const [source, bytes] of sourceFiles) {
     if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
-    if (!source.endsWith('/SKILL.md')) {
+    if (!source.endsWith('.md')) {
       outputs.set(destination, Buffer.from(bytes));
       continue;
     }
+    // Une annexe Markdown d'un skill (doc skills, « Add supporting files ») se lit comme son SKILL.md :
+    // même adaptation, sans frontmatter.
     const text = utf8.decode(bytes);
-    const parsed = readFrontmatter(text, source);
-    const frontmatter = normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0];
-    const body = adapt(parsed.body).split('.claude/skills/').join('.agents/skills/');
+    const skill = source.endsWith('/SKILL.md');
+    const frontmatter = skill ? normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0] : '';
+    const body = adapt(skill ? readFrontmatter(text, source).body : text).split('.claude/skills/').join('.agents/skills/');
     outputs.set(destination, Buffer.from(`${frontmatter}${GENERATED_PREFIX}${source} -->\n${body}`));
   }
   return outputs;
@@ -128,6 +130,21 @@ export function transformSkillTree(sourceFiles) {
 
 // #2537
 export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
+
+// #2710 : un outil lean-ctx ou PowerShell manque hors du poste qui le porte, sans erreur au lancement de l'agent.
+export const EQUIVALENTS_INTEGRES = Object.freeze({ [LECTURE]: 'Read', [EDITION]: 'Edit', [SHELL]: 'Bash' });
+
+/** L'outil intégré qui rend la capacité de `outil` sans serveur MCP ni hôte propre, ou `null`. PURE. */
+export const equivalentIntegre = (outil) => {
+  if (outil === 'PowerShell') return EQUIVALENTS_INTEGRES[SHELL];
+  const nu = nomLeanCtx(outil);
+  const famille = nu === null ? null : familleLeanCtx(nu);
+  return famille !== null && Object.hasOwn(EQUIVALENTS_INTEGRES, famille) ? EQUIVALENTS_INTEGRES[famille] : null;
+};
+
+/** Les outils intégrés que `outils` doit lister pour garder ses capacités hors du poste. PURE. */
+export const equivalentsManquants = (outils) =>
+  [...new Set(outils.map(equivalentIntegre).filter(Boolean))].filter((integre) => !outils.includes(integre));
 
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
@@ -148,6 +165,8 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
         if (OUTILS_NON_RESOLUS.includes(outil))
           diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
+      for (const integre of equivalentsManquants((frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()).filter(Boolean)))
+        diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));
@@ -224,12 +243,17 @@ export const ENTREES_OUTIL = [
  *
  * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
  * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
+ *
+ * L'oubli des règles projetées à la compaction (`scripts/hooks/regles-projection-oubli.mjs`, #2683) : les DEUX
+ * surfaces, qui portent toutes deux la projection et rendent `source: 'compact'`.
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
+  { phase: 'SubagentStart', script: 'contexte-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Règles communes et mémoire du dépôt au sous-agent' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'SessionStart', script: 'regles-projection-oubli.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Oubli des règles projetées à la compaction' },
 ];
 
 /**

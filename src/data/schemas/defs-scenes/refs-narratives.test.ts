@@ -13,6 +13,7 @@ const narratif = () => ({
   presetsPnj: [{ id: 'pnj' }],
   documents: [{ id: 'doc' }],
   objets: [],
+  etats: [] as { id: string; forme: { kind: 'heros' | 'enum'; valeurs?: { id: string }[] } }[],
 });
 
 const scene = () => ({
@@ -57,7 +58,7 @@ describe('referencesA — qui désigne une entrée', () => {
   });
 
   it('un stade : seul le site `stade` de CET indice', () => {
-    const sites = referencesA(projet(), { registre: 'indices', id: 'ind', stade: 'dechiffree' });
+    const sites = referencesA(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' });
     expect(sites.map((s) => s.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.steps.1.effect']);
   });
 
@@ -77,8 +78,22 @@ describe('renommeRef — le renommage propagé, PUR', () => {
     expect(referencesA(p, { registre: 'indices', id: 'ind' }).length).toBe(2);
   });
 
+  it('une valeur d’état renommée : la valeur posée (`poserEtat.valeur`) et comparée (`etat.value`) de CET état bougent, pas une homonyme', () => {
+    const p = projet();
+    p.scenes[1].triggers = [{ id: 'u', when: { kind: 'etat', etat: 'issue', value: 'relache' }, flow: { kind: 'seq', steps: [
+      { kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'relache' } },
+      { kind: 'do', effect: { type: 'poserEtat', etat: 'autre', valeur: 'relache' } },
+    ] } }] as never;
+    expect(referencesA(p, { registre: 'etats', id: 'issue', sous: 'relache' }).map((x) => `${x.chemin.join('.')}:${x.cle}`))
+      .toEqual(['scenes.1.triggers.0.flow.steps.0.effect:valeur', 'scenes.1.triggers.0.when:value']);
+    const r = renommeRef(p, { registre: 'etats', id: 'issue', sous: 'relache' }, 'libere');
+    const t = (r.scenes[1].triggers as unknown as { when: unknown; flow: { steps: { effect: unknown }[] } }[])[0];
+    expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'libere' });
+    expect(t.flow.steps.map((x) => x.effect)).toEqual([{ type: 'poserEtat', etat: 'issue', valeur: 'libere' }, { type: 'poserEtat', etat: 'autre', valeur: 'relache' }]);
+  });
+
   it('un stade renommé : seul le `stade` de l’Effect bouge', () => {
-    const r = renommeRef(projet(), { registre: 'indices', id: 'ind', stade: 'dechiffree' }, 'traduite');
+    const r = renommeRef(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' }, 'traduite');
     expect(r.scenes[0].triggers[0].flow.steps[1].effect).toEqual({ type: 'revealClue', indiceId: 'ind', stade: 'traduite' });
   });
 });

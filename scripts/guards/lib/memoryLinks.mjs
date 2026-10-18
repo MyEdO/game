@@ -16,7 +16,7 @@
 //   - les liens markdown hors `MEMORY.md` (prose de fiche) ne sont pas vérifiés.
 //
 // PORTÉE 2 — le RESTE du dépôt (`scanRepoMemoryLinks`) : un `[[nom]]` de fiche écrit dans un JSDoc,
-// un commentaire ou un doc vivant est un lien au MÊME titre que celui d'une fiche, et une fiche
+// un commentaire, un doc vivant, une règle, un skill ou un agent est un lien au MÊME titre que celui d'une fiche, et une fiche
 // supprimée le laisse mort sans que personne ne le voie. Racines scannées : `RACINES_HORS_MEMOIRE`.
 // TROIS formes, un seul verdict : le `[[slug]]` ; le CHEMIN `.claude/memory/<nom>.md` sous toutes ses
 // écritures (lien markdown `](…)`, chemin nu, ancre `#…`, ligne `:<n>`) ; et la MENTION NUE du nom
@@ -95,11 +95,15 @@ export function scanMemoryLinks(root) {
   return problems.sort((a, b) => parUnitesDeCode(a.file, b.file) || a.line - b.line || parUnitesDeCode(a.tok, b.tok));
 }
 
-/** Racines du dépôt scannées par la PORTÉE 2 (hors `.claude/memory/`, tenu par `scanMemoryLinks`). */
-export const RACINES_HORS_MEMOIRE = ['src', 'scripts', 'docs'];
+/** Racines du dépôt scannées par la PORTÉE 2 (hors `.claude/memory/`, tenu par `scanMemoryLinks`) : le code,
+ *  les docs, et le contexte des agents (règles, skills, définitions, jumeaux Codex, `CLAUDE.md`, `AGENTS.md`). */
+export const RACINES_HORS_MEMOIRE = [
+  'src', 'scripts', 'docs', '.claude/rules', '.claude/skills', '.claude/agents', '.claude/credo.md',
+  '.agents', '.codex', 'CLAUDE.md', 'AGENTS.md',
+];
 
 /** Extensions LUES par la portée 2 — tout le reste (binaire, image, verrou) n'a pas de prose. */
-const EXTENSIONS_LUES = new Set(['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '.md', '.json', '.css']);
+const EXTENSIONS_LUES = new Set(['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '.md', '.json', '.css', '.toml']);
 
 /**
  * Chemins EXCLUS de la portée 2, chacun avec sa raison. Ce ne sont pas des offenseurs tolérés :

@@ -256,6 +256,11 @@ test('famillesDeLaFiche : chaque famille de `ficheDeDossier`, dans son ordre, av
     assert.equal(prefixe, PREFIXES_D_ID[famille], famille)
     assert.equal(minimum === 0, ficheDeDossier.shape[famille].safeParse([]).success, famille)
     assert.deepEqual([Object.keys(entree.properties), entree.required, entree.additionalProperties], [attributs, attributs, false], famille)
+    for (const [attribut, forme] of Object.entries(entree.properties)) {
+      assert.ok(forme.description?.trim(), `${famille}.${attribut} : la définition se projette avec la forme`)
+      const texte = forme.type === 'string' ? forme : forme.items?.type === 'string' && !forme.items.enum ? forme.items : null
+      if (texte && !forme.enum) assert.equal(texte.pattern, '\\S', `${famille}.${attribut} : un texte blanc n’est pas conforme à la forme projetée`)
+    }
   }
   assert.deepEqual(familles.beats.entree.properties.statut.enum, [...STATUTS_DE_BEAT], 'les enums viennent de la définition unique')
   assert.equal(familles.beats.minimum, 1)
@@ -289,8 +294,9 @@ test('ecrireFiche : la fiche d’un run au verdict DOSSIER s’écrit à `<dir>/
     assert.equal(ecrit, `${JSON.stringify(fiche, null, 2)}\n`)
     assert.deepEqual(chargerDossiers(dir).map((d) => [d.chemin, d.ids]), [[`${dir}/EDO/01.json`, ['EDO-01#b1']]])
     assert.deepEqual(argsDeTableSimulee('EDO', '01', { worktree: '/arbre-jete', date: '2026-10-05', seed: 'graine', dir, fichierDe }), {
-      livre: 'EDO', chapitre: '01', fichiers: ['Source/EDO-01.md'], dossier: fiche, seed: 'graine', worktree: '/arbre-jete', date: '2026-10-05',
-    }, '`args.dossier` de la table = l’OBJET de la fiche chargée')
+      livre: 'EDO', chapitre: '01', fichiers: ['Source/EDO-01.md'], dossier: fiche, typeDePointAuMJ: famillesDeLaFiche().pointsAuMJ.entree.properties.type,
+      seed: 'graine', worktree: '/arbre-jete', date: '2026-10-05',
+    }, '`args.dossier` de la table = l’OBJET de la fiche chargée ; ses catégories d’IMPRO, la forme projetée du type d’un point au MJ')
   })
 })
 

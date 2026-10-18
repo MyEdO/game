@@ -57,7 +57,7 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
     seedBattleRng(7);
     useGame.getState().setParty(scenario.construire().party);
     // La LONGUE route part du hameau : on entre à p-hameau pour la prendre en diligence.
-    useGame.getState().loadProject([scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], 'test-voyage-hameau', scenarioConstruit.worldMap!);
+    useGame.getState().loadProject({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
     if (scenario.money) distributeCredit(useGame.getState, useGame.setState, scenario.money); // bourses du groupe (SOCLE POSSESSIONS #531)
     useGame.getState().startTravel('r-longue', 'diligence', { classeId: 'exterieur' });
     const plan = useGame.getState().travelPlan;

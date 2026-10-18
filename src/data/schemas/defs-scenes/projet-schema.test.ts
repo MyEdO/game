@@ -15,6 +15,7 @@ import { projetSchema, projetDoc } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { cheminLisible, validateDocument } from '../validate';
+import { versDisque } from '../grammaire/prose';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import { emptyNarratif } from '../../../state/campaignNarratif';
 
@@ -212,7 +213,7 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
   it('la DONNÉE livrée traverse : aucune arête dupliquée dans les scènes de la Diligence', () => {
     const scenes = (JSON.parse(JSON.stringify(diligenceProjet)) as { scenes: { walls?: Jouet[] }[] }).scenes;
     expect(scenes.flatMap((s) => s.walls ?? []).length).toBeGreaterThan(0);
-    expect(projetSchema.safeParse(diligenceProjet).success).toBe(true);
+    expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
   });
 });
 
@@ -258,7 +259,7 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
   it('la DONNÉE livrée traverse : les couches de la Diligence sont au cardinal', () => {
     const scenes = (diligenceProjet as { scenes: { layers?: { tiles: string[] }[] }[] }).scenes;
     expect(scenes.flatMap((s) => s.layers ?? []).length).toBeGreaterThan(0);
-    expect(projetSchema.safeParse(diligenceProjet).success).toBe(true);
+    expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
   });
 });
 
@@ -276,6 +277,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › indice « indice-1 » › affaire :: affaire inconnue « affaire-fantome » (narratif.affaires).',
@@ -289,6 +291,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › PNJ « gobelin » › identifiant :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
@@ -296,7 +299,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
-    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [] };
+    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [], etats: [] };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › PNJ « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
@@ -317,6 +320,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [{ id: 'le-borgne', profil: { char: { CC: 40 }, traits: [] } }],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(projetSchema.safeParse(projet({ scenes, narratif })).success).toBe(true);
   });
@@ -377,7 +381,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
  * elles exigent des ids qui EXISTENT.
  */
 describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du juge #1552)', () => {
-  const reel = () => JSON.parse(JSON.stringify(diligenceProjet)) as Jouet;
+  const reel = () => versDisque(JSON.parse(JSON.stringify(diligenceProjet))) as Jouet;
   const ok = (doc: Jouet) => projetSchema.safeParse(doc).success;
   const sansCle = (cle: string) => { const d = reel(); delete d[cle]; return d; };
 

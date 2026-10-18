@@ -42,6 +42,7 @@ import {
   consoleDuJournal,
   consoleGuard,
   descripteurSession,
+  etatDeSession,
   fermerSession,
   fichierDeSession,
   finDuTour,
@@ -67,7 +68,6 @@ import {
   waitForAppSilently,
   espionReseau,
   survoler,
-  processusVivant,
   attendreSelecteur,
   avancerDeRounds,
   appelerWfrp,
@@ -1440,9 +1440,10 @@ test('fichierDeSession : un fichier PAR ARBRE, la même racine écrite autrement
 })
 
 test('descripteurSession : de quoi s’attacher, observer et nettoyer', () => {
-  const d = descripteurSession({ pidGardien: 7, session: { chrome: { pid: 9 }, port: 9333, targetId: 'T', profile: '/tmp/p' }, url: 'http://u/', journal: '/tmp/j', vue: { nom: 'bureau', largeur: 1, hauteur: 2 }, racine: 'C' + ':/x' })
-  assert.deepEqual(Object.keys(d).sort(), ['journal', 'pidChrome', 'pidGardien', 'port', 'profil', 'racine', 'targetId', 'url', 'vue'])
+  const d = descripteurSession({ pidGardien: 7, naissanceGardien: 5_000, session: { chrome: { pid: 9 }, port: 9333, targetId: 'T', profile: '/tmp/p' }, url: 'http://u/', journal: '/tmp/j', vue: { nom: 'bureau', largeur: 1, hauteur: 2 }, racine: 'C' + ':/x' })
+  assert.deepEqual(Object.keys(d).sort(), ['journal', 'naissanceGardien', 'pidChrome', 'pidGardien', 'port', 'profil', 'racine', 'targetId', 'url', 'vue'])
   assert.equal(d.pidChrome, 9)
+  assert.equal(d.naissanceGardien, 5_000)
 })
 
 /** Disque en mémoire : `fichiers` (chemin → texte) et `dossiers` (ensemble). */
@@ -1466,6 +1467,15 @@ function disqueMemoire(fichiers = {}, dossiers = []) {
 }
 
 const SESSION = JSON.stringify({ pidGardien: 41, port: 9333, targetId: 'T1', journal: '/tmp/j', profil: '/tmp/recette-cdp-profile-1' })
+
+/** Le fichier de session d'un gardien né à 5 000 ms epoch (#2603) ; `SESSION` est celui d'avant, sans naissance. */
+const SESSION_NEE = JSON.stringify({ ...JSON.parse(SESSION), naissanceGardien: 5_000 })
+
+/** L'identité feinte d'un pid : création mesurée `creation`, tolérance 1 s ; ses lectures. */
+const identiteFeinte = (creation) => {
+  const lectures = []
+  return { lectures, identite: { toleranceMs: 1_000, lireCreation: (pid) => { lectures.push(pid); return creation } } }
+}
 
 /** Fausse socket CDP de niveau navigateur : note ce qui part, répond à l'attache. */
 function fausseSocket({ erreurs = {} } = {}) {
@@ -1547,6 +1557,48 @@ test('attacherSession : gardien MORT ou CDP muet → refus NOMMÉ, sans pendre',
   await assert.rejects(() => attacherSession('/tmp/absent.json', attacheFactice().opts), /aucune session tenue/)
 })
 
+// #2603
+test('gardienVivant (etatDeSession) : gardien RÉUTILISÉ (création > naissance + tolérance) = gardien-mort ; sous la tolérance, tenue ; fichier sans naissance, l’existence seule', () => {
+  const etat = (texte, creation, vivant = () => true) => {
+    const { lectures, identite } = identiteFeinte(creation)
+    return [etatDeSession('/tmp/s.json', { disque: disqueMemoire({ '/tmp/s.json': texte }), vivant, identite }).etat, lectures]
+  }
+  assert.deepEqual(etat(SESSION_NEE, 6_001), ['gardien-mort', [41]])
+  assert.deepEqual(etat(SESSION_NEE, 6_000), ['tenue', [41]])
+  assert.deepEqual(etat(SESSION_NEE, 6_000, () => false), ['gardien-mort', []])
+  assert.deepEqual(etat(SESSION, 9_999_999), ['tenue', []], 'fichier d’avant #2603 : `NAISSANCE_ABSENTE`')
+  assert.deepEqual(etatDeSession('/tmp/absent.json', { disque: disqueMemoire() }), { etat: 'aucune', fichier: '/tmp/absent.json' })
+})
+
+// #2603
+test('attacherSession, fermerSession, tenirSession : un gardien RÉUTILISÉ est MORT ; sous la tolérance, vivant', async () => {
+  const disque = () => disqueMemoire({ '/tmp/s.json': SESSION_NEE, '/tmp/j': '' })
+  const reutilise = () => identiteFeinte(6_001).identite
+  const tolere = () => identiteFeinte(6_000).identite
+  await assert.rejects(() => attacherSession('/tmp/s.json', attacheFactice({ disque: disque(), identite: reutilise() }).opts), /gardien \(pid 41\) est MORT/)
+  await assert.rejects(() => attacherSession('/tmp/s.json', attacheFactice({ disque: disque(), identite: tolere(), recuperer: async () => { throw new Error('ECONNREFUSED') } }).opts), /CDP muet sur le port 9333/)
+
+  assert.equal((await fermerSession('/tmp/s.json', { disque: disque(), vivant: () => true, identite: reutilise() })).etat, 'gardien-mort')
+  const tenu = disque()
+  assert.deepEqual(await fermerSession('/tmp/s.json', { disque: tenu, vivant: () => true, identite: tolere(), signaler: () => tenu.supprimer('/tmp/s.json'), pasMs: 1 }), { etat: 'fermee' })
+
+  const ouvrir = async () => assert.fail('aucune ouverture sur un fichier de session présent')
+  await assert.rejects(() => tenirSession('http://x/', { fichier: '/tmp/s.json', disque: disque(), ouvrir, vivant: () => true, identite: reutilise() }), /fichier de session d'un gardien MORT/)
+  await assert.rejects(() => tenirSession('http://x/', { fichier: '/tmp/s.json', disque: disque(), ouvrir, vivant: () => true, identite: tolere() }), /déjà tenue par le gardien 41/)
+})
+
+// #2603
+test('tenirSession : le gardien inscrit SA naissance (`performance.timeOrigin`) à côté de son pid', async () => {
+  const disque = disqueMemoire({ '/tmp/s.json.fermer': '' })
+  const ecrits = new Map()
+  const ecrire = disque.ecrire
+  disque.ecrire = (c, contenu, o) => { ecrits.set(c, contenu); ecrire(c, contenu, o) }
+  const ouvrir = async () => ({ chrome: { pid: 9 }, port: 9333, targetId: 'T', profile: '/tmp/p', close: async () => ({ profilPurge: true }) })
+  await tenirSession('http://x/', { fichier: '/tmp/s.json', disque, ouvrir, pasMs: 1 })
+  const d = JSON.parse(ecrits.get('/tmp/s.json'))
+  assert.deepEqual([d.pidGardien, d.naissanceGardien], [process.pid, performance.timeOrigin])
+})
+
 test('fermerSession : IDEMPOTENT — aucune session, gardien vivant (signal), gardien mort (purge vérifiée)', async () => {
   assert.deepEqual(await fermerSession('/tmp/s.json', { disque: disqueMemoire() }), { etat: 'aucune' })
 
@@ -1573,7 +1625,7 @@ test('purgerProfilsOrphelins : FAIL-SAFE — lanceur vivant ÉPARGNÉ (gardien o
   const noms = [ponctuel, mort, ancien, 'autre-dossier']
   const disque = disqueMemoire({}, noms.map((n) => resolvePath(dossier, n)))
   disque.lister = () => noms.filter((n) => disque.existe(resolvePath(dossier, n)))
-  const bilan = await purgerProfilsOrphelins({ dossier, disque, vivant: (pid) => pid === 101, plateforme: 'win32' })
+  const bilan = await purgerProfilsOrphelins({ dossier, disque, vivant: (pid) => pid === 101, identite: identiteFeinte(null).identite, plateforme: 'win32' })
   assert.deepEqual(bilan, { trouves: 3, purges: 1, vivants: 1, sansPreuve: [resolvePath(dossier, ancien)], echecs: [] })
   assert.equal(disque.existe(resolvePath(dossier, ponctuel)), true)
   assert.equal(disque.existe(resolvePath(dossier, mort)), false)
@@ -1598,8 +1650,10 @@ function profilsAVerrou() {
 
 test('purgerProfilsOrphelins : hors win32, le Chrome du `SingletonLock` doit AUSSI être mort, sur CET hôte', async () => {
   const { dossier, disque, n, chemin, vivant } = profilsAVerrou()
-  const bilan = await purgerProfilsOrphelins({ dossier, disque, vivant, plateforme: 'linux', hote: 'hote-a' })
+  const { identite, lectures } = identiteFeinte(Number.MAX_SAFE_INTEGER)
+  const bilan = await purgerProfilsOrphelins({ dossier, disque, vivant, identite, plateforme: 'linux', hote: 'hote-a' })
   assert.deepEqual(bilan, { trouves: 5, purges: 2, vivants: 1, sansPreuve: [chemin(n.autreHote), chemin(n.illisible)], echecs: [] })
+  assert.deepEqual(lectures, [], 'le `SingletonLock` ne porte aucune naissance : l’existence seule (`NAISSANCE_ABSENTE`), jamais mesurée')
   assert.equal(disque.existe(chemin(n.chromeVivant)), true)
   assert.equal(disque.existe(chemin(n.chromeMort)), false)
   assert.equal(disque.existe(chemin(n.sansVerrou)), false)
@@ -1612,8 +1666,24 @@ test('purgerProfilsOrphelins : sous win32, le lanceur mort suffit (job object) �
   assert.deepEqual(bilan, { trouves: 5, purges: 5, vivants: 0, sansPreuve: [], echecs: [] })
 })
 
-test('nomDeProfil / pidDeProfil : le PID du lanceur se consigne et se relit ; un nom ancien n’en porte aucun', () => {
-  assert.equal(pidDeProfil(nomDeProfil(4321)), 4321)
+// #2603
+test('purgerProfilsOrphelins : un lanceur RÉUTILISÉ depuis la naissance de son nom est mort, son profil PURGÉ ; sous la tolérance, ÉPARGNÉ', async () => {
+  for (const [ecart, purges, vivants] of [[1_001, 1, 0], [1_000, 0, 1]]) {
+    const dossier = resolvePath('/tmp')
+    const nom = nomDeProfil(101)
+    const disque = disqueMemoire({}, [resolvePath(dossier, nom)])
+    disque.lister = () => [nom].filter((n) => disque.existe(resolvePath(dossier, n)))
+    const { identite, lectures } = identiteFeinte(pidDeProfil(nom).naissance + ecart)
+    const bilan = await purgerProfilsOrphelins({ dossier, disque, vivant: () => true, identite, plateforme: 'win32' })
+    assert.deepEqual([bilan.purges, bilan.vivants, lectures], [purges, vivants, [101]], `création à naissance + ${ecart} ms`)
+  }
+})
+
+test('nomDeProfil / pidDeProfil : le lanceur (PID et naissance) se consigne et se relit ; un nom ancien n’en porte aucun', () => {
+  const avant = Date.now()
+  const lu = pidDeProfil(nomDeProfil(4321))
+  assert.equal(lu?.pid, 4321)
+  assert.ok(lu.naissance >= avant && lu.naissance <= Date.now(), `naissance ${lu.naissance}`)
   assert.equal(pidDeProfil('recette-cdp-profile-1700000000000-42'), null)
 })
 
@@ -2097,12 +2167,6 @@ test('gestes : une cible en CHAÎNE nue est refusée en nommant les trois formes
   await assert.rejects(() => survoler(session, '+ Op', { attenteMs: 0 }), /survoler : cible "\+ Op" — formes admises : \{ nom.*\{ selecteur.*\{ surface, x, y \}/)
   assert.deepEqual(etat.emis, [])
   assert.deepEqual({ ...(await survoler(session, { nom: '+ Op' }, { attenteMs: 0 })) }, { x: 30, y: 25, label: '+ Op', ferme: null })
-})
-
-test('processusVivant : ESRCH = mort, EPERM = vivant, toute autre erreur remonte', () => {
-  assert.equal(processusVivant(7, { sonder: () => { throw erreurDeCode('ESRCH') } }), false)
-  assert.equal(processusVivant(7, { sonder: () => { throw erreurDeCode('EPERM') } }), true)
-  assert.throws(() => processusVivant(7, { sonder: () => { throw erreurDeCode('EINVAL') } }), /EINVAL/)
 })
 
 test('attendreSelecteur : l’échéance se NOMME ; une évaluation cassée remonte telle quelle', async () => {

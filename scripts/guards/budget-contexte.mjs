@@ -45,6 +45,18 @@ export function ligneDeDescription(texte) {
   return null
 }
 
+/** Une règle `.claude/rules/*.md` se charge au démarrage, sous-agents compris, quand son frontmatter ne porte pas
+ *  de `paths:` (`.claude/rules/contexte-agents.md`) : elle compte alors en ENTIER au contexte permanent. PURE. */
+export function estRegleSansPaths(texte) {
+  const lignes = String(texte ?? '').split(/\r?\n/)
+  if (lignes[0]?.trim() !== '---') return true
+  for (let i = 1; i < lignes.length; i += 1) {
+    if (lignes[i].trim() === '---') return true
+    if (/^paths:/.test(lignes[i])) return false
+  }
+  return true
+}
+
 const lecteurDisque = (racine) => (chemins) => new Map(chemins.map((chemin) => {
   try { return [chemin, readFileSync(resolve(racine, chemin), 'utf8')] } catch { return [chemin, null] }
 }))
@@ -66,11 +78,13 @@ export function mesurerBudget(racine = process.cwd(), io = {}) {
     ...lister('.claude/skills').map((nom) => `.claude/skills/${nom}/SKILL.md`),
     ...lister('.claude/agents').filter((nom) => nom.endsWith('.md')).map((nom) => `.claude/agents/${nom}`),
   ]
-  const lus = lireTout([...imports, '.claude/memory/MEMORY.md', ...descriptions])
+  const regles = lister('.claude/rules').filter((nom) => nom.endsWith('.md')).map((nom) => `.claude/rules/${nom}`)
+  const lus = lireTout([...imports, '.claude/memory/MEMORY.md', ...regles, ...descriptions])
   const lu = (chemin) => lus.get(chemin) ?? null
   poser('CLAUDE.md', claude)
   for (const importe of imports) poser(importe, lu(importe))
   poser('.claude/memory/MEMORY.md', lu('.claude/memory/MEMORY.md'))
+  for (const regle of regles) if (estRegleSansPaths(lu(regle))) poser(regle, lu(regle))
   for (const chemin of descriptions) {
     const desc = ligneDeDescription(lu(chemin))
     if (desc !== null) poser(`${chemin}#description`, desc)
@@ -84,6 +98,7 @@ export function estCheminDuBudget(chemin, imports = []) {
   return rel === 'CLAUDE.md'
     || imports.some((i) => normaliser(i) === rel)
     || rel === '.claude/memory/MEMORY.md'
+    || /^\.claude\/rules\/[^/]+\.md$/.test(rel)
     || /^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(rel)
     || /^\.claude\/agents\/[^/]+\.md$/.test(rel)
 }
@@ -164,7 +179,7 @@ export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin
   if (journal === null) throw new Error(`budget : messages illisibles — ${revisions[0]}`)
   const messages = new Map(journal.map((c) => [c.sha, c.message]))
   const mesurerImage = (juge, arbre) => {
-    const chemins = listerImage(depot, arbre, '.claude/skills', '.claude/agents')
+    const chemins = listerImage(depot, arbre, '.claude/rules', '.claude/skills', '.claude/agents')
     const mesure = juge.mesurerBudget(cwd, {
       lireTout: (rels) => lireEnLot(depot, arbre, rels),
       lister: (dossier) => enfantsDirects(chemins, dossier),

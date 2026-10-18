@@ -44,13 +44,24 @@ test('statistiques : p50, p90, max du mur et hors veille par hook ; tués = ouve
     debut('post-commit', 101, '10:30'),
   ]
   const veille = [{ de: T('09:00') + 2000, a: T('09:00') + 6000 }]
-  const [stats] = statistiques(runsDuJournal(entrees), veille, (pid) => pid === 101)
+  const [stats] = statistiques(runsDuJournal(entrees), veille, { estVivant: (pid) => pid === 101, identite: { lireCreation: () => null, toleranceMs: 0 } })
   assert.deepEqual(stats, {
     hook: 'post-commit', n: 10,
     mur: { p50: 6000, p90: 10000, max: 10000 },
     horsVeille: { p50: 6000, p90: 9000, max: 9000 },
     tues: 1,
   })
+})
+
+// #2603
+test('statistiques : un run ouvert dont le pid vivant est né APRÈS son `debut` est tué ; sous la tolérance ou indéterminé, vivant', () => {
+  const ouvert = debut('post-merge', 102, '10:00')
+  const tues = (creation) => statistiques(runsDuJournal([ouvert]), [], {
+    estVivant: (pid) => pid === 102, identite: { lireCreation: () => creation, toleranceMs: 1_000 },
+  })[0]?.tues ?? 0
+  assert.equal(tues(T('10:00') + 1_001), 1)
+  assert.equal(tues(T('10:00') + 1_000), 0)
+  assert.equal(tues(null), 0)
 })
 
 test('ligne de commande : veille lue UNE fois depuis le plus ancien début, --depuis appliqué, --json ; refus nommés', () => {

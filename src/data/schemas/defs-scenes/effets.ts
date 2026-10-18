@@ -119,6 +119,14 @@ export const scheduleShape = {
 
 export const setFlagSchema = nommerChamps(z.strictObject({ type: z.literal('setFlag'), flag: z.string(), value: z.boolean().optional() }), { type: { label: "type"  }, flag: { label: "drapeau" , texte: { regime: "technique"} }, value: { label: "valeur" } });
 
+/** Pose la VALEUR `valeur` (id déclaré) de l'état de campagne ÉNUMÉRÉ `etat` (`narratif.etats`, #2539) —
+ *  EDO 01 l.241. Forme et valeur contrôlées au chargement (`fautesDUsageDEtat`). */
+export const poserEtatSchema = nommerChamps(z.strictObject({ type: z.literal('poserEtat'), etat: z.string(), valeur: z.string() }), { type: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, valeur: { label: "valeur" , texte: { regime: "technique"} } });
+
+/** Ouvre la DÉSIGNATION d'un héros vivant pour l'état de campagne `etat` de forme `heros` — choix du
+ *  joueur, non annulable (EDO 02 l.91) ; `invite` = la prose que la modale affiche. */
+export const designerHerosSchema = proseNommee(nommerChamps(z.strictObject({ type: z.literal('designerHeros'), etat: z.string() }), { type: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} } }), 'designerHeros.invite');
+
 /** Pose/met à jour un OBJECTIF courant (surface « je fais quoi maintenant ? », #238) sur la pile
  *  `store.objectives`, keyé par `id` STABLE : re-poser le même `id` MET À JOUR sa prose (`desc`). Le HUD
  *  affiche le plus récent. Archivé aussi au journal. Échéance optionnelle (même `ScheduleSpec` que
@@ -581,7 +589,7 @@ export const petitePriereSchema = z.strictObject({
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** `Effect` (`state/scene.ts`) — l'union des 57 variantes. ANNOTÉE par le type manuscrit : la
+/** `Effect` (`state/scene.ts`) — l'union des 59 variantes. ANNOTÉE par le type manuscrit : la
  *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
  *
  *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
@@ -590,6 +598,8 @@ export const petitePriereSchema = z.strictObject({
 export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   z.discriminatedUnion('type', [
     setFlagSchema,
+    poserEtatSchema,
+    designerHerosSchema,
     setObjectiveSchema,
     clearObjectiveSchema,
     giveTrappingSchema,
@@ -682,6 +692,8 @@ nommerEffet(discreditClueSchema, "Écarter un indice");
 nommerEffet(startDialogueSchema, "Ouvrir un dialogue");
 nommerEffet(endDialogueSchema, "Fermer le dialogue");
 nommerEffet(setFlagSchema, "Définir un indicateur");
+nommerEffet(poserEtatSchema, "Poser un état de campagne");
+nommerEffet(designerHerosSchema, "Désigner un héros");
 nommerEffet(setObjectiveSchema, "Objectif courant");
 nommerEffet(clearObjectiveSchema, "Retirer un objectif");
 nommerEffet(setLightSchema, "Lumière de scène");

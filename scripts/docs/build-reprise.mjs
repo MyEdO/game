@@ -101,11 +101,12 @@ function rendu() {
     })
   }
 
-  /** Événements de session que la surface Claude DOIT déclarer. Son `SessionStart` porte la mise en
+  /** Événements de session que la surface Claude déclare, dans l'ordre du fichier ; ces trois-là sont exigés
+   *  (`hooksDeSession` abandonne sans eux). Son `SessionStart` porte la mise en
    *  conformité du conteneur distant (#1803) et le suivi de vague (#2132), pas le credo : celui-ci entre
    *  dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de CLAUDE.md, et seule la
    *  surface Codex — qui n'a pas d'import — l'INJECTE (`scripts/agents/compat-core.mjs`, `HOOKS_DE_SESSION`). */
-  const EVENEMENTS = ['SessionStart', 'PreToolUse', 'PostToolUse']
+  const EVENEMENTS = [...new Set(['SessionStart', 'PreToolUse', 'PostToolUse', ...HOOKS_SESSION.map((h) => h.phase)])]
 
   // Workflows GitHub Actions : nom, déclencheurs (`declencheursDe`), portes npm exécutées.
 

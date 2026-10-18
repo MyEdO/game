@@ -46,8 +46,8 @@ import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide, SourceModifiee, vueApresGenerateur } from './lib/fraicheur-docs.mjs'
 
-import { GENERATORS, SOURCES_LUES } from './lib/cibles-generees.mjs'
-export { GENERATORS, SOURCES_LUES, estCiblePure } from './lib/cibles-generees.mjs'
+import { GENERATORS, SOURCES_LUES, ciblesLitterales } from './lib/cibles-generees.mjs'
+export { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
 
 export const ciblesPures = (cwd, generateurs = GENERATORS) =>
   [...new Set([...ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd), SOURCES_LUES])].sort()
@@ -230,7 +230,7 @@ function ciblesLitteralesNonRendues(g, fichier) {
   let texte
   try { texte = readFileSync(fichier, 'utf8') } catch { texte = '' }
   const rendues = new Set(texte.split('\n').filter(Boolean))
-  return g.targets.filter((t) => !t.includes('*') && !rendues.has(t))
+  return ciblesLitterales(g.targets).filter((t) => !rendues.has(t))
 }
 
 /** Le générateur de `GENERATORS` qui écrit `cible` EN ENTIER (chemin relatif, contre ses `targets`),

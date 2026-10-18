@@ -1,12 +1,15 @@
 // #2626
-import { superviserProcessus, sortieDeSupervision } from '../guards/lib/superviserProcessus.mjs'
+import { pathToFileURL } from 'node:url'
+import { ancetresValidesDe, mesurerArbreProcessus } from '../guards/lib/arbreProcessus.mjs'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOrigin, reussi, refusDeGit, retirerWorktree, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prendreVerrou, estPidVivant, tenantDe } from '../test/verrou.mjs'
-import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
+import { prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { cheminsDeJournal, lireJournal, runEnVol } from './publicationDonnee.mjs'
 
 function snapshotDe(source, generation) {
   if (typeof generation !== 'string' || !/^[a-zA-Z0-9-]+$/.test(generation))
@@ -44,7 +47,7 @@ export function publicationDe(env, racine) {
     throw new Error('publication isolée : identité invalide')
   const chemin = journalDePublication(p)
   const tenant = tenantDe(journalDePublication(p, true))
-  if (tenant?.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || process.ppid !== p.pid)
+  if (tenant?.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || !ancetresValidesDe(process.pid, mesurerArbreProcessus()).some((a) => a.pid === p.pid))
     throw new Error('publication isolée : lanceur ou verrou différent')
   const journal = lireJournal(chemin, p.branche)
   if (journal.publication?.generation !== p.generation ||
@@ -60,12 +63,12 @@ export function publicationDe(env, racine) {
 }
 
 export function preparerPublication({ source, branche, chemins, reprendre, uuid = randomUUID, gestes = {} }) {
-  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, ...gestes }
+  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, estVivant: estPidVivant, identite: IDENTITE_MESUREE, ...gestes }
   const depot = g.depotDe(source)
   if (!branche || branche === 'HEAD' || branche === 'main' || g.brancheDe(depot) !== branche)
     throw new Error('publication isolée : une branche de chantier est requise')
   const precedent = existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
-  if (precedent?.pid && !precedent.verdict && estPidVivant(precedent.pid))
+  if (runEnVol(precedent, g.identite, { estVivant: g.estVivant }))
     throw new Error(`publication isolée : train ${precedent.pid} encore vivant`)
   if (reprendre && precedent?.publication) {
     const p = precedent.publication
@@ -112,7 +115,8 @@ export function preparerPublication({ source, branche, chemins, reprendre, uuid 
   return p
 }
 
-export async function lancerProcessus(executable, args, options) {
+export async function lancerProcessus(executable, args, options, supervision) {
+  const { superviserProcessus, sortieDeSupervision } = supervision ?? await import('../guards/lib/superviserProcessus.mjs')
   const vu = await superviserProcessus({
     commande: executable, args, cwd: options.cwd, heriter: true, env: options.env, shell: options.shell, stdio: options.stdio,
   })
@@ -124,20 +128,18 @@ export async function lancerProcessus(executable, args, options) {
 
 export async function publierDepuisSnapshot({
   source, branche, chemins, reprendre, args, lancementNpm,
-  env = process.env, lancer = lancerProcessus, preparer = preparerPublication,
+  env = process.env, lancer, preparer = preparerPublication,
   verrouiller = prendreVerrou, retirer = retirerWorktree,
   fusionDansMain = (p) => ancetreConfirme(estAncetre, depotDe(p.snapshot), 'HEAD', 'origin/main'),
   ecrire = (texte) => process.stderr.write(texte),
   ouvrir = () => 'inherit', entamer = () => {}, achever = () => {}, echouer = (e) => { ecrire(`${e.message}\n`); return 4 }, fermer = () => {},
+  refuser = (raison) => { ecrire(`${raison}\n`); return 1 },
 }) {
   const verrou = verrouiller({
     chemin: `${chemins.json}.publication.verrou`,
     libelle: `publication de ${branche}`, commande: `ops:publier ${args.join(' ')}`, cwd: source,
   })
-  if (verrou.etat !== 'pris') {
-    ecrire(`${verrou.message}\n`)
-    return 1
-  }
+  if (verrou.etat !== 'pris') return refuser(verrou.message)
   try {
     const stdio = ouvrir()
     const precedent = reprendre && existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
@@ -148,11 +150,18 @@ export async function publierDepuisSnapshot({
       return 0
     }
     const p = preparer({ source, branche, chemins, reprendre })
+    let lancement = lancer
+    if (!lancement) {
+      const supervision = await import(pathToFileURL(join(p.snapshot, 'scripts/guards/lib/superviserProcessus.mjs')).href)
+      if (typeof supervision.superviserProcessus !== 'function' || typeof supervision.sortieDeSupervision !== 'function')
+        throw new Error('publication isolée : module supervision du snapshot invalide')
+      lancement = (executable, argv, options) => lancerProcessus(executable, argv, options, supervision)
+    }
     entamer(p)
     ecrire(`[publier] snapshot ${p.snapshot} — tête demandée ${p.demande} — branche ${branche}\n`)
     if (!p.dependancesInstallees || !existsSync(join(p.snapshot, 'node_modules'))) {
       const npm = lancementNpm(process.platform)
-      const installe = await lancer(npm.executable, npm.args, {
+      const installe = await lancement(npm.executable, npm.args, {
         cwd: p.snapshot, stdio, shell: npm.shell, env,
       })
       if (installe.code !== 0) throw new Error(`npm ci du snapshot en échec : code ${installe.code}${installe.signal ? `, signal ${installe.signal}` : ''}`)
@@ -161,7 +170,7 @@ export async function publierDepuisSnapshot({
       journal.publication.dependancesInstallees = true
       ecrireJsonAtomique(chemins.json, journal)
     }
-    const execute = await lancer(process.execPath, [join(p.snapshot, 'scripts/ops/publier.mjs'), ...args, '--reprendre'], {
+    const execute = await lancement(process.execPath, [join(p.snapshot, 'scripts/ops/publier.mjs'), ...args, '--reprendre'], {
       cwd: p.snapshot, stdio, env: { ...env, [ENV_PUBLICATION]: JSON.stringify(p) },
     })
     const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))

@@ -250,6 +250,8 @@ Autrement dit, on soustrait le **chiffre des dizaines du résultat obtenu** au *
 - Eichengard obtient 21 sur un test de Chevaucher (Cheval) 49. Dizaine de la compétence = 4, dizaine du jet = 2. DR = 4 − 2 = +2 → succès.
 - Sur un test de Perception 39, il obtient 82. Dizaine de la compétence = 3, dizaine du jet = 8. DR = 3 − 8 = −5 → échec impressionnant.
 
+**DR ajoutés par un Talent** : ils ne valent que sur une utilisation RÉUSSIE. LDB 10 l.19 : « pour chaque acquisition de ce Talent, vous gagnez +1 DR pour toute utilisation réussie de la Compétence liée au Talent » (aussi l.11 ; détail à [Talents](talents.md)).
+
 **Option — Calculer rapidement un DR** : sur une réussite, le DR est simplement le chiffre des dizaines du résultat du dé. Cette méthode rend le calcul plus fluide. En cas d'échec, on calcule le DR normalement. Avec cette règle optionnelle, plus le résultat est proche de la Compétence utilisée, mieux c'est.
 
 **Sources RAW** :

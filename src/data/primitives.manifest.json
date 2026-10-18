@@ -2,19 +2,28 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/capturerDescendants/tuerCaptures",
+    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "descendance de processus, identité PID et création, capture des descendants vivants et arrêt après disparition du parent",
+    "concept": "descendance et arrêt des gates, mesure des identités PID et création, chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "gates locales, supervision du push et des hooks, train de publication",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
+    "id": "pid",
+    "type": "primitives.manifest",
+    "label": "estPidVivant/estPidDeProcessus",
+    "fichier": "scripts/guards/lib/pid.mjs",
+    "concept": "existence d'un processus par son PID : PID entier de l'int32 strictement positif, sonde unique `kill(pid, 0)` — ESRCH absent, EPERM présent, toute autre erreur levée",
+    "perimetre": "verrous de l'arbre et de la suite, reconstruction des dérivés, publication, synchronisation, recette, lancement détaché",
+    "verrou": "scripts/guards/lib/pid.test.mjs"
   },
   {
     "id": "superviserProcessus",
     "type": "primitives.manifest",
     "label": "superviserProcessus/sortieDeSupervision",
     "fichier": "scripts/guards/lib/superviserProcessus.mjs",
-    "concept": "commande asynchrone avec échéance interne, surveillance du parent et des ancêtres git, interruption et nettoyage des descendants capturés par identité",
-    "perimetre": "gitPorte.pousser, wrapper pre-push, lancement du train de publication",
+    "concept": "commande asynchrone possédée avant lancement par un hôte OS : Job Windows ou subreaper Linux, worker Node fixe et IPC mémoire séparé de stdin ; environnement et résultat sans persistance, gardiens Git datés, générique sans mesure et nettoyage confirmé avant résultat",
+    "perimetre": "gitPorte.pousser, wrapper pre-push, train de publication ; Job natif partagé scripts/guards/lib/processusJob.cs avec scripts/ops/session-process.ps1 ; hoteSupervision.ps1 et hoteSupervision.py exécutent enfantSupervise.mjs",
     "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
   },
   {
@@ -419,9 +428,18 @@
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
     "css": "src/ui/styles/team-segments.css",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
+    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée ; `paquet` : prose de paquet nommée par les identités en vigueur (`nommer`), exclusive des annotations",
     "perimetre": "tout champ de prose RAW",
-    "verrou": "no-html-in-prose.test.ts"
+    "verrou": "no-html-in-prose.test.ts, src/ui/prose-sites.test.ts"
+  },
+  {
+    "id": "identites",
+    "type": "primitives.manifest",
+    "label": "nommer/identitesResolues/useIdentites",
+    "fichier": "src/state/identites.ts",
+    "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
+    "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
+    "verrou": "src/state/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "resolveRender",
@@ -757,7 +775,7 @@
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
     "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
-    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
   },
@@ -805,6 +823,15 @@
     "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
     "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
+  },
+  {
+    "id": "suite",
+    "type": "primitives.manifest",
+    "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
+    "fichier": "src/state/combatEffects.ts",
+    "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
+    "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
+    "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "creatorDice",

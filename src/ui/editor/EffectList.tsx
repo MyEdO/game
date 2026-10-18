@@ -25,9 +25,13 @@ import { FlowEditor } from './FlowEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField, RefNarrativeField, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
+import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/RefField';
+import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/libellesNarratifs';
+import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
+import { nomDEntite } from '../../state/sceneNpc';
+import { presetDuNarratif } from '../../state/campaignData';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
@@ -102,12 +106,12 @@ export function effectCtxOf(
     cibles: CIBLES_PAR_RACINE.scene,
     encounters: scene ? scene.encounters : projet.scenes.flatMap((s) => s.encounters),
     dialogues: scene ? scene.dialogues : projet.scenes.flatMap((s) => s.dialogues),
-    merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
+    merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: nomDEntite(e, presetDuNarratif(projet.narratif)) })),
     scenes: projet.scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     places: projet.worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
     // Effet `castSpell` (#98) : lanceur/cible = un « personnage » de la scène (Combatant.id ==
     // SceneEntity.id EN COMBAT — cf. combatSlice) ou un héros du groupe (id libre hors combat).
-    personas: scene?.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: e.label })),
+    personas: scene?.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: nomDEntite(e, presetDuNarratif(projet.narratif)) })),
     narratif: projet.narratif,
   };
 }
@@ -131,6 +135,10 @@ export interface Ctx {
    *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
   narratif?: NarratifBlock;
 }
+
+/** L'USAGE d'état que fait chaque Effet à état (`FORMES_D_ETAT`) : son sélecteur n'offre que les états
+ *  dont la forme l'admet. */
+const USAGE_DE_L_EFFET = { poserEtat: 'poser', designerHeros: 'designer' } as const satisfies Partial<Record<Effect['type'], UsageDEtat>>;
 
 /** Les objets du projet que lit `giveTrapping` : ceux du narratif, aucun à une racine de catalogue. */
 const AUCUN_OBJET: readonly TrappingData[] = [];
@@ -204,6 +212,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
+    case 'poserEtat': return `État ${ref('etat', e.etat)} = ${e.valeur ? libelleDEtat(ctx.narratif?.etats, e.etat, e.valeur) : '?'}`;
+    case 'designerHeros': return `Désigner un héros : ${ref('etat', e.etat)}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
     case 'document': return `Document : ${ref('documentId', e.documentId)}`;
@@ -382,6 +392,28 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
           <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        )}
+        {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: etatsAdmettant(ctx.narratif.etats, USAGE_DE_L_EFFET[effect.type]).map((x) => ({ id: x.id, label: x.label })), nom: SOURCE_NARRATIVE.etats }}
+            label="État de campagne"
+            value={e.etat ?? ''}
+            onChange={(v) => upd(effect.type === 'poserEtat' ? { etat: typeof v === 'string' ? v : '', valeur: '' } : { etat: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'poserEtat' && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: valeursDeclarees(ctx.narratif.etats.find((x) => x.id === e.etat)).map((v) => ({ id: v.id, label: v.label })), nom: 'valeurs de l’état' }}
+            label="Valeur posée"
+            value={e.valeur ?? ''}
+            onChange={(v) => upd({ valeur: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'designerHeros' && (
+          <>
+            <ProseField label="Invite de la désignation" value={effect.invite ?? ''} onChange={(invite) => upd({ invite: invite || undefined })} />
+            <ProvenanceDuTexte copie identite={identite} sujet="de l'invite" value={effect} onChange={upd} />
+          </>
         )}
         {effect.type === 'document' && ctx.narratif && (
           <RefNarrativeField cle="documentId" narratif={ctx.narratif} label="Document remis" value={e.documentId} onChange={(documentId) => upd({ documentId: documentId ?? '' })} />

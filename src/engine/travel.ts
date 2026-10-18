@@ -28,6 +28,7 @@ import { addCondition } from './conditions';
 import { encumbrancePenalties } from './encumbrance';
 import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
+import { bargainPct, NEGOTIATOR_PCT, type BargainOutcome } from './bargain';
 import { rule } from './policy';
 import {
   type Allure, ALLURE_KMH_PER_M, mountedSpeedKmh, partyMounts, mountProfileById, lameLedCapKmh,
@@ -147,22 +148,61 @@ export function travelPlanCalc(km: number, kmh: number, hoursPerDay: number): Tr
   return { days, hoursLastDay, travelMinutes: Math.round(totalHours * 60) };
 }
 
-/** Coût d'un transport payant : prix/km × km × passagers (LDB 51 l.178 « par kilomètre parcouru »).
- *  `brassPerKmOverride` = prix d'auteur sur la route (défaut : classe RAW). `null` si `mode` n'a
- *  pas de facette `travel` (ex. `'mer'` = navire de campagne, pas un passage payant à la classe). */
-export function transportCost(
-  km: number,
-  mode: Exclude<TravelMode, 'pied'>,
-  classeId: string,
-  passengers: number,
-  brassPerKmOverride?: number,
-): Money | null {
+/** Palier de prix d'un billet marchandé : il s'applique à partir de `drMin` de DR net gagné. */
+export interface PalierDeBillet {
+  drMin: number;
+  /** Sous par passager, par classe du véhicule. */
+  prix: Partial<Record<string, number>>;
+}
+
+/** Tarif d'un passage payant, par passager et par classe du véhicule, en sous (forfait du trajet). */
+export interface TarifDePassage {
+  prix: Partial<Record<string, number>>;
+  paliers?: readonly PalierDeBillet[];
+}
+
+/** Le billet IMPLICITE d'une route sans billet d'auteur : la classe RAW × km (LDB 51 l.178). `null`
+ *  si `mode` n'a pas de facette `travel` (ex. `'mer'` = navire de campagne). */
+export function billetImplicite(km: number, mode: Exclude<TravelMode, 'pied'>): TarifDePassage | null {
   const travel = vehicleTravel(mode);
   if (!travel) return null;
-  const classes = travel.classes;
-  const cls = classes.find((c) => c.id === classeId) ?? classes[0];
-  const perKm = brassPerKmOverride ?? cls.brassPerKm;
-  return fromBrass(Math.ceil(perKm * km) * Math.max(1, passengers));
+  return { prix: Object.fromEntries(travel.classes.map((c) => [c.id, c.brassPerKm * km])) };
+}
+
+/** La classe la MOINS chère d'un tarif (classe par défaut du départ). */
+export function classeLaMoinsChere(tarif: TarifDePassage): string {
+  const classes = Object.entries(tarif.prix).filter((e): e is [string, number] => e[1] != null);
+  return classes.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
+}
+
+/** La classe retenue au départ : `classeId` si le tarif la propose, sinon la moins chère. */
+export function classeRetenue(tarif: TarifDePassage, classeId: string): string {
+  return tarif.prix[classeId] != null ? classeId : classeLaMoinsChere(tarif);
+}
+
+/** Prix d'UN passager dans la classe retenue (`classeRetenue`), arrondi au sou supérieur.
+ *  Gagné avec `paliers` : le palier de plus grand `drMin` ≤ DR net (EDO 01 l.142), puis `NEGOTIATOR_PCT`
+ *  (LDB 10 l.818 ; arbitrage #2547, 2026-10-09) ; gagné sans `paliers` : `bargainPct`. */
+export function prixParPassager(tarif: TarifDePassage, classeId: string, issue?: BargainOutcome): number {
+  const classe = classeRetenue(tarif, classeId);
+  const plein = tarif.prix[classe]!;
+  if (!issue?.won) return Math.ceil(plein);
+  if (!tarif.paliers?.length) return Math.ceil((plein * (100 - bargainPct(true, issue.drNet, issue.negotiator))) / 100);
+  const palier = tarif.paliers
+    .filter((p) => p.drMin <= issue.drNet && p.prix[classe] != null)
+    .reduce<PalierDeBillet | undefined>((a, p) => (!a || p.drMin > a.drMin ? p : a), undefined);
+  const prix = palier ? palier.prix[classe]! : plein;
+  return Math.ceil((prix * (100 - (issue.negotiator ? NEGOTIATOR_PCT : 0))) / 100);
+}
+
+/** Places payées d'un passage : une par passager, au moins une. */
+export function placesPayees(passengers: number): number {
+  return Math.max(1, passengers);
+}
+
+/** Coût d'un passage payant : prix par passager × places payées (`placesPayees`). */
+export function transportCost(tarif: TarifDePassage, classeId: string, passengers: number, issue?: BargainOutcome): Money {
+  return fromBrass(prixParPassager(tarif, classeId, issue) * placesPayees(passengers));
 }
 
 /** Résultat STRUCTURÉ de la marche forcée : le jet s'affiche en RollLine (recap de voyage),

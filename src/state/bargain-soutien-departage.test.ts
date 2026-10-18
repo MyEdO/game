@@ -269,7 +269,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
     const pb = get().pendingBargain!;
     expect(pb.support?.bonus).toBe(10); // 1 soutien éligible (l.189-190)
     expect(pb.playerSkill).toBe(50); // 40 (Compétence) + 10 (Soutien) — FONDU par `partyAssisted`
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('DR égal : la Compétence NUE (40) perd contre le marchand (45) — la valeur SOUTENUE (50) ne vole pas la victoire', () => {

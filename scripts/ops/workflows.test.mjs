@@ -51,8 +51,8 @@ const ts = typescript();
 
 /** RÉGIMES des phases, déclarés par script et par phase ; une phase absente est MÉCANIQUE. Un
  *  régime porte son type ; son modèle et son effort se lisent au frontmatter de ce type (`fichesDAgent`,
- *  aucun étage ne les surcharge). Le type porte les outils (et, pour `juge`, le
- *  prompt adversarial de `.claude/agents/juge.md`) ; le modèle ÉCRIT empêche un sous-agent
+ *  aucun étage ne les surcharge). Le type porte les outils (et, pour `juge-de-source`, le
+ *  prompt adversarial de `.claude/agents/juge-de-source.md`) ; le modèle ÉCRIT empêche un sous-agent
  *  d'hériter du modèle de session et fait coïncider l'affichage avec le fait — des agents EN ATTENTE
  *  s'affichaient « Fable » là où les transcripts disaient `claude-opus-5` (observation utilisateur
  *  2026-09-05 ; fiche `user-passage-fable-derives-opus`). Chaque clé est un script reconnu, chaque
@@ -67,7 +67,7 @@ const etage = (nom, type) => {
   return { nom, type, modele: model, effort };
 };
 const ETAGES = {
-  jugement: etage('JUGEMENT', 'juge'),
+  jugement: etage('JUGEMENT', 'juge-de-source'),
   redaction: etage('RÉDACTION', 'redacteur'),
 };
 const REGIMES = {
@@ -82,18 +82,18 @@ const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
  *  Cliquet (`defautsDesTables`) : plafond, liste NOMMÉE, phase déclarée ET portée par un site. */
 const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
+  { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'mj-de-table', raison: 'le MJ DÉCIDE ce qui arrive à la table, rôle que le prompt de `lecteur` (« tu ne décides rien ») contredit (`.claude/agents/mj-de-table.md`)' },
 ];
-/** Les couples (type, modèle) de la table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`, seule source
+/** Les couples (type, modèle) de la table de `.claude/skills/orchestrer-des-agents/calibrage.md`, seule source
  *  du modèle d'un type (#2537). PUR.
- *  @param {string} skill @returns {{ type: string, modele: string }[]} */
-const couplesDuCalibrage = (skill) => {
-  const section = skill.split(/^## /m).find((s) => s.startsWith('Calibrage\n')) ?? '';
-  return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+ *  @param {string} calibrage @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (calibrage) => {
+  return [...calibrage.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
 };
 /** Les types déclarés sous `.claude/agents/` (`name:` du frontmatter). */
 const TYPES_DECLARES = new Set(FICHES.keys());
 /** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
-const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/SKILL.md'), 'utf8'))
+const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/calibrage.md'), 'utf8'))
   .filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele));
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
 
@@ -108,10 +108,11 @@ const TABLES = {
   regimes: REGIMES,
   exceptions: EXCEPTIONS_MECANIQUES,
   /** Liste DÉCROISSANTE : en retirer est libre, en ajouter se justifie au commit. */
-  plafond: 1,
+  plafond: 2,
   /** Les exceptions NOMMÉES : une entrée qui change de nom se relit au commit. */
   nommees: [
     '.claude/workflows/table-simulee.js / Partie / joueur',
+    '.claude/workflows/table-simulee.js / Partie / mj-de-table',
   ],
 };
 
@@ -487,7 +488,8 @@ export function defautsDesTables(tables, { scripts, phases, typesDeclares }) {
     if (String(e.raison ?? '').length < 20) defauts.push(`${ou} : raison de moins de 20 caractères`);
     if (!typesDeclares.has(e.type)) defauts.push(`${ou} : type \`${e.type}\` non déclaré sous \`.claude/agents/\` (\`name:\` du frontmatter)`);
   }
-  return defauts;
+  // Deux exceptions d'une même phase portent le même défaut de phase : il se dit une fois.
+  return [...new Set(defauts)];
 }
 
 /**
@@ -647,7 +649,7 @@ const verdicts = await parallel(trouvees.filter(Boolean).flatMap((r) => r.findin
     ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
     : null
   return lue && lue.citationPresente
-    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' })
+    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'high' })
     : null
 }))
 return { verdict: 'AUDIT', verdicts, stats: STATS_VIDES }
@@ -672,7 +674,7 @@ const LIST_DOCS = "docs: { type: 'array', items: { type: 'string' } } },";
 const LIST_REQUIS = "  required: ['rawFiles', 'docs'],\n}";
 const SCOUT = "{ label: 'scout', phase: 'Scout', schema: LIST,";
 const STATS = 'const STATS_VIDES = ';
-const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' }";
+const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'high' }";
 const NON_UNIQUE = (n) => `racine : racine non littérale — \`schema\` : \`LIST\` ne se résout pas en \`const\` de premier niveau, UNIQUE, initialisée d’un objet littéral (${n} déclaration(s) du nom)`;
 const ATTEIGNABLE = (parent) => `maillon : \`LIST\` : maillon de racine atteignable par le code (${parent}) — un maillon n'est lu que comme valeur de \`schema:\` ou d'un autre maillon`;
 const NON_DIRECT = (parent) => `agent-direct : \`agent\` non appelé directement (${parent}) — seul un appel \`agent(…)\` est un site que la porte lit`;
@@ -858,24 +860,24 @@ test('la porte MORD quand le schéma cesse d’exiger la clé que le script lit'
 
 test('la porte MORD quand une phase de RÉDACTION part sur un autre type ou un autre modèle', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge-de-source', model: 'sonnet'");
   assert.deepEqual(vus(mute, fichier), [
-    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge`)",
+    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge-de-source`)",
     "agent : phase de RÉDACTION `Synthese` : `model: 'opus'` exigé AUSSI (lu : `sonnet`) — un sous-agent ne tourne jamais sur le modèle de session",
   ]);
 });
 
 test('défaut 28 — l’effort est LITTÉRAL et présent à chaque site, et vaut celui de l’étage', () => {
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: String(args) }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: String(args) }")),
     ["options : `effort` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus' }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus' }")),
     ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : absent)"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'low' }")),
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge-de-source', model: 'opus', effort: 'low' }")),
     ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : `low`)"],
   );
   assert.deepEqual(
@@ -888,7 +890,7 @@ test('défaut 8 — une phase de JUGEMENT renommée et rétrogradée rougit la p
   const fichier = '.claude/workflows/dossier-de-chapitre.js';
   const source = sources.get(fichier);
   const mute = source.split('Complétude').join('Relecture')
-    .replace(/(phase: 'Relecture'[^}]*?)agentType: 'juge', model: 'opus'/, "$1agentType: 'lecteur', model: 'sonnet'");
+    .replace(/(phase: 'Relecture'[^}]*?)agentType: 'juge-de-source', model: 'opus'/, "$1agentType: 'lecteur', model: 'sonnet'");
   assert.notEqual(mute, source, 'la mutation s’applique — sinon ce test ne prouve rien');
   assert.match(mute, /phase: 'Relecture'[^}]*agentType: 'lecteur', model: 'sonnet'/, 'le site est rétrogradé');
   const phases = new Map([...analyses].map(([f, a]) => [f, f === fichier ? analyser(mute, f) : a]));
@@ -909,7 +911,7 @@ test('dossier-de-chapitre : la racine de chaque schéma reste LITTÉRALE, seule 
 
 test('une phase de REGIMES n’est employée que par le `phase:` d’un SITE — un `phase(…)` de progression ne la couvre pas', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Audit', agentType: 'juge', model: 'opus'", "phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Audit', agentType: 'juge-de-source', model: 'opus'", "phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet'");
   assert.match(mute, /phase\('Audit'\)/, 'la progression `phase(\'Audit\')` reste');
   assert.deepEqual(vus(mute, fichier), [], 'le site rétrogradé a une forme MÉCANIQUE permise : seule la table le voit');
   const phases = new Map([...analyses].map(([f, a]) => [f, f === fichier ? analyser(mute, f) : a]));
@@ -967,7 +969,7 @@ test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : dé
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'general-purpose', model: 'opus', effort: 'high' }")),
     [
       `agent : \`agentType\` \`general-purpose\` : aucun type de ce nom déclaré sous \`.claude/agents/\` (${declares})`,
-      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge'` exigé (lu : `general-purpose`)",
+      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge-de-source'` exigé (lu : `general-purpose`)",
     ],
   );
 });
@@ -975,7 +977,7 @@ test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : dé
 test('#2537 — la couche UNIVERSELLE seule (la garde de l’outil `Workflow`) n’exige ni phase, ni modèle, ni effort', () => {
   const universel = (source) => defautsDesSitesDAgent(ast({ rel: 'w.js', text: source }), { typesDeclares: TYPES_DECLARES }).map((d) => sansLieu(d.message));
   assert.deepEqual(universel("await agent('p', { agentType: 'lecteur' })"), []);
-  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge' }")), []);
+  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge-de-source' }")), []);
   assert.deepEqual(universel("await agent('p', { label: 'x' })"), [`\`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${[...TYPES_DECLARES].join('/')})`]);
   assert.deepEqual(universel("await agent('p', { agentType: T })"), ["`agentType` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"]);
   assert.deepEqual(universel("await agent('p', OPTIONS)"), ["options de l'agent non littérales — la porte ne peut pas lire son étage"]);

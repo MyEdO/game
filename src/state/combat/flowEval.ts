@@ -48,8 +48,9 @@ export function combatConditionCtx(c: Combatant, ctx: OpsCtx): ConditionCtx {
  *    fois débarrassé de TOUT État Sonné » se lit APRÈS le retrait, LDB 16 l.129) ;
  *  · `engaged`/`nearestFoe`/`foeInLoS`/`hiddenFromFoes`/`location`/`attackKind`/`woundsDealt`/
  *    `startleCause`/`engagedAdvantage*` — contexte de la touche ou de l'arène, absent ici ;
- *  · `flag`/`time`/`money`/`hasItem`/`skill`/`career`/`species`/`status`/`partyDead`/`crewTest`/
- *    `casterChaosDomain`/`has psych` — état de SCÈNE ou état psy actif, hors instantané d'acteur.
+ *  · `flag`/`etat`/`time`/`money`/`hasItem`/`skill`/`career`/`species`/`status`/`partyDead`/`crewTest`/
+ *    `casterChaosDomain`/`has psych` — état de SCÈNE ou de CAMPAGNE, ou état psy actif, hors instantané
+ *    d'acteur (`combatConditionCtx` ne porte ni drapeaux ni états de campagne).
  * Un évaluateur TOTAL répondrait `false` sur tout ceci et ferait annoncer la branche `else` : c'est
  * l'encadré qui ENSEIGNE une règle amputée, l'anti-but de #1117.
  */

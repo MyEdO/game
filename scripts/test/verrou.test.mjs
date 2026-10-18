@@ -424,6 +424,15 @@ test('#2603 — identité : PID RÉUTILISÉ (création mesurée postérieure) = 
   assert.equal(prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(ancien), estVivant: () => true, identite: tolere.identite }).etat, 'refus', 'dans la tolérance')
 })
 
+test('#2603 — identité : un tenant pris sans identité (sans `creation`) est jugé sur son existence seule (`NAISSANCE_ABSENTE`), sans lecture', () => {
+  for (const [vivant, attendu] of [[true, 'refus'], [false, 'pris']]) {
+    const { identite, lectures } = identiteFeinte({ 1234: 9_999_999 })
+    const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(tenu(1234, 'g')), estVivant: () => vivant, identite })
+    assert.equal(vu.etat, attendu, `kill(pid, 0) ${vivant}`)
+    assert.deepEqual(lectures, [])
+  }
+})
+
 test('#2603 — identité : aucune lecture de création d’un PID mort au sens de kill(pid, 0) ; refusée hors du PID courant', () => {
   const { identite, lectures } = identiteFeinte({ 1234: 1_000 })
   const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(tenu(1234, 'g', { creation: 1_000 })), estVivant: () => false, identite })
@@ -499,4 +508,12 @@ test(`#2279 N0 — ${PROCESSUS} processus se disputent le verrou : aucune sectio
   } finally {
     fsReel.rmSync(dossier, { recursive: true, force: true })
   }
+})
+
+// #2516
+test('verrou dont le tenant porte un pid hors de l’int32 : repris comme mort, sans exception', () => {
+  const fs = fsFactice(JSON.stringify({ pid: 2 ** 31, commande: 'tenant forgé' }))
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs })
+  assert.equal(pris.etat, 'pris')
+  assert.equal(JSON.parse(fs.boite.contenu).pid, 4242)
 })

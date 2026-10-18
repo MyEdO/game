@@ -20,6 +20,11 @@ pris fait ÉCHOUER `npm run dev` au lieu de glisser sur le suivant. Le kit de re
 port par défaut (`DEFAULT_URL`, `scripts/recette/lib.mjs`) ; `WFRP_DEV_URL` ou `--url` visent un
 autre serveur.
 
+**Serveur lancé par l'outil depuis un worktree** : le lanceur ne lit que le `.claude/launch.json` de la
+RACINE de l'arbre principal (gitignoré) ; l'entrée du worktree y pose `npm --prefix <worktree> run dev`
+sur son port dérivé (`portDev`, `scripts/port-dev.mjs`). Aucune mesure d'écran par un volet navigateur
+MASQUÉ : `requestAnimationFrame` n'y bat pas, la caméra ne suit pas ; mesurer par le kit.
+
 **La recette est adossée à l'arbre qu'elle mesure** (#1679 L1c) — trois contrôles, tous portés par
 `scripts/recette/lib.mjs`, aucun à recoder par scénario :
 
@@ -1430,15 +1435,12 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   CONTOURNEMENT EN DEUX TEMPS, seul chemin qui tienne : capturer avec un chemin EXPLICITE sous
   `.playwright-mcp/` (gitignoré, donc jamais commité par erreur), PUIS copier le PNG vers un dossier
   hors dépôt (`%TEMP%`) pour l'archiver — viser `%TEMP%` dès la prise échoue (racine non autorisée).
-- **« Browser already in use » / « Target page… has been closed » PERSISTANT (2026-07-16)** : si
-  l'erreur revient après 2 tentatives, ce n'est PAS une contention active mais un lock Chrome MORT
-  (reliquat d'une session Playwright jamais fermée proprement, pipe `--remote-debugging-pipe`
-  orphelin) — signature : les PID `chrome.exe` du profil concerné restent FIGÉS (zéro churn) entre
-  deux vérifications. Récupération : identifier UNIQUEMENT les processus du profil dédié
-  `ms-playwright-mcp\<id>` par leur ligne de commande (ex. `Get-CimInstance Win32_Process -Filter
-  "Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*ms-playwright-mcp*' }`), puis
-  `Stop-Process` sur CES PID uniquement — JAMAIS un kill global par nom d'image (`chrome.exe`
-  seul) : d'autres Chrome tournent sur la machine, dont celui de l'utilisateur.
+- **« Browser is already in use »** : le profil Chrome de Playwright MCP
+  (`%LOCALAPPDATA%/ms-playwright-mcp/mcp-chrome-<hash>`) est un par racine de session (hash de la
+  première root MCP) : les sessions de même racine se le disputent. Dès la première occurrence,
+  ni réessai, ni attente, ni arrêt de ses processus : jouer la recette par le kit (§ « Session tenue »,
+  patron `scripts/qc/capture-jeu.mjs`). Une capture versionnée sort du `shot` du kit, jamais du volet
+  intégré, qui sert à regarder.
 - **Jamais de `dispatchEvent`/`MouseEvent` synthétique** pour cliquer un token/bouton — provoque de
   FAUSSES erreurs `setPointerCapture` (l'élément n'a jamais reçu de vrai pointeur). Utiliser les
   VRAIS clics Playwright (`browser_click`, sélecteur `data-cid`/rôle/texte).
@@ -2011,12 +2013,11 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   `button.listrow` rendus SEULEMENT une fois le `<details>` ouvert, dans une `BoiteAncree` portée HORS du
   `<details>` (`createPortal`) : ouvrir le sommaire, puis viser l'item dans `{ dans: '.eff-add-menu' }`,
   jamais dans le `<details>`. Même structure pour « + Bloc » (ci-dessous).
-- **Le montage d'un PNJ n'a PAS de « Détacher »** : sa provenance (`src/ui/editor/NarratifEditor.tsx:820`)
-  est celle du PRESET, posée en `copie` ; le bouton « Détacher » n'est rendu que sur un site SANS `copie`
-  qui reçoit une adresse — réplique, ligne de journal (`src/ui/editor/ProvenanceDuTexte.tsx:53`). Quand
-  la description du profil est la copie adressée du livre, c'est l'option « Adapté » qui est REFUSÉE,
-  avec sa raison (« La description du profil est la copie adressée du livre. ») : `mesurerProvenance` y
-  rend `detacher: null` et le `refus` de cette option.
+- **Le montage d'un PNJ porte un « Détacher »** quand la description du profil est la copie adressée
+  du livre (`descRef`) : sa provenance est celle du PRESET, posée en `copie`, et tant que l'adresse
+  tient, « Adapté » et « Maison » sont REFUSÉES avec leur raison. « Détacher » (`ProvenanceDuTexte`,
+  adresse embarquée) reporte la `source` du preset sur `adapteDe` en un seul patch : `mesurerProvenance`
+  rend alors `mode` « Adapté », `reference` « Adapté de », et `detacher: null` (#2206).
 
 Une op mécanique ne s'atteint pas depuis la Scène : elle vit dans un bloc d'effets de trigger.
 Chemin mesuré en recette (2026-09-18, #1789) jusqu'à l'éditeur d'une op :

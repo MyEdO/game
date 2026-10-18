@@ -6,7 +6,8 @@
  * `copie` : le site offre la copie sous `source`. Sans `copie` (réplique, journal), la copie est une
  * ADRESSE (`descRef`) que l'éditeur ne produit pas : reçue (`adresseUnPassage`), sa prose matérialisée
  * se LIT chez l'hôte (`ProseField lecture`), et le seul geste est « Détacher » (`estDerive`,
- * `compendium/editFields.ts`).
+ * `compendium/editFields.ts`). Avec `copie`, `adresseEmbarquee` porte l'adresse d'une entrée
+ * embarquée (`profil` d'un preset) : même lecture ; « Détacher » reporte `source` sur `adapteDe` (#2206).
  */
 import { useState } from 'react';
 import { OptionChooser, type RollSegOption } from '../OptionChooser';
@@ -22,13 +23,12 @@ export type ProvenanceDuTexteProps = {
   identite: string;
   /** Complément des noms accessibles (« du stade 2 »). */
   sujet: string;
-  /** RAISON pour laquelle le site ne peut pas se dire « Adapté » (le mode est alors refusé). */
-  adapteRefuse?: string;
 } & (
   | {
       copie: true;
       value: { source?: SourceRef; adapteDe?: SourceRef };
       onChange: (patch: { source: SourceRef | undefined; adapteDe: SourceRef | undefined }) => void;
+      adresseEmbarquee?: { descRef?: DescRef; onDetacher: (patch: { source: undefined; adapteDe: SourceRef | undefined }) => void };
     }
   | {
       copie?: false;
@@ -49,8 +49,9 @@ const REFUS_ADRESSE = 'Le texte copie un passage du livre : détache-le pour le 
 type Choix = { identite: string; mode: Mode; amorce?: { book: string } };
 
 export function ProvenanceDuTexte(props: ProvenanceDuTexteProps) {
-  const { identite, sujet, adapteRefuse } = props;
-  const adresse = !props.copie && adresseUnPassage(props.value.descRef) ? props.value.descRef : undefined;
+  const { identite, sujet } = props;
+  const adresseRecue = props.copie ? props.adresseEmbarquee?.descRef : props.value.descRef;
+  const adresse = adresseUnPassage(adresseRecue) ? adresseRecue : undefined;
   const portee: Mode | undefined = adresse || (props.copie && props.value.source) ? 'copie' : props.value.adapteDe ? 'adapte' : undefined;
   // Le mode CHOISI tient tant qu'aucune référence n'est portée : un brouillon incomplet n'émet rien.
   const [choix, setChoix] = useState<Choix>({ identite, mode: portee ?? 'maison' });
@@ -70,9 +71,9 @@ export function ProvenanceDuTexte(props: ProvenanceDuTexteProps) {
     if (ref !== undefined) emettre(vers, vers === 'maison' ? undefined : ref);
   };
   const detacher = (a: DescRef) => {
-    if (props.copie) return;
     setChoix({ identite, mode: 'adapte', amorce: { book: a.book } });
-    props.onChange({ desc: props.value.desc, descRef: undefined });
+    if (props.copie) props.adresseEmbarquee?.onDetacher({ source: undefined, adapteDe: props.value.source });
+    else props.onChange({ desc: props.value.desc, descRef: undefined });
   };
 
   const options: RollSegOption[] = OPTIONS.filter((o) => props.copie || adresse || o.mode !== 'copie').map((o) => ({
@@ -81,11 +82,7 @@ export function ProvenanceDuTexte(props: ProvenanceDuTexteProps) {
     title: o.title,
     ariaLabel: `${o.label} — provenance ${sujet}`,
     selected: o.mode === mode,
-    ...(adresse && o.mode !== 'copie'
-      ? { refus: REFUS_ADRESSE }
-      : adapteRefuse && o.mode === 'adapte' && mode !== 'adapte'
-        ? { refus: adapteRefuse }
-        : { onSelect: () => basculer(o.mode) }),
+    ...(adresse && o.mode !== 'copie' ? { refus: REFUS_ADRESSE } : { onSelect: () => basculer(o.mode) }),
   }));
 
   return (

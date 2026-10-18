@@ -130,18 +130,6 @@ describe('ProvenanceDuTexte — un mode choisi sans référence complète le DIT
   });
 });
 
-describe('ProvenanceDuTexte — `adapteRefuse` : « Adapté » refusé, sa raison dite', () => {
-  it('le mode est refusé (raison au segment), les autres restent offerts ; sans raison, il est offert', () => {
-    emissions = [];
-    monter(<ProvenanceDuTexte identite="t" copie sujet={SUJET} value={{ source: REF }} onChange={(p) => emissions.push(p)} adapteRefuse="Raison du refus." />);
-    expect(bouton('Adapté', SUJET)?.getAttribute('aria-disabled')).toBe('true');
-    act(() => { bouton('Adapté', SUJET)!.click(); });
-    expect(emissions).toEqual([]);
-    expect(container!.textContent).toContain('Raison du refus.');
-    expect(bouton('Maison', SUJET)?.getAttribute('aria-disabled')).toBeNull();
-  });
-});
-
 describe('ProvenanceDuTexte — bascules', () => {
   it('copie → adapté REPORTE la référence ; adapté → copie la ramène', () => {
     monterTemoin({ source: REF });
@@ -475,5 +463,53 @@ describe('ProvenanceDuTexte — disposition propre à la variante (#2001)', () =
     const Demo = demo.render as () => ReactElement;
     monter(<Demo />);
     expect(retenu('du texte maison')).toEqual(['Maison']);
+  });
+});
+
+describe('ProvenanceDuTexte — copie à ADRESSE EMBARQUÉE (`adresseEmbarquee`, #2206)', () => {
+  type Porteur = { source?: SourceRef; adapteDe?: SourceRef; descRef?: DescRef };
+  let porteur: Porteur;
+  let detaches: unknown[];
+  /** L'hôte d'un preset : le patch de « Détacher » retire l'adresse et applique la provenance, en UN geste. */
+  function Hote({ initial }: { initial: Porteur }) {
+    const [v, setV] = useState<Porteur>(initial);
+    porteur = v;
+    const { descRef, ...provenance } = v;
+    return (
+      <ProvenanceDuTexte
+        identite="preset" copie sujet={SUJET} value={provenance}
+        onChange={(p) => { emissions.push(p); setV((avant) => ({ ...avant, ...p })); }}
+        adresseEmbarquee={{ descRef, onDetacher: (p) => { detaches.push(p); setV(({ descRef: _retiree, ...avant }) => ({ ...avant, ...p })); } }}
+      />
+    );
+  }
+  const monterHote = (initial: Porteur) => { emissions = []; detaches = []; monter(<Hote initial={initial} />); };
+
+  it('avec source : autres modes refusés tant que l’adresse tient ; « Détacher » reporte la source sur `adapteDe`, « Adapté » retenu', () => {
+    monterHote({ source: REF, descRef: DESC_REF });
+    for (const mode of ['Adapté', 'Maison'] as const) {
+      expect(bouton(mode, SUJET)?.getAttribute('aria-disabled'), mode).toBe('true');
+      act(() => { bouton(mode, SUJET)!.click(); });
+    }
+    expect(retenu(SUJET)).toEqual(['Copie']);
+    act(() => { champ<HTMLButtonElement>(`Détacher le texte ${SUJET}`).click(); });
+    expect(detaches).toEqual([{ source: undefined, adapteDe: REF }]);
+    expect(emissions).toEqual([]);
+    expect(porteur).toEqual({ source: undefined, adapteDe: REF });
+    expect(retenu(SUJET)).toEqual(['Adapté']);
+  });
+
+  it('remonté sur `{ adapteDe }` : « Adapté » est retenu', () => {
+    monterHote({ adapteDe: REF });
+    expect(retenu(SUJET)).toEqual(['Adapté']);
+  });
+
+  it('sans source : `adapteDe` reste absent, mode Adapté, livre de l’adresse amorcé, « Retenu : texte maison »', () => {
+    monterHote({ descRef: DESC_REF });
+    act(() => { champ<HTMLButtonElement>(`Détacher le texte ${SUJET}`).click(); });
+    expect(detaches).toEqual([{ source: undefined, adapteDe: undefined }]);
+    expect(retenu(SUJET)).toEqual(['Adapté']);
+    expect(champ<HTMLSelectElement>(`Livre de la source ${SUJET}`).value).toBe(DESC_REF.book);
+    expect(container!.textContent).toContain('Retenu : texte maison.');
   });
 });

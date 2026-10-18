@@ -12,7 +12,7 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './dir8';
 import { EMPTY_FLOW } from './flow';
 import { nextEntityId } from './entityId';
-import { findTrappingById, findCreatureById, creatureLabel } from '../data';
+import { findTrappingById, findCreatureById } from '../data';
 import { siegeEmplacementEntity } from './siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './terrain';
@@ -514,8 +514,8 @@ export function patchMember(scene: Scene, encId: string, entityId: string, patch
 /** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p, sur la couche `z`,
  *  ET l'enrôle dans la rencontre `encId` (créée si absente). `ref` = id STABLE d'une créature du
  *  bestiaire : la primitive VALIDE (fail-fast si l'id ne résout pas), elle ne normalise pas — un
- *  libellé passé à la place d'un id est une erreur d'appelant, jamais un cas à rattraper. Le libellé
- *  affiché se DÉRIVE de la créature résolue (`creatureLabel`), il ne recopie pas la clé.
+ *  libellé passé à la place d'un id est une erreur d'appelant, jamais un cas à rattraper. Le nom
+ *  affiché se lit par `nomDEntite` (`sceneNpc.ts`).
  *  Une entité DÉJÀ posée à (p,z) est réutilisée (enrôlée) plutôt que dupliquée — même garde que les
  *  outils `entity`/`emplacement` (`entityAt`, #835 FU-3). */
 export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, z = 0): { scene: Scene; encId: string; entityId: string } {
@@ -533,7 +533,6 @@ export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, 
     pos: { ...p },
     combat: { hiddenUntilCombat: true },
     ref,
-    label: creatureLabel(ref),
   };
   const withEnt = addEntity(scene, ent, z);
   const { scene: out, encId: usedEnc } = addMember(withEnt, encId, id);

@@ -9,6 +9,7 @@ import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from './flow';
+import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
@@ -19,12 +20,14 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
 // liaison vive `fireScheduledEffects` que le store lit du baril sous le bundler).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatFlow';
-import { sceneNpc } from './sceneNpc';
+import { nomDEntite, sceneNpc } from './sceneNpc';
+import { presetDuNarratif } from './campaignData';
 import { placeServices, type WorldMap } from './worldMap';
 import { allMusicDefs } from '../audio/music';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './seating';
 import { memoByRefDeps } from './sceneMemo';
+import type { NarratifBlock } from './campaignNarratif';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -128,7 +131,8 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
  * zones hors-carte, ids dupliqués. PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
+  const presetDe = presetDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
   if (worldMap) {
@@ -228,9 +232,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     const layerZs = new Set(s.layers.map((l) => l.z));
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
-      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${e.label ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
-      if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${e.label ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
-      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${e.label ?? e.id} sur étage ${e.z} inexistant`);
+      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
+      if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
+      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
     }
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
@@ -370,7 +374,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         }
       }
     }
-    /** Bornes des fenêtres horaires d'une Condition (trigger `when`, choix `when`, nœud `si`). */
+    /** Bornes des fenêtres horaires d'une Condition — chaque site de l'énumérateur unique (`sitesDeLaScene`,
+     *  `sites-de-paquet.ts` : `when`, `if`, `gate`, `difficultyBy`, `crossTest`). */
     const checkCondTimes = (cond: Condition, refId: string, scope: Warning['scope']) =>
       walkConditionTimes(cond, (tc) => {
         for (const [k, v] of [['afterHour', tc.afterHour], ['beforeHour', tc.beforeHour]] as const)
@@ -379,7 +384,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
       });
     /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
-     *  effets référencés + bornes des conditions horaires + ENJEU des jets.
+     *  effets référencés + ENJEU des jets (les Conditions passent par `sitesDeLaScene`).
      *
      *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
      *  d'un `delayedEffect`, la récompense d'une `petitePriere`, et tout champ `Flow` d'un effet à écrire.
@@ -397,8 +402,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         if (node.kind === 'do') {
           checkEffect(node.effect, refId, scope);
           for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
-        } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
-        else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
+        } else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
           add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
         }
       });
@@ -406,18 +410,18 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
 
     for (const t of s.triggers) {
       if (!within(t.rect.x, t.rect.y) || !within(t.rect.x + t.rect.w - 1, t.rect.y + t.rect.h - 1)) add('warn', 'trigger', t.id, `Zone « ${t.id} » déborde de la carte`);
-      if (t.when) checkCondTimes(t.when, t.id, 'trigger');
     }
     // Chaque RACINE de Flow authoré (`racinesDeFlow`) passe le même parcours : réfs d'effets, fenêtres
     // horaires, enjeu des jets.
     for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
+    for (const site of sitesDeLaScene(s).conditions)
+      checkCondTimes(site.condition as Condition, site.porteur.id, PORTEE_DU_LIEU[site.porteur.liste]?.([site.porteur.id]).scope ?? 'scene');
     for (const d of s.dialogues) {
       const nodeIds = new Set(d.nodes.map((n) => n.id));
       if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
       for (const n of d.nodes)
         for (const c of n.choices) {
           if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
-          if (c.when) checkCondTimes(c.when, d.id, 'dialogue');
           const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
           if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }

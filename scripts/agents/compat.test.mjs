@@ -4,10 +4,11 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, EQUIVALENTS_INTEGRES, buildExpectedOutputs as sortiesAttendues, collectDiffs,
   DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
+import { FAMILLES_LEAN_CTX, PREFIXES_LEAN_CTX, SHELL, familleLeanCtx } from '../guards/lib/contratGarde.mjs';
 
 /** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
@@ -110,6 +111,15 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
 });
 
+test('une annexe Markdown d’un skill s’adapte comme son SKILL.md, sans frontmatter', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nLire `.claude/skills/demo/annexe.md`.\n')],
+    ['.claude/skills/demo/annexe.md', Buffer.from('# Annexe\n\nLire CLAUDE.md et `.claude/skills/demo/SKILL.md`.\n')],
+  ]));
+  assert.equal(out.get('.agents/skills/demo/annexe.md').toString(),
+    '<!-- GENERATED: agents:sync; source=.claude/skills/demo/annexe.md -->\n# Annexe\n\nLire AGENTS.md et `.agents/skills/demo/SKILL.md`.\n');
+});
+
 test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
   const out = transformSkillTree(new Map([
     ['.claude/skills/mod/.claude-plugin/plugin.json', Buffer.from('{ "name": "mod" }')],
@@ -147,6 +157,22 @@ test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil
   }
 });
 
+test('refuse un outil MCP ou propre à un hôte sans son équivalent intégré, accepte la paire (#2710)', () => {
+  const paire = (tools) => [
+    new Map([['codeur', `---\nname: codeur\ndescription: Code\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['codeur', 'name = "codeur"\ndescription = "Code"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  const candidats = [['PowerShell', EQUIVALENTS_INTEGRES[SHELL]], ...Object.keys(FAMILLES_LEAN_CTX)
+    .filter((nu) => Object.hasOwn(EQUIVALENTS_INTEGRES, familleLeanCtx(nu)))
+    .map((nu) => [`${PREFIXES_LEAN_CTX.claude}${nu}`, EQUIVALENTS_INTEGRES[familleLeanCtx(nu)]])];
+  assert.ok(candidats.length > 3);
+  for (const [nom, integre] of candidats) {
+    assert.deepEqual(validateRolePairs(...paire(nom)).map((d) => d.message), [`outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent`], nom);
+    assert.deepEqual(validateRolePairs(...paire(`${nom}, ${integre}`)), [], nom);
+  }
+  assert.deepEqual(validateRolePairs(...paire('mcp__autre__ctx_read')), [], 'un serveur autre que lean-ctx n’est pas classé');
+});
+
 test('génère seulement le credo Codex et partage la mémoire Claude', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -160,7 +186,7 @@ test('génère seulement le credo Codex et partage la mémoire Claude', () => {
 test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et par événement, matcher = UNION des outils', () => {
   const claude = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CLAUDE) }, SURFACE_CLAUDE);
   const codex = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CODEX) }, SURFACE_CODEX);
-  const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
+  const outil = (liste) => liste.filter((h) => h.phase.endsWith('ToolUse')).map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
   assert.deepEqual(outil(claude), [
     { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },

@@ -6,11 +6,12 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
+import { coupleDIdentite } from './identites';
 import type { BattleActionMode } from './actionRegistry';
 import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -138,7 +139,7 @@ import type {
   PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain,
   PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
-  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
+  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
@@ -154,7 +155,7 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
@@ -169,6 +170,7 @@ import { snapshotChapitre } from './chapitreRecap';
 import { dayIndex, runDailyUpkeep, purgeSurAvanceDHorloge } from './upkeep';
 import type { DeferredUpkeepTest } from './upkeep';
 import * as travelFlow from './travelFlow';
+import * as billetFlow from './billetFlow';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import { appliquerLotEtal } from './etalLotFlow';
 import * as portFlow from './portFlow';
@@ -178,11 +180,13 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute } from './combatEffects';
+import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
 import { createCombatSlice } from './combatSlice';
+import { nomDEntite } from './sceneNpc';
+import { presetPnjById } from './campaignData';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -356,6 +360,19 @@ export interface CampaignDoc {
   worldMap?: import('./worldMap').WorldMap | null;
   narratif: NarratifBlock;
   startSceneId: string;
+  /** Identité du document de projet chargé : l'`id` du `ProjectDoc` PARSÉ, jamais la clé d'une entrée
+   *  de bibliothèque (#2206). `null` = scénario de test, sans document de projet. */
+  projet: { id: string } | null;
+}
+
+/** Ce que LANCE `loadProject` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
+ *  l'identité de son document (`CampaignDoc.projet`, OBLIGATOIRE : `null` déclare un scénario). */
+export interface PaquetALancer {
+  scenes: Scene[];
+  entryId: string;
+  worldMap?: import('./worldMap').WorldMap | null;
+  narratif?: NarratifBlock;
+  projet: CampaignDoc['projet'];
 }
 
 /** Déplacement-puis-interaction : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
@@ -502,6 +519,13 @@ export interface GameState extends RollFlowActionsMap {
    *  (horloge/ambiance). Posé par l'Effet `setLight`, lu par le rendu (overlay d'assombrissement). */
   lightLevel: number | null;
   flags: Record<string, boolean>;
+  /** ÉTATS DE CAMPAGNE (registre `narratif.etats`) : id d'état → id du héros désigné (forme `heros`) ou id
+   *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
+   *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
+  etats: Record<string, string>;
+  /** Espèce (`refChar`) et sexe du héros désigné par un état `heros`, FIGÉS au choix (`designerHerosChoisir`,
+   *  EDO 02 l.114) : la ligne d'identité qu'on lit (`identitesResolues`). Traversent les scènes ; vidés en nouvelle partie. */
+  identitesFigees: Record<string, { espece: RaceKey; sexe: Sexe }>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
@@ -625,6 +649,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
    *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `forceDoorConfirm`. */
   pendingForceDoor: PendingForceDoor | null;
+  /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
+  pendingDesignationHeros: PendingDesignationHeros | null;
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
@@ -772,15 +798,20 @@ export interface GameState extends RollFlowActionsMap {
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
-  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string; source?: SourceRef } | null;
+  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
+   *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
+   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par `closeDocument`. */
+  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Flow; remise: number } | null;
+  /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
+  remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
    *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
-   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
-  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. `projet` : l'id du
+   *  DOCUMENT lancé (`CampaignDoc.projet`), distinct de `id` pour une entrée de bibliothèque (#2206). */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -936,7 +967,7 @@ export interface GameState extends RollFlowActionsMap {
   startScene: (scene: Scene, narratif?: NarratifBlock) => void;
   /** Enregistre plusieurs scènes (projet multi-scènes) puis démarre l'entrée. `worldMap` = carte du
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
-  loadProject: (scenes: Scene[], entryId: string, worldMap?: import('./worldMap').WorldMap | null, narratif?: NarratifBlock) => void;
+  loadProject: (paquet: PaquetALancer) => void;
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
@@ -1010,7 +1041,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
   repairItem: (uid: string, heroId: string) => void;
-  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix de 10-20 %. */
+  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   startBargain: (mode: 'buy' | 'sell') => void;
   // bargain{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
   bargainConfirm: () => void;
@@ -1033,6 +1064,9 @@ export interface GameState extends RollFlowActionsMap {
    *  (l.80) reste figé sur Résistance et ignore cet appel. */
   corruptionSetSkill: (skill: 'resistance' | 'calme') => void;
   resolveCorruption: () => void;
+  /** Remet un document : l'estampille d'une remise neuve (`remise`). */
+  remettreDocument: (doc: Omit<NonNullable<GameState['document']>, 'remise'>) => void;
+  /** Ferme le document et rejoue sa `suite` ; inerte chez l'invité. */
   closeDocument: () => void;
 
   /** Réensemence le RNG de combat (déterminisme des tests + future coop réseau). */
@@ -1166,17 +1200,23 @@ export interface GameState extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef }) => void;
+  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;
   extendedTestCancel: () => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
-  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string }) => void;
+  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string; suite?: Flow }) => void;
   // forceDoor{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
+   *  à désigner, la suite se joue sans suspension. */
+  designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;
+  /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
+   *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
+  designerHerosChoisir: (heroId?: string) => void;
   /** LOT DE DÉS d'un étal (#1426) : valide le lot d'un bloc (rejoue le générateur avec les dés posés,
    *  puis ouvre l'écran) / renonce (l'étal reste celui des dés naturels). */
   etalLotConfirm: () => void;
@@ -1505,6 +1545,12 @@ export interface GameState extends RollFlowActionsMap {
   setGameMenu: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
+  /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
+  billetEnMain: import('./billetFlow').BilletEnMain | null;
+  /** Issue du Marchandage de chaque billet, par `cleDeBillet` — un Test par billet (EDO 01 l.142). */
+  marchandagesDeBillet: Record<string, import('../engine/bargain').BargainOutcome>;
+  /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
+  startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
   travelRecap: import('./travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
@@ -1889,6 +1935,8 @@ export const useGame = create<GameState>((set, get) => ({
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
+  billetEnMain: null,
+  marchandagesDeBillet: {},
   travelRecap: null,
   party: [],
   scene: null,
@@ -2038,6 +2086,9 @@ export const useGame = create<GameState>((set, get) => ({
   partyPos: { x: 0, y: 0 },
   lightLevel: null,
   flags: {},
+  etats: {},
+  identitesFigees: {},
+  remisesDeDocument: 0,
   objectives: [],
   objectifsSoldes: [],
   chapitreDepuis: null,
@@ -2262,10 +2313,10 @@ export const useGame = create<GameState>((set, get) => ({
     // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
     // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
     // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte] }, { own: true });
+    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
   },
 
-  loadProject: (scenes, entryId, worldMap, narratif) => {
+  loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
     // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
     // résolvent leurs intérieurs), puis démarre la scène d'entrée.
     const entry = scenes.find((s) => s.id === entryId);
@@ -2281,7 +2332,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
-    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
+    set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id, projet } });
   },
 
   /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
@@ -2356,7 +2407,7 @@ export const useGame = create<GameState>((set, get) => ({
     // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
     // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
     // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte] }, { own: true });
+    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
   },
 
   moveParty: (pt) => {
@@ -2585,7 +2636,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Actions authorées toutes ÉPUISÉES et rien d'autre à offrir : on le dit (le halo, lui, s'est
     // déjà éteint). Le décor en PORTE (l'auteur en a posé), aucune n'est plus jouable.
     if (!horsPortee && ent.usable?.actions?.length && !actionsAuthorees(ent, get().flags).length)
-      get().log(t('store.searchedAlready', { what: ent.label ?? t('store.searchedFallback') }));
+      get().log(t('store.searchedAlready', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchedFallback') }));
   },
 
   /**
@@ -2619,13 +2670,13 @@ export const useGame = create<GameState>((set, get) => ({
     }
     const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
     if (!action) return;
-    get().log(t('store.actionJouee', { what: ent.label ?? t('store.searchPlaceFallback'), action: offre.label }));
+    get().log(t('store.actionJouee', { what: nomDEntite(ent, presetPnjById) ?? t('store.searchPlaceFallback'), action: offre.label }));
     // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).
     // CLÔTURES (#1508) : l'horloge (« tout est horodaté ») puis le sort du décor. L'horloge tire les
     // effets PROGRAMMÉS et les ticks — jouée devant un dé de chute, elle les tirerait sur des
     // Blessures qui n'ont pas encaissé. Le coût de temps est une DONNÉE d'auteur (`minutes`) ; absent,
     // c'est celui de la fouille.
-    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), ent.label ?? offre.label), [
+    cloturer(get, set, runFlow(get, set, flowRestant(entityId, action, get().flags), nomDEntite(ent, presetPnjById) ?? offre.label), [
       { verbe: 'avancerHorloge', minutes: action.minutes ?? TIME_COST.search },
       ...(action.consume ? [{ verbe: 'retirerEntite' as const, entityId }] : []),
       ...(action.unique ? [{ verbe: 'marquerActionJouee' as const, entityId, actionId }] : []),
@@ -2682,7 +2733,8 @@ export const useGame = create<GameState>((set, get) => ({
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
-    const speaker = speakerLabel(st.scene?.entities ?? [], node, st.dialogue);
+    const locuteur = speakerEntity(st.scene?.entities ?? [], node, st.dialogue);
+    const speaker = locuteur && nomDEntite(locuteur, presetPnjById);
     // Archive verbatim du tour (#718) — au moment où le choix est FAIT, pas à la reprise d'un
     // Test différé (`choice.flow` peut suspendre plus bas : le tour est déjà enregistré ici).
     const turn: DialogueTurn = {
@@ -2782,8 +2834,8 @@ export const useGame = create<GameState>((set, get) => ({
     let issue = leftoverGear.length ? applyEffects(get, set, leftoverGear) : undefined;
     if (cont?.length) {
       // #9 : téléport/dialogue de onVictory APRÈS « Continuer ». Si le butin a différé, ce lot-ci est SA
-      // suite — confié tel quel : `differerLaSuite` COMPOSE (le reste du butin est déjà sur l'étape).
-      if (issue) differerLaSuite(set, flowFromEffects(cont), 'scene');
+      // suite — confié en APPEND derrière le reste du butin (`confierLaSuite`).
+      if (issue) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: flowFromEffects(cont) }]);
       else issue = applyEffects(get, set, cont);
     }
     cloturer(get, set, issue, [{ verbe: 'teardownDeVictoire', kills, batailleDeMasse: inMassBattleCombat }]);
@@ -2913,15 +2965,22 @@ export const useGame = create<GameState>((set, get) => ({
         const line = out?.consequences ? resultLine(out.consequences) : '';
         if (line) get().log(line);
       }
+      reprendreLaSuite(get, set, p.suite);
       return;
     }
     // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
     set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
   },
-  extendedTestCancel: () => { set({ pendingExtendedTest: null, pendingCascade: null }); },
+  // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
+  extendedTestCancel: () => {
+    const suite = get().pendingExtendedTest?.suite;
+    set({ pendingExtendedTest: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
   // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
   startForceDoor: (opts) => {
     set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
+      ...(opts.suite ? { suite: opts.suite } : {}),
       participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
     // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
     // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
@@ -2943,13 +3002,41 @@ export const useGame = create<GameState>((set, get) => ({
       set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
       get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
       if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
+      reprendreLaSuite(get, set, p.suite);
     } else {
       // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
       set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
       get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
     }
   },
-  forceDoorCancel: () => { set({ pendingForceDoor: null, pendingCascade: null }); }, // renonce : ferme data + cascade hôte
+  // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
+  forceDoorCancel: () => {
+    const suite = get().pendingForceDoor?.suite;
+    set({ pendingForceDoor: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
+  designerHerosOuvrir: (p) => {
+    if (!get().party.some((h) => !h.dead)) return false;
+    set({ pendingDesignationHeros: p });
+    return true;
+  },
+  designerHerosChoisir: (heroId) => {
+    const p = get().pendingDesignationHeros;
+    if (!p) return;
+    const vivants = get().party.filter((h) => !h.dead);
+    if (heroId === undefined ? vivants.length > 0 : !vivants.some((h) => h.id === heroId)) return;
+    set((st) => {
+      if (heroId === undefined) return { pendingDesignationHeros: null };
+      const couple = coupleDIdentite(st.party.find((h) => h.id === heroId));
+      const { [p.etat]: _ancien, ...autres } = st.identitesFigees;
+      return {
+        etats: { ...st.etats, [p.etat]: heroId },
+        identitesFigees: couple ? { ...autres, [p.etat]: couple } : autres,
+        pendingDesignationHeros: null,
+      };
+    });
+    reprendreLaSuite(get, set, p.suite);
+  },
 
   // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
   // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
@@ -3038,7 +3125,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
-    // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
+    // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
     // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
     // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
     const branch = effSuccess ? pt.onSuccess : pt.onFailure;
@@ -3057,7 +3144,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
     cloturer(get, set, issue, clotures);
   },
-  closeDocument: () => set({ document: null }),
+  remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+  // COOP : l'hôte ferme (patron `acquitterOuverture`) ; chez l'invité, la suite ne se joue jamais.
+  closeDocument: () => {
+    const doc = get().document;
+    if (!doc || get().net.mode === 'guest') return;
+    set({ document: null });
+    reprendreLaSuite(get, set, doc.suite);
+  },
 
   // PUITS UNIQUE du journal : c'est ici — et nulle part ailleurs — qu'un jet dont le joueur a SAISI la
   // valeur laisse sa trace écrite (arbitrage #939 : marqué PARTOUT, rangée ET journal).
@@ -3122,6 +3216,7 @@ export const useGame = create<GameState>((set, get) => ({
   closeWorldMap: () => set({ worldMapOpen: false }),
   setGameMenu: (open) => set({ gameMenuOpen: open }),
   startTravel: (routeId, mode, opts) => travelFlow.startTravel(get, set, routeId, mode, opts),
+  startBilletBargain: (routeId, vehicule) => billetFlow.startBilletBargain(get, set, routeId, vehicule),
   resumeTravel: () => travelFlow.resumeTravel(get, set),
   departWaitDawn: () => travelFlow.departWaitDawn(get, set),
   departCancel: () => set({ pendingDeparture: null }),

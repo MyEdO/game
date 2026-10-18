@@ -14,7 +14,7 @@ import { type ScheduleSpec } from '../engine/clock';
 // l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
 import type { z } from 'zod';
 import type {
-  setFlagSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
+  setFlagSchema, poserEtatSchema, designerHerosSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
   giveMoneySchema, giveXpSchema, startCombatSchema, startMassBattleSchema, transitionSchema,
   transitionBackSchema, startDialogueSchema, journalSchema, documentSchema, revealClueSchema,
   discreditClueSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
@@ -221,13 +221,15 @@ export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: st
 export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
 
 /**
- * Union des 57 variantes d'effet de scène + la feuille `ops` = 58 membres. La FORME de chaque
+ * Union des 59 variantes d'effet de scène + la feuille `ops` = 60 membres. La FORME de chaque
  * variante — champs, optionalités, mécanique, réfs RAW — vit dans
  * `src/data/schemas/defs-scenes/effets.ts` ; ici on ne compose que les noms. `EffectOp`
  * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =
   | z.infer<typeof setFlagSchema>
+  | z.infer<typeof poserEtatSchema>
+  | z.infer<typeof designerHerosSchema>
   | z.infer<typeof setObjectiveSchema>
   | z.infer<typeof clearObjectiveSchema>
   | z.infer<typeof giveTrappingSchema>
@@ -292,15 +294,15 @@ export type DialogueNode = z.infer<typeof dialogueNodeSchema>;
 
 export type Dialogue = z.infer<typeof dialogueSchema>;
 
-/** Nom AFFICHÉ du locuteur d'un nœud : override par nœud puis speaker de session, résolu en label
- *  d'entité de la scène (jamais un nom en clair stocké, #669). `undefined` si aucun speaker. */
-export function speakerLabel(
-  entities: SceneEntity[],
+/** Entité LOCUTRICE d'un nœud : override par nœud puis speaker de session, résolue dans la scène
+ *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
+export function speakerEntity(
+  entities: readonly SceneEntity[],
   node: { speakerId?: string },
   dialogue: { speakerId?: string }
-): string | undefined {
+): SceneEntity | undefined {
   const id = node.speakerId ?? dialogue.speakerId;
-  return id ? entities.find((e) => e.id === id)?.label : undefined;
+  return id ? entities.find((e) => e.id === id) : undefined;
 }
 
 /** Fenêtre horaire d'un trigger (heure-du-jour, `before` EXCLUSIF). Champs absents = borne ouverte ;

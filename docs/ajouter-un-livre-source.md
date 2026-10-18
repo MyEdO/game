@@ -171,6 +171,11 @@ Long (~45 min pour un livre dense) — lancer en arrière-plan. `--config_json m
 active `paginate_output=true` : le markdown de sortie porte des séparateurs `{N}----` (N = page
 PDF **0-indexée**).
 
+**Diagnostiquer un arrêt** : un `exit 143` au premier plan est le plafond d'appel de l'outil shell,
+pas un tueur — mesurer le temps écoulé. La preuve de vie est la RAM/CPU du process python, jamais la
+taille de la sortie (bufferisée). Un vrai arrêt en fond se relance UNE fois ; au second, extraire par
+tranches `--page_range` de moins de 10 min (§ 2, dossier de tranches).
+
 **Piège connu** : Marker **gate par mise en page** — un livre
 saturé d'illustrations en zones « figure » peut perdre une grosse part du texte en `--disable_ocr`
 (vécu sur *Le Zoo Impérial* : -70 %, ré-extrait en OCR classique, seul livre du corpus dans ce cas).
@@ -589,6 +594,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    jamais — un agent qui corrige la source qu'il cite ensuite fabrique sa propre preuve. APRÈS un
    run, `git status --porcelain` du worktree doit donc être IDENTIQUE à ce qu'il était AVANT : toute
    écriture apparue rend le rendu suspect (une preuve a pu être fabriquée) et se remonte au ticket.
+   Un agent qui échoue ne coupe pas le run : il entre au rendu du domaine (`agentsSansRendu`, chacun
+   `<label> — <cause>`), ou à la raison de son saut ; une liste non vide se rejoue avant d'assembler.
    Il rend `{ coeur, supplements, domains: […], sautes: [{ domain, raison }] }` —
    `sautes` nomme les domaines qu'il n'a PAS traités (cadrage, inventaire ou taxonomie vides), et
    `assemble-domain` refuse un rendu qui en porte : une fiche absente ne doit pas pouvoir se lire
@@ -685,7 +692,7 @@ Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent j
 > chapitre** (patron `vdm-completude-entites`, cf. run 2026-07-22) : recenser EXHAUSTIVEMENT, **par
 > TYPE** (sort · carrière · compétence · **talent** · trait · qualité · objet/équipement · état ·
 > créature/PNJ · règle · activité · rituel · table · race), tout ce que le livre **ajoute / MODIFIE
-> (variante gatée par le module, cf. [`game-doctrine-une-entite-n-livres-n-variantes`]) / republie**,
+> (variante gatée par le module, cf. [`user-doctrine-une-entite-n-livres-n-variantes`]) / republie**,
 > avec réf `<ABRÉV> NN l.X`. Sortie = un artefact DATÉ `docs/plans/AAAA-MM-JJ-<livre>-inventaire-entites.md`.
 > Puis **RÉCONCILIER** : chaque entité est soit déjà dans `src/data`, soit portée par un ticket. Rien
 > qui flotte. Le livre n'est « fait » que quand l'inventaire est soldé (précédent VDM :

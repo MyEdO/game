@@ -235,7 +235,7 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  * `vers` = la ref POUSSÉE. Le tronc d'avant est `debut` quand `vers` est `TRONC.branche` ; sinon, et
  * dès que `debut` est nul (branche NEUVE sur stdin du hook, tête hors CI), c'est `TRONC.suivi`, que la
  * plage exclut aussi. Une FENÊTRE (`vers` absent, `debut` donné) n'exclut que `debut`. Un tronc
- * illisible est NOMMÉ dans `notes`, et sans aucune borne `fin` seul est jugé (`fin^!`).
+ * illisible est NOMMÉ dans `notes` ; sans borne comparable, toute l’ascendance de `fin` est sélectionnée.
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
@@ -258,10 +258,8 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
     tronc = avecLeTronc(fin) && TRONC.suivi
     if (!tronc) notes.push(`tronc \`${TRONC.suivi}\` illisible depuis ${fin.slice(0, 9)} : ses commits ne sont PAS exclus de la plage`)
   }
-  const seul = !debut && !tronc
   const troncDesEres = debut && vers === TRONC.branche ? debut : TRONC.suivi
-  if (seul) notes.push(`plage inconnue : ni sha distant ni tronc — ${fin.slice(0, 9)} seul est jugé, sans ses parents`)
-  const revisions = [...(seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]), ...(origineConfirmee ?? []).map((sha) => `^${sha}`)]
+  const revisions = [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : []), ...(origineConfirmee ?? []).map((sha) => `^${sha}`)]
   const plage = revisions.join(' ')
   const shas = shasDe(depot, revisions)
   if (shas === null) {
@@ -300,14 +298,10 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
     return bilanDesStocks(change.diff(), { lirePostImage: texteA(b), lirePreImage: change.lirePreImage, renommages: change.renommages() })
   }
   const troncDeFin = tronc && avecLeTronc(fin)
-  const bout = debut ?? troncDeFin
+  const bout = debut ?? troncDeFin ?? arbreVide(depot)
   const troncDuBout = tronc && avecLeTronc(bout)
   if (tronc && !troncDuBout) notes.push(`\`${bout.slice(0, 9)}\` sans ancêtre commun avec \`${tronc}\` : le cumul ne retranche rien du tronc`)
-  const cumul = origineConfirmee !== undefined
-    ? bilanSoustrait(commits.flatMap((c) => bilanDuCommit(c)))
-    : seul
-    ? commits.flatMap((c) => bilanDuCommit(c))
-    : bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
+  const cumul = bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
   return { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos }
 }
 

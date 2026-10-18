@@ -144,7 +144,7 @@ const BASELINE = { totalCalls: 707, totalAdHocResets: 296 }; // +1 (#1117 L3 : `
 // si un occupant est réellement tombé (sinon même référence). Aucun reset ad hoc de plus.
 // Mesure exacte 744/301).
 // #1508 T2 — le cliquet ne monte PAS, il se remplit : 748/301 à HEAD, 749/301 sur l'arbre, pour une
-// baseline de 749/302. Le +1 de `totalCalls` est le `set((s) => …)` de `combatEffects.differerLaSuite`,
+// baseline de 749/302. Le +1 de `totalCalls` est le `set((s) => …)` de `combatEffects.confierLaSuite`,
 // la SEULE écriture du canal op → applier : elle confie à l'étape à dé la suite que son lot faisait
 // attendre, quand cette étape est déjà dans le slot (poussée HORS application). Les étapes poussées
 // PENDANT une application n'y passent pas : elles sont annotées dans la fenêtre d'insertion

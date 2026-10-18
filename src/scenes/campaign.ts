@@ -42,7 +42,7 @@ export function paquetDuJeu(c: BuiltinCampaign): Omit<ProjectDoc, 'schema'> {
  *  qui la joue (picker de `PartyScreen`, bibliothèque de campagnes, `__wfrp.campaign`). Son paquet
  *  passe la porte à l'appel (`paquetDuJeu`). */
 export function campagneDuJeu(c: BuiltinCampaign): NonNullable<GameState['pendingCampaign']> {
-  const { label, scenes, worldMap, activeAxes, narratif } = paquetDuJeu(c);
+  const { id, label, scenes, worldMap, activeAxes, narratif } = paquetDuJeu(c);
   return {
     id: c.id,
     label,
@@ -51,6 +51,7 @@ export function campagneDuJeu(c: BuiltinCampaign): NonNullable<GameState['pendin
     worldMap: worldMap ?? null,
     ...(activeAxes !== undefined ? { activeAxes } : {}),
     narratif,
+    projet: { id },
   };
 }
 
@@ -71,7 +72,7 @@ export function lancerCampagne(get: Get, choisie: GameState['pendingCampaign'], 
   } catch (err) {
     return playerEntryError(err, 'jouer');
   }
-  get().loadProject(lancee.scenes, sceneId ?? lancee.startSceneId, lancee.worldMap ?? null, lancee.narratif);
+  get().loadProject({ scenes: lancee.scenes, entryId: sceneId ?? lancee.startSceneId, worldMap: lancee.worldMap ?? null, narratif: lancee.narratif, projet: lancee.projet });
   return null;
 }
 

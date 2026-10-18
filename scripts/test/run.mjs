@@ -44,9 +44,11 @@ import {
   separerArguments,
   cheminsGlobSuspects,
   TAS_UTILISE,
+  ateliersMorts,
+  nomDAtelier,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
-import { estPidVivant } from './verrou.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { attenteDeSuite, prendreVerrouDeSuite, verrouRequis } from './verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
@@ -63,7 +65,7 @@ if (refusVitest) {
 // hors de l'arbre versionné, mais SOUS le projet — les configs générées y résolvent
 // `vite`/`@vitejs/plugin-react` par remontée normale de `node_modules`.
 const ATELIERS = path.join(RACINE, 'node_modules/.vitest-split')
-const ATELIER = path.join(ATELIERS, String(process.pid))
+const ATELIER = path.join(ATELIERS, nomDAtelier(process.pid, performance.timeOrigin))
 const CACHE = path.join(RACINE, 'node_modules/.cache')
 // Un fichier PAR PID : deux sessions concurrentes ne s'écrasent pas.
 const CAPTURE = path.join(CACHE, `vitest-run-${process.pid}.txt`)
@@ -81,11 +83,8 @@ const supprimer = (cible) => {
 /** Ateliers des lanceurs morts (suppression refusée sur le coup, machine éteinte en plein run) :
  *  le lanceur suivant les balaie, ceux des lanceurs vivants restent intacts. */
 const balayerAteliersMorts = () => {
-  for (const nom of fs.existsSync(ATELIERS) ? fs.readdirSync(ATELIERS) : []) {
-    const pid = Number(nom)
-    if (!Number.isInteger(pid) || pid === process.pid || estPidVivant(pid)) continue
-    supprimer(path.join(ATELIERS, nom))
-  }
+  const noms = fs.existsSync(ATELIERS) ? fs.readdirSync(ATELIERS) : []
+  for (const nom of ateliersMorts(noms, { pid: process.pid, identite: IDENTITE_MESUREE })) supprimer(path.join(ATELIERS, nom))
 }
 
 const posix = (p) => p.split(path.sep).join('/')

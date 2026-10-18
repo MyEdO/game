@@ -13,10 +13,10 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
-import { defDe } from './descente';
+import { defDe, descendre, enfantsDe, ouverts } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
-import { champsProse, refineProse, type PorteurDeProse } from './prose';
+import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -382,6 +382,52 @@ const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>()
 export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
   noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
+/** Le nœud porte-t-il, à travers ses enveloppes transparentes (`ouverts`), une entrée partielle marquée ? */
+const porteUneEntreePartielle = (noeud: unknown): boolean => ouverts([noeud]).some((n) => documentDeLEntreePartielle(n) !== undefined);
+
+/**
+ * Les ADRESSES des entrées partielles EMBARQUÉES sous `racines` (#2206), en notation
+ * `scripts/source/adresses.mjs` générique (`narratif.presetsPnj[].profil`), triées.
+ */
+export function adressesDesEntreesEmbarquees(racines: readonly unknown[]): string[] {
+  const out = new Set<string>();
+  descendre(racines, ({ noeud, path }) => {
+    for (const e of enfantsDe(noeud)) {
+      if (e.segment === '' || e.segment.startsWith('|') || e.segment.startsWith('&')) continue;
+      if (porteUneEntreePartielle(e.noeud)) out.add((path + e.segment).replace(/\|\d+|&\d/g, '').replace(/^\./, ''));
+    }
+  });
+  return [...out].sort();
+}
+
+/**
+ * `refineAdapteDe` du nœud `schema`, étendu aux entrées partielles qu'il EMBARQUE : une clé dont
+ * l'entrée porte `descRef` refuse `adapteDe` (#2001, #2206).
+ */
+export function exclusiviteAdapteDe(schema: z.ZodObject<z.ZodRawShape>): (v: unknown, ctx: z.RefinementCtx) => void {
+  const embarquees = Object.keys(schema.shape).filter((k) => porteUneEntreePartielle(schema.shape[k]));
+  return (v, ctx) => {
+    refineAdapteDe(v, ctx);
+    const n = (v ?? {}) as Record<string, { descRef?: unknown } | undefined> & { adapteDe?: unknown };
+    if (n.adapteDe === undefined) return;
+    for (const k of embarquees.filter((cle) => n[cle]?.descRef !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['adapteDe'], message: `texte adapté, alors que la description de « ${k} » est la copie adressée du livre.` });
+    }
+  };
+}
+
+/** Les champs de PROVENANCE d'une entrée ou d'une sous-entrée. */
+export interface Provenance { source?: unknown; maison?: unknown }
+
+/** PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE — refine UNIQUE, partagé par la
+ *  fabrique `document()` et toute sous-entrée qui porte sa propre provenance. `sujet` nomme ce qui
+ *  la doit (« de l’entrée », « du billet »). */
+export function refuserSansProvenance(v: Provenance, ctx: z.RefinementCtx, sujet: string): void {
+  if (v.source === undefined && v.maison === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['source'], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${sujet}.` });
+  }
+}
+
 /**
  * Déclare un document. `champs` = la charge utile propre au type, `meta` = son libellé FR par clé,
  * `exposition` = Codex + éditeur, `options.variantes` = les champs qu'une variante réglée republie —
@@ -498,7 +544,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
           }) as z.ZodObject<z.ZodRawShape>)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
-  const entreePartielle: z.ZodType<unknown> = nommerChamps(corps.partial(), noms).pipe(z.transform((v) => v));
+  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
+  const partielle = corps.partial().superRefine(
+    refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
+  ) as z.ZodObject<z.ZodRawShape>;
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
@@ -511,16 +561,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // construction, donc rien à éteindre ici (mesuré : un branchement qui l'éteindrait est inobservable).
   const avecProvenance = !exigeSource(type)
     ? corps
-    : (corps.superRefine((v, ctx) => {
-        const d = v as { source?: unknown; maison?: unknown };
-        if (d.source === undefined && d.maison === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['source'],
-            message: 'provenance manquante : cite le livre et la page, ou dis la raison maison de l’entrée.',
-          });
-        }
-      }) as z.ZodObject<z.ZodRawShape>);
+    : (corps.superRefine((v, ctx) => refuserSansProvenance(v as Provenance, ctx, 'de l’entrée')) as z.ZodObject<z.ZodRawShape>);
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
