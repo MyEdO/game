@@ -307,10 +307,11 @@ test('#1772 #2776 — le gestionnaire de signal juge l’arrêt de l’essai REN
     const diagnostic = nom + '\n' + JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + sortie
     assert.equal(r.code, 1, diagnostic)
     assert.equal(r.sortie, 130, diagnostic)
-    assert.match(sortie, new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID ${cas.pid}`), diagnostic)
+    const retenue = cas.pid === undefined ? 'premiere' : `premiere PID ${cas.pid}`
+    assert.match(sortie, new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : ${retenue} ;`), diagnostic)
     assert.deepEqual(demandes, cas.demandes, diagnostic)
     assert.deepEqual(r.liberations, [], diagnostic)
-    assert.match(sortie, new RegExp(`\\[gates\\] arrêt indéterminé : premiere PID ${cas.pid} — verrou retenu\\.`), diagnostic)
+    assert.match(sortie, new RegExp(`\\[gates\\] arrêt indéterminé : ${retenue} — verrou retenu\\.`), diagnostic)
     assert.equal(sortie.match(/diagnostic arrêt :/g)?.length, 1, diagnostic)
   }
 })
@@ -381,8 +382,9 @@ test('#2776 — un lanceur ou une prise qui lève pose le verdict de sa gate : n
     if (leve === 'lancer') {
       assert.deepEqual(liberations, [], diagnostic)
       assert.deepEqual(lancements, ['gate premiere'], diagnostic)
-      assert.match(sortie, /arrêt indéterminé : lancement PID undefined EMFILE — lanceur levé : arrêt non prouvé/, diagnostic)
-      assert.match(sortie, /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID undefined/, diagnostic)
+      assert.match(sortie, /arrêt indéterminé : lancement EMFILE — lanceur levé : arrêt non prouvé/, diagnostic)
+      assert.match(sortie, /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere ; capacité retenue/, diagnostic)
+      assert.doesNotMatch(sortie, /undefined/, diagnostic)
     } else {
       assert.deepEqual(liberations, ['suivante'], diagnostic)
       assert.deepEqual(lancements, ['gate suivante'], diagnostic)

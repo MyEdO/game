@@ -1,5 +1,7 @@
 import { mesurerProcessusWorktrees, classerFiliation, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
+import { estPidVivantDepuis } from './pid.mjs'
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
 
 export function mesurerArbreProcessus({ mesurer = mesurerProcessusWorktrees } = {}) {
   for (let tentative = 0; tentative < 2; tentative++) {
@@ -18,8 +20,16 @@ export function mesurerArbreProcessus({ mesurer = mesurerProcessusWorktrees } = 
   }
 }
 
-export function identitePresente(identite, vue) {
+function identitePresente(identite, vue) {
   return Boolean(identite?.creation && vue.some((p) => p.pid === identite.pid && p.creation === identite.creation && p.etat !== 'Z'))
+}
+
+/** L'identité capturée `gardien` (`pid`, `creation`) a-t-elle disparu ? Jugée dans la `vue` mesurée, sinon (`null`, mesure
+ *  en échec) par son pid et sa création mesurée : seule une mort ou une réutilisation PROUVÉE rend `true` (#2586, #2626). */
+export function gardienDisparu(gardien, vue) {
+  if (vue) return !identitePresente(gardien, vue)
+  try { return !estPidVivantDepuis(gardien.pid, Date.parse(gardien.creation), IDENTITE_MESUREE) }
+  catch { return false }
 }
 
 export function filiationValide(parent, enfant) {

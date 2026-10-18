@@ -1,16 +1,14 @@
 import { closeSync, openSync, writeSync } from 'node:fs'
 import { StringDecoder } from 'node:string_decoder'
-import { arretIndetermine, finNative } from './arretNatif.mjs'
+import { arretIndetermine, texteDeCause } from './arretNatif.mjs'
 import { codeEnfant } from './codesDeSortie.mjs'
 import { reessayerAuChargement } from './spawnResilient.mjs'
 import { lancerProcessusSupervise } from './superviserProcessus.mjs'
 
-export { arretIndetermine }
-
 /** Délai d'arrêt accordé à l'hôte natif entre la demande et le certificat de zéro (#2586). */
-export const DELAI_ARRET_MS = 2000
+const DELAI_ARRET_MS = 2000
 const DUREE_MAX_MS = 2147483647
-const erreurNommee = (code, message, cause) => Object.assign(new Error(message, cause === undefined ? undefined : { cause }), { code })
+const erreurNommee = (code, message) => Object.assign(new Error(message), { code })
 
 /** Projection SÉRIALISABLE d'un résultat de `spawnBorne` : erreurs et causes (agrégées, cycliques) projetées, ni
  *  argv ni env (#2586). */
@@ -18,10 +16,10 @@ export function diagnosticDuLancement({ arret, error, code, pid, status, signal,
   const vues = new Set()
   const projeterErreur = (erreur) => {
     if (erreur == null) return null
-    if (typeof erreur !== 'object') return { message: String(erreur) }
+    if (typeof erreur !== 'object') return { message: texteDeCause(erreur) }
     if (vues.has(erreur)) return { cycle: true }
     vues.add(erreur)
-    const projection = { name: erreur.name, code: erreur.code, message: erreur.message ?? String(erreur), operation: erreur.operation, pid: erreur.pid }
+    const projection = { name: erreur.name, code: erreur.code, message: texteDeCause(erreur), operation: erreur.operation, pid: erreur.pid }
     if (erreur.cause !== undefined) projection.cause = projeterErreur(erreur.cause)
     if (Array.isArray(erreur.errors)) projection.errors = erreur.errors.map(projeterErreur)
     vues.delete(erreur)
@@ -32,34 +30,54 @@ export function diagnosticDuLancement({ arret, error, code, pid, status, signal,
       erreurs: (arret.erreurs ?? []).map(projeterErreur) } : null }
 }
 
-/** Émet à `ligne`, une LIGNE par appel et sans terminateur, erreur, collecte et arrêt de `resultat` sous `prefixe` ;
- *  REND `true` quand l'arrêt n'est pas prouvé `mort` (#2586). */
+/** Émet à `ligne`, une LIGNE par appel et sans terminateur, erreur, collecte et arrêt de `resultat` sous `prefixe` :
+ *  chaque couple qualificatif–message une seule fois, au premier contexte qui le porte, le qualificatif étant le code
+ *  (ou le nom) de la première erreur de sa chaîne qui en a un ; l'erreur et la collecte d'abord, puis leurs causes ;
+ *  une entrée d'arrêt déjà citée garde sa ligne d'opération et de PID connus, une fois. REND `true` quand l'arrêt
+ *  n'est pas prouvé `mort` (#2586). */
 export function diagnosticArret(resultat, ligne, prefixe = '[gates] ') {
   const diagnostic = diagnosticDuLancement(resultat)
-  const imprimer = (erreur, contexte) => {
+  const emises = new Set()
+  const emettre = (texte) => { if (!emises.has(texte)) { emises.add(texte); ligne(prefixe + texte) } }
+  const cites = new Set()
+  const porteurs = new Set()
+  const qualificatif = (erreur) => erreur.code ?? erreur.name ??
+    (erreur.cause && !erreur.cause.cycle && erreur.cause.message === erreur.message ? qualificatif(erreur.cause) : undefined)
+  const citer = (erreur, contexte, porteur) => {
     if (!erreur) return
-    if (erreur.cycle) { ligne(`${prefixe}${contexte}cycle`); return }
-    const code = erreur.code ?? erreur.name
-    ligne(`${prefixe}${contexte}${code ? `${code} — ` : ''}${erreur.message}`)
+    const tete = porteur ? `${porteur} ` : contexte
+    if (erreur.cycle) { emettre(`${tete}cycle`); return }
+    const code = qualificatif(erreur)
+    const cle = `${code ?? ''}\n${erreur.message}`
+    if (!cites.has(cle)) {
+      cites.add(cle)
+      emettre(`${tete}${code ? `${code} — ` : ''}${erreur.message}`)
+    } else if (porteur && !porteurs.has(porteur)) emettre(porteur)
+    if (porteur) porteurs.add(porteur)
+  }
+  const causes = (erreur) => {
+    if (!erreur || erreur.cycle) return
     imprimer(erreur.cause, 'cause : ')
     for (const cause of erreur.errors ?? []) imprimer(cause, 'cause agrégée : ')
   }
-  imprimer(diagnostic.error, 'erreur : ')
-  imprimer(diagnostic.defautCollecte, 'collecte : ')
+  const imprimer = (erreur, contexte, porteur) => { citer(erreur, contexte, porteur); causes(erreur) }
+  citer(diagnostic.error, 'erreur : ')
+  citer(diagnostic.defautCollecte, 'collecte : ')
+  causes(diagnostic.error)
+  causes(diagnostic.defautCollecte)
   if (diagnostic.arret?.etat === 'mort') return false
-  if (!diagnostic.arret) ligne(`${prefixe}arrêt indéterminé : preuve d’arrêt absente.`)
-  for (const erreur of diagnostic.arret?.erreurs ?? []) imprimer(erreur, `arrêt indéterminé : ${erreur.operation} PID ${erreur.pid} `)
-  ligne(`${prefixe}diagnostic arrêt : ${JSON.stringify(diagnostic)}`)
+  if (!diagnostic.arret) emettre('arrêt indéterminé : preuve d’arrêt absente.')
+  for (const erreur of diagnostic.arret?.erreurs ?? []) {
+    imprimer(erreur, '', ['arrêt indéterminé :', erreur.operation, erreur.pid == null ? undefined : `PID ${erreur.pid}`].filter(Boolean).join(' '))
+  }
+  emettre(`diagnostic arrêt : ${JSON.stringify(diagnostic)}`)
   return true
 }
 
-/** Demande l'arrêt au propriétaire natif `controle` et REND l'`arret` de son unique `fin` ; sans contrôle,
- *  `indetermine` (#2586). */
+/** Demande l'arrêt au propriétaire natif `controle` et REND l'`arret` de son unique `fin` (#2586). */
 export async function tuerArbre(controle, cause) {
-  if (!controle || typeof controle.demanderArret !== 'function' || !controle.fin)
-    return arretIndetermine({ operation: 'controle', cause: erreurNommee('CONTROLE_ABSENT', 'arrêt sans propriétaire natif') })
   controle.demanderArret(cause)
-  return (await finNative(controle)).arret
+  return (await controle.fin).arret
 }
 
 /**
@@ -68,10 +86,9 @@ export async function tuerArbre(controle, cause) {
  * réouvert en `'w'` à chaque essai, sans quoi le second écrirait à la suite du premier). À l'expiration, à
  * l'annulation ou au dépassement de capture, l'arrêt est DEMANDÉ au contrôle natif, qui emporte l'arbre entier
  * (`npm`, `vitest` et leurs workers) ; `surControle` reçoit ce contrôle dès l'hôte lancé, `surPid` le PID de la
- * CIBLE. L'arrêt n'est `mort` que sur le certificat de la `fin` native ; une `fin` rejetée, ou un `superviser` qui
- * lève sans rendre de contrôle et peut avoir lancé son hôte : l'arrêt est `indetermine` (#2586). `pret` n'est attendu
- * qu'après une `fin` résolue, qu'il précède ; rejetée, la `fin` ne garantit plus `pret`. `signal` abrège l'attente
- * d'un rejeu, et l'essai suivant rend l'annulation sans lancer.
+ * CIBLE. L'arrêt n'est `mort` que sur le certificat de la `fin` native ; un `superviser` qui lève sans rendre de
+ * contrôle et peut avoir lancé son hôte : l'arrêt est `indetermine` (#2586). `pret`, réglé au plus tard par la `fin`,
+ * est attendu après elle. `signal` abrège l'attente d'un rejeu, et l'essai suivant rend l'annulation sans lancer.
  * REND `{ code, status, signal, error, stdout, stderr, expiree, annulee, arret, controle, fichier, sortie, limiteMs, pid }`.
  */
 export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = DELAI_ARRET_MS, cwd, env = process.env,
@@ -119,10 +136,11 @@ export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = D
       const receptionPid = controle.pret.then(({ pidCible }) => surPid?.(pidCible)).catch((e) => { if (controle.pid !== null) { erreur ??= e; demanderArret(e) } })
       if (expiree) demanderArret(erreurNommee('ETIMEDOUT', `échéance ${limiteMs} ms`))
       if (annulee || annulation?.aborted) annuler()
-      fin = await finNative(controle, (certifiee) => receptionPid.then(() => certifiee))
+      fin = await controle.fin
+      await receptionPid
     } catch (e) {
       erreur ??= e
-      if (controle) { demanderArret(e); fin = await finNative(controle) }
+      if (controle) { demanderArret(e); fin = await controle.fin }
     } finally {
       clearTimeout(minuterie); annulation?.removeEventListener('abort', annuler)
       hote?.stdout?.removeListener('data', lireStdout); hote?.stderr?.removeListener('data', lireStderr)
@@ -131,7 +149,7 @@ export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = D
     if (fluxDistincts) { stdout += decodeStdout.end(); stderr += decodeStderr.end() }
     sortie += decodeSortie.end()
     const { status = null, signal = null, error } = fin?.resultatCible ?? {}
-    if (error) erreur ??= erreurNommee(error.code, error.message, error.cause)
+    if (error) erreur ??= erreurNommee(error.code, error.message)
     const arret = fin?.arret ?? arretIndetermine({ operation: 'lancement', cause: erreur, message: 'superviseur sans fin native : arrêt non prouvé' })
     if (arret.etat !== 'mort') erreur ??= erreurNommee('ARRET_INDETERMINE', 'zéro natif non confirmé')
     return { code: erreur || expiree || annulee || arret.etat !== 'mort' ? 1 : codeEnfant(status, signal), status, signal, error: erreur,

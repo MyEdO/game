@@ -38,7 +38,8 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawnSync } from 'node:child_process'
-import { arretIndetermine, spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { arretIndetermine } from '../guards/lib/arretNatif.mjs'
+import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -800,9 +801,9 @@ const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
 
 const arretNonConfirme = (arret) => arret?.etat !== 'mort'
 
-/** `nom PID pid` de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
+/** `nom`, suivi de `PID pid` quand il est connu, de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
 const indetermineesDe = (verdicts) =>
-  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => `${nom} PID ${verdict.arret?.pid}`)
+  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => verdict.arret?.pid == null ? nom : `${nom} PID ${verdict.arret.pid}`)
 
 /**
  * Gestionnaire de SIGINT/SIGTERM : aborte `arret`, le signal que reçoit le lanceur de chaque gate, attend que chaque
