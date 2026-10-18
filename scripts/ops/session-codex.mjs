@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { createInterface } from 'node:readline'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 export const VERSION_PROTOCOLE_CODEX = '0.163.0'
 export const MAX_MESSAGE_CODEX = 64 * 1024
@@ -127,7 +128,7 @@ export function projeterJournalCodex(journal, echo = (texte) => process.stdout.w
   let position = 0, morceaux = [], longueur = 0, reprise, threadId, turnId
   const afficher = (prefixe, texte = '') => {
     const net = stripVTControlCharacters(String(texte).slice(0, 8192)).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim()
-    echo(`[Codex] ${prefixe}${net ? ` : ${net.slice(0, 4096)}${net.length > 4096 ? '…' : ''}` : ''}\n`)
+    echo(`[Codex] ${prefixe}${net ? ` : ${coupeAuMot(net, 4096)}` : ''}\n`)
   }
   function projeter(x) {
     const n = x.notification, p = n?.params, item = p?.item

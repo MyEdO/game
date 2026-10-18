@@ -116,7 +116,7 @@ test('projection bornée : gros événements gardent leur statut et fin malgré 
   const agent = (text) => `${JSON.stringify(notificationProjection('item/completed', { item: { type: 'agentMessage', text } }))}\n`
   const outil = notificationProjection('item/completed', { item: { type: 'commandExecution', command: 'node --version', status: 'completed', aggregatedOutput: 'x'.repeat(300_000) } })
   const fin = notificationProjection('turn/completed', { turn: { id: 'turn-owned', status: 'completed', items: [{ type: 'agentMessage', text: 'x'.repeat(300_000) }] } })
-  writeFileSync(fichier, CONTEXTE_PROJECTION + agent('x'.repeat(10_000)) + agent('x'.repeat(2_000_000)) + JSON.stringify(outil) + '\n' + JSON.stringify(fin) + '\n')
+  writeFileSync(fichier, CONTEXTE_PROJECTION + agent('mot '.repeat(2500)) + agent('mot '.repeat(500_000)) + JSON.stringify(outil) + '\n' + JSON.stringify(fin) + '\n')
   const lire = projeterJournalCodex(fichier, (s) => sortie.push(s))
   lire()
   assert.equal(sortie.some((s) => s.includes('Fin du tour')), false, 'budget par lecture')
@@ -124,9 +124,20 @@ test('projection bornée : gros événements gardent leur statut et fin malgré 
   assert.equal(sortie.length, 4)
   assert.ok(sortie.every((s) => s.length < 4200))
   assert.match(sortie[0], /…\n$/)
-  assert.match(sortie[1], /Agent : x+…\n$/)
+  assert.match(sortie[1], /Agent : (?:mot )*mot…\n$/)
   assert.match(sortie[2], /Outil commandExecution \[completed\] : node --version/)
   assert.match(sortie[3], /Fin du tour : completed/)
+})
+test('projection : coupe au mot et premier mot long sous budget de traitement', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-mot-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const fichier = join(dossier, 'native.jsonl'), sortie = []
+  const textes = ['a '.repeat(2045) + 'chevauchement suite', 'x'.repeat(10_000)]
+  writeFileSync(fichier, CONTEXTE_PROJECTION + textes.map((text) => JSON.stringify(notificationProjection('item/completed', { item: { type: 'agentMessage', text } }))).join('\n') + '\n')
+  projeterJournalCodex(fichier, (s) => sortie.push(s))()
+  assert.equal(sortie[0], '[Codex] Agent : ' + 'a '.repeat(2044) + 'a…\n')
+  assert.ok(sortie[0].length <= '[Codex] Agent : '.length + 4096 + 1)
+  assert.equal(sortie[1], '[Codex] Agent : ' + 'x'.repeat(8192) + '\n')
 })
 test('projection : statuts natifs par famille, erreurs et notifications inconnues', (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-formes-'))
