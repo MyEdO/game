@@ -89,7 +89,7 @@ import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { passiveSection, effectsSection, careerGrantSection, spellFlowSection, capabilitySection } from './describe';
+import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
 import { reverseGroups, bookContents } from './relations';
@@ -284,8 +284,8 @@ const facts = (...xs: (CodexFact | null)[]): CodexFact[] => xs.filter((x): x is 
 /** Valeur d'un champ de charge rendue LISIBLE sans rien inventer : un booléen se lit « oui », une
  *  valeur simple s'imprime telle quelle. Un champ COMPOSITE (recette de détail) n'a PAS de fait :
  *  ses sous-clés (`seedScope`, `speckle`…) sont des noms de moteur qu'aucune méta ne nomme en
- *  français — `MetaChamp` ne couvre que le PREMIER NIVEAU d'un document (`document()` exige une méta
- *  par clé de `champs`, `libelleDuChamp` rend la clé nue au régime `profondeur`) — et le Codex est un
+ *  français — au régime `profondeur`, `libelleDuChamp` ne nomme que les sous-champs d'un nœud passé
+ *  par `nommerChamps`, et rend la clé nue des autres — et le Codex est un
  *  écran de RÉFÉRENCE joueur (règle stricte 4). Le champ reste ÉDITABLE à l'atelier, sous-formulaire
  *  inféré ; c'est le FAIT de fiche qui exige un nom lisible. */
 const valeurDeCharge = (v: unknown): string | null => {
@@ -442,33 +442,8 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
  */
 const valeurFR = (fichier: string, champ: string, valeur: string): string =>
   libelleDeValeur(noeudDuChamp(fichier, champ), valeur);
-/** Libellés FR des CAPACITÉS irréductibles d'un Symptôme (drapeaux lus par la machinerie de maladie). */
-const SYMPTOM_CAP_LABEL: Record<string, string> = {
-  blocksHealing: 'Bloque la guérison (1 PB)', amputation: 'Gangrène (amputation)',
-  contagious: 'Contagieux', nausea: 'Nausée (Sonné)',
-  endTest: 'Test de fin de Durée', persistentActive: 'Ne guérit jamais naturellement',
-};
 /** Libellé d'un jet de dés (`{n,d,plus?}`) — « 1d10 », « 2d10+2 ». */
 const diceLabel = formatDice;
-/** Libellés FR des CAPACITÉS de Trait (drapeaux booléens lus par le moteur — `TraitCapabilities`).
- *  Les capacités psy (psychType/psychImmune/psychIndice) sont surfacées à part (méta). */
-const TRAIT_CAP_LABEL: Record<string, string> = {
-  bonusWoundsBE: 'Blessures bonifiées (+BE)', swarm: 'Nuée', wardSave: 'Sauvegarde invulnérable',
-  damageImmunity: 'Immunité aux dégâts',
-  counterOnDefenseWin: 'Contre-attaque (défense gagnée)', counterRequiresFastParry: 'Contre exige arme Rapide', unstable: 'Instable', painless: 'Insensible à la douleur',
-  psychImmuneIfAhead: 'Immunité psy si en avantage', mindless: 'Sans esprit', bestial: 'Bestial',
-  coldBlooded: 'Sang-froid', stupid: 'Stupidité', rage: 'Rage', territorial: 'Territorial', skittishMount: 'Monture ombrageuse',
-  fly: 'Vol', leap: 'Bond', stride: 'Foulée', seesInDark: 'Vision nocturne',
-  spellcaster: 'Lanceur de Sorts', frenzyCapable: 'Peut entrer en Frénésie', undead: 'Mort-vivant',
-};
-/** Libellés FR des CAPACITÉS de Qualité d'arme/armure (`QualityCapabilities`). */
-const QUALITY_CAP_LABEL: Record<string, string> = {
-  fastStrike: 'Rapide', slowStrike: 'Lente', fumbleOn9: 'Dangereuse', pushback: 'Perturbante',
-  bladeTrap: 'Piège-lame', damagesArmour: 'Endommage l’armure', firearm: 'Arme à feu', canFireWhileEngaged: 'Tir au contact',
-  magazine: 'À répétition', salvo: 'Salve', areaFire: 'Tir de zone', crewedTeam: 'Arme d’équipe', parryAP: 'Protectrice',
-  layerable: 'Flexible', apIgnoredOnEven: 'Partielle', apIgnoredOnImpaleCrit: 'Points faibles',
-  unbreakable: 'Incassable', magic: 'Magique',
-};
 
 /** Section « Issues par Degrés de Réussite » d'une Activité (bandes `OutcomeBand[]`) : une sous-tête par
  *  bande (issue + fourchette de DR + gate de bataille) puis note verbatim, résolveur, rendu, effets et
@@ -618,11 +593,9 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
     ...(t.appearance ? { previewPorteur: porteurDApercu(categoryKey) } : {}),
     meta: facts(
       cap?.psychType ? fact('Psychologie', psychologyLabel(cap.psychType)) : null,
-      cap?.psychImmune ? fact('Immunité', '(Psychologie)') : null,
       cap?.psychIndice != null ? fact('Indice', cap.psychIndice) : null,
     ),
     sections: sections(
-      capabilitySection(cap as Record<string, unknown> | undefined, TRAIT_CAP_LABEL),
       chips('Manœuvres conférées', (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
       passiveSection(t.passive), effectsSection(t.effects),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
@@ -866,12 +839,6 @@ function portCargoRow(id: string, qty?: number): CodexRow {
   // paragraphe de prose au milieu des pastilles voisines (même classe que les Possessions).
   return entry && isEchangeable(entry) ? { t: 'ref', category: 'seaCargo', id: entry.id, label, show } : { t: 'chip', label: show };
 }
-
-/** Libellés FR des 4 Traits de CONSTRUCTION (`ship-construction.json::constructionTraits`, sans champ
- *  `label` en donnée — id STABLE déjà la clé, MDG 12 l.167-193). */
-const CONSTRUCTION_TRAIT_LABEL: Record<string, string> = {
-  'peu-maniable': 'Peu maniable', renforce: 'Renforcé', robuste: 'Robuste', solide: 'Solide',
-};
 
 /** Fait signé (« +10 % », « −20 », « 0 ») — évite de dupliquer le ternaire de signe à chaque site. */
 const signedFact = (label: string, v: number | undefined, suffix = ''): CodexFact | null =>
@@ -1255,11 +1222,11 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         sections: sections(
           {
             title: 'Force du vent (1d10)', layout: 'list',
-            rows: n.windForces.map((f) => ({ t: 'kv', k: bandeAuDe('d10', f.min, f.max), v: f.label } as CodexRow)),
+            rows: n.windForces.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe('d10')), v: f.label } as CodexRow)),
           },
           {
             title: 'Direction du vent (1d10, relative au bateau)', layout: 'list',
-            rows: n.windDirections.map((d) => ({ t: 'kv', k: bandeAuDe('d10', d.min, d.max), v: d.label } as CodexRow)),
+            rows: n.windDirections.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe('d10')), v: d.label } as CodexRow)),
           },
           {
             title: 'Effet du vent (Force × Direction)', layout: 'list',
@@ -1516,7 +1483,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'qualities', label: 'Qualités', group: 'Équipement',
     build: () => qualities.map((q) => depuisEnveloppe(q, {
       sub: join(qualityTypeLabel(q.polarite), qualitySubtypeLabel(q.subType)),
-      sections: sections(capabilitySection(q.capabilities as Record<string, unknown> | undefined, QUALITY_CAP_LABEL), passiveSection(q.passive), effectsSection(q.effects, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
+      sections: sections(passiveSection(q.passive), effectsSection(q.effects, 'Effets déclenchés'), ...reverseSections('qualities', q.id)),
     })),
   },
   {
@@ -1562,7 +1529,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
               ].filter((r): r is CodexRow => r != null),
             }
           : null,
-        capabilitySection(s.capabilities as Record<string, unknown> | undefined, SYMPTOM_CAP_LABEL),
       ),
     })),
   },
@@ -2311,7 +2277,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'shipConstructionTraits', label: 'Traits de construction (navire)', group: 'Équipement', cluster: 'Mer & rivière', sourceRef: 'MDG 12',
     build: () => datasetArray('shipConstructionTraits').map((t) => ({
-      id: t.id, label: CONSTRUCTION_TRAIT_LABEL[t.id] ?? t.id, source: src(t.source),
+      id: t.id, label: refLabel('navalTraits', { id: t.id }), source: src(t.source),
       meta: facts(
         fact('Niveau max', t.maxLevel), signedFact('Coût / niveau', t.costPctPerLevel, ' %'),
         signedFact('Endurance / niveau', t.ePerLevel), signedFact('Blessures / niveau', t.bPctPerLevel, ' %'),
@@ -2323,6 +2289,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'seaNavigation', label: 'Navigation maritime (Progression, Salissures, Orientation, Phares, Poursuite…)', group: 'Tables', cluster: 'Mer & rivière', sourceRef: 'MDG 13/15',
     build: () => {
       const n = datasetObject('seaNavigation');
+      const derive = n.orientation.reperes.find((r) => r.outcome === 'drift-major'); // MDG 13 l.320
       return [{
         id: 'seaNavigation', label: 'Navigation maritime', source: src(n.workPeriodHours.source),
         sections: sections(
@@ -2358,8 +2325,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             rows: n.orientation.reperes.map((r) => ({ t: 'kv', k: `DR ${fourchette(r.min, r.max)}`, v: r.desc } as CodexRow)),
           },
           {
-            title: 'Changement de cap', layout: 'list',
-            rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: bandeAuDe('d10', r.min, r.max), v: r.desc } as CodexRow)),
+            title: `Changement de cap (1d10${derive ? `, +${n.orientation.driftMajorBonus} à DR ${fourchette(derive.min, derive.max)}` : ''})`, layout: 'list',
+            rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe('d10')), v: r.desc } as CodexRow)),
           },
           {
             title: 'Phares & clochers (Perception)', layout: 'list',

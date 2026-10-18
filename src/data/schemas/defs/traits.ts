@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
-import { ref } from '../grammaire/ref';
+import { idDe, ref } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
@@ -42,7 +42,8 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   unstable: z.boolean().optional(),
   painless: z.boolean().optional(),
   psychImmuneIfAhead: z.boolean().optional(),
-  psychType: z.enum(['peur', 'terreur', 'animosite', 'haine', 'prejuge', 'amour', 'camaraderie', 'phobie']).optional(),
+  /** LDB 21 l.33 ; `parsePsychTraits` (`engine/psych/registry.ts`) */
+  psychType: idDe('psychology', { horsMarqueurs: ['psychImmune'] }).optional(),
   psychImmune: z.boolean().optional(),
   psychIndice: z.number().optional(),
   psychCible: z.string().optional(),
@@ -79,7 +80,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   markMutations: { label: 'Marquer les mutations' },
   swarm: { label: 'Nuée' },
   naturalWeapon: { label: 'Arme naturelle' },
-  spellcaster: { label: 'Lanceur de sorts' },
+  spellcaster: { label: 'Lanceur de Sorts' },
   undead: { label: 'Mort-vivant' },
   wardSave: { label: 'Sauvegarde de protection' },
   damageImmunity: { label: 'Immunité aux Dégâts' },
@@ -100,7 +101,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   woundsUseForce: { label: 'Blessures calculées avec la Force' },
   freeTrample: { label: 'Manœuvre pour une Action de Mouvement', hint: 'Manœuvre que le porteur peut payer de son Action de Mouvement plutôt que de son Avantage' },
   bestial: { label: 'Bestial' },
-  coldBlooded: { label: 'À Sang froid' },
+  coldBlooded: { label: 'À sang-froid' },
   stupid: { label: 'Stupide' },
   rage: { label: 'Rage' },
   territorial: { label: 'Territorial' },
@@ -109,12 +110,12 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   structImpenetrable: { label: 'Structure impénétrable' },
   fly: { label: 'Vol' },
   leap: { label: 'Bond' },
-  stride: { label: 'Enjambée' },
+  stride: { label: 'Foulée' },
   autoClimb: { label: 'Escalade automatique' },
   climbFullSpeed: { label: 'Escalade à pleine vitesse' },
   noRun: { label: 'Course interdite' },
-  seesInDark: { label: 'Vision dans l’obscurité' },
-  darkSightTiles: { label: 'Portée de vision nocturne (cases)', hint: 'Vide (null) : portée du plein jour (niveau de lumière « jour »)' },
+  seesInDark: { label: 'Vision nocturne' },
+  darkSightTiles: { label: 'Portée de vision nocturne (cases)', hint: 'Vide : portée du plein jour (niveau de lumière « jour »)' },
   wakelessBite: { label: 'Morsure sans réveil' },
   encumbranceFactor: { label: 'Facteur d’Encombrement' },
   consumptionFactor: { label: 'Facteur de consommation' },

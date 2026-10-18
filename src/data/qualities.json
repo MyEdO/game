@@ -594,7 +594,7 @@
     "label": "Rapide",
     "polarite": "atout",
     "subType": "arme",
-    "desc": "Les armes Rapides sont conçues pour frapper avec une telle rapidité que parer n'est pas une option, laissant un adversaire transpercé avant qu'il ait pu réagir. Le porteur d'une arme Rapide peut choisir d'attaquer avec l'arme Rapide en dehors de l'ordre d'Initiative normale, que ce soit pour frapper le premier, le\n\nDe plus, tous les Tests de Corps à corps pour se défendre contre des armes Rapides subissent une pénalité de -10 si votre adversaire utilise une arme sans l'Atout Rapide ; les autres Compétences défendent normalement. Deux adversaires avec des armes Rapides combattent dans l'ordre d'Initiative (l'un par rapport à l'autre) normalement. Une arme Rapide ne peut jamais être aussi Lente (Lente prend le dessus).dernier ou au moment où il le souhaite.",
+    "desc": "Les armes Rapides sont conçues pour frapper avec une telle rapidité que parer n'est pas une option, laissant un adversaire transpercé avant qu'il ait pu réagir. Le porteur d'une arme Rapide peut choisir d'attaquer avec l'arme Rapide en dehors de l'ordre d'Initiative normale, que ce soit pour frapper le premier, le dernier ou au moment où il le souhaite.\n\nDe plus, tous les Tests de Corps à corps pour se défendre contre des armes Rapides subissent une pénalité de -10 si votre adversaire utilise une arme sans l'Atout Rapide ; les autres Compétences défendent normalement. Deux adversaires avec des armes Rapides combattent dans l'ordre d'Initiative (l'un par rapport à l'autre) normalement. Une arme Rapide ne peut jamais être aussi Lente (Lente prend le dessus).",
     "source": {
       "book": "livre-de-base",
       "page": 298

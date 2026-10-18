@@ -942,8 +942,6 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/traits.json', ref: 'capabilities | painless', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'capabilities | psychImmune', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'capabilities | psychImmuneIfAhead', occurrence: 1 },
-  { fichier: 'src/data/traits.json', ref: 'capabilities | psychIndice,psychType', occurrence: 1 },
-  { fichier: 'src/data/traits.json', ref: 'capabilities | psychType', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'capabilities | rage', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'capabilities | skittishMount', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'capabilities | spellcaster', occurrence: 1 },

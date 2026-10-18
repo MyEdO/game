@@ -109,7 +109,7 @@ export function SymptomTickField({ value, onChange }: { value: SymptomTick | und
   const versCertain = () => patch({ test: undefined, difficultyBySeverity: undefined, ops: value?.ops?.length ? value.ops : [newOp('wounds')] });
   return (
     <div className="ed-field">
-      <span>Cycle quotidien de phase active (Blessé / Toxine / Vers) — sous jet (nœud `test`) ou conséquence certaine</span>
+      <span>Cycle quotidien de phase active (Blessé / Toxine / Vers) — sous jet ou conséquence certaine</span>
       <label><input type="checkbox" checked={value != null} onChange={(e) => onChange(e.target.checked ? { test: noeudTestNeuf() } : undefined)} /> cycle actif</label>
       {value && (
         <>
@@ -491,7 +491,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
   const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'ref' => (isText(t) ? 'text' : isVehicle(t) ? 'vehicle' : isCreature(t) ? 'creature' : 'ref');
   return (
     <div className="ed-field">
-      <span>possessions — par id du catalogue (+ quantité), dotation véhicule (`vehicles.json`), dotation bête (`creatures.json`), ou texte narratif hors catalogue</span>
+      <span>possessions — par id du catalogue (+ quantité), dotation véhicule (catalogue des véhicules), dotation bête (bestiaire), ou texte narratif hors catalogue</span>
       {list.map((t, i) => (
         <div className="ed-subfield" key={i}>
           <div className="fieldrow">
@@ -609,7 +609,7 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
     }));
   return (
     <div className="ed-field">
-      <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, `LDB 09 l.40`)</span>
+      <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, LDB 09 l.40)</span>
       {list.map((s, i) => (
         <div key={i} className="fieldrow">
           <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />

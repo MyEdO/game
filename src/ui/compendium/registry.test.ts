@@ -6,7 +6,7 @@ import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from './CodexEdit';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
-import { setDataset } from '../../data/overrides';
+import { datasetObject, setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
@@ -421,6 +421,13 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
     expect(item.sections?.some((s) => /Salissures/.test(s.title))).toBe(true);
     expect(item.sections?.some((s) => /Orientation/.test(s.title))).toBe(true);
     expect(item.sections?.some((s) => /Course-poursuite/.test(s.title))).toBe(true);
+  });
+
+  it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
+    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { max: number }[] } };
+    const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
+    expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
+    expect(Math.max(...n.orientation.changementDeCap.map((r) => r.max))).toBe(10 + n.orientation.driftMajorBonus);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {
