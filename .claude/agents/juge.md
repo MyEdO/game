@@ -32,7 +32,8 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
   fidèlement une consigne fausse. Audite la forme du modèle contre l'intention du RAW (« sur roues »
   ⇒ mobile), « pour simplifier » = poison présumé. Socle : branche sur le type de
   porteur (`kind === …`) = drapeau rouge, un héros au même cas suit le même code.
-- **Un attendu se grade à l'ÉCRAN**, car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
+- **Un attendu se grade à l'ÉCRAN** (utilisateur, 2026-07-10 : « le plan c'est attendu vs réalité par
+  système »), car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
   « FAIT (données) » est un À-FAIRE ; un aveu d'agent (« pas de surface ») est un écart ; un ticket fermé
   n'est qu'une hypothèse.
 - **Mesure d'art : le harnais `npx tsx scripts/qc/mesure-volume.mts <tenueId>` est ton instrument,
