@@ -43,7 +43,7 @@ export function codex(on: On) {
 
   on('tool.call', { tool: 'mcp__harnais__codex_attendre' }, async ($, e, next) => {
     const resultat = await executer($, ['attendre', e.sessionId, ...(e.depuis === undefined ? [] : ['--depuis', String(e.depuis)]), ...(e.timeoutMs === undefined ? [] : ['--timeout-ms', String(e.timeoutMs)]), '--json'])
-    if (resultat && 'result' in resultat) $.ui.toast(resultat.result)
+    if (resultat && 'result' in resultat && typeof resultat.result === 'string') $.ui.toast(resultat.result)
     return resultat ?? next(e)
   })
 

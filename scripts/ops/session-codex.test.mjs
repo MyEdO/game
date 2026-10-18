@@ -7,7 +7,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createConnection } from 'node:net'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
 const FIXTURE = `
@@ -30,18 +31,20 @@ async function banc(t, { consigne = 'BUSY', validation = () => {} } = {}) {
   writeFileSync(fixture, FIXTURE)
   const sessionId = randomUUID(), jeton = 'secret-exclusif-pont'
   const projections = []
-  let natif, vivantALaRupture = false
+  let natif, naissanceNatif, vivantALaRupture = false
   const pont = lancerPontCodex({
     plan: { executable: process.execPath, args: [fixture] },
     carte: { sessionId, worktree: dossier, empreinteJeton: createHash('sha256').update(jeton).digest('hex') },
     dossier, consigne, schema: { type: 'object' }, env: process.env,
     notifier(p) { validation(p); projections.push(p) }, lancer(...args) {
       natif = spawn(...args)
+      naissanceNatif = IDENTITE_MESUREE.lireCreation(natif.pid)
+      assert.ok(Number.isFinite(naissanceNatif), 'Création du processus natif mesurée')
       let flux = ''
       natif.stdout.on('data', (b) => {
         flux += b.toString()
         if (flux.includes('fixture/perte-protocole')) {
-          assert.equal(estPidVivant(natif.pid), true)
+          assert.equal(estPidVivantDepuis(natif.pid, naissanceNatif, IDENTITE_MESUREE), true)
           vivantALaRupture = true
           natif.stdout.destroy()
         }
@@ -55,7 +58,7 @@ async function banc(t, { consigne = 'BUSY', validation = () => {} } = {}) {
     try { pont.child.kill(); await sortie } finally { clearTimeout(secours); rmSync(dossier, { recursive: true, force: true }) }
   })
   const base = { dossier, sessionId, jeton, timeoutMs: 2000 }
-  return { ...base, pont, projections, sortie, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
+  return { ...base, pont, projections, sortie, naissanceNatif, vivantALaRupture: () => vivantALaRupture, envoyer: (message, requestId = randomUUID()) => envoyerCodex({ ...base, message, requestId }), veille: (depuis = 0) => veillerCodex({ ...base, depuis }) }
 }
 async function sousBorne(promesse, ms) {
   let timer
@@ -68,7 +71,7 @@ test('EOF vivant : perte du protocole tue le processus natif sous borne, sans fa
   const [code, signal] = await sousBorne(b.sortie, 2800)
   assert.equal(b.vivantALaRupture(), true)
   assert.ok(code !== 0 || signal)
-  assert.equal(estPidVivant(b.pont.child.pid), false)
+  assert.equal(estPidVivantDepuis(b.pont.child.pid, b.naissanceNatif, IDENTITE_MESUREE), false)
   const transitions = readFileSync(join(b.dossier, `${b.sessionId}.codex.jsonl`), 'utf8').split('\n').filter(Boolean).map(JSON.parse).flatMap((x) => x.transition ? [x.transition] : [])
   assert.ok(transitions.some((x) => x.type === 'mort'))
   assert.equal(transitions.some((x) => x.type === 'fin'), false)
