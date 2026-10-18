@@ -4180,8 +4180,8 @@ export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): b
  * sites qui chaînaient les deux résolveurs sans lire le verdict du premier (`defenseConfirm`, le tour
  * d'IA, la reprise de manœuvre) : la file S'ARRÊTE à la PREMIÈRE fenêtre ouverte, et l'appelant qui
  * reçoit `true` ne reprend NI le tour NI la suite. Les unités NON consommées restent en tête de
- * `pendingFreeAttacks` ; ce qui les rappelle à la fermeture dépend du chemin (un coup interrompu par
- * un Critique à dévier n'a aujourd'hui personne pour les redemander — #1858).
+ * `pendingFreeAttacks` ; la fermeture les rappelle : `defenseConfirm`, `resumeManeuverDefense`, et
+ * `resumeSuspendedAI` pour une étape de Blessure critique.
  *
  * `disponibles` : les gratuites d'Arme ne suivent QUE l'Action (jamais une gratuite — celle que nomme la
  * `suite` de la fenêtre —, ni une manœuvre gratuite), le site le déclare.
@@ -7450,8 +7450,13 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   // combattant suivant. Sans ça, `resumeEnemyTurn` ne serait jamais armé et la main ne reviendrait jamais
   // au héros (soft-lock observé). `advanceTurn` saute de lui-même les hors-combat.
   if (isOutOfAction(active)) { advanceTurn(get, set); return; }
-  // Acteur IA ayant déjà agi (conséquence d'attaque) → fin de tour ; sinon début de tour (entretien) → IA.
-  if (battle.acted) { resumeEnemyTurn(get, set); return; }
+  // Acteur IA ayant déjà agi (conséquence d'attaque) → ses gratuites restantes, puis fin de tour ; sinon
+  // début de tour (entretien) → IA. LDB 85 l.41-43 ; #1858
+  if (battle.acted) {
+    if (active.pendingFreeAttacks?.length && drainerLesGratuites(get, set, active, { disponibles: false })) return;
+    resumeEnemyTurn(get, set);
+    return;
+  }
   // Tour suspendu AVANT d'avoir consommé son Action (entretien, Peur au contact) : il n'a RIEN joué,
   // le jeton de tour lui est RENDU (#1852). Le jeton dit « ce tour a déjà été joué » ; le laisser posé
   // sur un tour qui n'a rien décidé ferait refuser toute relance du même `round:turn:id` — le tour
