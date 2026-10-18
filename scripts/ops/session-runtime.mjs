@@ -12,6 +12,7 @@ import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSes
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex } from './session-codex.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
@@ -167,9 +168,15 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (!jeton) throw erreur('permission', 'JETON ABSENT')
     if (typeof jeton !== 'string' || !timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw erreur('permission', 'JETON INCORRECT')
   }
-  const signalerEchec = (c, raison) => {
+  const signalerEchec = (c, raison, origine = 'diagnostic') => {
+    if (origine === 'terminal' && c.raisonOrigine === 'generique') {
+      c.observations ??= []; if (!c.observations.includes(c.raison)) c.observations.push(c.raison)
+      c.raison = raison; c.raisonOrigine = origine
+      c.observations = c.observations.filter((observation) => observation !== raison)
+    }
     if (c.raison && raison !== c.raison) { c.observations ??= []; if (!c.observations.includes(raison)) c.observations.push(raison) }
-    c.raison ??= raison; c.echecLe ??= maintenant()
+    if (!c.raison) { c.raison = raison; c.raisonOrigine = origine }
+    c.echecLe ??= maintenant()
     if (!c.evenements.some((e) => e.type === 'échec')) c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
   }
   const libererReservation = (c, etat, raison) => {
@@ -193,13 +200,25 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const memesIdentites = (a, b) => !!a && !!b && ['controleur', 'jobHost', 'agentProcessus'].every((cle) => (!a[cle] && !b[cle]) || identique(a[cle], b[cle]))
   const observationCourante = (carte, vue) => memesIdentites(carte, vue.observees.get(carte.sessionId))
   const encorePresent = (carte, vue) => [carte.controleur, carte.jobHost, carte.agentProcessus].some((id) => id && identique(vue.processus.get(id.pid), id))
-  const ongletFerme = (carte) => {
+  const terminalFerme = (carte) => {
     try {
       const fichier = join(dossier, `${carte.sessionId}.terminal-close`)
       if (fs.statSync(fichier).size > 2048) return false
       const signal = z.object({ sessionId: z.uuid(), jobHost: Identite }).strict().parse(lireJSON(fichier))
       return signal.sessionId === carte.sessionId && identique(signal.jobHost, carte.jobHost)
     } catch { return false }
+  }
+  const conserverDiagnosticTerminal = (carte, { purger = false } = {}) => {
+    if (terminalFerme(carte)) signalerEchec(carte, 'terminal fermé', 'terminal')
+    try {
+      const diagnostic = coupeAuMot(fs.readFileSync(join(dossier, `${carte.sessionId}.jobhost.log`), 'utf8').trim(), BORNE_RAISON)
+      if (diagnostic) { carte.diagnosticJobHost = diagnostic; signalerEchec(carte, diagnostic) }
+    } catch (e) { if (e.code !== 'ENOENT') throw e }
+    if (carte.raison && carte.issueSortie) carte.issueSortie = 'echec'
+    if (purger) {
+      sauver(chemin(carte.sessionId), carte)
+      for (const suffixe of ['terminal-close', 'jobhost.log']) fs.rmSync(join(dossier, `${carte.sessionId}.${suffixe}`), { force: true })
+    }
   }
   const reconcilier = () => {
     const initiales = collection()
@@ -212,12 +231,16 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           libererReservation(c, 'echec-reservation', 'RÉSERVATION EXPIRÉE')
           sauver(chemin(c.sessionId), c)
         } else if (observationCourante(c, vue) && c.etat === 'nettoyage' && !encorePresent(c, vue)) {
+          conserverDiagnosticTerminal(c, { purger: true })
           c.etat = 'fermee'; c.fermeeLe = maintenant(); c.codeEnveloppe = 0
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
           sauver(chemin(c.sessionId), c)
         } else if (observationCourante(c, vue) && ['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
-          c.etat = 'echec-controle'; signalerEchec(c, ongletFerme(c) ? 'onglet fermé' : 'contrôle perdu, sortie inconnue'); c.issueSortie = 'echec'; delete c.codeEnveloppe
+          conserverDiagnosticTerminal(c, { purger: true })
+          c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue', 'generique'); c.issueSortie = 'echec'; delete c.codeEnveloppe
           sauver(chemin(c.sessionId), c)
+        } else if (observationCourante(c, vue) && terminaux.has(c.etat) && c.jobHost && !encorePresent(c, vue) && ['terminal-close', 'jobhost.log'].some((suffixe) => fs.existsSync(join(dossier, `${c.sessionId}.${suffixe}`)))) {
+          conserverDiagnosticTerminal(c, { purger: true })
         }
       }
       return { ...ensemble, ...vue }
@@ -244,7 +267,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (!identique(vue.processus.get(carte.jobHost?.pid), carte.jobHost)) throw erreur('panne', 'CONTRÔLE PERDU : JobHost absent ou recyclé')
   }
   const estSortieObservee = (carte) => carte.etat === 'fermee'
-  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE'); if (fin.raison) signalerEchec(c, fin.raison); const raison = c.raison; Object.assign(c, fin, { rapport: fin.rapport ?? c.rapport, raison, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
+  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE'); conserverDiagnosticTerminal(c); if (fin.raison) signalerEchec(c, fin.raison, fin.raisonOrigine); const { raison, raisonOrigine } = c; Object.assign(c, fin, { rapport: fin.rapport ?? c.rapport, raison, raisonOrigine, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
   const revendiquer = (id, nonce, ids) => {
     const vue = constater()
     return sousVerrou(() => {
@@ -418,7 +441,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           catch (e) { if (e.code !== 'ENOENT') { arret = true; child.kill() } }
         }, periodeMs)
         const fin = await fini
-        let rapport, raison
+        let rapport, raison, raisonOrigine
         const recuNatif = constaterRecu(id)
         if (!recuNatif.ok) raison = recuNatif.raison
         if (lire(id).etat === 'arret-demande') arret = true
@@ -427,13 +450,14 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           if (cause || recuNatif.ok) {
             if (!recuNatif.ok) muter(id, (c) => { c.observations ??= []; c.observations.push(recuNatif.raison) })
             raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}`
+            raisonOrigine = cause ? 'diagnostic' : 'generique'
           }
         }
         if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret && !lire(id).codex) {
           try { const lu = lireRapport(), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
           catch (e) { raison = e.message }
         }
-        return { ...sortie(id, { ...fin, arret, rapport, raison }), codeEnveloppe: 0 }
+        return { ...sortie(id, { ...fin, arret, rapport, raison, raisonOrigine }), codeEnveloppe: 0 }
       } catch (e) {
         if (child && child.exitCode === null && !arret) child.kill()
         if (fini) { try { await fini } catch {} }
