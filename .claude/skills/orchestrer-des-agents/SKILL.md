@@ -107,6 +107,9 @@ lourds SÉQUENTIELS. Un type qui hérite tous les outils porte `disallowedTools:
 juge par jugement** (design, diff, fermeture), nourri du grounding écrit : il ne re-mesure que ce qu'il
 conteste ; un workflow multi-agents ne sert que des travaux DIFFÉRENTS. **Un train = 4 ou 5 gestes** :
 diff du codeur → commit sur la branche du worktree → push (CI) → juge de diff en parallèle → corrections.
+**Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
+liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
+sur un grand diff dilue l'attention.
 - **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765).
@@ -288,6 +291,8 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
+| MJ de table simulée | `mj-de-table` | sonnet | medium |
+| Juge de workflow contre le `Source/` (complétude, fidélité, analyse) | `juge-de-source` | opus | high |
 
 Ces types plutôt que `general-purpose` ; **JAMAIS Sonnet en effort haut/xhigh**. La cérémonie suit le
 risque RÉEL, pas le flag ultracode : petite feature testée → 1 codeur + gates ; tâche large ou incertaine
