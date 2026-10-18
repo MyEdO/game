@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { API, Checker, Snapshot, SymbolFlags } from 'typescript/unstable/sync';
 import { typescript } from './dialecte.mjs';
+import { estPidVivantDepuis } from './pid.mjs';
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs';
 import { virtualProgram, syntaxProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
 test('libererSessions : premier échec, fermeture suivante et dédoublage', () => {
@@ -383,18 +385,33 @@ test('checker de session : la réponse mémorisée est clée par TOUS les argume
 const CYCLES_DE_FERMETURE = 8;
 const SONDE_DE_FERMETURE = `
 import { API } from 'typescript/unstable/sync';
+import { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
-import { closeSync } from 'node:fs';
+import { closeSync, writeSync } from 'node:fs';
 import { setTimeout as delai } from 'node:timers/promises';
 import { virtualProgram } from ${JSON.stringify(new URL('tsProgram.mjs', import.meta.url).href)};
 const [mode, cycles] = [process.argv[1], Number(process.argv[2])];
+const tuer = ChildProcess.prototype.kill;
+const signaux = [];
+ChildProcess.prototype.kill = function (signal) {
+  signaux.push({ pid: this.pid, signal: signal ?? 'SIGTERM' });
+  return tuer.call(this, signal);
+};
 const ouvrir = API.prototype.updateSnapshot;
 const canaux = [];
 API.prototype.updateSnapshot = function (...args) {
   canaux.push(this.client.channel);
   return ouvrir.apply(this, args);
 };
-if (mode !== 'production') API.prototype.close = () => {};
+if (mode === 'jamais') {
+  const naissances = [];
+  for (let i = 0; i < cycles; i++) {
+    naissances.push(Date.now());
+    virtualProgram({ 'a.ts': 'export const a = 1;' });
+  }
+  const compilateurs = canaux.map((canal, i) => ({ pid: canal.child.pid, naissance: naissances[i] }));
+  process.on('exit', () => { writeSync(1, JSON.stringify({ compilateurs, signaux })); });
+} else {
 const finDeFlux = canal => {
   if (canal.pipeFd === undefined) return canal.child.stdin.destroy();
   closeSync(canal.pipeFd);
@@ -404,7 +421,8 @@ const MODES = { production: () => {}, a: finDeFlux, b: canal => canal.child.kill
 const fini = enfant => enfant.exitCode !== null || enfant.signalCode !== null;
 const sorties = [];
 for (let i = 0; i < cycles; i++) {
-  virtualProgram({ 'a.ts': 'export const a = 1;' }).dispose();
+  const session = virtualProgram({ 'a.ts': 'export const a = 1;' });
+  if (mode === 'production') session.dispose();
   const canal = canaux.at(-1);
   const enfant = canal.child;
   MODES[mode](canal);
@@ -418,34 +436,59 @@ for (let i = 0; i < cycles; i++) {
   if (canal.pipeFd !== undefined) closeSync(canal.pipeFd);
   enfant.stdin?.destroy();
   enfant.stdout?.destroy();
-  sorties.push({ code: enfant.exitCode, signal: enfant.signalCode, force, ms: Date.now() - debut });
+  sorties.push({ pid: enfant.pid, code: enfant.exitCode, signal: enfant.signalCode, force, ms: Date.now() - debut });
 }
-process.stdout.write(JSON.stringify(sorties));
+writeSync(1, JSON.stringify({ sorties, signaux }));
+}
 `;
 const FERMETURES_BRUTES = process.platform === 'win32'
-  ? { a: 'fin de flux : closeSync du tube nommé --pipe, sans signal', b: 'kill("SIGTERM") = TerminateProcess sous win32, flux ouverts', c: 'close() du canal' }
-  : { a: 'fin de flux : stdin détruit, sans signal', b: 'SIGTERM, flux ouverts', c: 'close() du canal' };
+  ? { a: 'session non libérée, fin de flux : closeSync du tube nommé --pipe, sans signal', b: 'session non libérée, kill("SIGTERM") = TerminateProcess sous win32, flux ouverts', c: 'session non libérée, close() du canal' }
+  : { a: 'session non libérée, fin de flux : stdin détruit, sans signal', b: 'session non libérée, SIGTERM, flux ouverts', c: 'session non libérée, close() du canal' };
 
 function sonderFermeture(mode) {
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', SONDE_DE_FERMETURE, mode, String(CYCLES_DE_FERMETURE)], {
     cwd: fileURLToPath(new URL('../../../', import.meta.url)), encoding: 'utf8', timeout: 60_000,
   });
-  return { mode, status: r.status, erreur: r.error, annules: (r.stderr.match(/context canceled/g) ?? []).length, stderr: r.stderr, sorties: r.status === 0 ? JSON.parse(r.stdout) : r.stdout };
+  return { mode, status: r.status, erreur: r.error, annules: (r.stderr.match(/context canceled/g) ?? []).length, stderr: r.stderr, rendu: r.status === 0 ? JSON.parse(r.stdout) : r.stdout };
 }
 
-test('#2586 — fermeture de session native : aucun « context canceled » sur stderr, aucun compilateur survivant', (t) => {
+const premierSignal = (rendu, pid) => rendu.signaux.find(s => s.pid === pid)?.signal;
+
+function survivants(compilateurs, delaiMs = 2_000) {
+  const vivant = ({ pid, naissance }) => estPidVivantDepuis(pid, naissance, IDENTITE_MESUREE);
+  const fin = Date.now() + delaiMs;
+  let restants = compilateurs.filter(vivant);
+  while (restants.length && Date.now() < fin) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+    restants = restants.filter(vivant);
+  }
+  return restants;
+}
+
+test('#2586 — fermeture de session native : SIGKILL avant close(), aucun « context canceled » sur stderr, aucun compilateur survivant', (t) => {
   const production = sonderFermeture('production');
   const brutes = Object.keys(FERMETURES_BRUTES).map(sonderFermeture);
-  const rapport = [production, ...brutes].map(s => `${s.mode} (${FERMETURES_BRUTES[s.mode] ?? 'virtualProgram().dispose()'}) : ${s.annules} « context canceled » / ${CYCLES_DE_FERMETURE} cycles, status ${s.status}, sorties ${JSON.stringify(s.sorties)}`).join('\n');
+  const rapport = [production, ...brutes].map(s => `${s.mode} (${FERMETURES_BRUTES[s.mode] ?? 'virtualProgram().dispose()'}) : ${s.annules} « context canceled » / ${CYCLES_DE_FERMETURE} cycles, status ${s.status}, rendu ${JSON.stringify(s.rendu)}`).join('\n');
   const message = `${process.platform}\n${rapport}\n${[production, ...brutes].map(s => `stderr ${s.mode} :\n${s.stderr}`).join('\n')}`;
   for (const ligne of message.split('\n')) t.diagnostic(ligne);
   for (const sonde of [production, ...brutes]) {
     assert.equal(sonde.status, 0, message);
-    assert.equal(sonde.sorties.length, CYCLES_DE_FERMETURE, message);
-    for (const sortie of sonde.sorties) assert.ok(sortie.code !== null || sortie.signal !== null, message);
+    assert.equal(sonde.rendu.sorties.length, CYCLES_DE_FERMETURE, message);
+    for (const sortie of sonde.rendu.sorties) assert.ok(sortie.code !== null || sortie.signal !== null, message);
   }
-  assert.ok(production.sorties.every(sortie => !sortie.force), message);
+  assert.ok(production.rendu.sorties.every(sortie => !sortie.force && premierSignal(production.rendu, sortie.pid) === 'SIGKILL'), message);
   assert.equal(production.annules, 0, message);
+});
+
+test('#2753 — session jamais libérée : SIGKILL à la sortie du processus avant le SIGTERM de typescript, aucun « context canceled », aucun compilateur survivant', (t) => {
+  const sonde = sonderFermeture('jamais');
+  const message = `${process.platform}\nstatus ${sonde.status}, ${sonde.annules} « context canceled », rendu ${JSON.stringify(sonde.rendu)}\nstderr :\n${sonde.stderr}`;
+  for (const ligne of message.split('\n')) t.diagnostic(ligne);
+  assert.equal(sonde.status, 0, message);
+  assert.equal(sonde.rendu.compilateurs.length, CYCLES_DE_FERMETURE, message);
+  for (const { pid } of sonde.rendu.compilateurs) assert.equal(premierSignal(sonde.rendu, pid), 'SIGKILL', message);
+  assert.deepEqual(survivants(sonde.rendu.compilateurs), [], message);
+  assert.equal(sonde.annules, 0, message);
 });
 
 test('checker de session : après dispose, une question déjà posée lève comme le natif', () => {
