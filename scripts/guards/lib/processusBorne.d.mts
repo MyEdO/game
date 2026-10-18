@@ -57,6 +57,7 @@ export interface FabriqueSupervision {
   optionsEffectives?: (commande: string, argv: readonly string[], options: OptionsSupervision) => { args: readonly string[]; options: OptionsSupervision } | null;
 }
 export const DELAI_ARRET_MS: number;
+export function arretIndetermine(options: { operation: string; pid?: number | null; cause: unknown; message?: string }): ArretProcessus & { etat: 'indetermine' };
 export function tuerArbre(controle: ControleSupervision, cause?: Error | string): Promise<ArretProcessus>;
 export interface ResultatProcessusBorne {
   code: number;

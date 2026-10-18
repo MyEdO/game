@@ -86,6 +86,20 @@ test('un VRAI rouge n’est jamais rejoué : un seul essai, aucun rejeu compté'
   assert.deepEqual(journal.lignes, [])
 })
 
+test('le signal réveille l’attente du rejeu et rend le dernier résultat, sans nouvel essai', async () => {
+  for (const [nom, poser] of [['aborté pendant l’attente', (a) => setTimeout(() => a.abort(), 30)], ['aborté avant l’attente', (a) => a.abort()]]) {
+    const journal = journalDeTest(); const annulation = new AbortController(); const essais = []
+    const debut = Date.now()
+    const r = await reessayerAuChargement((essai) => {
+      essais.push(essai); poser(annulation)
+      return Promise.resolve({ code: STATUS_DLL_INIT_FAILED })
+    }, { site: 'sonde', journal, signal: annulation.signal })
+    const duree = Date.now() - debut
+    assert.deepEqual(essais, [0], nom); assert.equal(r.code, STATUS_DLL_INIT_FAILED, nom)
+    assert.ok(duree < BACKOFFS_MS[0] / 2, `${nom} : sortie à ${duree} ms, attente de rejeu ${BACKOFFS_MS[0]} ms`)
+  }
+})
+
 test('`lancer` est rappelé À CHAQUE essai : ce qu’un essai consomme est re-créé', async () => {
   const base = mkdtempSync(join(tmpdir(), 'resilient-'))
   try {

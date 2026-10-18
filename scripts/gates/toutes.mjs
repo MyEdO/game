@@ -38,7 +38,7 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawnSync } from 'node:child_process'
-import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { arretIndetermine, spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -949,7 +949,7 @@ export async function principal({
       } catch (error) {
         // #2776
         return { code: 1, expiree: false, fichier, sortie: '', limiteMs, error,
-          arret: { pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'lancement', pid: undefined, code: error?.code ?? 'ARRET_INDETERMINE', message: 'lanceur levé : arrêt non prouvé' }] } }
+          arret: arretIndetermine({ operation: 'lancement', cause: error, message: 'lanceur levé : arrêt non prouvé' }) }
       }
     }
 

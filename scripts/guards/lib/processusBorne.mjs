@@ -36,7 +36,8 @@ export function diagnosticArret(resultat, ligne, prefixe = '[gates] ') {
   const imprimer = (erreur, contexte) => {
     if (!erreur) return
     if (erreur.cycle) { ligne(`${prefixe}${contexte}cycle`); return }
-    ligne(`${prefixe}${contexte}${erreur.code ?? 'ARRET_INDETERMINE'} — ${erreur.message}`)
+    const code = erreur.code ?? erreur.name
+    ligne(`${prefixe}${contexte}${code ? `${code} — ` : ''}${erreur.message}`)
     imprimer(erreur.cause, 'cause : ')
     for (const cause of erreur.errors ?? []) imprimer(cause, 'cause agrégée : ')
   }
@@ -49,13 +50,26 @@ export function diagnosticArret(resultat, ligne, prefixe = '[gates] ') {
   return true
 }
 
+/** Arrêt `indetermine` de l'`operation` sur `pid`, nommé par sa `cause` : code de la cause (ou son nom), `message`
+ *  de la cause par défaut (#2586). */
+export function arretIndetermine({ operation, pid, cause, message = cause?.message ?? String(cause) }) {
+  return { pid, etat: 'indetermine', erreurs: [{ operation, pid, code: cause?.code ?? cause?.name, message }] }
+}
+
+/** L'unique `fin` native de `controle` ; REJETÉE, elle rend une cible sans résultat et un arrêt `indetermine` nommé par
+ *  la cause du rejet, jamais un rejet (#2586). */
+const finNative = (controle) => controle.fin.catch((cause) => {
+  const arret = arretIndetermine({ operation: 'fin', pid: controle.pid ?? undefined, cause })
+  return { resultatCible: { status: null, signal: null, error: arret.erreurs[0] }, arret }
+})
+
 /** Demande l'arrêt au propriétaire natif `controle` et REND l'`arret` de son unique `fin` ; sans contrôle,
  *  `indetermine` (#2586). */
 export async function tuerArbre(controle, cause) {
-  if (!controle || typeof controle.demanderArret !== 'function' || !controle.fin) return {
-    pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'controle', code: 'CONTROLE_ABSENT', message: 'arrêt sans propriétaire natif' }] }
+  if (!controle || typeof controle.demanderArret !== 'function' || !controle.fin)
+    return arretIndetermine({ operation: 'controle', cause: erreurNommee('CONTROLE_ABSENT', 'arrêt sans propriétaire natif') })
   controle.demanderArret(cause)
-  return (await controle.fin).arret
+  return (await finNative(controle)).arret
 }
 
 /**
@@ -64,8 +78,9 @@ export async function tuerArbre(controle, cause) {
  * réouvert en `'w'` à chaque essai, sans quoi le second écrirait à la suite du premier). À l'expiration, à
  * l'annulation ou au dépassement de capture, l'arrêt est DEMANDÉ au contrôle natif, qui emporte l'arbre entier
  * (`npm`, `vitest` et leurs workers) ; `surControle` reçoit ce contrôle dès l'hôte lancé, `surPid` le PID de la
- * CIBLE. L'arrêt n'est `mort` que sur le certificat de la `fin` native ; un `superviser` qui lève sans rendre de
- * contrôle peut avoir lancé son hôte : l'arrêt est `indetermine` (#2586).
+ * CIBLE. L'arrêt n'est `mort` que sur le certificat de la `fin` native ; une `fin` rejetée, ou un `superviser` qui
+ * lève sans rendre de contrôle et peut avoir lancé son hôte : l'arrêt est `indetermine` (#2586). `signal` interrompt
+ * aussi l'attente d'un rejeu.
  * REND `{ code, status, signal, error, stdout, stderr, expiree, annulee, arret, controle, fichier, sortie, limiteMs, pid }`.
  */
 export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = DELAI_ARRET_MS, cwd, env = process.env,
@@ -113,11 +128,11 @@ export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = D
       const receptionPid = controle.pret.then(({ pidCible }) => surPid?.(pidCible)).catch((e) => { if (controle.pid !== null) { erreur ??= e; demanderArret(e) } })
       if (expiree) demanderArret(erreurNommee('ETIMEDOUT', `échéance ${limiteMs} ms`))
       if (annulee || annulation?.aborted) annuler()
-      fin = await controle.fin
+      fin = await finNative(controle)
       await receptionPid
     } catch (e) {
       erreur ??= e
-      if (controle) { demanderArret(e); fin = await controle.fin }
+      if (controle) { demanderArret(e); fin = await finNative(controle) }
     } finally {
       clearTimeout(minuterie); annulation?.removeEventListener('abort', annuler)
       hote?.stdout?.removeListener('data', lireStdout); hote?.stderr?.removeListener('data', lireStderr)
@@ -127,10 +142,10 @@ export function spawnBorne({ commande, argv, fichier, limiteMs, delaiArretMs = D
     sortie += decodeSortie.end()
     const { status = null, signal = null, error } = fin?.resultatCible ?? {}
     if (error) erreur ??= erreurNommee(error.code, error.message)
-    const arret = fin?.arret ?? { pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'lancement', pid: undefined, code: erreur?.code ?? 'ARRET_INDETERMINE', message: 'superviseur sans fin native : arrêt non prouvé' }] }
+    const arret = fin?.arret ?? arretIndetermine({ operation: 'lancement', cause: erreur, message: 'superviseur sans fin native : arrêt non prouvé' })
     if (arret.etat !== 'mort') erreur ??= erreurNommee('ARRET_INDETERMINE', 'zéro natif non confirmé')
     return { code: erreur || expiree || annulee || arret.etat !== 'mort' ? 1 : codeEnfant(status, signal), status, signal, error: erreur,
       stdout, stderr, expiree, annulee, arret, controle, fichier, sortie, limiteMs, pid: controle?.pid ?? undefined }
   }
-  return reessayerAuChargement(unEssai, { site: site ?? fichier })
+  return reessayerAuChargement(unEssai, { site: site ?? fichier, signal: annulation })
 }

@@ -214,7 +214,7 @@ test('arrêt global : une attente étrangère se réveille sans échéance et un
     appelant.abort()
     assert.ok(observations.signaux.every(signal => signal.aborted), 'le signal d’une gate suit le signal appelant')
     assert.match(lignes.join(''), /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
-    if (mode === 'erreur') assert.match(lignes.join(''), /erreur : ARRET_INDETERMINE — acquisition échouée[\s\S]*etrangere — ROUGE \(exit 1\)/)
+    if (mode === 'erreur') assert.match(lignes.join(''), /erreur : Error — acquisition échouée[\s\S]*etrangere — ROUGE \(exit 1\)/)
     else if (mode !== 'active') assert.match(lignes.join(''), /etrangere — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
     assert.match(lignes.join(''), /preuve PID 123 EIO — cause arrêt/)
     assert.match(lignes.join(''), /cause acquisition/)
