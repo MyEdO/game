@@ -461,7 +461,7 @@ test('preuve VALIDE : l’entrée est comptée « vérifiée », et aucun verdic
   assert.deepEqual(comptesDeTri(stock), { aTrier: 0, verifies: 1 })
   assert.deepEqual(verdictDesPreuves(sites, stock), { vides: [], perimees: [] })
   // Une entrée prouvée reste un SITE du stock : elle n'est ni neuve ni soldée.
-  assert.deepEqual(ecartDuVolet({ sites, stock, ou: 'source-tables-stock.json' }), { neuves: [], perimees: [], taille: 1 })
+  assert.deepEqual(ecartDuVolet({ sites, stock, ou: 'source-tables-stock.json' }), { neuves: [], perimees: [], accrues: [], baisses: [], taille: 1 })
 })
 
 test('preuve VIDE : une exemption sans fait est ROUGE (et ne compte pas comme vérifiée)', () => {

@@ -26,12 +26,12 @@ test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se dist
   assert.equal(new Set(entrees.map(cleDeSite)).size, entrees.length, 'la clé doit distinguer chaque site')
 })
 
-test('ecartDuVolet : un site dont le NOMBRE grandit rougit ; plus petit ou égal, il reste couvert', () => {
+test('ecartDuVolet : un site dont le NOMBRE grandit rougit parmi les `neuves`, que lit tout appelant ; plus petit ou égal, il reste couvert', () => {
   const stock = [{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', occurrence: 1, nombre: 3 }]
   const ecart = (nombre) => ecartDuVolet({ sites: [{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre }], stock, ou: 'x-stock.json' })
-  assert.deepEqual(ecart(4).neuves, ['f :: Source/X/01 - A.md :: <sup> :: 1 — nombre 4 > 3 en stock : la dette GRANDIT, corriger le site (x-stock.json).'])
-  assert.deepEqual(ecart(4).perimees, [])
-  assert.deepEqual([ecart(3).neuves, ecart(2).neuves, ecart(2).perimees], [[], [], []])
+  const hausse = 'f :: Source/X/01 - A.md :: <sup> :: 1 — HAUSSE 4 > 3 : la dette GRANDIT. Corriger le site (x-stock.json). Aucune écriture ne relève ce nombre.'
+  assert.deepEqual([ecart(4).neuves, ecart(4).accrues, ecart(4).perimees], [[hausse], [hausse], []])
+  assert.deepEqual([ecart(3).accrues, ecart(2).accrues, ecart(2).neuves, ecart(2).perimees], [[], [], [], []])
   assert.equal(survieDeLecheance(sitesEnEntrees([{ famille: 'f', file: 'Source/X/01 - A.md', ref: '<sup>', nombre: 2 }]), { lot: '#1', date: '2026-09-25', ancien: stock })[0].nombre, 2, 'plus petit : la régénération recale le stock')
 })
 
@@ -98,7 +98,7 @@ test('ecartDuVolet : remède neuf optionnel reçoit clé intégrale et entrée, 
   const accrus = [{ ...sites[0], nombre: 4 }]
   assert.deepEqual(ecartDuVolet({ sites: accrus, stock, ou: 'fixture-stock.mjs', remede }),
     ecartDuVolet({ sites: accrus, stock, ou: 'fixture-stock.mjs' }))
-  assert.match(ecartDuVolet({ sites: accrus, stock, remede }).neuves[0], /nombre 4 > 3/)
+  assert.match(ecartDuVolet({ sites: accrus, stock, remede }).accrues[0], /HAUSSE 4 > 3/)
   assert.deepEqual(ecartDuVolet({ sites: [], stock, ou: 'fixture-stock.mjs', remede }).perimees,
     ecartDuVolet({ sites: [], stock, ou: 'fixture-stock.mjs' }).perimees)
 })
@@ -153,6 +153,15 @@ test('refusDeCroissance : une clé NUE fournie par l’appelant sert la même ba
   const p = { cle: (k) => k, nom: 'Y_RATCHET', motif: 'm' }
   assert.equal(refusDeCroissance(['a', 'b'], ['a', 'b', 'c'], p), null)
   assert.match(refusDeCroissance(['a', 'z'], ['a', 'b'], p), /\bz\b/)
+})
+
+test('refusDeCroissance : le compte se lit par l’accesseur `nombre` (#2705)', () => {
+  const p = { cle: (e) => e.k, nom: 'Z', motif: 'm' }
+  const mesurees = [{ k: 'a', occurrences: 5 }]
+  const stock = [{ k: 'a', occurrences: 3 }]
+  assert.match(refusDeCroissance(mesurees, stock, { ...p, nombre: (e) => e.occurrences }), /a — nombre 5 > 3 en stock/)
+  assert.equal(refusDeCroissance(mesurees, stock, p), null, 'sans accesseur, `occurrences` n’est pas un compte')
+  assert.equal(refusDeCroissance([{ k: 'a', occurrences: 2 }], stock, { ...p, nombre: (e) => e.occurrences }), null, 'une baisse ne refuse rien')
 })
 
 test('écart : un stock qui décrit EXACTEMENT les sites observés ne dit rien', () => {
@@ -211,6 +220,10 @@ test('estNeuveOuAccrue : sans entrée en place, ou un `nombre` mesuré plus gran
   assert.equal(estNeuveOuAccrue({ ...tenue, nombre: 2 }, tenue), false, 'nombre plus petit')
   assert.equal(estNeuveOuAccrue({ fichier: 'src/a.ts', ref: 'r', occurrence: 1 }, tenue), false, 'nombre absent de la mesure')
   assert.equal(estNeuveOuAccrue({ ...tenue, nombre: 4 }, { fichier: 'src/a.ts', ref: 'r', occurrence: 1 }), false, 'nombre absent du stock')
+  const occurrences = (e) => e.occurrences
+  assert.equal(estNeuveOuAccrue({ occurrences: 4 }, { occurrences: 3 }, occurrences), true, 'compte lu par l’accesseur, plus grand')
+  assert.equal(estNeuveOuAccrue({ occurrences: 3 }, { occurrences: 3 }, occurrences), false, 'compte lu par l’accesseur, égal')
+  assert.equal(estNeuveOuAccrue({ occurrences: 4 }, { occurrences: 3 }), false, 'sans accesseur, le champ `nombre` seul se lit')
 })
 
 test('estEntreeDeSite : vrai sur chaque entrée que rend `sitesEnEntrees`, avec ou sans famille', () => {

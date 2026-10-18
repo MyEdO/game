@@ -10,12 +10,33 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GitIndisponible, classer, depotDe, retirerWorktree, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, indetermineesDe, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
+  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, indetermineesDe, inventaire as inventaireReel, ligneDInventaire, raisonDe, purger as purgerReel,
 } from './worktrees.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
+import { DELAI_MESURE_PROCESSUS_MS } from '../guards/lib/processusWorktrees.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 const inventaire = (options) => inventaireReel({ processus: () => ({ processus: [], portee: 'banc' }), ...options })
+
+test('#2795 inventaire : borne transmise et collecteur absent cité une fois dans le rendu complet', () => {
+  let options
+  const diagnostic = '[panne · non retentable] collecteur absent'
+  const vu = inventaire({
+    racine: '/dep', cwd: '/dep', sansFetch: true, lister: () => [], nature: () => 'repertoire',
+    gestes: { worktreesDe: () => [{ chemin: '/dep', principal: true }, ...['a', 'b'].map((n) => ({ chemin: '/dep/' + n }))], etatDeLArbre: () => [] },
+    processus: (o) => { options = o; throw new Error('collecteur absent') },
+    mesurer: (_c, { snapshot: s }) => {
+      assert.equal(s.erreurs[0].message, 'collecteur absent')
+      return { ok: false, refus: [diagnostic], indeterminees: [diagnostic] }
+    },
+  })
+  assert.equal(vu.ok, true)
+  assert.deepEqual(options, { timeout: DELAI_MESURE_PROCESSUS_MS })
+  const rendu = [...indetermineesDe(vu.worktrees), ...vu.worktrees.map(ligneDInventaire)].join('\n')
+  assert.equal(rendu.split('collecteur absent').length - 1, 1)
+  assert.equal(raisonDe(vu.worktrees[1]), diagnostic)
+  assert.match(ligneDInventaire(vu.worktrees[1]), /diagnostics cités à part/)
+})
 
 const purger = (options) => purgerReel({ gestes: { ...GESTES_DE_LA_PURGE, retirerWorktree: (d, c) => retirerWorktree(d, c, { mesurer: (p) => mesurerProtectionWorktree(p, { snapshot: { processus: [], portee: 'banc' } }) }) }, ...options })
 

@@ -6,19 +6,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   champsJoints,
-  champsSansSlot,
   couplesDeReference,
-  occurrencesInatteignables,
   occurrencesTouchees,
   registreDesSlots,
   slotsDuParse,
   type Slot,
 } from '../../scripts/docs/lib/slots-registre.mjs';
-import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
+import { scanDuCorpus, scannerDonnees, scannerRedeclarations } from '../../scripts/docs/lib/structures-scan.mjs';
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { SLOTS_INATTEIGNABLES, SLOTS_SANS_DECLARATION } from '../../scripts/guards/lib/slotsStock.mjs';
-import { champsAveugles, ecartsDeStock, lignesMalQualifiees } from '../../scripts/guards/lib/stock.mjs';
-import { siteDeSlot } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { champsAveugles, lignesMalQualifiees } from '../../scripts/guards/lib/stock.mjs';
+import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe, siteDeSlot } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { corpusDuScan } from '../../scripts/guards/lib/corpusDesComptes.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -54,10 +53,29 @@ const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: '
  *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `horsStrateAudit.ts`. */
 const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
+/** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
+const corpusDe = (racine: string, mesure: Pick<ReturnType<typeof scanDuCorpus>, 'scan' | 'defs'> = scanDuCorpus(racine)) =>
+  corpusDuScan(mesure, scannerRedeclarations(racine).redeclarations);
+const CORPUS = corpusDe(ROOT, { defs: DEFS, scan });
 
-/** Clé du contrat : dataset, champ, occurrences ; identité hors mesure : siteDeSlot. */
-const CLE_DETTE = (c: { dataset: string; champ: string; occurrences: number }) =>
-  `${c.dataset} | ${c.champ} | ${c.occurrences}`;
+/** Clé du contrat : le couple (dataset, champ) ; son compte se compare hors clé (`ecartsDeCollection`). */
+const CLE_DETTE = (c: { dataset: string; champ: string }) => siteDeSlot(c);
+const ecartsDeCouverture = (corpus: typeof CORPUS) => ecartsDeCollection({
+  nom: 'SLOTS_SANS_DECLARATION',
+  observe: COLLECTIONS_A_COMPTE_PAR_NOM.SLOTS_SANS_DECLARATION.mesure(corpus),
+  stock: SLOTS_SANS_DECLARATION,
+  cle: CLE_DETTE,
+  remede: {
+    neuve: (cle: string) => `${cle} — Adopter la fabrique de slot de référence, sans ajouter cette identité au stock.`,
+    perimee: (cle: string) => `${cle} — Retirer cette identité périmée du stock après adoption.`,
+  },
+});
+const ecartsInatteignables = (corpus: typeof CORPUS) => ecartsDeCollection({
+  nom: 'SLOTS_INATTEIGNABLES',
+  observe: COLLECTIONS_A_COMPTE_PAR_NOM.SLOTS_INATTEIGNABLES.mesure(corpus),
+  stock: SLOTS_INATTEIGNABLES,
+  cle: CLE_DETTE,
+});
 
 /** Couples ENTIÈREMENT joints qui doivent le rester. */
 const JOINTURES_PLANCHER = [
@@ -240,23 +258,11 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('COUVERTURE : les champs porteurs de réfs OBSERVÉES sans slot déclaré == stock', () => {
-    const observe = champsSansSlot(scan, SLOTS);
-    const ecarts = ecartsDeStock({ observe, stock: SLOTS_SANS_DECLARATION, cle: CLE_DETTE, remede: {
-      neuve: (cle: string, c: Parameters<typeof CLE_DETTE>[0]) => SLOTS_SANS_DECLARATION.some((s) => siteDeSlot(s) === siteDeSlot(c))
-        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
-        : `${cle} — Adopter la fabrique de slot de référence, sans ajouter cette identité au stock.`,
-      perimee: (cle: string, c: Parameters<typeof CLE_DETTE>[0]) => observe.some((s) => siteDeSlot(s) === siteDeSlot(c))
-        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
-        : `${cle} — Retirer cette identité périmée du stock après adoption.`,
-    } });
-    expect(
-      ecarts.neuves,
-      'champ(s) observé(s) en écart : appliquer le remède de chaque site nommé.',
-    ).toEqual([]);
-    expect(
-      ecarts.perimees,
-      'champ(s) déclaré(s) en écart : appliquer le remède de chaque site nommé.',
-    ).toEqual([]);
+    const ecarts = ecartsDeCouverture(CORPUS);
+    expect(ecarts.neuves, 'champ(s) observé(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+    expect(ecarts.perimees, 'champ(s) déclaré(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+    expect(ecarts.accrues, 'compte(s) en HAUSSE : appliquer la cible de chaque site nommé.').toEqual([]);
+    expect(ecarts.baisses, 'compte(s) en BAISSE : écrire la mesure.').toEqual([]);
     expect(
       ecarts.taille,
       'clé(s) DUPLIQUÉE(S) au stock : la comparaison travaille sur des clés DISTINCTES, un doublon inscrit y passerait invisible.',
@@ -264,9 +270,11 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('INATTEIGNABLES : les occurrences sans case qui porte une chaîne == stock', () => {
-    const ecarts = ecartsDeStock({ observe: occurrencesInatteignables(scan), stock: SLOTS_INATTEIGNABLES, cle: CLE_DETTE });
+    const ecarts = ecartsInatteignables(CORPUS);
     expect(ecarts.neuves, 'occurrence(s) INATTEIGNABLE(S) neuve(s) : sa référence se pose en chaîne, elle ne s’inscrit pas au stock.').toEqual([]);
     expect(ecarts.perimees, 'entrée périmée de `SLOTS_INATTEIGNABLES` : elle se retire dans le commit qui rend la case atteignable.').toEqual([]);
+    expect(ecarts.accrues, 'compte(s) en HAUSSE : appliquer la cible de chaque site nommé.').toEqual([]);
+    expect(ecarts.baisses, 'compte(s) en BAISSE : écrire la mesure.').toEqual([]);
     expect(ecarts.taille, 'clé(s) DUPLIQUÉE(S) à `SLOTS_INATTEIGNABLES`.').toBe(SLOTS_INATTEIGNABLES.length);
     expect(lignesMalQualifiees(SLOTS_INATTEIGNABLES.map((c) => [`${c.dataset} | ${c.champ}`, c])), 'ligne sans lot ni date.').toEqual([]);
   });
@@ -280,7 +288,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
 
   it('MUTATION par champ : chaque champ du stock entre dans la clé comparée', () => {
     expect(
-      champsAveugles(SLOTS_SANS_DECLARATION, CLE_DETTE, ['dataset', 'champ', 'occurrences']),
+      champsAveugles(SLOTS_SANS_DECLARATION, CLE_DETTE, ['dataset', 'champ', 'occurrences'], occurrencesDe),
       'champ(s) de stock HORS de la clé comparée : les muter laisse la garde verte.',
     ).toEqual([]);
   });

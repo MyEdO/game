@@ -23,8 +23,9 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { cleDeSite, ecartDuVolet, ecartsDeStock, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
-import { siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { cleDeSite, ecartDuVolet, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
+import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe, siteDEnveloppe, siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { corpusDuScan } from '../../scripts/guards/lib/corpusDesComptes.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
   ANGLES_MORTS,
@@ -102,6 +103,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
 const { defs: DEFS, declares: DECLARES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
+/** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
+const CORPUS = corpusDuScan({ scan, defs: DEFS }, redeclarations);
+const mesureDe = COLLECTIONS_A_COMPTE_PAR_NOM;
 
 /** Un ensemble de lignes en texte, trié — les diffs de vitest restent lisibles. */
 const lignes = (xs: string[]): string[] => [...xs].sort();
@@ -138,7 +142,7 @@ const cleForme = (
     cibles?: readonly string[];
   } & Trace,
 ) =>
-  `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.strate} | ${f.occurrences}` +
+  `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.strate}` +
   trace(f, lotDeForme(f.concept, f.signature, f.cibles ?? [])) +
   (f.motif ? ` | ${f.motif}` : '');
 /** Le stock des formes, typé pour la lecture de son PILOTAGE (`lot`, `motif`, `date`). */
@@ -151,27 +155,18 @@ const FORMES: readonly (Parameters<typeof cleForme>[0])[] = STRUCTURES_FORMES;
  */
 const pilotageDeForme = new Map(FORMES.map((f) => [siteDeForme(f), { lot: f.lot, motif: f.motif, date: f.date }]));
 const cleFormeObservee = (f: Parameters<typeof cleForme>[0]) => cleForme({ ...f, ...pilotageDeForme.get(siteDeForme(f)) });
-const ecartsDeFormes = (mesure: typeof scan) => ecartsDeStock({
-  observe: mesure.formes.filter((f) => f.statut === 'historique' || f.statut === 'divergente'),
+const ecartsDeFormes = (mesure: typeof scan) => ecartsDeCollection({
+  nom: 'STRUCTURES_FORMES',
+  observe: mesureDe.STRUCTURES_FORMES.mesure(corpusDuScan({ scan: mesure, defs: DEFS }, redeclarations)),
   stock: FORMES,
   cle: cleFormeObservee,
   remede: {
-    neuve: (cle: string, f: Parameters<typeof cleForme>[0]) => {
-      const connue = FORMES.find((s) => siteDeForme(s) === siteDeForme(f));
-      return connue && cleFormeObservee({ ...f, occurrences: connue.occurrences }) === cleFormeObservee(connue)
-        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
-        : `${cle} — Migrer la référence vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`;
-    },
-    perimee: (cle: string, f: Parameters<typeof cleForme>[0]) => {
-      const vue = mesure.formes.find((s) => siteDeForme(s) === siteDeForme(f));
-      return vue && cleFormeObservee({ ...vue, occurrences: f.occurrences }) === cleFormeObservee(f)
-        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
-        : `${cle} — Retirer l’entrée périmée de scripts/guards/lib/structuresStock.mjs.`;
-    },
+    neuve: (cle: string) => `${cle} — Migrer la référence vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`,
+    perimee: (cle: string) => `${cle} — Retirer l’entrée périmée de scripts/guards/lib/structuresStock.mjs.`,
   },
 });
-const cleOrpheline = (o: { dataset: string; champ: string; signature: string; motif: string; occurrences: number } & Trace) =>
-  `${o.dataset} | ${o.champ} | ${o.signature} | ${o.motif} | ${o.occurrences}` +
+const cleOrpheline = (o: { dataset: string; champ: string; signature: string; motif: string } & Trace) =>
+  `${o.dataset} | ${o.champ} | ${o.signature} | ${o.motif}` +
   trace(o, o.motif === 'clé de référence non résolue' ? 'L1a #1466' : '#1553');
 /**
  * PILOTAGE (`lot`, `date`) d'une ORPHELINE, repris du stock par SITE — MÊME patron que
@@ -195,8 +190,22 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
  * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
  */
-const cleOp = (o: { op: string; signature: string; dataset: string; occurrences: number } & Trace) =>
-  `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}` + trace(o, 'L1c #1468');
+const cleOp = (o: { op: string; signature: string; dataset: string } & Trace) =>
+  `${o.op} | ${o.signature} | ${o.dataset}` + trace(o, 'L1c #1468');
+const cleHomonyme = (h: { cle: string; classes: readonly string[] } & Trace) =>
+  `${h.cle} | ${[...h.classes].sort().join('/')}` + trace(h, LOT_CLE_RESERVEE[h.cle] ?? 'L4 #1463');
+/** Identité d'une redéclaration (`def | champ | concept | signature | statut | commun`), sans son compte. */
+const siteRedeclaration = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string }) =>
+  `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`;
+const cleRedeclaration = (r: Parameters<typeof siteRedeclaration>[0] & Trace) =>
+  siteRedeclaration(r) + trace(r, lotDeForme(r.concept, r.signature));
+const cleEnveloppe = (e: { role: string; cle: string; motif: string; detail: string; document: string; chemin: string } & Trace) =>
+  siteDEnveloppe(e) + trace(e, lotEnveloppe(e));
+/** Toute ligne de collection à compte qui MONTE ou qui BAISSE est nommée avec son remède (`ecartsDeCollection`). */
+const sansEcartDeCompte = (ecarts: { accrues: string[]; baisses: string[] }, nom: string) => {
+  expect(lignes(ecarts.accrues), `compte(s) en HAUSSE dans ${nom} : appliquer la cible de chaque site nommé.`).toEqual([]);
+  expect(lignes(ecarts.baisses), `compte(s) en BAISSE dans ${nom} : écrire la mesure.`).toEqual([]);
+};
 const ecartsHorsStrate = (
   sites: Parameters<typeof ecartDuVolet>[0]['sites'],
   stock: Parameters<typeof ecartDuVolet>[0]['stock'] = HORS_STRATE_RATCHET,
@@ -232,14 +241,23 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const ecarts = ecartsDeFormes(scan);
     expect(lignes(ecarts.neuves), 'forme(s) observée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
     expect(lignes(ecarts.perimees), 'forme(s) déclarée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_FORMES');
     expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_FORMES').toBe(FORMES.length);
   });
 
   it('signatures ORPHELINES (hors strate) : observé == stock', () => {
+    const ecarts = ecartsDeCollection({
+      nom: 'STRUCTURES_ORPHELINES',
+      observe: mesureDe.STRUCTURES_ORPHELINES.mesure(CORPUS),
+      stock: STRUCTURES_ORPHELINES,
+      cle: cleOrphelineObservee,
+    });
     expect(
-      lignes(scan.orphelines.map(cleOrphelineObservee)),
+      lignes([...ecarts.neuves, ...ecarts.perimees]),
       'écart entre les signatures ORPHELINES observées et `STRUCTURES_ORPHELINES` — un objet qui annonce une référence et ne résout vers rien se compte, il ne se tait pas.',
-    ).toEqual(lignes(STRUCTURES_ORPHELINES.map(cleOrpheline)));
+    ).toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_ORPHELINES');
+    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_ORPHELINES').toBe(STRUCTURES_ORPHELINES.length);
   });
 
   it('signatures HORS STRATE : observé == stock nominatif, les neuves ET les périmées sont NOMMÉES', () => {
@@ -270,64 +288,69 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   });
 
   it('signatures d’OPS : observé == stock (dénominateur du lot L1c #1468)', () => {
-    expect(
-      lignes(scan.ops.map(cleOp)),
-      'écart entre les signatures d’op OBSERVÉES et `STRUCTURES_OPS` : vérifier chaque site nommé contre `gameOpSchema` (src/data/schemas/grammaire/mecanique.ts), puis migrer sa signature vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts). Un ajout au stock nominatif appartient au cas autorisé du lot de migration et porte son échéance ; retirer les signatures soldées. Aucun plafond numérique à recopier.',
-    ).toEqual(lignes(STRUCTURES_OPS.map(cleOp)));
+    const ecarts = ecartsDeCollection({
+      nom: 'STRUCTURES_OPS',
+      observe: mesureDe.STRUCTURES_OPS.mesure(CORPUS),
+      stock: STRUCTURES_OPS,
+      cle: cleOp,
+      remede: {
+        neuve: (cle: string) => `${cle} — signature d’op NEUVE : vérifier le site contre \`gameOpSchema\` (src/data/schemas/grammaire/mecanique.ts) et l’écrire à la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`,
+        perimee: (cle: string) => `${cle} — signature soldée : retirer l’entrée de scripts/guards/lib/structuresStock.mjs.`,
+      },
+    });
+    expect(lignes([...ecarts.neuves, ...ecarts.perimees]), 'écart entre les signatures d’op OBSERVÉES et `STRUCTURES_OPS` : appliquer le remède de chaque site nommé.').toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_OPS');
+    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_OPS').toBe(STRUCTURES_OPS.length);
   });
 
   it('homonymes nominatifs : observé == stock', () => {
-    const cle = (h: { cle: string; classes: readonly string[]; occurrences: number } & Trace) =>
-      `${h.cle} | ${[...h.classes].sort().join('/')} | ${h.occurrences}` + trace(h, LOT_CLE_RESERVEE[h.cle] ?? 'L4 #1463');
-    const observees = scan.homonymes.map((h) => cle({ cle: h.cle, classes: h.classes, occurrences: h.total }));
+    const ecarts = ecartsDeCollection({
+      nom: 'STRUCTURES_HOMONYMES',
+      observe: mesureDe.STRUCTURES_HOMONYMES.mesure(CORPUS),
+      stock: STRUCTURES_HOMONYMES,
+      cle: cleHomonyme,
+    });
     expect(
-      lignes(observees),
+      lignes([...ecarts.neuves, ...ecarts.perimees]),
       'écart entre les homonymes OBSERVÉS et `STRUCTURES_HOMONYMES` — un nom de concept est RÉSERVÉ à son type (#1463 S2).',
-    ).toEqual(lignes(STRUCTURES_HOMONYMES.map(cle)));
+    ).toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_HOMONYMES');
   });
 
   it('divergences d’enveloppe (racine ET documents embarqués) : observé == stock', () => {
-    // La clé est l'IDENTITÉ de la divergence, jamais le nombre d'entrées qui la portent : une ligne se
-    // solde en migrant l'enveloppe (elle PART), et un dataset qui grandit ne doit rien recaler (#1812).
-    const cle = (e: {
-      role: string;
-      cle: string;
-      motif: string;
-      detail: string;
-      document: string;
-      chemin: string;
-    } & Trace) =>
-      `${e.role} | ${e.cle} | ${e.motif}${e.detail ? `:${e.detail}` : ''} | ${e.document} › ${e.chemin}` +
-      trace(e, lotEnveloppe(e));
+    const ecarts = ecartsDeCollection({
+      nom: 'STRUCTURES_ENVELOPPE',
+      observe: mesureDe.STRUCTURES_ENVELOPPE.mesure(CORPUS),
+      stock: STRUCTURES_ENVELOPPE,
+      cle: cleEnveloppe,
+    });
     expect(
-      lignes(scan.enveloppe.map(cle)),
+      lignes([...ecarts.neuves, ...ecarts.perimees]),
       'écart entre les divergences d’ENVELOPPE observées et `STRUCTURES_ENVELOPPE` — absences sur les ENTRÉES DE RACINE (`L1d #1469`), clés divergentes partout (`L1b #1467`), y compris sur les documents EMBARQUÉS.',
-    ).toEqual(lignes(STRUCTURES_ENVELOPPE.map(cle)));
+    ).toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_ENVELOPPE');
+    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_ENVELOPPE').toBe(STRUCTURES_ENVELOPPE.length);
   });
 
   it('redéclarations locales dans les defs : observé == stock (keyé par def | champ | concept | signature)', () => {
-    const cle = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string }) =>
-      `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`;
-    const compte = new Map<string, { r: (typeof redeclarations)[number]; n: number }>();
-    for (const r of redeclarations) {
-      const vu = compte.get(cle(r)) ?? { r, n: 0 };
-      compte.set(cle(r), { r, n: vu.n + 1 });
-    }
     // PILOTAGE (`lot`, `date`) repris du stock par SITE — MÊME patron que `pilotageDeForme` et
     // `pilotageOrpheline` : la sonde ne mesure ni le lot ni la date. Sans cette reprise, toute ligne
     // était sommée de porter la date GLOBALE du stock, et une ligne née plus tard ne pouvait être
     // verte qu'en MENTANT sur sa date de naissance. Les deux champs restent gardés : une ligne du
     // stock que l'AST n'observe plus reste rouge, et le test de MUTATION par champ (ci-dessous)
     // prouve qu'ils entrent toujours dans la clé comparée.
-    const pilotage = new Map(STRUCTURES_REDECLARATIONS.map((r) => [cle(r), { lot: r.lot, date: r.date }]));
-    const observees = [...compte].map(
-      ([k, { r, n }]) => `${k} | ${n}` + trace(pilotage.get(k) ?? {}, lotDeForme(r.concept, r.signature)),
-    );
-    const stockees = STRUCTURES_REDECLARATIONS.map((r) => `${cle(r)} | ${r.occurrences}` + trace(r, lotDeForme(r.concept, r.signature)));
+    const pilotage = new Map(STRUCTURES_REDECLARATIONS.map((r) => [siteRedeclaration(r), { lot: r.lot, date: r.date }]));
+    const ecarts = ecartsDeCollection({
+      nom: 'STRUCTURES_REDECLARATIONS',
+      observe: mesureDe.STRUCTURES_REDECLARATIONS.mesure(CORPUS),
+      stock: STRUCTURES_REDECLARATIONS,
+      cle: (r) => cleRedeclaration({ ...r, ...pilotage.get(siteRedeclaration(r)) }),
+    });
     expect(
-      lignes(observees),
+      lignes([...ecarts.neuves, ...ecarts.perimees]),
       'écart entre les redéclarations OBSERVÉES (AST des `src/data/schemas/defs/*.ts`) et `STRUCTURES_REDECLARATIONS` — une forme partagée se déclare UNE fois dans la grammaire (`src/data/schemas/grammaire/`). Le CHAMP entre dans la clé : sans lui, des littéraux de champs différents s’agrègent en une ligne.',
-    ).toEqual(lignes(stockees));
+    ).toEqual([]);
+    sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
   });
 
   /**
@@ -533,25 +556,20 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes([...ANGLES_MORTS]));
   });
 
-  it('MUTATION par champ : chaque champ de chaque stock entre dans la clé comparée', () => {
+  it('MUTATION par champ : chaque champ de chaque stock entre dans la comparaison (clé, et compte hors clé)', () => {
     const mute = (v: unknown) => (typeof v === 'number' ? v + 999 : Array.isArray(v) ? [...v, 'ZZZ'] : `${v}~MUTE`);
-    const cleHomonyme = (h: { cle: string; classes: readonly string[]; occurrences: number } & Trace) =>
-      `${h.cle} | ${[...h.classes].sort().join('/')} | ${h.occurrences}` + trace(h, LOT_CLE_RESERVEE[h.cle] ?? 'L4 #1463');
-    const cleEnveloppe = (e: { role: string; cle: string; motif: string; detail: string; document: string; chemin: string } & Trace) =>
-      `${e.role} | ${e.cle} | ${e.motif}${e.detail ? `:${e.detail}` : ''} | ${e.document} › ${e.chemin}` +
-      trace(e, lotEnveloppe(e));
-    const cleRedeclaration = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string; occurrences: number } & Trace) =>
-      `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun} | ${r.occurrences}` +
-      trace(r, lotDeForme(r.concept, r.signature));
+    // Une collection à compte se compare par sa clé ET son compte (`ecartsDeCollection`) : l'empreinte
+    // mutée est la même paire.
+    const avecCompte = <E,>(cle: (e: E) => string) => (e: E & { occurrences: number }) => `${cle(e)} | ${occurrencesDe(e)}`;
     const stocks: Array<[string, readonly Record<string, unknown>[], (x: never) => string, string[]]> = [
       ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; date: string }) => `${c.concept} | ${c.signature} | ${c.date}`) as never, ['concept', 'signature', 'date']],
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES, cleForme as never, ['concept', 'dataset', 'champ', 'signature', 'statut', 'strate', 'occurrences', 'lot', 'motif', 'date']],
+      ['STRUCTURES_FORMES', STRUCTURES_FORMES, avecCompte(cleForme) as never, ['concept', 'dataset', 'champ', 'signature', 'statut', 'strate', 'occurrences', 'lot', 'motif', 'date']],
       ['STRUCTURES_DEFAUT', STRUCTURES_DEFAUT, ((d: { dataset: string; cle: string; date: string }) => `${d.dataset} | ${d.cle} | ${d.date}`) as never, ['dataset', 'cle', 'date']],
-      ['STRUCTURES_HOMONYMES', STRUCTURES_HOMONYMES, cleHomonyme as never, ['cle', 'classes', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, cleRedeclaration as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_ENVELOPPE', STRUCTURES_ENVELOPPE, cleEnveloppe as never, ['role', 'cle', 'motif', 'detail', 'document', 'chemin', 'lot', 'date']],
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES, cleOrpheline as never, ['dataset', 'champ', 'signature', 'motif', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_OPS', STRUCTURES_OPS, cleOp as never, ['op', 'signature', 'dataset', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_HOMONYMES', STRUCTURES_HOMONYMES, avecCompte(cleHomonyme) as never, ['cle', 'classes', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_ENVELOPPE', STRUCTURES_ENVELOPPE, avecCompte(cleEnveloppe) as never, ['role', 'cle', 'motif', 'detail', 'document', 'chemin', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES, avecCompte(cleOrpheline) as never, ['dataset', 'champ', 'signature', 'motif', 'occurrences', 'lot', 'date']],
+      ['STRUCTURES_OPS', STRUCTURES_OPS, avecCompte(cleOp) as never, ['op', 'signature', 'dataset', 'occurrences', 'lot', 'date']],
     ];
     const aveugles: string[] = [];
     for (const [nom, arr, cle, champs] of stocks) {
@@ -1175,7 +1193,12 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const site = (f: { dataset: string; champ: string; signature: string }) =>
         f.dataset === 'diligence-projet.json' && f.champ === 'scene' && f.signature === 'id-nu';
       expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
-      expect(ecarts.neuves.some((ligne) => ligne.includes('diligence-projet.json | scene | id-nu') && ligne.includes('occurrences-structures.mts --write'))).toBe(true);
+      const hausse = ecarts.accrues.filter((ligne) => ligne.includes('reference | diligence-projet.json | scene | id-nu'));
+      expect(hausse, 'la hausse d’un site connu sort en `accrues`, jamais en ligne neuve ou périmée.').toHaveLength(1);
+      expect(hausse[0]).toContain('HAUSSE');
+      expect(hausse[0], 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
+      expect([...ecarts.neuves, ...ecarts.perimees, ...ecarts.accrues].filter((l) => l.includes('--write')), 'aucun remède n’écrit une hausse.').toEqual([]);
+      expect([...ecarts.neuves, ...ecarts.perimees].filter((l) => l.includes('diligence-projet.json | scene | id-nu'))).toEqual([]);
       expect(apres.ops.map(cleOp)).toEqual(scan.ops.map(cleOp));
     } finally {
       rmSync(copie, { recursive: true, force: true });

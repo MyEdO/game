@@ -280,6 +280,32 @@ export type Concept = {
 };
 
 /**
+ * L'entrée de lexique d'une graphie AU SITE : une entrée SITE-QUALIFIÉE qui couvre le site gagne sur
+ * l'entrée nue de la même graphie (`site` absent = repli universel). Sans site, seules les entrées nues
+ * répondent — un littéral de schéma n'a pas de dataset.
+ */
+export const entreeAuSite = (
+  c: Concept,
+  sig: string,
+  site?: { dataset: string; champ: string },
+): SignatureLexique | undefined => {
+  const candidates = c.signatures.filter((s) => s.sig === sig);
+  return (
+    (site && candidates.find((s) => s.site && (s.site.datasets?.includes(site.dataset) ?? true) && s.site.champs.includes(site.champ)))
+    ?? candidates.find((s) => !s.site)
+  );
+};
+
+/** Les signatures CIBLES du concept `concept` au site `(dataset, champ)` (`entreeAuSite`), dans l'ordre du
+ *  lexique : la voie qui SOLDE une forme historique ou divergente de ce site (#2705). */
+export const ciblesDuSite = (concept: string, dataset: string, champ: string): string[] => {
+  const c = CONCEPTS.find((x) => x.id === concept);
+  return c
+    ? [...new Set(c.signatures.map((s) => s.sig))].filter((sig) => entreeAuSite(c, sig, { dataset, champ })?.statut === 'cible')
+    : [];
+};
+
+/**
  * Graphies ENVELOPPANTES : une clé de graphie sous laquelle pend un OBJET (ou un tableau d'objets)
  * plutôt qu'un id nu. L'intérieur porte le CHEMIN de graphie dans sa signature (`ref>id`,
  * `wildcard>id`, `choice>id`) et HÉRITE du statut de l'enveloppe : `{ref:{id}}` se lit

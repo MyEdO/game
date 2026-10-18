@@ -611,7 +611,7 @@ function ecartIntegrite(observe: EntreeDeSite[], stock: readonly EntreeDeSite[],
       ? `${cle} — migrer la dotation en référence typée (#622).`
       : entree.famille === 'talent-sentinelle'
         ? `${cle} — poser la spécialisation ou le choix imprimé ; régime de choix à #1621.`
-        : `${cle} — déclarer l'identité observée dans scripts/guards/lib/integriteStock.mjs.`,
+        : `${cle} — corriger la donnée vers sa forme cible : scripts/guards/lib/integriteStock.mjs ne fait que décroître.`,
   } });
   expect(ecart.taille, 'Stock dupliqué : retirer les identités répétées').toBe(stock.length);
   expect(ecart.neuves, `Entrées neuves :\n${ecart.neuves.join('\n')}`).toEqual([]);
