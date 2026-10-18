@@ -2313,7 +2313,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const pa = get().pendingAttack;
       // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
       const cible = pa ? inBattleId(get().battle, pa.targetId) : undefined;
-      if (!pa || !pa.forced || !pa.result || !cible || !apercuDesCritiques(cible, coupAApplique(pa.result, pa.grapple)).relance) return;
+      if (!pa || !pa.forced || !pa.result || !cible || !apercuDesCritiques(cible, coupAApplique(pa.result, pa.grapple, cible)).relance) return;
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     attackRoll: () => {

@@ -70,7 +70,7 @@ import {
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
-import { areGrappling, clearGrapple, grappleEnvMod, peutEtreEmpoigne } from '../engine/grapple';
+import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
@@ -78,7 +78,7 @@ import { sizeGap } from '../engine/size';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
-import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -2695,7 +2695,6 @@ function appliquerLaTouche(
   // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Blessure critique.
   const standard = !sousAttaque && decides.length === 0;
   const deferAttackerAdvantage = suite?.deferAttackerAdvantage;
-  const grapple = !!suite?.grapple && peutEtreEmpoigne(target); // #1595 c.6230022636
   // SEAM du télégraphe (#1143) : cette fonction est l'entonnoir UNIQUE de résolution d'une attaque —
   // toutes ses sorties écrivent la ligne de journal du geste, que le bandeau prend alors. Le réticule
   // d'intention n'a donc plus lieu d'être ici, quel que soit le chemin qui a mené à l'application.
@@ -2737,7 +2736,7 @@ function appliquerLaTouche(
   // résolution repart de l'applier 'sauvegarde', qui rejouera la chaîne ENTIÈRE une fois la touche connue.
   if (apresModifiers.suspendu) return null;
   // Empoignade : LDB 14 l.159. La pose de l'Empoignade et de l'État *Empêtré* suit l'Engagement, plus bas.
-  res = coupAApplique(res, grapple);
+  res = coupAApplique(res, suite?.grapple, target);
   // Cible Inconsciente — règle optionnelle « mort-auto » (LDB 16 l.113) : en CORPS À CORPS la cible est
   // tuée automatiquement. On applique la mort par le MÊME chemin que les morts normales (`finalizeHeroDeath`
   // → un héros à Destin est suspendu via pendingFateSave, sinon `dead = true`), pas un early-return brutal.
@@ -2807,7 +2806,7 @@ function appliquerLaTouche(
   // Empoignade (LDB 14 l.159) : « vous ET votre adversaire êtes Empoignés, et votre adversaire gagne
   // l'État *Empêtré* ». Pose APRÈS l'Engagement (les deux Empoignés) ; le bloc de Dégâts ci-dessous est
   // inerte (woundsLost neutralisé plus haut). RAW : pas de Dégâts sur l'initiation.
-  if (grapple && res.hit) {
+  if (res.sansPrise === 'empoignade') {
     // VOIE UNIQUE d'initiation, en DONNÉE : `GRAPPLE.init` pose l'*Empêtré* ET la relation (op `condition
     // {grapple:true}`) — mêmes effets qu'avant, mais éditables, partagés avec Constricteur/Tentacules/Langue.
     applyOps(target, GRAPPLE.init, { caster: attacker, source: GRAPPLE_SOURCE });
@@ -3050,7 +3049,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
  *  sinon ; coût, réserve et défense gagnée jugés par `applyShieldReaction`. AA 13 l.84 ; #1595. */
 function reactionDeBouclierEnDegats(get: Get, set: SetFn, attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
   const reaction = q.suite?.reaction ?? (defenseSurfaced(get(), target) ? undefined : 'damage');
-  return !!reaction && !!q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q));
+  return !!reaction && !!q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q.weapon, q.res));
 }
 
 /** La frappe passive du défenseur est-elle due sur ce coup ? Test opposé de défense GAGNÉ en mêlée, plafond
@@ -3058,18 +3057,17 @@ function reactionDeBouclierEnDegats(get: Get, set: SetFn, attacker: Combatant, t
  *  LDB 13 l.123 ; #1595 c.6237601266. */
 function riposteDeclaree(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
   const { res } = q;
-  if (!defenseGagneeEnMelee(attacker, target, q)) return false;
+  if (!defenseGagneeEnMelee(attacker, target, q.weapon, res)) return false;
   const contre = contreSurDefenseGagnee(target, res.parryWeapon);
   if (!contre) return false;
-  if (contre.plafond != null && (target.ripostesThisRound ?? 0) >= contre.plafond) return false;
+  if (contresEpuisees(target, contre) != null) return false;
   return !contre.choisie || q.suite?.riposte !== false;
 }
 
 /** Le Test opposé de défense est-il GAGNÉ en mêlée, les deux camps encore en état de frapper et d'être
  *  frappés ? LDB 13 l.123 ; LDB 12 l.160. */
-function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
-  const { res } = q;
-  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || !res.defenderDetail) return false;
+export function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, weapon: Weapon, res: AttackResult): boolean {
+  if (weapon.type !== 'melee' || res.advantageTo !== 'defender' || !res.defenderDetail) return false;
   return !isOutOfAction(target) && !isOutOfAction(attacker);
 }
 

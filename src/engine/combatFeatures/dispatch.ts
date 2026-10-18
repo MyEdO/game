@@ -228,6 +228,12 @@ export function contreSurDefenseGagnee(c: Combatant, parryWeapon: Weapon | undef
   return plafond > 0 ? { choisie: true, plafond } : null;
 }
 
+/** Contre-attaques déjà portées ce Round quand le plafond est atteint, sinon `null`. LDB 10 l.1037. */
+export function contresEpuisees(c: Combatant, contre: ContreSurDefense): number | null {
+  const portees = c.ripostesThisRound ?? 0;
+  return contre.plafond != null && portees >= contre.plafond ? portees : null;
+}
+
 /** Renversement (LDB 10) : vole TOUS les Avantages adverses au lieu de +1 sur un opposé gagné. */
 export function hasStealAdvantage(c: Combatant): boolean {
   return featuresOf(c).some(({ def }) => def.stealAdvantage);

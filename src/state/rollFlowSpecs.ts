@@ -102,11 +102,17 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
   return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
+/** Arme de parade DÉCLARÉE à la fenêtre de Défense (`defenseSetParryWeapon`), lue par tout chemin du jet. */
+function declaredParry(defender: Combatant, p: PendingDefense): Weapon | undefined {
+  return p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
+}
+
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
- *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; `parry` = arme de parade choisie. */
-function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], parry?: Weapon, metresPerTile = 2): AttackResult {
+ *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est celle DÉCLARÉE (`declaredParry`). */
+function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], metresPerTile = 2): AttackResult {
   const sub = defenseSubOf(defender, p);
+  const parry = declaredParry(defender, p);
   const atk = forcedOpposedAtk(p, def);
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
@@ -645,7 +651,7 @@ export const FLOWS = {
       read: (p) => (p.def ? { roll: p.def.roll, target: p.def.target, base: p.def.base } : null),
       write: (s, p, actor, _g, tr) => {
         const att = actorIn(s, p.attackerId);
-        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), undefined, sceneMetresPerTile(s.scene)) } : null;
+        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) } : null;
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
@@ -668,13 +674,12 @@ export const FLOWS = {
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
         const def2 = forcedTR(dDie, p.def.target, Math.max(evaluateTest(dDie, p.def.target).sl, opposedForcedFloor(p.atk.sl, cancelled)), p.def.base);
-        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), undefined, mpt) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), mpt) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
       const dodgeMods = defenseDodgeMods(s, actor);
-      const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, parry, p.weapon, defenseSubOf(actor, p));
-      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, parry, mpt) };
+      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, declaredParry(actor, p), p.weapon, defenseSubOf(actor, p));
+      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, mpt) };
     },
     outcome: (p) => testOutcome(p.def),
     bonus: {
@@ -684,8 +689,7 @@ export const FLOWS = {
         if (!attacker) return null;
         const dd = p.result!.defenderDetail!;
         const def2 = bumpSL(hydrateTR(dd));
-        const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -700,8 +704,7 @@ export const FLOWS = {
         const attacker = actorIn(s, p.attackerId); if (!attacker) return null;
         // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.applyRoll — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, target: p.def!.target, base: p.def!.base, success: tr.success, sl: tr.sl });
-        const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) };
       },
     },
   }),

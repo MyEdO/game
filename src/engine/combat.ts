@@ -11,6 +11,7 @@ import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
+import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
@@ -1608,13 +1609,13 @@ export function apercuDesCritiques(
   return critiquesDuCoup(cible, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current, blessures: () => res.woundsLost ?? 0 }, jeu);
 }
 
-/** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159. */
-export function coupAApplique(res: AttackResult, grapple: boolean | undefined): AttackResult {
-  return grapple && res.hit ? { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' } : res;
+/** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159 ; #1595 c.6230022636. */
+export function coupAApplique(res: AttackResult, grapple: boolean | undefined, cible: Pick<Combatant, 'bodyShape' | 'inert'>): AttackResult {
+  return grapple && res.hit && peutEtreEmpoigne(cible) ? { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' } : res;
 }
 
-/** L'issue d'un coup au jet, avant application : la ligne de touche marquée par `apercuDesCritiques`.
- *  LDB 14 l.159 ; LDB 18 l.44 ; AA 07 l.65. */
+/** L'issue au jet du coup `res` tel que l'appelant le passe : sa ligne de touche et `apercuDesCritiques`,
+ *  sans les `runHitModifiers` de l'application (`src/state/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
 export function issueAuJet(cible: Combatant, res: AttackResult): { ligne: string; compte: CompteDesCritiques } {
   const compte = apercuDesCritiques(cible, res);
   return { ligne: res.touche ? phraseDeTouche(res.touche, res, compte.critiques.length > 0) : res.log, compte };

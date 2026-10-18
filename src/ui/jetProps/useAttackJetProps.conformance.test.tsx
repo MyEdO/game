@@ -4,11 +4,15 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Combatant, HitLocation, Weapon } from '../../engine/types';
 import { openAttackCascade } from '../../state/combatFlow';
+import { seedBattleRng } from '../../state/battleRng';
+import { ev } from '../../state/combatLog';
+import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { useGame, type BattleState } from '../../state/store';
 import { testScene } from '../../scenes/test-fixture';
 import { RollShell } from '../RollShell';
 import { ANONYMES } from '../RollLine';
 import { useAttackJetProps } from './useAttackJetProps';
+import { resetRule, setRule } from '../../engine/policy';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -94,7 +98,7 @@ afterEach(() => {
  * Localisation visée, tir en mouvement, États et AVANTAGE du jeteur. Défaut = duel de mêlée nu, par
  * temps clair, tireur immobile.
  */
-function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; location?: HitLocation; enMouvement?: boolean; avantage?: number; conditions?: { id: string; value: number }[]; badauds?: number; tasArme?: boolean; tirArme?: boolean; mouvementUse?: number; armes?: Weapon[]; morsure?: boolean; pietinement?: boolean; bagarre?: number } = {}): HTMLDivElement {
+function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; location?: HitLocation; enMouvement?: boolean; avantage?: number; conditions?: { id: string; value: number }[]; badauds?: number; tasArme?: boolean; tirArme?: boolean; mouvementUse?: number; armes?: Weapon[]; morsure?: boolean; pietinement?: boolean; bagarre?: number; ethere?: boolean; cible?: { pb?: number; important?: boolean; chanceux?: boolean } } = {}): HTMLDivElement {
   const weapon = opts.ranged ? bow : sword;
   // Tir : 20 cases = 40 m avec une Portée de 60 m → bande « Moyenne » (+0, aucune chip de portée) ;
   // 5 cases = 10 m → « Courte portée » (+20, entrée de la table). Mêlée : au contact. La distance est
@@ -109,6 +113,10 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     ] as Combatant['skills'];
   }
   const target = combatant('target', 'Gobelin', 'enemy', opts.cases ?? (opts.ranged ? 20 : 1));
+  if (opts.ethere) (target as unknown as { traits: unknown[] }).traits = [{ id: 'ethere' }];
+  if (opts.cible?.pb != null) target.wounds = { current: opts.cible.pb, max: 18 } as Combatant['wounds'];
+  if (opts.cible?.important) target.important = true;
+  if (opts.cible?.chanceux) target.talents = [{ talentId: 'chanceux', times: 1 }] as Combatant['talents'];
   if (opts.conditions) (attacker as unknown as { conditions: unknown[] }).conditions = opts.conditions;
   // Badauds AU CONTACT de la cible (`crowdEligible` : distance ≤ 1, la cible comprise) — c'est eux qui
   // font, ou non, le « groupe serré » du seuil de `crowdMod`.
@@ -455,5 +463,103 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(nom!.textContent).toBe('Corps à corps (Base)');
     act(() => { nom!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
     expect(document.querySelector('.infobulle')?.textContent).toContain('Corps à corps');
+  });
+});
+
+describe('Attaque — issue d’un coup sans prise', () => {
+  // LDB 85 l.98, l.134.
+  it('flèche non magique, double, sur une cible Éthérée : l’issue ne présente pas un Critique infligé', () => {
+    // Tir à l'arc : aucune fenêtre de Défense ne s'interpose, l'issue s'affiche dans la popin d'attaque.
+    renderAttack({ ethere: true, ranged: true });
+    seedBattleRng(29);
+    act(() => useGame.getState().attackRoll());
+    const res = useGame.getState().pendingAttack!.result!;
+    expect([res.critical, res.sansPrise], 'précondition : Critique obtenu au jet, coup sans prise').toEqual([true, 'ethere']);
+    const issue = rendues!.outcome![0];
+    expect(issue.icon, 'l’issue n’est pas celle d’un Critique').not.toBe(recapLineOfEvent(ev('crit', res.log)).icon);
+    expect(issue.icon, 'l’issue est celle d’une touche').toBe(recapLineOfEvent(ev('damage', res.log)).icon);
+  });
+
+  it('jet forcé sur un double contre une cible Éthérée : aucun sélecteur de Localisation du Critique', () => {
+    const vue = renderAttack({ ethere: true, ranged: true });
+    act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
+    seedBattleRng(1);
+    act(() => useGame.getState().attackRoll());
+    expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
+    act(() => useGame.getState().attackForceSuccess());
+    act(() => useGame.getState().attackSetForcedRoll(33));
+    const pa = useGame.getState().pendingAttack!;
+    expect([pa.forced, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
+    expect(rendues!.forcedExtra, 'pas de Localisation à choisir pour un Critique non appliqué').toBeUndefined();
+    expect(vue.querySelector('.rm-loc-grid')).toBeNull();
+  });
+});
+
+describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17 l.68 ; LDB 18 l.44 ; AA 07 l.65 ; #1595 c.6219992594, c.6228496170 R1)', () => {
+  afterEach(() => { resetRule('combat-aa-blessures'); });
+
+  /** Tir d'arc raté puis forcé à `force` (« Je ne faillirai pas ! ») sur le Gobelin `cible`, au jeu `jeu`. */
+  function forcer(jeu: 'ldb' | 'aa', force: number, cible: { pb?: number; important?: boolean; chanceux?: boolean }) {
+    if (jeu === 'aa') setRule('combat-aa-blessures', 'aa');
+    const vue = renderAttack({ ranged: true, cible });
+    act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
+    seedBattleRng(1);
+    act(() => useGame.getState().attackRoll());
+    expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
+    act(() => useGame.getState().attackForceSuccess());
+    act(() => useGame.getState().attackSetForcedRoll(force));
+    const res = useGame.getState().pendingAttack!.result!;
+    expect(res.hit, 'précondition : le jet forcé touche').toBe(true);
+    const iconeCrit = recapLineOfEvent(ev('crit', res.log)).icon;
+    return { selecteur: rendues!.forcedExtra !== undefined, grille: !!vue.querySelector('.rm-loc-grid'), crit: rendues!.outcome![0].icon === iconeCrit, marque: rendues!.outcome![0].text.includes('CRITIQUE'), res };
+  }
+
+  for (const jeu of ['ldb', 'aa'] as const) {
+    it.each([18, 2])(`${jeu}, figurant sous Mort subite à %i PB, double forcé : ni sélecteur ni Critique annoncé`, (pb) => {
+      const vu = forcer(jeu, 33, { pb });
+      expect(vu.res.critical, 'précondition : Critique obtenu au jet').toBe(true);
+      expect([vu.selecteur, vu.grille, vu.crit, vu.marque]).toEqual([false, false, false, false]);
+    });
+  }
+
+  it('ldb, cible importante, double forcé : sélecteur et Critique annoncé', () => {
+    const vu = forcer('ldb', 33, { important: true });
+    expect([vu.selecteur, vu.grille, vu.crit, vu.marque]).toEqual([true, true, true, true]);
+  });
+
+  it('aa, Chanceux, passage de 2 PB à 0 sans double : Critique annoncé, sans sélecteur (branche 2)', () => {
+    const vu = forcer('aa', 21, { pb: 2, chanceux: true });
+    expect([vu.res.critical, vu.res.woundsLost! >= 2], 'précondition : sans double, le coup fait tomber à 0').toEqual([false, true]);
+    expect([vu.selecteur, vu.grille, vu.crit, vu.marque]).toEqual([false, false, true, true]);
+  });
+
+  it('aa, Chanceux, déjà à 0 PB, sans double : sélecteur et Critique annoncé (branche 1)', () => {
+    const vu = forcer('aa', 21, { pb: 0, chanceux: true });
+    expect(vu.res.critical, 'précondition : sans double').toBe(false);
+    expect([vu.selecteur, vu.grille, vu.crit, vu.marque]).toEqual([true, true, true, true]);
+  });
+});
+
+describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
+  it('Empoigner coché, touche : la ligne d’issue ne chiffre ni Dégâts ni Blessures', () => {
+    const poings = { ...sword, name: 'Mains nues', label: 'Mains nues', uid: 'poings', trappingId: 'mains-nues' } as Weapon;
+    const vue = renderAttack({ armes: [poings] });
+    // Aucun siège MJ : la Défense du Gobelin ne s'interpose pas, l'issue s'affiche dans la popin d'attaque.
+    act(() => useGame.setState({ net: { ...useGame.getState().net, gmSeat: undefined } }));
+    const empoigner = [...vue.querySelectorAll('button')].find((b) => b.textContent?.includes('Empoigner'))!;
+    act(() => empoigner.click());
+    expect(useGame.getState().pendingAttack!.grapple, 'précondition : Empoigner coché').toBe(true);
+    act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
+    seedBattleRng(1);
+    act(() => useGame.getState().attackRoll());
+    if (!useGame.getState().pendingAttack!.result!.hit) {
+      act(() => useGame.getState().attackForceSuccess());
+      act(() => useGame.getState().attackSetForcedRoll(21));
+    }
+    const res = useGame.getState().pendingAttack!.result!;
+    expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);
+    const issue = rendues!.outcome![0].text;
+    expect(issue).toContain('touche');
+    expect(issue).not.toMatch(/dégâts|Blessures/);
   });
 });
