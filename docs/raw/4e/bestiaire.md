@@ -294,7 +294,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 **Voir aussi** : [Localisation des créatures non humaines](#localisation-des-créatures-non-humaines) ; [Taille — tir sur créature grande](combat.md#taille--catégories-et-modificateurs-de-combat).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.142-165) → `GrappleModal`, `peutEtreEmpoigne`, `areGrappling`, `scatter`, `setGrapple`, `grapple`, `REPORT_DE_COMBATTANT`, `grappleTierMod`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, +53 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +24 fichiers
+- `LDB 14` (l.142-165) → `GrappleModal`, `peutEtreEmpoigne`, `areGrappling`, `scatter`, `setGrapple`, `grapple`, `REPORT_DE_COMBATTANT`, `grappleTierMod`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, +54 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +24 fichiers
 - `LDB 85` (l.357-387) → `TraitDef`, `coupFerme`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `attaqueDEcart`, `sizeDamageMultiplier`, `attaquesNaturelles`, +55 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/traits.json`, `src/engine/character.ts`, +17 fichiers
 
 ---
@@ -353,7 +353,7 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
-- `LDB 85` (l.1-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `actionPrise`, `a-sang-froid`, `doc`, `morsure`, +273 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/schemas/defs/structures.ts`, +53 fichiers
+- `LDB 85` (l.1-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `actionPrise`, `a-sang-froid`, `doc`, `morsure`, +274 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/schemas/defs/structures.ts`, +53 fichiers
 
 ---
 

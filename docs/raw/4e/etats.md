@@ -37,7 +37,7 @@ La durée de chaque État est précisée dans sa description ; cependant, certai
 
 **Voir aussi** : Avantage (`combat.md`), Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
+- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
 ---
 
@@ -82,7 +82,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
+- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
 
 ---
 
@@ -605,7 +605,7 @@ Ces tableaux utilisent tous les États standards (Hémorragique, Sonné, Aveugl�
 
 **Voir aussi** : Traumatisme (`traumatisme.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `fr`, `amputationSchema`, `pendant`, `CritEscalation`, `attackHandGate`, `finishDefenseResult`, `Formula`, +130 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +18 fichiers
+- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `fr`, `amputationSchema`, `pendant`, `CritEscalation`, `attackHandGate`, `finishDefenseResult`, `Formula`, +131 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +18 fichiers
 
 ---
 
