@@ -625,8 +625,8 @@ test('jetonsDuVerrou : les jetons du SEUL verrou nommé, clé comparée sans cas
   const owner = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, identite: identiteFeinte({}).identite })
   const [cle, texte] = Object.entries(owner.env)[0]
   const autre = Object.keys(prendreVerrou({ chemin: `${VERROU}.autre`, libelle: LIBELLE, fs, estVivant: () => true }).env)[0]
-  assert.deepEqual(jetonsDuVerrou({ [cle.toLowerCase()]: texte, [autre]: 'x', PATH: 'p' }, VERROU), [[cle.toLowerCase(), texte]])
-  assert.deepEqual(jetonsDuVerrou({ PATH: 'p' }, VERROU), [])
+  assert.deepEqual(jetonsDuVerrou({ [cle.toLowerCase()]: texte, [autre]: 'x', HORS_VERROU: 'p' }, VERROU), [[cle.toLowerCase(), texte]])
+  assert.deepEqual(jetonsDuVerrou({ HORS_VERROU: 'p' }, VERROU), [])
   owner.liberer()
 })
 

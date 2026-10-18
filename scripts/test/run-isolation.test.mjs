@@ -16,7 +16,8 @@ import { join } from 'node:path'
 import { lancerTests } from './run.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { VARIABLE_PARTIE } from './partition.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 /** Vitest de substitution : trace ses arguments dans `TRACE_DOSSIER` (`<côté>-<pid>.json`), puis sort sur
@@ -80,7 +81,12 @@ test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et ver
   const p = fixturePartagee(t)
   const controle = new AbortController()
   const avant = relais()
-  const guet = setInterval(() => { if (readdirSync(p.traces).length === 2) controle.abort() }, 10)
+  let nes
+  const guet = setInterval(() => {
+    if (readdirSync(p.traces).length !== 2) return
+    nes = Date.now()
+    controle.abort()
+  }, 10)
   let code
   try {
     code = await lancerTests({ ...p, argv: [], signal: controle.signal,
@@ -89,7 +95,7 @@ test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et ver
   assert.equal(code, 1)
   const lancements = lancementsDe(p.traces)
   assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'])
-  for (const [cote, pid] of lancements) assert.equal(estPidVivant(pid), false, cote)
+  for (const [cote, pid] of lancements) assert.equal(estPidVivantDepuis(pid, nes, IDENTITE_MESUREE), false, cote)
   assert.deepEqual(readdirSync(join(p.racine, 'node_modules/.vitest-split')), [])
   assert.equal(existsSync(p.verrou.chemin), false)
   assert.deepEqual(relais(), avant)

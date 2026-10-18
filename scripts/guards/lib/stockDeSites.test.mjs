@@ -56,13 +56,13 @@ test('lecteur spécialisé : validation réelle, null, extras et chemins sans bo
       assert.deepEqual(lireEntreesDeSite(path), [])
     }
     for (const entrees of [false, {}, 'texte', [null], [{ ...ENTREE, fichier: 1 }], [{ ...ENTREE, occurrence: 0 }], [{ fichier: 'src/a.ts' }]]) {
-      writeFileSync(path, JSON.stringify({ entrees }))
+      writeFileSync(path, texteDeStock('fixture', entrees))
       assert.throws(() => lireEntreesDeSite(path), TypeError)
-      assert.deepEqual(lireStockJson(path), { entrees })
+      assert.deepEqual(lireStockJson(path), { quoi: 'fixture', entrees })
     }
     const DRIVE = 'C' + ':'
     const entrees = [{ ...ENTREE, fichier: '../hors', extra: { libre: true } }, { ...ENTREE, fichier: DRIVE + '/absolu' }]
-    writeFileSync(path, JSON.stringify({ entrees }))
+    writeFileSync(path, texteDeStock('fixture', entrees))
     assert.deepEqual(lireEntreesDeSite(path), entrees)
   })
 })
