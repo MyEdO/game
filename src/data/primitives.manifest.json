@@ -1968,7 +1968,7 @@
     "type": "primitives.manifest",
     "label": "enFileBornee",
     "fichier": "scripts/guards/lib/fileBornee.mjs",
-    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause (raison de l’appelant s’il abandonne d’abord) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
+    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
     "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
     "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },

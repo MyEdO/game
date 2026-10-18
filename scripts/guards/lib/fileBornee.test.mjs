@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import { enFileBornee } from './fileBornee.mjs'
 import { spawnBorne } from './processusBorne.mjs'
 
-/** Attente de `ms` arrêtée par `signal` ; à l'arrêt, la tâche rejette de SA propre erreur, comme un lancement annulé
- *  (`spawnBorne` rend `ABORT_ERR lancement annulé`), jamais de la raison du signal. */
+/** Attente de `ms` arrêtée par `signal` ; à l'arrêt, elle rejette d'une erreur PROPRE à la tâche `i`, jamais de la
+ *  raison du signal. */
 const attendre = (ms, signal, i) => new Promise((resoudre, rejeter) => {
   const annulee = () => new Error(`tâche ${i} annulée`)
   if (signal.aborted) { rejeter(annulee()); return }
@@ -59,6 +59,52 @@ test('l’abandon de l’appelant arrête la file et la fait rejeter de SA raiso
   assert.deepEqual(lancees, [0])
 })
 
+test('une tâche rejette, PUIS l’appelant abandonne avant la clôture : la file rejette du rejet, pas de la raison de l’appelant', { timeout: 10_000 }, async () => {
+  const appelant = new AbortController()
+  const echec = new Error('tâche 1 en échec')
+  let close = false
+  const taches = [
+    async () => { await new Promise((r) => setTimeout(r, 200)); close = true },
+    async () => {
+      await new Promise((r) => setTimeout(r, 20))
+      setTimeout(() => appelant.abort(new Error('échéance de l’appelant')), 50)
+      throw echec
+    },
+  ]
+  await assert.rejects(enFileBornee(taches, { deFront: 2, signal: appelant.signal }), (e) => e === echec)
+  assert.equal(appelant.signal.aborted, true)
+  assert.equal(close, true)
+})
+
+test('même tour, l’abandon reçu avant la reprise de l’await sur le rejet : la file rejette de la raison de l’appelant', async () => {
+  const appelant = new AbortController()
+  const raison = new Error('échéance de l’appelant')
+  const taches = [async () => { queueMicrotask(() => appelant.abort(raison)); throw new Error('tâche 0 en échec') }]
+  await assert.rejects(enFileBornee(taches, { deFront: 1, signal: appelant.signal }), (e) => e === raison)
+})
+
+test('même tour, le rejet reçu à la reprise de l’await avant l’abandon : la file rejette de l’erreur de la tâche', async () => {
+  const appelant = new AbortController()
+  const echec = new Error('tâche 0 en échec')
+  const taches = [async () => { Promise.resolve().then(() => {}).then(() => appelant.abort(new Error('échéance de l’appelant'))); throw echec }]
+  await assert.rejects(enFileBornee(taches, { deFront: 1, signal: appelant.signal }), (e) => e === echec)
+  assert.equal(appelant.signal.aborted, true)
+})
+
+test('l’appelant abandonne pendant que les tâches, qui ignorent leur signal, réussissent : la file rejette de sa raison', { timeout: 10_000 }, async () => {
+  const appelant = new AbortController()
+  const raison = new Error('échéance de l’appelant')
+  const lancees = []
+  const taches = [0, 1, 2].map((i) => async () => {
+    lancees.push(i)
+    if (i === 0) appelant.abort(raison)
+    await new Promise((r) => setTimeout(r, 30))
+    return i
+  })
+  await assert.rejects(enFileBornee(taches, { deFront: 1, signal: appelant.signal }), (e) => e === raison)
+  assert.deepEqual(lancees, [0])
+})
+
 test('appelant déjà abandonné : aucune tâche ne se lance, la file rejette de sa raison', async () => {
   const raison = new Error('abandon préalable')
   const lancees = []
@@ -73,10 +119,8 @@ test('une tâche qui ignore son signal tient la file jusqu’à sa propre fin', 
     async () => { await new Promise((r) => setTimeout(r, 300)); close = true },
     async () => { throw new Error('tâche 1 en échec') },
   ]
-  const t0 = Date.now()
   await assert.rejects(enFileBornee(taches, { deFront: 2 }), /tâche 1 en échec/)
   assert.equal(close, true)
-  assert.ok(Date.now() - t0 >= 250, `${Date.now() - t0} ms`)
 })
 
 test('`deFront` hors des entiers positifs : refus nommé', async () => {

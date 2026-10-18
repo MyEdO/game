@@ -15,17 +15,21 @@
 //
 // Charge INOFFENSIVE : `Write-Output ('SENTI'+'NELLE_<n>')`, sans le littéral, que 5.1 recopie dans ses erreurs
 // d'analyse. L'hôte EXÉCUTE la charge si, et seulement si, une ligne de sa sortie standard vaut EXACTEMENT
-// `SENTINELLE_<n>`. Chaque cas reçoit une entrée standard fermée (vide, ou la charge pour un cas `entree`) et un
-// délai `DELAI_MS` ; un hôte qui attend (`-NoExit`, `-NamedPipeServerMode`…) est arrêté au délai, ou au signal de la file
-// (`enFileBornee`), par son PID.
+// `SENTINELLE_<n>`. Chaque cas se lance par `superviserProcessus`, avec une entrée standard fermée (vide, ou la charge
+// pour un cas `entree`) et un délai `DELAI_MS` ; un hôte qui attend (`-NoExit`, `-NamedPipeServerMode`…) est arrêté au
+// délai, ou au signal de la file (`enFileBornee`), son ARBRE compris : le `bash.exe` d'un cas `gitbash` et l'hôte qu'il
+// lance. Un cas dont la supervision échoue, ou dont l'arbre n'est pas certifié mort, est un RATÉ : rendu avec sa cause
+// (`rate`), jamais jugé ni compté en écart, sans arrêter la file. L'interruption de la sonde (`SIGINT`, `SIGTERM`,
+// `SIGHUP`) abandonne la file, qui rejette de sa raison sans écrire de rapport.
 // Sortie : `<dossier>/hote-powershell.json` (hôtes, versions, chaque cas avec son code de sortie et les 200
-// premiers caractères de sa sortie) ; code 1 si un écart existe.
+// premiers caractères de sa sortie, ou son raté) ; code 1 si un écart ou un raté existe.
 import { Buffer } from 'node:buffer'
-import { spawn, execFileSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { existsSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine } from '../../guards/lib/commandeShell.mjs'
 import { enFileBornee } from '../../guards/lib/fileBornee.mjs'
+import { superviserProcessus } from '../../guards/lib/superviserProcessus.mjs'
 import { CAS_HOTE_POWERSHELL, HOTES_MESURES, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
 
 const DELAI_MS = 20_000
@@ -61,41 +65,51 @@ function charge() {
   return { commande: `Write-Output ('SENTI'+'NELLE_${numero}')`, sentinelle: `SENTINELLE_${numero}` }
 }
 
-/** Lance `exe args` (ou la ligne `bash -c`), arrêté avec `signal`, rend `{ code, sortie, executee, delai }`. */
-function lancer({ exe, args, via, entree }, sentinelle, signal) {
+/**
+ * Lance `exe args` (ou la ligne `bash -c`) par `superviserProcessus`, son arbre arrêté au délai ou à `signal` ; rend
+ * `{ code, delai, executee, sortie }`, `delai` vrai si l'arrêt vient de `DELAI_MS`, ou `{ rate }` (sa cause) si la
+ * supervision échoue ou si l'arbre n'est pas certifié mort.
+ */
+async function lancer({ exe, args, via, entree }, sentinelle, signal) {
   const quote = (a) => `'${a.replaceAll("'", "'\\''")}'`
-  const [fichier, argv] = via === 'gitbash'
+  const [commande, argv] = via === 'gitbash'
     ? [GIT_BASH, ['-c', [EXECUTABLES[exe], ...args].map(quote).join(' ')]]
     : [EXECUTABLES[exe], args]
-  return new Promise((fin) => {
-    const enfant = spawn(fichier, argv, { cwd: DOSSIER, windowsHide: true, timeout: DELAI_MS, signal })
-    let out = ''
-    let err = ''
-    enfant.stdout.on('data', (d) => { out += d })
-    enfant.stderr.on('data', (d) => { err += d })
-    enfant.on('error', (e) => { err += String(e) })
-    enfant.on('close', (code, signal) => {
-      const executee = out.split(/\r?\n/).some((l) => l.trim() === sentinelle)
-      fin({ code, delai: signal !== null, executee, sortie: (out + err).replace(/\s+/g, ' ').trim().slice(0, 200) })
-    })
-    enfant.stdin.end(entree ?? '')
-  })
+  const r = await superviserProcessus({ commande, args: argv, cwd: DOSSIER, entree: entree ?? '', timeout: DELAI_MS, signal })
+  const delai = r.error?.code === 'ETIMEDOUT'
+  if ((r.error && !delai) || r.arret?.etat !== 'mort') return { rate: r.error ? `${r.error.code} : ${r.error.message}` : `arbre ${r.arret?.etat}` }
+  const executee = r.stdout.split(/\r?\n/).some((l) => l.trim() === sentinelle)
+  return { code: r.status, delai, executee, sortie: (r.stdout + r.stderr).replace(/\s+/g, ' ').trim().slice(0, 200) }
 }
 
 /** La lecture de la garde sur ce segment rend-elle la charge ? */
 const lue = (exe, args, commande) => argumentChaine([exe, ...args])?.includes(commande) ?? false
 
+/** Le cas `identite` lancé par `lancement`, puis jugé par `juger(hote)` ; un raté n'est pas jugé. */
+async function mesurer(identite, lancement, sentinelle, signal, juger) {
+  const hote = await lancer(lancement, sentinelle, signal)
+  return { ...identite, ...(hote.rate ? {} : juger(hote)), ...hote }
+}
+
 function casDeLaListe() {
   return CAS_HOTE_POWERSHELL.map((cas) => async (signal) => {
     const { commande, sentinelle } = charge()
     const args = argumentsDuCas(cas, commande)
-    const hote = await lancer({ exe: cas.exe, args, via: cas.via, entree: cas.entree ? `${commande}\n` : '' }, sentinelle, signal)
-    const classeHote = hote.executee ? (cas.entree ? 'stdin' : 'execute') : 'rien'
-    const lecture = lue(cas.exe, args, commande)
-    const ecart = classeHote !== cas.classe ? `l'hôte rend ${classeHote}, la liste déclare ${cas.classe}`
-      : hote.executee && !cas.entree && !lecture ? 'sous-approximation' : null
-    return { jeu: 'liste', exe: cas.exe, via: cas.via, args, classe: cas.classe, classeHote, lecture, ecart, ...hote }
+    const lancement = { exe: cas.exe, args, via: cas.via, entree: cas.entree ? `${commande}\n` : '' }
+    return mesurer({ jeu: 'liste', exe: cas.exe, via: cas.via, args, classe: cas.classe }, lancement, sentinelle, signal, (hote) => {
+      const classeHote = hote.executee ? (cas.entree ? 'stdin' : 'execute') : 'rien'
+      const lecture = lue(cas.exe, args, commande)
+      const ecart = classeHote !== cas.classe ? `l'hôte rend ${classeHote}, la liste déclare ${cas.classe}`
+        : hote.executee && !cas.entree && !lecture ? 'sous-approximation' : null
+      return { classeHote, lecture, ecart }
+    })
   })
+}
+
+/** Jugement d'un cas des grilles : un cas exécuté que la lecture ne rend pas est une sous-approximation. */
+const jugerGrille = (exe, args, commande) => (hote) => {
+  const lecture = lue(exe, args, commande)
+  return { lecture, ecart: hote.executee && !lecture ? 'sous-approximation' : null, surApproximation: !hote.executee && lecture }
 }
 
 /** Jetons de la grille d'un exécutable : `[jeton, nom]`. */
@@ -123,11 +137,8 @@ function casDesBlancs() {
   return ['pwsh', 'powershell'].flatMap((exe) => CANDIDATS_BLANCS.flatMap((b) => [`${b}-c`, `-c${b}`].map((jeton) => async (signal) => {
     const c = charge()
     const args = ['-NoProfile', jeton, c.commande]
-    const hote = await lancer({ exe, args }, c.sentinelle, signal)
-    const lecture = lue(exe, args, c.commande)
-    const ecart = hote.executee && !lecture ? 'sous-approximation' : null
     const blanc = `U+${b.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`
-    return { jeu: 'blancs', exe, blanc, args, lecture, ecart, surApproximation: !hote.executee && lecture, ...hote }
+    return mesurer({ jeu: 'blancs', exe, blanc, args }, { exe, args }, c.sentinelle, signal, jugerGrille(exe, args, c.commande))
   })))
 }
 
@@ -147,10 +158,7 @@ function casDeLaGrille() {
         taches.push(async (signal) => {
           const c = charge()
           const args = ['-NoProfile', ...forme(c)]
-          const hote = await lancer({ exe, args }, c.sentinelle, signal)
-          const lecture = lue(exe, args, c.commande)
-          const ecart = hote.executee && !lecture ? 'sous-approximation' : null
-          return { jeu: 'grille', exe, nom, args, lecture, ecart, surApproximation: !hote.executee && lecture, ...hote }
+          return mesurer({ jeu: 'grille', exe, nom, args }, { exe, args }, c.sentinelle, signal, jugerGrille(exe, args, c.commande))
         })
       }
     }
@@ -166,21 +174,29 @@ function versions() {
   return { pwsh, powershell }
 }
 
+/** Interruption de la sonde : la file s'arrête, au lieu de verser en ratés les cas que la supervision interrompt. */
+const interruption = new AbortController()
+for (const nom of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.once(nom, () => interruption.abort(Object.assign(new Error(`sonde interrompue : ${nom}`), { code: 'EINTR' })))
+}
 const hotes = versions()
-const resultats = await enFileBornee([...casDeLaListe(), ...casDesBlancs(), ...(process.argv.includes('--liste') ? [] : casDeLaGrille())], { deFront: PARALLELE })
+const taches = [...casDeLaListe(), ...casDesBlancs(), ...(process.argv.includes('--liste') ? [] : casDeLaGrille())]
+const resultats = await enFileBornee(taches, { deFront: PARALLELE, signal: interruption.signal })
 const ecarts = resultats.filter((r) => r.ecart)
+const rates = resultats.filter((r) => r.rate)
 const versionsEcart = Object.entries(HOTES_MESURES).filter(([exe, v]) => hotes[exe] !== v)
   .map(([exe, v]) => `${exe} ${hotes[exe]} : la liste a été mesurée sur ${v}`)
 const rapport = {
   date: new Date().toISOString(), hotes, executables: EXECUTABLES, gitBash: GIT_BASH, delaiMs: DELAI_MS, versionsEcart,
   compte: {
-    cas: resultats.length, ecarts: ecarts.length, delais: resultats.filter((r) => r.delai).length,
+    cas: resultats.length, ecarts: ecarts.length, rates: rates.length, delais: resultats.filter((r) => r.delai).length,
     surApproximationsGrille: resultats.filter((r) => r.surApproximation).length,
   },
-  ecarts, resultats,
+  ecarts, rates, resultats,
 }
 writeFileSync(join(DOSSIER, 'hote-powershell.json'), `${JSON.stringify(rapport, null, 1)}\n`)
 console.log(`hôtes ${JSON.stringify(hotes)} — ${JSON.stringify(rapport.compte)}`)
 for (const v of versionsEcart) console.log(`VERSION : ${v}`)
 for (const e of ecarts) console.log(`ÉCART ${e.jeu} ${e.exe} ${JSON.stringify(e.args)} : ${e.ecart} :: ${e.sortie}`)
-process.exit(ecarts.length || versionsEcart.length ? 1 : 0)
+for (const r of rates) console.log(`RATÉ ${r.jeu} ${r.exe} ${JSON.stringify(r.args)} : ${r.rate}`)
+process.exit(ecarts.length || rates.length || versionsEcart.length ? 1 : 0)
