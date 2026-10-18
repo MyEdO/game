@@ -12,7 +12,7 @@ import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
 import { partyBest, skillBaseValue, testValue } from '../engine/skills';
 import { subtract, toBrass } from '../engine/money';
-import { partyMoneyTotal, bourseOf, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, bourseOf, creditBourse } from './bourseFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
@@ -1205,7 +1205,7 @@ describe('services portuaires (#30)', () => {
     const lines = portRepairVessel(get, set);
     expect(lines[0]).toContain('remis à neuf');
     expect(get().vessel!.wounds!.current).toBe(50);
-    expect(partyMoneyTotal(get).gold).toBe(10); // 10 Blessures × 1 CO
+    expect(fortuneDuGroupe(get).gold).toBe(10); // 10 Blessures × 1 CO
     expect(get().gameTime).toBeGreaterThan(t0);
     // Bourse insuffisante → refus (il ne reste que 10 CO, la réparation de 40 Blessures en coûte 40).
     set({ vessel: { ...get().vessel!, wounds: { current: 10, max: 50 } } });
@@ -1216,7 +1216,7 @@ describe('services portuaires (#30)', () => {
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
     const lines = portInstallUpgrade(get, set, 'nid-de-pie');
     expect(lines[0]).toContain('Nid-de-pie');
-    expect(partyMoneyTotal(get).gold).toBe(5);
+    expect(fortuneDuGroupe(get).gold).toBe(5);
     expect(get().vessel!.upgrades).toEqual([{ id: 'nid-de-pie' }]);
     // Un Trait de CONSTRUCTION ne se pose pas après coup (ch.12 l.169).
     expect(portInstallUpgrade(get, set, 'renforce')[0]).toContain('Trait de construction');
@@ -1241,7 +1241,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
     triggerPriest();
     expect(get().pendingManannPriest).toEqual({ cost: { gold: 7, silver: 25, brass: 0 } }); // 1d10=7 CO + 25 m (cogue) en pistoles
-    expect(partyMoneyTotal(get)).toEqual({ gold: 100, silver: 0, brass: 0 }); // pas débité tant que non résolu
+    expect(fortuneDuGroupe(get)).toEqual({ gold: 100, silver: 0, brass: 0 }); // pas débité tant que non résolu
     expect(get().vessel!.manann?.score ?? 0).toBe(0); // Humeur inchangée tant que non résolu
   });
 
@@ -1252,7 +1252,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     const cost = get().pendingManannPriest!.cost;
     resolveManannPriest(get, set, true);
     expect(get().pendingManannPriest).toBeNull();
-    expect(partyMoneyTotal(get)).toEqual(subtract(before, cost));
+    expect(fortuneDuGroupe(get)).toEqual(subtract(before, cost));
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
   });
 
@@ -1263,7 +1263,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     seedBattleRng(7); // détermine le 4d10 de resolveManannPriest (battleRng interne)
     resolveManannPriest(get, set, false);
     expect(get().pendingManannPriest).toBeNull();
-    expect(partyMoneyTotal(get)).toEqual(before); // pas débité
+    expect(fortuneDuGroupe(get)).toEqual(before); // pas débité
     const score = get().vessel!.manann!.score;
     expect(score).toBeLessThanOrEqual(-4); // 4d10 : 4 à 40
     expect(score).toBeGreaterThanOrEqual(-40);
@@ -1274,7 +1274,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     triggerPriest();
     resolveManannPriest(get, set, true);
     expect(get().pendingManannPriest).toBeNull();
-    expect(partyMoneyTotal(get)).toEqual({ gold: 0, silver: 0, brass: 0 });
+    expect(fortuneDuGroupe(get)).toEqual({ gold: 0, silver: 0, brass: 0 });
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
   });
 });

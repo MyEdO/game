@@ -27,14 +27,14 @@ import type {
 } from './pendings';
 import { garanti } from './combatants';
 import { battementRemoval } from './combatManeuvers';
-import { fleeBackstab, fleeCalme } from './pendings';
+import { estUnAchat, fleeBackstab, fleeCalme } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
 import { estCibleType, cibleLabel } from '../engine/psychology';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
-import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
-import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
+import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure } from '../engine/tests';
+import { bargainPct, bargainSellBonusPct, refusApresMarchandage, type BargainOutcome } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount } from '../engine/healing';
 import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
@@ -170,8 +170,7 @@ export function describeActivity(pa: PendingActivity): string {
 export function describeBargain(pb: PendingBargain): string {
   const won = pb.result?.attackerWins ?? false;
   const drNet = pb.result?.netSL ?? 0;
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 → le vendeur se méfie.
-  if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
+  if (refusApresMarchandage(estUnAchat(pb.contrepartie), { won, drNet })) return t('out.bargainSuspicious', { who: pb.opposant.label, name: pb.playerName });
   const c = pb.contrepartie;
   if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
   if (c.mode === 'sell') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });

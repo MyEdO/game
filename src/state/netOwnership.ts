@@ -15,6 +15,7 @@ import type { PendingKey } from './stateFields';
 
 export { modalOwnerOf } from './modalArbiter';
 import { WORLD_STEP_OWNER } from './pendings';
+import { estEnRencontre } from '../engine/conditions';
 export { WORLD_STEP_OWNER } from './pendings';
 
 /** Intents de JET dont le 1ᵉʳ argument est l'id du combattant qui tient le slot — DÉRIVÉS de
@@ -125,7 +126,7 @@ export function seatOwns(s: GameState, seat: number, combatantId: string | undef
 export function siegesRequis(s: Pick<GameState, 'party' | 'net'>): number[] {
   const requis = new Set<number>([0]);
   for (const h of s.party) {
-    if (h.dead || h.outOfRencontre) continue;
+    if (!estEnRencontre(h)) continue;
     const owner = s.net.ownership[h.id] ?? 0;
     if (s.net.seatNames[owner] != null) requis.add(owner);
   }

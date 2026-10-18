@@ -6,7 +6,7 @@ import { Coins } from './Coins';
 import { Icon } from './Icon';
 import { moraleBand, findMoraleFactor, payChoices, payChoiceCostBrass } from '../engine/crewMorale';
 import { fromBrass, toBrass } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { cotisationDuGroupe } from '../state/bourseFlow';
 import { moraleTone } from './shipStatus';
 
 /**
@@ -19,7 +19,7 @@ import { moraleTone } from './shipStatus';
  */
 export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
-  const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
+  const purseBrass = useGame((s) => toBrass(cotisationDuGroupe(s.party)));
   const councilPay = useGame((s) => s.councilPay);
   const councilClose = useGame((s) => s.councilClose);
   if (!p) return null;

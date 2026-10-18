@@ -161,6 +161,16 @@ export interface ForcedPick {
   max?: number;
 }
 
+/** `ForcedPick` d'un jet posé — SEUL constructeur : sans cible, pas de dé à reprendre ; la valeur NUE
+ *  voyage avec le dé quand le jet la porte (LDB 12 l.160). */
+export const pickTR = (
+  jet: { roll: number; target?: number; base?: number } | null | undefined,
+  opts?: { critable?: boolean; max?: number },
+): ForcedPick | null =>
+  (jet && jet.target != null
+    ? { roll: jet.roll, target: jet.target, ...(jet.base != null ? { base: jet.base } : {}), critable: !!opts?.critable, ...(opts?.max != null ? { max: opts.max } : {}) }
+    : null);
+
 /**
  * Lentille de DÉRIVATION des verbes d'influence (Chance +1 DR / Résilience « Je ne faillirai pas ! » /
  * Résistance Menace). Ces règles sont GLOBALES (LDB 17 l.24/68) : quand un flux fournit sa lentille,
@@ -586,9 +596,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     ?? (L
       ? (slot: Slot, actor: Combatant | undefined) => {
           const tr = L.actorTR(slot);
-          if (tr) return { roll: tr.roll, target: tr.target, base: tr.base, critable: false };
+          if (tr) return pickTR(tr);
           const tgt = lensDieTarget(slot, actor);
-          return tgt == null ? null : { roll: bestForcedRoll(tgt), target: tgt, critable: false };
+          return tgt == null ? null : pickTR({ roll: bestForcedRoll(tgt), target: tgt });
         }
       : undefined);
   // Un écrivain de lentille exige un acteur LIVE ; l'accesseur déclaré, lui, peut s'en passer

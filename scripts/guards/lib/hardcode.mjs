@@ -150,7 +150,7 @@ export const EXCLUDE_RX = /^\s*import/;
  * un GATE (mort, action/mouvement, géométrie, contrôle) ou une MESURE/journalisation, pas la
  * réaction propre d'une entité (celle-ci est en donnée — etats.json). Familles :
  *  - mort & cycle de vie (LDB 18) : isOutOfAction/inDeathCondition/applyZeroWounds/aaDeathByCriticalCount/
- *    usesSuddenDeath/criticalWounds/roundsAtZero/outOfRencontre/.dead + le gate 0 PB `wounds.current <= 0`
+ *    usesSuddenDeath/criticalWounds/roundsAtZero/outOfRencontre/estEnRencontre/.dead + le gate 0 PB `wounds.current <= 0`
  *    (BORNÉ à `<= 0` — surtout PAS `wounds.current` nu : un `wounds.current -= …` par-nom DOIT rester signalé) ;
  *  - gating d'Action/Mouvement/Engagement : canTakeAction/isEngaged/controlsCombatant/movementUsed ;
  *  - géométrie (allonge / balayage des surdimensionnés) : sizeGap / `return reach` ;
@@ -168,7 +168,7 @@ export const EXCLUDE_RX = /^\s*import/;
  */
 export const MACHINERY_RX = new RegExp([
   'isOutOfAction', 'inDeathCondition', 'applyZeroWounds', 'aaDeathByCriticalCount', 'usesSuddenDeath',
-  'criticalWounds', 'roundsAtZero', 'outOfRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
+  'criticalWounds', 'roundsAtZero', 'outOfRencontre', 'estEnRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
   'canTakeAction', 'isEngaged', 'controlsCombatant', 'movementUsed',
   'sizeGap', '\\breturn reach\\b', 'hasActiveCapability', 'pilotedByHuman', 'removeCondition',
   '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.log\\(', '\\breturn tr\\(',

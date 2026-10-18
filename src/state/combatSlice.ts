@@ -68,7 +68,7 @@ import { teamCommandTargets } from './commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination, estEnRencontre } from '../engine/conditions';
 import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -2688,7 +2688,7 @@ export function createCombatSlice(get: Get, set: Set) {
       suspendActiveCascade(get, set);
       // Placer les héros près de leur position de groupe, les ennemis selon l'encounter.
       // Couture d'ENTRÉE (`entreeEnRencontre`, #2312) ; on n'instancie pas les morts/éjectés.
-      const livingParty = party.filter((h) => !h.dead && !h.outOfRencontre);
+      const livingParty = party.filter(estEnRencontre);
       // Les cases des membres de la rencontre ne reçoivent aucun héros (`formationDeCombat`).
       const prises = new Set((enc.members ?? []).flatMap((m) => {
         const ent = scene.entities.find((e) => e.id === m.entityId);

@@ -7,7 +7,7 @@ import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
 import { snapshotSave } from './saves';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal } from './bourseFlow';
+import { fortuneDuGroupe } from './bourseFlow';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from './worldMap';
 import type { LandMarketProfile, TradeRumour } from '../engine/landCargo';
@@ -80,7 +80,7 @@ function launchAtA(): void {
   const h = trader();
   g.setParty([h]);
   g.loadProject([marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], 'marche-a', tradeMap());
-  // trader() n'a pas de bourse → partyMoneyTotal = 0 ; le registre de possessions REMPLACE tout auto-semis
+  // trader() n'a pas de bourse → fortuneDuGroupe = 0 ; le registre de possessions REMPLACE tout auto-semis
   // de dotation carrière (marchand niveau 1 porte une mule) par LE porteur déterministe du test.
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
@@ -110,7 +110,7 @@ function sellAtB(board: TradeRumour[]): number {
     vi.runAllTimers();
   }
   vi.useRealTimers();
-  return toBrass(partyMoneyTotal(get));
+  return toBrass(fortuneDuGroupe(get));
 }
 
 describe('#99 — rumeur CROSS-LIEU appliquée à la vente au Lieu désigné (l.180)', () => {

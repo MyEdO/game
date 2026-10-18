@@ -16,10 +16,12 @@ import { cascadeDeTest } from './cascadeTestKit';
  * projette par le `write` du même accesseur. Aucun résolveur de flux n'est sollicité — ils traitent
  * `forced` comme un auto-succès de Résilience et rendraient une réussite GRATUITE en ignorant la saisie.
  *
- * Cette garde ouvre un pending FIXTURE RÉEL pour CHAQUE flux portant `setForcedRoll` et vérifie les deux
+ * Cette garde ouvre un pending FIXTURE RÉEL pour CHAQUE flux portant `setForcedRoll` et vérifie les
  * invariants du socle :
  *   1. un dé fixé PERDANT ne devient jamais une réussite ;
- *   2. la valeur APPLIQUÉE est la valeur SAISIE.
+ *   2. la valeur APPLIQUÉE est la valeur SAISIE ;
+ *   3. l'issue lue est le VERDICT du flux (#2692) : chaque fixture déclare les dés (`tranche`) dont le
+ *      verdict diffère de l'issue posée — et, sous une opposition ou un seuil, de la réussite propre du dé.
  * Un flux dont la fixture manque ÉCHOUE la garde : impossible d'en ajouter un en le laissant dehors.
  */
 const HERO: Combatant = {
@@ -44,11 +46,13 @@ const atkResult = {
   defenderDefeated: false, log: 'raté', attackerDetail: atkDetail,
 };
 
-/** Fixture d'un flux : le pending à poser, l'id de slot visé (multi), et la lecture du jet obtenu. */
+/** Fixture d'un flux : le pending à poser, l'id de slot visé (multi), la lecture du VERDICT obtenu et
+ *  les dés qui le discriminent, avec leur verdict attendu. */
 interface Fixture {
   state: Record<string, unknown>;
   pid?: string;
   read: () => { roll: number | undefined; success: boolean | undefined };
+  tranche: readonly { die: number; success: boolean }[] | { sansVerdict: string };
 }
 const P = <T2,>(k: string): T2 => (useGame.getState() as unknown as Record<string, T2>)[k];
 /** Participant d'un Test d'équipage (jet à 3 champs) ; Compétence de Navigation par `propulsionDuNavire` (MDG 13 l.18-19). */
@@ -57,22 +61,32 @@ const part3 = (id = 'H'): ShipManeuverParticipant => ({ id, roleId: 'mousse', es
 const flatRead = (k: string) => () => ({ roll: P<{ roll: number }>(k).roll, success: P<{ success: boolean }>(k).success });
 /** Jet rangé sous `result`. */
 const resultRead = (k: string) => () => ({ roll: P<{ result: { roll: number } }>(k).result.roll, success: P<{ result: { success: boolean } }>(k).result.success });
-/** `TestResult` entier rangé sous `roll`. */
-const trRead = (k: string) => () => ({ roll: P<{ roll: { roll: number } }>(k).roll.roll, success: P<{ roll: { success: boolean } }>(k).roll.success });
+/** Dé fixé gagnant (DR 4 sur 45) contre le jet raté posé : le verdict doit se retourner. */
+const GAGNE = [{ die: 5, success: true }] as const;
+/** Rangée sans issue scellée : sa réussite EST son d100 (`roll ≤ cible`) ou sa seule valeur posée — un dé
+ *  qui « tranche » ne mesurerait rien de plus que la valeur appliquée, déjà gardée. */
+const SANS_VERDICT = { sansVerdict: 'issue = le dé posé, aucun verdict scellé à part' } as const;
+/** Sous une opposition à DR +3 : DR 4 l'emporte, DR 0 (dé 45, réussi seul) la perd. */
+const OPPOSE = [{ die: 5, success: true }, { die: 45, success: false }] as const;
+/** Jet de l'opposant FIGÉ (Récupération d'État, Marchandage), meilleur que le jet raté posé. */
+const oppose3 = { roll: 20, target: 50, success: true, sl: 3, isDouble: false, base: 50 };
 /** Participant à 3 champs : la réussite est le d100 propre (≤ cible). */
 const partRead = (get: () => { roll: number }) => () => { const r = get(); return { roll: r.roll, success: r.roll <= T }; };
 /** Tests OPPOSÉS binaires : `def` = jet de l'acteur, `atk` figé, issue `'success'`. */
 const opposedFixture = (key: string, extra: Record<string, unknown>): Fixture => ({
+  tranche: OPPOSE,
   state: { [key]: { ...extra, def: rateTR, atk: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
   read: () => ({ roll: P<{ def: { roll: number } }>(key).def.roll, success: P<{ result: string }>(key).result === 'success' }),
 });
 
 const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   attack: {
+    tranche: GAGNE,
     state: { pendingAttack: { attackerId: 'H', targetId: 'E', location: null, result: atkResult } },
     read: () => ({ roll: P<{ result: { attackerRoll: number } }>('pendingAttack').result.attackerRoll, success: P<{ result: { attackerDetail: { success: boolean } } }>('pendingAttack').result.attackerDetail.success }),
   },
   defense: {
+    tranche: [{ die: 5, success: true }, { die: 45, success: false }], // DR 4 puis DR 0 contre l'attaque à DR +1
     state: {
       pendingDefense: {
         attackerId: 'E', defenderId: 'H', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
@@ -81,15 +95,17 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
         suite: { mode: 'machine', coup: {} },
       },
     },
-    read: () => ({ roll: P<{ def: { roll: number } }>('pendingDefense').def.roll, success: P<{ def: { success: boolean } }>('pendingDefense').def.success }),
+    read: () => ({ roll: P<{ def: { roll: number } }>('pendingDefense').def.roll, success: !P<{ result: { hit: boolean } }>('pendingDefense').result.hit }),
   },
   cast: {
+    tranche: GAGNE,
     state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: '' } } },
     read: () => ({ roll: P<{ result: { roll: number } }>('pendingCast').result.roll, success: P<{ result: { cast: boolean } }>('pendingCast').result.cast }),
   },
   // Contre-sort / Opposition : le jet d'incantation ENNEMI est FIGÉ dans `pendingCast` — les deux
   // accesseurs de dé l'y relisent pour re-opposer, la fixture doit donc le poser.
   counterspell: {
+    tranche: OPPOSE,
     state: {
       pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'H', interactive: true, declared: 'solo', result: { dispelled: false, counter: rateTR, casterNetSL: 7, log: '' } }] },
@@ -97,10 +113,11 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     pid: 'H',
     read: () => ({
       roll: P<{ participants: { result: { counter: { roll: number } } }[] }>('pendingCounterspell').participants[0].result.counter.roll,
-      success: P<{ participants: { result: { counter: { success: boolean } } }[] }>('pendingCounterspell').participants[0].result.counter.success,
+      success: P<{ participants: { result: { dispelled: boolean } }[] }>('pendingCounterspell').participants[0].result.dispelled,
     }),
   },
   opposition: {
+    tranche: OPPOSE,
     state: {
       pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
       pendingCastOpposition: { kind: 'resist', char: 'force-mentale', participants: [{ id: 'H', interactive: true, result: { oppose: rateTR, resisted: false, margin: 7 } }] },
@@ -108,10 +125,11 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     pid: 'H',
     read: () => ({
       roll: P<{ participants: { result: { oppose: { roll: number } } }[] }>('pendingCastOpposition').participants[0].result.oppose.roll,
-      success: P<{ participants: { result: { oppose: { success: boolean } } }[] }>('pendingCastOpposition').participants[0].result.oppose.success,
+      success: P<{ participants: { result: { resisted: boolean } }[] }>('pendingCastOpposition').participants[0].result.resisted,
     }),
   },
   cascade: {
+    tranche: GAGNE,
     state: { pendingCascade: cascadeDeTest([{ id: 's1', kind: 'test', actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
     pid: 's1',
     read: () => ({ roll: P<{ participants: { result: { roll: number } }[] }>('pendingCascade').participants[0].result.roll, success: P<{ participants: { result: { success: boolean } }[] }>('pendingCascade').participants[0].result.success }),
@@ -120,6 +138,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // d100 (`roll ≤ cible`, cf. `partRead`) reviendrait à se fournir la valeur qu'on prétend mesurer :
   // la garde resterait verte alors même que l'accesseur de dé n'écrirait aucune issue.
   cascadeBatch: {
+    tranche: GAGNE,
     state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: 'batch', aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
     pid: 'H',
     read: () => {
@@ -128,6 +147,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     },
   },
   flee: {
+    tranche: GAGNE,
     state: { pendingDisengage: { moverId: 'E', foeId: 'H', fuir: { participants: [{ id: 'H', kind: 'backstab', interactive: true, result: atkResult }] } } },
     pid: 'H',
     read: () => {
@@ -136,62 +156,81 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     },
   },
   test: {
-    state: { pendingTest: { actorId: 'H', actorName: 'Héros', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
+    state: { pendingTest: { actorId: 'H', actorName: 'Héros', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 3, ...rate, jet: rateTR, onSuccess: [], onFailure: [] } },
     read: flatRead('pendingTest'),
+    tranche: [{ die: 5, success: true }, { die: 40, success: false }], // DR 4 ≥ 3 ; d100 réussi, DR 0 < requireSL 3
   },
   activity: {
+    tranche: GAGNE,
     state: { pendingActivity: { heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingActivity'),
   },
   reload: {
+    tranche: GAGNE,
     state: { pendingReload: { actorId: 'H', actorName: 'H', weaponUid: 'w', reload: 1, progressBefore: 0, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingReload'),
   },
-  handGate: { state: { pendingHandGate: { attackerId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingHandGate') },
-  steamSave: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
+  handGate: { tranche: GAGNE, state: { pendingHandGate: { attackerId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingHandGate') },
+  steamSave: { tranche: GAGNE, state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
   appraise: {
+    tranche: GAGNE,
     state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'Rare', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingAppraise'),
   },
   heal: {
+    tranche: GAGNE,
     state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'wounds', intBonus: 4, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingHeal'),
   },
   surgery: {
+    tranche: GAGNE,
     state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingSurgery'),
   },
   // Exposition à une Influence corruptrice (LDB 19 l.29) : « tentez un Test de Résistance Intermédiaire
   // (+0) ou un Test de Calme » — un Test, donc la Résilience (LDB 17 l.68) et son dé choisi.
   corruption: {
+    tranche: GAGNE,
     state: { pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', skill: 'resistance', skillLocked: true, menace: 'corruption', ...rate } },
     read: flatRead('pendingCorruption'),
   },
-  recover: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
-  bargain: {
-    state: { pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: T, merchantRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, roll: rateTR } },
-    read: trRead('pendingBargain'),
+  recover: {
+    state: { pendingStateRecovery: { actorId: 'H', state: 'empetre', skillValue: T, skillBase: T, difficulty: 'intermediaire', opposition: { value: 50, base: 50 }, roll: { ...rateTR, base: T }, opponentRoll: oppose3, netSL: 7, success: false } },
+    read: () => ({ roll: P<{ roll: { roll: number } }>('pendingStateRecovery').roll.roll, success: P<{ success: boolean }>('pendingStateRecovery').success }),
+    tranche: OPPOSE,
   },
-  frenzy: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
-  approach: { state: { pendingApproach: { combatantId: 'H', sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
-  ward: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
-  dispel: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
-  shanty: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
-  battement: { state: { pendingBattement: { attackerId: 'H', targetId: 'E', result: rateTR } }, read: resultRead('pendingBattement') },
+  bargain: {
+    state: { pendingBargain: { playerId: 'H', playerSkill: T, playerBase: T, merchantRoll: oppose3, roll: rateTR, result: { attacker: rateTR, defender: oppose3, winner: 'defender', attackerWins: false, netSL: 7, decidedBy: 'dr' } } },
+    read: () => {
+      const r = P<{ result: { attacker: { roll: number }; attackerWins: boolean } }>('pendingBargain').result;
+      return { roll: r.attacker.roll, success: r.attackerWins };
+    },
+    tranche: OPPOSE,
+  },
+  frenzy: { tranche: GAGNE, state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
+  approach: { tranche: GAGNE, state: { pendingApproach: { combatantId: 'H', sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
+  ward: { tranche: GAGNE, state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
+  dispel: { tranche: GAGNE, state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
+  shanty: { tranche: GAGNE, state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
+  battement: { tranche: GAGNE, state: { pendingBattement: { attackerId: 'H', targetId: 'E', result: rateTR } }, read: resultRead('pendingBattement') },
   focus: {
+    tranche: GAGNE,
     state: { pendingFocus: { casterId: 'H', spellId: 'drain', result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: T, sl: -4, log: '' } } },
     read: () => ({ roll: P<{ result: { roll: number } }>('pendingFocus').result.roll, success: P<{ result: { dr: number } }>('pendingFocus').result.dr > 0 }),
   },
   run: {
+    tranche: GAGNE,
     state: { pendingRun: { combatantId: 'H', dest: { x: 5, y: 0 }, result: { success: false, roll: 88, target: T, dr: -4, bonusCases: 0 } } },
     read: resultRead('pendingRun'),
   },
   fall: {
+    tranche: GAGNE,
     state: { pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
     pid: 'H',
     read: () => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>('pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
   extendedTest: {
+    tranche: GAGNE,
     state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, targetDR: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
     pid: 'r1',
     read: () => {
@@ -202,26 +241,31 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // LOT DE DÉS d'un étal (#1426) : le seul verbe est la POSE. La rangée n'a ni cible ni réussite —
   // ce qu'on vérifie est le SEUL contrat qui existe ici : la valeur SAISIE est la valeur APPLIQUÉE.
   etalLot: {
+    tranche: SANS_VERDICT,
     state: { pendingEtalLot: { label: 'Halle', cible: 'land', participants: [{ id: 'de-1', label: 'Marchand présent', min: 1, max: 100, value: 88, interactive: true, result: null }] } },
     pid: 'de-1',
     read: () => { const v = P<{ participants: { value: number }[] }>('pendingEtalLot').participants[0].value; return { roll: v, success: v <= T }; },
   },
   forceDoor: {
+    tranche: SANS_VERDICT,
     state: { pendingForceDoor: { doorId: 'd', participants: [{ id: 'H', interactive: true, result: { roll: 88, target: T, sl: -4, damage: 0 } }] } },
     pid: 'H',
     read: partRead(() => P<{ participants: { result: { roll: number } }[] }>('pendingForceDoor').participants[0].result),
   },
   shipManeuver: {
+    tranche: SANS_VERDICT,
     state: { pendingShipManeuver: { participants: [part3()] } },
     pid: 'H',
     read: partRead(() => P<{ participants: { result: { roll: number } }[] }>('pendingShipManeuver').participants[0].result),
   },
   shipBattery: {
+    tranche: SANS_VERDICT,
     state: { pendingShipBattery: { participants: [part3()] } },
     pid: 'H',
     read: partRead(() => P<{ participants: { result: { roll: number } }[] }>('pendingShipBattery').participants[0].result),
   },
   crewTest: {
+    tranche: SANS_VERDICT,
     state: { pendingCrewTest: { participants: [part3()] } },
     pid: 'H',
     read: partRead(() => P<{ participants: { result: { roll: number } }[] }>('pendingCrewTest').participants[0].result),
@@ -230,10 +274,11 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   auContact: opposedFixture('pendingAuContact', { moverId: 'H', foeId: 'E' }),
   grapple: opposedFixture('pendingGrapple', { actorId: 'H', targetId: 'E' }),
   distraire: {
+    tranche: OPPOSE,
     state: { pendingDistraire: { moverId: 'H', targetId: 'E', atk: rateTR, defRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
     read: () => ({ roll: P<{ atk: { roll: number } }>('pendingDistraire').atk.roll, success: P<{ result: string }>('pendingDistraire').result === 'success' }),
   },
-  maneuver: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', maneuverId: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
+  maneuver: { tranche: GAGNE, state: { pendingManeuver: { attackerId: 'H', targetId: 'E', maneuverId: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
 };
 
 const FLUX = (Object.keys(FLOW_VERBS) as FlowKey[]).filter(
@@ -276,6 +321,24 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
       expect(got.roll, `${k} : la valeur appliquée n'est pas la valeur saisie`).toBe(PERDANT);
       expect(got.success, `${k} : un dé PERDANT est devenu une réussite (réussite gratuite)`).toBe(false);
     });
+  }
+});
+
+describe('socle du dé fixé — l\'issue scellée est le verdict du flux sur le dé affiché (#2692)', () => {
+  for (const k of FLUX) {
+    const tranche = FIXTURES[k]?.tranche;
+    for (const { die, success } of Array.isArray(tranche) ? tranche : []) {
+      it(`${k} — dé fixé ${die} : le verdict du flux est ${success ? 'une réussite' : 'un échec'}`, () => {
+        const f = FIXTURES[k]!;
+        setDesFixes(true);
+        useGame.setState(f.state as never);
+        const verb = (useGame.getState() as unknown as Record<string, (...a: unknown[]) => void>)[`${k}SetForcedRoll`];
+        if (f.pid) verb(f.pid, die); else verb(die);
+        const got = f.read();
+        expect(got.roll, `${k} : le verdict ne porte pas le dé affiché`).toBe(die);
+        expect(got.success, `${k} : le verdict scellé ne suit pas le dé fixé`).toBe(success);
+      });
+    }
   }
 });
 

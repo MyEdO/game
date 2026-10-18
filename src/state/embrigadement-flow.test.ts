@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { resolvePortArrival } from './seaVoyageFlow';
 import { advanceCascade, setCascadeChoice } from './cascade';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { skillBaseValue, testValue, soutienDetail } from '../engine/skills';
@@ -85,7 +85,7 @@ describe('Embrigadement — recouvrement (MDG 15 l.245, #164)', () => {
     choose('payer'); // rançon 2 CO
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.crewLost).toBe(0); // les 2 marins reviennent (applyVesselCrewLoss négatif)
-    expect(partyMoneyTotal(get).gold).toBe(98); // 100 − 2 CO (payFromGroup, dépense de bande)
+    expect(fortuneDuGroupe(get).gold).toBe(98); // 100 − 2 CO (payFromGroup, dépense de bande)
   });
 
   it('Ragot réussi + DISCRÉTION réussie : marins récupérés sans dépense', () => {
@@ -96,7 +96,7 @@ describe('Embrigadement — recouvrement (MDG 15 l.245, #164)', () => {
     jet(true); // Discrétion réussie
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.crewLost).toBe(0);
-    expect(partyMoneyTotal(get).gold).toBe(100); // bourse intacte
+    expect(fortuneDuGroupe(get).gold).toBe(100); // bourse intacte
   });
 
   /**
@@ -146,7 +146,7 @@ describe('Embrigadement — recouvrement (MDG 15 l.245, #164)', () => {
     jet(true);
     choose('payer');
     expect(get().pendingCascade).toBeNull();
-    expect(partyMoneyTotal(get).gold).toBe(0);
+    expect(fortuneDuGroupe(get).gold).toBe(0);
     expect(get().vessel!.crewLost).toBe(2); // rançon impayable → captifs
   });
 

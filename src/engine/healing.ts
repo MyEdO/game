@@ -5,7 +5,7 @@
  */
 import { Combatant, type Difficulty } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, hasCondition, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions } from './conditions';
+import { loseWounds, addCondition, removeCondition, hasCondition, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions, estEnRencontre } from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
@@ -29,7 +29,7 @@ export function hasSurgerySkill(c: Combatant): boolean {
 /** Cible soignable : blessée (PB perdus) OU porteuse d'≥1 État Hémorragique OU avec une déchirure traitable ;
  *  ni morte ni éjectée. Les cibles Inconscientes/À Terre sont valides (1 PB lève l'inconscience, LDB 18 l.15). */
 export function isHealable(c: Combatant): boolean {
-  if (c.dead || c.outOfRencontre) return false;
+  if (!estEnRencontre(c)) return false;
   return c.wounds.current < c.wounds.max || condStacks(c, 'hemorragique') > 0 || hasTreatableTrauma(c)
     || hasSurgeryTrauma(c) || hasRecoverableTrauma(c) || hasLimbAwaitingAid(c) || hasSurgeryLockedCondition(c);
 }

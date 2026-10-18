@@ -97,7 +97,7 @@ import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR
 import { beginShipwreck } from './shipwreck';
 import type { NightEntry } from './restFlow';
 import { toMoney, canAfford, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup } from './bourseFlow';
+import { payFromGroup, cotisationDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
@@ -2661,7 +2661,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
   const cost = Math.ceil(missing * (lissage ? 1.5 : 1));
   const costMoney = toMoney({ gold: cost });
-  if (!canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.yardTooExpensive', { cost })];
+  if (!canAfford(cotisationDuGroupe(get().party), costMoney)) return [t('sv.yardTooExpensive', { cost })];
   const rng = battleRng();
   let hours = 0;
   for (let healed = 0; healed < missing; healed += rollDice(1, 10, rng)) hours += rollDice(1, 10, rng); // 1d10 h / 1d10 B (l.643)
@@ -2687,7 +2687,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const pct = foulingEffects(level).repairPctOfBase;
   const cost = Math.ceil(baseGold * (pct / 100));
   const costMoney = toMoney({ gold: cost });
-  if (cost > 0 && !canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.careenTooExpensive', { cost, pct })];
+  if (cost > 0 && !canAfford(cotisationDuGroupe(get().party), costMoney)) return [t('sv.careenTooExpensive', { cost, pct })];
   if (cost > 0) payFromGroup(get, set, costMoney, { purpose: 'carénage navire' });
   set({ vessel: { ...vessel, fouling: { level: 0, lastWeek: vessel.fouling?.lastWeek ?? 0 }, crabs: undefined } });
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
@@ -2706,7 +2706,7 @@ export function portInstallUpgrade(get: Get, set: Set, traitId: string, units = 
   const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
   if (gold == null) return [t('sv.upgradeEmbedded', { label: entry.label })];
   const costMoney = toMoney({ gold });
-  if (!canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.upgradeTooExpensive', { label: entry.label, gold })];
+  if (!canAfford(cotisationDuGroupe(get().party), costMoney)) return [t('sv.upgradeTooExpensive', { label: entry.label, gold })];
   payFromGroup(get, set, costMoney, { purpose: 'amélioration navire' });
   set({ vessel: { ...vessel, upgrades: [...(vessel.upgrades ?? []), { id: traitId, ...(units > 1 ? { value: units } : {}) }] } });
   return [t('sv.upgradeInstalled', { label: entry.label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '' })];

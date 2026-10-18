@@ -19,7 +19,7 @@ import { battleRng as battleRngFor } from './battleRng';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
 import { toBrass, type Money } from '../engine/money';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { stacks, addCondition } from '../engine/conditions';
 
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -116,7 +116,7 @@ describe('openRest / choix par héros', () => {
     expect(cfg['h2']).toEqual({ lodging: 'dehors', food: 'ration' });
     // Coût : 1 chambre privée (couvre 2, ici 1 occupant) 10 pa + 1 repas 1 pa = 132 sc.
     useGame.getState().restSleep();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(480 - 120 - 12);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(480 - 120 - 12);
     // Nuit UNIQUE → CASCADE (plus de bilan) : météo clémente → seulement les jets de récupération.
     expect(useGame.getState().pendingRest).toBeNull();
     const cas = useGame.getState().pendingCascade!;
@@ -134,7 +134,7 @@ describe('openRest / choix par héros', () => {
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSet('h2', { food: 'rien' });
     useGame.getState().restSleep();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(480 - 120); // 1 chambre, 0 repas
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(480 - 120); // 1 chambre, 0 repas
   });
 
   it('bourse insuffisante : Dormir refusé (on peut alors choisir la belle étoile, gratuite)', () => {
@@ -149,7 +149,7 @@ describe('openRest / choix par héros', () => {
     useGame.getState().restSleep(); // gratuit → dort (cascade, plus de bilan)
     expect(useGame.getState().pendingRest).toBeNull();
     expect(useGame.getState().pendingCascade).toBeTruthy();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(5);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(5);
   });
 
   it('campement sous la pluie sans tente : ABRI raté → l’Exposition est INSÉRÉE (2 VAGUES, 2 campeurs par vague)', () => {
@@ -240,7 +240,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     useGame.getState().restSleep();
 
     // Les gages ont bien été prélevés cette nuit-là (le débit CLONE l'objet héros — `withBourseMoney`).
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(toBrass({ gold: 10, silver: 0, brass: 0 }));
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(toBrass({ gold: 10, silver: 0, brass: 0 }));
     // AVANT le fix : la dissipation d'Exténué (mutation eager, l.523/534 de buildNightCascade) s'appliquait
     // sur la réf PÉRIMÉE (capturée avant le débit) et se perdait au commit final — le héros restait Exténué
     // malgré une nuit de repos complète.

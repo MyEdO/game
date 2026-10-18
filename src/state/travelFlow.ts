@@ -29,7 +29,7 @@ import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, placeOfScene, otherEnd, type MapRoute, type WorldMap } from './worldMap';
-import { billetApresDepart, offreDePassage } from './billetFlow';
+import { billetApresDepart, offreDePassage, refusDuBillet } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
   vehicleTravel,
@@ -54,7 +54,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { PERIPETIES } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
-import { addCondition, removeCondition, stacks } from '../engine/conditions';
+import { addCondition, removeCondition, stacks, estEnRencontre } from '../engine/conditions';
 import { formatMoney } from '../engine/money';
 import { condCtx, payFromGroup } from './bourseFlow';
 import { evalCondition } from '../engine/flowCore';
@@ -373,11 +373,13 @@ export function startTravel(
     const modeLabel = travelModeLabels()[mode].toLowerCase();
     if (offre.couvert) log(get, set, [t('tf.billetPresente', { mode: modeLabel })]);
     else {
-      const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
+      const refus = refusDuBillet(get(), offre.cle);
+      if (refus) { log(get, set, [refus]); return; }
+      const passengers = party.filter(estEnRencontre).length;
       const classeId = classeRetenue(offre.tarif, opts.classeId ?? '');
       const cost = transportCost(offre.tarif, classeId, passengers, offre.issue);
       // Dépense de GROUPE (LDB 51 l.178) : passage sans bénéficiaire unique → cotisation gloutonne des bourses.
-      if (!payFromGroup(get, set, cost, { purpose: 'passage' })) {
+      if (!payFromGroup(get, set, cost, { purpose: 'passage', exclus: get().refusDeVendeur[offre.cle] })) {
         log(get, set, [t('tf.passageTooDear', { mode: modeLabel, cost: formatMoney(cost) })]);
         return;
       }
@@ -576,7 +578,7 @@ function runTravelDays(get: Get, set: Set): void {
       const crossedFatigue = prior.foot < base - 1e-9 && totalFoot >= base - 1e-9;
       const overBudget = totalFoot > base + 1e-9 && !prior.marched;
       for (const h of party) {
-        if (h.dead || h.outOfRencontre) continue;
+        if (!estEnRencontre(h)) continue;
         if (crossedFatigue) { const fatigue = applyTravelFatigue(h); dayLines.push(...fatigue); recapDay.lines.push(...toRecapLines(fatigue)); }
         if (overBudget) marchHeroes.push(h.id);
       }
@@ -1165,7 +1167,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
   if (r.entry.occupantOps?.length) {
     const opLines: string[] = [];
     for (const h of get().party) {
-      if (h.dead || h.outOfRencontre) continue;
+      if (!estEnRencontre(h)) continue;
       opLines.push(...applyOps(h, r.entry.occupantOps, { rng: battleRng() }));
     }
     set({ party: [...get().party] });

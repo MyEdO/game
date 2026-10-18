@@ -8,7 +8,7 @@ import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup } from './bourseFlow';
+import { payFromGroup, cotisationDuGroupe } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
 import type { CampaignVessel } from './store';
@@ -429,7 +429,7 @@ export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng:
     set({ pendingCouncil: { today, wageBrass, phase: 'choix' } });
     return [];
   }
-  const out = resolveVesselWeek(vessel, partyMoneyTotal(get), defaultPayDecision(wageBrass), today, rng);
+  const out = resolveVesselWeek(vessel, cotisationDuGroupe(get().party), defaultPayDecision(wageBrass), today, rng);
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({ vessel: out.vessel });
   return out.lines;
@@ -458,8 +458,8 @@ export function councilPay(get: Get, set: SetFn, decision: string): void {
   const vessel = get().vessel;
   if (!p || p.phase !== 'choix' || !vessel || !isPayChoice(decision)) return;
   // Non payable (hors choix GRATUIT) → rejet : le Conseil n'accepte que ce que le groupe couvre.
-  if (!isFreePayChoice(decision) && !canAfford(partyMoneyTotal(get), fromBrass(payChoiceCostBrass(p.wageBrass, decision)))) return;
-  const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
+  if (!isFreePayChoice(decision) && !canAfford(cotisationDuGroupe(get().party), fromBrass(payChoiceCostBrass(p.wageBrass, decision)))) return;
+  const out = resolveVesselWeek(vessel, cotisationDuGroupe(get().party), decision, p.today, battleRng());
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({
     vessel: out.vessel,

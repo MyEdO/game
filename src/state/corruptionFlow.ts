@@ -55,6 +55,7 @@ import { resultLine, freeCons, tableStep, type BuiltCascadeStep } from './rollSe
 import { t } from '../i18n';
 import { stepDetail } from './rollSeam';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../data/schemas/grammaire/valeurs';
+import { estEnRencontre } from '../engine/conditions';
 
 /** SEULE couture entre la référence portée par l'op/l'effet et le slot `pendingCorruption`. PURE.
  *  Absente = indéterminée, le joueur tranche dans la modale (défaut affiché : Résistance,
@@ -380,5 +381,5 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
  *  humain hostile MODÉLISÉ (statbloc d'éditeur ou bestiaire rétro-flagué) y est éligible comme un héros. */
 export function corruptionTarget(s: GameState, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;
-  return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
+  return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find(estEnRencontre);
 }

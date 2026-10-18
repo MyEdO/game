@@ -10,7 +10,7 @@ import { buildEncounter } from './encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { rationCount } from '../engine/provisions';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
@@ -148,9 +148,9 @@ describe('startTravel — à pied', () => {
     const p = useGame.getState().pendingRest!;
     expect(p.places.auberge).toBe(true);
     expect(p.perHero[useGame.getState().party[0].id].lodging).toBe('privee'); // défaut auberge
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     sleepThroughHalt();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before - 120 - 12); // chambre 10 pa + repas 1 pa
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before - 120 - 12); // chambre 10 pa + repas 1 pa
     expect(useGame.getState().scene?.id).toBe('lieu-b-scene');
   });
 
@@ -180,7 +180,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
     useGame.getState().startTravel('r1', 'diligence', { classeId: 'exterieur' }); // 1 sou/km × 12 × 1 passager
     const st = useGame.getState();
     expect(st.scene?.id).toBe('lieu-b-scene');
-    expect(toBrass(partyMoneyTotal(() => st))).toBe(48); // 60 − 12
+    expect(toBrass(fortuneDuGroupe(() => st))).toBe(48); // 60 − 12
     expect(st.gameTime - t0).toBe(120); // 12 km ÷ 6 km/h = 2 h
   });
 
@@ -190,7 +190,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
     const st = useGame.getState();
     expect(st.scene?.id).toBe('lieu-a-scene'); // pas parti
     expect(st.travelPlan).toBeNull();
-    expect(toBrass(partyMoneyTotal(() => st))).toBe(60); // rien débité
+    expect(toBrass(fortuneDuGroupe(() => st))).toBe(60); // rien débité
     expect(st.journal.some((l) => l.includes('dépasse les moyens'))).toBe(true);
   });
 

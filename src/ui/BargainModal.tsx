@@ -58,7 +58,8 @@ export function BargainModalView({
   const playerD = playerLine.d;
   const merchantD = merchantLine.d ?? null;
   const opposant = pb.opposant.portrait;
-  const opposed = rolled && !!actor && !!opposant && !!playerD && !!merchantD;
+  // Verdict du Test opposé, lu tel que le flux l'a scellé — un opposant sans portrait a le sien (#2692).
+  const verdict = rolled ? pb.result : null;
 
   // Rangée INTERACTIVE du négociateur (pré-jet en attente puis résultat), porteuse de son influence.
   const actorRow: BuiltRollRow = buildRollRow({
@@ -86,7 +87,7 @@ export function BargainModalView({
     responded: opposedResponded(useGame.getState(), [{ id: pb.playerId, interactive: true, result: pb.roll ?? undefined }]),
     row: { combatant: opposant, ...(merchantD ? { d: merchantD } : { pending: merchantLine.pending }) },
   });
-  const winnerIndex = opposed ? (pb.result!.attackerWins ? 0 : 1) : null;
+  const winnerIndex = verdict ? (verdict.attackerWins ? 0 : 1) : null;
 
   const actions: RollAction[] = owned
     ? [
@@ -104,7 +105,7 @@ export function BargainModalView({
       rows={[actorRow, merchantRow]}
       rolled={rolled}
       winnerIndex={winnerIndex}
-      netSL={opposed ? pb.result!.netSL : undefined}
+      netSL={verdict ? (verdict.attackerWins ? verdict.netSL : -verdict.netSL) : undefined}
       outcome={rolled ? [recapLineOfEvent(ev('info', describeBargain(pb)))] : undefined}
       actions={actions}
       onCancel={rolled || !owned ? undefined : onCancel}

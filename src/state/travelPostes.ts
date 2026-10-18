@@ -26,7 +26,7 @@ import { stageEncounterCategory } from '../engine/travelEncounter';
 import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
-import { removeCondition, stacks } from '../engine/conditions';
+import { removeCondition, stacks, estEnRencontre } from '../engine/conditions';
 import { extendedTestStep, type EchecSansJet } from '../engine/tests';
 import { registerCascadeApplier } from './cascade';
 import { appliquerIssueActivite } from './activityIssue';
@@ -130,7 +130,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
   if (!plan?.postes || Object.keys(plan.postes).length === 0) return [];
 
   const stages = stageCount(plan.km, undefined, groupMinMovement(party, get().possessions, plan.mode));
-  const livingIds = party.filter((h) => !h.dead && !h.outOfRencontre).map((h) => h.id);
+  const livingIds = party.filter(estEnRencontre).map((h) => h.id);
   const stage: StageContext = { weather, season, livingIds, results: [] };
   set({ travelPlan: { ...plan, stage } });
 
@@ -254,7 +254,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
   if (!rt) return [];
   const parts: BatchParticipant[] = [];
   for (const hero of get().party) {
-    if (hero.dead || hero.outOfRencontre) continue;
+    if (!estEnRencontre(hero)) continue;
     parts.push({
       id: hero.id, label: refLabel('skills', { id: 'resistance' }), interactive: true,
       difficulty: rt.difficulty,
@@ -302,7 +302,7 @@ registerCascadeApplier('stageAggregate', (get, set, step) => {
   const foraged = results.filter((r) => r.resolver === 'forage' && r.success).reduce((n, r) => n + forageYield(r.sl, 'recherche'), 0);
   if (foraged > 0) {
     let remaining = foraged;
-    for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
+    for (const h of party.filter(estEnRencontre)) {
       if (remaining <= 0) break;
       if (rationCount(h) >= 1) continue;
       const ration = itemFromGive({ trappingId: 'ration' });

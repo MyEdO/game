@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { resolveShoreLeaveDesertion } from './shipCrew';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { makeRNG } from '../engine/dice';
 import { toBrass, type Money } from '../engine/money';
@@ -62,7 +62,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     expect(v.morale.score).toBeGreaterThan(75); // « La paie est régulière » = +1d10
     expect(v.morale.factors).toEqual([]); // le facteur de paie est injecté pour le recalcul, jamais persisté
     expect(v.wagesOwed).toBeUndefined();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 288);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 288);
     expect(useGame.getState().journal.join('\n')).toMatch(/Solde hebdomadaire de l'équipage versée/);
   });
 
@@ -75,7 +75,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     const v = useGame.getState().vessel!;
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie »
     expect(v.wagesOwed).toBe(288); // solve due cumulée en sous de cuivre
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(120); // rien n'est prélevé
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(120); // rien n'est prélevé
     expect(useGame.getState().journal.join('\n')).toMatch(/Bourse insuffisante pour la solde/);
   });
 
@@ -89,7 +89,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBe(75); // aucun facteur actif → delta 0
     expect(v.wagesOwed).toBeUndefined();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 })); // bourse intacte
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 })); // bourse intacte
   });
 
   it('halte de nuit (openRest/restSleep) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
@@ -125,7 +125,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
     expect(s.pendingCouncil?.wageBrass).toBe(288); // barème mousse (paie régulière)
     expect(s.vessel!.morale.score).toBe(75); // Moral NON recalculé
     expect(s.vessel!.morale.lastMoraleWeek).toBe(0); // semaine NON avancée
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 })); // bourse intacte
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 })); // bourse intacte
   });
 
   it('choix « chiche » → facteur paie-chiche (−2d10) + demi-solde prélevée, bilan joué', () => {
@@ -136,7 +136,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.morale.score).toBeLessThan(75); // « La paie est chiche » fait chuter le Moral
     expect(s.vessel!.morale.lastMoraleWeek).toBe(1); // semaine avancée à la validation
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 144); // ½ de 288
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 144); // ½ de 288
     expect((s.pendingCouncil?.results ?? []).some((e) => e.label.includes('chiche'))).toBe(true);
     useGame.getState().councilClose();
     expect(useGame.getState().pendingCouncil).toBeNull();
@@ -151,7 +151,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
     const s = useGame.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.wagesOwed).toBe(288); // solde régulière due cumulée
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(0); // bourse intacte (vide)
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(0); // bourse intacte (vide)
   });
 
   it('sans équipage salarié → pas de conseil même en manuel (recalcul immédiat, non-régression)', () => {

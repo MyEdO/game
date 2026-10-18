@@ -10,7 +10,7 @@ import { careers, levelsForCareer } from '../data';
 import { actorStatus } from '../engine/social';
 import { statusBudgetBrass, type StatusTier } from '../engine/money';
 import { toBrass } from '../engine/money';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
@@ -48,11 +48,11 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().buyItem(line.id, 'h');
     const st = useGame.getState();
     expect(st.party[0].items!.some((i) => i.trappingId === line.id)).toBe(true); // objet reçu
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // aucune pièce comptée (dans les moyens du Statut)
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before); // aucune pièce comptée (dans les moyens du Statut)
   });
 
   it('option désactivée : même achat débité normalement (RAW)', () => {
@@ -61,8 +61,8 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().buyItem(line.id, 'h');
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // débité
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before); // débité
   });
 });

@@ -31,7 +31,7 @@ import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/test
 import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
+import { payFromGroup, distributeCredit, cotisationDuGroupe } from './bourseFlow';
 import { findVehicleById, findCrewRoleById, combatStakeRef, refLabel } from '../data';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
@@ -171,7 +171,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   if (enc <= 0) return [t('port.holdFull')];
   const price = Math.max(0, Math.round(enc * basePrice * (1 + pct / 100)));
   const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) return [t('port.purseShort', { price, label: offer.label, bargain: bargainLine })];
+  if (!canAfford(cotisationDuGroupe(get().party), cost)) return [t('port.purseShort', { price, label: offer.label, bargain: bargainLine })];
   const cargo: CargoLot = { cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });

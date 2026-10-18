@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { toBrass } from '../engine/money';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { resolveOpposed } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
@@ -74,7 +74,7 @@ describe('playTavernGame', () => {
     const [a, b] = twoHeroes();
     useGame.setState({ party: [a, b] });
     creditBourse(get, useGame.setState, a.id, { gold: 5, silver: 0, brass: 0 });
-    const purseBefore = toBrass(partyMoneyTotal(get));
+    const purseBefore = toBrass(fortuneDuGroupe(get));
     get().openTavernGames();
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 20 });
     await drain();
@@ -85,7 +85,7 @@ describe('playTavernGame', () => {
     // Mise ignorée entre compagnons (aucune bourse ne bouge).
     expect(res!.stakeBrass).toBe(0);
     expect(res!.netBrass).toBe(0);
-    expect(toBrass(partyMoneyTotal(get))).toBe(purseBefore);
+    expect(toBrass(fortuneDuGroupe(get))).toBe(purseBefore);
   });
 
   it('bras de fer (Test étendu) : plusieurs manches, premier à 10 DR cumulés', async () => {

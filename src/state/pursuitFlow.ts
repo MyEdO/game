@@ -56,6 +56,7 @@ import { t } from '../i18n';
 import { dataLabel } from '../data';
 import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
+import { estEnRencontre } from '../engine/conditions';
 
 /** Adversaire AUTHORÉ d'une poursuite : une RÉFÉRENCE de vivant (bestiaire ou statbloc d'éditeur) et
  *  son identité de course. Ses stats vivent sur la fiche référencée — l'Effet n'en recopie aucune. */
@@ -186,7 +187,7 @@ registerCascadeApplier(PURSUIT_CHOICE_KIND, (_get, _set, step) => {
 
 /** Héros du groupe ENCORE en course (vivants, dans la rencontre, non retirés par une décision de l.94). */
 function runners(get: Get, retires: readonly string[] = []): Combatant[] {
-  return get().party.filter((h) => !h.dead && !h.outOfRencontre && !retires.includes(h.id));
+  return get().party.filter((h) => estEnRencontre(h) && !retires.includes(h.id));
 }
 
 /** Mouvement d'un héros DANS la course (LDB 15 l.104-108) : son Mouvement effectif, +1 pour la Cible

@@ -8,7 +8,7 @@ import { initialNet } from './netFlow';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, bourseOf } from './bourseFlow';
+import { fortuneDuGroupe, bourseOf } from './bourseFlow';
 
 function hero(id: string): Combatant {
   const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
@@ -69,13 +69,13 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     st.partyAddHero(hero('a'));
     st.partyAddHero(hero('b'));
     st.partyAddHero(hero('c'));
-    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
+    const moneyBefore = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().partyReplaceHero('a', hero('z'), 0); // remplace le 1er de 3
     const s = useGame.getState();
     expect(s.party.map((h) => h.id)).toEqual(['z', 'b', 'c']); // longueur 3, ordre conservé, a→z en place
     expect(s.net.ownership['z']).toBe(0); // possession transférée au siège
     expect(s.net.ownership['a']).toBeUndefined(); // l'ancien id libéré
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore); // pas de re-crédit (≠ recrutement)
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(moneyBefore); // pas de re-crédit (≠ recrutement)
   });
 
   it('partyReplaceHero : rejette un oldId inconnu et un hero.id déjà présent (doublon)', () => {

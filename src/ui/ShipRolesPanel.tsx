@@ -3,6 +3,7 @@ import { crewRoles } from '../data';
 import { crewRoleAsPoste, reposAsPoste } from '../state/poste';
 import { PostesRoster } from './PostesRoster';
 import type { Combatant } from '../engine/types';
+import { estEnRencontre } from '../engine/conditions';
 
 /** Les 9 rôles que MDG 14 NOMME, plus la ligne « Repos » (valeur réelle de `shipRole`, hors
  *  catalogue — cf. `reposAsPoste`). Ordre du catalogue, la ligne synthétique en dernier. */
@@ -25,7 +26,7 @@ export function ShipRolesPanel({ crew, onSet }: {
 } = {}) {
   const party = useGame((s) => s.party);
   const setShipRole = useGame((s) => s.setShipRole);
-  const heroes = crew ?? party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = crew ?? party.filter((h) => estEnRencontre(h) && h.kind === 'hero');
   return (
     <PostesRoster
       title="Postes d’équipage"

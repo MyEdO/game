@@ -4,6 +4,7 @@ import { stationAsPoste } from '../state/poste';
 import { shipStationOuverte } from '../engine/shipCritical';
 import type { NavalTraitRef } from '../engine/types';
 import { PostesRoster } from './PostesRoster';
+import { estEnRencontre } from '../engine/conditions';
 
 /**
  * Wrapper store des STATIONS à bord (`MDG 13 l.680/l.714/l.730/l.751`, `MSRC 07 l.78/l.82/l.94`) :
@@ -27,7 +28,7 @@ export function ShipStationsPanel({ traits }: {
 }) {
   const party = useGame((s) => s.party);
   const setShipStation = useGame((s) => s.setShipStation);
-  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = party.filter((h) => estEnRencontre(h) && h.kind === 'hero');
   return (
     <PostesRoster
       title="Stations à bord"

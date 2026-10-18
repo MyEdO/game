@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../state/carriers';
 import { useGame } from '../state/store';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { fortuneDuGroupe, cotisationDuGroupe } from '../state/bourseFlow';
 import { findVehicleById, NAVAL_TRAITS, findNavalPortById, crewRoles, type NavalPortData } from '../data';
 import { findCargoById, findCargoEntryById, type PortProfile } from '../engine/seaVoyage';
 import { installCost } from '../engine/shipBuild';
@@ -120,7 +120,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const port = useGame((s) => s.port);
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => fortuneDuGroupe(useGame.getState), [party]);
+  const cotisation = useMemo(() => cotisationDuGroupe(party), [party]);
   const close = useGame((s) => s.closePort);
   const buy = useGame((s) => s.portBuyCargo);
   const sell = useGame((s) => s.portSellCargo);
@@ -227,7 +228,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                         id={`port-upgrade-${def.id}`}
                         label={<>Installer — <Coins money={toMoney({ gold: cost.gold ?? 0 })} /></>}
                         ariaLabel={`Installer ${def.label}`}
-                        enabled={!isGuest && canAfford(money, toMoney({ gold: cost.gold ?? 0 }))}
+                        enabled={!isGuest && canAfford(cotisation, toMoney({ gold: cost.gold ?? 0 }))}
                         reason={isGuest ? REFUS_INVITE : `Bourse insuffisante (${formatMoney(toMoney({ gold: cost.gold ?? 0 }))}).`}
                         onClick={() => install(def.id, 1)}
                         primary={false}
@@ -262,12 +263,12 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   disabled={(o) => {
                     const want = buyEnc[o.cargoId] ?? Math.min(o.enc, Math.max(port.freeEnc, 1));
                     const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                    return !canAfford(money, estCost) ? { reason: 'Bourse insuffisante' } : false;
+                    return !canAfford(cotisation, estCost) ? { reason: 'Bourse insuffisante' } : false;
                   }}
                   action={(o) => {
                     const want = buyEnc[o.cargoId] ?? Math.min(o.enc, Math.max(port.freeEnc, 1));
                     const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                    const affordable = canAfford(money, estCost);
+                    const affordable = canAfford(cotisation, estCost);
                     const wouldOverload = want > port.freeEnc; // achat qui pousse en zone de surcharge (#243)
                     return (
                       <div className={`market-offer-buy ${affordable ? '' : 'unaffordable'}`}>

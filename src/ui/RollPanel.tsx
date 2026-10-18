@@ -56,7 +56,7 @@ export function RollPanel({
         </div>
       ))}
       {winnerIndex != null && netSL != null && (
-        <div className="rm-netsl" title="Différence de DR entre les deux jets : elle alimente les Dégâts (Test opposé)">
+        <div className="rm-netsl" title="Différence de DR entre les deux jets du Test opposé">
           DR net : {netSL >= 0 ? '+' : '−'}{Math.abs(netSL)}
         </div>
       )}

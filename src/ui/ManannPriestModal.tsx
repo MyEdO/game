@@ -5,7 +5,7 @@ import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Coins } from './Coins';
 import { canAfford } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { cotisationDuGroupe } from '../state/bourseFlow';
 import { Icon } from './Icon';
 
 /**
@@ -17,7 +17,7 @@ import { Icon } from './Icon';
 export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingManannPriest);
   const party = useGame((s) => s.party);
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => cotisationDuGroupe(party), [party]);
   const resolve = useGame((s) => s.resolveManannPriest);
   const isGuest = useGame((s) => s.net.mode) === 'guest';
   if (!p) return null;

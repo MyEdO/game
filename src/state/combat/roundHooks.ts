@@ -13,7 +13,7 @@ import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
 import { bonus, effectiveChar, refreshWounds } from '../../engine/characteristics';
-import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, stacks, endOfRound, hasCondition, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
+import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, stacks, endOfRound, hasCondition, pendingPlusExtensions, resolvePlusExtension, estEnRencontre } from '../../engine/conditions';
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
 import { clearPsychOf, refreshAllDefendedPsych } from '../../engine/psychology';
@@ -266,7 +266,7 @@ registerCombatHook({
     const aa = rule('combat-aa-blessures') === 'aa';
     const doomed: { id: string; deathLine: string }[] = [];
     for (const c of battle.combatants) {
-      if (c.dead || c.outOfRencontre || !stacks(c, COND.hemorragique)) continue;
+      if (!estEnRencontre(c) || !stacks(c, COND.hemorragique)) continue;
       if (aa ? !hasCondition(c, COND.inconscient) : isOutOfAction(c)) continue;
       const bd = bleedDeathRoll(c, battleRng());
       if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)

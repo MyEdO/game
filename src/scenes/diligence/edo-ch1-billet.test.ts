@@ -11,7 +11,7 @@ import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import { makePregensWithWealth, PREGEN } from '../../data/pregens';
-import { creditBourse, partyMoneyTotal } from '../../state/bourseFlow';
+import { bourseOf, creditBourse, fortuneDuGroupe } from '../../state/bourseFlow';
 import { toBrass } from '../../engine/money';
 import { prixParPassager, transportCost, type TarifDePassage } from '../../engine/travel';
 import type { BargainOutcome } from '../../engine/bargain';
@@ -28,7 +28,7 @@ const T1 = 'route-la-diligence-route-principale';
 const T2 = 'route-route-principale-sept-rayons';
 const T3 = 'route-sept-rayons-altdorf';
 const get = () => useGame.getState();
-const bourse = () => toBrass(partyMoneyTotal(get));
+const bourse = () => toBrass(fortuneDuGroupe(get));
 
 /** Les 4 piliers du groupe showcase (`makeShowcaseParty`), avec LEUR Richesse initiale tirée (LDB 05 l.578). */
 const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => `pregen-${s}`);
@@ -171,6 +171,57 @@ describe('(c) un seul Test de Marchandage par billet', () => {
     expect(get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')]?.won).toBe(false);
     get().startBilletBargain(T1, 'diligence');
     expect(get().pendingBargain, 'le billet est déjà marchandé').toBeNull();
+  });
+
+  it('« Annuler » après le jet consigne l’issue du billet : il ne se remarchande plus (LDB 17 l.17-25)', () => {
+    aBord();
+    get().startBilletBargain(T1, 'diligence');
+    forceD100(1, 99);
+    get().bargainRoll();
+    vi.restoreAllMocks();
+    get().bargainCancel();
+    expect(get().pendingBargain).toBeNull();
+    expect(get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')]?.won).toBe(true);
+    get().startBilletBargain(T1, 'diligence');
+    expect(get().pendingBargain, 'le billet est déjà marchandé').toBeNull();
+  });
+
+  /** Raté de 6 DR ou plus : le vendeur refuse le négociateur pour ce départ ; les fonds suffisent sans lui. */
+  const raterLeBillet = (): string => {
+    aBord();
+    const issue = marchander(() => 100, 1);
+    expect(!issue.won && issue.drNet >= 6).toBe(true);
+    const refuses = get().refusDeVendeur[cleDeBillet(T1, 'diligence', 'la-diligence')];
+    expect(refuses).toHaveLength(1);
+    const admis = get().party.find((h) => h.id !== refuses[0])!;
+    creditBourse(get, useGame.setState, admis.id, { gold: 10, silver: 0, brass: 0 }); // la bourse n'est pas la raison du refus
+    return refuses[0];
+  };
+  const bourseDe = (id: string) => toBrass(bourseOf(get().party.find((h) => h.id === id)!));
+
+  it('raté de 6 DR ou plus, groupe de 4 : les trois autres achètent le billet, le héros refusé ne paie pas (#2547 c.6234887738)', () => {
+    const refuse = raterLeBillet();
+    // Le refusé en tête du groupe : sans exclusion, la cotisation gloutonne puiserait d'abord chez lui.
+    useGame.setState({ party: [...get().party].sort((a, b) => Number(b.id === refuse) - Number(a.id === refuse)) });
+    expect(get().party[0].id).toBe(refuse);
+    expect(bourseDe(refuse)).toBeGreaterThan(0);
+    const avantRefuse = bourseDe(refuse);
+    const avant = bourse();
+    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    expect(get().travelPlan?.mode).toBe('diligence');
+    expect(avant - bourse(), 'prix plein des 4 places').toBe(4 * 48);
+    expect(bourseDe(refuse), 'la bourse du héros refusé ne cotise pas').toBe(avantRefuse);
+  });
+
+  it('raté de 6 DR ou plus, seul le héros refusé reste en rencontre : le billet ne se vend pas, la route reste ouverte à pied', () => {
+    const refuse = raterLeBillet();
+    useGame.setState({ party: get().party.map((h) => (h.id === refuse ? h : { ...h, outOfRencontre: true })) });
+    const avant = bourse();
+    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    expect(get().travelPlan, 'aucun billet vendu').toBeNull();
+    expect(bourse()).toBe(avant);
+    get().startTravel(T1, 'pied');
+    expect(get().travelPlan?.mode).toBe('pied');
   });
 
   it('gagné d’au moins 6 DR : 4 × 2/- débités au départ', () => {

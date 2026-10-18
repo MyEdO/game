@@ -28,7 +28,7 @@ import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
 import { actorIn, garanti } from './combatants';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
+import { payFromGroup, distributeCredit, cotisationDuGroupe } from './bourseFlow';
 import {
   type LandMarketProfile, rollFindMerchant, rollCargoQuantity, rollRandomLandCargo, landCargoBasePrice,
   findLandCargoById, sellDemandTarget, sellOfferPct, landDumpingPct, rollMerchantSkill, partialSurchargePct, minCargoEnc,
@@ -283,7 +283,7 @@ export function landBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
   const surcharge = partial ? partialSurchargePct : 0;
   const price = Math.max(0, Math.round(want * offer.basePrice * (1 + (pct + surcharge) / 100)));
   const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) { log(get, set, [`La bourse ne couvre pas ${price} CO de ${offer.label}.`]); return; }
+  if (!canAfford(cotisationDuGroupe(get().party), cost)) { log(get, set, [`La bourse ne couvre pas ${price} CO de ${offer.label}.`]); return; }
   const lot: CargoLot = { cargoId, enc: want, basePriceGold: offer.basePrice };
   const { carrier: loaded } = loadCargo(carrier, lot);
   // Cargaison de GROUPE (l.129-131) : débit sans bénéficiaire unique → cotisation gloutonne des bourses.

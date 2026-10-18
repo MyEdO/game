@@ -23,7 +23,7 @@ import { findCargoById } from '../engine/seaVoyage';
 import {
   mountProfileForCreature, ALLURES, allureLabel, ALLURE_KMH_PER_M, allureEnduranceHours,
 } from '../engine/mountTravel';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { fortuneDuGroupe } from '../state/bourseFlow';
 import { placeOfScene } from '../state/worldMap';
 import { bulkCarriers, type CarrierStateSlice } from '../state/carriers';
 import { ScreenShell } from './ScreenShell';
@@ -86,7 +86,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const vessel = useGame((s) => s.vessel);
   const moveCargo = useGame((s) => s.moveCargo);
   const isGuest = useGame((s) => s.net.mode) === 'guest';
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => fortuneDuGroupe(useGame.getState), [party]);
   const carriers = useMemo(
     () => bulkCarriers({ party, vessel, worldMap, scene, possessions } as CarrierStateSlice),
     [party, vessel, worldMap, scene, possessions],

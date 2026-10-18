@@ -5,7 +5,7 @@ import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlic
 import { carrierFreeEnc } from '../engine/cargo';
 import { placeById } from '../state/worldMap';
 import { canAfford, toMoney } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { fortuneDuGroupe, cotisationDuGroupe } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { ScreenShell } from './ScreenShell';
@@ -50,7 +50,8 @@ export function LandMarketView() {
   const isGuest = useGame((s) => s.net.mode) === 'guest';
   const [buyEnc, setBuyEnc] = useState<Record<string, number>>({});
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => fortuneDuGroupe(useGame.getState), [party]);
+  const cotisation = useMemo(() => cotisationDuGroupe(party), [party]);
 
   const slice: CarrierStateSlice = useMemo(() => ({ party, vessel, worldMap, scene, possessions }), [party, vessel, worldMap, scene, possessions]);
   const carriers = useMemo(() => bulkCarriers(slice), [slice]);
@@ -125,14 +126,14 @@ export function LandMarketView() {
                   const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
                   if (!target) return { reason: 'Aucun porteur' };
                   if (want > free) return { reason: `Contenance dépassée (libre ${free} Enc)` };
-                  if (!canAfford(money, estCost)) return { reason: 'Bourse insuffisante' };
+                  if (!canAfford(cotisation, estCost)) return { reason: 'Bourse insuffisante' };
                   return false;
                 }}
                 action={(o) => {
                   const free = target ? carrierFreeEnc(target) : 0;
                   const want = buyEnc[o.cargoId] ?? Math.min(o.enc, free || o.enc);
                   const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                  const affordable = canAfford(money, estCost);
+                  const affordable = canAfford(cotisation, estCost);
                   const fits = want <= free;
                   return (
                     <div className={`market-offer-buy ${affordable ? '' : 'unaffordable'}`}>

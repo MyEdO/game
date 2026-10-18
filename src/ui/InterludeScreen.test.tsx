@@ -10,7 +10,7 @@ import { useGame } from '../state/store';
 import { draineCascade } from '../state/cascadeTestKit';
 import { createHero } from '../engine/character';
 import { fromBrass } from '../engine/money';
-import { partyMoneyTotal, distributeCredit } from '../state/bourseFlow';
+import { fortuneDuGroupe, distributeCredit } from '../state/bourseFlow';
 import { testScene } from '../scenes/test-fixture';
 import { interludeCatalog, bestActivitySkill } from '../state/interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -42,7 +42,7 @@ function buildSeam(weeks = 3): InterludeSeam {
   useGame.getState().startInterlude(weeks);
   draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   const s = useGame.getState();
-  return { interlude: s.interlude!, party: s.party, money: partyMoneyTotal(useGame.getState), bank: s.bank, pendingOrders: s.pendingOrders };
+  return { interlude: s.interlude!, party: s.party, money: fortuneDuGroupe(useGame.getState), bank: s.bank, pendingOrders: s.pendingOrders };
 }
 
 describe('InterludeScreen — refonte LOT 6', () => {

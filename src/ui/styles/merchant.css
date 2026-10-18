@@ -26,13 +26,7 @@
 .cart-bar > .btn { margin-left: auto; }
 .cart-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .cart-head > strong { font-size: 16px; }
-.cart-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-.cart-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-.cart-table .cart-name { width: 100%; }
-.cart-table .cart-owner { color: var(--muted); font-size: 11px; margin-left: 6px; }
-.cart-table .cart-unit, .cart-table .cart-sub { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cart-table .cart-unit { color: var(--muted); }
-.cart-table .cart-sub { color: var(--gold); font-weight: 600; }
+.cart-owner { color: var(--muted); font-size: 11px; margin-left: 6px; }
 /* .cart-step/.btn-step (stepper de quantité) : primitive partagée `QtyStepper`, components.css. */
 .cart-haggle { margin: 10px 0; }
 .cart-total { font-size: 15px; margin: 8px 0; }
@@ -47,26 +41,6 @@
 .dist-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
 .dist-row .merch-name { flex: 1; }
 .haggle-bar { margin-bottom: 10px; min-height: 30px; }
-/* Lignes d'article */
-.merch-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-.merch-row .merch-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.merch-row .merch-qty { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.merch-row .merch-price {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--gold);
-  white-space: nowrap;
-  min-width: 92px;
-  text-align: right;
-}
-.merch-row.unaffordable { opacity: 0.5; }
-.merch-row.unaffordable .merch-price { color: var(--muted); }
 /* Accordéon de comparaison après achat */
 .merch-compare {
   background: var(--bg2);
@@ -95,7 +69,6 @@
 .merch-name.as-link:hover { color: var(--accent2); }
 /* Le chevron canonique (`components.css`) en bout de cellule : une colonne alignée, comme `.fold`. */
 .merch-name.as-link::after { margin-inline-start: auto; }
-.merch-row.open { background: rgba(122, 79, 208, 0.10); border-radius: 6px 6px 0 0; }
 .mc-quals { display: flex; flex-direction: column; gap: 5px; margin: 6px 0; }
 .mc-qual { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; }
 .mc-qual .q-desc { color: var(--muted); }
@@ -103,7 +76,7 @@
 /* Divers */
 .merchant-body .empty { color: var(--muted); font-style: italic; padding: 8px 4px; }
 .bargain-tag { font-size: 13px; color: var(--muted); }
-.bargain-tag.soured { color: var(--danger); }
+.bargain-tag.refuse { color: var(--danger); }
 
 
 /* « Baisse des prix » à la vente (LDB 59 l.60) : Disponibilité de l'acheteur + brader ÷2 */

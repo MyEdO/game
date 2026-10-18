@@ -12,10 +12,11 @@ import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { makePregensWithWealth, PREGEN } from '../data/pregens';
-import { creditBourse, partyMoneyTotal } from '../state/bourseFlow';
+import { creditBourse, fortuneDuGroupe } from '../state/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
 import { draineCascade } from '../state/cascadeTestKit';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,7 +24,7 @@ beforeAll(() => {
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const get = () => useGame.getState();
-const bourse = () => toBrass(partyMoneyTotal(get));
+const bourse = () => toBrass(fortuneDuGroupe(get));
 const NET_INITIAL = useGame.getState().net;
 const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => `pregen-${s}`);
 
@@ -72,6 +73,22 @@ async function cliquer(b: Element): Promise<void> {
 }
 
 describe('billet de la diligence — chemin du joueur', () => {
+  it('Marchandage raté de beaucoup : le bandeau nomme le passager refusé près de « Payer et partir » (#2547 c.6234887738)', async () => {
+    aBord();
+    get().startBilletBargain(T1, 'diligence');
+    const negociateur = get().pendingBargain!.playerName;
+    const des = [100, 1];
+    vi.spyOn(Math, 'random').mockImplementation(() => ((des.shift() ?? 1) - 0.5) / 100);
+    get().bargainRoll();
+    vi.restoreAllMocks();
+    get().bargainConfirm();
+    await act(async () => { root.render(<WorldMapView initialRouteId={T1} />); });
+    await cliquer(bouton('Diligence'));
+    expect(container.textContent).toContain(t('mf.refusVisite', { name: negociateur }));
+    expect(bouton('Payer et partir')).toBeTruthy();
+  });
+
+
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
     const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
     useGame.setState({ party: groupe.map((e) => e.hero) });

@@ -3,7 +3,7 @@ import { useGame } from '../../state/store';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
-import { partyMoneyTotal } from '../../state/bourseFlow';
+import { fortuneDuGroupe } from '../../state/bourseFlow';
 import { findSpell } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
@@ -151,10 +151,10 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     // Coque endommagée persistée sur le navire de campagne → réparable au chantier (1 CO/Blessure).
     const woundsBefore = get().vessel!.wounds!.current;
     expect(woundsBefore).toBeLessThan(get().vessel!.wounds!.max);
-    const goldBefore = partyMoneyTotal(get).gold;
+    const goldBefore = fortuneDuGroupe(get).gold;
     get().portRepair();
     expect(get().vessel!.wounds!.current).toBe(get().vessel!.wounds!.max); // remise à neuf
-    expect(partyMoneyTotal(get).gold).toBeLessThan(goldBefore); // 1 CO par Blessure
+    expect(fortuneDuGroupe(get).gold).toBeLessThan(goldBefore); // 1 CO par Blessure
 
     // Écran Port : offres de commerce du grand port cosmopolite (Production + Surplus).
     get().openPort();

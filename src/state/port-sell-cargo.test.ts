@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
 import { cascadeAppliers } from './cascade';
 import { resultLine } from './rollSeam';
@@ -127,12 +127,12 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().portSellCargo(0);
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0);
-    expect(partyMoneyTotal(get).gold).toBeGreaterThan(before);
+    expect(fortuneDuGroupe(get).gold).toBeGreaterThan(before);
     expect(get().journal.some((l) => /Marchandage \(/.test(l))).toBe(true);
   });
 
@@ -142,14 +142,14 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
     get().portSellCargo(0);
     await drain();
-    const gainA = partyMoneyTotal(get).gold;
+    const gainA = fortuneDuGroupe(get).gold;
 
     const hero2 = makePregens()[0];
     setSkill(hero2, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero2]);
     get().portSellCargo(0);
     await drain();
-    const gainB = partyMoneyTotal(get).gold;
+    const gainB = fortuneDuGroupe(get).gold;
 
     expect(gainB).toBe(gainA);
   });
@@ -205,12 +205,12 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     const hero = makePregens()[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().portBuyCargo('bois', 10);
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
-    expect(partyMoneyTotal(get).gold).toBeLessThan(before);
+    expect(fortuneDuGroupe(get).gold).toBeLessThan(before);
     expect(get().journal.some((l) => /Marchandage \(/.test(l))).toBe(true);
   });
 
@@ -220,14 +220,14 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
     setupBuy([hero]);
     get().portBuyCargo('bois', 10);
     await drain();
-    const spentA = 5000 - partyMoneyTotal(get).gold;
+    const spentA = 5000 - fortuneDuGroupe(get).gold;
 
     const hero2 = makePregens()[0];
     setSkill(hero2, 'marchandage', 90);
     setupBuy([hero2]);
     get().portBuyCargo('bois', 10);
     await drain();
-    const spentB = 5000 - partyMoneyTotal(get).gold;
+    const spentB = 5000 - fortuneDuGroupe(get).gold;
 
     expect(spentB).toBe(spentA);
   });

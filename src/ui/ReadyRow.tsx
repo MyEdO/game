@@ -3,6 +3,7 @@ import { nomDuSiege } from '../state/netFlow';
 import { siegesRequis } from '../state/netOwnership';
 import { TeamPortrait } from './TeamPortrait';
 import { Icon } from './Icon';
+import { estEnRencontre } from '../engine/conditions';
 
 /**
  * RANGÉE DE READY-CHECK (coop) — primitive PARTAGÉE de toute attente d'unanimité : pause de Round
@@ -20,7 +21,7 @@ export function ReadyRow({ ready }: { ready: Record<number, boolean> }) {
   return (
     <div className="ready-row">
       {siegesRequis({ party, net }).map((seat) => {
-        const h = party.find((x) => !x.dead && !x.outOfRencontre && (net.ownership[x.id] ?? 0) === seat);
+        const h = party.find((x) => estEnRencontre(x) && (net.ownership[x.id] ?? 0) === seat);
         const pret = !!ready[seat];
         const nom = nomDuSiege(net, seat);
         return (

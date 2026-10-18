@@ -8,7 +8,7 @@ import { vesselFreeEnc, vesselMaxLoadEnc } from './portFlow';
 import { seaActivityBlocked } from './seaActivities';
 import { activityById } from '../engine/activities';
 import { toBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, bourseOf, creditBourse, debitBourse } from './bourseFlow';
+import { fortuneDuGroupe, bourseOf, creditBourse, debitBourse } from './bourseFlow';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascadeTestKit';
@@ -237,10 +237,10 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
       pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
     });
     fund(heroes[0].id, { gold: 100, silver: 0, brass: 0 }); // investissement de GROUPE (payFromGroup)
-    const before = toBrass(partyMoneyTotal(get));
+    const before = toBrass(fortuneDuGroupe(get));
     get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'commerce-opportunite', investGold: 10 } });
     // La mise est débitée D'OFFICE (avant tout jet) — comme l'ancien bulk synchrone.
-    expect(toBrass(partyMoneyTotal(get))).toBe(before - 10 * PA_PER_CO);
+    expect(toBrass(fortuneDuGroupe(get))).toBe(before - 10 * PA_PER_CO);
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
     await runSeaActivities();
@@ -278,12 +278,12 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     seedBattleRng(2);
     get().openPort();
     const offer = get().port!.offers[0];
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().portBuyCargo(offer.cargoId, Math.min(10, offer.enc));
     await drainPortSellCascade(); // #266 — l'achat marchande par cascade (openRoll), comme la vente
     const vessel = get().vessel!;
     expect((vessel.cargo ?? []).length).toBe(1);
-    expect(partyMoneyTotal(get).gold).toBeLessThanOrEqual(before);
+    expect(fortuneDuGroupe(get).gold).toBeLessThanOrEqual(before);
     // Vente dans un autre port : on pose le navire à Marienburg (« commerce ») et on solde le lot.
     set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, scene: { ...emptyScene(2, 2), id: 'port-b', label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
     get().openPort();
@@ -325,9 +325,9 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 100, basePriceGold: 2 }] } });
     set({ scene: { ...emptyScene(2, 2), id: 'port-b', label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
     get().openPort();
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().portDumpCargo(0);
     expect((get().vessel!.cargo ?? []).length).toBe(0);
-    expect(partyMoneyTotal(get).gold).toBeGreaterThan(before); // ¼ × 100 × 2 = 50 CO
+    expect(fortuneDuGroupe(get).gold).toBeGreaterThan(before); // ¼ × 100 × 2 = 50 CO
   });
 });

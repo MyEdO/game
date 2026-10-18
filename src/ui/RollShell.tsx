@@ -320,7 +320,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
       {/* DR net du Test opposé (2 rangées) — même badge que `RollPanel`, réutilisé ici. Il COMPARE les
           deux jets : masqué avec eux (#990). */}
       {!panelMasked && rolled && winnerIndex != null && netSL != null && (
-        <div className="rm-netsl" title="Différence de DR entre les deux jets : elle alimente les Dégâts (Test opposé)">
+        <div className="rm-netsl" title="Différence de DR entre les deux jets du Test opposé">
           DR net : {netSL >= 0 ? '+' : '−'}{Math.abs(netSL)}
         </div>
       )}

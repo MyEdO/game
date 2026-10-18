@@ -14,7 +14,9 @@ import type { BargainOutcome } from '../engine/bargain';
 import { t } from '../i18n';
 import { skillBaseValue } from '../engine/skills';
 import { pnjAuPreset } from './sceneNpc';
-import { ouvrirMarchandage } from './merchantFlow';
+import { ouvrirMarchandage, premierAdmis, refusDeTraiter } from './merchantFlow';
+import type { GameState } from './store';
+import { estEnRencontre } from '../engine/conditions';
 
 /** Le billet payé que le groupe tient en main : ses routes restantes, dans l'ordre du trajet. */
 export interface BilletEnMain {
@@ -119,5 +121,13 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
   const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`);
   if (!vendeur) return;
-  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur });
+  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur }, get().refusDeVendeur[offre.cle]);
 }
+
+/** Raison du refus du vendeur du billet `cle` quand il ne traite avec AUCUN héros en rencontre, ou `null`
+ *  — LDB 59 l.43 ; #2547 c.6234887738. */
+export function refusDuBillet(s: Pick<GameState, 'refusDeVendeur' | 'party'>, cle: string): string | null {
+  const refus = s.refusDeVendeur[cle];
+  return premierAdmis(s.party, refus) ? null : refusDeTraiter(refus, s.party.find(estEnRencontre));
+}
+

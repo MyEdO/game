@@ -9,7 +9,7 @@ import { draineCascade } from './cascadeTestKit';
 import { applyEffects } from './combatFlow';
 import { interludeEventFor } from '../data/interludeEvents';
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setRule, resetRule } from '../engine/policy';
@@ -74,7 +74,7 @@ describe('Interlude — flux start/end', () => {
     useGame.getState().interludeEnd();
     expect(useGame.getState().interlude).toBeNull();
     expect(useGame.getState().screen).toBe('campaign');
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(120); // tout le reste a été gaspillé, seuls les Revenus perso subsistent
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(120); // tout le reste a été gaspillé, seuls les Revenus perso subsistent
     expect(useGame.getState().gameTime).toBeGreaterThan(t0); // 7 jours de repos écoulés
   });
 

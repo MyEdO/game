@@ -22,7 +22,7 @@ import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
-import { isOutOfAction, canTakeAction, hasCondition, COND } from '../engine/conditions';
+import { isOutOfAction, canTakeAction, hasCondition, COND, estEnRencontre } from '../engine/conditions';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -262,7 +262,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   // offensif non-Projectile (Choc, Sommeil…) se cible désormais sur l'ennemi, comme le tir.
   const aff = spellAffinity(spell);
   const enemyOk = target.kind !== active.kind && !isOutOfAction(target);
-  const allyOk = target.kind === active.kind && !target.dead && !target.outOfRencontre;
+  const allyOk = target.kind === active.kind && estEnRencontre(target);
   if (!(aff === 'enemy' ? enemyOk : aff === 'ally' ? allyOk : enemyOk || allyOk))
     return { kind: 'none' };
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une

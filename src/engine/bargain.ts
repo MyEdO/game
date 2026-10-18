@@ -12,6 +12,11 @@ export interface BargainOutcome {
   negotiator: boolean;
 }
 
+/** Le vendeur refuse-t-il le négociateur pour la visite ? — LDB 59 l.43 ; arbitrage #2547 c.6234640084 (2026-10-17). */
+export function refusApresMarchandage(achat: boolean, o: Pick<BargainOutcome, 'won' | 'drNet'>): boolean {
+  return achat && !o.won && o.drNet >= SL_ASTOUNDING;
+}
+
 /** Points de pourcentage d'un Marchandage gagné : LDB 59 l.43. */
 const BARGAIN_WON_PCT = 10;
 /** Points de pourcentage de plus au Succès Stupéfiant : LDB 59 l.43 ; DR net, LDB 12 l.107. */

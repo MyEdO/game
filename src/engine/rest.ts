@@ -30,7 +30,7 @@ import { RNG, defaultRNG } from './dice';
 import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
-import { removeCondition, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
+import { removeCondition, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks, estEnRencontre } from './conditions';
 import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
@@ -141,7 +141,7 @@ export interface RestRoll {
 /** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté/instable/affamé/PB
  *  plein.) Sépare la DÉCISION du jet (pour différer en cascade) de son application. */
 export function needsRecoveryRoll(c: Combatant): boolean {
-  return !c.dead && !c.outOfRencontre && !unstable(c) && !isDeprived(c) && c.wounds.current < c.wounds.max;
+  return estEnRencontre(c) && !unstable(c) && !isDeprived(c) && c.wounds.current < c.wounds.max;
 }
 
 /**
@@ -153,7 +153,7 @@ export function needsRecoveryRoll(c: Combatant): boolean {
  * Partagé par `restRecovery` (eager) et l'applicateur de cascade « recovery » — zéro duplication.
  */
 export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; success: boolean } | null): { wokeUp: boolean } {
-  if (c.dead || c.outOfRencontre || unstable(c)) return { wokeUp: false };
+  if (!estEnRencontre(c) || unstable(c)) return { wokeUp: false };
   const be = bonus(effectiveChar(c, 'endurance'));
   // Faim & Soif (LDB 18 l.338) : un héros PRIVÉ (affamé OU assoiffé) ne récupère ni PB ni Exténué naturellement.
   const starving = isDeprived(c);
@@ -190,7 +190,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
 }
 
 export function restRecovery(c: Combatant, rng: RNG = defaultRNG, days = 1, collect?: RestRoll[]): string[] {
-  if (c.dead || c.outOfRencontre) return []; // un mort / éjecté ne se repose pas
+  if (!estEnRencontre(c)) return []; // un mort / éjecté ne se repose pas
   // LDB 16 l.105 : un héros qui saigne, brûle ou est empoisonné ne trouve pas le repos — à stabiliser
   // d'abord (Test de Guérison, Sort). Pas de récupération réparatrice tant que ces États subsistent.
   if (unstable(c)) return [t('rest.noRest', { name: c.label })];

@@ -32,7 +32,7 @@ import {
 import { findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
-import { hasCondition } from '../engine/conditions';
+import { hasCondition, estEnRencontre } from '../engine/conditions';
 import { applyOps } from '../engine/ops';
 import { testValue } from '../engine/skills';
 import { effectiveChar } from '../engine/characteristics';
@@ -559,7 +559,7 @@ function sansChoix(p: TavernPayload): TavernPayload {
 
 /** Héros du groupe qui jouent la partie (vivants, dans la rencontre). */
 function equipiers(get: Get): Combatant[] {
-  return get().party.filter((h) => !h.dead && !h.outOfRencontre);
+  return get().party.filter(estEnRencontre);
 }
 
 /** RANGÉE d'un héros d'équipe, sur l'option qu'il a RETENUE (Test et Difficulté de cette option) —

@@ -21,6 +21,7 @@ import { seedBattleRng } from './battleRng';
 import type { AttackResult } from '../engine/combat';
 import { campaignStart, MINUTES_PER_DAY } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
+import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { loadWeapon, unloadWeapon, setReloadProgress, recomputeLoadout } from '../engine/items';
 import { loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
@@ -29,7 +30,7 @@ const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ran
 import { FLOWS } from './rollFlowSpecs';
 import { TIME_COST } from '../engine/timeCost';
 import { toBrass, type Money } from '../engine/money';
-import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { OPS_DIFFEREES } from './combatEffects';
@@ -323,7 +324,7 @@ describe('Boucle de jeu (store)', () => {
       party: [hero],
       pendingTest: {
         actorId: 'h1', actorName: 'Lest', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 0, target: 50, roll: null, success: false, sl: 0, isDouble: undefined,
+        requireSL: 0, target: 50, roll: null, success: false, sl: 0, jet: null, isDouble: undefined,
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
@@ -332,7 +333,8 @@ describe('Boucle de jeu (store)', () => {
   });
 
   // resolveTest avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
-  function mkToolTest(quality: string, over: Partial<import('./store').PendingTest>): Combatant {
+  /** Test d'outil RÉSOLU par le dé fixé `de` (couture `testSetForcedRoll`) : le verdict est celui du flux. */
+  function mkToolTest(quality: string, over: Partial<import('./store').PendingTest>, de: number): Combatant {
     const hero = {
       id: 'h1', label: 'Lest', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -344,35 +346,38 @@ describe('Boucle de jeu (store)', () => {
       party: [hero], flags: {}, journal: [],
       pendingTest: {
         actorId: 'h1', actorName: 'Lest', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false, itemUid: 't1',
+        requireSL: 1, target: 50, roll: 99, success: false, sl: -4, isDouble: true, jet: { roll: 99, target: 50, success: false, sl: -4, isDouble: true }, itemUid: 't1',
         onSuccess: flowFromEffects([{ type: 'setFlag', flag: 'reussi', value: true }]),
         onFailure: flowFromEffects([{ type: 'setFlag', flag: 'rate', value: true }]),
         ...over,
       },
     });
+    setDesFixes(true);
+    useGame.getState().testSetForcedRoll(de);
+    resetDesFixes();
     return hero;
   }
 
   it('resolveTest : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
-    mkToolTest('Pratique', {}); // roll 48 ≤ 50, sl 0 < requireSL 1 → +1 DR ⇒ sl 1 ≥ 1
+    mkToolTest('Pratique', {}, 50); // 50 ≤ 50, DR 0 < requireSL 1 → +1 DR ⇒ DR 1 ≥ 1
     useGame.getState().resolveTest();
     expect(useGame.getState().flags['reussi']).toBe(true);
   });
 
   it('resolveTest : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
-    mkToolTest('Pratique', { roll: 60, sl: -1, requireSL: 0 }); // roll 60 > 50 → raté au dé
+    mkToolTest('Pratique', { requireSL: 0 }, 60); // 60 > 50 → raté au dé
     useGame.getState().resolveTest();
     expect(useGame.getState().flags['rate']).toBe(true);
   });
 
   it('resolveTest : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
-    mkToolTest('Peu Fiable', {}); // sl 0 −1 = −1 < requireSL 1 → reste raté
+    mkToolTest('Peu Fiable', {}, 50); // DR 0 −1 = −1 < requireSL 1 → reste raté
     useGame.getState().resolveTest();
     expect(useGame.getState().flags['rate']).toBe(true);
   });
 
   it('resolveTest : outil Bâclé qui Maladresse (échec + double) se brise', () => {
-    mkToolTest('Bâclé', { roll: 55, sl: -1, requireSL: 0, isDouble: true });
+    mkToolTest('Bâclé', { requireSL: 0 }, 55); // échec + double
     useGame.getState().resolveTest();
     const item = useGame.getState().party[0].items!.find((i) => i.uid === 't1')!;
     expect(item.destroyed).toBe(true);
@@ -380,7 +385,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('resolveTest : sans outil, l’issue est inchangée (branche échec)', () => {
-    mkToolTest('', { itemUid: undefined });
+    mkToolTest('', { itemUid: undefined }, 50);
     useGame.getState().resolveTest();
     expect(useGame.getState().flags['rate']).toBe(true);
   });
@@ -701,7 +706,7 @@ describe('Boucle de jeu (store)', () => {
         difficulty: 'intermediaire',
         requireSL: 0,
         target: 95,
-        roll: null, // pas encore lancé
+        roll: null, jet: null, // pas encore lancé
         success: false,
         sl: 0,
         onSuccess: flowFromEffects([{ type: 'setFlag', flag: 'reussi', value: true }]),
@@ -1548,14 +1553,14 @@ describe('Fouille / butin par objet cherchable (store)', () => {
 
     useGame.getState().interactEntity('cadavre');
     let st = useGame.getState();
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(2);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(2);
     expect(st.party[0].xp).toBe(10);
     expect(st.scene!.entities.find((e) => e.id === 'cadavre')).toBeTruthy(); // le corps RESTE
 
     // Re-fouille : aucun double octroi
     useGame.getState().interactEntity('cadavre');
     st = useGame.getState();
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(2);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(2);
     expect(st.party[0].xp).toBe(10);
   });
 
@@ -1567,12 +1572,12 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     // Sacrifice d'auteur PLUS GRAND que la bourse (patron « Le Loup et la Saumure », gold: -20) :
     // la perte n'est ni ignorée (tout-ou-rien) ni bornée à zéro par l'enveloppe — elle vide la bourse.
     applyEffects(useGame.getState, useGame.setState, [{ type: 'giveMoney', montant: { gold: -3 } }]);
-    expect(partyMoneyTotal(useGame.getState)).toEqual({ gold: 0, silver: 0, brass: 0 });
+    expect(fortuneDuGroupe(useGame.getState)).toEqual({ gold: 0, silver: 0, brass: 0 });
 
     // Et une perte COUVERTE ne prend que son dû : le signe traverse l'enveloppe à l'unité près.
     bourseInstanceOf(useGame.getState().party[0])!.money = { gold: 2, silver: 0, brass: 0 };
     applyEffects(useGame.getState, useGame.setState, [{ type: 'giveMoney', montant: { silver: -5 } }]);
-    expect(partyMoneyTotal(useGame.getState)).toEqual({ gold: 1, silver: 15, brass: 0 });
+    expect(fortuneDuGroupe(useGame.getState)).toEqual({ gold: 1, silver: 15, brass: 0 });
   });
 
   it('prop consommable (butin) : fenêtre de loot (attribution + restes au 1er héros) + disparition (consume)', () => {
@@ -1661,11 +1666,11 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     useGame.setState({ partyPos: { x: 0, y: 0, z: 1 } }); // groupe à l'étage 1, entité au rez (même x,y)
 
     useGame.getState().interactEntity('cadavre');
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(0); // pas de fouille à travers le plancher
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(0); // pas de fouille à travers le plancher
 
     useGame.setState({ partyPos: { x: 0, y: 0, z: 0 } }); // même étage → interaction permise
     useGame.getState().interactEntity('cadavre');
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(5);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(5);
   });
 });
 
@@ -1690,7 +1695,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     useGame.setState({ partyPos: { x: 0, y: 0 } });
   }
 
-  const or = () => partyMoneyTotal(useGame.getState).gold;
+  const or = () => fortuneDuGroupe(useGame.getState).gold;
   const don = (gold: number) => flowFromEffects([{ type: 'giveMoney', montant: { gold } }]);
 
   it('joue le Flow de l’action NOMMÉE — et elle seule, parmi celles que le décor offre', () => {
@@ -1801,11 +1806,11 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
     useGame.getState().moveParty({ x: 1, y: 0 }); // encore loin → pas de fouille
     expect(useGame.getState().pendingInteract).toMatchObject({ id: 'cadavre' });
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(0);
 
     useGame.getState().moveParty({ x: 4, y: 0 }); // case d'arrivée du plan → fouille auto
     expect(useGame.getState().pendingInteract).toBeNull();
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(3);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(3);
   });
 
   it('une adjacence CROISÉE en chemin n’ouvre pas l’interaction : seule la case d’arrivée armée le fait', () => {
@@ -1814,11 +1819,11 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 1 } });
     useGame.getState().moveParty({ x: 4, y: 0 });
     expect(useGame.getState().pendingInteract, 'le pending survit au passage').toMatchObject({ id: 'cadavre' });
-    expect(partyMoneyTotal(useGame.getState).gold, 'rien n’a été fouillé en passant').toBe(0);
+    expect(fortuneDuGroupe(useGame.getState).gold, 'rien n’a été fouillé en passant').toBe(0);
 
     useGame.getState().moveParty({ x: 4, y: 1 });
     expect(useGame.getState().pendingInteract).toBeNull();
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(3);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(3);
   });
 
   /** RÉSERVE de la revue (#1443, round 3) : un déplacement-puis-interaction armé n'a plus de sens
@@ -1831,7 +1836,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     useGame.setState({ ...resetFields('combatStart') }); // ce que `startCombat` applique
     expect(useGame.getState().pendingInteract).toBeNull();
     useGame.getState().moveParty({ x: 4, y: 0 }); // la case armée : plus rien ne s'y déclenche
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(0);
   });
 
   it('annulation : setPendingInteract(null) empêche la fouille à l’arrivée (clic ailleurs)', () => {
@@ -1839,7 +1844,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
     useGame.getState().setPendingInteract(null);
     useGame.getState().moveParty({ x: 4, y: 0 });
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(0);
   });
 });
 
@@ -1874,7 +1879,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(st.pendingLoot?.title).toBe('Coffre de la garnison');
     expect(st.pendingLoot?.messages).toEqual(['Sous une fausse planche, la solde du mois.']);
     expect(st.pendingLoot?.gold).toEqual({ gold: 0, silver: 18, brass: 0 }); // affiché…
-    expect(partyMoneyTotal(useGame.getState).silver).toBe(18); // …ET déjà en bourse (l'argent est commun)
+    expect(fortuneDuGroupe(useGame.getState).silver).toBe(18); // …ET déjà en bourse (l'argent est commun)
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Épée']);
     expect(st.pendingLoot?.gear[0].magic).toBe(true);
     // Aucun ÉQUIPEMENT donné en silence au héros 1 (l'Épée attend la fenêtre) ; seule la Bourse
@@ -2079,7 +2084,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     useGame.setState({
       party: [hero],
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 0, target: 50, roll: 20, success: true, sl: 3, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
+        requireSL: 0, target: 50, roll: 20, success: true, sl: 3, jet: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     useGame.getState().testReroll();
     expect(useGame.getState().party[0].fortune).toBe(2); // rien dépensé (jet réussi)
@@ -2092,7 +2097,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     useGame.setState({
       party: [hero],
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 5, difficulty: 'intermediaire',
-        requireSL: 0, target: 5, roll: 95, success: false, sl: -9, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
+        requireSL: 0, target: 5, roll: 95, success: false, sl: -9, jet: { roll: 95, target: 5, success: false, sl: -9, isDouble: false }, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     useGame.getState().testReroll(); // 1re relance OK (jet raté)
     expect(useGame.getState().party[0].fortune).toBe(1);
@@ -2107,7 +2112,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     useGame.setState({
       party: [hero],
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 2, target: 50, roll: 45, success: false, sl: 0, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
+        requireSL: 2, target: 50, roll: 45, success: false, sl: 0, jet: { roll: 45, target: 50, success: true, sl: 0, isDouble: false }, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     useGame.getState().testBonusSL(); // DR 0 → 1 (< 2)
     expect(useGame.getState().party[0].fortune).toBe(2);
@@ -2125,7 +2130,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       party: [hero],
       // d100 95 > cible 50 : l'issue tient au dé (LDB 12 l.90-94), `requireSL` 0 = aucun seuil de DR exigé.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 0, target: 50, roll: 95, success: false, sl: -5, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
+        requireSL: 0, target: 50, roll: 95, success: false, sl: -5, jet: { roll: 95, target: 50, success: false, sl: -5, isDouble: false }, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     useGame.getState().testBonusSL();
     expect(useGame.getState().pendingTest!.sl).toBe(-4); // le DR monte
@@ -2588,7 +2593,7 @@ describe('Résilience — « Je ne faillirai pas ! » (LDB 17 l.68)', () => {
     useGame.setState({
       party: [hero],
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 30, difficulty: 'intermediaire',
-        requireSL: 0, target: 30, roll: 95, success: false, sl: -6, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
+        requireSL: 0, target: 30, roll: 95, success: false, sl: -6, jet: { roll: 95, target: 30, success: false, sl: -6, isDouble: false }, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     useGame.getState().testForceSuccess();
     expect(useGame.getState().pendingTest!.success).toBe(true);
@@ -3317,11 +3322,11 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock[0];
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().buyItem(line.id, 'h');
     const st = useGame.getState();
     expect(st.party[0].items!.some((i) => i.trappingId === line.id)).toBe(true);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before);
     expect(st.merchant!.stock.find((l) => l.id === line.id)?.qty ?? 0).toBe(line.qty - 1);
   });
 
@@ -3340,10 +3345,10 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().addToCart(id);
     useGame.getState().addToCart(id);
     expect(useGame.getState().merchant!.cart).toEqual([{ id, qty: 2 }]);
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().payCart();
     const st = useGame.getState();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // total débité
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before); // total débité
     expect(st.merchant!.cart).toEqual([]); // panier vidé
     expect(st.merchant!.pendingDistribution).toHaveLength(2); // 2 objets en attente de répartition
     st.assignDistribution(0, 'h');
@@ -3469,38 +3474,38 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().confirmSell();
     const st = useGame.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'x')).toBeUndefined();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeGreaterThan(0); // Hallebarde 2 CO × 10 %
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeGreaterThan(0); // Hallebarde 2 CO × 10 %
   });
 
   it('repairItem : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
     const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().repairItem('a', 'h');
     const st = useGame.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'a')!.damageTaken).toBe(0); // réparé
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // débité
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before); // débité
   });
 
   it('repairItem : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
     const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().repairItem('b', 'h');
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // rien à réparer
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before); // rien à réparer
   });
 
   it('repairItem : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
     const h = hero(); h.items = [{ uid: 'w', trappingId: 'dague', label: 'Dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true } as any];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().repairItem('w', 'h');
     const st = useGame.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'w')!.damageTaken).toBe(0); // réparée
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // débité
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before); // débité
   });
 
   const negotiator = (): Combatant => ({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
@@ -3527,14 +3532,14 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().bargainConfirm();
     expect(useGame.getState().pendingBargain).toBeNull();
     expect(useGame.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
-    expect(useGame.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
+    expect(useGame.getState().refusDeVendeur.pnj).toEqual([]); // gagné → aucun refus
     useGame.getState().startBargain('buy'); // achat déjà négocié → no-op
     expect(useGame.getState().pendingBargain).toBeNull();
     useGame.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
     expect(useGame.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
-  it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
+  it('bargainConfirm : un achat raté « de beaucoup » (net DR ≥ 6) → le marchand refuse ce personnage pour la visite (C, #2c ; arbitrage #2547 c.6234640084)', () => {
     useGame.setState({ party: [negotiator()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
     useGame.getState().startBargain('buy');
@@ -3543,8 +3548,8 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     useGame.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
     useGame.getState().bargainConfirm();
-    expect(useGame.getState().merchant!.soured).toBe(true);
-    useGame.getState().startBargain('sell'); // marchand méfiant → toute négociation bloquée
+    expect(useGame.getState().refusDeVendeur.pnj).toEqual(['h']);
+    useGame.getState().startBargain('sell'); // seul négociateur du groupe, refusé → aucune négociation
     expect(useGame.getState().pendingBargain).toBeNull();
   });
 
@@ -3556,9 +3561,9 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
       const m = useGame.getState().merchant!;
       useGame.setState({ merchant: { ...m, bargainBuy: bargain } });
       const id = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-      const before = toBrass(partyMoneyTotal(useGame.getState));
+      const before = toBrass(fortuneDuGroupe(useGame.getState));
       useGame.getState().buyItem(id, 'h');
-      return before - toBrass(partyMoneyTotal(useGame.getState));
+      return before - toBrass(fortuneDuGroupe(useGame.getState));
     };
     const full = buyWith(null);
     const discounted = buyWith({ won: true, drNet: 6, negotiator: false }); // ×0.8
@@ -3576,7 +3581,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
       useGame.setState({ merchant: { ...m, bargainSell } });
       useGame.getState().addToSellCart('x', 'h');
       useGame.getState().confirmSell();
-      return toBrass(partyMoneyTotal(useGame.getState));
+      return toBrass(fortuneDuGroupe(useGame.getState));
     };
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
     const won = sellWith({ won: true, drNet: 2, negotiator: false }); // ½ (on a tenu notre prix)
@@ -3597,9 +3602,9 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
       const m = useGame.getState().merchant!;
       useGame.setState({ merchant: { ...m, buyMarkup: markup } });
       const id = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-      const before = toBrass(partyMoneyTotal(useGame.getState));
+      const before = toBrass(fortuneDuGroupe(useGame.getState));
       useGame.getState().buyItem(id, 'h');
-      return before - toBrass(partyMoneyTotal(useGame.getState));
+      return before - toBrass(fortuneDuGroupe(useGame.getState));
     };
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
   });

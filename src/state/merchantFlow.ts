@@ -8,8 +8,9 @@ import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
-import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../engine/bargain';
-import { SL_ASTOUNDING, estJete } from '../engine/tests';
+import { bargainBuyFactor, bargainSellFactor, refusApresMarchandage, type BargainOutcome } from '../engine/bargain';
+import { estJete } from '../engine/tests';
+import { estEnRencontre } from '../engine/conditions';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
@@ -32,7 +33,7 @@ import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
 import { actorIn, ecrireActeur, garanti } from './combatants';
-import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
+import { estUnAchat, type CascadeStep, type ContrepartieDeMarchandage, type OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './sceneNpc';
 import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
@@ -42,7 +43,7 @@ import type { Get, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 
-/** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
+/** Boutique OUVERTE (état de l'ouverture du marchand en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
   entityId: string;
   archetype: string;
@@ -50,15 +51,13 @@ export interface MerchantState {
   resaleRate: number;
   buyMarkup?: number;
   /** Bande d'ambiance de l'écran (id du registre `src/ui/backdrops`) — provient de la donnée du service
-   *  de lieu qui ouvre la visite (`lieux-services.json`, ex. `forge` pour le forgeron, #369) ; absente
+   *  de lieu qui ouvre le marchand (`lieux-services.json`, ex. `forge` pour le forgeron, #369) ; absente
    *  pour un marchand de scène sans décor seedé. Rendue dans le slot `backdrop` du `ScreenShell`. */
   backdrop?: string;
   /** Stock & panier keyés par `trappingId` (`TrappingData.id`) — le libellé est résolu à l'affichage. */
   stock: { id: string; qty: number }[];
   bargainBuy?: BargainOutcome | null;
   bargainSell?: BargainOutcome | null;
-  /** Botch (« rater de beaucoup », LDB 59 l.43) : le marchand se méfie — plus de marchandage cette visite. */
-  soured?: boolean;
   cart: { id: string; qty: number }[];
   /** Panier de VENTE (#22b) : instances d'objets sélectionnées chez leur porteur, vendues d'un coup
    *  (`confirmSell`) — parité avec le panier d'achat. Une instance est unique (pas de quantité). */
@@ -259,7 +258,7 @@ registerCascadeApplier(MERCHANT_STOCK_KIND, (get, set, step) => {
   persistStock(set, entityId, stock, now);
   set((s) => {
     if (s.merchant?.entityId === entityId) {
-      // Rafraîchi PENDANT une visite en cours (recherche active) — même reset que le chemin inline.
+      // Rafraîchi PENDANT une ouverture du marchand (recherche active) — même reset que le chemin inline.
       return { merchant: { ...s.merchant, stock, cart: [], bargainBuy: null, bargainSell: null, bargainLocked: false } };
     }
     const resaleRate = Number(meta.resaleRate ?? arch.resaleRate);
@@ -301,7 +300,7 @@ function openStockRevealCascade(
   startCascade(get, set, { title: t('mf.restockTitle'), purpose: 'test', steps: [step] });
 }
 
-/** Ouverture PARTAGÉE d'une visite marchande (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
+/** Ouverture PARTAGÉE du marchand (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
  *  dans une scène) quand il existe ; un marchand de LIEU (`openPlaceMerchant`, catalogue `lieux-services.json`)
  *  n'en porte aucun et joue les défauts d'archétype nus. SOURCE UNIQUE du calcul d'ouverture, réutilisée
  *  par les deux entrées — aucune n'est un fork de l'autre. */
@@ -314,7 +313,7 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
   const restockPeriod = (ent?.merchant?.restockDays ?? arch.restockDays ?? 1) * MINUTES_PER_DAY; // réassort (#T3)
   const now = get().gameTime;
   const prev = get().merchantStocks[entityId];
-  // Re-stock dans le temps (#T3) : on conserve le stock DÉPLÉTÉ entre visites ; on ne re-tire un stock
+  // Re-stock dans le temps (#T3) : on conserve le stock DÉPLÉTÉ entre ouvertures ; on ne re-tire un stock
   // FRAIS (nouvelle Disponibilité) que si `restockPeriod` s'est écoulé depuis le dernier tirage.
   // Règles optionnelles « Marché » (LDB 59/60) : Guildes d'Artisans (Atouts/Défauts inversent la
   // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `market-guild`/`market-mode`.
@@ -355,7 +354,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   const meta = step.meta ?? {};
   const entityId = String(meta.entityId ?? '');
   const m = get().merchant;
-  if (!m || m.entityId !== entityId) return {}; // visite fermée entre-temps
+  if (!m || m.entityId !== entityId) return {}; // marchand fermé entre-temps
   const gossipDay = step.result.success;
   const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
   finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
@@ -414,6 +413,20 @@ export function searchAvailability(get: Get, set: Set): void {
   }, MERCHANT_RAGOT_KIND, { entityId: m.entityId, restockPeriod });
 }
 
+/** Raison du refus du vendeur de traiter avec `hero` pour la visite, ou `null` — LDB 59 l.43 ;
+ *  arbitrage #2547 c.6234640084 (2026-10-17). */
+export function refusDeTraiter(refus: readonly string[] | undefined, hero: Pick<Combatant, 'id' | 'label'> | undefined): string | null {
+  return hero && refus?.includes(hero.id) ? msg('mf.refusVisite', { name: hero.label }) : null;
+}
+
+/** Premier héros en rencontre avec qui le vendeur traite encore, ou `undefined` — #2547 c.6234887738. */
+export function premierAdmis(party: readonly Combatant[], refus: readonly string[] | undefined): Combatant | undefined {
+  return party.find((h) => estEnRencontre(h) && !refusDeTraiter(refus, h));
+}
+
+/** Personnages que le marchand ouvert refuse pour la visite (`GameState.refusDeVendeur`, par entité). */
+const refusDuMarchand = (get: Get, m: MerchantState): readonly string[] | undefined => get().refusDeVendeur[m.entityId];
+
 export function closeMerchant(get: Get, set: Set): void {
   const m = get().merchant;
   // Négocié mais NON honoré (achat non payé, OU vente sans rien vendre) → verrou partagé jusqu'au réassort.
@@ -445,6 +458,8 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   const cost = free ? fromBrass(0) : fromBrass(Math.round(toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * factor));
   const dest = heroId ?? get().party[0]?.id;
   const destHero = dest ? actorIn(get(), dest) : undefined;
+  const refus = refusDeTraiter(refusDuMarchand(get, m), destHero);
+  if (refus) { get().log(refus); return; }
   if (!free && (!destHero || !canAfford(bourseOf(destHero), cost))) { get().log(t('mf.purseKo', { label: entry.label })); return; }
   const objet = entry.unit ? null : itemFromTrappingById(id);
   if (!entry.unit && !objet) return; // objet de sac introuvable → abandon (parité comportement)
@@ -461,7 +476,7 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
     return {
       ...(!objet || !dest ? {} : ecrireActeur(s, dest, (h) => avecObjet(h, objet))), // flux objet→héros mutualisé
       merchant: { ...s.merchant!, stock: newStock },
-      // Déplétion PERSISTANTE (#T3) : la quantité reste réduite entre visites (rolledAt inchangé).
+      // Déplétion PERSISTANTE (#T3) : la quantité reste réduite entre ouvertures (rolledAt inchangé).
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
@@ -525,12 +540,15 @@ export function payCart(get: Get, set: Set): void {
   let totalBrass = 0;
   for (const c of cart) totalBrass += unitBrass(c.id) * c.qty;
   const total = fromBrass(totalBrass);
-  if (!payFromGroup(get, set, total, { purpose: 'panier marchand' })) { get().log(t('mf.cartPurseKo')); return; }
+  const refuses = refusDuMarchand(get, m);
+  const admis = premierAdmis(party, refuses);
+  if (!admis) { get().log(refusDeTraiter(refuses, party.find(estEnRencontre)) ?? t('mf.cartPurseKo')); return; }
+  if (!payFromGroup(get, set, total, { purpose: 'panier marchand', exclus: refuses })) { get().log(t('mf.cartPurseKo')); return; }
   // Crée les objets achetés (par UNITÉ) en attente de répartition + déplète le stock. Une ligne
   // UNITÉ (véhicule/créature-monture, #760) rejoint elle aussi `pendingDistribution` — le joueur
   // choisit le héros PROPRIÉTAIRE via le même écran de répartition que les objets de sac ;
-  // `dest` (= party[0]) est l'affectation PAR DÉFAUT, réassignable.
-  const dest = get().party[0]?.id ?? '';
+  // `dest` (= premier héros admis) est l'affectation PAR DÉFAUT, réassignable.
+  const dest = admis.id;
   const staged: NonNullable<MerchantState['pendingDistribution']> = [];
   let newStock = m.stock;
   for (const c of cart) {
@@ -679,6 +697,8 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   const hero = get().party.find((h) => h.id === opts.giveHeroId);
   const stockLine = m.stock.find((l) => l.id === opts.getStockId);
   if (!hero || !stockLine) return;
+  const refus = refusDeTraiter(refusDuMarchand(get, m), hero);
+  if (refus) { get().log(refus); return; }
   // Exemplaires cédés : instances NON équipées du même trapping chez ce héros.
   const givable = (hero.items ?? []).filter((i) => i.trappingId === opts.giveTrappingId && !i.equipped);
   if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
@@ -720,7 +740,11 @@ function removeSold(s: GameState, entries: { uid: string; heroId: string }[]): R
 /** Ajoute une instance au panier de vente. Un objet HORS COMMERCE (sans Disponibilité catalogue) est
  *  REFUSÉ ici avec sa raison — il n'entre jamais au panier en silence (`sellRefusal`). */
 export function addToSellCart(get: Get, set: Set, uid: string, heroId: string): void {
-  const item = get().party.find((h) => h.id === heroId)?.items?.find((i) => i.uid === uid);
+  const hero = get().party.find((h) => h.id === heroId);
+  const m = get().merchant;
+  const refus = refusDeTraiter(m ? refusDuMarchand(get, m) : undefined, hero);
+  if (refus) { get().log(refus); return; }
+  const item = hero?.items?.find((i) => i.uid === uid);
   const refused = item ? sellRefusal(item) : null;
   if (refused) { get().log(t('trade.sellRefused', { reason: refused })); return; }
   set((s) => {
@@ -749,7 +773,10 @@ export function confirmSell(get: Get, set: Set): void {
   const names: string[] = [];
   const sold: { uid: string; heroId: string }[] = [];
   for (const c of cart) {
-    const item = get().party.find((h) => h.id === c.heroId)?.items?.find((i) => i.uid === c.uid);
+    const hero = get().party.find((h) => h.id === c.heroId);
+    const refus = refusDeTraiter(refusDuMarchand(get, m), hero);
+    if (refus) { get().log(refus); continue; }
+    const item = hero?.items?.find((i) => i.uid === c.uid);
     if (!item) continue;
     const refused = sellRefusal(item); // dernier verrou : le panier peut précéder un changement de donnée
     if (refused) { get().log(t('trade.sellRefused', { reason: refused })); continue; }
@@ -773,6 +800,8 @@ export function confirmSell(get: Get, set: Set): void {
 export function repairItem(get: Get, set: Set, uid: string, heroId: string): void {
   const m = get().merchant; if (!m) return;
   const hero = get().party.find((h) => h.id === heroId);
+  const refus = refusDeTraiter(refusDuMarchand(get, m), hero);
+  if (refus) { get().log(refus); return; }
   const item = hero?.items?.find((i) => i.uid === uid);
   if (!item || !isRepairable(item)) return;
   const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
@@ -791,8 +820,8 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
 
 /** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
  *  `contrepartie` — porte UNIQUE des deux contreparties (marchand, billet). */
-export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage): void {
-  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
+export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage, refus?: readonly string[]): void {
+  const best = partyAssisted(get().party.filter((h) => !refusDeTraiter(refus, h)), 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
   set({ pendingBargain: {
     playerId: best.actor.id, playerName: best.actor.label,
     contrepartie, opposant,
@@ -811,16 +840,15 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
   const mkt = marketRule(ent, 'marketMode') as string;
   if (mkt === 'sans-marchandage' || mkt === 'simplifie') return; // Marchandage désactivé (règle optionnelle LDB 59 l.15)
-  if (m.soured) return; // botch antérieur : le marchand se méfie, plus de marchandage (LDB 59 l.43)
   if (m.bargainLocked) return; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
-  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
+  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par ouverture du marchand (achat ≠ vente)
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
-  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId) });
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId) }, refusDuMarchand(get, m));
 }
 
-/** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
+/** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de l'ouverture du marchand
  *  (LDB 59 l.43), ou le billet (`marchandagesDeBillet`, EDO 01 l.142). */
 export function bargainConfirm(get: Get, set: Set): void {
   const pb = get().pendingBargain;
@@ -832,15 +860,30 @@ export function bargainConfirm(get: Get, set: Set): void {
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.bargain.apply(get);
   const c = pb.contrepartie;
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
-  // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
-  const botch = !won && drNet >= SL_ASTOUNDING;
-  set((s) => ({
-    pendingBargain: null,
-    ...(c.kind === 'billet'
-      ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
-      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
-  }));
+  const refuse = refusApresMarchandage(estUnAchat(c), outcome) ? [pb.playerId] : [];
+  fermerMarchandage(set, (s) => {
+    if (c.kind === 'billet') {
+      const cle = cleDeBillet(c.routeId, c.vehicule, c.depuis);
+      return { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cle]: outcome }, ...refuserPour(s, cle, refuse) };
+    }
+    return s.merchant ? { merchant: { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }) }, ...refuserPour(s, s.merchant.entityId, refuse) } : {};
+  });
+}
+
+/** Ajoute `ids` aux personnages que le vendeur `cle` refuse (`GameState.refusDeVendeur`). */
+const refuserPour = (s: GameState, cle: string, ids: readonly string[]): Pick<GameState, 'refusDeVendeur'> =>
+  ({ refusDeVendeur: { ...s.refusDeVendeur, [cle]: [...(s.refusDeVendeur[cle] ?? []), ...ids] } });
+
+/** Ferme le Marchandage — lui seul : une cascade en cours n'est pas la sienne. */
+function fermerMarchandage(set: Set, consigner: (s: GameState) => Partial<GameState>): void {
+  set((s) => ({ pendingBargain: null, ...consigner(s) }));
+}
+
+/** « Annuler » le Marchandage : avant le jet il ferme ; après le jet il CONSIGNE l'issue (`bargainConfirm`),
+ *  un Test joué ne se rejoue qu'au prix de la Chance — LDB 17 l.17-25. */
+export function bargainCancel(get: Get, set: Set): void {
+  if (get().pendingBargain?.result) bargainConfirm(get, set);
+  else fermerMarchandage(set, () => ({}));
 }
 
 /** Talent « Détection d'artefact », id stable — LDB 10 l.336. */
@@ -906,6 +949,9 @@ export function gameDay(get: Get): number {
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   const hero = actorIn(get(), heroId);
+  const m = get().merchant;
+  const refus = m ? refusDeTraiter(refusDuMarchand(get, m), hero) : null; // #2547 c.6234640084
+  if (refus) { get().log(refus); return; }
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {

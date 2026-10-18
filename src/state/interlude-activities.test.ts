@@ -9,7 +9,7 @@ import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll } from '../engine/dice';
 import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { findTrappingById, findEffectTableById } from '../data';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
 import { seedBattleRng } from './battleRng';
@@ -46,7 +46,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     const itl = useGame.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
     useGame.setState({ interlude: { ...itl } });
-    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
+    const moneyBefore = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeActivity(hero().id, 'revenus');
     const pa = useGame.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
@@ -61,7 +61,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(after.didRevenus).toBe(true);
     expect(after.left).toBe(1);
     expect(after.revenueBrass).toBeGreaterThan(0);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore); // crédit DIFFÉRÉ : la bourse n'a pas bougé
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(moneyBefore); // crédit DIFFÉRÉ : la bourse n'a pas bougé
   });
 
   it('Revenus bloqués par l’événement (classe ou *) : la modale ne s’ouvre pas', () => {
@@ -83,9 +83,9 @@ describe('Activités d’interlude (LDB 23)', () => {
     itl0.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
     useGame.setState({ interlude: { ...itl0 } });
     const quarter = Math.max(1, Math.floor(toBrass(priceToMoney(findTrappingById('dague')!.price)) / 4));
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeCraftStart(h.id, 'dague', ['solide'], []);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before - quarter);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before - quarter);
     expect(hero().craft?.trappingId).toBe('dague');
     // Lancer : on force l'achèvement (drBefore au seuil).
     useGame.getState().interludeActivity(h.id, 'craft');
@@ -202,10 +202,10 @@ describe('Activités d’interlude (LDB 23)', () => {
     useGame.getState().interludeBank(hero().id, 'invest', 120);
     expect(useGame.getState().bank).toHaveLength(0);
     expect(useGame.getState().journal.join('\n')).toMatch(/échelons Or et Argent/);
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeBank(hero().id, 'stash', 120);
     expect(useGame.getState().bank).toHaveLength(1);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before - 120);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before - 120);
     expect(st().left).toBe(1);
   });
 
@@ -225,13 +225,13 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(pa.activityId).toBe('learn');
     expect(pa.difficulty).toBe('difficile'); // « Test Difficile (-20) »
     expect(pa.xpCost).toBe(100);
-    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
+    const moneyBefore = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().activityRoll();
     // Échec forcé : PX/argent dépensés en vain, +10 cumulé.
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -2 } });
     useGame.getState().activityConfirm();
     expect(hero().xp).toBe(200);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
     expect(st().learnFails?.['chanceux']).toBe(1); // clé = id stable
     expect(hero().talents.some((t) => t.talentId === 'chanceux')).toBe(false);
     // Seconde tentative : succès → Talent acquis (et le +10 d'acharnement s'ajoute à la valeur du Test).
@@ -275,10 +275,10 @@ describe('Activités d’interlude (LDB 23)', () => {
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
     useGame.setState({ interlude: { ...itl } });
     creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(999999));
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeOrder(h.id, 'baton-enchante');
     expect(useGame.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: 'baton-enchante' }]);
-    expect(before - toBrass(partyMoneyTotal(useGame.getState))).toBe(15 * PA_PER_CO);
+    expect(before - toBrass(fortuneDuGroupe(useGame.getState))).toBe(15 * PA_PER_CO);
     expect(st().left).toBe(2);
     for (const id of ['licence-de-guilde', 'arme-improvisee', 'mains-nues']) {
       useGame.getState().interludeOrder(h.id, id);
@@ -291,10 +291,10 @@ describe('Activités d’interlude (LDB 23)', () => {
     const itl = useGame.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
     useGame.setState({ interlude: { ...itl }, bank: [{ heroId: hero().id, kind: 'stash', brass: 240, rate: 0 }] });
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeWithdraw(0);
     expect(useGame.getState().bank).toHaveLength(0);
-    const after = toBrass(partyMoneyTotal(useGame.getState));
+    const after = toBrass(fortuneDuGroupe(useGame.getState));
     const journal = useGame.getState().journal.join('\n');
     if (after > before) expect(journal).toMatch(/récupère/);
     else expect(journal).toMatch(/découverte|perdus/);

@@ -26,7 +26,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 const basePending = (over: Partial<PendingTest> = {}): PendingTest => ({
   actorId: 'h', actorName: 'Hilda', label: 'Test', skill: 'Athlétisme', skillValue: 50,
   difficulty: 'intermediaire', requireSL: 0, target: 50, isDouble: false,
-  roll: null, success: false, sl: 0, ...over,
+  roll: null, success: false, sl: 0, jet: null, ...over,
 });
 
 describe('amazingTestLabel — libellé du double (LDB 12 l.127), PUR', () => {

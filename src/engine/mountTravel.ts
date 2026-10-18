@@ -33,6 +33,7 @@ import { rollMountIncident, mountIncidentEffects, type TravelTableEntry } from '
 import { t, type MsgKey } from '../i18n';
 import { refLabel, dataLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
+import { estEnRencontre } from './conditions';
 
 export type Allure = 'pas' | 'trot' | 'galop';
 export const ALLURES: readonly Allure[] = ['pas', 'trot', 'galop'];
@@ -123,14 +124,14 @@ export function heroCombatMount(h: Combatant, possessions: Possession[]): (Posse
 /** Les montures des héros VIVANTS du groupe (un héros = au plus une monture). */
 export function partyMounts(party: Combatant[], possessions: Possession[]): PartyMount[] {
   return party
-    .filter((h) => !h.dead && !h.outOfRencontre)
+    .filter(estEnRencontre)
     .map((h) => heroMount(h, possessions))
     .filter((m): m is PartyMount => !!m);
 }
 
 /** Le groupe peut-il voyager en selle ? (chaque héros vivant a une monture utilisable). */
 export function partyFullyMounted(party: Combatant[], possessions: Possession[]): boolean {
-  const alive = party.filter((h) => !h.dead && !h.outOfRencontre);
+  const alive = party.filter(estEnRencontre);
   return alive.length > 0 && alive.every((h) => !!heroMount(h, possessions));
 }
 
@@ -165,7 +166,7 @@ export function allureEnduranceHours(p: MountProfile, allure: Allure): number {
  *  plafond de km/h pour un groupe qui continue à pied avec elle. `null` si aucune bête boiteuse. */
 export function lameLedCapKmh(party: Combatant[], possessions: Possession[]): number | null {
   let cap: number | null = null;
-  const heroIds = new Set(party.filter((h) => !h.dead && !h.outOfRencontre).map((h) => h.id));
+  const heroIds = new Set(party.filter(estEnRencontre).map((h) => h.id));
   for (const p of possessions) {
     if (p.nature !== 'bete' || !heroIds.has(p.ownerId) || p.mountInjury !== 'boiteux') continue;
     if (!('creatureId' in p.ref)) continue;

@@ -40,7 +40,7 @@ import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit, bourseOf } from './bourseFlow';
+import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, bourseOf, cotisationDuGroupe } from './bourseFlow';
 import { cargoTotalEnc, OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
 import { findVehicleById, activityStakeRef, refLabel, dataLabel } from '../data';
 import { t } from '../i18n';
@@ -53,6 +53,7 @@ import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, fr
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea } from './seaVoyageFlow';
 import { actorIn, garanti } from './combatants';
+import { estEnRencontre } from '../engine/conditions';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -115,7 +116,7 @@ export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText 
 function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPick | null>): { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] {
   const out: { hero: Combatant; pick: SeaActivityPick; def: ActivityDef }[] = [];
   for (const hero of get().party) {
-    if (hero.dead || hero.outOfRencontre) continue;
+    if (!estEnRencontre(hero)) continue;
     const pick = picks[hero.id];
     const def = pick ? activityById(pick.activityId) : undefined;
     if (!pick || !def || !def.contexts.includes('mer') || seaActivityBlocked(get, def)) continue;
@@ -221,7 +222,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
-  const capGold = Math.min(vesselFreeEnc(get), Math.floor(toBrass(partyMoneyTotal(get)) / PA_PER_CO));
+  const capGold = Math.min(vesselFreeEnc(get), Math.floor(toBrass(cotisationDuGroupe(get().party)) / PA_PER_CO));
   const invest = Math.max(0, Math.min(Math.floor(pick.investGold ?? 0), capGold));
   if (invest <= 0) {
     noteSeaLine(get, set, [t('sact.tradeNoStake', { name: hero.label })]);

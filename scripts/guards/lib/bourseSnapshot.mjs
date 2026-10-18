@@ -1,12 +1,12 @@
 /**
- * Retours directs de partyMoneyTotal dans un sélecteur inline de useGame ; imports renommés inclus.
+ * Retours directs d'un agrégat de bourses (fortuneDuGroupe, cotisationDuGroupe) dans un sélecteur inline de useGame ; imports renommés inclus.
  * Variables locales intermédiaires et sélecteurs prédéfinis restent hors de cette construction.
  * Les agrégats convertis en scalaire, comme Council avec toBrass, sont autorisés.
  */
 import * as ts from 'typescript/unstable/ast';
 import { estAppelDeclare } from './canonUnique.mjs';
 
-const BOURSE = { 'src/state/bourseFlow.ts': ['partyMoneyTotal'] };
+const BOURSE = { 'src/state/bourseFlow.ts': ['fortuneDuGroupe', 'cotisationDuGroupe'] };
 const STORE = { 'src/state/store.ts': ['useGame'] };
 
 const sansParentheses = (n) => {
@@ -16,7 +16,7 @@ const sansParentheses = (n) => {
 
 export const SNAPSHOT_DE_BOURSE = {
   nom: 'snapshot-de-bourse-alloue',
-  indice: (texte) => texte.includes('partyMoneyTotal'),
+  indice: (texte) => texte.includes('fortuneDuGroupe') || texte.includes('cotisationDuGroupe'),
   reconnait(n, sf, contexte) {
     if (!ts.isCallExpression(n) || !estAppelDeclare(n, sf, STORE, contexte)) return null;
     const selector = sansParentheses(n.arguments[0]);
@@ -25,7 +25,7 @@ export const SNAPSHOT_DE_BOURSE = {
       const appel = sansParentheses(expression);
       return appel && ts.isCallExpression(appel) && !!estAppelDeclare(appel, sf, BOURSE, contexte);
     };
-    if (!ts.isBlock(selector.body)) return estTotal(selector.body) ? 'partyMoneyTotal rendu directement par useGame' : null;
+    if (!ts.isBlock(selector.body)) return estTotal(selector.body) ? 'agrégat de bourses rendu directement par useGame' : null;
     let alloue = false;
     const walk = (noeud) => {
       if (ts.isReturnStatement(noeud) && estTotal(noeud.expression)) alloue = true;
@@ -33,6 +33,6 @@ export const SNAPSHOT_DE_BOURSE = {
       noeud.forEachChild(walk);
     };
     walk(selector.body);
-    return alloue ? 'partyMoneyTotal rendu directement par useGame' : null;
+    return alloue ? 'agrégat de bourses rendu directement par useGame' : null;
   },
 };

@@ -112,7 +112,7 @@ function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): 
 }
 import { ev, type CombatEvent, type ActorAim } from './combatLog';
 import { rule, ruleOverrides, loadRuleOverrides } from '../engine/policy';
-import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
+import { hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { type HealMode } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import { campGain } from './combat/advantagePool';
@@ -123,7 +123,7 @@ import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
 import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
-import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
+import { FLOWS, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
 import * as partyFlow from './partyFlow';
 import * as possessionsFlow from './possessionsFlow';
@@ -1520,6 +1520,9 @@ export interface GameState extends RollFlowActionsMap {
   billetEnMain: import('./billetFlow').BilletEnMain | null;
   /** Issue du Marchandage de chaque billet, par `cleDeBillet` — un Test par billet (EDO 01 l.142). */
   marchandagesDeBillet: Record<string, import('../engine/bargain').BargainOutcome>;
+  /** Personnages avec qui chaque vendeur (entité marchande, ou `cleDeBillet`) refuse de traiter jusqu'à
+   *  la fin de la visite, c'est-à-dire jusqu'au changement de scène — LDB 59 l.43 ; #2547 c.6234640084. */
+  refusDeVendeur: Record<string, string[]>;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
@@ -2757,7 +2760,7 @@ export const useGame = create<GameState>((set, get) => ({
   repairItem: (uid, heroId) => merchantFlow.repairItem(get, set, uid, heroId),
   startBargain: (mode) => merchantFlow.startBargain(get, set, mode),
   bargainConfirm: () => merchantFlow.bargainConfirm(get, set),
-  bargainCancel: () => set({ pendingBargain: null }),
+  bargainCancel: () => merchantFlow.bargainCancel(get, set),
 
   appraiseItem: (uid, heroId, mode) => merchantFlow.appraiseItem(get, set, uid, heroId, mode),
   appraiseGear: (scope, index, mode) => merchantFlow.appraiseGear(get, set, scope, index, mode),
@@ -3061,12 +3064,8 @@ export const useGame = create<GameState>((set, get) => ({
     set({ pendingTest: null, pendingCascade: null });
     const actor = get().party.find((c) => c.id === pt.actorId);
     const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
-    // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
-    // réussi le d100 mais manqué le seuil requireSL (jamais un roll > cible → on ne crée pas de réussite).
-    const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
-    const effSuccess = drDelta !== 0 ? pt.roll <= pt.target && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
     // SEAM d'observation pure (recette navigateur, #514) — jamais lu par du code de règles.
-    bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: pt.roll, target: pt.target });
+    bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: pt.success, sl: pt.sl, roll: pt.roll, target: pt.target });
     // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).
     if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
       tool.destroyed = true;
@@ -3080,16 +3079,16 @@ export const useGame = create<GameState>((set, get) => ({
     const battle = ca ? get().battle : null;
     if (ca && battle) {
       const c = inBattleId(battle, ca.combatantId);
-      if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
+      if (c && pt.success && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
       set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
     // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
     // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
     // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
-    const branch = effSuccess ? pt.onSuccess : pt.onFailure;
+    const branch = pt.success ? pt.onSuccess : pt.onFailure;
     const issue = pt.subi
-      ? reprendreTestSubi(get, set, pt, effSuccess)
+      ? reprendreTestSubi(get, set, pt, pt.success)
       : runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
     // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
     //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
@@ -3099,7 +3098,7 @@ export const useGame = create<GameState>((set, get) => ({
     //    palier 2) → il ne RÉ-ÉMET PAS.
     //  · avancée de dialogue différée (un `choice.flow` avait suspendu ICI).
     const clotures: Cloture[] = [];
-    if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
+    if (!pt.success && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
     if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
     cloturer(get, set, issue, clotures);
   },

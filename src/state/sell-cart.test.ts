@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal } from './bourseFlow';
+import { fortuneDuGroupe } from './bourseFlow';
 import type { MerchantState } from './merchantFlow';
 
 // Panier de VENTE (#22b) : parité avec l'achat, sans dupliquer la logique (prix via `sellGain`).
@@ -31,7 +31,7 @@ describe('Panier de vente (#22b)', () => {
     const s = useGame.getState();
     expect(s.merchant!.sellCart).toHaveLength(0);
     expect(s.party[0].items?.filter((i) => i.uid === a.uid || i.uid === b.uid)).toHaveLength(0); // les deux objets vendus, retirés (la Bourse créditée demeure)
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeGreaterThan(0); // bourse créditée
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeGreaterThan(0); // bourse créditée
   });
 
   it('retirer du panier de vente n’altère pas l’inventaire', () => {
@@ -40,6 +40,6 @@ describe('Panier de vente (#22b)', () => {
     useGame.getState().removeFromSellCart(a.uid);
     expect(useGame.getState().merchant!.sellCart).toHaveLength(0);
     expect(useGame.getState().party[0].items).toHaveLength(2); // rien vendu
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(0);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(0);
   });
 });

@@ -6,7 +6,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS, verdictDeRecuperation } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
@@ -155,7 +155,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, estEnRencontre } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -189,7 +189,7 @@ import { findSpell, findSpellById } from '../data/index';
  *  (un fallback id→libellé = rétro-compatibilité, proscrite). Les libellés restent au seul niveau AUTHORING. */
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, condCtx } from './bourseFlow';
+import { fortuneDuGroupe, condCtx } from './bourseFlow';
 import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
 import { STEP_MAX_M } from './relief';
 import { placeCombatant } from './spawn';
@@ -5557,7 +5557,7 @@ export function overcastTargetCandidates(
   const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps);
   return pool.filter((m) => {
     if (m.id === targetId) return false;
-    if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
+    if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || !estEnRencontre(m)) return false;
     if (range != null && caster.pos && m.pos && combatDistance(caster, m) > range) return false;
     // Ligne de Vue (LDB 46 l.121) : une cible supplémentaire doit aussi être visible du lanceur.
     return !spellSightBlocked(sight, caster, m);
@@ -6941,7 +6941,7 @@ function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | u
  *  par le MÊME mécanisme que la reddition (`outOfRencontre`/`exitReason`, #215), lue « hors-combat »
  *  (endState). No-op si la cible est déjà sortie/morte, ou hors `firstBlood`. */
 function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, lostThisHit: number, sink: string[]): void {
-  if (vc?.type !== 'firstBlood' || target.outOfRencontre || target.dead) return;
+  if (vc?.type !== 'firstBlood' || !estEnRencontre(target)) return;
   const threshold = vc.threshold ?? 3;
   if (lostThisHit <= threshold) return;
   target.outOfRencontre = true;
@@ -7053,7 +7053,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // Capture des récompenses pour l'écran de victoire : on mesure ce que onVictory octroie (XP/or/butin)
   // par diff avant/après, + la liste des vaincus (groupée par nom). L'écran (VictoryScreen) lit `pendingVictory`.
   const xpBefore = get().party[0]?.xp ?? 0;
-  const brassBefore = toBrass(partyMoneyTotal(get));
+  const brassBefore = toBrass(fortuneDuGroupe(get));
   // #9 : on sépare les effets onVictory. Récompenses/flags/journal s'appliquent MAINTENANT (pour peupler
   // l'écran) ; ceux qui CHANGENT le contexte (téléport/dialogue/combat) sont DIFFÉRÉS au clic « Continuer »
   // (dismissVictory) — sinon le téléport masque l'écran de victoire (cas de l'arène).
@@ -7094,7 +7094,7 @@ registerCloture('ouvrirEcranDeVictoire', (get, set, c) => {
     pendingVictory: {
       ...c.ecran,
       xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),
-      gold: fromBrass(Math.max(0, toBrass(partyMoneyTotal(get)) - c.laitonAvant)),
+      gold: fromBrass(Math.max(0, toBrass(fortuneDuGroupe(get)) - c.laitonAvant)),
     },
   });
 });
@@ -8321,7 +8321,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (!canAct) return advanceTurn(get, set);
       const rt = resolveRecoverTest(enemy, action.state, battle);
       if (!rt) return advanceTurn(get, set); // État non récupérable par Action (pas de `recover` en donnée)
-      let success: boolean, netSL: number;
+      let verdict: { netSL: number; success: boolean };
       if (rt.opposition) {
         // LDB 12 l.160 : les DEUX camps portent leur nue (`RecoverOpposition` les porte ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
         // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `rec.difficulty` (donnée), l'entrave
@@ -8330,12 +8330,11 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire', {
           attacker: rt.skillBase, defender: rt.opposition.base,
         });
-        success = opp.attackerWins; netSL = opp.netSL;
+        verdict = verdictDeRecuperation({ ...rt, opponentRoll: opp.defender }, opp.attacker);
       } else {
-        const t = rollSansPilote(get, enemy, rt.skillValue, rt.difficulty, battleRng());
-        netSL = Math.max(0, t.sl);
-        success = rt.requireSl != null ? t.success && netSL >= rt.requireSl : t.success; // Filets (Zoo Impérial p.29) : DR ≥ Indice
+        verdict = verdictDeRecuperation({ ...rt, opponentRoll: null }, rollSansPilote(get, enemy, rt.skillValue, rt.difficulty, battleRng()));
       }
+      const { success, netSL } = verdict;
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines: string[] = rt.struggleDamage != null
         ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { caster: enemy })

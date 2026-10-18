@@ -28,7 +28,7 @@ function openFailedTest(heroId: string, heroName: string) {
   useGame.setState({
     pendingTest: {
       actorId: heroId, actorName: heroName, label: 'Test de Force', skillValue: 50,
-      difficulty: 'intermediaire', requireSL: 0, target: 50, roll: null, success: false, sl: 0,
+      difficulty: 'intermediaire', requireSL: 0, target: 50, roll: null, success: false, sl: 0, jet: null,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     },
   });

@@ -4,6 +4,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel } from '../data';
 import { activityAsPoste } from '../state/poste';
 import { PostesRoster } from './PostesRoster';
+import { estEnRencontre } from '../engine/conditions';
 
 /**
  * Wrapper store des Rôles de marche (Voyage par Étapes, EDOC 8) : projette les Activités de voyage
@@ -31,7 +32,7 @@ const refDe = (cle: string): RefDesignee => {
 export function TravelRolesPanel() {
   const party = useGame((s) => s.party);
   const setTravelRole = useGame((s) => s.setTravelRole);
-  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = party.filter((h) => estEnRencontre(h) && h.kind === 'hero');
   return (
     <PostesRoster
       title="Rôles de marche"

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { emptyScene } from './scene';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, fortuneDuGroupe } from './bourseFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { toBrass } from '../engine/money';
 import type { Combatant } from '../engine/types';
@@ -41,7 +41,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     useGame.setState({ party: [hero('h', 'H')], scene: maquignonScene() });
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().addToCart('mule');
     useGame.getState().payCart();
     const st = useGame.getState();
@@ -49,7 +49,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     expect(st.merchant!.pendingDistribution).toBeTruthy();
     const entry = st.merchant!.pendingDistribution!.find((d) => 'unit' in d && d.unit.id === 'mule');
     expect(entry).toBeDefined();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // bourse débitée du prix `purchase` (5 or)
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before); // bourse débitée du prix `purchase` (5 or)
     expect((st.party[0].items ?? []).some((i) => i.trappingId === 'mule')).toBe(false); // jamais un objet de sac (parité `giveTrapping` évitée)
   });
 

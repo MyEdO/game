@@ -20,6 +20,7 @@ import { placeOfScene } from './worldMap';
 import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
 import type { GameState } from './store';
+import { estEnRencontre } from '../engine/conditions';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
 export type CarrierStateSlice = Pick<GameState, 'party' | 'vessel' | 'worldMap' | 'scene' | 'possessions'>;
@@ -31,8 +32,6 @@ export const CAMPAIGN_VESSEL_CARRIER_ID = 'vessel';
 function currentPlaceId(s: CarrierStateSlice): string | undefined {
   return placeOfScene(s.worldMap, s.scene?.id ?? undefined)?.id;
 }
-
-const heroInParty = (h: Combatant): boolean => !h.dead && !h.outOfRencontre;
 
 /** Capacité de bât d'une Possession terrestre (véhicule `chargement` EDOC, ou bête `encPortee`) —
  *  undefined si elle n'est pas un porteur. */
@@ -53,7 +52,7 @@ function possessionCarrier(p: Possession, capacity: number, placeId: string | un
 
 /** Possessions terrestres AVEC-LE-GROUPE d'un propriétaire du groupe, filtrées par nature. */
 function partyLandPossessions(s: CarrierStateSlice): Possession[] {
-  const ownerIds = new Set(s.party.filter(heroInParty).map((h) => h.id));
+  const ownerIds = new Set(s.party.filter(estEnRencontre).map((h) => h.id));
   return s.possessions.filter((p) => !p.destroyed && ownerIds.has(p.ownerId) && p.location.kind === 'avec-le-groupe');
 }
 
@@ -88,7 +87,7 @@ export function partyCarriers(s: CarrierStateSlice): CargoCarrier[] {
   const placeId = currentPlaceId(s);
   const out: CargoCarrier[] = [];
   for (const h of s.party) {
-    if (!heroInParty(h)) continue;
+    if (!estEnRencontre(h)) continue;
     // Le héros lui-même : contenu = objets DISCRETS (transfert d'objet = giveTrapping, hors canal vrac).
     out.push({ id: h.id, label: h.label, hull: 'jambes', capacity: maxEncumbrance(h), discreteEnc: totalEncumbrance(h), cargo: [], placeId });
   }
@@ -141,7 +140,7 @@ export function partyCargoTotalEnc(s: CarrierStateSlice): number {
 
 /** Possessions terrestres AVEC-LE-GROUPE d'un propriétaire vivant du groupe — variante PURE (sans lieu). */
 function landPossessions(party: Combatant[], possessions: Possession[]): Possession[] {
-  const ownerIds = new Set(party.filter(heroInParty).map((h) => h.id));
+  const ownerIds = new Set(party.filter(estEnRencontre).map((h) => h.id));
   return possessions.filter((p) => !p.destroyed && ownerIds.has(p.ownerId) && p.location.kind === 'avec-le-groupe');
 }
 

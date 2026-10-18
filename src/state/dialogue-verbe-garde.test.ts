@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { KEYBINDINGS } from './keybindings';
 import { conversationRepond } from './dialogue';
-import { partyMoneyTotal } from './bourseFlow';
+import { fortuneDuGroupe } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { toBrass } from '../engine/money';
@@ -81,20 +81,20 @@ describe('chooseDialogue — un index que le joueur ne peut PAS choisir est refu
   });
 
   it('réponse trop CHÈRE : refus SANS débit (la bourse est intacte)', () => {
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().chooseDialogue(2);
     expect(useGame.getState().dialogue?.nodeId).toBe('n1');
-    expect(toBrass(partyMoneyTotal(useGame.getState)), 'le coût ne se paie pas sur un refus').toBe(avant);
+    expect(toBrass(fortuneDuGroupe(useGame.getState)), 'le coût ne se paie pas sur un refus').toBe(avant);
     expect(useGame.getState().dialogueHistory).toHaveLength(0);
   });
 
   it('réponse payante ACCESSIBLE : elle passe, et le coût est débité une fois', () => {
     // Contrat POSITIF opposé : la garde refuse ce qui doit l'être, et LAISSE passer le reste.
     monter({ party: [hero(2400)] });
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().chooseDialogue(2);
     expect(useGame.getState().dialogue?.nodeId).toBe('n2');
-    expect(avant - toBrass(partyMoneyTotal(useGame.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 }));
+    expect(avant - toBrass(fortuneDuGroupe(useGame.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 }));
   });
 
   it('index HORS de la donnée : rien n’avance', () => {

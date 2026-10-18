@@ -5,7 +5,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from './battleRng';
 import { draineCascadeDifferee } from './cascadeTestKit';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { WINE_QUALITY } from '../engine/landCargo';
 import { carrierById, persistCarriersCargo } from './carriers';
 import type { WorldMap } from './worldMap';
@@ -98,13 +98,13 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     seedBattleRng(3);
     get().openLandMarket();
     const offer = get().landMarket!.offers[0];
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landBuyCargo(offer.cargoId, Math.min(30, offer.enc)); // ≤ Contenance 80
     const cargo = carrierCargo();
     expect(cargo.length).toBe(1);
     expect(cargo[0].cargoId).toBe(offer.cargoId);
     expect(cargo[0].enc).toBe(Math.min(30, offer.enc));
-    expect(partyMoneyTotal(get).gold).toBeLessThanOrEqual(before);
+    expect(fortuneDuGroupe(get).gold).toBeLessThanOrEqual(before);
   });
 
   it('landBuyCargo REFUSE au-delà de la Contenance du porteur (plafond réel, #327)', () => {
@@ -112,10 +112,10 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     seedBattleRng(3);
     get().openLandMarket();
     const offer = get().landMarket!.offers[0];
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landBuyCargo(offer.cargoId, 200); // > 80 → refusé
     expect(carrierCargo().length).toBe(0);
-    expect(partyMoneyTotal(get).gold).toBe(before);
+    expect(fortuneDuGroupe(get).gold).toBe(before);
     expect(get().journal.some((l) => /ne peut plus charger/.test(l))).toBe(true);
   });
 
@@ -124,9 +124,9 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     seedBattleRng(3);
     get().openLandMarket();
     const offer = get().landMarket!.offers[0];
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landBuyCargo(offer.cargoId, 20);
-    expect(partyMoneyTotal(get).gold).toBe(before);
+    expect(fortuneDuGroupe(get).gold).toBe(before);
     expect(get().journal.some((l) => /Aucune bête de somme ni véhicule/.test(l))).toBe(true);
   });
 
@@ -134,11 +134,11 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     setCarrierCargo([{ cargoId: 'vivres', enc: 40, basePriceGold: 2 }]);
     useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
     seedBattleRng(2);
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     vendLot0();
     const cargo = carrierCargo();
     expect(cargo.length === 0 || cargo[0].enc < 40).toBe(true);
-    expect(partyMoneyTotal(get).gold).toBeGreaterThan(before);
+    expect(fortuneDuGroupe(get).gold).toBeGreaterThan(before);
   });
 
   it('landBuyCargo : Marchandage gagné de 6 DR ou plus par un Négociateur → remise de 30 % (LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
@@ -151,10 +151,10 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const brut = rng.int.bind(rng);
     const des = [5, 99]; // le meneur, puis le marchand
     rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landBuyCargo('metal', 20);
     expect(get().journal.some((l) => /remise de 30 %/.test(l)), get().journal.join('\n')).toBe(true);
-    expect(before - partyMoneyTotal(get).gold).toBe(140); // 20 Enc × 10 CO × 0,7
+    expect(before - fortuneDuGroupe(get).gold).toBe(140); // 20 Enc × 10 CO × 0,7
   });
 
   it('landSellCargo : un Négociateur qui gagne de moins de 6 DR monte la mise à prix de 20 % (LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
@@ -175,30 +175,30 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
   it('landDumpCargo brade à la moitié du prix de base (Lieu de Commerce, l.160)', () => {
     setCarrierCargo([{ cargoId: 'metal', enc: 20, basePriceGold: 3 }]);
     useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landDumpCargo(CARRIER_ID, 0);
     expect(carrierCargo().length).toBe(0);
-    expect(partyMoneyTotal(get).gold).toBe(before + 30); // 20 Enc × 3 CO × 50 % = 30 CO
+    expect(fortuneDuGroupe(get).gold).toBe(before + 30); // 20 Enc × 3 CO × 50 % = 30 CO
   });
 
   it('landDumpCargo REFUSE si le Lieu n’a pas le Commerce en Produits', () => {
     const noCommerce = { taille: 2, richesse: 2, produits: ['vivres'] };
     setCarrierCargo([{ cargoId: 'vivres', enc: 20, basePriceGold: 1 }]);
     useGame.setState({ landMarket: { placeId: 'A', label: 'Bourg', market: noCommerce, offers: [] } } as never);
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landDumpCargo(CARRIER_ID, 0);
     expect(carrierCargo().length).toBe(1); // refusé : rien bradé
-    expect(partyMoneyTotal(get).gold).toBe(before);
+    expect(fortuneDuGroupe(get).gold).toBe(before);
   });
 
   it('landBuyCargo REFUSE un lot de moins de minCargoEnc (l.131)', () => {
     seedBattleRng(3);
     get().openLandMarket();
     const offer = get().landMarket!.offers[0];
-    const before = partyMoneyTotal(get).gold;
+    const before = fortuneDuGroupe(get).gold;
     get().landBuyCargo(offer.cargoId, 5); // < 10 Enc → refusé
     expect(carrierCargo().length).toBe(0);
-    expect(partyMoneyTotal(get).gold).toBe(before);
+    expect(fortuneDuGroupe(get).gold).toBe(before);
   });
 
   it('landEvalWine révèle la qualité secrète d’un lot de Vin (Test d’Évaluation, l.95)', () => {
@@ -231,15 +231,15 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     setCarrierCargo([lot]);
     useGame.setState({ tradeRumours: [], landMarket: { placeId: 'A', label: 'X', market: mkt, offers: [] } } as never);
     seedBattleRng(2);
-    const b0 = toBrass(partyMoneyTotal(get));
+    const b0 = toBrass(fortuneDuGroupe(get));
     vendLot0();
-    const base = toBrass(partyMoneyTotal(get)) - b0;
+    const base = toBrass(fortuneDuGroupe(get)) - b0;
     setCarrierCargo([lot]);
     useGame.setState({ tradeRumours: [rum], landMarket: { placeId: 'A', label: 'X', market: mkt, offers: [] } } as never);
     seedBattleRng(2);
-    const b1 = toBrass(partyMoneyTotal(get));
+    const b1 = toBrass(fortuneDuGroupe(get));
     vendLot0();
-    const withRumour = toBrass(partyMoneyTotal(get)) - b1;
+    const withRumour = toBrass(fortuneDuGroupe(get)) - b1;
     expect(base).toBeGreaterThan(0);
     expect(withRumour).toBe(base * 2);
   });
@@ -254,14 +254,14 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     setCarrierCargo([lot]);
     useGame.setState({ tradeRumours: [], landMarket: { placeId: 'A', label: 'X', market: mkt, offers: [] } } as never);
     seedBattleRng(2);
-    const b0 = toBrass(partyMoneyTotal(get));
+    const b0 = toBrass(fortuneDuGroupe(get));
     vendLot0();
-    const base = toBrass(partyMoneyTotal(get)) - b0;
+    const base = toBrass(fortuneDuGroupe(get)) - b0;
     setCarrierCargo([lot]);
     useGame.setState({ tradeRumours: rums, landMarket: { placeId: 'A', label: 'X', market: mkt, offers: [] } } as never);
     seedBattleRng(2);
-    const b1 = toBrass(partyMoneyTotal(get));
+    const b1 = toBrass(fortuneDuGroupe(get));
     vendLot0();
-    expect(toBrass(partyMoneyTotal(get)) - b1).toBe(base);
+    expect(toBrass(fortuneDuGroupe(get)) - b1).toBe(base);
   });
 });

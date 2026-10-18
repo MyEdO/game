@@ -34,7 +34,7 @@
  */
 import type { Combatant } from './types';
 import { hasActiveFlag } from './activeFlags';
-import { addCondition, hasCondition, loseWounds } from './conditions';
+import { addCondition, hasCondition, loseWounds, estEnRencontre } from './conditions';
 import { bonus, effectiveChar } from './characteristics';
 import { rule } from './policy';
 import { offTerrainSuffocates } from './ops';
@@ -86,7 +86,7 @@ export function prepareBreathHold(c: Combatant): void {
 
 /** Tick de fin de Round d'un combattant qui suffoque. Mute `c`, retourne le journal. */
 export function suffocationTick(c: Combatant): string[] {
-  if (c.dead || c.outOfRencontre) return [];
+  if (!estEnRencontre(c)) return [];
   // Contre-mesure MAISON « aspergée d'eau » (MDG 16 l.19) : immunise CE Round, puis se consomme —
   // à reposer chaque Round pour rester immunisé (« régulièrement »).
   const wateredThisRound = !!c.wateredThisRound;

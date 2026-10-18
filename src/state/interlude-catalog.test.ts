@@ -13,7 +13,7 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { toBrass, fromBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { hasCondition } from '../engine/conditions';
 import { spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
@@ -182,7 +182,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     useGame.getState().interludeBank(h.id, 'mecenat', stake);
     expect(useGame.getState().bank).toEqual([{ heroId: h.id, kind: 'mecenat', brass: stake, rate: 0 }]);
     expect(st().left).toBe(2);
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeWithdraw(0);
     const pa = useGame.getState().pendingActivity;
     expect(pa?.kind).toBe('catalog');
@@ -190,7 +190,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     expect(pa?.skillLabel).toMatch(/valuation/); // Test d'Évaluation
     forceRoll(2, true, 6);
     expect(useGame.getState().bank).toHaveLength(0);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before + Math.floor(stake * 1.2)); // « profit de 20 % »
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before + Math.floor(stake * 1.2)); // « profit de 20 % »
     expect(st().left).toBe(1); // le retrait a coûté une Activité
   });
 
@@ -198,11 +198,11 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     const h = hero();
     const stake = 5 * PA_PER_CO;
     useGame.getState().interludeBank(h.id, 'mecenat', stake);
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().interludeWithdraw(0);
     forceRoll(97, false, -1);
     expect(useGame.getState().bank).toHaveLength(0);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // rien ne revient
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before); // rien ne revient
     expect(useGame.getState().journal.join('\n')).toMatch(/perd son investissement/);
   });
 

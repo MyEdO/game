@@ -8,6 +8,7 @@ import type { HitLocation } from '../engine/types';
 const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, s, loc), opts, loc);
 import { seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
+import { t } from '../i18n';
 
 function hero(p: Partial<Combatant>): Combatant {
   return {
@@ -491,5 +492,17 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(useGame.getState().pendingHeal!.healerName).toBe('Médecin');
     expect(bourseOf(useGame.getState().party.find((h) => h.id === 'al')!).silver ?? 0).toBe(0);
     expect(bourseOf(useGame.getState().party.find((h) => h.id === 'bob')!).silver).toBe(5);
+  });
+
+  it('un mort qui porte la bourse ne rend pas le soin payant « payable » (`cotisationDuGroupe`)', () => {
+    const al = hero({ id: 'al', wounds: { current: 4, max: 12 }, skills: [] });
+    const mort = hero({ id: 'mort', skills: [], dead: true });
+    useGame.setState({ mode: 'exploration', battle: null, party: [al, mort], pendingHeal: null, medic: null, journal: [] });
+    creditBourse(useGame.getState, useGame.setState, 'mort', { gold: 0, silver: 10, brass: 0 });
+    useGame.getState().openMedic({ npc: { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] }, patientId: 'al' });
+    useGame.getState().medicAct('wounds');
+    expect(useGame.getState().pendingHeal, 'aucun soin armé').toBeNull();
+    expect(useGame.getState().journal[useGame.getState().journal.length - 1]).toBe(t('medic.tooExpensive'));
+    expect(bourseOf(useGame.getState().party.find((h) => h.id === 'mort')!).silver).toBe(10);
   });
 });

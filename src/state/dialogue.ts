@@ -20,7 +20,7 @@ import type { Flow } from './flow';
 import type { Dialogue } from './scene';
 import type { DialogueTurn } from './dialogueHistory';
 import type { EtatDialogue } from './pendings';
-import { condCtx, partyMoneyTotal } from './bourseFlow';
+import { condCtx, cotisationDuGroupe } from './bourseFlow';
 import { ownsGroupDecision } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
 import type { GameState } from './store';
@@ -110,9 +110,9 @@ export function reponsesDuNoeud(s: GameState): ReponseDeDialogue[] {
   if (!node) return [];
   const get = () => s;
   // Contexte de Condition de SCÈNE par la couture canonique (`bourseFlow.condCtx`) : la Condition
-  // `money` y lit le total des bourses du groupe, comme les triggers et les `if` de scène.
+  // `money` y lit la cotisation du groupe, comme les triggers et les `if` de scène.
   const cc = condCtx(get);
-  const money = partyMoneyTotal(get);
+  const money = cotisationDuGroupe(s.party);
   const decide = ownsGroupDecision(s);
   const out: ReponseDeDialogue[] = [];
   node.choices.forEach((c, index) => {

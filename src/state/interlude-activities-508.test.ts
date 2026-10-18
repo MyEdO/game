@@ -8,7 +8,7 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { testScene } from '../scenes/test-fixture';
 import { consumeReverseToken } from '../engine/reverseToken';
 import { activityById } from '../engine/activities';
@@ -105,14 +105,14 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
   it('succès : +1 Standing (statusMod), coût débité', () => {
     const heroId = setup('agitateur'); // classe citadins
     useGame.getState().interludeActivity(heroId, 'reputation');
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     expect(useGame.getState().pendingActivity?.costBrass).toBeGreaterThan(0);
     useGame.getState().activityRoll();
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
     useGame.getState().activityConfirm();
     const hero = useGame.getState().party[0];
     expect(hero.activeEffects?.some((e) => e.statusMod === 1)).toBe(true);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBeLessThan(before);
   });
 });
 

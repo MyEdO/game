@@ -17,7 +17,7 @@ import { rollTableStep, stepInteraction, tableStepDef } from './cascade';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { fortuneDuGroupe, creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
@@ -94,7 +94,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('SONDE DIFFÉRENTIELLE (option ÉTEINTE) : mêmes événements, mêmes effets, même bourse, même flux RNG', () => {
     for (let seed = 1; seed <= 12; seed++) {
       const party = groupe();
-      const avant = toBrass(partyMoneyTotal(useGame.getState));
+      const avant = toBrass(fortuneDuGroupe(useGame.getState));
       const fortunes = party.map((h) => h.fortune ?? 0);
       // Référence : le chemin d'AVANT tirait un d100 par héros, dans l'ordre du groupe.
       seedBattleRng(seed);
@@ -119,7 +119,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
       });
       // Bourse : le PIRE `moneyPct` de la période, ponctionné UNE fois sur le total du groupe.
       const pire = rolls.reduce((w, r) => Math.min(w, interludeEventFor(r).fx?.moneyPct ?? 0), 0);
-      expect(toBrass(partyMoneyTotal(useGame.getState)), `seed ${seed} : bourse`)
+      expect(toBrass(fortuneDuGroupe(useGame.getState)), `seed ${seed} : bourse`)
         .toBe(avant - Math.floor((avant * -pire) / 100));
     }
   });
@@ -138,7 +138,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
 
   it('option ACTIVE : phase « tirage », une étape NON RÉSOLUE par héros + l’étape des bourses, AUCUN effet appliqué', () => {
     const party = groupe();
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     setDesFixes(true);
     useGame.getState().startInterlude(2);
     expect(useGame.getState().interlude!.phase).toBe('tirage');
@@ -154,12 +154,12 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
       expect(perHeroOf(h.id).fx).toBeUndefined();
       expect(perHeroOf(h.id).left).toBe(2);
     });
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(avant);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(avant);
   });
 
   it('POSER les dés : l’événement posé est celui APPLIQUÉ, et la bourse n’encaisse qu’à l’étape FINALE', () => {
     const party = groupe();
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     const fortune0 = party[1].fortune ?? 0;
     setDesFixes(true);
     useGame.getState().startInterlude(2);
@@ -169,18 +169,18 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     useGame.getState().cascadeNext();
     expect(perHeroOf(party[0].id).eventRoll).toBe(PREVOT);
     expect(perHeroOf(party[0].id).fx?.moneyPct).toBe(-30);
-    expect(toBrass(partyMoneyTotal(useGame.getState)), 'la bourse a encaissé avant la fin des tirages').toBe(avant);
+    expect(toBrass(fortuneDuGroupe(useGame.getState)), 'la bourse a encaissé avant la fin des tirages').toBe(avant);
     // Héros B : « Un homme averti en vaut deux » (+1 Point de Chance, appliqué à SON dénouement).
     useGame.getState().cascadeTableSetForcedRoll(steps()[1].id, AVERTI);
     useGame.getState().cascadeNext();
     expect(perHeroOf(party[1].id).eventRoll).toBe(AVERTI);
     expect(useGame.getState().party[1].fortune).toBe(fortune0 + 1);
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(avant);
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(avant);
     expect(useGame.getState().interlude!.phase, 'les Activités ont ouvert avant le dernier dé').toBe('tirage');
     // Étape FINALE : le dénouement de GROUPE ponctionne, et les Activités ouvrent.
     useGame.getState().cascadeNext();
     expect(useGame.getState().pendingCascade).toBeNull();
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(avant - Math.floor((avant * 30) / 100));
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(avant - Math.floor((avant * 30) / 100));
     expect(useGame.getState().interlude!.phase).toBe('activities');
   });
 
@@ -190,17 +190,17 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     // PROVISOIRE — la PORTÉE RAW diffère par événement (cf. docblock de `finishInterludeDraw`) et se
     // règle en #991 ; ce test ne l'affirme pas comme une règle.
     const party = groupe();
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     setDesFixes(true);
     useGame.getState().startInterlude(2);
     useGame.getState().cascadeTableSetForcedRoll(steps()[0].id, PREVOT); // −30
     useGame.getState().cascadeNext();
     useGame.getState().cascadeTableSetForcedRoll(steps()[1].id, KLEPTO); // −50
     useGame.getState().cascadeNext();
-    expect(toBrass(partyMoneyTotal(useGame.getState)), 'ponctionné avant le dénouement de groupe').toBe(avant);
+    expect(toBrass(fortuneDuGroupe(useGame.getState)), 'ponctionné avant le dénouement de groupe').toBe(avant);
     useGame.getState().cascadeNext(); // étape des bourses
     expect(party.map((h) => perHeroOf(h.id).eventRoll)).toEqual([PREVOT, KLEPTO]);
-    expect(toBrass(partyMoneyTotal(useGame.getState)), 'ponction DOUBLE (une par héros) au lieu d’une seule')
+    expect(toBrass(fortuneDuGroupe(useGame.getState)), 'ponction DOUBLE (une par héros) au lieu d’une seule')
       .toBe(avant - Math.floor((avant * 50) / 100)); // comportement provisoire : le pire pct, une fois — #991
   });
 
@@ -267,7 +267,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('SAUVEGARDE en plein tirage : la séquence est restaurée à SON étape, et la reprise dénoue', () => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage(); // env `node` : pas de localStorage
     const party = groupe();
-    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    const avant = toBrass(fortuneDuGroupe(useGame.getState));
     setDesFixes(true);
     useGame.getState().startInterlude(2);
     useGame.getState().cascadeTableSetForcedRoll(steps()[0].id, AVERTI);
@@ -288,7 +288,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     useGame.getState().cascadeNext();
     useGame.getState().cascadeNext();
     expect(useGame.getState().interlude!.phase).toBe('activities');
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(avant - Math.floor((avant * 50) / 100));
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(avant - Math.floor((avant * 50) / 100));
   });
 
   it('#973 : la ligne du DÉNOUEMENT de groupe ne porte pas « (dé fixé) » — aucun dé n’y est jeté', () => {

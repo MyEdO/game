@@ -20,7 +20,7 @@ import { registerCascadeApplier, registerTableStep, startCascade } from './casca
 import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
-import { partyMoneyTotal, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
+import { fortuneDuGroupe, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse, cotisationDuGroupe } from './bourseFlow';
 import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
@@ -273,7 +273,7 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
   const lines: string[] = [];
   const worstMoneyPct = Object.values(itl.perHero).reduce((worst, st) => Math.min(worst, st.fx?.moneyPct ?? 0), 0);
   if (worstMoneyPct < 0) {
-    const lost = Math.floor((toBrass(partyMoneyTotal(get)) * -worstMoneyPct) / 100);
+    const lost = Math.floor((toBrass(cotisationDuGroupe(get().party)) * -worstMoneyPct) / 100);
     payFromGroup(get, set, fromBrass(lost), { purpose: 'perte-evenement' });
     lines.push(msg('if.pursesLoss', { pct: -worstMoneyPct, money: formatMoney(fromBrass(lost)) }));
   }
@@ -1418,7 +1418,7 @@ export function interludeEnd(get: Get, set: Set): void {
       lines.push(msg('if.careerDemotion', { name: h.label, level: h.careerLevel }));
     }
   }
-  const wastedBefore = partyMoneyTotal(get);
+  const wastedBefore = fortuneDuGroupe(get);
   if (toBrass(wastedBefore) > 0) {
     lines.push(msg('if.moneyWasted', { money: formatMoney(wastedBefore) }));
   }

@@ -14,7 +14,7 @@ import { EmbeddedShell, useRollShell } from './RollShell';
 import { isHealable, lodgedAmmoCount, type HealMode } from '../engine/healing';
 import { hasTreatableTrauma, hasSurgeryTrauma, surgeryTraumas, recoverableTraumas, hasLimbAwaitingAid } from '../engine/trauma';
 import { bestHealerFor, HEAL_STAKE } from '../state/medicFlow';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { cotisationDuGroupe } from '../state/bourseFlow';
 import { toMoney } from '../engine/money';
 import type { Combatant } from '../engine/types';
 import { Icon } from './Icon';
@@ -73,7 +73,7 @@ export function MedicModal() {
   const ph = useGame((s) => s.pendingHeal);
   const ps = useGame((s) => s.pendingSurgery);
   const party = useGame((s) => s.party);
-  const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
+  const money = cotisationDuGroupe(party); // ce que le groupe peut dépenser (abonné via `party`)
   const selectPatient = useGame((s) => s.medicSelectPatient);
   const act = useGame((s) => s.medicAct);
   const setWound = useGame((s) => s.medicSetWound);

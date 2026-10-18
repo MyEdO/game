@@ -12,6 +12,7 @@ import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import type { GameState } from './store';
 import { actorIn, ecrireActeur } from './combatants';
+import { estEnRencontre } from '../engine/conditions';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
@@ -19,18 +20,28 @@ const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2
 // les ré-expose à ses appelants historiques, l'op `money` du moteur lit les mêmes.
 export { bourseInstanceOf, bourseOf, ensureBourse };
 
-/** Somme des bourses des héros — SEULE source d'un affichage d'argent agrégé (il n'y a pas de bourse
- *  de groupe : l'argent vit sur les héros). */
-export function partyMoneyTotal(get: Get): Money {
+/** Fortune du groupe ENTIER, morts et absents compris — AFFICHAGE et MESURE seulement (il n'y a pas de
+ *  bourse de groupe : l'argent vit sur les héros). Ce qu'une dépense peut tirer : `cotisationDuGroupe`. */
+export function fortuneDuGroupe(get: Get): Money {
   return get().party.reduce((sum, h) => moneyAdd(sum, bourseOf(h)), ZERO_MONEY);
 }
 
+/** Héros dont la bourse COTISE à une dépense de groupe : en rencontre, et hors `exclus`. */
+function cotisants(party: readonly Combatant[], exclus?: readonly string[]): Combatant[] {
+  return party.filter((h) => estEnRencontre(h) && !exclus?.includes(h.id));
+}
+
+/** Ce qu'une dépense de groupe peut tirer (`payFromGroup`) : la somme des bourses des cotisants. */
+export function cotisationDuGroupe(party: readonly Combatant[], exclus?: readonly string[]): Money {
+  return cotisants(party, exclus).reduce((sum, h) => moneyAdd(sum, bourseOf(h)), ZERO_MONEY);
+}
+
 /** `ConditionCtx` de SCÈNE depuis l'état vivant — SOURCE UNIQUE (remplace le `GameState.money`
- *  disparu) : injecte le total des bourses du groupe (`partyMoneyTotal`) dans la Condition `money`,
+ *  disparu) : injecte ce que le groupe peut dépenser (`cotisationDuGroupe`) dans la Condition `money`,
  *  au lieu du `s.money` inexistant que `conditionCtx` attend en toute généralité. Tout appelant lisant
  *  l'état de scène (triggers, `if`, choix de dialogue) route DESSUS. */
 export function condCtx(get: Get): ConditionCtx {
-  return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get), etats: get().etats });
+  return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: cotisationDuGroupe(get().party), etats: get().etats });
 }
 
 /** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse
@@ -91,14 +102,15 @@ export function payWithAllocation(
 
 /** DÉPENSE DE GROUPE (péage, gages, cargaison) — LE défaut fidèle d'une dépense de bande, miroir DÉBIT
  *  de `distributeCredit` : elle réussit SSI le TOTAL du groupe suffit, jamais sur l'échec du héros fauché
- *  d'un split égal. Si `partyMoneyTotal < cost` → `false`, AUCUNE mutation ; sinon tire GLOUTONNEMENT le
+ *  d'un split égal. Si `cotisationDuGroupe < cost` → `false`, AUCUNE mutation ; sinon tire GLOUTONNEMENT le
  *  coût des bourses (ORDRE du groupe, chaque héros jusqu'à son solde), ATOMIQUEMENT via `payWithAllocation`
- *  (l'allocation gloutonne est bâtie en cuivre par `toBrass`/`fromBrass`). Renvoie le succès. */
-export function payFromGroup(get: Get, set: Set, cost: Money, opts?: { purpose?: string }): boolean {
-  if (!canAfford(partyMoneyTotal(get), cost)) return false;
+ *  (l'allocation gloutonne est bâtie en cuivre par `toBrass`/`fromBrass`). `exclus` : héros dont la
+ *  bourse ne cotise pas (`cotisants`). Renvoie le succès. */
+export function payFromGroup(get: Get, set: Set, cost: Money, opts?: { purpose?: string; exclus?: readonly string[] }): boolean {
+  if (!canAfford(cotisationDuGroupe(get().party, opts?.exclus), cost)) return false;
   let remaining = toBrass(cost);
   const debits: Record<string, Money> = {};
-  for (const h of get().party) {
+  for (const h of cotisants(get().party, opts?.exclus)) {
     if (remaining <= 0) break;
     const take = Math.min(remaining, toBrass(bourseOf(h)));
     if (take > 0) {
@@ -111,12 +123,12 @@ export function payFromGroup(get: Get, set: Set, cost: Money, opts?: { purpose?:
 
 /** DRAINE le groupe pour une PERTE SCRIPTÉE (`giveMoney` négatif) — GLOUTON PLAFONNÉ, miroir de
  *  `payFromGroup` mais jamais tout-ou-rien : une perte supérieure au total du groupe vide TOUTES les
- *  bourses (jusqu'à 0) au lieu d'être esquivée. Prend `min(cost, total)`, dans l'ORDRE du groupe. */
+ *  bourses des cotisants (jusqu'à 0) au lieu d'être esquivée. Prend `min(cost, cotisation)`, dans l'ORDRE du groupe. */
 export function drainGroup(get: Get, set: Set, cost: Money): void {
-  let remaining = Math.min(toBrass(cost), toBrass(partyMoneyTotal(get)));
+  let remaining = Math.min(toBrass(cost), toBrass(cotisationDuGroupe(get().party)));
   if (remaining <= 0) return;
   const debits: Record<string, Money> = {};
-  for (const h of get().party) {
+  for (const h of cotisants(get().party)) {
     if (remaining <= 0) break;
     const take = Math.min(remaining, toBrass(bourseOf(h)));
     if (take > 0) {

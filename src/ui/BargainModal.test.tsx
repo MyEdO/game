@@ -144,3 +144,35 @@ describe('BargainModal (#2c)', () => {
     expect(html).toContain('Gagné');
   });
 });
+
+/** #2692 — le badge « DR net » et l'accent lisent le verdict scellé, signé, sans dépendre du portrait. */
+describe('BargainModal — verdict affiché (#2692)', () => {
+  const perdu: PendingBargain = {
+    ...base,
+    roll: { roll: 70, target: 50, success: false, sl: -2, isDouble: false },
+    merchantRoll: { roll: 25, target: 45, success: true, sl: 2, isDouble: false },
+    result: {
+      attacker: { roll: 70, target: 50, success: false, sl: -2, isDouble: false },
+      defender: { roll: 25, target: 45, success: true, sl: 2, isDouble: false },
+      winner: 'defender', attackerWins: false, netSL: 4, decidedBy: 'dr',
+    },
+  };
+  const badge = (html: string) => html.match(/DR net : ((?:[^<]|<!-- -->)*)/)?.[1].replace(/<!-- -->/g, '');
+
+  it('une perte a=−2 contre d=+2 affiche « DR net : −4 » et accentue la rangée de l’opposant', () => {
+    const negociateur = { id: 'h', label: 'H', kind: 'hero', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+    const html = renderToStaticMarkup(
+      <BargainModalView pb={{ ...perdu, opposant: { ...perdu.opposant, portrait: { ...negociateur, id: 'm', label: 'Armurier', kind: 'npc' } as Combatant } }} actor={negociateur} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+    );
+    expect(badge(html)).toBe('−4');
+    expect(html.match(/rr-row (rr-win|rr-lose)/g)).toEqual(['rr-row rr-lose', 'rr-row rr-win']);
+  });
+
+  it('sans portrait d’opposant ni fiche de négociateur, le badge et l’accent sont là', () => {
+    const html = renderToStaticMarkup(
+      <BargainModalView pb={perdu} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+    );
+    expect(badge(html)).toBe('−4');
+    expect(html.match(/rr-row (rr-win|rr-lose)/g)).toEqual(['rr-row rr-lose', 'rr-row rr-win']);
+  });
+});

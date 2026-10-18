@@ -37,6 +37,7 @@ const STATE_FIELDS = {
   pendingCorruption: { init: null, resetOn: ['scene'] },
   corruptionQueue: { init: [], resetOn: ['scene'] },
   pendingBargain: { init: null, resetOn: [] },
+  refusDeVendeur: { init: {}, resetOn: ['scene'] },
   pendingAppraise: { init: null, resetOn: [] },
   pendingAttack: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingHandGate: { init: null, resetOn: ['scene', 'combatStart'] },

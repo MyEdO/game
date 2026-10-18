@@ -125,7 +125,7 @@ import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KIN
 import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
-import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
+import { fortuneDuGroupe, distributeCredit, condCtx } from './bourseFlow';
 import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
 import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
@@ -759,7 +759,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         dialogueSpeaker: s.dialogue?.speakerId,
         inCombat: !!s.battle,
         party: s.party.map((h) => ({ id: h.id, name: h.label })),
-        money: partyMoneyTotal(g),
+        money: fortuneDuGroupe(g),
       };
     },
 
@@ -1712,7 +1712,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : crédite les bourses du groupe (couronnes d'or, réparties par tête). */
     give: (gold = 10) => {
       distributeCredit(g, useGame.setState, { gold, silver: 0, brass: 0 });
-      return partyMoneyTotal(g);
+      return fortuneDuGroupe(g);
     },
 
     /** RECETTE : donne un objet de CATALOGUE à un héros (défaut : le premier), par le VRAI pipeline

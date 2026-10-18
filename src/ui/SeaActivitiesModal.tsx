@@ -11,17 +11,18 @@ import {
 import { findVehicleById, findRegleById } from '../data';
 import { cargoTotalEnc } from '../engine/seaVoyage';
 import { toBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, bourseOf } from '../state/bourseFlow';
+import { bourseOf, cotisationDuGroupe } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Icon } from './Icon';
 import { Grid } from './Layout';
+import { estEnRencontre } from '../engine/conditions';
 
 /** MDG 15 l.266-306 */
 export function SeaActivitiesModal() {
   const pending = useGame((s) => s.pendingSeaActivities);
   const party = useGame((s) => s.party);
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => cotisationDuGroupe(party), [party]);
   const confirm = useGame((s) => s.seaActivitiesConfirm);
   const vessel = useGame((s) => s.vessel);
   const freeEnc = vessel
@@ -32,7 +33,7 @@ export function SeaActivitiesModal() {
   const intro = findRegleById('activites-en-mer');
   const [picks, setPicks] = useState<Record<string, SeaActivityPick | null>>({});
   if (!pending) return null;
-  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre);
+  const heroes = party.filter(estEnRencontre);
   const investCap = Math.min(freeEnc, Math.floor(toBrass(money) / PA_PER_CO));
   const set = (id: string, pick: SeaActivityPick | null) => setPicks((p) => ({ ...p, [id]: pick }));
 

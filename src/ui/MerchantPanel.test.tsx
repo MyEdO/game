@@ -149,9 +149,9 @@ describe('MerchantPanel (#2 — panier)', () => {
     const repair = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="repair" />);
     expect(repair).toContain('Chemise de mailles');
     expect(repair).toMatch(/Réparer/);
-    // marchand méfiant : plus de marchandage dans le panier
-    const soured = renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, soured: true, cart: [{ id: 'hallebarde', qty: 1 }] }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialBuyView="cart" />);
-    expect(soured).toContain('méfiant');
+    // refus pour la visite (#2547 c.6234640084) : la raison nomme le personnage refusé
+    const refuse = renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, cart: [{ id: 'hallebarde', qty: 1 }] }} refus={['h']} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialBuyView="cart" />);
+    expect(refuse).toContain('Le vendeur refuse de traiter avec H jusqu’à la fin de la visite.');
   });
 });
 
@@ -186,5 +186,46 @@ describe('MerchantPanel — « Évaluer » à la vente suit qui peut tenter le T
     const html = vente(stubHero('h', 'H', [inconnu]));
     expect(evaluer(html)).toContain('aria-disabled="true"');
     expect(html).toContain('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+  });
+});
+
+/** #2547 c.6234640084 — le héros refusé pour la visite : chaque geste d'échange se ferme et dit pourquoi. */
+describe('MerchantPanel — refus pour la visite', () => {
+  const armure = { uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as unknown as ItemInstance;
+  const party = [stubHero('h', 'H', [armure])];
+  const bouton = (html: string, libelle: string) => html.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${libelle}</button>`))?.[0] ?? '';
+  const rendu = (tab: 'sell' | 'repair') =>
+    renderToStaticMarkup(<MerchantPanelView merchant={base} refus={['h']} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab={tab} />);
+
+  it('« Marchander la vente » et « Réparer » sont fermés quand tout le groupe est refusé', () => {
+    expect(bouton(rendu('sell'), 'Marchander la vente')).toContain('aria-disabled="true"');
+    expect(bouton(rendu('repair'), 'Réparer')).toContain('aria-disabled="true"');
+  });
+
+  it('sans refus, les mêmes gestes sont ouverts', () => {
+    const libre = (tab: 'sell' | 'repair') => renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, sellCart: [{ uid: 'a', heroId: 'h' }] }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab={tab} />);
+    expect(bouton(libre('sell'), 'Marchander la vente')).toMatch(/^<button(?![^>]*aria-disabled="true")/);
+    expect(bouton(libre('repair'), 'Réparer')).toMatch(/^<button(?![^>]*aria-disabled="true")/);
+  });
+
+  it('« Marchander la vente » est fermé tant que rien n’est sélectionné, et le dit', () => {
+    const html = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
+    expect(bouton(html, 'Marchander la vente')).toContain('aria-disabled="true"');
+    expect(html).toContain('Rien à vendre sélectionné.');
+  });
+
+  it('groupe entier refusé : « Payer » dit le refus, pas la bourse', () => {
+    const html = renderToStaticMarkup(<MerchantPanelView merchant={{ ...base, stock: [{ id: 'dague', qty: 2 }], cart: [{ id: 'dague', qty: 1 }] }} refus={['h']} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialBuyView="cart" />);
+    const raison = 'Le vendeur refuse de traiter avec H jusqu’à la fin de la visite.';
+    expect(html).not.toContain('Bourse insuffisante');
+    expect(html.match(new RegExp(raison, 'g'))!.length, 'bandeau + raison de « Payer » + avertissement').toBeGreaterThanOrEqual(3);
+  });
+
+  it('« Évaluer » est fermé pour le héros refusé, avec la raison', () => {
+    const inconnu = { ...armure, uid: 'u', label: 'Anneau', kind: 'misc', identified: false, damageTaken: 0 } as unknown as ItemInstance;
+    const expert = { ...stubHero('h', 'H', [inconnu]), skills: [{ id: 'evaluation', advances: 10, characteristic: 'intelligence' }] } as unknown as Combatant;
+    const rendu2 = (r?: string[]) => renderToStaticMarkup(<MerchantPanelView merchant={base} refus={r} party={[expert]} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
+    expect(bouton(rendu2(), 'Évaluer'), 'un évaluateur existe : ouvert sans refus').toMatch(/^<button(?![^>]*aria-disabled="true")/);
+    expect(bouton(rendu2(['h']), 'Évaluer')).toContain('aria-disabled="true"');
   });
 });

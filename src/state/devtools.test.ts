@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, setDoorOpen } from './scene';
 import { useGame } from './store';
 import { buildApi } from './devtools';
-import { bourseOf, partyMoneyTotal } from './bourseFlow';
+import { bourseOf, fortuneDuGroupe } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
@@ -241,9 +241,9 @@ describe('__wfrp — autres commandes de recette', () => {
   });
 
   it('give / xp : bourse créditée, PX ajoutés au groupe', () => {
-    const before = partyMoneyTotal(useGame.getState).gold;
+    const before = fortuneDuGroupe(useGame.getState).gold;
     buildApi().give(5);
-    expect(partyMoneyTotal(useGame.getState).gold).toBe(before + 5);
+    expect(fortuneDuGroupe(useGame.getState).gold).toBe(before + 5);
     const xpBefore = useGame.getState().party[0].xp ?? 0;
     buildApi().xp(150);
     expect(useGame.getState().party[0].xp).toBe(xpBefore + 150);
@@ -353,7 +353,7 @@ describe('__wfrp — autres commandes de recette', () => {
     useGame.setState({
       pendingTest: {
         actorId: hero.id, actorName: hero.label, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 0, target: 50, roll: 42, success: true, sl: 1,
+        requireSL: 0, target: 50, roll: 42, success: true, sl: 1, jet: { roll: 42, target: 50, success: true, sl: 1, isDouble: false },
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });

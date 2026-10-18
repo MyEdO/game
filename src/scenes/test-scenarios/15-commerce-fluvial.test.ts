@@ -4,7 +4,7 @@ import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
 import { toBrass } from '../../engine/money';
-import { distributeCredit, partyMoneyTotal } from '../../state/bourseFlow';
+import { distributeCredit, fortuneDuGroupe } from '../../state/bourseFlow';
 import { primaryCargoCarrier } from '../../state/carriers';
 import { avanceEtapeCascade, draineCascadeDifferee } from '../../state/cascadeTestKit';
 import { carrierFreeEnc } from '../../engine/cargo';
@@ -108,9 +108,9 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     // La Contenance du chariot est un plafond RÉEL (#327) : on charge ce qui TIENT (lot potentiellement partiel).
     const carrierId = primaryCargoCarrier(get())!.id;
     const buyEnc = Math.min(carrierFreeEnc(primaryCargoCarrier(get())!), offer.enc);
-    const purseBeforeBuy = toBrass(partyMoneyTotal(get));
+    const purseBeforeBuy = toBrass(fortuneDuGroupe(get));
     get().landBuyCargo(offer.cargoId, buyEnc);
-    const spent = purseBeforeBuy - toBrass(partyMoneyTotal(get));
+    const spent = purseBeforeBuy - toBrass(fortuneDuGroupe(get));
     expect(spent).toBeGreaterThan(0);
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1);
     expect(primaryCargoCarrier(get())!.cargo[0].cargoId).toBe(offer.cargoId);
@@ -127,14 +127,14 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     get().openLandMarket();
     get().etalLotConfirm();
     drainCascade();
-    const purseBeforeSell = toBrass(partyMoneyTotal(get));
+    const purseBeforeSell = toBrass(fortuneDuGroupe(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
     // s'enchaîne sur ses maillons différés (mise à prix, Marchandage).
     vi.useFakeTimers();
     get().landSellCargo(carrierId, 0);
     draineCascadeDifferee(get, () => vi.runAllTimers());
     vi.useRealTimers();
-    const earned = toBrass(partyMoneyTotal(get)) - purseBeforeSell;
+    const earned = toBrass(fortuneDuGroupe(get)) - purseBeforeSell;
     expect(earned).toBeGreaterThan(0);
     // La cargaison a rapporté PLUS qu'elle n'a coûté à l'achat → profit prouvé (boucle MSRC 13 l.11-13).
     expect(earned).toBeGreaterThan(spent);

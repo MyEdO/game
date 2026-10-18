@@ -167,10 +167,11 @@ export interface PendingTest {
   roll: number | null;
   success: boolean;
   sl: number;
+  /** Jet BRUT de l'acteur (dé, cible, DR naturel), écrit par le seul `verdictDeTest` ; `null` avant le jet. */
+  jet: TestResult | null;
   /** Réussite forcée par Résilience AVANT le jet (LDB 17 l.68) : affichage « garanti », sans dé. */
   forced?: boolean;
-  /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`) — jamais posé sur ce flux :
-   *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.test.ts`). */
+  /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Relance par Chance déjà effectuée (LDB 12 l.40 : 1 relance max par Test). */
   rerolled?: boolean;
@@ -292,6 +293,9 @@ export type ContrepartieDeMarchandage = { titre: PlayerText } & (
   | { kind: 'marchand'; mode: 'buy' | 'sell' }
   | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
 );
+
+/** La contrepartie est-elle un ACHAT (marchand à l'achat, ou billet) ? — arbitrage #2547 c.6234640084 (2026-10-17). */
+export const estUnAchat = (c: ContrepartieDeMarchandage): boolean => c.kind === 'billet' || c.mode === 'buy';
 
 /** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
  *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */

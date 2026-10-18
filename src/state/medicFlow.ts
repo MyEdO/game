@@ -27,9 +27,9 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { addCondition, loseWounds, releaseConditionLocks } from '../engine/conditions';
 import { hasSurgerySkill, availableHealModes, isHealable, healDifficulty, HEAL_SKILL, type HealMode } from '../engine/healing';
 import { removeSurgicalTrauma, surgeryTraumas, recoverableTraumas, recoverDisabledLimb } from '../engine/trauma';
-import { toMoney, canAfford } from '../engine/money';
+import { toMoney } from '../engine/money';
 import { t } from '../i18n';
-import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
+import { payFromGroup, distributeCredit } from './bourseFlow';
 import { touchActors } from './combatOrParty';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
 
@@ -148,8 +148,7 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
     if (offer.cost) { // débit à l'ACTE — DÉPENSE DE GROUPE (arbitrage user 2026-07-20 : « le groupe peut se
       // cotiser pour payer […] les soins »), remboursé au groupe sur Annuler avant le jet
       const cost = toMoney(offer.cost);
-      if (!canAfford(partyMoneyTotal(get), cost)) { get().log(t('medic.tooExpensive')); return; }
-      payFromGroup(get, set, cost, { purpose: 'soins' });
+      if (!payFromGroup(get, set, cost, { purpose: 'soins' })) { get().log(t('medic.tooExpensive')); return; }
       paidCost = offer.cost;
     }
     healer = { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };

@@ -3,7 +3,7 @@ import {
   bourseInstanceOf,
   ensureBourse,
   bourseOf,
-  partyMoneyTotal,
+  fortuneDuGroupe,
   creditBourse,
   debitBourse,
   payWithAllocation,
@@ -74,12 +74,12 @@ describe('bourseFlow — bourse PERSONNELLE par héros (#531 SOCLE POSSESSIONS �
     expect(bourseOf(get().party[0])).toEqual(M(0, 2, 0)); // inchangé
   });
 
-  it('partyMoneyTotal = somme des bourses du groupe', () => {
+  it('fortuneDuGroupe = somme des bourses du groupe', () => {
     const a = ensureBourse(makeHero('a')); bourseInstanceOf(a)!.money = M(1, 0, 0);
     const b = ensureBourse(makeHero('b')); bourseInstanceOf(b)!.money = M(0, 5, 0);
     const c = makeHero('c'); // pas de bourse : compte pour 0
     const { get } = makeHarness([a, b, c]);
-    expect(partyMoneyTotal(get)).toEqual(M(1, 5, 0));
+    expect(fortuneDuGroupe(get)).toEqual(M(1, 5, 0));
   });
 
   describe('payWithAllocation — cotisation ATOMIQUE (tout ou rien)', () => {
@@ -138,7 +138,7 @@ describe('bourseFlow — bourse PERSONNELLE par héros (#531 SOCLE POSSESSIONS �
       const b = makeHero('b');                                                        // 0 sc (pas de bourse)
       const c = ensureBourse(makeHero('c')); bourseInstanceOf(c)!.money = M(0, 3, 0); // 36 sc
       const { get, set } = makeHarness([a, b, c]);
-      const before = partyMoneyTotal(get); // 96 sc = M(0,8,0)
+      const before = fortuneDuGroupe(get); // 96 sc = M(0,8,0)
       const cost = M(0, 6, 0);              // 72 sc
       const ok = payFromGroup(get, set, cost, { purpose: 'Péage du pont' });
       expect(ok).toBe(true);
@@ -148,7 +148,7 @@ describe('bourseFlow — bourse PERSONNELLE par héros (#531 SOCLE POSSESSIONS �
       expect(bourseInstanceOf(get().party[1])).toBeUndefined();
       expect(bourseOf(get().party[2])).toEqual(M(0, 2, 0)); // c : 36 − 12 = 24 sc
       // Somme débitée = cost : total avant − total après.
-      const after = partyMoneyTotal(get);
+      const after = fortuneDuGroupe(get);
       expect(subtract(before, after)).toEqual(cost);
     });
 
@@ -162,6 +162,16 @@ describe('bourseFlow — bourse PERSONNELLE par héros (#531 SOCLE POSSESSIONS �
       expect(bourseOf(get().party[0])).toEqual(M(0, 2, 0)); // intact
       expect(bourseOf(get().party[1])).toEqual(M(0, 0, 0));
       expect(bourseOf(get().party[2])).toEqual(M(0, 1, 0)); // intact
+    });
+
+    it('la bourse d’un mort ou d’un héros hors rencontre ne cotise pas (`estEnRencontre`)', () => {
+      const mort = { ...ensureBourse(makeHero('m')), dead: true } as Combatant; bourseInstanceOf(mort)!.money = M(0, 5, 0);
+      const absent = { ...ensureBourse(makeHero('x')), outOfRencontre: true } as Combatant; bourseInstanceOf(absent)!.money = M(0, 5, 0);
+      const vif = ensureBourse(makeHero('v')); bourseInstanceOf(vif)!.money = M(0, 2, 0);
+      const { get, set } = makeHarness([mort, absent, vif]);
+      expect(payFromGroup(get, set, M(0, 3, 0), { purpose: 'Péage' }), '24 sc vivants < 36 sc').toBe(false);
+      expect(payFromGroup(get, set, M(0, 1, 0), { purpose: 'Péage' })).toBe(true);
+      expect([bourseOf(get().party[0]), bourseOf(get().party[1]), bourseOf(get().party[2])]).toEqual([M(0, 5, 0), M(0, 5, 0), M(0, 1, 0)]);
     });
   });
 

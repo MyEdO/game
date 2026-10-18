@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { barterQuote, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
-import { partyMoneyTotal } from './bourseFlow';
+import { fortuneDuGroupe } from './bourseFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
 import { makePregens } from '../data/pregens';
@@ -32,14 +32,14 @@ describe('barterExchange', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde'), itemFromTrappingById('hallebarde')].filter(Boolean) as ItemInstance[];
     useGame.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
-    const before = toBrass(partyMoneyTotal(useGame.getState));
+    const before = toBrass(fortuneDuGroupe(useGame.getState));
     useGame.getState().barterExchange({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
     const st = useGame.getState();
     const items = st.party[0].items ?? [];
     expect(items.filter((i) => i.trappingId === 'hallebarde')).toHaveLength(1); // 1 cédée
     expect(items.some((i) => i.trappingId === 'dague')).toBe(true); // 1 acquise
     expect(st.merchant!.stock.find((l) => l.id === 'dague')!.qty).toBe(4); // stock décrémenté
-    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // aucun argent échangé
+    expect(toBrass(fortuneDuGroupe(useGame.getState))).toBe(before); // aucun argent échangé
   });
 
   it('refuse si le héros n’a pas assez d’exemplaires à céder', () => {

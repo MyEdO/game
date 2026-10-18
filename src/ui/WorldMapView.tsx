@@ -11,7 +11,9 @@ import {
   TravelMode, travelModeLabels, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel, vehicleTravel, classeRetenue, prixParPassager, placesPayees,
 } from '../engine/travel';
-import { offreDePassage } from '../state/billetFlow';
+import { offreDePassage, refusDuBillet } from '../state/billetFlow';
+import { refusDeTraiter } from '../state/merchantFlow';
+import { estEnRencontre } from '../engine/conditions';
 import {
   type Allure, allureLabel, availableAllures, partyFullyMounted, partyMounts,
 } from '../engine/mountTravel';
@@ -19,7 +21,7 @@ import { rationCount, provisioningManifest } from '../engine/provisions';
 import { cargoOverload, cargoTotalEnc } from '../engine/seaVoyage';
 import { findVehicleById, skillInstanceLabel } from '../data';
 import { formatMoney, canAfford, fromBrass } from '../engine/money';
-import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
+import { fortuneDuGroupe, condCtx, cotisationDuGroupe } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction, raisonSi } from './GatedAction';
 import { mdToText } from './Prose';
@@ -80,7 +82,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
+  const money = useMemo(() => fortuneDuGroupe(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
   const travelPlan = useGame((s) => s.travelPlan);
   const close = useGame((s) => s.closeWorldMap);
@@ -88,6 +90,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const startBilletBargain = useGame((s) => s.startBilletBargain);
   const billetEnMain = useGame((s) => s.billetEnMain);
   const marchandagesDeBillet = useGame((s) => s.marchandagesDeBillet);
+  const refusDeVendeur = useGame((s) => s.refusDeVendeur);
   const resumeTravel = useGame((s) => s.resumeTravel);
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
@@ -237,7 +240,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Estimations du trajet sélectionné (mêmes formules que le flux — RAW l.207-224).
   const base = baseHoursPerDay(map);
   const maxH = maxHoursPerDay(map);
-  const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
+  const passengers = party.filter(estEnRencontre).length;
   const effAllure: Allure | undefined = mode === 'monture' ? allure : forceGallop ? 'galop' : undefined;
   const kmh = selRoute ? travelSpeed(party, possessions, mode, selRoute.speed?.[mode], effAllure) : 0;
   const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? 12 : base;
@@ -249,7 +252,10 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const achat = offre && !offre.couvert ? offre : null;
   const classe = achat ? classeRetenue(achat.tarif, classeId) : '';
   const cost = achat ? transportCost(achat.tarif, classe, passengers, achat.issue) : null;
-  const affordable = !cost || canAfford(money, cost);
+  const affordable = !cost || canAfford(cotisationDuGroupe(party, achat ? refusDeVendeur[achat.cle] : undefined), cost);
+  const refusBillet = achat ? refusDuBillet({ refusDeVendeur, party }, achat.cle) : null;
+  // #2547 c.6234887738 : le passager refusé ne paie pas ; le bandeau le nomme.
+  const refusPassagers = achat ? party.map((h) => refusDeTraiter(refusDeVendeur[achat.cle], h)).filter((r): r is string => !!r) : [];
   const rationsOwned = party.reduce((s, h) => s + (h.dead ? 0 : rationCount(h)), 0);
   const rationsNeeded = plan ? Math.max(0, (plan.days - 1) * passengers) : 0; // les nuits en route mangent
 
@@ -668,6 +674,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               postes d'équipage (MSRC 7 ne connaît ni rôles MDG ni Moral) : les stations y sont
               seules, et c'est ce que le livre demande. */}
           {stationsTraits && <ShipStationsPanel traits={stationsTraits} />}
+          {refusPassagers.map((r) => <p key={r} className="bargain-tag refuse"><Icon id="ui/forbidden" size="sm" /> {r}</p>)}
           <Row justify="end">
             <button type="button" className="btn" onClick={() => setSelId(null)}>{t('wm.annuler')}</button>
             {/* Les provisions insuffisantes n'entrent PAS dans le refus : le départ reste PERMIS, et
@@ -679,8 +686,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               ariaLabel={libelleDepart}
               enabled={!isGuest && (mode === 'mer'
                 ? !!vessel && seaM > 0 && !(seaOverload != null && !seaOverload.canSail)
-                : kmh > 0 && affordable)}
+                : kmh > 0 && affordable && !refusBillet)}
               reason={isGuest ? t('wm.hoteDecide')
+                : refusBillet ? refusBillet
                 : mode === 'mer' && (!vessel || seaM <= 0) ? t('wm.aucunNavire')
                 : mode === 'mer' ? t('wm.refusCale', { pct: seaOverload?.ratioPct ?? 0 })
                 : kmh <= 0 ? t('wm.refusSurcharge')

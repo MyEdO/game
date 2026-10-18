@@ -14,9 +14,9 @@ import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus } from '../state/merchantFlow';
+import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, refusDeTraiter, premierAdmis } from '../state/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { fortuneDuGroupe, cotisationDuGroupe } from '../state/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../state/scene';
@@ -121,10 +121,12 @@ const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', sa
 const TREND_SYM: Record<string, string> = { up: '▲', down: '▼', same: '' };
 
 /** Présentationnel (props) — testable hors store. `initialTab`/`initialDetails`/`initialBuyView` = état de départ (SSR/test). */
-export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, onBarter, onSearchAvailability, initialTab, initialDetails, initialBuyView, initialSellView }: {
+export function MerchantPanelView({ merchant, party, money, refus, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, onBarter, onSearchAvailability, initialTab, initialDetails, initialBuyView, initialSellView }: {
   merchant: MerchantState;
   party: Combatant[];
   money: Money;
+  /** Personnages que le vendeur refuse pour la visite (`GameState.refusDeVendeur[merchant.entityId]`). */
+  refus?: readonly string[];
   /** Entité de scène du marchand (portrait du bandeau) — absente en test hors store. */
   speakerEnt?: SceneEntity;
   /** Nom affiché par le bandeau (label de l'entité, sinon libellé d'archétype). */
@@ -197,7 +199,26 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
   const cartTotalBrass = cart.reduce((s, c) => { const u = lineCost(c.id, buyFactor); return s + (u ? toBrass(u) * c.qty : 0); }, 0);
   const cartTotal = fromBrass(cartTotalBrass);
-  const affordCart = toBrass(money) >= cartTotalBrass;
+  // #2547 c.6234640084
+  const refusVisite = party.map((h) => refusDeTraiter(refus, h)).filter((r): r is string => !!r);
+  const cotisation = cotisationDuGroupe(party, refus);
+  const admis = !!premierAdmis(party, refus);
+  const boutonMarchander = (mode: 'buy' | 'sell', libelle: string) => {
+    const rien = mode === 'sell' && !(merchant.sellCart ?? []).length;
+    return (
+      <GatedAction
+        id={`merch-bargain-${mode}`}
+        label={<><Icon id="merchant/haggle" size="sm" /> {libelle}</>}
+        ariaLabel={libelle}
+        enabled={admis && !rien}
+        reason={!admis ? refusVisite.join(' ') : 'Rien à vendre sélectionné.'}
+        onClick={() => onBargain(mode)}
+        primary={false}
+        btnClassName="small"
+      />
+    );
+  };
+  const affordCart = toBrass(cotisation) >= cartTotalBrass;
   const sealed = merchant.bargainBuy != null; // a négocié : prix figé, on peut RETIRER mais pas ajouter ni renégocier
   const cartQtyOf = (id: string) => cart.find((c) => c.id === id)?.qty ?? 0;
   const dist = merchant.pendingDistribution ?? null;
@@ -268,11 +289,10 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 
   // Contrôle de Marchandage du panier (clair : ce qu'il fait + son effet).
   const buyHaggleControl = () => {
-    if (merchant.soured) return <span className="bargain-tag soured" title="Le marchand se méfie de votre monnaie"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>;
     if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
     if (merchant.bargainBuy == null) return (
       <>
-        <button className="btn small" onClick={() => onBargain('buy')}><Icon id="merchant/haggle" size="sm" /> Marchander le panier</button>
+        {boutonMarchander('buy', 'Marchander le panier')}
         <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
       </>
     );
@@ -325,34 +345,31 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <p className="empty">— panier vide —</p>
       ) : (
         <>
-          <table className="cart-table">
-            <tbody>
-              {cart.map((c) => {
-                const u = lineCost(c.id, buyFactor);
-                const sub = u ? fromBrass(toBrass(u) * c.qty) : null;
-                const stockQty = merchant.stock.find((l) => l.id === c.id)?.qty ?? 0;
-                return (
-                  <tr key={c.id}>
-                    <td className="cart-name">{labelOf(c.id)}</td>
-                    <td>
-                      <QtyStepper
-                        center={c.qty}
-                        onDec={() => onDecCart(c.id)}
-                        onInc={() => onAddToCart(c.id)}
-                        incDisabled={c.qty >= stockQty}
-                        refus={{ id: `panier-${c.id}`, inc: sealed ? 'Marché négocié — vous ne pouvez plus ajouter' : undefined }}
-                        decLabel="Un de moins"
-                        incLabel="Un de plus"
-                      />
-                    </td>
-                    <td className="cart-unit">{u ? <Coins money={u} /> : '—'}</td>
-                    <td className="cart-sub">{sub ? <Coins money={sub} /> : '—'}</td>
-                    <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveCart(c.id)} aria-label="Retirer">✕</button></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <TradeTable
+            columns={[
+              {
+                key: 'qty', label: 'Qté', emph: true,
+                render: (c: { id: string; qty: number }) => (
+                  <QtyStepper
+                    center={c.qty}
+                    onDec={() => onDecCart(c.id)}
+                    onInc={() => onAddToCart(c.id)}
+                    incDisabled={c.qty >= (merchant.stock.find((l) => l.id === c.id)?.qty ?? 0)}
+                    refus={{ id: `panier-${c.id}`, inc: sealed ? 'Marché négocié — vous ne pouvez plus ajouter' : undefined }}
+                    decLabel="Un de moins"
+                    incLabel="Un de plus"
+                  />
+                ),
+              },
+              { key: 'unit', label: 'Unité', render: (c: { id: string; qty: number }) => { const u = lineCost(c.id, buyFactor); return u ? <Coins money={u} /> : '—'; } },
+            ]}
+            groups={[{ key: 'panier', rows: cart }]}
+            rowKey={(c) => c.id}
+            label={(c) => labelOf(c.id)}
+            priceLabel="Total"
+            price={(c) => { const u = lineCost(c.id, buyFactor); return u ? fromBrass(toBrass(u) * c.qty) : null; }}
+            action={(c) => <button className="btn-step" onClick={() => onRemoveCart(c.id)} aria-label="Retirer">✕</button>}
+          />
           <div className="cart-haggle">{buyHaggleControl()}</div>
           {sealed && (
             <p className="cart-sealed" title="Refuser ou partir sans payer : le marchand ne marchandera plus avant son réassort."><Icon id="merchant/deal" size="sm" /> Prix arrêté — vous pouvez retirer des articles, puis régler ou refuser.</p>
@@ -367,11 +384,13 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               label={<>Payer <Coins money={cartTotal} /></>}
               ariaLabel="Payer le panier"
               enabled={affordCart}
-              reason="Bourse insuffisante."
+              reason={admis ? 'Bourse insuffisante.' : refusVisite.join(' ')}
               onClick={onPay}
             />
           </div>
-          {!affordCart && <p className="cart-warn">Bourse insuffisante (<Coins money={money} />).</p>}
+          {!affordCart && (admis
+            ? <p className="cart-warn">Bourse insuffisante (<Coins money={cotisation} />).</p>
+            : <p className="cart-warn">{refusVisite.join(' ')}</p>)}
         </>
       )}
     </div>
@@ -454,12 +473,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   )}
                   enc={isUnitCat ? undefined : (l) => findTrappingById(l.id)?.enc ?? 0}
                   price={(l) => lineCost(l.id, buyFactor)}
-                  disabled={(l) => { const unit = lineCost(l.id, buyFactor); return unit ? !canAfford(money, unit) : true; }}
+                  disabled={(l) => { const unit = lineCost(l.id, buyFactor); return unit ? !canAfford(cotisation, unit) : true; }}
                   open={(l) => details === l.id}
                   detail={(l) => (previews[l.id] ? renderDetailCard(previews[l.id]) : null)}
                   action={(l) => {
                     const unit = lineCost(l.id, buyFactor);
-                    const canAffordOne = unit ? canAfford(money, unit) : false;
+                    const canAffordOne = unit ? canAfford(cotisation, unit) : false;
                     const inCart = cartQtyOf(l.id);
                     return inCart > 0 ? (
                       <QtyStepper
@@ -503,6 +522,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     // « équipé » = armure portée (`equipped`) OU arme tenue dans le set actif (loadout), jamais un flag d'arme.
     const isEquippedForSell = (it: ItemInstance) =>
       it.kind === 'melee' || it.kind === 'ranged' ? !!sellHeroObj && isWeaponActive(sellHeroObj, it.uid) : !!it.equipped;
+    const refusVente = (it: ItemInstance) => refusDeTraiter(refus, sellHeroObj) ?? sellRefusal(it);
     return (
       <>
         <div className="cart-bar">
@@ -515,24 +535,16 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           active={activeSellId}
           onChange={setSellHero}
         />
-        {heroItems.map((it) => {
-          // Hors du commerce ordinaire (aucune Disponibilité au catalogue, LDB 59 l.15) : le refus est
-          // VISIBLE et porte sa raison (`GatedAction`), jamais un bouton muet ni un prix fantôme.
-          const refused = sellRefusal(it);
-          return (
-          <div className="merch-row sell" key={it.uid}>
-            <span className="merch-name">
-              {it.label}
-              {isEquippedForSell(it) && <span className="equipped-tag" title="Actuellement équipé">✓ équipé</span>}
-              {it.identified === false ? ' (non identifié)' : ''}
-            </span>
-            {!refused && <span className="merch-price"><Coins money={sellPriceMoney(it)} /></span>}
-            {/* « Baisse des prix » (LDB 59 l.60) : brader (÷2) monte la Disponibilité d'un acheteur d'un
-                cran. Montré pour les biens qu'un acheteur commun ne prend pas d'emblée (Limitée+). */}
-            {!refused && onSellHalving && (() => {
+        {/* Hors du commerce ordinaire (aucune Disponibilité au catalogue, LDB 59 l.15) ou vendeur qui refuse
+            le personnage : le refus est VISIBLE et porte sa raison (`GatedAction`), jamais un prix fantôme. */}
+        <TradeTable
+          columns={[{
+            key: 'acheteur', label: 'Acheteur', emph: true,
+            // « Baisse des prix » (LDB 59 l.60) : montrée pour les biens qu'un acheteur commun ne prend pas d'emblée.
+            render: (it: ItemInstance) => {
               const h = merchant.sellHalvings?.[it.uid] ?? 0;
               const av = sellBuyerAvailability(it, 0);
-              if ((av === 'Commune' || av === null) && h === 0) return null;
+              if (refusVente(it) || !onSellHalving || ((av === 'Commune' || av === null) && h === 0)) return null;
               return (
                 <span className="sell-haggle" title="Baisser le prix de moitié augmente la Disponibilité d'un acheteur d'un cran">
                   <QtyStepper
@@ -548,27 +560,44 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   />
                 </span>
               );
-            })()}
-            {it.identified === false && (
-              <GatedAction
-                id={`sell-eval-${it.uid}`}
-                label="Évaluer"
-                enabled={!refusEval}
-                {...raisonSi(refusEval)}
-                descOfferte="Test d'Évaluation : révèle les qualités cachées"
-                onClick={() => onAppraise(it.uid, activeSellId)}
-                primary={false}
-                btnClassName="small"
-              />
-            )}
-            {refused
-              ? <GatedAction id={`sell-${it.uid}`} label="+ Vendre" enabled={false} reason={refused} onClick={() => {}} primary={false} btnClassName="small" />
-              : sellInCart(it.uid)
-                ? <button className="btn small" onClick={() => onRemoveSellCart(it.uid)} title="Retirer du panier de vente">✓ au panier</button>
-                : <button className="btn small" onClick={() => onAddToSellCart(it.uid, activeSellId)} title="Ajouter au panier de vente">+ Vendre</button>}
-          </div>
-          );
-        })}
+            },
+          }]}
+          groups={[{ key: activeSellId, rows: heroItems }]}
+          rowKey={(it) => it.uid}
+          label={(it) => (
+            <>
+              {it.label}
+              {isEquippedForSell(it) && <span className="equipped-tag" title="Actuellement équipé">✓ équipé</span>}
+              {it.identified === false ? ' (non identifié)' : ''}
+            </>
+          )}
+          price={(it) => (refusVente(it) ? null : sellPriceMoney(it))}
+          action={(it) => {
+            const refused = refusVente(it);
+            const refusEvalHero = refusDeTraiter(refus, sellHeroObj) ?? refusEval;
+            return (
+              <>
+                {it.identified === false && (
+                  <GatedAction
+                    id={`sell-eval-${it.uid}`}
+                    label="Évaluer"
+                    enabled={!refusEvalHero}
+                    {...raisonSi(refusEvalHero)}
+                    descOfferte="Test d'Évaluation : révèle les qualités cachées"
+                    onClick={() => onAppraise(it.uid, activeSellId)}
+                    primary={false}
+                    btnClassName="small"
+                  />
+                )}
+                {refused
+                  ? <GatedAction id={`sell-${it.uid}`} label="+ Vendre" enabled={false} reason={refused} onClick={() => {}} primary={false} btnClassName="small" />
+                  : sellInCart(it.uid)
+                    ? <button className="btn small" onClick={() => onRemoveSellCart(it.uid)} title="Retirer du panier de vente">✓ au panier</button>
+                    : <button className="btn small" onClick={() => onAddToSellCart(it.uid, activeSellId)} title="Ajouter au panier de vente">+ Vendre</button>}
+              </>
+            );
+          }}
+        />
         {!heroItems.length && <p className="empty">— rien à vendre pour ce personnage —</p>}
       </>
     );
@@ -585,17 +614,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <p className="empty">— panier de vente vide —</p>
       ) : (
         <>
-          <table className="cart-table">
-            <tbody>
-              {sellCartItems.map(({ hero, it }) => (
-                <tr key={it.uid}>
-                  <td className="cart-name">{it.label}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
-                  <td className="cart-sub"><Coins money={sellPriceMoney(it)} /></td>
-                  <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TradeTable
+            columns={[]}
+            groups={[{ key: 'vente', rows: sellCartItems }]}
+            rowKey={({ it }) => it.uid}
+            label={({ hero, it }) => <>{it.label}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></>}
+            price={({ it }) => sellPriceMoney(it)}
+            action={({ it }) => <button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button>}
+          />
           <div className="cart-total">Total : <strong>+<Coins money={sellCartTotal} /></strong></div>
           <div className="cart-actions">
             <button className="btn small" onClick={onClearSellCart}>Vider</button>
@@ -626,6 +652,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     const quote = give && getId ? barterQuote(give.trappingId, getId, count) : null;
     const getStockQty = inStock.find((l) => l.id === getId)?.qty ?? 0;
     const ok = !!quote && !!give && give.count >= quote.giveCount && getStockQty >= count;
+    const refusTroc = give ? refusDeTraiter(refus, party.find((h) => h.id === give.heroId)) : null;
     return (
       <div className="merch-tab tavern-block">
         <p className="tavern-detail">Échange sans argent : la Disponibilité des deux biens fixe le ratio.</p>
@@ -652,7 +679,13 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               </p>
             )}
             <Row justify="end">
-              <button className="btn btn-primary" disabled={!ok} onClick={() => give && onBarter({ giveHeroId: give.heroId, giveTrappingId: give.trappingId, getStockId: getId, getCount: count })}>Échanger</button>
+              <GatedAction
+                id="merch-barter"
+                label="Échanger"
+                enabled={ok && !refusTroc}
+                reason={refusTroc ?? 'Exemplaires ou stock insuffisants.'}
+                onClick={() => give && onBarter({ giveHeroId: give.heroId, giveTrappingId: give.trappingId, getStockId: getId, getCount: count })}
+              />
             </Row>
           </>
         )}
@@ -684,23 +717,25 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         />
 
         <div className="merchant-body">
+          {refusVisite.map((r) => <p key={r} className="bargain-tag refuse"><Icon id="ui/forbidden" size="sm" /> {r}</p>)}
           {tab === 'buy' && (dist ? renderDistribution() : buyView === 'cart' ? renderCart() : renderBrowse())}
 
           {tab === 'sell' && (
             <div className="merch-tab">
               <div className="haggle-bar">
-                {merchant.soured ? <span className="bargain-tag soured"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>
-                  : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
+                {merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
                   : merchant.bargainSell == null ? (
                       <>
-                        <button className="btn small" onClick={() => onBargain('sell')}><Icon id="merchant/haggle" size="sm" /> Marchander la vente</button>
+                        {boutonMarchander('sell', 'Marchander la vente')}
                         <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
                       </>
                     )
-                  : <>
-                      <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔' : '✘'} {verdictDeVente(merchant.bargainSell)}</span>
-                      <button className="btn small danger" onClick={() => onRefuse('sell')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
-                    </>}
+                  : (
+                      <Row gap="sm" align="center">
+                        <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔' : '✘'} {verdictDeVente(merchant.bargainSell)}</span>
+                        <button className="btn small danger" onClick={() => onRefuse('sell')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
+                      </Row>
+                    )}
               </div>
               {sellView === 'cart' ? renderSellCart() : renderSellBrowse()}
             </div>
@@ -708,13 +743,19 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 
           {tab === 'repair' && (
             <div className="merch-tab">
-              {damaged.map(({ h, it }) => (
-                <div className="merch-row repair" key={it.uid}>
-                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {it.label}</span>
-                  <span className="merch-price"><Coins money={repairCost(it)} /></span>
-                  <button className="btn small" onClick={() => onRepair(it.uid, h.id)}>Réparer</button>
-                </div>
-              ))}
+              {damaged.length > 0 && (
+                <TradeTable
+                  columns={[]}
+                  groups={[{ key: 'reparer', rows: damaged }]}
+                  rowKey={({ it }) => it.uid}
+                  label={({ h, it }) => <span title={h.label}><TeamPortrait combatant={h} size={20} /> {it.label}</span>}
+                  price={({ it }) => repairCost(it)}
+                  action={({ h, it }) => {
+                    const refusRep = refusDeTraiter(refus, h);
+                    return <GatedAction id={`merch-repair-${it.uid}`} label="Réparer" enabled={!refusRep} {...raisonSi(refusRep)} onClick={() => onRepair(it.uid, h.id)} primary={false} btnClassName="small" />;
+                  }}
+                />
+              )}
               {!damaged.length && <p className="empty">— aucun objet à réparer —</p>}
             </div>
           )}
@@ -729,7 +770,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 export function MerchantPanel() {
   const merchant = useGame((s) => s.merchant);
   const party = useGame((s) => s.party);
-  const money = partyMoneyTotal(useGame.getState); // affichage : somme des bourses (réactif via l'abonnement à `party`)
+  const money = fortuneDuGroupe(useGame.getState); // affichage : somme des bourses (réactif via l'abonnement à `party`)
+  const refusDeVendeur = useGame((s) => s.refusDeVendeur);
   const scene = useGame((s) => s.scene);
   const addToCart = useGame((s) => s.addToCart);
   const decFromCart = useGame((s) => s.decFromCart);
@@ -756,7 +798,7 @@ export function MerchantPanel() {
   const speakerName = speakerEnt?.label ?? arch?.label;
   return (
     <MerchantPanelView
-      merchant={merchant} party={party} money={money} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
+      merchant={merchant} party={party} money={money} refus={refusDeVendeur[merchant.entityId]} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
       onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
       onAssignDist={assignDistribution} onConfirmDist={confirmDistribution}
       onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}

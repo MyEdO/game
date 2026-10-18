@@ -108,7 +108,7 @@ Le **Marchandage** se résout en **Test opposé** (acheteur vs. vendeur).
 - **Victoire** : réduit le prix de **10 %**.
 - **Succès Stupéfiant** (DR net ≥ 6) ou talent **Négociateur** : réduction jusqu'à **20 %**.
 - **Négociateur** (LDB 10 l.818 « vous réduisez ou augmentez le prix des produits de 10 % supplémentaires ») : arbitrage utilisateur #2547, 2026-10-09, verbatim « Cumul (Talent p.10) » — les 10 % du Talent s'ajoutent au résultat du Test, une fois (gagné + Négociateur : −20 % ; Stupéfiant + Négociateur : −30 %). « Même effet à la vente, dans l'autre sens » : sur la base de vente (½ du listé, LDB 59 l.54), un Marchandage gagné vaut ½, +10 % au Succès Stupéfiant, +10 % avec Négociateur ; perdu, ¼ (application de l'arbitrage par l'orchestrateur de #665, 2026-10-17, révisable).
-- **Défaite grave** : le vendeur se méfie de la monnaie du personnage (botch → commerce bloqué pour la visite).
+- **Défaite grave** : le vendeur se méfie de la monnaie du personnage — arbitrage utilisateur #2547 c.6234640084, 2026-10-17, verbatim « −6 ou pire » et « Refus pour la visite », à l'achat seulement : le vendeur refuse de traiter avec ce personnage jusqu'à la fin de la visite. 5e : CRB 028 l.182, un Test par vendeur.
 
 > Verbatim LDB 59 l.43 : « Marchandage est couramment utilisé par les clients et les vendeurs, généralement avec des Tests opposés. Le Marchandage est prévu et la plupart des prix sont légèrement augmentés pour en tenir compte. Gagner un Test de Marchandage réduit le prix de 10 % (et même jusqu'à 20 % avec un Succès Stupéfiant (+6) ou avec le Talent Négociateur). Rater de beaucoup un Test de Marchandage signifie généralement que le vendeur se méfie de votre monnaie. »
 
@@ -386,8 +386,8 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 | `LDB 59 l.25-35` | `src/engine/disponibilite.ts` | Table de Disponibilité RAW (Commune/Limitée/Rare/Exotique × Village/Ville/Cité) ; `rollAvailability`, `fullStock`, `rollStock` |
 | `LDB 59 l.18` | `src/engine/disponibilite.ts` + `src/state/merchantFlow.ts` | Règle optionnelle stock sans Test (`fullStock`) ; désactivation Marchandage si `simplifie` |
 | `LDB 60 l.3` | `src/engine/appraisal.ts` | Évaluation : estimation ±10 % Rare/Exotique |
-| `LDB 60 l.3` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Test opposé Marchandage : −10 % achat ; soured sur botch (DR net ≥ 6 en défaite) ; gel du Marchandage cette visite |
-| `LDB 60 l.5` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné, +10 % au Succès Stupéfiant, +10 % avec Négociateur (`resaleRate`, `bargainSellFactor`) |
+| `LDB 59 l.43` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Test opposé Marchandage : −10 % achat ; achat perdu de DR net ≥ 6 → le vendeur refuse ce personnage jusqu'à la fin de la visite (`refusApresMarchandage`, `GameState.refusDeVendeur` ; #2547 c.6234640084) |
+| `LDB 59 l.54` | `src/engine/bargain.ts` + `src/state/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné, +10 % au Succès Stupéfiant, +10 % avec Négociateur (`resaleRate`, `bargainSellFactor`) |
 | `LDB 60 l.3-62` | `src/engine/qualities/craftEconomy.ts` | Facteur prix (`craftPriceFactor` : ×2/Atout, ÷2/Défaut) ; décalage Disponibilité (`shiftAvailability`) ; delta Enc (`craftEncDelta` : Léger −1, Volumineux +1) ; classe de qualité (`qualityClass`) |
 | `LDB 10 l.336` | `src/state/merchantFlow.ts` | Talent Détection d'artefact : Test Intuition, 1 tentative/artefact, révèle aura par DR |
 | `LDB 12 l.94` | `src/state/merchantFlow.ts` | Échec net Évaluation : pas de re-tentative le même jour |
