@@ -119,17 +119,22 @@ const msgPurete = (amont, aval, suite) =>
   `Pureté de couche (#1709, CLAUDE.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
 
 const pureteImports = (amont, avals) => ({
-  patterns: avals.map(([aval, suite]) => ({
+  patterns: avals.map(([aval, suite, { types = false } = {}]) => ({
     group: [`**/${aval}`, `**/${aval}/**`],
-    allowTypeImports: true,
+    allowTypeImports: !types,
     message: msgPurete(amont, aval, suite),
   })),
 });
 
-const pureteSyntaxe = (amont, avals) => avals.map(([aval, suite]) => ({
-  selector: `ImportExpression[source.value=/(^|\\/)${aval}\\//]`,
-  message: msgPurete(amont, aval, suite),
-}));
+const pureteSyntaxe = (amont, avals) => avals.flatMap(([aval, suite, { types = false } = {}]) => {
+  const vers = `/(^|\\/)${aval}(\\/|$)/`;
+  return [
+    `ImportExpression[source.value=${vers}]`,
+    `ImportExpression[source.expressions.length=0][source.quasis.0.value.cooked=${vers}]`,
+    `CallExpression[callee.name="require"][arguments.0.value=${vers}]`,
+    ...(types ? [`TSImportType[source.value=${vers}]`] : []),
+  ].map((selector) => ({ selector, message: msgPurete(amont, aval, suite) }));
+});
 
 const AVALS_ENGINE = [
   ['state', 'extraire le type/la logique partagée vers une couche neutre — `engine/flowCore` a été extrait pour cela (#8), la couche `state` ne fait qu’instancier la feuille générique.'],
@@ -143,7 +148,7 @@ const AVALS_DATA = [
 ];
 const AVALS_STATE = [
   ['ui', 'le store/flux est en amont de l’affichage — extraire le type/la logique partagée, ou n’importer que le TYPE (`import type`).'],
-  ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.'],
+  ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent), même pour un TYPE — c’est le geste de l’audit #161.', { types: true }],
 ];
 
 // #2278, #2280
@@ -541,6 +546,11 @@ export const BLOCS_LINT = [
       'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
       'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
     },
+  },
+  {
+    // #2724
+    files: ['src/**', 'scripts/**'],
+    rules: { 'murs/interne': 'error' },
   },
   {
     files: GLOBS_DE_MOD,

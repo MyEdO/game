@@ -1,4 +1,5 @@
 import { builtinRules } from 'eslint/use-at-your-own-risk'
+import interne from './interneLint.mjs'
 
 export default {
   meta: { name: 'murs' },
@@ -7,5 +8,6 @@ export default {
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
     ...['ordre-total-imports', 'possession', 'canal-issue', 'purete-imports']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
+    ['interne', interne],
   ]),
 }

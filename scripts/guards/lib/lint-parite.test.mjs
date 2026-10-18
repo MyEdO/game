@@ -183,6 +183,13 @@ test('les dix murs mordent dans leur portée et passent leurs témoins neutres o
     ['src/engine/parite-dynamique.test.ts',"import('../ui/x');",'murs/purete',0],
     ['src/data/parite-statique.ts',"import {x} from '../state/x';x();",'murs/purete-imports',1],
     ['src/data/parite-statique.test.ts',"import {x} from '../state/x';x();",'murs/purete-imports',0],
+    ['src/state/parite-type-rendu.ts',"import type {X} from '../gameIso/x'; export type A=X;",'murs/purete-imports',1],
+    ['src/state/parite-typeof-rendu.ts',"export type A=typeof import('../gameIso/x');",'murs/purete',1],
+    ['src/state/parite-index-rendu.ts',"import('../gameIso');",'murs/purete',1],
+    ['src/state/parite-gabarit-rendu.ts',"import(`../gameIso/x`);",'murs/purete',1],
+    ['src/state/parite-require-rendu.ts',"require('../gameIso/x');",'murs/purete',1],
+    ['src/state/parite-voisin-rendu.ts',"import('../gameIsoX/x');",'murs/purete',0],
+    ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {
