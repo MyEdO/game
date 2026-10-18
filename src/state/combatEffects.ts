@@ -1,6 +1,6 @@
 import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { GameState, RevealEntry } from './store';
-import type { Get, Set as SetFn } from './flowTypes';
+import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite } from './pendings';
 import { ouvrirDialogue } from './dialogue';
@@ -70,7 +70,8 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId, garanti } from './combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { addPossession, type PossessionInput } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef } from '../engine/possession';
 import { ev } from './combatLog';
@@ -1215,7 +1216,7 @@ type EffectApplyResult = void | 'suspend';
 function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: GameState[K][string]): void {
   env.set((s: GameState) => {
     const registre: GameState[K] = { ...s[champ], [cle]: valeur };
-    return { [champ]: registre } as Partial<GameState>;
+    return { [champ]: registre } as PatchDeFlux;
   });
 }
 

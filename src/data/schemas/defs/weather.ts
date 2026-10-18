@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** EDOC 8 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'weather.json';
@@ -35,7 +35,7 @@ const doc = document(
     'id',
   ),
   /** EDOC 8 l.82 */
-  physicalTestChars: z.array(z.string()),
+  physicalTestChars: z.array(charKeySchema),
   physicalTestCharsSource: sourceRefSchema.optional(),
   conditions: listeCle(
     nommerChamps(z.strictObject({

@@ -19,7 +19,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit } from './CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
 import type { FlowTestNode } from '../../engine/flowCore';
 

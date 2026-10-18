@@ -13,7 +13,7 @@ import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetValues, type FacetSelection } from './search';
 import { CodexEntry } from './CodexEntry';
-import { CodexEdit, isEditableCategory } from './CodexEdit';
+import { CodexEdit, isEditableCategory } from '../editor/codex/CodexEdit';
 import { useAtelierMode, setAtelierMode } from './atelierMode';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';

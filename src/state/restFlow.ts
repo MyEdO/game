@@ -146,7 +146,7 @@ import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 import { placeById, type WorldMap } from './worldMap';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 

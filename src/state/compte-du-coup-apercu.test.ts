@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { battleRng } from './battleRng';
-import { applyAttackResult, attackWeaponOf, victimeDuCoup } from './combatFlow';
+import { applyAttackResult, attackWeaponOf, victimeDuCoup, resolveCastChain } from './combatFlow';
 import { draineCascade } from './cascadeTestKit';
-import { toucheSauvee } from './combat/hitModifiers';
+import { toucheSauvee, hitModifiers } from './combat/hitModifiers';
 import { createHero } from '../engine/character';
-import { rederivePassiveAttack, issueAuJet, compteDuCoup, woundsAtCritLocation, apresDeviations, resolveStrayRangedHit, coupAApplique } from '../engine/combat';
+import { rederivePassiveAttack, issueAuJet, compteDuCoup, woundsAtCritLocation, apresDeviations, resolveStrayRangedHit, coupAApplique, ligneDuCoup, hitLocationByShape, reverseRoll, type AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { recomputeLoadout } from '../engine/items';
 import { setRule, resetRule } from '../engine/policy';
@@ -19,10 +19,10 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }
 const piece = (qualites: string[], pa: number, locs: readonly HitLocation[]): ItemInstance =>
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...locs], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
-interface Jet { seed: number; roll: number; paTouche?: number; pieces?: (lieu: HitLocation) => ItemInstance[]; tenue?: boolean }
+interface Jet { seed: number; roll: number; paTouche?: number; pieces?: (lieu: HitLocation) => ItemInstance[]; tenue?: boolean; current?: number }
 
 /** Le coup né au jet par la couture du jeu (`rederivePassiveAttack`), sur un ennemi important à 20 PB. */
-function auJet({ seed, roll, paTouche = 0, pieces, tenue }: Jet, lieu?: HitLocation) {
+function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, lieu?: HitLocation) {
   useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: tenue ? 0 : undefined } });
@@ -37,7 +37,7 @@ function auJet({ seed, roll, paTouche = 0, pieces, tenue }: Jet, lieu?: HitLocat
   cible.armour = { tete: 0, corps: paTouche, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   recomputeLoadout(cible);
   cible.armour = { ...cible.armour, corps: Math.max(cible.armour.corps, paTouche) };
-  cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+  cible.wounds = { current, max: 20 } as Combatant['wounds'];
   cible.important = true;
   const res = rederivePassiveAttack(H, cible, epee, { roll, target: 90, success: true, sl: 0, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps');
   return { H, cible, res };
@@ -108,15 +108,90 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
     expect(applique).toEqual({ critiques: apercu.critiques, blessures: apercu.blessures, lieu: apercu.lieu });
   });
 
-  it('T10 : un coup sauvegardé qui porte un `critLocation` garde le lieu de la touche', () => {
+  for (const [nom, sansPrise] of [
+    ['empoignade', (r: AttackResult, c: Combatant) => coupAApplique(r, true, c)],
+    ['sauvegarde', (r: AttackResult) => toucheSauvee(r)],
+    ['bouclier-anti-fleches', (r: AttackResult, c: Combatant) => {
+      const H = useGame.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
+      H.pos = { x: 0, y: 0 };
+      c.pos = { x: 12, y: 12 };
+      c.activeEffects = [{ label: 'Bouclier', bonus: 0, arrowWard: { radiusMeters: 4 } }] as unknown as Combatant['activeEffects'];
+      const fleche = { ...arc, organicProjectile: true } as Weapon;
+      return hitModifiers().find((h) => h.id === 'arrow-ward')!.apply({
+        get: useGame.getState, set: useGame.setState, attacker: H, target: c, weapon: fleche, attaque: 'ranged', res: r, sink: () => {}, ouvrirSauvegarde: () => {},
+      });
+    }],
+  ] as const) it(nom + ' : un coup sans prise qui porte un critLocation ne relance pas, 0 Blessure (LDB 14 l.159 ; LDB 85 l.98 ; LDB 47)', () => {
     const { seed, lieu } = jetRelanceHorsDuCorps(44);
     const { H, cible, res } = auJet({ seed, roll: 44 }, lieu);
-    const sauve = toucheSauvee(res);
-    expect(sauve.critLocation, 'le spread garde la Localisation relancée').toBe(lieu);
-    const c = compteDuCoup(sauve, epee, H, cible, 0);
+    const coup = sansPrise(res, cible);
+    expect(coup.sansPrise).toBe(nom);
+    expect(coup.critLocation, 'le verdict de naissance voyage avec le coup').toBe(lieu);
+    const c = compteDuCoup(coup, epee, H, cible, 0);
+    expect(c.compte.relance).toBe(false);
     expect(c.lieu).toBe(res.location);
-    expect(c.compte.critiques).toHaveLength(0);
     expect(c.compte.blessures).toBe(0);
+    expect(c.compte.critiques).toHaveLength(0);
+    expect(ligneDuCoup(coup), 'LDB 18 l.55 : seule une prise relancée nomme la nouvelle Localisation').not.toContain('nouvelle Localisation');
+    expect(ligneDuCoup(res), 'le même coup avec prise la nomme').toContain('nouvelle Localisation');
+  });
+});
+
+/** Chaque producteur fait naître le verdict sur la cible que le compte lit. AA 07 l.25, l.52 ; LDB 18 l.53, l.55. */
+describe('le verdict de relance naît sur la cible au compte', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); setRule('combat-sudden-death', 'off'); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); resetRule('combat-sudden-death'); useGame.setState({ pendingCast: null }); });
+
+  for (const current of [0, 3]) it('applyHit, né au jet (rederivePassiveAttack), coup non critique, cible à ' + current + ' Blessure : le compte relit le verdict de naissance', () => {
+    const { H, cible, res } = auJet({ seed: 5, roll: 37, current });
+    expect(res.critLocation !== undefined, 'AA 07 l.25 : relance sur un opposant déjà à 0').toBe(current === 0);
+    expect(compteDuCoup(res, epee, H, cible, 0).compte.relance).toBe(current === 0);
+  });
+
+  /** Un Projectile incanté par castRoll sans double, appliqué par la chaîne d'incantation ; rend le journal et
+   *  la Localisation de touche (LDB 46). `sauve` : la cible porte Protection 1+ (LDB 85 l.278). */
+  function projectile(current: number, sauve = false): { journal: string; touche: string } {
+    for (let seed = 1; seed < 100; seed++) {
+      useGame.getState().seedRng(seed);
+      const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+      useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+      useGame.getState().startScene(structuredClone(testScene()));
+      useGame.getState().startCombat('enc-mutants');
+      useGame.getState().confirmRoundStart();
+      vi.clearAllTimers();
+      const b = useGame.getState().battle!;
+      const H = b.combatants.find((c) => c.kind === 'hero')!;
+      const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+      H.spells = ['flechette'];
+      H.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 });
+      cible.wounds = { current, max: 20 } as Combatant['wounds'];
+      cible.important = true;
+      if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
+      useGame.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
+      useGame.getState().castRoll();
+      const jet = useGame.getState().pendingCast!.result!;
+      if (!jet.cast || jet.isCritical || jet.isFumble) continue;
+      resolveCastChain(useGame.getState, useGame.setState);
+      draineCascade(useGame.getState, 200, () => 1);
+      return {
+        journal: useGame.getState().battle!.log.map((l) => l.text).join('\n'),
+        touche: locationLabel(hitLocationByShape(reverseRoll(jet.roll), cible.bodyShape), cible.bodyShape),
+      };
+    }
+    throw new Error('aucune graine');
+  }
+
+  it("Projectile sur une cible déjà à 0 Blessure à l'application : la touche nomme la nouvelle Localisation (AA 07 l.25)", () => {
+    expect(projectile(0).journal).toMatch(/Fléchette sur [^(]+\(nouvelle Localisation : [^)]+\) :/);
+  });
+
+  it('Projectile sur une cible à 15 Blessures : la touche porte sa Localisation de touche (AA 07 l.25)', () => {
+    expect(projectile(15).journal).toMatch(/Fléchette sur [^(]+\([A-Z][^:)]*\) :/);
+  });
+
+  it('Projectile sauvé sur une cible déjà à 0 Blessure : le journal nomme la Localisation de touche (LDB 85 l.98, l.278 ; LDB 18 l.53)', () => {
+    const { journal, touche } = projectile(0, true);
+    expect(journal).toMatch(new RegExp(`Fléchette sur [^(]+\\(${touche}\\)\\.`));
   });
 });
 

@@ -21,6 +21,7 @@ import { placeOfScene } from './worldMap';
 import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
 import type { GameState } from './store';
+import type { PatchDeFlux } from './flowTypes';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
 export type CarrierStateSlice = Pick<GameState, 'party' | 'vessel' | 'worldMap' | 'scene' | 'possessions'>;
@@ -176,7 +177,7 @@ export function landBulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
  *  porteur — le call-site (store) journalise en Consequence structurée. */
 export function applyLandCargoRaid(
   s: CarrierStateSlice, outcome: CargoRaidOutcome,
-): { patch: Partial<GameState>; pct: number; losses: { label: string; removed: number }[] } {
+): { patch: PatchDeFlux; pct: number; losses: { label: string; removed: number }[] } {
   const pct = cargoRaidLossPct(outcome, Number(rule('landRobberyFleePct')), Number(rule('landRobberyLossPct')));
   const losses: { label: string; removed: number }[] = [];
   const updates: { carrierId: string; cargo: CargoLot[] }[] = [];
@@ -192,9 +193,9 @@ export function applyLandCargoRaid(
  *  (`vessel.cargo`) ou `Possession.cargo` de la bête/véhicule possédé (registre `possessions`, SOCLE
  *  POSSESSIONS #617/#618). Renvoie le patch d'état (`vessel`/`possessions`) à passer au `set` — jamais un
  *  2ᵉ compteur. */
-export function persistCarriersCargo(s: CarrierStateSlice, updates: { carrierId: string; cargo: CargoLot[] }[]): Partial<GameState> {
+export function persistCarriersCargo(s: CarrierStateSlice, updates: { carrierId: string; cargo: CargoLot[] }[]): PatchDeFlux {
   const map = new Map(updates.map((u) => [u.carrierId, u.cargo]));
-  const patch: Partial<GameState> = {};
+  const patch: PatchDeFlux = {};
   if (s.vessel && map.has(CAMPAIGN_VESSEL_CARRIER_ID)) {
     patch.vessel = { ...s.vessel, cargo: map.get(CAMPAIGN_VESSEL_CARRIER_ID)! };
   }

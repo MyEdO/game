@@ -8,7 +8,7 @@ import type { AreteUtilisable } from './aretes';
  *  rapportait `nature:'case'` sur un PNJ dont le clic ouvre le dialogue. La forme est ÉCRITE ici et
  *  non importée de `gameIso/stage/pickResolve.ts` : la
  *  frontière `src/state ↛ src/gameIso` ne connaît aucune exception, pas même un `import type`
- *  (`state/frontiere-state-gameiso.test.ts`). Ce qui empêche les deux formes de dériver est un test de
+ *  (`murs/purete-imports`, `oxlint.config.mjs`). Ce qui empêche les deux formes de dériver est un test de
  *  CONFORMITÉ qui vit du côté autorisé à voir les deux (`gameIso/stage/pick-parity.test.tsx`). */
 export type PickProbe = (px: { x: number; y: number }) => ({
   tile: { x: number; y: number; z: number } | null;
@@ -74,7 +74,8 @@ import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
 import { mirrorPools } from '../engine/advantagePool';
-import { actorIn, ecrireActeur, inBattleId, garanti } from './combatants';
+import { actorIn, ecrireActeur, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
 import { defenseSurfaced } from './netOwnership';

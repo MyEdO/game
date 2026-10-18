@@ -46,6 +46,7 @@ test('projection mémoire : topologie RSS globale, métadonnées ciblées dans l
 
 test('#2626 : le mode identités garde PID, parent et création sans lire cwd ni commande', () => {
   const complet = mesurerProcessusWorktrees({ pids: [process.pid] }).processus[0]
+  assert.equal(resolve(complet.image), resolve(process.execPath))
   const leger = mesurerProcessusWorktrees({ pids: [process.pid], identites: true }).processus[0]
   assert.equal(leger.pid, process.pid)
   assert.equal(leger.ppid, process.ppid)

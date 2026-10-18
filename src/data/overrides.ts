@@ -32,6 +32,7 @@ import {
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import type { RefDesignee } from './schemas/grammaire/ref';
+import type { CharKey } from '../engine/types';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
@@ -95,7 +96,7 @@ import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 export interface MiscastRowEntry {
   id: string; min: number; max: number | null; label: string;
   ops?: Record<string, unknown>[];
-  test?: { skill?: RefDesignee; characteristic?: string; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
+  test?: { skill?: RefDesignee; characteristic?: CharKey; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
   reroll?: 'majeure' | 'mineure-x2';
   source?: SourceRef;
 }

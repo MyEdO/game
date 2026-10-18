@@ -500,11 +500,10 @@ export interface AttackResult {
   defenderRoll?: number;
   netSL: number;
   location?: HitLocation;
-  /** Localisation relancée du coup, décidée à sa naissance (`applyHit`) ; absente = Localisation de touche.
+  /** Localisation relancée du coup, décidée à sa naissance par son producteur (`applyHit`, Projectile), lue par
+   *  `localisationRelanceeDe` seul ; absente = Localisation de touche.
    *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; LDB 17 l.68 ; #1595 c.6226467544. */
   critLocation?: HitLocation;
-  /** Localisation relancée APPLIQUÉE à CE coup (`location`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32. */
-  localisationRelancee?: true;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
@@ -889,8 +888,7 @@ export function attackModifiers(
     if (p) out.push({ label: 'Main secondaire', value: p, famille: 'circonstance', ref: RULE_REF['main-secondaire'] });
   }
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : CANAL UNIQUE — le Test d'attaque est physique
-  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat),
-  // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
   // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
   const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
@@ -960,8 +958,7 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
   // neige, ni de malus « maniement deux armes » ; seuls Avantage/État/Sur la défensive s'appliquent.
   if (mode !== 'social' && defender.dualStrikeDefensePenalty) out.push({ label: 'Maniement deux armes', value: -10, famille: 'jet', ref: RULE_REF['combat-deux-armes'] }); // LDB 10 l.767-773
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : le CANAL UNIQUE `weatherTestMods` lit `defender.envWeather`
-  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité) — jamais
-  // recâblé par surface (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
   out.push(...precipitationTestMods(defender.envPrecipitation, defenseTestSkill(mode))); // MDG 13 l.185, #1936
   return out;
@@ -1635,6 +1632,12 @@ export function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number
   return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
 }
 
+/** La Localisation relancée du coup, verdict de sa naissance (`critLocation`), SEUL lecteur ; celui d'un coup sans
+ *  prise n'est pas lu. LDB 18 l.53, l.55 ; AA 07 l.25 ; LDB 85 l.98 ; LDB 14 l.159. */
+export function localisationRelanceeDe(res: Pick<AttackResult, 'hit' | 'sansPrise' | 'critLocation'>): HitLocation | undefined {
+  return res.hit && !res.sansPrise ? res.critLocation : undefined;
+}
+
 /** Le compte d'un coup après ses Déviations. `coupCritique` : avant tout filtre, LDB 60 l.50.
  *  LDB 18 l.53, l.55. */
 export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; coupCritique: boolean }
@@ -1644,8 +1647,9 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
  *  #1595 c.6221792068 Q3, c.6228496170 Q1. */
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
-  const relance = relanceLaLocalisation(cible, coup);
-  const lieu: HitLocation = relance ? res.critLocation! : (res.location ?? 'corps');
+  const relancee = localisationRelanceeDe(res);
+  const relance = relancee !== undefined;
+  const lieu: HitLocation = relancee ?? res.location ?? 'corps';
   const devie = apresDeviations(cible, lieu, n);
   let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
   if (relance) {
@@ -1738,7 +1742,7 @@ export function phraseDeTouche(
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
  *  et les Blessures critiques infligées (`critiques`), suivie des `ajouts`. LDB 18 l.53, l.55 ; LDB 63 l.32. */
 export function ligneDuCoup(res: AttackResult): string {
-  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, !!res.localisationRelancee) : res.log;
+  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0, localisationRelanceeDe(res) !== undefined) : res.log;
   return [tete, ...(res.ajouts ?? [])].filter(Boolean).join(' ');
 }
 

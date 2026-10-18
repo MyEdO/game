@@ -7,32 +7,32 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { RefField, type RefFieldCfg } from './RefField';
-import { datasetArray } from '../../data/overrides';
-import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../engine/types';
-import type { DiseaseSymptom } from '../../engine/disease';
-import { formatDice, parseDice } from '../../engine/dice';
-import type { CombatFeature, CastingKind } from '../../engine/combatFeatures/types';
-import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../data';
-import { dispoSaisonniereSchema, harvestRaritySchema } from '../../data/schemas/grammaire/valeurs';
-import type { RefDesignee } from '../../data/schemas/grammaire/ref';
-import { valeursDe } from '../../data/schemas/grammaire/meta';
-import { missileBypassSchema } from '../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../data';
+import { RefField, type RefFieldCfg } from '../../compendium/RefField';
+import { datasetArray } from '../../../data/overrides';
+import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../../engine/types';
+import type { DiseaseSymptom } from '../../../engine/disease';
+import { formatDice, parseDice } from '../../../engine/dice';
+import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
+import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
+import { dispoSaisonniereSchema, harvestRaritySchema } from '../../../data/schemas/grammaire/valeurs';
+import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+import { valeursDe } from '../../../data/schemas/grammaire/meta';
+import { missileBypassSchema } from '../../../data/schemas/defs/domains';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
 import type { z } from 'zod';
-import { slugId } from '../../data/slug';
-import { ConditionEditor } from '../editor/ConditionEditor';
-import { isOptionalNote, type TraitInstance, type OptionalEntry } from '../../engine/statEntry';
-import { parseTraitInstance, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
-import { GameOpEditor, newOp } from '../editor/GameOpEditor';
-import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../editor/FlowEditor';
-import type { GameOp } from '../../engine/ops';
-import type { CrewTarget } from '../../data/shipCriticals';
-import { NumberField } from '../NumberField';
-import { ProseField } from '../ProseField';
-import { PlageField } from '../PlageField';
-import { OptionChooser } from '../OptionChooser';
-import type { OptionalRule, RuleValue } from '../../engine/policy';
+import { slugId } from '../../../data/slug';
+import { ConditionEditor } from '../ConditionEditor';
+import { isOptionalNote, type TraitInstance, type OptionalEntry } from '../../../engine/statEntry';
+import { parseTraitInstance, formatTrait, optionalLabel } from '../../../engine/traits/dispatch';
+import { GameOpEditor, newOp } from '../GameOpEditor';
+import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../FlowEditor';
+import type { GameOp } from '../../../engine/ops';
+import type { CrewTarget } from '../../../data/shipCriticals';
+import { NumberField } from '../../NumberField';
+import { ProseField } from '../../ProseField';
+import { PlageField } from '../../PlageField';
+import { OptionChooser } from '../../OptionChooser';
+import type { OptionalRule, RuleValue } from '../../../engine/policy';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 

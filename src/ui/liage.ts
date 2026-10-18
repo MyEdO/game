@@ -100,7 +100,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/compendium/CodexEntry.tsx#Prose.md#2', origine: 'Y', paquet: [], note: 'corps d’un `t:fold` — forme technique d’atelier (`describe`), jamais un champ' },
   { cle: 'src/ui/compendium/CodexEntry.tsx#Prose.md#3', origine: 'S', porteur: '<catégorie>.desc' },
   { cle: 'src/ui/compendium/CodexEntry.tsx#Prose.md#4', origine: 'S', porteur: '<catégorie>.maison' },
-  { cle: 'src/ui/compendium/DescRefField.tsx#Prose.md#1', origine: 'S', paquet: [], note: 'RESTE T0 : aperçu de l’adresse en cours d’édition. Le champ générique de l’atelier (`CodexEdit.tsx:1829`) ne connaît ni le type ni l’id de l’entrée à ce point ; c’est le train T2 qui fait descendre le porteur dans le champ générique (design v6 §7).' },
+  { cle: 'src/ui/compendium/DescRefField.tsx#Prose.md#1', origine: 'S', paquet: [], note: 'RESTE T0 : aperçu de l’adresse en cours d’édition. Le champ générique de l’atelier (`src/ui/editor/codex/CodexEdit.tsx` › `Field`) ne connaît ni le type ni l’id de l’entrée à ce point ; c’est le train T2 qui fait descendre le porteur dans le champ générique (design v6 §7).' },
 
   // ── Créateur de personnage ────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/creator/CharacterCreator.tsx#DetailFrame.prose#1', origine: 'S', porteur: 'races.desc' },

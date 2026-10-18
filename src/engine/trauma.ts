@@ -698,7 +698,7 @@ function armLocationHand(loc: HitLocation): 'main' | 'off' | undefined {
 
 /** Usage du membre RÉCUPÉRÉ (Test étendu de Guérison atteint) : retire la séquelle « membre désactivé »
  *  d'INDICE `idx` parmi `recoverableTraumas` et renvoie ses `recoveryPenalty` (posées par l'appelant via
- *  `applyOps`, avec une durée d'horloge partagée 1d10 jours) + le journal. #193 : un `testMod{char:'CC'}`
+ *  `applyOps`, avec une durée d'horloge partagée 1d10 jours) + le journal. #193 : un `testMod{char:'capacite-de-combat'}`
  *  de la `recoveryPenalty` (même donnée pour brasD/brasG) est ICI scopé à la main RÉELLE du membre — portée
  *  MEMBRE (« Tests effectués avec ce bras ») au lieu d'un `charMod` global historique. */
 export function recoverDisabledLimb(c: Combatant, idx = 0): { penalty: import('./ops').GameOp[]; log: string[] } {

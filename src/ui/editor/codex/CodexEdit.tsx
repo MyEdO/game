@@ -5,75 +5,76 @@
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
-import { tableTotale } from '../../lib/tableTotale';
+import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
-import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
-import type { RefDesignee } from '../../data/schemas/grammaire/ref';
-import type { SteamBreakdownEntry } from '../../engine/shipBuild';
-import { serializeDataset } from '../../data/serialize';
-import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../data/schemas/validate';
-import { enfantsDe } from '../../data/schemas/grammaire/descente';
-import * as fs from '../../data/fsPersist';
-import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from './editFields';
-import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { categoryByKey, entryKey } from './registry';
-import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../engine/activities';
-import { weatherCondition } from '../../engine/travelStages';
-import { weatherIdSchema } from '../../data/schemas/defs/weather';
-import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../data/schemas/defs/activities';
-import { waterAppliesToSchema, waterTableSchema } from '../../data/schemas/defs/water-exposure';
-import { RefField, cfgDeLaFeuille, refFieldCfg, libelleDeDataset } from './RefField';
-import { DescRefField } from './DescRefField';
-import type { DescRef } from '../../data/source/decoupe';
-import { Icon } from '../Icon';
-import { NumberField } from '../NumberField';
-import { ProseField } from '../ProseField';
-import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../SourceRefField';
-import { useClesDeRangees } from '../useClesDeRangees';
-import { PlageField, type PlageValue } from '../PlageField';
-import { GatedAction } from '../GatedAction';
-import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
-import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
-import { ctxDeCatalogue } from '../editor/EffectList';
-import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
-import type { GameOp } from '../../engine/ops';
-import type { ConsumableDuration } from '../../engine/consumables';
-import { JsonField } from '../editor/JsonField';
-import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
-import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
-import { CreaturePreview } from './CreaturePreview';
-import { porteurDApercu } from './apercuPorteur';
-import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { type Flow, EMPTY_FLOW, type TriggeredEffect, type EffectTrigger } from '../../state/flow';
-import { effectOnSchema, effectTriggerSchema } from '../../data/schemas/grammaire/mecanique';
-import type { ManeuverDef, ManeuverMeasure } from '../../data';
-import { SYMPTOM_SEVERITIES } from '../../data';
-import type { AttackKind } from '../../engine/creatureAttacks';
-import { WeaponField } from '../editor/WeaponField';
-import { PsychTraitsField } from '../editor/PsychTraitsField';
-import type { Weapon } from '../../engine/types';
-import type { PsychTrait } from '../../engine/psychology';
+import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../../data/overrides';
+import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../../data/schemas/exposition-derivee';
+import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
+import { serializeDataset } from '../../../data/serialize';
+import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import { enfantsDe } from '../../../data/schemas/grammaire/descente';
+import * as fs from '../../../data/fsPersist';
+import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../compendium/editFields';
+import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
+import { categoryByKey, entryKey } from '../../compendium/registry';
+import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
+import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import { weatherCondition } from '../../../engine/travelStages';
+import { weatherIdSchema } from '../../../data/schemas/defs/weather';
+import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
+import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
+import { RefField, cfgDeLaFeuille, refFieldCfg, libelleDeDataset } from '../../compendium/RefField';
+import { DescRefField } from '../../compendium/DescRefField';
+import type { DescRef } from '../../../data/source/decoupe';
+import { Icon } from '../../Icon';
+import { NumberField } from '../../NumberField';
+import { ProseField } from '../../ProseField';
+import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
+import { useClesDeRangees } from '../../useClesDeRangees';
+import { PlageField, type PlageValue } from '../../PlageField';
+import { GatedAction } from '../../GatedAction';
+import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
+import { MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
+import { ctxDeCatalogue } from '../EffectList';
+import { GameOpEditor, FormulaField } from '../GameOpEditor';
+import { opsMissingRefs } from '../refsDOp';
+import type { GameOp } from '../../../engine/ops';
+import type { ConsumableDuration } from '../../../engine/consumables';
+import { JsonField } from '../JsonField';
+import { QUAD_SPECIES, WINGED_SPECIES } from '../../../gameIso/rig/creatures';
+import { apparenceSuivante } from '../../../gameIso/rig/parts/cosmetic';
+import { CreaturePreview } from '../../compendium/CreaturePreview';
+import { porteurDApercu } from '../../compendium/apercuPorteur';
+import type { EntityAppearance } from '../../../engine/authoringAppearance';
+import { type Flow, EMPTY_FLOW, type TriggeredEffect, type EffectTrigger } from '../../../state/flow';
+import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
+import type { ManeuverDef, ManeuverMeasure } from '../../../data';
+import { SYMPTOM_SEVERITIES } from '../../../data';
+import type { AttackKind } from '../../../engine/creatureAttacks';
+import { WeaponField } from '../WeaponField';
+import { PsychTraitsField } from '../PsychTraitsField';
+import type { Weapon } from '../../../engine/types';
+import type { PsychTrait } from '../../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
-import type { OptionalRule } from '../../engine/policy';
-import type { TraitInstance, OptionalEntry } from '../../engine/statEntry';
-import { isSwarm } from '../../engine/traits/dispatch';
-import type { DomainData } from '../../data';
-import type { CharKey, Difficulty } from '../../engine/types';
-import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
-import type { DiseaseSymptom } from '../../engine/disease';
-import type { CombatFeature } from '../../engine/combatFeatures/types';
-import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../data';
-import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
-import { specsSourceSchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
-import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
-import type { SecondaryRef, SourceRef, Variant } from '../../data/schemas/grammaire/valeurs';
-import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../engine/policy';
-import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../data/schemas/defs/talents';
-import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../data/schemas/defs/spells';
-import { Grid } from '../Layout';
+import type { OptionalRule } from '../../../engine/policy';
+import type { TraitInstance, OptionalEntry } from '../../../engine/statEntry';
+import { isSwarm } from '../../../engine/traits/dispatch';
+import type { DomainData } from '../../../data';
+import type { CharKey, Difficulty } from '../../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../../engine/types';
+import type { DiseaseSymptom } from '../../../engine/disease';
+import type { CombatFeature } from '../../../engine/combatFeatures/types';
+import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
+import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
+import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { parseSkillRef, parseTalentRef } from '../refFormatLivre';
+import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
+import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
+import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
+import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
+import { Grid } from '../../Layout';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -827,7 +828,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           <>
             <TraitListField label="Traits" hint="(LDB 85 — armement « Arme (Épée) +7 », Psychologie « Peur 3 »…)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />
             <OptionalsListField label="Traits optionnels" hint="(LDB 76 — proposés au spawn ; notes composées « swap »/« tous les traits » en lecture seule)" value={entry.optionals as OptionalEntry[] | undefined} onChange={(v) => edit('optionals', v)} />
-            <HarvestField value={entry.harvest as { rarity: import('../../data').HarvestRarity; danger: import('../../data').HarvestDanger; uses: string } | undefined} onChange={(v) => edit('harvest', v)} />
+            <HarvestField value={entry.harvest as { rarity: import('../../../data').HarvestRarity; danger: import('../../../data').HarvestDanger; uses: string } | undefined} onChange={(v) => edit('harvest', v)} />
             <LignesFormatLivreField
               label="Compétences"
               hint="(une par ligne, format livre « Compétence (Spéc) Valeur » : « Langue (Magick) 63 », « Savoir (Au choix) 65 », « Métier (Armurier ou Forgeron) 50 », « Esquive 48 » — la valeur est le Test FINAL)"

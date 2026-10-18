@@ -8,17 +8,17 @@ import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
 import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 
-/** Le seuil de SUBSTANCE d'un commit : au commit, ses lignes de diff sous `src/` ; à la publication,
- *  les lignes CHANGÉES (ajoutées ou supprimées) sous `src/` de la résolution d'une fusion (#2328 A4). */
+/** Seuil de substance des lignes changées sous `src/`, mesurées par `apportDeLaResolution`
+ *  pour un commit courant ou une résolution de fusion. */
 export const SUBSTANTIVE_MIN_LINES = 10
 
-/** Les trailers de livraison : la ligne du message, le titre de la section d'un solde
- *  (`.claude/soldes/ref-<N>.md`, `<N>.md` ; un motif de `sectionDe`), et la longueur minimale de leur texte. `JUGE` n'accroche
- *  jamais `JUGE-VISION:` : le tiret casse le motif `JUGE\s*:`. */
+/** Trailers de livraison : motif de ligne, titre de section du solde et seuil de texte.
+ *  Chaque ligne porte sa clé majuscule, précédée éventuellement de blancs horizontaux ;
+ *  seuls les blancs horizontaux entourent son séparateur. */
 export const TRAILERS = Object.freeze({
-  JUGE: Object.freeze({ ligne: /\bJUGE\s*:\s*(.+)/i, section: 'Juge', min: 40 }),
-  REFUTATION: Object.freeze({ ligne: /\bREFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
-  'JUGE-VISION': Object.freeze({ ligne: /\bJUGE-VISION\s*:\s*(.+)/i, section: 'Juge-Vision', min: 40 }),
+  JUGE: Object.freeze({ ligne: /^[ \t]*JUGE[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge', min: 40 }),
+  REFUTATION: Object.freeze({ ligne: /^[ \t]*REFUTATION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'R[ée]futation', min: 40 }),
+  'JUGE-VISION': Object.freeze({ ligne: /^[ \t]*JUGE-VISION[ \t]*:[ \t]*([^\r\n]+)\r?$/, section: 'Juge-Vision', min: 40 }),
 })
 
 /** Fichier d'ÉCRAN : ce que l'utilisateur VOIT — un composant `.tsx` de `src/ui/**`/`src/gameIso/**`
@@ -49,24 +49,44 @@ export function sectionDe(content, titre) {
  *  `validateJugeVisionFile` de scripts/git-hooks/porte-du-commit.mjs) comme à la publication. PURE. */
 export const corpsDuTrailer = (contenu, nom) => sectionDe(contenu, TRAILERS[nom].section)?.trim() ?? null
 
+const VERDICT_RE = /verdict\s*:\s*([A-Za-zÀ-ÖØ-öø-ÿ]+)/i
+
+export function sectionDeLivraison(contenu, nom) {
+  const corps = corpsDuTrailer(contenu, nom)
+  const titre = nom === 'REFUTATION' ? 'Réfutation' : TRAILERS[nom].section
+  const problems = []
+  if (corps === null) return { problems: [`section "## ${titre}" absente`], refuted: false }
+  let synthese = corps
+  let refuted = false
+  if (nom === 'REFUTATION') {
+    const match = VERDICT_RE.exec(corps)
+    if (!match) return { problems: ['ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ" absente dans "## Réfutation"'], refuted: false }
+    const verdict = match[1].normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+    if (!['CONFIRME', 'PARTIEL', 'REFUTE'].includes(verdict)) return { problems: [`verdict "${match[1]}" non reconnu dans "## Réfutation" (attendu CONFIRMÉ/PARTIEL/RÉFUTÉ)`], refuted: false }
+    synthese = corps.replace(VERDICT_RE, '').trim()
+    refuted = verdict === 'REFUTE'
+    if (refuted) problems.push('verdict RÉFUTÉ : un ticket réfuté ne se ferme pas')
+  }
+  if (synthese.length < TRAILERS[nom].min) problems.push(`"## ${titre}" trop maigre (${synthese.length} car.${nom === 'REFUTATION' ? ' hors verdict' : ''}, ${TRAILERS[nom].min} requis)`)
+  return { problems, refuted }
+}
+
 /** Le plus court sha qui NOMME un commit dans un trailer. */
 const SHA_COURT_MIN = 9
 
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
-/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE : la clé ouvre la ligne,
- *  comme un trailer git (`git interpret-trailers`) — « Aucun juge : … » ou `CONTRE-REFUTATION:` ne
- *  jugent rien. PURE. */
+/** Textes des lignes reconnues par le motif de `TRAILERS[nom]` et atteignant son seuil. PURE. */
 const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
   .map((ligne) => TRAILERS[nom].ligne.exec(ligne))
-  .filter((m) => m !== null && m.input.slice(0, m.index).trim() === '')
+  .filter((m) => m !== null)
   .map((m) => m[1].trim())
   .filter((texte) => texte.length >= TRAILERS[nom].min)
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
  *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */
-const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
+export const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue qui nomme `sha`. PURE. */
 const messageNomme = (message, nom, sha) => lignesDuTrailer(message, nom).some((texte) => nommeLeSha(texte, sha))
@@ -74,7 +94,7 @@ const messageNomme = (message, nom, sha) => lignesDuTrailer(message, nom).some((
 /** `true` si le SOLDE porte la section du trailer `nom`, assez longue, qui nomme `sha`. PURE. */
 const soldeNomme = (contenu, nom, sha) => {
   const corps = corpsDuTrailer(contenu, nom)
-  return corps !== null && corps.length >= TRAILERS[nom].min && nommeLeSha(corps, sha)
+  return sectionDeLivraison(contenu, nom).problems.length === 0 && nommeLeSha(corps, sha)
 }
 
 /** Une ligne de MARQUEUR de conflit telle que `merge-tree` l'écrit (git help merge-file). */
@@ -100,6 +120,26 @@ export function apportDeLaResolution(patchs) {
     if (changees > 0 && estFichierEcran(chemin)) ecran = true
   }
   return { lignesChangees, ecran }
+}
+
+export function apportsDesTickets(depot, numeros, courant, { revisions = ['HEAD'] } = {}) {
+  const apports = new Map(numeros.map((n) => [n, { ...courant }]))
+  if (!numeros.length || !revisions.length) return apports
+  const journal = journalDe(depot, revisions)
+  const graphe = grapheDe(depot, revisions)
+  if (!journal || !graphe) throw new GitIndisponible(`histoire de ${revisions.join(', ')} illisible pour l’apport cumulé des tickets`)
+  const cites = new Map(journal.map((c) => [c.sha, numerosCites(c.message).map(Number).filter((n) => apports.has(n))]))
+  const commits = graphe.filter((c) => cites.get(c.sha)?.length)
+  const patchs = ceQueFontLesCommits(depot, commits).patchs()
+  for (const c of commits) {
+    const apport = apportDeLaResolution(patchs.get(c.sha))
+    for (const n of cites.get(c.sha)) {
+      const cumul = apports.get(n)
+      cumul.lignesChangees += apport.lignesChangees
+      cumul.ecran ||= apport.ecran
+    }
+  }
+  return apports
 }
 
 /** Les commits de `commits` (`grapheDe`) qui DESCENDENT de `sha`, lui exclu. PURE. */

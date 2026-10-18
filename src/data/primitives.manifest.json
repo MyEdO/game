@@ -1624,18 +1624,18 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
-    "verrou": "cle-de-site-guard.test.ts, stock.test.mjs"
+    "verrou": "cle-de-site-guard.test.ts, stock.test.mjs, stock-primitive.test.ts"
   },
   {
     "id": "stockDeSites",
     "type": "primitives.manifest",
-    "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
+    "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/MOTIF_DECROISSANT/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
     "fichier": "scripts/guards/lib/stockDeSites.mjs",
-    "concept": "lecture et écriture d'un stock de sites dans ses deux formats, son ordre canonique, les entrées régénérées et leurs comptes par famille, les trois politiques de croissance, le texte régénéré et son écart au fichier en place",
+    "concept": "lecture et écriture d'un stock de sites dans ses deux formats, son ordre canonique, les entrées régénérées et leurs comptes par famille, les trois politiques de croissance et le motif de tout écrivain qui refuse la croissance, le texte régénéré et son écart au fichier en place",
     "perimetre": "tout module qui mesure un stock de sites (déclaration `regenerations`)",
     "verrou": "stockDeSites.test.mjs, lectures de canonUnique.mjs (ECRITURE_DE_STOCK_JSON)"
   },
@@ -1716,8 +1716,17 @@
     "type": "primitives.manifest",
     "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/evaluerLotDuDepot/APPEL_DE_LECTURE/requeteDe/partiesDeRequete/encoderLecture/decoderLecture/mesureLecture/certifierLecture",
     "fichier": "scripts/guards/lib/racinesBalayees.mjs",
-    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo ; fonctions anonymes désignées par un id dans le lexique de leur module ; lecture d'un module sérialisée en IR JSON borné (encoder, mesurer, décoder) puis certifiée une fois pour son module, chaîne non vide (décodée, sans lien, gelée ; un module illisible reçoit un témoin certifié, lu nul), et évaluation d'un lot de questions sur ces lectures certifiées, par un noyau fermé neuf qui refuse par une erreur nommée toute lecture non certifiée (nulle comprise), celle d'un autre module, un module hors domaine, un module lu deux fois et tout lot hors domaine (lectures, résolutions, lecteurs, questions : tableaux nus validés entrée par entrée à leur indice, valeurs propres sans accesseur), et ne consomme que la copie qu'il a validée, sans accès au disque, à clés structurelles, au même résultat qu'une évaluation directe ; le JSON du résultat de chaque question est son canal de détachement du noyau",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo ; fonctions anonymes désignées par un id dans le lexique de leur module ; lecture d'un module sérialisée en IR JSON borné (encoder, mesurer, décoder) puis certifiée une fois pour son module, chaîne non vide (décodée, sans lien, gelée ; un module illisible reçoit un témoin certifié, lu nul), et évaluation d'un lot de questions sur ces lectures certifiées, par un noyau fermé neuf qui refuse par une erreur nommée toute lecture non certifiée (nulle comprise), celle d'un autre module, un module hors domaine, un module lu deux fois et tout lot hors domaine (lectures, résolutions, lecteurs, questions : tableaux nus validés entrée par entrée à leur indice, valeurs propres sans accesseur), et ne consomme que la copie qu'il a validée, sans accès au disque, à clés structurelles, au même résultat qu'une évaluation directe ; le JSON du résultat de chaque question est son canal de détachement du noyau ; budget de la certification et du lot (décodage, noyau, prédicat, calcul de retour) observé par la couture stade",
     "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
+    "verrou": "racinesBalayees.test.mjs"
+  },
+  {
+    "id": "clesCanoniques",
+    "type": "primitives.manifest",
+    "label": "clesCanoniques",
+    "fichier": "scripts/guards/lib/clesCanoniques.mjs",
+    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé et DAG cyclique refusés par une erreur nommée)",
+    "perimetre": "toute clé de mémo ou de dédoublonnage d'une valeur de l'évaluateur de racines balayées",
     "verrou": "racinesBalayees.test.mjs"
   },
   {

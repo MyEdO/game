@@ -38,7 +38,7 @@ import {
   stageCount, forageYield, stageExposureDifficulty, weatherResistanceTest,
   isColdSeason, weatherCondition, type Weather, type Season,
 } from '../engine/travelStages';
-import { weatherTestMods } from '../engine/weatherTestMod'; // CANAL UNIQUE « Tests physiques » (#341) — jamais weatherPhysicalTestMod en direct
+import { weatherTestMods } from '../engine/weatherTestMod'; // #341
 import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';

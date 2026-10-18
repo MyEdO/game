@@ -226,7 +226,7 @@ function partitionDeCharge(def: SchemaDef | undefined): { champ: string; table: 
 /**
  * Charge DISCRIMINÉE d'une entrée — `undefined` si le document ne déclare pas de discriminant, ou si
  * l'entrée n'en porte pas une valeur connue (entrée en cours de saisie). C'est ce que l'atelier
- * PRÉSENTE d'une entrée (`src/ui/compendium/CodexEdit.tsx`) : sans elle, un document dont les cas ne
+ * PRÉSENTE d'une entrée (`src/ui/editor/codex/CodexEdit.tsx`) : sans elle, un document dont les cas ne
  * partagent aucune clé ferait éditer à chacun l'union des clés de tous les autres.
  */
 export function chargeDiscriminee(file: string, entree: Record<string, unknown>): ChargeDiscriminee | undefined {

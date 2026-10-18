@@ -326,6 +326,32 @@ test('cleanup refusé après fusion : snapshot et archive conservés, nouvelle t
   assert.equal(JSON.parse(readFileSync(suivant.precedente)).publication.snapshot, p.snapshot)
 })
 
+test('#2741 retrait réussi après fusion : preuve finale et journal nettoyé', async (t) => {
+  const b = banc(t)
+  const p = b.preparer()
+  p.dependancesInstallees = true
+  mkdirSync(join(p.snapshot, 'node_modules'))
+  const lignes = []
+  let retire = false
+  const code = await publierDepuisSnapshot({
+    source: b.source, branche: p.branche, chemins: b.chemins, reprendre: true, args: [],
+    preparer: () => p, fusionDansMain: () => true,
+    retirer: () => { retire = true; return { disponible: true, valeur: { status: 0 } } },
+    ecrire: (texte) => { if (texte.includes('snapshot retiré')) assert.equal(retire, true); lignes.push(texte) },
+    lancer: async () => {
+      const j = JSON.parse(readFileSync(b.chemins.json))
+      j.publication.publie = SHA
+      j.verdict = { etat: 'vert' }
+      j.etapes.file = { detail: { fusion: 'f'.repeat(40) } }
+      writeFileSync(b.chemins.json, JSON.stringify(j))
+      return { code: 0 }
+    },
+  })
+  assert.equal(code, 0)
+  assert.ok(lignes.includes(`[publier] snapshot retiré : ${p.snapshot}\n`))
+  assert.equal(JSON.parse(readFileSync(b.chemins.json)).publication.nettoyee, true)
+})
+
 test('nouvelle tête après CI rouge : ancien snapshot archivé ; --reprendre garde sa cible', (t) => {
   const b = banc(t)
   const p = b.preparer()

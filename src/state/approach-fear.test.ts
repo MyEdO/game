@@ -117,7 +117,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     setCadence('auto');
     try {
       seedBattleRng(1);
-      const h = hero({ characteristics: { FM: 1 } as never });
+      const h = hero({ characteristics: { 'force-mentale': 1 } as Combatant['characteristics'] });
       run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
       expect(useGame.getState().pendingCascade).toBeNull(); // auto → pas d’étape influençable
       const got = useGame.getState().battle!.combatants.find((x) => x.id === h.id)!;

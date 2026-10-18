@@ -21,7 +21,7 @@
  * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`resumeTravel`).
  */
 import { battleRng } from './battleRng';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { bus, EVT } from './bus';
 import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 

@@ -83,14 +83,15 @@ import {
 } from '../guards/budget-contexte.mjs'
 import {
   GitIndisponible, INDEX, INDEX_DU_DEPOT, apportDeLaFusionEnCours, depotAuxPannes, racineSurDisque, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects,
-  entreesDe, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, indexEmprunte, listerImage, shaDe, refusDeGit,
+  entreesDe, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, indexEmprunte, listerImage, patchsParChemin, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
-import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
+import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, apportsDesTickets, estFichierEcran, messagePorte, sectionDe, sectionDeLivraison } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
 import { grammaireDesNatures, natureDuSolde } from '../guards/lib/nature.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { DATE } from '../guards/memoire-forme.mjs'
 
 /** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
@@ -125,7 +126,6 @@ const MIN_VERIFIE_LEN = 40
 // grammaire de tout ce qui suivait le blanc (sonde D1 : 4 dispositions invalides sur 5 acceptées).
 const TITRE_RESTES = 'Restes'
 const TITRE_RECETTE_VISUELLE = 'Recette visuelle'
-const TITRE_REFUTATION = TRAILERS.REFUTATION.section
 
 
 /** Nombre de fois que le titre `## <titre>` apparaît dans le document. Une section DUPLIQUÉE n'est pas
@@ -164,47 +164,7 @@ const ENTETE_JPEG = [0xff, 0xd8, 0xff]
 // pas d'image, et 200 px la plus petite dimension dont on puisse JUGER quoi que ce soit.
 const TAILLE_MIN_CAPTURE = 1024
 const COTE_MIN_CAPTURE = 200
-const VERDICT_RE = /verdict\s*:\s*([A-Za-zÀ-ÖØ-öø-ÿ]+)/i
-const MIN_REFUTATION_LEN = 40
-
-/** `CONFIRMÉ`/`confirme`/`CONFIRME` → `CONFIRME` (compare sans accent, insensible à la casse). */
-function normalizeVerdict(word) {
-  return word.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
-}
-
-/** Longueur de texte hors la ligne `verdict: …` elle-même (mesure la SYNTHÈSE, pas le mot-clef). */
-function lenWithoutVerdictLine(text) {
-  return text.replace(VERDICT_RE, '').trim().length
-}
-
-/** Section `## Réfutation` d'un solde : présence, verdict reconnu, longueur de synthèse.
- *  `refuted: true` si le verdict est RÉFUTÉ — porte alors sa propre entrée dans `problems`
- *  (« un ticket réfuté ne se ferme pas »), le solde est TOUJOURS non conforme dans ce cas. */
-function checkRefutationSection(content) {
-  const problems = []
-  const body = sectionDe(content, TITRE_REFUTATION)
-  if (body === null) {
-    problems.push('section "## Réfutation" absente (verdict adversarial obligatoire)')
-    return { problems, refuted: false }
-  }
-  const vMatch = VERDICT_RE.exec(body)
-  if (!vMatch) {
-    problems.push('ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ" absente dans "## Réfutation"')
-    return { problems, refuted: false }
-  }
-  const verdict = normalizeVerdict(vMatch[1])
-  if (!['CONFIRME', 'PARTIEL', 'REFUTE'].includes(verdict)) {
-    problems.push(`verdict "${vMatch[1]}" non reconnu dans "## Réfutation" (attendu CONFIRMÉ/PARTIEL/RÉFUTÉ)`)
-    return { problems, refuted: false }
-  }
-  const descLen = lenWithoutVerdictLine(body)
-  if (descLen < MIN_REFUTATION_LEN) {
-    problems.push(`"## Réfutation" trop maigre (${descLen} car. hors verdict, ${MIN_REFUTATION_LEN} requis — qui a attaqué quoi, sur le diff/DoD du ticket)`)
-  }
-  const refuted = verdict === 'REFUTE'
-  if (refuted) problems.push('verdict RÉFUTÉ : un ticket réfuté ne se ferme pas')
-  return { problems, refuted }
-}
+const checkRefutationSection = (content) => sectionDeLivraison(content, 'REFUTATION')
 
 /** Items de la section « ## Restes » d'un solde, un par ligne (`[]` si la section est absente ou
  *  vaut « RAS » pour le tout). Point d'entrée UNIQUE des mesures de stock et de la porte. */
@@ -509,7 +469,7 @@ function captureDuSolde(content) {
  * Valide le CONTENU d'un solde. `today` = date du jour en `YYYY-MM-DD`.
  * Contexte INJECTÉ (`decisionsDuCommit` le remplit depuis git/le disque, un appel nu ne joue que la grammaire) :
  * `fichiersEmportes` = chemins que le commit emporte ; `lignesEmportees(fichier)` = lignes que le commit y
- * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = le diff touche un écran ;
+ * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = l’apport cumulé du ticket touche un écran ;
  * `verifierCaptureDe(chemin)` = contrôle de la capture de recette (voir `verifierCapture`) ;
  * `commitEstAncetre(sha)` / `fichiersDuCommit(sha)` / `lignesDuCommit(sha, fichier)` = l'histoire
  * git, pour « corrigé par <sha> » et la « ## Sonde » d'un solde `caduc` ; `numero` = le ticket que le
@@ -582,7 +542,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
 
   const lus = readSoldes(issues)
   const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
-  const { verifierCapturesDe, histoireDe, ...contexte } = contexteSolde
+  const { verifierCapturesDe, histoireDe, apportDuTicket, ...contexte } = contexteSolde
   let captures = null
   const verifierCaptureDe = verifierCapturesDe && ((chemin) => {
     captures ??= verifierCapturesDe([...new Set([...emportes.values()].map(captureDuSolde).filter(Boolean))])
@@ -610,7 +570,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues, numero: n })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...(apportDuTicket ? { touchesUi: apportDuTicket(n).ecran } : {}), ...citations, verifierCaptureDe, issuesFermees: issues, numero: n })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -627,7 +587,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       `de la fermeture : caduc exige une section "## Sonde" — bloc de la commande, bloc de sa sortie, sha ` +
       `ancêtre de HEAD —, décidé une section "## Décision" dont une ligne cite « … » avec sa date AAAA-MM-JJ), une section ` +
       `"## Réfutation" (ligne "verdict: ` +
-      `CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REFUTATION_LEN} caractères — qui a attaqué quoi sur le diff/DoD), et ` +
+      `CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${TRAILERS.REFUTATION.min} caractères — qui a attaqué quoi sur le diff/DoD), et ` +
       `la date du jour (demande 2026-07-14), puis le STAGER (\`git add .claude/soldes/<N>.md\`) : la preuve ` +
       `citée par le message de commit vit dans git.`,
   }
@@ -694,15 +654,7 @@ export function evaluatePorteDuTicket({ message, commentaire, fichiersEmportes =
 // et « ref #N » devient l'esquive mécanique. Le mécanisme REFUTATION porte sur le ticket
 // EXPLICITEMENT rattaché ; le commit de substance qui n'en cite AUCUN est refusé en amont par
 // `evaluatePorteDuTicket`.
-const REFUTATION_LINE_RE = TRAILERS.REFUTATION.ligne
 const MIN_REFUTATION_LINE_LEN = TRAILERS.REFUTATION.min
-
-/** `true` si le message porte une ligne "REFUTATION: <...>" d'au moins `MIN_REFUTATION_LINE_LEN`
- *  caractères après le mot-clef. */
-function hasInlineRefutation(texte) {
-  const m = REFUTATION_LINE_RE.exec(texte)
-  return !!m && m[1].trim().length >= MIN_REFUTATION_LINE_LEN
-}
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` : seule la section "## Réfutation" (même gabarit
  *  que les soldes de fermeture) est exigée — pas de VERIFIE/Restes, ce n'est pas une fermeture. */
@@ -713,23 +665,22 @@ export function validateRefFile(content) {
 }
 
 /**
- * Décision anti-esquive (PURE, testable). `stagedTouchesSrc`/`stagedTotalLines` = état du diff
+ * Décision anti-esquive (PURE, testable). `stagedSrcLines` = état du diff
  * STAGED (`git diff --cached`), injectés par `decisionsDuCommit`. `readRefFile(n)` lit
  * `.claude/soldes/ref-<n>.md` (ou `null`). `fusionEnCours` (`MERGE_HEAD`, `diffDuCommit(…).enFusion()`) :
  * silence — sauver une fusion n'est pas une livraison (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
+export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = false, stagedSrcLines, readRefFile = () => null }) {
   const lu = lectureDeLaPorte({ message, commentaire })
   if (fusionEnCours) return null
-  if (!stagedTouchesSrc) return null
-  if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
+  if (!Number.isFinite(stagedSrcLines) || stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
 
   // Une fermeture est déjà couverte par `evaluate()` (solde complet, réfutation comprise) — pas de
   // double exigence ici.
   if (lu.fermes().length > 0) return null
 
-  if (hasInlineRefutation(lu.satisfactions)) return null
+  if (messagePorte(lu.satisfactions, 'REFUTATION')) return null
 
   const refIssues = lu.refs()
   // Aucun ticket rattaché (ni fermeture, ni `ref #N`) : hors du déclencheur — l'absence de ticket se
@@ -745,7 +696,7 @@ export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = fals
   const detail = failures.map(({ n, problems }) => `#${n} (.claude/soldes/ref-${n}.md) — ${problems.join(' ; ')}`).join(' | ')
   return {
     reason:
-      `⚠ Commit "ref #N" (src/** touché, ≥${SUBSTANTIVE_MIN_LINES} lignes de diff staged) sans réfutation : ${detail}. ` +
+      `${prefixeDeRefus('validation')} ⚠ Commit "ref #N" (≥${SUBSTANTIVE_MIN_LINES} lignes changées sous src/) sans réfutation : ${detail}. ` +
       `Ajouter une ligne "REFUTATION: <qui a attaqué quoi, ≥${MIN_REFUTATION_LINE_LEN} caractères>" dans le ` +
       `message de commit, ou écrire .claude/soldes/ref-<N>.md avec une section "## Réfutation" conforme ` +
       `(verdict + synthèse — extension anti-esquive 2026-07-14).`,
@@ -758,33 +709,12 @@ export function evaluateAntiEsquive({ message, commentaire, fusionEnCours = fals
 // "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter la
 // preuve qu'un agent juge adversarial est passé sur le diff. Si le diff touche `src/ui/**`, une
 // preuve DISTINCTE de jugement sur captures (JUGE-VISION) est exigée en plus.
-const JUGE_LINE_RE = TRAILERS.JUGE.ligne
 const MIN_JUGE_LINE_LEN = TRAILERS.JUGE.min
-const JUGE_VISION_LINE_RE = TRAILERS['JUGE-VISION'].ligne
 const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
-
-/** `true` si le message porte une ligne "JUGE: <...>" d'au moins `MIN_JUGE_LINE_LEN` caractères
- *  après le mot-clef (n'accroche jamais "JUGE-VISION:", le tiret casse le motif `JUGE\s*:`). */
-function hasInlineJuge(texte) {
-  const m = JUGE_LINE_RE.exec(texte)
-  return !!m && m[1].trim().length >= MIN_JUGE_LINE_LEN
-}
-
-/** `true` si le message porte une ligne "JUGE-VISION: <...>" d'au moins `MIN_JUGE_VISION_LINE_LEN`
- *  caractères après le mot-clef. */
-function hasInlineJugeVision(texte) {
-  const m = JUGE_VISION_LINE_RE.exec(texte)
-  return !!m && m[1].trim().length >= MIN_JUGE_VISION_LINE_LEN
-}
 
 /** La section du trailer `nom` d'un solde (`corpsDuTrailer`, la grammaire de la publication) : présence
  *  + longueur minimale du corps. */
-function checkNamedSection(content, nom) {
-  const { section: label, min } = TRAILERS[nom]
-  const body = corpsDuTrailer(content, nom)
-  if (body === null) return { problems: [`section "## ${label}" absente`] }
-  return { problems: body.length < min ? [`"## ${label}" trop maigre (${body.length} car., ${min} requis)`] : [] }
-}
+const checkNamedSection = sectionDeLivraison
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge" (symétrie exacte de
  *  `validateRefFile`, mécanisme distinct — n'exige pas de "## Réfutation"). */
@@ -804,15 +734,14 @@ export function validateJugeVisionFile(content) {
 /**
  * Décision JUGE (PURE, testable). Même périmètre de déclenchement qu'`evaluateAntiEsquive` (silence
  * sur les fermetures, déjà couvertes par leur propre solde ; silence aussi sur un commit sans AUCUN
- * ticket rattaché — #591). `stagedTouchesUi` = le diff staged touche `src/ui/**` (tests compris).
+ * ticket rattaché — #591). `stagedTouchesUi` = l’apport courant change les lignes d’un écran.
  * `fusionEnCours` : silence, comme `evaluateAntiEsquive` (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateJuge({ message, commentaire, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
+export function evaluateJuge({ message, commentaire, fusionEnCours = false, stagedSrcLines, stagedTouchesUi, readRefFile = () => null }) {
   const lu = lectureDeLaPorte({ message, commentaire })
   if (fusionEnCours) return null
-  if (!stagedTouchesSrc) return null
-  if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
+  if (!Number.isFinite(stagedSrcLines) || stagedSrcLines < SUBSTANTIVE_MIN_LINES) return null
   if (lu.fermes().length > 0) return null
 
   const refIssues = lu.refs()
@@ -823,11 +752,11 @@ export function evaluateJuge({ message, commentaire, fusionEnCours = false, stag
   const needsVision = !!stagedTouchesUi
 
   const jugeSatisfied =
-    hasInlineJuge(lu.satisfactions) ||
+    messagePorte(lu.satisfactions, 'JUGE') ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeFile(readRefFile(n)).ok))
   const visionSatisfied =
     !needsVision ||
-    hasInlineJugeVision(lu.satisfactions) ||
+    messagePorte(lu.satisfactions, 'JUGE-VISION') ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeVisionFile(readRefFile(n)).ok))
 
   if (jugeSatisfied && visionSatisfied) return null
@@ -848,7 +777,7 @@ export function evaluateJuge({ message, commentaire, fusionEnCours = false, stag
 
   return {
     reason:
-      `⚠ Commit touchant src/** (≥${SUBSTANTIVE_MIN_LINES} lignes de diff staged) sans juge ` +
+      `${prefixeDeRefus('validation')} ⚠ Commit touchant src/** (≥${SUBSTANTIVE_MIN_LINES} lignes changées sous src/) sans juge ` +
       `adversarial : ajouter ${missing.join(' et ')} dans le message de commit (extension juge de la ` +
       `porte du commit).`,
   }
@@ -954,30 +883,9 @@ export function evaluateRegistresPorteurs({ message, commentaire, lireRegistreEm
   }
 }
 
-/** Analyse du `--numstat` du diff que le commit va produire (`diffDuCommit(...).numstat()`, entrées de
- *  `ceQuiChange`) : touche-t-il `src/**` ? un ÉCRAN (`estFichierEcran`, rendu par `touchesUi`) ?
- *  combien de lignes (insertions+suppressions) au total ? Fichiers binaires (`plus`/`moins` nuls)
- *  comptés 0 ligne mais peuvent toucher `src/**`. Aucune entrée → aucune touche, 0 ligne ; une
- *  PANNE de lecture n'est pas « aucune entrée » : `refusDesPannes` la refuse au rendu.
- *
- * AUCUN filtrage de chemins ici (#591 défaut 1) : le lot est celui de l'index que git a préparé.
- *
- * `fichiers` porte les DEUX bouts d'un renommage (`chemins` de l'entrée) : c'est par eux que la porte
- * des stocks voit le porteur source ET le porteur cible, qu'un solde prouve sa correction au NOUVEAU chemin, et qu'un `.tsx` renommé reste un ÉCRAN (#1720).
- * `totalLines` compte le renommage replié : c'est le VOLUME écrit, et un renommage n'écrit rien.
- * `ecranParInsertion` (l'apport d'une fusion en cours, #2328 A5) : un écran ne compte que s'il y gagne
- * des lignes (`plus > 0`).
- * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees]
- * @param {{ ecranParInsertion?: boolean }} [options] */
-export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } = {}) {
-  const totalLines = entrees.reduce((n, e) => n + (e.plus ?? 0) + (e.moins ?? 0), 0)
-  const fichiers = entrees.flatMap((e) => e.chemins)
-  return {
-    touchesSrc: fichiers.some((f) => /^src\//.test(f)),
-    touchesUi: entrees.some((e) => (!ecranParInsertion || e.plus > 0) && e.chemins.some(estFichierEcran)),
-    totalLines,
-    fichiers,
-  }
+/** Inventaire des chemins emportés, incluant les deux bouts des renommages. */
+export function analyzeDiffDuCommit(entrees = []) {
+  return { fichiers: entrees.flatMap((e) => e.chemins) }
 }
 
 /**
@@ -1081,6 +989,7 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
     renommages: () => new Map(vers().renommages([])),
     enFusion,
     apport,
+    parents: () => enFusion() ? apport().parents : aHead() ? [shaDeHead()] : [],
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
       const { specificateurs } = memos()
@@ -1285,13 +1194,19 @@ const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: racineSurDisque(dir) === 
  *  Tout ce qui se lit sur DISQUE se lit dans `dir`, la racine de l'arbre qui committe. */
 async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   const lu = lectureDeLaPorte(entree)
-  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
+  const { fichiers } = analyzeDiffDuCommit(commit.numstat())
+  const apport = apportDeLaResolution(patchsParChemin(commit.diff()))
   // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
   // capture antérieure au geste montre l'écran d'avant.
   const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), dir)
   // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
   // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
   const histoire = histoireDeHead(depotDe(dir))
+  let apports = null
+  const apportDuTicket = (n) => {
+    apports ??= apportsDesTickets(depotDe(dir), lu.fermes(), apport, { revisions: commit.parents() })
+    return apports.get(n)
+  }
   const decision = jugerOuConfier(() => evaluate({
     ...entree,
     today,
@@ -1301,7 +1216,7 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
     contexteSolde: {
       fichiersEmportes: fichiers,
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
-      touchesUi,
+      apportDuTicket,
       verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: dir, mtimeMin: mtimeEcrans, pannes }),
       histoireDe: (shas) => histoireDesCitations(depotAuxPannes(dir, pannes), shas, { histoire }),
     },
@@ -1310,16 +1225,14 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   const antiEsquive = evaluateAntiEsquive({
     ...entree,
     fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
+    stagedSrcLines: apport.lignesChangees,
     readRefFile: (n) => readRefFile(n, dir),
   })
   const juge = evaluateJuge({
     ...entree,
     fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
-    stagedTouchesUi: touchesUi,
+    stagedSrcLines: apport.lignesChangees,
+    stagedTouchesUi: apport.ecran,
     readRefFile: (n) => readRefFile(n, dir),
   })
   const registresPorteurs = evaluateRegistresPorteurs({ ...entree, lireRegistreEmporte: (chemin) => commit.contenu(chemin) })

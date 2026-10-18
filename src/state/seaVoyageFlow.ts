@@ -118,7 +118,8 @@ import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, equipageApte, garanti } from './combatants';
+import { actorIn, equipageApte } from './combatants';
+import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
