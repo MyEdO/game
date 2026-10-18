@@ -801,6 +801,8 @@ export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, jou
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
  * `horloge` porte les chronomètres et l'attente du verrou, jamais l'horloge murale des enfants supervisés.
+ * `prendre` prend le verrou des gestes lourds, `lancer` joue chaque gate (`spawnBorne`), `sortir` reçoit le
+ * code du gestionnaire de SIGINT/SIGTERM (`process.exit`).
  * REND le code de sortie.
  */
 export async function principal({
@@ -809,7 +811,8 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
-  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, horloge = Date.now,
+  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, lancer = spawnBorne, horloge = Date.now,
+  sortir = process.exit,
 } = {}) {
   const configuration = instance ?? verrouGestesLourds(racine)
   const secondesDepuis = (debut) => (horloge() - debut) / 1000
@@ -905,7 +908,7 @@ export async function principal({
   let arretSurSignal
   const arreterSurSignal = (signal) => {
     arretDesAttentes.abort()
-    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => process.exit(code))
+    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => sortir(code))
   }
   const surSigint = () => arreterSurSignal('SIGINT')
   const surSigterm = () => arreterSurSignal('SIGTERM')
@@ -943,7 +946,7 @@ export async function principal({
       const envGate = { ...env, ...envEnPlus }
       if (coeurs && !envGate.WFRP_TEST_COEURS) envGate.WFRP_TEST_COEURS = String(coeurs)
       const [commande, ...args] = gate.commande.split(' ')
-      const r = await spawnBorne({
+      const r = await lancer({
         commande,
         argv: args,
         fichier,
@@ -967,7 +970,7 @@ export async function principal({
     // #1772 #2586
     const poser = (nom, r) => {
       const secondes = secondesDepuis(r.debut)
-      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 && !arretNonConfirme(r.arret) ? 'vert' : 'ROUGE'
+      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 ? 'vert' : 'ROUGE'
       verdicts.set(nom, { statut, code: r.code, secondes, fichier: r.fichier, sortie: r.sortie, limiteMs: r.limiteMs, error: r.error, arret: r.arret })
       diagnosticArret(r, (ligne) => journal(ligne + '\n'))
       if (arretNonConfirme(r.arret)) arretDesAttentes.abort()
