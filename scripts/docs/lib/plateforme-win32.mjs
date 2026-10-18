@@ -140,7 +140,7 @@ for (const nom of ['exec', 'execSync']) {
 syncBuiltinESMExports()
 
 const racine = process.env.WFRP_PLATEFORME_RACINE
-if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par `renduSousWin32` de scripts/docs/lib/plateforme-win32.test.mjs')
+if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par `renduSousWin32` de scripts/corpus/docs/plateforme-win32.test.mjs')
 const depot = urlDuDepot(racine)
 const racineReelle = fs.realpathSync(racine)
 
