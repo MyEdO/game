@@ -120,6 +120,12 @@ export const REGLES = Object.freeze([
     preuve: 'src/state/path.ts:1-5 ; src/state/visibility.ts:2 (importeurs : gameIso/backends, gameIso/catalog seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
+    motif: new RegExp(String.raw`^src/state/(poste|advancement|stations)(\.test)?\.ts$`),
+    categorie: 'interface-wfrp',
+    raison: 'Modèle-vue d\'une surface d\'écran logé dans src/state, sans effet de règle, aucun importeur hors test dans src/state ; `poste-ammo.test.ts` (teste shipPostes et combatFlow) reste en orchestration.',
+    preuve: 'src/state/poste.ts:2-3 (« modèle-VUE ») ; src/state/advancement.ts:2-3 ; src/state/stations.ts:2-4 (« AUCUN effet de règle ») ; src/state/poste-ammo.test.ts:5-7',
+  },
+  {
     motif: new RegExp(String.raw`^src/state/(refusVisible|registreOffres|offreRendue|offresUtilisables|recapLine|fixedDieMark|dialogueLibelle|dialogueHistory|identites|hotbarBridge|localIntent|modalArbiter|mapHover|codexFocus|combatCursor|preferences|dispositionConsole|revealStep)(\.|-)`),
     categorie: 'interface-wfrp',
     raison: 'État d\'affichage/saisie propre à WFRP : pastilles d\'offres, refus visible, arbitre de modales et carte inerte sous modale, curseur de combat, intention locale, pont console, libellés de dialogue, préférences.',
