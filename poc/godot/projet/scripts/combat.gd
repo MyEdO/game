@@ -271,6 +271,7 @@ func _attaquer(attaquant: String, cible: String) -> bool:
 	var reponse := Pont.appeler("attaquer", {attaquant = attaquant, cible = cible})
 	if not reponse.get("ok", false):
 		return false
+	_plateau.attaquer(attaquant, cible)
 	_interface.afficher_jet(reponse.resultat, _combattant(attaquant).libelle, _combattant(cible).libelle)
 	_appliquer_vue(reponse.vue)
 	return true

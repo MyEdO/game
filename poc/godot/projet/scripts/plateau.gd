@@ -37,6 +37,11 @@ func parcourir(_id: String, _chemin: Array[Vector2i]) -> void:
 	push_error("[plateau] parcourir non implémenté")
 
 
+## Montre `attaquant` frappant `cible` ; les Blessures perdues passent ensuite par `mettre_a_jour`.
+func attaquer(_attaquant: String, _cible: String) -> void:
+	push_error("[plateau] attaquer non implémenté")
+
+
 ## Blessures, actif, hors de combat.
 func mettre_a_jour(_combattant: Dictionary, _actif: bool) -> void:
 	push_error("[plateau] mettre_a_jour non implémenté")

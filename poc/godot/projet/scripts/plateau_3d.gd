@@ -15,7 +15,7 @@ const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 30.0
 ## Cylindre de sélection d'un combattant debout, en mètres de monde (une case = 1).
 const RAYON_COMBATTANT := 0.3
-const HAUTEUR_COMBATTANT := 1.2
+const HAUTEUR_COMBATTANT := 1.5
 const HORS_CARTE := Vector2i(-1, -1)
 
 @export var scene_combattant: PackedScene
@@ -133,6 +133,10 @@ func parcourir(id: String, chemin: Array[Vector2i]) -> void:
 		points.append(_monde(case))
 	await _modeles[id].parcourir(points)
 	_cases[id] = chemin[-1]
+
+
+func attaquer(attaquant: String, cible: String) -> void:
+	_modeles[attaquant].attaquer(_modeles[cible].position)
 
 
 func mettre_a_jour(combattant: Dictionary, actif: bool) -> void:

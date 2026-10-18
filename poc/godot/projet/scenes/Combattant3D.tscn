@@ -1,51 +1,13 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/combattant_3d.gd" id="1_combattant"]
 [ext_resource type="PackedScene" path="res://scenes/Etiquette.tscn" id="2_etiquette"]
-
-[sub_resource type="StandardMaterial3D" id="Materiau_heros"]
-albedo_color = Color(0.24, 0.42, 0.78, 1)
-roughness = 0.7
-
-[sub_resource type="StandardMaterial3D" id="Materiau_adversaires"]
-albedo_color = Color(0.72, 0.2, 0.15, 1)
-roughness = 0.7
-
-[sub_resource type="StandardMaterial3D" id="Materiau_peau"]
-albedo_color = Color(0.86, 0.69, 0.55, 1)
-roughness = 0.8
-
-[sub_resource type="StandardMaterial3D" id="Materiau_metal"]
-albedo_color = Color(0.75, 0.75, 0.78, 1)
-metallic = 0.7
-roughness = 0.35
+[ext_resource type="PackedScene" path="res://scenes/Chevalier.tscn" id="3_heros"]
+[ext_resource type="PackedScene" uid="uid://b0cpkyiuk1ai7" path="res://modeles/Skeleton_Warrior.glb" id="4_adversaires"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_selection"]
 shading_mode = 0
 albedo_color = Color(1, 0.85, 0.3, 1)
-
-[sub_resource type="CapsuleMesh" id="Mesh_corps"]
-radius = 0.2
-height = 0.75
-
-[sub_resource type="SphereMesh" id="Mesh_tete"]
-material = SubResource("Materiau_peau")
-radius = 0.14
-height = 0.28
-
-[sub_resource type="BoxMesh" id="Mesh_bouclier"]
-material = SubResource("Materiau_heros")
-size = Vector3(0.32, 0.38, 0.05)
-
-[sub_resource type="CylinderMesh" id="Mesh_capuche"]
-material = SubResource("Materiau_adversaires")
-top_radius = 0.0
-bottom_radius = 0.17
-height = 0.3
-
-[sub_resource type="BoxMesh" id="Mesh_lame"]
-material = SubResource("Materiau_metal")
-size = Vector3(0.04, 0.55, 0.04)
 
 [sub_resource type="TorusMesh" id="Mesh_anneau"]
 material = SubResource("Materiau_selection")
@@ -58,31 +20,11 @@ viewport_path = NodePath("Vue")
 
 [node name="Combattant3D" type="Node3D"]
 script = ExtResource("1_combattant")
-materiau_heros = SubResource("Materiau_heros")
-materiau_adversaires = SubResource("Materiau_adversaires")
+modele_heros = ExtResource("3_heros")
+modele_adversaires = ExtResource("4_adversaires")
 
 [node name="Modele" type="Node3D" parent="."]
-
-[node name="Corps" type="MeshInstance3D" parent="Modele"]
-position = Vector3(0, 0.4, 0)
-mesh = SubResource("Mesh_corps")
-
-[node name="Tete" type="MeshInstance3D" parent="Modele"]
-position = Vector3(0, 0.9, 0)
-mesh = SubResource("Mesh_tete")
-
-[node name="Bouclier" type="MeshInstance3D" parent="Modele"]
-position = Vector3(-0.1, 0.45, -0.22)
-mesh = SubResource("Mesh_bouclier")
-
-[node name="Capuche" type="MeshInstance3D" parent="Modele"]
-position = Vector3(0, 1.05, 0)
-mesh = SubResource("Mesh_capuche")
-
-[node name="Lame" type="MeshInstance3D" parent="Modele"]
-position = Vector3(0.25, 0.55, -0.1)
-rotation = Vector3(-0.35, 0, 0)
-mesh = SubResource("Mesh_lame")
+scale = Vector3(0.65, 0.65, 0.65)
 
 [node name="Selection" type="MeshInstance3D" parent="."]
 visible = false
@@ -101,7 +43,7 @@ render_target_update_mode = 4
 [node name="Etiquette" parent="Vue" instance=ExtResource("2_etiquette")]
 
 [node name="Panneau" type="Sprite3D" parent="."]
-position = Vector3(0, 1.5, 0)
+position = Vector3(0, 1.75, 0)
 cast_shadow = 0
 pixel_size = 0.007
 billboard = 1

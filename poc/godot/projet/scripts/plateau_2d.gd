@@ -55,6 +55,11 @@ func parcourir(id: String, chemin: Array[Vector2i]) -> void:
 	await _jetons[id].parcourir(points)
 
 
+## Le jeton 2D ne montre pas l'attaque : le jet s'affiche dans l'interface.
+func attaquer(_attaquant: String, _cible: String) -> void:
+	pass
+
+
 func mettre_a_jour(combattant: Dictionary, actif: bool) -> void:
 	_jetons[combattant.id].mettre_a_jour(combattant, actif)
 
