@@ -373,7 +373,7 @@ La créature ignore **toutes** les règles de Psychologie sans Test.
 - `LDB 85 l.178-179` — définition
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.166, l.178-180) → `TraitDef`, `construireScene`, `planClimb`, `morsure`, `scenario`, `TraverseCapability`, `Formula`, `moveEnv`, `spawnMutations`, `EnemyTurnInput`, +60 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/magic.ts`, +15 fichiers
+- `LDB 85` (l.166, l.178-180) → `TraitDef`, `construireScene`, `planClimb`, `morsure`, `scenario`, `TraverseCapability`, `moveEnv`, `Formula`, `spawnMutations`, `EnemyTurnInput`, +60 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/magic.ts`, +15 fichiers
 
 ---
 
