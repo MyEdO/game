@@ -43,7 +43,7 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
     reason: "idem — champ `characteristics: CharKey[]` d'un NIVEAU de carrière (CareerLevel), pas un Combatant.",
   },
   {
-    file: 'src/ui/compendium/CodexEdit.tsx',
+    file: 'src/ui/editor/codex/CodexEdit.tsx',
     match: 'entry.characteristics as CharKey[]',
     count: 1,
     reason: "éditeur Codex GÉNÉRIQUE de champ `characteristics: CharKey[]` (CareerLevel/DomainData) — édite une LISTE d'ids CharKey, pas une valeur de Combatant.",

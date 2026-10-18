@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'miscast.json';
@@ -67,7 +67,7 @@ const jsonOpSchema = nommerChamps(z.strictObject({
 /** `JsonNestedTest` (`engine/miscast.ts`). */
 const jsonNestedTestSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
-  characteristic: z.string().optional(),
+  characteristic: charKeySchema.optional(),
   difficulty: difficultySchemaLocal,
   onFail: z.array(jsonOpSchema),
   onFailHard: nommerChamps(z.strictObject({ dr: z.number(), ops: z.array(jsonOpSchema) }), { dr: { label: 'DR' }, ops: { label: 'opérations' } }).optional(),

@@ -18,32 +18,29 @@ import type { JsonFormula } from '../../engine/miscast';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
-import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
+import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
+import { OP_LABEL, opsMissingRefs } from './refsDOp';
+import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
-import { findFallTable, fallTables } from '../../data/shipCriticals';
-import { terrainLabel, terrainsElectifs } from '../../state/terrain';
+import { etats, refLabel, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
+import { fallTables } from '../../data/shipCriticals';
+import { terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
-import type { DatasetKey } from '../../data/overrides';
-import { giveTrappingLabel } from '../../engine/items';
-import { parseTraitInstance, formatTrait, formatWardSave } from '../../engine/traits/dispatch';
-import { traumaLabelOf } from '../../engine/trauma';
+import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
-import { dureePropre, plancher } from '../compendium/humanize';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import type { IconIdInput } from '../icons';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption, admetLePeche } from '../../data/schemas/grammaire/valeurs';
-import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
-import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { OPTIONAL_RULES } from '../../engine/policy';
 
 /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
@@ -60,123 +57,6 @@ const UNLOCK_LABELS = Object.entries(ACTE_DE_DEVERROUILLAGE) as [ConditionUnlock
 // ---------------------------------------------------------------------------
 // Vocabulaire COMPLET — libellé + menu groupé par intention
 // ---------------------------------------------------------------------------
-
-/** Libellé court (texte SEUL, sert aussi de `<option>` natif) de CHAQUE op du vocabulaire `GameOp` —
- *  `Record` TOTAL (TS force sa complétude) : source runtime de l'énumération des kinds pour les
- *  tests (`Object.keys(OP_LABEL)`), sans dupliquer la liste. */
-export const OP_LABEL: Record<GameOp['op'], string> = {
-  wounds: 'Blessures (ignore BE/PA)',
-  fall: 'Chute (hauteur lue dans une table)',
-  heal: 'Soin (Blessures rendues)',
-  healCaster: 'Soin au lanceur',
-  condition: 'Poser un État',
-  removeCondition: 'Retirer un État',
-  charMod: 'Modif. de caractéristique',
-  ap: '+PA (Localisation ou toutes)',
-  testMod: 'Modif. à tous les Tests',
-  skillDRBonus: '+DR à une Compétence',
-  charDRBonus: '+DR aux Tests d’une Caractéristique',
-  offTerrainMod: 'Hors de son terrain (M imposé, ±DR)',
-  crewTestMod: 'Modif. aux Tests individuels d’un Test d’équipage',
-  incomingAttackMod: 'Modif. au toucher de l’attaquant',
-  incomingAdvantage: 'Avantage donné à l’attaquant (mêlée)',
-  incomingSpellDRMod: 'Modif. au DR des Sorts qui l’affectent (par point/Indice)',
-  sbBonus: '+Bonus de Force aux Dégâts',
-  endPsych: 'Fin d’un état psychologique',
-  beginPsych: 'Entrée dans un état psychologique',
-  exposeDisease: 'Exposer à une Maladie (Test post-combat)',
-  contractDisease: 'Contracter une Maladie (immédiat)',
-  kill: 'Mort directe (Point de Destin sauve)',
-  removeShipPoste: 'Retirer un poste de navire (Canon perdu)',
-  teamCommander: 'Diriger l’équipe (score de Projectiles du commandant)', // posé par l'action « Diriger l'équipe » ; hors palette d'auteur (commanderId interne)
-  attackKeyword: 'Mot-clé d’attaque (ex. magique)',
-  mitigateIncoming: 'Mitige les Dégâts entrants (Éthéré)',
-  ignoreStatePenalties: 'Ignore les pénalités d’État',
-  freeReroll: 'Relance gratuite (prochain échec)',
-  critTwice: 'Deux lancers de Critique (meilleur)',
-  gainResource: 'Points de Chance / Destin',
-  gainAdvantage: 'Porter l’Avantage à (min)',
-  attrMod: 'Modif. d’attribut secondaire',
-  corruption: 'Points de Corruption',
-  sinMod: 'Points de Péché (±)',
-  corruptionExposure: 'Exposition corruptrice (Test différé)',
-  castPenalty: 'Contrecoup d’incantation',
-  money: 'Bourse personnelle (sous de cuivre, ±)',
-  statusMod: 'Standing temporaire (prochaine aventure)',
-  grantReverseToken: 'Jeton d’inversion (prochaine aventure)',
-  castWard: 'Aura anti-Sort (Langue)',
-  arrowWard: 'Bouclier anti-projectiles',
-  domeWard: 'Dôme protecteur',
-  attackWardFM: 'Attaquer exige un Test de FM',
-  grantWeapon: 'Invoquer une arme magique',
-  grantNaturalWeapon: 'Accorder une arme naturelle',
-  grantFreeAttack: 'Accorder une attaque gratuite',
-  interruptFocus: 'Interrompre la Focalisation', // marqueur combat-interne (branche d’échec du Test de Calme) — non author-pickable
-  breakBlade: 'Désarmer / briser la lame', // marqueur combat-interne (victoire du Test de Piège-lame) — non author-pickable
-  push: 'Poussée (repousser de N m)',
-  teleport: 'Téléportation du lanceur',
-  chain: 'Attaques en chaîne (rebond)',
-
-  grantTrait: 'Accorder un Trait',
-  removeTrait: 'Retirer un Trait',
-  grantPsychTrait: 'Accorder un Trait psychologique',
-  removePsychTrait: 'Retirer un Trait psychologique',
-  grantTalent: 'Accorder un Talent',
-  grantCareerSkill: 'Compétence ajoutée aux carrières',
-  grantCareerTalent: 'Talent ajouté aux carrières',
-  augmentWeapon: 'Enchanter l’arme',
-  cureDisease: 'Guérir des maladies',
-  reduceDiseaseDays: 'Raccourcir une maladie',
-  preventInfection: 'Empêcher l’infection',
-  cureCriticalWound: 'Guérir une Blessure critique',
-  amputer: 'Amputer (plaie + séquelles permanentes)',
-  diseaseTestMod: 'Modif. aux Tests d’une maladie',
-  suppressSymptom: 'Suspendre un symptôme',
-  aggravateSymptom: 'Aggraver un symptôme',
-  attenuateSymptom: 'Atténuer un symptôme',
-  grantSymptom: 'Ajouter un symptôme',
-  actGate: 'Test par Round pour agir (drogue)',
-  delayed: 'Ops différées (échéance d’horloge)',
-  suppressPsych: 'Apaiser les Traits psychologiques',
-  suffocate: 'Suffocation',
-  noBreath: 'Plus besoin de respirer',
-  noHunger: 'Plus besoin de manger',
-  ignoreAnimosity: 'Ignore Préjugés/Animosités',
-  weatherWard: 'Immunité aux intempéries',
-  damageArmour: 'Pourrir le cuir (−1 PA)',
-  reduceToZero: 'Réduire les Blessures à 0',
-  banish: 'Bannir (retirer du jeu)',
-  martyr: 'Martyr (recevoir les Dégâts)',
-  giveTrapping: 'Donner un objet',
-  perRound: 'Effet récurrent (chaque Round)',
-  summon: 'Invoquer une créature',
-  scheduleRespawn: 'Reconstitution différée (à la mort)', // marqueur de DONNÉE (op onSlain, non author-pickable)
-  zone: 'Zone persistante (mur / disque)',
-  polymorph: 'Métamorphose en créature',
-  transform: 'Transformation durable (réversible)',
-  endTransform: 'Fin de transformation',
-  lifeSteal: 'Vol de vie (drain de Blessures)',
-  light: 'Émettre de la lumière (rayon)',
-  skillMod: 'Modif. d’une Compétence',
-  moveScale: 'Échelle de Mouvement (×n/d)',
-  moveMod: 'Modif. de Mouvement (±N)',
-  maxWeaponHands: 'Plafond de mains d’arme',
-  disarm: 'Lâcher l’objet tenu (main)',
-  handGate: 'Main ensanglantée (Test par Action)',
-  senseLoss: 'Perte sensorielle (œil/oreille)',
-  loseTurn: 'Perdre Action + Mouvement',
-  weaponRollMod: 'Atout d’arme — modif. de jet (passif)',
-  weaponDamageMod: 'Atout d’arme — modif. de Dégâts (passif)',
-  armourPierce: 'Atout d’arme — Perforante (passif)',
-  critOnRoll: 'Atout d’arme — Critique sur jet (passif)',
-  spendAdvantage: 'Dépenser de l’Avantage',
-  rollThreshold: 'Jet à paliers (un dé → ops par seuil)',
-  rollTable: 'Tirage sur table (dé → ops par fourchette)',
-  rollMutation: 'Tirage d’une mutation (durée réglable)',
-  charDamage: 'Perte permanente de Caractéristique',
-  intoxicate: 'Boisson alcoolisée (échec de Résistance à l’alcool)',
-  narrative: 'Effet narratif (texte libre)',
-};
 
 /** Icône de CHAQUE op (rendue à côté du libellé partout SAUF dans le `<select>`/`<optgroup>` natif,
  *  qui ne peut afficher que du texte) — vocabulaire LARGE : plusieurs ops apparentées partagent
@@ -357,27 +237,6 @@ export function formulaForShape(s: FormulaShape, current: JsonFormula | undefine
 /** CharKey portée par une Formula de carac. (Bonus/Valeur) — défaut F pour le sélecteur. */
 const charOfFormula = (f: JsonFormula | undefined): CharKey =>
   f && typeof f === 'object' ? ('bonusOf' in f ? f.bonusOf : 'charOf' in f ? f.charOf : 'force') : 'force';
-
-/** Résumé court d'une Formula (lecture sans perte dans les résumés d'op). */
-export function formulaSummary(f: JsonFormula | undefined): string {
-  if (f == null) return '0';
-  if (typeof f === 'number') return String(f);
-  if ('bonusOf' in f) return `B${charAbr(f.bonusOf)}`;
-  if ('charOf' in f) return charAbr(f.charOf);
-  if ('rolled' in f) return 'dé';
-  if ('indiceOf' in f) return 'Indice';
-  if ('stacks' in f) return 'pions';
-  if ('engagedAdvantageGap' in f) return 'écart d’Avantage';
-  if ('woundsDealt' in f) return 'PB infligés';
-  if ('sl' in f) return 'DR';
-  if ('sinPoints' in f) return 'Points de Péché';
-  if ('rule' in f) return ruleDef(f.rule)?.label ?? f.rule;
-  if ('minimum' in f) return `${formulaSummary(f.of)} (min ${f.minimum})`;
-  if ('sum' in f) return f.sum.map(formulaSummary).join(' + ');
-  if ('times' in f) return `${formulaSummary(f.times.of)} × ${formulaSummary(f.times.factor)}`;
-  if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
-  throw new Error(`formulaSummary : terme de Formula hors grammaire (${JSON.stringify(f)})`);
-}
 
 /** Éditeur RÉUTILISABLE d'une `Formula` : sélecteur de FORME + champs adaptés. AUCUNE forme
  *  existante n'est dégradée — un littéral reste littéral, un `{dice}`/`{charOf}` est édité tel quel.
@@ -642,194 +501,6 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'rollMutation': return { op: 'rollMutation', table: '' };
     case 'narrative': return { op: 'narrative', text: '' };
     default: return { op: 'wounds', amount: 5 };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Champs d'IDENTITÉ d'une op — réf de registre
-// ---------------------------------------------------------------------------
-
-/** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
- *  `required` = l'op est inapplicable tant que rien n'est élu. Un champ à union FERMÉE (`char`,
- *  `material`, `resource`, `level`…) n'en est pas une : TS y impose déjà l'un de ses N membres. */
-export interface OpRefField { field: string; ds: DatasetKey; label: string; required: boolean }
-
-/** Valeur d'un champ-réf d'op — `field` est un CHEMIN (`skill.id` pour une référence EMBOÎTÉE,
- *  `traitId` pour une référence à plat). PURE. */
-export function opRefValue(op: unknown, field: string): unknown {
-  return field.split('.').reduce<unknown>((n, k) => (n && typeof n === 'object' ? (n as Record<string, unknown>)[k] : undefined), op);
-}
-
-/** Même chemin, en ÉCRITURE : rend une COPIE de `op` dont `field` porte `valeur`. PURE. */
-export function opWithRefValue<T>(op: T, field: string, valeur: unknown): T {
-  const [tete, ...reste] = field.split('.');
-  const source = op as Record<string, unknown>;
-  const sousArbre = reste.length
-    ? opWithRefValue((source[tete] ?? {}) as Record<string, unknown>, reste.join('.'), valeur)
-    : valeur;
-  return { ...source, [tete]: sousArbre } as T;
-}
-
-/** SOURCE UNIQUE des réfs de registre du vocabulaire `GameOp`, lue par les contrôles d'édition
- *  (sentinelle vide), par la raison visible portée par la rangée, et par le gate pré-persist du
- *  Codex (`validateEntry`). Un nouveau champ-réf s'ajoute ICI, jamais dans une nième liste. */
-export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>> = {
-  condition: [{ field: 'id', ds: 'etats', label: 'État', required: true }],
-  removeCondition: [{ field: 'id', ds: 'etats', label: 'État', required: false }],
-  endPsych: [{ field: 'type', ds: 'psychologies', label: 'Trait psychologique', required: true }],
-  beginPsych: [{ field: 'type', ds: 'psychologies', label: 'État psychologique', required: true }],
-  grantPsychTrait: [{ field: 'psychType', ds: 'psychologies', label: 'Trait psychologique', required: true }],
-  removePsychTrait: [{ field: 'psychType', ds: 'psychologies', label: 'Trait psychologique', required: false }],
-  grantTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  removeTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  domeWard: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  grantTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerSkill: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
-  skillMod: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
-  skillDRBonus: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
-  grantReverseToken: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
-  castPenalty: [{ field: 'skill.id', ds: 'skills', label: 'Compétence de magie', required: false }],
-  corruptionExposure: [{ field: 'skill.id', ds: 'skills', label: 'Compétence du Test', required: false }],
-  suppressSymptom: [{ field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  aggravateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  attenuateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  grantSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  rollMutation: [{ field: 'table', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
-  summon: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
-  polymorph: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
-  exposeDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
-  contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
-  reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
-  giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: false }],
-};
-
-/** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */
-export function opMissingRefs(op: GameOp): string[] {
-  return (OP_REF_FIELDS[op.op] ?? [])
-    .filter((f) => f.required && (opRefValue(op, f.field) == null || opRefValue(op, f.field) === ''))
-    .map((f) => `${OP_LABEL[op.op]} : ${f.label} à choisir`);
-}
-
-/** Même mesure sur une valeur QUELCONQUE (liste d'ops, rangée de table, entrée entière de Codex) :
- *  descente générique sur tout nœud portant un `op` — les ops imbriquées (`delayed`, `perRound`,
- *  `transform`, rangées de `rollTable`…) sont couvertes sans énumérer leurs porteurs. PURE. */
-export function opsMissingRefs(value: unknown): string[] {
-  if (Array.isArray(value)) return value.flatMap(opsMissingRefs);
-  if (value == null || typeof value !== 'object') return [];
-  const node = value as Record<string, unknown>;
-  const own = typeof node.op === 'string' && node.op in OP_LABEL ? opMissingRefs(node as unknown as GameOp) : [];
-  return [...own, ...Object.values(node).flatMap(opsMissingRefs)];
-}
-
-// ---------------------------------------------------------------------------
-// Résumé
-// ---------------------------------------------------------------------------
-
-/** Libellé d'une réf PRÉSENTE dans une op : id vide = choix non fait, jamais un libellé vide. Le sens
- *  d'une réf ABSENTE appartient à l'op, testé par l'appelant. Précédent : `fall`, « — table à choisir — ». */
-function refOuChoix(category: DatasetKey, ref: { id: string; spec?: string }, quoi: string): string {
-  return ref.id ? refLabel(category, ref) : `— ${quoi} à choisir —`;
-}
-
-export function opSummary(o: GameOp): string {
-  // Une op dont la réf REQUISE n'est pas élue n'a pas de résumé à donner : elle porte son état, et la
-  // rangée affiche la raison détaillée (`opsMissingRefs`).
-  if (opMissingRefs(o).length) return '(à compléter)';
-  switch (o.op) {
-    case 'wounds': return `${formulaSummary(o.amount)} Blessure(s)`;
-    case 'heal': return `+${formulaSummary(o.amount)} PB`;
-    case 'healCaster': return `+${formulaSummary(o.amount)} PB au lanceur`;
-    case 'condition': return [`${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
-    case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
-    case 'endPsych': return `${o.type}`;
-    case 'beginPsych': return `${o.type}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
-    case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
-    case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
-    case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char] ?? o.char}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
-    case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
-    case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType)?.label ?? o.testType) : '— compétence ou test à choisir —'}`;
-    case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.char] ?? o.char}`;
-    case 'crewTestMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} (Tests d’équipage)`;
-    case 'fall': return `hauteur lue dans « ${findFallTable(o.hauteur.table.id)?.label ?? (o.hauteur.table.id || '— table à choisir —')} »`;
-    case 'moveMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} Mouvement`;
-    // Le résumé est de l'AFFICHAGE : le terrain s'y lit à son LIBELLÉ (`terrains.json › label`), l'id nu
-    // ne restant que pour un id absent du registre — l'auteur doit VOIR ce qu'il a élu.
-    case 'offTerrainMod': return `hors ${terrainLabel(o.terrain) ?? o.terrain}${o.mSet != null ? ` : M ${o.mSet}` : ''}${o.testDR ? `, ${o.testDR} DR aux Tests` : ''}${o.suffocates ? ', suffoque' : ''}`;
-    case 'attrMod': return `+${formulaSummary(o.mod)} ${({ wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination', fate: 'Destin', resilience: 'Résilience' } as const)[o.attr]}`;
-    case 'ap': return `${typeof o.amount === 'number' && o.amount < 0 ? '' : '+'}${formulaSummary(o.amount)} PA${o.loc ? ` (${o.loc})` : ''}`;
-    case 'testMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests${o.char ? ` de ${CHAR_LABELS[o.char] ?? o.char}` : ''}`;
-    case 'ignoreStatePenalties': return 'ignore les pénalités d’État';
-    case 'freeReroll': return 'relance gratuite';
-    case 'critTwice': return 'deux lancers de Critique';
-    case 'gainResource': return `${o.amount >= 0 ? '+' : '−'}${Math.abs(o.amount)} ${o.resource === 'fate' ? 'Destin' : 'Chance'}${o.temporary ? ' (temp.)' : ''}`;
-    case 'corruption': return `${o.amount >= 0 ? '+' : ''}${o.amount}${o.align ? ` (${libelleDeValeur(chaosAlignSchema, o.align)})` : ''}`;
-    case 'sinMod': return `${o.amount >= 0 ? '+' : ''}${o.amount}`;
-    case 'corruptionExposure': return o.easeSteps != null ? `abri : −${o.easeSteps} cran(s) d’Influence` : `${libelleDeValeur(exposureLevelSchema, o.level ?? '')}${o.skill ? ` (${refOuChoix('skills', o.skill, 'compétence')})` : ''}`;
-    case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refOuChoix('skills', o.skill, 'compétence de magie') : 'toute magie'}`}`;
-    case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
-    case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
-    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : 'un Test (cible)'}`;
-    case 'castWard': return `${o.mod >= 0 ? '+' : ''}${o.mod} Langue, rayon ${formulaSummary(o.radius)} m`;
-    case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
-    case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.traitId }, formulaSummary(o.indice))} (ZdE du sort)`;
-    case 'attackWardFM': return 'l’attaquer exige un Test de FM';
-    case 'grantWeapon': return `${o.label} (Dégâts ${o.plusBF ? 'BF+' : ''}${formulaSummary(o.damage)})`;
-    case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;
-    case 'grantTrait': return `${formatTrait({ id: o.traitId, arg: o.arg })}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
-    case 'removeTrait': return `${formatTrait({ id: o.traitId })}`;
-    case 'grantPsychTrait': return `${o.psychType}${o.cible ? ` (${o.cible})` : ''}`;
-    case 'grantTalent': return `${refLabel('talents', o.talent)}`;
-    case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
-    case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
-    case 'augmentWeapon': return `${[
-      ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })),
-      o.damageBonus != null ? `+${formulaSummary(o.damageBonus)} Dégâts` : '',
-      ...(o.removeQualities ?? []).map((id: string) => `−${qualityRefLabel({ id })}`),
-      o.removeType === 'atout' ? 'perd ses Atouts' : o.removeType === 'defaut' ? 'perd ses Défauts' : '',
-      o.suppressEnchants ? 'enchantements annulés' : '',
-      o.passive?.length ? 'maniement altéré' : '',
-    ].filter(Boolean).join(', ') || '(vide)'}`;
-    case 'cureDisease': return `${o.count ?? 1} maladie(s)`;
-    case 'reduceDiseaseDays': return `−${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)${o.disease != null ? ` (${refOuChoix('maladies', { id: o.disease }, 'maladie')})` : ''}`;
-    case 'diseaseTestMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests de maladie${o.diseases?.length ? ` (${o.diseases.map((d) => refOuChoix('maladies', { id: d }, 'maladie')).join(', ')})` : ''}`;
-    case 'suppressSymptom': return `${refLabel('symptoms', { id: o.symptomId })} suspendu`;
-    case 'aggravateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → ${o.severity} (${refLabel('maladies', { id: o.disease })})`;
-    case 'attenuateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → échelon inférieur (${refLabel('maladies', { id: o.disease })})`;
-    case 'grantSymptom': return `+ ${refLabel('symptoms', { id: o.symptomId })} (${refLabel('maladies', { id: o.disease })})`;
-    case 'actGate': return `Test de ${CHAR_LABELS[o.char] ?? o.char} chaque Round pour agir`;
-    case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
-    case 'preventInfection': return 'pas d’infection';
-    case 'cureCriticalWound': return `${o.count ?? 1} critique(s)`;
-    case 'amputer': return `${o.sequels.map((id) => traumaLabelOf(id)).join(' + ') || 'aucune séquelle'}${o.unitesPerSL ? ' (+1 par DR)' : ''}`;
-    case 'suppressPsych': return 'Traits psy. apaisés';
-    case 'suffocate': return 'suffocation';
-    case 'noBreath': return 'plus besoin de respirer';
-    case 'noHunger': return 'plus besoin de manger';
-    case 'weatherWard': return 'immunité aux intempéries';
-    case 'damageArmour': return 'cuir −1 PA';
-    case 'reduceToZero': return 'Blessures à 0';
-    case 'banish': return 'retirée du jeu';
-    case 'martyr': return 'reçoit les Dégâts';
-    case 'giveTrapping': return `${o.count && o.count > 1 ? `${o.count}× ` : ''}${giveTrappingLabel(o)}`;
-    case 'perRound': return `${o.ops.length} op(s) chaque Round`;
-    case 'summon': return `${formulaSummary(o.count)}× ${o.ref}${o.allyOfCaster === false ? ' (hostile)' : ''}`;
-    case 'scheduleRespawn': return `${o.ref} dans ${formulaSummary(o.delayDays)} j${o.cancelFlag ? ` (sauf « ${o.cancelFlag} »)` : ''}`;
-    case 'zone': return `${libelleDeValeur(zoneShapeSchema, o.shape)} ${formulaSummary((o.shape === 'wall' ? o.lengthMeters : o.radiusMeters) ?? 2)} m`;
-    case 'push': return `${formulaSummary(o.meters)} m`;
-    case 'teleport': return `${formulaSummary(o.meters)} m${o.perSL ? ` (+${formulaSummary(o.perSL.metersFormula)}/${o.perSL.every} DR)` : ''}`;
-    case 'chain': return `${formulaSummary(o.maxBounces)} rebond(s), saut ${formulaSummary(o.hopMeters)} m`;
-    case 'polymorph': return `${o.ref}`;
-    case 'transform': return `« ${o.tag} » (${o.ops.length} effet(s)${o.morphRef ? `, apparence ${o.morphRef}` : ''})`;
-    case 'endTransform': return `« ${o.tag} »`;
-    case 'lifeSteal': return `${o.num}/${o.den} des Dégâts`;
-    case 'loseTurn': return 'saute le tour';
-    case 'removeShipPoste': return 'retire un poste de navire';
-    case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
-    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${libelleDeValeur(deDeTableSchema, o.die)} → ${o.rows.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
-    case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
-    case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
-    default: return `${(o as GameOp).op}`;
   }
 }
 

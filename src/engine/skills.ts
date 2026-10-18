@@ -39,7 +39,7 @@ function altCharKey(c: Combatant, skillId: string, ck: CharKey): CharKey {
 }
 
 /** Caractéristique (CharKey STABLE) d'une compétence par son `id`. `SkillData.characteristic` EST
- *  une CharKey ('Dex'…), multilangue-safe — jamais une conversion par libellé. */
+ *  une CharKey ('dexterite'…), multilangue-safe — jamais une conversion par libellé. */
 export function skillCharKeyById(skillId: string): CharKey | undefined {
   return byId('skill', skillId)?.characteristic;
 }
@@ -263,7 +263,7 @@ export function socialPsychLabel(tester: Combatant, targetGroups: string[]): str
 }
 
 /** Un Test (compétence ou caractéristique) relève-t-il de la **Sociabilité** (LDB 21 : malus psy −20/−10) ?
- *  Vrai si la caractéristique sous-jacente est `Soc` (Charme, Marchandage, Intimidation, Commérage…). */
+ *  Vrai si la caractéristique sous-jacente est `sociabilite` (Charme, Marchandage, Intimidation, Commérage…). */
 export function isSocialTest(skill?: string, characteristic?: CharKey): boolean {
   if (characteristic) return characteristic === 'sociabilite';
   if (skill) return skillCharKeyById(skill) === 'sociabilite';

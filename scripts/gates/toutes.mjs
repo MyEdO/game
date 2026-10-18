@@ -228,12 +228,15 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
+      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; le contrôle du protocole génère ses schémas sous un mkdtempSync de os.tmpdir(), retiré en finally ; ' +
+      'session-version.mjs et son banc vérifient version et registre sans écriture fs ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
+      'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
@@ -801,6 +804,8 @@ export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, jou
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
  * `horloge` porte les chronomètres et l'attente du verrou, jamais l'horloge murale des enfants supervisés.
+ * `prendre` prend le verrou des gestes lourds, `lancer` joue chaque gate (`spawnBorne`), `sortir` reçoit le
+ * code du gestionnaire de SIGINT/SIGTERM (`process.exit`).
  * REND le code de sortie.
  */
 export async function principal({
@@ -809,7 +814,8 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
-  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, horloge = Date.now,
+  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, lancer = spawnBorne, horloge = Date.now,
+  sortir = process.exit,
 } = {}) {
   const configuration = instance ?? verrouGestesLourds(racine)
   const secondesDepuis = (debut) => (horloge() - debut) / 1000
@@ -905,7 +911,7 @@ export async function principal({
   let arretSurSignal
   const arreterSurSignal = (signal) => {
     arretDesAttentes.abort()
-    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => process.exit(code))
+    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => sortir(code))
   }
   const surSigint = () => arreterSurSignal('SIGINT')
   const surSigterm = () => arreterSurSignal('SIGTERM')
@@ -943,7 +949,7 @@ export async function principal({
       const envGate = { ...env, ...envEnPlus }
       if (coeurs && !envGate.WFRP_TEST_COEURS) envGate.WFRP_TEST_COEURS = String(coeurs)
       const [commande, ...args] = gate.commande.split(' ')
-      const r = await spawnBorne({
+      const r = await lancer({
         commande,
         argv: args,
         fichier,
@@ -967,7 +973,7 @@ export async function principal({
     // #1772 #2586
     const poser = (nom, r) => {
       const secondes = secondesDepuis(r.debut)
-      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 && !arretNonConfirme(r.arret) ? 'vert' : 'ROUGE'
+      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 ? 'vert' : 'ROUGE'
       verdicts.set(nom, { statut, code: r.code, secondes, fichier: r.fichier, sortie: r.sortie, limiteMs: r.limiteMs, error: r.error, arret: r.arret })
       diagnosticArret(r, (ligne) => journal(ligne + '\n'))
       if (arretNonConfirme(r.arret)) arretDesAttentes.abort()

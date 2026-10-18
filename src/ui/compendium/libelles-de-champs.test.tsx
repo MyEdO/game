@@ -22,7 +22,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { z } from 'zod';
 import { libelleDuChamp, inferFields } from './editFields';
 import { RefField, refFieldCfg } from './RefField';
-import { editableEntries, isEditableCategory } from './CodexEdit';
+import { editableEntries, isEditableCategory } from '../editor/codex/CodexEdit';
 import { CODEX } from './registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';
@@ -499,7 +499,7 @@ describe('libellés de VALEURS à toute profondeur', () => {
   });
 
   it('chaque `GenericArrayField` dédié de tableau d’objets reçoit le nœud de SON champ', () => {
-    const src = readFileSync(join(process.cwd(), 'src/ui/compendium/CodexEdit.tsx'), 'utf8');
+    const src = readFileSync(join(process.cwd(), 'src/ui/editor/codex/CodexEdit.tsx'), 'utf8');
     const balises = src.match(/<GenericArrayField\b[\s\S]*?\/>/g) ?? [];
     expect(balises.length, 'le matcher voit les balises du fichier').toBeGreaterThan(20);
     const sansNoeud: string[] = [];

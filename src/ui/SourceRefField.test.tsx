@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { SourceRefField } from './SourceRefField';
-import { CodexEdit } from './compendium/CodexEdit';
+import { CodexEdit } from './editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../data/overrides';
 import { psychologies } from '../data';
 import type { SecondaryRef, SourceRef } from '../data/schemas/grammaire/valeurs';

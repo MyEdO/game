@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import { nommerChamps } from '../grammaire/meta';
 import { document } from '../grammaire/document';
-import { difficultySchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'regles.json';
@@ -26,7 +26,10 @@ const rangeeSchema = nommerChamps(z.strictObject({
   label: z.string().min(1),
   palier: difficultySchema.optional(),
   valeur: z.number().optional(),
-  famille: z.enum(['circonstance', 'jet']),
+  famille: enumNomme(
+    { circonstance: 'Circonstance', jet: 'Jet' },
+    { circonstance: 'Comptée dans le plafond des Difficultés (`LDB 14 l.48`)', jet: 'Hors plafond (`LDB 14 l.48`)' },
+  ),
   seuil: z.number().optional(),
   plafond: z.number().optional(),
 }).superRefine((r, ctx) => {
@@ -37,7 +40,7 @@ const rangeeSchema = nommerChamps(z.strictObject({
   label: { label: 'Libellé', texte: { regime: 'designation' } },
   palier: { label: 'Palier de Difficulté', hint: 'Le palier nommé par le livre ; le modificateur en dérive' },
   valeur: { label: 'Modificateur', hint: 'Le nombre nu donné par le livre, quand il ne nomme aucun palier' },
-  famille: { label: 'Famille', hint: 'circonstance : comptée dans le plafond des Difficultés ; jet : hors plafond' },
+  famille: { label: 'Famille' },
   seuil: { label: 'Seuil', hint: 'Plancher de la grandeur qui sélectionne la rangée' },
   plafond: { label: 'Plafond', hint: 'Plafond de la grandeur qui sélectionne la rangée' },
 });

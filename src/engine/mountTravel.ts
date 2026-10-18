@@ -23,7 +23,7 @@
  * L'Exténué des bêtes est journalier (la halte de nuit vaut repos — LDB 16, l'Exténué part au repos).
  */
 import monturesJson from '../data/montures.json';
-import type { Combatant, CharKey } from './types';
+import type { Combatant } from './types';
 import type { Possession } from './possession';
 import { possessionLabel, possessionCombatRideable } from './possession';
 import { d100, type RNG } from './dice';
@@ -204,7 +204,7 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
   if (eff.riderTest) {
     // Test du cavalier, sous peine de chute (l.166 / l.171). Une séquelle DÉJÀ portée grève ce Test (l.174).
     const carried = mountIncidentEffects(mount.possession.mountInjury)?.ridingPenalty ?? 0;
-    const base = Math.max(0, testValue(mount.hero, eff.riderTest.skill.id, eff.riderTest.char as CharKey | undefined) + carried);
+    const base = Math.max(0, testValue(mount.hero, eff.riderTest.skill.id, eff.riderTest.char) + carried);
     const tst = rollTest(base, eff.riderTest.difficulty, rng);
     out.riderTest = testDetail(refLabel('skills', eff.riderTest.skill), base, tst);
     if (!tst.success) {

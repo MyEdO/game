@@ -31,6 +31,7 @@ import { groupMatch } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
+import { garanti } from '../lib/garanti';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
@@ -884,8 +885,7 @@ export function attackModifiers(
     if (l.value) out.push(l);
   }
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : CANAL UNIQUE — le Test d'attaque est physique
-  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat),
-  // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
   // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
   const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
@@ -946,8 +946,7 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
   // neige, ni de malus « maniement deux armes » ; seuls Avantage/État/Sur la défensive s'appliquent.
   if (mode !== 'social' && defender.dualStrikeDefensePenalty) out.push({ label: 'Maniement deux armes', value: defender.dualStrikeDefensePenalty, famille: 'jet', ref: RULE_REF['combat-deux-armes'] }); // LDB 10 l.767-773
   // Météo « Tests physiques » (EDOC 8 l.82, #341) : le CANAL UNIQUE `weatherTestMods` lit `defender.envWeather`
-  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité) — jamais
-  // recâblé par surface (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
+  // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
   out.push(...precipitationTestMods(defender.envPrecipitation, defenseTestSkill(mode))); // MDG 13 l.185, #1936
   return out;
@@ -1613,7 +1612,7 @@ export interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; c
 export function compteDuCoup(res: AttackResult, arme: Weapon, attaquant: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
   const relance = relanceLaLocalisation(cible, coup);
-  const lieu: HitLocation = relance ? res.critLocation! : (res.location ?? 'corps');
+  const lieu: HitLocation = relance ? garanti(res.critLocation, cible.id, 'Localisation relancée du coup (applyHit, LDB 18 l.53)') : (res.location ?? 'corps');
   const devie = apresDeviations(cible, lieu, n);
   let blessures = coup.prise ? (res.woundsLost ?? 0) : 0;
   if (relance) {

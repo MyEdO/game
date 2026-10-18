@@ -297,13 +297,14 @@ const arbreDesCaches = new WeakMap();
  * (`globsDe`) fait un arc `glob` vers chaque membre qu'il vise (`correspondGlob`) ; sans, il n'en fait aucun.
  * `specificateurs` mémoïse les spécificateurs NON RÉSOLUS d'un texte brut, sous le régime de la marche (`lire(abs, texte)` → sites
  * ou `undefined`, `ecrire(abs, texte, sites)`) : la résolution, elle, dépend de l'ensemble et se refait.
+ * `analyser(entrees, tailleLot)` analyse les modules à lire (`analyserEnLots` par défaut).
  * @param {string[]} roots
  * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean,
  *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
- *   tailleLot?: number, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
+ *   tailleLot?: number, analyser?: typeof analyserEnLots, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
  */
-export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE } = {}) {
+export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots } = {}) {
   if (!Number.isSafeInteger(tailleLot) || tailleLot <= 0) throw new Error(`clotureDImports : tailleLot positive entière attendue : ${tailleLot}`);
   const base = resolve(racine);
   const alias = aliasDuDepot(base);
@@ -348,7 +349,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       if (memoises) { cache.set(abs, resoudre(abs, memoises)); continue; }
       aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
     }
-    for (const { fichier, sourceFile, diagnostics } of analyserEnLots(aAnalyser, tailleLot)) {
+    for (const { fichier, sourceFile, diagnostics } of analyser(aAnalyser, tailleLot)) {
       const sites = [...specificateursDe(fichier.rel, sourceFile, diagnostics),
         ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
       specificateurs?.ecrire(fichier.rel, fichier.brut, sites);

@@ -1,10 +1,10 @@
 /**
- * MÉTÉO ÉDITÉE AU CODEX — le geste de `CodexEdit.save` (`src/ui/compendium/CodexEdit.tsx:588-614`)
+ * MÉTÉO ÉDITÉE AU CODEX — le geste de `CodexEdit.save` (`src/ui/editor/codex/CodexEdit.tsx` › `save`)
  * joué sur `weather.json` : pose mémoire (`setDataset`), validation de la SOURCE ENTIÈRE
  * (`validateDataset(datasetFile, datasetSerializeRoot)`), et au refus REPRISE de l'état d'avant.
  *
  * `save` n'est pas appelable hors React : c'est une closure du composant (`const save = async () =>`,
- * CodexEdit.tsx:588) qui écrit l'état local (`setSchemaError`/`setMsg`/`setDirty`) et lit `src.persist`
+ * `CodexEdit.tsx` › `save`) qui écrit l'état local (`setSchemaError`/`setMsg`/`setDirty`) et lit `src.persist`
  * de la source sélectionnée à l'écran — d'où les mêmes trois portes, appelées ici directement.
  *
  * Deux cas POSITIFS : le refus RESTAURE, et une édition cohérente est vue par la table de cascade

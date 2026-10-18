@@ -69,7 +69,6 @@ import {
   canFireWhileEngaged,
   ligneDuCoup,
   freeAttackWeapon,
-  causeDuCoupCritique,
   defaultParryWeapon,
   advantageModLine,
 } from '../engine/combat';
@@ -157,7 +156,8 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId, garanti } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
@@ -2721,8 +2721,6 @@ function appliquerLaTouche(
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
-  // #1595 c.6247370933
-  if (relanceLaLocalisation(target, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current })) res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
@@ -3898,9 +3896,10 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
 }
 
 /**
- * Applique le PREMIER coup restant d'une bordée (MDG 14 l.128) par la couture du coup ; les suivants
- * voyagent dans sa suite (`enchainement: 'bordee'`), si bien qu'une fenêtre ouverte par un coup
- * (sauvegarde, Critique) les reprend à sa fermeture. Une cible hors de combat ne reçoit plus rien.
+ * Fait naître le coup du PREMIER tir restant sur la cible vivante (`toucheAuJetPose`), puis l'applique par
+ * la couture du coup (MDG 14 l.128) ; les suivants voyagent dans sa suite (`enchainement: 'bordee'`), si
+ * bien qu'une fenêtre ouverte par un coup (sauvegarde, Critique) les reprend à sa fermeture. Une cible
+ * hors de combat ne reçoit plus rien.
  * Rend `true` quand un coup a suspendu.
  */
 export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee): boolean {
@@ -3910,7 +3909,8 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
   const tireur = inBattleId(battle, tir.tireurId);
   const cible = inBattleId(battle, bordee.targetId);
   if (!tireur || !cible || isOutOfAction(cible)) return false;
-  return applyAttackResult(get, set, tireur, cible, tir.weapon, tir.res,
+  const res = toucheAuJetPose(tireur, cible, tir.weapon, tir.jet, tir.jet.sl, { rng: battleRng() });
+  return applyAttackResult(get, set, tireur, cible, tir.weapon, res,
     { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } }) === OPS_DIFFEREES;
 }
 

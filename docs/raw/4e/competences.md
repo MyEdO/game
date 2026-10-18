@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `rollCrewRole`, +105 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
+- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `BargainModalView`, +105 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
 
 ---
 
@@ -548,7 +548,7 @@ En combat : Tests de Guérison Intermédiaires (+0).
 **Sources RAW :** LDB 09 l.255-269
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `rederiveAttack`, `healWoundsDelta`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
+- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
 
 ---
 

@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { CODEX } from './registry';
 import { inferFields } from './editFields';
 import { REF_FIELD } from './RefField';
-import { isEditableCategory, editableEntries } from './CodexEdit';
+import { isEditableCategory, editableEntries } from '../editor/codex/CodexEdit';
 import { schemaForFile } from '../../data/schemas/validate';
 
 /** Valeur qu'aucun schéma de champ de la base n'accepte — sert d'appât au parse. */

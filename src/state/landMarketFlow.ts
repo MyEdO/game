@@ -26,7 +26,8 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { registerCascadeApplier, chainStep } from './cascade';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
-import { actorIn, garanti } from './combatants';
+import { actorIn } from './combatants';
+import { garanti } from '../lib/garanti';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
 import {

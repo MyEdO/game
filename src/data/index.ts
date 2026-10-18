@@ -1391,7 +1391,7 @@ export interface CreatureData {
    *  SOURCE UNIQUE de la nommé-ité — ne PAS l'inférer de `title`. Éditable au Codex. */
   named?: boolean;
   folder: string | null;
-  char: Record<string, number | null>;
+  char: Partial<Record<CharKey | 'M' | 'B', number | null>>;
   /** Traits STRUCTURÉS (`TraitInstance[]`) — source app-owned migrée du parsing de chaînes (de-POC).
    *  Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). */
   traits: import('../engine/statEntry').TraitList;
@@ -2863,7 +2863,7 @@ export const calendarPhases = calendarPhasesJson as { id: string; type: 'calenda
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
   seasons: { id: string; label: string; ranges: { min: number; max: number; weather: string }[] }[];
-  physicalTestChars: string[];
+  physicalTestChars: CharKey[];
   conditions: {
     id: string; label: string; desc?: string;
     visibiliteM?: number; rangedMod?: number; rangedUseless?: boolean; powderUseless?: boolean;

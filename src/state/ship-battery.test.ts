@@ -8,7 +8,7 @@ import { seedBattleRng } from './battleRng';
 import { rollCrewRole } from './shipManeuver';
 import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
-import { rangeBandName } from '../engine/combat';
+import { rangeBandName, toucheAuJetPose } from '../engine/combat';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { resolveVolley } from '../engine/volley';
 import { jouerLesTirsDeBordee } from './combatFlow';
@@ -258,8 +258,8 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
     return ship;
   };
   /** Les tirs tels que la bordée les pose (`resolveVolley`), au jet fixé. */
-  const tirs = (ship: Combatant, cible: Combatant, roll: number) =>
-    resolveVolley(ship, ship.postes!, cible, 3, true, [gunnerPJ()], fixe(roll)).map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res }));
+  const tirs = (ship: Combatant, roll: number) =>
+    resolveVolley(ship, ship.postes!, 3, true, [gunnerPJ()], fixe(roll)).map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet }));
   const journal = () => JSON.stringify(useGame.getState().battle!.log);
   const cible = () => useGame.getState().battle!.combatants.find((c) => c.id === 'target')!;
 
@@ -275,7 +275,7 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
 
   it('chariot : un double inflige des Blessures, et son Critique se dit « pas un navire » (EDOC 07 l.334)', () => {
     const ship = monter(chariot());
-    expect(jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: tirs(ship, chariot(), 33) })).toBe(false);
+    expect(jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: tirs(ship, 33) })).toBe(false);
     expect(cible().wounds.current).toBeLessThan(90);
     expect(journal()).toContain('pas un navire');
   });
@@ -283,12 +283,12 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
   it('suspension : un coup qui ouvre une sauvegarde suspend, le coup suivant attend sa fermeture', () => {
     const p = pirate([{ id: 'demoniaque', value: 9 }]);
     const ship = monter(p, deuxPieces());
-    const coups = tirs(ship, p, 34);
+    const coups = tirs(ship, 34);
     expect(coups).toHaveLength(2);
     expect(jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: coups })).toBe(true);
     expect(useGame.getState().pendingCascade, 'la sauvegarde du 1er coup est ouverte').not.toBeNull();
     expect(cible().wounds.current, 'aucune Blessure avant la sauvegarde').toBe(30);
-    const un = coups[0].res.woundsLost!;
+    const un = toucheAuJetPose(gunnerPJ(), pirate([{ id: 'demoniaque', value: 9 }]), coups[0].weapon, coups[0].jet, coups[0].jet.sl, { rng: makeRNG(1) }).woundsLost!;
     draineCascade(useGame.getState, 4, poseSurDeNonTombe(1)); // la fenêtre se ferme : dé raté (1 < 9) s'il reste à jeter
     expect(cible().wounds.current, 'les DEUX coups appliqués, le 2e après la reprise').toBe(30 - 2 * un);
     expect(useGame.getState().pendingCascade).toBeNull();

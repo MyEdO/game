@@ -25,7 +25,7 @@ import type {
   PendingBattement,
   PendingDistraire,
 } from './pendings';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeCalme } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';

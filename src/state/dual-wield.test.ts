@@ -71,7 +71,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
   it('exception Critique, ldb : le jet est le d100 du tableau des Critiques du Coup Critique appliqué (LDB 10 l.773 ; LDB 18 l.53)', () => {
     const { f1 } = setupBattle();
     f1.important = true; // LDB 18 l.44 : hors Mort subite
-    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true }), dualMode: true } as any });
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true, critLocation: 'corps' }), dualMode: true } as any });
     useGame.getState().attackConfirm();
     for (let i = 0; i < 20 && !useGame.getState().pendingDualStrike; i++) avanceEtapeCascade(useGame.getState, undefined, () => 'subir');
     const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');

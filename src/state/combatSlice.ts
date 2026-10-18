@@ -101,7 +101,8 @@ import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId, garanti } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { aPorteeDe } from './exploreNav';
 import { controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './combatCursor';
@@ -222,7 +223,7 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
   const battle = get().battle;
   if (!battle) return false;
   const crew = (ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
-  const shots = resolveVolley(ship, bearingPostes(ship, side), target, dr, success, crew, battleRng(), { merScale: isMerScene(get().scene) });
+  const shots = resolveVolley(ship, bearingPostes(ship, side), dr, success, crew, battleRng(), { merScale: isMerScene(get().scene) });
   for (const s of shots) { // la PIÈCE a fait feu (l.128), touchée ou non
     const poste = ship.postes?.find((pp) => pp.item.uid === s.posteUid);
     if (poste) unloadWeapon(undefined, undefined, poste);
@@ -233,7 +234,7 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
   get().log(success
     ? t('cs.bordee', { side, ship: ship.label, target: target.label, dr: drTxt, n })
     : t('cs.bordeeManque', { side, ship: ship.label, target: target.label, dr: drTxt, n }));
-  return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res })) });
+  return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
 }
 
 /**

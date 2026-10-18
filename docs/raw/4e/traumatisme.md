@@ -72,7 +72,7 @@ Exemple : BE 4, 2 PB restants, 8 Dégâts → dépassement 6 ≥ BE → **pas** 
 **Voir aussi** : déclenchement du Coup Critique → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) (LDB 13/14) ; tableaux complets → [§ 4](#4-tableaux-des-critiques--renvoi).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `coup-a-l-il`, `estDebout`, +105 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +28 fichiers
+- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `estDebout`, `coup-a-l-il`, +105 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +28 fichiers
 
 ---
 
@@ -142,7 +142,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 **Sources RAW** : `LDB 18 l.44-46`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.44-46) → `criticals-ldb-tete`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `coup-a-l-il`, `finishDefenseResult`, `frappe-a-l-oreille`, `appliquerMortSubite`, `coup-percutant`, `il-au-beurre-noir`, +54 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +9 fichiers
+- `LDB 18` (l.44-46) → `criticals-ldb-tete`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `finishDefenseResult`, `appliquerMortSubite`, `coup-percutant`, `il-au-beurre-noir`, +54 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +9 fichiers
 
 ---
 
@@ -283,7 +283,7 @@ Un personnage est **blessé** s'il a perdu au moins 1 PB. Il n'y a **aucune pén
 **Voir aussi** : Compétence Guérison → [competences.md](competences.md) (LDB 09 l.255-269) ; [Guérison des Blessures Critiques](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie) ; Faim/Soif → [§ 13](#13-faim-et-soif) (sans provisions : pas de récupération naturelle).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `rederiveAttack`, `healWoundsDelta`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
+- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
 - `LDB 18` (l.289-300) → `cumulSchema`, `faim`, `soif`, `recovery`, `dechirure-jambe-majeure`, `critEscalationSchema`, `exposure`, `dechirure-autre-majeure`, `exposure-heat-drop`, `TraumaFiche`, +38 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/traumas.ts`, +13 fichiers
 
 ---

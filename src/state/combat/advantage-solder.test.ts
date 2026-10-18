@@ -155,8 +155,8 @@ describe('Empoignade opposée (LDB 14 l.161) — le +1 du vainqueur crédite la 
     let sawDefeat = false;
     for (let seed = 1; seed <= 40 && !sawDefeat; seed++) {
       seedBattleRng(seed);
-      const actor = mk('h', 'hero', { characteristics: { ...CHARS, F: 5 } as never, grapplingWith: ['e'] });
-      const foe = mk('e', 'enemy', { characteristics: { ...CHARS, F: 90 } as never, grapplingWith: ['h'] });
+      const actor = mk('h', 'hero', { characteristics: { ...CHARS, force: 5 }, grapplingWith: ['e'] });
+      const foe = mk('e', 'enemy', { characteristics: { ...CHARS, force: 90 }, grapplingWith: ['h'] });
       const { get, battle } = makeGet([actor, foe], { allies: 0, foes: 0 });
       const line = resolveGrappleOpposed(get, actor, foe);
       if (line.includes(foe.label) && battle.advantagePools!.foes === 1) {

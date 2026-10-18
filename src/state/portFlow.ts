@@ -46,7 +46,8 @@ import { toDate } from '../engine/clock';
 import { registerCascadeApplier, chainStep } from './cascade';
 import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
-import { actorIn, garanti } from './combatants';
+import { actorIn } from './combatants';
+import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 
