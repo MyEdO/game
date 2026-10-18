@@ -14,6 +14,7 @@ import { parUnitesDeCode } from './lister.mjs'
 import { balayagesNonResolus, perimetreDuDepot } from '../../test/perimetre.mjs'
 import { analyserTexte } from './dialecte.mjs'
 import { certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, encoderLecture, decoderLecture, mesureLecture } from './racinesBalayees.mjs'
+import { clesCanoniques } from './clesCanoniques.mjs'
 import { gelerLaConstante, gelerProfond } from '../../../src/lib/gelerProfond.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
@@ -468,17 +469,8 @@ test('lot fermé : résultats et requêtes, imports transitifs, étoiles, option
   assert.throws(() => evaluerLotDuDepot({ ...incomplet, lectures: [['a.mjs', forge], ['b.mjs', null]] }), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:a\.mjs$/)
 })
 
-test('clés privées : partitions, références locales numériques, trois rôles, DAG et association avant clé', async () => {
-  const url = new URL('./racinesBalayees.mjs?cles-fermees', import.meta.url).href
-  const hook = registerHooks({ load(spec, ctx, suivant) {
-    const r = suivant(spec, ctx)
-    if (spec !== url) return r
-    const source = Buffer.from(r.source).toString('utf8')
-    return { ...r, source: source.replace('    valeurs,', '    cles: { cleCanonique, cleDe, cleDesArgs, texteDeCle, formesDesArguments, tracer, lecturesDe, uniques },\n    valeurs,') + '\nexport const construirePourTest = (lecture=()=>null,cible=()=>null,ferme=true) => construireEvaluateur({lecture,cible,peutLire:()=>true,clesStructurelles:ferme,memoiserBooleens:true},ferme).cles\n' }
-  } })
-  let construire
-  try { construire = (await import(url)).construirePourTest } finally { hook.deregister() }
-  const c = construire()
+test('clés privées : partitions, références locales numériques, trois rôles, DAG et association avant clé', () => {
+  const c = clesCanoniques({ ferme: true, clesStructurelles: true })
   const vide = []
   assert.deepEqual(c.uniques(vide), [])
   assert.notEqual(c.uniques(vide), vide)
@@ -502,7 +494,7 @@ test('clés privées : partitions, références locales numériques, trois rôle
   assert.equal(plusieurs[1], autre)
   const sentinelle = new Error('singleton-ouvert-sentinelle')
   const piege = { objet: { get enfant() { throw sentinelle } } }
-  const ouvert = construire(undefined, undefined, false)
+  const ouvert = clesCanoniques({ ferme: false, clesStructurelles: false })
   assert.throws(() => ouvert.uniques([piege]), (erreur) => erreur === sentinelle)
   const cle = (v, options) => c.cleCanonique(({ referenceDe }) => referenceDe(v), v, null, options)
   const partage = { x: 'a' }
@@ -536,27 +528,26 @@ test('clés privées : partitions, références locales numériques, trois rôle
   assert.throws(() => c.formesDesArguments.set(groupeTardif, {}), /FORME_PRIVEE_ASSOCIEE_APRES_CLE/)
   const cycle = {}; cycle.soi = cycle
   assert.throws(() => cle(cycle, { strict: true, cellules: true }), /DAG_PRIVE_CYCLIQUE/)
-  const lus = new Map([
-    ['a.mjs', lire('a.mjs', "import {scanner} from './b.mjs'; export function appel(p){return scanner(p)}")],
-    ['b.mjs', lire('b.mjs', "import {readFileSync} from 'node:fs'; export function scanner(p){return readFileSync(p)}")],
-  ])
-  const ev = construire((f) => lus.get(f) ?? null, () => 'b.mjs')
-  const evaluer = () => ev.tracer(() => ev.lecturesDe({ f: 'a.mjs', id: 'appel' }, [[{ texte: 'src' }]]))
-  const froid = evaluer()
-  const chaud = evaluer()
-  assert.deepEqual(chaud.resultat, froid.resultat)
-  assert.ok(froid.requetes.has('["lecture","b.mjs"]'))
-  assert.deepEqual([...chaud.requetes].sort(), [...froid.requetes].sort())
+  const sources = { 'a.mjs': "import {scanner} from './b.mjs'; scanner('src')",
+    'b.mjs': "import {readFileSync} from 'node:fs'; export function scanner(p){return readFileSync(p)}" }
+  const question = { nature: 'sitesDe', f: 'a.mjs' }
+  const [froid, chaud] = evaluerLot({ lectures: Object.entries(sources).map(([f, texte]) => [f, encoderLecture(lire(f, texte))]),
+    resolutions: [['a.mjs', './b.mjs', 'b.mjs']], lecteurs: Object.keys(sources), questions: [question, question] })
+  assert.deepEqual(froid.resultat.map((s) => s.valeurs), [[{ chemin: 'src' }]])
+  assert.ok(froid.requetes.includes('["lecture","b.mjs"]'))
+  assert.deepEqual({ ...chaud, requetes: [...chaud.requetes].sort() }, { ...froid, requetes: [...froid.requetes].sort() })
 })
 
 test('construction privée : publication après descripteur et unique association dans argumentDe', () => {
-  const source = readFileSync(fileURLToPath(new URL('./racinesBalayees.mjs', import.meta.url)), 'utf8')
-  const debut = source.indexOf('      pile.set(v, pile.size)')
-  const reference = source.slice(debut, source.indexOf('      return reference\n', debut))
+  const lireModule = (nom) => readFileSync(fileURLToPath(new URL(nom, import.meta.url)), 'utf8')
+  const source = lireModule('./racinesBalayees.mjs')
+  const cles = lireModule('./clesCanoniques.mjs')
+  const debut = cles.indexOf('      pile.set(v, pile.size)')
+  const reference = cles.slice(debut, cles.indexOf('      return reference\n', debut))
   assert.match(reference, /const descriptor =[^]*?const reference = interner\(descriptor\)\s+references.set\(v, reference\)/)
   assert.equal(reference.slice(0, reference.indexOf('const reference = interner')).includes('references.set('), false)
-  assert.doesNotMatch(source, /references\.set\(v,[^\r\n]*\)\s+pile\.set\(v, pile\.size\)/)
-  assert.equal(source.split('formesDesArguments.set(').length, 2)
+  assert.doesNotMatch(cles, /references\.set\(v,[^\r\n]*\)\s+pile\.set\(v, pile\.size\)/)
+  assert.equal((cles + source).split('formesDesArguments.set(').length, 2)
   assert.match(source, /const argumentDe = \(e, ctx\) => \{\s+const vs = valeurs\(e, ctx\).map\([^]*?formesDesArguments.set\(vs,[^]*?\n {4}return vs/)
 })
 
@@ -640,30 +631,15 @@ test('politique BOOL du driver : un prédicat par garde d’une condition partag
 })
 
 // #2586
-const evaluateurDeCles = async (clesStructurelles) => {
-  const url = new URL(`./racinesBalayees.mjs?cles-p-${clesStructurelles}`, import.meta.url).href
-  const hook = registerHooks({ load(specifier, contexte, suivant) {
-    const rendu = suivant(specifier, contexte)
-    if (specifier !== url) return rendu
-    const texte = Buffer.from(rendu.source).toString('utf8')
-    assert.equal(texte.split('    valeurs,').length, 2)
-    return { ...rendu, source: texte.replace('    valeurs,', '    cles: { cleCanonique, cleDe, cleDesArgs, texteDeCle, composerCle, formesDesArguments },\n    valeurs,') }
-  } })
-  let construire
-  try { construire = (await import(url)).evaluateurDuDepot } finally { hook.deregister() }
-  return construire({ lecture: () => null, cible: () => null, clesStructurelles }).cles
-}
-
-// #2586
-test('clés P : relation historique, restitution, formes, coupes et références opaques', async () => {
-  const ancien = await evaluateurDeCles(false)
-  const neuf = await evaluateurDeCles(true)
+test('clés P : texte des clés structurelles égal à la clé textuelle, restitution, formes, coupes et références opaques', () => {
+  const textuel = clesCanoniques({ ferme: false, clesStructurelles: false })
+  const structurel = clesCanoniques({ ferme: false, clesStructurelles: true })
   const textes = new Map()
   const cellules = new Map()
   const verifier = (v, args = false) => {
-    const avant = args ? ancien.cleDesArgs(v) : ancien.cleDe(v)
-    const apres = args ? neuf.cleDesArgs(v) : neuf.cleDe(v)
-    assert.equal(neuf.texteDeCle(apres), avant)
+    const avant = args ? textuel.cleDesArgs(v) : textuel.cleDe(v)
+    const apres = args ? structurel.cleDesArgs(v) : structurel.cleDe(v)
+    assert.equal(structurel.texteDeCle(apres), avant)
     if (textes.has(avant)) assert.equal(apres, textes.get(avant))
     if (cellules.has(apres)) assert.equal(avant, cellules.get(apres))
     textes.set(avant, apres)
@@ -683,8 +659,8 @@ test('clés P : relation historique, restitution, formes, coupes et références
     verifier({ objet: objets[0], ctx: { f: 'banc.mjs', env: null } })
   }
   const forme = (as, e, ctx) => {
-    ancien.formesDesArguments.set(as, { e, ctx })
-    neuf.formesDesArguments.set(as, { e, ctx })
+    textuel.formesDesArguments.set(as, { e, ctx })
+    structurel.formesDesArguments.set(as, { e, ctx })
   }
   const a = [{ texte: 'src/a' }]
   const args = [a]
@@ -705,20 +681,20 @@ test('clés P : relation historique, restitution, formes, coupes et références
   forme(a, { k: 'lit', v: 'src/c' }, ctx)
   assert.notEqual(verifier(args, true), cyclique)
   const capture = verifier({ objet: { nom: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } })
-  const opaque = neuf.cleCanonique(({ referenceDe }) => referenceDe({ pile: [capture] }), null, null, { strict: true, cellules: true })
+  const opaque = structurel.cleCanonique(({ referenceDe }) => referenceDe({ pile: [capture] }), null, null, { strict: true, cellules: true })
   assert.notEqual(opaque, null)
-  const compose = neuf.composerCle('retour banc.mjs#f(', capture, ')')
-  assert.equal(neuf.texteDeCle(compose), `retour banc.mjs#f(${neuf.texteDeCle(capture)})`)
-  assert.notEqual(neuf.composerCle('retour banc.mjs#g(', capture, ')'), compose)
+  const compose = structurel.composerCle('retour banc.mjs#f(', capture, ')')
+  assert.equal(structurel.texteDeCle(compose), `retour banc.mjs#f(${structurel.texteDeCle(capture)})`)
+  assert.notEqual(structurel.composerCle('retour banc.mjs#g(', capture, ')'), compose)
   const source = { objet: { v: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }
-  const instantane = neuf.cleDe(source)
-  const octets = neuf.texteDeCle(instantane)
+  const instantane = structurel.cleDe(source)
+  const octets = structurel.texteDeCle(instantane)
   Object.defineProperty(source.objet, 'v', { get() { throw new Error('SOURCE_RELECTURE') } })
-  assert.equal(neuf.texteDeCle(instantane), octets)
+  assert.equal(structurel.texteDeCle(instantane), octets)
   let effets = 0
   for (const inadmissible of [new Proxy([], { ownKeys() { effets++; throw new Error('Proxy') } }),
     Object.defineProperty([], 'x', { get() { effets++; return 1 } }), Object.assign([], { toJSON() { effets++; return [] } })])
-    assert.throws(() => neuf.cleDesArgs(inadmissible), /CLE_STRUCTURELLE_SOURCE_INADMISSIBLE/)
+    assert.throws(() => structurel.cleDesArgs(inadmissible), /CLE_STRUCTURELLE_SOURCE_INADMISSIBLE/)
   assert.equal(effets, 0)
   const propre = Object.fromEntries([['toJSON', { k: 'lit', v: 'inoffensif' }], ['__proto__', { k: 'lit', v: 'src/a' }]])
   verifier({ objet: propre, ctx: { f: 'banc.mjs', env: null } })
@@ -1986,319 +1962,169 @@ test('observation des clés : le contexte Proxy public ne déclenche aucun pièg
 })
 
 // #2586
-test('clés canoniques : DAG partagé, réallocation, ordre, formes, provenance et cycles', async (t) => {
-  const url = new URL('./racinesBalayees.mjs?cles-canoniques', import.meta.url).href
-  const urlAvant = new URL('./racinesBalayees.mjs?cles-canoniques-cc684', import.meta.url).href
-  const hook = registerHooks({ load(specifier, contexte, suivant) {
-    const rendu = suivant(specifier, contexte)
-    if (specifier !== url && specifier !== urlAvant) return rendu
-    let texte = Buffer.from(rendu.source).toString('utf8')
-    if (specifier === urlAvant) {
-      const debut = texte.indexOf('    const descripteurs = new Map()')
-      const fin = texte.indexOf('    const memo = new WeakMap()', debut)
-      assert.ok(debut > 0 && fin > debut)
-      const bloc = texte.slice(debut, fin)
-      assert.equal(texte.split(bloc).length, 2)
-      const gabarit = `    const descripteurs = new Map()
-    const table = []
-    const tuple = (...valeurs) => valeurs
-    const interner = (descriptor) => {
-      const cle = JSON.stringify(descriptor)
-      if (!descripteurs.has(cle)) {
-        descripteurs.set(cle, table.length)
-        table.push(descriptor)
-      }
-      return descripteurs.get(cle)
+test('clés canoniques : partition du JSON sur DAG partagé, réallocation, ordre, formes, provenance et cycles', async (t) => {
+  const regimes = [{ ferme: false, clesStructurelles: false }, { ferme: false, clesStructurelles: true }, { ferme: true, clesStructurelles: true }]
+  const partition = (observations, nom) => {
+    const oracles = new Set(observations.map((o) => o.oracle))
+    assert.ok(oracles.size > 1 && oracles.size < observations.length, `${nom} : la matrice porte des paires égales et distinctes`)
+    for (let i = 0; i < observations.length; i++) for (let j = i + 1; j < observations.length; j++) {
+      const [a, b] = [observations[i], observations[j]]
+      if ((a.cle === b.cle) !== (a.oracle === b.oracle)) assert.fail(`${nom} : ${a.nom} / ${b.nom}, clés ${a.cle === b.cle ? 'égales' : 'distinctes'}`)
     }
-`
-      texte = texte.replace(bloc, () => gabarit)
-    }
-    const ancre = '    valeurs,'
-    assert.equal(texte.split(ancre).length, 2)
-    if (specifier === url) {
-      const debut = texte.indexOf('    const tokensDe =')
-      const fin = texte.indexOf('    const interner =', debut)
-      assert.ok(debut > 0 && fin > debut)
-      let tokens = texte.slice(debut, fin)
-      for (const [nom, appel] of [['proxy', 'types.isProxy(v)'], ['tableau', 'Array.isArray(v)'],
-        ['prototype', 'Object.getPrototypeOf(v)'], ['jsonPropre', "Object.hasOwn(v, 'toJSON')"],
-        ['cellule', 'Object.getOwnPropertyDescriptor(v, i)']])
-        tokens = tokens.replaceAll(appel, `(compact.inspections.${nom}++, ${appel})`)
-      tokens = tokens.replace('if (lectureDirecte) {', 'if (lectureDirecte) { compact.inspections.directes++;')
-      texte = texte.slice(0, debut) + tokens + texte.slice(fin)
-    }
-    return { ...rendu, source: texte.replace('  const clesDesValeurs =', '  let encodages = 0\n  let serialisations = 0\n  const compact = { signatures: 0, tokens: 0, sousDescripteurs: 0 }\n  const clesDesValeurs =')
-      .replace('sousDescripteurs: 0 }', 'sousDescripteurs: 0, inspections: { proxy: 0, tableau: 0, prototype: 0, jsonPropre: 0, cellule: 0, directes: 0 } }')
-      .replace('    const interner = (descriptor) => {', '    const interner = (descriptor) => {\n      encodages++')
-      .replace("      let signature = ''", "      compact.signatures++\n      compact.tokens += tokens.length\n      let signature = ''")
-      .replace('if (!sousDescripteurs.has(signature)) sousDescripteurs.set(signature, sousDescripteurs.size)', 'if (!sousDescripteurs.has(signature)) { compact.sousDescripteurs++; sousDescripteurs.set(signature, sousDescripteurs.size) }')
-      .replace('const cle = JSON.stringify(descriptor)', 'const cle = (serialisations++, JSON.stringify(descriptor))')
-      .replace('const cle = JSON.stringify([reference, table])', 'const cle = (serialisations++, JSON.stringify([reference, table]))')
-      .replace(ancre, '    cles: { cleCanonique, cleDesArgs, formesDesArguments, cleDe, compact, encodages: () => encodages, serialisations: () => serialisations },\n    valeurs,') }
-  } })
-  let construire
-  let construireAvant
-  try {
-    construire = (await import(url)).evaluateurDuDepot
-    construireAvant = (await import(urlAvant)).evaluateurDuDepot
-  } finally { hook.deregister() }
-  const neuf = () => construire({ lecture: () => null, cible: () => null }).cles
-  const ancien = () => construireAvant({ lecture: () => null, cible: () => null }).cles
-  const p = neuf()
-  const o = ancien()
-  const dag = (sonde, profondeur, variante = {}) => {
+  }
+  const vueDe = (c, v, pile = []) => {
+    if (v === null || typeof v !== 'object') return [typeof v, v]
+    const forme = c.formesDesArguments.get(v)
+    const depuis = pile.indexOf(v)
+    if (depuis >= 0) return forme ? ['coupe', v.map((x) => vueDe(c, x, pile))] : ['cycle', pile.length - depuis]
+    pile.push(v)
+    const vue = forme ? ['argument', v.map((x) => vueDe(c, x, pile)), vueDe(c, forme.e, pile), forme.ctx.f, forme.ctx.env?.args ? vueDe(c, forme.ctx.env.args, pile) : null]
+      : Array.isArray(v) ? ['liste', v.map((x) => vueDe(c, x, pile))]
+      : ['objet', Object.keys(v).sort().map((nom) => [nom, vueDe(c, v[nom], pile)])]
+    pile.pop()
+    return vue
+  }
+  const vueDesArgs = (c, as, vus = []) => ['arguments', as.map((a) => {
+    if (vus.includes(a)) return ['coupe', a.map((x) => vueDe(c, x))]
+    const forme = c.formesDesArguments.get(a)
+    vus.push(a)
+    const vue = ['argument', a.map((x) => vueDe(c, x)), vueDe(c, forme?.e), forme?.ctx.f, forme?.ctx.env?.args ? vueDesArgs(c, forme.ctx.env.args, vus) : null]
+    vus.pop()
+    return vue
+  })]
+  const observerArgs = (c, nom, args) => ({ nom, cle: c.cleDesArgs(args), oracle: JSON.stringify(vueDesArgs(c, args)) })
+  const observerValeur = (c, nom, v) => ({ nom, cle: c.cleDe(v), oracle: JSON.stringify(vueDe(c, v)) })
+  const dag = (c, profondeur, variante = {}) => {
     let args = null
     for (let niveau = 0; niveau <= profondeur; niveau++) {
       const enfant = args
       args = Array.from({ length: 2 }, () => {
         const a = [{ texte: 'src/a' }]
         const expression = variante.forme && niveau === profondeur ? { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] } : { k: 'lit', v: 'src/a' }
-        sonde.formesDesArguments.set(a, { e: variante.lie ? { k: 'lie', de: expression, ctx: { f: 'banc.mjs', env: enfant ? { fn: 'f', args: enfant } : null } } : expression,
+        c.formesDesArguments.set(a, { e: variante.lie ? { k: 'lie', de: expression, ctx: { f: 'banc.mjs', env: enfant ? { fn: 'f', args: enfant } : null } } : expression,
           ctx: { f: variante.module && niveau === profondeur ? 'autre.mjs' : 'banc.mjs', env: enfant ? { fn: 'f', args: enfant } : null } })
         return a
       })
     }
     return args
   }
-  const projection = (sonde, descriptors) => sonde.cleCanonique(({ interner }) => descriptors.map(interner), null, null)
-  await t.test('tuples privés : inspections évitées, tableaux externes et gardes JSON conservés', () => {
-    const prive = neuf()
-    const externe = neuf()
-    const temoin = ancien()
-    const faire = ({ tuple, interner }) => [interner(tuple('parent', tuple('enfant', 7))), interner(tuple('parent', tuple('enfant', 7)))]
-    const descriptors = [['parent', ['enfant', 7]], ['parent', ['enfant', 7]]]
-    assert.equal(prive.cleCanonique(faire, null, null), projection(temoin, descriptors))
-    assert.equal(projection(externe, descriptors), projection(temoin, descriptors))
-    assert.deepEqual(prive.compact.inspections, { proxy: 0, tableau: 0, prototype: 0, jsonPropre: 0, cellule: 0, directes: 8 })
-    assert.deepEqual(externe.compact.inspections, { proxy: 4, tableau: 8, prototype: 4, jsonPropre: 4, cellule: 8, directes: 0 })
-    t.diagnostic(`Inspections privé ${JSON.stringify(prive.compact.inspections)} ; externe ${JSON.stringify(externe.compact.inspections)}`)
-    for (const prototype of [Array.prototype, Object.prototype]) {
-      const precedent = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
-      let appels = 0
-      const json = function () { appels++; return ['json', this.length] }
-      try {
-        Object.defineProperty(prototype, 'toJSON', { configurable: true, value: json })
-        const sonde = neuf()
-        const cle = sonde.cleCanonique(faire, null, null)
-        const observes = appels
-        appels = 0
-        assert.equal(cle, temoin.cleCanonique(faire, null, null))
-        assert.equal(observes, appels)
-        assert.equal(sonde.compact.inspections.directes, 0)
-        assert.equal(sonde.serialisations(), 3)
-      } finally {
-        if (precedent) Object.defineProperty(prototype, 'toJSON', precedent)
-        else delete prototype.toJSON
+  const arbre = (c, profondeur) => Array.from({ length: 2 }, () => {
+    const a = [{ texte: 'src/a' }]
+    c.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: profondeur ? { fn: 'f', args: arbre(c, profondeur - 1) } : null } })
+    return a
+  })
+  const lie = (c, forme, texte = 'src/a') => {
+    const a = [{ texte }]
+    c.formesDesArguments.set(a, { e: forme, ctx: { f: 'banc.mjs', env: null } })
+    return [a]
+  }
+  const cycle = (c, texte) => {
+    const a = [{ texte }]
+    const args = [a]
+    c.formesDesArguments.set(a, { e: { k: 'lit', v: texte }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
+    return args
+  }
+  const lambda = (args) => ({ lambda: { id: 'lambda:1', sites: [], retours: [] }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
+  for (const regime of regimes) {
+    const nomDuRegime = JSON.stringify(regime)
+    const c = clesCanoniques(regime)
+    const args = []
+    for (const profondeur of [0, 3, 6]) for (const variante of [{}, { forme: true }, { module: true }, { lie: true }]) for (const copie of [1, 2])
+      args.push(observerArgs(c, `dag ${profondeur} ${JSON.stringify(variante)} #${copie}`, dag(c, profondeur, variante)))
+    for (const profondeur of [0, 3, 6]) args.push(observerArgs(c, `arbre ${profondeur}`, arbre(c, profondeur)))
+    const ordre = () => [[{ texte: 'src/a' }], [{ texte: 'docs/b' }]]
+    args.push(observerArgs(c, 'ordre', ordre()), observerArgs(c, 'ordre #2', ordre()), observerArgs(c, 'ordre inverse', ordre().reverse()))
+    for (const [nom, forme] of [['scalaire', { k: 'lit', v: 'src/a' }], ['liste', { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] }], ['scalaire #2', { k: 'lit', v: 'src/a' }]])
+      args.push(observerArgs(c, `forme ${nom}`, lie(c, forme)))
+    for (const [nom, texte] of [['cycle', 'src/a'], ['cycle #2', 'src/a'], ['cycle docs', 'docs/b']]) args.push(observerArgs(c, nom, cycle(c, texte)))
+    partition(args, `arguments ${nomDuRegime}`)
+    const valeurs = [
+      observerValeur(c, 'objet', { objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }),
+      observerValeur(c, 'objet #2', structuredClone({ objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } })),
+      observerValeur(c, 'objet docs', { objet: { fichier: { k: 'lit', v: 'docs/a' } }, ctx: { f: 'banc.mjs', env: null } }),
+      observerValeur(c, 'champs b,a', { objet: { b: 'x', a: 'y' }, ctx: { f: 'banc.mjs', env: null } }),
+      observerValeur(c, 'champs a,b', { objet: { a: 'y', b: 'x' }, ctx: { f: 'banc.mjs', env: null } }),
+      observerValeur(c, 'lambda scalaire', lambda(lie(c, { k: 'lit', v: 'src/a' }))),
+      observerValeur(c, 'lambda liste', lambda(lie(c, { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] }))),
+      observerValeur(c, 'lambda scalaire #2', lambda(lie(c, { k: 'lit', v: 'src/a' }))),
+    ]
+    if (!regime.ferme) for (const [nom, fabriquer] of [['boucle grand-parent', () => { const o = {}; o.a = { b: o }; return o }],
+      ['boucle parent', () => { const o = {}; const a = {}; a.b = a; o.a = a; return o }], ['boucle grand-parent #2', () => { const o = {}; o.a = { b: o }; return o }]])
+      valeurs.push(observerValeur(c, nom, { objet: fabriquer(), ctx: { f: 'banc.mjs', env: null } }))
+    partition(valeurs, `valeurs ${nomDuRegime}`)
+    const profond = c.texteDeCle(c.cleDesArgs(dag(c, 32)))
+    assert.equal(c.texteDeCle(c.cleDesArgs(dag(c, 32))), profond)
+    assert.notEqual(c.texteDeCle(c.cleDesArgs(dag(c, 32, { forme: true }))), profond)
+    assert.ok(profond.length < 5 * c.texteDeCle(c.cleDesArgs(dag(c, 8))).length, nomDuRegime)
+    if (regime.ferme) continue
+    const repetes = dag(c, 4)
+    const enfant = c.formesDesArguments.get(repetes[0]).ctx.env.args
+    const formeEnfant = c.formesDesArguments.get(enfant[0])
+    const etats = []
+    const noter = (nom) => etats.push(observerArgs(c, nom, repetes))
+    noter('initial')
+    const forme = c.formesDesArguments.get(repetes[0])
+    forme.e.v = 'docs/mutation'
+    noter('expression mutée')
+    forme.e.v = 'src/a'
+    noter('expression rétablie')
+    forme.ctx.f = 'autre.mjs'
+    noter('module muté')
+    forme.ctx.f = 'banc.mjs'
+    c.formesDesArguments.set(enfant[0], { ...formeEnfant, e: { k: 'liste', v: [formeEnfant.e] } })
+    noter('forme d’enfant réallouée')
+    c.formesDesArguments.set(enfant[0], formeEnfant)
+    noter('forme d’enfant rétablie')
+    enfant[0][0].texte = 'docs/enfant'
+    noter('valeur d’enfant mutée')
+    enfant[0][0].texte = 'src/a'
+    noter('valeur d’enfant rétablie')
+    partition(etats, `mutations ${nomDuRegime}`)
+    if (regime.clesStructurelles) continue
+    let provenance = 'banc.mjs'
+    const dynamique = () => {}
+    dynamique.toJSON = () => provenance
+    const fournisseurs = []
+    for (const [nom, f] of [['fonction', dynamique], ['objet', { toJSON: () => provenance }]]) {
+      const a = [{ texte: 'src/a' }]
+      c.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f, env: null } })
+      for (const valeur of ['banc.mjs', 'autre.mjs', 'banc.mjs']) {
+        provenance = valeur
+        fournisseurs.push(observerArgs(c, `${nom} ${valeur}`, [a]))
       }
     }
-    let pieges = 0
-    const proxy = new Proxy(['enfant', 7], { get(cible, nom, receveur) { pieges++; return Reflect.get(cible, nom, receveur) } })
-    const sonde = neuf()
-    const cleProxy = projection(sonde, [['parent', proxy]])
-    const observes = pieges
-    pieges = 0
-    assert.equal(cleProxy, projection(temoin, [['parent', proxy]]))
-    assert.equal(observes, pieges)
-    assert.equal(sonde.compact.inspections.directes, 0)
-  })
-  await t.test('internage structurel local : parents emboîtés, marqueurs et table originale', () => {
-    const sonde = neuf()
-    const temoin = ancien()
-    const partage = ['S3:L;', 7, null, true]
-    const emboite = [partage, partage, [partage, ['E;', 0]], { a: partage, b: 7 }]
-    const descriptors = Array.from({ length: 80 }, (_, i) => ['parent', i, emboite])
-    descriptors.push(['parent', 0, structuredClone(emboite)], ['parent', 0, [7]], ['parent', 0, 7],
-      ['parent', 0, { a: 7 }], ['parent', 0, [['a', 7]]], ['parent', 0, [8]])
-    descriptors.push(['parent', 0, []], ['parent', 0, {}], ['parent', 0, { toJSON: () => ['json', 7] }])
-    const cle = projection(sonde, descriptors)
-    assert.equal(cle, projection(temoin, descriptors))
-    const [references, table] = JSON.parse(cle)
-    assert.equal(references[80], references[0])
-    assert.equal(new Set(references.slice(81)).size, 8)
-    assert.deepEqual(table[references[0]], descriptors[0])
-    const tokensPlats = (v) => v && typeof v === 'object' ? Array.isArray(v)
-      ? 2 + v.reduce((n, enfant) => n + tokensPlats(enfant), 0)
-      : 2 + Object.values(v).reduce((n, enfant) => n + 1 + tokensPlats(enfant), 0) : 1
-    const volumePlat = descriptors.reduce((n, descriptor) => n + tokensPlats(descriptor), 0)
-    assert.ok(sonde.compact.sousDescripteurs < volumePlat / 4)
-    assert.ok(sonde.compact.signatures > sonde.compact.sousDescripteurs)
-    t.diagnostic(`Compact : ${sonde.compact.sousDescripteurs} sous-descripteurs uniques, ${sonde.compact.signatures} signatures locales, ${volumePlat} tokens plats témoins`)
-  })
+    let contenu = 'src/a'
+    const accesseur = { objet: { get texte() { return contenu } } }
+    for (const valeur of ['src/a', 'docs/mutation', 'src/a']) {
+      contenu = valeur
+      fournisseurs.push(observerValeur(c, `accesseur ${valeur}`, accesseur))
+    }
+    partition(fournisseurs.slice(0, 6), 'provenance toJSON')
+    partition(fournisseurs.slice(6), 'accesseur')
+  }
   const fonction = () => {}
   const avecJSON = () => {}
   avecJSON.toJSON = () => 'fonction'
   const creux = tableauCreux()
   assert.equal(creux.length, 2)
   assert.equal(Object.hasOwn(creux, 0), false)
-  assert.equal(Object.hasOwn(creux, 1), true)
-  assert.equal(creux[1], 1)
-  const cas = [
-    [['nombre', -0], ['nombre', 0], ['nombre', NaN], ['nombre', Infinity], ['nombre', null]],
-    [['absence', undefined], ['absence', fonction], ['absence', Symbol('s')], ['absence', null]],
-    [['fonction', avecJSON], ['fonction', 'fonction']],
-    [['objet', { b: 2, a: 1 }], ['objet', { a: 1, b: 2 }]],
-    [['objet', { a: undefined, b: fonction, c: null }], ['objet', { c: null }]],
-    [['liste', creux], ['liste', [null, 1]], ['liste', [1, null]], ['texte', '\\u0000"[]{}']],
-    [['json', { toJSON: () => ({ b: 2, a: 1 }) }], ['json', { b: 2, a: 1 }]],
-  ]
-  for (const descriptors of cas) assert.equal(projection(p, descriptors), projection(o, descriptors))
-  assert.throws(() => projection(p, [['bigint', 1n]]), TypeError)
-  assert.throws(() => projection(o, [['bigint', 1n]]), TypeError)
+  const descripteurs = [-0, 0, NaN, Infinity, null, undefined, fonction, Symbol('s'), avecJSON, 'fonction', { b: 2, a: 1 }, { a: 1, b: 2 },
+    { a: undefined, b: fonction, c: null }, { c: null }, creux, [null, 1], [1, null], '\\u0000"[]{}', { toJSON: () => ({ b: 2, a: 1 }) },
+    'S3:L;', 'L;', 'N7;', '7', 7, [7], { a: 7 }, [['a', 7]], [8], [], {}, true, 'B1;', new Proxy(['enfant', 7], {}), ['enfant', 7]]
+  const projection = (c, ds) => c.cleCanonique(({ interner }) => ds.map(interner), null, null)
+  const paires = (c) => descripteurs.flatMap((x, i) => descripteurs.map((y, j) => ({ nom: `${i},${j}`, cle: projection(c, [['d', x], ['d', y]]), oracle: JSON.stringify([['d', x], ['d', y]]) })))
+  for (const regime of regimes) partition(paires(clesCanoniques(regime)), `projection ${JSON.stringify(regime)}`)
   const circulaire = {}
   circulaire.a = circulaire
-  assert.throws(() => projection(p, [['json', circulaire]]), TypeError)
-  assert.throws(() => projection(o, [['json', circulaire]]), TypeError)
   const tableauCirculaire = []
   tableauCirculaire.push(tableauCirculaire)
-  assert.throws(() => projection(p, [['json', tableauCirculaire]]), TypeError)
-  assert.throws(() => projection(o, [['json', tableauCirculaire]]), TypeError)
-  const descriptorVide = []
-  descriptorVide.toJSON = () => undefined
-  assert.equal(projection(p, [descriptorVide, descriptorVide]), projection(o, [descriptorVide, descriptorVide]))
-  const avantProjection = p.serialisations()
-  projection(p, [['a', 1, [2, true, null]], ['a', 1, [2, true, null]], ['a', 2]])
-  assert.equal(p.serialisations() - avantProjection, 1)
-  let provenance = 'banc.mjs'
-  const dynamique = () => {}
-  dynamique.toJSON = () => provenance
-  for (const f of [dynamique, { toJSON: () => provenance }]) {
-    const a = [{ texte: 'src/a' }]
-    const args = [a]
-    p.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f, env: null } })
-    const premiere = p.cleDesArgs(args)
-    provenance = 'autre.mjs'
-    assert.notEqual(p.cleDesArgs(args), premiere)
-    provenance = 'banc.mjs'
-    assert.equal(p.cleDesArgs(args), premiere)
+  for (const regime of regimes) for (const d of [1n, circulaire, tableauCirculaire]) {
+    assert.throws(() => JSON.stringify([['d', d]]), TypeError)
+    assert.throws(() => projection(clesCanoniques(regime), [['d', d]]), TypeError)
   }
-  t.diagnostic('Projection JSON : collisions null/undefined/fonction/symbole, -0/0, non-finis, ordre objet, trous, toJSON et erreurs identiques ; toJSON mutable fonction et objet : clé invalidée')
-  const longueurs = []
-  for (const profondeur of [0, 4, 8, 16, 32]) {
-    const args = dag(p, profondeur)
-    const cle = p.cleDesArgs(args)
-    assert.equal(cle, o.cleDesArgs(dag(o, profondeur)))
-    for (const variante of [{ forme: true }, { module: true }, { lie: true }])
-      assert.equal(p.cleDesArgs(dag(p, profondeur, variante)), o.cleDesArgs(dag(o, profondeur, variante)))
-    longueurs.push(cle.length)
-    assert.equal(p.cleDesArgs(args), cle)
-    assert.equal(p.cleDesArgs(dag(p, profondeur)), cle)
-    assert.notEqual(p.cleDesArgs(dag(p, profondeur, { forme: true })), cle)
-    assert.notEqual(p.cleDesArgs(dag(p, profondeur, { module: true })), cle)
-    const q = neuf()
-    q.cleDesArgs([[{ texte: 'préambule' }]])
-    assert.equal(q.cleDesArgs(dag(q, profondeur)), cle)
-    assert.ok(cle.length < 600 * (profondeur + 1))
-  }
-  assert.ok(longueurs.at(-1) < 5 * longueurs[2])
-  const repetes = dag(p, 16)
-  const avantDag = p.encodages()
-  const avantSerialisations = p.serialisations()
-  const repetee = p.cleDesArgs(repetes)
-  assert.equal(p.serialisations() - avantSerialisations, 1)
-  const avant = p.encodages()
-  for (let i = 0; i < 20; i++) assert.equal(p.cleDesArgs(repetes), repetee)
-  assert.equal(p.encodages(), avant)
-  t.diagnostic(`DAG partagé : ${avant - avantDag} encodages initiaux, ${p.encodages() - avant} pour 20 répétitions`)
-  const formeRepetee = p.formesDesArguments.get(repetes[0])
-  formeRepetee.e.v = 'docs/mutation'
-  assert.notEqual(p.cleDesArgs(repetes), repetee)
-  assert.ok(p.encodages() > avant)
-  formeRepetee.e.v = 'src/a'
-  assert.equal(p.cleDesArgs(repetes), repetee)
-  formeRepetee.ctx.f = 'autre.mjs'
-  assert.notEqual(p.cleDesArgs(repetes), repetee)
-  formeRepetee.ctx.f = 'banc.mjs'
-  const enfantRepete = formeRepetee.ctx.env.args
-  const ancienneForme = p.formesDesArguments.get(enfantRepete[0])
-  p.formesDesArguments.set(enfantRepete[0], { ...ancienneForme, e: { k: 'liste', v: [ancienneForme.e] } })
-  assert.notEqual(p.cleDesArgs(repetes), repetee)
-  p.formesDesArguments.set(enfantRepete[0], ancienneForme)
-  assert.equal(p.cleDesArgs(repetes), repetee)
-  enfantRepete[0][0].texte = 'docs/enfant'
-  assert.notEqual(p.cleDesArgs(repetes), repetee)
-  enfantRepete[0][0].texte = 'src/a'
-  assert.equal(p.cleDesArgs(repetes), repetee)
-  const objetRepete = { objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }
-  const cleObjet = p.cleDe(objetRepete)
-  const avantObjet = p.encodages()
-  for (let i = 0; i < 20; i++) assert.equal(p.cleDe(objetRepete), cleObjet)
-  assert.equal(p.encodages(), avantObjet)
-  objetRepete.objet.fichier.v = 'docs/mutation'
-  assert.notEqual(p.cleDe(objetRepete), cleObjet)
-  let contenu = 'src/a'
-  const accesseur = { get texte() { return contenu } }
-  const objetAccesseur = { objet: accesseur }
-  const cleAccesseur = p.cleDe(objetAccesseur)
-  contenu = 'docs/mutation'
-  assert.notEqual(p.cleDe(objetAccesseur), cleAccesseur)
-  const mapPersonnalisee = [[{ texte: 'src/a' }]]
-  let suffixe = 'src/a'
-  Object.defineProperty(mapPersonnalisee, 'map', { value: (faire) => [[{ texte: suffixe }]].map(faire) })
-  const cleMap = p.cleDesArgs(mapPersonnalisee)
-  suffixe = 'docs/mutation'
-  assert.notEqual(p.cleDesArgs(mapPersonnalisee), cleMap)
-  const lie8 = p.cleDesArgs(dag(p, 8, { lie: true }))
-  const lie32 = p.cleDesArgs(dag(p, 32, { lie: true }))
-  assert.equal(lie32, p.cleDesArgs(dag(p, 32, { lie: true })))
-  assert.ok(lie32.length < 5 * lie8.length)
-  assert.notEqual(p.cleDesArgs(dag(p, 8)), p.cleDesArgs(dag(p, 16)))
-  const ordre = [[{ texte: 'src/a' }], [{ texte: 'docs/b' }]]
-  assert.notEqual(p.cleDesArgs(ordre), p.cleDesArgs([...ordre].reverse()))
-  assert.equal(p.cleDesArgs(ordre), o.cleDesArgs(ordre))
-  assert.equal(p.cleDesArgs([...ordre].reverse()), o.cleDesArgs([...ordre].reverse()))
-  const lie = (forme) => {
-    const a = [{ texte: 'src/a' }]
-    p.formesDesArguments.set(a, { e: forme, ctx: { f: 'banc.mjs', env: null } })
-    return [a]
-  }
-  const scalaire = lie({ k: 'lit', v: 'src/a' })
-  const liste = lie({ k: 'liste', v: [{ k: 'lit', v: 'src/a' }] })
-  const lambda = (args) => ({ lambda: { id: 'lambda:1', sites: [], retours: [] }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
-  assert.notEqual(p.cleDe(lambda(scalaire)), p.cleDe(lambda(liste)))
-  assert.equal(p.cleDe(lambda(scalaire)), p.cleDe(lambda(lie({ k: 'lit', v: 'src/a' }))))
-  const objet = { objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }
-  assert.equal(p.cleDe(objet), p.cleDe(structuredClone(objet)))
-  assert.equal(p.cleDe(objet), o.cleDe(objet))
-  const cycle = () => {
-    const a = [{ texte: 'src/a' }]
-    const args = [a]
-    p.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
-    return args
-  }
-  const cyclique = cycle()
-  const cleCycle = p.cleDesArgs(cyclique)
-  const avantCycle = p.encodages()
-  assert.equal(p.cleDesArgs(cyclique), cleCycle)
-  assert.equal(p.encodages(), avantCycle)
-  assert.equal(cleCycle, p.cleDesArgs(cycle()))
-  const cycleAncien = cycle()
-  o.formesDesArguments.set(cycleAncien[0], p.formesDesArguments.get(cycleAncien[0]))
-  assert.equal(cleCycle, o.cleDesArgs(cycleAncien))
-  assert.notEqual(p.cleDesArgs(cycle()), p.cleDesArgs(scalaire))
-  for (const largeur of [10, 20, 40]) {
-    const enfant = Array.from({ length: largeur }, () => [{ texte: 'src/a' }])
-    for (const a of enfant) p.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: null } })
-    let appels = 0
-    let visites = 0
-    Object.defineProperty(enfant, 'map', { configurable: true, value: function (faire, receveur) {
-      appels++
-      return Array.prototype.map.call(this, (valeur, index) => {
-        visites++
-        return faire.call(receveur, valeur, index, this)
-      })
-    } })
-    const parents = Array.from({ length: largeur }, () => {
-      const a = [{ texte: 'src/a' }]
-      p.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: { fn: 'f', args: enfant } } })
-      return a
-    })
-    const cle = p.cleDesArgs(parents)
-    assert.equal(appels, 1)
-    assert.equal(visites, largeur)
-    delete enfant.map
-    assert.equal(p.cleDesArgs(parents), cle)
-  }
+  t.diagnostic('Partition des clés = partition du JSON : arguments, valeurs, mutations, provenance, accesseur et projections, dans chaque régime atteignable')
 })
+
 
 // #2586
 test('image Git déclarée : nouveau producteur, alias et même sélecteur canonique', () => {

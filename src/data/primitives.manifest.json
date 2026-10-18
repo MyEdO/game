@@ -1694,6 +1694,15 @@
     "verrou": "racinesBalayees.test.mjs"
   },
   {
+    "id": "clesCanoniques",
+    "type": "primitives.manifest",
+    "label": "clesCanoniques",
+    "fichier": "scripts/guards/lib/clesCanoniques.mjs",
+    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé et DAG cyclique refusés par une erreur nommée)",
+    "perimetre": "toute clé de mémo ou de dédoublonnage d'une valeur de l'évaluateur de racines balayées",
+    "verrou": "racinesBalayees.test.mjs"
+  },
+  {
     "id": "ciblesDEcritureDeCommande",
     "type": "primitives.manifest",
     "label": "ciblesDEcritureDeCommande",
