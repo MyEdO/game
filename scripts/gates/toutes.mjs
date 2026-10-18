@@ -90,20 +90,20 @@ const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.cla
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
-    lit: ['.claude/', '.agents/', '.codex/', 'AGENTS.md', 'CLAUDE.md', 'scripts/agents/'],
+    lit: ['.claude/', '.agents/', '.codex/', 'scripts/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
       'mode `check` : `runCompat` n’écrit que sous `mode === "sync"` (`runCompat`, scripts/agents/compat-cli.mjs) ; ' +
-      'les 48 lectures mesurées sont les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ + ' +
-      'AGENTS.md + CLAUDE.md (miroirs comparés), plus son propre code',
+      'il lit les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ (miroirs comparés), plus son ' +
+      'propre code (`FICHIERS_LUS`, `DOSSIERS_LUS`)',
   },
   'test:agents': {
     ecrit: [],
-    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
+    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'CLAUDE.md'],
     raison: RETRAIT_WORKTREE_FERME +
       'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
-      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
-      'et AGENTS.md — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
+      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur ses imports `@.claude/credo.md` et ' +
+      '`@AGENTS.md`) — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
       'scripts/hooks/ depuis le 2026-09-28 (#2125) : les déclarations de hooks dérivent des registres, que ' +
       '`chargerRegistres` (scripts/agents/compat-cli.mjs) importe',
   },
@@ -228,9 +228,9 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.codex/credo.md', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'session-start.test.mjs copie les configurations et credos réels .claude/settings.json, .claude/credo.md, .codex/hooks.json et .codex/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credos et reçus restent dans ces fixtures ; ' +
+      'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +

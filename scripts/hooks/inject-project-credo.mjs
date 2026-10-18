@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { Writable } from 'node:stream';
 import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs';
 
+/** Le credo, UN fichier pour les deux surfaces (#2726 B5). */
 export function resolveCredoPath(surface, scriptUrl = import.meta.url) {
   if (!['claude', 'codex'].includes(surface)) throw new Error(`surface inconnue: ${surface}`);
-  return join(dirname(fileURLToPath(scriptUrl)), '..', '..', `.${surface}`, 'credo.md');
+  return join(dirname(fileURLToPath(scriptUrl)), '..', '..', '.claude', 'credo.md');
 }
 
 export async function injectProjectCredo(surface, scriptUrl = import.meta.url, output = process.stdout, { env = process.env, entree, worktree = process.cwd() } = {}) {
