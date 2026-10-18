@@ -1,7 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { EventEmitter } from 'node:events'
-import { appendFileSync, mkdirSync, readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, existsSync, mkdtempSync, rmSync, openSync, readSync, closeSync, fstatSync } from 'node:fs'
+import { stripVTControlCharacters } from 'node:util'
 import { createServer, createConnection } from 'node:net'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -15,6 +16,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const refus = (categorie, message, native) => Object.assign(new Error(`${prefixeDeRefus(categorie)} ${message}`), { native })
 const empreinte = (s) => createHash('sha256').update(s).digest('hex')
 const OUTILS = ['commandExecution', 'fileChange', 'mcpToolCall', 'dynamicToolCall', 'collabAgentToolCall', 'webSearch', 'imageView', 'imageGeneration', 'sleep']
+const CHAMPS_OUTILS = Object.freeze({ commandExecution: ['command', 'status'], fileChange: ['status'], mcpToolCall: ['server', 'tool', 'status'], dynamicToolCall: ['tool', 'status'], collabAgentToolCall: ['tool', 'status'], webSearch: [], imageView: [], imageGeneration: ['status'], sleep: [] })
+const CHAMPS_ITEMS = ['item.@agentMessage.type', 'item.@agentMessage.text', ...OUTILS.flatMap((t) => ['id', ...CHAMPS_OUTILS[t]].map((k) => `item.@${t}.${k}`))]
 const CHAMPS = Object.freeze({
   'v1/InitializeParams': ['clientInfo.name', 'clientInfo.version', 'capabilities.experimentalApi'],
   'v1/InitializeResponse': ['userAgent'],
@@ -28,8 +31,8 @@ const CHAMPS = Object.freeze({
   'v2/TurnInterruptResponse': [],
   'v2/TurnStartedNotification': ['threadId', 'turn.id'],
   'v2/TurnCompletedNotification': ['threadId', 'turn.id', 'turn.status', 'turn.items.[].@agentMessage.type', 'turn.items.[].@agentMessage.text', 'turn.durationMs', 'turn.error.message'],
-  'v2/ItemCompletedNotification': ['threadId', 'turnId', 'item.@agentMessage.type', 'item.@agentMessage.text', ...OUTILS.map((t) => `item.@${t}.id`)],
-  'v2/ItemStartedNotification': ['threadId', 'turnId', ...OUTILS.map((t) => `item.@${t}.id`)],
+  'v2/ItemCompletedNotification': ['threadId', 'turnId', ...CHAMPS_ITEMS],
+  'v2/ItemStartedNotification': ['threadId', 'turnId', ...CHAMPS_ITEMS],
   'v2/ThreadTokenUsageUpdatedNotification': ['threadId', 'turnId', 'tokenUsage.total.totalTokens'],
   'v2/ThreadStatusChangedNotification': ['threadId', 'status.@active.type', 'status.@active.activeFlags.[]'],
   'v2/ErrorNotification': ['threadId', 'error.message'],
@@ -47,8 +50,8 @@ const EMPREINTES = Object.freeze({
   'v2/TurnInterruptResponse': '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
   'v2/TurnStartedNotification': 'abae1781e40c74769480a11971b850ab1b4a42f77a4fe76f6fe274972c2aa2c4',
   'v2/TurnCompletedNotification': '12822e0f1551cc1dbdd6025e3f564865090d18648ecbff75e99e791f78b5349b',
-  'v2/ItemCompletedNotification': '6ca12762769fa677fc5df12b1b54b59d02ead6dd9ffdfc3c686a695c37661090',
-  'v2/ItemStartedNotification': 'c3b5372ae65ba9bf3d9b8631bf90351299592da8d65892751c909d01aa01cb46',
+  'v2/ItemCompletedNotification': '973243d19a85605f9edfa7aad1dd90e9405e3212747157a2c6d7e8d6b8656a21',
+  'v2/ItemStartedNotification': '973243d19a85605f9edfa7aad1dd90e9405e3212747157a2c6d7e8d6b8656a21',
   'v2/ThreadTokenUsageUpdatedNotification': '8d41e6d6a92479e1fa9e411bbff6e2412959bfdd979e349fb31f87c57dc040b4',
   'v2/ThreadStatusChangedNotification': '8e0b5553009531739bc455be014a6a1c04aebf3b1f3629ff439ae204f7e5cec6',
   'v2/ErrorNotification': '0ee69aea58e82042178f3a259e15b8b4718ddcddd57f9bbcf0a242c5d0ce9b43',
@@ -118,6 +121,69 @@ function adresse(dossier, sessionId) {
 function chemins(dossier, sessionId) {
   identite(sessionId)
   return { journal: join(dossier, `${sessionId}.codex.jsonl`), stderr: join(dossier, `${sessionId}.codex.stderr.log`) }
+}
+export function projeterJournalCodex(journal, echo = (texte) => process.stdout.write(texte)) {
+  const bloc = Buffer.alloc(16 * 1024), limiteLecture = 256 * 1024
+  let position = 0, morceaux = [], longueur = 0, reprise, threadId, turnId
+  const afficher = (prefixe, texte = '') => {
+    const net = stripVTControlCharacters(String(texte).slice(0, 8192)).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim()
+    echo(`[Codex] ${prefixe}${net ? ` : ${net.slice(0, 4096)}${net.length > 4096 ? '…' : ''}` : ''}\n`)
+  }
+  function projeter(x) {
+    const n = x.notification, p = n?.params, item = p?.item
+    if (n && Object.hasOwn(n, 'id') && !n.method) {
+      if (!threadId && typeof n.result?.thread?.id === 'string') threadId = n.result.thread.id
+      if (threadId && typeof n.result?.turn?.id === 'string') turnId = n.result.turn.id
+    }
+    if (n?.method) {
+      if (!threadId || p?.threadId !== threadId) return
+      if (p.turnId && (!turnId || p.turnId !== turnId)) return
+      if (n.method === 'turn/started' || n.method === 'turn/completed') {
+        if (!turnId || p.turn?.id !== turnId) return
+      }
+    }
+    if (n?.method === 'item/completed' && item?.type === 'agentMessage') afficher('Agent', item.text)
+    else if ((n?.method === 'item/started' || n?.method === 'item/completed') && OUTILS.includes(item?.type)) {
+      const champs = CHAMPS_OUTILS[item.type]
+      const detail = champs.filter((k) => k !== 'status').map((k) => item[k]).filter((v) => typeof v === 'string').join(' / ')
+      const statut = champs.includes('status') && typeof item.status === 'string' ? item.status : n.method === 'item/started' ? 'inProgress' : 'completed'
+      afficher(`Outil ${item.type} [${statut}]`, detail)
+    } else if (n?.method === 'turn/completed') { afficher('Fin du tour', p.turn.status); turnId = undefined }
+    else if (n?.method === 'error') afficher('Erreur native', p?.error?.message)
+    else if (n?.error) afficher('Refus natif', n.error.message)
+    else if (x.transition && ['erreur', 'mort', 'fermeture'].includes(x.transition.type)) afficher(x.transition.type, x.transition.cause || x.transition.etat)
+    else if (x.erreur) afficher('Erreur', x.erreur)
+  }
+  function ajouter(partie) {
+    if (!partie.length) return
+    morceaux.push(Buffer.from(partie)); longueur += partie.length
+  }
+  function lire() {
+    clearImmediate(reprise)
+    reprise = undefined
+    if (!existsSync(journal)) return
+    const fd = openSync(journal, 'r')
+    try {
+      const taille = fstatSync(fd).size
+      let budget = limiteLecture
+      while (position < taille && budget > 0) {
+        const n = readSync(fd, bloc, 0, Math.min(bloc.length, budget, taille - position), position)
+        if (!n) break
+        position += n
+        budget -= n
+        let debut = 0
+        for (let i = 0; i < n; i++) if (bloc[i] === 10) {
+          ajouter(bloc.subarray(debut, i))
+          try { projeter(JSON.parse(Buffer.concat(morceaux, longueur).toString('utf8'))) }
+          catch (e) { if (e instanceof SyntaxError) afficher('Journal', 'ligne JSON invalide'); else throw e }
+          morceaux = []; longueur = 0; debut = i + 1
+        }
+        ajouter(bloc.subarray(debut, n))
+      }
+      if (position < taille) reprise = setImmediate(lire)
+    } finally { closeSync(fd) }
+  }
+  return lire
 }
 function lireTransitions(dossier, sessionId) {
   const p = chemins(dossier, sessionId).journal
@@ -189,7 +255,7 @@ export async function veillerCodex({ dossier, sessionId, depuis = 0, timeoutMs =
     throw e
   }
 }
-export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn }) {
+export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn, echo }) {
   identite(carte.sessionId)
   if (typeof notifier !== 'function' || !/^[0-9a-f]{64}$/.test(carte.empreinteJeton)) throw refus('validation', 'Projection et empreinte de capacité requises')
   const outputSchema = typeof schema === 'string' ? JSON.parse(readFileSync(schema, 'utf8')) : schema
@@ -204,7 +270,8 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   const outilsVus = new Set()
   const toursTermines = new Set()
   Object.defineProperties(child, { pid: { get: () => natif.pid }, exitCode: { get: () => natif.exitCode }, signalCode: { get: () => natif.signalCode } })
-  function journal(x) { appendFileSync(fichiers.journal, `${JSON.stringify(x)}\n`) }
+  const projeterJournal = projeterJournalCodex(fichiers.journal, echo)
+  function journal(x) { appendFileSync(fichiers.journal, `${JSON.stringify(x)}\n`); projeterJournal() }
   function cause(e) { if (!premiereCause) premiereCause = e.message || String(e) }
   function publier(type, champs = {}) {
     const suivante = { ...projection, dureeMs: Date.now() - debut, ...champs }
