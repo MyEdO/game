@@ -47,15 +47,6 @@ const ANNEXE = '.claude/skills/demo/annexe.md';
 const MIROIR_ANNEXE = '.agents/skills/demo/annexe.md';
 const avecAnnexe = (texte) => buildExpectedOutputs(new Map([[ANNEXE, Buffer.from(texte)]]));
 
-test('adopte un legacy exact mais refuse un écrasement manuel', () => {
-  const expected = avecAnnexe('# Annexe\nClaude Code\n');
-  const legacy = expected.files.get(MIROIR_ANNEXE).toString('utf8').replace(/^<!-- GENERATED:[^\n]+ -->\n/, '');
-  const diff = (texte) => collectDiffs(expected, new Map([[MIROIR_ANNEXE, Buffer.from(texte)]])).find((d) => d.destination === MIROIR_ANNEXE);
-  assert.equal(diff(legacy).safe, true);
-  assert.equal(diff(legacy.replace(/\n/g, '\r\n')).type, 'unsafe-overwrite');
-  assert.equal(diff('# manuel\n').type, 'unsafe-overwrite');
-});
-
 test('produit un diagnostic parse pour un miroir en UTF-8 invalide', () => {
   const diagnostics = collectDiffs(avecAnnexe('# Annexe\n'), new Map([[MIROIR_ANNEXE, Buffer.from([0xc3, 0x28])]]));
   assert.equal(diagnostics.find((d) => d.destination === MIROIR_ANNEXE).type, 'parse');

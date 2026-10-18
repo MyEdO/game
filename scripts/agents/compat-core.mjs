@@ -391,10 +391,6 @@ export function buildExpectedOutputs(snapshot, registres) {
   return { files, managedRoots: new Set(MANAGED_ROOTS), sortiesDeHooks, diagnostics };
 }
 
-function withoutBanner(value) {
-  return value.replace(/<!-- GENERATED:[^\n]+ -->\n/, '');
-}
-
 function hasGeneratedBanner(value) {
   return /(?:^|\n)<!-- GENERATED: agents:sync; source=[^\n]+ -->\n/.test(value);
 }
@@ -416,10 +412,8 @@ export function collectDiffs(expected, actual) {
         diagnostics.push({ family: 'skill', destination, type: 'parse', message: error.message, safe: false });
         continue;
       }
-      const legacy = Buffer.from(withoutBanner(wanted.toString('utf8')));
       const marked = hasGeneratedBanner(current);
-      const legacyExact = found.equals(legacy);
-      diagnostics.push({ family: 'skill', destination, type: marked || legacyExact ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked || legacyExact });
+      diagnostics.push({ family: 'skill', destination, type: marked ? 'content' : 'unsafe-overwrite', message: 'contenu divergent', safe: marked });
     }
   }
   for (const [destination, found] of actual) {
