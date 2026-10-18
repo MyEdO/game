@@ -2735,7 +2735,7 @@ function appliquerLaTouche(
   // Un dé déclaré a ARRÊTÉ la chaîne : aucun modifier d'ordre supérieur n'a muté quoi que ce soit. La
   // résolution repart de l'applier 'sauvegarde', qui rejouera la chaîne ENTIÈRE une fois la touche connue.
   if (apresModifiers.suspendu) return null;
-  // Empoignade : LDB 14 l.159. La pose de l'Empoignade et de l'État *Empêtré* suit l'Engagement, plus bas.
+  // LDB 14 l.159.
   res = coupAApplique(res, suite?.grapple, target);
   // Cible Inconsciente — règle optionnelle « mort-auto » (LDB 16 l.113) : en CORPS À CORPS la cible est
   // tuée automatiquement. On applique la mort par le MÊME chemin que les morts normales (`finalizeHeroDeath`
@@ -2803,12 +2803,8 @@ function appliquerLaTouche(
     } else campGain(get, attacker);
     attacker.gainedAdvThisRound = true;
   }
-  // Empoignade (LDB 14 l.159) : « vous ET votre adversaire êtes Empoignés, et votre adversaire gagne
-  // l'État *Empêtré* ». Pose APRÈS l'Engagement (les deux Empoignés) ; le bloc de Dégâts ci-dessous est
-  // inerte (woundsLost neutralisé plus haut). RAW : pas de Dégâts sur l'initiation.
+  // LDB 14 l.159 — pose APRÈS `engage`.
   if (res.sansPrise === 'empoignade') {
-    // VOIE UNIQUE d'initiation, en DONNÉE : `GRAPPLE.init` pose l'*Empêtré* ET la relation (op `condition
-    // {grapple:true}`) — mêmes effets qu'avant, mais éditables, partagés avec Constricteur/Tentacules/Langue.
     applyOps(target, GRAPPLE.init, { caster: attacker, source: GRAPPLE_SOURCE });
     critLog.push(tr('cf.grappleInit', { name: attacker.label, foe: target.label }));
   }

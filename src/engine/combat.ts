@@ -1618,7 +1618,11 @@ export function coupAApplique(res: AttackResult, grapple: boolean | undefined, c
  *  sans les `runHitModifiers` de l'application (`src/state/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
 export function issueAuJet(cible: Combatant, res: AttackResult): { ligne: string; compte: CompteDesCritiques } {
   const compte = apercuDesCritiques(cible, res);
-  return { ligne: res.touche ? phraseDeTouche(res.touche, res, compte.critiques.length > 0) : res.log, compte };
+  if (!res.touche) return { ligne: res.log, compte };
+  const tete = phraseDeTouche(res.touche, res, compte.critiques.length > 0);
+  // LDB 14 l.159
+  const empoignade = res.sansPrise === 'empoignade' ? ` ${t('cf.grappleInit', { name: res.touche.attaquant, foe: res.touche.cible })}` : '';
+  return { ligne: `${tete}${empoignade}`, compte };
 }
 
 /** L'arme inflige-t-elle l'État *En flammes* (un onHitEffect posant la Condition `en-flammes`, ex. Épée

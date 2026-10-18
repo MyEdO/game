@@ -541,7 +541,7 @@ describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17
 });
 
 describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
-  it('Empoigner coché, touche : la ligne d’issue ne chiffre ni Dégâts ni Blessures', () => {
+  it('Empoigner coché, touche : la ligne d’issue annonce l’Empoignade sans chiffrer Dégâts ni Blessures', () => {
     const poings = { ...sword, name: 'Mains nues', label: 'Mains nues', uid: 'poings', trappingId: 'mains-nues' } as Weapon;
     const vue = renderAttack({ armes: [poings] });
     // Aucun siège MJ : la Défense du Gobelin ne s'interpose pas, l'issue s'affiche dans la popin d'attaque.
@@ -561,5 +561,31 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
     const issue = rendues!.outcome![0].text;
     expect(issue).toContain('touche');
     expect(issue).not.toMatch(/dégâts|Blessures/);
+    expect(issue).toContain('empoigne Gobelin : ils sont Empoignés et Gobelin gagne l’État Empêtré.');
+  });
+
+  it('Empoigner coché, cible devenue inerte : l’issue suit le coup normal, Blessures chiffrées', () => {
+    const poings = { ...sword, name: 'Mains nues', label: 'Mains nues', uid: 'poings', trappingId: 'mains-nues' } as Weapon;
+    const vue = renderAttack({ armes: [poings] });
+    act(() => useGame.setState({ net: { ...useGame.getState().net, gmSeat: undefined } }));
+    const empoigner = [...vue.querySelectorAll('button')].find((b) => b.textContent?.includes('Empoigner'))!;
+    act(() => empoigner.click());
+    expect(useGame.getState().pendingAttack!.grapple, 'précondition : Empoigner coché').toBe(true);
+    act(() => {
+      const b = useGame.getState().battle!;
+      b.combatants[0].resilience = 1;
+      b.combatants.find((c) => c.id === useGame.getState().pendingAttack!.targetId)!.inert = true;
+    });
+    seedBattleRng(1);
+    act(() => useGame.getState().attackRoll());
+    if (!useGame.getState().pendingAttack!.result!.hit) {
+      act(() => useGame.getState().attackForceSuccess());
+      act(() => useGame.getState().attackSetForcedRoll(21));
+    }
+    const res = useGame.getState().pendingAttack!.result!;
+    expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);
+    const issue = rendues!.outcome![0].text;
+    expect(issue).toMatch(/\d+ dégâts − \d+ \(.+\) = \d+ Blessures/);
+    expect(issue).not.toContain('empoigne');
   });
 });
