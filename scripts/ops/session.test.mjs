@@ -425,26 +425,6 @@ test('raccord : WT zéro après fermeture sans claim refuse faux succès', async
   }), /DÉMARRAGE ÉCHOUÉ/)
 })
 
-test('raccord : claim entre snapshot et mutation ferme sur constat frais sous verrou', async (t) => {
-  const b = banc(t, { auSommeil: (sessions, vivants) => {
-    assert.equal(sessions.lire(id).etat, 'arret-demande')
-    sessions.sortie(id, { codeAgent: null, arret: true }); vivants.clear()
-  } }), r = b.reserver(), id = r.carte.sessionId
-  b.vivants.delete(10); b.vivants.delete(30)
-  const rm = fs.rmSync
-  let intercale = false
-  fs.rmSync = function (chemin, ...args) {
-    const resultat = rm.call(this, chemin, ...args)
-    if (!intercale && String(chemin) === join(b.dossier, 'registre.lock.reprise')) {
-      intercale = true
-      b.vivants.set(10, identite(10)); b.vivants.set(30, identite(30)); b.revendiquer(r)
-    }
-    return resultat
-  }
-  try { assert.equal((await b.sessions.fermer(id, r.jeton, { timeoutMs: 100 })).etat, 'sortie'); assert.ok(intercale) }
-  finally { fs.rmSync = rm }
-})
-
 test('raccord : WT erreur après claim conserve raison et événement unique après sortie superviseur', async (t) => {
   let id
   const b = banc(t, { auSommeil: (sessions, vivants) => {
@@ -856,23 +836,69 @@ test('snapshot OS unique par passe pour plusieurs dizaines de cartes historiques
   assert.equal(snapshots, 1); assert.equal(sondes, 0)
 })
 
-test('course : cartes lues sous verrou avant snapshot, inscription pendant constat ne clôture pas un host vivant', (t) => {
-  const b = banc(t), r = b.reserver()
-  let premiere = true
-  const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, lanceur: () => identite(99), inventaire: () => {
-    assert.ok(existsSync(join(b.dossier, 'registre.lock')), 'snapshot acquis sous verrou')
-    if (!premiere) return [identite(40)]
-    premiere = false
-    const c = JSON.parse(readFileSync(join(b.dossier, `${r.carte.sessionId}.json`), 'utf8'))
-    Object.assign(c, { etat: 'nettoyage', controleur: identite(10), jobHost: identite(40), issueSortie: 'sortie', sortieLe: new Date(2000).toISOString(), codeAgent: 0 })
-    delete c.empreinteNonce
-    writeFileSync(join(b.dossier, `${r.carte.sessionId}.json`), JSON.stringify(c))
-    return []
+test('mesure hors verrou : réconciliation, revendication et arrêt laissent projeter Codex', (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex' })
+  let snapshots = 0
+  const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+    assert.equal(existsSync(join(b.dossier, 'registre.lock')), false, 'inventaire sans registre.lock')
+    b.sessions.projectionCodex(r.carte.sessionId, { seq: ++snapshots })
+    return [...b.vivants.values()]
   } })
-  const vu = sessions.lister()
-  assert.equal(vu.evenements.filter((e) => e.type === 'clôture').length, 0)
-  assert.equal(sessions.lire(r.carte.sessionId).etat, 'nettoyage')
-  assert.throws(() => sessions.reserver({ ...r.carte, sessionId: undefined }), /COLLISION/)
+  sessions.lister()
+  sessions.revendiquer(r.carte.sessionId, r.nonce, { controleurPid: 10, jobHostPid: 30 })
+  assert.equal(sessions.demanderArret(r.carte.sessionId, r.jeton).etat, 'arret-demande')
+  assert.equal(snapshots, 3)
+  assert.equal(sessions.lire(r.carte.sessionId).codex.seq, 3)
+})
+
+test('mesure périmée : naissance, revendication et changements de chaque identité restent indéterminés', (t) => {
+  for (const changement of ['naissance', 'revendication', 'controleur', 'jobHost', 'agentProcessus', 'creation', 'absence']) {
+    const b = banc(t), r = b.reserver()
+    if (!['naissance', 'revendication'].includes(changement)) { b.revendiquer(r); b.sessions.agentDemarre(r.carte.sessionId, identite(20)) }
+    let id = r.carte.sessionId, premiere = true
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+      if (!premiere) return [...b.vivants.values()]
+      premiere = false
+      if (changement === 'naissance') { const neuve = b.reserver({ ticket: 2462, nom: 'neuve' }); b.revendiquer(neuve); id = neuve.carte.sessionId }
+      else if (changement === 'revendication') b.revendiquer(r)
+      else b.sessions.muter(id, (c) => {
+        if (changement === 'absence') delete c.agentProcessus
+        else if (changement === 'creation') { c.jobHost = { pid: 30, creation: 'nouvelle-date' }; b.vivants.set(30, c.jobHost) }
+        else { c[changement] = identite(40); b.vivants.set(40, identite(40)) }
+      })
+      return []
+    } })
+    const vu = sessions.lister().cartes.find((c) => c.sessionId === id)
+    assert.equal(vu.etat, 'vivante', changement)
+    assert.equal(vu.etatMesure, 'indeterminee', changement)
+    assert.equal(vu.evenements.some((e) => ['échec', 'clôture'].includes(e.type)), false, changement)
+    assert.equal(sessions.lister().cartes.find((c) => c.sessionId === id).etatMesure, 'vivante', changement)
+  }
+})
+
+test('mesure périmée : arrêt refuse une identité changée et nettoyage attend une mesure fraîche', (t) => {
+  for (const nettoyage of [false, true]) {
+    const b = banc(t), r = b.reserver(); b.revendiquer(r)
+    if (nettoyage) b.sessions.sortie(r.carte.sessionId, { codeAgent: 0 })
+    let premiere = true
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+      if (!premiere) return []
+      premiere = false
+      b.sessions.muter(r.carte.sessionId, (c) => { c.jobHost = identite(40) })
+      return []
+    } })
+    if (nettoyage) {
+      const c = sessions.lister().cartes[0]
+      assert.equal(c.etat, 'nettoyage'); assert.equal(c.etatMesure, 'indeterminee')
+      assert.equal(c.evenements.some((e) => e.type === 'clôture'), false)
+      assert.equal(sessions.lister().cartes[0].etat, 'fermee')
+    } else {
+      assert.throws(() => sessions.demanderArret(r.carte.sessionId, r.jeton), /\[transitoire · retentable\]/)
+      assert.equal(sessions.lire(r.carte.sessionId).etat, 'vivante')
+      assert.equal(existsSync(join(b.dossier, `${r.carte.sessionId}.stop`)), false)
+      assert.equal(sessions.lister().cartes[0].etat, 'echec-controle')
+    }
+  }
 })
 
 test('crash host : présence garde orpheline ; absence complète donne échec consommable sans code0 ni publication et libère slot', async (t) => {

@@ -194,21 +194,24 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const ecrireCarte = (carte) => sousVerrou(() => { validerCarte(carte, `${carte.sessionId}.json`); if (fs.existsSync(chemin(carte.sessionId))) { const precedente = lire(carte.sessionId); if (precedente.producteur !== PRODUCTEUR || carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); } sauver(chemin(carte.sessionId), carte); return carte })
   const muter = (id, fn) => sousVerrou(() => { const carte = lire(id); if (carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); fn(carte); validerCarte(carte, `${id}.json`); sauver(chemin(id), carte); return carte })
   const constater = () => { const liste = inventaire(); return { inventaire: liste, processus: new Map(liste.map((p) => [p.pid, p])) } }
+  const memesIdentites = (a, b) => !!a && !!b && ['controleur', 'jobHost', 'agentProcessus'].every((cle) => (!a[cle] && !b[cle]) || identique(a[cle], b[cle]))
+  const observationCourante = (carte, vue) => memesIdentites(carte, vue.observees.get(carte.sessionId))
   const encorePresent = (carte, vue) => [carte.controleur, carte.jobHost, carte.agentProcessus].some((id) => id && identique(vue.processus.get(id.pid), id))
   const reconcilier = () => {
+    const initiales = collection()
+    const vue = { ...constater(), observees: new Map(initiales.cartes.map((c) => [c.sessionId, c])) }
     return sousVerrou(() => {
       const ensemble = collection()
-      const vue = constater()
       for (const c of ensemble.cartes) {
         if (c.producteur !== PRODUCTEUR) continue
         if (c.etat === 'reservee' && horloge() > c.reserveJusqua) {
           libererReservation(c, 'echec-reservation', 'RÉSERVATION EXPIRÉE')
           sauver(chemin(c.sessionId), c)
-        } else if (c.etat === 'nettoyage' && !encorePresent(c, vue)) {
+        } else if (observationCourante(c, vue) && c.etat === 'nettoyage' && !encorePresent(c, vue)) {
           c.etat = 'fermee'; c.fermeeLe = maintenant(); c.codeEnveloppe = 0
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
           sauver(chemin(c.sessionId), c)
-        } else if (['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
+        } else if (observationCourante(c, vue) && ['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
           c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue'); c.issueSortie = 'echec'; delete c.codeEnveloppe
           sauver(chemin(c.sessionId), c)
         }
@@ -238,21 +241,23 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   }
   const estSortieObservee = (carte) => carte.etat === 'fermee'
   const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE'); if (fin.raison) signalerEchec(c, fin.raison); const raison = c.raison; Object.assign(c, fin, { rapport: fin.rapport ?? c.rapport, raison, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
-  const revendiquer = (id, nonce, ids) => sousVerrou(() => {
-    const c = lire(id)
-    if (c.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE')
-    if (c.etat === 'echec-reservation' || (c.etat === 'reservee' && horloge() > c.reserveJusqua)) throw erreur('métier', 'RÉSERVATION EXPIRÉE')
-    if (c.etat !== 'reservee') throw erreur('permission', 'REVENDICATION REFUSÉE')
-    const revendication = nonce ?? lireJSON(bootstrap(id)).nonce
-    if (c.etat !== 'reservee' || c.empreinteNonce !== empreinte(revendication ?? '')) throw erreur('permission', 'REVENDICATION REFUSÉE')
+  const revendiquer = (id, nonce, ids) => {
     const vue = constater()
-    ids = { controleur: ids.controleur ?? vue.processus.get(ids.controleurPid), jobHost: ids.jobHost ?? vue.processus.get(ids.jobHostPid) }
-    if (!ids.controleur?.creation || !ids.jobHost?.creation || !identique(vue.processus.get(ids.controleur.pid), ids.controleur) || !identique(vue.processus.get(ids.jobHost.pid), ids.jobHost)) throw erreur('permission', 'REVENDICATION : IDENTITÉ NON MESURÉE')
-    Object.assign(c, ids, { etat: 'vivante', revendiqueLe: maintenant() }); delete c.empreinteNonce
-    sauver(chemin(id), c)
-    fs.rmSync(bootstrap(id), { force: true })
-    return c
-  })
+    return sousVerrou(() => {
+      const c = lire(id)
+      if (c.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE')
+      if (c.etat === 'echec-reservation' || (c.etat === 'reservee' && horloge() > c.reserveJusqua)) throw erreur('métier', 'RÉSERVATION EXPIRÉE')
+      if (c.etat !== 'reservee') throw erreur('permission', 'REVENDICATION REFUSÉE')
+      const revendication = nonce ?? lireJSON(bootstrap(id)).nonce
+      if (c.etat !== 'reservee' || c.empreinteNonce !== empreinte(revendication ?? '')) throw erreur('permission', 'REVENDICATION REFUSÉE')
+      ids = { controleur: ids.controleur ?? vue.processus.get(ids.controleurPid), jobHost: ids.jobHost ?? vue.processus.get(ids.jobHostPid) }
+      if (!ids.controleur?.creation || !ids.jobHost?.creation || !identique(vue.processus.get(ids.controleur.pid), ids.controleur) || !identique(vue.processus.get(ids.jobHost.pid), ids.jobHost)) throw erreur('permission', 'REVENDICATION : IDENTITÉ NON MESURÉE')
+      Object.assign(c, ids, { etat: 'vivante', revendiqueLe: maintenant() }); delete c.empreinteNonce
+      sauver(chemin(id), c)
+      fs.rmSync(bootstrap(id), { force: true })
+      return c
+    })
+  }
   const constaterRecu = (id) => {
     const c = lire(id)
     if (c.recuSessionStart) return { ok: true }
@@ -306,9 +311,10 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       const vue = reconcilier(), choisie = choisir(cible, { vue, attente: true })
       return muter(choisie.sessionId, (c) => {
         capacite(c, jeton)
+        if (!observationCourante(c, vue)) throw erreur('transitoire', 'OBSERVATION PÉRIMÉE : identités de session modifiées')
         if (sansControleur(c) && ['reservee', 'echec-reservation'].includes(c.etat)) { libererReservation(c, 'fermee'); return }
         if (terminaux.has(c.etat) || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE')
-        controle(c, constater())
+        controle(c, vue)
         if (c.etat === 'arret-demande') return
         c.etat = 'arret-demande'; c.demandeId = randomUUID(); c.arretDemandeLe = maintenant()
         sauver(stop(c.sessionId), { sessionId: c.sessionId, demandeId: c.demandeId })
@@ -351,7 +357,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       const toutes = vue.cartes.map((c) => {
         let etatMesure = c.etat
         if (c.producteur === PRODUCTEUR && !terminaux.has(c.etat)) {
-          if (c.etat === 'nettoyage') etatMesure = 'nettoyage-en-cours'
+          if (!observationCourante(c, vue)) etatMesure = 'indeterminee'
+          else if (c.etat === 'nettoyage') etatMesure = 'nettoyage-en-cours'
           else if (c.etat !== 'reservee') { try { controle(c, vue) } catch { etatMesure = 'orpheline' } }
         }
         const { empreinteJeton: _empreinteJeton, empreinteNonce: _empreinteNonce, empreinteNonceHook: _empreinteNonceHook, ...publique } = c
