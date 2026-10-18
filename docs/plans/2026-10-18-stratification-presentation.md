@@ -1,5 +1,7 @@
 # Stratification de la présentation : ce qu'un moteur de jeu tiers remplacerait (2026-10-18)
 
+Ticket: #2794
+
 Rapport du ticket #2792, sous-ticket de l'épique #2794 (« un moteur de jeu tiers gratuit plutôt que rendu et interface maison, `src/engine` conservé ? »). Il remplace l'agrégat du ticket (220 680 lignes de présentation) par une mesure par catégorie. Il ne recommande rien : la décision appartient à l'épique.
 
 ## Mesure
