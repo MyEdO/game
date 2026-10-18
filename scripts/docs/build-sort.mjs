@@ -285,7 +285,7 @@ ${table(
   )}
 
 **\`desc\`** est un **copié/collé VERBATIM** de la source (Markdown conservé, jamais reformulé ni
-résumé — règle 5 de \`CLAUDE.md\`) : le texte affiché doit pouvoir être recollé tel quel dans
+résumé — règle 5 d’\`AGENTS.md\`) : le texte affiché doit pouvoir être recollé tel quel dans
 \`Source/\`. Rendu en jeu par l'unique primitive \`<Prose>\`.
 
 ## 2. Portée / Cible / Durée — des unions STRUCTURÉES

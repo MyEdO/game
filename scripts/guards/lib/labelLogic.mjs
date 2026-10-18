@@ -1,5 +1,5 @@
 import { ast, analyserCorpus, declarationQuiPorte } from './dialecte.mjs';
-// Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
+// Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine AGENTS.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
 // src/state/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
 // SOURCE UNIQUE du corpus (`estDansLeCorpus`),
@@ -111,7 +111,7 @@ export const DISPLAY_KEY_TEMPLATE_RX = new RegExp('\\bkey\\s*[:=]\\s*`[^`]*\\$\\
 const DISPLAY_INDEX_RX = new RegExp('[\\w)\\]]\\[[^\\]]*\\.' + DISPLAY_FIELD + '\\b[^\\]]*\\]');
 
 /** …mais une ÉCRITURE d'index (`m[x.label] = v`, `acc[it.name] ??= …`) CONSTRUIT un index par texte —
- *  la conversion label→id tolérée (CLAUDE.md) ; seule la LECTURE (une décision) est visée. */
+ *  la conversion label→id tolérée (AGENTS.md) ; seule la LECTURE (une décision) est visée. */
 const INDEX_WRITE_RX = /\]\s*(?:\?\?|\|\||&&|[-+*/%])?=[^=]/;
 
 /** Méthodes d'INTERROGATION d'une collection — `set`/`add` en sont volontairement ABSENTS : REMPLIR un
@@ -592,7 +592,7 @@ export function ecartsAuxDettesDeLibelle(measured) {
 // `scanLabelLogic` ne juge que l'INTERROGATION d'une collection par `.label` : la REMPLIR depuis du
 // texte y est tolérée (contre-épreuve `NAME_TO_GROUP[norm(t.label)] = …`), la conversion label→id
 // étant licite — mais à UN endroit : « Seule couture tolérée : la conversion label→id au CHARGEMENT
-// des données, dans `src/data/index.ts` uniquement » (CLAUDE.md § Pour TOUT agent). Partout
+// des données, dans `src/data/index.ts` uniquement » (AGENTS.md § Pour TOUT agent). Partout
 // ailleurs dans `src/`, la même construction est donc la faute, et elle était MUETTE : le
 // `Record` `QUALITY_DESC` (`engine/qualities/describe.ts`) a vécu keyé par LIBELLÉ, bâti par
 // `Object.fromEntries(… .map((q) => [q.label, q.desc]))` puis LU via une variable
@@ -742,7 +742,7 @@ function lineOf(body, index) {
 
 /** Un paramètre de déclaration nommé `id`, OU dont le nom se TERMINE par `Id` (`creatureId`,
  *  `entityId`, `refId`…) — un identifiant au même titre que `id` (#142 LOT 6) : la doctrine
- *  (CLAUDE.md, IDs internes) ne réserve pas le suffixe au seul nom `id`. */
+ *  (AGENTS.md, IDs internes) ne réserve pas le suffixe au seul nom `id`. */
 const ID_PARAM_RX = /^\s*(?:id|\w+Id)\s*(?::|$)/;
 
 /** Mots-clés de contrôle/déclaration qui précèdent parfois `nom(` sans que `nom` soit une
@@ -1038,7 +1038,7 @@ export function ratchetShortKey(site) {
 //
 // Reconnaissance du résolveur — critères structurels, jamais une liste de noms :
 //  1. déclaré et exporté dans `src/data/index.ts` (seul fichier où la légitimité existe, doctrine
-//     CLAUDE.md — un résolveur par label ailleurs serait une AUTRE faute, hors périmètre #909) ;
+//     AGENTS.md — un résolveur par label ailleurs serait une AUTRE faute, hors périmètre #909) ;
 //  2. il RÉSOUT par libellé, sous l'une des trois formes que porte ce fichier :
 //     a. fonction/flèche dont le paramètre s'appelle EXACTEMENT `label` et dont le type de retour est
 //        une entité de catalogue — `XxxData` (`SpellData`, `TalentData`…), convention des

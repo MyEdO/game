@@ -116,7 +116,7 @@ const GLOBS_GENERATEURS = [
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
 const msgPurete = (amont, aval, suite) =>
-  `Pureté de couche (#1709, CLAUDE.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
+  `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
 
 const pureteImports = (amont, avals) => ({
   patterns: avals.map(([aval, suite]) => ({
