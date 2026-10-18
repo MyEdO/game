@@ -1,6 +1,6 @@
-// REJEU D'UN PROCESSUS QUI N'A PAS DÉMARRÉ (#1679 L2 T1d) — module UNIQUE, jamais recopié : deux
-// sites de spawn en dépendent, `scripts/gates/toutes.mjs` (les gates du rejeu local et la photo
-// de l'arbre) et `scripts/docs/build-all.mjs` (chaque générateur de doc dérivée).
+// REJEU D'UN PROCESSUS QUI N'A PAS DÉMARRÉ (#1679 L2 T1d, #2586) — module UNIQUE, jamais recopié : les
+// sites de spawn qui rejouent en dépendent, `scripts/guards/lib/processusBorne.mjs`,
+// `scripts/guards/lib/gitPorte.mjs`, `scripts/docs/build-all.mjs` et `scripts/mods/verifier.mjs`.
 //
 // LE CAS : sous des lanes parallèles, le loader Windows peut refuser d'initialiser des processus
 // NEUFS et rendre `3221225794` = `STATUS_DLL_INIT_FAILED` (0xC0000142) : un générateur qui ne démarre

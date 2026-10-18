@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'crew-morale.json';
@@ -36,7 +36,7 @@ const doc = document(
   ),
   bands: listeCle(
     nommerChamps(z.strictObject({
-      ...plageSchema.shape,
+      ...plageOuverteSchema.shape,
       id: z.string(),
       label: z.string(),
       captainCmdDR: z.number(),
@@ -46,7 +46,7 @@ const doc = document(
       desc: z.string(),
       source: sourceRefSchema,
     }), {
-      ...metaDesChamps(plageSchema, { exigees: true }),
+      ...metaDesChamps(plageOuverteSchema, { exigees: true }),
       id: { label: 'identifiant' },
       label: { label: 'libellé' },
       captainCmdDR: { label: 'DR de commandement du capitaine' },
@@ -72,6 +72,21 @@ const doc = document(
   {
     codex: { keys: ['crewMoraleFactors', 'crewMoraleBands'] },
     edit: { niche: { categories: { crewMoraleFactors: 'factors', crewMoraleBands: 'bands' } } },
+  },
+  {
+    // MDG 14 l.188, l.199 ; patron `structure-criticals.ts`.
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const bandes = (v as { bands?: { id?: string; min?: number | null; max?: number | null }[] }).bands ?? [];
+        const ecarts = ecartsDeCouverture(bandes, 'ouverte', 'ouverte', (b) => `la bande « ${b.id} »`);
+        if (ecarts.length) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['bands'],
+            message: `crew-morale.json : les bandes ne couvrent pas le score de Moral d'un seul tenant — ${ecarts.join(' ; ')}.`,
+          });
+        }
+      }),
   },
 );
 

@@ -129,6 +129,17 @@ test('assemble : un domaine que le rendu déclare SAUTÉ refuse la publication, 
   })
 })
 
+test('assemble : un domaine qui a PERDU un appel d’agent refuse la publication en le nommant, et n’écrit RIEN (#2721)', () => {
+  avecAtlasJetable((rawDir) => {
+    const coeur = coeursDuRegistre()[0]
+    const domaine = (agentsSansRendu) => ({ coeur, domain: 'un-domaine-jamais-declare', title: 'Un Domaine', topics: [topic(true)], agentsSansRendu })
+    assert.throws(() => assemble(domaine(['un-domaine-jamais-declare:survey:LIVRE — échec : API morte']), { rawDir }),
+      /« un-domaine-jamais-declare » a perdu 1 appel\(s\) d'agent :\n- un-domaine-jamais-declare:survey:LIVRE — échec : API morte\n/)
+    assert.deepEqual(listerArbre(rawDir), [])
+    assert.equal(existsSync(assemble(domaine([]), { rawDir }).path), true, 'témoin : sans perte, la fiche s’écrit')
+  })
+})
+
 // SOMMAIRE — il vise l'ancre que la PAGE pose, calculée par la définition unique (`lib/ancres.mjs`,
 // #1824). Deux topics HOMONYMES sont le cas qui départage : une grammaire de slug locale rendrait
 // deux fois la même cible, et la seconde entrée du Sommaire renverrait sur la première section.

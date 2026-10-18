@@ -235,7 +235,7 @@ export interface OpposedResult {
 
 /**
  * Test opposé — LDB 12 l.160.
- * Arbitrage maison (jeu sans MJ, CLAUDE.md règle 7) : l'égalité résiduelle que la source laisse
+ * Arbitrage maison (jeu sans MJ, AGENTS.md règle 7) : l'égalité résiduelle que la source laisse
  * au choix du MJ est tranchée en statu quo (`tie`), jamais en relance.
  * Les deux jets sortent de `rollTest`, qui ne pose AUCUNE valeur nue : sans `bases`, le départage à DR
  * égal se fait sur les CIBLES — et avec deux Difficultés DIFFÉRENTES, elles ne sont plus comparables
@@ -305,7 +305,7 @@ export function resolveOpposed(attacker: TestResult, defender: TestResult): Oppo
  *
  * Hors égalité les deux lectures coïncident ; le champ n'est lu qu'à l'ÉGALITÉ PARFAITE (même DR ET
  * même valeur nue). ARBITRAGE maison (`LDB 12 l.160` — le RAW y laisse le MJ choisir entre deux
- * solutions ; il n'y a pas de MJ, CLAUDE.md règle 7) : le jeu retient la PREMIÈRE, statu quo — refaire
+ * solutions ; il n'y a pas de MJ, AGENTS.md règle 7) : le jeu retient la PREMIÈRE, statu quo — refaire
  * le Test rouvrirait la fenêtre en boucle, sans borne, sur un jet que le joueur croyait résolu. Statu
  * quo = la branche PORTEUSE de la conséquence n'est pas prise, quel qu'en soit le camp.
  */

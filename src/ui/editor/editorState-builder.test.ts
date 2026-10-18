@@ -162,7 +162,7 @@ describe('editorState — putLayer', () => {
 });
 
 /**
- * L'ÉDITEUR N'ÉCRIT JAMAIS UN DOCUMENT QUE LE SCHÉMA REFUSE (CLAUDE.md règle 2). L'unicité des ids
+ * L'ÉDITEUR N'ÉCRIT JAMAIS UN DOCUMENT QUE LE SCHÉMA REFUSE (AGENTS.md règle 2). L'unicité des ids
  * d'action est portée par le `refine` d'`usable` (`data/schemas/defs-scenes/scene.ts`), qui ne mord
  * qu'au PARSE : entre deux chargements, la scène vivante porterait deux actions homonymes, et
  * `jouerAction` jouerait la première pour les deux. La garde vit donc AU GESTE.

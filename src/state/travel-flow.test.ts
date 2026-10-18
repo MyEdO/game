@@ -53,7 +53,7 @@ function map(rp: Partial<MapRouteTrace> = {}): WorldMap {
 }
 function setup(wm: WorldMap, party: Combatant[]) {
   useGame.setState({ party, gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-  get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', wm);
+  get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: wm, projet: null });
   useGame.setState({ gameTime: campaignStart() });
 }
 
@@ -345,7 +345,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     seedBattleRng(1);
     const h = hero({ id: 'h', skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: forcedRoute(20), projet: null });
     useGame.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 }); // passage de l'attelage (dépense de groupe)
     get().startTravel('r1', 'diligence', { allure: 'galop' });
@@ -361,7 +361,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: forcedRoute(20), projet: null });
     useGame.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 }); // passage de l'attelage (dépense de groupe)
     get().startTravel('r1', 'diligence', { allure: 'galop' });
@@ -377,7 +377,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, conditions: [{ id: 'inconscient', value: 1 }] as never, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: forcedRoute(20), projet: null });
     useGame.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
     get().startTravel('r1', 'diligence', { allure: 'galop' });
@@ -541,10 +541,10 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     seedBattleRng(1);
     const { lead, aide } = attelage();
     useGame.setState({ party: [lead, aide], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', { id: 'c', label: 'c', places: [
+    get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: { id: 'c', label: 'c', places: [
       { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a-scene' },
       { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b-scene' },
-    ], routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap);
+    ], routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap, projet: null });
     useGame.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'lead', { gold: 500, silver: 0, brass: 0 });
     get().startTravel('r1', 'diligence', { allure: 'galop' });

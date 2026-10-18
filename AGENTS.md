@@ -1,9 +1,6 @@
-<!-- GENERATED: agents:sync; source=CLAUDE.md -->
-Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).
-
 # AGENTS.md — RPG Warhammer Fantasy v4 (web)
 
-Le credo importé ci-dessus prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
+Le credo `.claude/credo.md` prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
 geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
@@ -13,9 +10,9 @@ Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nig
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
-(trunk-based). Le `Foundry/AGENTS.md` parent ne s'applique PAS ici.
+(trunk-based). Le parent `Foundry/` ne s'applique PAS.
 
-Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en session locale, à LIRE
+Mémoire committée `.claude/memory/` (en-tête de routage `MEMORY.md` + doctrines `user-*`) : injectée en local, son en-tête seul
 en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
@@ -97,7 +94,9 @@ Tout est en **français** sous `Source/`, dossiers préfixés `Warhammer v4 - ` 
 SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exceptions** :
 `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (**CRB**), livre VO AUTORISÉ, cœur de la 5e — fiche
 `user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. La VO de L'Ennemi Intérieur se lit pour
-comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Livres : **LDB** ·
+comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donnée MÉCANIQUE absente de
+la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
+`user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM**, chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
@@ -131,7 +130,7 @@ src/engine/   règles WFRP4 PURES + testées (types, tests/DR, combat, ops.ts = 
 src/state/    store Zustand + flux (combatFlow, rollFlowFactory/Specs, scene.ts = SCHÉMA, upkeep…)
 src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, rig/, fx/
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
-src/data/     base APP-OWNED (JSON commité) + exceptions manuscrites sourcées
+src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
 src/net/      coop relay WS (client) · server/ = Worker Cloudflare · art-ref/ (gitignoré)
 ```
@@ -142,5 +141,6 @@ Détail : `docs/architecture.md`.
 
 - **Closure synchrone en test Playwright** : jamais lire le DOM dans le même `evaluate` que l'action
   qui change l'état React (`docs/recette-navigateur.md`).
-- `src/data/*.json` est la SOURCE app-owned commitée : rien à régénérer après un clone.
 - Aucun inventaire de GROUPE : tout objet va sur un héros (`Combatant.items`) via `giveTrapping`.
+- Conventions propres à un chemin (`src/data`, `src/engine`, `src/state`, `src/ui`, `src/scenes`…) :
+  `.claude/rules/`, chargées à la lecture ou l'écriture d'un fichier qui correspond.

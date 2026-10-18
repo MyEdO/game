@@ -76,9 +76,9 @@ describe('Codex — les Spéciaux d’un jeu de taverne s’éditent au clic', (
     };
     const clic = (nom: string) => act(() => { nomme<HTMLButtonElement>(nom).click(); });
 
-    // Les sous-champs se nomment par la méta de leur nœud (`specialSchema`, `nommerChamps`).
+    // Les sous-champs se nomment par la méta de leur nœud (`specialSchema`, `nommerChamps`), dans l'ordre de sa déclaration.
     const libelles = [...c.querySelectorAll('.ed-subform > .ed-champs')][0].querySelectorAll(':scope > .ed-field > span');
-    expect([...libelles].map((l) => l.textContent?.replace(/\s*\(.*\)$/, ''))).toEqual(['Effet', 'Talent', 'Crans', 'Source', 'Difficulté imposée']);
+    expect([...libelles].map((l) => l.textContent?.replace(/\s*\(.*\)$/, ''))).toEqual(['Effet', 'Talent', 'Crans', 'Difficulté imposée', 'Source']);
     const talent1 = nomme<HTMLSelectElement>('Talent de la rangée 1 de Spéciaux');
     expect(talent1.tagName, 'un sélecteur, jamais une saisie libre').toBe('SELECT');
     expect(talent1.value).toBe('tireur-d-elite');

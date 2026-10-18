@@ -1,0 +1,259 @@
+{
+  "formes": [
+    {
+      "cas": "load rendant source, import nommé",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "const url = new URL('./cible.mjs?banc', import.meta.url).href",
+        "registerHooks({ load(spec, contexte, suivant) {",
+        "  const r = suivant(spec, contexte)",
+        "  if (spec !== url) return r",
+        "  return { ...r, source: String(r.source).replace('a', 'b') }",
+        "} })"
+      ],
+      "sites": [{ "ligne": 3, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "load qui pose source par affectation",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "registerHooks({",
+        "  load: (spec, contexte, suivant) => { const r = suivant(spec, contexte); r.source = 'export default 1'; return r },",
+        "})"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "resolve rendant url pour un spécificateur non node:",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "registerHooks({ resolve(spec, contexte, suivant) {",
+        "  if (spec === './collaborateur.mjs') return { url: 'data:text/javascript,export default 1', shortCircuit: true }",
+        "  return suivant(spec, contexte)",
+        "} })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["url"], "enChaine": false }]
+    },
+    {
+      "cas": "crochets load et resolve sur un même appel",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "function charger(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } }",
+        "const crochets = { load: charger, resolve(spec, contexte, suivant) { return { url: spec } } }",
+        "registerHooks(crochets)"
+      ],
+      "sites": [{ "ligne": 4, "effets": ["source", "url"], "enChaine": false }]
+    },
+    {
+      "cas": "fichier chargeur passé à register",
+      "texte": [
+        "import { writeFileSync } from 'node:fs'",
+        "import { register } from 'node:module'",
+        "writeFileSync('chargeur.mjs', `export async function load(url, contexte, suivant) {",
+        "  const r = await suivant(url, contexte)",
+        "  return { ...r, source: 'export default 1' }",
+        "}`)",
+        "register('./chargeur.mjs', import.meta.url)"
+      ],
+      "sites": [{ "ligne": 3, "effets": ["source"], "enChaine": true }]
+    },
+    {
+      "cas": "fichier chargeur passé à --loader",
+      "texte": [
+        "import { spawnSync } from 'node:child_process'",
+        "import { writeFileSync } from 'node:fs'",
+        "writeFileSync('chargeur.mjs', [",
+        "  'export const resolve = (spec, contexte, suivant) =>',",
+        "  \"  spec.endsWith('/cible.mjs') ? { url: 'file:///ailleurs.mjs', shortCircuit: true } : suivant(spec, contexte)\",",
+        "].join('\\n'))",
+        "spawnSync(process.execPath, ['--loader', './chargeur.mjs', 'cible.mjs'])"
+      ],
+      "sites": [{ "ligne": 4, "effets": ["url"], "enChaine": true }]
+    },
+    {
+      "cas": "fichier chargeur passé à --import",
+      "texte": [
+        "import { spawnSync } from 'node:child_process'",
+        "import { writeFileSync } from 'node:fs'",
+        "const cible = new URL('./cible.mjs', import.meta.url).href",
+        "writeFileSync('observer.mjs', `import { registerHooks } from 'node:module'",
+        "registerHooks({ load(url, contexte, suivant) {",
+        "  const r = suivant(url, contexte)",
+        "  if (url !== ${JSON.stringify(cible)}) return r",
+        "  return { ...r, source: String(r.source) + '\\\\nexport const sonde = 1' }",
+        "} })",
+        "`)",
+        "spawnSync(process.execPath, ['--import', './observer.mjs', 'cible.mjs'])"
+      ],
+      "sites": [{ "ligne": 5, "effets": ["source"], "enChaine": true }]
+    },
+    {
+      "cas": "register d'un chargeur opaque",
+      "texte": [
+        "import { register } from 'node:module'",
+        "const fabriquer = () => 'data:text/javascript,' + encodeURIComponent('export function load() {}')",
+        "register(fabriquer())"
+      ],
+      "sites": [{ "ligne": 3, "effets": ["opaque"], "enChaine": false }]
+    }
+  ],
+  "liaisons": [
+    {
+      "cas": "import renommé",
+      "texte": [
+        "import { registerHooks as accrocher } from 'node:module'",
+        "accrocher({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "espace de noms",
+      "texte": [
+        "import * as mod from 'node:module'",
+        "mod.registerHooks({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "import par défaut, accès indexé",
+      "texte": [
+        "import module from 'module'",
+        "module['registerHooks']({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "require déstructuré",
+      "texte": [
+        "const { registerHooks } = require('node:module')",
+        "registerHooks({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "createRequire lié sous un autre nom",
+      "texte": [
+        "import { createRequire } from 'node:module'",
+        "const exiger = createRequire(import.meta.url)",
+        "const noyau = exiger('node:module')",
+        "const accrocher = noyau.registerHooks",
+        "accrocher({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 5, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "process.getBuiltinModule, déstructuration renommée",
+      "texte": [
+        "const { registerHooks: r } = process.getBuiltinModule('node:module')",
+        "r({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": [{ "ligne": 2, "effets": ["source"], "enChaine": false }]
+    },
+    {
+      "cas": "import() dynamique",
+      "texte": [
+        "const crochet = { load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } }",
+        "const { registerHooks } = await import('node:module')",
+        "registerHooks(crochet);",
+        "(await import('node:module')).registerHooks(crochet)"
+      ],
+      "sites": [
+        { "ligne": 3, "effets": ["source"], "enChaine": false },
+        { "ligne": 4, "effets": ["source"], "enChaine": false }
+      ]
+    },
+    {
+      "cas": "code porté en chaîne, tableau joint",
+      "texte": [
+        "import { writeFileSync } from 'node:fs'",
+        "const code = [",
+        "  \"import { registerHooks } from 'node:module'\",",
+        "  'registerHooks({ load(u, c, n) { return { ...n(u, c), source: \"\" } } })',",
+        "].join('\\n')",
+        "writeFileSync('precharge.mjs', code)"
+      ],
+      "sites": [{ "ligne": 4, "effets": ["source"], "enChaine": true }]
+    }
+  ],
+  "opaques": [
+    {
+      "cas": "registerHooks(f()) où f vient d'un kit de test",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "import { crochetsDeBanc } from './banc.testkit.mjs'",
+        "registerHooks(crochetsDeBanc())"
+      ],
+      "sites": [{ "ligne": 3, "effets": ["opaque"], "enChaine": false }]
+    },
+    {
+      "cas": "registerHooks(f()) où f est défini par le test",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "const fabriquer = (cible) => ({ load(u, c, n) { return n(u, c) } })",
+        "registerHooks(fabriquer('./cible.mjs'))"
+      ],
+      "sites": [{ "ligne": 3, "effets": ["opaque"], "enChaine": false }]
+    }
+  ],
+  "exclusions": [
+    {
+      "cas": "code de production, hors fichier de test",
+      "fichier": "scripts/x/precharge.mjs",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "registerHooks({ load(spec, contexte, suivant) { return { ...suivant(spec, contexte), source: '' } } })"
+      ],
+      "sites": []
+    },
+    {
+      "cas": "resolve qui ne substitue qu'un node:",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "const programme = new URL('./programme.mjs', import.meta.url).href",
+        "registerHooks({ resolve(spec, contexte, suivant) {",
+        "  if (spec === 'node:path' && contexte.parentURL === programme) return { url: 'data:text/javascript,export default {}', shortCircuit: true }",
+        "  return suivant(spec, contexte)",
+        "} })",
+        "registerHooks({ resolve(spec, contexte, suivant) {",
+        "  if (spec !== 'node:fs') return suivant(spec, contexte)",
+        "  return { url: 'data:text/javascript,export default {}', shortCircuit: true }",
+        "} })"
+      ],
+      "sites": []
+    },
+    {
+      "cas": "crochet qui vise une fixture de tmp",
+      "texte": [
+        "import { registerHooks } from 'node:module'",
+        "import { mkdtempSync, writeFileSync } from 'node:fs'",
+        "import { tmpdir } from 'node:os'",
+        "import { join } from 'node:path'",
+        "import { pathToFileURL } from 'node:url'",
+        "const racine = mkdtempSync(join(tmpdir(), 'banc-'))",
+        "const module = join(racine, 'fixture.mjs')",
+        "writeFileSync(module, 'export default 1')",
+        "const cible = pathToFileURL(module).href",
+        "registerHooks({ load(url, contexte, suivant) {",
+        "  const r = suivant(url, contexte)",
+        "  return url === cible ? { ...r, source: 'export default 2' } : r",
+        "} })"
+      ],
+      "sites": []
+    },
+    {
+      "cas": "test d'un crochet de production importé",
+      "texte": [
+        "import { writeFileSync } from 'node:fs'",
+        "import { registerHooks } from 'node:module'",
+        "import { hooksDeProduction } from './hooks.mjs'",
+        "registerHooks(hooksDeProduction(process.cwd()))",
+        "writeFileSync('entree.mjs', [",
+        "  \"import { registerHooks } from 'node:module'\",",
+        "  `import { hooksDeProduction } from ${JSON.stringify(new URL('./hooks.mjs', import.meta.url).href)}`,",
+        "  'const inscription = registerHooks(hooksDeProduction(process.cwd()))',",
+        "].join('\\n'))"
+      ],
+      "sites": []
+    }
+  ]
+}

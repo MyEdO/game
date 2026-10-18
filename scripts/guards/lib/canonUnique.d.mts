@@ -3,11 +3,18 @@ import type { Checker } from 'typescript/unstable/sync';
 import type { CorpusFile } from './sourceCorpus.mjs';
 import type { sitesDeModule, liaisonsDe } from './importGraph.mjs';
 
+/** Déclaration ou affectation `=` d'un nom dans une portée (`declarationsDuScope`). */
+export type EvenementDeNom =
+  | { readonly genre: 'declaration'; readonly noeud: ts.FunctionDeclaration | ts.ClassDeclaration | ts.VariableDeclaration; readonly membre?: string }
+  | { readonly genre: 'affectation'; readonly fin: number; readonly droite: ts.Expression };
+
 export interface ContexteImports {
   readonly source: ts.SourceFile;
   readonly sites: () => ReturnType<typeof sitesDeModule>;
   readonly liaisons: () => ReturnType<typeof liaisonsDe>;
   readonly liaisonsDuNom: (nom: string) => ReturnType<typeof liaisonsDe>;
+  /** Par nom, déclarations et affectations de la portée en pré-ordre, portées imbriquées exclues ; mémo du contexte. */
+  readonly declarationsDuScope: (scope: ts.Node) => ReadonlyMap<string, readonly EvenementDeNom[]>;
   readonly checker: () => Checker;
   readonly module: (spec: string) => string | null;
 }
@@ -55,6 +62,7 @@ export const IDENTITE_D_INSTANCE: Construction;
 export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const SONDE_D_EXISTENCE: Construction;
+export const VIE_SUR_PID_LU: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
 export function constructionDeFragment(p: {
   nom: string;

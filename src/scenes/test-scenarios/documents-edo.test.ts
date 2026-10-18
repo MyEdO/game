@@ -37,7 +37,7 @@ const A_COTE = { x: 2, y: 2 };
 function charger(): void {
   const { party, scene, narratif } = scenario.construire();
   useGame.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
-  useGame.getState().loadProject([scene], scene.id, undefined, narratif);
+  useGame.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
   useGame.setState({ screen: 'campaign', pendingCascade: null });
 }
 

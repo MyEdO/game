@@ -80,7 +80,7 @@ describe('currentTargetingMode — aiguilleur unique', () => {
   });
   it('pendingDualStrike → mode 2ᵉ frappe', () => {
     combat();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'x', mainRoll: 10 } as never });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'x', jet: 1 } as never });
     expect(currentTargetingMode(useGame.getState).id).toBe('dual');
   });
   it('pendingCast.pickingTargets → mode Surincantation', () => {
@@ -139,7 +139,7 @@ describe('candidates des modes à liste', () => {
     const { hero, e1 } = combat();
     const off = { ...hero.weapons[0], uid: 'off1', resolveChar: 'force' as const };
     hero.weapons = [...hero.weapons, off];
-    useGame.setState({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'off1', mainRoll: 10 } as never, battle: { ...useGame.getState().battle! } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'off1', jet: 1 } as never, battle: { ...useGame.getState().battle! } });
     const mode = currentTargetingMode(useGame.getState);
     const r = mode.affordance!(useGame.getState, hero, e1);
     expect(r.kind).toBe('ok');

@@ -24,7 +24,7 @@ export function DesignationHerosModal() {
       title={etat.label}
       footer={vivants.length ? undefined : <button type="button" className="btn btn-primary" onClick={() => choisir()}>Continuer</button>}
     >
-      {p.invite && <div className="modal-log"><Prose md={p.invite} /></div>}
+      {p.invite && <div className="modal-log"><Prose md={p.invite} paquet /></div>}
       {vivants.length
         ? <div className="rm-options"><PortraitPicker choices={vivants.map((c) => ({ c, nom: c.label, caption: c.label }))} onPick={choisir} /></div>
         : <p className="empty">Aucun héros vivant à désigner.</p>}

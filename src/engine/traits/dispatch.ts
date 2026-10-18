@@ -259,7 +259,7 @@ export function wardSaves(traits: TraitList | undefined): number[] {
 }
 
 // Défense du champion (LDB 85) : capacité GÉNÉRIQUE `counterOnDefenseWin` (traits ET talents), lue par
-// `canCounterOnDefenseWin` (combatFeatures/dispatch), jamais un prédicat par-nom `hasChampionDefense`.
+// `contreSurDefenseGagnee` (combatFeatures/dispatch), jamais un prédicat par-nom `hasChampionDefense`.
 
 
 /** AURAS de combat déclarées par les traits du porteur (Perturbant : −20 à BE m, LDB 85 l.262 ; toute

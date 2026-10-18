@@ -6,7 +6,7 @@
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { derouleEnum, metaDesChamps, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
-import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+import { defDe, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
@@ -15,7 +15,8 @@ export interface FieldDesc {
   /** Libellé FR affiché (`libelleDuChamp`) — AFFICHAGE seul : `key` reste l'identité du champ. */
   label: string;
   kind: FieldKind;
-  /** Le champ est null/absent sur au moins une entrée (autorise le vide). */
+  /** Le champ se VIDE : son nœud admet l'absence (`absenceDuNoeud`) ; sans nœud, il est null/absent sur
+   *  au moins une entrée. */
   nullable: boolean;
   /** Valeurs NOMMÉES d'un champ ÉNUMÉRÉ (`kind: 'select'`, ou `'selectList'` pour une LISTE de valeurs de
    *  l'enum) — `valeur → libellé FR`, lues SUR LE NŒUD. */
@@ -58,57 +59,101 @@ function kindOf(key: string, v: unknown): FieldKind {
   return 'text';
 }
 
-/** Nœuds qui ne portent pas de forme propre : la forme est celle de ce qu'ils enveloppent. */
-const ENVELOPPES = new Set(['optional', 'nullable', 'default', 'prefault', 'nonoptional', 'catch', 'readonly', 'lazy', 'pipe', 'transform', 'union']);
+const SANS_FORME = Symbol('sans forme');
 
-/**
- * Kind FIDÈLE d'un champ que le nœud déclare et qu'aucune rangée ne porte : chaîne (`idDe`
- * compris), enum, nombre, booléen, source composite, ou objet dont tous les champs sont fidèles (une
- * référence `{ id }`) — `undefined` pour toute autre forme (record, tuple, liste, union de formes),
- * qu'aucun contrôle ne rendrait sans la trahir.
- */
-function kindFidele(noeud: unknown, vus: ReadonlySet<unknown> = new Set()): FieldKind | undefined {
-  if (vus.has(noeud)) return undefined;
-  const formes = ouverts([noeud]).filter((n) => !ENVELOPPES.has(defDe(n)?.type ?? ''));
-  const types = new Set(formes.map((n) => defDe(n)?.type));
-  if (types.size !== 1) return undefined;
-  const [type] = types;
-  if (type === 'string' || type === 'enum') return 'text';
-  if (type === 'number') return 'number';
-  if (type === 'boolean') return 'checkbox';
-  if (type !== 'object' || formes.length !== 1) return undefined;
-  const champs = enfantsDe(formes[0]).filter((e) => e.cle !== undefined);
-  const cles = champs.map((e) => e.cle);
-  if (cles.includes('book') && cles.includes('page')) return 'source';
-  return champs.length > 0 && champs.every((e) => champFidele(e.noeud, new Set([...vus, noeud]))) ? 'object' : undefined;
+/** Un nœud de la fermeture `ouverts` qui ne porte aucune forme de valeur à lui seul : enveloppe,
+ *  union, intersection, `lazy`, `pipe` (ses enfants transparents la portent), ou `transform`. */
+const estTransparent = (noeud: unknown): boolean =>
+  defDe(noeud)?.type === 'transform' || enfantsDe(noeud).some((e) => e.segment === '' || e.segment.startsWith('|') || e.segment.startsWith('&'));
+
+/** Échantillon d'une forme CONCRÈTE de la fermeture : la valeur dont `kindOf` tire le kind. */
+function echantillonDeForme(noeud: unknown): unknown {
+  const def = defDe(noeud);
+  const enfant = (segment: string) => enfantsDe(noeud).find((e) => e.segment === segment)?.noeud;
+  switch (def?.type) {
+    case 'string': return '';
+    case 'number': return 0;
+    case 'boolean': return false;
+    case 'enum': return Object.values(def.entries ?? {})[0] ?? SANS_FORME;
+    case 'literal': return (def.values as unknown[] | undefined)?.find((v) => v != null) ?? SANS_FORME;
+    case 'object': return {};
+    case 'record': {
+      const v = echantillonDu('', enfant('{}'));
+      return v === SANS_FORME ? {} : { '': v };
+    }
+    case 'array': {
+      const e = echantillonDu('', enfant('[]'));
+      return [e === SANS_FORME ? {} : e];
+    }
+    default: return SANS_FORME;
+  }
 }
 
-/** Le champ se rend-il sans trahison : enum nommé à valeur unique, ou kind fidèle ? */
-function champFidele(noeud: unknown, vus: ReadonlySet<unknown> = new Set()): boolean {
-  return (valeursDe(noeud) !== undefined && !derouleEnum(noeud)?.liste) || kindFidele(noeud, vus) !== undefined;
+/** Échantillon de la valeur qu'admet `noeud`, lu sur sa fermeture canonique (`ouverts`) ; `SANS_FORME`
+ *  quand ses formes concrètes ne partagent pas un même kind, ou qu'aucune n'a de contrôle typé. */
+function echantillonDu(key: string, noeud: unknown): unknown {
+  const echantillons = ouverts([noeud]).filter((n) => !estTransparent(n)).map(echantillonDeForme);
+  if (!echantillons.length || echantillons.includes(SANS_FORME)) return SANS_FORME;
+  return new Set(echantillons.map((e) => kindOf(key, e))).size === 1 ? echantillons[0] : SANS_FORME;
 }
 
-/** Dans des rangées COMPLÉTÉES, un objet que le nœud déclare (une référence `{ id }`) n'est pas un
- *  record : il se rend en objet, ses clés fixées par le nœud. */
-function kindDesRangees(kind: FieldKind, noeud: unknown, regime: RegimeDeLibelle): FieldKind {
-  return regime.completer && (kind === 'recordText' || kind === 'recordNumber') && kindFidele(noeud) === 'object' ? 'object' : kind;
+/** Kind d'un champ DÉCLARÉ qu'aucun échantillon ne porte : celui que `kindOf` donne à un échantillon de
+ *  son nœud ; `json` quand le nœud n'en a pas. */
+function kindDuNoeud(key: string, noeud: unknown): FieldKind {
+  const e = echantillonDu(key, noeud);
+  return e === SANS_FORME ? 'json' : kindOf(key, e);
 }
 
-/**
- * L'OBJET que désignent `noeuds` pour ces `valeurs`, quand il est UNIQUE : le seul nœud objet du
- * schéma, sinon le seul qu'admettent toutes les valeurs (`ouverts(…, valeur)`) — `undefined` sinon.
- */
-export function objetAdmis(noeuds: readonly unknown[], valeurs: readonly unknown[]): unknown {
-  const objets = (valeur?: unknown) => ouverts(noeuds, valeur).filter((n) => defDe(n)?.type === 'object');
-  const tous = objets();
-  if (tous.length === 1) return tous[0];
-  const admis = new Set(valeurs.flatMap((v) => objets(v)));
-  return admis.size === 1 ? [...admis][0] : undefined;
+/** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
+ *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */
+function admetUnObjetDeclare(noeud: unknown, echantillon: unknown): boolean {
+  if (echantillon === null || typeof echantillon !== 'object' || Array.isArray(echantillon)) return false;
+  return ouverts([noeud], echantillon).some((n) => {
+    const def = defDe(n);
+    const shape = def?.type === 'object' ? def.shape : undefined;
+    return !!shape && Object.keys(shape).length > 0 && Object.keys(echantillon).every((k) => Object.prototype.hasOwnProperty.call(shape, k));
+  });
 }
 
-/** L'objet que sont les RANGÉES d'un champ liste (`objetAdmis` sur l'élément de la liste). */
-export function objetDesRangees(noeudDuChamp: unknown, rangees: readonly unknown[]): unknown {
-  return objetAdmis(pasDeDonnee(ouverts([noeudDuChamp]), 0), rangees);
+/** Kind d'un champ VU : son nœud tranche d'abord — un objet à clés déclarées est `object`, jamais un
+ *  record ; `kindOf` classe le reste. */
+function kindDuChampVu(key: string, noeud: unknown, echantillon: unknown): FieldKind {
+  const kind = kindOf(key, echantillon);
+  return (kind === 'recordNumber' || kind === 'recordText') && admetUnObjetDeclare(noeud, echantillon) ? 'object' : kind;
+}
+
+/** L'absence qu'admet le NŒUD : `{ vide: undefined }` s'il admet `undefined`, `{ vide: null }` s'il
+ *  n'admet que `null`, `false` s'il n'admet ni l'un ni l'autre ; `undefined` sans nœud. */
+export function absenceDuNoeud(noeud: unknown): { vide: null | undefined } | false | undefined {
+  const n = noeud as { safeParse?: (v: unknown) => { success: boolean } } | undefined;
+  if (!n?.safeParse) return undefined;
+  if (n.safeParse(undefined).success) return { vide: undefined };
+  return n.safeParse(null).success ? { vide: null } : false;
+}
+
+/** Valeur qu'émet un champ VIDÉ : `undefined` quand son nœud l'admet, `null` sinon (nœud qui n'admet
+ *  que `null`, ou champ hors schéma). */
+export function videDuNoeud(noeud: unknown): null | undefined {
+  const absence = absenceDuNoeud(noeud);
+  return absence ? absence.vide : null;
+}
+
+/** Le NŒUD du champ admet-il l'absence ? `undefined` quand l'appelant ne tient pas de nœud. */
+export function admetLAbsence(noeud: unknown): boolean | undefined {
+  const absence = absenceDuNoeud(noeud);
+  return absence === undefined ? undefined : absence !== false;
+}
+
+/** Le nœud admet-il une LISTE ? `undefined` sans nœud. */
+export function admetUneListe(noeud: unknown): boolean | undefined {
+  return noeud === undefined ? undefined : ouverts([noeud]).some((n) => defDe(n)?.type === 'array');
+}
+
+/** Un champ `json` s'édite en RANGÉES quand sa valeur est une liste d'objets, ou quand elle est absente
+ *  et que son nœud admet une liste ; sinon en JSON. */
+export function offreDesRangees(field: FieldDesc, value: unknown): boolean {
+  if (value == null) return admetUneListe(field.noeud) !== false;
+  return Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x));
 }
 
 /**
@@ -157,9 +202,6 @@ export interface RegimeDeLibelle {
   noeud?: unknown;
   /** `document` = champ de premier niveau ; `profondeur` = sous-champ (méta dérivée : lot #1466 L6). */
   niveau?: 'document' | 'profondeur';
-  /** Les RANGÉES d'une liste (`objetDesRangees`) : un champ que `noeud` déclare, de kind fidèle, s'offre
-   *  même quand aucune rangée ne le porte — une rangée neuve se remplit alors au clic. */
-  completer?: boolean;
 }
 
 /**
@@ -168,16 +210,16 @@ export interface RegimeDeLibelle {
  * une méta dessus) ; sinon méta d'édition du def ; sinon la clé technique — seam d'extinction à
  * mesure de l'adoption (L1b #1467).
  *
- * Au régime `profondeur`, enveloppe et méta du document décrivent le PREMIER NIVEAU : un sous-champ
- * se nomme par la méta de SON nœud objet (`nommerChamps`, `regime.noeud`), sinon par sa clé.
+ * Au régime `profondeur`, un sous-champ se nomme par la méta de SON nœud objet (`nommerChamps`), lue
+ * sur la fermeture `ouverts` (optionnel, union) — ni l'enveloppe ni la méta du document, qui décrivent
+ * le PREMIER NIVEAU ; à défaut, sa clé technique.
  *
  * EXCLUSION : `type` sur un document SANS méta (donc sans handle) n'est pas le type de document mais
  * un DISCRIMINANT de charge utile (characteristics/qualities/skills/trappings/spells, mesuré) — le
  * libeller « Type de document » mentirait à l'écran.
  */
-export function libelleDuChamp(key: string, { meta, niveau = 'document', noeud }: RegimeDeLibelle = {}): string {
-  // Un sous-champ se nomme par la méta de SON nœud objet (`nommerChamps`) ; sans elle, sa clé.
-  if (niveau === 'profondeur') return metaDesChamps(noeud)?.[key]?.label ?? key;
+export function libelleDuChamp(key: string, { meta, noeud, niveau = 'document' }: RegimeDeLibelle = {}): string {
+  if (niveau === 'profondeur') return ouverts([noeud]).map((n) => metaDesChamps(n)?.[key]?.label).find((l) => l !== undefined) ?? key;
   // Lecture sur les PROPRES clés de la table (jamais la chaîne de prototypes : `toString` rendrait
   // une fonction là où l'écran attend une chaîne).
   if (Object.prototype.hasOwnProperty.call(LIBELLES_ENVELOPPE, key) && !(key === 'type' && !meta)) return LIBELLES_ENVELOPPE[key as CleEnveloppe];
@@ -186,19 +228,16 @@ export function libelleDuChamp(key: string, { meta, niveau = 'document', noeud }
 
 /** Champs (ordre = 1re apparition), type inféré du 1er échantillon non-null de chaque clé — et, pour
  *  un tableau, de l'UNION de ses éléments sur toutes les entrées ; libellé par `libelleDuChamp`
- *  (la `meta` du def, quand il en a une, arrive par le registre de schémas). */
+ *  (la `meta` du def, quand il en a une, arrive par le registre de schémas).
+ *  Au régime `profondeur`, un nœud objet NOMMÉ (`nommerChamps`) dont les échantillons n'ont que des clés
+ *  déclarées offre TOUS ses champs, dans l'ordre de sa déclaration : un champ qu'aucun échantillon ne
+ *  porte prend son kind de son nœud. */
 export function inferFields(entries: Record<string, unknown>[], regime: RegimeDeLibelle = {}): FieldDesc[] {
-  const keys: string[] = [];
-  for (const e of entries) for (const k of Object.keys(e)) if (!keys.includes(k)) keys.push(k);
-  const completes = new Set<string>();
-  if (regime.completer) {
-    for (const e of enfantsDe(regime.noeud)) {
-      if (e.cle === undefined || keys.includes(e.cle)) continue;
-      if (!champFidele(e.noeud)) continue;
-      keys.push(e.cle);
-      completes.add(e.cle);
-    }
-  }
+  const vues: string[] = [];
+  for (const e of entries) for (const k of Object.keys(e)) if (!vues.includes(k)) vues.push(k);
+  const ferme = ouverts([regime.noeud]);
+  const declares = regime.niveau === 'profondeur' ? ferme.map((n) => metaDesChamps(n)).find((m) => m !== undefined) : undefined;
+  const keys = declares && vues.every((k) => Object.prototype.hasOwnProperty.call(declares, k)) ? Object.keys(declares) : vues;
   return keys.map((key) => {
     let sample: unknown;
     let sawNull = false;
@@ -222,13 +261,15 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     // (`enumNomme`, #1694), jamais de la donnée observée — une valeur qu'aucune entrée ne porte encore
     // reste proposable, et une valeur inconnue de l'enum n'est pas proposée. Le NŒUD vaut à TOUTE
     // profondeur : un champ énuméré de sous-formulaire se nomme comme un champ de racine.
-    const noeud = enfantsDe(regime.noeud).find((e) => e.cle === key)?.noeud;
+    const noeud = ferme.flatMap(enfantsDe).find((e) => e.cle === key)?.noeud;
     const valeurs = valeursDe(noeud);
-    const nullable = sawNull || sample === undefined;
+    // Le VIDABLE et la valeur vide se lisent sur le NŒUD ; l'échantillon ne tranche qu'un champ hors schéma.
+    const absence = absenceDuNoeud(noeud);
+    const nullable = absence === undefined ? sawNull || sample === undefined : absence !== false;
     if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
     // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
     // structuré qui rende ses deux formes : il s'édite en JSON.
-    const kind = tableaux && scalaires ? 'json' : completes.has(key) ? kindFidele(noeud)! : kindDesRangees(kindOf(key, echantillon), noeud, regime);
+    const kind = tableaux && scalaires ? 'json' : !vues.includes(key) ? kindDuNoeud(key, noeud) : kindDuChampVu(key, noeud, echantillon);
     return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud };
   });
 }

@@ -2,12 +2,12 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 
 export const file = 'sea-navigation.json';
 export const famille = 'config';
 
-const tableRange = plageSchema;
+const tableRange = plageOuverteSchema;
 
 const champs = {
   workPeriodHours: nommerChamps(z.strictObject({ voile: z.number(), avirons: z.number(), source: sourceRefSchema }), { voile: { label: 'Voile' }, avirons: { label: 'Avirons' }, source: { label: 'Source' } }),
@@ -215,6 +215,32 @@ const doc = document(
     reparation: { label: 'Réparations au port', hint: 'Coût, durée et rendement des réparations de coque, dont la réparation temporaire' },
   },
   { codex: { keys: ['seaNavigation'] }, edit: { object: 'single' } },
+  {
+    // MDG 13 l.125, l.140 (vitesseMax) ; l.316, l.320 (reperes) ; l.320, l.326 (changementDeCap) ;
+    // l.380, l.394 (drDeltas) ; l.343, l.345 (phares.voirLaLumiere) ; patron `structure-criticals.ts`.
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        type Bande = { min?: number | null; max?: number | null };
+        const d = v as Partial<SeaNavigationData>;
+        const tables: [string[], Bande[], number | 'ouverte', number | 'ouverte'][] = [
+          [['vitesseMax', 'table'], d.vitesseMax?.table ?? [], (d.vitesseMax?.safeBonus ?? 0) + 1, 'ouverte'],
+          [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],
+          [['orientation', 'changementDeCap'], d.orientation?.changementDeCap ?? [], 1, 10 + (d.orientation?.driftMajorBonus ?? 0)],
+          [['poursuite', 'drDeltas'], d.poursuite?.drDeltas ?? [], 'ouverte', 'ouverte'],
+          [['phares', 'voirLaLumiere'], d.phares?.voirLaLumiere ?? [], 'ouverte', 15],
+        ];
+        for (const [path, bandes, depuis, jusqua] of tables) {
+          const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la rangée n° ${bandes.indexOf(b) + 1}`);
+          if (ecarts.length) {
+            ctx.addIssue({
+              code: 'custom',
+              path,
+              message: `sea-navigation.json › ${path.join('.')} : les bandes ne couvrent pas leur domaine d'un seul tenant — ${ecarts.join(' ; ')}.`,
+            });
+          }
+        }
+      }),
+  },
 );
 
 export const schema = doc.schema;

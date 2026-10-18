@@ -61,7 +61,7 @@ export function deriveChapterRecap(args: {
     .filter((h) => h.dead && (depuis == null || depuis.vivants.includes(h.id)))
     .map((h) => ({ id: h.id, label: h.label }));
   const chronique: RecapLine[] = [
-    ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'map-tool/start-flag', tone: 'ok' })),
+    ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'map-tool/start-flag', tone: 'ok', paquet: true })),
     ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'ui/close', tone: 'bad' })),
   ];
   return { titre: cloture.titre, sousTitre: cloture.sousTitre?.texte, px, chronique, tombes, lieux };

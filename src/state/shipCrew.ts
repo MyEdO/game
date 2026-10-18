@@ -256,7 +256,8 @@ export function endShanty(get: Get, singer: Combatant): string[] {
  * sa COQUE (`estNavire`, à PV) + son ÉQUIPAGE (`crewIds`, de vrais combattants exposés). L'unité
  * sort du combat dès qu'UNE des deux issues RAW est atteinte — dans les DEUX sens, pour que la victoire
  * navale soit gagnable par CHAQUE voie :
- *  - **NAUFRAGE** — la coque tombe à 0 PB (« le navire coule », MDG 13 l.117). L'équipage encore en
+ *  - **NAUFRAGE** — la coque coule (`isOutOfAction` : Indice d'Inondation égal à l'Endurance, MDG 13 l.674 ;
+ *    à 0 Blessure elle reste en jeu, MDG 13 l.656). L'équipage encore en
  *    état passe par-dessus bord : il QUITTE la rencontre (`outOfRencontre`). Sans ça, couler le navire ne
  *    suffirait pas (l'équipage flotterait, or il est quasi inentamable en mêlée — table des Tailles ch.13
  *    l.618-637), et la voie « naufrage » ne conclurait jamais.

@@ -80,9 +80,11 @@ describe('Impénétrable — Critiques impairs ignorés (LDB 63)', () => {
     expect(impenetrableAt(c, 'tete')).toBe(true);
     expect(impenetrableAt(c, 'corps')).toBe(false);
   });
-  it('pièce brisée (damageTaken = PA) → ne protège plus', () => {
-    const broken = piece('Heaume', 2, ['tete'], ['Impénétrable']);
-    broken.damageTaken = 2;
-    expect(impenetrableAt(wearer([broken]), 'tete')).toBe(false);
+  it('pièce à 0 PA (LDB 63 l.19) → protège encore ; inutilisable sous 0 (LDB 63 l.21) → ne protège plus', () => {
+    const usee = piece('Heaume', 2, ['tete'], ['Impénétrable']);
+    usee.damageTaken = 2;
+    expect(impenetrableAt(wearer([usee]), 'tete')).toBe(true);
+    usee.damageTaken = 3;
+    expect(impenetrableAt(wearer([usee]), 'tete')).toBe(false);
   });
 });

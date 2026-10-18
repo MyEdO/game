@@ -21,6 +21,10 @@ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
 import { declarationProseNommee, sourceHeritee } from '../data/schemas/grammaire/prose';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
+import { identiteSchema, motifEnMot } from '../data/schemas/defs-scenes/narratif';
+import { identitesDe, nommer } from '../state/identites';
+import { metaDesChamps } from '../data/schemas/grammaire/meta';
+import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -373,7 +377,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
  * Règle stricte 5 — une prose de campagne qui DÉCLARE sa source en est un COPIÉ/COLLÉ : chacun de ses
  * paragraphes se retrouve À L'OCTET dans le livre déclaré. Le livre se résout par le REGISTRE
  * (`books.json`, champ `dir` — patron `src/data/book-source-integrity.test.ts`), jamais par un chemin
- * écrit à la main, et AUCUN numéro de ligne du `Source/` n'est cité (CLAUDE.md § Sources VF : la
+ * écrit à la main, et AUCUN numéro de ligne du `Source/` n'est cité (AGENTS.md § Sources VF : la
  * ré-extraction Marker 2026-06-22 les a fait dériver, le texte non). Garde TRANSVERSE : le même glob de
  * paquets livrés, aucune scène ni aucun titre nommé.
  */
@@ -650,5 +654,75 @@ describe('provenance locale, références présentes résolubles et régime docu
     expect(out.map((p) => [p.chemin, p.texte, p.source])).toEqual([
       ['f.narratif.objets[copie].desc', 'Description copiée.', SOURCE],
     ]);
+  });
+});
+
+/** Les proses de PAQUET d'un projet (champs déclarés par `PROSES_NOMMEES`), par co-descente. */
+function prosesDePaquet(projet: unknown): string[] {
+  const out: string[] = [];
+  coDescendre(projetSchema, projet, (p) => {
+    const d = p.noeuds.map(declarationProseNommee).find((x) => x !== undefined);
+    const texte = d && p.valeur && typeof p.valeur === 'object' ? (p.valeur as Record<string, unknown>)[d.champ] : undefined;
+    if (typeof texte === 'string') out.push(texte);
+  });
+  return out;
+}
+
+/** Un point sous une identité (`identiteSchema`) : ses valeurs ne s'affichent que par `nommer`, jamais telles quelles. */
+const sousIdentite = (p: PointDeDonnee): boolean => {
+  for (let a: PointDeDonnee | undefined = p; a; a = a.parent) if (a.noeuds.includes(identiteSchema)) return true;
+  return false;
+};
+
+/** Les textes de régime `designation` d'un projet rendus VERBATIM (`MetaChamp.texte.regime`, au nœud parent du champ). */
+function textesDeDesignation(projet: unknown): { chemin: string; texte: string }[] {
+  const out: { chemin: string; texte: string }[] = [];
+  coDescendre(projetSchema, projet, (p) => {
+    const cle = p.chemin[p.chemin.length - 1];
+    if (typeof p.valeur !== 'string' || typeof cle !== 'string' || !p.parent || sousIdentite(p)) return;
+    if (p.parent.noeuds.some((n) => metaDesChamps(n)?.[cle]?.texte?.regime === 'designation')) out.push({ chemin: cheminDe(p), texte: p.valeur });
+  });
+  return out;
+}
+
+describe('identité d’un état `heros` dans les paquets livrés (EDO 02 l.112-127, #686)', () => {
+  const projets = bundledFiles.map((f) => ({ f, p: parseProject(lireProjetLivre(f)) }));
+  const identites = projets.flatMap(({ f, p }) => p.narratif.etats.flatMap((e) => (e.forme.kind === 'heros' && e.forme.identite ? [{ f, p, etat: e.id, identite: e.forme.identite }] : [])));
+
+  it('au moins une identité livrée (la garde couvre réellement quelque chose)', () => {
+    expect(identites.length).toBeGreaterThan(0);
+  });
+
+  it('chaque valeur `source` est contenue À L’OCTET dans son livre', () => {
+    const introuvables = identites.flatMap(({ f, etat, identite }) => identite.lignes.flatMap((l) => l.valeurs
+      .filter((v) => v.source && !texteDuLivre(v.source.book).includes(v.valeur))
+      .map((v) => `${f} ${etat} ${l.espece} ${l.sexe} ${v.repere} : « ${v.valeur} » absent de ${v.source!.book}`)));
+    expect(introuvables).toEqual([]);
+  });
+
+  it('chaque repère est EFFECTIVEMENT substitué au moins une fois (un repère masqué par un plus long est mort)', () => {
+    const morts = identites.flatMap(({ f, p, etat, identite }) => {
+      const marques = identitesDe(new Map(identite.reperes.map((r) => [r.fragment, `\uE000${r.id}\uE000`])));
+      const tires = new Set(prosesDePaquet(p).flatMap((t) => [...nommer(t, marques).matchAll(/\uE000([^\uE000]+)\uE000/g)].map((m) => m[1])));
+      return identite.reperes.filter((r) => !tires.has(r.id)).map((r) => `${f} ${etat} : repère « ${r.id} » jamais substitué`);
+    });
+    expect(morts).toEqual([]);
+  });
+
+  it('aucune ancre dans un texte de régime `designation` : la désignation ne dévoile pas le nom', () => {
+    const fautifs = projets.flatMap(({ f, p }) => {
+      const ancres = p.narratif.etats.flatMap((e) => (e.forme.kind === 'heros' ? e.forme.identite?.ancres ?? [] : []));
+      if (!ancres.length) return [];
+      const motif = motifEnMot(ancres);
+      return textesDeDesignation(p).filter((t) => motif.test(t.texte)).map((t) => `${f}${t.chemin} : « ${t.texte} »`);
+    });
+    expect(fautifs).toEqual([]);
+  });
+
+  it('chaque identité couvre la totalité espèce × sexe', () => {
+    const manquants = identites.flatMap(({ f, etat, identite }) => raceKeySchema.options.flatMap((espece) => sexeSchema.options
+      .filter((sexe) => !identite.lignes.some((l) => l.espece === espece && l.sexe === sexe))
+      .map((sexe) => `${f} ${etat} : ${espece} ${sexe}`)));
+    expect(manquants).toEqual([]);
   });
 });

@@ -5,7 +5,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * Grief mesuré par le juge vision (lot munitions, puis 2026-08-17 sur la console) : « la raison n'est
  * qu'en title ». Une infobulle native est invisible au tactile, invisible au clavier, absente de l'arbre
  * d'accessibilité en tant que contenu, illisible sur une capture — et elle a servi de dépotoir à de la
- * PROSE DE RÈGLE composée à la main, ce que les règles 5 & 6 du CLAUDE.md interdisent.
+ * PROSE DE RÈGLE composée à la main, ce que les règles 5 & 6 d'AGENTS.md interdisent.
  *
  * Les TROIS véhicules autorisés, tous déjà canoniques dans le dépôt :
  *   - le texte à l'ÉCRAN (libellé d'alvéole, mot d'état de charge, note du coin) ;

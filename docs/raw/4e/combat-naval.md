@@ -365,12 +365,30 @@ d'eau (Indice)** → total cumulé +Indice/Round ; à E/2 → −1 M et −1 DR 
 **Citation** `l.656` : « Quand un jet d'attaque réussi contre un bateau **donne un double, il subit un Critique.
 De plus, tous les coups qui touchent une fois que le score de Blessures… est tombé à 0 sont des Critiques.** »
 
+> Éclairage VO : Sea of Claws 22 l.484 — la VF dit « le Critique le plus proche en termes de gravité », la VO « the next most serious Critical Hit » ; la valeur reste celle de la VF
+
+**Renvoi d'AA vers le MSRC.** `AA 10 l.13-15` : « mieux vaut utiliser les règles de **L'Ennemi dans l'Ombre -
+Compagnon** (pour les Dégâts infligés aux véhicules) et de **Mort sur le Reik - Compagnon** (pour les Dégâts infligés
+aux navires) ». Bateau fluvial : `MSRC 07 l.74` (« Une fois le bateau réduit à zéro Point de Blessure, chaque nouveau
+coup reçu est considéré comme Critique ») ; `MSRC 07 l.90` (« Il coule en un nombre de minutes égal à son Endurance »).
+Un navire n'a pas d'Effondrement (`AA 10 l.127` vise la Structure) : il coule, `MDG 13 l.674` (« Quand l'Indice devient
+égal au score d'Endurance du navire, il coule. »).
+
 > **Bordée.** Le Test d'équipage de Tir de batterie EST le jet d'attaque de toutes les pièces (`MDG 14 l.128` :
 > « plutôt que de lancer les dés pour toucher pour chaque canon ») ; il est **réussi** à un total ≥ 1 DR
 > (`MDG 14 l.13`). Sur un Test **réussi**, le 1d100 de localisation (`l.571` « ou lancez 1d100 ») **substitue** le
 > jet de touche → un **double sur ce 1d100 = Critique** (un double au jet d'attaque reste un double une fois
 > inversé). Sur un Test **raté**, il n'y a ni coup porté ni Critique — `l.656` gate les DEUX cas (« jet d'attaque
 > **réussi** », « tous les coups qui **touchent** ») sur une touche.
+
+**Table au d10, et Critique obtenu.** Les tables de Critiques de navire se lancent au **d10**, pas au d100 des
+personnages : colonne *Résultat du d10* des tables (`MDG 13 l.696`) ; « la colonne Résultat du d10 du tableau des Blessures
+Critiques » (`MDG 13 l.692`). Le double d'un jet d'attaque réussi fait obtenir le Critique à l'attaquant
+(`MDG 13 l.656`) ; sur un bateau fluvial, « Quand un double est obtenu au jet de dés, le bateau subit un Coup Critique
+là où il a été touché. » (`MSRC 07 l.74`), sans table à lancer. **Silence du texte** : la seconde frappe du talent
+*Maniement de deux armes* prend « le lancer du tableau des Critiques » (`LDB 10 l.773`), le second d100 du Coup Critique
+d'un personnage (`LDB 18 l.53`) ; ni MDG ni MSRC ne disent quel lancer elle prend contre un navire (voir
+[combat.md, Talent *Maniement de deux armes*](combat.md#talent-maniement-de-deux-armes--ldb-10-l773)).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 13` (l.654-674) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `stationAsPoste`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, `applyFall`, +25 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +20 fichiers

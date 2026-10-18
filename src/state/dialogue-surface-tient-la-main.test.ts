@@ -20,6 +20,7 @@ import { parseProject } from './worldMap';
 import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue, Scene } from './scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
+import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 
 const dlg: Dialogue = {
   id: 'd-surface', start: 'n1',
@@ -66,7 +67,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
   });
 
   it('document ouvert : elle attend', () => {
-    temoin({ document: { title: 'Lettre', text: '…' } });
+    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
     expect(repond()).toBe(false);
   });
 
@@ -107,7 +108,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   });
 
   it('document PARTAGÉ ouvert : la réponse de l’invité attend', () => {
-    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…' } })).toBe('n1');
+    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…', remise: 1 } })).toBe('n1');
   });
 });
 
@@ -119,7 +120,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 
   it('Test → document ouvert → touche 2 inerte → document fermé → touche 2 joue', () => {
-    useGame.getState().loadProject(doc.scenes as Scene[], quai.id, doc.worldMap, doc.narratif);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!), quai.id)).toBeNull();
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;
 

@@ -7,6 +7,7 @@
 // le `rename` (refus s'il a changé).
 import * as FS from 'node:fs'
 import { join } from 'node:path'
+import { CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { lireMesure, lireSuivi } from './suiviDonnee.mjs'
@@ -30,6 +31,9 @@ export function relire(cible, fs) {
   }
 }
 
+/** Un refus d'écriture de `categorie`, `rejouable` si elle est retentable. */
+const refusDEcriture = (refus, categorie) => ({ ok: false, refus, categorie, rejouable: CATEGORIES_DE_REFUS[categorie] })
+
 /**
  * Écrit `contenu` sur `cible` par un temporaire `.<nom>.<pid>.tmp` voisin, APRÈS avoir relu `cible`
  * et vérifié qu'elle vaut encore `attendu` (`null` : qu'elle n'existe pas). Temporaire non écrit, cible
@@ -38,16 +42,17 @@ export function relire(cible, fs) {
  * peut pas supprimer est NOMMÉ dans le refus (`listerSuivis` le retrouve en orphelin), sans jamais masquer
  * l'erreur d'origine. La relecture, la comparaison et le `rename` se font sous le verrou EXCLUSIF
  * `.<nom>.verrou` voisin (`prendreVerrou`) ; un verrou tenu par un processus vivant est un refus.
- * `rejouable` dit qu'un refus tient à un autre écrivain (verrou pris, texte changé ou apparu) : le même
- * geste, rejoué sur le texte frais, peut passer. `geste` nomme ce pendant quoi le texte a changé.
+ * `categorie` (`scripts/guards/lib/categorieDeRefus.mjs`) classe le refus ; `rejouable` dit qu'il tient à un
+ * autre écrivain (verrou pris, texte changé, apparu ou disparu) : le même geste, rejoué sur le texte frais,
+ * peut passer. `geste` nomme ce pendant quoi le texte a changé.
  * @param {{cible: string, contenu: string, attendu: string|null, geste: string, fs?: typeof FS, pid?: number}} params
- * @returns {{ok: true} | {ok: false, refus: string, rejouable: boolean}}
+ * @returns {{ok: true} | {ok: false, refus: string, categorie: string, rejouable: boolean}}
  */
 export function ecrireSuivi({ cible, contenu, attendu, geste, fs = FS, pid = process.pid }) {
   const dossier = join(cible, '..')
   const nom = cible.replace(/\\/g, '/').split('/').pop()
   const verrou = prendreVerrou({ chemin: join(dossier, `.${nom}.verrou`), libelle: `suivi ${nom} en cours d'écriture`, pid, commande: 'scripts/ops/suivi.mjs', cwd: dossier })
-  if (verrou.etat !== 'pris') return { ok: false, refus: `${cible} est en cours d'écriture par un autre processus : rien n'est écrit`, rejouable: true }
+  if (verrou.etat !== 'pris') return refusDEcriture(`${cible} est en cours d'écriture par un autre processus : rien n'est écrit`, 'transitoire')
   try {
     return ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom })
   } finally {
@@ -58,23 +63,23 @@ export function ecrireSuivi({ cible, contenu, attendu, geste, fs = FS, pid = pro
 /** Le corps de `ecrireSuivi`, verrou tenu. */
 function ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom }) {
   const temporaire = join(dossier, `.${nom}.${pid}.tmp`)
-  const refuser = (refus, rejouable = false) => {
+  const refuser = (refus, categorie) => {
     try {
       fs.rmSync(temporaire, { force: true })
-      return { ok: false, refus, rejouable }
+      return refusDEcriture(refus, categorie)
     } catch (nettoyage) {
-      return { ok: false, refus: `${refus} ; temporaire RESTANT, non supprimé (${nettoyage?.code ?? nettoyage?.message}) : ${temporaire}`, rejouable: false }
+      return refusDEcriture(`${refus} ; temporaire RESTANT, non supprimé (${nettoyage?.code ?? nettoyage?.message}) : ${temporaire}`, 'panne')
     }
   }
   const relancee = (e) => {
-    const reste = refuser('').refus
+    const reste = refuser('', 'panne').refus
     if (reste && e instanceof Error) e.message += reste
     return e
   }
   try {
     fs.writeFileSync(temporaire, contenu)
   } catch (e) {
-    return refuser(`temporaire ${temporaire} non écrit (${e?.code ?? e?.message}) : rien n'est écrit, relancer`)
+    return refuser(`temporaire ${temporaire} non écrit (${e?.code ?? e?.message}) : rien n'est écrit`, 'panne')
   }
   let actuel
   try {
@@ -82,15 +87,15 @@ function ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, no
   } catch (e) {
     throw relancee(e)
   }
-  if (attendu === null && actuel !== null) return refuser(`${cible} est apparu pendant ${geste} : rien n'est écrit, relancer`, true)
-  if (attendu !== null && actuel === null) return refuser(`${cible} a disparu pendant ${geste} : rien n'est écrit`)
-  if (attendu !== null && actuel !== attendu) return refuser(`${cible} a changé pendant ${geste} : rien n'est écrit, relancer`, true)
+  if (attendu === null && actuel !== null) return refuser(`${cible} est apparu pendant ${geste} : rien n'est écrit, relancer`, 'transitoire')
+  if (attendu !== null && actuel === null) return refuser(`${cible} a disparu pendant ${geste} : rien n'est écrit, relancer`, 'transitoire')
+  if (attendu !== null && actuel !== attendu) return refuser(`${cible} a changé pendant ${geste} : rien n'est écrit, relancer`, 'transitoire')
   try {
     fs.renameSync(temporaire, cible)
     return { ok: true }
   } catch (e) {
     if (!TENU.has(e?.code)) throw relancee(e)
-    return refuser(`suivi tenu par un autre processus (${e.code} au rename de ${cible}), relancer`, true)
+    return refuser(`suivi tenu par un autre processus (${e.code} au rename de ${cible}), relancer`, 'transitoire')
   }
 }
 

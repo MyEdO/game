@@ -1,5 +1,5 @@
 // Lecteur de disque à ORDRE TOTAL — source UNIQUE des listings de répertoire des générateurs de
-// dérivés et des libs qu'ils atteignent (#1679 L3b, incident #1620). Deux fonctions, aucune option
+// dérivés et des libs qu'ils atteignent (#1679 L3b, incident #1620). Trois fonctions, aucune option
 // de comparateur : l'ordre est une PROPRIÉTÉ du lecteur, pas une décision de chaque site.
 //
 // Pourquoi ici et pas dans chaque générateur : un doc dérivé généré sous Windows peut différer de sa
@@ -22,21 +22,38 @@ export const cheminAbsent = (erreur) => ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].in
 /**
  * Noms des enfants DIRECTS de `dir`, triés par unités de code.
  * @param {string} dir
- * @param {{ absent?: 'lever' | 'vide', avecTypes?: boolean }} [options] `absent: 'vide'` rend `[]` en mode noms quand le dossier
- *   est `cheminAbsent` — nature `other` pour un chemin qui n'est pas un dossier (ENOTDIR), `absent`
- *   sinon ; toute AUTRE erreur lève (une lecture refusée n'est pas un dossier vide).
- * @returns {string[] | { nature: 'directory' | 'absent' | 'other', entrees: { nom: string, nature: 'file' | 'directory' | 'link' | 'other' }[] }}
+ * @param {{ absent?: 'lever' | 'vide' }} [options] `absent: 'vide'` rend `[]` quand le dossier est
+ *   `cheminAbsent` ; toute AUTRE erreur lève (une lecture refusée n'est pas un dossier vide).
+ * @returns {string[]}
  */
-export function listerDossier(dir, { absent = 'lever', avecTypes = false } = {}) {
+export function listerDossier(dir, { absent = 'lever' } = {}) {
   let noms
   try {
-    noms = readdirSync(dir, avecTypes ? { withFileTypes: true } : undefined)
+    noms = readdirSync(dir)
   } catch (err) {
-    if (absent === 'vide' && cheminAbsent(err)) return avecTypes ? { nature: err.code === 'ENOTDIR' ? 'other' : 'absent', entrees: [] } : []
+    if (absent === 'vide' && cheminAbsent(err)) return []
     throw err
   }
-  if (!avecTypes) return noms.map(String).sort()
-  return { nature: 'directory', entrees: noms.map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => a.nom < b.nom ? -1 : a.nom > b.nom ? 1 : 0) }
+  return noms.sort()
+}
+
+/**
+ * Enfants DIRECTS de `dir` avec leur `nature` (lue du `Dirent`), triés par nom en unités de code.
+ * @param {string} dir
+ * @param {{ absent?: 'lever' | 'vide' }} [options] `absent: 'vide'` rend `entrees: []` quand le
+ *   dossier est `cheminAbsent` — nature `other` pour un chemin qui n'est pas un dossier (ENOTDIR),
+ *   `absent` sinon ; toute AUTRE erreur lève.
+ * @returns {{ nature: 'directory' | 'absent' | 'other', entrees: { nom: string, nature: 'file' | 'directory' | 'link' | 'other' }[] }}
+ */
+export function listerEntrees(dir, { absent = 'lever' } = {}) {
+  let entrees
+  try {
+    entrees = readdirSync(dir, { withFileTypes: true })
+  } catch (err) {
+    if (absent === 'vide' && cheminAbsent(err)) return { nature: err.code === 'ENOTDIR' ? 'other' : 'absent', entrees: [] }
+    throw err
+  }
+  return { nature: 'directory', entrees: entrees.map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => a.nom < b.nom ? -1 : a.nom > b.nom ? 1 : 0) }
 }
 
 /**
@@ -92,7 +109,7 @@ export const couvertParPathspec = (chemin, spec) =>
 /**
  * Chemins RELATIFS POSIX des FICHIERS sous `dir`, à toute profondeur : dossiers parcourus dans
  * l'ordre trié ET résultat trié (le tri final décide, la marche ne fait que le rendre lisible).
- * Le type d'une entrée est sa `nature` dans `listerDossier(…, { avecTypes: true })` (le `Dirent`) :
+ * Le type d'une entrée est sa `nature` dans `listerEntrees` (le `Dirent`) :
  * seul un `directory` est descendu ; un lien (jonction NTFS comprise, lien mort compris) et une
  * entrée `other` sont rendus comme un fichier. Un `DT_UNKNOWN` est typé par Node d'un `lstatSync`
  * (`getDirent`, `lib/internal/fs/utils.js`).
@@ -105,7 +122,7 @@ export const couvertParPathspec = (chemin, spec) =>
 export function listerArbre(dir, { filtre, descendre, absent = 'lever' } = {}) {
   const out = []
   const marcher = (rel) => {
-    for (const { nom, nature } of listerDossier(rel ? join(dir, rel) : dir, { absent, avecTypes: true }).entrees) {
+    for (const { nom, nature } of listerEntrees(rel ? join(dir, rel) : dir, { absent }).entrees) {
       const enfant = rel ? `${rel}/${nom}` : nom
       if (nature === 'directory') {
         if (!descendre || descendre(enfant)) marcher(enfant)

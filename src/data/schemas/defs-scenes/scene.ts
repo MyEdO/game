@@ -457,7 +457,7 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   label: z.string(),
   /** Icône d'affordance (registre `src/ui/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
    *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (couture UI hors de
-   *  `src/state`, cf. CLAUDE.md : la logique reste pure, `<Icon>` valide l'id au rendu). */
+   *  `src/state`, cf. AGENTS.md : la logique reste pure, `<Icon>` valide l'id au rendu). */
   icon: z.string().optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */
   when: conditionSchema.optional(),
@@ -523,12 +523,12 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  STABLE d'une entité de scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée).
  *  Le RAW ne chiffre AUCUN seuil de reddition (silence confirmé) ; seul précédent chiffré, la
  *  reddition d'un monstre marin à mi-Blessures (`MDG 15 l.143`, `l.166-168`). `belowPercent` reste
- *  une valeur ÉDITABLE par rencontre, sans seuil RAW imposé (CLAUDE.md règle 7).
+ *  une valeur ÉDITABLE par rencontre, sans seuil RAW imposé (AGENTS.md règle 7).
  *  `firstBlood` (#471) : DUEL JUDICIAIRE — « le premier sang est la première attaque qui cause une
  *  perte de plus de 3 Blessures […] ; un adversaire est incapable de continuer lorsqu'il est réduit
  *  à 0 Blessure » (`NADJ 06 l.175-177`) — les DEUX fins restent actives en parallèle, la seconde étant
  *  la fin standard (0 Blessure, `isOutOfAction`) déjà couverte hors `VictoryCondition`. `threshold`
- *  reste ÉDITABLE (défaut 3, seule valeur chiffrée par le RAW) — sévérité de la charge, CLAUDE.md
+ *  reste ÉDITABLE (défaut 3, seule valeur chiffrée par le RAW) — sévérité de la charge, AGENTS.md
  *  règle 7. Testé PAR-COUP (`resolveFirstBlood`, combatFlow.ts) — pas un seuil cumulatif comme
  *  `woundsThreshold`. */
 export const victoryConditionSchema = z.discriminatedUnion('type', [

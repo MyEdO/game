@@ -11,7 +11,7 @@
  *    l'Atout Siège » — le corps à corps passe. Capacité de trait `structResistant` (`traits.json`).
  *  - **Impénétrable** (atout de STRUCTURE, l.300) : « ne peuvent pas être abîmées par une Arme sans l'Atout
  *    Siège » — toute arme. Capacité de trait `structImpenetrable` (namespace DISTINCT de la qualité d'armure
- *    LDB 63 « Impénétrable » `critImmuneOdd` : ici c'est un Trait `impenetrable-structure`).
+ *    LDB 63 « Impénétrable », `impenetrableAt` : ici c'est un Trait `impenetrable-structure`).
  *  - **Bélier** (ADE II 08 l.249) : « n'infligent des dégâts qu'aux portes » — capacité de qualité `ram`.
  *
  * N'importe JAMAIS `combat`/`ops` (`woundsCalc` peut le greffer).

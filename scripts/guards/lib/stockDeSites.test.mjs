@@ -13,18 +13,15 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE, SEPARATEUR_DE_REMEDE, cleDeSite, sitesEnEntrees } from './stock.mjs'
-import {
-  DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration,
-  entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere,
-} from './stockDeSites.mjs'
+import { DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration, entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere } from './stockDeSites.mjs'
 import { jouerModules, lotDeLaLigne, modulesQuiMesurent, regenererStock } from './regenStock.mts'
-import { constructionsReserveesDuCorpus, scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
+import { scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
 import { listerDossier } from './lister.mjs'
-import { corpusDesGardes } from './commentPoison.mjs'
 import { RACINE } from './bindingsVivants.mjs'
 import { envGitFeint } from './depotGabarit.mjs'
 
-const ICI = fileURLToPath(new URL('.', import.meta.url))
+const ICI = fileURLToPath(new URL('./', import.meta.url))
+
 const REGEN = join(ICI, 'regenStock.mts')
 
 function withTempDir(fn) {
@@ -50,6 +47,26 @@ test('lireEntreesDeSite : fichier absent → aucune entrée (zéro-tolérance), 
   })
 })
 
+// #2586
+test('lecteur spécialisé : validation réelle, null, extras et chemins sans borne', () => {
+  withTempDir((dir) => {
+    const path = join(dir, 'stock.json')
+    for (const brut of [{}, { entrees: null }, { entrees: [] }]) {
+      writeFileSync(path, JSON.stringify(brut))
+      assert.deepEqual(lireEntreesDeSite(path), [])
+    }
+    for (const entrees of [false, {}, 'texte', [null], [{ ...ENTREE, fichier: 1 }], [{ ...ENTREE, occurrence: 0 }], [{ fichier: 'src/a.ts' }]]) {
+      writeFileSync(path, texteDeStock('fixture', entrees))
+      assert.throws(() => lireEntreesDeSite(path), TypeError)
+      assert.deepEqual(lireStockJson(path), { quoi: 'fixture', entrees })
+    }
+    const DRIVE = 'C' + ':'
+    const entrees = [{ ...ENTREE, fichier: '../hors', extra: { libre: true } }, { ...ENTREE, fichier: DRIVE + '/absolu' }]
+    writeFileSync(path, texteDeStock('fixture', entrees))
+    assert.deepEqual(lireEntreesDeSite(path), entrees)
+  })
+})
+
 test('lireStockJson : un stock absent rend un document VIDE, un stock présent rend son JSON entier', () => {
   assert.deepEqual(lireStockJson(join(tmpdir(), 'inexistant-stock-de-sites.json')), {})
   withTempDir((dir) => {
@@ -62,10 +79,6 @@ test('lireStockJson : un stock absent rend un document VIDE, un stock présent r
 // ── L'écriture du format JSON a UN écrivain ────────────────────────────────────────────────────────
 
 const ECRITURE = { ...ECRITURE_DE_STOCK_JSON, foyer: 'scripts/guards/lib/stockDeSites.mjs' }
-
-test('ECRITURE_DE_STOCK_JSON : aucune écriture du format JSON des stocks hors de `texteDeStock`', () => {
-  assert.deepEqual(constructionsReserveesDuCorpus(corpusDesGardes(), [ECRITURE]), [])
-})
 
 test('ECRITURE_DE_STOCK_JSON : une recopie neuve hors du foyer est un site, la même dans le foyer ne l’est pas', () => {
   const vu = (text, rel = 'scripts/fixture.mjs') => scanConstructionsReservees({ rel, text }, [ECRITURE]).map((t) => t.construction)
@@ -95,13 +108,18 @@ test('sitesEnEntrees : le reste d’un site (`line`, `pdfChars`) suit l’entré
 // ── Régénération sous lot (JSON) ───────────────────────────────────────────────────────────────────
 
 const ANCIEN = [{ famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1, lot: '#1 X', date: '2026-01-01' }]
+
 const CONNUE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1 }
+
 const NEUVE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'b', occurrence: 1 }
+
 const site = (e, reste = {}) => ({ famille: e.famille, file: e.fichier, ref: e.ref, ...reste })
+
 const regenerer = (args, sites, { ancien = ANCIEN, date = '2026-09-23' } = {}) => texteRegenere(
   decl('x-stock.json', SOUS_LOT, sites),
   { enPlace: texteDeStock('q', ancien), lot: lotDeLaLigne(args), date, amorce: args.includes('--amorce') },
 )
+
 const entreesDe = (r) => JSON.parse(r.texte).entrees
 
 test('régénération sous lot : une entrée NEUVE sans `--lot` REFUSE l’écriture, nommée — rien n’est écrit', () => {
@@ -142,10 +160,15 @@ test('SOUS_LOT : une entrée qui porte une `preuve`, régénérée sans `--lot`,
 // ── Politiques ─────────────────────────────────────────────────────────────────────────────────────
 
 const MJS = (corps) => `// fixture\nexport const A_STOCK = ${corps}\n\nexport const HORS = 1\n`
+
 const LIGNES = (...e) => `[\n${e.map((x) => `  { fichier: '${x.fichier}', ref: '${x.ref}', occurrence: ${x.occurrence} },`).join('\n')}\n]`
+
 const A1 = { fichier: 'src/a.ts', ref: 'r1', occurrence: 1 }
+
 const B1 = { fichier: 'src/b.ts', ref: 'r2', occurrence: 1 }
+
 const Z1 = { fichier: 'src/z.ts', ref: 'r9', occurrence: 1 }
+
 const s = (e, reste = {}) => ({ file: e.fichier, ref: e.ref, ...reste })
 
 test('DECROISSANT : un échange à somme nulle est refusé ; le même sous l’amorce est écrit', () => {

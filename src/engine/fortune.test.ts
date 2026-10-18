@@ -4,6 +4,7 @@ import { evaluateTest } from './tests';
 import { rederivePassiveAttack } from './combat';
 import { rederiveCastSL, type SpellLike } from './magic';
 import type { Combatant, Weapon } from './types';
+import { makeRNG } from './dice';
 
 describe('canReroll — Chance : relance 1×/Test sur jet propre raté (LDB 12 l.40 ; jet propre raté : LDB 12 l.13)', () => {
   it('jet raté, pas encore relancé → relance possible', () => {
@@ -50,14 +51,14 @@ describe('rederivePassiveAttack — +1 DR (re-dérive un tir figé sans relancer
     const a = ranger();
     const d = cible(30); // BE(30) = 3, PA = 0
     const atk = evaluateTest(20, 50); // réussi, DR = 5 - 2 = 3
-    const r0 = rederivePassiveAttack(a, d, bow, atk, 'ranged');
-    const r1 = rederivePassiveAttack(a, d, bow, { ...atk, sl: atk.sl + 1 }, 'ranged');
+    const r0 = rederivePassiveAttack(a, d, bow, atk, 'ranged', { rng: makeRNG(1595) });
+    const r1 = rederivePassiveAttack(a, d, bow, { ...atk, sl: atk.sl + 1 }, 'ranged', { rng: makeRNG(1595) });
     expect(r0.hit).toBe(true);
     expect(r1.woundsLost!).toBe(r0.woundsLost! + 1); // +1 DR = +1 dégât = +1 Blessure
   });
   it('+1 DR ne fabrique pas une touche sur un tir raté (succès = d100, inchangé)', () => {
     const atk = evaluateTest(80, 50); // d100 raté
-    const r = rederivePassiveAttack(ranger(), cible(), bow, { ...atk, sl: atk.sl + 1 }, 'ranged');
+    const r = rederivePassiveAttack(ranger(), cible(), bow, { ...atk, sl: atk.sl + 1 }, 'ranged', { rng: makeRNG(1595) });
     expect(r.hit).toBe(false);
   });
 });

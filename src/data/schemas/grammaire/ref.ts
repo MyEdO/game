@@ -72,6 +72,8 @@ export const TYPES = {
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
   // JEU DE TAVERNE (#1921) : `SceneEntity.tavernGame.gameId` résout AU PARSE.
   tavernGame: { espace: 'tavernGames.json', catalogue: 'jeux de taverne' },
+  // PSYCHOLOGIE (#1595) : `traits.json › capabilities.psychType` résout AU PARSE.
+  psychology: { espace: 'psychology.json', catalogue: 'psychologies' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

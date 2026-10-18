@@ -27,6 +27,7 @@ import { CODEX } from './registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { enumNomme } from '../../data/schemas/grammaire/valeurs';
+import { refOuSpec } from '../../data/schemas/grammaire/ref';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
 import { lireExports } from '../../../scripts/gen-registry.mjs';
@@ -147,6 +148,13 @@ describe('régime PROFONDEUR — pas de fuite des libellés d’enveloppe dans l
     expect(libelleDuChamp('id')).toBe('Identifiant');
     expect(libelleDuChamp('desc')).toBe('Description');
     expect(inferFields([{ id: 'a', desc: 'd' }]).map((f) => f.label)).toEqual(['Identifiant', 'Description']);
+  });
+
+  it('un sous-champ se nomme par la méta de son nœud objet, à travers l’optionnel et l’union', () => {
+    const optionnel = refOuSpec('skill').optional();
+    expect(['id', 'spec'].map((k) => libelleDuChamp(k, { niveau: 'profondeur', noeud: optionnel }))).toEqual(['identifiant', 'spécialisation']);
+    const union = z.union([z.string(), refOuSpec('skill')]).optional();
+    expect(['id', 'spec'].map((k) => libelleDuChamp(k, { niveau: 'profondeur', noeud: union }))).toEqual(['identifiant', 'spécialisation']);
   });
 
   it('la méta d’un def ne nomme pas non plus un sous-champ homonyme', () => {

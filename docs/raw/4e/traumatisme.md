@@ -59,11 +59,11 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 1. **Coup Critique** — déclenché en combat (double réussi en CC/Projectiles ; voir [combat.md](combat.md)).
 2. **Overflow de PB** — on subit plus de Dégâts qu'on ne possède de PB (excédent négatif).
 
-**Modificateur d'overflow** (`LDB 18 l.17`) : si le total de PB tomberait à un valeur négative dont la valeur absolue est **inférieure** au BE, appliquer **−20 au résultat sur le Tableau des Critiques**, minimum 01.
+**Modificateur d'overflow** (`LDB 18 l.17`) : si le nombre de Points de Blessure passés en négatif est **inférieur** au BE — strictement ; égalité → pas de −20 —, appliquer **−20 au résultat sur le Tableau des Critiques**, minimum 01. Le −20 ne vaut que pour le Critique né du dépassement (#1595 c.6222318751).
 
-> « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance, vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01. » — `LDB 18 l.17`
+> « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance (donc inférieur à -4 Points de Blessure si votre BE est de 4), vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 » — `LDB 18 l.17`
 
-Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6| = 6 > BE 4 → **pas** de −20. Mais si PB fictifs = −3 → |−3| = 3 < BE 4 → **−20 appliqué**.
+Exemple : BE 4, 2 PB restants, 8 Dégâts → dépassement 6 ≥ BE → **pas** de −20 ; dépassement 3 < BE → **−20** ; dépassement 4 = BE → **pas** de −20.
 
 **PB d'une Blessure critique** (`LDB 18 l.53`) : les PB perdus indiqués dans le Tableau **ignorent BE et PA**. Ces PB perdus n'entraînent **pas** eux-mêmes de nouvelles Blessures critiques.
 
@@ -116,7 +116,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 
 ## 5. Mort — condition et mort lente
 
-**Mort lente** (`LDB 18 l.42-43`) : si un personnage est **Inconscient** avec **0 PB**, comparer son **total de Blessures critiques** à son **BE**. Si ce total **dépasse** le BE → mort à la **fin du Round**, sauf si quelqu'un guérit au moins une Blessure critique avant.
+**Mort lente** (`LDB 18 l.34`) : si un personnage est **Inconscient** avec **0 PB**, comparer son **total de Blessures critiques** à son **BE**. Si ce total **dépasse** le BE → mort à la **fin du Round**, sauf si quelqu'un guérit au moins une Blessure critique avant.
 
 > « Si vous obtenez l'État *Inconscient* et que vous avez 0 Point de Blessure, comparez le total de Blessures critiques dont vous souffrez avec votre Bonus d'Endurance. Si le total de Blessures critiques dépasse celui de votre Bonus d'Endurance, vous succombez à vos terribles lésions et mourrez à la fin du Round. » — `LDB 18 l.34`
 
@@ -124,7 +124,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 
 **Destin** (`LDB 18 l.40`) : si la mort est imminente, le joueur peut dépenser un Point de Destin (renvoi LDB 17 — voir [destin.md](destin.md)).
 
-**Sources RAW** : `LDB 18 l.38-40` (mort instantanée) ; `LDB 18 l.42-43` (mort lente).
+**Sources RAW** : `LDB 18 l.38-40` (mort instantanée) ; `LDB 18 l.34` (mort lente).
 
 **Voir aussi** : [Option : Mort Subite](#6-option--mort-subite) ; Destin → [destin.md](destin.md).
 

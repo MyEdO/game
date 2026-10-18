@@ -646,10 +646,10 @@ export const stakeRefSchema: z.ZodType<StakeRef> = z.union([
  *  d'un jeu de taverne). */
 export const facilitationSchema = nommerChamps(z
   .strictObject({
-    hasSkill: nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "identifiant" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} } }).optional(),
+    hasSkill: nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "Identifiant" , texte: { regime: "technique"} }, spec: { label: "Spécialisation" , texte: { regime: "technique"} } }).optional(),
     hasTalent: idDe('talent').optional(),
     steps: z.number().optional(),
-  }), { hasSkill: { label: "Compétence requise" }, hasTalent: { label: "Talent requis" , texte: { regime: "technique"} }, steps: { label: "étape" } });
+  }), { hasSkill: { label: "Compétence requise" }, hasTalent: { label: "Talent requis" , texte: { regime: "technique"} }, steps: { label: "Étape" } });
 
 /** Le JET : ce qu'il teste et sa Difficulté (LDB 12 l.7, l.137) — forme partagée, sans refine. */
 export const jetSchema = nommerChamps(z.strictObject({
@@ -1000,8 +1000,9 @@ function construire(regimes: Regimes) {
     flow: flow,
     condition: z.string().optional(),
     attackType: z.enum(['melee', 'ranged']).optional(),
+    coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, optional: { label: "facultatif" } });
+  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } });
 
   /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
    *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */

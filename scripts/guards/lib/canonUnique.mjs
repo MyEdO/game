@@ -11,7 +11,7 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
-//    `SONDE_D_EXISTENCE` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `SONDE_D_EXISTENCE`, `VIE_SUR_PID_LU` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -44,6 +44,7 @@ export function contexteImports(sf, verificateur) {
   let index;
   const absent = [];
   const modules = new Map();
+  const declarations = new Map();
   const lireLiaisons = () => liaisons ??= liaisonsDe(sf.fileName, sf);
   return {
     get source() { return sf; },
@@ -60,6 +61,10 @@ export function contexteImports(sf, verificateur) {
         }
       }
       return index.get(nom) ?? absent;
+    },
+    declarationsDuScope: (scope) => {
+      if (!declarations.has(scope)) declarations.set(scope, declarationsDe(scope));
+      return declarations.get(scope);
     },
     checker: () => {
       if (!verificateur) throw new TypeError('Vérificateur natif emprunté absent du contexte d’import');
@@ -78,6 +83,40 @@ export function contexteImports(sf, verificateur) {
       return modules.get(spec);
     },
   };
+}
+
+/** Les déclarations et affectations de chaque nom d'une portée, en pré-ordre, sans descendre dans une
+ *  portée imbriquée ; une fonction ou classe nommée `N` tait `N` dans son corps.
+ * @param {ts.Node} scope @returns {Map<string, import('./canonUnique.mjs').EvenementDeNom[]>} */
+function declarationsDe(scope) {
+  const parNom = new Map();
+  const noter = (nom, evenement, exclus) => {
+    if (exclus.has(nom)) return;
+    if (!parNom.has(nom)) parNom.set(nom, []);
+    parNom.get(nom).push(evenement);
+  };
+  const marcher = (n, exclus) => {
+    if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name) {
+      noter(n.name.text, { genre: 'declaration', noeud: n }, exclus);
+      if (n !== scope && ts.isFunctionLikeDeclaration(n)) return;
+      exclus = new Set(exclus).add(n.name.text);
+    } else if (n !== scope && (ts.isFunctionLikeDeclaration(n) || ts.isBlock(n))) return;
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left)) noter(n.left.text, { genre: 'affectation', fin: n.end, droite: n.right }, exclus);
+    if (ts.isVariableDeclaration(n)) {
+      if (ts.isIdentifier(n.name)) noter(n.name.text, { genre: 'declaration', noeud: n }, exclus);
+      else if (ts.isObjectBindingPattern(n.name)) {
+        const vus = new Set();
+        for (const element of n.name.elements) {
+          if (!ts.isIdentifier(element.name) || vus.has(element.name.text)) continue;
+          vus.add(element.name.text);
+          noter(element.name.text, { genre: 'declaration', noeud: n, membre: (element.propertyName ?? element.name).text }, exclus);
+        }
+      }
+    }
+    n.forEachChild(m => marcher(m, exclus));
+  };
+  marcher(scope, new Set());
+  return parNom;
 }
 
 /** @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
@@ -487,20 +526,14 @@ function origineConstruction(expression, sf, contexte, vus = new Set()) {
     let declaration;
     let membre;
     let affectation;
-    const chercher = n => {
-      if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name?.text === e.text) { declaration = n; return; }
-      if (n !== scope && (ts.isFunctionLikeDeclaration(n) || ts.isBlock(n))) return;
-      if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && n.left.text === e.text && n.end <= e.pos) affectation = n.right;
-      if (ts.isVariableDeclaration(n)) {
-        if (ts.isIdentifier(n.name) && n.name.text === e.text) declaration = n;
-        else if (ts.isObjectBindingPattern(n.name)) {
-          const element = n.name.elements.find(el => ts.isIdentifier(el.name) && el.name.text === e.text);
-          if (element) { declaration = n; membre = (element.propertyName ?? element.name).text; }
-        }
+    for (const evenement of contexte.declarationsDuScope(scope).get(e.text) ?? []) {
+      if (evenement.genre === 'affectation') {
+        if (evenement.fin <= e.pos) affectation = evenement.droite;
+        continue;
       }
-      n.forEachChild(chercher);
-    };
-    chercher(scope);
+      declaration = evenement.noeud;
+      if (evenement.membre !== undefined) membre = evenement.membre;
+    }
     if (declaration) {
       const valeur = affectation ?? declaration.initializer;
       const origine = valeur && origineConstruction(valeur, sf, contexte, vus);
@@ -551,6 +584,48 @@ export const SONDE_D_EXISTENCE = Object.freeze({
     const signal = sansEnveloppe(n.arguments[1]);
     const nul = (ts.isNumericLiteral(signal) && Number(signal.text) === 0) || (ts.isStringLiteral(signal) && signal.text === '0');
     return nul ? 'sonde d’existence de processus recopiée (`estPidVivant`)' : null;
+  },
+});
+
+/** La sonde d'existence d'un pid, par son module. */
+const SONDE_DE_VIE = Object.freeze({ 'scripts/guards/lib/pid.mjs': Object.freeze(['estPidVivant']) });
+
+/** `id` est-il l'import de la sonde `SONDE_DE_VIE` ?
+ *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function sondeDeVieImportee(id, sf, contexte) {
+  const l = liaisonImportee(id, sf, contexte);
+  const module = l && contexte.module(l.spec);
+  return Boolean(module && (SONDE_DE_VIE[module] ?? []).includes(l.nom));
+}
+
+/** `id` lie-t-il la sonde `SONDE_DE_VIE` : son import, ou un paramètre, une liaison déstructurée ou une
+ *  variable dont elle est l'initialiseur (`{ estVivant = estPidVivant }`) ?
+ *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function lieLaSondeDeVie(id, sf, contexte) {
+  if (sondeDeVieImportee(id, sf, contexte)) return true;
+  const declarations = contexte.checker().getSymbolAtLocation(id)?.declarations ?? [];
+  return declarations.map((d) => d.resolve()).some((d) => {
+    if (!(ts.isParameterDeclaration(d) || ts.isBindingElement(d) || ts.isVariableDeclaration(d)) || !d.initializer) return false;
+    const initialiseur = sansEnveloppe(d.initializer);
+    return ts.isIdentifier(initialiseur) && sondeDeVieImportee(initialiseur, sf, contexte);
+  });
+}
+
+/** La VIE JUGÉE SUR UN PID LU, sans sa naissance : un appel à `estPidVivant` — importé, ou lié par un
+ *  paramètre, une liaison déstructurée ou une variable qu'il initialise — et `estPidVivant` passé en argument
+ *  (`pids.filter(estPidVivant)`). La sonde injectée à `estPidVivantDepuis` (`{ estVivant }`) n'en est pas une
+ *  (#2603 #2586). Angle mort : la sonde lue d'un objet (`g.estVivant(pid)`), réaffectée, ou réexportée. */
+export const VIE_SUR_PID_LU = Object.freeze({
+  nom: 'VIE_SUR_PID_LU',
+  indice: (texte) => texte.includes('estPidVivant'),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
+  reconnait: (n, sf, contexte) => {
+    if (!ts.isCallExpression(n)) return null;
+    const appele = sansEnveloppe(n.expression);
+    const juge = estAppelDeclare(n, sf, SONDE_DE_VIE, contexte) ?? (ts.isIdentifier(appele) && lieLaSondeDeVie(appele, sf, contexte) ? appele.text : null);
+    const passee = n.arguments.map(sansEnveloppe).find((a) => ts.isIdentifier(a) && sondeDeVieImportee(a, sf, contexte));
+    if (!juge && !passee) return null;
+    return `vie jugée sur un pid sans sa naissance : \`${juge ?? /** @type {ts.Identifier} */ (passee).text}\` dans \`${englobanteDe(n)}\` (\`estPidVivantDepuis\`)`;
   },
 });
 

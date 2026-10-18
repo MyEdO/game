@@ -21,113 +21,31 @@
 // label de sa lentille, APPLIQUE-t-il les corrections de son juge de complétude, et sa fiche s'écrit-elle
 // par le lanceur pour armer la table ; tout agent de tout workflow exécute-t-il une commande simple ; un
 // verdict de SUCCÈS se rend-il jamais sur un trou.
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs';
-import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs';
-import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../guards/lib/jouer-workflow.mjs';
-import { tableTotale } from '../../src/lib/tableTotale.ts';
-import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts';
-import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs';
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
+import { z } from 'zod'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
+import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
+import { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, LECTURES, SANS_SOSIE, TYPE_DE_POINT_AU_MJ, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, completude, repondreAuDossier, jouerDossier, sauf } from '../test/lib/bancWorkflows.mjs'
 
-const RACINE = fileURLToPath(new URL('../../', import.meta.url));
-const DOSSIER = join(RACINE, '.claude', 'workflows');
-const DATE = '2026-09-04';
-// Chemins de FIXTURE : les scripts ne les OUVRENT pas, ils les recopient dans leurs prompts. Ils
-// s'écrivent sans lettre de lecteur — une fixture ne nomme aucune machine
-// (`src/portable-paths-guard.test.ts`).
-const ARBRE = '/arbre-jete';
-const COMMIT = 'f6e343dc8abf36a9d34cc3fd13de60af3d9ac894';
-
-/** Joue un script de `.claude/workflows/` — l'enveloppe vit dans `scripts/guards/lib/jouer-workflow.mjs`. */
-const jouer = (nomDuScript, argsDuRun, repondre) => jouerWorkflow(join(DOSSIER, nomDuScript), argsDuRun, repondre);
-
-// ── `table-simulee.js` ───────────────────────────────────────────────────────────────────────────
-
-const SECRET = 'SECRET-DU-MJ-QUE-LES-JOUEURS-IGNORENT';
-const D1 = { id: 'd1', evenement: 'Le PNJ approche la table des PJ', condition: 'les PJ l’ignorent une demi-heure', ref: ['EDO 01 l.200'] };
-/** La FICHE commitée d'un chapitre (`ficheDeDossier`) : ce que la table consomme. */
-const DOSSIER_DU_CHAPITRE = {
-  lecture: { date: DATE, commit: COMMIT },
-  imperatifs: [{ id: 'imp1', texte: 'le corps doit être trouvé', ref: ['EDO 02 l.34'] }],
-  beats: [{ id: 'b1', titre: 'La route', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] }, { id: 'b2', titre: 'Le relais', statut: 'optionnel', preuveDuStatut: 'p', mediasCandidats: ['resume'], ref: ['EDO 01 l.10'] }],
-  pointsAuMJ: [], indices: [{ id: 'ind1', texte: 'une plume noire sur le rebord', ref: ['EDO 01 l.6'] }], secrets: [{ id: 'sec1', texte: SECRET, ref: ['EDO 01 l.5'] }], declencheurs: [D1],
-  pnj: [{ id: 'pnj1', nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }],
-  lieux: [], textes: [], tests: [], rencontres: [], recompenses: [], etats: [], dureeEtDifficulte: [], matiereCompagnons: [],
-};
-const ARGS_TABLE = {
-  livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], dossier: DOSSIER_DU_CHAPITRE, seed: 'graine', maxEchanges: 3,
-  worktree: ARBRE, date: DATE,
-};
 const ARGS_TABLE_PERSONAS = ['rôliste', 'fouineur', 'saboteur', 'hors-cadre'];
-const FICHES_PJ = {
-  pjs: ['pregen-101', 'pregen-202', 'pregen-707', 'pregen-303'].map((id) => ({ id, nom: id, espece: 'humain', carriere: 'c', fiche: `fiche de ${id}` })),
-  groupe: { source: 'makeShowcaseParty', commande: 'npx tsx sonde.mts' },
-};
-const IDS_DES_PJ = FICHES_PJ.pjs.map((pj) => pj.id);
-const SANS_SOSIE = { id: '', ref: '', motif: 'aucun passage du chapitre ne fait ressembler un PJ à un PNJ' };
-const jetsDe = (premier, n) => Array.from({ length: n }, (_, i) => ({
-  tirage: premier + i, objet: 'o', commande: `npx tsx scripts/ops/table-des.mts simple --seed "graine" --tirage ${premier + i}`, sortie: '{}',
-}));
 
-/** Le texte JSON d'un prompt entre deux marqueurs : ce que le script ENVOIE au juge. */
-const jsonEntre = (prompt, debut, fin) => JSON.parse(prompt.slice(prompt.indexOf(debut) + debut.length, prompt.indexOf(fin)));
-const journalEnvoye = (prompt) => jsonEntre(prompt, 'JOURNAL COMPLET :\n', '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
-const declencheursEnvoyes = (prompt) => jsonEntre(prompt, 'DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :\n', '\n\nRends :');
+const IDS_DES_PJ = FICHES_PJ.pjs.map((pj) => pj.id);
+
+/** L'anomalie d'un tirage hors suite, et le geste qu'elle demande au renvoi. */
+const TIRAGE_5_ATTENDU_0 = 'jet 1 : tirage 5, attendu 0 — relance sa commande au tirage 0 ; la résolution et la narration qui dépendent de ce jet suivent sa nouvelle sortie';
+const journalEnvoye = (prompt) => jsonEntre(prompt, "JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions, ni ses motifs) :\n", '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
+
 /** Ce qu'un objet d'un schéma admet : `additionalProperties`, les clés EXIGÉES, les clés décrites. */
 const clesDe = (objet) => [objet.additionalProperties, objet.required, Object.keys(objet.properties)];
 
-/**
- * Un juge d'analyse au CONTRAT, à la forme du schéma qu'il REÇOIT : chaque intention exigée classée,
- * chaque déclencheur exigé jugé, aucune fuite. `classeDe(persona, echange)` rend la classe ;
- * `retouche(analyse)` altère le rendu (fuite…).
- */
-const analyseCouvrante = (classeDe = () => 'prevu', besoins = [], retouche = (a) => a) => (prompt, opts) => {
-  const { intentions, declencheurs } = opts.schema.properties;
-  const refDe = new Map(declencheursEnvoyes(prompt).map((d) => [d.id, d.ref[0]]));
-  return retouche({
-    intentions: tableTotale(intentions.required, (numero) => tableTotale(intentions.properties[numero].required, (persona) => ({ classe: classeDe(persona, Number(numero)), ref: '', categorie: '' }))),
-    tempsMorts: [], pistesRatees: [],
-    declencheurs: tableTotale(declencheurs.required, (id) => ({ manque: false, constat: 'c', ref: refDe.get(id) })),
-    fuites: [], besoins, synthese: { markdown: 's' },
-  });
-};
-
-/** `mjDe(numero, premierTirage, schema)` décide le rendu du MJ ; `analyseDe(prompt, opts)` celui du juge. */
-const repondreALaTable = (mjDe, analyseDe = analyseCouvrante(), fichesPJ = FICHES_PJ, sosie = SANS_SOSIE) => (prompt, opts) => {
-  if (opts.phase === 'Préparation') return opts.label === 'fiches-pj' ? fichesPJ : { sosie };
-  if (opts.phase === 'Analyse') return analyseDe(prompt, opts);
-  if (opts.label.startsWith('mj:')) {
-    const premier = Number(prompt.match(/commencent à (\d+)/)[1]);
-    return mjDe(Number(opts.label.slice(3)), premier, opts.schema);
-  }
-  return { jeu: { intention: `intention de ${opts.label}`, notes: `notes de ${opts.label}` } };
-};
-const jouerTable = (mjDe, analyseDe = analyseCouvrante(), argsDuRun = ARGS_TABLE, fichesPJ = FICHES_PJ, sosie = SANS_SOSIE) => jouer('table-simulee.js', argsDuRun, repondreALaTable(mjDe, analyseDe, fichesPJ, sosie));
-const RESOLUTION = { source: 'IMPRO', ref: '', categorie: 'hors-livre', resolution: 'r' };
-/** Les clés que le schéma du MJ EXIGE à cet échange : les PJ à résoudre, les déclencheurs en attente. */
-const pjsExiges = (schema) => schema.properties.resolutions.required;
-const declencheursExiges = (schema) => schema.properties.tour.properties.declencheurs.required;
-/** Le MJ au CONTRAT, à la forme du schéma qu'il REÇOIT : une résolution par PJ exigé, deux jets à la suite,
- *  un sort `non-echu` motivé par déclencheur exigé. */
-const mjSansFin = (numero, premier, schema) => ({
-  resolutions: tableTotale(pjsExiges(schema), () => RESOLUTION),
-  jets: jetsDe(premier, 2),
-  tour: { narration: `narration ${numero}`, etatPrive: 'état', beat: 'b1', declencheurs: tableTotale(declencheursExiges(schema), () => ({ statut: 'non-echu', motif: 'la demi-heure court' })) },
-  fin: false,
-});
 const mjQuiFinit = (numero, premier, schema) => ({ ...mjSansFin(numero, premier, schema), fin: true });
-/** Le MJ rend, à l'échange `n`, le sort `sortDe(n, id)` de chaque déclencheur exigé — le reste de son rendu est celui de `mjSansFin`. */
-const mjAuxSorts = (sortDe) => (numero, premier, schema) => {
-  const mj = mjSansFin(numero, premier, schema);
-  return { ...mj, tour: { ...mj.tour, declencheurs: tableTotale(declencheursExiges(schema), (id) => sortDe(numero, id)) } };
-};
-/** Le juge qui classe un refus du saboteur : sur une partie sans trou, SIGNAL. */
-const analyseSignal = (classes = []) => analyseCouvrante((p) => (p === 'saboteur' ? 'refuse' : 'prevu'), classes);
+
 const FUITE = { echange: 2, secret: 'sec1', constat: 'la narration nomme le secret, aucun indice trouvé n’y mène' };
 
 test('table-simulee : les joueurs sont CLOISONNÉS — aucun prompt de joueur ne porte la fiche du MJ ni le livre', async () => {
@@ -235,8 +153,17 @@ test('table-simulee : sans `args.maxEchanges`, le plafond se DÉRIVE du dossier 
 
 test('table-simulee : un tirage hors suite est une anomalie journalisée', async () => {
   const { rendu, journal } = await jouerTable((numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: jetsDe(premier + 5, 1) }));
-  assert.deepEqual(rendu.journal.echanges[0].anomaliesDeTirage, ['jet 1 : tirage 5, attendu 0']);
+  assert.deepEqual(rendu.journal.echanges[0].anomaliesDeTirage, [TIRAGE_5_ATTENDU_0]);
   assert.ok(journal.some((l) => /1 anomalie\(s\) de tirage/.test(l)));
+});
+
+test('table-simulee : la commande d’un jet porte SON tirage, borné — « --tirage 12 » n’est pas « --tirage 1 »', async () => {
+  const commandeDe = (tirage) => `npx tsx scripts/ops/table-des.mts simple --seed "graine" --tirage ${tirage}`;
+  const mj = (commande) => (numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: [{ tirage: premier + 1, objet: 'o', commande: commande(premier + 1), sortie: '{}' }, ...jetsDe(premier, 1)].reverse() });
+  const juste = await jouerTable(mj(commandeDe));
+  assert.deepEqual(juste.rendu.journal.echanges[0].anomaliesDeTirage, [], 'témoin : chaque commande porte son tirage');
+  const fautif = await jouerTable(mj((t) => commandeDe(`${t}2`)));
+  assert.deepEqual(fautif.rendu.journal.echanges[0].anomaliesDeTirage, ['jet 2 : commande sans --seed "graine" ou sans --tirage 1']);
 });
 
 test('table-simulee : THÉÂTRE tant que les personas ADVERSES n’ont ni refus ni hors livre, SIGNAL sinon', async () => {
@@ -254,12 +181,18 @@ test('table-simulee : le schéma du JUGE exige chaque intention du journal sous 
   assert.deepEqual(salves, [['2', ARGS_TABLE_PERSONAS], ['3', ARGS_TABLE_PERSONAS]], 'témoin : le journal porte deux salves d’intentions');
   assert.deepEqual(clesDe(intentions), [false, ['2', '3'], ['2', '3']]);
   for (const [numero, personas] of salves) assert.deepEqual(clesDe(intentions.properties[numero]), [false, personas, personas], `échange ${numero}`);
-  assert.deepEqual(intentions.properties['2'].properties.saboteur.required, ['classe', 'ref', 'categorie']);
+  const branches = intentions.properties['2'].properties.saboteur.anyOf;
+  assert.deepEqual(branches.map((b) => [b.properties.classe.enum, b.required]), [
+    [['prevu'], ['classe', 'ref', 'categorie']], [['IMPRO'], ['classe', 'ref', 'categorie']], [['refuse', 'hors-livre'], ['classe', 'ref', 'categorie']],
+  ], 'une branche par classe');
+  assert.deepEqual(branches.map((b) => [b.properties.ref.pattern ?? b.properties.ref.enum, b.properties.categorie.enum]), [
+    ['\\S', ['']], [[''], [...TYPE_DE_POINT_AU_MJ.enum, 'hors-livre']], [[''], ['']],
+  ], 'prévue : une réf et aucune catégorie ; IMPRO : aucune réf et une catégorie DÉRIVÉE des types de point au MJ ; sinon ni l’une ni l’autre');
   assert.deepEqual(clesDe(declencheurs), [false, ['d1'], ['d1']]);
   assert.deepEqual(besoins.items.properties.personas, { type: 'array', uniqueItems: true, items: { enum: ARGS_TABLE_PERSONAS } });
   assert.deepEqual([fuites.items.properties.echange, fuites.items.properties.secret], [{ enum: [1, 2, 3] }, { enum: ['sec1'] }]);
   assert.deepEqual([tempsMorts.items.properties.beats.items, tempsMorts.items.properties.echanges.items], [{ enum: ['b1', 'b2'] }, { enum: [1, 2, 3] }]);
-  assert.deepEqual(rendu.analyse.intentions[0], { echange: 2, persona: 'rôliste', intention: 'intention de joueur:rôliste:1', classe: 'prevu', ref: '', categorie: '' }, 'le classement revient à la forme du journal');
+  assert.deepEqual(rendu.analyse.intentions[0], { echange: 2, persona: 'rôliste', intention: 'intention de joueur:rôliste:1', classe: 'prevu', ref: 'EDO 01 l.1', categorie: '' }, 'le classement revient à la forme du journal');
   assert.equal(rendu.analyse.intentions.length, 8);
 
   const courte = await jouerTable(mjAuxSorts(() => ({ statut: 'joue', motif: '' })), analyseCouvrante(), { ...ARGS_TABLE, maxEchanges: 1 });
@@ -349,7 +282,10 @@ test('table-simulee : le schéma du MJ exige UNE résolution par PJ qui a une in
   const schemaDe = (numero) => optionsParLabel.get(`Partie:mj:${numero}`).schema.properties;
   assert.deepEqual(clesDe(schemaDe(1).resolutions), [false, [], []], 'l’ouverture : aucune intention, aucune clé');
   assert.deepEqual(clesDe(schemaDe(2).resolutions), [false, IDS_DES_PJ, IDS_DES_PJ], 'une salve d’intentions : chaque PJ, exigé');
-  assert.deepEqual(schemaDe(2).resolutions.properties['pregen-707'].required, ['source', 'ref', 'categorie', 'resolution']);
+  assert.deepEqual(schemaDe(2).resolutions.properties['pregen-707'].anyOf.map((b) => [b.properties.source.enum, b.properties.categorie.enum, b.required]), [
+    [['livre'], [''], ['source', 'ref', 'categorie', 'resolution']],
+    [['IMPRO'], [...TYPE_DE_POINT_AU_MJ.enum, 'hors-livre'], ['source', 'ref', 'categorie', 'resolution']],
+  ], 'une branche par source, chacune avec SA catégorie');
   assert.deepEqual(clesDe(schemaDe(1).tour.properties.declencheurs), [false, ['d1', 'd2'], ['d1', 'd2']]);
   assert.deepEqual(clesDe(schemaDe(2).tour.properties.declencheurs), [false, ['d2'], ['d2']], 'un déclencheur JOUÉ sort des clés');
   assert.deepEqual(schemaDe(2).tour.properties.declencheurs.properties.d2.required, ['statut', 'motif']);
@@ -408,7 +344,7 @@ test('table-simulee : le schéma du sosie n’admet qu’un id de la table ou vi
 test('table-simulee : un choix du sosie sans rendu ARRÊTE avant la partie, et se nomme', async () => {
   const { rendu, promptsParLabel } = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'fiches-pj' ? FICHES_PJ : null));
   assert.equal(rendu.verdict, 'ARRÊT');
-  assert.deepEqual(rendu.manques, ['choix du sosie sans rendu']);
+  assert.deepEqual(rendu.manques, ['choix du sosie sans rendu — rien rendu']);
   assert.deepEqual([...promptsParLabel.keys()], ['Préparation:fiches-pj', 'Préparation:sosie']);
 });
 
@@ -484,7 +420,7 @@ test('table-simulee : une FUITE de secret rendue par le juge fait PARTIE ANOMALE
 test('table-simulee : un joueur sans rendu ARRÊTE la partie — aucun échange suivant n’est dispatché', async () => {
   const { rendu, promptsParLabel } = await jouer('table-simulee.js', ARGS_TABLE, sauf(repondreALaTable(mjSansFin, analyseSignal()), 'joueur:fouineur:1'));
   assert.equal(rendu.verdict, 'PARTIE INCOMPLÈTE');
-  assert.deepEqual(rendu.trous.joueursSansRendu, ['échange 1 : fouineur']);
+  assert.deepEqual(rendu.trous.joueursSansRendu, ['échange 1 : fouineur — rien rendu']);
   assert.ok(promptsParLabel.has('Partie:mj:1'), 'témoin : le premier échange est joué');
   assert.ok(!promptsParLabel.has('Partie:mj:2'), 'aucun MJ ne rejoue une partie déjà incomplète');
 });
@@ -492,17 +428,99 @@ test('table-simulee : un joueur sans rendu ARRÊTE la partie — aucun échange 
 test('table-simulee : un MJ mort INTERROMPT la partie — 0 échange = verdict INTERROMPU, sans dispatcher l’analyse', async () => {
   const mort = await jouerTable(() => null);
   assert.equal(mort.rendu.verdict, 'INTERROMPU');
-  assert.deepEqual(mort.rendu.journal.interrompue, { echange: 1, cause: 'le MJ n’a rien rendu', intentionsNonResolues: [] });
+  assert.deepEqual(mort.rendu.journal.interrompue, { echange: 1, cause: 'MJ — rien rendu', intentionsNonResolues: [] });
   assert.equal(mort.rendu.analyse, null);
   assert.ok(!mort.promptsParLabel.has('Analyse:analyse'), 'aucun juge sur un journal vide');
   assert.equal(mort.rendu.agents.analyse, 0);
   assert.deepEqual(mort.rendu.declencheursNonJoues.map((d) => [d.id, d.dernierStatut]), [['d1', 'aucun']]);
   const tardif = await jouerTable((numero, premier, schema) => (numero === 2 ? null : mjSansFin(numero, premier, schema)), analyseSignal());
   assert.equal(tardif.rendu.journal.interrompue.echange, 2);
-  assert.deepEqual([tardif.rendu.verdict, tardif.rendu.trous.interruption], ['INTERROMPU', ['échange 2 : le MJ n’a rien rendu, 4 intention(s) sans résolution']], 'une partie coupée ne rend jamais SIGNAL');
+  assert.deepEqual([tardif.rendu.verdict, tardif.rendu.trous.interruption], ['INTERROMPU', ['échange 2 : MJ — rien rendu, 4 intention(s) sans résolution']], 'une partie coupée ne rend jamais SIGNAL');
   assert.deepEqual(tardif.rendu.journal.interrompue.intentionsNonResolues.map((i) => i.persona), ARGS_TABLE_PERSONAS, 'la salve d’intentions en attente reste au journal');
   assert.equal(tardif.rendu.journal.plafondAtteint, false);
   assert.ok(tardif.promptsParLabel.has('Analyse:analyse'), 'un échange joué s’analyse');
+});
+
+test('table-simulee : un agent qui LÈVE est capturé — sa cause se nomme au trou, le journal garde les échanges joués', async () => {
+  const leve = (label) => (prompt, opts) => (opts.label === label ? Promise.reject(new Error('API morte')) : repondreALaTable(mjSansFin, analyseSignal())(prompt, opts));
+  const mj = await jouer('table-simulee.js', ARGS_TABLE, leve('mj:2'));
+  assert.deepEqual([mj.rendu.verdict, mj.rendu.trous.interruption], ['INTERROMPU', ['échange 2 : MJ — échec : API morte, 4 intention(s) sans résolution']]);
+  assert.equal(mj.rendu.journal.echanges.length, 1, 'l’échange joué reste au journal');
+  const joueur = await jouer('table-simulee.js', ARGS_TABLE, leve('joueur:saboteur:1'));
+  assert.deepEqual([joueur.rendu.verdict, joueur.rendu.trous.joueursSansRendu], ['PARTIE INCOMPLÈTE', ['échange 1 : saboteur — échec : API morte']]);
+  const juge = await jouer('table-simulee.js', ARGS_TABLE, leve('analyse'));
+  assert.deepEqual([juge.rendu.verdict, juge.rendu.trous.analyseSansRendu], ['SANS ANALYSE', ['analyse — échec : API morte']]);
+  for (const [label, manque] of [['fiches-pj', 'fiches des PJ sans rendu — échec : API morte'], ['sosie', 'choix du sosie sans rendu — échec : API morte']]) {
+    const preparation = await jouer('table-simulee.js', ARGS_TABLE, leve(label));
+    assert.deepEqual([preparation.rendu.verdict, preparation.rendu.manques], ['ARRÊT', [manque]], label);
+  }
+});
+
+test('table-simulee : un rendu du MJ anomal se RENVOIE — prompt d’origine, sortie fautive, anomalies précises —, deux fois au plus ; corrigé, il entre au journal', async () => {
+  const horsSuite = (numero, premier, schema) => ({ ...mjQuiFinit(numero, premier, schema), jets: jetsDe(premier + 5, 1) });
+  const tetu = await jouerTable(horsSuite);
+  const original = tetu.promptsParLabel.get('Partie:mj:1');
+  for (const essai of [1, 2]) {
+    const renvoi = tetu.promptsParLabel.get(`Partie:mj:1:renvoi${essai}`);
+    assert.ok(renvoi.startsWith(original), `renvoi ${essai} : le prompt d’origine, entier`);
+    assert.match(renvoi, /SORTIE À CORRIGER[^]*"tirage": 5/, `renvoi ${essai} : la sortie fautive`);
+    assert.ok(renvoi.split('\n').includes(`- ${TIRAGE_5_ATTENDU_0}`), `renvoi ${essai} : l’anomalie précise, et le geste — relancer au bon tirage, la résolution et la narration suivent`);
+    assert.equal(tetu.optionsParLabel.get(`Partie:mj:1:renvoi${essai}`).agentType, 'mj-de-table');
+  }
+  assert.ok(!tetu.promptsParLabel.has('Partie:mj:1:renvoi3'), 'pas de troisième renvoi');
+  assert.deepEqual([tetu.rendu.journal.echanges[0].renvois, tetu.rendu.journal.echanges[0].anomaliesDeTirage, tetu.rendu.agents.mj], [2, [TIRAGE_5_ATTENDU_0], 3]);
+  assert.equal(tetu.rendu.verdict, 'PARTIE ANOMALE', 'après deux renvois, l’anomalie reste un trou');
+
+  const perdu = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1:renvoi1'
+    ? Promise.reject(new Error('API morte'))
+    : repondreALaTable(horsSuite)(prompt, opts)));
+  assert.deepEqual([perdu.rendu.journal.echanges[0].renvois, perdu.rendu.journal.echanges[0].anomaliesDeTirage, perdu.rendu.journal.echanges[0].anomaliesDeRenvoi],
+    [1, [TIRAGE_5_ATTENDU_0], ['renvoi 1 sans rendu — échec : API morte']], 'un renvoi sans rendu garde le rendu précédent et NOMME sa cause');
+
+  const corrige = await jouer('table-simulee.js', ARGS_TABLE, (prompt, opts) => (opts.label === 'mj:1'
+    ? horsSuite(1, 0, opts.schema)
+    : repondreALaTable(mjQuiFinit)(prompt, opts)));
+  assert.deepEqual([corrige.rendu.journal.echanges[0].renvois, corrige.rendu.journal.echanges[0].anomaliesDeTirage, corrige.rendu.journal.echanges[0].jets.length], [1, [], 2],
+    'la sortie corrigée au premier renvoi lève l’anomalie, et c’est elle qui entre au journal');
+});
+
+test('table-simulee : le juge lit le journal PROJETÉ — les sorties de la partie, jamais l’état privé ni le classement du MJ ; le MJ est un `mj-de-table`, le juge un `juge-de-source`', async () => {
+  const { promptsParLabel, optionsParLabel, rendu } = await jouerTable(mjSansFin);
+  const prompt = promptsParLabel.get('Analyse:analyse');
+  const projete = journalEnvoye(prompt);
+  assert.equal(rendu.journal.echanges[0].etatPrive, 'état', 'témoin : le journal rendu garde l’état privé (base de rejeu)');
+  assert.ok(!JSON.stringify(projete).includes('"etatPrive"') && !prompt.includes('état privé du MJ :'), 'aucun état privé au juge');
+  assert.ok(Object.hasOwn(rendu.journal, 'notesFinales'), 'témoin : le journal rendu garde les notes finales');
+  assert.ok(!Object.hasOwn(projete, 'notesFinales'), 'aucune note finale au juge');
+  for (const echange of projete.echanges) {
+    for (const r of echange.resolutions) assert.deepEqual(Object.keys(r).sort(), ['persona', 'pj', 'resolution'], 'la résolution, sans source, réf ni catégorie du MJ');
+  }
+  assert.equal(projete.echanges[0].narration, 'narration 1', 'la narration est une sortie : le juge la lit');
+  const MOTIF = 'MOTIF-DU-MJ-QUE-LE-JUGE-IGNORE';
+  const nonEchu = await jouerTable(mjAuxSorts(() => ({ statut: 'non-echu', motif: MOTIF })));
+  const auJuge = nonEchu.promptsParLabel.get('Analyse:analyse');
+  assert.ok(nonEchu.rendu.declencheursNonJoues.some((d) => d.motif === MOTIF), 'témoin : le rendu garde le motif du MJ');
+  assert.ok(!auJuge.includes(MOTIF), 'aucun motif du MJ au juge — ni au journal projeté, ni aux déclencheurs non joués');
+  assert.ok(!auJuge.includes('dernierStatut'), 'ni le dernier sort que le MJ leur a donné');
+  assert.deepEqual(declencheursEnvoyes(auJuge).map((d) => Object.keys(d).sort()), [['evenement', 'id', 'ref']]);
+  assert.equal(optionsParLabel.get('Partie:mj:1').agentType, 'mj-de-table');
+  assert.equal(optionsParLabel.get('Analyse:analyse').agentType, 'juge-de-source');
+});
+
+test('table-simulee : les catégories d’IMPRO DÉRIVENT de `args.typeDePointAuMJ` — le schéma les reçoit, l’arg manquant ARRÊTE', async () => {
+  const { optionsParLabel } = await jouerTable(mjSansFin);
+  const branches = Object.values(optionsParLabel.get('Partie:mj:2').schema.properties.resolutions.properties)[0].anyOf;
+  const impro = branches.find((b) => b.properties.source.enum?.[0] === 'IMPRO');
+  assert.deepEqual(impro.properties.categorie.enum, [...TYPE_DE_POINT_AU_MJ.enum, 'hors-livre']);
+  const autre = { ...ARGS_TABLE, typeDePointAuMJ: { ...TYPE_DE_POINT_AU_MJ, enum: ['type-de-fixture'] } };
+  const derive = await jouerTable(mjSansFin, analyseCouvrante(), autre);
+  assert.deepEqual(Object.values(derive.optionsParLabel.get('Partie:mj:2').schema.properties.resolutions.properties)[0].anyOf
+    .find((b) => b.properties.source.enum?.[0] === 'IMPRO').properties.categorie.enum, ['type-de-fixture', 'hors-livre']);
+  const { typeDePointAuMJ: _t, ...sansType } = ARGS_TABLE;
+  const arret = await jouerTable(mjSansFin, analyseCouvrante(), sansType);
+  assert.equal(arret.rendu.verdict, 'ARRÊT');
+  assert.equal(arret.promptsParLabel.size, 0);
+  assert.ok(arret.rendu.manques.some((m) => m.startsWith('args.typeDePointAuMJ')));
 });
 
 test('table-simulee : les personas adverses sont IMPOSÉES et aucune ne se double — ARRÊT nommé sinon', async () => {
@@ -532,35 +550,11 @@ test('table-simulee : un argument manquant ARRÊTE avant tout agent, et se nomme
   assert.ok(rendu.manques.some((m) => m.startsWith('args.personas — exactement 4')));
 });
 
-// ── `dossier-de-chapitre.js` ─────────────────────────────────────────────────────────────────────
-
-/** Le fichier `Source/` d'un chapitre de FIXTURE : la projection ne lit pas le `Source/` réel. */
-const fichierDeFixture = (abbr, nn) => `Source/${abbr}-${nn}.md`;
-/** Les args du workflow, PROJETÉS par le lanceur réel (`argsDeDossierDeChapitre`, `scripts/raw/workflow-args.mjs`) :
- *  familles, préfixes et formes d'entrée viennent de `ficheDeDossier`, jamais d'une recopie du banc. */
-const argsDossier = (compagnons = []) => argsDeDossierDeChapitre('EDO', '01', { worktree: ARBRE, date: DATE, commit: COMMIT, compagnons, fichierDe: fichierDeFixture });
-const ARGS_DOSSIER = argsDossier();
 const AVEC_COMPAGNON = argsDossier(['EDOC-03']);
-/** Ce que les lentilles rendent : des entrées SANS id, le script les numérote. */
-const ENTREE_BEAT = { titre: 't', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] };
-const { id: _idDeD1, ...ENTREE_D1 } = D1;
-const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
-const LECTURES = {
-  'imperatifs-et-beats': { imperatifs: [], beats: [ENTREE_BEAT], pointsAuMJ: [], indices: [{ texte: 'la lettre', ref: ['EDO 01 l.3'] }], secrets: [{ texte: 's', ref: ['EDO 01 l.4'] }], declencheurs: [ENTREE_D1] },
-  'pnj-lieux-textes': { pnj: [{ nom: 'Kastor', role: 'r', motivation: 'm', ref: ['EDO 01 l.2'] }, { nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }], lieux: [], textes: [] },
-  mecanique: { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [{ texte: 'Kastor est mort', sens: 'lu', portee: 'chapitre', ref: ['EDO 01 l.8'] }] },
-  'matiere-compagnons': { matiereCompagnons: [{ texte: 'péage', categorie: 'peage', pourCeChapitre: 'b1', ref: ['EDOC 03 l.4'] }] },
-};
 
-/** Le rendu d'un juge de complétude qui ne corrige rien, à la forme du schéma qu'il REÇOIT ; `corrige` y verse ses corrections. */
-const completude = (opts, corrige = {}) => ({
-  oublis: { ...tableTotale(opts.schema.properties.oublis.required, () => []), ...corrige.oublis },
-  refsFausses: corrige.refsFausses ?? [],
-  contenusFaux: corrige.contenusFaux ?? [],
-  synthese: { markdown: 's' },
-});
-const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[opts.label] : completude(opts, corrige));
-const jouerDossier = (argsDuRun = ARGS_DOSSIER, corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(corrige));
+
+const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
+
 /** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
 const dansUnJetable = async (corps) => {
   const dir = mkdtempSync(join(tmpdir(), 'dossiers-'));
@@ -665,13 +659,33 @@ test('dossier-de-chapitre : une RÉF FAUSSE se corrige à l’entrée, à la for
   const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: ficheDuRun(dossier.rendu) });
   assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d1 — [^\n]* \(EDO 01 l\.201\) — en attente$/m);
   assert.doesNotMatch(table.promptsParLabel.get('Partie:mj:1'), /EDO 01 l\.200/);
-  const horsForme = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: [], motif: 'm' }] });
-  assert.equal(horsForme.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
-  assert.match(horsForme.rendu.trous.anomaliesDeCorrection[0], /^réf fausse « declencheurs:d1 » : réf \[\] hors de la forme /);
-  assert.deepEqual(horsForme.rendu.declencheurs, [D1]);
 });
 
-test('dossier-de-chapitre : un CONTENU FAUX corrige tout attribut de sa famille, classement compris ; attribut hors famille ou cible inconnue = anomalie', async () => {
+/** Les formes d'entrée des lentilles jouées, par famille : ce que le schéma du juge doit refermer. */
+const formesDeLecture = (optionsParLabel) => Object.fromEntries([...optionsParLabel].filter(([cle]) => cle.startsWith('Lecture:'))
+  .flatMap(([, o]) => Object.entries(o.schema.properties).map(([famille, s]) => [famille, s.items.properties])));
+
+test('dossier-de-chapitre : le schéma du juge est FERMÉ — une branche de réf fausse par famille peuplée, sur SES ids et la forme de SES réfs ; une famille vide ne se corrige pas', async () => {
+  const { rendu, optionsParLabel } = await jouerDossier(AVEC_COMPAGNON);
+  const formes = formesDeLecture(optionsParLabel);
+  const peuplees = FAMILLES_DE_DOSSIER.filter((f) => rendu[f].length);
+  const { refsFausses } = optionsParLabel.get('Complétude:completude').schema.properties;
+  assert.deepEqual(refsFausses.items.anyOf.map((b) => b.properties.famille.enum), peuplees.map((f) => [f]));
+  for (const b of refsFausses.items.anyOf) {
+    const [famille] = b.properties.famille.enum;
+    assert.deepEqual(b.properties.id.enum, rendu[famille].map((e) => e.id), `${famille} : les seuls ids de la fiche`);
+    assert.deepEqual(b.properties.ref, formes[famille].ref, `${famille} : la forme des réfs de la famille`);
+    assert.equal(b.additionalProperties, false);
+  }
+  assert.ok(!peuplees.includes('lieux'), 'témoin : une famille vide n’a pas de branche');
+
+  const vide = (prompt, opts) => (opts.phase === 'Lecture' ? tableTotale(opts.schema.required, () => []) : completude(opts));
+  const { optionsParLabel: sansEntree } = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, vide);
+  const juge = sansEntree.get('Complétude:completude').schema.properties;
+  assert.deepEqual([juge.refsFausses.maxItems, juge.contenusFaux.maxItems], [0, 0], 'une fiche vide : aucune correction possible, seulement des oublis');
+});
+
+test('dossier-de-chapitre : un CONTENU FAUX corrige tout attribut de sa famille, classement compris ; le schéma n’en ouvre AUCUN autre, chacun à sa forme', async () => {
   const condition = 'les PJ l’ignorent une heure';
   const { rendu, promptsParLabel, optionsParLabel } = await jouerDossier(AVEC_COMPAGNON, { contenusFaux: [
     { famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: condition, ref: 'EDO 01 l.201' },
@@ -681,55 +695,31 @@ test('dossier-de-chapitre : un CONTENU FAUX corrige tout attribut de sa famille,
   assert.equal(rendu.verdict, 'DOSSIER');
   assert.deepEqual([rendu.declencheurs, rendu.beats[0].statut, rendu.etats[0].portee], [[{ ...D1, condition }], 'optionnel', 'campagne']);
   assert.deepEqual(rendu.corrections[0], { type: 'contenu-faux', famille: 'declencheurs', id: 'd1', attribut: 'condition', avant: D1.condition, apres: condition, ref: 'EDO 01 l.201' });
-  const juge = optionsParLabel.get('Complétude:completude').schema.properties;
-  const mesures = [...new Set([...optionsParLabel].filter(([cle]) => cle.startsWith('Lecture:'))
-    .flatMap(([, o]) => Object.values(o.schema.properties).flatMap((s) => Object.keys(s.items.properties)))
-    .filter((nom) => nom !== 'ref'))].sort();
-  assert.deepEqual([...juge.contenusFaux.items.properties.attribut.enum].sort(), mesures, 'tout attribut d’entrée hors réf, mesuré sur les schémas de lecture');
-  assert.ok(mesures.includes('mediasCandidats') && mesures.includes('statut'), 'un attribut NON textuel, et un classement, sont corrigeables');
   assert.match(promptsParLabel.get('Complétude:completude'), /declencheurs : evenement, condition ; pnj : nom, role, motivation/);
-
-  const fautif = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [
-    { famille: 'declencheurs', id: 'd1', attribut: 'nom', valeur: 'x', ref: 'r' },
-    { famille: 'pnj', id: 'pnj99', attribut: 'nom', valeur: 'x', ref: 'r' },
-  ] });
-  assert.equal(fautif.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
-  assert.deepEqual(fautif.rendu.trous.anomaliesDeCorrection, [
-    'contenu faux « declencheurs:d1 » : attribut « nom » hors des attributs corrigeables de la famille (evenement, condition)',
-    'contenu faux « pnj:pnj99 » : cible inconnue',
-  ]);
-  assert.deepEqual([fautif.rendu.declencheurs, fautif.rendu.corrections], [[D1], []]);
+  const formes = formesDeLecture(optionsParLabel);
+  const peuplees = FAMILLES_DE_DOSSIER.filter((f) => rendu[f].length);
+  const branches = optionsParLabel.get('Complétude:completude').schema.properties.contenusFaux.items.anyOf;
+  const ouverts = branches.map((b) => `${b.properties.famille.enum[0]}.${b.properties.attribut.enum[0]}`);
+  assert.deepEqual(ouverts.sort(), peuplees.flatMap((f) => Object.keys(formes[f]).filter((nom) => nom !== 'ref').map((a) => `${f}.${a}`)).sort(),
+    'tout attribut d’entrée hors réf de chaque famille peuplée, mesuré sur les schémas de lecture — et aucun autre');
+  assert.ok(ouverts.includes('beats.mediasCandidats') && ouverts.includes('beats.statut'), 'un attribut NON textuel, et un classement, sont corrigeables');
+  assert.ok(!ouverts.includes('declencheurs.nom'), 'témoin : un attribut hors famille n’a pas de branche');
+  for (const b of branches) {
+    const { famille: { enum: [famille] }, attribut: { enum: [attribut] }, id, valeur, ref } = b.properties;
+    assert.deepEqual(id.enum, rendu[famille].map((e) => e.id), `${famille}.${attribut} : les seuls ids de la fiche`);
+    assert.deepEqual(valeur, formes[famille][attribut], `${famille}.${attribut} : la valeur à la forme projetée de l’attribut`);
+    assert.equal(ref.pattern, '\\S', `${famille}.${attribut} : une réf non blanche`);
+    assert.equal(b.additionalProperties, false);
+  }
+  const forme = (cle) => branches.find((b) => `${b.properties.famille.enum[0]}.${b.properties.attribut.enum[0]}` === cle).properties.valeur;
+  assert.deepEqual([forme('beats.mediasCandidats').uniqueItems, forme('beats.mediasCandidats').minItems], [true, 1], 'ni doublon d’enum, ni liste vide');
+  assert.deepEqual([forme('pnj.nom').minLength, forme('pnj.nom').pattern], [1, '\\S'], 'ni texte vide, ni texte blanc');
 });
 
-test('dossier-de-chapitre : un CONTENU FAUX se valide contre la forme projetée de son attribut ; hors forme, doublon d’enum, texte vide ou blanc = anomalie, rien ne s’efface', async () => {
+test('dossier-de-chapitre : un CONTENU FAUX non textuel s’applique tel quel', async () => {
   const { rendu } = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [{ famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['resume', 'coupe'], ref: 'EDO 01 l.1' }] });
   assert.equal(rendu.verdict, 'DOSSIER');
   assert.deepEqual(rendu.beats[0].mediasCandidats, ['resume', 'coupe']);
-  const fautif = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [
-    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['inconnu'], ref: 'r' },
-    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: [], ref: 'r' },
-    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: 'resume', ref: 'r' },
-    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['dialogue', 'dialogue'], ref: 'r' },
-    { famille: 'beats', id: 'b1', attribut: 'statut', valeur: 'capital', ref: 'r' },
-    { famille: 'beats', id: 'b1', attribut: 'titre', valeur: ['x'], ref: 'r' },
-    { famille: 'pnj', id: 'pnj1', attribut: 'nom', valeur: '', ref: 'r' },
-    { famille: 'declencheurs', id: 'd1', attribut: 'evenement', valeur: '   ', ref: 'r' },
-  ] });
-  assert.equal(fautif.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
-  assert.deepEqual(fautif.rendu.trous.anomaliesDeCorrection.map((a) => a.slice(0, a.indexOf(' hors de la forme'))), [
-    'contenu faux « beats:b1.mediasCandidats » : valeur ["inconnu"]',
-    'contenu faux « beats:b1.mediasCandidats » : valeur []',
-    'contenu faux « beats:b1.mediasCandidats » : valeur "resume"',
-    'contenu faux « beats:b1.mediasCandidats » : valeur ["dialogue","dialogue"]',
-    'contenu faux « beats:b1.statut » : valeur "capital"',
-    'contenu faux « beats:b1.titre » : valeur ["x"]',
-    'contenu faux « pnj:pnj1.nom » : valeur ""',
-    'contenu faux « declencheurs:d1.evenement » : valeur "   "',
-  ]);
-  assert.deepEqual(
-    [fautif.rendu.beats[0], fautif.rendu.pnj[0].nom, fautif.rendu.declencheurs[0].evenement, fautif.rendu.corrections],
-    [{ id: 'b1', ...ENTREE_BEAT }, 'Kastor', D1.evenement, []],
-  );
 });
 
 test('dossier-de-chapitre : une seconde correction de la MÊME cible se nomme « cible déjà corrigée » et ne s’applique pas', async () => {
@@ -750,22 +740,95 @@ test('dossier-de-chapitre : une seconde correction de la MÊME cible se nomme «
   assert.deepEqual(rendu.corrections.map((c) => c.type), ['ref-fausse', 'contenu-faux', 'contenu-faux']);
 });
 
+test('dossier-de-chapitre : une correction inapplicable se RENVOIE au juge — prompt d’origine, sortie fautive, anomalie précise —, deux fois au plus', async () => {
+  const doublon = { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.201'], motif: 'm' }, { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.999'], motif: 'm' }] };
+  const tetu = await jouerDossier(ARGS_DOSSIER, doublon);
+  const original = tetu.promptsParLabel.get('Complétude:completude');
+  for (const essai of [1, 2]) {
+    const renvoi = tetu.promptsParLabel.get(`Complétude:completude:renvoi${essai}`);
+    assert.ok(renvoi.startsWith(original), `renvoi ${essai} : le prompt d’origine, entier`);
+    assert.match(renvoi, /SORTIE À CORRIGER[^]*"EDO 01 l\.999"/, `renvoi ${essai} : la sortie fautive`);
+    assert.match(renvoi, /^- réf fausse « declencheurs:d1 » : cible déjà corrigée$/m, `renvoi ${essai} : l’anomalie précise`);
+  }
+  assert.ok(!tetu.promptsParLabel.has('Complétude:completude:renvoi3'), 'pas de troisième renvoi');
+  assert.deepEqual([tetu.rendu.verdict, tetu.rendu.agents.completude, tetu.rendu.trous.anomaliesDeCorrection],
+    ['CORRECTIONS INAPPLICABLES', 3, ['réf fausse « declencheurs:d1 » : cible déjà corrigée']], 'après deux renvois, l’anomalie reste un trou');
+
+  const corrige = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.phase === 'Lecture'
+    ? LECTURES[opts.label]
+    : completude(opts, opts.label === 'completude' ? doublon : { refsFausses: doublon.refsFausses.slice(0, 1) })));
+  assert.deepEqual([corrige.rendu.verdict, corrige.rendu.agents.completude, corrige.rendu.declencheurs[0].ref], ['DOSSIER', 2, ['EDO 01 l.201']],
+    'la sortie corrigée au premier renvoi lève l’anomalie, et s’applique');
+
+  const perdu = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.label === 'completude:renvoi1'
+    ? Promise.reject(new Error('API morte'))
+    : repondreAuDossier(doublon)(prompt, opts)));
+  assert.deepEqual([perdu.rendu.verdict, perdu.rendu.agents.completude, perdu.rendu.trous.anomaliesDeCorrection],
+    ['CORRECTIONS INAPPLICABLES', 2, ['réf fausse « declencheurs:d1 » : cible déjà corrigée', 'renvoi 1 sans rendu — échec : API morte']],
+    'un renvoi sans rendu garde le rendu précédent et NOMME sa cause au trou');
+});
+
+test('dossier-de-chapitre : le schéma du juge, VALIDÉ comme le harnais le valide, refuse toute cible hors fiche et toute valeur hors forme ; une fiche vide n’admet que des oublis', async () => {
+  const lectures = { ...LECTURES, 'pnj-lieux-textes': { pnj: [], lieux: [], textes: [] } };
+  const schemaDuJuge = async (lu) => (await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => (opts.phase === 'Lecture' ? lu(opts) : completude(opts))))
+    .optionsParLabel.get('Complétude:completude').schema;
+  const valide = (schema) => (corrige) => z.fromJSONSchema(JSON.parse(JSON.stringify(schema))).safeParse({ ...completude({ schema }), ...corrige }).success;
+  const peuple = valide(await schemaDuJuge((opts) => lectures[opts.label]));
+  const ref = (cible) => ({ refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.9'], motif: 'm', ...cible }] });
+  const contenu = (cible) => ({ contenusFaux: [{ famille: 'beats', id: 'b1', attribut: 'statut', valeur: 'optionnel', ref: 'EDO 01 l.9', ...cible }] });
+  const acceptes = {
+    'rien à corriger': {},
+    'une réf fausse sur un id de la fiche': ref({}),
+    'une cible corrigée deux fois (anomalie du SCRIPT, renvoyée)': { refsFausses: [...ref({}).refsFausses, ...ref({ ref: ['EDO 01 l.8'] }).refsFausses] },
+    'un statut de l’enum': contenu({}),
+  };
+  const refuses = {
+    'un id hors fiche': ref({ id: 'd9' }),
+    'un id d’une autre famille': ref({ id: 'b1' }),
+    'une famille vide': ref({ famille: 'pnj', id: 'pnj1' }),
+    'une réf blanche': ref({ ref: ['  '] }),
+    'aucune réf': ref({ ref: [] }),
+    'un attribut hors famille': contenu({ famille: 'declencheurs', id: 'd1' }),
+    'un statut hors enum': contenu({ valeur: 'capital' }),
+    'un média doublé': contenu({ attribut: 'mediasCandidats', valeur: ['dialogue', 'dialogue'] }),
+    'une valeur blanche': contenu({ famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: ' ' }),
+    'la réf comme attribut': contenu({ famille: 'declencheurs', id: 'd1', attribut: 'ref', valeur: ['EDO 01 l.9'] }),
+  };
+  for (const [cas, corrige] of Object.entries(acceptes)) assert.ok(peuple(corrige), `accepté : ${cas}`);
+  for (const [cas, corrige] of Object.entries(refuses)) assert.ok(!peuple(corrige), `refusé : ${cas}`);
+
+  const vide = valide(await schemaDuJuge((opts) => tableTotale(opts.schema.required, () => [])));
+  assert.ok(vide({ oublis: { ...tableTotale(FAMILLES_DE_DOSSIER, () => []), pnj: [{ nom: 'n', role: 'r', motivation: 'm', ref: ['EDO 01 l.1'] }] } }), 'fiche vide : un oubli passe');
+  assert.ok(!vide(ref({ famille: 'x', id: 'y' })), 'fiche vide : aucune réf fausse');
+});
+
+test('dossier-de-chapitre : un agent qui LÈVE est capturé — sa cause se nomme au trou, le reste du run se rend', async () => {
+  const leve = (label) => (prompt, opts) => (opts.label === label ? Promise.reject(new Error('schéma non tenu')) : repondreAuDossier()(prompt, opts));
+  const lentille = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, leve('mecanique'));
+  assert.deepEqual([lentille.rendu.verdict, lentille.rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique — échec : schéma non tenu']]);
+  assert.deepEqual(lentille.rendu.pnj.map((p) => p.id), ['pnj1', 'pnj2'], 'les autres lentilles entrent à la fiche');
+  assert.match(lentille.promptsParLabel.get('Complétude:completude'), /Lentilles SANS rendu : mecanique/);
+  const juge = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, leve('completude'));
+  assert.deepEqual([juge.rendu.verdict, juge.rendu.trous.completudeSansRendu], ['DOSSIER SANS COMPLÉTUDE', ['completude — échec : schéma non tenu']]);
+  assert.deepEqual(juge.rendu.declencheurs, [D1], 'la fiche des lentilles se rend, sans relecture');
+});
+
 test('dossier-de-chapitre : un run qui n’est pas au verdict DOSSIER ne s’écrit pas — le lanceur le refuse en nommant ses trous, rien n’est écrit', async () => {
   const lentilleMorte = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique'));
-  assert.deepEqual([lentilleMorte.rendu.verdict, lentilleMorte.rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique']]);
+  assert.deepEqual([lentilleMorte.rendu.verdict, lentilleMorte.rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique — rien rendu']]);
   assert.deepEqual([lentilleMorte.rendu.etats, lentilleMorte.rendu.tests], [[], []], 'une lentille morte laisse ses familles vides');
-  const inapplicable = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] });
+  const inapplicable = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.9'], motif: 'm' }, { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.8'], motif: 'm' }] });
   assert.equal(inapplicable.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
   await dansUnJetable(async (dir) => {
-    assert.throws(() => ecrireFiche(lentilleMorte.rendu, { dir }), /^Error: workflow-args: verdict « LECTURE INCOMPLÈTE » — seul un run au verdict DOSSIER porte une fiche ; trous : lentillesSansRendu \(mecanique\)$/);
-    assert.throws(() => ecrireFiche(inapplicable.rendu, { dir }), /verdict « CORRECTIONS INAPPLICABLES » .* trous : anomaliesDeCorrection \(réf fausse « declencheurs:d9 » : cible inconnue\)/);
+    assert.throws(() => ecrireFiche(lentilleMorte.rendu, { dir }), /^Error: workflow-args: verdict « LECTURE INCOMPLÈTE » — seul un run au verdict DOSSIER porte une fiche ; trous : lentillesSansRendu \(mecanique — rien rendu\)$/);
+    assert.throws(() => ecrireFiche(inapplicable.rendu, { dir }), /verdict « CORRECTIONS INAPPLICABLES » .* trous : anomaliesDeCorrection \(réf fausse « declencheurs:d1 » : cible déjà corrigée\)/);
     assert.throws(() => argsDeTableSimulee('EDO', '01', { worktree: ARBRE, date: DATE, seed: 'graine', dir, fichierDe: fichierDeFixture }), /aucune fiche .*\/EDO\/01\.json/, 'rien n’a été écrit');
   });
 });
 
 test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lentille — réordonner les lecteurs ne change pas la fiche', async () => {
   const source = readFileSync(join(DOSSIER, 'dossier-de-chapitre.js'), 'utf8');
-  const lecteur = (lentille) => source.indexOf(`  () => agent(promptDeLecture(${lentille}),`);
+  const lecteur = (lentille) => source.indexOf(`  [${lentille}, () => agent(promptDeLecture(${lentille}),`);
   const [a, b, c] = ['LENTILLE_IMPERATIFS_ET_BEATS', 'LENTILLE_PNJ_LIEUX_TEXTES', 'LENTILLE_MECANIQUE'].map(lecteur);
   assert.ok(a >= 0 && a < b && b < c, 'les trois premiers lecteurs, dans cet ordre');
   const permute = source.slice(0, a) + source.slice(b, c) + source.slice(a, b) + source.slice(c);
@@ -787,108 +850,11 @@ test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lenti
   });
 });
 
-// ── CLASSES : tout workflow du dépôt ───────────────────────────────────────────────────────────────
-
-/** Le nom de fichier d'un script : ce qu'un banc NOMME (porte B9 de `workflows.test.mjs`). */
-const nomDe = (chemin) => chemin.split(/[\\/]/).pop();
-/** `label` meurt (rend `rendu`, `null` par défaut) ; tout autre agent répond par `repondre`. */
-const sauf = (repondre, label, rendu = null) => (prompt, opts) => (opts.label === label ? rendu : repondre(prompt, opts));
-const ATLAS = join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js');
-/** Un périmètre de FIXTURE : un cœur, un livre, un domaine — rien du registre réel. */
-const ARGS_ATLAS = {
-  coeur: 'alpha', domaines: [{ cle: 'domaine-un', titre: 'Domaine de fixture' }], lot: ['domaine-un'],
-  livres: [{ ab: 'BKA', dir: 'Source/Fixture - Base Alpha', coeur: 'alpha', language: 'Langue-A' }],
-};
-/** Un atlas qui répond à chaque phase ; `fidele: false` ouvre la correction de fidélité et la re-vérification. */
-const repondreALAtlas = (fidele) => (prompt, opts) => ({
-  Cadrage: { coverageRefs: [{ ab: 'BKA', nn: '05' }] },
-  Cartographie: { items: [{ item: 'Une règle', kind: 'table', ref: 'BKA 05 l.1', gist: 'g' }] },
-  Taxonomie: { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'h', covers: ['Une règle'] }] },
-  Survey: { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'g' }] },
-  Synthese: { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nUn corps.', refs: ['BKA 05 l.1'], codeHint: '' } },
-  Correction: { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nCorrigé.', refs: ['BKA 05 l.1'], codeHint: '' } },
-  Audit: { dry: true, gaps: [] },
-  Verif: { faithful: fidele, issues: fidele ? [] : ['une valeur fausse'] },
-})[opts.phase];
-
-/** Par script de workflow du dépôt : des runs qui atteignent ses agents. */
-const RUNS_COUVRANTS = {
-  'dossier-de-chapitre.js': () => [jouerDossier(AVEC_COMPAGNON, { oublis: { declencheurs: [ENTREE_D2] } })],
-  'table-simulee.js': () => [jouerTable(mjSansFin)],
-  'atlas-domain.workflow.js': () => [jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(true)), jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(false))],
-};
-/** Ce qui fige un agent de fond (une commande qui attend une autorisation) : changement de dossier,
- *  enchaînement, shell prescrit, fichier de sonde écrit ou lu par redirection. */
-const INTERDITS_D_EXECUTION = /(^|[\s`"(])cd\s|&&|Shell = Bash|git -C|dossier de sondes|s'écrit sous|redirection fichier/i;
-const CONTRAT_D_EXECUTION = /Toute commande passe par l'outil `ctx_shell`, son paramètre `cwd` = l'arbre[^:\n]* : UNE commande simple par appel, [^\n]*; UN SEUL appel `ctx_shell` par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
-
-test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme `ctx_shell` ou une sonde reçoit le contrat entier', async () => {
-  assert.deepEqual(Object.keys(RUNS_COUVRANTS).sort(), scriptsDeWorkflowDuDepot(RACINE).map(nomDe).sort(), 'chaque script reconnu est joué');
-  const executants = [];
-  for (const [script, runs] of Object.entries(RUNS_COUVRANTS)) {
-    for (const { promptsParLabel } of await Promise.all(runs())) {
-      assert.ok(promptsParLabel.size > 0, `${script} : aucun agent atteint`);
-      for (const [cle, prompt] of promptsParLabel) {
-        assert.doesNotMatch(prompt, INTERDITS_D_EXECUTION, `${script} ${cle}`);
-        if (/ctx_shell|\bsondes?\b/.test(prompt)) {
-          assert.match(prompt, CONTRAT_D_EXECUTION, `${script} ${cle}`);
-          executants.push(script);
-        }
-      }
-    }
-  }
-  assert.deepEqual([...new Set(executants)].sort(), ['dossier-de-chapitre.js', 'table-simulee.js'], 'témoin : les workflows dont les agents exécutent');
-});
-
-/** Par workflow qui rend un verdict : ses verdicts de SUCCÈS, un run témoin qui en rend un, et UNE injection
- *  par espèce de trou, qui la produit. Les espèces se MESURENT aux `trous` que le témoin rend. */
-const VERDICTS_DE_SUCCES = {
-  'table-simulee.js': {
-    succes: ['SIGNAL', 'THÉÂTRE'],
-    temoin: () => jouerTable(mjSansFin, analyseSignal()),
-    trous: {
-      interruption: () => jouerTable((numero, premier, schema) => (numero === 2 ? null : mjSansFin(numero, premier, schema)), analyseSignal()),
-      joueursSansRendu: () => jouer('table-simulee.js', ARGS_TABLE, sauf(repondreALaTable(mjSansFin, analyseSignal()), 'joueur:fouineur:1')),
-      anomaliesDeSosie: () => jouerTable(mjSansFin, analyseSignal(), ARGS_TABLE, FICHES_PJ, { id: '', ref: 'EDO 02 l.40', motif: 'm' }),
-      anomaliesDeTirage: () => jouerTable((numero, premier, schema) => ({ ...mjSansFin(numero, premier, schema), jets: jetsDe(premier + 5, 1) }), analyseSignal()),
-      anomaliesDeDeclencheurs: () => jouerTable(mjAuxSorts(() => ({ statut: 'non-echu', motif: '' })), analyseSignal()),
-      fuites: () => jouerTable(mjSansFin, analyseCouvrante((p) => (p === 'saboteur' ? 'refuse' : 'prevu'), [], (a) => ({ ...a, fuites: [FUITE] }))),
-      analyseSansRendu: () => jouerTable(mjSansFin, () => null),
-    },
-  },
-  'dossier-de-chapitre.js': {
-    succes: ['DOSSIER'],
-    temoin: () => jouerDossier(),
-    trous: {
-      lentillesSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique')),
-      completudeSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'completude')),
-      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] }),
-    },
-  },
-};
-
-test('CLASSE — un verdict de SUCCÈS ne se rend que sur une liste de trous VIDE : chaque espèce mesurée, injectée, le fait tomber', async () => {
-  const aVerdict = scriptsDeWorkflowDuDepot(RACINE).filter((f) => /return\s*\{\s*verdict\b/.test(readFileSync(f, 'utf8'))).map(nomDe).sort();
-  assert.deepEqual(Object.keys(VERDICTS_DE_SUCCES).sort(), aVerdict, 'tout workflow qui rend un verdict a sa ligne');
-  for (const [script, { succes, temoin, trous }] of Object.entries(VERDICTS_DE_SUCCES)) {
-    const nominal = (await temoin()).rendu;
-    assert.ok(succes.includes(nominal.verdict), `${script} : témoin au succès (lu : ${nominal.verdict})`);
-    const especes = Object.keys(nominal.trous);
-    assert.deepEqual(especes.filter((e) => nominal.trous[e].length), [], `${script} : le témoin n’a aucun trou`);
-    assert.deepEqual(Object.keys(trous).sort(), [...especes].sort(), `${script} : une injection par espèce MESURÉE aux trous rendus`);
-    for (const espece of especes) {
-      const { rendu } = await trous[espece]();
-      assert.ok(rendu.trous?.[espece]?.length > 0, `${script} / ${espece} : le trou injecté est nommé (trous rendus : ${JSON.stringify(rendu.trous)})`);
-      assert.ok(!succes.includes(rendu.verdict), `${script} / ${espece} : verdict ${rendu.verdict} sur un trou`);
-    }
-  }
-});
-
-test('table-simulee : la commande de dés est SIMPLE, lancée par `ctx_shell` ; les fiches des PJ se construisent par une sonde sans fichier', async () => {
+test('table-simulee : la commande de dés est SIMPLE, par son chemin absolu, lancée par `ctx_shell` (poste) ou Bash ; les fiches des PJ se construisent par une sonde sans fichier', async () => {
   const table = await jouerTable(mjSansFin);
   const mj = table.promptsParLabel.get('Partie:mj:1');
-  assert.match(mj, /^ {2}npx tsx scripts\/ops\/table-des\.mts simple --seed "graine" --tirage <n>/m, 'la commande de dés est SIMPLE');
-  assert.match(mj, /une commande par jet, lancée par `ctx_shell` avec `cwd` = l'arbre/);
+  assert.match(mj, /^ {2}npx tsx \/arbre-jete\/scripts\/ops\/table-des\.mts simple --seed "graine" --tirage <n>/m, 'la commande de dés est SIMPLE, son outil par son chemin ABSOLU dans l’arbre');
+  assert.match(mj, /une commande par jet, lancée par `ctx_shell` \(poste\) ou Bash\./);
   assert.match(table.promptsParLabel.get('Préparation:fiches-pj'), /UNE sonde `npx tsx -e "…"`, sans fichier écrit/);
 });
 
@@ -898,17 +864,7 @@ test('les deux workflows : tout agent qui cite le livre prend ses lignes sur une
   const citants = [...table.promptsParLabel, ...dossier.promptsParLabel].filter(([cle]) => !cle.startsWith('Partie:joueur:') && cle !== 'Préparation:fiches-pj');
   assert.ok(citants.length >= 8);
   for (const [cle, prompt] of citants) {
-    assert.match(prompt, /lecture BRUTE numérotée \(`grep -n`, `sed -n 'X,Yp'`, `ctx_read` en mode `raw`\), jamais sur une vue résumée/, cle);
+    assert.match(prompt, /lecture BRUTE numérotée \(`Read`, ou `Grep` avec ses numéros de ligne\), jamais sur une vue résumée/, cle);
     assert.match(prompt, /toute réf se vérifie en relisant la ligne citée avant d'être rendue/, cle);
   }
-});
-
-test('RECONNAISSANCE : l’AST reconnaît les workflows, jamais un générateur ni un banc qui écrit un jouet', () => {
-  const lire = (relatif) => lireWorkflow(readFileSync(join(RACINE, relatif), 'utf8'), relatif);
-  assert.deepEqual(lire('scripts/docs/build-donnees.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'un générateur qui écrit « export const meta » dans une chaîne');
-  assert.deepEqual(lire('scripts/guards/lib/jouer-workflow.test.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'un banc qui écrit un jouet');
-  assert.deepEqual(lire('scripts/guards/lib/jouer-workflow.mjs'), { script: false, exportDeMeta: null, defauts: [] }, 'l’enveloppe, qui DÉCLARE la doublure `agent`');
-  const scripts = scriptsDeWorkflowDuDepot(RACINE);
-  assert.ok(scripts.includes(join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js')), 'un workflow HORS de .claude/workflows/ est vu');
-  assert.deepEqual(scripts.filter(estSuiteVitest), [], 'aucun test n’est pris pour un workflow');
 });

@@ -5,7 +5,8 @@ import { priceToMoney, fromBrass, toBrass, canAfford, add as moneyAdd, type Mone
 import { craftPriceFactor } from '../engine/qualities/craftEconomy';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { Row } from './Layout';
-import { bargainBuyFactor } from '../engine/bargain';
+import { bargainBuyFactor, bargainPct } from '../engine/bargain';
+import { verdictDeVente } from '../state/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
 import { itemFromTrappingById, isWeaponActive, damageString, isShieldTrapping } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
@@ -33,6 +34,8 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
+import { nomDEntite } from '../state/sceneNpc';
+import { presetPnjById } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -174,7 +177,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   // Marchandage (LDB 59 l.43) : achat (panier) et vente = négociations distinctes.
   const buyHaggle = merchant.bargainBuy ? bargainBuyFactor(merchant.bargainBuy.won, merchant.bargainBuy.drNet, merchant.bargainBuy.negotiator) : 1;
   const buyFactor = (merchant.buyMarkup ?? 1) * buyHaggle;
-  const buyDiscount = Math.round((1 - buyHaggle) * 100);
+  const buyDiscount = merchant.bargainBuy ? bargainPct(merchant.bargainBuy.won, merchant.bargainBuy.drNet, merchant.bargainBuy.negotiator) : 0;
   const sellPriceMoney = (it: ItemInstance): Money => sellGain(it, merchant); // prix de vente = source unique (engine)
   // Panier de VENTE (#22b) : instances résolues chez leur porteur + total (mêmes briques que l'achat).
   const sellCart = merchant.sellCart ?? [];
@@ -697,7 +700,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                       </>
                     )
                   : <>
-                      <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔ Rachat à ½ du prix' : '✘ Rachat à ¼ du prix'}</span>
+                      <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔' : '✘'} {verdictDeVente(merchant.bargainSell)}</span>
                       <button className="btn small danger" onClick={() => onRefuse('sell')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
                     </>}
               </div>
@@ -752,7 +755,7 @@ export function MerchantPanel() {
   if (!merchant) return null;
   const speakerEnt = scene?.entities.find((e) => e.id === merchant.entityId);
   const arch = MERCHANTS[merchant.archetype];
-  const speakerName = speakerEnt?.label ?? arch?.label;
+  const speakerName = (speakerEnt && nomDEntite(speakerEnt, presetPnjById)) ?? arch?.label;
   return (
     <MerchantPanelView
       merchant={merchant} party={party} money={money} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}

@@ -169,7 +169,7 @@ describe('#1657 B3-2 — COMBAT NAVAL : le coup à l’équipage part par la por
       coque.crewIds = [party[0].id];
       (coque as unknown as { postes: unknown[] }).postes = [{ item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: [party[0].id] }];
       useGame.setState({ battle: { combatants: [coque, ...party], order: [], log: [], over: null } } as never);
-      applyCriticalToTarget(coque, 'corps', true, 0, [], set, { get });
+      applyCriticalToTarget(coque, 'corps', 0, [], set, { get });
       bande = get().pendingCascade?.participants.find((s) => s.kind === 'triggeredBatchTest');
     }
     expect(bande, 'aucune fenêtre en 200 seeds : le coup à l’équipage reste roulé en silence').toBeTruthy();

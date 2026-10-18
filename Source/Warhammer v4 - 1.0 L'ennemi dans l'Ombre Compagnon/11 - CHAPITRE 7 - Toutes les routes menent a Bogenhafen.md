@@ -9,7 +9,7 @@ Que vous débutiez la campagne de **L'Ennemi Intérieur** par les événements q
 
 En tant que première aventure de l'une des plus célèbres campagnes de jeux de rôle, il est possible qu'un ou plusieurs de vos joueurs aient déjà entendu le titre « *Ombres sur Bögenhafen* ». Ils peuvent légitimement se demander pourquoi ils quitteraient Altdorf, cette merveilleuse capitale de l'Empire, pour une ville de commerce sur la Bögen (même si elle est importante).
 
-Quelle que soit la configuration retenue, ne leur cachez pas qu'ils se dirigent finalement vers Bögenhafen : profitez de l'occasion. Demandez-leur pourquoi leurs Personnages seraient désireux de se rendre à Bögenhafen, et suggérezleur différentes raisons qui les intéresseront individuellement. Même si vos joueurs suivent l'intrigue classique et que l'un des Personnages tente effectivement de prendre la place du défunt *Magister impedimentae*, demandez-leur de trouver des raisons personnalisées pour lesquelles un voyage à Bögenhafen semble être une bonne idée.
+Quelle que soit la configuration retenue, ne leur cachez pas qu'ils se dirigent finalement vers Bögenhafen : profitez de l'occasion. Demandez-leur pourquoi leurs Personnages seraient désireux de se rendre à Bögenhafen, et suggérez-leur différentes raisons qui les intéresseront individuellement. Même si vos joueurs suivent l'intrigue classique et que l'un des Personnages tente effectivement de prendre la place du défunt *Magister impedimentae*, demandez-leur de trouver des raisons personnalisées pour lesquelles un voyage à Bögenhafen semble être une bonne idée.
 
 ### DÉBUT ALTERNATIF POUR **L'ENNEMI DANS L'OMBRE** : *IN MEDIA FUITE !*
 

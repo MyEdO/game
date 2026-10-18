@@ -6,7 +6,7 @@ import {
   bellicosePsychImmune, isMindless, isBestial, isColdBlooded, isStupid, hasRage,
   isTerritorial, flyMeters, runMultiplier, traitSeesInDark, mutationsAtSpawn,
 } from './dispatch';
-import { canCounterOnDefenseWin } from '../combatFeatures/dispatch';
+import { contreSurDefenseGagnee } from '../combatFeatures/dispatch';
 import { traitSpellDRMod } from '../magic';
 import { coldBloodedAdjust, isPsychImmune } from '../psychology';
 import { attackModifiers } from '../combat';
@@ -45,7 +45,7 @@ describe('dispatch — parsing et prédicats (LDB 85)', () => {
     expect(wardSaves([{ id: 'arme', value: 8 }])).toEqual([]);
   });
   it('divers combat : Champion, Parasité, Perturbant, Instable', () => {
-    expect(canCounterOnDefenseWin({ traits: [{ id: 'champion' }] } as never, undefined)).toBe(true); // Champion : sans condition d'arme
+    expect(contreSurDefenseGagnee({ traits: [{ id: 'champion' }] } as never, undefined)).toEqual({ choisie: false }); // Champion : sans condition d'arme
     // Perturbant : l'aura (−20 à BE m) vit en DONNÉE (`TraitData.aura`), projetée par le hook générique.
     const emitted = traitAuras([{ id: 'perturbant' }])[0];
     expect(emitted?.traitId).toBe('perturbant'); // le trait ÉMETTEUR voyage avec l'aura (il NOMME la pénalité chez la cible)

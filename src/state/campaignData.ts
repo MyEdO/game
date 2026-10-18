@@ -1,5 +1,5 @@
 // Résolveur UNIQUE de la couche de campagne runtime (#767). Frontière RÉFÉRENCE vs NARRATIF
-// (doctrine `game-campagne-json-portable-frontiere-reference-narratif`) : le narratif d'un paquet de
+// (doctrine `user-doctrine-campagne-json-portable-frontiere-reference-narratif`) : le narratif d'un paquet de
 // campagne (`state.campaignNarratif`, posé par `loadProject`) est lu ICI par id STABLE, jamais copié
 // dans `src/data` global. Les accesseurs d'affaire/indice/preset/document n'existent QUE dans la couche ; seul
 // `trappingById` chaîne campagne-d'abord puis règle globale (`findTrappingById`).
@@ -36,6 +36,15 @@ function maps(): NarratifMaps {
 /** Preset de PNJ pré-composé de la campagne chargée — couche-SEULEMENT (n'existe pas dans `src/data`). */
 export function presetPnjById(id: string): PresetPnj | undefined {
   return maps().presetsPnj.get(id);
+}
+
+/** Le résolveur de preset d'un narratif donné — celui du projet ÉDITÉ, que le store ne porte pas. */
+export const presetDuNarratif = (n: { readonly presetsPnj: readonly PresetPnj[] } | undefined) => (id: string): PresetPnj | undefined => n?.presetsPnj.find((p) => p.id === id);
+
+/** Le NOM d'un preset : celui de son profil, sinon celui de sa créature de base, comme `mergeCreatureProfile`
+ *  le pose ; `undefined` sans l'un ni l'autre. */
+export function nomDePreset(p: PresetPnj): string | undefined {
+  return p.profil?.label ?? (p.base ? findCreatureById(p.base)?.label : undefined);
 }
 
 /**

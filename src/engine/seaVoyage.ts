@@ -20,6 +20,7 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
+import type { DeDeTable } from '../data/schemas/grammaire/valeurs';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, roll as rollDice, type RNG, defaultRNG } from './dice';
 import { rollTest, type TestResult } from './tests';
@@ -35,9 +36,7 @@ export { type CargoDef, type CargoEntry, type CargoLot, isEchangeable, cargoTota
 
 export interface ManannFactor { id: string; label: string; effect: { sign: 1 | -1; flat: number; d10: number } }
 
-export interface SeaEventDef {
-  min: number;
-  max: number;
+export interface SeaEventDef extends BandeOuverte {
   id: string;
   label: string;
   desc: string;
@@ -46,9 +45,7 @@ export interface SeaEventDef {
 }
 
 /** Palier du VOYAGE RAPIDE (l.33-37) : cran du d10, conséquences en % + Coups Critiques. */
-export interface FastVoyagePalier {
-  min: number;
-  max: number;
+export interface FastVoyagePalier extends BandeOuverte {
   id: string;
   label: string;
   desc: string;
@@ -96,6 +93,13 @@ export const MANANN_FACTORS = EVENTS.manann.factors;
 export const BOARD_EVENTS = EVENTS.boardEvents;
 export const PORT_EVENTS = EVENTS.portEvents;
 export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
+/** Les tables d'événements et de paliers telles que `findTableEntry` les lit (`tableOuverte`) : leurs
+ *  bandes extrêmes sont ouvertes (MDG 15). Mémoïsées sur leur dataset quand le Codex les édite. */
+export const evenementsDeBord = memoParVersion('seaBoardEvents', () => tableOuverte(EVENTS.boardEvents));
+/** Dé du tableau des événements de bord, MDG 15 l.182. */
+export const DE_DES_EVENEMENTS_DE_BORD: DeDeTable = 'd100';
+const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
+const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
 /** Le catalogue COMPLET tel qu'il est authoré : marchandises ET marqueurs de l'Index (MDG 15 l.321) —
  *  vocabulaire de la colonne Production. À n'employer que pour NOMMER une entrée de cette colonne. */
 export const CARGO_ENTRIES: readonly CargoEntry[] = CARGO.cargoes;
@@ -201,7 +205,7 @@ export const seaBoardEventById = (idOrKind: string): SeaEventDef | undefined =>
 export function rollPortEvent(manannScore: number, rng: RNG = defaultRNG): { roll: number; hours: number; event: SeaEventDef } {
   const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
   const roll = d10(rng) + d10(rng) + mod;
-  return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(EVENTS.portEvents, roll) };
+  return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
 }
 
 // ── Longs voyages TRÈS RAPIDES (l.21-37) ─────────────────────────────────────────────────────────
@@ -217,7 +221,7 @@ export function resolveFastVoyage(
   const roll = d10(rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
-  return { roll, manannTens, result, palier: findTableEntry(EVENTS.fastVoyage.paliers, result) };
+  return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };
 }
 
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────

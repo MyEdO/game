@@ -205,19 +205,33 @@ export function shieldReactionCost(c: Combatant, parryWeapon: Weapon | undefined
   return 0;
 }
 
-/** Contre-attaque sur Test opposé de DÉFENSE gagné en mêlée — lue en DONNÉES, traits ET talents
- *  confondus (capacité GÉNÉRIQUE `counterOnDefenseWin`). Champion (LDB 85) : sans condition d'arme.
- *  Riposte (LDB 10) : exige une arme de PARADE Rapide (`counterRequiresFastParry`). */
-export function canCounterOnDefenseWin(c: Combatant, parryWeapon: Weapon | undefined): boolean {
+/** Contre-attaque sur un Test opposé de défense gagné en mêlée : `choisie` = le porteur peut la refuser ;
+ *  `plafond` = nombre par Round (absent : sans plafond). */
+export interface ContreSurDefense { choisie: boolean; plafond?: number }
+
+/** Contre-attaque sur Test opposé de DÉFENSE gagné en mêlée — lue en DONNÉES (capacité GÉNÉRIQUE
+ *  `counterOnDefenseWin`), arme de PARADE Rapide exigée par `counterRequiresFastParry`, déclaration et
+ *  plafond par Niveau portés par `counterDeclaredPerLevel`. Une contre-attaque non déclarée prime.
+ *  LDB 85 l.71 ; LDB 10 l.1037. */
+export function contreSurDefenseGagnee(c: Combatant, parryWeapon: Weapon | undefined): ContreSurDefense | null {
   const fast = canStrikeFirst(parryWeapon ? [parryWeapon] : []);
-  for (const t of c.traits ?? []) {
-    const cap = findTraitById(t.id)?.capabilities;
-    if (cap?.counterOnDefenseWin && (!cap.counterRequiresFastParry || fast)) return true;
+  const porteuses: { cap: Pick<CombatFeature, 'counterOnDefenseWin' | 'counterRequiresFastParry' | 'counterDeclaredPerLevel'>; niveau: number }[] = [
+    ...(c.traits ?? []).map((t) => ({ cap: findTraitById(t.id)?.capabilities ?? {}, niveau: 1 })),
+    ...featuresOf(c).map(({ def, ctx }) => ({ cap: def, niveau: ctx.level })),
+  ];
+  let plafond = 0;
+  for (const { cap, niveau } of porteuses) {
+    if (!cap.counterOnDefenseWin || (cap.counterRequiresFastParry && !fast)) continue;
+    if (!cap.counterDeclaredPerLevel) return { choisie: false };
+    plafond += niveau;
   }
-  for (const { def } of featuresOf(c)) {
-    if (def.counterOnDefenseWin && (!def.counterRequiresFastParry || fast)) return true;
-  }
-  return false;
+  return plafond > 0 ? { choisie: true, plafond } : null;
+}
+
+/** Contre-attaques déjà portées ce Round quand le plafond est atteint, sinon `null`. LDB 10 l.1037. */
+export function contresEpuisees(c: Combatant, contre: ContreSurDefense): number | null {
+  const portees = c.ripostesThisRound ?? 0;
+  return contre.plafond != null && portees >= contre.plafond ? portees : null;
 }
 
 /** Renversement (LDB 10) : vole TOUS les Avantages adverses au lieu de +1 sur un opposé gagné. */
@@ -335,8 +349,7 @@ export function talentFearIndice(c: Combatant): number {
   return levelSum(c, (d) => !!d.causesFear);
 }
 
-/** Négociateur (LDB 59 l.43) : un Marchandage gagné réduit le prix de 20 % même sans Succès
- *  Stupéfiant. Lu par merchantFlow à la conclusion. */
+/** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
 export function hasBargainBonus(c: Combatant): boolean {
   return featuresOf(c).some(({ def }) => def.bargainBonus);
 }

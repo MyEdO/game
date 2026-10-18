@@ -640,9 +640,9 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene(scenesDuProjet, worldMap)
+    () => validateScene(scenesDuProjet, worldMap, narratif)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
-    [scenesDuProjet, scene.id, worldMap],
+    [scenesDuProjet, scene.id, worldMap, narratif],
   );
   // Cases fautives à allumer MAINTENANT : re-résolution du défaut suivi contre les avertissements frais.
   const planFocus = useMemo(() => planFocusAt(warnings, planFocusKey), [warnings, planFocusKey]);
@@ -824,13 +824,15 @@ export function Editor({
       });
       return;
     }
-    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scenesDuProjet[0].id), 'test');
+    // #2206 G2
+    const doc = documentCourant(projectName, projectId ?? scenesDuProjet[0].id);
+    const refus = refusDeLaPorte(doc, 'test');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_TEST, ...refus });
       return;
     }
     setRefusDuGeste(null);
-    loadProject(scenesDuProjet, scene.id, worldMap, narratif);
+    loadProject({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {

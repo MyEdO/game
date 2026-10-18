@@ -51,7 +51,7 @@ const testMod = nommerChamps(z.strictObject({
   /** VDM 14. */
   windRestricted: z.boolean().optional(),
   /** Valeur maison ÉDITABLE portant sa justification, quand le RAW ne chiffre qu'une fourchette sans
-   *  cas général (CLAUDE.md règle 7 ; #831). Comptée comme citation par `citationCoverage.mjs`. */
+   *  cas général (AGENTS.md règle 7 ; #831). Comptée comme citation par `citationCoverage.mjs`. */
   maison: z.string().optional(),
   source: sourceRefSchema,
   /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */

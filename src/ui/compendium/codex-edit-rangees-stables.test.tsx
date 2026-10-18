@@ -67,10 +67,14 @@ function domaineARangeesJumelles(): Domaine {
   return d!;
 }
 
+/** Champs de la source PROPRE de la rangée, hors des sous-formulaires qu'elle porte. */
+const PAGE_DE_RANGEE = '[aria-label^="Page de la source de la rangée"]';
+const NOTE_DE_RANGEE = '[aria-label^="Note de la source de la rangée"]';
+
 /** Rangées SOURCÉES d'un tableau générique (`windModifiers`) : celles qui portent leur bouton de retrait. */
 const rangeesSourcees = (): HTMLElement[] => {
   const rangees = [...container.querySelectorAll<HTMLElement>('.ed-champs')]
-    .filter((e) => [...e.children].some((b) => b.textContent?.includes('Retirer la rangée')) && e.querySelector('[aria-label^="Page"]'));
+    .filter((e) => [...e.children].some((b) => b.textContent?.includes('Retirer la rangée')) && e.querySelector(PAGE_DE_RANGEE));
   expect(rangees.length, 'aucune rangée sourcée montée').toBeGreaterThan(0);
   return rangees;
 };
@@ -102,13 +106,13 @@ describe('atelier du Codex — une rangée retirée emporte son brouillon (#1993
     const suivante = d.windModifiers![1].source!;
     monter('domains', d);
     const [r0] = rangeesSourcees();
-    saisir(r0.querySelector<HTMLInputElement>('[aria-label^="Page"]')!, '');
-    saisir(r0.querySelector<HTMLInputElement>('[aria-label^="Note"]')!, 'BROUILLON-R0');
+    saisir(r0.querySelector<HTMLInputElement>(PAGE_DE_RANGEE)!, '');
+    saisir(r0.querySelector<HTMLInputElement>(NOTE_DE_RANGEE)!, 'BROUILLON-R0');
     act(() => { bouton(r0, 'Retirer la rangée').click(); });
 
     const [exR1] = rangeesSourcees();
-    expect(exR1.querySelector<HTMLInputElement>('[aria-label^="Page"]')!.value).toBe(String(suivante.page));
-    expect(exR1.querySelector<HTMLInputElement>('[aria-label^="Note"]')!.value).toBe(suivante.note ?? '');
+    expect(exR1.querySelector<HTMLInputElement>(PAGE_DE_RANGEE)!.value).toBe(String(suivante.page));
+    expect(exR1.querySelector<HTMLInputElement>(NOTE_DE_RANGEE)!.value).toBe(suivante.note ?? '');
     expect(container.querySelector('.codex-edit-errors'), 'une saisie en cours fantôme bloque l’enregistrement').toBeNull();
   });
 

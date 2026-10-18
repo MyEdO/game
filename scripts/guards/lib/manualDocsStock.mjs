@@ -6,7 +6,7 @@
 // `docs/superpowers/`…), même frontière que `scripts/docs/check-doc-refs.mjs`
 // (`listerDossier(DOCS_DIR)` non récursif). Un doc est GÉNÉRÉ quand son ouverture porte, dans ses
 // premières lignes, un marqueur `GÉNÉRÉ par` (deux formes mesurées dans le dépôt : « ⚠️ Fichier
-// GÉNÉRÉ par … » et « GÉNÉRÉ par `npx tsx …` ») — cf. `scripts/docs/manual-docs-ratchet.test.mjs`.
+// GÉNÉRÉ par … » et « GÉNÉRÉ par `npx tsx …` ») — cf. `scripts/corpus/docs/manual-docs-ratchet.test.mjs`.
 //
 // CLIQUET, pas absolution — trois verrous, tous dans le test :
 //   (a) tout doc manuscrit ABSENT de cette liste échoue : un doc neuf se GÉNÈRE, il ne s'inscrit pas

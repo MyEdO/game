@@ -10,7 +10,7 @@ import { useGame } from './store';
 import { applyEffects } from './combatEffects';
 import { deriveChapterRecap, snapshotChapitre } from './chapitreRecap';
 import { snapshotSave } from './saves';
-import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
@@ -118,8 +118,8 @@ describe('armement du récap — la CLÔTURE est une Condition relue après chaq
 
 describe('cycle de vie de la borne (#717)', () => {
   it('`loadProject` pose l’ouverture APRÈS `startScene` ; `startScene` seul efface le cadre', () => {
-    const { scenes, worldMap, narratif } = paquetDuJeu(diligenceCampaign);
-    useGame.getState().loadProject(scenes, scenes[0].id, worldMap, narratif);
+    const { scenes, narratif } = paquetDuJeu(diligenceCampaign);
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), scenes[0].id)).toBeNull();
     expect(get().pendingOuverture?.titre).toBe(narratif.ouverture!.titre);
 
     useGame.getState().acquitterOuverture();
@@ -151,7 +151,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
     expect(get().pendingChapterRecap?.chronique).toEqual([
-      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok' },
+      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
     ]);
 
     useGame.getState().cloreChapitre();

@@ -5,10 +5,10 @@ import { makeRNG } from './dice';
 
 describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
   it('{vehicleId} → grant vehicule avec-le-groupe, owner = ownerId', () => {
-    const refs: TrappingRef[] = [{ vehicleId: 'barque' }];
+    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale' }];
     const grants = possessionGrantsFromRefs(refs, 'hero-1', makeRNG(1));
     expect(grants).toHaveLength(1);
-    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [] });
+    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [] });
   });
 
   it('{creatureId} → grant bete (ref.creatureId), avec-le-groupe, owner = ownerId', () => {
@@ -53,9 +53,9 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
   });
 
   it('{vehicleId, label} → le label propre de la dotation est transporté sur la PossessionInput', () => {
-    const refs: TrappingRef[] = [{ vehicleId: 'barque', label: 'La Perle Grise' }];
+    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale', label: 'La Perle Grise' }];
     const grants = possessionGrantsFromRefs(refs, 'hero-5', makeRNG(1));
-    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque', label: 'La Perle Grise' });
+    expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', label: 'La Perle Grise' });
   });
 
   it('count.roll (1d10) → N tiré via le rouleur canonique, déterministe par seed', () => {
@@ -71,7 +71,7 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
   });
 
   it('sans count → 1 grant', () => {
-    const refs: TrappingRef[] = [{ vehicleId: 'barque' }];
+    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale' }];
     expect(possessionGrantsFromRefs(refs, 'h', makeRNG(1))).toHaveLength(1);
   });
 });

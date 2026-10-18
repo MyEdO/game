@@ -34,6 +34,7 @@ import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { OPS_DIFFEREES } from './combatEffects';
 import { t } from '../i18n';
+import { makeRNG } from '../engine/dice';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -180,7 +181,7 @@ describe('Boucle de jeu (store)', () => {
     const res: AttackResult = {
       hit: true, attackerRoll: 12, netSL: 4, location: 'corps', damage: 8, woundsLost: 3,
       // LDB 18 l.53-55 : un Coup Critique RE-TIRE la localisation (#80) ; on la PINNE à corps (le seul
-      // emplacement blindé du héros) pour un test déterministe — la Déviation (LDB 63 l.29-32) sacrifie 1 PA
+      // emplacement blindé du héros) pour un test déterministe — la Déviation (LDB 63 l.30-32) sacrifie 1 PA
       // « à la localisation » du Critique, donc à corps. Sans pin, le re-tirage tomberait sur un emplacement nu.
       critLocation: 'corps',
       critical: true, advantageTo: null, defenderDefeated: false, log: 'Coup Critique (corps)',
@@ -247,7 +248,7 @@ describe('Boucle de jeu (store)', () => {
       size: 'moyenne', weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }], items: [], fate: 0,
     } as unknown as Combatant;
     const enemy = {
-      id: 'e1', label: 'Brute', kind: 'enemy', characteristics: chars, wounds: { current: 40, max: 40 },
+      id: 'e1', label: 'Brute', kind: 'enemy', important: true, characteristics: chars, wounds: { current: 40, max: 40 },
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 1, y: 0 },
       size: 'moyenne', weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], criticalWounds: 0,
@@ -799,7 +800,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent au héros
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0; // un seul ennemi vivant
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true; // un seul ennemi vivant
     useGame.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDefense: null,
@@ -826,7 +827,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y };
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     // Monture GRANDE sous l'ennemi (Moyenne) : le cavalier frappe le héros (Moyenne < Grande) à +20.
     const horse = {
       id: 'horse-test', label: 'Cheval (test)', kind: 'enemy', size: 'grande', movement: 8,
@@ -880,7 +881,7 @@ describe('Boucle de jeu (store)', () => {
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent
     E.conditions.push({ id: 'sonne', value: 1 }); // l'ennemi est Sonné
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     const woundsBefore = H.wounds.current;
     useGame.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
@@ -933,7 +934,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: 6, y: 10 };
     H.advantage = 0;
     E.pos = { x: 8, y: 10 }; // 2 cases à l'est, couloir libre
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     vi.clearAllTimers();
@@ -1001,7 +1002,7 @@ describe('Boucle de jeu (store)', () => {
     mount.riderId = rider.id; // #0 = monture
     rider.pos = { x: 7, y: 10 };
     rider.mountId = mount.id; // #1 = cavalier (sur #0)
-    for (const c of enemies.slice(2)) c.wounds.current = 0; // neutralise les autres
+    for (const c of enemies.slice(2)) c.dead = true; // neutralise les autres
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
@@ -2499,11 +2500,12 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
 
   it('overkill sur un HÉROS → Blessure critique (compteur++), tombe à 0 PB', () => {
     const { H, E } = combat({ wounds: { current: 2, max: 12 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
+    H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); // sans armure portée : aucune Déviation (LDB 63 l.30)
     useGame.getState().seedRng(2);
     // L'IA (E) frappe H en mêlée SANS défense opposable (cible sans réaction, cas imposé RAW) :
     // résolution non opposée, DR d'attaque plein → overkill car 2 PB < dégâts.
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };
-    const res = resolveMeleePassive(E, H, E.weapons[0], atk);
+    const res = resolveMeleePassive(E, H, E.weapons[0], atk, { rng: makeRNG(1595) });
     applyAttackResult(useGame.getState, useGame.setState, E, H, E.weapons[0], res);
     draineCascade(useGame.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -3025,7 +3027,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };
     const weapon: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon;
     // Touche subie SANS défense opposable (cas imposé RAW) → doit interrompre le rechargement.
-    const res = resolveMeleePassive(E, H, weapon, atk, 'corps');
+    const res = resolveMeleePassive(E, H, weapon, atk, { rng: makeRNG(1595) }, 'corps');
     applyAttackResult(useGame.getState, useGame.setState, E, H, weapon, res);
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.wounds.current).toBeLessThan(h.wounds.max); // a bien encaissé une touche
@@ -3114,7 +3116,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
     useGame.getState().transitionTo('b', 'porte');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(useGame.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
@@ -3127,7 +3129,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     useGame.getState().setParty([lead]);
-    useGame.getState().loadProject([a, b], 'a2');
+    useGame.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
     useGame.getState().transitionTo('b2');
     expect(capDuGroupe(useGame.getState())).toBe('NE');
   });
@@ -3218,7 +3220,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
       gameTime: campaignStart() + 99_999,
       facing: { fantome: 4 } as any,
       previousScene: { id: 'vieux', pos: { x: 9, y: 9 } },
-      document: { title: 'x', text: 'y' },
+      document: { title: 'x', text: 'y', remise: 1 },
       dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', text: '', choices: [] }] }, nodeId: 'n' } as any,
       pendingFateSave: { heroId: 'mort', source: 'slow' } as any,
       pendingCast: { x: 1 } as any,
@@ -3566,7 +3568,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(discounted).toBeLessThan(full);
   });
 
-  it('vente (panier) : Option 2 — défaut/perdu = ¼ (lowball), marchandage de vente GAGNÉ = ½ (#2c)', () => {
+  it('vente (panier), LDB 59 l.54 + arbitrage #2547 : défaut/perdu = ¼, GAGNÉ = ½, gagné + Négociateur = ½ × 1,1', () => {
     const sellWith = (bargainSell: { won: boolean; drNet: number; negotiator: boolean } | null): number => {
       const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
       reset();
@@ -3581,8 +3583,12 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
     const won = sellWith({ won: true, drNet: 2, negotiator: false }); // ½ (on a tenu notre prix)
     const lost = sellWith({ won: false, drNet: 0, negotiator: false }); // ¼ (rabaissé)
-    expect(won).toBeGreaterThan(lowball); // gagner le marchandage double le gain
+    const wonNegotiator = sellWith({ won: true, drNet: 2, negotiator: true });
+    const lostNegotiator = sellWith({ won: false, drNet: 1, negotiator: true });
+    expect(won).toBe(2 * lowball); // gagner le marchandage double le gain
+    expect(wonNegotiator).toBe(Math.round(won * 1.1)); // Négociateur : +10 % (LDB 10 l.818)
     expect(lost).toBe(lowball); // perdre = ne pas négocier = ¼
+    expect(lostNegotiator).toBe(lowball);
   });
 
   it('buyItem : applique la majoration d’achat paramétrable (buyMarkup) — marchand plus cher (#2)', () => {

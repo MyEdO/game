@@ -1,33 +1,39 @@
 // @vitest-environment jsdom
 /**
  * Un sélecteur reçoit le NŒUD de son champ (#1988) : la sous-liste que déclare la feuille `idDe` du
- * schéma se lit sur ce nœud (`refusDuNoeud`), jamais une fermeture `filter` du registre `REF_FIELD`
- * qui la redéclarerait. Monté comme au Codex (`CodexEdit.tsx`, `noeud={f.noeud}`).
+ * schéma se lit sur ce nœud (`refusDuNoeud`), jamais une fermeture `filter` qui la redéclarerait.
+ * Les champs sont trouvés par la route du Codex (`Field` de `CodexEdit.tsx` : `kind === 'text'` puis
+ * `cfgDeLaFeuille(field.noeud)`), sur les champs que `inferFields` y infère.
  */
 import { describe, it, expect } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RefField, refFieldCfg, refusDuNoeud, type RefFieldCfg } from './RefField';
+import { RefField, cfgDeLaFeuille, refusDuNoeud, type RefFieldCfg } from './RefField';
+import { inferFields } from './editFields';
 import { declarationDeFeuilleDId, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
-import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
-import { noeudObjet, schemaForFile } from '../../data/schemas/validate';
-import { enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../data/schemas/exposition-derivee';
+import { datasetArray, type DatasetKey } from '../../data/overrides';
+import { metaPourFichier, noeudObjet, schemaForFile } from '../../data/schemas/validate';
+import { ouverts } from '../../data/schemas/grammaire/descente';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Chaque champ `(dataset, champ)` dont REF_FIELD porte un sélecteur de dataset ET dont la feuille est restreinte. */
-const CHAMPS_RESTREINTS = Object.entries(DATASET_FICHIER_DERIVE).flatMap(([ds, fichier]) => {
-  const entree = noeudObjet(schemaForFile(fichier));
-  return entree === undefined
-    ? []
-    : enfantsDe(entree).flatMap(({ cle, noeud }) => {
-        const cfg = cle === undefined ? undefined : refFieldCfg(ds, cle);
-        const feuille = ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
-        return cfg && 'ds' in cfg && refusDuNoeud(noeud) && feuille?.sousListe !== undefined
-          ? [[`${ds}.${cle}`, cfg, noeud, idsDeLaSousListe(feuille.type, feuille.sousListe)] as const]
-          : [];
-      });
-});
+/** Chaque champ `(dataset, champ)` que le Codex route vers un sélecteur de feuille `idDe` RESTREINTE. */
+const CHAMPS_RESTREINTS = Object.entries(DATASET_FICHIER_DERIVE)
+  .filter(([ds]) => DATASET_SUITE_DERIVE[ds] === '')
+  .flatMap(([ds, fichier]) => {
+    const noeud = noeudObjet(schemaForFile(fichier));
+    const entrees = datasetArray(ds as DatasetKey) as Record<string, unknown>[];
+    return noeud === undefined || !Array.isArray(entrees)
+      ? []
+      : inferFields(entrees, { meta: metaPourFichier(fichier), noeud }).flatMap((f) => {
+          const cfg = f.kind === 'text' ? cfgDeLaFeuille(f.noeud) : undefined;
+          const feuille = ouverts([f.noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
+          return cfg && refusDuNoeud(f.noeud) && feuille?.sousListe !== undefined
+            ? [[`${ds}.${f.key}`, cfg, f.noeud, idsDeLaSousListe(feuille.type, feuille.sousListe)] as const]
+            : [];
+        });
+  });
 
 /** Les valeurs d'option d'un `RefField` monté sur ce nœud (hors choix vide). */
 function options(cfg: RefFieldCfg, noeud: unknown): string[] {
@@ -41,7 +47,7 @@ function options(cfg: RefFieldCfg, noeud: unknown): string[] {
   return valeurs;
 }
 
-describe('REF_FIELD — la sous-liste du schéma se lit sur le nœud du champ', () => {
+describe('sélecteur de feuille `idDe` — la sous-liste du schéma se lit sur le nœud du champ', () => {
   it('témoin : les champs restreints du Codex sont trouvés (Terrains › Matière, Bâtiments › Couverture)', () => {
     expect(CHAMPS_RESTREINTS.map(([nom]) => nom)).toEqual(expect.arrayContaining(['terrains.matiere', 'buildings.roofMaterial']));
   });

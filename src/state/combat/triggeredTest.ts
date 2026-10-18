@@ -33,10 +33,10 @@ import { type Flow, type FlowTest, type ConditionCtx, evalCondition, flowHasImpu
 import { condCtx } from '../bourseFlow';
 import { buildActorView, combatConditionCtx, flowTestGated } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
-import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest } from '../pendings';
+import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
 import { runPureFlowLines, runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
-  differerLaSuite, jouerFlowEntier, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
+  confierLaSuite, porterOpsCtx, jouerFlowEntier, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
 import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel, type BuiltCascadeStep } from '../rollSeam';
@@ -386,7 +386,7 @@ registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
     if (!hero || !part.result) continue;
     journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
     set(touchActors(get()));
-    playAfter(get, set, hero, step.meta?.after, nomDeSource(step));
+    journal.push(...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step)));
   }
   return { consequences: freeCons(journal) };
 });
@@ -447,6 +447,19 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
   if (after && after !== EMPTY_FLOW) runCombatFlow({ mode: 'combat', get, set, target: c, caster: c, label, ...(source ? { opsCtx: { source } } : {}) }, after);
 }
 
+/** `playAfter` d'un applier de cascade, puis le drain de la file différée (`drainPendingLog`,
+ *  combatEffects.ts:123) : les lignes rendues rejoignent les `consequences` de l'étape, que `commitStep`
+ *  journalise après l'applier (cascade.ts:1352). */
+function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, source?: EffectSource): string[] {
+  playAfter(get, set, c, after, label, source);
+  return drainPendingLog(get, set).map((e) => e.text);
+}
+
+/** Le reste d'une pile de combat, en clôture (#2689) : sa cible en id, le contexte de la pile porté. */
+function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow): Cloture {
+  return { verbe: 'reprendreFlowDeCombat', flow, cibleId: (ctx.target ?? porteur).id, ctx: porterOpsCtx(oc), label: ctx.label };
+}
+
 /**
  * EXÉCUTEUR à PILE d'un Flow EN COMBAT — calque `runFlow` (côté scène) pour porter la CONTINUATION : un
  * nœud `test` enfoui suspend en empaquetant le reste de la pile dans `after` puis délègue à
@@ -455,7 +468,6 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
-  const label = ctx.label;
   const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
   while (stack.length) {
     const node = stack.shift()!;
@@ -483,7 +495,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
             if (bladeTrapHook && ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
               && bladeTrapHook(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
               const reste = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
-              differerLaSuite(ctx.set, { kind: 'seq', steps: [reste, ...stack.splice(0)] }, 'combat', label);
+              confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [reste, ...stack.splice(0)] })]);
               return;
             }
             // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
@@ -493,7 +505,8 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
             // que `case 'test'` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
             // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
             if (lines === OPS_DIFFEREES) {
-              differerLaSuite(ctx.set, { kind: 'seq', steps: stack.splice(0) }, 'combat', label);
+              const steps = stack.splice(0);
+              if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps })]);
               return;
             }
             ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
@@ -601,7 +614,9 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, { onSuccess: node.success, onFail: node.fail }, after, difficulty, extraMeta);
-    if (step) pushCombatStep(ctx.set, step);
+    // UNE INSTANCE = UN ID : deux Blessures critiques du même coup (LDB 18 l.17, l.53) appendent deux Tests
+    // homonymes au même porteur ; l'INDEX d'append les distingue (patron `pushDeviationStep`).
+    if (step) pushCombatStep(ctx.set, (index) => ({ ...step, id: `${step.id}-${index}` }));
     return;
   }
   // `exec` (get/set [+ freeAttack/bladeTrap]) TOUJOURS fourni : une branche IMPURE (à hook : interruptFocus /
@@ -691,8 +706,7 @@ registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
   set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
   // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
   // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
-  playAfter(get, set, hero, step.meta?.after, nomDeSource(step), exec.source);
-  return { consequences: freeCons(journal) };
+  return { consequences: freeCons([...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), exec.source)]) };
 });
 
 /** Le coût d'Avantage d'un nœud `choice` est-il payable par le décideur ? (Coût absent ⇒ gratuit ⇒ oui.)
@@ -787,7 +801,7 @@ registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
   const ctx: ExecCtx = { mode: 'combat', get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', ...(source ? { opsCtx: { source } } : {}), ...(freeAttack ? { freeAttack } : {}) };
   if (can) runCombatFlow(ctx, yesFlow ?? EMPTY_FLOW);
   else if (noFlow) runCombatFlow(ctx, noFlow);
-  playAfter(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source);
+  return { consequences: freeCons(suiteDEtape(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source)) };
 });
 
 /**
@@ -833,7 +847,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
 
 /**
  * REPRISE de la branche d'un Test SUBI (`PendingTest.subi`, posé par la porte ci-dessus) — le pendant
- * de `rejouerLaSuite` en mode `'combat'` (`combatEffects.ts`) pour la modale de Test : la branche et
+ * de la clôture `reprendreFlowDeCombat` (`combatFlow.ts`) pour la modale de Test : la branche et
  * la continuation d'un Test SUBI parlent `target`/`caster`, vocabulaire que seul `runCombatFlow`
  * honore (`case 'do'` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
  * `get()` par ids — jamais capturé : entre l'ouverture et la reprise il y a une modale, donc
@@ -863,7 +877,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
   // écriture nue de `battle.log` ici.
   journaliser(get, set, drainPendingLog(get, set).map((e) => e.text), 'condition');
   // Une feuille partie à la PORTE (#1508) a reçu la suite : l'appelant n'a plus à jouer ses clôtures
-  // devant le dé — même compte canonique que `rejouerLaSuite`.
+  // devant le dé — même compte canonique que `jouerLesClotures`.
   return comptePasDifferes(get()) > avant ? OPS_DIFFEREES : undefined;
 }
 

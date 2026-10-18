@@ -55,7 +55,7 @@ const VERROU_DIALECTE = [{
 
 const MARCHE_BRUTE = ['readdirSync', 'readdir', 'opendirSync', 'opendir', 'globSync', 'glob'];
 const MSG_ORDRE_TOTAL =
-  'Ordre total (#1679 L3b) : lister un dossier passe par `listerDossier`/`listerArbre` (`scripts/guards/lib/lister.mjs`), et LIRE un corpus source par `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`) — un listing brut suit l’ordre du système de fichiers et périme le doc dérivé sur l’autre OS.';
+  'Ordre total (#1679 L3b) : lister un dossier passe par `listerDossier`/`listerEntrees`/`listerArbre` (`scripts/guards/lib/lister.mjs`), et LIRE un corpus source par `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`) — un listing brut suit l’ordre du système de fichiers et périme le doc dérivé sur l’autre OS.';
 const MSG_LOCALE_COMPARE =
   'Ordre total (#1679 L3b) : `localeCompare`, `toLocale*` et `Intl` suivent la locale et l’ICU du processus — le doc dérivé change avec la machine. Comparer par `parUnitesDeCode` (chemin, id, clé) ou `parLibelle` (libellé lu par le joueur), de `src/lib/ordre.mjs` ; formater sans locale.';
 
@@ -116,7 +116,7 @@ const GLOBS_GENERATEURS = [
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
 const msgPurete = (amont, aval, suite) =>
-  `Pureté de couche (#1709, CLAUDE.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
+  `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} à l’EXÉCUTION — ${suite}`;
 
 const pureteImports = (amont, avals) => ({
   patterns: avals.map(([aval, suite]) => ({

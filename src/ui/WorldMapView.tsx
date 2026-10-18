@@ -23,6 +23,8 @@ import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction, raisonSi } from './GatedAction';
 import { mdToText } from './Prose';
+import { useIdentites } from './useIdentites';
+import { nommer } from '../state/identites';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
 import { vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';
@@ -96,6 +98,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
   const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const identites = useIdentites();
   const [selId, setSelId] = useState<string | null>(initialRouteId ?? null);
   const [mode, setMode] = useState<TravelMode>('pied');
   const [classeId, setClasseId] = useState('');
@@ -221,7 +224,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     ? (vessel ? vesselNavalTraits(vessel) : null)
     : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
   const seaPropulsion = vessel ? garanti(propulsionDuNavire(vessel.vehicleId, vessel.upgrades, 'maritime'), vessel.vehicleId, 'propulsion du navire') : null;
-  const seaM = seaPropulsion && (vessel?.wounds == null || vessel.wounds.current > 0) ? seaPropulsion.m : 0;
+  const seaM = seaPropulsion ? seaPropulsion.m : 0; // MDG 13 l.656, l.674
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
@@ -712,7 +715,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               label={<><Icon id="scenario/travel" size="sm" /> {t('wm.partir')}</>}
               ariaLabel={t('wm.partirVers', { lieu: destFermee.label })}
               enabled={false}
-              reason={mdToText(garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)').texte)}
+              reason={mdToText(nommer(garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)').texte, identites))}
               onClick={() => {}}
             />
           </Row>

@@ -7,7 +7,7 @@
  *                   reçoit les artefacts intermédiaires en sortie. Il vit HORS du dépôt : une sonde
  *                   est en lecture seule sur l'arbre.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -18,6 +18,13 @@ function racineDepot() {
 }
 
 export const RACINE = racineDepot();
+
+/** REND le skill `orchestrer-des-agents` entier : `SKILL.md` puis ses annexes, par ordre de nom. */
+export function skillOrchestration() {
+  const dossier = join(RACINE, '.claude', 'skills', 'orchestrer-des-agents');
+  const annexes = readdirSync(dossier).filter((f) => f.endsWith('.md') && f !== 'SKILL.md').sort();
+  return ['SKILL.md', ...annexes].map((f) => readFileSync(join(dossier, f), 'utf8')).join('\n');
+}
 
 /**
  * REND le dossier de données passé en `argv[2]`, ou ARRÊTE la sonde (code 2) avec son mode d'emploi.

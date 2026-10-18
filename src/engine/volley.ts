@@ -56,7 +56,7 @@ export function resolveVolley(
     const gunDR = dr + attackDRAdjust(weapon, success); // LDB 62 l.288, l.323
     const jet: RollBreakdown = { label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll: d100(rng), success, sl: gunDR };
     shots.push({
-      tireur, weapon, ammo, res: toucheAuJetPose(tireur, target, weapon, jet, gunDR),
+      tireur, weapon, ammo, res: toucheAuJetPose(tireur, target, weapon, jet, gunDR, { rng }),
       posteUid: poste.item.uid, reload: weapon.reload ?? 0,
     });
   }

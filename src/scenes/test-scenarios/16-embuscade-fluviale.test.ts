@@ -64,7 +64,7 @@ describe('Embuscade fluviale — la coque encaisse un Critique MSRC (pas de mer)
       const roster = spawnRoster();
       const barge = roster.find((c) => c.id === 'enemy-enc-fluvial-5')!; // gréement mixte → Gréement/Gouvernail/Coque/Superstructure
       const get = (() => ({ battle: { combatants: roster } })) as never;
-      applyCriticalToTarget(barge, 'corps', true, 0, [], (() => {}) as never, { get });
+      applyCriticalToTarget(barge, 'corps', 0, [], (() => {}) as never, { get });
       const cond = JSON.stringify(barge.conditions);
       // La table Cargaison (En flammes navire) est MDG-only : `navire-fluvial` ne la produit JAMAIS.
       expect(cond).not.toMatch(/en-flammes-navire/);

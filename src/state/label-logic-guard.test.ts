@@ -21,7 +21,7 @@ import { skillRefLabel, talentRefLabel, talents } from '../data';
 import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
 
 /**
- * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine CLAUDE.md bloc
+ * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine AGENTS.md bloc
  * agents) : toute LOGIQUE est keyée par `id` STABLE — le `label` est de l'AFFICHAGE (multilangue).
  *
  * UNE garde : un corpus (`estDansLeCorpus`, tout `src/` hors instruments Vitest), une composition par
@@ -321,7 +321,7 @@ describe('garde-fou « logique par label interdite » : volets `.label` (#142)',
   it('scanLabelLogic : ne flague NI la résolution par id NI la CONSTRUCTION d’un index de texte (#602)', () => {
     // Contre-épreuves : (1) lire le libellé d'un lookup PAR ID est l'usage légitime du label (~50 sites
     // dans src/data) ; (2) REMPLIR un index depuis du texte est la conversion label→id tolérée
-    // (CLAUDE.md) — auto-liage de prose, import de statbloc —, seule l'INTERROGATION est une décision.
+    // (AGENTS.md) — auto-liage de prose, import de statbloc —, seule l'INTERROGATION est une décision.
     const src = [
       'return DISEASE_BY_ID.get(id)?.label ?? id;',
       'const l = byId.get(mm.entityId)?.label ?? byId.get(mm.entityId)?.ref;',
@@ -585,7 +585,7 @@ describe('garde-fou « retour d’APPEL comparé à un LIBELLÉ » (#1694 B3)', 
 /**
  * Volet CONSTRUCTION (#909) : les volets ci-dessus jugent l'INTERROGATION d'une collection par un
  * libellé — la REMPLIR depuis du texte y est tolérée, la conversion label→id étant licite mais à UN
- * endroit (`src/data/index.ts`, CLAUDE.md). Hors de cette couture, la CONSTRUCTION est la
+ * endroit (`src/data/index.ts`, AGENTS.md). Hors de cette couture, la CONSTRUCTION est la
  * faute, et elle était MUETTE : `QUALITY_DESC` (`engine/qualities/describe.ts`) a vécu comme
  * `Record` keyé par LIBELLÉ, bâti par `fromEntries(… [q.label, q.desc])` et lu par une VARIABLE.
  */

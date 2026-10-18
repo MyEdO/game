@@ -1,8 +1,8 @@
 /**
  * FRONTIÈRE `src/state` ↛ `src/gameIso` — garde STRUCTURELLE (#1715).
  *
- * CLAUDE.md règle 3 : « Le moteur de règles (`src/engine`) reste pur et testé. Le store, l'UI et le
- * rendu en dépendent, jamais l'inverse. » Le rendu (`src/gameIso`) se sert du store ; le store ne se
+ * AGENTS.md règle 3 : « Le moteur (`src/engine`) reste pur et testé. Store, UI et rendu en
+ * dépendent, jamais l'inverse. » Le rendu (`src/gameIso`) se sert du store ; le store ne se
  * sert JAMAIS du rendu. L'en-tête de `state/sceneEdit.ts` porte la même consigne en prose (« NE JAMAIS
  * importer `../ui/` ni `../gameIso/` ici ») — la prose ne refuse rien, ce test refuse.
  *
@@ -41,7 +41,7 @@ export function importsDuRendu(fichierAbs: string, texte: string): Arc[] {
   return arcsDe(fichierAbs, texte).filter(({ cible }) => cible.startsWith(RENDU));
 }
 
-describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
+describe('frontière state → gameIso (AGENTS.md règle 3)', () => {
   const fichiers = detenteur(() => sourcesDeState());
 
   it('le scan voit bien les sources de production de src/state (preuve de câblage)', () => {
@@ -75,7 +75,7 @@ describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
         fautes.push(`${f.chemin.slice(SRC.length)} → ${cible.slice(SRC.length)}  (« ${spec} »)`);
     expect(
       fautes,
-      'Le store importe le RENDU : le rendu dépend du store, jamais l’inverse (CLAUDE.md règle 3). ' +
+      'Le store importe le RENDU : le rendu dépend du store, jamais l’inverse (AGENTS.md règle 3). ' +
         'Une donnée dont le store a besoin se lit par une façade qui vit dans `src/state` (patron ' +
         '`state/terrain/index.ts`, `state/buildings.ts`), jamais par un aller-retour dans `src/gameIso`.\n  ' +
         fautes.join('\n  '),

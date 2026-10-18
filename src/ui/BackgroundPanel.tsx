@@ -90,7 +90,7 @@ function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolea
       <span className="sc-label" title={`${libelleDeValeur(favorLevelSchema, favor.level)} envers ${favor.owedTo}`}>
         {libelleDeValeur(favorLevelSchema, favor.level)} envers {favor.owedTo}
       </span>
-      <div className="sc-value"><Prose md={favor.desc} /></div>
+      <div className="sc-value"><Prose md={favor.desc} paquet /></div>
       <span className="bg-hint">
         {required != null
           ? `${favor.progress}/${required} Activité${required > 1 ? 's' : ''} consécutive${required > 1 ? 's' : ''} pour l'acquitter (Entre deux aventures)`

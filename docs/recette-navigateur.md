@@ -20,6 +20,11 @@ pris fait ÉCHOUER `npm run dev` au lieu de glisser sur le suivant. Le kit de re
 port par défaut (`DEFAULT_URL`, `scripts/recette/lib.mjs`) ; `WFRP_DEV_URL` ou `--url` visent un
 autre serveur.
 
+**Serveur lancé par l'outil depuis un worktree** : le lanceur ne lit que le `.claude/launch.json` de la
+RACINE de l'arbre principal (gitignoré) ; l'entrée du worktree y pose `npm --prefix <worktree> run dev`
+sur son port dérivé (`portDev`, `scripts/port-dev.mjs`). Aucune mesure d'écran par un volet navigateur
+MASQUÉ : `requestAnimationFrame` n'y bat pas, la caméra ne suit pas ; mesurer par le kit.
+
 **La recette est adossée à l'arbre qu'elle mesure** (#1679 L1c) — trois contrôles, tous portés par
 `scripts/recette/lib.mjs`, aucun à recoder par scénario :
 
@@ -117,7 +122,7 @@ compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, fricti
 ### CLI — `scripts/recette/shot-screen.mjs`
 
 ```
-node scripts/recette/shot-screen.mjs --screen gallery --out C:/temp/recette
+node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
 node scripts/recette/shot-screen.mjs --screen menu --mobile
 ```
 
@@ -330,7 +335,7 @@ import { openApp, gotoScreen, shot, consoleGuard } from './scripts/recette/lib.m
 const session = await openApp();
 const guard = consoleGuard(session);
 await gotoScreen(session, 'compendium');
-await shot(session, 'compendium-01', 'C:/temp/recette');
+await shot(session, 'compendium-01');
 console.log(guard.errors());
 await session.close();
 ```
@@ -348,7 +353,7 @@ const session = await openApp('http://localhost:5182/', { width: largeur, height
 await gotoScreen(session, 'compendium');
 await selectOption(session, 'select[aria-label="Chapitre du passage"]', '21', { par: 'valeur' });
 await clickButtonByText(session, '+ Fragment');
-await shot(session, 'adresse-01', 'C:/temp/recette');
+await shot(session, 'adresse-01');
 await session.close();
 ```
 
@@ -387,7 +392,7 @@ const session = await openApp();
 try {
   await freezeTimeout(session, [60000]);
   await clickButtonByText(session, 'Lancer', { dans: '.modal-overlay' });
-  await shot(session, 'des-figes', 'C:/temp/recette');
+  await shot(session, 'des-figes');
 } finally {
   await unfreezeTimeout(session);
   await session.close();
@@ -680,8 +685,9 @@ Ordre de préférence STRICT pour exercer un flux :
    les tokens SVG, boutons des modales). C'est le SEUL pilotage qui valide ce que le joueur vit.
 2. **`__wfrp` pour le SETUP et l'OBSERVATION** : lancer un scénario (`scenario`), placer/donner le
    tour (`place`/`turn`), lire la vérité (`state`/`battle`/`aim`/`modal`/`log`).
-3. **Appel direct des fonctions du store** (`__wfrp.store.getState().xxx()`) : DERNIER recours,
-   jamais pour valider le flux testé — on validerait un chemin que le joueur n'emprunte pas, et
+3. **Appel direct des fonctions du store** (`__wfrp.store.getState().xxx()`) : DERNIER recours, pour
+   un setup qu'aucun helper `__wfrp` ne couvre (manque d'outillage à rapporter), jamais pour
+   déclencher le flux testé — on validerait un chemin que le joueur n'emprunte pas, et
    c'est la première source d'erreurs (closures, état non re-rendu, préconditions sautées).
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).
@@ -893,7 +899,7 @@ pas la cible d'UX.
 | `trait('id', traitId, { arg?, value? })` | pose un Trait de créature sur un combattant, hors combat compris, par `grantTrait` (`engine/grantedTraits.ts`, le noyau de l'op homonyme et d'`attachMutation`) ; `arg` (Cible, Domaine…) et `value` (indice) ; rend l'état RÉEL relu au store | `traitId` inconnu → `✗`. `trait(id, 'taille', {arg})` ajoute le Trait sans re-dériver `size` : la Taille est matérialisée à la création (`createHero`, `spawnEnemy`), `grantTrait` ne la relit pas — un combattant Grand se construit à sa création (`spawn` d'une créature Grande), voir #2619 (« Taille : Combatant.size matérialisée à la création… deux sources de vérité ») |
 | `spell(heroId, spellId)` | MÉMORISE un sort au grimoire d'un héros par l'effet `learnSpell` — il ne le lance pas | `✗` nommé : sort inconnu, héros introuvable, sort déjà connu, aucun Talent de lanceur pour ce sort (`verdictApprentissage`) |
 | `station(heroId, stationId \| null)` | POSTE un membre d'équipage à une station de navire par l'action RÉELLE `setShipStation` (celle de la fiche de bord) ; le porteur peut n'être que dans la file de combat | `✗` si le héros est introuvable (ids du groupe listés) |
-| `shipCrit(location = 'greement', { hullId?, forcedCritRoll? })` | inflige un CRITIQUE DE NAVIRE à une Localisation VOULUE, par le VRAI pipeline (`applyHullCriticalToTarget`) : seul le dé de localisation est imposé. Coque par défaut : celle des HÉROS (plan de voyage, puis coque dont l'équipage porte un héros) ; `hullId` tranche | `✗` nommé : coque introuvable, PLUSIEURS coques sans celle des héros, aucune coque en jeu, Localisation absente de ce gréement. Usage : « Chute du gréement » ci-dessous |
+| `shipCrit(location = 'greement', { hullId?, forcedCritRoll?, attackerId?, jet? })` | inflige un CRITIQUE DE NAVIRE à une Localisation VOULUE, par le VRAI pipeline (`applyHullCriticalToTarget`) : seul le dé de localisation est imposé. Coque par défaut : celle des HÉROS (plan de voyage, puis coque dont l'équipage porte un héros) ; `hullId` tranche. À l'`'equipage'`, `attackerId` est requis : son arme porte le coup (d100 `jet`, 1 par défaut) que le marin encaisse | `✗` nommé : coque introuvable, PLUSIEURS coques sans celle des héros, aucune coque en jeu, Localisation absente de ce gréement, attaquant introuvable ou sans arme. Usage : « Chute du gréement » ci-dessous |
 
 ### Groupe / campagne / règles
 
@@ -972,8 +978,8 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 |---|---|---|
 | `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`cascadeResolveAll`/`Finish`, `restSleep`, `seaActivitiesConfirm`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `cascadeResolveAll` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
 | `skipToArrival(maxIters=4000)` | comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (`openPortAt`, `travelPlan` vidé) | s'arrête aussi sur un combat (embuscade/abordage), et rend alors « ✓ voyage interrompu par un combat — voir __wfrp.battle() » (même retour pour `advanceSeaDay` et `advanceRiverDay`, `driveSeaVoyage`) — `battle` ouvert, à jouer/`fastForward` séparément ; `Promise` (`await`) |
-| `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageVesselHull` si un voyage est en cours sur le navire de campagne, sinon `setVesselHull` directement au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche PAS un naufrage fiable** (voir piège d'ORDONNANCEMENT ci-dessous, `forceShipwreck`) |
-| `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; voir piège d'ORDONNANCEMENT ci-dessous |
+| `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageVesselHull` si un voyage est en cours sur le navire de campagne, sinon `setVesselHull` directement au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche AUCUN naufrage** : une coque à 0 ne coule pas (MDG 13 l.656, l.674), voir `forceShipwreck` |
+| `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; hors combat, c'est la seule entrée du naufrage |
 | `clickRoute(routeId)` | calcule un point ON-PATH CLIQUABLE d'une route depuis ici → `{x, y, etat, note}` ÉCRAN. Le tracé se vise par son id (`data-path-id` du `path` de hit de `MapCanvas`) ; un point est cliquable si `elementFromPoint` y rend un élément du groupe du tracé, sinon d'autres fractions de `getPointAtLength` sont balayées. `etat` : `ouverte` (le clic la sélectionne, départ offert) ou `fermee-consultable` (le clic la sélectionne pour la CONSULTER, départ refusé) | ne clique PAS lui-même (le VRAI clic reste un clic souris réel, `geste` sur `SURFACE_CARTE`) ; au point rendu, `elementFromPoint` peut rendre le TEXTE de la pastille de distance posée sur le tracé — le clic sélectionne bien le tracé ; `✗` NOMMÉ si route inconnue, non cliquable d'ici, tracé absent du DOM, ou si AUCUN point du tracé n'est atteignable (il nomme ce qui recouvre le milieu) — jamais un point muet |
 | `forceSeaWeather({ temperature?, precipitations?, visibilite?, vent? })` | arme la MÉTÉO de mer du jour EN COURS (`travelPlan.sea.weather`) ; aucun dé n'est touché, la journée se joue ensuite (`advanceSeaDay()`) | `✗` sans traversée en cours (`travelPlan.sea`) |
 | `forceOverspeed(overM = 5)` | arme la SURVITESSE du jour de mer : pose le M EFFECTIF du jour (`sea.effMToday`) et les milles parcourus, les deux entrées que lit `buildOverspeedStep` ; `overM` = l'excès VOULU au-dessus du M de conception du navire | `✗` sans traversée en cours |
@@ -1031,16 +1037,11 @@ qu'aucun Dégât/jour n'a encore persisté. `dealShipDamage`/`damageVesselHull`/
 écrivent TOUJOURS les deux (une seule écriture par appel) — jamais un accès `.wounds` direct sur
 l'une des deux copies dans une recette.
 
-**Piège d'ORDONNANCEMENT du naufrage** (#332, symétrique du piège des deux copies ci-dessus) : la
-garde de naufrage (MDG ch.13 l.674, coque à 0 → `beginShipwreck`) n'est évaluée QU'À L'ENTRÉE de
-`runSeaDay` (`state/seaVoyageFlow.ts` : `plan.vehicle.wounds.current <= 0`). Poser
-`dealShipDamage(999)` PUIS rouler le jour avec `advanceSeaDay`/`skipToArrival` ne produit PAS
-mécaniquement un naufrage : si la Réparation de fortune (ou tout autre applier du même jour) répare
-la coque AVANT que `runSeaDay` ne soit re-consulté, les dégâts posés sont EFFACÉS sans que la garde
-n'ait eu l'occasion de s'exécuter — la preuve écran #269 est donc mécaniquement impossible avec ce
-seul enchaînement. `forceShipwreck()` bypass ce piège en appelant `beginShipwreck` DIRECTEMENT
-(MÊME fonction que `runSeaDay`/`checkBattleOver` sur un naufrage réel), sans course contre les
-appliers du jour.
+**Naufrage hors combat** (#332) : une coque à 0 Blessure ne coule pas (MDG 13 l.656 ; « il coule »
+n'est dit que de l'Indice d'Inondation égal à l'Endurance, MDG 13 l.674) — `dealShipDamage(999)` puis
+`advanceSeaDay`/`skipToArrival` poursuit la traversée. Le naufrage réel vient du combat
+(`checkBattleOver`, État `naufrage`) ; la preuve écran #269 passe par `forceShipwreck()`, qui appelle
+`beginShipwreck` DIRECTEMENT (MÊME fonction que `checkBattleOver`).
 
 ## Maladies réactives — trigger `onOwnTestFailed` (Crampes abdominales, MSRC 16)
 
@@ -1435,8 +1436,14 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   CONTOURNEMENT EN DEUX TEMPS, seul chemin qui tienne : capturer avec un chemin EXPLICITE sous
   `.playwright-mcp/` (gitignoré, donc jamais commité par erreur), PUIS copier le PNG vers un dossier
   hors dépôt (`%TEMP%`) pour l'archiver — viser `%TEMP%` dès la prise échoue (racine non autorisée).
+- **« Browser is already in use »** : le profil Chrome de Playwright MCP
+  (`%LOCALAPPDATA%/ms-playwright-mcp/mcp-chrome-<hash>`) est un par racine de session (hash de la
+  première root MCP) : les sessions de même racine se le disputent. Dès la première occurrence,
+  ni réessai ni attente : jouer la recette par le kit (§ « Session tenue »,
+  patron `scripts/qc/capture-jeu.mjs`). Une capture versionnée sort du `shot` du kit, jamais du volet
+  intégré, qui sert à regarder.
 - **« Browser already in use » / « Target page… has been closed » PERSISTANT (2026-07-16)** : si
-  l'erreur revient après 2 tentatives, ce n'est PAS une contention active mais un lock Chrome MORT
+  l'erreur revient au volet intégré alors qu'aucune session de même racine n'est ouverte, ce n'est PAS une contention active mais un lock Chrome MORT
   (reliquat d'une session Playwright jamais fermée proprement, pipe `--remote-debugging-pipe`
   orphelin) — signature : les PID `chrome.exe` du profil concerné restent FIGÉS (zéro churn) entre
   deux vérifications. Récupération : identifier UNIQUEMENT les processus du profil dédié
@@ -1444,6 +1451,8 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   "Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*ms-playwright-mcp*' }`), puis
   `Stop-Process` sur CES PID uniquement — JAMAIS un kill global par nom d'image (`chrome.exe`
   seul) : d'autres Chrome tournent sur la machine, dont celui de l'utilisateur.
+- **Page vide après `browser_navigate`** : `browser_navigate` seul laisse parfois la page à
+  `readyState: interactive` avec un root vide ; `browser_close` puis `browser_navigate` suffit.
 - **Jamais de `dispatchEvent`/`MouseEvent` synthétique** pour cliquer un token/bouton — provoque de
   FAUSSES erreurs `setPointerCapture` (l'élément n'a jamais reçu de vrai pointeur). Utiliser les
   VRAIS clics Playwright (`browser_click`, sélecteur `data-cid`/rôle/texte).
@@ -2016,12 +2025,11 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   `button.listrow` rendus SEULEMENT une fois le `<details>` ouvert, dans une `BoiteAncree` portée HORS du
   `<details>` (`createPortal`) : ouvrir le sommaire, puis viser l'item dans `{ dans: '.eff-add-menu' }`,
   jamais dans le `<details>`. Même structure pour « + Bloc » (ci-dessous).
-- **Le montage d'un PNJ n'a PAS de « Détacher »** : sa provenance (`src/ui/editor/NarratifEditor.tsx:820`)
-  est celle du PRESET, posée en `copie` ; le bouton « Détacher » n'est rendu que sur un site SANS `copie`
-  qui reçoit une adresse — réplique, ligne de journal (`src/ui/editor/ProvenanceDuTexte.tsx:53`). Quand
-  la description du profil est la copie adressée du livre, c'est l'option « Adapté » qui est REFUSÉE,
-  avec sa raison (« La description du profil est la copie adressée du livre. ») : `mesurerProvenance` y
-  rend `detacher: null` et le `refus` de cette option.
+- **Le montage d'un PNJ porte un « Détacher »** quand la description du profil est la copie adressée
+  du livre (`descRef`) : sa provenance est celle du PRESET, posée en `copie`, et tant que l'adresse
+  tient, « Adapté » et « Maison » sont REFUSÉES avec leur raison. « Détacher » (`ProvenanceDuTexte`,
+  adresse embarquée) reporte la `source` du preset sur `adapteDe` en un seul patch : `mesurerProvenance`
+  rend alors `mode` « Adapté », `reference` « Adapté de », et `detacher: null` (#2206).
 
 Une op mécanique ne s'atteint pas depuis la Scène : elle vit dans un bloc d'effets de trigger.
 Chemin mesuré en recette (2026-09-18, #1789) jusqu'à l'éditeur d'une op :

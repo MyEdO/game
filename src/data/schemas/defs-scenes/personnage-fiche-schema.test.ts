@@ -26,11 +26,11 @@ describe('sceneEntitySchema — un personnage NOMME sa fiche (#1882)', () => {
       .toEqual(['« creature-fantome » ni créature, ni coque de véhicule, ni engin de siège']);
   });
 
-  it('au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)', () => {
-    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
-    for (const ref of ['baton-de-combat', 'barque'])
-      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(false);
+  it('au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut est refusé au PARSE (#1882)', () => {
+    const entite = (ref: string) => ({ id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref });
+    for (const ref of ['baton-de-combat'])
+      expect(sceneEntitySchema.safeParse(entite(ref)).success, ref).toBe(false);
     for (const ref of ['humain', 'cogue'])
-      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(true);
+      expect(sceneEntitySchema.safeParse(entite(ref)).success, ref).toBe(true);
   });
 });

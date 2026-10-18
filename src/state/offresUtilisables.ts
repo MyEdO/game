@@ -20,6 +20,8 @@
  */
 import { aPorteeDe } from './exploreNav';
 import { actionsDe } from './usable';
+import { nomDEntite } from './sceneNpc';
+import { presetPnjById } from './campaignData';
 import { placesJouables } from './seating';
 import { t } from '../i18n';
 import type { GameState } from './store';
@@ -59,7 +61,7 @@ export function offresUtilisables(state: GameState): OffresRenduesParPorteur[] {
       gate: porteDOffre(scene, ent, o.origine),
       onSelect: () => state.jouerAction(ent.id, o.id),
     }));
-    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: ent.label, offres });
+    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetPnjById), offres });
   }
   return porteurs;
 }

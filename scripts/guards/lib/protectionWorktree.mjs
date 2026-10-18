@@ -3,7 +3,7 @@ import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
 import { liensProcessus, mesurerProcessusWorktrees, sousArbre } from './processusWorktrees.mjs'
-import { listerDossier } from './lister.mjs'
+import { listerDossier, listerEntrees } from './lister.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
 const LARGEUR_DE_CITATION = 160
@@ -76,7 +76,7 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     const commun = dossierGitCommun(depotDe(chemin))
     if (!commun.disponible) throw new Error(commun.raison)
     const dossier = sessions ?? join(commun.valeur, 'sessions')
-    const lues = listerDossier(dossier, { absent: 'vide', avecTypes: true })
+    const lues = listerEntrees(dossier, { absent: 'vide' })
     if (lues.nature === 'other') throw new Error('dossier sessions non répertoire : ' + dossier)
     for (const { nom } of lues.entrees.filter((e) => e.nom.endsWith('.json'))) {
       const fichier = join(dossier, nom)

@@ -4,6 +4,10 @@
 //   Atlas du même chapitre à ±TOL (trou fin) → l'app applique une règle absente de l'Atlas. UNE
 //   table keyée (livre, chapitre) pour TOUS les livres du registre : la graphie d'une réf est UNE
 //   (`refRe`, _lib.mjs), la mention LÂCHE aussi (`<ABRÉV> [ch.]NN`), l'indexation aussi.
+//   Une provenance ADAPTÉE (`adapteDe` d'une donnée JSON, `champAdapteDe`,
+//   src/data/schemas/grammaire/prose.ts) cite le passage dont une PROSE maison dérive, pas une règle
+//   que l'app applique : sa valeur est masquée avant toute collecte (`sansProvenanceAdaptee`), dans
+//   les deux sens et pour le crédit folio.
 // Sens B (Atlas → code) : B1 = lignes de l'Atlas marquées `(non implémenté)`, tous docs confondus
 //   (aucune dimension de livre), ventilées par ÉTAT DE DETTE ; B2 = chapitres cités par l'Atlas jamais
 //   référencés par le code, calculé par livre de CŒUR, après deux crédits : le FOLIO d'une donnée de
@@ -12,7 +16,7 @@
 // RÉGIME de CŒUR — le prédicat `coeurDe(abbr)` (champ `coeur` de `books.json`) décide du RÉGIME en
 //   deux endroits, et nulle part ailleurs :
 //   R1 un trou dur de Sens A d'un livre de cœur ne se STOCKE pas — il se CORRIGE à l'Atlas
-//      (CLAUDE.md règle 1 : « devoir rouvrir `Source/` est un DÉFAUT DE L'ATLAS à corriger ») ;
+//      (AGENTS.md règle 1 : « devoir rouvrir `Source/` est un DÉFAUT DE L'ATLAS à corriger ») ;
 //   R2 le Sens B2 et son crédit par folio se calculent par livre de cœur (`livresDeCoeur`) — un
 //      supplément n'étant pas couvert fiche à fiche, son « Atlas hors-code » ne dirait rien.
 //   Le même prédicat est relu en LIBELLÉ par `renderReport` (colonne « Cœur », marque « se corrige,
@@ -87,6 +91,59 @@ export function decodeCle(cle, abbrs) {
   return sensB2 ? { sens: 'B2', ...sensB2 } : sensA ? { sens: 'A', ...sensA } : null
 }
 
+/** Clé JSON de la provenance ADAPTÉE d'une prose — `champAdapteDe` (src/data/schemas/grammaire/prose.ts). */
+export const CLE_PROVENANCE_ADAPTEE = 'adapteDe'
+
+/** Le texte JSON dont la VALEUR de chaque clé `adapteDe` est blanchie, sauts de ligne conservés (les
+ *  numéros de ligne des autres réfs ne bougent pas) — PUR. Lecture à la chaîne près : un `adapteDe`
+ *  écrit dans une valeur, ou une accolade dans une chaîne, ne trompe pas le balayage. */
+export function sansProvenanceAdaptee(texte) {
+  const guillemets = `"${CLE_PROVENANCE_ADAPTEE}"`
+  if (!texte.includes(guillemets)) return texte
+  const n = texte.length
+  const finDeChaine = (k) => {
+    let j = k + 1
+    while (j < n && texte[j] !== '"') j += texte[j] === '\\' ? 2 : 1
+    return j + 1
+  }
+  const blancs = (j) => { while (j < n && /\s/.test(texte[j])) j++; return j }
+  const morceaux = []
+  let copie = 0
+  let i = 0
+  while ((i = texte.indexOf('"', i)) !== -1) {
+    if (!texte.startsWith(guillemets, i)) { i = finDeChaine(i); continue }
+    const fin = finDeChaine(i)
+    const deux = blancs(fin)
+    if (texte.slice(i + 1, fin - 1) !== CLE_PROVENANCE_ADAPTEE || texte[deux] !== ':') { i = fin; continue }
+    const debut = blancs(deux + 1)
+    let k = debut
+    if (texte[k] === '{' || texte[k] === '[') {
+      let profondeur = 0
+      while (k < n) {
+        const c = texte[k]
+        if (c === '"') { k = finDeChaine(k); continue }
+        k++
+        if (c === '{' || c === '[') profondeur++
+        else if ((c === '}' || c === ']') && --profondeur === 0) break
+      }
+    } else if (texte[k] === '"') k = finDeChaine(k)
+    else while (k < n && !/[,}\]\s]/.test(texte[k])) k++
+    const borne = Math.min(k, n)
+    morceaux.push(texte.slice(copie, debut), texte.slice(debut, borne).replace(/[^\n]/g, ' '))
+    copie = borne
+    i = borne
+  }
+  morceaux.push(texte.slice(copie))
+  return morceaux.join('')
+}
+
+/** Le texte d'un fichier du code tel que les collectes le lisent : un `.json` sans ses provenances
+ *  adaptées (`sansProvenanceAdaptee`), tout autre fichier tel quel. */
+const texteDuCode = (f) => {
+  const brut = readFileSync(f, 'utf8')
+  return f.endsWith('.json') ? sansProvenanceAdaptee(brut) : brut
+}
+
 // Clé de chapitre canonique du Sens A (#434, #1156) : le code écrit le numéro
 // zéro-préfixé (`AA 02`, `ADE II ch.03`, `LDB 08`), l'Atlas écrit les titres sans préfixe
 // (`## [AA 2]`, `## [LDB 8]`) — comparaison textuelle brute = faux trou, et exemption catalogue
@@ -132,7 +189,7 @@ export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWD
   const codeNoCh = new Map()  // book -> [{line, file, row, text}]  (réfs SANS chapitre : `AA l.4395`)
   const codeLoose = new Map() // book -> Set(ch)  — tout chapitre mentionné (lâche)
   for (const f of SRC) {
-    const text = readFileSync(f, 'utf8')
+    const text = texteDuCode(f)
     for (const mm of text.matchAll(looseReDe(ALT))) enSet(codeLoose, mm[1], chKey(mm[2]))
     const lines = text.split('\n')
     lines.forEach((ln, i) => {
@@ -164,7 +221,7 @@ export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWD
     for (const f of SRC) {
       const rel = f.replace(/\\/g, '/')
       if (!rel.endsWith('.json')) continue
-      for (const c of folioCitationsFromJson(rel, readFileSync(f, 'utf8'), { ...abbrMap, stats: folioStats })) {
+      for (const c of folioCitationsFromJson(rel, texteDuCode(f), { ...abbrMap, stats: folioStats })) {
         if (bookOf(c.book)) enSet(codeFolioCh, c.book, chKey(c.ch))
       }
     }
@@ -386,7 +443,8 @@ export function renderReport(data) {
   L.push('# Atlas RAW — Réconciliation CODE ↔ ATLAS', '')
   L.push(
     '> Déterministe (`node scripts/raw/reconcile.mjs`). **Sens A** = règles que l\'app applique',
-    '> (réfs `<ABRÉV> NN l.X` dans `src/`, tous livres) absentes de l\'Atlas. **Sens B1** = lignes de',
+    '> (réfs `<ABRÉV> NN l.X` dans `src/`, tous livres, hors provenance adaptée `adapteDe` d\'une prose)',
+    '> absentes de l\'Atlas. **Sens B1** = lignes de',
     '> l\'Atlas marquées « (non implémenté) », tous docs, ventilées par état de dette. **Sens B2** =',
     '> chapitres que l\'Atlas décrit hors du code, par livre de CŒUR (champ `coeur` de `books.json`),',
     '> après crédit du folio d\'une donnée et de la dette de fiche déclarée au manifest.',
@@ -494,7 +552,7 @@ export function lireStock(path = STOCK_PATH) {
 /** Écart NOMINATIF des trous durs mesurés à leur stock, dans les deux sens (`ecartsDeStock`), PLUS
  *  le refus des livres de CŒUR (R1) : une clé de Sens A `<ABRÉV> <ch>` d'un livre de cœur — trou
  *  observé OU entrée de stock — est refusée, un livre de cœur étant couvert fiche à fiche par
- *  l'Atlas et un chapitre manquant s'y CORRIGEANT (CLAUDE.md règle 1 : « devoir rouvrir `Source/`
+ *  l'Atlas et un chapitre manquant s'y CORRIGEANT (AGENTS.md règle 1 : « devoir rouvrir `Source/`
  *  = un défaut de l'Atlas à corriger »). Le sens B2 n'est pas concerné : il dit l'Atlas hors-code,
  *  pas l'Atlas incomplet.
  *  Pur : aucun exit — l'appelant décide (frontière de `guards/lib/stock.mjs`). */

@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, formulaSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'miscast.json';
@@ -76,7 +76,7 @@ const jsonNestedTestSchema = nommerChamps(z.strictObject({
 
 /** `JsonRow` (`engine/miscast.ts`) — entrée de table d100 (`min`/`max` inclusifs). */
 const jsonRowSchema = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
+  ...plageOuverteSchema.shape,
   /** Identité STABLE (#422, exposition Codex) — slug préfixé par table (`mineure-`/`majeure-`/`colere-`)
    *  pour éviter toute collision inter-tables ; consommée par le Codex, jamais par `engine/miscast.ts`. */
   id: z.string(),
@@ -88,7 +88,7 @@ const jsonRowSchema = nommerChamps(z.strictObject({
   domainTable: z.string().optional(),
   source: sourceRefSchema.optional(),
 }), {
-  ...metaDesChamps(plageSchema, { exigees: true }),
+  ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
   ops: { label: 'opérations' },

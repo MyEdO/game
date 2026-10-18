@@ -52,6 +52,7 @@ import type { Sel } from './editorState';
 import { EMPTY_FLOW, type Flow } from '../../state/flow';
 import type { Effect } from '../../state/scene';
 import { sceneZoneTiles } from '../../state/zones';
+import { nomDEntite } from '../../state/sceneNpc';
 
 function sceneWith(): Scene {
   const s = emptyScene(10, 10);
@@ -378,10 +379,12 @@ describe('editorState — pose', () => {
     expect(ent.ref).toBe('tonneau');
     expect(ent.kind).toBe('prop');
   });
-  it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, libellé de la fiche, apparence dérivée (#1882)', () => {
+  it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, aucun nom recopié (sa fiche le nomme), apparence dérivée (#1882)', () => {
     const { scene, id } = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
-    expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain', label: creatureLabel('humain') });
+    expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain' });
+    expect(ent).not.toHaveProperty('label');
+    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
     expect(ent.appearance).toBeUndefined();
     expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
   });
@@ -414,8 +417,8 @@ describe('editorState — pose', () => {
     const r = addEnemyMember(emptyScene(10, 10), '', 'villageois', { x: 1, y: 1 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(findCreatureById(ent.ref)).toBeDefined();
-    expect(ent.label).toBe(creatureLabel('villageois'));
-    expect(ent.label).not.toBe(ent.ref);
+    expect(ent).not.toHaveProperty('label');
+    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('villageois'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
     expect(() => addEnemyMember(emptyScene(10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
   });

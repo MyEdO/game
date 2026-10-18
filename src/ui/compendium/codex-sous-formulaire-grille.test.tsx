@@ -20,10 +20,13 @@ describe('Codex — un sous-formulaire imbriqué empile ses champs dans la grill
     const sousFormulaires = [...montage.container.querySelectorAll<HTMLElement>('.ed-subform')]
       .filter((s) => s.querySelector('[aria-label*="de annulation de la rangée 1"]'));
     expect(sousFormulaires.length, 'aucun sous-formulaire `cancelledBy` monté').toBeGreaterThan(0);
+    let grilles = 0;
     for (const s of sousFormulaires) {
       const titre = s.querySelector(':scope > span')?.textContent;
-      expect(s.querySelector(':scope > .ed-champs'), `« ${titre} » sans grille`).not.toBeNull();
-      expect(s.querySelector(':scope > .ed-subfield'), `« ${titre} » en ligne flex`).toBeNull();
+      const blocs = [...s.children].filter((e) => e.tagName !== 'SPAN' && e.tagName !== 'BUTTON');
+      expect(blocs.filter((e) => !e.classList.contains('ed-champs')).map((e) => e.className), `« ${titre} » hors grille`).toEqual([]);
+      grilles += blocs.length;
     }
+    expect(grilles, 'aucun bloc `.ed-champs` sous les sous-formulaires `cancelledBy`').toBeGreaterThan(0);
   });
 });

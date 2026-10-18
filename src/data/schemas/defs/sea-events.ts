@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-events.json';
@@ -27,7 +27,7 @@ const manannFactor = nommerChamps(z.strictObject({
 
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `params` = sac hétérogène PAR `kind`, lu par clé. */
 const seaEventDef = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
+  ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
@@ -35,7 +35,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   params: z.record(z.string(), z.unknown()),
   source: sourceRefSchema,
 }), {
-  ...metaDesChamps(plageSchema, { exigees: true }),
+  ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
@@ -48,7 +48,7 @@ const seaEventDef = nommerChamps(z.strictObject({
  *  fourchette `[min,max]` (`findTableEntry`) + conséquences en % (équipage/cargaison/Blessures) et
  *  Coups Critiques. `desc` = verbatim RAW (règle 5). */
 const fastVoyagePalier = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
+  ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
@@ -58,7 +58,7 @@ const fastVoyagePalier = nommerChamps(z.strictObject({
   criticals: z.number(),
   source: sourceRefSchema,
 }), {
-  ...metaDesChamps(plageSchema, { exigees: true }),
+  ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
@@ -100,6 +100,31 @@ const doc = document(
   {
     codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] },
     edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents', seaPortEvents: 'portEvents' } } },
+  },
+  {
+    // MDG 15 l.137, l.235 (boardEvents) ; l.33, l.37 (fastVoyage) ; l.129, l.243-263 (portEvents) ;
+    // patron `structure-criticals.ts`.
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        type Bande = { id?: string; min?: number | null; max?: number | null };
+        const d = v as { boardEvents?: Bande[]; fastVoyage?: { paliers?: Bande[] }; portEvents?: Bande[]; manann?: { portEventMod?: number } };
+        const modDePort = d.manann?.portEventMod ?? 0;
+        const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
+          [['boardEvents'], "le jet d'Événement de bord", d.boardEvents ?? [], 'ouverte', 'ouverte'],
+          [['fastVoyage', 'paliers'], 'le d10 du Voyage rapide', d.fastVoyage?.paliers ?? [], 'ouverte', 'ouverte'],
+          [['portEvents'], "le 2d10 de l'escale, Humeur de Manann comprise", d.portEvents ?? [], 2 - modDePort, 20 + modDePort],
+        ];
+        for (const [path, domaine, bandes, depuis, jusqua] of tables) {
+          const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la bande « ${b.id} »`);
+          if (ecarts.length) {
+            ctx.addIssue({
+              code: 'custom',
+              path,
+              message: `sea-events.json › ${path.join('.')} : les bandes ne couvrent pas ${domaine} d'un seul tenant — ${ecarts.join(' ; ')}.`,
+            });
+          }
+        }
+      }),
   },
 );
 

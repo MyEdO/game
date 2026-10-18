@@ -6,16 +6,6 @@ description: À utiliser quand on ajoute ou cure une entrée dans un src/data/*.
 # Ajouter une donnée dans src/data
 
 Lire **`docs/ajouter-une-donnee.md`** (déroulé) et **`docs/donnees.md`** (carte + conventions + pièges
-d'homonymes). En un mot :
-
-1. **CHECK-FIRST** : `grep -rniE '<id>|<label>|<concept>' src/data/*.json` — un même concept vit souvent
-   déjà dans un AUTRE sous-système (un bélier est à la fois trapping, machine de guerre et action). S'il
-   existe → ne duplique pas : étends-le ou re-scope.
-2. **Router** : si c'est un sort / une créature / un effet mécanique / une icône / un livre → STOP, skill
-   de domaine dédié. Sinon, choisir le fichier via la carte `docs/donnees.md` (une « machine de guerre »
-   n'est PAS un trapping).
-3. **Chaque champ = Source RAW ⊕ convention voisine** — jamais d'invention, jamais d'inflexion RAW
-   silencieuse (ticket ou valeur `maison` taguée).
-4. **Canonicaliser via `serializeDataset`** + `npm run typecheck:fast` + `npm run test:perimetre` verts (suite et typecheck complets : CI de
-   branche) ; recette navigateur
-   si visible au Codex.
+d'homonymes). Check-first, routage vers un skill de domaine, champ = Source RAW ⊕ convention voisine,
+forme selon l'intention du RAW et canonicalisation : `.claude/rules/donnees.md`, chargée dès qu'un
+`src/data/*.json` est lu ou écrit. Une donnée visible au Codex passe aussi la recette navigateur.

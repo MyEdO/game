@@ -6,6 +6,7 @@ import { createHero } from '../engine/character';
 import { rederivePassiveAttack } from '../engine/combat';
 import { testScene } from '../scenes/test-fixture';
 import type { ArmourPoints, Combatant, Weapon } from '../engine/types';
+import { makeRNG } from '../engine/dice';
 
 /** Martyr : LDB 43 l.107 ; le Critique reste sur la cible : LDB 14 l.3, LDB 13 l.159. */
 
@@ -30,12 +31,13 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const [cible, pretre] = b.combatants.filter((c) => c.kind === 'enemy');
-  for (const c of [cible, pretre]) { c.armour = { ...SANS_PA }; c.wounds = { current: 20, max: 20 } as Combatant['wounds']; }
+  for (const c of [cible, pretre]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.wounds = { current: 20, max: 20 } as Combatant['wounds']; }
+  cible.important = true; // LDB 18 l.44 : hors Mort subite
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
   if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
   if (endurancePretre != null) pretre.characteristics = { ...pretre.characteristics, endurance: endurancePretre };
   if (martyr) cible.activeEffects = [{ label: 'Martyr', bonus: 0, duration: { scale: 'rounds', left: 4 }, martyrGuard: pretre.id }] as never;
-  const res = rederivePassiveAttack(H, cible, arme, { roll: critical ? 44 : 45, target: 90, success: true, sl, isDouble: critical } as never, 'melee', 'corps');
+  const res = rederivePassiveAttack(H, cible, arme, { roll: critical ? 44 : 45, target: 90, success: true, sl, isDouble: critical } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
   applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, fenetre ? {} : { sousAttaque: true });
   draineCascade(useGame.getState);
   const apres = useGame.getState().battle!.combatants;

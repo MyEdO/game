@@ -47,7 +47,7 @@ describe('cliquet — tout sort NARRATIF est au stock, toute entrée du stock es
   });
 });
 
-describe('cliquet — une op `narrative` recopie sa `desc` VERBATIM (règle 5 de `CLAUDE.md`)', () => {
+describe('cliquet — une op `narrative` recopie sa `desc` VERBATIM (règle 5 d’`AGENTS.md`)', () => {
   const sites = sitesNarratifsParaphrases();
   const { neuves, perimees } = ecartDuVolet({ sites, stock: SPELL_NARRATIF_PARAPHRASE_STOCK, ou: STOCK });
   console.info(`ops narrative paraphrasées mesurées : ${sites.length} · stock : ${SPELL_NARRATIF_PARAPHRASE_STOCK.length}`);

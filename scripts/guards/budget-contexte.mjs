@@ -17,6 +17,7 @@ import { cliquetsDuMessage, declarationLue, mesuresNonCouvertes } from './lib/st
 import { cheminDuModule, groupesParEre } from './lib/porteDEre.mjs'
 import { depotDe, grapheDe, journalDe, ceQueFaitLeCommit, lireEnLot, listerImage, enfantsDirects, GitIndisponible } from './lib/gitPorte.mjs'
 import { baseDuDiff } from '../gates/classerPush.mjs'
+import { lireRegle } from '../hooks/regles-projection-guard.mjs'
 
 export const PORTEUR_DU_PLAFOND = 'scripts/guards/budget-contexte.mjs'
 
@@ -45,6 +46,41 @@ export function ligneDeDescription(texte) {
   return null
 }
 
+// Un glob dont chaque segment n'est fait que d'étoiles (`*`, `**`, `**/*`) : il couvre tout l'arbre. PURE.
+const couvreTout = (glob) => glob.replace(/^\.?\//, '').split('/').every((segment) => /^\*+$/.test(segment))
+
+/** Une règle `.md` de `.claude/rules/`, sous-dossiers compris, se charge au démarrage, sous-agents compris, sauf si
+ *  son frontmatter FERMÉ porte un `paths:` (`lireRegle`, scripts/hooks/regles-projection-guard.mjs) à au moins un
+ *  glob non vide, dont aucun ne couvre tout l'arbre (`.claude/rules/contexte-agents.md`) : elle compte alors en
+ *  ENTIER au contexte permanent. PURE. */
+export function estRegleSansPaths(texte) {
+  const globs = (lireRegle(String(texte ?? '')).paths ?? []).map((glob) => glob.trim()).filter(Boolean)
+  return !globs.length || globs.some(couvreTout)
+}
+
+/** La SEULE règle admise sans `paths:` : des consignes de machine valables pour tout appel d'outil, qu'aucun
+ *  `paths:` ne cible (#2683). Sa taille est bornée en dur : ni une ligne `CLIQUET:` ni le plafond du budget ne la
+ *  relèvent. */
+export const REGLE_PERMANENTE = Object.freeze({ chemin: '.claude/rules/outils.md', octetsMax: 3072 })
+
+/** Les postes de règle sans `paths:` qui sortent du contrat : toute autre règle que `REGLE_PERMANENTE`, et celle-ci
+ *  au-delà de sa borne. `[]` si rien. PURE. */
+export function reglesPermanentesHorsContrat(mesure) {
+  return (mesure?.postes ?? [])
+    .filter((p) => /^\.claude\/rules\/.+\.md$/.test(p.nom))
+    .flatMap((p) => {
+      if (p.nom !== REGLE_PERMANENTE.chemin) {
+        return [`${p.nom} (${p.octets} octets) n'a pas d'en-tête \`paths:\` qui la cible : seule ${REGLE_PERMANENTE.chemin} `
+          + 'se charge au démarrage ; ciblez-la par `paths:` ou versez sa consigne à son porteur.']
+      }
+      if (p.octets > REGLE_PERMANENTE.octetsMax) {
+        return [`${p.nom} pèse ${p.octets} octets pour une borne de ${REGLE_PERMANENTE.octetsMax} `
+          + `(REGLE_PERMANENTE, ${PORTEUR_DU_PLAFOND}) : renvoyez le détail derrière son déclencheur.`]
+      }
+      return []
+    })
+}
+
 const lecteurDisque = (racine) => (chemins) => new Map(chemins.map((chemin) => {
   try { return [chemin, readFileSync(resolve(racine, chemin), 'utf8')] } catch { return [chemin, null] }
 }))
@@ -66,11 +102,15 @@ export function mesurerBudget(racine = process.cwd(), io = {}) {
     ...lister('.claude/skills').map((nom) => `.claude/skills/${nom}/SKILL.md`),
     ...lister('.claude/agents').filter((nom) => nom.endsWith('.md')).map((nom) => `.claude/agents/${nom}`),
   ]
-  const lus = lireTout([...imports, '.claude/memory/MEMORY.md', ...descriptions])
+  const reglesSous = (dossier) => lister(dossier)
+    .flatMap((nom) => (nom.endsWith('.md') ? [`${dossier}/${nom}`] : reglesSous(`${dossier}/${nom}`)))
+  const regles = reglesSous('.claude/rules')
+  const lus = lireTout([...imports, '.claude/memory/MEMORY.md', ...regles, ...descriptions])
   const lu = (chemin) => lus.get(chemin) ?? null
   poser('CLAUDE.md', claude)
   for (const importe of imports) poser(importe, lu(importe))
   poser('.claude/memory/MEMORY.md', lu('.claude/memory/MEMORY.md'))
+  for (const regle of regles) if (estRegleSansPaths(lu(regle))) poser(regle, lu(regle))
   for (const chemin of descriptions) {
     const desc = ligneDeDescription(lu(chemin))
     if (desc !== null) poser(`${chemin}#description`, desc)
@@ -84,6 +124,7 @@ export function estCheminDuBudget(chemin, imports = []) {
   return rel === 'CLAUDE.md'
     || imports.some((i) => normaliser(i) === rel)
     || rel === '.claude/memory/MEMORY.md'
+    || /^\.claude\/rules\/.+\.md$/.test(rel)
     || /^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(rel)
     || /^\.claude\/agents\/[^/]+\.md$/.test(rel)
 }
@@ -100,6 +141,13 @@ export function postesQuiGrossissent(reference, mesure) {
 export function refusDeBudget({ mesure, reference, message }) {
   if (!reference || typeof reference.total !== 'number') throw new Error('budget : référence de mesure absente')
   if (!mesure || typeof mesure.total !== 'number') throw new Error('budget : mesure absente')
+  const horsContrat = reglesPermanentesHorsContrat(mesure)
+  if (horsContrat.length) {
+    return {
+      decision: 'deny',
+      reason: `⛔ RÈGLE CHARGÉE AU DÉMARRAGE hors contrat, qu'aucun CLIQUET ne couvre : ${horsContrat.join(' · ')}`,
+    }
+  }
   const plafond = reference.total
   if (mesure.total <= plafond) return null
   const montee = mesure.total - plafond
@@ -164,7 +212,7 @@ export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin
   if (journal === null) throw new Error(`budget : messages illisibles — ${revisions[0]}`)
   const messages = new Map(journal.map((c) => [c.sha, c.message]))
   const mesurerImage = (juge, arbre) => {
-    const chemins = listerImage(depot, arbre, '.claude/skills', '.claude/agents')
+    const chemins = listerImage(depot, arbre, '.claude/rules', '.claude/skills', '.claude/agents')
     const mesure = juge.mesurerBudget(cwd, {
       lireTout: (rels) => lireEnLot(depot, arbre, rels),
       lister: (dossier) => enfantsDirects(chemins, dossier),
@@ -212,6 +260,9 @@ async function principal() {
     const mesure = mesurerBudget(process.cwd())
     for (const p of mesure.postes) process.stdout.write(`${String(p.octets).padStart(6)}  ${p.nom}\n`)
     process.stdout.write(`${String(mesure.total).padStart(6)}  TOTAL (~${enTokens(mesure.total)} tokens)\n`)
+    const horsContrat = reglesPermanentesHorsContrat(mesure)
+    for (const ligne of horsContrat) process.stderr.write(`budget : ${ligne}\n`)
+    if (horsContrat.length) process.exitCode = 1
     if (!process.argv.includes('--mesure')) {
       const argument = (nom) => {
         const i = process.argv.indexOf(nom)

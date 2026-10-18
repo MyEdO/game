@@ -1,7 +1,8 @@
-// Garde PreToolUse de l'outil `Workflow` (#2537) : tout `agent()` du script porte des options
+// Garde PreToolUse des outils qui DÉLÈGUENT (#2537, #2712). `Agent` : un type dont le frontmatter épingle
+// un `model` ne reçoit pas de `model` à l'appel. `Workflow` : tout `agent()` du script porte des options
 // littérales FERMÉES et un `agentType` LITTÉRAL qui nomme un type déclaré sous `.claude/agents/`
 // (`defautsDesSitesDAgent`, couche universelle, scripts/guards/lib/formeDeWorkflow.mjs). Calibrage :
-// `.claude/skills/orchestrer-des-agents/SKILL.md`.
+// `.claude/skills/orchestrer-des-agents/calibrage.md`.
 //
 // Le script jugé, dans cet ordre : `tool_input.script` ; le fichier `tool_input.scriptPath` ;
 // `tool_input.name`, résolu en `<CLAUDE_PROJECT_DIR>/.claude/workflows/<name>.js`. `resumeFromRunId` accompagne
@@ -14,10 +15,10 @@ import { analyserTexte } from '../guards/lib/dialecte.mjs'
 import { entreeDOutil } from '../guards/lib/contratGarde.mjs'
 import { versCheminNatif } from '../guards/lib/commandeShell.mjs'
 import { defautsDesSitesDAgent } from '../guards/lib/formeDeWorkflow.mjs'
-import { typesDeclares } from '../guards/lib/typesDAgent.mjs'
+import { OUTILS_DE_DELEGATION, fichesDAgent, typesDeclares } from '../guards/lib/typesDAgent.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
-const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options littéral fermé et `agentType: \'<type>\'`, un type de `.claude/agents/` (table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`)'
+const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options littéral fermé et `agentType: \'<type>\'`, un type de `.claude/agents/` (table de `.claude/skills/orchestrer-des-agents/calibrage.md`)'
 
 const refus = (raison) => ({ decision: 'deny', raison: `⛔ Workflow : ${raison} — ${CONSIGNE}.` })
 
@@ -42,8 +43,16 @@ function scriptDe(input, base, projet, platform) {
   return { nonJugeable: 'ni `script`, ni `scriptPath`, ni `name`' }
 }
 
+/** L'appel de l'outil `Agent` : refusé quand il passe un `model` à un type qui épingle le sien. */
+function evaluerAgent(input) {
+  const fiche = fichesDAgent(RACINE).get(String(input.subagent_type ?? ''))
+  if (!fiche?.model || input.model === undefined) return null
+  return { decision: 'deny', raison: `⛔ Agent : le type \`${fiche.name}\` épingle \`model: ${fiche.model}\` ; l'appel ne passe pas \`model\` (lu : \`${input.model}\`, un alias ne sert pas la version épinglée, #2537) — relancer le même appel sans \`model\`.` }
+}
+
 function evaluer(entree, { baseDeLAppel, env = {}, platform = process.platform }) {
   const input = entreeDOutil(entree)
+  if (entree?.tool_name !== 'Workflow') return input === null ? null : evaluerAgent(input)
   if (input === null) return refus('entrée sans objet `tool_input`, non jugeable')
   const lu = scriptDe(input, baseDeLAppel ?? process.cwd(), env.CLAUDE_PROJECT_DIR, platform)
   if (lu.nonJugeable) return refus(`script non jugeable : ${lu.nonJugeable}`)
@@ -54,4 +63,4 @@ function evaluer(entree, { baseDeLAppel, env = {}, platform = process.platform }
   return refus(`${lu.lieu} : ${defauts.map((d) => d.message.replace(/^.*?:(\d+) — /, 'l.$1 — ')).join(' ; ')}`)
 }
 
-export const garde = { nom: 'workflow-type', outils: ['Workflow'], evaluer }
+export const garde = { nom: 'workflow-type', categorie: 'validation', outils: [...OUTILS_DE_DELEGATION], evaluer }

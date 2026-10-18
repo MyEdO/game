@@ -476,6 +476,7 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'moyenne';
     H.wounds = { current: 200, max: 200, base: 200 } as Combatant['wounds'];
     H.conditions = [{ id: 'surpris', value: 1 }];
+    H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
     auTourDe(E.id);
     expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, E)).toBe(false);
     const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;

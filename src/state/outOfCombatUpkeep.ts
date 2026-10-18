@@ -68,7 +68,7 @@ export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG):
         log.push(fateSaveOrDie(c) ? t('upkeep.fateSaved', { name: c.label }) : t('upkeep.succumb', { name: c.label }));
         continue;
       }
-      tickDeath(c).forEach((l) => log.push(l)); // 0 PB → Inconscient après BE Rounds (LDB 18 l.15)
+      tickDeath(c).forEach((l) => log.push(l)); // LDB 18 l.15, en 'aa' aussi (#1595 c.6219559935)
     }
     if (!active) break;
   }

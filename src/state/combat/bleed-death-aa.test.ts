@@ -11,12 +11,11 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
 /**
- * #38 (d) — Variante Hémorragique d'Aux Armes (l.2451) : le jet de mort par hémorragie (10 %/pion, un
- * double = coagulation) EST le hook LDB `bleed-death` — SEUL le prédicat d'éligibilité diffère : AA
- * l'exige INCONSCIENT (LDB 16 l.105 : tout bleeder encore actif). Graine d100 21 = double → coagulation :
- * le stack tombe de 3 à 2 SI ET SEULEMENT SI le jet a eu lieu (preuve seed-indépendante du gate).
+ * #38 (d) — AA 07 l.7 ; LDB 16 l.105. Hook `bleed-death`, seul le prédicat d'éligibilité diffère selon
+ * le mode. Graine d100 21 = double → coagulation : le stack tombe de 3 à 2 SI ET SEULEMENT SI le jet a eu
+ * lieu (preuve seed-indépendante du gate).
  */
-describe('#38 (d) — gate AA du jet de mort par Hémorragique (Aux Armes l.2451)', () => {
+describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
@@ -66,17 +65,18 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (Aux Armes l.2451
     setRule('combat-aa-blessures', 'aa');
     const { E } = setup();
     seedBattleRng(21);
+    E.wounds = { current: 0, max: 20 };
     addCondition(E, COND.inconscient, 1);
     addCondition(E, COND.hemorragique, 3);
     roundEndHooksOnly();
     expect(stacks(E, COND.hemorragique)).toBe(2); // roulé → coagulation (le gate laisse passer l'Inconscient)
   });
 
-  it('mode LDB (défaut) : un bleeder conscient EST soumis au jet (parité l.105, non régressé)', () => {
+  it('mode LDB (défaut) : un bleeder conscient n’est PAS soumis au jet (LDB 16 l.105 ; #1595 c.6240485441)', () => {
     const { E } = setup(); // rule ldb par défaut
     seedBattleRng(21);
     addCondition(E, COND.hemorragique, 3);
     roundEndHooksOnly();
-    expect(stacks(E, COND.hemorragique)).toBe(2); // roulé en LDB comme avant
+    expect(stacks(E, COND.hemorragique)).toBe(3); // jamais roulé → pas de coagulation
   });
 });

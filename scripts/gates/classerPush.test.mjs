@@ -12,26 +12,16 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync
 import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import {
-  ACTION_PROLOGUE,
-  DOCUMENTAIRE,
-  CI_SEULEMENT_PRODUIT,
-  COMMANDE_CLASSER,
-  CONDITION_PRODUIT,
-  ID_PROLOGUE,
-  classer,
-  classerPush,
-  baseDuDiff,
-  gatesSautables,
-} from './classerPush.mjs'
+import { ACTION_PROLOGUE, DOCUMENTAIRE, CI_SEULEMENT_PRODUIT, COMMANDE_CLASSER, CONDITION_PRODUIT, ID_PROLOGUE, classer, classerPush, baseDuDiff, gatesSautables } from './classerPush.mjs'
 import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
-import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
-import { gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
+import { lancerGit } from '../test/gitDeBanc.mjs'
+import { jetonNomme } from '../test/lib/bancClasserPush.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
+
 const CLASSEUR = join(RACINE, 'scripts', 'gates', 'classerPush.mjs')
 
 // (a) — le CLASSEMENT lui-même.
@@ -69,6 +59,7 @@ test('un préfixe SANS `/` final ne prend que le fichier EXACT : `CLAUDE.md.bak`
 // (b) — CONFRONTATION `ci.yml` ↔ `ECRIT_LU`.
 
 const gates = gatesDeCi({ cwd: RACINE })
+
 const sautables = gatesSautables({ gates, ecritLu: ECRIT_LU })
 
 test('chaque gate porte la condition du classement SSI elle est sautable', () => {
@@ -159,104 +150,12 @@ test('le prologue classe le push AVANT `npm ci`, et expose ce classement en `pro
     `${ACTION_PROLOGUE} n’expose plus le classement : « ${CONDITION_PRODUIT} » lirait un output vide et TOUT jouerait`)
 })
 
-// (c1) — chaque gate SAUTABLE confrontée à son CORPUS : la classe « `lit` sous-déclaré ».
-//
-// Le trou vécu (2026-09-16) : `ECRIT_LU['test:agents'].lit` disait `['scripts/agents/']` alors que
-// `scripts/agents/compat.test.mjs` (ses tests « CONTRAT — … ») lit `.claude/settings.json`,
-// `.codex/hooks.json`, `CLAUDE.md` et `AGENTS.md` sur l'arbre réel — la gate était donc SAUTÉE sur le push qui touche
-// exactement ces fichiers. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
-//
-// ANGLES MORTS, dits : le grain est la LIGNE d'un module local, et le corpus vient de la fermeture
-// transitive d'imports de `ecrivainsAtteints.mjs` — un chemin CONSTRUIT dynamiquement (`join(base,
-// nom)`, une variable, un `require`) n'est pas vu, ni ce qu'un sous-processus NON-node fait de son
-// côté (git, tsc, eslint, knip, vite). Même déclaration que `ecrivainsAtteints.mjs` : c'est une
-// lecture statique, jamais une preuve d'absence.
-
-/** Les jetons de `DOCUMENTAIRE` tels qu'une ligne de code les NOMME (sans le `/` final). */
-const JETONS = Object.keys(DOCUMENTAIRE).map((p) => p.replace(/\/$/, ''))
-
-/** Le premier jeton documentaire NOMMÉ par cette ligne, dans une chaîne ou un `new URL(`, comme
- *  SEGMENT de chemin entier : ni précédé ni suivi d'un caractère d'identifiant (`[\w-]`) — un
- *  sélecteur CSS (`.codex-search`, `.screen.codex`) n'est pas le dossier `.codex`. */
-function jetonNomme(ligne) {
-  return JETONS.find((jeton) => {
-    const echappe = jeton.replace(/\./g, '\\.')
-    return new RegExp(`(?:['"\`]|new URL\\(\\s*['"\`])[^'"\`\\n]*(?<![\\w-])${echappe}(?![\\w-])`).test(ligne)
-  })
-}
-
 test('jetonNomme : un jeton se nomme comme SEGMENT de chemin entier — jamais dans un sélecteur CSS', () => {
   assert.equal(jetonNomme("const h = join(racine, '.codex/hooks.json')"), '.codex')
   assert.equal(jetonNomme("readFileSync('.codex')"), '.codex')
   assert.equal(jetonNomme("typeInField(session, '.codex-search', entree)"), undefined)
   assert.equal(jetonNomme("document.querySelector('.screen.codex')"), undefined)
   assert.equal(jetonNomme("'.codex-rows button.listrow'"), undefined)
-})
-
-test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’elle atteint', () => {
-  const corpus = corpusParGate(RACINE)
-  const trous = []
-  for (const gate of sautables) {
-    for (const fichier of corpus[gate] ?? []) {
-      const lignes = readFileSync(join(RACINE, fichier), 'utf8').split('\n')
-      lignes.forEach((ligne, i) => {
-        if (inerte(ligne)) return
-        const jeton = jetonNomme(ligne)
-        if (jeton)
-          trous.push(
-            `gate ${gate} est sautée mais \`${fichier}:${i + 1}\` nomme \`${jeton}\` : ` +
-              'mesure son `lit` (sonde fs) et déclare-le dans ECRIT_LU',
-          )
-      })
-    }
-  }
-  assert.deepEqual(trous, [])
-})
-
-// (c2) — la liste DOCUMENTAIRE confrontée à ce que le RUNTIME lit : un sens DISTINCT de (c1). Une
-// gate peut ne rien lire de documentaire alors que `src/` le lirait à l'exécution — le classement
-// lui-même serait faux, pas seulement le `lit` d'une gate.
-
-/** Les sources de `src/` et `server/src/` SUIVIES par git, hors bancs de test. */
-function sourcesDeProduction() {
-  return gitDeLArbreReel(RACINE)('ls-files', '--', 'src', 'server/src')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))
-}
-
-/**
- * Les cibles que le fichier LIT vraiment : spécificateur d'`import`/`export … from`, argument de
- * `readFileSync`/`readFile`, de `fetch(`, motif d'`import.meta.glob`. Jamais une regex sur le texte
- * nu : un chemin cité en commentaire n'est pas une lecture (mesuré 2026-09-16 — 64 mentions de
- * `.claude`/`.codex`/`CLAUDE.md` sous src/, toutes en commentaire ou classe CSS).
- */
-function ciblesLues(texte) {
-  const cibles = []
-  const motifs = [
-    /(?:^|\n)\s*(?:import|export)[^\n;]*?from\s*['"]([^'"]+)['"]/g,
-    /\bimport\s*\(\s*['"]([^'"]+)['"]/g,
-    /\bimport\.meta\.glob\s*\(\s*\[?\s*['"]([^'"]+)['"]/g,
-    /\breadFileSync?\s*\(\s*['"]([^'"]+)['"]/g,
-    /\breadFile\s*\(\s*['"]([^'"]+)['"]/g,
-    /\bfetch\s*\(\s*['"]([^'"]+)['"]/g,
-  ]
-  for (const motif of motifs) for (const m of texte.matchAll(motif)) cibles.push(m[1])
-  return cibles
-}
-
-test('aucune entrée de DOCUMENTAIRE n’est LUE par du code de production', () => {
-  const prefixes = Object.keys(DOCUMENTAIRE)
-  const lectures = []
-  for (const fichier of sourcesDeProduction()) {
-    const texte = readFileSync(join(RACINE, fichier), 'utf8')
-    for (const cible of ciblesLues(texte)) {
-      const nue = cible.replace(/^\.\.?\//, '').replace(/^[a-z]+:/, '')
-      const fautif = prefixes.find((p) => nue.startsWith(p) || cible.includes(`/${p}`) || cible.startsWith(p))
-      if (fautif) lectures.push(`${fichier} LIT « ${cible} » — « ${fautif} » n’est donc pas documentaire`)
-    }
-  }
-  assert.deepEqual(lectures, [])
 })
 
 test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON', () => {

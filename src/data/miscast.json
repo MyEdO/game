@@ -2130,7 +2130,7 @@
       {
         "id": "colere-appele-a-rendre-des-comptes",
         "min": 151,
-        "max": 999,
+        "max": null,
         "label": "Appelé à rendre des comptes",
         "source": {
           "book": "livre-de-base",
