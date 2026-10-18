@@ -26,13 +26,13 @@ const prototypesInertes = () => {
 
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
- * associée après clé, DAG cyclique et clé hors cellules strictes à formes projetées refusés) ; `clesStructurelles` = clés
- * en cellules structurelles, refus nommé d'une source inadmissible ; sinon, clés textuelles. Un argument vaut par ses
- * valeurs et sa forme : son expression et tout ce que son évaluation lit de son contexte (module, preuve booléenne,
- * chaîne d'environnements : fonction, arguments, paramètres).
- * @param {{ ferme: boolean, clesStructurelles: boolean }} regime
+ * associée après clé, DAG cyclique et clé hors cellules strictes refusés), clés des valeurs en cellules structurelles à
+ * formes projetées, refus nommé d'une source inadmissible ; sinon, clés textuelles des valeurs, et une clé `strict` lit
+ * les formes complètes. Un argument vaut par ses valeurs et sa forme : son expression et tout ce que son évaluation lit
+ * de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments, paramètres).
+ * @param {{ ferme: boolean }} regime
  */
-export function clesCanoniques({ ferme, clesStructurelles }) {
+export function clesCanoniques({ ferme }) {
   const referencesPrivees = new WeakMap()
   const argumentsPrives = new WeakMap()
   const groupesPrives = new WeakMap()
@@ -41,7 +41,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
   const clesDesArguments = new WeakMap()
   const slotsGeles = new WeakMap()
   const sousGraphesGeles = new WeakMap()
-  const sousGraphesDesValeurs = new WeakMap()
   const sousGraphesRevalides = new WeakMap()
   const dependancesDesFormes = new WeakMap()
   const preparerPreuve = () => ({ valide: true, parents: new Set(), parentsInscrits: new WeakSet(), nettoyage: null })
@@ -97,7 +96,6 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       if (!identique) {
         invaliderPreuve(dependancesDesFormes.get(cle))
         invaliderPreuve(sousGraphesGeles.get(cle)?.preuve)
-        invaliderPreuve(sousGraphesDesValeurs.get(cle)?.preuve)
         revisionDesFormes = Symbol()
       }
       return formesDesArguments
@@ -107,14 +105,13 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       if (retiree) {
         invaliderPreuve(dependancesDesFormes.get(cle))
         invaliderPreuve(sousGraphesGeles.get(cle)?.preuve)
-        invaliderPreuve(sousGraphesDesValeurs.get(cle)?.preuve)
         revisionDesFormes = Symbol()
       }
       return retiree
     },
   })
-  const cleCanonique = (faire, racine, cache, { strict = false, cellules = false, formesCompletes = strict } = {}) => {
-    if (ferme && (!strict || !cellules || formesCompletes)) throw new Error('CLE_PRIVEE_HORS_REGIME')
+  const cleCanonique = (faire, racine, cache, { strict = false, cellules = false } = {}) => {
+    if (ferme && (!strict || !cellules)) throw new Error('CLE_PRIVEE_HORS_REGIME')
     try {
     if (!ferme && strict && !prototypesInertes()) return null
     const deja = cache?.get(racine)
@@ -132,9 +129,9 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       }
       return certificat
     }
-    if (!ferme && strict && deja?.strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes && deja.certificat?.valide &&
+    if (!ferme && strict && deja?.strict && deja.cellules === cellules && deja.certificat?.valide &&
       !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')) return deja.cle
-    if (!ferme && deja && deja.strict === strict && deja.cellules === cellules && deja.formesCompletes === formesCompletes && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON') && deja.objets.every(({ objet, noms, proprietes, forme, prototype, slotsGeles, preuve }) => {
+    if (!ferme && deja && deja.strict === strict && deja.cellules === cellules && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON') && deja.objets.every(({ objet, noms, proprietes, forme, prototype, slotsGeles, preuve }) => {
       if (preuve && !preuve.valide) return false
       if (strict && slotsGeles) return formesDesArguments.get(objet) === forme
       if (types.isProxy(objet) || (strict && Object.getOwnPropertySymbols(objet).length)) return false
@@ -173,7 +170,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
     const preuveDe = (objet) => {
       if (ferme) return undefined
       if (!strict || !cellules) return undefined
-      const preuve = (formesCompletes ? sousGraphesGeles : sousGraphesDesValeurs).get(objet)
+      const preuve = sousGraphesGeles.get(objet)
       return preuve?.preuve.valide && prototypesInertes() ? preuve : undefined
     }
     let stable = true
@@ -340,7 +337,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       observer(v)
       if (ferme) objetsCles.add(v)
       if (ferme && pile.has(v)) throw new Error('DAG_PRIVE_CYCLIQUE')
-      if (pile.has(v)) return !formesCompletes && formesDesArguments.has(v) ? interner(tuple('coupe', v.map(referenceDe)))
+      if (pile.has(v)) return !strict && formesDesArguments.has(v) ? interner(tuple('coupe', v.map(referenceDe)))
         : interner(tuple('cycle', pile.size - pile.get(v)))
       if (references.has(v)) return references.get(v)
       const preuve = preuveDe(v)
@@ -355,7 +352,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       }
       pile.set(v, pile.size)
       const forme = formesDesArguments.get(v)
-      const descriptor = formesCompletes && forme ? tuple('argument', v.map(referenceDe), referenceDe(forme))
+      const descriptor = !ferme && strict && forme ? tuple('argument', v.map(referenceDe), referenceDe(forme))
         : forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), contexteDe(forme.ctx, referenceDe))
         : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
@@ -363,7 +360,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
       const reference = interner(descriptor)
       references.set(v, reference)
       if (strict && cellules && stable && fermetures.get(v)?.eligible && revisionAvant === revisionDesFormes)
-        (formesCompletes ? sousGraphesGeles : sousGraphesDesValeurs).set(v, { cellule: reference, preuve: fermetures.get(v).preuve })
+        sousGraphesGeles.set(v, { cellule: reference, preuve: fermetures.get(v).preuve })
       if (strict && cellules && stable && fermeture?.reutilisable && !fermeture.eligible && revisionAvant === revisionDesFormes)
         sousGraphesRevalides.set(v, { slots: fermeture.slots, cellule: reference, enfants: new Map(fermeture.slots.proprietes
           .filter((p) => p.value && typeof p.value === 'object' && !referencesBooleennes.has(p.value))
@@ -375,7 +372,7 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
     if (stable && cache) {
       const records = [...objets.values()]
       const certificat = ferme ? null : certifier(records)
-      cache.set(racine, { cle, strict, cellules, formesCompletes, objets: records, certificat })
+      cache.set(racine, { cle, strict, cellules, objets: records, certificat })
     }
     return cle
     } catch (erreur) {
@@ -423,11 +420,11 @@ export function clesCanoniques({ ferme, clesStructurelles }) {
     }
     return JSON.stringify([referenceDe(cle), table])
   }
-  const composerCle = (...parties) => clesStructurelles && parties.some((x) => referencesBooleennes.has(x))
+  const composerCle = (...parties) => ferme && parties.some((x) => referencesBooleennes.has(x))
     ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
   const cleDesValeurs = (faire, racine, cache) => {
-    const cle = cleCanonique(faire, racine, cache, clesStructurelles ? { strict: true, cellules: true, formesCompletes: false } : {})
-    if (clesStructurelles && cle === null) throw new Error('CLE_STRUCTURELLE_SOURCE_INADMISSIBLE')
+    const cle = cleCanonique(faire, racine, cache, ferme ? { strict: true, cellules: true } : {})
+    if (ferme && cle === null) throw new Error('CLE_STRUCTURELLE_SOURCE_INADMISSIBLE')
     return cle
   }
   /** La clé d'une valeur ; un objet rendu vaut par sa clé canonique (`cleDesValeurs`). */

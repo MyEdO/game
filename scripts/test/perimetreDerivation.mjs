@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
+import { APPEL_DE_LECTURE, certifierLecture, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
@@ -82,14 +82,14 @@ function setupFilesDe(texte, analyser) {
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 
 /**
- * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. `ferme` : chaque lot s'évalue par `evaluerLot` sur la
- * clôture de ses lectures (`produireDTO`). `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
+ * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
+ * clôture de ses lectures. `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
  * `limiteIR` valent ceux de la production par défaut. `analyser` sert aussi la clôture d'imports (`clotureDImports`) ;
  * `stade` observe aussi chaque certification (`certifierLecture`) et chaque lot (`evaluerLot`).
  * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDeDerivation> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: NonResolu[], vitest: string[], node: string[], modules: number }}
  */
-export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {}, ferme = false,
+export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {},
   tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, evaluerLot = evaluerLotDuDepot, limiteIR = LIMITE_IR }) {
   stade('graphe', null)
   const base = resolve(racine).split(sep).join('/')
@@ -185,21 +185,9 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
 
   const lectures = new Map()
-  const lectureDe = (f) => {
-    if (lectures.has(f)) return lectures.get(f)
-    stade('lecture', f)
-    const texte = textes.get(f) ?? lire([f]).get(f) ?? null
-    if (texte === null || !estModule(f)) return lectures.set(f, null).get(f)
-    const cle = `${f}:${blobDe(texte)}`
-    let lu = memos?.lire('lectures', cle)
-    if (!lu) {
-      const [{ sourceFile }] = [...analyser([{ rel: f, text: texte }])]
-      lu = encoderLecture(lectureDeModule(f, sourceFile))
-      memos?.ecrire('lectures', cle, lu)
-    }
-    bornerIR(f, lu, limiteIR)
-    return lectures.set(f, lu).get(f)
-  }
+  /** L'IR de `f` prélue par sa vague de clôture (`clotureDesLectures`) ; `null` pour un module illisible ou un fichier
+   *  hors modules. */
+  const lectureDe = (f) => lectures.get(f) ?? null
   /** Lit d'un coup les modules `fichiers` absents des mémos : un programme d'analyse par lot. */
   const prelire = (fichiers) => {
     const aLire = []
@@ -248,23 +236,8 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
    *  les réponses de ses requêtes : une variante vaut tant que chacune de ses réponses tient. */
   const variante = (nature, f) => (memos?.lire('evaluations', `${nature}:${f}`) ?? [])
     .find(({ requetes }) => requetes.every(([r, reponse]) => reponseA(r) === reponse))
-  const evaluationDe = (evaluateurDe, nature, f) => {
-    stade(nature, f)
-    const vue = variante(nature, f)
-    if (vue) return vue.resultat
-    const evaluateur = evaluateurDe()
-    const { resultat, requetes } = evaluateur.tracer(() => evaluateur[nature](f))
-    const cle = `${nature}:${f}`
-    memos?.ecrire('evaluations', cle, [{ requetes: [...requetes].map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
-    return resultat
-  }
-  /** Lit d'un coup les modules dont l'évaluation `nature` n'a pas de variante valide, et leurs imports. */
-  const prelireManquants = (nature, fichiers) => {
-    const manquants = fichiers.filter((f) => !variante(nature, f))
-    prelire(new Set([...manquants, ...manquants.flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
-  }
   /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR (`lectureDe`), une fois par module et par
-   *  dérivation : les lots et l'évaluateur ouvert la partagent, la dérivation la relâche à sa fin. */
+   *  dérivation : les lots la partagent, la dérivation la relâche à sa fin. */
   const certifiees = new Map()
   const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f), stade)).get(f)
   /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles : une lecture se visite une
@@ -309,38 +282,29 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     return { lecturesDuLot, resolutions }
   }
   function* evaluationsEnLots(nature, fichiers) {
-    if (ferme) clotureDesLectures(fichiers.filter((f) => !variante(nature, f)))
+    clotureDesLectures(fichiers.filter((f) => !variante(nature, f)))
     for (let debut = 0; debut < fichiers.length; debut += tailleLot) {
       const lot = fichiers.slice(debut, debut + tailleLot)
-      if (ferme) {
-        const vues = new Map(lot.map((f) => [f, variante(nature, f)]))
-        const manquants = lot.filter((f) => !vues.get(f))
-        const { lecturesDuLot, resolutions } = clotureDesLectures(manquants)
-        memos?.sauver?.()
-        const resultats = new Map()
-        if (manquants.length) {
-          stade(nature, manquants.length === 1 ? manquants[0] : null)
-          const lecteursDuTour = [...lecteurs]
-          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) }, stade)
-          for (const { f, resultat, requetes } of rendus) {
-            resultats.set(f, resultat)
-            const cle = `${nature}:${f}`
-            memos?.ecrire('evaluations', cle, [{ requetes: requetes.map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
-          }
-        }
-        memos?.sauver?.()
-        for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
-        continue
-      }
-      let evaluateur
-      const evaluateurDe = () => evaluateur ??= evaluateurDuDepot({ lecture: certifiee, cible: cibleDe,
-        peutLire: (f) => lecteurs.has(f), clesStructurelles: true, memoiserBooleens: false })
-      for (const f of lot) yield [f, evaluationDe(evaluateurDe, nature, f)]
+      const vues = new Map(lot.map((f) => [f, variante(nature, f)]))
+      const manquants = lot.filter((f) => !vues.get(f))
+      const { lecturesDuLot, resolutions } = clotureDesLectures(manquants)
       memos?.sauver?.()
+      const resultats = new Map()
+      if (manquants.length) {
+        stade(nature, manquants.length === 1 ? manquants[0] : null)
+        const lecteursDuTour = [...lecteurs]
+        const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) }, stade)
+        for (const { f, resultat, requetes } of rendus) {
+          resultats.set(f, resultat)
+          const cle = `${nature}:${f}`
+          memos?.ecrire('evaluations', cle, [{ requetes: requetes.map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
+        }
+      }
+      memos?.sauver?.()
+      for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
     }
   }
   for (let frontiere = [...lecteurs]; ;) {
-    if (!ferme) prelireManquants('relaisExportes', frontiere)
     const suivante = new Set()
     for (const [f, noms] of evaluationsEnLots('relaisExportes', frontiere)) {
       if (!noms.length) continue
@@ -357,7 +321,6 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** Les modules dont un site balaie la RACINE du dépôt : tout fichier touché retient les tests qui les atteignent. */
   const balaientLeDepot = new Set()
   const tries = [...lecteurs].sort()
-  if (!ferme) prelireManquants('sitesDe', tries)
   for (const [f, sites] of evaluationsEnLots('sitesDe', tries)) {
     for (const site of sites) {
       const ici = `${f}:${site.ligne}`
@@ -664,7 +627,7 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   stade('version', null)
   const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule, stade }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
   const lireAvant = images.base ? (rels) => lireEnLot(depot, images.base, rels) : undefined
-  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade, ferme: true })
+  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade })
   stade('sauvegarde', null)
   memos.sauver()
   return enDTO(images, derive)

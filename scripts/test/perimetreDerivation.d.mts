@@ -52,7 +52,6 @@ export function deriverPerimetre(entree: {
   lireAvant?: (rels: string[]) => Map<string, string | null>;
   memos?: Memos;
   stade?: (nom: string, module: string | null) => void;
-  ferme?: boolean;
   tailleLot?: number;
   analyser?: (entrees: { rel: string; text: string }[], tailleLot?: number) => Iterable<{ fichier: { rel: string; text: string }; sourceFile: unknown; diagnostics: unknown[] }>;
   evaluerLot?: (lot: { lectures: [string, unknown][]; resolutions: [string, string, string | null][]; lecteurs: string[]; questions: { nature: string; f: string }[] }, stade?: (nom: string, module: string | null) => void) => { nature: string; f: string; resultat: unknown; requetes: string[] }[];

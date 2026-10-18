@@ -781,7 +781,7 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 const lecturesCertifiees = new WeakMap()
 
 /** Les TÉMOINS d'illisibilité que rend `certifierLecture` pour un module illisible : certifiés comme toute lecture,
- *  lus `null` par le noyau fermé et par `evaluateurDuDepot`. */
+ *  lus `null` par le noyau fermé. */
 const lecturesIllisibles = new WeakSet()
 
 /** Un module du lot : une chaîne non vide. @param {unknown} v @returns {v is string} */
@@ -793,7 +793,7 @@ const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu))
 /**
  * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`) : décodée (`decoderLecture`), sans
  * nœud `lie`, gelée en profondeur. Pour un module illisible (`pool` = `null`), un TÉMOIN gelé sans clé, certifié et lié
- * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
+ * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` lit `null`. Lève comme
  * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
  * une racine qui n'est pas un objet ; un `module` hors domaine (`estModuleDuLot`) lève
  * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`. `stade('décodage', module)` observe chaque décodage.
@@ -947,7 +947,7 @@ export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lec
     lecture: lire,
     cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
     peutLire: (module) => { exiger(lus, module, 'peutLire'); return lisibles.has(module) },
-    clesStructurelles: true, memoiserBooleens: false, stade,
+    stade,
   }, true)
   for (const { nature, f } of questions) {
     try {
@@ -978,23 +978,23 @@ export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lec
 }
 
 /**
- * L'ÉVALUATEUR du dépôt : les racines lues par chaque site, relais et valeurs de retour résolus d'un
- * module à l'autre.
+ * L'ÉVALUATEUR OUVERT du dépôt, celui d'`evaluer` : les racines lues par chaque site, relais et valeurs de retour
+ * résolus d'un module à l'autre, clés textuelles, preuves booléennes mémoïsées.
  * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
  * mémos internes compris — son résultat ne dépend que de leurs réponses.
- * @param {{ lecture: (f: string) => Lecture | LectureIllisible | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
- *   `lecture` : la lecture d'un module (null ou témoin d'illisibilité de `certifierLecture`, lu `null`, s'il est
- *   illisible) ; `cible` : le module qu'un spécificateur désigne ;
+ * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean }} acces
+ *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
- *   `clesStructurelles` : IR DATA de `lectureDeModule`, noms propres, sans hook exécutable ; refus nommé si la qualification échoue.
  */
-export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true, clesStructurelles = false, memoiserBooleens = true }) {
-  return construireEvaluateur({ lecture: (f) => lectureOuNull(lectureDe(f)), cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
+export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
+  return construireEvaluateur({ lecture, cible, peutLire }, false)
 }
 
-function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens, stade = () => {} }, ferme = false) {
+/** L'évaluateur du régime `ferme` : noyau fermé d'un lot (`evaluerLotDuDepot`), clés structurelles, preuves booléennes
+ *  recalculées ; sinon l'évaluateur ouvert (`evaluateurDuDepot`). */
+function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, stade = () => {} }, ferme) {
   stade('noyau', null)
-  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesCanoniques({ ferme, clesStructurelles })
+  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesCanoniques({ ferme })
   /** Les requêtes de chaque évaluation tracée en cours, la plus interne au sommet. */
   const traces = []
   const noter = (requete) => { if (traces.length) traces[traces.length - 1].add(requete) }
@@ -1072,7 +1072,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       const vs = valeurs(e, { ...ctx, preuveBooleenne: true })
       return vs.length && vs.every((v) => 'booleen' in v && v.booleen === vs[0].booleen) ? vs[0].booleen : null
     }
-    if (!memoiserBooleens) return calculer()
+    if (ferme) return calculer()
     const entree = { e, ctx, pile: [...pile] }
     const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true })
     if (cle === null) return calculer()
