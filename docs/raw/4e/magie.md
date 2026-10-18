@@ -510,9 +510,9 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `RegimeDePorteur`, `FLOWS`, `previewDefense`, `passiveOutcome`, `rangedDefenseModes`, +8 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, +5 fichiers
 - `LDB 46` (l.30, l.99-101) → `miscast-mineure`, `mineure-signe-de-sorciere`, `followsCharacterRules`, `mineure-lait-caille`, `overcastAxes`, `mineure-mildiou`, `REPORT_DE_COMBATTANT`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, +87 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, +19 fichiers
-- `LDB 47` (l.410) → `scenario`, `domeWardTraits`, `seuilsDeSauvegarde`, `HitModifierCtx`, `DECLARATIONS_D_OPS`, `SourceDeSauvegarde`, `formatWardSave`, `hitModifiers`, `lireEnSeuil`, `AttackResult`, +15 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/combat.ts`, `src/engine/ops.ts`, `src/engine/traits/dispatch.ts`, `src/engine/types.ts`, +6 fichiers
+- `LDB 47` (l.410) → `scenario`, `domeWardTraits`, `seuilsDeSauvegarde`, `HitModifierCtx`, `DECLARATIONS_D_OPS`, `SourceDeSauvegarde`, `formatWardSave`, `hitModifiers`, `lireEnSeuil`, `newOp`, +15 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/combat.ts`, `src/engine/ops.ts`, `src/engine/traits/dispatch.ts`, `src/engine/types.ts`, +6 fichiers
 - `LDB 63` (l.13, l.30, l.32, l.78) → `repairCostBrass`, `doc`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `ActiveEffect`, +49 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +10 fichiers
-- `EDO 11` (l.196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
+- `EDO 11` (l.196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `OpFields`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
 - sans code : `ADE II 4` (l.349)
 
 ---
@@ -666,7 +666,7 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par sort, mais une cible ne peut accumuler qu'un seul état `Exténué` issu de cet Attribut à la fois).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.497) → `effectSourcesOf`, `doc`, `refusLoose`, `GameOp`, `ActiveEffect`, `removeActiveEffects`, `passiveMods`, `OpFields`, `applyOps`, `ecaille-d-acier`, +14 — `src/data/schemas/defs/spells.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/conditions.ts`, `src/engine/dispel.ts`, `src/engine/domainAttributes.ts`, +6 fichiers
+- `LDB 48` (l.497) → `effectSourcesOf`, `doc`, `refusLoose`, `GameOp`, `OpFields`, `ActiveEffect`, `removeActiveEffects`, `passiveMods`, `applyOps`, `ecaille-d-acier`, +14 — `src/data/schemas/defs/spells.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/conditions.ts`, `src/engine/dispel.ts`, `src/engine/domainAttributes.ts`, +6 fichiers
 
 ---
 
