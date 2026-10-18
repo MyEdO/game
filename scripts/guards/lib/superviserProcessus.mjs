@@ -46,9 +46,10 @@ function resultatValide(vu) {
 }
 
 /**
- * Lance `commande` sous l'hôte natif de supervision (Job Windows, ledger Linux) et rend `{ hote, controle }` dès
+ * Lance `commande` sous l'hôte natif de supervision (Job Windows, subreaper Linux) et rend `{ hote, controle }` dès
  * l'hôte lancé. `controle` : `pret`, `fin` (`{ resultatCible, arret }`), `finPhysique`, `mesurerDomaine`,
- * `attribuer`, `demanderArret`, `estFermeture`. `surveillerGit` : les gardiens (parent, ancêtres git) jugés par
+ * `attribuer`, `demanderArret`, `estFermeture` ; sous Linux, `mesurerDomaine` et `attribuer` lèvent `ENONSUPPORTE` et
+ * arrêtent le lancement (#2586 c.6244746949). `surveillerGit` : les gardiens (parent, ancêtres git) jugés par
  * `mesurer`, puis par `estVivant` et `identite` quand la mesure échoue (#2586, #2626). Un refus porte `hoteLance` :
  * `true` dès l'hôte créé par `spawn`, `false` avant (#2586).
  * @param {string} commande @param {string[]} [args] @param {Record<string, any>} [options]
@@ -345,7 +346,7 @@ async function lancerSousHote(commande, args, options, lancement) {
           certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8'))
           fermeture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
           if (fermeture.version !== 1 || fermeture.generation !== generation || !Number.isSafeInteger(fermeture.echeance) || certificat.version !== 1 || certificat.generation !== generation ||
-            !['job-windows', 'ledger-linux'].includes(certificat.methode) || certificat.echeance !== fermeture.echeance || typeof certificat.zero !== 'boolean' || !Array.isArray(certificat.erreurs)) throw erreur('ECONTROLE', 'certificat natif incohérent')
+            !['job-windows', 'subreaper-linux'].includes(certificat.methode) || certificat.echeance !== fermeture.echeance || typeof certificat.zero !== 'boolean' || !Array.isArray(certificat.erreurs)) throw erreur('ECONTROLE', 'certificat natif incohérent')
         } catch (e) { interruption ??= erreur('ECONTROLE', 'certificat natif absent ou invalide : ' + e.message) }
         const mort = !clotureDefaillante && ferme.status === 0 && certificat?.zero === true && certificat.erreurs.length === 0 && certificat.echeance === fermeture?.echeance && !['ECONTROLE', 'ERESULTAT'].includes(interruption?.code)
         arret = { pid, etat: mort ? 'mort' : 'indetermine', echeance: fermeture?.echeance, methode: certificat?.methode,

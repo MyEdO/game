@@ -550,7 +550,7 @@ canal.on('data', (d) => {
   enfant.once('close', (status, signal) => {
     publierJsonSiAbsent(join(dossier, 'cloture.json'), {version:1,generation:configuration.generation,echeance:Date.now()+configuration.delaiArretMs})
     const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
-    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'ledger-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'subreaper-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
     canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-exacte',resultat:{status,signal,pid:enfant.pid}})+'\\n')
     if (mode === 'close-en-file') process.exit(0)
     const attente = setInterval(() => { if (existsSync(liberation) || !estPidVivantDepuis(process.ppid, Number(naissanceParent), identiteParent)) { clearInterval(attente); process.exit(0) } }, 5)
@@ -653,7 +653,7 @@ canal.on('data', (d) => {
   }, 5)
   enfant.once('close', (status, signal) => {
     const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
-    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'ledger-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'subreaper-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
     canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-cloture',resultat:{status,signal,pid:enfant.pid}})+'\\n', () => process.exit(0))
   })
 })
@@ -813,4 +813,78 @@ await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], {
   (e) => e.code === 'EPANNE' && e.hoteLance === true)
 `)
   await jouerPilote(pilote)
+})
+
+/** Supervise `niveau.mjs <restant>` depuis ce test : chaque niveau supervise le suivant, le dernier supervise un shell
+ *  qui pose un petit-enfant `setsid` et un petit-enfant à double fork, puis demande la vue native. Rend le résultat
+ *  externe et les rapports des niveaux internes (#2586 c.6244746949). */
+async function jouerImbrication(t, restant) {
+  const b = bancSupervision(t)
+  writeFileSync(join(b.dossier, 'feuille.sh'), [
+    `setsid sh -c 'echo $$ >> "$0"; exec sleep 60' "$1" &`,
+    `(sh -c 'echo $$ >> "$0"; exec sleep 60' "$1" &)`,
+    'wait',
+    '',
+  ].join('\n'))
+  const url = (chemin) => JSON.stringify(new URL(chemin, import.meta.url).href)
+  const niveau = b.script('niveau', `
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { lancerProcessusSupervise } from ${url('./superviserProcessus.mjs')}
+import { estPidVivantDepuis } from ${url('./pid.mjs')}
+import { IDENTITE_MESUREE } from ${url('../../test/identiteMesuree.mjs')}
+const restant = Number(process.argv[2]), dossier = process.argv[3]
+const rapport = { niveau: restant }
+try {
+  if (restant > 1) {
+    const { controle } = await lancerProcessusSupervise(process.execPath, [fileURLToPath(import.meta.url), String(restant - 1), dossier], { stdio: 'ignore', timeout: 40000 })
+    const { resultatCible, arret } = await controle.fin
+    Object.assign(rapport, { status: resultatCible.status, erreur: resultatCible.error ?? null, etat: arret.etat, methode: arret.methode })
+  } else {
+    const fichier = join(dossier, 'pids')
+    const { controle } = await lancerProcessusSupervise('/bin/sh', [join(dossier, 'feuille.sh'), fichier], { stdio: 'ignore', timeout: 30000 })
+    await controle.pret
+    const borne = Date.now() + 10000
+    let pids = []
+    while ((pids = existsSync(fichier) ? readFileSync(fichier, 'utf8').split(/\\s+/).filter(Boolean).map(Number) : []).length < 2) {
+      if (Date.now() > borne) throw new Error('petits-enfants non démarrés')
+      await new Promise((r) => setTimeout(r, 10))
+    }
+    const lu = Date.now()
+    rapport.refus = null
+    try { controle.mesurerDomaine({ timeout: 5000 }) } catch (e) { rapport.refus = e.code }
+    const { arret } = await controle.fin
+    Object.assign(rapport, { etat: arret.etat, methode: arret.methode, petitsEnfants: pids,
+      survivants: pids.filter((pid) => estPidVivantDepuis(pid, lu, IDENTITE_MESUREE)) })
+  }
+} catch (e) { rapport.exception = e.code + ' ' + e.message }
+writeFileSync(join(dossier, 'rapport-' + restant + '.json'), JSON.stringify(rapport))
+`)
+  const externe = await superviserProcessus({ commande: process.execPath, args: [niveau, String(restant), b.dossier], timeout: 50000 })
+  const rapports = Array.from({ length: restant }, (_, i) => JSON.parse(readFileSync(join(b.dossier, `rapport-${i + 1}.json`), 'utf8')))
+  return { externe, rapports }
+}
+
+function verifierImbrication({ externe, rapports }) {
+  const [feuille, ...intermediaires] = rapports
+  const diagnostic = JSON.stringify({ externe: { ...externe, stdout: undefined }, rapports })
+  assert.equal(feuille.exception, undefined, diagnostic)
+  assert.equal(feuille.refus, 'ENONSUPPORTE', diagnostic)
+  assert.equal(feuille.etat, 'mort', diagnostic)
+  assert.equal(feuille.methode, 'subreaper-linux', diagnostic)
+  assert.equal(feuille.petitsEnfants.length, 2, diagnostic)
+  assert.deepEqual(feuille.survivants, [], diagnostic)
+  for (const r of intermediaires) assert.deepEqual([r.exception, r.status, r.erreur, r.etat, r.methode], [undefined, 0, null, 'mort', 'subreaper-linux'], diagnostic)
+  assert.deepEqual([externe.status, externe.error, externe.arret.etat, externe.arret.methode], [0, undefined, 'mort', 'subreaper-linux'], diagnostic)
+  const vue = mesurerArbreProcessus()
+  assert.ok(!feuille.petitsEnfants.some((pid) => vue.some((p) => p.pid === pid && p.etat !== 'Z')), diagnostic)
+}
+
+test('#2586 imbrication Linux : supervisé dans supervisé, petits-enfants setsid et double fork tués, vue refusée ENONSUPPORTE', { skip: process.platform !== 'linux', timeout: 60000 }, async (t) => {
+  verifierImbrication(await jouerImbrication(t, 1))
+})
+
+test('#2586 imbrication Linux sur 3 niveaux : chaque hôte subreaper certifie son zéro', { skip: process.platform !== 'linux', timeout: 90000 }, async (t) => {
+  verifierImbrication(await jouerImbrication(t, 2))
 })

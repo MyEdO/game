@@ -401,12 +401,24 @@ test('Windows physique : inspection sélectionnée expose création native compl
   assert.ok(p.cwd)
 })
 
-test('mesure physique native : verdict utile unique, profil complet puis admission, aucune exécution préalable', async (t) => {
+function bancMesurePhysique(t) {
   const racine = temporaire(t, 'memoire-utile-'), fichier = 'court.test.mjs', executions = join(racine, 'executions')
   writeFileSync(join(racine, fichier), `import {appendFileSync} from 'node:fs';import {test} from 'node:test';appendFileSync(${JSON.stringify(executions)},'x');test('verdict',()=>{throw Error('rouge utile')})`)
   const mesures = mesuresEnMemoire(), env = { ...process.env }, journaux = []
   delete env.NODE_TEST_CONTEXT
-  const p = { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s), limiteMs: 20000 }
+  return { fichier, executions, mesures, journaux, p: { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s), limiteMs: 20000 } }
+}
+
+test('#2586 mesure physique Linux : la vue native refusée ENONSUPPORTE échoue fermé, arrêt mort, aucun profil écrit', { skip: process.platform !== 'linux' }, async (t) => {
+  const { mesures, journaux, p } = bancMesurePhysique(t)
+  const r = await lancerNodeMesure(p)
+  assert.deepEqual([r.code, r.arret.etat, r.memoire, r.defautCollecte?.cause?.code], [1, 'mort', undefined, 'ENONSUPPORTE'], journaux.join('\n'))
+  assert.equal(mesures.memos['memoire-node.json'], undefined)
+  assert.ok(journaux.some((s) => s.includes('ENONSUPPORTE')), journaux.join('\n'))
+})
+
+test('mesure physique Windows : verdict utile unique, profil complet puis admission, aucune exécution préalable', { skip: process.platform !== 'win32' }, async (t) => {
+  const { fichier, executions, mesures, journaux, p } = bancMesurePhysique(t)
   for (const acquisition of [true, false]) {
     const r = await lancerNodeMesure(p)
     assert.equal(r.code, 1, journaux.join('\n'))

@@ -175,7 +175,7 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
     const capturer = () => {
       const r = resultatControle('vue', () => controle.mesurerDomaine({ timeout: restant() }))
       const vue = r?.vue ?? r
-      if (!vue || !Array.isArray(vue.processus) || !['working-set', 'rss'].includes(vue.metriqueMemoire)) throw erreur('vue native invalide')
+      if (!vue || !Array.isArray(vue.processus) || vue.metriqueMemoire !== 'working-set') throw erreur('vue native invalide')
       const ids = new Set(), pids = new Set()
       for (const p of vue.processus) {
         if (!p || typeof p.identifiant !== 'string' || !p.identifiant || ids.has(p.identifiant) || !Number.isInteger(p.pid) || p.pid <= 0 || pids.has(p.pid) || !creationExacte(p.creation))

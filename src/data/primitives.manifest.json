@@ -22,8 +22,8 @@
     "type": "primitives.manifest",
     "label": "lancerProcessusSupervise/superviserProcessus/sortieDeSupervision",
     "fichier": "scripts/guards/lib/superviserProcessus.mjs",
-    "concept": "fabrique asynchrone commune de domaine natif : vrai ChildProcess hôte et contrôle séparé, cible authentifiée par instance IPC, requêtes synchrones de vue RSS et attribution sur instances natives tenues, clôture exclusive et certificat zéro natif joints au résultat cible et au close des flux ; projection pure de cible et transaction unique du contrôle des écritures",
-    "perimetre": "spawnBorne, gates, familles Node mesurées, hooks et publication ; Windows processusJob.cs/hoteSupervision.ps1, Linux hoteSupervision.py, worker enfantSupervise.mjs ; propriétaire des canaux et fichiers privés v1",
+    "concept": "fabrique asynchrone commune de domaine natif : vrai ChildProcess hôte et contrôle séparé, cible authentifiée par instance IPC, requêtes synchrones de vue mémoire working-set et attribution sur instances natives tenues (Windows ; refusées ENONSUPPORTE sous Linux), clôture exclusive et certificat zéro natif joints au résultat cible et au close des flux ; projection pure de cible et transaction unique du contrôle des écritures",
+    "perimetre": "spawnBorne, gates, familles Node mesurées, hooks et publication ; Windows processusJob.cs/hoteSupervision.ps1, Linux hoteSupervision.py (subreaper), worker enfantSupervise.mjs ; propriétaire des canaux et fichiers privés v1",
     "verrou": "scripts/guards/lib/superviserProcessus.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },
   {

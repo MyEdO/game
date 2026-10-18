@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, copyFileSync, linkSync, renameSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -111,7 +111,7 @@ setInterval(()=>{
   return { base, controle, generation, hote, fin, fermer, lire, requete, vue, attribuer }
 }
 
-test('domaine natif : handles/ledger, attribution exclusive héritée et zéro après sortie worker', { timeout: 10000 }, async (t) => {
+test('domaine natif Windows : Job, attribution exclusive héritée et zéro après sortie worker', { timeout: 10000, skip: !windows }, async (t) => {
   const f = await fixture(t)
   const initiale = await f.vue()
   const parent = initiale.processus.find((p) => p.pid === f.lire('worker.json').cible)
@@ -157,15 +157,6 @@ test('domaine natif : handles/ledger, attribution exclusive héritée et zéro a
   const orpheline = await f.vue()
   assert.equal(orpheline.processus.some((p) => p.pid === entree.pid), false)
   assert.equal(orpheline.processus.find((p) => p.pid === natif.pid)?.entreeId, 'entree-physique')
-  if (!windows) {
-    const etat = () => readFileSync(`/proc/${natif.pid}/stat`, 'utf8').split(') ')[1][0]
-    process.kill(natif.pid, 'SIGSTOP')
-    await attendreCondition(() => /[Tt]/.test(etat()), 'group-stop natif')
-    await f.vue()
-    assert.match(etat(), /[Tt]/)
-    process.kill(natif.pid, 'SIGCONT')
-    await attendreCondition(() => !/[Tt]/.test(etat()), 'reprise SIGCONT préservée')
-  }
   writeFileSync(join(f.base, 'fin-worker'), '')
   const resultat = await f.fin
   assert.equal(resultat.code, 0, resultat.sortie)
@@ -173,7 +164,7 @@ test('domaine natif : handles/ledger, attribution exclusive héritée et zéro a
   const certificat = JSON.parse(readFileSync(join(f.controle, 'certificat.json'), 'utf8'))
   assert.equal(certificat.zero, true)
   assert.equal(certificat.generation, f.generation)
-  assert.equal(certificat.methode, windows ? 'job-windows' : 'ledger-linux')
+  assert.equal(certificat.methode, 'job-windows')
   assert.deepEqual(certificat.erreurs, [])
   assert.ok(certificat.echeance >= Date.now() - 2000)
   const fichiers = [join(f.controle, 'configuration.json'), join(f.controle, 'cloture.json'), join(f.controle, 'certificat.json'),
@@ -205,7 +196,7 @@ test('#2586 domaine natif : un descendant court sorti pendant la capture n’est
   assert.deepEqual(JSON.parse(readFileSync(join(f.controle, 'certificat.json'), 'utf8')).erreurs, [])
 })
 
-test('domaine natif : identité falsifiée refusée sans adoption PID et clôture immuable gagnante', { timeout: 10000 }, async (t) => {
+test('domaine natif Windows : identité falsifiée refusée sans adoption PID et clôture immuable gagnante', { timeout: 10000, skip: !windows }, async (t) => {
   const f = await fixture(t)
   const parent = (await f.vue()).processus.find((p) => p.pid === f.lire('worker.json').cible)
   const refusee = await f.attribuer(parent, { type: 'parent' }, { identifiant: `${parent.identifiant}-faux` })
@@ -224,7 +215,8 @@ test('domaine natif : identité falsifiée refusée sans adoption PID et clôtur
 
 test('domaine natif : publication externe gagnante conserve exactement son échéance', { timeout: 10000 }, async (t) => {
   const f = await fixture(t)
-  const lances = (await f.vue()).processus.filter((p) => p.role !== 'hote')
+  const { pid, cible } = f.lire('worker.json')
+  const lu = Date.now()
   const echeance = Date.now() + 1000
   const candidat = join(f.controle, 'gagnant.tmp')
   writeFileSync(candidat, JSON.stringify({ version: 1, generation: f.generation, echeance }))
@@ -235,10 +227,10 @@ test('domaine natif : publication externe gagnante conserve exactement son éch�
   assert.equal(certificat.echeance, echeance)
   assert.equal(certificat.zero, true)
   assert.deepEqual(certificat.erreurs, [])
-  for (const { pid, creation } of lances) assert.equal(estPidVivantDepuis(pid, Date.parse(creation), IDENTITE_MESUREE), false)
+  for (const lance of [pid, cible]) assert.equal(estPidVivantDepuis(lance, lu, IDENTITE_MESUREE), false, String(lance))
 })
 
-test('domaine natif : destination entrée monotone, conflit fatal sur instance réellement détenue', { timeout: 10000 }, async (t) => {
+test('domaine natif Windows : destination entrée monotone, conflit fatal sur instance réellement détenue', { timeout: 10000, skip: !windows }, async (t) => {
   const f = await fixture(t)
   writeFileSync(join(f.base, 'creer-entree'), '')
   const entree = await attendreCondition(() => f.lire('entree.json'), 'entrée')
@@ -293,10 +285,54 @@ test('#2586 domaine natif : en supervision, un worker sorti en code non nul refu
   assert.ok(certificat.erreurs.includes('EWORKER statut non nul'), JSON.stringify(certificat))
 })
 
-test('#2586 domaine natif : le petit-fils récolté par le traceur puis rattaché au subreaper ne compte qu’une sortie', { timeout: 20000, skip: process.platform !== 'linux' }, async () => {
+test('#2586 domaine natif Linux : un petit-fils zombie rattaché au subreaper est récolté, arrêt mort', { timeout: 20000, skip: process.platform !== 'linux' }, async () => {
   const vu = await superviserProcessus({ commande: '/bin/sh', args: ['-c', 'sleep 0.1 & exec sleep 0.5'], timeout: 15000 })
   assert.equal(vu.error, undefined, JSON.stringify(vu))
   assert.equal(vu.status, 0)
   assert.deepEqual(vu.arret.erreurs, [])
   assert.equal(vu.arret.etat, 'mort')
+})
+
+test('#2586 domaine natif Linux : vue et attribuer refusés ENONSUPPORTE sans faute, descendants détaché et arrêté tués, zéro certifié', { timeout: 10000, skip: process.platform !== 'linux' }, async (t) => {
+  const f = await fixture(t)
+  const worker = f.lire('worker.json')
+  const attribution = { identifiant: 'instance', pid: worker.cible, creation: '2026-10-18T00:00:00.000000000Z', destination: { type: 'parent' } }
+  for (const [operation, champs] of [['vue', {}], ['attribuer', attribution]]) {
+    const reponse = await f.requete(operation, champs)
+    assert.deepEqual([reponse.ok, reponse.error?.code], [false, 'ENONSUPPORTE'], JSON.stringify(reponse))
+  }
+  writeFileSync(join(f.base, 'creer-entree'), '')
+  const entree = await attendreCondition(() => f.lire('entree.json'), 'entrée')
+  writeFileSync(join(f.base, 'creer-natif'), '')
+  const natif = await attendreCondition(() => f.lire('natif.json'), 'descendant natif détaché')
+  const lu = Date.now()
+  process.kill(natif.pid, 'SIGSTOP')
+  writeFileSync(join(f.base, 'fin-worker'), '')
+  const resultat = await f.fin
+  assert.equal(resultat.code, 0, resultat.sortie)
+  for (const pid of [worker.pid, worker.cible, entree.pid, natif.pid]) assert.equal(estPidVivantDepuis(pid, lu, IDENTITE_MESUREE), false, String(pid))
+  const certificat = JSON.parse(readFileSync(join(f.controle, 'certificat.json'), 'utf8'))
+  assert.deepEqual([certificat.methode, certificat.zero, certificat.erreurs, certificat.generation], ['subreaper-linux', true, [], f.generation])
+})
+
+test('#2586 hôte Linux : vue et attribuer refusés ENONSUPPORTE sans faute, échéance EXPIRATION, opération inconnue fautive et dernière servie', { timeout: 10000 }, (t) => {
+  const base = mkdtempSync(join(process.env.NATIF_SCRATCHPAD ?? tmpdir(), 'hote-requetes-'))
+  t.after(() => rmSync(base, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 }))
+  const generation = randomUUID()
+  writeFileSync(join(base, 'configuration.json'), JSON.stringify({ version: 1, generation, delaiArretMs: 2000 }))
+  mkdirSync(join(base, 'requetes'))
+  const requetes = { 'a-vue': ['vue', 1], 'b-attribuer': ['attribuer', 1], 'c-expiree': ['vue', -1], 'd-inconnue': ['inconnue', 1], 'e-apres-faute': ['vue', 1] }
+  for (const [id, [operation, signe]] of Object.entries(requetes)) {
+    writeFileSync(join(base, 'requetes', id + '.json'), JSON.stringify({ version: 1, generation, id, operation, echeance: Date.now() + signe * 60000 }))
+  }
+  const banc = 'import importlib.util,json,sys\n' +
+    'spec=importlib.util.spec_from_file_location("hote",sys.argv[1]);hote=importlib.util.module_from_spec(spec);spec.loader.exec_module(hote)\n' +
+    'domaine=hote.Domaine(sys.argv[2],2000);domaine.requetes();print(json.dumps(domaine.erreurs))\n'
+  const r = spawnSync(windows ? 'python' : 'python3', ['-B', '-c', banc, join(sources, 'hoteSupervision.py'), base], { encoding: 'utf8', timeout: 8000 })
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(JSON.parse(r.stdout), ['EPROTO opération'])
+  const reponse = (id) => existsSync(join(base, 'reponses', id + '.json')) ? JSON.parse(readFileSync(join(base, 'reponses', id + '.json'), 'utf8')) : null
+  assert.deepEqual(Object.keys(requetes).map((id) => [id, reponse(id)?.ok, reponse(id)?.error?.code]), [
+    ['a-vue', false, 'ENONSUPPORTE'], ['b-attribuer', false, 'ENONSUPPORTE'], ['c-expiree', false, 'EXPIRATION'],
+    ['d-inconnue', false, 'ECONTROLE'], ['e-apres-faute', undefined, undefined]])
 })
