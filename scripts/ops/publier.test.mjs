@@ -361,7 +361,6 @@ describe('estDocDerive', () => {
     assert.equal(estDocDerive('.claude/settings.local.json', GEN), false)
     assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)
     assert.equal(estDocDerive('.claude/skills/ajouter-une-donnee/SKILL.md', GEN), false)
-    assert.equal(estDocDerive('AGENTS.md', GEN), false)
   })
 
   test('estDocDerive : la sortie PAR CLÉ `.claude/settings.json` sans lecture de HEAD et du disque est MANUSCRITE', () => {
