@@ -202,7 +202,7 @@ function currentStepFreeze(s: GameState) {
 // recopier ; le runtime est byte-identique (mêmes appels `FLOWS.<x>.<m>(get, set[, …])`).
 
 /** Verbes du cycle de jet différé, définis avec la table de flux dans `flowVerbs.ts`. */
-export type { RollVerb, FlowVerbs, FlowKey } from './flowVerbs';
+export type { RollVerb } from './flowVerbs';
 
 const capitalize = <S extends string>(s: S): Capitalize<S> =>
   (s.charAt(0).toUpperCase() + s.slice(1)) as Capitalize<S>;

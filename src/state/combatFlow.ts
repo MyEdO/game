@@ -271,13 +271,12 @@ import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain } from './netOwnership';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
-export { collectHeroRoundEndUpkeep } from './combat/roundHooks'; // baril : enregistre les hooks de franchissement de Round (effet de bord) + ré-export pour la cascade d'upkeep
 export * from './combat/triggeredTest'; // baril : enregistre l'applier de cascade `triggeredTest` + installe le routeur de Test des triggers (effet de bord)
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
-export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
+export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
 // Sauvegardes post-touche en registre `HitModifier` ordonné (state/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-export { runHitModifiers, registerHitModifier, martyrGuardOf, wardedAgainst, organicProjectile, toucheSauvee } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
+export { wardedAgainst, organicProjectile } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
 import {
   bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS,
   rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps,
@@ -5150,7 +5149,6 @@ export function autoDeclareWitnessRows(participants: CounterParticipant[], actor
 
 /** Un geste de dé PRÉ-ARMÉ est-il en cours ? (drapeau de module, cf. `withPreRollFixedDie`). */
 let preRollFixedDiePending = false;
-export const isPreRollFixedDiePending = (): boolean => preRollFixedDiePending;
 
 /**
  * GESTE ATOMIQUE du dé pré-armé (socle des dés fixés #939 : « Fixer le dé » AVANT le jet, et Résilience
@@ -6648,11 +6646,6 @@ export function castContextMods(
     ...(env ? [{ label: 'Environnement', value: env, famille: 'jet' as const, ref: dref }] : []),
   ];
   return { mods, total: ward + domain + env, ward, domain, env };
-}
-
-/** Σ de `castWardLine` — la VALEUR que le jet applique (l'affichage et le jet lisent la même aura). */
-export function castWardPenalty(s: GameState, target: Combatant, spell: SpellLike): number {
-  return castWardLine(s, target, spell)?.value ?? 0;
 }
 
 /**
