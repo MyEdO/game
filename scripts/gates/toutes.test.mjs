@@ -38,6 +38,8 @@ import { coeurs, repartitionWorkers } from '../test/partition.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { prendreVerrouAsync } from '../test/verrou.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { spawnBorne } from '../guards/lib/processusBorne.mjs'
+import { STATUS_DLL_INIT_FAILED } from '../guards/lib/spawnResilient.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const GATES = gatesDeCi({ cwd: RACINE })
@@ -45,24 +47,31 @@ const NOMS = GATES.map((g) => g.nom)
 const LANES = lanesDeCi(GATES)
 const gate = (nom) => ({ nom, commande: `npm run ${nom}` })
 
-/** `arret` de `spawnBorne` quand l'essai rendu n'a aucune `fin` native (`spawnBorne`, processusBorne.mjs). */
-const ARRET_SANS_FIN_NATIVE = { pid: undefined, etat: 'indetermine',
-  erreurs: [{ operation: 'lancement', pid: undefined, code: 'ARRET_INDETERMINE', message: 'superviseur sans fin native : arrêt non prouvé' }] }
-
 /**
- * Double de `lancer` à la forme de `spawnBorne` : `surControle` reçoit un `ControleSupervision` porteur de `fin`
- * (processusBorne.d.mts), `pendant` s'attend avant le rendu, `code` et `error` dérivent de `arret`
- * (`spawnBorne`, processusBorne.mjs). `finNative: false` rend l'`arret` d'un essai sans fin native.
+ * Double de `lancer` : le VRAI `spawnBorne`, dont seul le superviseur est injecté (#2776). L'essai `n` joue la forme
+ * `essais[n]` (la dernière se répète) : `leve` lève sans rendre de contrôle ; sinon un `ControleSupervision`
+ * (processusBorne.d.mts) dont la `fin` native rend `{ status, arret: { pid, etat, erreurs } }` une fois le contrôle
+ * remis à `surControle`, après `pendant` ou, `expiree`, à la demande d'arrêt de l'échéance. `demandes` reçoit le PID
+ * de chaque demande d'arrêt.
  */
-const lancement = async (options, { pid, etat = 'mort', erreurs = [], status = 0, expiree = false, finNative = true, demandes = [], pendant }) => {
-  const arretNatif = { pid, etat, erreurs }
-  const controle = { pid, demanderArret() { demandes.push(pid) }, fin: Promise.resolve({ resultatCible: { status, signal: null }, arret: arretNatif }) }
-  options.surControle(controle)
-  await pendant?.()
-  const arret = finNative ? arretNatif : ARRET_SANS_FIN_NATIVE
-  return { code: expiree || arret.etat !== 'mort' ? 1 : status, status, signal: null,
-    error: arret.etat !== 'mort' ? Object.assign(new Error('zéro natif non confirmé'), { code: 'ARRET_INDETERMINE' }) : null,
-    stdout: '', stderr: '', expiree, annulee: false, arret, controle, fichier: options.fichier, sortie: '', limiteMs: options.limiteMs, pid }
+const lancement = (options, ...essais) => {
+  let essai = 0, remettre
+  const superviser = async () => {
+    const { pid, etat = 'mort', erreurs = [], status = 0, expiree = false, demandes = [], pendant, leve = false } = essais[Math.min(essai++, essais.length - 1)]
+    if (leve) throw Object.assign(new Error('superviseur lève sans contrôle'), { code: 'EAGAIN' })
+    let arreter
+    const demande = new Promise((resolve) => { arreter = resolve })
+    const remis = new Promise((resolve) => { remettre = resolve })
+    const fin = (async () => {
+      await remis
+      await (expiree ? demande : pendant?.())
+      return { resultatCible: { status, signal: null }, arret: { pid, etat, erreurs } }
+    })()
+    return { hote: { stdout: null, stderr: null }, controle: { pid, pret: Promise.resolve({ pidCible: pid }),
+      demanderArret() { demandes.push(pid); arreter() }, fin, finPhysique: fin.then(() => {}) } }
+  }
+  return spawnBorne({ ...options, superviser, limiteMs: essais.some((forme) => forme.expiree) ? 0 : options.limiteMs,
+    surControle: (controle) => { options.surControle(controle); remettre() } })
 }
 
 test('arrêt sur signal : les verdicts indéterminés gardent le verrou et tous les PID sont traités', async () => {
@@ -124,7 +133,7 @@ test('capacité de gate : arrêt indéterminé retient PID et verrou, fin confir
         },
         lancer: (options) => {
           observations.lancements++
-          return lancement(options, { pid: 123, etat: indetermine ? 'indetermine' : 'mort', expiree: indetermine })
+          return lancement(options, { pid: 123, etat: indetermine ? 'indetermine' : 'mort' })
         },
       })
       assert.equal(code, indetermine ? 1 : 0, diagnostic())
@@ -235,14 +244,20 @@ test('un refus de prise est un rouge différé sans enfant ni annulation ; une g
   assert.doesNotMatch(lignes.join(''), /arrêt indéterminé|CAPACITE_ARRET_INDETERMINE/)
 })
 
+/** Échéance de `sortir` dans `jouerSousSignal` : un gestionnaire muet rougit au lieu de pendre (#2776). */
+const ECHEANCE_SORTIE_MS = 10_000
+
 /** Joue `principal` en série ; `lancer` et `journal` reçoivent `declencher`, qui appelle SON gestionnaire de SIGINT. */
 async function jouerSousSignal(racine, { argv, lancer, journal }) {
   const avant = new Set(process.listeners('SIGINT'))
   const declencher = () => { for (const ecouteur of process.listeners('SIGINT')) if (!avant.has(ecouteur)) ecouteur('SIGINT') }
-  let sortir
-  const sortie = new Promise((resolve) => { sortir = resolve })
+  let sortir, minuterie
+  const sortie = Promise.race([
+    new Promise((resolve) => { sortir = resolve }),
+    new Promise((_, rejeter) => { minuterie = setTimeout(() => rejeter(new Error(`jouerSousSignal attendait sortir(code) du gestionnaire de SIGINT : rien en ${ECHEANCE_SORTIE_MS} ms`)), ECHEANCE_SORTIE_MS) }),
+  ]).finally(() => clearTimeout(minuterie))
   const liberations = [], lignes = []
-  const code = await principal({ racine, machine: MACHINE_A_LANES, argv, sortir,
+  const [code, codeDeSortie] = await Promise.all([principal({ racine, machine: MACHINE_A_LANES, argv, sortir,
     journal: (texte) => { lignes.push(texte); journal?.(texte, declencher) },
     ecritLu: tableTotale(['premiere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
     prendre: async (options) => {
@@ -250,8 +265,8 @@ async function jouerSousSignal(racine, { argv, lancer, journal }) {
       return { etat: 'pris', liberer() { liberations.push(nom) } }
     },
     lancer: (options) => lancer(options, declencher),
-  })
-  return { code, sortie: await sortie, liberations, lignes }
+  }), sortie])
+  return { code, sortie: codeDeSortie, liberations, lignes }
 }
 
 test('#1772 — le gestionnaire de signal ne vise plus une gate à l’arrêt confirmé ni ne rend deux fois son verrou', async (t) => {
@@ -267,19 +282,28 @@ test('#1772 — le gestionnaire de signal ne vise plus une gate à l’arrêt co
   assert.deepEqual(r.liberations, ['premiere', 'suivante'], diagnostic)
 })
 
-test('#1772 — le verrou retenu par un arrêt indéterminé est rendu par le gestionnaire de signal quand l’arrêt se confirme', async (t) => {
+test('#1772 #2776 — le gestionnaire de signal juge l’arrêt de l’essai RENDU : indéterminé, rejeu compris, il retient le verrou', async (t) => {
   const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
   t.after(() => rmSync(racine, { recursive: true, force: true }))
-  const demandes = []
-  const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'],
-    journal:(texte, declencher) => { if (texte.includes('suivante — REFUS CAPACITE_ARRET_INDETERMINE')) declencher() },
-    lancer: (options) => lancement(options, { pid: 123, demandes, finNative: false }),
-  })
-  const diagnostic = JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + r.lignes.join('')
-  assert.equal(r.code, 1, diagnostic)
-  assert.equal(r.sortie, 130, diagnostic)
-  assert.deepEqual([...new Set(demandes)], [123], diagnostic)
-  assert.deepEqual(r.liberations, ['premiere'], diagnostic)
+  const CAS = {
+    'rejeu : essai 0 au chargement raté, essai rendu dont le superviseur lève': { essais: (demandes) => [{ pid: 10, status: STATUS_DLL_INIT_FAILED, demandes }, { leve: true, demandes }], pid: undefined, demandes: [] },
+    'superviseur qui lève dès le premier essai': { essais: (demandes) => [{ leve: true, demandes }], pid: undefined, demandes: [] },
+    'fin native indéterminée': { essais: (demandes) => [{ pid: 123, etat: 'indetermine', demandes }], pid: 123, demandes: [123] },
+  }
+  for (const [nom, cas] of Object.entries(CAS)) {
+    const demandes = []
+    const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'],
+      journal: (texte, declencher) => { if (texte.includes('suivante — REFUS CAPACITE_ARRET_INDETERMINE')) declencher() },
+      lancer: (options) => lancement(options, ...cas.essais(demandes)),
+    })
+    const diagnostic = nom + '\n' + JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + r.lignes.join('')
+    assert.equal(r.code, 1, diagnostic)
+    assert.equal(r.sortie, 130, diagnostic)
+    assert.match(r.lignes.join(''), new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID ${cas.pid}`), diagnostic)
+    assert.deepEqual([...new Set(demandes)], cas.demandes, diagnostic)
+    assert.deepEqual(r.liberations, [], diagnostic)
+    assert.match(r.lignes.join(''), /aucun verrou libéré manuellement/, diagnostic)
+  }
 })
 
 test('un résultat ordinaire conserve tous les diagnostics d’arrêt, même expiré', async () => {

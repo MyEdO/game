@@ -814,6 +814,7 @@ export async function principal({
   env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, lancer = spawnBorne, horloge = Date.now,
   sortir = process.exit,
 } = {}) {
+  const rejeuxAvantLeRun = rejeux.total
   const configuration = instance ?? verrouGestesLourds(racine)
   const secondesDepuis = (debut) => (horloge() - debut) / 1000
   const LISTE = argv.includes('--liste')
@@ -957,13 +958,15 @@ export async function principal({
         site: `gate ${gate.nom}`,
         surControle: (controle) => { arretDuLancement = { etat: 'indetermine', erreurs: [] }; vivants.set(gate.nom, controle) },
       })
-      if (!arretNonConfirme(r.arret)) vivants.delete(gate.nom)
+      if (r.controle && arretNonConfirme(r.arret)) vivants.set(gate.nom, r.controle)
+      else vivants.delete(gate.nom)
       arretDuLancement = r.arret
 
       return r
       } finally {
         terminerLancement({ arret: arretDuLancement })
-        lancementsEnCours.delete(finDuLancement)
+        // #2776
+        if (!arretNonConfirme(arretDuLancement)) lancementsEnCours.delete(finDuLancement)
       }
     }
 
@@ -983,9 +986,9 @@ export async function principal({
       for (const nom of lane.gates) {
         const gate = aJouerParNom.get(nom)
         const refusDeCapacite = () => {
-          const indeterminees = [...vivants.keys()].filter((enCours) => verdicts.has(enCours) && arretNonConfirme(verdicts.get(enCours).arret))
+          const indeterminees = [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret))
           return indeterminees.length
-            ? `[gates] ${nom} — REFUS CAPACITE_ARRET_INDETERMINE : ${indeterminees.map((n) => `${n} PID ${vivants.get(n)?.pid}`).join(', ')} ; capacité retenue, arrêt non confirmé.\n`
+            ? `[gates] ${nom} — REFUS CAPACITE_ARRET_INDETERMINE : ${indeterminees.map(([n, verdict]) => `${n} PID ${verdict.arret?.pid}`).join(', ')} ; capacité retenue, arrêt non confirmé.\n`
             : null
         }
         const refusAvantPrise = refusDeCapacite()
@@ -1052,7 +1055,7 @@ export async function principal({
         `${dureesLanes.map((d) => `${d.nom} ${d.secondes.toFixed(1)} s`).join(' · ') || '(aucune)'}\n`,
     )
     const rejeuxDesGates = [...verdicts.values()].reduce((n, v) => n + compterRejeux(v.sortie), 0)
-    const totalRejeux = rejeux.total + rejeuxDesGates
+    const totalRejeux = rejeux.total - rejeuxAvantLeRun + rejeuxDesGates
     journal(
       totalRejeux
         ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
