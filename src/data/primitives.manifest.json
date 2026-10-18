@@ -1716,7 +1716,7 @@
     "type": "primitives.manifest",
     "label": "clesCanoniques",
     "fichier": "scripts/guards/lib/clesCanoniques.mjs",
-    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé et DAG cyclique refusés par une erreur nommée)",
+    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé refusée par FORME_PRIVEE_ASSOCIEE_APRES_CLE) ; toute surface refuse une valeur hors domaine JSON par CLE_DOMAINE_JSON, l'erreur native en cause ; cellules, preuves et mémos vivent avec l'instance",
     "perimetre": "toute clé de mémo ou de dédoublonnage d'une valeur de l'évaluateur de racines balayées",
     "verrou": "racinesBalayees.test.mjs"
   },
@@ -1966,11 +1966,20 @@
   {
     "id": "processusBorne",
     "type": "primitives.manifest",
-    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
+    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret/arretIndetermine",
     "fichier": "scripts/guards/lib/processusBorne.mjs",
     "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
     "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
     "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "fileBornee",
+    "type": "primitives.manifest",
+    "label": "enFileBornee",
+    "fichier": "scripts/guards/lib/fileBornee.mjs",
+    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },
   {
     "id": "codesDeSortie",

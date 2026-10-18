@@ -68,7 +68,7 @@ test('arrêt : une fin native rejetée rend l’arrêt indéterminé, nommé au 
   assert.deepEqual(r.arret.erreurs.map(({ operation, pid, code, message }) => ({ operation, pid, code, message })),
     [{ operation: 'fin', pid: 42, code: 'FIN_PERDUE', message: 'fin native perdue' }])
   assert.equal(r.arret.erreurs[0].cause, perte)
-  assert.ok(journaux.some((s) => s.includes('arrêt indéterminé : fin PID 42 FIN_PERDUE — fin native perdue')), journaux.join('\n'))
+  assert.equal(journaux.filter((s) => s.includes('arrêt indéterminé : fin PID 42 FIN_PERDUE — fin native perdue')).length, 1, journaux.join('\n'))
 })
 
 test('lecture des sources : ENOENT signe le vide, toute autre erreur lève telle quelle', (t) => {
