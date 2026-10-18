@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { API, Checker, Snapshot, SymbolFlags } from 'typescript/unstable/sync';
 import { typescript } from './dialecte.mjs';
 import { virtualProgram, syntaxProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
@@ -377,6 +378,74 @@ test('checker de session : la réponse mémorisée est clée par TOUS les argume
     assert.equal(session.checker.getPropertyOfType(type, 'a').name, 'a');
     assert.equal(session.checker.getPropertyOfType(type, 'b').name, 'b');
   } finally { session.dispose(); }
+});
+
+const CYCLES_DE_FERMETURE = 8;
+const SONDE_DE_FERMETURE = `
+import { API } from 'typescript/unstable/sync';
+import { once } from 'node:events';
+import { closeSync } from 'node:fs';
+import { setTimeout as delai } from 'node:timers/promises';
+import { virtualProgram } from ${JSON.stringify(new URL('tsProgram.mjs', import.meta.url).href)};
+const [mode, cycles] = [process.argv[1], Number(process.argv[2])];
+const ouvrir = API.prototype.updateSnapshot;
+const canaux = [];
+API.prototype.updateSnapshot = function (...args) {
+  canaux.push(this.client.channel);
+  return ouvrir.apply(this, args);
+};
+if (mode !== 'production') API.prototype.close = () => {};
+const finDeFlux = canal => {
+  if (canal.pipeFd === undefined) return canal.child.stdin.destroy();
+  closeSync(canal.pipeFd);
+  canal.pipeFd = undefined;
+};
+const MODES = { production: () => {}, a: finDeFlux, b: canal => canal.child.kill('SIGTERM'), c: canal => canal.close() };
+const fini = enfant => enfant.exitCode !== null || enfant.signalCode !== null;
+const sorties = [];
+for (let i = 0; i < cycles; i++) {
+  virtualProgram({ 'a.ts': 'export const a = 1;' }).dispose();
+  const canal = canaux.at(-1);
+  const enfant = canal.child;
+  MODES[mode](canal);
+  const debut = Date.now();
+  const arret = new AbortController();
+  enfant.ref();
+  if (!fini(enfant)) await Promise.race([once(enfant, 'exit'), delai(3_000, undefined, { signal: arret.signal }).catch(() => {})]);
+  arret.abort();
+  const force = !fini(enfant);
+  if (force) { enfant.kill('SIGKILL'); await once(enfant, 'exit'); }
+  if (canal.pipeFd !== undefined) closeSync(canal.pipeFd);
+  enfant.stdin?.destroy();
+  enfant.stdout?.destroy();
+  sorties.push({ code: enfant.exitCode, signal: enfant.signalCode, force, ms: Date.now() - debut });
+}
+process.stdout.write(JSON.stringify(sorties));
+`;
+const FERMETURES_BRUTES = process.platform === 'win32'
+  ? { a: 'fin de flux : closeSync du tube nommé --pipe, sans signal', b: 'kill("SIGTERM") = TerminateProcess sous win32, flux ouverts', c: 'close() du canal' }
+  : { a: 'fin de flux : stdin détruit, sans signal', b: 'SIGTERM, flux ouverts', c: 'close() du canal' };
+
+function sonderFermeture(mode) {
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e', SONDE_DE_FERMETURE, mode, String(CYCLES_DE_FERMETURE)], {
+    cwd: fileURLToPath(new URL('../../../', import.meta.url)), encoding: 'utf8', timeout: 60_000,
+  });
+  return { mode, status: r.status, erreur: r.error, annules: (r.stderr.match(/context canceled/g) ?? []).length, stderr: r.stderr, sorties: r.status === 0 ? JSON.parse(r.stdout) : r.stdout };
+}
+
+test('#2586 — fermeture de session native : aucun « context canceled » sur stderr, aucun compilateur survivant', (t) => {
+  const production = sonderFermeture('production');
+  const brutes = Object.keys(FERMETURES_BRUTES).map(sonderFermeture);
+  const rapport = [production, ...brutes].map(s => `${s.mode} (${FERMETURES_BRUTES[s.mode] ?? 'virtualProgram().dispose()'}) : ${s.annules} « context canceled » / ${CYCLES_DE_FERMETURE} cycles, status ${s.status}, sorties ${JSON.stringify(s.sorties)}`).join('\n');
+  const message = `${process.platform}\n${rapport}\n${[production, ...brutes].map(s => `stderr ${s.mode} :\n${s.stderr}`).join('\n')}`;
+  for (const ligne of message.split('\n')) t.diagnostic(ligne);
+  for (const sonde of [production, ...brutes]) {
+    assert.equal(sonde.status, 0, message);
+    assert.equal(sonde.sorties.length, CYCLES_DE_FERMETURE, message);
+    for (const sortie of sonde.sorties) assert.ok(sortie.code !== null || sortie.signal !== null, message);
+  }
+  assert.ok(production.sorties.every(sortie => !sortie.force), message);
+  assert.equal(production.annules, 0, message);
 });
 
 test('checker de session : après dispose, une question déjà posée lève comme le natif', () => {
