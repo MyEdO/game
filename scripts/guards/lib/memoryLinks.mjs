@@ -112,14 +112,11 @@ const EXTENSIONS_LUES = new Set(['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '
  *     texte fige l'état d'un jour, il ne se recâble pas.
  *   - `scripts/guards/lib/memoryLinks.test.mjs` : le banc du garde FORGE des fiches qui n'existent pas
  *     (cibles `fiche-jamais-ecrite`, `fiche-close`…) ; un garde ne se scanne pas lui-même.
- *   - `scripts/ops/sondes/audit-2026-09-01/` : sondes d'un audit DATÉ ; les noms de fiches qu'elles
- *     énumèrent sont la MESURE d'un jour (leur donnée d'entrée), pas des liens à recâbler.
  */
 export const HORS_SCAN = [
   'docs/plans/',
   'docs/superpowers/',
   'scripts/guards/lib/memoryLinks.test.mjs',
-  'scripts/ops/sondes/audit-2026-09-01/',
 ];
 
 /** `[[slug]]`, `[[slug|alias]]`, `[[slug#ancre]]`, `[[slug.md]]` — FORME d'un nom de fiche. */

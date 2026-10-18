@@ -137,7 +137,6 @@ function unanchoredCallsites(): Callsite[] {
 const BASELINE: string[] = [
   "engine/domainAttributes.ts | ops | { rng, label: 'Attribut de domaine' }", // ops d'un Attribut de domaine de magie
   'engine/shipCritical.ts | ops | { rng, hull }', // conséquence du coup à l'équipage d'un critique de navire (branche d'échec du nœud, ou ops certaines) ; la COQUE entre au contexte depuis #1657 B3-2b-c (la hauteur de chute se lit par sa Taille, MDG 13 l.684)
-  'engine/shipCritical.ts | crit.ops | { rng }', // ops d'un critique de navire
   'engine/shipCritical.ts | crit.ops | { rng, crew }', // ops d'un critique de navire (équipage)
   'engine/shipCritical.ts | set.shrapnelHit! | { rng }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire

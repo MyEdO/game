@@ -43,9 +43,9 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });
 
-  it('dotation {vehicleId} (contrebandier niv.2 → barque, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
+  it('dotation {vehicleId} (contrebandier niv.2 → barque-fluviale, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
-    hero.careerLevel = 2; // la dotation barque est portée par ce Niveau, pas le 1
+    hero.careerLevel = 2; // la dotation barque-fluviale est portée par ce Niveau, pas le 1
     useGame.getState().setParty([hero]);
     const sc = emptyScene(6, 6);
     sc.id = 'test-seed-vehicule';
@@ -54,7 +54,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
     const vehicule = possessions.find((p) => p.nature === 'vehicule');
     expect(vehicule).toBeDefined();
     expect(vehicule).toMatchObject({
-      nature: 'vehicule', vehicleId: 'barque', ownerId: hero.id, location: { kind: 'avec-le-groupe' }, items: [],
+      nature: 'vehicule', vehicleId: 'barque-fluviale', ownerId: hero.id, location: { kind: 'avec-le-groupe' }, items: [],
     });
   });
 

@@ -293,7 +293,7 @@
   "bands": [
     {
       "min": 101,
-      "max": 9999,
+      "max": null,
       "id": "mene-de-main-de-maitre",
       "label": "Mené de main de maître !",
       "captainCmdDR": 2,
@@ -335,7 +335,7 @@
       }
     },
     {
-      "min": -9999,
+      "min": null,
       "max": 50,
       "id": "canailles",
       "label": "Des canailles que je ne parviens pas à mater",

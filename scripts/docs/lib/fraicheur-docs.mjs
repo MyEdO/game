@@ -3,7 +3,7 @@ import { accessSync, constants, copyFileSync, existsSync, lstatSync, mkdirSync, 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
-import { cheminAbsent, correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
 import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
@@ -70,10 +70,12 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   const memoire = memoireDeVue()
   const reprendre = (carte, cle, rel, mesurer) => reprise?.vue[carte].has(cle) && !reprise.touche(rel) ? reprise.vue[carte].get(cle) : mesurer()
   const entrees = Object.values({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) })
-  const ignores = perimetre.ignores
   const motifs = [options.generateurs.flatMap((g) => g.targets), ...options.generateurs.map((g) => [...g.targets, ...(g.injecte ?? [])])]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
   const cibles = new Map([...selections].map(([cle, m]) => [cle, reprise?.vue.cibles.has(cle) && !reprise.selectionTouchee(m) ? reprise.vue.cibles.get(cle) : options.ciblesSurDisque(m, racine)]))
+  // #2586
+  const perimetreVu = perimetre ?? perimetreDeMesure(racine)
+  const ignores = perimetreVu.ignores
   const haches = portee ? [portee.script, ...cibles.get(JSON.stringify([...portee.targets, ...(portee.injecte ?? [])]))] : [...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat()]
   const fichiers = new Set([...OUTILS, ...haches, ...entrees.flatMap((e) => e.fichiers ?? [])])
   const hashes = new Map([...fichiers].map((rel) => [rel, reprendre('hashes', rel, rel, () => hashFichier(racine, rel, undefined, memoire))]))
@@ -91,7 +93,7 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
     if (admission === undefined) admissions.set(rel, (admission = dansLaMesure(rel, ignores, derivees, motifsDeclares)))
     return admission
   }
-  return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre, memoire, admis }
+  return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre: perimetreVu, memoire, admis }
 }
 
 function cheminLexical(racine, relatif) {
@@ -143,7 +145,7 @@ function entreeValide(racine, entree, memoire) {
 }
 
 function listing(racine, rel, memoire) {
-  return listerDossier(cheminSous(racine, rel, memoire), { absent: 'vide', avecTypes: true })
+  return listerEntrees(cheminSous(racine, rel, memoire), { absent: 'vide' })
 }
 
 function sonde(racine, requete, vue, memoire) {
@@ -310,10 +312,9 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
     if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new SourceModifiee('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
-    const finale = photographier(racine, options, preuve, {}, undefined, vue.perimetre, undefined, g)
-    if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new SourceModifiee('source modifiée pendant certification')
+    const finale = photographier(racine, options, preuve, {}, undefined, undefined, undefined, g)
     const ignores = finale.ignores
-    const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
+    const derivees = new Set(finale.cibles.get(JSON.stringify(options.generateurs.flatMap((g) => g.targets))))
     const parents = new Set()
     for (const [rel] of record.sorties) {
       let parent = path.posix.dirname(rel)
@@ -368,9 +369,10 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       }
       if (!egaux(ancien, { ...apres, entrees: apres.entrees.filter((e) => !nouveauxParents.has(e.nom)) })) throw new Error(`parent de sortie modifié ou non capturé : ${rel}`)
     }
+    if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new SourceModifiee('source modifiée pendant certification')
     for (const [rel, hash] of record.sorties) avant.preparation.fichiers.set(rel, hash)
     for (const [rel, actuel] of listings) avant.preparation.dossiers.set(rel, actuel)
-    return { ok: true, record, perimetre: vue.perimetre }
+    return { ok: true, record, perimetre: finale.perimetre }
   } catch (e) { return { ok: false, raison: e.message, sourceModifiee: e instanceof SourceModifiee } }
 }
 

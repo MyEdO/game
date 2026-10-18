@@ -23,6 +23,23 @@ import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 const detecte = (source: string) => lecturesDHote(source).length > 0;
 
 describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 ne simule', () => {
+  it('les symboles isolent les chargeurs et les globales masquées', () => {
+    const source = [
+      "function node() { const charger = require; return charger('typescript') }",
+      "function local() { const charger = outil; return charger('path') }",
+      "function masques(process, require, module, createRequire, getBuiltinModule, globalThis, global, __dirname, __filename) { return [process.getBuiltinModule('path'), require('path'), module.require('path'), createRequire(x)('url'), getBuiltinModule('path'), globalThis.process.getBuiltinModule('path'), global.process.getBuiltinModule('path'), __dirname, __filename] }",
+      "function variables() { const require = outil; const __dirname = 'ici'; return [require('path'), __dirname] }",
+      'const charger = require',
+      "function capture() { return charger('path') }",
+      "const chemin = require('path')",
+    ].join('\n');
+    const attendu = [6, 7];
+    expect(lecturesDHote(source).map(s => s.ligne)).toEqual(attendu);
+    for (const analyse of analyserCorpus([{ rel: 'portees.ts', text: source }])) {
+      expect(lecturesDHote(source, 'portees.ts', analyse).map(s => s.ligne)).toEqual(attendu);
+    }
+  });
+
   it('cas plantés : chaque forme de lecture d’`import.meta.dirname`/`filename` est détectée', () => {
     const variantes = [
       'const ici = import.meta.dirname',
@@ -94,6 +111,7 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
       ['const r = createRequire(x)', 'const r2 = r', "r2('url')"],
       ['const charger = process.getBuiltinModule', "charger('node:path')"],
       ["const { getBuiltinModule: g } = await import('node:process')", "g('path')"],
+      ['let getBuiltinModule', '({ getBuiltinModule } = process)', "getBuiltinModule('path')"],
     ];
     for (const lignes of sources) {
       expect(lecturesDHote(lignes.join('\n')), lignes.join(' ⏎ ')).toEqual([expect.objectContaining({ ligne: lignes.length })]);
@@ -212,8 +230,9 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
       }
       fichiers.push({ rel, text: texte });
     }
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(fichiers)) {
-      for (const { ligne, extrait } of lecturesDHote(text, rel, sourceFile!)) offenders.push(`${rel}:${ligne} → ${extrait}`);
+    for (const analyse of analyserCorpus(fichiers)) {
+      const { fichier: { rel, text } } = analyse;
+      for (const { ligne, extrait } of lecturesDHote(text, rel, analyse)) offenders.push(`${rel}:${ligne} → ${extrait}`);
     }
     expect(
       offenders,

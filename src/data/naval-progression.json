@@ -6,7 +6,7 @@
     {
       "id": "plus2",
       "min": 4,
-      "max": 9999,
+      "max": null,
       "mode": "plus2",
       "desc": "Le bateau progresse à sa vitesse maximale. Il se déplace de son score de M+2.",
       "source": {
@@ -53,7 +53,7 @@
     },
     {
       "id": "half",
-      "min": -9999,
+      "min": null,
       "max": -5,
       "mode": "half",
       "desc": "Le navire lutte pour avancer. Il se déplace de la moitié de son score de M (arrondie à l'inférieur).",

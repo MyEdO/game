@@ -37,10 +37,11 @@ export const DOCUMENTAIRE = {
     'miroir Codex de la compat d’agents, même couture que `.agents/` — les 21 mentions de « .codex » ' +
     'sous src/ sont la classe CSS `.codex-…` et le champ `codexCategory`, aucune lecture de fichier',
   'AGENTS.md':
-    'miroir racine de la compat d’agents — aucune lecture depuis src/ ni server/src/ (sonde : 0 mention)',
+    'instructions du dépôt, lues par Codex et importées par CLAUDE.md — aucune lecture depuis src/ ni ' +
+    'server/src/ (sonde : 0 mention)',
   'CLAUDE.md':
-    'instructions du dépôt, miroir comparé par `agents:check` — les 40 mentions sous src/ sont des ' +
-    'références de commentaire (règle citée), aucune lecture de fichier',
+    'imports du credo et d’AGENTS.md — les mentions sous src/ sont des références de commentaire (règle ' +
+    'citée), aucune lecture de fichier',
 }
 
 /**

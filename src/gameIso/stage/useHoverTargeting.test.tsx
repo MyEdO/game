@@ -300,7 +300,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
     useGame.setState({
       pendingAttack: null,
-      pendingDualStrike: { attackerId: active.id, offWeaponUid: 'off-1', mainRoll: 30 },
+      pendingDualStrike: { attackerId: active.id, offWeaponUid: 'off-1', jet: 3 },
       pendingCascade: cascadeDeTest([{ id: 'r', kind: 'attackJet', jet: 'attack', actorId: active.id }], { purpose: 'combat' }),
     });
 

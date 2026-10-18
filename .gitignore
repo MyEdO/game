@@ -46,6 +46,7 @@ scripts/data/.out/
 .claude/*
 !.claude/settings.json
 !.claude/credo.md
+!.claude/sous-agents.md
 !.claude/skills/
 !.claude/agents/
 !.claude/workflows/

@@ -36,7 +36,7 @@ export interface OptionalRule {
   /** Ancre `{book, page}` de couverture par entrée — folio IMPRIMÉ relevé au marqueur `data-folio`
    *  du passage visé par `ref` (#1318 E8). Absente sur les entrées portant `maison`. */
   source?: SourceRef;
-  /** Justification d'une valeur que le RAW ne chiffre pas (CLAUDE.md règle 7) — même sémantique que
+  /** Justification d'une valeur que le RAW ne chiffre pas (AGENTS.md règle 7) — même sémantique que
    *  `castingNumberMod.maison` (`src/data/schemas/grammaire/valeurs.ts`). Absente = la règle est au RAW. */
   maison?: string;
   /** Sous-système (regroupement dans le panneau). */

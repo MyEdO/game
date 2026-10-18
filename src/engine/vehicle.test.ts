@@ -31,8 +31,8 @@ describe('véhicule-à-coque (Combatant à PV)', () => {
   });
 
   it('sans facette hull → pas de coque (transport sans entité à PV)', () => {
-    const barque = findVehicleById('barque')!; // transport simple (LDB 306), pas de `hull`
-    expect(vehicleCombatant(barque)).toBeUndefined();
+    const transport = { ...findVehicleById('diligence')!, hull: undefined }; // entrée éditable sans `hull` (LDB 306)
+    expect(vehicleCombatant(transport)).toBeUndefined();
   });
 
   it('Problème « Accident » (96-100) inflige 2d10 − Bonus d\'Endurance à la coque (min 1)', () => {

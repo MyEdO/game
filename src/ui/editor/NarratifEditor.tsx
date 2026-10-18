@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import type { z } from 'zod';
 import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../Tabs';
 import { Icon } from '../Icon';
@@ -32,6 +33,11 @@ import { GatedAction, raisonSi } from '../GatedAction';
 import { NumberField } from '../NumberField';
 import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
 import { Stack } from '../Layout';
+import { t } from '../../i18n';
+import { identiteSchema } from '../../data/schemas/defs-scenes/narratif';
+import { raceKeySchema, sexeSchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { validateDocument, cheminLisible } from '../../data/schemas/validate';
 
 /**
  * Éditeur du bloc NARRATIF d'un paquet de campagne (#765) — overlay plein-champ (`ScreenShell`, même
@@ -701,6 +707,8 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
     const j = valeurs.findIndex((v) => v.id !== soi && v.id === candidat);
     return j >= 0 ? `la valeur ${j + 1}` : null;
   };
+  /** Changer de forme ne perd ni l'usage d'une référence, ni une identité. */
+  const refusDeForme = refus ?? (etat.forme.kind === 'heros' && etat.forme.identite ? 'Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.' : undefined);
   return (
     <div>
       <ChampIdStable libelle="Identifiant (id stable)" value={etat.id} porteurDe={porteurDe} onRename={onRename} />
@@ -717,7 +725,7 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
       )}
       <label className="ed-field">
         Forme
-        <select value={etat.forme.kind} disabled={!!refus} title={refus} onChange={(e) => onPatch({ forme: formeNeuve(e.target.value as FormeDEtatKind) })}>
+        <select value={etat.forme.kind} disabled={!!refusDeForme} title={refusDeForme} onChange={(e) => onPatch({ forme: formeNeuve(e.target.value as FormeDEtatKind) })}>
           {(Object.keys(FORMES_D_ETAT) as FormeDEtatKind[]).map((k) => <option key={k} value={k}>{FORMES_D_ETAT[k].label}</option>)}
         </select>
       </label>
@@ -742,7 +750,138 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
           </button>
         </div>
       )}
+      {etat.forme.kind === 'heros' && (
+        etat.forme.identite
+          ? <IdentiteForm porteur={porteur} identite={etat.forme.identite} onChange={(identite) => onPatch({ forme: identite ? { kind: 'heros', identite } : { kind: 'heros' } })} />
+          : (
+            <button type="button" className="btn small" onClick={() => onPatch({ forme: { kind: 'heros', identite: identiteNeuve() } })}>
+              <Icon id="ui/add" size="sm" /> Ajouter une identité
+            </button>
+          )
+      )}
       <BoutonRetirer id={`supprimer-etat-${etat.id}`} libelle="Supprimer cet état" refus={refus} onRemove={onRemove} />
+    </div>
+  );
+}
+
+type Identite = z.infer<typeof identiteSchema>;
+type LigneDIdentite = Identite['lignes'][number];
+type ValeurDIdentite = LigneDIdentite['valeurs'][number];
+
+/** Une identité neuve : une ancre, le repère qui la porte, aucune ligne. */
+const identiteNeuve = (): Identite => ({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
+
+const COUPLES_D_IDENTITE: readonly { espece: RaceKey; sexe: Sexe }[] = raceKeySchema.options.flatMap((espece) => sexeSchema.options.map((sexe) => ({ espece, sexe })));
+const libelleDeLigne = (l: { espece: RaceKey; sexe: Sexe }): string => `${t(`espece.individu.${l.espece}`)} ${libelleDeValeur(sexeSchema, l.sexe).toLowerCase()}`;
+
+/** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : ancres, repères (id stable + fragment verbatim du paquet) et, par
+ *  espèce et sexe, la valeur de chaque repère et sa provenance. Un renommage de repère suit dans chaque ligne ; un
+ *  repère dont une valeur est saisie ne se retire pas. */
+function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identite: Identite; onChange: (identite: Identite | undefined) => void }) {
+  const clesAncres = useClesDeRangees(identite.ancres);
+  const clesReperes = useClesDeRangees(identite.reperes);
+  const clesLignes = useClesDeRangees(identite.lignes);
+  const fautes = validateDocument(identiteSchema, identite) ?? [];
+  const poser = (patch: Partial<Identite>) => onChange({ ...identite, ...patch });
+  const setLigne = (j: number, ligne: LigneDIdentite) => poser({ lignes: identite.lignes.map((l, k) => (k === j ? ligne : l)) });
+  const renommerRepere = (de: string, vers: string) => poser({
+    reperes: identite.reperes.map((r) => (r.id === de ? { ...r, id: vers } : r)),
+    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.map((v) => (v.repere === de ? { ...v, repere: vers } : v)) })),
+  });
+  const retirerRepere = (id: string) => poser({
+    reperes: identite.reperes.filter((r) => r.id !== id),
+    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.filter((v) => v.repere !== id) })),
+  });
+  const ajouterRepere = () => {
+    const id = idFrais('repere', identite.reperes);
+    poser({ reperes: [...identite.reperes, { id, fragment: '' }], lignes: identite.lignes.map((l) => ({ ...l, valeurs: [...l.valeurs, { repere: id, valeur: '' }] })) });
+  };
+  const refusDuRepere = (id: string): string | undefined => {
+    if (identite.reperes.length <= 1) return 'Une identité garde au moins un repère.';
+    const saisies = identite.lignes.filter((l) => l.valeurs.some((v) => v.repere === id && v.valeur.trim())).map(libelleDeLigne);
+    return saisies.length ? `Valeur saisie pour : ${saisies.join(', ')} — videz-la d’abord.` : undefined;
+  };
+  const libre = COUPLES_D_IDENTITE.find((c) => !identite.lignes.some((l) => l.espece === c.espece && l.sexe === c.sexe));
+  const ajouterLigne = () => {
+    if (!libre) return;
+    poser({ lignes: [...identite.lignes, { ...libre, valeurs: identite.reperes.map((r) => ({ repere: r.id, valeur: '' })) }] });
+  };
+  return (
+    <div className="ed-field">
+      <span>Identité</span>
+      {identite.ancres.map((a, i) => (
+        <div key={clesAncres[i]}>
+          <label className="ed-subfield">
+            {`Ancre ${i + 1}`}
+            <input value={a} onChange={(e) => poser({ ancres: identite.ancres.map((x, k) => (k === i ? e.target.value : x)) })} />
+          </label>
+          <BoutonRetirer id={`supprimer-ancre-${porteur}-${clesAncres[i]}`} libelle={`Supprimer l’ancre ${i + 1}`} refus={identite.ancres.length <= 1 ? 'Une identité garde au moins une ancre.' : undefined} onRemove={() => poser({ ancres: identite.ancres.filter((_, k) => k !== i) })} />
+        </div>
+      ))}
+      <button type="button" className="btn small" onClick={() => poser({ ancres: [...identite.ancres, ''] })}>
+        <Icon id="ui/add" size="sm" /> Ajouter une ancre
+      </button>
+      {identite.reperes.map((r, i) => (
+        <div key={clesReperes[i]}>
+          <ChampIdStable
+            libelle={`Id du repère ${i + 1}`} className="ed-subfield" value={r.id}
+            porteurDe={(c) => { const j = identite.reperes.findIndex((x) => x.id !== r.id && x.id === c); return j >= 0 ? `le repère ${j + 1}` : null; }}
+            onRename={(id) => renommerRepere(r.id, id)}
+          />
+          <label className="ed-subfield">
+            {`Fragment du repère ${i + 1}`}
+            <input value={r.fragment} onChange={(e) => poser({ reperes: identite.reperes.map((x) => (x.id === r.id ? { ...x, fragment: e.target.value } : x)) })} />
+          </label>
+          <BoutonRetirer id={`supprimer-repere-${porteur}-${r.id}`} libelle={`Supprimer le repère ${i + 1}`} refus={refusDuRepere(r.id)} onRemove={() => retirerRepere(r.id)} />
+        </div>
+      ))}
+      <button type="button" className="btn small" onClick={ajouterRepere}>
+        <Icon id="ui/add" size="sm" /> Ajouter un repère
+      </button>
+      {identite.lignes.map((l, j) => (
+        <div key={clesLignes[j]}>
+          <label className="ed-subfield">
+            {`Espèce de la ligne ${j + 1}`}
+            <select value={l.espece} onChange={(e) => setLigne(j, { ...l, espece: e.target.value as RaceKey })}>
+              {raceKeySchema.options.map((k) => <option key={k} value={k}>{t(`espece.individu.${k}`)}</option>)}
+            </select>
+          </label>
+          <label className="ed-subfield">
+            {`Sexe de la ligne ${j + 1}`}
+            <select value={l.sexe} onChange={(e) => setLigne(j, { ...l, sexe: e.target.value as Sexe })}>
+              {sexeSchema.options.map((v) => <option key={v} value={v}>{libelleDeValeur(sexeSchema, v)}</option>)}
+            </select>
+          </label>
+          {identite.reperes.map((r) => {
+            const k = l.valeurs.findIndex((x) => x.repere === r.id);
+            const v: ValeurDIdentite = k >= 0 ? l.valeurs[k] : { repere: r.id, valeur: '' };
+            const setValeur = (patch: Partial<Omit<ValeurDIdentite, 'repere'>>) => setLigne(j, { ...l, valeurs: k >= 0 ? l.valeurs.map((x, n) => (n === k ? { ...x, ...patch } : x)) : [...l.valeurs, { ...v, ...patch }] });
+            const nomDuRepere = r.fragment.trim() && identite.reperes.filter((x) => x.fragment === r.fragment).length === 1 ? r.fragment : r.id;
+            const sujet = `de « ${nomDuRepere} » (${libelleDeLigne(l)})`;
+            return (
+              <div key={r.id}>
+                <label className="ed-subfield">
+                  {`Valeur ${sujet}`}
+                  <input value={v.valeur} onChange={(e) => setValeur({ valeur: e.target.value })} />
+                </label>
+                <ProvenanceDuTexte copie identite={`${porteur}/identite/${clesLignes[j]}/${r.id}`} sujet={sujet} value={v} onChange={setValeur} />
+              </div>
+            );
+          })}
+          <BoutonRetirer id={`supprimer-ligne-${porteur}-${clesLignes[j]}`} libelle={`Supprimer la ligne ${j + 1}`} refus={undefined} onRemove={() => poser({ lignes: identite.lignes.filter((_, k) => k !== j) })} />
+        </div>
+      ))}
+      <GatedAction
+        id={`ajouter-ligne-${porteur}`}
+        label={<><Icon id="ui/add" size="sm" /> Ajouter une ligne</>}
+        enabled={!!libre}
+        {...raisonSi(libre ? undefined : 'Chaque espèce et chaque sexe a déjà sa ligne.')}
+        onClick={ajouterLigne}
+        primary={false}
+        btnClassName="small"
+      />
+      {fautes.map((f, i) => <ChipDeRefus key={i} fixe refus={{ message: `${cheminLisible(f.lieu)} : ${f.message}` }} />)}
+      <BoutonRetirer id={`supprimer-identite-${porteur}`} libelle="Retirer l’identité" refus={undefined} onRemove={() => onChange(undefined)} />
     </div>
   );
 }
@@ -878,7 +1017,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
 
 type OngletDuPnj = 'profil' | 'apparence' | 'couverture';
 
-/** Rubriques du formulaire d'un PNJ (CLAUDE.md, règle stricte 4). */
+/** Rubriques du formulaire d'un PNJ (AGENTS.md, règle stricte 4). */
 const ongletsDuPnj = (preset: PresetPnj): TabItem<OngletDuPnj>[] => [
   { key: 'profil', label: 'Profil' },
   { key: 'apparence', label: 'Apparence' },

@@ -6,7 +6,8 @@ import { seedBattleRng } from '../../state/battleRng';
 import { checkBattleOver } from '../../state/combatFlow';
 import { resolveShipUnits } from '../../state/shipCrew';
 import { rederivePassiveAttack } from '../../engine/combat';
-import { loseWounds, isOutOfAction } from '../../engine/conditions';
+import { loseWounds, isOutOfAction, addCondition, appliquerMortSubite } from '../../engine/conditions';
+import { critiquesDuCoup, relanceLaLocalisation } from '../../engine/critical';
 import { pathTo } from '../../state/path';
 import { moveEnv } from '../../state/combatGeometry';
 import { combatDistance } from '../../state/footprint';
@@ -16,6 +17,7 @@ import type { Combatant, Weapon } from '../../engine/types';
 import type { Scene } from '../../state/scene';
 import type { BattleState } from '../../state/store';
 import type { TestResult } from '../../engine/tests';
+import { makeRNG } from '../../engine/dice';
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const COGUE = 'enemy-enc-naval-0';
@@ -58,13 +60,17 @@ function boardOnto(battle: BattleState, scene: Scene, mover: Combatant, target: 
 }
 
 /** Le boarder abat une cible au corps à corps (blessures RÉELLES du moteur), jusqu'à ce qu'elle soit hors de
- *  combat (Mort Subite du figurant à 0 PB). Renvoie le nombre de coups portés (borné, anti-boucle). */
+ *  combat : LDB 18 l.46 ; AA 07 l.65, par `critiquesDuCoup` et `appliquerMortSubite`. Renvoie le nombre de coups
+ *  portés (borné, anti-boucle). */
 function meleeDown(attacker: Combatant, target: Combatant): number {
   const weapon = (attacker.weapons.find((w) => w.type === 'melee') ?? attacker.weapons[0]) as Weapon;
   let blows = 0;
   while (!isOutOfAction(target) && blows < 20) {
-    const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee');
+    const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee', { rng: makeRNG(1595) });
+    const before = target.wounds.current;
     if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
+    const lost = res.woundsLost ?? 0;
+    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, touche: true, relance: relanceLaLocalisation(target, { coupCritique: null, prise: true, current: before }), blessures: lost }).mortSubite) appliquerMortSubite(target, []);
     blows++;
   }
   return blows;
@@ -88,8 +94,17 @@ describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)',
   const mk = (id: string, patch: Partial<Combatant> = {}): Combatant =>
     ({ id, name: id, kind: 'enemy', wounds: { current: 10, max: 10 }, conditions: [], weapons: [], ...patch }) as unknown as Combatant;
 
-  it('coque COULÉE (0 PB) → l\'équipage encore debout passe par-dessus bord (outOfRencontre)', () => {
+  it('coque à 0 PB sans État naufrage → reste en jeu, l\'équipage aussi (MDG 13 l.656)', () => {
     const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 0, max: 50 } as never, crewIds: ['a', 'b'] });
+    const a = mk('a'); const b = mk('b');
+    resolveShipUnits([hull, a, b]);
+    expect(isOutOfAction(hull)).toBe(false);
+    expect(a.outOfRencontre).toBeFalsy();
+    expect(b.outOfRencontre).toBeFalsy();
+  });
+
+  it('coque COULÉE (État naufrage, MDG 13 l.674) → l\'équipage encore debout passe par-dessus bord (outOfRencontre)', () => {
+    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 0, max: 50 } as never, crewIds: ['a', 'b'], conditions: [{ id: 'naufrage', value: 1 }] as never });
     const a = mk('a'); const b = mk('b');
     const lines = resolveShipUnits([hull, a, b]);
     expect(a.outOfRencontre).toBe(true);
@@ -210,11 +225,18 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
 
     let shots = 0;
     while (cogue.wounds.current > 0 && shots < 20) {
-      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged');
+      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged', { rng: makeRNG(1595) });
       if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost);
       shots++;
     }
-    expect(cogue.wounds.current).toBe(0); // coque coulée par l'artillerie (Dégâts − BE − Blindage)
+    expect(cogue.wounds.current).toBe(0); // coque à 0 par l'artillerie (Dégâts − BE − Blindage)
+    // MDG 13 l.656 : à 0, la coque reste en jeu et tout coup est un Critique.
+    expect(isOutOfAction(cogue)).toBe(false);
+    expect(critiquesDuCoup(cogue, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(cogue, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
+    settle();
+    expect(useGame.getState().battle!.over).toBeFalsy();
+    // MDG 13 l.674 : l'Indice d'Inondation égal à l'Endurance la coule (chaîne Voie d'eau → naufrage : naval-damage.test).
+    addCondition(byId(useGame.getState().battle!, COGUE), 'naufrage');
 
     settle();
     const b2 = useGame.getState().battle!;

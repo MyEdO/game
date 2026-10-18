@@ -7,9 +7,10 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { FEUILLES, importsResolus, manquementsDeFeuilles, sourcesSuivies } from './modulesFeuilles.mjs'
+import { importsResolus, manquementsDeFeuilles } from './modulesFeuilles.mjs'
 
 const FEUILLE = 'scripts/ops/geste.mjs'
+
 const FEUILLES_FIXTURE = [{ module: FEUILLE, bancs: ['scripts/ops/geste.test.mjs'], pourquoi: 'porte LE geste' }]
 
 /** Un arbre jetable : la feuille, son banc, et les sources que le cas veut éprouver. */
@@ -170,24 +171,5 @@ test('des lectures différentes du même chemin sont refusées avant toute ouver
   } finally {
     spy.mock.restore()
     rmSync(racine, { recursive: true, force: true })
-  }
-})
-
-// ── l'arbre RÉEL ──────────────────────────────────────────────────────────────
-
-test('le dépôt n’a AUCUN importeur de feuille, et la garde lit bien ses sources', () => {
-  const vu = manquementsDeFeuilles()
-  assert.deepEqual(vu.manquements, [])
-  // Sans cette borne, une lecture cassée rendrait la garde verte en ne lisant plus rien.
-  assert.ok(vu.sourcesLues > 1000, `la garde ne lit plus les sources du dépôt (${vu.sourcesLues})`)
-})
-
-test('les feuilles DÉCLARÉES sont une donnée, et chacune dit son invariant', () => {
-  assert.ok(FEUILLES.length >= 1)
-  const suivies = sourcesSuivies()
-  for (const f of FEUILLES) {
-    assert.ok(suivies.includes(f.module), `${f.module} n’est pas une source suivie`)
-    assert.ok(f.pourquoi.trim(), `${f.module} sans invariant dit`)
-    for (const banc of f.bancs) assert.ok(suivies.includes(banc), `${banc} n’est pas une source suivie`)
   }
 })

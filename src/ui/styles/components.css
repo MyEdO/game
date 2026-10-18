@@ -855,7 +855,7 @@ button.chip:hover {
 .btn-step:hover:not(:disabled) { border-color: var(--accent2); }
 .btn-step:disabled { opacity: 0.35; cursor: not-allowed; }
 .cart-step .cart-n { min-width: 16px; text-align: center; font-variant-numeric: tabular-nums; }
-/* Cible TACTILE (CLAUDE.md règle 4) : sous pointeur grossier le pas est un carré de 40 px, dans ses
+/* Cible TACTILE (AGENTS.md règle 4) : sous pointeur grossier le pas est un carré de 40 px, dans ses
    DEUX formes — le bouton nu et celui que `GatedAction` rend (`class="btn btn-step"`, où `.btn` pose
    `min-height: 40px` en base.css). Même spécificité que `.btn`, mais `components.css` s'importe APRÈS
    `base.css` : c'est cette règle qui décide, et le pas reste carré. */

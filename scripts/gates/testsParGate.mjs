@@ -41,10 +41,16 @@ export const RACINES = Object.freeze({
   'test:recette': Object.freeze(['scripts/recette']),
   'test:raw': Object.freeze(['scripts/raw', 'scripts/source']),
   'test:ops': Object.freeze(['scripts/ops']),
+  'test:corpus': Object.freeze(['scripts/corpus']),
+  // Les balayages du dépôt réel joués hors de la concurrence de `test:corpus` : `--test-concurrency=1` (package.json, #2586).
+  'test:corpus-isole': Object.freeze(['scripts/corpus-isole']),
 })
 
 /** Les gates qui jouent des tests `scripts/**`, dans l'ordre de la table. */
 export const GATES = Object.freeze(Object.keys(RACINES))
+
+/** Les gates d'AUDIT du dépôt réel : `test:perimetre` envoie leurs tests à la CI à tout rang, touché compris (#2586). */
+export const GATES_D_AUDIT = Object.freeze(['test:corpus', 'test:corpus-isole'])
 
 /** `true` si `chemin` (relatif POSIX) tombe sous `racine`. */
 function sousRacine(chemin, racine) {

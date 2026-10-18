@@ -3,7 +3,7 @@
  * (`SkillRef.choix`) est DÉSIGNÉ AU SPAWN : l'instance persistée est CONCRÈTE. Chemin RÉEL, pas un
  * ctx forgé : `creatures.json` → `creatureToCombatant` → `skillsFromBook` → `testValue`.
  *
- * CLAUDE.md règle 7 (le RAW confie ce choix au MJ, et il n'y a pas de MJ) : tirage SEEDÉ sur l'uid
+ * AGENTS.md règle 7 (le RAW confie ce choix au MJ, et il n'y a pas de MJ) : tirage SEEDÉ sur l'uid
  * d'instance, parmi les ids que la donnée BORNE quand elle borne, sinon parmi le POOL de la
  * Compétence. `LDB 09 l.40` (« vous devrez choisir une Spécialisation vous-même »), `LDB 09 l.44`
  * (« chaque Spécialisation étant traitée comme une Compétence unique »).

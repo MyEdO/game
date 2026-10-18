@@ -11,14 +11,14 @@
 //   A. `.claude/memory/user-*.md` —
 //      1. corps > TAILLE_MAX octets, frontmatter exclu ET TEXTE CITÉ (`« … »`) EXCLU : la PROSE se
 //         plafonne, jamais les mots de l'utilisateur. « Tout arbitrage UTILISATEUR consigné (doc,
-//         mémoire, ticket) porte sa CITATION verbatim + date » (CLAUDE.md § Pour TOUT agent) : un
+//         mémoire, ticket) porte sa CITATION verbatim + date » (AGENTS.md § Pour TOUT agent) : un
 //         verbatim ne se tronque pas pour tenir un plafond, et une fiche qui en porte trois n'est pas
 //         plus bavarde qu'une autre. Ce qui se borne, c'est ce que la session ÉCRIT autour — sur la
 //         même ligne comme ailleurs : un seul mot cité n'exempte pas la ligne qui le porte ;
 //      2. toute date ISO (`AAAA-MM-JJ`) dans le corps HORS d'une ligne de citation verbatim
 //         (celle qui porte les guillemets `«` : un arbitrage consigné DOIT porter sa date) ;
 //      3. toute ligne qui CITE L'UTILISATEUR (`CITATION_DE_L_UTILISATEUR`) sans sa date ISO, la même
-//         règle de CLAUDE.md ;
+//         règle d'AGENTS.md ;
 //      4. les motifs de RÉCIT.
 //   R. `.claude/rules/*.md` — 1. fichier entier > REGLE_TAILLE_MAX octets (« 4 Ko maximum par fichier »,
 //      .claude/rules/contexte-agents.md) ; 2. et 3. ceux de A, frontmatter `paths:` exclu ;
@@ -153,7 +153,7 @@ export function defautsDeForme(chemin, texte) {
   if (famille === 'fiche' || famille === 'regle') {
     // Une date n'est légitime que SUR une ligne de CITATION (celle qui porte les guillemets `«`) :
     // c'est la règle du dépôt — « Tout arbitrage UTILISATEUR consigné (doc, mémoire, ticket) porte sa
-    // CITATION verbatim + date » (CLAUDE.md § Pour TOUT agent), et une fiche peut porter PLUSIEURS
+    // CITATION verbatim + date » (AGENTS.md § Pour TOUT agent), et une fiche peut porter PLUSIEURS
     // verbatims. Toute date HORS citation est du récit daté : la règle s'écrit au présent, git porte
     // le jour où elle est née.
     lignes.forEach((l, i) => {

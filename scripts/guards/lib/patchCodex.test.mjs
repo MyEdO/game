@@ -35,14 +35,14 @@ test('patch natif : hunks séparés, contexte @@, EOF et terminaisons exactes', 
   assert.equal(normaliser('*** Update File: fichier\n@@\n a\n-b\n+B\n c', { fichier: 'a\r\nb\nc\r\n' }).ecritures[0].content, 'a\r\nB\r\nc\r\n')
 })
 
-test('patch natif : une préimage lue une fois ; erreur de lecture refusée avec ctx_patch', () => {
+test('patch natif : une préimage lue une fois ; erreur de lecture refusée vers un `apply_patch` à préimage du disque', () => {
   let lectures = 0
   const n = normaliser('*** Update File: f\n@@\n-a\n+A\n@@\n-b\n+B', {}, 'PreToolUse', () => { lectures++; return 'a\nb\n' })
   assert.equal(lectures, 1)
   assert.equal(n.ecritures[0].content, 'A\nB\n')
   const casse = normaliser('*** Update File: f\n@@\n-a\n+A', {}, 'PreToolUse', () => { throw new Error('EACCES') })
   assert.match(casse.nonJugeable.raison, /EACCES/)
-  assert.match(casse.nonJugeable.canal, /ctx_patch/)
+  assert.match(casse.nonJugeable.canal, /`apply_patch`.*préimage est celle du disque/)
   let compte = 0
   const sequence = normaliser('*** Update File: f\n@@\n-a\n+A\n*** Update File: f\n@@\n-A\n+AA', {}, 'PreToolUse', () => { compte++; return 'a\nb\n' })
   assert.equal(compte, 1)

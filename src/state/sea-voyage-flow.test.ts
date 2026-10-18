@@ -748,7 +748,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     // Victoire du combat (raccourci de test — la résolution d'attaque RÉELLE est couverte ailleurs) :
     // l'ennemi tombe, `checkBattleOver` pose `over:'victory'` + `pendingVictory`.
     const battle = get().battle!;
-    for (const c of battle.combatants) if (c.kind === 'enemy') c.wounds.current = 0;
+    for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
     expect(get().pendingVictory).toBeTruthy();
@@ -793,7 +793,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     const progression = joues.find((x) => x.kind === 'progression')!;
 
     const battle = get().battle!;
-    for (const c of battle.combatants) if (c.kind === 'enemy') c.wounds.current = 0;
+    for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
     get().dismissVictory();

@@ -1157,10 +1157,7 @@ test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence'
   )
 })
 
-// Sonde du juge de diff (2026-09-05) promue : un chemin écrit en GABARIT à substitution
-// (`` `src/${n}.test.ts` ``) est une entrée comme une autre. La lecture par IMAGE n'en voyait aucune
-// là où le REPLI en comptait deux — une porte dont la voie précise voit MOINS que sa voie de secours
-// se contourne en changeant de graphie.
+// Une porte dont la voie précise voit MOINS que sa voie de secours se contourne en changeant de graphie.
 test('portée — une entrée écrite en GABARIT à substitution est vue par l’IMAGE comme par le repli', () => {
   const f = 'scripts/guards/lib/xTemplate.mjs'
   const post = ["const n = 'a'", 'export const S = [', '  `src/${n}.test.ts`,', '  `src/${n}b.test.ts`,', ']'].join('\n')
@@ -1176,12 +1173,8 @@ test('portée — une entrée écrite en GABARIT à substitution est vue par l�
 })
 
 // ── ARGUMENT D'APPEL : un paramètre n'est pas un stock (#1709) ─────────────────────────────────
-// Trois trains de gates perdus (2026-09-07) sur la même classe : la migration des marches d'arbre
-// vers `readCorpus` écrit `readCorpus(['src/ui'])`, et l'IMAGE y lisait « +1 entrée de stock » —
-// le repli de ligne, lui, n'y voyait rien. Les cliquets payés (`6382c792d`, `cc71eb45c`) NIENT tous
-// leur propre croissance. Le discriminant n'est PAS la position d'argument seule (elle s'obtient
-// en UNE ligne d'enveloppe) : c'est qu'un tel argument ne nomme aucun FICHIER — ce sont des
-// RACINES de scan que l'appelé consomme.
+// Le discriminant n'est PAS la position d'argument seule (elle s'obtient en UNE ligne d'enveloppe) :
+// c'est qu'un tel argument ne nomme aucun FICHIER — ce sont des RACINES de scan que l'appelé consomme.
 
 const CORPUS = 'scripts/guards/lib/xCorpus.mjs'
 const entreesA = (lignes) => lignesDe(`${lignes.join('\n')}\n`, CORPUS)
@@ -1241,7 +1234,7 @@ test('argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME
 })
 
 // FRONTIÈRE mesurée : un ÉLÉMENT de stock qui nomme son fichier À TRAVERS un appel reste une
-// entrée — `scripts/test/run.test.mjs:83` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
+// entrée — `scripts/test/run.test.mjs` (`abs`) est un
 // stock nominatif à part entière. La règle porte sur le PORTEUR en position d'argument :
 // il n'est exempt que s'il ne nomme AUCUN fichier — un élément qui en nomme un le rend porteur.
 test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée', () => {

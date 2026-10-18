@@ -46,6 +46,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
   it("attaquant PILOTÉ (joueur) contre une cible Inconsciente : le picker de Localisation existant devient utilisable, et la loc CHOISIE est celle réellement appliquée", () => {
     const { E } = setup();
     E.conditions = [{ id: 'inconscient', value: 1 }];
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     useGame.getState().battleClickEntity(E.id, { confirm: true });
     // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forced`),
     // mais gratuit — cf. LDB 16 l.113 « sans avoir à dépenser un Point de Résilience ».
@@ -67,7 +68,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     H.conditions = [{ id: 'inconscient', value: 1 }];
     // PA à 0 partout : évite d'entrer dans la Déviation Critique (LDB 63 l.30, feature DISTINCTE de #124)
     // qui suspendrait aussi — on isole ici le comportement du picker de Localisation.
-    H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const before = H.wounds.current;
     doAttack(useGame.getState, useGame.setState, E, H);
     expect(useGame.getState().pendingAttack).toBeNull(); // l'IA ne passe jamais par le picker joueur

@@ -62,7 +62,7 @@ describe('B2 — REMÈDE (b) : validateEntry refuse une valeur incompatible avec
 
   it('MORSURE — un défaut HORS des `options` d’un choix → rouge', () => {
     const e = errs({ id: 'r', label: 'R', ref: 'LDB 12 l.28', group: 'Tests', kind: 'mode', default: 'inconnu', options: ['normal', 'off'] });
-    expect(e.some((x) => x.includes("n'est pas une des `options`"))).toBe(true);
+    expect(e.some((x) => x.includes("n'est pas une des valeurs proposées"))).toBe(true);
   });
 
   it('MORSURE — un défaut numérique HORS de ses bornes → rouge', () => {

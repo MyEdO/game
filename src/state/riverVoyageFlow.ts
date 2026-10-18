@@ -176,10 +176,11 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
   return possesses(c, competence.id, competence.spec) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
 }
 
-/** La coque d'une descente JOUABLE : à flot, avec un batelier — `null` sinon (→ repli transport payant). */
+/** La coque d'une descente JOUABLE : un bateau et un batelier — `null` sinon (→ repli transport payant) ;
+ *  un bateau à 0 Blessure navigue (MSRC 07 l.74, l.90). */
 function coqueJouable(get: Get, route: MapRoute): Combatant | null {
   const hull = riverHull(get, route);
-  return hull && hull.coque.wounds.current > 0 && hasBatelier(get().party, riverNavSkill(hull.coque)) ? hull.coque : null;
+  return hull && hasBatelier(get().party, riverNavSkill(hull.coque)) ? hull.coque : null;
 }
 
 /** Le départ de `route` en `mode` est-il une descente fluviale JOUÉE (MSRC 7) : route `river`, véhicule

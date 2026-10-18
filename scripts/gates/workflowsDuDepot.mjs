@@ -72,7 +72,7 @@ export const WORKFLOWS = Object.freeze({
   'deploy.yml': {
     etat: 'manuel',
     raison:
-      '`on: workflow_dispatch:` seul : lancé et regardé par une main humaine (CLAUDE.md § Pile et ' +
+      '`on: workflow_dispatch:` seul : lancé et regardé par une main humaine (AGENTS.md § Pile et ' +
       'commandes, « prod — sur demande explicite SEULEMENT »)',
   },
 })

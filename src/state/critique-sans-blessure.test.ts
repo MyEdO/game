@@ -13,9 +13,10 @@ import type { Scene } from './scene';
 import type { RNG } from '../engine/dice';
 import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { makeRNG } from '../engine/dice';
 
 /**
- * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 18 l.23, MDG 13 l.656,
+ * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 13 l.161 (dépassement) ; AA 07 l.25, MDG 13 l.656,
  * MDG 12 l.232, AA 10 l.114. Un aiguillage par type de cible (Structure, coque, personnage), comme
  * `applyCriticalToTarget`.
  */
@@ -71,7 +72,7 @@ describe('Critique d’une coque, à 0 Blessure comme blindée', () => {
 const gourdin: Weapon = { label: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'inoffensive' }] };
 /** Double réussi, par la couture du jeu (`rederivePassiveAttack` → `applyHit`). */
 const doubleAbsorbe = (attaquant: Combatant, cible: Combatant): AttackResult =>
-  rederivePassiveAttack(attaquant, cible, gourdin, { roll: 44, target: 90, success: true, sl: 2, isDouble: true } as never, 'melee', 'corps');
+  rederivePassiveAttack(attaquant, cible, gourdin, { roll: 44, target: 90, success: true, sl: 2, isDouble: true } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
 
 function combat(seed = 7) {
   useGame.getState().seedRng(seed);
@@ -84,7 +85,7 @@ function combat(seed = 7) {
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const E = b.combatants.find((c) => c.kind === 'enemy')!;
-  for (const c of [H, E]) { c.armour = { ...SANS_PA }; c.characteristics = { ...c.characteristics, endurance: 60 }; }
+  for (const c of [H, E]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.characteristics = { ...c.characteristics, endurance: 60 }; }
   return { H, E };
 }
 
@@ -94,6 +95,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
 
   it('créature, arme Inoffensive, double absorbé : le Critique est appliqué (LDB 13 l.183)', () => {
     const { H, E } = combat();
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     const res = doubleAbsorbe(H, E);
     expect(res).toMatchObject({ hit: true, critical: true, woundsLost: 0 });
     applyAttackResult(useGame.getState, useGame.setState, H, E, gourdin, res, { sousAttaque: true });

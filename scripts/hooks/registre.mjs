@@ -17,6 +17,7 @@ import { garde as suiviEcriture } from './suivi-ecriture-guard.mjs'
 import { garde as suiviLien } from './suivi-lien-guard.mjs'
 import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
 import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
+import { garde as confirmationHorsBash } from './confirmation-hors-bash-guard.mjs'
 import { garde as lectureSeule } from './lecture-seule-guard.mjs'
 import { garde as workflowType } from './workflow-type-guard.mjs'
 import { garde as racineDeConfiance } from './racine-de-confiance-guard.mjs'
@@ -25,7 +26,7 @@ import { garde as reglesProjection, gardeEdition as reglesProjectionEdition } fr
 export const REGISTRE = {
   PreToolUse: [
     canalOutil, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
-    commandePiege, issueLabel, codeurGates, runnerCapture, appelBorne, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes,
+    commandePiege, issueLabel, codeurGates, runnerCapture, appelBorne, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes, confirmationHorsBash,
     lectureSeule, workflowType, racineDeConfiance, reglesProjectionEdition,
   ],
   PostToolUse: [poison, reglesProjection],

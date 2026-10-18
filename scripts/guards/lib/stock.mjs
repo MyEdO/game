@@ -116,7 +116,7 @@ export function naissanceDu(quoi, familles) {
  * chaque édition du fichier et rendrait la moitié du stock périmée à chaque commit.
  * Ce que la clé INCLUT, sur les volets à RÉF CITÉE (`reanchor-low`, `dead-refs`, `empty-line`,
  * `dead-code-refs`) : la ligne citée dans `Source/` (`LDB 07 l.43`), qui est l'identité même du site
- * et reste stable hors ré-extraction. Une RÉ-EXTRACTION Marker fait dériver ces lignes (CLAUDE.md
+ * et reste stable hors ré-extraction. Une RÉ-EXTRACTION Marker fait dériver ces lignes (AGENTS.md
  * § Sources VF) — c'est l'événement pour lequel `reanchor.mjs` existe : le stock se renouvelle alors
  * EN BLOC (N périmées + N neuves pour zéro dette de plus) et se déclare comme tel.
  * La clé se CALCULE, elle ne s'ÉCRIT PAS sur le disque : ses séparateurs portent des espaces,

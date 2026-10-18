@@ -1750,6 +1750,8 @@ export interface TraitCapabilities {
    *  le talent Riposte (`CombatFeature.counterOnDefenseWin`) — un seul concept pour traits ET talents. */
   counterOnDefenseWin?: boolean;
   counterRequiresFastParry?: boolean;
+  /** `CombatFeature.counterDeclaredPerLevel`. */
+  counterDeclaredPerLevel?: boolean;
   unstable?: boolean;
   painless?: boolean;
   /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */
@@ -1810,9 +1812,8 @@ export interface TraitCapabilities {
   /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */
   noRun?: boolean;
   seesInDark?: boolean;
-  /** Portée de vision dans le noir, en cases (Vision nocturne 20 m/niv = 10 — `LDB 11 l.176` ;
-   *  Infravision = illimité, grande valeur — `LDB 85 l.191`). Lue par `darkSightTiles`. */
-  darkSightTiles?: number;
+  /** `LDB 11 l.176` ; `null` : `LDB 85 l.191`, portée du niveau de lumière `jour`. Lue par `darkSightTiles`. */
+  darkSightTiles?: number | null;
   /** Salive analgésique (MSRC 15) : la morsure INDOLORE de la créature ne RÉVEILLE pas une proie
    *  endormie (Inconscient magique) — elle s'y accroche sans être détectée. Lu par le modifier `wake-sleeper`. */
   wakelessBite?: boolean;
@@ -1929,7 +1930,6 @@ export interface QualityCapabilities {
   encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
   // Armure (LDB 63)
   layerable?: boolean;          // Flexible : superposition sous une couche non Flexible
-  critImmuneOdd?: boolean;      // Impénétrable : Critiques sur jet impair ignorés
   apIgnoredOnEven?: boolean;    // Partielle : PA ignorés sur jet pair ou Critique
   apIgnoredOnImpaleCrit?: boolean; // Points faibles : PA ignorés sur Critique Empaleuse
   // Siège (ADE II 8)
@@ -2394,7 +2394,7 @@ export const traits = traitsJson as TraitData[];
 const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.toLowerCase());
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
  *  `undefined` si le texte ne nomme aucun trait du catalogue. La couture label→id vit ICI, au
- *  CHARGEMENT de la donnée (CLAUDE.md § Pour TOUT agent) : `src/engine` délègue à ce résolveur d'ID
+ *  CHARGEMENT de la donnée (AGENTS.md § Pour TOUT agent) : `src/engine` délègue à ce résolveur d'ID
  *  et ne manipule que des ids ; le runtime résout par `findTraitById`. */
 export const traitIdByLabel = (label: string): string | undefined => traitParLabelMinuscule(label.toLowerCase())?.id;
 const traitParId = indexParId('traits', traits);
@@ -3315,7 +3315,7 @@ const qualiteParSlugDeLabel = indexParChamp('qualities', qualities, (q) => slugI
 /** `id` STABLE d'une Qualité depuis un LIBELLÉ saisi à l'AUTHORING (« Solide », « solide »,
  *  « tir-de-zone ») — casse ignorée puis slug du libellé, `undefined` si hors catalogue. La couture
  *  label→id vit ICI, au chargement de la donnée, JAMAIS dans `src/engine`/`src/state`
- *  (CLAUDE.md § Pour TOUT agent) : le moteur ne reçoit qu'un id, résolu par `findQualityById`. */
+ *  (AGENTS.md § Pour TOUT agent) : le moteur ne reçoit qu'un id, résolu par `findQualityById`. */
 export const qualityIdByLabel = (label: string): string | undefined => {
   const q = qualiteParLabelMinuscule(label.toLowerCase()) ?? qualiteParSlugDeLabel(slugId(label));
   if (!q) return undefined;

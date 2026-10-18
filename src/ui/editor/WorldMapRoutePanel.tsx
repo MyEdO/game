@@ -1,6 +1,6 @@
 /**
  * Panneau ROUTE de l'éditeur de carte du monde (#419) — extrait du monolithe `WorldMapEditor.tsx`
- * (règle 4 CLAUDE.md : 4 sections à plat → 2 onglets `Tabs`). « Trajet » (distance/sens/modes/billet/
+ * (règle 4 AGENTS.md : 4 sections à plat → 2 onglets `Tabs`). « Trajet » (distance/sens/modes/billet/
  * vitesse + maritime), « Péripéties » (embuscade + péripéties d'auteur via EffectList).
  */
 import { useState } from 'react';

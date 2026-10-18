@@ -7,7 +7,7 @@ import type { Scene } from '../../state/scene';
 /**
  * « Dialogue multi-interlocuteurs » (#669) : UN dialogue dont les NŒUDS alternent l'interlocuteur
  * via `DialogueNode.speakerId` (id d'une `SceneEntity` de la scène → SON portrait + SON nom, jamais
- * un nom en clair — CLAUDE.md, « on ne MANIPULE que des IDs »). Ouvert en parlant à Gustav
+ * un nom en clair — AGENTS.md, § « Pour TOUT agent »). Ouvert en parlant à Gustav
  * (`dialogueId: 'dlg-tablee'`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
  * SESSION posé par `interactEntity` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
  * vers Isolde puis Phillipe (`speakerId` explicite), avant de revenir à Gustav (session, par défaut).

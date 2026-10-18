@@ -967,7 +967,7 @@ DES BOURGEOIS EN COLÈRE
 
 ### **Recrutement chez Pâtebrisée**
 
-Les bureaux de Hettie Pâtebrisée ont de quoi marquer les esprits : ils se trouvent dans une structure de poutres compacte à côté de laquelle a été érigée une haute cabane en bois avec une immense porte de grange. Tout cela pour que Hettie, qui est petite même pour une halfling, puisse assister à ses rendezvous avec ses clients les plus importants, les ogres.
+Les bureaux de Hettie Pâtebrisée ont de quoi marquer les esprits : ils se trouvent dans une structure de poutres compacte à côté de laquelle a été érigée une haute cabane en bois avec une immense porte de grange. Tout cela pour que Hettie, qui est petite même pour une halfling, puisse assister à ses rendez-vous avec ses clients les plus importants, les ogres.
 
 Hettie offre ses services d'intermédiaire à tout ogre de passage à Middenheim. Tous les enfants de la rue savent que s'ils remarquent un ogre à l'entrée de la cité et courent prévenir Hettie, elle les récompensera peut-être d'une pistole rutilante.
 

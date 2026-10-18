@@ -45,9 +45,9 @@ export function franchitLaPanne(entree, cause) {
 
 /** Le geste qui répare `cause`, à rendre dans le refus. PURE. */
 export function gesteDeReparation(cause, racine) {
-  if (cause.genre === 'dependance') return 'dépendance npm absente, non retentable : lancer `npm ci` (seule commande admise)'
+  if (cause.genre === 'dependance') return 'dépendance npm absente : lancer `npm ci` (seule commande admise)'
   const ou = cause.fichiers.length ? ` (nommé : ${cause.fichiers.map((c) => relative(racine, c)).join(', ')})` : ''
-  return `non retentable : corriger le module en panne${ou} par une édition de fichier, seul geste admis en session principale`
+  return `corriger le module en panne${ou} par une édition de fichier, seul geste admis en session principale`
 }
 
 /** La panne `e` pour l'appel `entree` : son message, son geste de réparation, et si l'appel la franchit. PURE. */

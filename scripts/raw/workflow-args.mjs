@@ -212,7 +212,8 @@ export function argsDeDossierDeChapitre(livre, chapitre, { worktree, date, commi
 
 /**
  * Les `args` de `.claude/workflows/table-simulee.js` : `dossier` = l'OBJET de la fiche commitée du
- * chapitre, chargée et gardée par `chargerDossiers`. LÈVE sans fiche.
+ * chapitre, chargée et gardée par `chargerDossiers` ; `typeDePointAuMJ` = la forme projetée du `type` d'un
+ * point au MJ (`famillesDeLaFiche`), d'où le workflow dérive ses catégories d'IMPRO. LÈVE sans fiche.
  * @param {{ worktree: string, date: string, seed: string, maxEchanges?: number, personas?: string[], dir?: string, fichierDe?: (abbr: string, nn: string) => string | null }} options
  */
 export function argsDeTableSimulee(livre, chapitre, { worktree, date, seed, maxEchanges, personas, dir = DOSSIERS_DIR, fichierDe = fichierDuChapitre }) {
@@ -223,7 +224,7 @@ export function argsDeTableSimulee(livre, chapitre, { worktree, date, seed, maxE
   if (!charge)
     throw new Error(`workflow-args: aucune fiche ${dir}/${livre}/${chapitre}.json — un dossier de chapitre se lit (\`dossier-de-chapitre\`) et s'écrit (\`ecrire-fiche\`) avant toute table ; fiches : ${fiches.map((f) => f.chemin).join(', ') || '(aucune)'}`)
   return {
-    livre, chapitre, fichiers: [fichierExige(livre, chapitre, fichierDe)], dossier: charge.fiche, seed, worktree, date,
+    livre, chapitre, fichiers: [fichierExige(livre, chapitre, fichierDe)], dossier: charge.fiche, typeDePointAuMJ: famillesDeLaFiche().pointsAuMJ.entree.properties.type, seed, worktree, date,
     ...(maxEchanges === undefined ? {} : { maxEchanges }),
     ...(personas === undefined ? {} : { personas }),
   }

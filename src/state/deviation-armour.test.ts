@@ -4,7 +4,7 @@ import { tenuParUnHumain } from './netOwnership';
 import { applyAttackResult, resolveDeviation } from './combatFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resetRule } from '../engine/policy';
-import { deviatableArmourAt } from '../engine/items';
+import { deviatableArmourAt, damageArmour, impenetrableAt } from '../engine/items';
 import { attachMutation, nonDeviatableMutationAP } from '../engine/corruption';
 import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
@@ -35,7 +35,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   ({
-    id: 'e1', name: 'Brute', kind: 'enemy', characteristics: CHARS,
+    id: 'e1', name: 'Brute', kind: 'enemy', important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: CHARS,
     wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
@@ -81,24 +81,36 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
 
   it('armure portée seule → PA entièrement déviatable', () => {
     const c = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
   });
 
   it('Trait créature Armure (PA de statbloc, LDB 85) → reste DÉVIATABLE (non barré)', () => {
     // PA de profil créature, sans pièce portée ni mutation marquée : aucune exclusion (LDB 85 l.37-39).
     const c = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     expect(nonDeviatableMutationAP(c, 'corps')).toBe(0);
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
   });
 
   it('Écailles seule (PA = 1, noDeviation) → PA déviatable NUL (EDO App.2 l.196)', () => {
     const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 } }));
-    expect(deviatableArmourAt(c, 'corps')).toBe(0);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
   });
 
-  it('armure portée (3) + Écailles (1) → seul le PA porté (3) est déviatable', () => {
+  it('armure plate (3) + Écailles (1) → la Localisation reste protégée', () => {
     const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } }));
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+  });
+
+  it('LDB 63 l.19, l.21 : une pièce portée à 0 PA reste déviable ; la Déviation la rend inutilisable', () => {
+    const piece = { ...wornPiece(1), damageTaken: 1, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
+    const c = hero({ items: [piece] });
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+    expect(impenetrableAt(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(piece.damageTaken).toBe(2);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
+    expect(impenetrableAt(c, 'corps')).toBe(false);
+    expect(damageArmour(c, 'corps')).toBe(false);
   });
 });
 
@@ -150,7 +162,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(hh.criticalWounds ?? 0).toBe(1); // Critique subi
   });
 
-  it('ATTAQUE STANDARD (aucune option) → la fenêtre offre ses voies ; SOUS-ATTAQUE → aucune fenêtre de Déviation', () => {
+  it('LDB 63 l.30 : héros tenu, attaque STANDARD comme SOUS-ATTAQUE → la fenêtre offre ses voies', () => {
     const mont = () => {
       seedBattleRng(424242);
       const e = enemy({});
@@ -158,17 +170,16 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
       setBattle([e, h]);
       return { e, h };
     };
-    const voies = () => (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
     const std = mont();
     expect(applyAttackResult(useGame.getState, useGame.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(OPS_DIFFEREES);
     expect(tireLaSeverite().options?.map((o) => o.key), 'standard : Dévier / Subir offerts').toEqual(['devier', 'subir']);
 
     useGame.setState({ pendingCascade: null });
     const sous = mont();
-    applyAttackResult(useGame.getState, useGame.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true });
-    expect(voies(), 'sous-attaque : pas de fenêtre de Déviation imbriquée').toEqual([]);
+    expect(applyAttackResult(useGame.getState, useGame.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true }), 'sous-attaque : suspendu').toBe(OPS_DIFFEREES);
+    expect(tireLaSeverite().options?.map((o) => o.key), 'sous-attaque : Dévier / Subir offerts').toEqual(['devier', 'subir']);
     const hh = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'la pièce n’est pas sacrifiée').toBe(0);
+    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'rien n’est sacrifié avant la décision').toBe(0);
   });
 
   it('héros avec une PIÈCE portée → Déviation offerte ; sur « Dévier », la pièce perd 1 PA, Critique ignoré', () => {

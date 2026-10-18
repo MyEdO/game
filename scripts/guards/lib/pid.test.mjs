@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { NAISSANCE_ABSENTE, creationMemorisee, estPidDeProcessus, estPidVivant, estPidVivantDepuis } from './pid.mjs'
-import { constructionsReserveesDuCorpus, scanConstructionsReservees, SONDE_D_EXISTENCE } from './canonUnique.mjs'
+import { constructionsReserveesDuCorpus, scanConstructionsReservees, SONDE_D_EXISTENCE, VIE_SUR_PID_LU } from './canonUnique.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
 
 /** Une erreur de sonde au `code` donné, telle que `process.kill` la lève. */
@@ -108,4 +108,33 @@ test('SONDE_D_EXISTENCE : une sonde neuve hors du foyer est un site, la même da
   assert.deepEqual(vu("process.kill(pid, 'SIGKILL')"), [])
   assert.deepEqual(vu('enfant.kill()'), [])
   assert.deepEqual(vu('process.kill(pid, 0)', 'scripts/guards/lib/pid.mjs'), [])
+})
+
+// ── Une vie jugée porte sa naissance ───────────────────────────────────────────────────────────────
+
+/** Le foyer : la primitive et son test, qui sonde des pids forgés. */
+const VIE = { ...VIE_SUR_PID_LU, foyer: ['scripts/guards/lib/pid.mjs', 'scripts/guards/lib/pid.test.mjs'] }
+
+// #2603 #2586
+test('VIE_SUR_PID_LU : aucun `estPidVivant` jugé sans naissance hors de `pid.mjs`', () => {
+  assert.deepEqual(constructionsReserveesDuCorpus(corpusDesGardes(), [VIE]), [])
+})
+
+// #2603 #2586
+test('VIE_SUR_PID_LU : un pid lu jugé nu hors du foyer est un site ; la sonde injectée à `estPidVivantDepuis` et un homonyme local n’en sont pas', () => {
+  const imp = "import { estPidVivant, estPidVivantDepuis } from './guards/lib/pid.mjs'\n"
+  const vu = (text, rel = 'scripts/fixture.mjs') => scanConstructionsReservees({ rel, text: imp + text }, [VIE]).map((t) => t.construction)
+  assert.deepEqual(vu('estPidVivant(lu.pid)'), ['VIE_SUR_PID_LU'])
+  assert.deepEqual(vu('pids.filter(estPidVivant)'), ['VIE_SUR_PID_LU'])
+  assert.deepEqual(vu('export function f(lu, { estVivant = estPidVivant } = {}) { return estVivant(lu.pid) }'), ['VIE_SUR_PID_LU'])
+  assert.deepEqual(vu('export function f(lu, { vivant: juge = estPidVivant } = {}) { return juge(lu.pid) }'), ['VIE_SUR_PID_LU'])
+  assert.deepEqual(vu('export function f(lu, vivant = estPidVivant) { return vivant(lu.pid) }'), ['VIE_SUR_PID_LU'])
+  const voisin = (rel) => scanConstructionsReservees({ rel, text: "import { estPidVivant } from './pid.mjs'\nestPidVivant(lu.pid)" }, [VIE]).map((t) => t.construction)
+  assert.deepEqual(voisin('scripts/guards/lib/pid.mjs'), [])
+  assert.deepEqual(voisin('scripts/guards/lib/pid.test.mjs'), [])
+  assert.deepEqual(voisin('scripts/guards/lib/pidBis.test.mjs'), ['VIE_SUR_PID_LU'])
+  assert.deepEqual(vu('export function f(lu, identite, { estVivant = estPidVivant } = {}) { return estPidVivantDepuis(lu.pid, Date.parse(lu.date), identite, { estVivant }) }'), [])
+  assert.deepEqual(vu('export function f(lu, identite, { estVivant = estPidVivant } = {}) { return g(lu, identite, estVivant) }'), [])
+  assert.deepEqual(vu('const estVivant = (x) => x !== null\nestVivant(lu.pid)'), [])
+  assert.deepEqual(scanConstructionsReservees({ rel: 'scripts/fixture.mjs', text: 'const estPidVivant = () => true\nestPidVivant(lu.pid)' }, [VIE]), [])
 })

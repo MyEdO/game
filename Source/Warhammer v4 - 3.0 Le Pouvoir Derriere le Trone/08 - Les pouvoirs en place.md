@@ -14,7 +14,7 @@ Le résultat de la première rencontre avec un PNJ donne le ton pour toute inter
 
 La première implique d'emprunter la voie officielle. En effet, de nombreux PNJ ont des fonctions liées à la cité. En théorie, cette méthode d'interaction est accessible à toute personne ayant un intérêt valable pour leur emploi. En pratique, passer par la voie officielle peut aboutir à un rendez-vous dans un délai de 2 à 11 jours (1d10+1), ce qui est probablement trop long pour les objectifs du groupe.
 
-La deuxième méthode consiste à rencontrer le PNJ dans un cadre social ou lors d'un événement lié au Carnaval, par exemple, à l'opéra ou au tournoi de tir à l'arc. Cette méthode est à la fois plus rapide et plus simple, puisqu'il n'est pas nécessaire de prendre rendezvous ou d'inventer une histoire. Plusieurs aides au MJ (voir *Suivre à la trace* p. 78) sont fournies pour répertorier les mouvements des PNJ importants pendant la semaine du Carnaval.
+La deuxième méthode consiste à rencontrer le PNJ dans un cadre social ou lors d'un événement lié au Carnaval, par exemple, à l'opéra ou au tournoi de tir à l'arc. Cette méthode est à la fois plus rapide et plus simple, puisqu'il n'est pas nécessaire de prendre rendez-vous ou d'inventer une histoire. Plusieurs aides au MJ (voir *Suivre à la trace* p. 78) sont fournies pour répertorier les mouvements des PNJ importants pendant la semaine du Carnaval.
 
 Les Personnages peuvent également rencontrer certains PNJ par pur hasard en se déplaçant dans la ville (quelques exemples sont donnés ci-dessous). Ces rencontres fortuites peuvent contribuer à animer une session de jeu peu productive, mais elles doivent être utilisées avec parcimonie afin que les Joueurs n'aient pas la tentation d'attendre passivement que les réponses viennent à eux. Certains PNJ, comme le Champion du Graf, sont très faciles à croiser en ville et ne nécessitent pas de « rencontres fortuites » spécialement mises en place.
 
@@ -49,7 +49,7 @@ Il est toujours possible que les Personnages ne reconnaissent pas un PNJ au prem
 
 ### **Toc toc**
 
-Chez eux, les PNJ sont protégés par des gardes et des serviteurs, comme des majordomes et des valets, qui veillent à ce que personne ne voie leur maître ou maîtresse sans rendezvous, ou du moins sans raison valable. Certains peuvent refuser d'aider les Personnages simplement pour mettre en valeur leur propre rang et leur position. Face à un laquais inflexible, les Personnages ont plusieurs options.
+Chez eux, les PNJ sont protégés par des gardes et des serviteurs, comme des majordomes et des valets, qui veillent à ce que personne ne voie leur maître ou maîtresse sans rendez-vous, ou du moins sans raison valable. Certains peuvent refuser d'aider les Personnages simplement pour mettre en valeur leur propre rang et leur position. Face à un laquais inflexible, les Personnages ont plusieurs options.
 
 #### **Subornation**
 

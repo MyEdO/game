@@ -8,9 +8,12 @@
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import type { z } from 'zod';
 
 import { CodexEdit } from './CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
+import { noeudDuChamp, noeudObjet } from '../../data/schemas/validate';
+import { metaDesChamps } from '../../data/schemas/grammaire/meta';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -33,7 +36,8 @@ function monter(d: Domaine) {
   root = createRoot(container);
   act(() => { root.render(<CodexEdit categoryKey="domains" id={d.id} onClose={() => {}} />); });
 }
-const cases = (n: number) => [...container.querySelectorAll<HTMLInputElement>(`[role="group"][aria-label^="when de la rangée ${n} "] input[type="checkbox"]`)];
+const WHEN = metaDesChamps(noeudObjet(noeudDuChamp('domains.json', 'windModifiers')) as z.ZodObject, { exigees: true }).when.label;
+const cases = (n: number) => [...container.querySelectorAll<HTMLInputElement>(`[role="group"][aria-label^="${WHEN} de la rangée ${n} "] input[type="checkbox"]`)];
 const cochees = (n: number) => cases(n).filter((c) => c.checked);
 
 describe('atelier du Codex — une liste de valeurs d’enum est un ensemble de cases', () => {

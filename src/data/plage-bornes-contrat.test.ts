@@ -9,9 +9,9 @@
  *  B. les bornes d'un RÉGLAGE et les bornes d'un TIRAGE sont disjointes ;
  *  C. la fourchette EMBOÎTÉE (`{range: {min, max}}`) n'existe nulle part ;
  *  D. l'en-tête de `STRUCTURES_ORPHELINES` dit ce que le stock mesure ;
- *  E. les bandes OUVERTES (`max: null`) de toute la donnée sont NOMMÉES, une par document — c'est ce
+ *  E. les bandes OUVERTES (`min` ou `max` `null`) de toute la donnée sont NOMMÉES, une par document — c'est ce
  *     qui justifie un nœud de grammaire à part (`plageOuverteSchema`, #1463 L-gram-1) plutôt qu'une
- *     borne haute rendue `nullable` partout ;
+ *     paire de bornes rendue `nullable` partout ;
  *  F. la paire de bornes encodée en TUPLE `[min, max]` est INVENTORIÉE, site par site, en stock
  *     DÉCROISSANT — avec les sites qui n'en sont pas, EXCLUS NOMMÉMENT.
  *
@@ -77,7 +77,7 @@ type Mesure = {
   /** Élément de TABLEAU portant `max` (nombre ou `null`) SANS `min` : la borne haute SEULE. Borné au
    *  tableau à dessein (cf. l'en-tête, bord (2) : hors tableau, `{max}` seul est un CARDINAL). */
   borneHauteSeule: Site[];
-  /** Objet portant `min` numérique et `max: null` : la bande OUVERTE (`plageOuverteSchema`). */
+  /** Objet portant une borne numérique et l'autre `null` : la bande OUVERTE (`plageOuverteSchema`). */
   bandesOuvertes: Site[];
   /** TUPLE `[nombre, nombre]`, agrégé par `doc::chemin` (indices de tableau réduits à `[]`). */
   tuples: Record<string, number>;
@@ -116,7 +116,7 @@ function mesurer(): Mesure {
     // du lexique ne le fait plus non plus (`candidatureHorsTableau`, #1659) — un `{min,max}` porté par
     // un champ est la même fourchette que celui d'un élément de tableau.
     if (estNombre(o.min) && estNombre(o.max)) m.deuxBornes.push({ doc, chemin, cles });
-    if (estNombre(o.min) && o.max === null) m.bandesOuvertes.push({ doc, chemin, cles });
+    if ((estNombre(o.min) && o.max === null) || (o.min === null && estNombre(o.max))) m.bandesOuvertes.push({ doc, chemin, cles });
     if (dansTableau && 'max' in o && !('min' in o) && (estNombre(o.max) || o.max === null)) {
       m.borneHauteSeule.push({ doc, chemin, cles });
     }
@@ -204,21 +204,23 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     ).toEqual(['talents.json[]', 'talents.json[].variants[]']);
   });
 
-  it('E — les bandes OUVERTES (`max: null`) sont NOMMÉES, une par document', () => {
-    // La divergence que `plageOuverteSchema` (`grammaire/valeurs.ts`) porte, et les TROIS endroits où
-    // un livre l'écrit : `LDB 07 l.49` ne pose aucun plafond au nombre d'Augmentations, la bande
-    // « 71 et + » (l.70) n'a donc pas de borne haute ; `MDG 15 l.383` imprime « 4 ou plus » à la
-    // dernière bande du Prix d'offre ; `MDG 12 l.129` imprime « 81+ » à la dernière taille de coque
-    // (#1659 L-1659-3 — la donnée y écrivait un plafond `130` absent de la l.129). JSON n'a
-    // pas d'Infinity — c'est le lookup qui ouvre, et il est UN pour les trois (`tableOuverte`,
-    // `src/engine/tables.ts`).
-    // Si une QUATRIÈME population s'ouvrait sans revue, le nœud ouvert cesserait d'être l'exception
-    // mesurée qu'il dit être.
+  it('E — les bandes OUVERTES (`min` ou `max` `null`) sont NOMMÉES, une par document', () => {
+    // Une bande ouverte est une borne que le livre n'imprime pas ; le lookup l'ouvre (`tableOuverte`,
+    // `src/engine/tables.ts`). LDB 07 l.49, l.70 ; MDG 15 l.383 ; MDG 12 l.129 ; AA 10 l.127 ;
+    // MDG 13 l.71, l.75, l.140, l.316, l.320, l.343, l.380, l.394 ; MDG 14 l.188, l.199 ;
+    // MDG 15 l.33, l.37, l.137, l.235 ; VDM 12 l.435 ; AA 07 l.105, l.131, l.157, l.183 ; LDB 40 l.89.
     expect(
       [...new Set(M.bandesOuvertes.map((s) => `${s.doc}${s.chemin}`))].sort(),
-      'une bande à borne haute OUVERTE (`max: null`) est apparue ailleurs : `plageOuverteSchema` est le nœud d’une EXCEPTION nommée, pas la forme générale d’une fourchette.',
-    ).toEqual(['advancementCosts.json[]', 'sea-cargo.json.sell.offerPrice[]', 'ship-construction.json.standard[].lengthM']);
-    expect(M.bandesOuvertes.length, 'une bande ouverte a disparu : la sonde ne mesure plus ce qu’elle nomme.').toBe(3);
+      'une bande OUVERTE (`min` ou `max` `null`) est apparue ailleurs : `plageOuverteSchema` est le nœud d’une EXCEPTION nommée, pas la forme générale d’une fourchette.',
+    ).toEqual([
+      'advancementCosts.json[]', 'crew-morale.json.bands[]', 'criticals.json[].entries[]', 'miscast.json[].entries[]',
+      'naval-progression.json.entries[]',
+      'sea-cargo.json.sell.offerPrice[]', 'sea-events.json.boardEvents[]', 'sea-events.json.fastVoyage.paliers[]',
+      'sea-navigation.json.orientation.reperes[]', 'sea-navigation.json.phares.voirLaLumiere[]', 'sea-navigation.json.poursuite.drDeltas[]',
+      'sea-navigation.json.vitesseMax.table[]',
+      'ship-construction.json.standard[].lengthM', 'structure-criticals.json.entries[]', 'tables.json[].rows[]',
+    ]);
+    expect(M.bandesOuvertes.length, 'une bande ouverte a disparu : la sonde ne mesure plus ce qu’elle nomme.').toBe(24);
   });
 
   it('F — les paires de bornes en TUPLE sont un STOCK NOMINATIF DÉCROISSANT, et ce qui n’en est pas est EXCLU NOMMÉMENT', () => {

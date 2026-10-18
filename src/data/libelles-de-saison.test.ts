@@ -1,7 +1,7 @@
 /**
  * #1659 L-1659-3 — le nom d'une SAISON vit dans la DONNÉE, une seule fois.
  *
- * La doctrine du dépôt (CLAUDE.md, « toute LOGIQUE est keyée par id STABLE — le `label` est de
+ * La doctrine du dépôt (AGENTS.md, « toute LOGIQUE est keyée par id STABLE, le `label` est de
  * l'AFFICHAGE ») : le libellé est authoré (`weather.json › seasons[].label`, éditable au Codex) et se
  * lit par `seasonLabel(id)` (`src/data/index.ts`), au même patron que `specLabel`/`refLabel`. Une
  * carte id→libellé en code fait ÉCRAN à la donnée : renommer au Codex ne changerait rien à l'écran.

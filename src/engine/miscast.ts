@@ -19,7 +19,7 @@
  * chargement + résolution. Ajouter/régler une entrée = éditer le JSON, jamais ce fichier.
  */
 import { RNG, defaultRNG, d100 } from './dice';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
@@ -148,7 +148,8 @@ interface JsonNestedTest {
 interface JsonRow {
   id: string;
   min: number;
-  max: number;
+  /** `null` : « 151+ » (LDB 40 l.89). */
+  max: number | null;
   label: string;
   ops?: JsonOp[];
   test?: JsonNestedTest;
@@ -268,7 +269,7 @@ interface Row {
 }
 
 /** Bâtit un `Row` runtime à partir d'un `JsonRow`. */
-function buildRow(jr: JsonRow): Row {
+function buildRow(jr: JsonRow & { max: number }): Row {
   const row: Row = { id: jr.id, min: jr.min, max: jr.max, label: jr.label };
   if (jr.reroll) row.reroll = jr.reroll;
   if (jr.domainTable) row.domainTable = jr.domainTable;
@@ -308,7 +309,7 @@ const data = miscastJson as unknown as MiscastTableDef[];
 export interface MiscastTableRow {
   id: string;
   min: number;
-  max: number;
+  max: number | null;
   label: string;
 }
 
@@ -327,7 +328,7 @@ const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineu
  *  vérités sur le même tirage. Les deux tables VDM ne sont pas exposées au seam (3 des 5 documents le
  *  sont) : leur version ne bouge jamais, leur dépliage suit celui des trois autres. */
 const runtimeRows = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, Row[]> =>
-  Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, t.entries.map(buildRow)])),
+  Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries).map(buildRow)])),
 );
 
 /** Id de la table d'une sévérité sous le jeu de tables EN VIGUEUR — `VDM 02 l.218-263` sous la règle
@@ -354,10 +355,19 @@ function estSourceKind(categorie: string): categorie is EffectSourceKind {
 
 /** Ligne atteinte par un dé EFFECTIF sur une table déclarée (lookup partagé `findTableEntry`) —
  *  SOURCE UNIQUE du texte rendu par l'étape à table. */
-export function miscastRowAt(tableId: string, die: number): MiscastTableRow {
-  const rows = MISCAST_TABLES.find((t) => t.id === tableId)?.entries;
-  if (!rows) throw new Error(`miscastRowAt : table « ${tableId} » inconnue (cf. MISCAST_TABLES).`);
-  return findTableEntry(rows, die);
+export function miscastRowAt(tableId: string, die: number): MiscastTableRow & { max: number } {
+  return findTableEntry(miscastTableRows(tableId), die);
+}
+
+const rangeesLues = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, (MiscastTableRow & { max: number })[]> =>
+  Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries)])));
+
+/** Les rangées d'une table déclarée telles que `findTableEntry` les lit : « 151+ » (LDB 40 l.89)
+ *  ouvert par `tableOuverte`. Mémoïsées sur les datasets de rangées du seam, comme `runtimeRows`. */
+export function miscastTableRows(tableId: string): (MiscastTableRow & { max: number })[] {
+  const rows = rangeesLues()[tableId];
+  if (!rows) throw new Error(`miscastTableRows : table « ${tableId} » inconnue (cf. MISCAST_TABLES).`);
+  return rows;
 }
 
 /** Jeu de tables d'Incantations Imparfaites en vigueur (dérivé des mêmes ids que le registre).

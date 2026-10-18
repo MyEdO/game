@@ -1,28 +1,20 @@
-// Rendu sous win32 (#1801, DoD 1) : chaque dérivé de `GENERATORS` rend le MÊME corps sur l'hôte et
-// sous win32. L'hôte de développement est Windows, la CI est Linux : un générateur qui bâtit un chemin
-// RELATIF par l'API de `node:path` rend un corps qui dépend de la plateforme. La garde compare, par
-// générateur, son `rendre()` sur l'hôte (`renduDe`) à celui d'un processus rendu sous win32 (ce
-// module, `--import`, puis `lib/rendre-seul.mjs`). Sur un hôte win32, le rendu natif EST le rendu sous
-// win32 : la simulation n'y est pas chargée, la garde mord en CI Linux. Le lieu d'un module décide de
-// ce qu'il voit : le dépôt voit win32, `node_modules` voit l'hôte (`estModuleDuDepot`,
-// plateforme-win32-hooks.mjs).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
-import { GENERATORS, renduDe } from '../build-all.mjs'
 import { cwdDonne, estModuleDuDepot, hooksSdkSousWin32, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { ecartsDeRendu } from '../../test/lib/bancGenerateurs.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
+
 const HOTE = process.platform
-/** Le module qui rend sous win32 : l'hôte win32 se rend sans lui. */
-const PLATEFORME_WIN32 = new URL('plateforme-win32.mjs', import.meta.url).href
+
+const PLATEFORME_WIN32 = new URL('./plateforme-win32.mjs', import.meta.url).href
+
 const IMPORT_WIN32 = HOTE === 'win32' ? [] : ['--import', PLATEFORME_WIN32]
-const RENDRE_SEUL = fileURLToPath(new URL('rendre-seul.mjs', import.meta.url))
-const TSX_ESM = pathToFileURL(fileURLToPath(import.meta.resolve('tsx/esm'))).href
 
 test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et adaptateur', () => {
   const depot = urlDuDepot(RACINE)
@@ -40,7 +32,7 @@ test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et a
   const attendu = [
     `export * from ${JSON.stringify(reel.url)}`,
     `import { API as APIHote } from ${JSON.stringify(reel.url)}`,
-    `import { fsSousWin32 } from ${JSON.stringify(new URL('plateforme-win32-fs.mjs', import.meta.url).href)}`,
+    `import { fsSousWin32 } from ${JSON.stringify(new URL('./plateforme-win32-fs.mjs', import.meta.url).href)}`,
     'export class API extends APIHote {',
     '  constructor(options = {}) { super({ ...options, fs: fsSousWin32(options.fs) }) }',
     '}',
@@ -59,7 +51,7 @@ test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et a
     assert.equal(charge, resultatHote)
     assert.equal(appelsLoad, 1)
   }
-  for (const adresse of [new URL('node_modules/tiers/index.mjs', depot).href, new URL('plateforme-win32-fs.mjs', import.meta.url).href]) {
+  for (const adresse of [new URL('node_modules/tiers/index.mjs', depot).href, new URL('./plateforme-win32-fs.mjs', import.meta.url).href]) {
     assert.equal(estModuleDuDepot(adresse, depot), false)
     assert.equal(hook.resolve('typescript/unstable/sync', { parentURL: adresse }, suivant), reel)
   }
@@ -110,7 +102,7 @@ for (const ordre of ['require-first', 'import-first']) {
       writeFileSync(path.join(racine, 'node_modules', 'tiers', 'sdk.mjs'), "export * from 'typescript/unstable/sync'\n")
       const source = [
         "import { registerHooks, createRequire } from 'node:module'",
-        `import { hooksSdkSousWin32 } from ${JSON.stringify(new URL('plateforme-win32-hooks.mjs', import.meta.url).href)}`,
+        `import { hooksSdkSousWin32 } from ${JSON.stringify(new URL('./plateforme-win32-hooks.mjs', import.meta.url).href)}`,
         'const require = createRequire(import.meta.url)',
         'const inscription = registerHooks(hooksSdkSousWin32(process.cwd()))',
         'try {',
@@ -137,53 +129,12 @@ for (const ordre of ['require-first', 'import-first']) {
   })
 }
 
-/** Le rendu de `g` par un processus rendu sous win32 : cible → texte. La simulation se pose AVANT
- *  `tsx/esm`. */
-function renduSousWin32(g) {
-  const args = [...IMPORT_WIN32, ...(g.runner === 'tsx' ? ['--import', TSX_ESM] : []), RENDRE_SEUL, g.script]
-  return new Promise((resoudre, rejeter) => {
-    const enfant = spawn(process.execPath, args, { cwd: RACINE, env: { ...process.env, WFRP_PLATEFORME_RACINE: RACINE } })
-    const sortie = []
-    const erreur = []
-    enfant.stdout.on('data', (d) => sortie.push(d))
-    enfant.stderr.on('data', (d) => erreur.push(d))
-    enfant.on('error', rejeter)
-    enfant.on('close', (code) => {
-      if (code !== 0) rejeter(new Error(`${g.script} sous win32 : sortie ${code}\n${Buffer.concat(erreur)}`))
-      else resoudre(new Map(JSON.parse(Buffer.concat(sortie).toString('utf8'))))
-    })
-  })
-}
-
-/** Les ÉCARTS entre le rendu de `script` sur l'hôte et sous win32 (cible → texte, chacun) : une cible
- *  d'un seul côté, ou un corps différent. PUR. */
-function ecartsDeRendu(script, hote, win32) {
-  const ecarts = []
-  for (const cible of new Set([...hote.keys(), ...win32.keys()])) {
-    if (!hote.has(cible)) ecarts.push(`${script} : « ${cible} » rendue sous win32 seulement`)
-    else if (!win32.has(cible)) ecarts.push(`${script} : « ${cible} » rendue sur l’hôte seulement`)
-    else if (hote.get(cible) !== win32.get(cible)) ecarts.push(`${script} : « ${cible} » — le corps dépend de la plateforme`)
-  }
-  return ecarts
-}
-
 test('ecartsDeRendu : corps différent, cible d’un seul côté, rendu identique', () => {
   const rendu = (paires) => new Map(paires)
   assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'a/b']]), rendu([['cible-a.md', 'a\\b']])), ['g.mjs : « cible-a.md » — le corps dépend de la plateforme'])
   assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'x']]), rendu([])), ['g.mjs : « cible-a.md » rendue sur l’hôte seulement'])
   assert.deepEqual(ecartsDeRendu('g.mjs', rendu([]), rendu([['cible-a.md', 'x']])), ['g.mjs : « cible-a.md » rendue sous win32 seulement'])
   assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'x']]), rendu([['cible-a.md', 'x']])), [])
-})
-
-test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', { timeout: 900_000 }, async (t) => {
-  if (HOTE === 'win32') t.diagnostic('hôte win32 : le rendu natif EST le rendu sous win32 — la garde mord en CI Linux')
-  const ecarts = []
-  for (const g of GENERATORS) {
-    const sousWin32 = renduSousWin32(g)
-    const hote = await renduDe(g)
-    ecarts.push(...ecartsDeRendu(g.script, hote, await sousWin32))
-  }
-  assert.deepEqual(ecarts, [])
 })
 
 /** `node <args>` depuis `racine` rendu sous win32 (`IMPORT_WIN32`), dépôt rendu : ce que voit un module selon son LIEU.

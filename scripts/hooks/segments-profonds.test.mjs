@@ -141,6 +141,7 @@ test('consommateur — codeur-gates-guard voit la gate derrière un enrobeur ET 
   const pourCodeur = (commande) => evaluateGates({ agentType: 'codeur', commande })
   assert.ok(pourCodeur('sh -c "npm run lint"'), 'gate invisible derrière `sh -c`')
   assert.ok(pourCodeur('npm run gates'), 'le corps du script npm n’a pas été résolu')
+  for (const lanceur of ['node --run gates', 'pnpm run gates', 'yarn gates', 'bun run gates', 'corepack pnpm gates']) assert.ok(pourCodeur(lanceur), `le corps du script n’a pas été résolu derrière « ${lanceur} »`)
   assert.equal(pourCodeur('node --test scripts/hooks/segments-profonds.test.mjs'), null)
 })
 
@@ -190,6 +191,15 @@ test('npm run <x> : les trois graphies, les arguments de la ligne, et un script 
     ['node', 'scripts/test/run.mjs', '--reporter=dot'],
   )
   assert.deepEqual(segmentsProfonds('npm run inconnu', 0, options), [['npm', 'run', 'inconnu']])
+})
+
+test('chaque lanceur de `package.json#scripts` déplie son script comme npm — `node --run`, pnpm, yarn, bun, sous `corepack` ; un nom qui n’est pas un script reste la commande du lanceur (#2721)', () => {
+  const options = { scripts: SCRIPTS_FIXTURE }
+  for (const cmd of ['node --run open-ticket', 'node --no-warnings --run open-ticket', 'pnpm run open-ticket', 'pnpm open-ticket', 'yarn open-ticket', 'yarn run open-ticket', 'bun run open-ticket', 'bun open-ticket', 'corepack npm run open-ticket', 'corepack pnpm open-ticket', 'corepack yarn open-ticket']) {
+    assert.ok(evaluateLabel(cmd, options), cmd)
+  }
+  assert.deepEqual(segmentsProfonds('pnpm test -- --reporter=dot', 0, options)[0], ['node', 'scripts/test/run.mjs', '--reporter=dot'])
+  for (const cmd of ['yarn install', 'bun x open-ticket', 'node open-ticket', 'npm open-ticket']) assert.equal(evaluateLabel(cmd, options), null, cmd)
 })
 
 test('npm run <x> : chaque argument recollé GARDE ses citations — le tokeniseur UNIQUE relit le segment déplié au MÊME argv, depuis des citations doubles comme simples ; une redirection reste un opérateur', () => {

@@ -151,7 +151,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
     expect(get().pendingChapterRecap?.chronique).toEqual([
-      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok' },
+      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
     ]);
 
     useGame.getState().cloreChapitre();

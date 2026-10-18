@@ -991,8 +991,9 @@ function construire(regimes: Regimes) {
     flow: flow,
     condition: z.string().optional(),
     attackType: z.enum(['melee', 'ranged']).optional(),
+    coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, optional: { label: "facultatif" } });
+  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } });
 
   /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
    *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */

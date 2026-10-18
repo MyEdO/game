@@ -17,15 +17,41 @@ export const sousArbre = (chemin, racine, platform = process.platform, { strict 
   return rel === '' || (!rel.startsWith('..' + p.sep) && rel !== '..' && !p.isAbsolute(rel))
 }
 
-export function argumentsProcessus(commande) {
-  return [...String(commande).matchAll(/"([^"]*)"|'([^']*)'|([^\s"']+)/g)].map((m) => m[1] ?? m[2] ?? m[3])
+export function argumentsProcessus(commande, platform = process.platform) {
+  if (platform !== 'win32') return [...String(commande).matchAll(/"([^"]*)"|'([^']*)'|([^\s"']+)/g)].map((m) => m[1] ?? m[2] ?? m[3])
+  const texte = String(commande ?? '')
+  const argumentsLus = []
+  let i = 0
+  while (i < texte.length) {
+    while (texte[i] === ' ' || texte[i] === '\t') i++
+    if (i === texte.length) break
+    let argument = '', cite = false
+    const executable = argumentsLus.length === 0
+    while (i < texte.length && (cite || (texte[i] !== ' ' && texte[i] !== '\t'))) {
+      let barres = 0
+      if (!executable) while (texte[i] === '\\') { barres++; i++ }
+      if (texte[i] === '"') {
+        argument += '\\'.repeat(Math.floor(barres / 2))
+        if (barres % 2) argument += '"'
+        else if (!executable && cite && texte[i + 1] === '"') { argument += '"'; i++ }
+        else cite = !cite
+        i++
+      } else {
+        argument += '\\'.repeat(barres)
+        if (!cite && (texte[i] === ' ' || texte[i] === '\t')) break
+        if (i < texte.length) argument += texte[i++]
+      }
+    }
+    argumentsLus.push(argument)
+  }
+  return argumentsLus
 }
 
 export function liensProcessus(processus, racine, platform = process.platform, options) {
   const p = platform === 'win32' ? path.win32 : path.posix
   const liens = []
   if (processus.cwd && sousArbre(processus.cwd, racine, platform, options)) liens.push('cwd')
-  for (const brut of [...(processus.argv ?? argumentsProcessus(processus.commande)), ...referencesCommande(processus.commande)]) {
+  for (const brut of [...(processus.argv ?? argumentsProcessus(processus.commande, platform)), ...referencesCommande(processus.commande)]) {
     const argument = brut.startsWith('--') && brut.includes('=') ? brut.slice(brut.indexOf('=') + 1) : brut
     if (argument.startsWith('-')) continue
     let chemin = versCheminNatif(argument, platform)
@@ -66,37 +92,56 @@ export const TOLERANCE_CREATION_MS = Object.freeze({ ps: 1500, proc: 1500, cim: 
 /** La précision des dates `creation` de `mesurerProcessusWorktrees` sur `platform`. */
 export const toleranceDeMesure = (platform = process.platform) => TOLERANCE_CREATION_MS[platform === 'win32' ? 'cim' : 'proc']
 
+/** Le lien `parent` → `enfant` selon leurs `creation` : `'valide'`, `'exclue'` ou `'indeterminee'`. #2586 */
+export function classerFiliation(parent, enfant) {
+  const creationDe = (p) => {
+    if (p?.etat === 'Z' || p?.erreurs?.some((e) => /identit|création|creation/i.test(e))) return null
+    const m = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?Z$/.exec(p?.creation ?? '')
+    if (!m || !Number.isFinite(Date.parse(p.creation))) return null
+    const seconde = new Date(Date.parse(m[1] + 'Z')).toISOString().slice(0, 19)
+    if (seconde !== m[1]) return null
+    return { seconde, fraction: m[2] ?? '' }
+  }
+  const a = creationDe(parent), b = creationDe(enfant)
+  if (!a || !b) return 'indeterminee'
+  const precision = Math.max(a.fraction.length, b.fraction.length)
+  return b.seconde < a.seconde || (b.seconde === a.seconde && b.fraction.padEnd(precision, '0') < a.fraction.padEnd(precision, '0')) ? 'exclue' : 'valide'
+}
+
 /** `USER_HZ`, unité de `starttime` dans `/proc/<pid>/stat` : proc(5). */
 const TICKS_PAR_SECONDE = 100
 
 /** La vue INDÉTERMINÉE d'une mesure qui a dépassé son échéance `timeout` : aucun processus, la raison nommée. */
 function indeterminee(timeout) {
   const raison = `mesure des processus indéterminée : échéance de ${timeout} ms atteinte`
-  return { ...porteeProcessus({ utilisateur: null, processus: [], erreurs: [raison] }), indeterminee: raison }
+  return { ...porteeProcessus({ utilisateur: null, processus: [], erreurs: [raison] }), indeterminee: raison, code: 'MESURE_PROCESSUS_EXPIREE' }
 }
 
 /** `creation` : date ISO 8601 UTC du démarrage du processus, sur les deux plateformes. `pids` ne lit que ces
  *  processus ; `timeout` (ms) borne la mesure, et son échéance rend une vue `indeterminee`. */
-export function mesurerProcessusWorktrees({ platform = process.platform, pids, timeout, identites = false } = {}) {
+export function mesurerProcessusWorktrees({ platform = process.platform, pids, pidsAInspecter = [], timeout, identites = false, memoireSeulement = false } = {}) {
   const debut = Date.now()
   if (platform === 'win32') {
     const system = process.env.SystemRoot
     if (!system) throw new Error('SystemRoot absent : lecteur Windows introuvable')
     const executable = path.join(system, process.arch === 'ia32' ? 'Sysnative' : 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-    const borne = timeout === undefined ? {} : { timeout, windowsHide: true }
+    const restant = timeout === undefined ? undefined : timeout - (Date.now() - debut)
+    if (restant !== undefined && restant <= 0) return indeterminee(timeout)
+    const borne = restant === undefined ? {} : { timeout: restant, windowsHide: true }
     let sortie
     try {
-      sortie = execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : []), ...(identites ? ['-Identites'] : [])], { encoding: 'utf8', maxBuffer: 16 << 20, ...borne })
+      sortie = execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : []), ...(pidsAInspecter.length ? ['-PidsAInspecter', [...new Set(pidsAInspecter)].join(',')] : []), ...(identites ? ['-Identites'] : []), ...(memoireSeulement ? ['-MemoireSeulement'] : [])], { encoding: 'utf8', maxBuffer: 16 << 20, ...borne })
     } catch (e) {
       if (timeout !== undefined && e.code === 'ETIMEDOUT') return indeterminee(timeout)
       throw e
     }
     const vue = JSON.parse(sortie)
-    return identites ? vue : porteeProcessus(vue)
+    return identites ? { ...vue, pids } : { ...porteeProcessus(vue), pids }
   }
   if (platform !== 'linux') throw new Error('mesure processus non supportée : ' + platform)
   const uid = process.getuid()
   const processus = []
+  const aInspecter = new Set(pidsAInspecter)
   const racine = racineProcessusLinux(platform)
   const demarrage = Number(/^btime (\d+)$/m.exec(readFileSync(path.join(racine, 'stat'), 'utf8'))?.[1]) * 1000
   if (!Number.isFinite(demarrage)) throw new Error('btime illisible : ' + path.join(racine, 'stat'))
@@ -109,17 +154,28 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, t
     catch (e) { if (e.code === 'ENOENT') continue; item.erreurs.push('propriétaire illisible : ' + e.message) }
     try {
       const avant = readFileSync(dossier + '/stat', 'utf8')
-      const creation = avant.slice(avant.lastIndexOf(')') + 2).split(' ')[19]
-      item.ppid = Number(avant.slice(avant.lastIndexOf(')') + 2).split(' ')[1])
-      item.etat = avant.slice(avant.lastIndexOf(')') + 2).split(' ')[0]
+      const champs = avant.slice(avant.lastIndexOf(')') + 2).split(' ')
+      const creation = champs[19]
+      item.ppid = Number(champs[1])
+      item.etat = champs[0]
       item.nom = avant.slice(avant.indexOf('(') + 1, avant.lastIndexOf(')'))
       item.creation = new Date(demarrage + (Number(creation) * 1000) / TICKS_PAR_SECONDE).toISOString()
-      if (!identites) try {
-        item.argv = readFileSync(dossier + '/cmdline', 'utf8').split('\0').filter(Boolean)
-        item.commande = item.argv.join(' ')
-        if (!item.commande) item.erreurs.push('commande illisible')
-      } catch (e) { item.erreurs.push('commande illisible : ' + e.message) }
-      if (!identites) try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
+      if (!identites) {
+        try {
+          const rss = /^VmRSS:\s+(\d+)\s+kB$/m.exec(readFileSync(dossier + '/status', 'utf8'))
+          if (!rss) throw new Error('VmRSS absent')
+          item.residentOctets = Number(rss[1]) * 1024
+          item.metriqueMemoire = 'RSS Linux'
+        } catch (e) { item.erreurs.push('résident illisible : ' + e.message) }
+        if (!memoireSeulement || aInspecter.has(item.pid)) {
+          try {
+            item.argv = readFileSync(dossier + '/cmdline', 'utf8').split('\0').filter(Boolean)
+            item.commande = item.argv.join(' ')
+            if (!item.commande) item.erreurs.push('commande illisible')
+          } catch (e) { item.erreurs.push('commande illisible : ' + e.message) }
+          try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
+        }
+      }
       const apres = readFileSync(dossier + '/stat', 'utf8')
       if (apres.slice(apres.lastIndexOf(')') + 2).split(' ')[19] !== creation) throw new Error('identité modifiée pendant inspection')
     } catch (e) {
@@ -128,7 +184,7 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, t
     }
     processus.push(item)
   }
-  const vue = { utilisateur: String(uid), processus, erreurs: [] }
+  const vue = { utilisateur: String(uid), processus, erreurs: [], pids }
   return identites ? vue : porteeProcessus(vue)
 }
 

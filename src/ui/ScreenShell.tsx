@@ -25,7 +25,7 @@ import type { AmbianceCadre } from '../state/campaignNarratif';
  * contenu libre, tel quel. `className` est un crochet pour les DESCENDANTS de l'écran.
  *
  * Habillage générique (#371 lot 2) : `body` bascule le traitement du CORPS, seul à défiler sous
- * l'en-tête et la barre d'outils ancrés, jamais le voile (#1993 ; règle 4, CLAUDE.md) — `'full'`
+ * l'en-tête et la barre d'outils ancrés, jamais le voile (#1993 ; règle 4, AGENTS.md) — `'full'`
  * (défaut) pour un écran-canevas (carte, plan) qui remplit tout le cadre et porte lui-même son
  * défileur (rail `.screen-scroll` ou corps propre) ; `'centered'` borne et centre le corps dans une
  * colonne (`.screen-colonne`, ~960px), qui défile dans le rail `.screen-scroll` que la coquille pose

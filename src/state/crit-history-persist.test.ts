@@ -25,7 +25,7 @@ describe('#194 — applyCriticalToTarget appende l\'entrée subie à critEntries
   it('une résolution → l\'id de l\'entrée est enregistré (une entrée)', () => {
     seedBattleRng(1);
     const t = mk();
-    applyCriticalToTarget(t, 'tete', true, 0, [], () => {}, { get: useGame.getState });
+    applyCriticalToTarget(t, 'tete', 0, [], () => {}, { get: useGame.getState });
     expect(t.critEntriesSuffered).toHaveLength(1);
     expect(typeof t.critEntriesSuffered![0]).toBe('string');
   });
@@ -33,8 +33,8 @@ describe('#194 — applyCriticalToTarget appende l\'entrée subie à critEntries
   it('deux résolutions → deux entrées cumulées (l\'historique croît, jamais réinitialisé)', () => {
     seedBattleRng(1);
     const t = mk();
-    applyCriticalToTarget(t, 'tete', true, 0, [], () => {}, { get: useGame.getState });
-    applyCriticalToTarget(t, 'corps', true, 0, [], () => {}, { get: useGame.getState });
+    applyCriticalToTarget(t, 'tete', 0, [], () => {}, { get: useGame.getState });
+    applyCriticalToTarget(t, 'corps', 0, [], () => {}, { get: useGame.getState });
     expect(t.critEntriesSuffered).toHaveLength(2);
   });
 });

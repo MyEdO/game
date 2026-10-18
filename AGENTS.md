@@ -1,9 +1,6 @@
-<!-- GENERATED: agents:sync; source=CLAUDE.md -->
-Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).
-
 # AGENTS.md — RPG Warhammer Fantasy v4 (web)
 
-Le credo importé ci-dessus prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
+Le credo `.claude/credo.md` prime sur tout réflexe. Ce fichier ROUTE : ce qui sert AU MOMENT d'un
 geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
@@ -13,7 +10,7 @@ Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nig
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
-(trunk-based). Le `Foundry/AGENTS.md` parent ne s'applique PAS ici.
+(trunk-based). Le parent `Foundry/` ne s'applique PAS.
 
 Mémoire committée `.claude/memory/` (en-tête de routage `MEMORY.md` + doctrines `user-*`) : injectée en local, son en-tête seul
 en cloud ; se committe comme du code, jamais de git destructif dessus.
@@ -133,7 +130,7 @@ src/engine/   règles WFRP4 PURES + testées (types, tests/DR, combat, ops.ts = 
 src/state/    store Zustand + flux (combatFlow, rollFlowFactory/Specs, scene.ts = SCHÉMA, upkeep…)
 src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, rig/, fx/
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
-src/data/     base APP-OWNED (JSON commité) + exceptions manuscrites sourcées
+src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
 src/net/      coop relay WS (client) · server/ = Worker Cloudflare · art-ref/ (gitignoré)
 ```
@@ -144,5 +141,6 @@ Détail : `docs/architecture.md`.
 
 - **Closure synchrone en test Playwright** : jamais lire le DOM dans le même `evaluate` que l'action
   qui change l'état React (`docs/recette-navigateur.md`).
-- `src/data/*.json` est la SOURCE app-owned commitée : rien à régénérer après un clone.
 - Aucun inventaire de GROUPE : tout objet va sur un héros (`Combatant.items`) via `giveTrapping`.
+- Conventions propres à un chemin (`src/data`, `src/engine`, `src/state`, `src/ui`, `src/scenes`…) :
+  `.claude/rules/`, chargées à la lecture ou l'écriture d'un fichier qui correspond.

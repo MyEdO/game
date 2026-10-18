@@ -6,7 +6,7 @@ Vous saignez abondamment. Perdez 1 Blessure à la fin de chaque Round, en ignora
 
 Si vous êtes à la fois *Inconscient* et *Hémorragique*, à la fin du Round, vous avez 10 % de chance de mourir par État *Hémorragique* que vous possédez ; donc, si vous souffrez de 3 États *Hémorragique*, vous mourrez de la perte de sang sur un résultat de 1 à 30. Si vous évitez la mort tout en faisant un double sur ce jet, vos blessures coagulent un peu et vous perdez 1 État *Hémorragique*. Vous ne pouvez pas reprendre vos esprits tant que tous les États *Hémorragique* ne sont pas retirés (voir *Traumatisme* à la page 172 de **WFJDR**).
 
-On peut retirer un État *Hémorragique* avec un Test de **Guérison Accessible (+20)** réussi, où chaque DR retire un État *Hémorragique* supplémentaire, ou avec n'importe quel Sort ou n'importe quelle Prière qui guérit les Points de Blessure, avec un État de retiré par Point de Blessure guéri. Reportezvous également aux règles sur les bandages en page 308 de **WFJDR**.
+On peut retirer un État *Hémorragique* avec un Test de **Guérison Accessible (+20)** réussi, où chaque DR retire un État *Hémorragique* supplémentaire, ou avec n'importe quel Sort ou n'importe quelle Prière qui guérit les Points de Blessure, avec un État de retiré par Point de Blessure guéri. Reportez-vous également aux règles sur les bandages en page 308 de **WFJDR**.
 
 Une fois tous les États *Hémorragique* retirés, gagnez un État *Exténué*.
 

@@ -163,7 +163,8 @@ const CLES: Record<string, string> = {
   // #1715 : les 7 types de bâtiment quittent le code pour `buildings.json` et entrent au Codex —
   // empreinte MESURÉE, chaque item portant son `maison` (aucun folio n'imprime de catalogue de bâtiments).
   "buildings": '90fe536489e3927b',
-  "vehicles": 'dcc320ad1f8760a1',
+  // #1595 corrb-3 : Barque et Chaland (LDB) fusionnés dans barque-fluviale et barge-fluviale, qui gagnent `alsoIn` et `desc` — empreinte MESURÉE.
+  "vehicles": 'c4bae7058909c685',
   "celestialHouses": '0507cb49e07e8336',
   // #680 (2026-09-29) : 2 Groupes NEUFS (`source` + `maison`) et la catégorie adopte
   // `depuisEnveloppe` — sa projection écrite à la main (`{ id, label }`) taisait les deux. Empreinte MESURÉE.
@@ -222,7 +223,7 @@ const CLES: Record<string, string> = {
   // #700 (2026-10-05) : +4 règles maison — `porte-secrete-rayon-m`, `chute-tombant-non-debout`,
   // `fenetre-suspension`, `fouille-piece-minutes`.
   // #1595 (2026-10-12) : +1 item `sea-salissures-difficulty` (maison, MDG 13 l.148).
-  "reglesOptionnelles": 'd5b53dfc895d9d77',
+  "reglesOptionnelles": '02464c302a53f5dd',
   "surincantation": '561218369ab9cdfd',
   "structureCriticals": '84e0df29c1ae4e21',
   "artilleryMisfire": 'aa3ad3238b5356f8',
@@ -419,7 +420,7 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   // `regles-optionnelles-partition.test.ts`), leur folio se lit dans `ref` et n'ancre rien.
   // #700 (2026-10-05) : 87 → 91 items, `source` INCHANGÉ à 54 — les 4 règles maison de #700, cf. `CLES`.
   // #1595 (2026-10-12) : 91 → 92 items, `source` INCHANGÉ à 54 — `sea-salissures-difficulty` MAISON (MDG 13 l.148).
-  "reglesOptionnelles": { desc: 92, source: 54 },
+  "reglesOptionnelles": { desc: 93, source: 54 },
   "landCargo": { source: 7 }, // 7 items — T3 : source +7
   "seaCargo": { source: 11 }, // 11 items — T3 : source +11
   "riverPerils": { source: 4 }, // 4 items — T3 : source +4

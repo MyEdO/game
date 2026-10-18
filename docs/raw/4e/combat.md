@@ -515,7 +515,8 @@ Un Critique est généré sur **tout succès** à un Test de combat dont le **r�
 Points-clés :
 - S'applique en **attaque** (Corps à corps ou Projectiles) **comme en défense** : un défenseur qui obtient un double réussi lors d'un Test opposé (p. ex. en parant) inflige lui aussi un Critique à son adversaire.
 - Le Critique est **indépendant** de l'autre source de Blessure critique (perdre plus de PB qu'on en possède) — voir *Blessures critiques* (LDB 18). Un double permet d'infliger une Blessure critique **même si la cible a encore des Points de Blessure**.
-- L'**Atout d'arme *Empaleuse*** ajoute une seconde voie de déclenchement (touche sur un multiple de la valeur d'arme) ; l'arme à État *En flammes* et la règle « Retenir vos coups » (déclarée **avant le jet**) annulent à l'inverse le Critique (LDB 18 l.30). Ces interactions sont détaillées dans leurs entrées respectives.
+- L'**Atout d'arme *Empaleuse*** ajoute une seconde voie de déclenchement (touche sur un nombre divisible par 10, `LDB 62 l.248`) ; l'arme à État *En flammes* et la règle « Retenir vos coups » (déclarée **avant le jet**) annulent à l'inverse le Critique (LDB 18 l.30). Ces interactions sont détaillées dans leurs entrées respectives.
+- **Bénédiction de Sauvagerie** (fiche `catalogue-divin.md`) : « Quand votre cible inflige par la suite des Blessures Critiques, effectuez deux lancers et choisissez le meilleur résultat. » — `LDB 41 l.170`. **Silence du texte** : il ne dit pas lequel des deux lancers sert de « lancer du tableau des Critiques » à la seconde frappe du *Maniement de deux armes* (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
 
 ### 2. Effet immédiat (LDB 14)
 
@@ -534,9 +535,12 @@ Procédure exacte :
 1. **1ᵉʳ d100** → Tableau de Localisation (ci-dessous) pour la zone touchée.
 2. **2ᵉ d100** → ligne du Tableau des Critiques de cette localisation.
 3. PB perdus = valeur de la table, **en ignorant BE et PA** (les PA ne réduisent jamais une Blessure critique) ; on subit en plus les **Effets supplémentaires** (États, Traumatismes, Amputations).
-4. Modificateur d'**overkill** : si l'on passe en PB négatifs au-delà de son BE (p. ex. sous −4 si BE = 4), on retranche **−20** au résultat sur le Tableau des Critiques, minimum **01** (`LDB 18 l.17`).
+4. Modificateur d'**overkill** : « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance (donc inférieur à -4 Points de Blessure si votre BE est de 4), vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 » — `LDB 18 l.17`. Le −20 ne vaut que pour le Critique né du dépassement, si 0 < dépassement < BE (strictement ; égalité → pas de −20) ; le Coup Critique sans dépassement reste un d100 nu (#1595 c.6222318751).
 5. Un résultat de **00** sur un **Tableau des Critiques** = **coup mortel** (Décapitation / Éventré / Démembrement brutal / Bassin fracassé selon la zone).
 6. Pour finir, les Dégâts non critiques de l'attaque utilisent **la nouvelle localisation** déterminée par la Blessure critique (`LDB 18 l.55`).
+
+- **`ldb` — Coup Critique qui dépasse.** Un Coup Critique dont le coup dépasse aussi les PB restants inflige **deux** Blessures critiques, toutes deux à la Localisation du Coup Critique : la première au d100 nu, la seconde (le dépassement) avec le modificateur d'overkill du point 4 ; chacune se dévie séparément (`LDB 14 l.3`, `LDB 13 l.161`, `LDB 18 l.53`, `l.55`, `l.17`, `LDB 63 l.30` ; arbitrage #1595 c.6220635824). `LDB 18 l.23` n'y sert PAS d'appui. En `aa`, une seule Blessure critique par coup (`AA 07 l.36`).
+- **Mort subite.** Un figurant soumis à la Mort subite ne reçoit **aucune** Blessure critique : le coup qui dépasse ses PB déclenche l'issue de la Mort subite (`LDB 18 l.44` ; `AA 07 l.65` ; #1595 c.6219992594).
 
 **Tableau de Localisation (1ᵉʳ d100, forme humanoïde)** — `LDB 13 l.137-145` :
 
@@ -671,7 +675,14 @@ Une Blessure critique frappant une localisation **protégée par une armure** pe
 
 > « Si vous subissez une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être endommagée de 1 PA dans le but d'ignorer la Blessure Critique. » — `LDB 63 l.30`
 
-On subit toujours les **Dégâts normaux** (et probablement 1 PB de plus, les PA étant réduits de 1), mais on évite les effets de la Blessure critique.
+> « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire), mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée. » — `LDB 63 l.32`
+
+- **La Blessure supplémentaire est un recompte, pas un +1 fixe** (#1595 c.6231943159) : les Blessures normales du même coup se relisent à PA−n (« vos PA sont à présent réduits de 1 Point » — `LDB 63 l.32`). Le « probablement » tient au plancher (« Si le résultat est de 0 ou moins, votre adversaire a évité le pire de l'attaque et ne perd qu'un seul Point de Blessure. » — `LDB 13 l.159`) et aux PA que ce coup ignore déjà (Partielle, Points faibles, sort qui ignore les PA, pièce déjà à 0 PA) : retirer 1 PA n'y change alors rien.
+- **Sort qui ignore les PA, ou dont un Domaine contourne les PA** (Cieux, Métal, Ombres) : **Lecture du silence, décision d'orchestrateur révisable, non entérinée** (#1595 c.6232294713, 2026-10-17). Aucun texte ne dit si sa Blessure critique se dévie. Lecture retenue : la Déviation se lit sur la pièce, « **Emplacement :** la Localisation que l'Armure protège. » (`LDB 63 l.13`), « une attaque visant un emplacement protégé par une armure » (`LDB 63 l.30`), et une pièce qui n'absorbe rien s'endommage encore : « Si cela réduit les PA de l'emplacement en dessous de 0, l'Armure devient inutilisable. » (`LDB 63 l.21`). La lecture contraire est citable : « car le coup est absorbé par votre armure à présent endommagée » (`LDB 63 l.32`) ; « L'armure magique protège également des attaques qui ignorent les protections des armures non magiques. » (`ADE II 04 l.349`). Le livre écrit ses exclusions ailleurs : « Ce PA ne peut pas être utilisé pour la Déviation Critique. » (`EDO 11 l.196`) ; Impénétrable, « Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. » (`LDB 63 l.78`). Blessure supplémentaire : 0, les PA ne comptant pas dans le coup ; Métal : [magie.md § Domaine du Métal](magie.md#domaine-du-métal-chamon--vent-doré).
+- **Plusieurs Déviations sur le même coup** : une Déviation par Blessure critique, une à la fois, chacune retirant 1 PA (« Chaque fois qu'une pièce d'armure est endommagée, les PA de l'emplacement endommagé sont réduits de 1. » — `LDB 63 l.19`) ; les Blessures normales se relisent à PA−n (#1595 c.6231943159). Sans objet en `aa` (« chaque coup ne peut infliger qu'une seule Blessure Critique » — `AA 07 l.42`).
+
+- **Ce que la Déviation efface** : la Blessure critique et ses effets (« dans le but d'ignorer la Blessure Critique » — `LDB 63 l.30` ; « mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée » — `LDB 63 l.32`). Le texte n'efface ni le Critique **obtenu** par l'attaquant (son double réussi, `LDB 13 l.183`) ni le lancer fait : la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
+- **Silence du texte** : `LDB 63 l.30` ne place pas le moment du choix par rapport au d100 du Tableau des Critiques (avant ou après ce jet). Il suppose la Localisation connue (« une attaque visant un emplacement protégé par une armure » — `LDB 63 l.30`), donc la procédure du Coup Critique entamée (`LDB 18 l.53`), dont le second d100 est le lancer du tableau.
 
 ### 6. Système alternatif d'*Aux Armes* (remplace les tables LDB)
 
@@ -679,8 +690,12 @@ On subit toujours les **Dégâts normaux** (et probablement 1 PB de plus, les PA
 
 - **Coup Critique avec Blessures restantes** : un double réussi en CC/Projectiles inflige une Blessure critique même si la cible a encore des PB. Localisation par 1ᵉʳ d100, effet par 2ᵉ d100, **comme en LDB** (`AA 07 l.29-32`). En prime : une fois tous les États *Hémorragique* retirés, on gagne un État *Exténué* (`AA 07 l.31`).
 - **Critique en faisant tomber à 0 Blessure** : si l'attaque amène la cible à 0 PB, elle subit automatiquement une Blessure critique. On **ajoute +10 par Blessure infligée au-delà** de celles nécessaires pour atteindre 0 (ou +10 par Blessure si la cible était déjà à 0) au jet 1d100 sur la table de la localisation (`AA 07 l.36`). C'est ce **+10 escaladant** qui pousse le résultat vers les lignes hautes (mort), au lieu du −20 d'overkill du LDB.
-- **Chaque coup ne peut infliger qu'une seule Blessure critique** : les Blessures supplémentaires d'une ligne de table ne redéclenchent jamais de second jet (`AA 07 l.40-42`).
+- **Le jet reste le d100 nu** : le +10 s'ajoute « au résultat d'un jet de 1D100 » (`AA 07 l.36`), et l'exemple sépare les deux nombres : « Il obtient 48. 48 + 80 = 128. » (`AA 07 l.54`). Le lancer est 48, la ligne lue est 128. C'est ce lancer nu que reprend la seconde frappe du *Maniement de deux armes* (« utilisez le lancer du tableau des Critiques » — `LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
+- **Silence du texte** : *Aux Armes* ne dit pas si un double réussi (`AA 07 l.29`) qui fait **aussi** tomber la cible à 0 Blessure prend le +10 par Blessure de `AA 07 l.36`. Il dit seulement qu'un coup n'inflige qu'une Blessure critique (« chaque coup ne peut infliger qu'une seule Blessure Critique » — `AA 07 l.42`). Pour la seconde frappe, le silence est sans effet : la valeur est le d100 nu dans les deux lectures.
+- **Contradiction du texte, et choix (B)** : `AA 07 l.25` oppose les deux voies (« L'une consiste à infliger un Coup Critique sans nécessiter de faire tomber votre opposant à 0 Blessure. L'autre consiste à infliger plus de Blessures qu'il ne lui en reste (ou de frapper un opposant déjà à 0 Blessure). »), quand les titres `AA 07 l.34` (« Infliger un Coup Critique en ayant fait tomber son adversaire à 0 Blessure ») et `l.38` et l'exemple `l.52` font de la seconde un Coup Critique. **Choix (B), délégué à l'orchestrateur, non entériné** (#1595 c.6226467544 ; verbatim utilisateur, 2026-10-17 : « Nan fais un choix, pas de régle optionnelle, sinon on ne va jamais s'en sortir ») : en `aa`, pour un **Personnage** seul, la Blessure critique du passage à 0 est un **Coup Critique** (`estUnCoupCritique`). Cible **déjà à 0** : la Localisation est relancée avant les Dégâts, comme pour un double (`AA 07 l.32`, `l.52` ; `LDB 18 l.55`) ; passage à 0 depuis des PB restants : la Localisation de touche est gardée (`AA 07 l.36`, « après avoir résolu votre attaque »). Déclencheur unique : `CompteDesCritiques.relance` (`critiquesDuCoup`, `src/engine/critical.ts`). Structure, navire et véhicule gardent leur régime (#1595 c.6227274650 Q4) ; en `ldb`, le dépassement n'est pas un Coup Critique (`LDB 18 l.23`).
+- **Chaque coup ne peut infliger qu'une seule Blessure critique** : les Blessures supplémentaires d'une ligne de table ne redéclenchent jamais de second jet (`AA 07 l.40-42`). `AA 07 l.42` : « chaque coup ne peut infliger qu'une seule Blessure Critique ».
 - « Retenir vos coups » : on n'inflige une Blessure critique **que si l'adversaire tombe à 0 Blessure** ; impossible avec une arme *En flammes*, des projectiles ou des sorts ; on perd alors les Atouts *Empaleuse, Percutante, Perforante, Taille* (`AA 07 l.59-61`).
+- **Critique de sort** : *Aux Armes* compte les sorts parmi les coups qui blessent critiquement. `AA 07 l.61` : « Vous ne pouvez pas Retenir vos coups avec une arme infligeant des États *En flammes*, avec des projectiles ou avec des sorts. » `AA 07 l.59` : « Dans ce cas, vous infligez tout de même des Blessures, mais vous n'infligez de Blessure Critique que si votre adversaire tombe à 0 Blessure. » Retenir ses coups n'a d'objet que contre une Blessure critique infligée à une cible restée au-dessus de 0 ; l'interdire « avec des sorts » présuppose donc qu'un sort en inflige. Conséquence : un sort lancé avec l'effet **Incantation Critique** (`LDB 46 l.30`, voir `magie.md` § Incantation Critique) blesse critiquement une cible **debout** (voie 1, table *Aux Armes*, d100 nu), et si la même touche la fait tomber à 0, elle ne reçoit qu'**une seule** Blessure critique (« chaque coup ne peut infliger qu'une seule Blessure Critique » — `AA 07 l.42`).
 - Une valeur de Blessure **« T »** (Blessure **triviale**) n'inflige aucune Blessure supplémentaire et **ne compte pas** dans le total de Blessures critiques nécessaires pour mourir (`AA 07 l.79`).
 
 Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête/Bras/Torse/Jambe, transcrits verbatim) sont regroupés dans le topic **[AA : système alternatif de Blessures et Critiques](#aa--système-alternatif-de-blessures-et-critiques)** — non répétés ici pour éviter la redite.
@@ -696,10 +711,10 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 13 l.137-145` — Tableau de Localisation humanoïde (1ᵉʳ d100) utilisé pour la localisation du Coup Critique.
 - `LDB 14 l.4` — effet immédiat : Blessure critique immédiate ; le **DR reste calculé normalement** (Dégâts + vainqueur du Test opposé).
 - `LDB 14 l.6-7` — Option **Frappe Mortelle** : tuer en un coup en mêlée → se déplacer sur la case + frapper un autre adversaire, **jusqu'à BCC fois** ; certaines **grandes créatures** l'activent sans tuer.
-- `LDB 18 l.17` — overkill : si PB négatifs < −BE, **−20** au Tableau des Critiques (min 01).
+- `LDB 18 l.17` — overkill : **−20** au Tableau des Critiques (min 01) si le nombre de Points de Blessure passés en négatif est strictement inférieur au BE (#1595 c.6222318751).
 - `LDB 18 l.53-55` — résolution du Coup Critique : localisation par **2ᵉ d100**, PB perdus **en ignorant BE et PA**, Effets supplémentaires, **00 = mort** ; Dégâts non critiques recalculés sur la nouvelle localisation.
 - `LDB 18 l.56-187` — en-têtes et bornes des quatre Tableaux des Critiques LDB (Tête/Bras/Corps/Jambe), `01-10` → `00` (mort).
-- `LDB 63 l.29-32` — **Déviation Critique** : sacrifier 1 PA pour ignorer une Blessure critique sur une localisation protégée.
+- `LDB 63 l.30-32` — **Déviation Critique** : sacrifier 1 PA pour ignorer une Blessure critique sur une localisation protégée.
 - `AA 07 l.25-79` — système alternatif d'*Aux Armes* : 2 voies de déclenchement (double avec PB restants ; +10/Blessure au-delà de 0), un seul Critique par coup, valeurs « T » triviales, « Retenir vos coups ».
 - `AA 07 l.82-104 / 2568-2622 / 2625-2682 / 2684-2729` — tables alternatives Tête / Bras / Torse / Jambe (transcrites verbatim ci-dessus ; **remplacent** les tables LDB).
 - `EDO 11 l.237-239` — Trait *Dédoublement* : une Blessure critique (ou 0 Blessure) scinde la créature en deux Horreurs Bleues non blessées.
@@ -1113,6 +1128,21 @@ Certains guerriers combattent avec une arme dans chaque main (par exemple une é
 
 À noter : la table *Difficulté de Combat* (`LDB 14 l.102-103`) range « Esquiver alors que vous êtes À Terre ou sur une monture » **et** « Attaquer avec votre main secondaire » dans la même bande **Difficile −20** — c'est la source du −20 de main secondaire.
 
+#### Talent *Maniement de deux armes* — `LDB 10 l.773`
+
+> « Effectuez un lancer pour toucher avec l'arme tenue par votre main principale. Si vous touchez, déterminez les Dégâts normalement, mais rappelez-vous de conserver votre lancer de dés, car vous l'utiliserez de nouveau. Si la première frappe est réussie, une fois résolue, l'arme dans votre main secondaire peut ensuite viser un adversaire disponible de votre choix en utilisant le même lancer de dés que celui de la première frappe, mais inversé. Donc, si vous avez obtenu 34 pour toucher avec la première arme, vous obtenez 43 pour toucher avec la seconde. Rappelez-vous de modifier ce second lancer avec la pénalité de votre mauvaise main (-20 à moins que vous ne possédiez le Talent Ambidextre). Cette seconde attaque est opposée à un nouveau lancer de défense et les Dégâts pour cette seconde frappe sont calculés normalement. » — `LDB 10 l.773`
+
+- **Seconde frappe** : seulement si la première est réussie, une fois résolue ; elle prend le **lancer inversé** de la première, modifié par la main secondaire (−20, sauf *Ambidextre*), contre un nouveau lancer de défense, sur « un adversaire disponible de votre choix » (`LDB 10 l.773`).
+- **Exception du Critique** :
+
+> « Une exception à cela : si vous obtenez un Critique pour votre première frappe. Si cela se produit, utilisez le lancer du tableau des Critiques pour servir de lancer à la seconde attaque. Donc, si vous infligez un Critique à la tête et lancez un 56 sur le tableau des Critiques et obtenez une Blessure majeure à l'œil, votre seconde attaque aurait donc une valeur de 56. » — `LDB 10 l.773`
+
+  - **Déclencheur** : *obtenir un Critique*, c'est le double réussi de l'attaquant (« Tout succès lors d'un Test de Corps à Corps ou de Projectiles dont le résultat est un double génère un Critique. » — `LDB 13 l.183`) ; même verbe en `LDB 14 l.3` (« Si vous obtenez un Critique, votre adversaire reçoit immédiatement une Blessure critique »). Un fait du jet de l'attaquant, pas de ce que subit la cible.
+  - **Valeur** : le lancer du tableau des Critiques, soit le second d100 du Coup Critique (« puis lancez de nouveau 1d100 et référez-vous au Tableau des Critiques correspondant » — `LDB 18 l.53`). En *Aux Armes*, c'est le d100 nu, pas le résultat décalé de +10 par Blessure : voir [§ 6](#6-système-alternatif-daux-armes-remplace-les-tables-ldb). Critique dévié : voir [§ 5](#5-déviation-critique-par-larmure-ldb-63).
+- **Autres effets du talent** : « Si vous choisissez d'attaquer avec les deux armes, tous vos lancers défensifs subissent une pénalité de -10 jusqu'au début de votre prochain Tour. Vous ne gagnez pas d'Avantage quand vous réussissez à frapper ou à infliger une Blessure à un adversaire avec le Maniement de deux armes sauf si les deux attaques touchent. » — `LDB 10 l.773`
+- **Silences du texte** : `LDB 10 l.773` ne dit pas si un adversaire tué par la première frappe compte comme *disponible* ; il ne dit pas quel lancer prend la seconde frappe quand *Retenir vos coups*, déclaré avant le lancer, fait ignorer le Coup Critique (`LDB 18 l.30`), où aucun d100 de table n'est tiré.
+- **Décision d'orchestrateur, ingénierie révisable, non entérinée** (#1595 c.6229354257, 2026-10-17) : le choix (B) du [§ 6](#6-système-alternatif-daux-armes-remplace-les-tables-ldb) n'est pas étendu au talent ; en `aa` sans double, la seconde frappe prend le lancer inversé ; sous *Retenir vos coups*, le lancer inversé.
+
 ### Dispersion (armes de Lancer ratées) — `LDB 14 l.142-151`
 
 Sur un **échec à un Test de Projectiles (Lancer)**, on lance **1d10** et on consulte le diagramme de Dispersion pour déterminer où l'arme atterrit. « T » désigne la cible.
@@ -1190,7 +1220,8 @@ Notes mécaniques par arme (`AA 08 l.228-260`) :
 - `LDB 14 l.153-169` — Combat à Mains Nues : Corps à corps (Bagarre) comme un Test de combat normal + option **Empoignade** (déclarée avant le jet ; Test opposé → Empêtré mutuel ; tour suivant : briser si Avantage supérieur, sinon Test opposé de Force → BF+DR PA-ignorés OU gestion d'Empêtré ; échec → +1 Avantage à l'adversaire ; tiers : +20/+10 pour toucher l'Empoigné).
 - `LDB 14 l.171-173` — Option : Empoignade Grâce aux Compétences (substitut au Test de Force selon le MJ).
 - `AA 08 l.224-261` — Table des Armes de Bagarre (Coup-de-poing, Gaffe, Gantelet à pointes, Gantelet verrouillé, Lacet étrangleur, Mains nues, Matraque) + règle spéciale du **Gantelet verrouillé** (conserve l'objet, −20 transitoire) + coûts de fabrication par Métier.
-- `LDB 10 l.773` — Talent **Maniement de deux armes** (prérequis pour attaquer avec les deux armes).
+- `LDB 10 l.773` — Talent **Maniement de deux armes** : seconde frappe au lancer inversé de la première, ou au lancer du tableau des Critiques si la première obtient un Critique ; −10 aux lancers défensifs ; Avantage seulement si les deux attaques touchent.
+- `LDB 13 l.183` — déclencheur du Critique (double réussi), qui ouvre l'exception du talent.
 
 > « Un Personnage équipé d'un gantelet verrouillé ne lâche pas l'objet tenu dans cette main, même lorsque les circonstances l'y obligeraient normalement. Au lieu de cela, il subit une pénalité de -20 sur tous les Tests qu'il effectue avec cet objet, y compris les Tests de Corps à Corps, tant que les circonstances qui auraient dû lui faire lâcher l'objet persistent (et pendant un Round minimum). » — `AA 08 l.236`
 
@@ -2342,7 +2373,7 @@ Chaque arme peut porter un ou plusieurs **Atouts** (avantages) et **Défauts** (
 | **Défensive** | « Si vous utilisez une telle arme, vous gagnez un bonus de **+1 DR** à n'importe quel Test de Corps à corps quand vous opposez une attaque. » |
 | **Perturbante** | « Au lieu de causer des Dégâts, une attaque réussie avec une arme Perturbante peut forcer un adversaire à reculer d'**un mètre par DR** obtenu au Test opposé. » |
 | **Dévastatrice** | « Une arme Dévastatrice peut utiliser le résultat le plus haut entre le **dé des unités** ou le **DR** pour déterminer les Dégâts causés par une touche réussie. » (ex. jet 34 / cible 52 → DR = 2 ou dé des unités = 4, au choix). *Une arme Inoffensive ne peut jamais être Dévastatrice (Inoffensive prend le dessus).* |
-| **Empaleuse** | « causent un **Coup Critique sur n'importe quel nombre divisible par 10** (10, 20, 30…), ainsi que sur un **double** (11, 22, 33) obtenu **inférieur ou égal** au Test approprié au combat. » Voir la règle de **retrait de projectile** ci-dessous. |
+| **Empaleuse** | « causent un **Coup Critique sur n'importe quel nombre divisible par 10** (10, 20, 30…), ainsi que sur un **double** (11, 22, 33) obtenu **inférieur ou égal** au Test approprié au combat. » Le Coup Critique naît du jet de l'attaquant, comme le double de `LDB 13 l.183` : c'est un Critique obtenu pour la seconde frappe du *Maniement de deux armes* (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)). Voir la règle de **retrait de projectile** ci-dessous. |
 | **Explosion (Indice)** | « Tous les Personnages situés à *Indice* mètres du point cible frappé subissent **DR + Dégâts d'arme** et gagnent tous les États infligés par l'arme. » |
 | **Immobilisante** | « N'importe quel adversaire touché avec succès gagne un État *Empêtré* avec une **Force égale à votre Caractéristique de Force**. Quand vous Entravez un adversaire, vous ne pouvez par ailleurs pas utiliser l'arme pour toucher. Vous pouvez y mettre un terme quand vous le souhaitez. » |
 | **Piège-Lame** | « Si vous obtenez un **Critique quand vous vous défendez** contre une attaque provenant d'une arme possédant une lame, vous pouvez choisir de la piéger plutôt que de causer un Coup Critique. » → **Test opposé de Force** (+ votre DR du précédent Test de Corps à corps). Réussite = l'adversaire **lâche la lame** ; **Succès Stupéfiant** = la lame est **brisée** (sauf Atout *Incassable*) ; échec = l'adversaire libère sa lame et combat normalement. |
@@ -2577,12 +2608,13 @@ Les Armures sont généralement endommagées de **deux** façons :
 
 > Note de recoupement : l'Atout d'arme **Taille** (LDB 62/63 l.7-8) endommage aussi l'armure — *« Si vous touchez un adversaire, vous Endommagez de 1 Point une pièce d'armure ou un Bouclier frappé tout en blessant la cible. »*
 
-### Déviation Critique (LDB 63 l.29-32)
+### Déviation Critique (LDB 63 l.30-32)
 
-**Cela ne se produit que si vous le choisissez.** Si vous subissez une **Blessure Critique** issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être **endommagée de 1 PA** dans le but d'**ignorer la Blessure Critique**.
+> « Cela ne se produit que si vous le choisissez. Si vous subissez une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être endommagée de 1 PA dans le but d'ignorer la Blessure Critique. » — `LDB 63 l.30`
 
-- Vous subissez **toujours les Blessures normales** (les PB ordinaires sont infligés quoi qu'il arrive).
-- Étant donné que vos PA sont à présent réduits de 1 Point, **vous subissez probablement une Blessure supplémentaire**, mais vous **évitez les effets de la Blessure Critique** (la table de Critique), car le coup est absorbé par votre armure à présent endommagée.
+> « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire), mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée. » — `LDB 63 l.32`
+
+Lecture de la Blessure supplémentaire et des Déviations multiples : [§ 5 Déviation Critique par l'armure](#5-déviation-critique-par-larmure-ldb-63).
 
 ### Atout d'armure — Flexible (LDB 63 l.73-74)
 
@@ -2590,7 +2622,9 @@ Une armure **Flexible** peut être portée **sous une couche d'armure non Flexib
 
 ### Atout d'armure — Impénétrable (LDB 63 l.77-78)
 
-L'armure est particulièrement résistante : la plupart des attaques ne peuvent tout simplement pas la pénétrer. **Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées.** (On regarde le jet de toucher de l'attaquant : si le d100 obtenu est impair, le Critique est annulé.) Dans la table, la plate (Brassards, Heaume, Jambières d'acier, Plastron) porte cet Atout.
+> « L'armure est particulièrement résistante, ce qui signifie que la plupart des attaques ne peuvent tout simplement pas la pénétrer. Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. » — `LDB 63 l.78`
+
+Dans la table, la plate (Brassards, Heaume, Jambières d'acier, Plastron) porte cet Atout.
 
 ### Défaut d'armure — Partielle (LDB 63 l.85-86)
 
@@ -2615,10 +2649,10 @@ Certaines sources naturelles de PA **ne peuvent pas servir à la Déviation Crit
 - `LDB 63 l.7-15` — Schéma de description d'une armure (Type, Prix, Enc, Pénalité, Emplacement, PA, Atouts et Défauts).
 - `LDB 63 l.38-61` — Table des Armures complète (cuir souple, cuir bouilli, mailles, plate : Prix/Enc/Disponibilité/Pénalité/Emplacements/PA/Atouts-Défauts) + les deux notes de port (\* cuir souple sous autre armure sans pénalité ; \*\* maille/plate = -10 Discrétion).
 - `LDB 63 l.18-27` — Dégâts d'Armure : chaque coup endommageant retire 1 PA ; PA < 0 = armure inutilisable ; deux sources (capacité spéciale ; Blessure Critique déviée).
-- `LDB 63 l.29-32` — Déviation Critique : choix de sacrifier 1 PA à la localisation pour ignorer la Blessure Critique ; PB normaux toujours subis (et probablement +1 Blessure car PA réduits).
+- `LDB 63 l.30-32` — Déviation Critique : choix de sacrifier 1 PA à la localisation pour ignorer la Blessure Critique ; Blessures normales toujours subies, relues à PA réduits (recompte, pas +1 fixe : #1595 c.6231943159).
 - `LDB 63 l.63-66` — Réparer une Armure : 10 % du prix de base par PA perdu ; 30 % si pièce complètement brisée ; auto-réparation possible (Métier + Outils + atelier pour la plate).
 - `LDB 63 l.73-74` — Atout Flexible : portable sous une couche non Flexible, bénéfices des deux (PA cumulés).
-- `LDB 63 l.77-78` — Atout Impénétrable : Critiques causés par un jet de toucher impair (11, 33…) ignorés.
+- `LDB 63 l.77-78` — Atout Impénétrable : « Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. »
 - `LDB 63 l.85-86` — Défaut Partielle : jet de toucher pair OU Coup Critique → PA de la pièce Partielle ignorés.
 - `LDB 63 l.89-90` — Défaut Points Faibles : arme Empaleuse + Critique → PA ignorés.
 - `LDB 62 l.307` — Atout d'arme Taille : une touche endommage de 1 Point une pièce d'armure ou un Bouclier frappé (autre source de Dégâts d'Armure).
@@ -2801,7 +2835,7 @@ Liste complète des Traits du Livre de base, avec leur effet exact. (Indice) = v
 | **Bestial** | Pas de pensée/langage. Peur du feu → État **Brisé** si touchée par le feu. Ne défend qu'en **Esquive**. Si perd > moitié de ses Blessures → fuit, sauf si protège son petit / acculée / Territorial → **Frénésie**. Pas de carac de **Soc**. |
 | **Bond** | En Charge/Course : **double** son Mouvement ; ignore terrains et personnages interposés. |
 | **Brutal** | **−1 M, −10 Ag, +10 F, +10 E**. |
-| **Champion** | S'il gagne un Test opposé en **se défendant** au corps à corps : cause autant de Dégâts que s'il était l'attaquant. |
+| **Champion** | S'il gagne un Test opposé en **se défendant** au corps à corps : cause autant de Dégâts que s'il était l'attaquant. **Pas de plafond** par Round ; en **Esquive**, la frappe part **sans Critique**. |
 | **Constricteur** | Tout coup réussi → État **Empêtré** ; peut entamer une **Empoignade**. |
 | **Coriace** | **+10 E, +10 FM**. |
 | **Cornes (Aspect), (Indice)** | En gagnant un Avantage pour **Charger** : Attaque gratuite de Cornes, Indice Dégâts (bonus de F inclus). |
@@ -3270,7 +3304,9 @@ Ces Traits de créature (LDB chap. 85, *Traits de créature*) régissent **comme
 
 **Démoniaque (Indice).** « L'essence de la créature est constituée de magie brute […]. Ces créatures n'ont besoin ni d'eau, ni de nourriture, ni d'air. Toutes ses attaques sont Magiques. Lancez **1d10 après chaque coup reçu**, si la créature obtient le nombre de l'*Indice* **ou plus**, le coup est ignoré, **même s'il s'agit d'un critique**. Si la créature **tombe à 0 Point de Blessure**, son âme **retourne immédiatement dans les Royaumes du Chaos**, ce qui la retire du jeu. » Démoniaque combine donc trois effets : (1) ses attaques sont des Attaques magiques ; (2) une **sauvegarde identique à Protection** (1d10 ≥ Indice ignore le coup, Critique inclus) ; (3) à 0 PB, la créature est **bannie** (retirée du jeu, pas de cadavre). — `LDB 85 l.95-98`
 
-**Éthéré.** « La créature est immatérielle, ce qui lui permet de **passer à travers les objets solides**. Elle ne peut être blessée que par les **Attaques magiques**. » Toute attaque non magique inflige **0 Dégât** (annulée entièrement) ; seules les Attaques magiques (sorts, arme magique, créature *Magique*/*Démoniaque*) la blessent. — `LDB 85 l.133-134`
+La sauvegarde agit sur le coup reçu, pas sur le jet de l'attaquant, et le texte suppose le Critique obtenu (« le coup est ignoré, même s'il s'agit d'un critique » — `LDB 85 l.98`) : la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)). **Silence du texte** : `LDB 85 l.98` ne place pas le d10 de sauvegarde avant ou après le d100 du Tableau des Critiques.
+
+**Éthéré.** « La créature est immatérielle, ce qui lui permet de **passer à travers les objets solides**. Elle ne peut être blessée que par les **Attaques magiques**. » — `LDB 85 l.134`. Une attaque non magique ne la blesse pas ; seules les Attaques magiques (sorts, arme magique, créature *Magique*/*Démoniaque*) la blessent. Le texte dit *blessée*, pas *touchée* : un double réussi d'une arme non magique reste un Critique obtenu au jet de l'attaquant (`LDB 13 l.183`), que la cible ne subit pas ; la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
 
 **Immunité (Type).** « La créature est totalement immunisée à un certain *Type* de Dégâts, comme ceux du poison, magiques ou électriques. **Tous les Dégâts de ce *Type*, y compris les Dégâts Critiques, sont ignorés.** » Annulation totale (Dégâts + Critiques) du type indiqué entre parenthèses (ex. *Immunité (Poison)*, *Immunité (Feu)*). — `LDB 85 l.172-173`
 
@@ -3327,7 +3363,7 @@ Les Dégâts dus au **Feu** sont notés à part et **jamais** régénérés. —
 - `LDB 85 l.38-39` — **Armure (Indice)** : Indice PA à TOUTES les localisations (peau épaisse/armure intégrale).
 - `LDB 85 l.277-278` — **Protection (Indice)** : 1d10 après chaque coup, ≥ Indice → coup ignoré même Critique (ward save).
 - `LDB 85 l.95-98` — **Démoniaque (Indice)** : attaques Magiques + sauvegarde 1d10 ≥ Indice (Critique inclus) + à 0 PB banni vers les Royaumes du Chaos ; sans besoin d'eau/nourriture/air.
-- `LDB 85 l.133-134` — **Éthéré** : immatériel, traverse les solides, blessé uniquement par Attaques magiques.
+- `LDB 85 l.132-134` — **Éthéré** : immatériel, traverse les solides, blessé uniquement par Attaques magiques.
 - `LDB 85 l.172-173` — **Immunité (Type)** : Dégâts du Type (Critiques inclus) totalement ignorés.
 - `LDB 85 l.302` — **Résistance à la Magie (Indice)** : DR de tous les Sorts l'affectant réduit de l'Indice (ex. 2 → −2 DR).
 - `LDB 85 l.195-195` — **Insensible à la Douleur** : pénalités de Critiques non-amputants ignorées ; États subis normalement.
@@ -3385,9 +3421,18 @@ La créature ne possède **ni pensée, ni langage rationnel**. Comportement codi
 > « Elle a peur du feu et gagne l'État _Bris_é si elle est touchée par ce dernier. En défense, elle peut seulement utiliser la Compétence Esquive. Si elle perd plus de la moitié de ses Blessures, elle tente de fuir à moins qu'elle ne protège son petit ou qu'elle soit acculée ou encore qu'elle possède le trait Territorial. Dans ce cas, elle entre en _Frénésie_ […]. Pas de caractéristique de Social. » — `LDB 85 l.59`
 
 #### Champion
-La créature est un guerrier exceptionnel. **Si elle gagne un Test opposé en se défendant dans un Combat au Corps à corps, elle cause autant de Dégâts que si elle était l'attaquant.**
+> « La créature est un guerrier exceptionnel. Si elle gagne un Test opposé en se défendant dans un Combat au Corps à corps, elle cause autant de Dégâts que si elle était l'attaquant. » — `LDB 85 l.71`
 
-> « Si elle gagne un Test opposé en se défendant dans un Combat au Corps à corps, elle cause autant de Dégâts que si elle était l'attaquant. » — `LDB 85 l.71`
+- **Défense par Esquive, explicite** (`LDB 85 l.71` ; `LDB 13 l.167`, `l.183` ; `LDB 85 l.59`) : la frappe part, sans Critique sur ce Test. « Le choix le plus évident est l'Esquive, qui vous permet d'éviter les coups […] et que vous êtes disposé à ne pas porter de Coups Critiques contre votre adversaire » (`LDB 13 l.167`) ; « Tout succès lors d'un Test de Corps à Corps ou de Projectiles dont le résultat est un double génère un Critique. […] cela peut également se produire lorsque vous êtes le défenseur au cours d'un Test opposé. » (`LDB 13 l.183`) ; Bestial : « En défense, elle peut seulement utiliser la Compétence Esquive. » (`LDB 85 l.59`).
+- **Arme, en Parade, déduit** (`LDB 13 l.151` ; `LDB 62 l.151`) : l'arme qui a paré. « Prenez le DR de votre Test opposé et additionnez-le aux Dégâts d'Arme de l'arme que vous utilisez. » (`LDB 13 l.151`) ; « Quand vous utilisez Corps à corps (Parade), une arme peut être utilisée pour opposer une attaque » (`LDB 62 l.151`).
+- **Arme, en Esquive, silence du texte, décision d'orchestrateur révisable, non entérinée (#1595 c.6237601266, 2026-10-17)** (`LDB 10 l.500`, règle voisine ; `LDB 14 l.139`) : l'arme tenue en main principale ; Mains nues (Bagarre) si elle n'en tient aucune. La lecture contraire, l'arme d'attaque habituelle, revient au même. « Cette attaque est résolue avec n'importe quelle arme que vous tenez dans votre main principale. » (`LDB 10 l.500`) ; « Les attaques effectuées avec votre main secondaire subissent une pénalité de -20 sur tous les Tests applicables » (`LDB 14 l.139`).
+- **Trait Arme +N, déduit ; plusieurs traits Arme, silence du texte, décision d'orchestrateur révisable, non entérinée (#1595 c.6237601266, 2026-10-17)** (`LDB 85 l.33-35`, `l.47`) : un seul trait Arme, son Indice ; plusieurs, en Parade celle qui a paré, en Esquive l'Arme principale (la plus forte non Défensive). Attaque caudale n'est jamais l'arme de Champion. « La créature porte une arme de Corps à corps, ou utilise ses dents, griffes ou similaires en combat. » (`LDB 85 l.33`) ; « L'arme inflige *Indice* Dégâts qui incluent déjà son bonus de Force. » (`LDB 85 l.35`) ; « À son tour, elle peut effectuer une Attaque gratuite en dépensant 1 Avantage. » (`LDB 85 l.47`).
+- **Choix, explicite** (`LDB 85 l.71` ; comparer `LDB 10 l.1037`) : la frappe est obligatoire, « elle cause autant de Dégâts » (`LDB 85 l.71`) ; la Riposte, elle, est facultative : « vous pouvez infliger des Dégâts quand vous êtes attaqué, comme si c'était votre Action » (`LDB 10 l.1037`).
+- **Plafond par Round, explicite par absence** (`LDB 85 l.71`) : aucun ; le trait ne porte aucune limite, là où la Riposte en porte une : « Vous pouvez Riposter à un nombre d'attaques par Round égal à votre Niveau de Riposte. » (`LDB 10 l.1037`).
+- **Champion et Riposte sur le même porteur, silence du texte, décision d'orchestrateur révisable, non entérinée (#1595 c.6237601266, 2026-10-17)** (`LDB 13 l.151` ; `LDB 85 l.71` ; `LDB 10 l.1037`) : une seule frappe par Test gagné, il n'y a qu'un jet et qu'un DR opposé (« Prenez le DR de votre Test opposé », `LDB 13 l.151`). Champion couvre le cas, la Riposte ne décompte rien. La lecture contraire, deux applications, est citable.
+- **Défense gagnée alors que les deux Tests sont ratés, explicite** (`LDB 12 l.160` ; `LDB 13 l.123`, `l.183`) : la frappe part, sans Critique, y compris sur une victoire à DR égal départagée par la Compétence (DR net 0, Dégâts = Dégâts d'Arme). « C'est le groupe avec le DR le plus élevé qui remporte le Test. Si les deux participants obtiennent le même DR, c'est le groupe avec la Compétence ou la Caractéristique la plus élevée qui l'emporte. » (`LDB 12 l.160`) ; « Celui qui obtient le DR le plus élevé l'emporte. » (`LDB 13 l.123`) ; « Tout succès lors d'un Test de Corps à Corps ou de Projectiles dont le résultat est un double génère un Critique. » (`LDB 13 l.183`).
+- **DR de la frappe, explicite** (`LDB 13 l.151` ; `LDB 12 l.164`) : le DR opposé net. « calculez le DR final en faisant la différence entre les deux résultats. » (`LDB 12 l.164`).
+- **Défense contre un tir, explicite** (`LDB 85 l.71` ; `LDB 13 l.125` ; `LDB 62 l.296`) : exclue, y compris l'opposition au bouclier Protectrice. « se défendant dans un Combat au Corps à corps » (`LDB 85 l.71`) ; « **Distance :** effectuez un Test de **Projectiles** pour l'arme que vous utilisez. » (`LDB 13 l.125`) ; « vous pouvez aussi opposer des projectiles tirés dans votre Ligne de Vue. » (`LDB 62 l.296`).
 
 #### Frénésie (Trait)
 La créature **peut entrer en _Frénésie_** (renvoi à LDB 21 p.190). Mécanique complète (LDB 21) :
@@ -4094,6 +4139,8 @@ Le supplément redéfinit l'État *Hémorragique* dans le cadre de son système 
 - **Malus aux infections** : pénalité de **−10** à tout Test pour résister à une **Blessure purulente**, une **Infection mineure** ou une **Infection du sang**.
 - **Plancher à 0 Blessure** : si vous atteignez 0 Blessure, vous **ne perdez plus de Points de Blessure supplémentaires** (le saignement ne descend pas en négatif).
 - **Risque d'inconscience** : à la fin de chaque **Tour**, vous devez réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir immédiatement l'État *Inconscient*.
+- **Décompte du Livre de Base maintenu** : « si vous n'êtes pas guéri avant un nombre de Rounds égal à votre Bonus d'Endurance, vous perdrez connaissance, et gagnerez l'État *Inconscient* » `LDB 18 l.15` ; `AA 07 l.7` renvoie à la p.172. Le Test de Résistance de l'Hémorragique s'y ajoute.
+  Arbitrage de l'utilisateur, #1595 c.6219559935, 2026-10-16 : « Renvoi tacite : oui ».
 - **Risque de mort (Inconscient + Hémorragique)** : si vous êtes à la fois *Inconscient* et *Hémorragique*, à la fin du Round vous avez **10 % de chance de mourir par État _Hémorragique_ possédé**. Exemple verbatim : 3 États *Hémorragique* → mort sur un résultat de **1 à 30** (au d100). Si vous évitez la mort en faisant un **double** sur ce jet, vos blessures coagulent et vous **perdez 1 État _Hémorragique_**. Vous ne pouvez pas reprendre vos esprits tant que **tous** les États *Hémorragique* ne sont pas retirés.
 - **Réveil et épuisement** : « **Une fois tous les États _Hémorragique_ retirés, gagnez un État _Exténué_.** »
 - **Retrait de l'État** : un **Test de Guérison Accessible (+20)** réussi retire 1 État *Hémorragique*, **+1 par DR**. Tout Sort ou Prière qui guérit des Points de Blessure retire **1 État par Point de Blessure guéri**. (Voir aussi les règles sur les bandages.)
@@ -4720,7 +4767,11 @@ Les Structures n'ont **pas de Localisations de Dégâts**. Si l'on tire sur une 
 Infliger un Critique à une Structure est bien plus difficile que contre un Personnage :
 - Sur un **double**, la Structure risque un Critique, **uniquement si l'attaque retire aussi ≥ 25 % des Blessures restantes** de la Structure. `AA 10 l.113-114`
 - Une fois les **Blessures à 0**, **tout** coup qui touche cause une Blessure Critique. `AA 10 l.114`
-- Les Critiques affectent la Structure comme un Personnage ; toute circonstance qui **entraînerait la mort d'un Personnage** inflige une Blessure Critique d'**Effondrement** à la Structure. `AA 10 l.114`
+- « Les Blessures Critiques ont un impact sur une Structure de la même manière que les Blessures Critiques affectent un Personnage, et toute circonstance qui entraînerait la mort d'un Personnage inflige des Blessures Critiques d'Effondrement à la Structure. » `AA 10 l.114`
+- **Lecture S1** (#1595 c.6219992594) : la mort par le compte de Critiques exige l'État *Inconscient* (« Si un Personnage possède l'État *Inconscient* et est à 0 Blessure » — `AA 07 l.73` ; `LDB 18 l.34`), qu'une Structure n'a jamais. Une Structure à 0 reste en jeu ; elle ne s'effondre qu'à la ligne « 96 ou plus » (`AA 10 l.127`).
+- **Lecture S2** (#1595 c.6219992594) : le jet de Critique d'une Structure suit la procédure du mode.
+  - En `aa` : « ajoutez +10 au résultat d'un jet de 1D100 par Blessure que vous infligez au-delà de celles nécessaires pour faire tomber l'ennemi à 0 Blessure (ou, si votre opposant était déjà à 0 Blessure, +10 par Blessure que vous infligez) » `AA 07 l.36`.
+  - En `ldb` : « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance (donc inférieur à -4 Points de Blessure si votre BE est de 4), vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 » `LDB 18 l.17` — −20 si 0 < dépassement < BE, strictement (#1595 c.6222318751). Une Structure de BE 2 à 0 n'atteint donc le « 96 ou plus » que par un coup d'au moins 2 Blessures.
 
 #### Tableau des Blessures Critiques sur une Structure
 
@@ -4855,7 +4906,7 @@ Si l'arme subit un **Incident de tir** à n'importe quel moment, en résoudre le
 - `AA 10 l.55-92` — Descriptions narratives de chaque Structure (barge, patrouilleur, chaloupe, chariots, charrettes, clayonnage, diligence, herse, mantelet, murs, palissade, porte renforcée, terrassement).
 - `AA 10 l.94-98` — Attaques contre les Structures : auto-touche en mêlée, véhicule en mouvement = Tir ciblé −20, conducteur = Test opposé CC/Conduite d'attelage, pénalité de Taille (BE ×N), exception des armes de siège.
 - `AA 10 l.101-111` — Dégâts aux Structures (Endurance/Blessures, bandes de mur de 5 m), absence de Localisations, table « tir raté » Degrés d'échec 0 à −2 / −3 ou moins.
-- `AA 10 l.113-128` — Critiques sur Structure (double + ≥25 % Blessures retirées ; tout coup à 0 Blessure ; Effondrement = « mort ») + Tableau des Blessures Critiques sur une Structure (Ébréchée → Effondrement).
+- `AA 10 l.113-128` — Critiques sur Structure (double + ≥25 % Blessures retirées ; tout coup à 0 Blessure ; Effondrement au seul « 96 ou plus », lectures S1/S2 de #1595 c.6219992594) + Tableau des Blessures Critiques sur une Structure (Ébréchée → Effondrement).
 - `AA 10 l.131-134` — Réparation : Métier (Charpentier/Maçon) Accessible (+20) hors combat (1d10 h / 1d10 Blessures), Très Difficile (−30) en combat (20 DR) ; Guérison sans effet.
 - `AA 10 l.136-150` — Règles générales des Armes de Siège : groupes d'armes requis, baliste via Projectiles (Arbalète) sans Atouts, munitions spéciales obligatoires.
 - `AA 10 l.152-173` — Descriptions des armes de siège (baliste, batterie tonnerre de feu, canons, canon à répétition + recul Résistance Accessible/Critique épaule, catapulte, mortier, canon feu d'enfer, pierrier).
@@ -5166,6 +5217,8 @@ Vous rechargez avec facilité les armes à **Poudre noire**. Effets :
 - Vous gagnez **+1 Avantage supplémentaire** quand vous effectuez ce Test d'Évaluer.
 
 ### Battement
+Les versions mises à jour ne valent qu'avec la règle d'Avantage de groupe ([§ AA : système d'Avantage de Groupe](#aa--système-davantage-de-groupe)) : « Plusieurs Talents ont été modifiés pour correspondre à ces règles d'Avantage alternatives. Reportez-vous à la section Nouveaux Talents et Talents mis à jour en page 140 pour savoir en quoi les Talents suivants sont affectés : Artilleur, Battement, Coude-à-coude, Distraire, Impitoyable, Portebouclier, Rechargement rapide et Renversement. » — `AA 11 l.71`
+
 **Maxi :** Bonus de Capacité de Combat. **Tests :** Corps à Corps pour effectuer une manœuvre de Battement.
 Frappes précises contrôlées sur l'arme adverse, créant une ouverture ou empêchant une attaque d'aboutir. Pour votre **Action**, vous pouvez choisir Battement **avant de lancer les dés**. Effectuez un Test de **Corps à Corps** (Test **NON opposé**). Sur un **Succès** :
 - la réserve d'Avantages du **camp adverse perd −1 Avantage** ;
@@ -5215,11 +5268,9 @@ Quand votre esprit est rivé sur une cible, personne ne peut vous empêcher de l
 
 ### Porte-Bouclier
 **Maxi :** Bonus de Force. **Tests :** n'importe quel Test pour vous défendre avec un bouclier.
-Habile au maniement du bouclier pour tirer parti d'une situation désespérée. Quand vous utilisez un **bouclier pour vous défendre**, **une fois par Round**, vous pouvez **dépenser 2 Avantages** pour, **au choix** :
-- **causer des Dégâts** quand vous êtes attaqué, comme s'il s'agissait de votre Action ; **ou**
-- **pousser** votre adversaire de **2 mètres** dans la direction directement opposée à vous, **et** ne plus être considéré comme **Engagé**.
+> « Quand vous utilisez un bouclier pour vous défendre, une fois par Round, vous pouvez dépenser 2 Avantages soit pour causer des Dégâts quand vous êtes attaqué comme s'il s'agissait de votre Action, soit pour pousser votre adversaire sur 2 mètres dans la direction directement opposée à vous et ne plus être considéré comme Engagé. » — `AA 13 l.84`
 
-> Divergence LDB : la version du Livre de base accorde simplement **+niveau Avantage** quand vous **perdez** le Test opposé en vous défendant avec un bouclier.
+> Divergence LDB : « Quand vous utilisez un Bouclier pour vous défendre, vous gagnez un nombre d'Avantages égal au nombre de Niveaux que vous possédez en Porte-bouclier si vous perdez le Test opposé. » — `LDB 10 l.972`
 
 ### Rechargement Rapide
 **Maxi :** Bonus de Dextérité.
@@ -6271,7 +6322,6 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - NON VÉRIFIABLE — Pétards NADJ (ch.08 l.159-160) : le contenu de la ligne 160 est « Omitted long matching line » dans tous les outils disponibles. Les stats revendiquées (Projectiles (Explosifs), CC 50, Explosion 1, Dangereuse, 5 % En flammes) ne peuvent pas être confirmées ou infirmées.
 
 ### Armures : table, PA, dégâts et réparation ⚠
-- Déviation Critique (LDB 63 l.32) : la source dit « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire) », en un seul membre de phrase. Le markdown sépare en deux bullets distincts (« les PB ordinaires sont infligés quoi qu'il arrive » + « vous subissez probablement une Blessure supplémentaire ») et reformule l'intérieur de la parenthèse. La substance est préservée mais la structure source n'est pas respectée verbatim.
 - Atout Flexible (LDB 63 l.73-74) : la source dit uniquement « vous gagnez les bénéfices des deux ». Le markdown ajoute une précision éditoriale non présente dans la source : « les PA de la pièce Flexible et ceux de la pièce rigide se cumulent à l'emplacement commun ». L'interprétation est correcte mais ce n'est pas du verbatim sourcé.
 - Règle de port — section éditoriale (note * LDB 63 l.60) : la phrase « seul l'Atout Flexible autorise une superposition cumulant les PA » est une inférence non présente dans le texte source. La source ne dit pas explicitement que c'est le seul cas ; c'est une extrapolation logique du texte Flexible.
 
@@ -6358,7 +6408,8 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 ### AA : Talents de combat ⚠
 - MINEUR — Exemple 'Cavalier Émérite' mal localisé dans le fichier source (artefact de conversion PDF) : le texte 'une autre personne sur un cheval ne causerait pas de Peur…' (l.4496) est physiquement placé après Frappe Blessante dans le .md source, pas après Cavalier Émérite. La section de refs du document le note correctement (l.4492-4496 / Frappe Blessante + exemple), mais le corps du document l'intègre sous Cavalier Émérite, ce qui est logiquement juste. Pas d'erreur factuelle, simple artefact de conversion signalé.
 - MINEUR — Commandant d'Équipe : le document dit 'score de Projectiles du Personnage' ; la source dit 'score de Compétence Projectiles du Personnage' (l.4478). Omission du mot 'Compétence', sans impact sur le sens.
-- NON VÉRIFIÉ — Les notes de divergence LDB (Battement '−1 par DR' vs '−1 à 6 DR', Frappe Blessante '+Blessures', Impitoyable 'Désengagement', Porte-Bouclier '+Avantage', Renversement 'TOUS les Avantages', Coude-à-Coude) n'ont pas pu être vérifiées faute de lecture du LDB dans cette session. Elles sont signalées comme divergences, pas vérifiées. L'agent relecteur devrait confirmer ces points contre Source/Warhammer v4 - Livre de base version corrigee.
+- NON VÉRIFIÉ — Les notes de divergence LDB (Battement '−1 par DR' vs '−1 à 6 DR', Frappe Blessante '+Blessures', Impitoyable 'Désengagement', Renversement 'TOUS les Avantages', Coude-à-Coude) n'ont pas pu être vérifiées faute de lecture du LDB dans cette session. Elles sont signalées comme divergences, pas vérifiées. L'agent relecteur devrait confirmer ces points contre Source/Warhammer v4 - Livre de base version corrigee.
+- VÉRIFIÉ — Porte-Bouclier : divergence LDB citée verbatim au § [Porte-Bouclier](#porte-bouclier) (`LDB 10 l.972`).
 
 ### AA : Activités guerrières ⚠
 - Titre de la 4e activité tronqué : le topic écrit « Fabuleuse Vente du Comte de Punchausen » alors que la source (AA 12 l.46) donne « Fabuleuse Vente des Aventures du Comte de Punchausen » (« des Aventures » manquant).

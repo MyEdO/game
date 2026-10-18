@@ -1,8 +1,14 @@
+// @vitest-environment jsdom
 /**
  * Le SOSIE de Kastor Lieberung, désigné par le joueur à la fouille du cadavre — EDO 02 l.91 ; #2219
- * c.6068818868. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée au store.
+ * c.6068818868. Puis les Documents 3 et 4 remis l'un après l'autre (EDO 02 l.93-95), nommés par
+ * l'identité du sosie (EDO 02 l.112-127, #686), et l'indice qui les garde relisibles. Chemin RÉEL :
+ * l'action `fouiller` du paquet `la-diligence`, jouée au store ; la modale montée.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { DocumentModal } from '../../ui/DocumentModal';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import { pickActiveModalKey } from '../../state/modalArbiter';
@@ -33,6 +39,9 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
     expect(get().etats[SOSIE]).toBeUndefined();
     expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.89-91 : la suite de la fouille attend la désignation').toBeUndefined();
     get().designerHerosChoisir('h-1');
+    expect(get().flags['edo-ch1-corps-kastor-fouille'], 'EDO 02 l.93-95 : les deux documents se lisent avant').toBeUndefined();
+    get().closeDocument();
+    get().closeDocument();
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
   });
 
@@ -61,5 +70,51 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
     useGame.setState({ etats: {} });
     expect(get().importGame(JSON.stringify(save))).toBeNull();
     expect(get().etats[SOSIE]).toBe('h-3');
+  });
+});
+
+describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice les garde', () => {
+  beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
+  let container: HTMLDivElement | undefined;
+  let root: Root | undefined;
+  afterEach(() => { if (root) act(() => root!.unmount()); container?.remove(); root = undefined; container = undefined; });
+  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F', build: 0.5 } }), id: 'h-9' });
+
+  beforeEach(() => {
+    get().setParty([heros('Vivant', 1), naine()]);
+    get().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
+    get().acquitterOuverture();
+    get().transitionTo('route-principale-virage');
+    get().moveParty({ x: 36, y: 3 });
+    get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    get().designerHerosChoisir('h-9');
+    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    act(() => root!.render(createElement(DocumentModal)));
+  });
+
+  it('naine désignée : le Document 3 l’appelle « Chère Frau Linkassniz » ; fermé, le Document 4 la nomme « Kallar Linkassniz »', () => {
+    expect(get().identitesFigees[SOSIE]).toEqual({ espece: 'nain', sexe: 'F' });
+    expect(get().document?.documentId).toBe('edo-document-3-heritage');
+    expect(document.body.textContent).toContain('Chère Frau Linkassniz,');
+    expect(document.body.textContent).toContain('la dernière parente vivante de feu le baronet Linkass,');
+    expect(document.body.textContent).toContain('du manoir de Linkass et');
+    expect(document.body.textContent).not.toContain('Lieberung');
+    act(() => get().closeDocument());
+    expect(get().document?.documentId).toBe('edo-document-4-affidavit');
+    expect(document.body.textContent).toContain('se nomme Kallar Linkassniz.');
+    act(() => get().closeDocument());
+    expect(get().document).toBeNull();
+    expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
+  });
+
+  it('l’indice « L’héritage » révèle ses deux stades, un par document', () => {
+    act(() => get().closeDocument());
+    act(() => get().closeDocument());
+    expect(get().clues['edo-ch1-indice-heritage']?.historique.map((h) => h.stade)).toEqual(['veste', 'poche']);
+  });
+
+  it('le sosie mort garde son identité', () => {
+    act(() => useGame.setState({ party: get().party.map((h) => (h.id === 'h-9' ? { ...h, dead: true } : h)) }));
+    expect(document.body.textContent).toContain('Chère Frau Linkassniz,');
   });
 });

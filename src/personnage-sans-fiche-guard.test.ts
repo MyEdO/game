@@ -41,7 +41,6 @@ const SANS_FICHE_PROUVES: readonly { fichier: string; it: string }[] = [
   { fichier: 'src/state/spawn-fallback.test.ts', it: 'une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité' },
   { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
   { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },
-  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)' },
   { fichier: 'src/state/sceneEdit.test.ts', it: 'un patch sans rapport sur une entité DÉJÀ sans type passe ; `validateScene` la nomme' },
 ];
 

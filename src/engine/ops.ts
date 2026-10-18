@@ -19,7 +19,7 @@ import { addCondition, addTimedCondition, addClockCondition, removeCondition, lo
 import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
-import { findTableEntry } from './tables';
+import { facesDuDe, findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
@@ -32,12 +32,12 @@ import { rollObsession } from '../data/obsessions';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { findEffectTableById } from '../data/effectTables';
-import { setGrapple } from './grapple'; // op `condition {grapple:true}` → relation d'Empoignade (côté grapple : import type GameOp erased → pas de cycle runtime)
+import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration } from './rest';
 import { applyAlcoholTest } from './drunkenness';
 import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
-import { applyHealWounds } from './healing';
+import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
 import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
@@ -1739,7 +1739,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         break;
       }
       case 'heal': {
-        const n = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks) + slBonus(ctx.sl, o.perSL));
+        const n = soinMagiqueOperant(target) ? Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks) + slBonus(ctx.sl, o.perSL)) : 0; // AA 10 l.134
         // SOURCE UNIQUE `applyHealWounds` (`healing.ts`) : plafonné par munition Empaleuse logée (LDB
         // 62 l.250) comme le reste ; ni verrou « soin de rencontre » (Guérison seulement) ni réveil
         // ici — sort/potion inconscient géré par `receiveMedicalAid`/`releaseConditionLocks` ci-dessous.
@@ -1769,6 +1769,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
       }
       case 'condition': {
         if (!groupGate(o.onlyGroups)) break;
+        if (o.grapple && !peutEtreEmpoigne(target)) break; // #1595 c.6230022636
         if (o.perRound && (o.durationMinutes != null || o.durationHours != null)) throw new Error(messageRecurrenceHorloge(o.id));
         // Gates d'État (Sommeil, LDB 47) : l'op ne s'applique que si la cible porte / ne porte pas
         // l'État — évalués à CHAQUE application. Sous `perRound`, l'application est le REJEU de fin
@@ -2481,9 +2482,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
       }
       case 'rollTable': {
         // Table INLINE (`rows`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
-        const tbl = 'tableId' in o ? findEffectTableById(o.tableId) : null;
-        const rows: { min: number; max: number; ops: GameOp[] }[] = tbl ? tbl.rows : ('rows' in o ? o.rows : []);
-        const sides = (tbl ? tbl.die : o.die) === 'd100' ? 100 : 10;
+        const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
+        const rows: { min: number; max: number; ops: GameOp[] }[] = table.rows;
+        const sides = facesDuDe(table.die);
         // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
         // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
         const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);

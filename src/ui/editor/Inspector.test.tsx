@@ -11,7 +11,11 @@ import type { Sel } from './editorState';
 import { validateScene } from '../../state/validateScene';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { MISSING_TONE } from '../../gameIso/rig/viewArt';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
+import { diligenceCampaign } from '../../scenes/campaign';
+import { parseProject } from '../../state/worldMap';
+import { flowEffects, racinesDeFlow, type Flow } from '../../state/flow';
+import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -922,5 +926,41 @@ describe('Inspector — la coiffure imposée suit le pool du sexe', () => {
     const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'mutant', appearance: { sex: 'F', hairstyle: coiffureM } });
     await h.mount();
     expect(h.container.querySelector('.ent-preview svg')?.innerHTML).toContain(MISSING_TONE);
+  });
+});
+
+describe('Inspector — un Effet `document` s’insère au clic dans la fouille du cadavre (#686, EDO 02 l.95)', () => {
+  it('« + Bloc » › Document, puis le Document 4 choisi : le projet de la Diligence PARSE', async () => {
+    const brut = structuredClone(diligenceCampaign.paquet) as unknown as { scenes: Scene[]; narratif: NarratifBlock };
+    const ici = brut.scenes.findIndex((s) => s.entities.some((e) => e.id === 'cadavre-kastor-lieberung'));
+    const cadavre = () => brut.scenes[ici].entities.find((e) => e.id === 'cadavre-kastor-lieberung')!;
+    const fouiller = () => cadavre().usable!.actions!.find((a) => a.id === 'fouiller')!;
+    const etapes = () => (fouiller().flow as { steps: { kind: string; effect?: { type: string; documentId?: string } }[] }).steps;
+    const avecQuatre = etapes().filter((s) => s.effect?.documentId === 'edo-document-4-affidavit').length;
+    fouiller().flow = { kind: 'seq', steps: etapes().filter((s) => s.effect?.documentId !== 'edo-document-4-affidavit') } as Flow;
+    let latest = brut.scenes[ici];
+    const montage = monterRacine(null);
+    const rendre = (s: Scene) => montage.rendre(
+      <Inspector
+        scene={s} otherScenes={brut.scenes.filter((_, i) => i !== ici)} worldMap={null}
+        setScene={(next) => { latest = next; rendre(next); }}
+        sel={{ type: 'entity', id: 'cadavre-kastor-lieberung' }} setSel={() => undefined}
+        enemyCreatures={[]} openLogic={() => undefined} resizeScene={() => undefined}
+        narratif={brut.narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+      />,
+    );
+    await act(async () => rendre(latest));
+    const action = [...montage.container.querySelectorAll('.ed-field')].find((e) => e.querySelector('.mini-title')?.textContent === 'Action « fouiller »')!;
+    await choisirDansMenu(menuDe(action, '+ Bloc'), 'Document');
+    const champs = () => [...montage.container.querySelectorAll('select')].filter((s) => s.closest('label')?.textContent?.includes('Document remis'));
+    const neuf = champs().find((s) => s.value === '')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(neuf, 'edo-document-4-affidavit');
+      neuf.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const scenes = brut.scenes.map((s, i) => (i === ici ? latest : s));
+    const remis = racinesDeFlow(latest).flatMap((r) => flowEffects(r.flow as Flow)).filter((e) => e.type === 'document' && e.documentId === 'edo-document-4-affidavit');
+    expect(remis.length).toBe(avecQuatre);
+    expect(() => parseProject({ ...brut, scenes })).not.toThrow();
   });
 });

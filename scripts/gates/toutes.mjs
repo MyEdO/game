@@ -32,18 +32,14 @@
 // REJOUE ce cas-là (et lui seul) ; le nombre de rejeux est imprimé au résumé — c'est LE compteur de
 // pression, la mémoire système ne discriminant rien (100 % à 15 workers comme à 9).
 //
-// AUCUN VERROU : ce lanceur ne prend rien et n'attend personne. Ce qu'il rend est un DIAGNOSTIC
-// local ; deux runs concurrents se gênent, et c'est au lanceur de choisir son moment.
-//
 // `--liste` n'imprime que le plan (ce qui serait joué) sans rien jouer ; `--serie` joue tout en une
 // lane ; `--gates a,b` restreint la liste.
 import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
-import { spawn, spawnSync } from 'node:child_process'
-import { tuerArbre } from '../guards/lib/arbreProcessus.mjs'
-export { tuerArbre, descendantsDe } from '../guards/lib/arbreProcessus.mjs'
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { spawnBorne, tuerArbre, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
@@ -51,14 +47,13 @@ import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import {
   compterRejeux,
-  reessayerAuChargement,
   rejeux,
 } from '../guards/lib/spawnResilient.mjs'
-import { codeEnfant } from '../test/partition.mjs'
-import { prendreVerrouAsync } from '../test/verrou.mjs'
-import { OPT_OUT_SUITE, VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite } from '../test/verrouDeSuite.mjs'
+import { jetonsDuVerrou, prendreVerrouAsync, tenantEnUneLigne } from '../test/verrou.mjs'
+import { lanceUnGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
@@ -89,23 +84,26 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  */
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
 
+/** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
+const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
-    lit: ['.claude/', '.agents/', '.codex/', 'AGENTS.md', 'CLAUDE.md', 'scripts/agents/'],
+    lit: ['.claude/', '.agents/', '.codex/', 'scripts/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
       'mode `check` : `runCompat` n’écrit que sous `mode === "sync"` (`runCompat`, scripts/agents/compat-cli.mjs) ; ' +
-      'les 48 lectures mesurées sont les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ + ' +
-      'AGENTS.md + CLAUDE.md (miroirs comparés), plus son propre code',
+      'il lit les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ (miroirs comparés), plus son ' +
+      'propre code (`FICHIERS_LUS`, `DOSSIERS_LUS`)',
   },
   'test:agents': {
     ecrit: [],
-    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
+    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'CLAUDE.md'],
     raison: RETRAIT_WORKTREE_FERME +
       'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
-      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
-      'et AGENTS.md — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
+      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur ses imports `@.claude/credo.md` et ' +
+      '`@AGENTS.md`) — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
       'scripts/hooks/ depuis le 2026-09-28 (#2125) : les déclarations de hooks dérivent des registres, que ' +
       '`chargerRegistres` (scripts/agents/compat-cli.mjs) importe',
   },
@@ -120,7 +118,7 @@ export const ECRIT_LU = {
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
-      'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison: RETRAIT_WORKTREE_FERME +
@@ -147,7 +145,7 @@ export const ECRIT_LU = {
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
       'sonde n’enregistre pas : la déclaration tient de la LECTURE du code, et une sur-déclaration ne peut ' +
       'que RESSERRER les lanes ; LIT .codex/hooks.json et .claude/settings.json ' +
-      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, oxlint.config.mjs et package.json — ' +
+      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md et AGENTS.md qu’il importe (budget de contexte), oxlint.config.mjs et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
       '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
@@ -218,11 +216,21 @@ export const ECRIT_LU = {
       'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
       'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
   },
+  'test:corpus': {
+    ecrit: [],
+    lit: LIT_DES_AUDITS,
+    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+  },
+  'test:corpus-isole': {
+    ecrit: [],
+    lit: LIT_DES_AUDITS,
+    raison: 'Les audits du dépôt réel joués sans concurrence lisent leurs corpus ; leurs mémos et copies restent sous un `mkdtempSync` d’os.tmpdir(), retiré en finally, et leurs stocks se lisent sans réécriture.',
+  },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.codex/credo.md', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'session-start.test.mjs copie les configurations et credos réels .claude/settings.json, .claude/credo.md, .codex/hooks.json et .codex/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credos et reçus restent dans ces fixtures ; ' +
+      'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
@@ -233,7 +241,7 @@ export const ECRIT_LU = {
       '`mkdtempSync`, ou les dépôts jetables de `depotGabarit.mjs`, dont toutes les écritures visent ' +
       'os.tmpdir() —, et un module dont l’écriture réelle vise un autre lieu la tient derrière sa porte ' +
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
-      '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
+      '`--sync`, sous la porte de `main()`, écrirait la baseline ; scripts/ops/knip-exports-ratchet.test.mjs écrit et retire uniquement ses fixtures de configuration et de bibliothèque sous os.tmpdir()), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
       '`suivi.mjs` et `suiviFichiers.mjs` (#2460) (ils écrivent `.git/suivi/<N>.json` et `<N>.mesure.json`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
@@ -293,10 +301,10 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
-      'scripts/test/verrou.mjs', 'scripts/test/verrouDeSuite.mjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
+      'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
       'scripts/test/node-tests.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
       'scripts/gates/', 'scripts/ops/reprendre-file.mjs', 'scripts/ops/ruleset-main.mjs',
@@ -305,6 +313,7 @@ export const ECRIT_LU = {
     ],
     raison: RETRAIT_WORKTREE_FERME +
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+      'scripts/docs/check-doc-refs.test.mjs écrit et supprime ses cibles de suites dans des fixtures sous os.tmpdir(), retirées en finally ; sa CLI lit ces fixtures sans publication ; ' +
       'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
       'ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), atteint par les bancs de certification, écrit uniquement leurs caches de fixtures sous os.tmpdir() ; ' +
       'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
@@ -322,8 +331,8 @@ export const ECRIT_LU = {
       '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
+      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
+      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
       'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
@@ -393,7 +402,7 @@ export const ECRIT_LU = {
       'SÉPARÉE des trois écrivains de docs/raw ; AUCUNE lecture sous .claude/ ni de CLAUDE.md ' +
       '(même sonde) : les deux gardes documentaires qui les balayaient vivent ' +
       'en node:test (scripts/guards/lib/memoryLinks.test.mjs dans test:hooks, ' +
-      'scripts/docs/manual-docs-ratchet.test.mjs dans test:docs) ; LIT Source/ (verbatims ' +
+      'scripts/corpus/docs/manual-docs-ratchet.test.mjs dans test:corpus) ; LIT Source/ (verbatims ' +
       'et résolution de prose : `CHAPITRE` de src/data/tavern-desc-verbatim.test.ts et de ' +
       'vdm-objets-maudits.test.ts, `AA_ANNEXE_III` de variants-integrity.test.ts, le cas « A — chaque ' +
       'adresse RÉSOUT » de prose-resolution.test.ts, `oversizeIn(\'Source\', …)` de ' +
@@ -412,7 +421,7 @@ export const ECRIT_LU = {
         '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
       'docs/.sources-lues.json':
         '`build-all.mjs --code` conserve les mesures des autres générateurs et enregistre celles des cibles de code ; seuls build et docs:build lisent cette mesure réelle dans le même job/lane docs, séquentiels par jouerLane ; les autres lanes utilisent leurs mesures de fixtures sous os.tmpdir()',
-      'vite.config.ts.timestamp-':
+      'vite.config.ts.timestamp-*.mjs':
         'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
         '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
         'ce chemin — c’est un module que Vite écrit pour lui-même, sous un nom que le suffixe horodaté rend ' +
@@ -743,7 +752,6 @@ export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
   return refus
 }
 
-
 /** Plafond d'une gate, en millisecondes. */
 export const limiteDe = (gate) => (TIMEOUTS[gate] ?? TIMEOUTS.defaut) * 1000
 
@@ -758,54 +766,6 @@ export function lanesAJouer(aJouer, { serie = false, lanes }) {
   return lanes.map((l) => ({ ...l, gates: l.gates.filter((n) => noms.has(n)) })).filter((l) => l.gates.length)
 }
 
-/**
- * Lance `node <argv>` avec sa sortie dans `fichier`, BORNÉ par `limiteMs`, et REJOUÉ si le processus
- * n'a pas démarré (`spawnResilient` — le fichier de sortie est réouvert en `'w'` à chaque essai, sans
- * quoi le second écrirait à la suite du premier). À l'expiration, c'est l'ARBRE de l'enfant qui tombe
- * — `npm`, `vitest` et leurs workers survivraient à un kill sur le seul PID, et garderaient le verrou
- * de suite et les cœurs. `surPid` reçoit le PID DÈS LE SPAWN : c'est par lui que l'arrêt sur signal
- * atteint les enfants EN COURS, dont la promesse se résoudra plus tard.
- * REND `{ code, expiree, fichier, sortie, limiteMs, pid }`.
- */
-export function spawnBorne({ commande, argv, fichier, limiteMs, cwd, env = process.env, surPid, site }) {
-  const unEssai = () =>
-    new Promise((resoudre) => {
-      const fd = openSync(fichier, 'w')
-      // `npm` est un SCRIPT sous Windows (`npm.cmd`) : sans `shell`, le loader ne le démarre pas.
-      const enfant = spawn(commande ?? process.execPath, argv, {
-        cwd,
-        env,
-        stdio: ['ignore', fd, fd],
-        shell: commande === 'npm' && process.platform === 'win32',
-        detached: process.platform !== 'win32',
-      })
-      surPid?.(enfant.pid)
-      let expiree = false
-      const minuterie = setTimeout(() => {
-        expiree = true
-        tuerArbre(enfant.pid)
-      }, limiteMs)
-      const finir = (code) => {
-        clearTimeout(minuterie)
-        try {
-          closeSync(fd)
-        } catch {
-          /* déjà fermé */
-        }
-        let sortie = ''
-        try {
-          sortie = readFileSync(fichier, 'utf8')
-        } catch {
-          /* sortie illisible : le verdict reste celui du code de sortie */
-        }
-        resoudre({ code, expiree, fichier, sortie, limiteMs, pid: enfant.pid })
-      }
-      enfant.on('error', () => finir(1))
-      enfant.on('close', (code, signal) => finir(codeEnfant(code, signal)))
-    })
-  return reessayerAuChargement(unEssai, { site: site ?? fichier })
-}
-
 /** Les `n` dernières lignes non vides d'un texte — la queue qu'on imprime sous un rouge. */
 export const queue = (texte, n) =>
   texte
@@ -816,17 +776,31 @@ export const queue = (texte, n) =>
 /** Lignes de queue imprimées sous chaque rouge du résumé. */
 const LIGNES_DE_QUEUE = 40
 
-const secondesDepuis = (debut) => (Date.now() - debut) / 1000
-
 /** Le script de `package.json` que joue une gate (`npm test` → `test`, `npm run x` → `x`). */
 const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
 
-/** Ce script lance-t-il la suite complète (`scripts/test/run.mjs`, preneur du verrou de suite) ? */
-export const lanceLaSuite = (script) => /(?:^|\s)(?:\.\/)?scripts\/test\/run\.mjs(?:\s|$)/.test(script ?? '')
+const arretNonConfirme = (arret) => arret?.etat !== 'mort'
+
+export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, arreter = tuerArbre, lancementsEnCours = [] }) {
+  journal(`\n[gates] ${signal} — demande d'arrêt de l'arbre de chaque gate en cours.\n`)
+  const controles = [...vivants.values()]
+  for (const controle of controles) controle.demanderArret()
+  const arrets = controles.map(async (controle) => {
+    try { return await arreter(controle) }
+    catch (cause) { return { etat: 'indetermine', erreurs: [{ operation: 'arret', pid: controle.pid, code: cause.code ?? 'ARRET_INDETERMINE', message: cause.message, cause: cause.cause }] } }
+  })
+  const resultats = await Promise.all([...arrets, ...[...lancementsEnCours].map(async (fin) => (await fin).arret)])
+  let indetermine = false
+  for (const vu of resultats) if (diagnosticArret({ arret: vu }, (ligne) => journal(ligne + '\n')) || arretNonConfirme(vu)) indetermine = true
+  if (!indetermine) for (const tenu of verrousTenus) tenu.liberer()
+  else journal('[gates] arrêt indéterminé — aucun verrou libéré manuellement.\n')
+  return 130
+}
 
 /**
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
+ * `horloge` porte les chronomètres et l'attente du verrou, jamais l'horloge murale des enfants supervisés.
  * REND le code de sortie.
  */
 export async function principal({
@@ -835,10 +809,12 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
-  verrouSuite = VERROU_SUITE,
+  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, horloge = Date.now,
 } = {}) {
+  const configuration = instance ?? verrouGestesLourds(racine)
+  const secondesDepuis = (debut) => (horloge() - debut) / 1000
   const LISTE = argv.includes('--liste')
-  const SERIE = argv.includes('--serie') || !lanesPortees(machine)
+  const SERIE = argv.includes('--serie') || !lanesPortees(machine) || jetonsDuVerrou(env, configuration.chemin).length > 0
   // `--gates a,b` : la liste NOMMÉE, dans l'ordre de ci.yml. Un nom inconnu du fichier fait REFUSER
   // — une faute de frappe qui jouerait zéro gate en s'annonçant verte serait le pire des verdicts.
   const iGates = argv.indexOf('--gates')
@@ -901,12 +877,13 @@ export async function principal({
   // `npm run gen` AVANT tout (`genererCode`, scripts/docs/build-all.mjs ; #2203 A2) : `build`, la
   // suite et `docs:build` produisent les cibles de CODE depuis plusieurs lanes ; produites ici, elles
   // ne sont plus réécrites (`ecrireOuVerifier` n'écrit qu'un rendu qui diffère).
-  const avantGen = Date.now()
+  const avantGen = horloge()
   const gen = spawnSync('npm', ['run', 'gen'], {
     cwd: racine,
     stdio: ['ignore', 'ignore', 'pipe'],
     shell: process.platform === 'win32',
     encoding: 'utf8',
+    env,
   })
   if (gen.status !== 0) {
     journal(`[gates] REFUS — « npm run gen » rouge (exit ${gen.status}) :\n${gen.stderr ?? ''}\n`)
@@ -920,164 +897,190 @@ export async function principal({
   const aJouerParNom = new Map(aJouer.map((g) => [g.nom, g]))
   const verdicts = new Map()
   const vivants = new Map()
-  // Seul un SIGNAL arrête le run (#1772) : les arbres en cours sont tués, rien ne peut plus rendre de
-  // verdict. AUCUN verdict de gate n'arrête quoi que ce soit, pas même un refus de prérequis : les
-  // autres gates lisent le même arbre propre, et chacune teste SES PROPRES prérequis
-  // (`prerequisAbsents`), donc leur verdict est juste.
-  /** Verrous de suite tenus par ce run, libérés à l'arrêt sur signal. */
+  const lancementsEnCours = new Set()
+  // #1772 #2586
   const verrousTenus = new Set()
+  const arretDesAttentes = new AbortController()
+  const signalDePrise = signal ? AbortSignal.any([signal, arretDesAttentes.signal]) : arretDesAttentes.signal
+  let arretSurSignal
   const arreterSurSignal = (signal) => {
-    journal(
-      `\n[gates] ${signal} — arrêt : l'ARBRE de chaque gate en cours est tué (un enfant survivant garderait ` +
-        'le verrou de suite et des cœurs).\n',
-    )
-    for (const pid of vivants.values()) tuerArbre(pid)
-    for (const tenu of verrousTenus) tenu.liberer()
-    process.exit(130)
+    arretDesAttentes.abort()
+    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => process.exit(code))
   }
-  process.on('SIGINT', () => arreterSurSignal('SIGINT'))
-  process.on('SIGTERM', () => arreterSurSignal('SIGTERM'))
+  const surSigint = () => arreterSurSignal('SIGINT')
+  const surSigterm = () => arreterSurSignal('SIGTERM')
+  process.on('SIGINT', surSigint)
+  process.on('SIGTERM', surSigterm)
+  try {
 
-  /** Un ROUGE de gate rendu SANS spawn : `sortie` écrite dans le fichier de la gate. */
-  const rougeSansSpawn = (gate, sortie, code = 1) => {
-    const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
-    writeFileSync(fichier, sortie)
-    return { code, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
-  }
-
-  /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
-  const jouerGate = async (gate, coeurs, envEnPlus) => {
-    const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
-    // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
-    // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
-    // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
-    // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
-    const absents = prerequisAbsents(ecritLu[gate.nom], racine)
-    if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
-    // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.
-    // Un script absent de `package.json` est un rouge NOMMÉ, pas un `npm` qui se plaint tout seul.
-    const script = scriptDeGate(gate)
-    if (!scripts[script]) {
-      return rougeSansSpawn(gate, `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`)
+    /** Un ROUGE de gate rendu SANS spawn : `sortie` écrite dans le fichier de la gate. */
+    const rougeSansSpawn = (gate, sortie, code = 1) => {
+      const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
+      writeFileSync(fichier, sortie)
+      return { code, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom), arret: { etat: 'mort', erreurs: [] } }
     }
-    const env = { ...process.env, ...envEnPlus }
-    if (coeurs && !process.env.WFRP_TEST_COEURS) env.WFRP_TEST_COEURS = String(coeurs)
-    const [commande, ...args] = gate.commande.split(' ')
-    const r = await spawnBorne({
-      commande,
-      argv: args,
-      fichier,
-      limiteMs: limiteDe(gate.nom),
-      cwd: racine,
-      env,
-      site: `gate ${gate.nom}`,
-      surPid: (pid) => vivants.set(gate.nom, pid),
-    })
-    vivants.delete(gate.nom)
-    return r
-  }
 
-  /** Pose le verdict d'une gate. Aucun verdict n'ARME quoi que ce soit : le résumé compte tout
-   *  verdict non vert, et les lanes vont au bout. */
-  const poser = (nom, r) => {
-    const secondes = secondesDepuis(r.debut)
-    const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 ? 'vert' : 'ROUGE'
-    verdicts.set(nom, { statut, code: r.code, secondes, fichier: r.fichier, sortie: r.sortie, limiteMs: r.limiteMs })
-    journal(`[gates] ${nom} — ${statut} (exit ${r.code}) en ${secondes.toFixed(1)} s · ${r.fichier}\n`)
-    return statut
-  }
-
-  const jouerLane = async (lane) => {
-    const debut = Date.now()
-    for (const nom of lane.gates) {
-      const gate = aJouerParNom.get(nom)
-      // Le verrou de suite se prend ICI, hors du chronomètre de la gate et de son plafond (`TIMEOUTS`) ;
-      // l'enfant, qui l'aurait repris, part sous l'opt-out explicite.
-      const suite = lanceLaSuite(scripts[scriptDeGate(gate)])
-      const debutAttente = Date.now()
-      const verrou = suite
-        ? await prendreVerrouDeSuite({
-            verrou: verrouSuite,
-            prendre: prendreVerrouAsync,
-            commande: `${process.execPath} scripts/gates/toutes.mjs (gate ${nom})`,
-            cwd: racine,
-            annoncer: (tenant) => journal(`[gates] ${nom} — attente du verrou de suite : ${attenteDeSuite(tenant)}\n`),
-          })
-        : null
-      if (verrou?.liberer) verrousTenus.add(verrou)
-      if (suite) journal(`[gates] ${nom} — ${((Date.now() - debutAttente) / 1000).toFixed(1)} s d'attente du verrou de suite (hors chronomètre)\n`)
-      const debutGate = Date.now()
+    /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
+    const jouerGate = async (gate, coeurs, envEnPlus) => {
+      let terminerLancement
+      let arretDuLancement = { etat: 'mort', erreurs: [] }
+      const finDuLancement = new Promise((ok) => { terminerLancement = ok })
+      lancementsEnCours.add(finDuLancement)
       try {
-        // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
-        // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
-        const r = verrou?.etat === 'refus'
-          ? rougeSansSpawn(gate, `${verrou.message}\n`, 2)
-          : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, suite ? { [OPT_OUT_SUITE]: '0' } : {})
-        poser(nom, { ...r, debut: debutGate })
+      const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
+      // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
+      // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
+      // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
+      // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
+      const absents = prerequisAbsents(ecritLu[gate.nom], racine)
+      if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
+      // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.
+      // Un script absent de `package.json` est un rouge NOMMÉ, pas un `npm` qui se plaint tout seul.
+      const script = scriptDeGate(gate)
+      if (!scripts[script]) {
+        return rougeSansSpawn(gate, `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`)
+      }
+      const envGate = { ...env, ...envEnPlus }
+      if (coeurs && !envGate.WFRP_TEST_COEURS) envGate.WFRP_TEST_COEURS = String(coeurs)
+      const [commande, ...args] = gate.commande.split(' ')
+      const r = await spawnBorne({
+        commande,
+        argv: args,
+        fichier,
+        limiteMs: limiteDe(gate.nom),
+        cwd: racine,
+        env: envGate,
+        signal,
+        site: `gate ${gate.nom}`,
+        surControle: (controle) => { arretDuLancement = { etat: 'indetermine', erreurs: [] }; vivants.set(gate.nom, controle) },
+      })
+      if (!arretNonConfirme(r.arret)) vivants.delete(gate.nom)
+      arretDuLancement = r.arret
+
+      return r
       } finally {
-        verrou?.liberer?.()
-        verrousTenus.delete(verrou)
+        terminerLancement({ arret: arretDuLancement })
+        lancementsEnCours.delete(finDuLancement)
       }
     }
-    return { nom: lane.nom, secondes: secondesDepuis(debut) }
-  }
 
-  const photoDepart = photoArbre(racine)
-  const debutTotal = Date.now()
+    // #1772 #2586
+    const poser = (nom, r) => {
+      const secondes = secondesDepuis(r.debut)
+      const statut = r.expiree ? 'EXPIRÉE' : r.code === 0 && !arretNonConfirme(r.arret) ? 'vert' : 'ROUGE'
+      verdicts.set(nom, { statut, code: r.code, secondes, fichier: r.fichier, sortie: r.sortie, limiteMs: r.limiteMs, error: r.error, arret: r.arret })
+      diagnosticArret(r, (ligne) => journal(ligne + '\n'))
+      if (arretNonConfirme(r.arret)) arretDesAttentes.abort()
+      journal(`[gates] ${nom} — ${statut} (exit ${r.code}) en ${secondes.toFixed(1)} s · ${r.fichier}\n`)
+      return statut
+    }
 
-  // PHASE 2 — les lanes, qui ne portent que des lecteurs.
-  const lanes = lanesAJouer(aJouer, { serie: SERIE, lanes: lanesDeclarees })
-  const dureesLanes = await Promise.all(lanes.map(jouerLane))
-  const mur = secondesDepuis(debutTotal)
+    const jouerLane = async (lane) => {
+      const debut = horloge()
+      for (const nom of lane.gates) {
+        const gate = aJouerParNom.get(nom)
+        const refusDeCapacite = () => {
+          const indeterminees = [...vivants.keys()].filter((enCours) => verdicts.has(enCours) && arretNonConfirme(verdicts.get(enCours).arret))
+          return indeterminees.length
+            ? `[gates] ${nom} — REFUS CAPACITE_ARRET_INDETERMINE : ${indeterminees.map((n) => `${n} PID ${vivants.get(n)?.pid}`).join(', ')} ; capacité retenue, arrêt non confirmé.\n`
+            : null
+        }
+        const refusAvantPrise = refusDeCapacite()
+        if (refusAvantPrise) {
+          poser(nom, { ...rougeSansSpawn(gate, refusAvantPrise, 2), debut: horloge() })
+          continue
+        }
+        // #2187 #2586
+        const lourde = lanceUnGesteLourd(scripts[scriptDeGate(gate)])
+        const debutAttente = horloge()
+        const verrou = lourde
+          ? await prendre({
+              ...configuration, env, horloge, signal: signalDePrise, commande: 'gates ' + nom, cwd: racine,
+              attente: { ...configuration.attente, annoncer: (tenant) => {
+                journal('[gates] ' + nom + ' — attente du geste lourd : ' + tenantEnUneLigne(tenant) + '\n')
+              } },
+            })
+          : null
+        if (verrou?.liberer) verrousTenus.add(verrou)
+        if (lourde) journal(`[gates] ${nom} — ${((horloge() - debutAttente) / 1000).toFixed(1)} s d'attente du geste lourd (hors chronomètre)\n`)
+        const debutGate = horloge()
+        try {
+          const refusApresPrise = refusDeCapacite()
+          const r = refusApresPrise
+            ? rougeSansSpawn(gate, refusApresPrise, 2)
+            : verrou?.etat === 'refus' ? rougeSansSpawn(gate, verrou.message + '\n', CODE_DIFFERE)
+            : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, verrou?.env)
+          poser(nom, { ...r, debut: debutGate })
+        } finally {
+          if (!arretNonConfirme(verdicts.get(nom)?.arret)) {
+            verrou?.liberer?.()
+            verrousTenus.delete(verrou)
+          }
+        }
+      }
+      return { nom: lane.nom, secondes: secondesDepuis(debut) }
+    }
 
-  // PHASE 3 — le RÉSUMÉ D'ABORD, dans l'ordre de ci.yml. L'ordonnancement en lanes ne doit pas
-  // devenir l'ordre de LECTURE d'un verdict, et rien de ce qui suit ne peut plus l'empêcher.
-  journal('\n[gates] ——— résumé ———\n')
-  let code = 0
-  for (const gate of gates) {
-    const v = verdicts.get(gate.nom)
-    if (!v) continue
-    const exit = typeof v.code === 'number' ? ` (exit ${v.code})` : ''
-    journal(`[gates] ${gate.nom} — ${v.statut}${exit} — ${v.secondes.toFixed(1)} s — ${v.fichier}\n`)
-    if (v.statut === 'vert') continue
-    code = 1
-    if (v.statut === 'EXPIRÉE') journal(`[gates]   expirée au plafond de ${(v.limiteMs / 1000).toFixed(0)} s (TIMEOUTS)\n`)
-    if (v.sortie) for (const l of queue(v.sortie, LIGNES_DE_QUEUE)) journal(`[gates]   | ${l}\n`)
-  }
-  const serieEquivalente = [...verdicts.values()].reduce((n, v) => n + v.secondes, 0)
-  journal(
-    `[gates] total ${mur.toFixed(1)} s · série équivalente ${serieEquivalente.toFixed(1)} s · lanes : ` +
-      `${dureesLanes.map((d) => `${d.nom} ${d.secondes.toFixed(1)} s`).join(' · ') || '(aucune)'}\n`,
-  )
-  const rejeuxDesGates = [...verdicts.values()].reduce((n, v) => n + compterRejeux(v.sortie), 0)
-  const totalRejeux = rejeux.total + rejeuxDesGates
-  journal(
-    totalRejeux
-      ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
-      : '[gates] 0 spawn rejoué — aucune pression de chargement\n',
-  )
+    const photoDepart = photoArbre(racine)
+    const debutTotal = horloge()
 
-  // Les durées de CE run sont la mesure des LANES et des TIMEOUTS — écriture au mieux, jamais un verdict.
-  try {
-    writeFileSync(
-      fichierDurees(racine),
-      `${JSON.stringify(Object.fromEntries([...verdicts].map(([n, v]) => [n, v.secondes])), null, 2)}\n`,
-    )
-  } catch {
-    /* cache indisponible : la mesure de ce run est perdue, rien d'autre */
-  }
+    // PHASE 2 — les lanes, qui ne portent que des lecteurs.
+    const lanes = lanesAJouer(aJouer, { serie: SERIE, lanes: lanesDeclarees })
+    const dureesLanes = await Promise.all(lanes.map(jouerLane))
+    const mur = secondesDepuis(debutTotal)
 
-  const photoFin = photoArbre(racine)
-  if (photoDepart.erreur || photoFin.erreur) {
-    journal(`[gates] photo de l'arbre IMPOSSIBLE (${photoDepart.erreur ?? photoFin.erreur}) — vérifie \`git status\` à la main.\n`)
-  } else if (photoFin.texte !== photoDepart.texte) {
+    // PHASE 3 — le RÉSUMÉ D'ABORD, dans l'ordre de ci.yml. L'ordonnancement en lanes ne doit pas
+    // devenir l'ordre de LECTURE d'un verdict, et rien de ce qui suit ne peut plus l'empêcher.
+    journal('\n[gates] ——— résumé ———\n')
+    let code = 0
+    for (const gate of gates) {
+      const v = verdicts.get(gate.nom)
+      if (!v) continue
+      const exit = typeof v.code === 'number' ? ` (exit ${v.code})` : ''
+      journal(`[gates] ${gate.nom} — ${v.statut}${exit} — ${v.secondes.toFixed(1)} s — ${v.fichier}\n`)
+      if (v.statut === 'vert') continue
+      code = 1
+      if (v.statut === 'EXPIRÉE') journal(`[gates]   expirée au plafond de ${(v.limiteMs / 1000).toFixed(0)} s (TIMEOUTS)\n`)
+      if (v.sortie) for (const l of queue(v.sortie, LIGNES_DE_QUEUE)) journal(`[gates]   | ${l}\n`)
+    }
+    const serieEquivalente = [...verdicts.values()].reduce((n, v) => n + v.secondes, 0)
     journal(
-      "[gates] REFUS — l'arbre a CHANGÉ pendant le run : une gate y a écrit ce qu'une autre lisait, et " +
-        'aucun verdict de ce run ne vaut. `git status` avant et après diffèrent.\n',
+      `[gates] total ${mur.toFixed(1)} s · série équivalente ${serieEquivalente.toFixed(1)} s · lanes : ` +
+        `${dureesLanes.map((d) => `${d.nom} ${d.secondes.toFixed(1)} s`).join(' · ') || '(aucune)'}\n`,
     )
-    code = 1
+    const rejeuxDesGates = [...verdicts.values()].reduce((n, v) => n + compterRejeux(v.sortie), 0)
+    const totalRejeux = rejeux.total + rejeuxDesGates
+    journal(
+      totalRejeux
+        ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
+        : '[gates] 0 spawn rejoué — aucune pression de chargement\n',
+    )
+
+    // Les durées de CE run sont la mesure des LANES et des TIMEOUTS — écriture au mieux, jamais un verdict.
+    try {
+      writeFileSync(
+        fichierDurees(racine),
+        `${JSON.stringify(Object.fromEntries([...verdicts].map(([n, v]) => [n, v.secondes])), null, 2)}\n`,
+      )
+    } catch {
+      /* cache indisponible : la mesure de ce run est perdue, rien d'autre */
+    }
+
+    const photoFin = photoArbre(racine)
+    if (photoDepart.erreur || photoFin.erreur) {
+      journal(`[gates] photo de l'arbre IMPOSSIBLE (${photoDepart.erreur ?? photoFin.erreur}) — vérifie \`git status\` à la main.\n`)
+    } else if (photoFin.texte !== photoDepart.texte) {
+      journal(
+        "[gates] REFUS — l'arbre a CHANGÉ pendant le run : une gate y a écrit ce qu'une autre lisait, et " +
+          'aucun verdict de ce run ne vaut. `git status` avant et après diffèrent.\n',
+      )
+      code = 1
+    }
+    return code
+  } finally {
+    process.removeListener('SIGINT', surSigint)
+    process.removeListener('SIGTERM', surSigterm)
   }
-  return code
 }
 
 if (import.meta.main) {

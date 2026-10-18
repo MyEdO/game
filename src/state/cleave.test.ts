@@ -8,6 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { BattleState } from './store';
+import { draineCascade } from './cascadeTestKit';
 
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
@@ -96,6 +97,8 @@ describe('Balayage en combat (store)', () => {
 
     // L'IA attaque H1 ; la Frappe Mortelle enchaîne sur H2 (adjacent).
     doAttack(useGame.getState, useGame.setState, E, H1);
+    // Porteurs tenus : chaque Blessure critique ouvre son étape, l'enchaînement attend sa fermeture (LDB 63 l.30).
+    draineCascade(useGame.getState);
 
     const st = useGame.getState().battle!;
     const h1 = st.combatants.find((c) => c.id === H1.id)!;
