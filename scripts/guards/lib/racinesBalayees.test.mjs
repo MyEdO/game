@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { posix, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runInNewContext } from 'node:vm'
-import { inspect, types } from 'node:util'
+import { inspect } from 'node:util'
 import { setFlagsFromString } from 'node:v8'
 import { fileURLToPath } from 'node:url'
 import { spawnBorne } from './processusBorne.mjs'
@@ -1081,77 +1081,24 @@ const gc = globalThis.gc ?? (() => {
   try { return runInNewContext('gc') } finally { setFlagsFromString('--no-expose-gc') }
 })()
 
-/** Les octets de tas retenus par clé jetée : cinq lots de `n` clés `cle(fabriquer(i))` jetées, GC majeur et
- *  finaliseurs entre lots, pente du pic des lots suivants sur le deuxième. */
-const retenuParCleJetee = async (cle, fabriquer, n) => {
-  const lots = 5
-  let i = 0
-  const lot = async () => {
-    for (let k = 0; k < n; k++) cle(fabriquer(i++))
-    for (let tour = 0; tour < 12; tour++) {
-      await new Promise((r) => setTimeout(r, 0))
-      await gc({ type: 'major', execution: 'async' })
-    }
-    return process.memoryUsage().heapUsed
-  }
-  await lot()
-  const base = await lot()
-  let pic = base
-  for (let l = 2; l < lots; l++) pic = Math.max(pic, await lot())
-  return (pic - base) / (n * (lots - 2))
-}
-
 // #2586
-test('sous-graphes gelés : les sources et les parents clés sont collectés', async () => {
-  const collecter = async (refs) => {
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setImmediate(r))
-      const collecte = gc({ type: 'major', execution: 'async' })
-      assert.ok(types.isPromise(collecte))
-      await collecte
-      await new Promise((r) => setImmediate(r))
-      if (refs.every((r) => r.deref() === undefined)) return
-    }
-    assert.fail(`sources retenues après huit tâches de GC : ${refs.filter((r) => r.deref() !== undefined).length} sur ${refs.length}`)
-  }
-  const p = clesDuDepot()
-  const mode = 'cellules'
-  const enfant = Object.freeze({ v: true })
-  const cle = p.cle(enfant, mode)
-  const creer = (n) => Array.from({ length: n }, () => {
-    const parent = Object.freeze({ enfant, alias: enfant })
-    p.cle(parent, mode)
-    return new WeakRef(parent)
-  })
-  const jeterSource = () => {
-    const source = Object.freeze({ v: false })
-    p.cle(source, mode)
-    return new WeakRef(source)
-  }
-  await collecter([jeterSource(), ...creer(128)])
-  for (let lot = 0; lot < 4; lot++) await collecter(creer(256))
-  assert.equal(p.cle(enfant, mode), cle)
-})
-
-// #2586
-test('sous-graphes gelés : le fan-in des parents jetés plafonne', async (t) => {
-  const p = clesDuDepot()
-  const mode = 'cellules'
-  const enfant = Object.freeze({ v: true })
-  const cle = p.cle(enfant, mode)
-  const retenu = await retenuParCleJetee((x) => p.cle(x, mode), () => Object.freeze({ enfant, alias: enfant }), 12000)
-  t.diagnostic(`${retenu.toFixed(1)} octets retenus par parent jeté`)
-  assert.ok(retenu < 16)
-  assert.equal(p.cle(enfant, mode), cle)
-})
-
-// #2586
-test('cellules BOOL : le registre ne retient aucune clé de Source jetée', async (t) => {
-  const p = clesDuDepot()
-  const mode = 'cellules'
-  const retenu = await retenuParCleJetee((x) => p.cle(x, mode), (i) => ({ v: i, w: [String(i)] }), 1500)
-  t.diagnostic(`${retenu.toFixed(1)} octets retenus par Source jetée`)
-  assert.ok(retenu < 256)
+test('mémoire bornée : un job synchrone de lots fermés ne retient rien d’un lot rendu', (t) => {
+  const appels = Array.from({ length: 400 }, (_, i) => `f('d${i}', 'x${i}')`).join(';')
+  const lu = lire('m.mjs', `${ENTETE}function f(a, b) { return readdirSync(join(a, b)) };${appels}`)
+  const lot = { lectures: [['m.mjs', certifierLecture('m.mjs', encoderLecture(lu))]],
+    resolutions: [['m.mjs', 'node:fs', null], ['m.mjs', 'node:path', null]], lecteurs: ['m.mjs'], questions: [{ nature: 'sitesDe', f: 'm.mjs' }] }
+  const lots = 30
+  const retenu = (() => {
+    const jouer = (n) => { for (let i = 0; i < n; i++) evaluerLotDuDepot(lot) }
+    jouer(3)
+    gc()
+    const avant = process.memoryUsage().heapUsed
+    jouer(lots)
+    gc()
+    return (process.memoryUsage().heapUsed - avant) / lots
+  })()
+  t.diagnostic(`${Math.round(retenu)} octets retenus par lot rendu`)
+  assert.ok(retenu < 64 * 1024)
 })
 
 // #2586
@@ -1860,8 +1807,24 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
   assert.equal(ouvert.cleDe(valeur), ferme.texteDeCle(cellule))
   for (const mode of ['inconnu', undefined, 'toString']) assert.throws(() => ouvert.cle(valeur, mode), /CLE_MODE_INCONNU/)
   for (const c of [ouvert, ferme]) assert.throws(() => c.cleDe({ objet: { a: 1n } }), /^Error: CLE_DOMAINE_JSON$/)
+  const { proxy: revoque, revoke } = Proxy.revocable({}, {})
+  revoke()
+  const nomme = (e) => e.message === 'CLE_DOMAINE_JSON' && e.cause instanceof TypeError
+  for (const regime of [false, true]) {
+    const c = clesDeLEvaluateur(regime)
+    const surfaces = { cleDe: () => c.cleDe(revoque), cleDesArgs: () => c.cleDesArgs([revoque]), uniques: () => c.uniques([revoque, revoque]),
+      composerCle: () => c.composerCle('d', revoque), objet: () => c.cleDe({ objet: { a: revoque } }),
+      ...regime ? {} : { cleCanonique: () => c.cleCanonique(({ referenceDe }) => referenceDe(revoque), null, null, 'texte') } }
+    for (const [nom, appel] of Object.entries(surfaces)) assert.throws(appel, nomme, `${regime ? 'fermé' : 'ouvert'} ${nom}`)
+  }
   const union = { k: 'union', v: [{ k: 'objet', v: { a: { k: 'lit', v: 'src/a' } } }, { k: 'objet', v: { b: { k: 'lit', v: 'docs/b' } } }] }
   assert.equal(evaluer(union).length, 2)
+  const lit = { k: 'lit', v: 'src/a' }
+  const un = { k: 'scalaire', v: '1' }
+  const paresseuses = { chaine: { k: 'chaine', de: lit }, elements: { k: 'elementItere', de: lit }, indice: { k: 'indice', de: lit, nom: 0, texte: 't' },
+    opaques: { k: 'elementItere', de: { k: 'projection', de: lit, v: [] } }, descendre: { k: 'aplatir', de: lit, profondeur: un },
+    niveau: { k: 'aplatir', de: { k: 'liste', v: [lit] }, profondeur: un } }
+  for (const [nom, e] of Object.entries(paresseuses)) assert.doesNotThrow(() => evaluer(e), nom)
   for (const prototype of [Object.prototype, Array.prototype]) {
     const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
     Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => undefined })
@@ -1887,27 +1850,7 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
 })
 
 // #2586
-test('cellules BOOL : identité canonique sous GC — course entre mort et recréation, branches partagées, compositions préfixes', async () => {
-  const purger = async () => {
-    for (let i = 0; i < 12; i++) {
-      await new Promise((r) => setTimeout(r, 0))
-      await gc({ type: 'major', execution: 'async' })
-    }
-  }
-  {
-    const p = clesDuDepot()
-    const fabriquer = () => ({ v: 1, w: ['a'] })
-    let lien
-    ;(() => { lien = new WeakRef(p.cle(fabriquer(), 'cellules')) })()
-    await new Promise((r) => setTimeout(r, 0))
-    gc()
-    assert.equal(lien.deref(), undefined, 'la première cellule meurt avant sa recréation')
-    const recreee = p.cle(fabriquer(), 'cellules')
-    await purger()
-    assert.equal(p.cle(fabriquer(), 'cellules'), recreee)
-    const sous = p.cle(['a'], 'cellules')
-    assert.equal(p.cle(['a'], 'cellules'), sous)
-  }
+test('cellules BOOL : identité canonique — branches partagées, compositions préfixes', () => {
   {
     const p = clesDuDepot()
     const formes = [
@@ -1916,17 +1859,12 @@ test('cellules BOOL : identité canonique sous GC — course entre mort et recr�
       (i) => [i % 4, [i % 2, ['x']], { a: i % 3 }],
       (i) => ({ a: { b: { c: [i % 6] } } }),
     ]
-    const vivantes = new Map()
-    for (let tour = 0; tour < 6; tour++) {
-      for (let i = 0; i < 400; i++) for (const [k, fabriquer] of formes.entries()) {
-        const cle = p.cle(fabriquer(i), 'cellules')
-        if ((i + tour) % 5 === 0) vivantes.set(`${k}:${i}`, cle)
-      }
-      await purger()
-      for (const [id, cle] of vivantes) {
-        const [k, i] = id.split(':').map(Number)
-        assert.equal(p.cle(formes[k](i), 'cellules'), cle, `tour ${tour}, ${id}`)
-      }
+    const premieres = new Map()
+    for (let tour = 0; tour < 3; tour++) for (let i = 0; i < 400; i++) for (const [k, fabriquer] of formes.entries()) {
+      const cle = p.cle(fabriquer(i), 'cellules')
+      const id = `${k}:${i}`
+      if (!premieres.has(id)) premieres.set(id, cle)
+      assert.equal(cle, premieres.get(id), `tour ${tour}, ${id}`)
     }
   }
   {
@@ -1934,12 +1872,11 @@ test('cellules BOOL : identité canonique sous GC — course entre mort et recr�
     const a = p.cleDe({ objet: { v: true } })
     const b = p.cleDe({ objet: { v: false } })
     const courte = p.composerCle('d', a)
-    ;(() => { for (let i = 0; i < 200; i++) p.composerCle('d', a, b, String(i)) })()
-    await purger()
+    for (let i = 0; i < 200; i++) p.composerCle('d', a, b, String(i))
     assert.equal(p.composerCle('d', a), courte)
     const longue = p.composerCle('d', a, b)
-    ;(() => { p.composerCle('d', a) })()
-    await purger()
+    assert.notEqual(longue, courte)
+    p.composerCle('d', a)
     assert.equal(p.composerCle('d', a, b), longue)
   }
 })

@@ -31,12 +31,26 @@ const MODES = Object.freeze({
   cellules: Object.freeze({ strict: true, cellules: true }),
 })
 
+/** Une surface de clé dont la valeur sort du domaine JSON (proxy révoqué, `BigInt`, cycle, non-objet) refuse par
+ *  `CLE_DOMAINE_JSON`, l'erreur native en `cause` ; la table des formes garde le contrat natif de `WeakMap` (#2586).
+ *  @template {(...a: any[]) => any} F @param {F} surface @returns {F} */
+const refusNomme = (surface) => /** @type {F} */ ((...a) => {
+  try {
+    return surface(...a)
+  } catch (erreur) {
+    if (erreur instanceof TypeError) throw new Error('CLE_DOMAINE_JSON', { cause: erreur })
+    throw erreur
+  }
+})
+
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
  * associée après clé refusée), toute clé en mode `cellules`, sans `cleCanonique` ; sinon,
  * `cleCanonique` prend son mode (`MODES`) et les clés des valeurs sont textuelles. Un argument vaut par ses valeurs et
  * sa forme : son expression et, si `litSonContexte(expression)`, son contexte entier (module, preuve booléenne, chaîne
  * d'environnements : fonction, arguments, paramètres) ; sinon, aucun contexte. Hors domaine JSON : `CLE_DOMAINE_JSON`.
+ * Cellules, preuves et mémos ne sont tenus que par l'instance, jamais par la fin du job : ils meurent avec son évaluateur
+ * (un lot d'`evaluerLotDuDepot`, un appel d'`evaluer`) (#2586).
  * @param {{ ferme: boolean, litSonContexte: (e: unknown) => boolean }} regime
  */
 export function clesCanoniques({ ferme, litSonContexte }) {
@@ -48,24 +62,12 @@ export function clesCanoniques({ ferme, litSonContexte }) {
   const sousGraphesGeles = new WeakMap()
   const sousGraphesRevalides = new WeakMap()
   const dependancesDesFormes = new WeakMap()
-  const preparerPreuve = () => ({ valide: true, parents: new Set(), parentsInscrits: new WeakSet(), nettoyage: null })
-  /** Inscrit `parent` au fan-in de `preuve`, qui ne retient que ses parents vivants : son tas plafonne (#2586). */
-  const inscrireParent = (preuve, parent) => {
-    if (!preuve.nettoyage) preuve.nettoyage = { iterateur: preuve.parents.values(), restants: preuve.parents.size }
-    const suivant = preuve.nettoyage.iterateur.next()
-    if (!suivant.done && !suivant.value.deref()) preuve.parents.delete(suivant.value)
-    if (suivant.done || --preuve.nettoyage.restants <= 0) preuve.nettoyage = null
-    if (!preuve.parentsInscrits.has(parent)) {
-      preuve.parentsInscrits.add(parent)
-      preuve.parents.add(new WeakRef(parent))
-    }
-  }
+  const preparerPreuve = () => ({ valide: true, parents: new Set() })
   const invaliderPreuve = (preuve) => {
     if (!preuve?.valide) return
     preuve.valide = false
-    for (const lien of preuve.parents) invaliderPreuve(lien.deref())
+    for (const parent of preuve.parents) invaliderPreuve(parent)
     preuve.parents.clear()
-    preuve.nettoyage = null
   }
   const cellulesBooleennes = new Map()
   const referencesBooleennes = new WeakSet()
@@ -75,18 +77,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     liste: Object.freeze({ marqueur: 'liste' }), objet: Object.freeze({ marqueur: 'objet' }),
     fin: Object.freeze({ marqueur: 'fin' }), enfant: Object.freeze({ marqueur: 'enfant' }),
   })
-  const elaguerCellule = new FinalizationRegistry(({ tokens, lien }) => {
-    const branches = [cellulesBooleennes]
-    for (const token of tokens) {
-      const suivante = branches.at(-1).get(token)
-      if (suivante === undefined) return
-      branches.push(suivante)
-    }
-    if (branches.at(-1).get(finCelluleBooleenne) !== lien) return
-    branches.at(-1).delete(finCelluleBooleenne)
-    for (let i = tokens.length; i > 0 && branches[i].size === 0; i--) branches[i - 1].delete(tokens[i - 1])
-  })
-  /** La cellule canonique de `tokens`, tenue tant qu'une clé la tient : le registre ne retient aucune clé morte (#2586). */
+  /** La cellule canonique de `tokens`, internée par l'instance (#2586). */
   const celluleDe = (tokens) => {
     let branche = cellulesBooleennes
     for (const token of tokens) {
@@ -94,13 +85,11 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       if (suivante === undefined) branche.set(token, suivante = new Map())
       branche = suivante
     }
-    let cellule = branche.get(finCelluleBooleenne)?.deref()
+    let cellule = branche.get(finCelluleBooleenne)
     if (cellule === undefined) {
       cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
       referencesBooleennes.add(cellule)
-      const lien = new WeakRef(cellule)
-      branche.set(finCelluleBooleenne, lien)
-      elaguerCellule.register(cellule, { tokens: cellule.tokens, lien })
+      branche.set(finCelluleBooleenne, cellule)
     }
     return cellule
   }
@@ -145,8 +134,8 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       for (const { objet, preuve } of records) {
         let dependance = dependancesDesFormes.get(objet)
         if (!dependance?.valide) dependancesDesFormes.set(objet, dependance = preparerPreuve())
-        inscrireParent(dependance, certificat)
-        if (preuve) inscrireParent(preuve, certificat)
+        dependance.parents.add(certificat)
+        if (preuve) preuve.parents.add(certificat)
       }
       return certificat
     }
@@ -249,7 +238,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
           fermeture.preuve = preparerPreuve()
           for (const p of proprietes) {
             const enfant = p.value && typeof p.value === 'object' && fermetures.get(p.value)?.preuve
-            if (enfant) inscrireParent(enfant, fermeture.preuve)
+            if (enfant) enfant.parents.add(fermeture.preuve)
           }
         }
       }
@@ -326,8 +315,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       if (!tokensDe(descriptor, tokens)) {
         stable = false
         tokens = []
-        let projete
-        try { projete = JSON.stringify(descriptor) } catch (erreur) { if (!(erreur instanceof TypeError)) throw erreur }
+        const projete = JSON.stringify(descriptor)
         if (projete === undefined) throw new Error('CLE_DOMAINE_JSON')
         tokensDe(JSON.parse(projete), tokens, true)
       }
@@ -467,6 +455,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
   const uniques = (vals) => ferme && vals.length < 2 ? [...vals] : [...new Map(vals.map((v) => [cleDe(v), v])).values()]
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
   const cleDesArgs = (args) => args ? cleDesValeurs(({ referenceDe }) => referenceDe(args), args, clesDesArguments) : ''
-  const cles = { cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments }
-  return Object.freeze(ferme ? cles : { ...cles, cleCanonique })
+  const cles = { cleDesArgs: refusNomme(cleDesArgs), cleDe: refusNomme(cleDe), texteDeCle: refusNomme(texteDeCle),
+    composerCle: refusNomme(composerCle), uniques: refusNomme(uniques), formesDesArguments }
+  return Object.freeze(ferme ? cles : { ...cles, cleCanonique: refusNomme(cleCanonique) })
 }

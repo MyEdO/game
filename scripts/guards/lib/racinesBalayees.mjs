@@ -1006,6 +1006,14 @@ const EVALUATIONS_SANS_CONTEXTE = Object.freeze({
   transforme: (e) => [{ non: e.raison }],
 })
 
+/** Le contexte que reçoit une évaluation paresseuse (éléments, collections, chaîne, aplatissement, déstructuration)
+ *  d'une expression sans contexte (`EVALUATIONS_SANS_CONTEXTE`) : tout accès lève `CONTEXTE_HORS_CLE`, car la clé de
+ *  l'argument qui la porte n'en tient pas (`clesDeLEvaluateur`). */
+const CONTEXTE_HORS_CLE = new Proxy({}, new Proxy({}, { get: () => () => { throw new Error('CONTEXTE_HORS_CLE') } }))
+/** L'évaluation paresseuse `evaluer(e, ctx, ...)`, contexte retiré quand `e` s'évalue sans contexte : même source que
+ *  la clé d'argument et `valeurs`. */
+const paresseuse = (evaluer) => (e, ctx, ...reste) => evaluer(e, Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e.k) ? CONTEXTE_HORS_CLE : ctx, ...reste)
+
 /** Les clés canoniques de l'évaluateur du régime `ferme` (`clesCanoniques`) : la forme d'un argument porte son contexte
  *  sauf si son expression a une évaluation sans contexte (`EVALUATIONS_SANS_CONTEXTE`). */
 export const clesDeLEvaluateur = (ferme) => clesCanoniques({ ferme, litSonContexte: (e) => !Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e?.k) })
@@ -1148,7 +1156,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     if (forme) return forme
     return decl?.defaut ? { e: decl.defaut, ctx: { ...ctx, env } } : null
   }
-  const collectionsOpaquesDe = (de, ctx) => {
+  const collectionsOpaquesDe = paresseuse((de, ctx) => {
     const forme = formeLiee(de, ctx)
     return forme ? expressionsLiees(collectionsOpaquesDe, forme.e, forme.ctx)
     : de.k === 'collection' || de.k === 'repertoire' ? []
@@ -1161,8 +1169,8 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => collectionsOpaquesDe(x, ctx))
     : de.k === 'projection' ? collectionsOpaquesDe(de.de, ctx)
     : [de]
-  }
-  const elementsDe = (de, ctx) => {
+  })
+  const elementsDe = paresseuse((de, ctx) => {
     const forme = formeLiee(de, ctx)
     return forme ? expressionsLiees(elementsDe, forme.e, forme.ctx)
     : de.k === 'collection' ? [de.element]
@@ -1176,11 +1184,11 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     : de.k === 'union' ? de.v.flatMap((x) => elementsDe(x, ctx))
     : de.k === 'projection' ? (elementsDe(de.de, ctx).length ? [...(de.aplatie ? de.v.flatMap((x) => elementsDe(x, ctx)) : de.v), ...collectionsOpaquesDe(de.de, ctx)] : [])
     : [de]
-  }
+  })
   const aplatirDe = (e, ctx) => {
     const profondeur = valeurs(e.profondeur, ctx)
     if (profondeur.length !== 1 || profondeur[0].scalaire !== '1') return [{ k: 'non', raison: 'profondeur flat non prouvée' }]
-    const descendre = (de, c) => {
+    const descendre = paresseuse((de, c) => {
       const forme = formeLiee(de, c)
       if (forme) return expressionsLiees(descendre, forme.e, forme.ctx)
       if (de.k === 'lie') return expressionsLiees(descendre, de.de, de.ctx)
@@ -1188,15 +1196,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       if (de.k === 'appel') return collectionsDAppel(de, c, (x, contexte) => descendre(x, contexte))
       if (de.k === 'liste' || de.k === 'collection') return elementsDe(de, c).flatMap((x) => niveau(x, c))
       return [{ k: 'non', raison: 'receveur flat non prouvé' }]
-    }
-    const niveau = (de, c) => {
+    })
+    const niveau = paresseuse((de, c) => {
       const forme = formeLiee(de, c)
       if (forme) return expressionsLiees(niveau, forme.e, forme.ctx)
       if (de.k === 'lie') return expressionsLiees(niveau, de.de, de.ctx)
       if (de.k === 'union') return de.v.flatMap((x) => niveau(x, c))
       if (de.k === 'appel') return collectionsDAppel(de, c, niveau)
       return de.k === 'liste' || de.k === 'collection' ? elementsDe(de, c) : [de]
-    }
+    })
     return descendre(e.de, ctx)
   }
   const repertoireDe = (e, ctx) => {
@@ -1234,7 +1242,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   }
   const argumentDElement = (e, ctx) => e.k === 'lie' ? argumentDElement(e.de, e.ctx)
     : e.k === 'liste' ? [{ non: 'élément de rappel non scalaire' }] : argumentDe(e, ctx)
-  const chaineDe = (e, ctx) => {
+  const chaineDe = paresseuse((e, ctx) => {
     const forme = formeLiee(e, ctx)
     if (forme) return chaineDe(forme.e, forme.ctx)
     if (e.k === 'appel') return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, e.args.map((a) => argumentDe(a, ctx)), chaineDe)
@@ -1249,7 +1257,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       : 'booleen' in v ? { texte: String(v.booleen) } : 'scalaire' in v ? { texte: v.scalaire }
         : 'non' in v ? v.non === VALEUR_NULLE ? { non: 'conversion String de valeur nulle' } : v
           : 'relais' in v ? v : { non: 'conversion String non scalaire' })
-  }
+  })
 
   /** Évalue `e` dans le module `ctx.f`, paramètres de `ctx.env.fn` liés à `ctx.env.args` (null : relais). */
   function valeurs(e, ctx) {
@@ -1328,15 +1336,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
         return uniques((arg ? arg.flatMap((v) => 'absent' in v ? defaut() : [v]) : defaut()).map((v) => e.mute && 'objet' in v ? { ...v, preuveDirecte: false } : v))
       }
       case 'indice': {
-        const selectionner = (de, contexte = ctx) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
+        const selectionner = paresseuse((de, contexte) => formeLiee(de, contexte) ? selectionner(formeLiee(de, contexte).e, formeLiee(de, contexte).ctx)
           : de.k === 'appel' ? valeurs(de.cible, contexte).flatMap((c) => 'fn' in c ? retour(c.fn, de.args.map((a) => argumentDe(a, contexte)), selectionner) : [{ non: `déstructuration de tableau ${e.texte}` }])
           : de.k === 'liste' ? (de.v[e.nom] && !(de.v[e.nom].k === 'non' && de.v[e.nom].raison === 'forme OmittedExpression') ? valeurs(de.v[e.nom], contexte) : e.defaut ? valeurs(e.defaut, contexte) : [{ absent: true }])
           : de.k === 'lie' ? selectionner(de.de, de.ctx)
           : de.k === 'union' ? uniques(de.v.flatMap((x) => selectionner(x, contexte)))
           : de.k === 'garde' ? (gardePossible(de, contexte) ? selectionner(de.de, contexte) : [])
           : de.k === 'elementItere' ? uniques(elementsDe(de.de, contexte).flatMap((x) => selectionner(x, contexte)))
-          : [{ non: `déstructuration de tableau ${e.texte}` }]
-        return selectionner(e.de)
+          : [{ non: `déstructuration de tableau ${e.texte}` }])
+        return selectionner(e.de, ctx)
       }
       case 'champ': return valeurs(e.de, ctx).flatMap((o) => ctx.preuveBooleenne && 'objet' in o && !o.preuveDirecte ? [{ non: `option ${e.texte} indécidable` }]
         : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
