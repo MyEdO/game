@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process'
 import { ajouterWorktree, depotDe, retirerWorktree, reussi, worktreesDe, etatDeLArbre } from './gitPorte.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
 import { ignoresAuthores, mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
-import { mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
+import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
 
 const snapshot = { portee: 'banc', processus: [] }
@@ -22,12 +22,77 @@ function terrain(t) {
 }
 const mesurer = (chemin) => mesurerProtectionWorktree(chemin, { snapshot })
 
-test('canonisation refusée sans preuve de lien : diagnostic nommé quel que soit le propriétaire', (t) => {
+test('#2795 protection borne le collecteur réel et conserve son expiration', (t) => {
+  const b = terrain(t)
+  let options
+  const vu = mesurerProtectionWorktree(b.arbre, { processus: (o) => {
+    options = o
+    return { processus: [], code: 'MESURE_PROCESSUS_EXPIREE', erreurs: ['échéance atteinte'] }
+  } })
+  assert.deepEqual(options, { timeout: DELAI_MESURE_PROCESSUS_MS })
+  assert.equal(vu.ok, false)
+  assert.deepEqual(vu.refus, ['[transitoire · retentable] échéance atteinte'])
+})
+
+test('#2795 catégories : chaque cause conserve sa catégorie et apparaît une fois au retrait', (t) => {
+  const b = terrain(t)
+  for (const [cause, categorie] of [
+    ['cwd illisible : accès refusé', 'permission'],
+    ['ReadProcessMemory partiel', 'transitoire'],
+    ['création illisible', 'panne'],
+    ['entrée invalide', 'validation'],
+    [{ message: 'panne nommée', code: 'EACCES' }, 'permission'],
+    [{ message: 'accès refusé', code: 'EACCES', categorie: 'transitoire' }, 'transitoire'],
+    [{ message: 'accès refusé', code: 'EINVAL' }, 'validation'],
+    [{ message: 'ReadProcessMemory partiel', code: 'EIO' }, 'panne'],
+  ]) {
+    const vu = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 701, nom: 'étranger', cwd: b.racine, commande: 'node', creation: 'a', erreurs: [cause] }] } })
+    assert.equal(vu.ok, false)
+    assert.equal(vu.horsMesure.length, 0)
+    assert.match(vu.indeterminees[0], new RegExp('^' + prefixeDeRefus(categorie).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    const refuse = retirerWorktree(b.depot, b.arbre, { mesurer: () => vu })
+    assert.equal(refuse.raison, vu.refus.join(' ; '))
+  }
+  const vu = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [], erreurs: ['collecteur absent'] } })
+  assert.equal(retirerWorktree(b.depot, b.arbre, { mesurer: () => vu }).raison, '[panne · non retentable] collecteur absent')
+  const metier = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 702, cwd: b.arbre, commande: 'node', creation: 'a' }] } })
+  assert.match(metier.refus[0], /^\[métier · non retentable\]/)
+})
+
+test('#2795 cwd illisible : panne indépendante et entrée invalide refusent sans preuve de lien', (t) => {
+  const b = terrain(t)
+  for (const p of [
+    { cwd: null, erreurs: ['collecteur cassé'] },
+    { cwd: null, erreurs: ['canonisation physique illisible : EACCES'] },
+    { cwd: null, erreurs: [{ message: 'cwd illisible : collecteur absent', categorie: 'panne', code: 'ECOLLECTEUR' }] },
+    { cwd: null, erreurs: [{ message: 'cwd illisible : accès refusé', code: 'EINVAL' }] },
+    { cwd: null, erreurs: [{ message: 'cwd illisible', categorie: 'métier' }] },
+    { cwd: null, erreurs: ['cwd illisible : canonisation physique illisible : EACCES'] },
+    { erreurs: ['entrée invalide'] },
+  ]) {
+    const vu = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 703, commande: 'node', creation: 'a', ...p }] } })
+    assert.equal(vu.ok, false)
+    assert.deepEqual(vu.horsMesure, [])
+  }
+})
+
+test('#2795 provenance de lecture : échec natif attesté exclu, panne inconnue et identité instable refusées', (t) => {
+  const b = terrain(t)
+  const natif = 'proprietaire illisible : Exception Owner : Paramètre incorrect'
+  const vue = (erreurs, erreursLecture) => mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 704, cwd: null, commande: 'node', creation: 'a', erreurs, erreursLecture }] } })
+  assert.equal(vue([natif], [natif]).ok, true)
+  assert.equal(vue([natif], []).ok, false)
+  for (const identite of ['identite modifiee pendant inspection', 'identité illisible : identité instable']) {
+    const vu = vue([identite], [identite])
+    assert.equal(vu.ok, false)
+    assert.match(vu.indeterminees[0], /^\[transitoire · retentable\]/)
+  }
+})
+
+test('canonisation refusée de cwd lisible : indéterminée quel que soit le propriétaire', (t) => {
   const b = terrain(t)
   const alias = join(b.racine, 'alias')
   symlinkSync(b.arbre, alias, 'junction')
-  mkdirSync(join(b.arbre, '.superpowers'))
-  writeFileSync(join(b.arbre, '.superpowers/a.md'), 'authoré')
   const original = fs.realpathSync.native
   fs.realpathSync.native = (chemin) => {
     if (resolve(chemin) === resolve(alias)) throw Object.assign(new Error('banc'), { code: 'EACCES' })
@@ -37,9 +102,9 @@ test('canonisation refusée sans preuve de lien : diagnostic nommé quel que soi
     for (const proprietaire of ['courant', 'étranger', null]) {
       const vue = { utilisateur: 'courant', processus: [{ pid: 777, nom: 'témoin', proprietaire, cwd: alias, commande: 'node' }] }
       const resultat = mesurerProtectionWorktree(b.arbre, { snapshot: vue })
-      assert.match(resultat.refus.join(' '), /ignoré authoré.*\.superpowers\/a.md/)
-      assert.match(resultat.horsMesure.join(' '), /PID 777 témoin.*canonisation physique illisible.*alias.*EACCES/)
-      assert.deepEqual(resultat.indeterminees, [])
+      assert.equal(resultat.ok, false)
+      assert.match(resultat.indeterminees.join(' '), /PID 777 témoin.*canonisation physique illisible.*alias.*EACCES/)
+      assert.deepEqual(resultat.horsMesure, [])
     }
   } finally { fs.realpathSync.native = original }
 })
@@ -171,7 +236,7 @@ test('protection : un processus se nomme sur UNE ligne bornée, l’indétermina
   ] }) })
   assert.equal(vu.ok, false)
   assert.match(vu.refus[0], /^\[métier · non retentable\] processus liés \(1\) : PID 13 powershell\.exe — powershell\.exe -NoProfile -EncodedCommand… — cwd, argument /)
-  assert.ok(vu.refus.includes('modifications non commitées (7) : sale-0.txt, sale-1.txt, sale-2.txt, sale-3.txt, sale-4.txt, +2 autres'), vu.refus.join('\n'))
+  assert.ok(vu.refus.includes('[métier · non retentable] modifications non commitées (7) : sale-0.txt, sale-1.txt, sale-2.txt, sale-3.txt, sale-4.txt, +2 autres'), vu.refus.join('\n'))
   assert.deepEqual(vu.indeterminees, [])
   assert.match(vu.horsMesure.join(' '), /PID 14 cachotier.exe : cwd illisible/)
   for (const ligne of [...vu.refus, ...vu.indeterminees, ...vu.horsMesure]) assert.ok(!ligne.includes('\n') && ligne.length < 200 + prefixeDeRefus('métier').length + 1, ligne)
@@ -215,7 +280,7 @@ test('#2741 commande du snapshot sans cwd : retrait refusé', (t) => {
   const vu = mesurerProtectionWorktree(b.arbre, { snapshot: { processus: [{ pid: 21, nom: 'node', commande: 'node "' + join(b.arbre, 'run.mjs') + '"', cwd: null }] } })
   assert.equal(vu.ok, false)
   assert.match(vu.refus.join(' '), /\[métier · non retentable\].*PID 21.*argument/)
-  assert.match(vu.indeterminees.join(' '), /\[permission · non retentable\].*cwd illisible/)
+  assert.match(vu.indeterminees.join(' '), /\[panne · non retentable\].*cwd illisible/)
 })
 
 test('#2741 image absolue et ancêtres chronologiques prouvent le lien, basename et PID recyclé exclus', (t) => {
