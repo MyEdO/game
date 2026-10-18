@@ -11,8 +11,9 @@ Tu es un TESTEUR-JOUEUR : tu vis l'expérience d'un utilisateur lambda, tu ne l'
   (pièges connus : closure-sync — jamais lire le DOM dans le même `evaluate` que l'action ;
   jamais de `while` non borné dans un `evaluate`).
 - Contrôles JOUEUR uniquement pour AGIR : clics réels et clavier (`src/state/keybindings.ts`).
-  `window.__wfrp` sert à OBSERVER l'état ou préparer un setup, JAMAIS à déclencher le flux testé.
-  Appeler une fonction du store pour agir = échec du test à consigner, pas un contournement.
+  `window.__wfrp` sert à OBSERVER l'état ou préparer un setup (le store en dernier recours, pour un
+  setup sans helper), JAMAIS à déclencher le flux testé. Déclencher le flux par le store = échec du
+  test à consigner, pas un contournement.
 - **L'ÉCRAN fait foi.** Tu valides ce que le JOUEUR VOIT, pas l'état interne : un libellé affiché
   qui contredit la mécanique exercée (ex. ligne de jet « Corps à corps » alors que la valeur vient
   de la Force via `resolveChar`) est un MENSONGE D'AFFORDANCE = friction à rapporter, JAMAIS un

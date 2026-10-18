@@ -8,7 +8,7 @@ description: À utiliser avant de valider TOUTE feature visible en jeu (UI, comb
 
 Lire **`docs/recette-navigateur.md`**. L'essentiel non négociable : piloter **COMME UN JOUEUR**
 (clavier `src/state/keybindings.ts` + clics réels d'abord ; `__wfrp` pour le setup/l'observation ;
-fonctions du store en dernier recours — jamais pour valider le flux testé). Console à 0 erreur. Piège
+store en dernier recours pour un setup sans helper — jamais pour déclencher le flux testé). Console à 0 erreur. Piège
 closure-sync : jamais lire le DOM dans le même `evaluate` que l'action qui change l'état React.
 
 ## Ce que seule la recette prouve
