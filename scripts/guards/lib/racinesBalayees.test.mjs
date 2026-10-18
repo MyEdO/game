@@ -303,7 +303,9 @@ test('lectures certifiées : une certification par lecture, des lots à noyau ne
   for (let i = 0; i < 17; i++) dag = [dag, dag]
   const pool = encoderLecture({ sites: [], fonctions: {}, exports: {}, etoiles: [], lambdas: {}, dag })
   const a = module.certifierLecture('a.mjs', pool)
-  assert.equal(module.certifierLecture('nul.mjs', null), null)
+  const illisible = module.certifierLecture('nul.mjs', null)
+  assert.equal(Object.isFrozen(illisible), true)
+  assert.deepEqual(Reflect.ownKeys(illisible), [])
   assert.equal(globalThis[key].decodes, 1)
   assert.ok(globalThis[key].visites < 100, String(globalThis[key].visites))
   assert.equal(Object.isFrozen(a), true)
@@ -329,32 +331,52 @@ test('lectures certifiées : une certification par lecture, des lots à noyau ne
 })
 
 // #2586
-test('lot fermé : une lecture certifiée n’entre que sous son module, et le domaine hors lectures se refuse nommé par forme', () => {
+test('lot fermé : une lecture certifiée n’entre que sous son module, et le domaine hors lectures se refuse nommé par forme', async (t) => {
   const c = certifierLecture('c.mjs', encoderLecture(lire('c.mjs', "import {readFileSync} from 'node:fs'; readFileSync('src')")))
   const question = { nature: 'sitesDe', f: 'c.mjs' }
   const lot = (entree) => evaluerLotDuDepot({ lectures: [['c.mjs', c]], resolutions: [['c.mjs', 'node:fs', null]], lecteurs: ['c.mjs'], questions: [question], ...entree })
-  assert.deepEqual(lot({}).map((r) => r.resultat.map((s) => s.valeurs)), [[[{ chemin: 'src' }]]])
-  assert.throws(() => lot({ lectures: [['b.mjs', c]], questions: [{ nature: 'sitesDe', f: 'b.mjs' }] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/)
-  assert.throws(() => lot({ lectures: [['c.mjs', c], ['b.mjs', c]] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/)
+  const avec = (tableau, propres) => Object.assign(tableau, propres)
+  const iterant = (...valeurs) => ({ * [Symbol.iterator]() { yield* valeurs } })
+  const natureAlternee = (seconde) => { let lue = 0; return { get nature() { return lue++ === 0 ? 'sitesDe' : seconde }, f: 'c.mjs' } }
+  await t.test('nominal', () => assert.deepEqual(lot({}).map((r) => r.resultat.map((s) => s.valeurs)), [[[{ chemin: 'src' }]]]))
+  await t.test('témoin d’illisibilité lu null sous son module', () => {
+    const nul = certifierLecture('nul.mjs', null)
+    assert.deepEqual(lot({ lectures: [['c.mjs', c], ['nul.mjs', nul]], questions: [{ nature: 'sitesDe', f: 'nul.mjs' }] }).map((r) => r.resultat), [[]])
+    const ouvert = (lecture) => { const ev = evaluateurDuDepot({ lecture, cible: () => null, clesStructurelles: true }); return ev.tracer(() => ev.sitesDe('nul.mjs')) }
+    assert.deepEqual(ouvert(() => nul), ouvert(() => null))
+  })
   for (const [nom, entree, erreur] of [
-    ['résolutions hors tableau', { resolutions: new Map() }, /^Error: SNAPSHOT_RESOLUTIONS_NON_TABLEAU$/],
-    ['résolution à deux termes', { resolutions: [['c.mjs', 'node:fs']] }, /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
-    ['résolution creuse', { resolutions: tableauCreux() }, /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
-    ['module vide', { resolutions: [['', 'node:fs', null]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
-    ['spécificateur non chaîne', { resolutions: [['c.mjs', 1, null]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
-    ['cible non chaîne', { resolutions: [['c.mjs', 'node:fs', undefined]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
-    ['résolution dupliquée', { resolutions: [['c.mjs', 'node:fs', null], ['c.mjs', 'node:fs', 'fs.mjs']] }, /^Error: SNAPSHOT_RESOLUTION_DUPLIQUEE:\["c\.mjs","node:fs"\]$/],
-    ['lecteurs hors tableau', { lecteurs: new Set(['c.mjs']) }, /^Error: SNAPSHOT_LECTEURS_NON_TABLEAU$/],
-    ['lecteur non chaîne', { lecteurs: ['c.mjs', null] }, /^Error: SNAPSHOT_LECTEUR_HORS_DOMAINE:1$/],
-    ['lecteur dupliqué', { lecteurs: ['c.mjs', 'c.mjs'] }, /^Error: SNAPSHOT_LECTEUR_DUPLIQUE:c\.mjs$/],
-    ['questions hors tableau', { questions: question }, /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
-    ['question nulle', { questions: [question, null] }, /^Error: SNAPSHOT_QUESTION_NON_OBJET:1$/],
-    ['question en tableau', { questions: [['sitesDe', 'c.mjs']] }, /^Error: SNAPSHOT_QUESTION_NON_OBJET:0$/],
-    ['question à clé de plus', { questions: [{ ...question, index: 0 }] }, /^Error: SNAPSHOT_QUESTION_CLES:0$/],
-    ['question sans f', { questions: [{ nature: 'sitesDe' }] }, /^Error: SNAPSHOT_QUESTION_CLES:0$/],
-    ['nature inconnue', { questions: [question, { nature: 'siteDe', f: 'c.mjs' }] }, /^Error: SNAPSHOT_NATURE_INVALIDE:siteDe$/],
-    ['f non chaîne', { questions: [{ nature: 'sitesDe', f: ['c.mjs'] }] }, /^Error: SNAPSHOT_QUESTION_F_HORS_DOMAINE:0$/],
-  ]) assert.throws(() => lot(entree), erreur, nom)
+    ['c.mjs présentée b.mjs', () => ({ lectures: [['b.mjs', c]], questions: [{ nature: 'sitesDe', f: 'b.mjs' }] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/],
+    ['c.mjs aussi sous b.mjs', () => ({ lectures: [['c.mjs', c], ['b.mjs', c]] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/],
+    ['c.mjs présentée illisible (null)', () => ({ lectures: [['c.mjs', null]] }), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:c\.mjs$/],
+    ['témoin d’illisibilité de nul.mjs présenté c.mjs', () => ({ lectures: [['c.mjs', certifierLecture('nul.mjs', null)]] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:c\.mjs:nul\.mjs$/],
+    ['clé de lecture non chaîne', () => ({ lectures: [['c.mjs', c], [42, null]] }), /^Error: SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:1$/],
+    ['résolutions hors tableau', () => ({ resolutions: new Map() }), /^Error: SNAPSHOT_RESOLUTIONS_NON_TABLEAU$/],
+    ['résolution à deux termes', () => ({ resolutions: [['c.mjs', 'node:fs']] }), /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
+    ['résolution creuse', () => ({ resolutions: tableauCreux() }), /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
+    ['module vide', () => ({ resolutions: [['', 'node:fs', null]] }), /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['spécificateur non chaîne', () => ({ resolutions: [['c.mjs', 1, null]] }), /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['cible non chaîne', () => ({ resolutions: [['c.mjs', 'node:fs', undefined]] }), /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['résolution dupliquée', () => ({ resolutions: [['c.mjs', 'node:fs', null], ['c.mjs', 'node:fs', 'fs.mjs']] }), /^Error: SNAPSHOT_RESOLUTION_DUPLIQUEE:\["c\.mjs","node:fs"\]$/],
+    ['A3 résolutions à map propre', () => ({ resolutions: avec([['c.mjs', 'node:fs', null]], { map: () => [[JSON.stringify(['c.mjs', 'node:fs']), { pas: 'une chaîne' }]] }) }), /^Error: SNAPSHOT_RESOLUTIONS_NON_TABLEAU$/],
+    ['résolution en accesseur', () => ({ resolutions: Object.defineProperty([], 0, { get: () => ['c.mjs', 'node:fs', null], enumerable: true }) }), /^Error: SNAPSHOT_ACCESSEUR:resolutions\[0\]$/],
+    ['lecteurs hors tableau', () => ({ lecteurs: new Set(['c.mjs']) }), /^Error: SNAPSHOT_LECTEURS_NON_TABLEAU$/],
+    ['lecteur non chaîne', () => ({ lecteurs: ['c.mjs', null] }), /^Error: SNAPSHOT_LECTEUR_HORS_DOMAINE:1$/],
+    ['lecteur dupliqué', () => ({ lecteurs: ['c.mjs', 'c.mjs'] }), /^Error: SNAPSHOT_LECTEUR_DUPLIQUE:c\.mjs$/],
+    ['A4 lecteurs à itérateur propre', () => ({ lecteurs: avec(['c.mjs'], { [Symbol.iterator]: iterant(42, 'c.mjs')[Symbol.iterator] }) }), /^Error: SNAPSHOT_LECTEURS_NON_TABLEAU$/],
+    ['questions hors tableau', () => ({ questions: question }), /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
+    ['A1 questions à itérateur propre', () => ({ questions: avec([question], { [Symbol.iterator]: iterant({ nature: 'tracer', f: 'c.mjs' })[Symbol.iterator] }) }), /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
+    ['question nulle', () => ({ questions: [question, null] }), /^Error: SNAPSHOT_QUESTION_NON_OBJET:1$/],
+    ['question en tableau', () => ({ questions: [['sitesDe', 'c.mjs']] }), /^Error: SNAPSHOT_QUESTION_NON_OBJET:0$/],
+    ['question à clé de plus', () => ({ questions: [{ ...question, index: 0 }] }), /^Error: SNAPSHOT_QUESTION_CLES:0$/],
+    ['question sans f', () => ({ questions: [{ nature: 'sitesDe' }] }), /^Error: SNAPSHOT_QUESTION_CLES:0$/],
+    ['A5 question à clé symbole', () => ({ questions: [{ ...question, [Symbol('x')]: 1 }] }), /^Error: SNAPSHOT_QUESTION_CLES:0$/],
+    ['nature inconnue', () => ({ questions: [question, { nature: 'siteDe', f: 'c.mjs' }] }), /^Error: SNAPSHOT_NATURE_INVALIDE:siteDe$/],
+    ['A2 nature en accesseur', () => ({ questions: [natureAlternee('siteDe')] }), /^Error: SNAPSHOT_ACCESSEUR:questions\[0\]\.nature$/],
+    ['nature hasOwnProperty en accesseur', () => ({ questions: [natureAlternee('hasOwnProperty')] }), /^Error: SNAPSHOT_ACCESSEUR:questions\[0\]\.nature$/],
+    ['nature hasOwnProperty par itérateur propre', () => ({ questions: avec([question], { [Symbol.iterator]: iterant({ nature: 'hasOwnProperty', f: 'sitesDe' })[Symbol.iterator] }) }), /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
+    ['f non chaîne', () => ({ questions: [{ nature: 'sitesDe', f: ['c.mjs'] }] }), /^Error: SNAPSHOT_QUESTION_F_HORS_DOMAINE:0$/],
+  ]) await t.test(nom, () => assert.throws(() => lot(entree()), erreur))
 })
 
 // #2586

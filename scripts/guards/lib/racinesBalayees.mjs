@@ -797,19 +797,34 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 /** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
+/** @typedef {Readonly<Record<string, never>>} LectureIllisible */
+
 /** Les lectures CERTIFIÉES par `certifierLecture`, chacune liée au module certifié : les seules qu'accepte le noyau
  *  fermé d'`evaluerLotDuDepot`, et sous ce module seulement. */
 const lecturesCertifiees = new WeakMap()
 
+/** Les TÉMOINS d'illisibilité que rend `certifierLecture` pour un module illisible : certifiés comme toute lecture,
+ *  lus `null` par le noyau fermé et par `evaluateurDuDepot`. */
+const lecturesIllisibles = new WeakSet()
+
+/** `lu`, ou `null` si c'est un témoin d'illisibilité (`certifierLecture`). @param {unknown} lu */
+const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu)) ? null : /** @type {Lecture | null} */ (lu)
+
 /**
- * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`, `null` pour un module illisible) :
- * décodée (`decoderLecture`), sans nœud `lie`, gelée en profondeur ; `null` reste `null`. Lève comme
+ * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`) : décodée (`decoderLecture`), sans
+ * nœud `lie`, gelée en profondeur. Pour un module illisible (`pool` = `null`), un TÉMOIN gelé sans clé, certifié et lié
+ * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
  * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
  * une racine qui n'est pas un objet.
- * @param {string} module @param {string | null} pool @returns {Lecture | null}
+ * @param {string} module @param {string | null} pool @returns {Lecture | LectureIllisible}
  */
 export function certifierLecture(module, pool) {
-  if (pool === null) return null
+  if (pool === null) {
+    const temoin = /** @type {LectureIllisible} */ (Object.freeze(Object.create(null)))
+    lecturesIllisibles.add(temoin)
+    lecturesCertifiees.set(temoin, module)
+    return temoin
+  }
   const lu = decoderLecture(pool)
   if (!lu || typeof lu !== 'object') throw new Error(`SNAPSHOT_LECTURE_NON_OBJET:${module}`)
   const vus = new WeakSet()
@@ -825,63 +840,106 @@ export function certifierLecture(module, pool) {
   return /** @type {Lecture} */ (lu)
 }
 
+/** Un module du lot : une chaîne non vide. @param {unknown} v */
+const estModuleDuLot = (v) => typeof v === 'string' && v !== ''
+
+/** `v` est-il un tableau NU : un `Array` dont les seules clés propres sont `length` et ses indices (ni méthode, ni
+ *  itérateur, ni clé symbole propres) ? @param {unknown} v @returns {v is unknown[]} */
+const estTableauNu = (v) => Array.isArray(v) && Reflect.ownKeys(v).every((cle) => cle === 'length' ||
+  typeof cle === 'string' && Number.isInteger(Number(cle)) && String(Number(cle)) === cle && Number(cle) >= 0 && Number(cle) < v.length)
+
 /**
- * Le DOMAINE d'un lot hors lectures, refusé par forme : `resolutions` (`SNAPSHOT_RESOLUTIONS_NON_TABLEAU`,
+ * La valeur PROPRE `objet[cle]`, lue une seule fois par son descripteur (`undefined` si absente) ; un accesseur lève
+ * `SNAPSHOT_ACCESSEUR:<chemin>`.
+ * @param {object} objet @param {PropertyKey} cle @param {string} chemin @returns {unknown}
+ */
+const valeurPropre = (objet, cle, chemin) => {
+  const descripteur = Reflect.getOwnPropertyDescriptor(objet, cle)
+  if (descripteur && !('value' in descripteur)) throw new Error(`SNAPSHOT_ACCESSEUR:${chemin}`)
+  return descripteur?.value
+}
+
+/**
+ * La COPIE validée du DOMAINE d'un lot hors lectures, seule chose que consomme le noyau fermé : chaque élément lu une
+ * fois par son descripteur propre (`valeurPropre`, un accesseur lève `SNAPSHOT_ACCESSEUR:<chemin>`), jamais par une
+ * méthode ni un itérateur des entrées ; chaque tableau est NU (`estTableauNu`), sinon il lève l'erreur `*_NON_TABLEAU`
+ * ou `*_NON_TRIPLET` de sa place. Refus par forme : `resolutions` (`SNAPSHOT_RESOLUTIONS_NON_TABLEAU`,
  * `SNAPSHOT_RESOLUTION_NON_TRIPLET:<i>`, `SNAPSHOT_RESOLUTION_HORS_DOMAINE:<i>`, `SNAPSHOT_RESOLUTION_DUPLIQUEE:<[f, spec]>`),
  * `lecteurs` (`SNAPSHOT_LECTEURS_NON_TABLEAU`, `SNAPSHOT_LECTEUR_HORS_DOMAINE:<i>`, `SNAPSHOT_LECTEUR_DUPLIQUE:<f>`),
- * `questions` (`SNAPSHOT_QUESTIONS_NON_TABLEAU`, `SNAPSHOT_QUESTION_NON_OBJET:<i>`, `SNAPSHOT_QUESTION_CLES:<i>`,
- * `SNAPSHOT_NATURE_INVALIDE:<nature>`, `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`). Un module est une chaîne non vide.
+ * `questions` (`SNAPSHOT_QUESTIONS_NON_TABLEAU`, `SNAPSHOT_QUESTION_NON_OBJET:<i>`, `SNAPSHOT_QUESTION_CLES:<i>` dont
+ * toute clé symbole, `SNAPSHOT_NATURE_INVALIDE:<nature>`, `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`). Un module est une
+ * chaîne non vide (`estModuleDuLot`).
+ * @param {unknown} resolutions @param {unknown} lecteurs @param {unknown} questions
+ * @returns {{ resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: 'sitesDe' | 'relaisExportes', f: string }[] }}
  */
 function validerDomaineDuLot(resolutions, lecteurs, questions) {
-  const estChemin = (v) => typeof v === 'string' && v !== ''
-  if (!Array.isArray(resolutions)) throw new Error('SNAPSHOT_RESOLUTIONS_NON_TABLEAU')
+  if (!estTableauNu(resolutions)) throw new Error('SNAPSHOT_RESOLUTIONS_NON_TABLEAU')
+  /** @type {[string, string, string | null][]} */
+  const copieResolutions = []
   const specs = new Set()
-  for (let i = 0; i < resolutions.length; i++) {
-    const resolution = resolutions[i]
-    if (!Array.isArray(resolution) || resolution.length !== 3) throw new Error(`SNAPSHOT_RESOLUTION_NON_TRIPLET:${i}`)
-    const [f, spec, cible] = resolution
-    if (!estChemin(f) || !estChemin(spec) || !(cible === null || estChemin(cible))) throw new Error(`SNAPSHOT_RESOLUTION_HORS_DOMAINE:${i}`)
+  for (let i = 0, n = resolutions.length; i < n; i++) {
+    const resolution = valeurPropre(resolutions, i, `resolutions[${i}]`)
+    if (!estTableauNu(resolution) || resolution.length !== 3) throw new Error(`SNAPSHOT_RESOLUTION_NON_TRIPLET:${i}`)
+    const [f, spec, cible] = [0, 1, 2].map((j) => valeurPropre(resolution, j, `resolutions[${i}][${j}]`))
+    if (!estModuleDuLot(f) || !estModuleDuLot(spec) || !(cible === null || estModuleDuLot(cible))) throw new Error(`SNAPSHOT_RESOLUTION_HORS_DOMAINE:${i}`)
     const cle = JSON.stringify([f, spec])
     if (specs.has(cle)) throw new Error(`SNAPSHOT_RESOLUTION_DUPLIQUEE:${cle}`)
     specs.add(cle)
+    copieResolutions.push([/** @type {string} */ (f), /** @type {string} */ (spec), /** @type {string | null} */ (cible)])
   }
-  if (!Array.isArray(lecteurs)) throw new Error('SNAPSHOT_LECTEURS_NON_TABLEAU')
+  if (!estTableauNu(lecteurs)) throw new Error('SNAPSHOT_LECTEURS_NON_TABLEAU')
+  /** @type {string[]} */
+  const copieLecteurs = []
   const vus = new Set()
-  for (let i = 0; i < lecteurs.length; i++) {
-    if (!estChemin(lecteurs[i])) throw new Error(`SNAPSHOT_LECTEUR_HORS_DOMAINE:${i}`)
-    if (vus.has(lecteurs[i])) throw new Error(`SNAPSHOT_LECTEUR_DUPLIQUE:${lecteurs[i]}`)
-    vus.add(lecteurs[i])
+  for (let i = 0, n = lecteurs.length; i < n; i++) {
+    const lecteur = valeurPropre(lecteurs, i, `lecteurs[${i}]`)
+    if (!estModuleDuLot(lecteur)) throw new Error(`SNAPSHOT_LECTEUR_HORS_DOMAINE:${i}`)
+    if (vus.has(lecteur)) throw new Error(`SNAPSHOT_LECTEUR_DUPLIQUE:${lecteur}`)
+    vus.add(lecteur)
+    copieLecteurs.push(/** @type {string} */ (lecteur))
   }
-  if (!Array.isArray(questions)) throw new Error('SNAPSHOT_QUESTIONS_NON_TABLEAU')
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i]
+  if (!estTableauNu(questions)) throw new Error('SNAPSHOT_QUESTIONS_NON_TABLEAU')
+  /** @type {{ nature: 'sitesDe' | 'relaisExportes', f: string }[]} */
+  const copieQuestions = []
+  for (let i = 0, n = questions.length; i < n; i++) {
+    const question = valeurPropre(questions, i, `questions[${i}]`)
     if (!question || typeof question !== 'object' || Array.isArray(question)) throw new Error(`SNAPSHOT_QUESTION_NON_OBJET:${i}`)
-    if (Reflect.ownKeys(question).sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
-    if (!['sitesDe', 'relaisExportes'].includes(question.nature)) throw new Error(`SNAPSHOT_NATURE_INVALIDE:${question.nature}`)
-    if (!estChemin(question.f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
+    const cles = Reflect.ownKeys(question)
+    if (cles.some((cle) => typeof cle !== 'string') || cles.sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
+    const nature = valeurPropre(question, 'nature', `questions[${i}].nature`)
+    const f = valeurPropre(question, 'f', `questions[${i}].f`)
+    if (nature !== 'sitesDe' && nature !== 'relaisExportes') throw new Error(`SNAPSHOT_NATURE_INVALIDE:${typeof nature === 'string' ? nature : typeof nature}`)
+    if (!estModuleDuLot(f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
+    copieQuestions.push({ nature, f: /** @type {string} */ (f) })
   }
+  return { resolutions: copieResolutions, lecteurs: copieLecteurs, questions: copieQuestions }
 }
 
 /**
  * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
  * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
  * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
- * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. Une lecture
- * non certifiée lève `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, une lecture certifiée pour un autre module
- * `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; le reste du lot se valide par `validerDomaineDuLot` ; une
- * lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
- * `QUESTION_DU_LOT:<nature>:<f>`.
- * @param {{ lectures: Iterable<[string, Lecture | null]>, resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
+ * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. Un module
+ * de lecture hors domaine (`estModuleDuLot`) lève `SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:<i>` ; toute lecture, témoin
+ * d'illisibilité compris, est certifiée (`certifierLecture`), sinon `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, et pour
+ * son module, sinon `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; le noyau lit un témoin `null`. Il ne
+ * consomme du reste du lot que la copie validée de `validerDomaineDuLot`. Une lecture, une cible ou un `peutLire` absent
+ * du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en `QUESTION_DU_LOT:<nature>:<f>`.
+ * @param {{ lectures: Iterable<[string, Lecture | LectureIllisible]>, resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
  * @returns {{ nature: string, f: string, resultat: unknown, requetes: string[] }[]}
  */
-export function evaluerLotDuDepot({ lectures, resolutions, lecteurs, questions }) {
-  const lus = new Map(lectures)
-  for (const [module, lu] of lus) {
-    if (lu === null) continue
+export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lecteurs: lecteursDuLot, questions: questionsDuLot }) {
+  /** @type {Map<string, Lecture | null>} */
+  const lus = new Map()
+  let i = 0
+  for (const [module, lu] of new Map(lectures)) {
+    if (!estModuleDuLot(module)) throw new Error(`SNAPSHOT_LECTURE_MODULE_HORS_DOMAINE:${i}`)
     if (!lecturesCertifiees.has(lu)) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
     if (lecturesCertifiees.get(lu) !== module) throw new Error(`SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:${module}:${lecturesCertifiees.get(lu)}`)
+    lus.set(module, lectureOuNull(lu))
+    i++
   }
-  validerDomaineDuLot(resolutions, lecteurs, questions)
+  const { resolutions, lecteurs, questions } = validerDomaineDuLot(resolutionsDuLot, lecteursDuLot, questionsDuLot)
   const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
   const lisibles = new Set(lecteurs)
   const exiger = (table, cle, nature) => {
@@ -929,13 +987,14 @@ export function evaluerLotDuDepot({ lectures, resolutions, lecteurs, questions }
  * module à l'autre.
  * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
  * mémos internes compris — son résultat ne dépend que de leurs réponses.
- * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
- *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
+ * @param {{ lecture: (f: string) => Lecture | LectureIllisible | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean, clesStructurelles?: boolean }} acces
+ *   `lecture` : la lecture d'un module (null ou témoin d'illisibilité de `certifierLecture`, lu `null`, s'il est
+ *   illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
  *   `clesStructurelles` : IR DATA de `lectureDeModule`, noms propres, sans hook exécutable ; refus nommé si la qualification échoue.
  */
 export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true, clesStructurelles = false, memoiserBooleens = true }) {
-  return construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
+  return construireEvaluateur({ lecture: (f) => lectureOuNull(lectureDe(f)), cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
 }
 
 function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens }, ferme = false) {
