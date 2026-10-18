@@ -181,6 +181,43 @@ export function introspecterDefs(defs: readonly SchemaDef[]): DefIntrospectee[] 
 }
 
 /**
+ * LITTÉRAUX D'UN NŒUD, groupés par FEUILLE (un `literal` ou un `enum` = un groupe) : ceux qu'il porte
+ * lui-même, ou qu'une union, une liste ou une enveloppe contient. Le groupe est l'unité dont
+ * `choixDesPayloadsDOp` juge s'il recopie un espace d'ids.
+ */
+function groupesDeLitteraux(n: unknown, chemin: Chemin = RACINE): string[][] {
+  const def = defDe(n);
+  if (!def || chemin.has(n)) return [];
+  const c = suivant(chemin, n);
+  const d = descente(n);
+  const chaines = (vs: unknown[]) => [vs.filter((v): v is string => typeof v === 'string')];
+  switch (def.type) {
+    case 'literal':
+      return chaines(Array.isArray(def.values) ? def.values : []);
+    case 'enum':
+      return chaines(Object.values(def.entries ?? {}));
+    case 'union':
+      return d.branches.flatMap((o) => groupesDeLitteraux(o, c));
+    case 'array':
+      return groupesDeLitteraux(d.element, c);
+    case 'optional':
+    case 'nullable':
+    case 'default':
+    case 'catch':
+    case 'lazy':
+      return groupesDeLitteraux(d.enveloppes[0], c);
+    case 'pipe':
+      // `[in, out]` : les littéraux se lisent sur la SORTIE.
+      return groupesDeLitteraux(d.enveloppes[d.enveloppes.length - 1], c);
+    default:
+      return [];
+  }
+}
+
+/** Littéraux de chaîne portés par le nœud (littéral, enum, ou union/enveloppe qui en contient). */
+const litteraux = (n: unknown): string[] => groupesDeLitteraux(n).flat();
+
+/**
  * LITTÉRAUX D'ENUM déclarés par un schéma, clé par clé, à TOUTE profondeur de son arbre : une clé
  * dont la valeur est l'un de ces littéraux est un DISCRIMINANT (`kind`, `type`, `class`, `op`…),
  * jamais une référence à une entité — même quand la chaîne collisionne avec l'id d'un document.
@@ -192,34 +229,6 @@ export function choixDeclares(defs: readonly SchemaDef[]): Map<string, Map<strin
   const out = new Map<string, Map<string, Set<string>>>();
   for (const { file, schema } of defs) {
     const parCle = new Map<string, Set<string>>();
-    /** Littéraux de chaîne portés par le nœud (littéral, enum, ou union/enveloppe qui en contient). */
-    const litteraux = (n: unknown, chemin: Chemin = RACINE): string[] => {
-      const def = defDe(n);
-      if (!def || chemin.has(n)) return [];
-      const c = suivant(chemin, n);
-      const d = descente(n);
-      switch (def.type) {
-        case 'literal':
-          return (Array.isArray(def.values) ? def.values : []).filter((v): v is string => typeof v === 'string');
-        case 'enum':
-          return Object.values(def.entries ?? {}).filter((v): v is string => typeof v === 'string');
-        case 'union':
-          return d.branches.flatMap((o) => litteraux(o, c));
-        case 'array':
-          return litteraux(d.element, c);
-        case 'optional':
-        case 'nullable':
-        case 'default':
-        case 'catch':
-        case 'lazy':
-          return litteraux(d.enveloppes[0], c);
-        case 'pipe':
-          // `[in, out]` : les littéraux se lisent sur la SORTIE.
-          return litteraux(d.enveloppes[d.enveloppes.length - 1], c);
-        default:
-          return [];
-      }
-    };
     descendre([schema], ({ noeud }) => {
       if (declarationDEnfants(noeud)?.nature === 'payloads-op') return 'elaguer';
       for (const { cle: k, noeud: v } of enfantsDe(noeud)) {
@@ -231,6 +240,42 @@ export function choixDeclares(defs: readonly SchemaDef[]): Map<string, Map<strin
       }
     });
     out.set(file, parCle);
+  }
+  return out;
+}
+
+/**
+ * CHOIX DES PAYLOADS D'OP, par POSITION : op → champ du payload → littéraux d'enum que ce champ déclare
+ * (#2818). `choixDeclares` élague les payloads (#2432 : ses choix sont indexés par nom de clé pour tout
+ * le document) ; cet index les ferme à leur place, l'objet qui porte `op: X` étant le seul lieu où
+ * son champ `k` vaut l'un d'eux.
+ * Règle (#2818) : un littéral déclaré à (op, champ) n'y ouvre pas de référence quand son ENUM est un
+ * VOCABULAIRE PROPRE, c'est-à-dire quand l'ensemble de ses littéraux n'est inclus dans AUCUN espace
+ * d'ids de `espaces` (`IDS_PAR_ESPACE`). Un enum dont tous les littéraux sont des ids d'un même espace
+ * recopie cet espace : c'est une référence, qui reste comptée (`charKeySchema` recopie
+ * `characteristics.json`). L'unité jugée est l'enum (un `literal` ou un `enum`), jamais le champ : une
+ * union d'un vocabulaire propre et d'une copie d'espace n'exempte que le premier.
+ */
+export function choixDesPayloadsDOp(
+  opDefs: Readonly<Record<string, unknown>>,
+  espaces: Readonly<Record<string, readonly string[]>>,
+): Map<string, Map<string, Set<string>>> {
+  const ensembles = Object.values(espaces).map((ids) => new Set(ids));
+  const recopieUnEspace = (groupe: readonly string[]) => ensembles.some((ids) => groupe.every((v) => ids.has(v)));
+  const out = new Map<string, Map<string, Set<string>>>();
+  for (const [op, schema] of Object.entries(opDefs)) {
+    const parChamp = new Map<string, Set<string>>();
+    const membres = defDe(schema)?.type === 'union' ? enfantsDe(schema).map((e) => e.noeud) : [schema];
+    for (const membre of membres)
+      for (const { cle, noeud } of enfantsDe(membre)) {
+        if (cle === undefined || cle === 'op') continue;
+        for (const groupe of groupesDeLitteraux(noeud)) {
+          if (!groupe.length || recopieUnEspace(groupe)) continue;
+          if (!parChamp.has(cle)) parChamp.set(cle, new Set());
+          for (const v of groupe) parChamp.get(cle)!.add(v);
+        }
+      }
+    if (parChamp.size) out.set(op, parChamp);
   }
   return out;
 }
