@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveMelee, hitLocationByShape } from './combat';
 import { setRule, resetRule } from './policy';
-import { makeRNG, type RNG } from './dice';
+import type { RNG } from './dice';
 import type { Combatant, Weapon } from './types';
 
 /** La Localisation relancée naît avec la touche (`applyHit`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
@@ -32,9 +32,10 @@ function desScriptes(...d100: number[]): RNG & { tires: () => number } {
 const frappe = (rng: RNG, cible: Partial<Combatant> = {}) =>
   resolveMelee(combattant('a'), combattant('d', cible), epee, rng, { defense: 'none' });
 
-describe('T2 — en `aa`, la Localisation relancée est posée dès la sortie de `resolveMelee`', () => {
+describe('T2 — la Localisation relancée est posée dès la sortie de `resolveMelee`', () => {
   beforeEach(() => setRule('combat-aa-blessures', 'aa'));
   afterEach(() => resetRule('combat-aa-blessures'));
+  const aZero = { wounds: { current: 0, max: 12 } } as Partial<Combatant>;
 
   it('Coup Critique sur un double : `critLocation` est le d100 tiré après le jet', () => {
     const des = desScriptes(22, 5);
@@ -53,30 +54,28 @@ describe('T2 — en `aa`, la Localisation relancée est posée dès la sortie de
     expect(des.tires()).toBe(1);
   });
 
-  it('Coup Critique sans prise (Éthéré) : aucune relance, aucun dé de plus', () => {
+  it('`aa`, cible déjà à 0 sans double : relance à la naissance, un dé de plus (AA 07 l.25, l.32)', () => {
+    const des = desScriptes(23, 5);
+    const res = frappe(des, aZero);
+    expect(res.critical).toBe(false);
+    expect(res.critLocation).toBe(hitLocationByShape(5, 'humanoide'));
+    expect(des.tires()).toBe(2);
+  });
+
+  it('`ldb`, cible déjà à 0 sans double : aucune relance, aucun dé de plus (LDB 18 l.17, l.19, l.53)', () => {
+    setRule('combat-aa-blessures', 'ldb');
+    const des = desScriptes(23);
+    const res = frappe(des, aZero);
+    expect(res.hit).toBe(true);
+    expect(res.critLocation).toBeUndefined();
+    expect(des.tires()).toBe(1);
+  });
+
+  it('Éthéré court-circuite `applyHit` avant le verdict : aucune relance, aucun dé de plus (LDB 85 l.134)', () => {
     const des = desScriptes(22);
     const res = frappe(des, { traits: [{ id: 'ethere' }] } as never);
     expect(res.sansPrise).toBe('ethere');
     expect(res.critLocation).toBeUndefined();
     expect(des.tires()).toBe(1);
-  });
-});
-
-describe('T7 — le d100 de la Localisation est consommé au JET', () => {
-  it('même graine : le jet, puis la Localisation, et rien d’autre', () => {
-    let graine = 1;
-    for (; graine < 500; graine++) {
-      const r = makeRNG(graine);
-      const att = r.int(1, 100);
-      if (att <= 50 && att % 11 === 0) break;
-    }
-    const rng = makeRNG(graine);
-    const res = resolveMelee(combattant('a'), combattant('d'), epee, rng, { defense: 'none' });
-    const temoin = makeRNG(graine);
-    temoin.int(1, 100);
-    const lieu = hitLocationByShape(temoin.int(1, 100), 'humanoide');
-    expect(res.critical, `graine ${graine} : un double réussi`).toBe(true);
-    expect(res.critLocation, 'le second dé du jet').toBe(lieu);
-    expect(rng.int(1, 1_000_000), 'même graine, deux dés consommés').toBe(temoin.int(1, 1_000_000));
   });
 });

@@ -216,6 +216,7 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
     if (x > 1) return passif;
     g().attackConfirm();
     g().defenseRoll();
+    g().defenseSetForcedRoll(97); // LDB 18 l.53
     return g().pendingDefense!.result!;
   }
 
@@ -227,6 +228,8 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
       expect(held.attackerRoll, 'mêmes dés des deux côtés').toBe(plain.attackerRoll);
       expect(held.critical).toBe(false);
       expect(held.woundsLost).toBe(plain.woundsLost);
+      expect(plain.critLocation, 'le Coup Critique relance la Localisation (LDB 18 l.53)').toBeDefined();
+      expect(held.critLocation, 'sans Coup Critique, aucune Localisation relancée (LDB 18 l.53)').toBeUndefined();
     });
   }
 });

@@ -76,6 +76,8 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
     g().cleaveAttack(man.id);
     g().attackRoll();
+    g().attackSetForcedRoll(21); // LDB 13 l.183
+    expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);
     g().attackConfirm();
     defenseEchoue(man.id);
     expect(g().pendingCleave ?? null).toBeNull();
