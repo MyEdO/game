@@ -267,7 +267,7 @@ function rendu() {
     sortie identique laisse son lecteur frais. L'attestation couvre aussi la clôture des imports des
     outils de génération, de mesure et de certification. La plage Git décide de l'équipement npm ;
     les sources, sondes, listings, sorties et outils mesurés décident des générations. Tous les modes
-    d'écriture, code et mixtes compris, mesurent et certifient ; une fusion déjà attestée ne rejoue
+    d'écriture, code compris, mesurent et certifient ; une fusion déjà attestée ne rejoue
     aucun générateur lors du commit de fusion. Un commit ordinaire examine aussi l'attestation de
     l'arbre courant, sans équipement npm. Un arbre neuf conserve sa consigne d'équipement.
     Une préparation illisible ou une certification impossible arrête la passe en erreur avant
@@ -277,13 +277,6 @@ function rendu() {
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
    \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
    réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,
-    },
-    {
-      module: 'scripts/git-hooks/merge-docs.mjs',
-      texte: (module) =>
-        `Le pilote de fusion des fiches MIXTES de l'Atlas (${listeCode(pilotesDe(module))}), déclaré par
-   \`.gitattributes\` et servi par \`${module}\` : fusion de la prose, champ \`Implémente\` réinjecté ;
-   sans lui, chaque rebase rouvre un conflit sur un champ que \`npm run raw:implemente\` régénère seul.`,
     },
     {
       module: 'scripts/git-hooks/merge-stocks.mjs',
@@ -403,17 +396,17 @@ porte son certificat local dans \`docs/.cache/docs-fraicheur.json\` : fichiers r
 listings réellement parcourus, requêtes Git et sondes de présence, outillage et sorties. Pour chaque
 doc, des sources et sorties valides permettent la copie. Un certificat absent laisse les autres
 docs frais copiables ; les certificats locaux du code produit par \`npm ci\` sont conservés. Le code
-et les fichiers mixtes ne sont jamais copiés. La finalisation \`docs:build --perimes\` examine la
+n'est jamais copié. La finalisation \`docs:build --perimes\` examine la
 fraîcheur au rang, y compris après une copie impossible ou interrompue, avec sa raison. Les modes
 sélectifs conservent les autres mesures et certificats. Un générateur rouge perd son seul certificat
 avant écriture ; une génération réussie reçoit sa nouvelle preuve. La certification exige des sources
 stables pendant la génération et au contrôle final. Les captures temporaires vivent dans
 \`docs/.cache/lectures/<PID>\`. Un export sans dépôt Git capture l'arbre physique, en excluant
 \`node_modules\` et \`docs/.cache\` ; un marqueur \`.git\` défectueux refuse la certification.
-Une sélection de code ou de fichiers mixtes vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
+Une sélection de code vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
 vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais. Le train capture la tête committée dans un worktree détaché isolé, installe ses dépendances par \`npm ci\` et y exécute les imports, générateurs et étapes. Le WIP, l’index, HEAD et la branche locale du codeur restent intacts. La ref distante reste la branche de chantier originale ; son SHA est capturé avant fetch et sert de bail explicite à chaque push. Une avance concurrente est refusée. Le journal de l’arbre source porte les SHA demandé et publié ainsi que le snapshot, repris par \`--reprendre\` tant que le train n’est pas soldé. Un verrou par branche sérialise les trains ; le snapshot n’est retiré sans forcer qu’après fusion constatée. Une nouvelle tête peut remplacer un train arrêté : son journal est archivé et son snapshot conservé. Si l’ancienne tête publiée porte des commits absents du correctif, le train les fusionne dans le nouveau snapshot avant les docs et le push, sous le bail capturé ; une avance distante étrangère reste refusée. \`--etapes\` et \`--veiller\` ne créent aucun snapshot. Le lanceur imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
+du harnais. Le train capture la tête committée dans un worktree détaché isolé, installe ses dépendances par \`npm ci\` et y exécute les imports, générateurs et étapes. Le WIP, l’index, HEAD et la branche locale du codeur restent intacts. La ref distante reste la branche de chantier originale ; son SHA est capturé avant fetch et sert de bail explicite à chaque push. Une avance concurrente est refusée. Le journal de l’arbre source porte les SHA demandé et publié ainsi que le snapshot, repris par \`--reprendre\` tant que le train n’est pas soldé. Un verrou par branche sérialise les trains ; le snapshot n’est retiré sans forcer qu’après fusion constatée. Une nouvelle tête peut remplacer un train arrêté : son journal est archivé et son snapshot conservé. Si l’ancienne tête publiée porte des commits absents du correctif, le train les fusionne dans le nouveau snapshot avant la finalisation et le push, sous le bail capturé ; une avance distante étrangère reste refusée. \`--etapes\` et \`--veiller\` ne créent aucun snapshot. Le lanceur imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
 (\`node <racine>/scripts/ops/publier.mjs --veiller <run>; node <racine>/scripts/ops/publier.mjs --veiller <run> --constat\`),
 qui SUIT ce run jusqu'au verdict — elle lit le journal JSON, émet une ligne par transition d'étape, finit sur
 la ligne \`PUBLICATION:\` et sort en 0 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur,
@@ -427,7 +420,7 @@ borne court depuis le LANCEMENT du run. La CI d'une
 branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
-rend cette extraction pour une course nommée. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
+rend cette extraction pour une course nommée. Le train POUSSE la branche
 de chantier, ouvre sa PR vers \`main\` et ARME l’auto-merge à l’étape \`pr\` par \`gh pr merge --auto --match-head-commit <sha>\`, avant l’attente de la CI. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
@@ -435,8 +428,11 @@ la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend
 \`gh run rerun <id> --failed\`. Aucun rebase : l'étape \`file\` reprend une PR par une FUSION
 d'\`origin/main\` dans la branche, une fois, si elle est en CONFLIT avec la base (vu sur la PR avant la
 demande, ou relu après un refus de la demande) ou éjectée de la file par une course rouge qui lui est
-ATTRIBUÉE ; l'étape \`docs\` régénère alors les stocks de sites (\`npm run stocks:regen\`) et les commet
-(\`chore(stocks)\`, #2525) ; un refus sans conflit reste rouge ; une PR éjectée par une course de file
+ATTRIBUÉE ; sa finalisation régénère alors les stocks de sites (\`npm run stocks:regen\`) et les commet
+(\`chore(stocks)\`, #2525). La même finalisation passe en préflight avant le refus de saleté : une fusion
+manuelle d'un lot amorcé se reprend sans nouvelle fusion. Les miroirs de configuration seuls sont commis ;
+une sortie par clé doit conserver le reste de son texte de HEAD. La base finalisée évite de remesurer les
+stocks à chaque reprise ; un stock resali reste contrôlé. Un refus sans conflit reste rouge ; une PR éjectée par une course de file
 ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
@@ -592,7 +588,7 @@ jamais un artefact local — qui autorise une PR à entrer dans \`main\`. Elle C
 ${listeCode(Object.keys(DOCUMENTAIRE))} ne joue que les ${NB_GATES_TOUJOURS} gates qui LISENT un de
 ces chemins (${listeCode(GATES_TOUJOURS)}) ; les ${NB_GATES_SAUTABLES} autres sont sautées.
 
-\`npm run ops:publier\` joue le train : docs dérivés, push de la BRANCHE, PR armée, attente de la fusion
+\`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,
 et son journal sépare le temps machine LOCAL du temps d'ATTENTE de GitHub.
 

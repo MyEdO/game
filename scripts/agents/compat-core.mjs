@@ -362,7 +362,7 @@ export const MANAGED_ROOTS = ['.agents/skills'];
 export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
 
 /** Les DESTINATIONS de `buildExpectedOutputs` : tout chemin qu'il écrit ou retire est l'une d'elles ou
- *  vit sous l'une d'elles. Lues par l'étape `docs` du train (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+ *  vit sous l'une d'elles. Lues par la finalisation des miroirs du train (`estMiroir`, `scripts/ops/etapesDuTrain.mjs`). */
 export const DESTINATIONS = [...MANAGED_ROOTS, ...SURFACES_DE_HOOKS];
 
 /**

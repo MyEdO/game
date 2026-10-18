@@ -1,15 +1,31 @@
-// Ce que la SUITE Vitest joue : les fichiers de test des racines de `test.include`
-// (`racinesDeLaSuite.mjs`, que `vite.config.ts` consomme).
-import { readCorpus } from './sourceCorpus.mjs'
-import { estSuiteVitest } from './fichierVitest.mjs'
-import { RACINES_DE_LA_SUITE } from './racinesDeLaSuite.mjs'
+// Ce que la SUITE Vitest joue (#2651) — définition UNIQUE : les shards de la CI (`scripts/test/run.mjs`) et les gardes
+// qui scannent les suites la consomment ; le périmètre (`scripts/test/perimetreDerivation.mjs`) en partage le prédicat.
+// Le prédicat est `estDeLaSuiteVitest` (`racinesDeLaSuite.mjs`, d'où `vite.config.ts` tire `test.include` et
+// `test.exclude`). La LISTE vient de git (`TRAVAIL`) : ce que la CI joue, c'est l'arbre du commit, jamais un fichier
+// ignoré — que le glob de Vitest, lui, prend s'il est présent sur le disque.
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { RACINES_DE_LA_SUITE, estDeLaSuiteVitest } from './racinesDeLaSuite.mjs'
+import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
+import { entreeDe } from './sourceCorpus.mjs'
 
-/** Les fichiers de TEST des racines de la suite, lus aux extensions de leur motif, avec leur chemin
- *  POSIX depuis la racine du dépôt. Une racine qui DISPARAÎT fait LEVER `readCorpus` (refus du vide,
- *  par base) : l'appelant rougit en la nommant, au lieu de lire un périmètre amputé en silence.
+const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+/** Les suites Vitest de l'arbre de travail du dépôt de `racine` (`listerImage`, `TRAVAIL` : suivis et non suivis, hors
+ *  ignorés et supprimés), chemins POSIX relatifs, triés ; git lancé sous `env`. Une lecture git en échec LÈVE ; une
+ *  suite VIDE lève aussi : jouer zéro test serait le pire des verts. */
+export function suiteVitestDuDepot(racine = RACINE, { env } = {}) {
+  const suite = listerImage(depotDe(racine, { env }), TRAVAIL).filter(estDeLaSuiteVitest).sort()
+  if (!suite.length) throw new Error(`suiteVitest : aucune suite Vitest sous ${racine} (racines ${RACINES_DE_LA_SUITE.map((r) => r.motif).join(', ')})`)
+  return suite
+}
+
+/** Les suites Vitest du dépôt de `racine` (`suiteVitestDuDepot`, git sous `env`), avec leur chemin absolu et leur texte,
+ *  lu une fois par worker (`entreeDe`, mémo de `sourceCorpus.mjs`).
  *  @returns {{ abs: string, rel: string, text: string }[]} */
-export function fichiersDeLaSuite() {
-  return RACINES_DE_LA_SUITE.flatMap(({ dir, exts }) =>
-    readCorpus([dir], { exts: [...exts], tests: true }).filter(({ rel }) => estSuiteVitest(rel)),
-  )
+export function fichiersDeLaSuite(racine = RACINE, { env } = {}) {
+  return suiteVitestDuDepot(racine, { env }).map((rel) => {
+    const abs = join(racine, rel)
+    return { abs, rel, text: entreeDe(abs).text }
+  })
 }

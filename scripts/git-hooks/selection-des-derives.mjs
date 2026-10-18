@@ -1,9 +1,8 @@
 // SÉLECTION des dérivés par lectures mesurées (#1773, #2193, #2603) : fonctions PURES, sans écrivain, que
-// lisent le post-hook (`docs-rebuild.mjs`), le périmètre de tests (`scripts/test/perimetre.mjs`) et l'étape
-// `docs` du train (`scripts/ops/etapesDuTrain.mjs`).
+// lit le périmètre de tests (`scripts/test/perimetre.mjs`).
 import { existsSync, readFileSync } from 'node:fs'
 import { join, posix } from 'node:path'
-import { ciblesLitterales, ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesLitterales, ciblesSurDisque, GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
 import { fichiersDOutillage } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob, couvertParPathspec } from '../guards/lib/lister.mjs'
 
@@ -108,8 +107,8 @@ export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
 
 /**
  * Les générateurs que le lot peut périmer : ceux que `touchesDocSources` retient, puis la clôture DESCENDANTE
- * seule — un producteur retenu tire ses lecteurs, un générateur de code retenu tire `perimetreDesMixtes`
- * (#2193). Un producteur NON retenu a des sorties fraîches (cible absente → tous) : son lecteur ne le tire pas.
+ * seule — un producteur retenu tire ses lecteurs. Un producteur NON retenu a des sorties fraîches
+ * (cible absente → tous) : son lecteur ne le tire pas.
  */
 export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS }) {
   const tous = (raison) => ({ scripts: generateurs.map((g) => g.script), complete: true, raison })
@@ -125,8 +124,6 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   let changement = true
   while (changement) {
     const avant = selection.size
-    if (generateursDeCode(generateurs).some((g) => selection.has(g.script)))
-      for (const g of perimetreDesMixtes(generateurs)) selection.add(g.script)
     for (const g of generateurs) {
       if (!selection.has(g.script) && generateurs.some((producteur) => selection.has(producteur.script) &&
         (mesure[g.script].fichiers.some((f) => sorties(producteur).some((c) => correspondGlob(f, c))) ||

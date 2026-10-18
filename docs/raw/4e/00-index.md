@@ -12,7 +12,8 @@ plusieurs livres. Les rapports transverses et le routeur des cœurs sont à
 - **1 fichier par domaine** ; dans chaque fichier, **1 section `##` = 1 topic atomique**.
 - Chaque topic = **synthèse fidèle** + **Sources RAW** (toutes les refs `LIVRE NN l.X-Y`, tous livres
   confondus) + **citations verbatim** là où le mot compte + **Voir aussi** (renvois entre règles) +
-  **Implémente** — champ **GÉNÉRÉ** par `npm run raw:implemente` (#487), jamais écrit à la main :
+  **Implémente** — lien manuscrit vers le [rapport calculé](../implemente.generated.md)
+  (`npm run raw:implemente`) :
   code de `src/` citant les réfs du topic (même livre+chapitre, spans à **±10 lignes** — du bruit de
   voisinage est possible sur les pages denses), symboles remontés, `⚠sans-appelant`/`⚠hors-app` sur
   le code mort détecté, `(non implémenté)` sinon. Source éditoriale (dettes/blocages) :
@@ -28,39 +29,14 @@ plusieurs livres. Les rapports transverses et le routeur des cœurs sont à
 ## Domaines
 
 **1 domaine = 1 fiche `<clé>.md`** — la clé est l'id STABLE (c'est elle que nomme un lot du workflow
-d'extraction), le titre est de l'affichage. La table ci-dessous est **GÉNÉRÉE** depuis
+d'extraction), le titre est de l'affichage. Le [rapport des domaines](../atlas.generated.md#domaines-4e) est **GÉNÉRÉ** depuis
 `scripts/raw/domaines.json` par `node scripts/raw/build-atlas-index.mjs` : un domaine de plus est une
 entrée de ce registre, jamais une ligne écrite ici. Tout domaine déclaré a sa fiche et toute fiche a
 son domaine — garde `scripts/raw/domaines.test.mjs`. Quels livres et chapitres alimentent une fiche
 se LIT sur la fiche, et se MESURE dans [`../coverage.md`](../coverage.md) et
 [`../reconciliation.md`](../reconciliation.md).
 
-<!-- ATLAS-DOMAINES:DEBUT -->
-| Domaine | Titre |
-|---|---|
-| [`combat`](combat.md) | Combat |
-| [`combat-naval`](combat-naval.md) | Combat naval (La Mer des Griffes) |
-| [`tests`](tests.md) | Tests & Degrés de Réussite |
-| [`etats`](etats.md) | États |
-| [`deplacement`](deplacement.md) | Déplacement & Voyage (hors combat) |
-| [`destin`](destin.md) | Destin, Résilience & Détermination |
-| [`traumatisme`](traumatisme.md) | Traumatisme & Blessures critiques (LDB 18) |
-| [`corruption`](corruption.md) | Corruption & Mutations |
-| [`maladies`](maladies.md) | Maladies & Infections |
-| [`psychologie`](psychologie.md) | Psychologie |
-| [`caracteristiques`](caracteristiques.md) | Caractéristiques & statistiques dérivées |
-| [`competences`](competences.md) | Compétences |
-| [`talents`](talents.md) | Talents |
-| [`carrieres`](carrieres.md) | Classes, Carrières & Statut |
-| [`creation`](creation.md) | Création de Personnage |
-| [`avancement`](avancement.md) | Avancement (Points d'Expérience) |
-| [`magie`](magie.md) | Magie (règles) |
-| [`religion`](religion.md) | Religion (Prières, Bénédictions, Miracles) |
-| [`equipement`](equipement.md) | Équipement, objets & encombrement |
-| [`economie`](economie.md) | Économie : monnaie, marché, fabrication |
-| [`bestiaire`](bestiaire.md) | Bestiaire & Profils de créature |
-| [`activites`](activites.md) | Activités & Événements (Entre deux aventures) |
-<!-- ATLAS-DOMAINES:FIN -->
+[Domaines de ce cœur](../atlas.generated.md#domaines-4e)
 
 ## Catalogues (données mécaniques verbatim — source Marker propre, tous livres)
 

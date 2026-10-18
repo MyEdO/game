@@ -1,8 +1,5 @@
 // Assemble la sortie JSON d'un workflow « Atlas RAW » en docs/raw/<domaine>.md.
 // Gere mono-domaine ({domain,topics,...}) ET multi-domaines ({domains:[...]}).
-// Le champ Implemente des topics est DERIVE du code par build-implemente (#487) : l'assembleur ne
-// pose qu'un PLACEHOLDER nu (`**Implémente :** (non implémenté)`) par topic, jamais une carte
-// code->regle ni un bilan de fidelite manuscrits (sections d'etat supprimees #507 — code-map.md eradique).
 // CŒUR — l'entrée PORTE le cœur de règles de son run (`coeur`, clé de `src/data/books.json`) :
 // l'assembleur le NOMME dans l'en-tête au lieu d'une édition écrite en dur, et il ÉCRIT SOUS son
 // cœur — `docs/raw/<coeur>/<domaine>.md`. Le CHEMIN déclare le cœur : deux cœurs peuvent porter le
@@ -11,6 +8,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { ancresDePage } from './lib/ancres.mjs'
+import { parseFiche, referenceImplementation } from './build-implemente.mjs'
 
 export const RAWDIR = 'docs/raw'
 
@@ -124,10 +122,7 @@ function lignesDuSommaire(topics, ancresDeLaPage, domain) {
   })
 }
 
-// Placeholder du champ Implemente : build-implemente le remplira a partir du code (jamais ecrit a la
-// main). Toute forme authoree du champ dans le markdown d'un topic est NORMALISEE vers ce placeholder
-// nu (frontiere = ligne debutant par `**Implement…**`, meme graphie que FIELD_START_RE du generateur).
-const IMPLEMENTE_PLACEHOLDER = '**Implémente :** (non implémenté)'
+const IMPLEMENTE_PLACEHOLDER = '**Implémente :**'
 const IMPLEMENTE_FIELD_LINE_RE = /^\*\*Impl[ée]ment[ée]?\s*[:.]?\*\*.*$/gim
 function withPlaceholderField(md) {
   const stripped = md.replace(IMPLEMENTE_FIELD_LINE_RE, '').replace(/\n{3,}/g, '\n\n').trim()
@@ -153,8 +148,8 @@ export function assemble(data, { racine = {}, source = '<entrée>', titleArg, ra
 > d'agent (répondre + auditer le code sans rouvrir les livres). Chaque règle cite \`LIVRE NN l.X-Y\`
 > (last-recours = la source). Abréviations : [\`sources.md\`](../sources.md). Index : [\`00-index.md\`](00-index.md).
 >
-> ⚠️ Agent-généré + vérifié (passe adversariale). Le champ **Implémente** est DÉRIVÉ du code
-> (\`npm run raw:implemente\`), jamais écrit à la main.
+> ⚠️ Agent-généré + vérifié (passe adversariale). Chaque champ **Implémente** référence
+> le [rapport calculé](../implemente.generated.md) (\`npm run raw:implemente\`).
 
 ## Sommaire
 
@@ -166,7 +161,11 @@ ${body}
 `
   // Le Sommaire se lit dans la PAGE : ses ancres se calculent sur la page elle-même, Sommaire vide
   // (une ligne de liste n'est pas un titre — la table d'ancres est la même des deux côtés).
-  const out = page(lignesDuSommaire(topics, ancresDePage(page('')), domain).join('\n'))
+  const manuscrit = page(lignesDuSommaire(topics, ancresDePage(page('')), domain).join('\n'))
+  const doc = `${coeur}/${domain}.md`
+  const lignes = manuscrit.split('\n')
+  for (const f of [...parseFiche(doc, manuscrit).fields].reverse()) lignes.splice(f.headerIdx, f.endIdx - f.headerIdx, referenceImplementation(doc, f.topic))
+  const out = lignes.join('\n')
   const path = cheminDeFiche(coeur, domain, rawDir)
   mkdirSync(dossierDuCoeur(coeur, rawDir), { recursive: true })
   writeFileSync(path, out, 'utf8')

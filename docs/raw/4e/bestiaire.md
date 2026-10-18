@@ -3,12 +3,12 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite sa source `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > ⚠️ **Brouillon agent-généré** — fidélité contrôlée par une passe de vérification adversariale.
 > Les entrées marquées y restent à corriger.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

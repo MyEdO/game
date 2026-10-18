@@ -4,6 +4,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { pagesDeLAtlas, readText } from './_lib.mjs'
+import { parseFiche, referenceImplementation } from './build-implemente.mjs'
 import { scanForbiddenCounts, CLASSES, RAW_DIR, cheminsBalayes, ASSEMBLEUR_PATH, SOURCES_VF_WRITER_PATH } from './check-atlas-counts.mjs'
 
 test('scanForbiddenCounts : "N livres" recopié en dur → détecté', () => {
@@ -89,6 +90,18 @@ test('`cheminsBalayes` couvre TOUTE page manuscrite de l’Atlas et les ÉCRIVAI
     assert.ok(balayes.includes(p.chemin), `page manuscrite non balayée : ${p.relatif}`)
   for (const attendu of [ASSEMBLEUR_PATH, SOURCES_VF_WRITER_PATH]) assert.ok(balayes.includes(attendu), attendu)
   assert.ok(balayes.length > 3, `périmètre trop maigre : ${balayes.length} fichier(s)`)
+})
+
+test('arbre réel — les états des topics restent dans leur cible pure', () => {
+  const erreurs = []
+  for (const p of pagesDeLAtlas(RAW_DIR, { classes: ['fiche', 'auteur'] })) {
+    const texte = readText(p.chemin)
+    const lignes = texte.split('\n')
+    for (const f of parseFiche(p.relatif, texte).fields)
+      if (lignes.slice(f.headerIdx, f.endIdx).join('\n') !== referenceImplementation(p.relatif, f.topic)) erreurs.push(`${p.relatif}:${f.headerIdx + 1}`)
+    if (p.nom === '00-index.md' && /<!-- [A-Z-]+:(?:DEBUT|FIN) -->/.test(texte)) erreurs.push(p.relatif)
+  }
+  assert.deepEqual(erreurs, [])
 })
 
 test('arbre réel — aucun compte manuscrit interdit dans le périmètre balayé (non-régression #544, #1825)', () => {

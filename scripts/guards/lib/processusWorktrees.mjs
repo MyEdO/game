@@ -8,15 +8,25 @@ import { listerDossier } from './lister.mjs'
 
 export const DELAI_MESURE_PROCESSUS_MS = 5000
 
-export const normaliserErreurProcessus = (texte) => String(texte).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-const identiteInstable = (texte) => /identite.*(?:modifie|change|instable)/.test(normaliserErreurProcessus(texte))
-const avecProvenanceLecture = (p) => ({ ...p, erreursLecture: (p.erreurs ?? []).filter((e) => typeof e === 'string' && !identiteInstable(e) && /^(?:cwd|commande|image|proprietaire|creation|resident|identite|inspection native) illisible(?:\s*:|$)/.test(normaliserErreurProcessus(e))) })
+const CAUSE_DE_LECTURE = /^(cwd|commande|image|proprietaire|creation|identite|resident) illisible(?: : \[([^\]]+)\])?/
+
+/** Le champ et le code d'une cause de lecture : `<champ> illisible : [<code>] <message>` pour une chaîne
+ *  des collecteurs, `code` (ou celui de sa `cause`) pour une erreur. */
+export function lireCause(cause) {
+  if (typeof cause !== 'string') return { champ: null, code: cause?.code ?? cause?.cause?.code ?? null }
+  const m = CAUSE_DE_LECTURE.exec(cause.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+  return { champ: m?.[1] ?? null, code: m?.[2] ?? null }
+}
+
+// learn.microsoft.com/windows/win32/fileio/naming-a-file#win32-device-namespaces
+const PREFIXE_DE_PERIPHERIQUE = /^[\\/]{2}[?.][\\/](?=[A-Za-z]:[\\/])/
 
 export const sousArbre = (chemin, racine, platform = process.platform, { strict = true } = {}) => {
   const p = platform === 'win32' ? path.win32 : path.posix
   const normaliser = (c) => {
-    const absolu = p.resolve(c)
-    const reel = platform === process.platform ? canoniser(absolu, { strict }) : absolu
+    const absolu = platform === 'win32' ? p.resolve(c).replace(PREFIXE_DE_PERIPHERIQUE, '') : p.resolve(c)
+    const lexical = platform === 'win32' && absolu.startsWith('\\\\')
+    const reel = platform === process.platform && !lexical ? canoniser(absolu, { strict }) : absolu
     return platform === 'win32' ? reel.toLowerCase() : reel
   }
   const rel = p.relative(normaliser(racine), normaliser(chemin))
@@ -53,6 +63,20 @@ export function argumentsProcessus(commande, platform = process.platform) {
   return argumentsLus
 }
 
+/** La part d'un argument qui a la forme d'un chemin sur `platform`, ou `null` : sous win32, l'argument coupé
+ *  au premier caractère interdit dans un chemin. learn.microsoft.com/windows/win32/fileio/naming-a-file#naming-conventions */
+export function cheminDArgument(argument, platform = process.platform) {
+  let chemin = versCheminNatif(argument, platform)
+  if (/^file:\/\//i.test(chemin)) {
+    try { chemin = fileURLToPath(chemin, { windows: platform === 'win32' }) }
+    catch { return null }
+  }
+  if (platform !== 'win32') return chemin
+  chemin = chemin.replace(PREFIXE_DE_PERIPHERIQUE, '')
+  const interdit = chemin.search(/[^ -\uffff]|[<>"|?*]|(?<!^[A-Za-z]):/)
+  return (interdit === -1 ? chemin : chemin.slice(0, interdit)) || null
+}
+
 export function liensProcessus(processus, racine, platform = process.platform, options) {
   const p = platform === 'win32' ? path.win32 : path.posix
   const liens = []
@@ -61,12 +85,8 @@ export function liensProcessus(processus, racine, platform = process.platform, o
   for (const brut of [...(processus.argv ?? argumentsProcessus(processus.commande, platform)), ...referencesCommande(processus.commande)]) {
     const argument = brut.startsWith('--') && brut.includes('=') ? brut.slice(brut.indexOf('=') + 1) : brut
     if (argument.startsWith('-')) continue
-    let chemin = versCheminNatif(argument, platform)
-    if (/^file:\/\//i.test(chemin)) {
-      try { chemin = fileURLToPath(chemin, { windows: platform === 'win32' }) }
-      catch { continue }
-    }
-    if ((p.isAbsolute(chemin) || processus.cwd) && sousArbre(p.resolve(processus.cwd || p.parse(racine).root, chemin), racine, platform, options)) liens.push('argument ' + brut)
+    const chemin = cheminDArgument(argument, platform)
+    if (chemin && (p.isAbsolute(chemin) || processus.cwd) && sousArbre(p.resolve(processus.cwd || p.parse(racine).root, chemin), racine, platform, options)) liens.push('argument ' + brut)
   }
   return [...new Set(liens)]
 }
@@ -80,10 +100,12 @@ export function referencesCommande(commande) {
 
 export function porteeProcessus(vue) {
   const erreursGlobales = vue.erreursGlobales ?? vue.erreurs ?? []
-  const processus = vue.processus.map((p) => ({ ...p, erreurs: [...new Set([
-    ...(p.erreurs ?? []), ...(!p.commande ? ['commande illisible'] : []),
-    ...(!p.cwd ? ['cwd illisible'] : []), ...(!p.creation ? ['création illisible'] : []),
-  ])] }))
+  const processus = vue.processus.map((p) => {
+    const lus = p.erreurs ?? []
+    const champs = new Set(lus.map((e) => lireCause(e).champ))
+    const absents = { commande: p.commande == null, cwd: !p.cwd, creation: !p.creation }
+    return { ...p, erreurs: [...new Set([...lus, ...Object.keys(absents).filter((c) => absents[c] && !champs.has(c)).map((c) => c + ' illisible')])] }
+  })
   const horsPortee = vue.processus.filter((p) => !p.proprietaire || p.proprietaire !== vue.utilisateur)
   const noms = [...new Set(horsPortee.map((p) => p.nom || 'PID ' + p.pid))].sort()
   const erreurs = [...erreursGlobales]
@@ -143,8 +165,7 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
       if (timeout !== undefined && e.code === 'ETIMEDOUT') return indeterminee(timeout)
       throw e
     }
-    const brute = JSON.parse(sortie)
-    const vue = { ...brute, processus: brute.processus.map(avecProvenanceLecture) }
+    const vue = JSON.parse(sortie)
     return identites ? { ...vue, pids } : { ...porteeProcessus(vue), pids }
   }
   if (platform !== 'linux') throw new Error('mesure processus non supportée : ' + platform)
@@ -159,8 +180,9 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
     if (timeout !== undefined && Date.now() - debut >= timeout) return indeterminee(timeout)
     const dossier = path.join(racine, nom)
     const item = { pid: Number(nom), nom, proprietaire: null, commande: null, cwd: null, creation: null, erreurs: [] }
+    const illisible = (champ, e) => item.erreurs.push(champ + ' illisible : ' + (e.code ? '[' + e.code + '] ' : '') + e.message)
     try { item.proprietaire = String(statSync(dossier).uid) }
-    catch (e) { if (e.code === 'ENOENT') continue; item.erreurs.push('propriétaire illisible : ' + e.message) }
+    catch (e) { if (e.code === 'ENOENT') continue; illisible('proprietaire', e) }
     try {
       const avant = readFileSync(dossier + '/stat', 'utf8')
       const champs = avant.slice(avant.lastIndexOf(')') + 2).split(' ')
@@ -175,24 +197,23 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
           if (!rss) throw new Error('VmRSS absent')
           item.residentOctets = Number(rss[1]) * 1024
           item.metriqueMemoire = 'RSS Linux'
-        } catch (e) { item.erreurs.push('résident illisible : ' + e.message) }
+        } catch (e) { illisible('resident', e) }
         if (!memoireSeulement || aInspecter.has(item.pid)) {
           try {
             item.argv = readFileSync(dossier + '/cmdline', 'utf8').split('\0').filter(Boolean)
             item.commande = item.argv.join(' ')
-            if (!item.commande) item.erreurs.push('commande illisible')
-          } catch (e) { item.erreurs.push('commande illisible : ' + e.message) }
-          try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
-          try { item.image = readlinkSync(dossier + '/exe') } catch (e) { item.erreurs.push('image illisible : ' + e.message) }
+          } catch (e) { illisible('commande', e) }
+          try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { illisible('cwd', e) }
+          try { item.image = readlinkSync(dossier + '/exe') } catch (e) { illisible('image', e) }
         }
       }
       const apres = readFileSync(dossier + '/stat', 'utf8')
-      if (apres.slice(apres.lastIndexOf(')') + 2).split(' ')[19] !== creation) throw new Error('identité modifiée pendant inspection')
+      if (apres.slice(apres.lastIndexOf(')') + 2).split(' ')[19] !== creation) throw Object.assign(new Error('identité modifiée pendant inspection'), { code: 'instable' })
     } catch (e) {
       if (e.code === 'ENOENT' || e.code === 'ESRCH') continue
-      item.erreurs.push(e.message)
+      illisible('identite', e)
     }
-    processus.push(avecProvenanceLecture(item))
+    processus.push(item)
   }
   const vue = { utilisateur: String(uid), processus, erreurs: [], pids }
   return identites ? vue : porteeProcessus(vue)

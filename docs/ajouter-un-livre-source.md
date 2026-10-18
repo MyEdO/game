@@ -424,7 +424,7 @@ Trois points d'enregistrement, dans cet ordre :
    forcément en fin de fichier : aucun artefact commité ne suit l'ordre du registre — les stocks
    nominatifs se rendent en ordre canonique de clé (#1825). Cet ordre décide en revanche de
    l'affichage : les rapports de l'Atlas suivent `BOOKS` (section par livre de `docs/raw/coverage.md`,
-   puces des champs `**Implémente :**`), et au Compendium la catégorie « Livres »
+   puces du rapport pur `docs/raw/implemente.generated.md`, référencé par chaque champ `**Implémente :**`), et au Compendium la catégorie « Livres »
    (`src/ui/compendium/registry.ts`, `books.map` non trié) est REGROUPÉE par `folder`
    (`CompendiumScreen.tsx`) : les rayons sortent dans l'ordre de leur PREMIÈRE apparition au fichier,
    et les livres dans l'ordre du fichier à l'intérieur d'un rayon. (Édition de `books.json` :
@@ -436,7 +436,7 @@ Trois points d'enregistrement, dans cet ordre :
    porte PAS. Le déclarer entraîne, sans une ligne de code (`coeurDe`, `scripts/raw/_lib.mjs`) :
    - **R0** — le cœur est un DOSSIER de l'Atlas : ses fiches, ses catalogues et ses pages d'auteur
      vivent sous `docs/raw/<coeur>/`, et le nom du dossier EST la valeur du champ. Un cœur déclaré
-     sans dossier est DIT au routeur `docs/raw/00-index.md` (bloc généré, « dossier à créer ») ; une
+     sans dossier est DIT dans le rapport pur `docs/raw/atlas.generated.md` (« dossier à créer »), référencé par le routeur `docs/raw/00-index.md` ; une
      page de règles posée à la RACINE de l'Atlas, ou un sous-dossier qui n'est pas un cœur du
      registre, fait LEVER la couture d'énumération (`pagesDeLAtlas`) — donc toutes les gardes `raw:*` ;
    - **R1** — le Sens A du livre passe à tolérance ZÉRO : un chapitre que le code cite et qu'aucune
@@ -538,14 +538,14 @@ L'Atlas (cf. `docs/raw/00-index.md`) consolide les règles **par domaine**, pas 
 nouveau livre vient enrichir les fiches de domaine existantes (`combat.md`, `magie.md`, …) ou en
 créer une nouvelle si le livre introduit un domaine inédit (le combat naval de MDG a justifié
 `docs/raw/4e/combat-naval.md`). Un domaine inédit est UNE entrée de `scripts/raw/domaines.json`
-(`{ cle, titre }` sous son cœur) : la fiche porte le nom de la `cle`, le bloc `Domaines` de
-`docs/raw/<coeur>/00-index.md` en est GÉNÉRÉ, et `scripts/raw/domaines.test.mjs` refuse une fiche
+(`{ cle, titre }` sous son cœur) : la fiche porte le nom de la `cle`, le rapport pur
+`docs/raw/atlas.generated.md` calcule les domaines depuis ce registre, et `scripts/raw/domaines.test.mjs` refuse une fiche
 sans domaine comme un domaine ni extrait ni dû.
 
 Une aire **cadrée dont la fiche reste à extraire** se déclare avec les autres : son entrée porte en
 plus `"ticket": "#N"` — la dette d'EXTRACTION, due par le chantier qui extrait (même graphie que le
 `ticket` de `src/data/raw.manifest.json`, qui porte, lui, la dette d'IMPLÉMENTATION d'une fiche déjà
-écrite). L'index du cœur la rend alors SANS lien, avec son ticket : lier une fiche absente serait un
+écrite). Le rapport des domaines du cœur la rend alors SANS lien, avec son ticket : lier une fiche absente serait un
 lien mort. La marque se RETIRE dans le commit qui publie la fiche — une entrée qui a sa fiche ET un
 `ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, la
 porte du commit (`scripts/git-hooks/porte-du-commit.mjs`, hook git `commit-msg`) REFUSE de fermer `#N` (même
@@ -559,12 +559,10 @@ cet ordre, et l'ordre compte : l'entrée `coeur` de `src/data/books.json`, puis 
 dossier `docs/raw/<coeur>/` avec son `00-index.md` manuscrit ET l'entrée `"<coeur>": [ … ]` de
 `scripts/raw/domaines.json` — la carte du cœur naît **ENTIÈRE**, toutes ses aires à `ticket`, AVANT
 sa première extraction : c'est elle qui borne chaque domaine contre les autres (`cadragePrompt`), et
-un premier run contre une carte à une entrée sur-absorberait ses voisines. Cet index manuscrit DOIT
-porter la paire de marqueurs
-`<!-- ATLAS-DOMAINES:DEBUT -->` / `<!-- ATLAS-DOMAINES:FIN -->` — c'est entre eux que
-`node scripts/raw/build-atlas-index.mjs` écrit la table des domaines, et il REFUSE (une ligne, exit 1)
-un index sans la paire, comme un cœur déclaré sans un seul domaine : un cœur sans domaine serait un
-survol silencieux.
+un premier run contre une carte à une entrée sur-absorberait ses voisines. Cet index manuscrit porte
+un lien statique vers la section `#domaines-<coeur>` de `docs/raw/atlas.generated.md`.
+`node scripts/raw/build-atlas-index.mjs` produit ce rapport pur depuis les registres des livres et
+des domaines ; chaque cœur déclaré porte au moins un domaine.
 
 La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply → gardes** :
 
@@ -753,7 +751,7 @@ Un `.md` de `Source/` n'est pas figé : une table recollée de travers, un parag
 césure, une page que Marker a sautée se corrigent **à la main**, au PDF. Ce geste **déplace du
 texte**, donc il déplace ce qui le cite : les numéros de ligne des réfs de l'Atlas et du code, et les
 **adresses** `descRef` de la donnée. Tout se rejoue en une passe, et **tout part dans le MÊME
-commit** (Source corrigée + réfs recalées + adresses recalées + fiches `Implémente` régénérées).
+commit** (Source corrigée + réfs recalées + adresses recalées). Les rapports purs d’index et d’implémentation sont produits là où on les lit (`npm run docs:build`, CI comprise) ; les fiches manuscrites portent leurs liens fixes.
 
 **Frontière avec le §0** : ce geste manuel ne vaut que pour un défaut de **CONTENU** — ce que la
 bonne chaîne, rejouée, produirait de la même façon. Un défaut de **FORMAT** (l'une des sept familles

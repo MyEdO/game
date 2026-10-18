@@ -3,7 +3,7 @@
 > Référentiel autosuffisant des règles WFRP4 (RAW) sur les Compétences. Chaque règle cite
 > `LDB 09 l.X-Y` (ou supplément) en source de dernier recours. Voir [`sources.md`](../sources.md),
 > [`00-index.md`](00-index.md). Rouvrir le livre = défaut à corriger ici.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

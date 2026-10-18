@@ -23,7 +23,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   offTerrainMod: 'Hors de son terrain (M imposé, ±DR)',
   crewTestMod: 'Modif. aux Tests individuels d’un Test d’équipage',
   incomingAttackMod: 'Modif. au toucher de l’attaquant',
-  incomingAdvantage: 'Avantage donné à l’attaquant (mêlée)',
+  incomingAdvantage: 'Avantage donné à l’attaquant',
   incomingSpellDRMod: 'Modif. au DR des Sorts qui l’affectent (par point/Indice)',
   sbBonus: '+Bonus de Force aux Dégâts',
   endPsych: 'Fin d’un état psychologique',

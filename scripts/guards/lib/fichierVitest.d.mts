@@ -40,9 +40,3 @@ export const EST_KIT_DE_TEST: RegExp;
 
 /** Ce chemin désigne-t-il un KIT de test — ni joué, ni de la PRODUCTION ? */
 export function estKitDeTest(rel: string): boolean;
-
-/** Le séparateur d'un glob d'`include` : DOSSIER à gauche, FIN de nom à droite. */
-export const SEPARATEUR_GLOB: string;
-
-/** Les FINS DE NOM qu'un glob d'`include` accepte, accolade dépliée. Lève sur un glob sans séparateur. */
-export function finsDuGlob(motif: string): string[];

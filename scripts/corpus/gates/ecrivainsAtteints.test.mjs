@@ -40,9 +40,6 @@ const ATTENDU = {
     'scripts/gates/vitestSansEcriture.test.mjs',
     'scripts/guards/lib/perimetreSansEcriture.mjs',
     'scripts/guards/lib/perimetreSansEcriture.test.mjs',
-    // #2489 : le cache de mesure est injecté sous os.tmpdir(), puis effacé.
-    'scripts/guards/lib/ecrituresFichiers.test.mjs',
-    'scripts/guards/lib/ecrituresShell.test.mjs',
     // +1 le 2026-10-14 (#2603) : `instanceDeDepot` sous `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en
     // `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/photoArbre.test.mjs',
@@ -126,10 +123,9 @@ const ATTENDU = {
     // +1 le 2026-10-13 (#2603) : le banc du journal forge ses arbres sous `mkdtempSync` d'os.tmpdir(), `rmSync`
     // en finally ; l'arbre n'est jamais écrit.
     'scripts/git-hooks/journal.test.mjs',
-    'scripts/git-hooks/merge-docs.mjs',
-    // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
+    // +3 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
-    // la fusion 3-voies qu'ils partagent avec `merge-docs.mjs`) ; le banc des formats pose ses
+    // la fusion 3-voies du pilote) ; le banc des formats pose ses
     // fixtures sous un `mkdtempSync` de `os.tmpdir()`, retirées par `rmSync`. L'arbre du dépôt n'est
     // jamais écrit.
     'scripts/git-hooks/merge-stocks.mjs',
@@ -317,8 +313,8 @@ const ATTENDU = {
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   // +10 le 2026-10-17 (#2705) : la porte des comptes pose chaque borne de la plage sous un `mkdtempSync`
-  // d'os.tmpdir(), effacé en finally, y lie `node_modules` (`replay-head.mjs`) et y produit les cibles de code
-  // (`genererCodeSansCertifier` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
+  // d'os.tmpdir(), effacé en finally, y lie `node_modules` (`replay-head.mjs`) et y produit et certifie les cibles de code
+  // (`genererCode` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
   // jamais écrit.
   'comptes:plage': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
     'scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs', 'scripts/docs/lib/fraicheur-docs.mjs',
@@ -343,6 +339,8 @@ const ATTENDU = {
     // #2528
     'scripts/ops/session-codex.mjs',
     'scripts/ops/session-codex.test.mjs',
+    // #2528
+    'scripts/ops/session-train.test.mjs',
     // #2603
     'scripts/git-hooks/reconstruction.mjs',
     'scripts/ops/session.test.mjs',
@@ -367,10 +365,6 @@ const ATTENDU = {
     // derrière sa porte `import.meta.main` — jamais depuis la gate.
     'scripts/git-hooks/journal.mjs',
     'scripts/ops/chantier.test.mjs',
-    // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
-    // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
-    // aucun module fictif n'est importé ni exécuté, et rien n'est écrit, ni dans l'arbre ni ailleurs.
-    'scripts/ops/etapesDuTrain.test.mjs',
     // +1 le 2026-09-18 (#1813) : le banc du vocabulaire de PLAGE FERMANTE prend ses dépôts jetables à
     // la fixture partagée (`instanceDeDepot`, sous os.tmpdir()) et y pose ses fichiers
     // (`mkdirSync`/`writeFileSync` pour `.claude/soldes/42.md`, `rmSync` en finally) : lire une plage
@@ -649,6 +643,11 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/enregistreur-lectures.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -758,7 +757,13 @@ const ATTENDU = {
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],
-  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/test/verrou.mjs',
+  ],
   // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module passe par `ecrireDoc` derrière sa porte `import.meta.main` (`main` de build-implemente.mjs),
@@ -771,7 +776,16 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   // #1824
-  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/test/verrou.mjs',
+  ],
   'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-source-format': ['scripts/guards/lib/protectionWorktree.mjs', ],

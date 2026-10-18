@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { refRe, buildFolioMap, folioRangeIn, allAbbrAlternation, REGISTRE_LIVRES, estLivreExtrait } from './_lib.mjs'
 import {
   slugify, refsWithSpans, declNameOf, symbolFor, refMatches, mergeSpans,
-  parseFiche, renderBlock, regenerateFiche, validerDette, estHorsImplementation, indexCode, isDeadExport,
+  parseFiche, renderBlock, rendre, RAPPORT, etatsDuRapport, referenceImplementation, validerDette, estHorsImplementation, indexCode, isDeadExport,
   GUARD_LEAK_RE, GEN_TAG, NOT_IMPL,
   buildAbbrMap, folioCitationsFromJson, orphelinsDeDette, etatsDesTopics, etatDuTopic,
   libelleDe, MANIFEST_PATH, ordreDesPuces, registresDeFiches, dettesDeFicheSansObjet,
@@ -341,13 +341,17 @@ test('invisibilité des gardes : aucune ligne générée ne matche refRe/GUARD_L
   }
 })
 
-test('regenerateFiche : SEUL le bloc du champ change, le reste octet pour octet identique', () => {
-  const before = FICHE_IMPL + '\n---\n\n## Suite\n\ncontenu.\n'
-  const after = regenerateFiche('a.md', before, implCtx())
-  assert.ok(after.includes('## Initiative'))
-  assert.ok(after.includes('## Suite\n\ncontenu.\n'))
-  assert.ok(after.includes(GEN_TAG))
-  assert.ok(!after.includes('ancien texte à écraser'))
+test('rapport pur : états calculés et références stables, sans prose manuscrite', () => {
+  const ctx = ctxTroisTopics([])
+  const rapport = rendre(ctx)
+  assert.deepEqual([...rapport.keys()], [RAPPORT])
+  const texte = rapport.get(RAPPORT)
+  const etats = etatsDuRapport(texte)
+  assert.deepEqual([...etats.values()].map((e) => e.implemente), [true, false, false])
+  assert.equal(texte.includes('Atlas RAW — Fixture'), false)
+  assert.match(texte, /src\/engine\/f.ts/)
+  assert.equal(referenceImplementation('4e/a.md', '4e/a#s'), '**Implémente :** [État calculé](../implemente.generated.md#4eas)')
+  assert.throws(() => etatsDuRapport(), /obligatoire/)
 })
 
 // --- Dette éditoriale (#1825) : une dette se déclare UNE fois, à la granularité de son ticket ---

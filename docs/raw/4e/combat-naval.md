@@ -9,7 +9,7 @@
 > d'avoir lu le mécanisme COMPLET d'abord — une fiche RAW se lit AVANT d'implémenter. Elle est la
 > **référence** ; on implémente CONTRE elle, plus de mémoire. Abréviation `MDG` : [`sources.md`](../sources.md).
 > Combat à pied / qualités d'arme génériques → [`combat.md`](combat.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

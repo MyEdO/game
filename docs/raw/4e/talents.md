@@ -2,7 +2,7 @@
 
 > Fichier de reference genere le 2026-06-20, complete le 2026-06-20. Source: `src/data/talents.json` (177 entrees) + textes sources lus et verifies.
 > **Corrections apportees** : source `empreint-de-la-magie` = EDOC 13 p.79 (pas LDB) ; source `empreint-d-ulgu` = NADJ 15 p.88 (pas LDB) ; ajout Sang Neuf (ADE I) ; description Vice complete.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ---
 

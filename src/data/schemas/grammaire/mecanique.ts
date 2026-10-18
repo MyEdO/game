@@ -326,6 +326,11 @@ const DECLARATIONS_D_OPS = {
     mod: z.number(),
     perSL: nommerChamps(z.strictObject({ every: z.number(), radiusFormula: formulaSchema }), { every: { label: "intervalle" }, radiusFormula: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
   }), { op: { label: "opération" }, radius: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, mod: { label: "modificateur" }, perSL: { label: "rayon par DR" } }),
+  incomingAdvantage: nommerChamps(z.strictObject({
+    op: z.literal('incomingAdvantage'),
+    mode: porteeDAssautSchema,
+    amount: z.number(),
+  }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" } }),
   perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
   delayed: nommerChamps(z.strictObject({
     op: z.literal('delayed'),
@@ -436,7 +441,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
-  'ignoreStatePenalties', 'incomingAdvantage', 'incomingSpellDRMod', 'interruptFocus',
+  'ignoreStatePenalties', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
   'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'spendAdvantage', 'statusMod', 'suppressPsych', 'teamCommander',

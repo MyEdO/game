@@ -19,7 +19,7 @@ import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import {
   argumentsEnfant,
   bilanDiagnostic,
@@ -54,8 +54,9 @@ import { prendreVerrouAsync, tenantEnUneLigne } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { suiteVitestDuDepot } from '../guards/lib/suiteVitest.mjs'
 
-export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, inventorier = spawnSync, enfant = spawn } = {}) {
+export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, enumerer = suiteVitestDuDepot, enfant = spawn } = {}) {
   const RACINE = racine
   const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
   // Outillage LOCAL exigé AVANT tout lancement (#1679 L1c) : sans `node_modules/vitest` dans CET
@@ -295,26 +296,24 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     balayerAteliersMorts()
     fs.mkdirSync(ATELIER, { recursive: true })
 
-    // Énumération par Vitest lui-même (1,0 s mesuré) : les `include`/`exclude` de vite.config.ts
-    // ne sont recopiés nulle part.
-    const liste = path.join(ATELIER, 'fichiers.json')
-    const inventaire = inventorier(process.execPath, [VITEST, 'list', '--filesOnly', `--json=${liste}`], {
-      cwd: RACINE,
-      env: ENV,
-      encoding: 'utf8',
-    })
-    if (inventaire.status !== 0) {
-      const sortie = inventaire.stdout + inventaire.stderr
-      process.stderr.write(sortie)
-      ecrireCapture(sortie)
-      for (const l of sortie.split('\n')) observer(l, true)
-      return inventaire.status ?? 1
+    // La suite a UNE définition, celle des shards de la CI (`suiteVitestDuDepot`, #2651) ; absolue en barres obliques,
+    // comme Vitest résout ses fichiers, pour `partitionner` et `cotesRequis` ; relative dans les `include` générés.
+    let suite
+    try {
+      suite = enumerer(RACINE, { env: ENV })
+    } catch (e) {
+      const refus = `[test] REFUS — énumération de la suite impossible : ${e.message}\n`
+      process.stderr.write(refus)
+      ecrireCapture(refus)
+      observer(refus, true)
+      return 1
     }
-    const tous = JSON.parse(fs.readFileSync(liste, 'utf8')).map((e) => e.file)
+    const base = posix(path.resolve(RACINE))
+    const tous = suite.map((rel) => `${base}/${rel}`)
     let fichiers = tous
     let args = ARGV
     if (PARTIE) {
-      const tranche = trancher(tous.map((f) => posix(path.relative(RACINE, f))), PARTIE)
+      const tranche = trancher(suite, PARTIE)
       const ligne =
         `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${tous.length}` +
         ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
@@ -328,8 +327,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
         observer(refus, true)
         return 1
       }
-      const garde = new Set(tranche.fichiers)
-      fichiers = tous.filter((f) => garde.has(posix(path.relative(RACINE, f))))
+      fichiers = tranche.fichiers.map((rel) => `${base}/${rel}`)
       args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
     }
     const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))

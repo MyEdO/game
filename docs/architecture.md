@@ -28,23 +28,14 @@ de `GENERATORS`, `scripts/docs/build-all.mjs` — docs générés, catalogues de
 (aussi `postinstall`, hooks `post-checkout`/`post-merge`/`post-rewrite`, `buildStart` de Vite), les docs
 par `npm run docs:build`. Aucune ne se fusionne.
 
-**Fusion des docs MIXTES** (`.gitattributes`, pilote `scripts/git-hooks/merge-docs.mjs` déclaré par
-`npm run postinstall`) : `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` (prose manuscrite + champ
-`**Implémente :**` dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ
-(heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
-vrai conflit humain.
-
-Après tout commit, toute fusion ou tout rebase : les hooks `post-commit`/`post-merge`/`post-rewrite`
-choisissent les générateurs dont une source a bougé (`scripts/git-hooks/selection-des-derives.mjs`) ;
-`scripts/git-hooks/docs-rebuild.mjs` régénère les cibles de code avant de rendre la main
-(`build-all --code --sans-certifier` : leurs certificats invalidés, la passe les certifie) et DEMANDE la
-reconstruction des docs, jouée en fond par un détaché par arbre (`scripts/git-hooks/reconstruction.mjs`,
-journal `.git/hooks-git/reconstruction/<pid>.log`) une fois l'arbre libre de toute opération git ;
-`--attendre` attend sa fin. Un MIXTE réécrit reste à committer. Les dérivés et le cache de fraîcheur n'ont
-qu'UN écrivain à la fois (`scripts/docs/lib/ecrivain-derives.mjs`) : tout écrivain de cibles de code hors passe
-PRÉEMPTE la passe en cours (époque neuve sous verrou), dont toute écriture suivante est refusée, puis la passe est rejouée ; une écriture de la
-passe pendant une opération git (checkout, rebase, fusion) la préempte de même ; toute autre écriture prend le
-verrou.
+Après tout commit, toute fusion ou tout rebase : les hooks examinent l'attestation des cibles
+(`scripts/git-hooks/docs-rebuild.mjs`). Les cibles de code périmées se produisent par
+`build-all --code --perimes` ; la reconstruction documentaire se demande en fond
+(`scripts/git-hooks/reconstruction.mjs`) une fois l'arbre libre de toute opération Git.
+Les sources, sondes, listings, outils et sorties mesurés décident de la fraîcheur. Tout mode
+d'écriture mesure et certifie ; une sortie identique laisse son lecteur frais.
+Les écrivains partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte
+la passe courante, dont toute écriture suivante est refusée, puis la passe est rejouée.
 
 **Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
 l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
@@ -53,17 +44,15 @@ le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit`
 s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
 producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
 son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
-`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
-`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
-`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. La finalisation du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estMiroir`, `scripts/ops/etapesDuTrain.mjs`).
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
 chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
 et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
 ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
-de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, que les deux
-pilotes partagent. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
+de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
 mesure>`.
 
 ## Frontière orchestrateur · machinerie · data-driven
