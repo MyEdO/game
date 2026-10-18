@@ -62,7 +62,7 @@ const valeurDe = (source) => {
 };
 
 export default {
-  meta: { type: 'problem', docs: { description: 'un fichier sous X/interne/ n’est importable que depuis X/ (#2724)' } },
+  meta: { type: 'problem' },
   create(context) {
     const racine = context.cwd;
     const importeur = posix(context.filename);
