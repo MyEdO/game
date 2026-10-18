@@ -663,54 +663,67 @@ const LIMITE_LECTURE = 64 * 1024 * 1024
 export function encoderLecture(racine) {
   if (Object.hasOwn(Object.prototype, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON')) throw new Error('IR_DOMAINE_JSON')
   const pool = []
+  const primitives = new Map()
   const formes = new Map()
   const identites = new WeakMap()
   const actifs = new WeakSet()
-  const pile = [{ valeur: racine }]
-  let resultat
-  const recevoir = (cadre, reference) => {
-    pile.pop()
-    if (pile.length) pile.at(-1).references.push(reference)
-    else resultat = reference
+  const indexer = (cle, noeud, table) => {
+    let reference = table.get(cle)
+    if (reference === undefined) { reference = pool.length; table.set(cle, reference); pool.push(noeud) }
+    return reference
   }
-  while (pile.length) {
-    const cadre = pile.at(-1)
-    const v = cadre.valeur
-    if (!cadre.entrees) {
-      if (v === null || typeof v !== 'object') {
-        if (!['string', 'number', 'boolean', 'undefined'].includes(typeof v) && v !== null) throw new Error('IR_DOMAINE_JSON')
-        const primitive = v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? null : v
-        const noeud = [0, primitive]
-        const cle = JSON.stringify(noeud)
-        if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
-        recevoir(cadre, formes.get(cle))
-        continue
-      }
-      if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
-      if (actifs.has(v)) throw new Error('IR_CYCLE')
-      if (identites.has(v)) { recevoir(cadre, identites.get(v)); continue }
-      const tableau = Array.isArray(v)
-      if (!tableau && ![Object.prototype, null].includes(Object.getPrototypeOf(v))) throw new Error('IR_DOMAINE_JSON')
-      const proprietes = Object.getOwnPropertyDescriptors(v)
-      if (Object.values(proprietes).some((p) => !Object.hasOwn(p, 'value'))) throw new Error('IR_DOMAINE_JSON')
-      if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
-      cadre.tableau = tableau
-      cadre.entrees = tableau ? Array.from({ length: v.length }, (_, i) => [String(i), proprietes[i]?.value])
-        : Object.keys(v).filter((k) => proprietes[k].value !== undefined).map((k) => [k, proprietes[k].value])
-      cadre.references = []
-      actifs.add(v)
+  const primitive = (v) => {
+    if (v !== null && typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean' && v !== undefined) throw new Error('IR_DOMAINE_JSON')
+    const p = v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? null : v
+    return indexer(p, [0, p], primitives)
+  }
+  /** Le cadre d'un objet du domaine JSON : ses valeurs à encoder, dans l'ordre de ses entrées. */
+  const ouvrir = (v) => {
+    if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
+    if (actifs.has(v)) throw new Error('IR_CYCLE')
+    const tableau = Array.isArray(v)
+    if (!tableau) { const prototype = Object.getPrototypeOf(v); if (prototype !== Object.prototype && prototype !== null) throw new Error('IR_DOMAINE_JSON') }
+    const proprietes = Object.getOwnPropertyDescriptors(v)
+    for (const p of Object.values(proprietes)) if (!Object.hasOwn(p, 'value')) throw new Error('IR_DOMAINE_JSON')
+    if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
+    const cles = []
+    const valeurs = []
+    if (tableau) for (let i = 0; i < v.length; i++) valeurs.push(proprietes[i]?.value)
+    else for (const k of Object.keys(v)) { const x = proprietes[k].value; if (x !== undefined) { cles.push(k); valeurs.push(x) } }
+    actifs.add(v)
+    return { v, tableau, cles, valeurs, references: [] }
+  }
+  const fermer = (cadre) => {
+    const { v, tableau, cles, references } = cadre
+    let reference
+    if (tableau) reference = indexer(`a${references.join(',')}`, [1, references], formes)
+    else {
+      let cle = 'o'
+      for (let i = 0; i < cles.length; i++) cle += `${i ? ',' : ''}${JSON.stringify(cles[i])}:${references[i]}`
+      reference = indexer(cle, [2, cles.map((k, i) => [k, references[i]])], formes)
     }
-    if (cadre.references.length < cadre.entrees.length) {
-      pile.push({ valeur: cadre.entrees[cadre.references.length][1] })
-      continue
-    }
-    const noeud = cadre.tableau ? [1, cadre.references] : [2, cadre.entrees.map(([k], i) => [k, cadre.references[i]])]
-    const cle = JSON.stringify(noeud)
-    if (!formes.has(cle)) { formes.set(cle, pool.length); pool.push(noeud) }
-    const reference = formes.get(cle)
     identites.set(v, reference)
     actifs.delete(v)
-    recevoir(cadre, reference)
+    return reference
+  }
+  if (racine === null || typeof racine !== 'object') return JSON.stringify({ format: FORMAT_LECTURE, racine: primitive(racine), pool })
+  const pile = [ouvrir(racine)]
+  let resultat
+  while (pile.length) {
+    const cadre = pile[pile.length - 1]
+    if (cadre.references.length < cadre.valeurs.length) {
+      const x = cadre.valeurs[cadre.references.length]
+      if (x === null || typeof x !== 'object') cadre.references.push(primitive(x))
+      else if (identites.has(x)) {
+        if (actifs.has(x)) throw new Error('IR_CYCLE')
+        cadre.references.push(identites.get(x))
+      } else pile.push(ouvrir(x))
+      continue
+    }
+    pile.pop()
+    const reference = fermer(cadre)
+    if (pile.length) pile[pile.length - 1].references.push(reference)
+    else resultat = reference
   }
   return JSON.stringify({ format: FORMAT_LECTURE, racine: resultat, pool })
 }
@@ -973,15 +986,17 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const celluleDe = (tokens) => {
     let branche = cellulesBooleennes
     for (const token of tokens) {
-      if (!branche.has(token)) branche.set(token, new Map())
-      branche = branche.get(token)
+      let suivante = branche.get(token)
+      if (suivante === undefined) branche.set(token, suivante = new Map())
+      branche = suivante
     }
-    if (!branche.has(finCelluleBooleenne)) {
-      const cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
+    let cellule = branche.get(finCelluleBooleenne)
+    if (cellule === undefined) {
+      cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
       referencesBooleennes.add(cellule)
       branche.set(finCelluleBooleenne, cellule)
     }
-    return branche.get(finCelluleBooleenne)
+    return cellule
   }
   const cleCanonique = (faire, racine, cache, { strict = false, cellules = false, formesCompletes = strict } = {}) => {
     try {
@@ -1198,6 +1213,10 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     const referenceDe = (v) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
       if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
+      if (ferme) {
+        const deja = references.get(v)
+        if (deja !== undefined) return deja
+      }
       observer(v)
       if (ferme) objetsCles.add(v)
       if (ferme && pile.has(v)) throw new Error('DAG_PRIVE_CYCLIQUE')

@@ -38,7 +38,10 @@ export function versionDesMemosDeDerivation(racine: string, options?: {
   format?: string;
   dossierDesMemos?: string;
   lectureSeule?: boolean;
+  racineDuCode?: string;
+  stade?: (nom: 'analyse' | 'normalisation', module: string | null) => void;
 }): string;
+export function signatureDeProducteur(texte: string, analyse: { sourceFile: unknown; diagnostics: unknown[]; fichier?: { rel: string } }, stade?: (nom: 'normalisation', module: string | null) => void): { signature: string; persistable: boolean };
 export function bornerIR(module: string, valeur: string, limite?: number): string;
 export function deriverPerimetre(entree: {
   racine: string;
@@ -49,6 +52,11 @@ export function deriverPerimetre(entree: {
   lireAvant?: (rels: string[]) => Map<string, string | null>;
   memos?: Memos;
   stade?: (nom: string, module: string | null) => void;
+  ferme?: boolean;
+  tailleLot?: number;
+  analyser?: (entrees: { rel: string; text: string }[]) => Iterable<{ fichier: { rel: string; text: string }; sourceFile: unknown; diagnostics: unknown[] }>;
+  evaluerLot?: (lot: { lectures: [string, unknown][]; resolutions: [string, string, string | null][]; lecteurs: string[]; questions: { nature: string; f: string }[] }) => { nature: string; f: string; resultat: unknown; requetes: string[] }[];
+  limiteIR?: number;
 }): Derivation;
 export function produireDTO(entree: { racine: string; base?: string; tete?: string; dossierDesMemos?: string; lectureSeule?: boolean; mode?: string }, stade?: (nom: string, module: string | null) => void): object;
 export function enDTO(images: Images, derive: Derivation): object;
