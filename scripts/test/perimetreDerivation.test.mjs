@@ -3,12 +3,13 @@ import { createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, memosDeDerivation, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { derivationBornee } from './perimetre.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { spawnBorne } from '../guards/lib/processusBorne.mjs'
+import { lireTextePublie } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees.mjs'
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots } from '../guards/lib/importGraph.mjs'
@@ -807,4 +808,44 @@ test('module qui balaie le dépôt : la fermeture d\'imports du balayeur porte l
   const { nonResolus } = deriverPerimetre({ racine: dossierDe(t), touches: ['src/a.txt'], post: [...textes.keys()], avant: [],
     lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])) })
   assert.deepEqual(nonResolus.map((n) => [n.fichier, n.moduleBalaieLeDepot]), [['scripts/a.test.mjs', true], ['scripts/b.test.mjs', false]])
+})
+
+test('couture analyser : la clôture d\'imports de la dérivation analyse par l\'analyseur injecté (#2586)', (t) => {
+  const textes = new Map([['scripts/a.test.mjs', "import './feuille.mjs'"], ['scripts/feuille.mjs', 'export const f = 1'], ['src/a.txt', 'a']])
+  const racine = dossierDe(t)
+  const vus = []
+  deriverPerimetre({ racine, touches: ['src/a.txt'], post: [...textes.keys()], avant: [], lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])),
+    analyser: (entrees) => { const lus = [...entrees]; vus.push(...lus.map((e) => relative(racine, e.rel).split(sep).join('/'))); return analyserEnLots(lus) } })
+  assert.deepEqual(vus.sort(), ['scripts/a.test.mjs', 'scripts/feuille.mjs'])
+})
+
+test('couture stade : la dérivation fermée observe chaque certification et le budget de chaque lot évalué (#2586)', (t) => {
+  const textes = new Map([
+    ['scripts/lecteur.mjs', "import {readFileSync} from 'node:fs'; import {chemin} from './chemin.mjs'; readFileSync(chemin)"],
+    ['scripts/chemin.mjs', "export const chemin = 'src/a.txt'"],
+    ['scripts/a.test.mjs', "import './lecteur.mjs'"],
+    ['src/a.txt', 'a'],
+  ])
+  const stades = []
+  const { retenus } = deriverPerimetre({ racine: dossierDe(t), ferme: true, touches: ['src/a.txt'], post: [...textes.keys()], avant: [],
+    lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])), stade: (nom, module) => stades.push([nom, module]) })
+  assert.equal(retenus.get('scripts/a.test.mjs')?.nature, 'racine balayée')
+  assert.deepEqual(stades.filter(([nom]) => nom === 'décodage').map(([, m]) => m), ['scripts/lecteur.mjs', 'scripts/chemin.mjs'], 'certifierLecture : un décodage par module certifié')
+  assert.deepEqual(stades.filter(([nom]) => ['relaisExportes', 'sitesDe', 'noyau'].includes(nom)),
+    [['relaisExportes', 'scripts/lecteur.mjs'], ['noyau', null], ['sitesDe', 'scripts/lecteur.mjs'], ['noyau', null]], 'evaluerLot : un noyau par lot évalué')
+})
+
+test('marqueur de stade : publié pendant que le thread principal bloque, le dernier publié à la fermeture (#2586)', (t) => {
+  const chemin = join(dossierDe(t), 'stade.json')
+  const marqueur = marqueurDeStade(chemin, { pas: 10 })
+  const publie = () => { const texte = lireTextePublie(chemin); return texte === undefined ? null : JSON.parse(texte) }
+  try {
+    marqueur.stade('prélire', 'scripts/a.mjs')
+    marqueur.stade('lecture', 'scripts/bloque.mjs')
+    const echeance = performance.now() + 2_000
+    while (performance.now() < echeance && publie()?.module !== 'scripts/bloque.mjs');
+    assert.deepEqual(publie(), { stade: 'lecture', module: 'scripts/bloque.mjs' }, 'publié sans rendre la main')
+    marqueur.stade('sauvegarde', null)
+  } finally { marqueur.fermer() }
+  assert.deepEqual(publie(), { stade: 'sauvegarde', module: null })
 })

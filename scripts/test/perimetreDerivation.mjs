@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Worker } from 'node:worker_threads'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
 import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
@@ -83,7 +84,8 @@ function setupFilesDe(texte, analyser) {
 /**
  * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. `ferme` : chaque lot s'évalue par `evaluerLot` sur la
  * clôture de ses lectures (`produireDTO`). `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
- * `limiteIR` valent ceux de la production par défaut.
+ * `limiteIR` valent ceux de la production par défaut. `analyser` sert aussi la clôture d'imports (`clotureDImports`) ;
+ * `stade` observe aussi chaque certification (`certifierLecture`) et chaque lot (`evaluerLot`).
  * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDeDerivation> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: NonResolu[], vitest: string[], node: string[], modules: number }}
  */
@@ -109,7 +111,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const cache = new Map()
   clotureDImports([...vitest, ...node, ...setup], {
-    racine, typesEffaces: true, cache,
+    racine, typesEffaces: true, cache, analyser,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
@@ -264,7 +266,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR (`lectureDe`), une fois par module et par
    *  dérivation : les lots et l'évaluateur ouvert la partagent, la dérivation la relâche à sa fin. */
   const certifiees = new Map()
-  const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f))).get(f)
+  const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f), stade)).get(f)
   /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles : une lecture se visite une
    *  fois par dérivation, pas une fois par lot (`stade('visite', f)`). */
   const specificateursDesLectures = new Map()
@@ -319,7 +321,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
         if (manquants.length) {
           stade(nature, manquants.length === 1 ? manquants[0] : null)
           const lecteursDuTour = [...lecteurs]
-          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })
+          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) }, stade)
           for (const { f, resultat, requetes } of rendus) {
             resultats.set(f, resultat)
             const cle = `${nature}:${f}`
@@ -668,11 +670,77 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   return enDTO(images, derive)
 }
 
+/** Le PAS du marqueur de stade (ms) : un stade posé est publié au plus un pas plus tard (`marqueurDeStade`). */
+export const PAS_DU_MARQUEUR = 100
+/** Les octets d'un stade sérialisé (`marqueurDeStade`). */
+const CAPACITE_DU_MARQUEUR = 4096
+const [SEQUENCE, LONGUEUR, ARRET, ACQUIT] = [0, 1, 2, 3]
+/** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. */
+const GUETTEUR = `
+const { workerData: { ecriture, chemin, partage, pas } } = require('node:worker_threads')
+const entete = new Int32Array(partage, 0, 4)
+const octets = new Uint8Array(partage, 16)
+const decodeur = new TextDecoder()
+const lire = () => {
+  for (;;) {
+    const sequence = Atomics.load(entete, ${SEQUENCE})
+    if (sequence % 2) continue
+    const texte = decodeur.decode(octets.slice(0, Atomics.load(entete, ${LONGUEUR})))
+    if (Atomics.load(entete, ${SEQUENCE}) === sequence) return { sequence, texte }
+  }
+}
+import(ecriture).then(({ ecrireTexteAtomique }) => {
+  for (let publiee = 0; ;) {
+    Atomics.wait(entete, ${ARRET}, 0, pas)
+    const arret = Atomics.load(entete, ${ARRET}) === 1
+    const { sequence, texte } = lire()
+    if (sequence !== publiee) { ecrireTexteAtomique(chemin, texte + '\\n'); publiee = sequence }
+    if (arret) { Atomics.store(entete, ${ACQUIT}, 1); Atomics.notify(entete, ${ACQUIT}); return }
+  }
+})
+`
+
+/**
+ * Le MARQUEUR DE STADE de l'enfant de `derivationBornee` (`perimetre.mjs`), qui le relit à sa mort pour nommer le stade
+ * atteint. `stade(nom, module)` pose le stade en mémoire partagée ; le guetteur (`GUETTEUR`, un `Worker`) publie sous
+ * `chemin` le dernier posé à chaque `pas` ms, thread principal bloqué compris ; `fermer` publie le dernier et attend
+ * l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève.
+ * @param {string} chemin @param {{ pas?: number, delaiDArretMs?: number }} [options]
+ */
+export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs = 10_000 } = {}) {
+  const partage = new SharedArrayBuffer(16 + CAPACITE_DU_MARQUEUR)
+  const entete = new Int32Array(partage, 0, 4)
+  const octets = new Uint8Array(partage, 16)
+  const encodeur = new TextEncoder()
+  const ecriture = new URL('../guards/lib/ecritureJsonAtomique.mjs', import.meta.url).href
+  const guetteur = new Worker(GUETTEUR, { eval: true, workerData: { ecriture, chemin, partage, pas } })
+  guetteur.unref()
+  return {
+    /** @param {string} nom @param {string | null} module */
+    stade(nom, module) {
+      const encode = encodeur.encode(JSON.stringify({ stade: nom, module }))
+      if (encode.length > CAPACITE_DU_MARQUEUR) throw new Error(`perimetre : stade ${nom} de ${encode.length} octets > ${CAPACITE_DU_MARQUEUR}`)
+      Atomics.add(entete, SEQUENCE, 1)
+      octets.set(encode)
+      Atomics.store(entete, LONGUEUR, encode.length)
+      Atomics.add(entete, SEQUENCE, 1)
+    },
+    fermer() {
+      Atomics.store(entete, ARRET, 1)
+      Atomics.notify(entete, ARRET)
+      const vu = Atomics.wait(entete, ACQUIT, 0, delaiDArretMs)
+      void guetteur.terminate()
+      if (vu === 'timed-out') throw new Error(`perimetre : marqueur de stade ${chemin} sans acquit en ${delaiDArretMs} ms`)
+    },
+  }
+}
+
 if (import.meta.main) {
-  const [entree, sortie, marqueur] = process.argv.slice(2)
-  const stade = (nom, module) => ecrireJsonAtomique(marqueur, { stade: nom, module }, { indentation: 0 })
+  const [entree, sortie, chemin] = process.argv.slice(2)
+  const marqueur = marqueurDeStade(chemin)
   try {
-    const dto = produireDTO(JSON.parse(readFileSync(entree, 'utf8')), stade)
+    const dto = produireDTO(JSON.parse(readFileSync(entree, 'utf8')), marqueur.stade)
     ecrireJsonAtomique(sortie, dto, { indentation: 0 })
   } catch (e) { console.error(e.stack ?? e); process.exitCode = 1 }
+  finally { marqueur.fermer() }
 }
