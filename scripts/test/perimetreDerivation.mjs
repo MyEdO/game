@@ -662,7 +662,7 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
     if (texte !== null && texte !== undefined) garder(rel, blobDe(texte))
   }
   stade('version', null)
-  const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
+  const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule, stade }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
   const lireAvant = images.base ? (rels) => lireEnLot(depot, images.base, rels) : undefined
   const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade, ferme: true })
   stade('sauvegarde', null)
@@ -670,12 +670,14 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
   return enDTO(images, derive)
 }
 
-/** Le PAS du marqueur de stade (ms) : un stade posé est publié au plus un pas plus tard (`marqueurDeStade`). */
-export const PAS_DU_MARQUEUR = 100
+/** Le PAS du marqueur de stade (ms) : la période de publication du guetteur une fois chargé (`marqueurDeStade`). */
+const PAS_DU_MARQUEUR = 100
 /** Les octets d'un stade sérialisé (`marqueurDeStade`). */
 const CAPACITE_DU_MARQUEUR = 4096
 const [SEQUENCE, LONGUEUR, ARRET, ACQUIT] = [0, 1, 2, 3]
-/** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. */
+/** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. Ses
+ *  lectures, comme les écritures de `stade`, sont toutes atomiques : la séquence paire relue à l'identique prouve un texte
+ *  entier (ECMA-262, Memory Model). */
 const GUETTEUR = `
 const { workerData: { ecriture, chemin, partage, pas } } = require('node:worker_threads')
 const entete = new Int32Array(partage, 0, 4)
@@ -685,7 +687,9 @@ const lire = () => {
   for (;;) {
     const sequence = Atomics.load(entete, ${SEQUENCE})
     if (sequence % 2) continue
-    const texte = decodeur.decode(octets.slice(0, Atomics.load(entete, ${LONGUEUR})))
+    const lus = new Uint8Array(Atomics.load(entete, ${LONGUEUR}))
+    for (let i = 0; i < lus.length; i += 1) lus[i] = Atomics.load(octets, i)
+    const texte = decodeur.decode(lus)
     if (Atomics.load(entete, ${SEQUENCE}) === sequence) return { sequence, texte }
   }
 }
@@ -702,9 +706,9 @@ import(ecriture).then(({ ecrireTexteAtomique }) => {
 
 /**
  * Le MARQUEUR DE STADE de l'enfant de `derivationBornee` (`perimetre.mjs`), qui le relit à sa mort pour nommer le stade
- * atteint. `stade(nom, module)` pose le stade en mémoire partagée ; le guetteur (`GUETTEUR`, un `Worker`) publie sous
- * `chemin` le dernier posé à chaque `pas` ms, thread principal bloqué compris ; `fermer` publie le dernier et attend
- * l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève.
+ * atteint. `stade(nom, module)` pose le stade en mémoire partagée ; le guetteur (`GUETTEUR`, un `Worker`), dès son
+ * chargement, publie sous `chemin` le dernier posé à chaque `pas` ms, thread principal bloqué compris ; `fermer` publie
+ * le dernier et attend l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève.
  * @param {string} chemin @param {{ pas?: number, delaiDArretMs?: number }} [options]
  */
 export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs = 10_000 } = {}) {
@@ -721,7 +725,7 @@ export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs =
       const encode = encodeur.encode(JSON.stringify({ stade: nom, module }))
       if (encode.length > CAPACITE_DU_MARQUEUR) throw new Error(`perimetre : stade ${nom} de ${encode.length} octets > ${CAPACITE_DU_MARQUEUR}`)
       Atomics.add(entete, SEQUENCE, 1)
-      octets.set(encode)
+      for (let i = 0; i < encode.length; i += 1) Atomics.store(octets, i, encode[i])
       Atomics.store(entete, LONGUEUR, encode.length)
       Atomics.add(entete, SEQUENCE, 1)
     },

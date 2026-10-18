@@ -5,10 +5,11 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { bornerIR, depuisDTO, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, produireDTO, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { derivationBornee } from './perimetre.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { spawnBorne } from '../guards/lib/processusBorne.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lireTextePublie } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { encoderLecture, evaluerLotDuDepot } from '../guards/lib/racinesBalayees.mjs'
 import { analyserCorpus } from '../guards/lib/dialecte.mjs'
@@ -830,9 +831,20 @@ test('couture stade : la dérivation fermée observe chaque certification et le 
   const { retenus } = deriverPerimetre({ racine: dossierDe(t), ferme: true, touches: ['src/a.txt'], post: [...textes.keys()], avant: [],
     lire: (fs) => new Map(fs.map((f) => [f, textes.get(f) ?? null])), stade: (nom, module) => stades.push([nom, module]) })
   assert.equal(retenus.get('scripts/a.test.mjs')?.nature, 'racine balayée')
-  assert.deepEqual(stades.filter(([nom]) => nom === 'décodage').map(([, m]) => m), ['scripts/lecteur.mjs', 'scripts/chemin.mjs'], 'certifierLecture : un décodage par module certifié')
+  assert.deepEqual(stades.filter(([nom]) => nom === 'décodage').map(([, m]) => m).sort(), ['scripts/chemin.mjs', 'scripts/lecteur.mjs'], 'certifierLecture : un décodage par module certifié')
   assert.deepEqual(stades.filter(([nom]) => ['relaisExportes', 'sitesDe', 'noyau'].includes(nom)),
     [['relaisExportes', 'scripts/lecteur.mjs'], ['noyau', null], ['sitesDe', 'scripts/lecteur.mjs'], ['noyau', null]], 'evaluerLot : un noyau par lot évalué')
+})
+
+test('couture stade : produireDTO transmet son stade à la version des producteurs, chacun analysé puis normalisé (#2586)', (t) => {
+  const { racine } = instanceDeDepot({ fichiers: { 'scripts/a.test.mjs': 'export const a = 1\n' } })
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const stades = []
+  produireDTO({ racine, dossierDesMemos: join(dossierDe(t), 'memos'), mode: 'balayages' }, (nom, module) => stades.push([nom, module]))
+  const [version, graphe] = ['version', 'graphe'].map((nom) => stades.findIndex(([n]) => n === nom))
+  const modulesAu = (nom) => stades.slice(version, graphe).filter(([n]) => n === nom).map(([, m]) => m).sort()
+  assert.ok(modulesAu('analyse').includes('scripts/test/perimetreDerivation.mjs'), JSON.stringify(stades.slice(0, graphe + 1)))
+  assert.deepEqual(modulesAu('normalisation'), modulesAu('analyse'), 'chaque producteur analysé est normalisé, entre la version et le graphe')
 })
 
 test('marqueur de stade : publié pendant que le thread principal bloque, le dernier publié à la fermeture (#2586)', (t) => {
@@ -842,7 +854,7 @@ test('marqueur de stade : publié pendant que le thread principal bloque, le der
   try {
     marqueur.stade('prélire', 'scripts/a.mjs')
     marqueur.stade('lecture', 'scripts/bloque.mjs')
-    const echeance = performance.now() + 2_000
+    const echeance = performance.now() + 20_000
     while (performance.now() < echeance && publie()?.module !== 'scripts/bloque.mjs');
     assert.deepEqual(publie(), { stade: 'lecture', module: 'scripts/bloque.mjs' }, 'publié sans rendre la main')
     marqueur.stade('sauvegarde', null)

@@ -59,7 +59,6 @@ export function deriverPerimetre(entree: {
   limiteIR?: number;
 }): Derivation;
 export function produireDTO(entree: { racine: string; base?: string; tete?: string; dossierDesMemos?: string; lectureSeule?: boolean; mode?: string }, stade?: (nom: string, module: string | null) => void): object;
-export const PAS_DU_MARQUEUR: number;
 export function marqueurDeStade(chemin: string, options?: { pas?: number; delaiDArretMs?: number }): { stade: (nom: string, module: string | null) => void; fermer: () => void };
 export function enDTO(images: Images, derive: Derivation): object;
 export function depuisDTO(dto: unknown): Images & Derivation;
