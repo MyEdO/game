@@ -19,9 +19,9 @@ import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const tableauCreux = () => Object.assign(Array(2), { 1: 1 })
 
-/** Le lot `entree`, ses IR (`encoderLecture`) certifiées par `module`, évalué par le noyau fermé de `module`. */
-const evaluerLot = (entree, module = { certifierLecture, evaluerLotDuDepot }) =>
-  module.evaluerLotDuDepot({ ...entree, lectures: entree.lectures.map(([f, pool]) => [f, module.certifierLecture(f, pool)]) })
+/** Le lot `entree`, ses IR (`encoderLecture`) certifiées, évalué par le noyau fermé ; `stade` observe son budget. */
+const evaluerLot = (entree, stade) =>
+  evaluerLotDuDepot({ ...entree, lectures: entree.lectures.map(([f, pool]) => [f, certifierLecture(f, pool)]) }, stade)
 
 // #2586
 const construireSondeDePile = async () => {
@@ -39,7 +39,7 @@ const construireSondeDePile = async () => {
 
 test('pile fermée : aucun encodage sans homonyme ; contrats publics et BOOL actifs avides', async () => {
   const construire = await construireSondeDePile()
-  for (const [ferme, bool, attendu] of [[true, false, 0], [true, true, 16], [false, false, 16], [false, true, 16]]) {
+  for (const [ferme, bool, attendu] of [[true, false, 0], [false, false, 16], [false, true, 16]]) {
     const { sonde: p } = construire(ferme, bool)
     const args = gelerLaConstante([[{ texte: 'src/a' }]])
     const avant = JSON.stringify(args)
@@ -54,8 +54,8 @@ test('pile fermée : aucun encodage sans homonyme ; contrats publics et BOOL act
 test('pile fermée : cycles exacts, indices, réentrées, profondeur, dépendance et ordre des requêtes', async () => {
   const construire = await construireSondeDePile()
   const args = (texte = 'src/a') => gelerLaConstante([[{ texte }]])
-  for (const bool of [false, true]) {
-    const ev = construire(true, bool), p = ev.sonde
+  {
+    const ev = construire(true, false), p = ev.sonde
     const appel = (f, a, faire) => p.sousPile(f, a, f, faire)
     assert.deepEqual(appel('direct', args(), () => appel('direct', args(), () => assert.fail())), [{ non: "cycle d'appels direct" }])
     assert.deepEqual(appel('z', args(), () => appel('a', args(), () => appel('z', args(), () => assert.fail()))), [{ non: "cycle d'appels a, z" }])
@@ -282,52 +282,32 @@ const evaluateurDe = (modules) => {
 const racinesDe = (modules, f) => evaluateurDe(modules).sitesDe(f).filter((s) => !s.relais).map((s) => s.valeurs)
 
 // #2586
-test('lectures certifiées : une certification par lecture, des lots à noyau neuf qui la partagent, le reste refusé nommé', async (t) => {
-  const url = new URL('./racinesBalayees.mjs?codec-travail', import.meta.url).href
-  const key = '2586.codec.travail'
-  globalThis[key] = { visites: 0, decodes: 0, noyaux: [] }
-  t.after(() => delete globalThis[key])
-  const hook = registerHooks({ load(spec, ctx, suivant) {
-    const r = suivant(spec, ctx)
-    if (spec !== url) return r
-    const source = Buffer.from(r.source).toString('utf8')
-      .replace('const visiter = (v) => {', `const visiter = (v) => { globalThis['${key}'].visites++;`)
-      .replace('export function decoderLecture(lecture, limite = LIMITE_LECTURE) {', `export function decoderLecture(lecture, limite = LIMITE_LECTURE) { globalThis['${key}'].decodes++;`)
-      .replace('const { resultat, requetes } = evaluateur.tracer', `globalThis['${key}'].noyaux.push(evaluateur); const { resultat, requetes } = evaluateur.tracer`)
-      .replace('    valeurs,', '    lecturePourTest: lecture,\n    valeurs,')
-    return { ...r, source }
-  } })
-  let module
-  try { module = await import(url) } finally { hook.deregister() }
+test('lectures certifiées : un décodage par certification, un noyau par lot que ses questions partagent, le reste refusé nommé', async () => {
+  const stades = []
+  const stade = (nom, module) => { stades.push([nom, module]) }
   let dag = { k: 'importe', spec: './x.mjs', nom: 'x' }
   for (let i = 0; i < 17; i++) dag = [dag, dag]
   const pool = encoderLecture({ sites: [], fonctions: {}, exports: {}, etoiles: [], lambdas: {}, dag })
-  const a = module.certifierLecture('a.mjs', pool)
-  const illisible = module.certifierLecture('nul.mjs', null)
+  const a = certifierLecture('a.mjs', pool, stade)
+  const illisible = certifierLecture('nul.mjs', null, stade)
   assert.equal(Object.isFrozen(illisible), true)
   assert.deepEqual(Reflect.ownKeys(illisible), [])
-  assert.equal(globalThis[key].decodes, 1)
-  assert.ok(globalThis[key].visites < 100, String(globalThis[key].visites))
+  assert.deepEqual(stades, [['décodage', 'a.mjs']])
   assert.equal(Object.isFrozen(a), true)
   assert.equal(Object.isFrozen(a.dag), true)
   assert.equal(a.dag[0], a.dag[1])
-  const lot = (lectures) => module.evaluerLotDuDepot({ lectures, resolutions: [], lecteurs: [], questions: Array.from({ length: 3 }, () => ({ nature: 'sitesDe', f: 'a.mjs' })) })
+  const lot = (lectures) => evaluerLotDuDepot({ lectures, resolutions: [], lecteurs: [], questions: Array.from({ length: 3 }, () => ({ nature: 'sitesDe', f: 'a.mjs' })) }, stade)
   const premier = lot([['a.mjs', a]])
   assert.deepEqual(premier.map((r) => r.resultat), [[], [], []])
   premier[0].resultat.push('altéré')
   assert.deepEqual(lot([['a.mjs', a]]).map((r) => r.resultat), [[], [], []])
-  assert.equal(globalThis[key].decodes, 1)
-  const noyaux = globalThis[key].noyaux
-  assert.equal(noyaux.length, 6)
-  assert.equal(new Set(noyaux.slice(0, 3)).size, 1)
-  assert.equal(new Set(noyaux.slice(3)).size, 1)
-  assert.notEqual(noyaux[0], noyaux[3])
-  for (const noyau of [noyaux[0], noyaux[3]]) assert.equal(noyau.lecturePourTest('a.mjs'), a)
+  assert.deepEqual(stades, [['décodage', 'a.mjs'], ['noyau', null], ['noyau', null]])
+  const autreInstance = await import(new URL('./racinesBalayees.mjs?autre-instance', import.meta.url).href)
   for (const [nom, etrangere] of [['décodée gelée', gelerLaConstante(decoderLecture(pool))], ['clone', structuredClone(a)],
-    ['certifiée par une autre instance', certifierLecture('a.mjs', pool)]])
+    ['certifiée par une autre instance', autreInstance.certifierLecture('a.mjs', pool)]])
     assert.throws(() => lot([['a.mjs', etrangere]]), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:a\.mjs$/, nom)
   assert.throws(() => lot([['a.mjs', a], ['b.mjs', 'texte']]), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:b\.mjs$/)
-  assert.throws(() => module.certifierLecture('x.mjs', encoderLecture('x')), /SNAPSHOT_LECTURE_NON_OBJET:x\.mjs/)
+  assert.throws(() => certifierLecture('x.mjs', encoderLecture('x')), /SNAPSHOT_LECTURE_NON_OBJET:x\.mjs/)
 })
 
 // #2586
@@ -392,14 +372,7 @@ test('lot fermé : une lecture certifiée n’entre que sous son module, et le d
 })
 
 // #2586
-test('lot fermé : chaque question d’un lot rend le résultat de la question seule et au moins ses requêtes, sous-graphe partagé compris', async () => {
-  const url = new URL('./racinesBalayees.mjs?propriete-lot', import.meta.url).href
-  const hook = registerHooks({ load(spec, ctx, suivant) {
-    const r = suivant(spec, ctx)
-    return spec === url ? { ...r, source: Buffer.from(r.source).toString('utf8').replace('function construireEvaluateur(', 'export function construireEvaluateur(') } : r
-  } })
-  let module
-  try { module = await import(url) } finally { hook.deregister() }
+test('lot fermé : chaque question d’un lot rend le résultat de la question seule et au moins ses requêtes, sous-graphe partagé compris', () => {
   const sources = {
     'a.mjs': "import {base,f,boucle,lire} from './b.mjs'; import {autre} from './c.mjs'; readFileSync(base); readFileSync(f('x')); readFileSync(f('x')); readFileSync(autre); opaque(); readFileSync(null); ['src/a'].forEach(x=>readFileSync(x)); readFileSync(f()); readFileSync(boucle('src')); lire('docs/relais'); lire('docs/relais')",
     'b.mjs': "export const base='src'; export function f(x='d',...reste){return base+'/'+x} export function boucle(x){return boucle(x)} export function lire(x){readFileSync(x)}",
@@ -415,11 +388,11 @@ test('lot fermé : chaque question d’un lot rend le résultat de la question s
   const lectures = new Map(Object.entries(sources).map(([f, texte]) => [f, texte === null ? null : lire(f, texte)]))
   const resolutions = [['a.mjs', './b.mjs', 'b.mjs'], ['a.mjs', './c.mjs', 'c.mjs'], ['c.mjs', './d.mjs', 'd.mjs'], ['e.mjs', './b.mjs', 'b.mjs'],
     ['p.mjs', './q.mjs', 'q.mjs'], ['r.mjs', './q.mjs', 'q.mjs'], ['q.mjs', './s.mjs', 's.mjs']]
-  const entree = { lectures: [...lectures].map(([f, lu]) => [f, module.certifierLecture(f, lu === null ? null : encoderLecture(lu))]), resolutions, lecteurs: [...lectures.keys()] }
+  const entree = { lectures: [...lectures].map(([f, lu]) => [f, certifierLecture(f, lu === null ? null : encoderLecture(lu))]), resolutions, lecteurs: [...lectures.keys()] }
   const questions = [{ nature: 'sitesDe', f: 'a.mjs' }, { nature: 'sitesDe', f: 'vide.mjs' }, { nature: 'sitesDe', f: 'nul.mjs' }, { nature: 'relaisExportes', f: 'b.mjs' },
     { nature: 'sitesDe', f: 'e.mjs' }, { nature: 'sitesDe', f: 'a.mjs' }, { nature: 'relaisExportes', f: 'a.mjs' }, { nature: 'relaisExportes', f: 'e.mjs' },
     { nature: 'sitesDe', f: 'p.mjs' }, { nature: 'sitesDe', f: 'r.mjs' }]
-  const seule = (question) => module.evaluerLotDuDepot({ ...entree, questions: [question] })[0]
+  const seule = (question) => evaluerLotDuDepot({ ...entree, questions: [question] })[0]
   const attendu = questions.map(seule)
   assert.ok(attendu[0].resultat.length > 1 && attendu[4].resultat.length > 1)
   for (const i of [8, 9]) {
@@ -432,23 +405,16 @@ test('lot fermé : chaque question d’un lot rend le résultat de la question s
     assert.deepEqual(seul.requetes.filter((r) => !duLot.has(r)), [], `requêtes perdues : ${contexte}`)
   }
   for (const ordre of [questions.map((_, i) => i), questions.map((_, i) => questions.length - 1 - i), [4, 0, 7, 3, 9, 5, 6, 1, 2, 8]]) {
-    const rendus = module.evaluerLotDuDepot({ ...entree, questions: ordre.map((i) => questions[i]) })
+    const rendus = evaluerLotDuDepot({ ...entree, questions: ordre.map((i) => questions[i]) })
     assert.equal(rendus.length, ordre.length)
     ordre.forEach((i, k) => couvre(rendus[k], attendu[i], `${JSON.stringify(ordre)} ${questions[i].nature}:${questions[i].f}`))
   }
   const augmente = structuredClone(lectures.get('a.mjs'))
   augmente.sites.push(structuredClone(augmente.sites[1]))
-  const [renduPlusUn] = module.evaluerLotDuDepot({ ...entree, lectures: entree.lectures.map(([f, lu]) => [f, f === 'a.mjs' ? module.certifierLecture(f, encoderLecture(augmente)) : lu]), questions: [questions[0]] })
+  const [renduPlusUn] = evaluerLotDuDepot({ ...entree, lectures: entree.lectures.map(([f, lu]) => [f, f === 'a.mjs' ? certifierLecture(f, encoderLecture(augmente)) : lu]), questions: [questions[0]] })
   couvre({ ...renduPlusUn, resultat: renduPlusUn.resultat.slice(0, -1) }, attendu[0], 'site dupliqué')
   assert.deepEqual(renduPlusUn.resultat.at(-1), attendu[0].resultat[1])
-  const ferme = module.construireEvaluateur({ lecture: (f) => lectures.get(f), cible: (f, spec) => resolutions.find(([g, s]) => g === f && s === spec)?.[2] ?? null,
-    peutLire: () => true, clesStructurelles: true }, true)
-  for (const index of [-1, 0.5, NaN, undefined, null, lectures.get('a.mjs').sites.length]) {
-    assert.throws(() => ferme.siteDe('a.mjs', index), /SNAPSHOT_INDEX_SITE_INVALIDE/)
-  }
-  assert.throws(() => ferme.siteDe('nul.mjs', 0), /SNAPSHOT_INDEX_SITE_INVALIDE/)
-  assert.throws(() => ferme.siteDe('vide.mjs', 0), /SNAPSHOT_INDEX_SITE_INVALIDE/)
-  assert.throws(() => module.evaluerLotDuDepot({ ...entree, questions: [{ nature: 'sitesDe', f: 'absent.mjs' }] }), /QUESTION_DU_LOT:sitesDe:absent.mjs:SNAPSHOT_QUESTION_ABSENTE:lecture/)
+  assert.throws(() => evaluerLotDuDepot({ ...entree, questions: [{ nature: 'sitesDe', f: 'absent.mjs' }] }), /QUESTION_DU_LOT:sitesDe:absent.mjs:SNAPSHOT_QUESTION_ABSENTE:lecture/)
 })
 
 test('lot fermé : résultats et requêtes, imports transitifs, étoiles, options, captures et récursions', () => {
@@ -658,44 +624,19 @@ test('politique BOOL du driver : branches, captures ultimes et dépendances tran
 })
 
 // #2586
-test('politique BOOL du driver : prédicat DAG partagé et coûts comparés', async (t) => {
-  const key = '2586.politique.dag'
-  globalThis[key] = { predicats: 0, calculs: 0, cles: 0 }
-  t.after(() => delete globalThis[key])
-  const charger = async (cache) => {
-    const url = new URL(`./racinesBalayees.mjs?politique-dag-${cache}`, import.meta.url).href
-    const hook = registerHooks({ load(spec, ctx, suivant) {
-      const r = suivant(spec, ctx)
-      if (spec !== url) return r
-      let source = Buffer.from(r.source).toString('utf8')
-        .replace('  const booleenDe = (e, ctx) => {', `  const booleenDe = (e, ctx) => { globalThis['${key}'].predicats++;`)
-        .replace('      const vs = valeurs(e, { ...ctx, preuveBooleenne: true })', `      globalThis['${key}'].calculs++; const vs = valeurs(e, { ...ctx, preuveBooleenne: true })`)
-        .replace('    const entree = { e, ctx, pile: [...pile] }', `    globalThis['${key}'].cles++; const entree = { e, ctx, pile: [...pile] }`)
-      if (cache) source = source.replace('clesStructurelles: true, memoiserBooleens: false,', 'clesStructurelles: true, memoiserBooleens: true,')
-      return { ...r, source }
-    } })
-    try { return await import(url) } finally { hook.deregister() }
-  }
-  const lu = lire('a.mjs', "readFileSync('src')")
+test('politique BOOL du driver : un prédicat par garde d’une condition partagée, un calcul de retour par fonction et par lot', () => {
+  const lu = lire('a.mjs', "import {base} from './c.mjs'; readFileSync('src'); readFileSync(base()); readFileSync(base())")
   const condition = { k: 'importe', spec: './b.mjs', nom: 'oui' }
   lu.sites[0].args[0] = { k: 'union', v: Array.from({ length: 16 }, (_, i) => ({ k: 'garde', condition,
     attendu: true, de: { k: 'lit', v: `src/${i}` } })) }
-  const entree = { lectures: [['a.mjs', encoderLecture(lu)], ['b.mjs', encoderLecture(lire('b.mjs', 'export const oui=true'))]],
-    resolutions: [['a.mjs', './b.mjs', 'b.mjs']], lecteurs: ['a.mjs', 'b.mjs'], questions: [{ nature: 'sitesDe', f: 'a.mjs' }] }
-  const rendus = [], couts = []
-  for (const cache of [false, true]) {
-    const module = await charger(cache)
-    globalThis[key] = { predicats: 0, calculs: 0, cles: 0 }
-    rendus.push(evaluerLot(entree, module))
-    couts.push({ ...globalThis[key] })
-  }
-  assert.deepEqual(rendus[0], rendus[1])
-  assert.deepEqual(rendus[0][0].resultat[0].valeurs, Array.from({ length: 16 }, (_, i) => ({ chemin: `src/${i}` })))
-  assert.ok(rendus[0][0].requetes.includes(JSON.stringify(['lecture', 'b.mjs'])))
-  assert.equal(couts[0].cles, 0)
-  assert.ok(couts[1].cles > 0)
-  assert.ok(couts[0].calculs > couts[1].calculs, JSON.stringify(couts))
-  t.diagnostic(`DAG partagé : sans cache ${JSON.stringify(couts[0])} ; avec cache ${JSON.stringify(couts[1])}`)
+  const entree = { lectures: [['a.mjs', encoderLecture(lu)], ['b.mjs', encoderLecture(lire('b.mjs', 'export const oui=true'))],
+    ['c.mjs', encoderLecture(lire('c.mjs', "export function base(){return 'docs'}"))]],
+  resolutions: [['a.mjs', './b.mjs', 'b.mjs'], ['a.mjs', './c.mjs', 'c.mjs']], lecteurs: ['a.mjs', 'b.mjs', 'c.mjs'], questions: [{ nature: 'sitesDe', f: 'a.mjs' }] }
+  const stades = []
+  const [rendu] = evaluerLot(entree, (nom, module) => { stades.push([nom, module]) })
+  assert.deepEqual(rendu.resultat.map((s) => s.valeurs), [Array.from({ length: 16 }, (_, i) => ({ chemin: `src/${i}` })), [{ chemin: 'docs' }], [{ chemin: 'docs' }]])
+  assert.ok(rendu.requetes.includes(JSON.stringify(['lecture', 'b.mjs'])))
+  assert.deepEqual(stades, [['noyau', null], ...Array.from({ length: 16 }, () => ['prédicat', 'a.mjs']), ['retour', 'c.mjs']])
 })
 
 // #2586

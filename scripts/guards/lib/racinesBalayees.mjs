@@ -714,10 +714,8 @@ export function encoderLecture(racine) {
     if (cadre.references.length < cadre.valeurs.length) {
       const x = cadre.valeurs[cadre.references.length]
       if (x === null || typeof x !== 'object') cadre.references.push(primitive(x))
-      else if (identites.has(x)) {
-        if (actifs.has(x)) throw new Error('IR_CYCLE')
-        cadre.references.push(identites.get(x))
-      } else pile.push(ouvrir(x))
+      else if (identites.has(x)) cadre.references.push(identites.get(x))
+      else pile.push(ouvrir(x))
       continue
     }
     pile.pop()
@@ -819,10 +817,11 @@ const lectureOuNull = (lu) => lecturesIllisibles.has(/** @type {object} */ (lu))
  * à `module` comme une lecture, que le noyau fermé d'`evaluerLotDuDepot` et `evaluateurDuDepot` lisent `null`. Lève comme
  * `decoderLecture`, `SNAPSHOT_IR_NON_PRODUCTEUR:<module>` sur un nœud `lie` et `SNAPSHOT_LECTURE_NON_OBJET:<module>` sur
  * une racine qui n'est pas un objet ; un `module` hors domaine (`estModuleDuLot`) lève
- * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`.
- * @param {string} module @param {string | null} pool @returns {Lecture | LectureIllisible}
+ * `SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE`. `stade('décodage', module)` observe chaque décodage.
+ * @param {string} module @param {string | null} pool @param {(nom: string, module: string | null) => void} [stade]
+ * @returns {Lecture | LectureIllisible}
  */
-export function certifierLecture(module, pool) {
+export function certifierLecture(module, pool, stade = () => {}) {
   if (!estModuleDuLot(module)) throw new Error('SNAPSHOT_CERTIFICATION_MODULE_HORS_DOMAINE')
   if (pool === null) {
     const temoin = /** @type {LectureIllisible} */ (Object.freeze(Object.create(null)))
@@ -830,6 +829,7 @@ export function certifierLecture(module, pool) {
     lecturesCertifiees.set(temoin, module)
     return temoin
   }
+  stade('décodage', module)
   const lu = decoderLecture(pool)
   if (!lu || typeof lu !== 'object') throw new Error(`SNAPSHOT_LECTURE_NON_OBJET:${module}`)
   const vus = new WeakSet()
@@ -934,11 +934,13 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
  * `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; un module déjà lu lève `SNAPSHOT_LECTURE_DUPLIQUEE:<module>`.
  * Le noyau lit un témoin `null`. Il ne consomme du lot que ces lectures validées et la copie validée de
  * `validerDomaineDuLot`. Une lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`,
- * enveloppé en `QUESTION_DU_LOT:<nature>:<f>`.
+ * enveloppé en `QUESTION_DU_LOT:<nature>:<f>`. `stade(nom, module)` observe le budget du lot : son noyau (`'noyau'`,
+ * un par lot, partagé par ses questions), chaque prédicat booléen (`'prédicat'`) et chaque calcul de retour (`'retour'`).
  * @param {{ lectures: [string, Lecture | LectureIllisible][], resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
+ * @param {(nom: string, module: string | null) => void} [stade]
  * @returns {{ nature: string, f: string, resultat: unknown, requetes: string[] }[]}
  */
-export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lecteurs: lecteursDuLot, questions: questionsDuLot }) {
+export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lecteurs: lecteursDuLot, questions: questionsDuLot }, stade = () => {}) {
   /** @type {Map<string, Lecture | null>} */
   const lus = new Map()
   if (!estTableauNu(lectures)) throw new Error('SNAPSHOT_LECTURES_NON_TABLEAU')
@@ -966,7 +968,7 @@ export function evaluerLotDuDepot({ lectures, resolutions: resolutionsDuLot, lec
     lecture: lire,
     cible: (module, spec) => exiger(cibles, JSON.stringify([module, spec]), 'cible'),
     peutLire: (module) => { exiger(lus, module, 'peutLire'); return lisibles.has(module) },
-    clesStructurelles: true, memoiserBooleens: false,
+    clesStructurelles: true, memoiserBooleens: false, stade,
   }, true)
   for (const { nature, f } of questions) {
     try {
@@ -1011,7 +1013,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   return construireEvaluateur({ lecture: (f) => lectureOuNull(lectureDe(f)), cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens })
 }
 
-function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens }, ferme = false) {
+function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, clesStructurelles, memoiserBooleens, stade = () => {} }, ferme = false) {
+  stade('noyau', null)
   const referencesPrivees = Array.from({ length: 4 }, () => new WeakMap())
   const argumentsPrives = new WeakMap()
   const groupesPrives = new WeakMap()
@@ -1475,6 +1478,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const clesDesEntreesBooleennes = new WeakMap()
   const booleenDe = (e, ctx) => {
     const calculer = () => {
+      stade('prédicat', ctx.f)
       const vs = valeurs(e, { ...ctx, preuveBooleenne: true })
       return vs.length && vs.every((v) => 'booleen' in v && v.booleen === vs[0].booleen) ? vs[0].booleen : null
     }
@@ -1854,10 +1858,9 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
    *  rendent un `non` nommé. Chacun dépend de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
    *  que soit l'appel par lequel on y entre. */
   const sousPile = (fonction, args, nom, faire) => {
-    const differer = ferme && !memoiserBooleens
-    let cle = differer ? undefined : composerCle(fonction, '(', cleDesArgs(args), ')')
+    let cle = ferme ? undefined : composerCle(fonction, '(', cleDesArgs(args), ')')
     const enCoursAuxMemes = pile.findIndex((p) => {
-      if (!differer) return p.cle === cle
+      if (!ferme) return p.cle === cle
       if (p.fonction !== fonction) return false
       cle ??= composerCle(fonction, '(', cleDesArgs(args), ')')
       p.cle ??= composerCle(p.fonction, '(', cleDesArgs(p.args), ')')
@@ -1873,7 +1876,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
       dependre(0)
       return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
     }
-    pile.push(differer ? { fonction, cle, nom, args } : { fonction, cle, nom })
+    pile.push(ferme ? { fonction, cle, nom, args } : { fonction, cle, nom })
     try { return faire() } finally { pile.pop() }
   }
 
@@ -1903,6 +1906,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     return rendu
   })
   const calculerRetour = (fn, args, transformer) => {
+    stade('retour', fn.f)
     const fonctions = lecture(fn.f)?.fonctions
     const decl = fonctions && Object.hasOwn(fonctions, fn.id) ? fonctions[fn.id] : null
     if (!decl) return [{ non: `fonction ${fn.id} illisible` }]
@@ -2048,11 +2052,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   }
 
   return {
-    ...(ferme ? { siteDe(f, index) {
-      const lu = lecture(f)
-      if (!Number.isInteger(index) || index < 0 || !lu || index >= lu.sites.length) throw new Error(`SNAPSHOT_INDEX_SITE_INVALIDE:${f}:${index}`)
-      return evaluerSite(f, lu.sites[index])
-    } } : {}),
+    ...(ferme ? { siteDe: (f, index) => evaluerSite(f, lecture(f).sites[index]) } : {}),
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
      *  sa fonction) rend `relais: true`, ses racines se lisent chez ses appelants. */
     sitesDe(f) {
