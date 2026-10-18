@@ -324,8 +324,37 @@ test('lectures certifiées : une certification par lecture, des lots à noyau ne
   for (const [nom, etrangere] of [['décodée gelée', gelerLaConstante(decoderLecture(pool))], ['clone', structuredClone(a)],
     ['certifiée par une autre instance', certifierLecture('a.mjs', pool)]])
     assert.throws(() => lot([['a.mjs', etrangere]]), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:a\.mjs$/, nom)
-  assert.throws(() => lot([['b.mjs', a], ['a.mjs', 'texte']]), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:a\.mjs$/)
+  assert.throws(() => lot([['a.mjs', a], ['b.mjs', 'texte']]), /^Error: SNAPSHOT_LECTURE_NON_CERTIFIEE:b\.mjs$/)
   assert.throws(() => module.certifierLecture('x.mjs', encoderLecture('x')), /SNAPSHOT_LECTURE_NON_OBJET:x\.mjs/)
+})
+
+// #2586
+test('lot fermé : une lecture certifiée n’entre que sous son module, et le domaine hors lectures se refuse nommé par forme', () => {
+  const c = certifierLecture('c.mjs', encoderLecture(lire('c.mjs', "import {readFileSync} from 'node:fs'; readFileSync('src')")))
+  const question = { nature: 'sitesDe', f: 'c.mjs' }
+  const lot = (entree) => evaluerLotDuDepot({ lectures: [['c.mjs', c]], resolutions: [['c.mjs', 'node:fs', null]], lecteurs: ['c.mjs'], questions: [question], ...entree })
+  assert.deepEqual(lot({}).map((r) => r.resultat.map((s) => s.valeurs)), [[[{ chemin: 'src' }]]])
+  assert.throws(() => lot({ lectures: [['b.mjs', c]], questions: [{ nature: 'sitesDe', f: 'b.mjs' }] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/)
+  assert.throws(() => lot({ lectures: [['c.mjs', c], ['b.mjs', c]] }), /^Error: SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:b\.mjs:c\.mjs$/)
+  for (const [nom, entree, erreur] of [
+    ['résolutions hors tableau', { resolutions: new Map() }, /^Error: SNAPSHOT_RESOLUTIONS_NON_TABLEAU$/],
+    ['résolution à deux termes', { resolutions: [['c.mjs', 'node:fs']] }, /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
+    ['résolution creuse', { resolutions: tableauCreux() }, /^Error: SNAPSHOT_RESOLUTION_NON_TRIPLET:0$/],
+    ['module vide', { resolutions: [['', 'node:fs', null]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['spécificateur non chaîne', { resolutions: [['c.mjs', 1, null]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['cible non chaîne', { resolutions: [['c.mjs', 'node:fs', undefined]] }, /^Error: SNAPSHOT_RESOLUTION_HORS_DOMAINE:0$/],
+    ['résolution dupliquée', { resolutions: [['c.mjs', 'node:fs', null], ['c.mjs', 'node:fs', 'fs.mjs']] }, /^Error: SNAPSHOT_RESOLUTION_DUPLIQUEE:\["c\.mjs","node:fs"\]$/],
+    ['lecteurs hors tableau', { lecteurs: new Set(['c.mjs']) }, /^Error: SNAPSHOT_LECTEURS_NON_TABLEAU$/],
+    ['lecteur non chaîne', { lecteurs: ['c.mjs', null] }, /^Error: SNAPSHOT_LECTEUR_HORS_DOMAINE:1$/],
+    ['lecteur dupliqué', { lecteurs: ['c.mjs', 'c.mjs'] }, /^Error: SNAPSHOT_LECTEUR_DUPLIQUE:c\.mjs$/],
+    ['questions hors tableau', { questions: question }, /^Error: SNAPSHOT_QUESTIONS_NON_TABLEAU$/],
+    ['question nulle', { questions: [question, null] }, /^Error: SNAPSHOT_QUESTION_NON_OBJET:1$/],
+    ['question en tableau', { questions: [['sitesDe', 'c.mjs']] }, /^Error: SNAPSHOT_QUESTION_NON_OBJET:0$/],
+    ['question à clé de plus', { questions: [{ ...question, index: 0 }] }, /^Error: SNAPSHOT_QUESTION_CLES:0$/],
+    ['question sans f', { questions: [{ nature: 'sitesDe' }] }, /^Error: SNAPSHOT_QUESTION_CLES:0$/],
+    ['nature inconnue', { questions: [question, { nature: 'siteDe', f: 'c.mjs' }] }, /^Error: SNAPSHOT_NATURE_INVALIDE:siteDe$/],
+    ['f non chaîne', { questions: [{ nature: 'sitesDe', f: ['c.mjs'] }] }, /^Error: SNAPSHOT_QUESTION_F_HORS_DOMAINE:0$/],
+  ]) assert.throws(() => lot(entree), erreur, nom)
 })
 
 // #2586

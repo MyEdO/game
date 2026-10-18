@@ -797,8 +797,9 @@ export function decoderLecture(lecture, limite = LIMITE_LECTURE) {
 /** @typedef {{ chemin: string, sous?: string } | { hors: true } | { non: string }} Valeur */
 /** @typedef {ReturnType<typeof lectureDeModule>} Lecture */
 
-/** Les lectures CERTIFIÉES par `certifierLecture` : les seules qu'accepte le noyau fermé d'`evaluerLotDuDepot`. */
-const lecturesCertifiees = new WeakSet()
+/** Les lectures CERTIFIÉES par `certifierLecture`, chacune liée au module certifié : les seules qu'accepte le noyau
+ *  fermé d'`evaluerLotDuDepot`, et sous ce module seulement. */
+const lecturesCertifiees = new WeakMap()
 
 /**
  * La lecture CERTIFIÉE du module `module` depuis son IR `pool` (`encoderLecture`, `null` pour un module illisible) :
@@ -820,15 +821,54 @@ export function certifierLecture(module, pool) {
   }
   visiter(lu)
   gelerLaConstante(lu)
-  lecturesCertifiees.add(lu)
+  lecturesCertifiees.set(lu, module)
   return /** @type {Lecture} */ (lu)
+}
+
+/**
+ * Le DOMAINE d'un lot hors lectures, refusé par forme : `resolutions` (`SNAPSHOT_RESOLUTIONS_NON_TABLEAU`,
+ * `SNAPSHOT_RESOLUTION_NON_TRIPLET:<i>`, `SNAPSHOT_RESOLUTION_HORS_DOMAINE:<i>`, `SNAPSHOT_RESOLUTION_DUPLIQUEE:<[f, spec]>`),
+ * `lecteurs` (`SNAPSHOT_LECTEURS_NON_TABLEAU`, `SNAPSHOT_LECTEUR_HORS_DOMAINE:<i>`, `SNAPSHOT_LECTEUR_DUPLIQUE:<f>`),
+ * `questions` (`SNAPSHOT_QUESTIONS_NON_TABLEAU`, `SNAPSHOT_QUESTION_NON_OBJET:<i>`, `SNAPSHOT_QUESTION_CLES:<i>`,
+ * `SNAPSHOT_NATURE_INVALIDE:<nature>`, `SNAPSHOT_QUESTION_F_HORS_DOMAINE:<i>`). Un module est une chaîne non vide.
+ */
+function validerDomaineDuLot(resolutions, lecteurs, questions) {
+  const estChemin = (v) => typeof v === 'string' && v !== ''
+  if (!Array.isArray(resolutions)) throw new Error('SNAPSHOT_RESOLUTIONS_NON_TABLEAU')
+  const specs = new Set()
+  for (let i = 0; i < resolutions.length; i++) {
+    const resolution = resolutions[i]
+    if (!Array.isArray(resolution) || resolution.length !== 3) throw new Error(`SNAPSHOT_RESOLUTION_NON_TRIPLET:${i}`)
+    const [f, spec, cible] = resolution
+    if (!estChemin(f) || !estChemin(spec) || !(cible === null || estChemin(cible))) throw new Error(`SNAPSHOT_RESOLUTION_HORS_DOMAINE:${i}`)
+    const cle = JSON.stringify([f, spec])
+    if (specs.has(cle)) throw new Error(`SNAPSHOT_RESOLUTION_DUPLIQUEE:${cle}`)
+    specs.add(cle)
+  }
+  if (!Array.isArray(lecteurs)) throw new Error('SNAPSHOT_LECTEURS_NON_TABLEAU')
+  const vus = new Set()
+  for (let i = 0; i < lecteurs.length; i++) {
+    if (!estChemin(lecteurs[i])) throw new Error(`SNAPSHOT_LECTEUR_HORS_DOMAINE:${i}`)
+    if (vus.has(lecteurs[i])) throw new Error(`SNAPSHOT_LECTEUR_DUPLIQUE:${lecteurs[i]}`)
+    vus.add(lecteurs[i])
+  }
+  if (!Array.isArray(questions)) throw new Error('SNAPSHOT_QUESTIONS_NON_TABLEAU')
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i]
+    if (!question || typeof question !== 'object' || Array.isArray(question)) throw new Error(`SNAPSHOT_QUESTION_NON_OBJET:${i}`)
+    if (Reflect.ownKeys(question).sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
+    if (!['sitesDe', 'relaisExportes'].includes(question.nature)) throw new Error(`SNAPSHOT_NATURE_INVALIDE:${question.nature}`)
+    if (!estChemin(question.f)) throw new Error(`SNAPSHOT_QUESTION_F_HORS_DOMAINE:${i}`)
+  }
 }
 
 /**
  * L'évaluation d'un LOT, sans accès au disque, par un noyau fermé NEUF : `lectures` = les `[module, lecture]`
  * (`certifierLecture`), `resolutions` = les `[module, spécificateur, cible]`, `lecteurs` = les modules qui peuvent porter
  * un relais, `questions` = les `{ nature: 'sitesDe' | 'relaisExportes', f }`. Rend `{ nature, f, resultat, requetes }` par
- * question, valeurs détachées du noyau. Une lecture non certifiée lève `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>` ; une
+ * question, détachés du noyau par leur JSON : le résultat sort du noyau sérialisé, et le rendu le reparse. Une lecture
+ * non certifiée lève `SNAPSHOT_LECTURE_NON_CERTIFIEE:<module>`, une lecture certifiée pour un autre module
+ * `SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:<module>:<certifié>` ; le reste du lot se valide par `validerDomaineDuLot` ; une
  * lecture, une cible ou un `peutLire` absent du lot lève `SNAPSHOT_QUESTION_ABSENTE`, enveloppé en
  * `QUESTION_DU_LOT:<nature>:<f>`.
  * @param {{ lectures: Iterable<[string, Lecture | null]>, resolutions: [string, string, string | null][], lecteurs: string[], questions: { nature: string, f: string }[] }} lot
@@ -836,7 +876,12 @@ export function certifierLecture(module, pool) {
  */
 export function evaluerLotDuDepot({ lectures, resolutions, lecteurs, questions }) {
   const lus = new Map(lectures)
-  for (const [module, lu] of lus) if (lu !== null && !lecturesCertifiees.has(lu)) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
+  for (const [module, lu] of lus) {
+    if (lu === null) continue
+    if (!lecturesCertifiees.has(lu)) throw new Error(`SNAPSHOT_LECTURE_NON_CERTIFIEE:${module}`)
+    if (lecturesCertifiees.get(lu) !== module) throw new Error(`SNAPSHOT_LECTURE_D_UN_AUTRE_MODULE:${module}:${lecturesCertifiees.get(lu)}`)
+  }
+  validerDomaineDuLot(resolutions, lecteurs, questions)
   const cibles = new Map(resolutions.map(([f, spec, cible]) => [JSON.stringify([f, spec]), cible]))
   const lisibles = new Set(lecteurs)
   const exiger = (table, cle, nature) => {
@@ -852,7 +897,6 @@ export function evaluerLotDuDepot({ lectures, resolutions, lecteurs, questions }
     clesStructurelles: true, memoiserBooleens: false,
   }, true)
   for (const { nature, f } of questions) {
-    if (!['sitesDe', 'relaisExportes'].includes(nature)) throw new Error(`SNAPSHOT_NATURE_INVALIDE:${nature}`)
     try {
       const calculer = (index) => {
         const { resultat, requetes } = evaluateur.tracer(() => index === undefined ? evaluateur[nature](f) : evaluateur.siteDe(f, index))

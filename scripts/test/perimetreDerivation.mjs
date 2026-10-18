@@ -4,7 +4,7 @@ import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, decoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
+import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
@@ -12,7 +12,6 @@ import { ancetresDe, LECTURES_DES_DEPENDANCES } from '../git-hooks/selection-des
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/memosDAnalyse.mjs'
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
-import { gelerLaConstante } from '../../src/lib/gelerProfond.ts'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
 const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vite.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
@@ -262,16 +261,16 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     const manquants = fichiers.filter((f) => !variante(nature, f))
     prelire(new Set([...manquants, ...manquants.flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
   }
-  /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR `pool`, une fois par module et par dérivation : les
-   *  lots de la dérivation la partagent, la dérivation la relâche à sa fin. */
+  /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR (`lectureDe`), une fois par module et par
+   *  dérivation : les lots et l'évaluateur ouvert la partagent, la dérivation la relâche à sa fin. */
   const certifiees = new Map()
-  const certifiee = (f, pool) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, pool)).get(f)
-  /** Les spécificateurs qu'importe la lecture `pool` de `f`, ceux de ses `importe` puis ses étoiles, une fois par
-   *  module et par dérivation. */
+  const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f))).get(f)
+  /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles, une fois par module et
+   *  par dérivation. */
   const specificateursDesLectures = new Map()
-  const specificateursDeLaLecture = (f, pool) => {
+  const specificateursDeLaLecture = (f) => {
     if (specificateursDesLectures.has(f)) return specificateursDesLectures.get(f)
-    const lu = certifiee(f, pool)
+    const lu = certifiee(f)
     const specs = new Set()
     const vus = new WeakSet()
     const visiter = (v) => {
@@ -287,15 +286,14 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** La clôture des lectures de `departs` par leurs spécificateurs, vague par vague : chaque vague est prélue d'un
    *  coup par `analyser`, en lots pleins. */
   const clotureDesLectures = (departs) => {
-    const lecturesDuLot = new Map()
+    const lecturesDuLot = new Set()
     const resolutions = new Map()
     for (let vague = [...new Set(departs)]; vague.length;) {
       prelire(vague)
       const suivante = new Set()
       for (const f of vague) {
-        const pool = lectureDe(f)
-        lecturesDuLot.set(f, pool)
-        for (const spec of specificateursDeLaLecture(f, pool)) {
+        lecturesDuLot.add(f)
+        for (const spec of specificateursDeLaLecture(f)) {
           const cle = JSON.stringify([f, spec])
           if (resolutions.has(cle)) continue
           const cible = cibleDe(f, spec)
@@ -320,7 +318,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
         if (manquants.length) {
           stade(nature, manquants.length === 1 ? manquants[0] : null)
           const lecteursDuTour = [...lecteurs]
-          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map(([f, pool]) => [f, certifiee(f, pool)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })
+          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })
           for (const { f, resultat, requetes } of rendus) {
             resultats.set(f, resultat)
             const cle = `${nature}:${f}`
@@ -332,18 +330,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
         continue
       }
       let evaluateur
-      const lecturesDecodees = new Map()
-      const lireDecode = (f) => {
-        const pool = lectureDe(f)
-        if (pool === null) return null
-        if (!lecturesDecodees.has(f)) {
-          const lu = decoderLecture(pool)
-          gelerLaConstante(lu)
-          lecturesDecodees.set(f, lu)
-        }
-        return lecturesDecodees.get(f)
-      }
-      const evaluateurDe = () => evaluateur ??= evaluateurDuDepot({ lecture: lireDecode, cible: cibleDe,
+      const evaluateurDe = () => evaluateur ??= evaluateurDuDepot({ lecture: certifiee, cible: cibleDe,
         peutLire: (f) => lecteurs.has(f), clesStructurelles: true, memoiserBooleens: false })
       for (const f of lot) yield [f, evaluationDe(evaluateurDe, nature, f)]
       memos?.sauver?.()
