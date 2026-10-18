@@ -801,6 +801,7 @@ export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, jou
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
  * `horloge` porte les chronomètres et l'attente du verrou, jamais l'horloge murale des enfants supervisés.
+ * `prendre` prend le verrou des gestes lourds, `lancer` joue chaque gate (`spawnBorne`).
  * REND le code de sortie.
  */
 export async function principal({
@@ -809,7 +810,7 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
-  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, horloge = Date.now,
+  env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, lancer = spawnBorne, horloge = Date.now,
 } = {}) {
   const configuration = instance ?? verrouGestesLourds(racine)
   const secondesDepuis = (debut) => (horloge() - debut) / 1000
@@ -943,7 +944,7 @@ export async function principal({
       const envGate = { ...env, ...envEnPlus }
       if (coeurs && !envGate.WFRP_TEST_COEURS) envGate.WFRP_TEST_COEURS = String(coeurs)
       const [commande, ...args] = gate.commande.split(' ')
-      const r = await spawnBorne({
+      const r = await lancer({
         commande,
         argv: args,
         fichier,
