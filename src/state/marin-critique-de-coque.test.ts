@@ -12,6 +12,7 @@ import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
 import { draineCascade } from './cascadeTestKit';
+import { makeRNG } from '../engine/dice';
 
 /**
  * Critique de coque à l'Équipage : le marin encaisse LE coup qui porte le Critique, calculé contre LUI
@@ -56,10 +57,10 @@ const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, m
   return log;
 };
 const enMelee = (attaquant: Combatant, nav: Combatant, roll: number, dmgProxy?: { sb: number; size: Combatant['size'] }): CoupDeTouche =>
-  ({ mode: 'melee', weapon: hache, res: toucheAuJetPose(attaquant, nav, hache, jet(roll), 2, false, dmgProxy) });
+  ({ mode: 'melee', weapon: hache, res: toucheAuJetPose(attaquant, nav, hache, jet(roll), 2, { rng: makeRNG(1595) }, false, dmgProxy) });
 /** Ce que le même jet inflige au marin, calculé contre lui hors flux. */
 const contreLeMarin = (attaquant: Combatant, marin: Combatant, roll: number, dmgProxy?: { sb: number; size: Combatant['size'] }): number =>
-  toucheAuJetPose(attaquant, structuredClone(marin), hache, jet(roll), 2, false, dmgProxy).woundsLost ?? 0;
+  toucheAuJetPose(attaquant, structuredClone(marin), hache, jet(roll), 2, { rng: makeRNG(1595) }, false, dmgProxy).woundsLost ?? 0;
 
 describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé contre lui", () => {
   beforeEach(() => { vi.useFakeTimers(); });

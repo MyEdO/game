@@ -14,6 +14,7 @@ import { isOutOfAction, hasCondition } from '../engine/conditions';
 import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import { t } from '../i18n';
+import { makeRNG } from '../engine/dice';
 
 /**
  * Coup qui touche une cible à 0 Blessure, ou qui l'y amène : navire (MDG 13 l.656, l.674), bateau fluvial
@@ -65,7 +66,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const nav = coque('cogue', 'nav', 0);
     poser([h, nav]);
     expect(isOutOfAction(nav)).toBe(false);
-    const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged');
+    const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.critical, 'le Coup Critique seul').toBe(false);
     const avant = nav.criticalWounds ?? 0;
@@ -79,7 +80,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const h = tireur();
     const nav = coque('cogue', 'nav', 20);
     poser([h, nav]);
-    expect(rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged').critical).toBe(false);
+    expect(rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged', { rng: makeRNG(1595) }).critical).toBe(false);
   });
 
   it('un chariot à 0 ne prend pas de Critique (EDOC 07 l.334), même sur un double', () => {
@@ -89,7 +90,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const aZero = (c: Combatant) => critiquesDuCoup(c, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(c, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.length;
     expect(aZero(dil)).toBe(0);
     expect(aZero(coque('cogue', 'nav', 0)), 'contrôle : le navire à 0').toBe(1);
-    expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'ranged').critical).toBe(false);
+    expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'ranged', { rng: makeRNG(1595) }).critical).toBe(false);
     const avant = dil.criticalWounds;
     applyAttackResult(useGame.getState, useGame.setState, h, dil, canon, touche(3, { critical: true, attackerRoll: 22 }));
     const apres = enJeu('dil')!;

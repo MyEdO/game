@@ -64,9 +64,9 @@ describe('Lente — +1 DR à TOUTE défense adverse + frappe en dernier (LDB 62 
     // Jets figés : attaque DR 3 (cible 40), esquive DR 2 (cible 50).
     const atk = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const def = { roll: 30, target: 50, success: true, sl: 2, isDouble: false };
-    const sans = finishMelee(a, d, w([]), atk, def, 'esquive');
+    const sans = finishMelee(a, d, w([]), atk, def, 'esquive', { rng: makeRNG(1595) });
     expect(sans.hit).toBe(true); // DR 3 vs 2 → l'attaquant gagne
-    const avec = finishMelee(a, d, w(['Lente']), atk, def, 'esquive');
+    const avec = finishMelee(a, d, w(['Lente']), atk, def, 'esquive', { rng: makeRNG(1595) });
     expect(avec.hit).toBe(false); // +1 DR au défenseur → 3 vs 3, départage par valeur cible : 50 > 40 → défenseur
   });
 });
@@ -159,9 +159,9 @@ describe('finishMelee — parryWeapon exposé pour les Critiques opposés (LDB 1
     const parry = w(['Piège-lame']);
     const atk = rollTest(40, 'intermediaire', makeRNG(1));
     const def = rollTest(40, 'intermediaire', makeRNG(2));
-    const res = finishMelee(a, d, w([]), atk, def, 'parade', undefined, [], [], undefined, parry);
+    const res = finishMelee(a, d, w([]), atk, def, 'parade', { rng: makeRNG(1595) }, undefined, [], [], undefined, parry);
     expect(res.parryWeapon).toBe(parry);
-    const resEsq = finishMelee(a, d, w([]), atk, def, 'esquive', undefined, [], [], undefined, parry);
+    const resEsq = finishMelee(a, d, w([]), atk, def, 'esquive', { rng: makeRNG(1595) }, undefined, [], [], undefined, parry);
     expect(resEsq.parryWeapon).toBeUndefined();
   });
 });

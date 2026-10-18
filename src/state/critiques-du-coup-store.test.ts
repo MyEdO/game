@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from './battleRng';
 import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
@@ -55,7 +55,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
     cible.important = important;
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
   }
-  const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps', retenu);
+  const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
   const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
   applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, { ...(sousAttaque ? { sousAttaque: true } : {}), ...(grapple ? { suite: { grapple: true } } : {}) });
   const kinds: string[] = [];

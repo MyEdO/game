@@ -34,6 +34,7 @@ import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { OPS_DIFFEREES } from './combatEffects';
 import { t } from '../i18n';
+import { makeRNG } from '../engine/dice';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -2504,7 +2505,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
     // L'IA (E) frappe H en mêlée SANS défense opposable (cible sans réaction, cas imposé RAW) :
     // résolution non opposée, DR d'attaque plein → overkill car 2 PB < dégâts.
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };
-    const res = resolveMeleePassive(E, H, E.weapons[0], atk);
+    const res = resolveMeleePassive(E, H, E.weapons[0], atk, { rng: makeRNG(1595) });
     applyAttackResult(useGame.getState, useGame.setState, E, H, E.weapons[0], res);
     draineCascade(useGame.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -3026,7 +3027,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };
     const weapon: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon;
     // Touche subie SANS défense opposable (cas imposé RAW) → doit interrompre le rechargement.
-    const res = resolveMeleePassive(E, H, weapon, atk, 'corps');
+    const res = resolveMeleePassive(E, H, weapon, atk, { rng: makeRNG(1595) }, 'corps');
     applyAttackResult(useGame.getState, useGame.setState, E, H, weapon, res);
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.wounds.current).toBeLessThan(h.wounds.max); // a bien encaissé une touche

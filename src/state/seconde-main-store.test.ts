@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from './battleRng';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { emptyScene } from './scene';
 import { initialFields } from './stateFields';
@@ -68,10 +68,10 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
     battle, mode: 'battle', scene: emptyScene(), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [],
     net: { ...useGame.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
   });
+  seedBattleRng(GRAINE);
   const result = resoudre
     ? resoudre(heros, cible, arme)
-    : rederivePassiveAttack(heros, cible, arme, { roll, target: 90, success: true, sl: 3, isDouble: roll % 11 === 0 } as never, 'melee', 'corps', retenu);
-  seedBattleRng(GRAINE);
+    : rederivePassiveAttack(heros, cible, arme, { roll, target: 90, success: true, sl: 3, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
   useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result } as never });
   useGame.getState().attackConfirm();
   return result;
@@ -88,6 +88,8 @@ const critiques = () => (useGame.getState().pendingCascade?.participants ?? []).
 /** Les d100 tirés à l'ouverture de la Seconde main sous `GRAINE`, figés : le chemin de la mort-auto consomme un tirage de moins. */
 const D100_AU_BESOIN = 53;
 const D100_AU_BESOIN_MORT_AUTO = 52;
+/** La sauvegarde ôte la prise APRÈS la naissance du coup, qui a tiré la Localisation relancée : un tirage de plus. #1595 c.6226467544. */
+const D100_AU_BESOIN_APRES_SAUVEGARDE = 61;
 
 beforeEach(() => useGame.setState({ ...initialFields(), battle: null, scene: null, gameTime: 0, party: [] }));
 
@@ -129,7 +131,7 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     useGame.getState().cascadeDieSetForcedRoll(st!.id, 8);
     useGame.getState().cascadeNext();
     expect(vivant('cible').wounds.current, 'le coup est ignoré').toBe(30);
-    expect(jet()).toBe(D100_AU_BESOIN);
+    expect(jet()).toBe(D100_AU_BESOIN_APRES_SAUVEGARDE);
   });
 
   describe('mort-auto (LDB 16 l.113)', () => {

@@ -6,6 +6,7 @@ import { findVehicleById } from '../data';
 import { stacks } from '../engine/conditions';
 import { toucheAuJetPose } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
+import { makeRNG } from '../engine/dice';
 
 /**
  * Branchement combat ↔ naval : `applyCriticalToTarget` route une COQUE (`bodyShape:'vehicule'`) vers les
@@ -70,7 +71,7 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
       // du Critique encaissé par le marin part par la PORTE — sa voie inline y pousse ses lignes.
       const auteur = sailor('auteur');
       const get = (() => ({ battle: { combatants: [auteur, s, ...crew] }, party: [], pendingLogQueue: [] })) as never;
-      const coup = { mode: 'melee' as const, weapon: hache, res: toucheAuJetPose(auteur, s, hache, jet, 2) }; // le coup qui porte le Critique (MDG 13 l.584)
+      const coup = { mode: 'melee' as const, weapon: hache, res: toucheAuJetPose(auteur, s, hache, jet, 2, { rng: makeRNG(1595) }) }; // le coup qui porte le Critique (MDG 13 l.584)
       applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { attackerId: auteur.id, attackerKind: 'npc', weapon: hache.label, coup } });
       crewTouched = crew.some((c) => c.wounds.current < 13 || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
     }

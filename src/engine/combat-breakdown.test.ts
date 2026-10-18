@@ -131,29 +131,29 @@ describe('Atouts Dévastatrice / Percutante (LDB 62 l.244/266)', () => {
   // Sans Atout : dégâts = 8 + 2 = 10 → woundsLost 7. Dévastatrice : 8 + max(2,4)=12 → 9. Percutante : 8+2+4=14 → 11.
   const ranged = (qualities: string[]) => ({ label: 'X', type: 'ranged' as const, damage: { plusBF: false, flat: 8 }, qualities: qualities.map((s) => parseQualityInstance(s)!) });
   it('Dévastatrice : dégâts utilisent max(DR, dé des unités)', () => {
-    expect(resolveStrayRangedHit(mk(), mk(), ranged([]), 34, 52).woundsLost).toBe(7);
-    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Dévastatrice']), 34, 52).woundsLost).toBe(9);
+    expect(resolveStrayRangedHit(mk(), mk(), ranged([]), 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(7);
+    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Dévastatrice']), 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(9);
   });
   it('De plaies atroces (qualité magique ADE II 4 l.239) = Dévastatrice : max(DR, dé des unités)', () => {
-    expect(resolveStrayRangedHit(mk(), mk(), ranged(['De plaies atroces']), 34, 52).woundsLost).toBe(9);
+    expect(resolveStrayRangedHit(mk(), mk(), ranged(['De plaies atroces']), 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(9);
   });
   it('Percutante : +dé des unités sur les dégâts', () => {
-    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Percutante']), 34, 52).woundsLost).toBe(11);
+    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Percutante']), 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(11);
   });
   it('Inoffensive annule Dévastatrice et Percutante', () => {
-    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Dévastatrice', 'Percutante', 'Inoffensive']), 34, 52).woundsLost).toBe(7);
+    expect(resolveStrayRangedHit(mk(), mk(), ranged(['Dévastatrice', 'Percutante', 'Inoffensive']), 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(7);
   });
 });
 
 describe('Taille — Frappe Mortelle (cleave) + Piétinement (LDB 85 l.362/387)', () => {
   const hit = evaluateTest(20, 60); // succès
   it('cleave posé sur une touche de mêlée d’un plus grand', () => {
-    const r = resolveMeleePassive(mk({ size: 'enorme' }), mk({ size: 'moyenne' }), sword, hit);
+    const r = resolveMeleePassive(mk({ size: 'enorme' }), mk({ size: 'moyenne' }), sword, hit, { rng: makeRNG(1595) });
     expect(r.hit).toBe(true);
     expect(r.cleave).toBe(true);
   });
   it('pas de cleave si l’attaquant n’est pas plus grand', () => {
-    expect(resolveMeleePassive(mk(), mk(), sword, hit).cleave).toBeFalsy();
+    expect(resolveMeleePassive(mk(), mk(), sword, hit, { rng: makeRNG(1595) }).cleave).toBeFalsy();
   });
   it('Piétinement : Test OPPOSÉ de Corps à corps (Bagarre) — LDB 13 l.123 ; LDB 85 l.387', () => {
     const grand = mk({
@@ -174,26 +174,26 @@ describe('Taille — défense −2 DR/catégorie en parade (LDB 85 l.370)', () =
   const atk = evaluateTest(30, 50); // DR 2
   const def = evaluateTest(30, 60); // DR 3 (le défenseur l'emporterait : 3 > 2)
   it('un Moyen parant un Énorme subit −4 DR → l’attaquant touche', () => {
-    expect(finishMelee(mk({ size: 'enorme' }), moy, sword, atk, def, 'parade').hit).toBe(true);
+    expect(finishMelee(mk({ size: 'enorme' }), moy, sword, atk, def, 'parade', { rng: makeRNG(1595) }).hit).toBe(true);
   });
   it('en esquive, aucune pénalité de Taille → le défenseur évite', () => {
-    expect(finishMelee(mk({ size: 'enorme' }), moy, sword, atk, def, 'esquive').hit).toBe(false);
+    expect(finishMelee(mk({ size: 'enorme' }), moy, sword, atk, def, 'esquive', { rng: makeRNG(1595) }).hit).toBe(false);
   });
   it('attaquant de même Taille : parade normale (pas de pénalité)', () => {
-    expect(finishMelee(mk({ size: 'moyenne' }), moy, sword, atk, def, 'parade').hit).toBe(false);
+    expect(finishMelee(mk({ size: 'moyenne' }), moy, sword, atk, def, 'parade', { rng: makeRNG(1595) }).hit).toBe(false);
   });
 });
 
 describe('Taille — Dégâts ×N + Atouts conférés (LDB 85 l.360-361)', () => {
   const ranged = { label: 'Arc', type: 'ranged' as const, damage: { plusBF: false, flat: 8 }, qualities: [] };
   it('attaquant Énorme (+2 cat) vs Moyen : ×2 + Dévastatrice + Percutante, AVANT soak', () => {
-    expect(resolveStrayRangedHit(mk(), mk(), ranged, 34, 52).woundsLost).toBe(7); // 8+2 −3
+    expect(resolveStrayRangedHit(mk(), mk(), ranged, 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(7); // 8+2 −3
     // (8 + max(2,4) + 4)×2 − 3 = 32 − 3 = 29
-    expect(resolveStrayRangedHit(mk({ size: 'enorme' }), mk(), ranged, 34, 52).woundsLost).toBe(29);
+    expect(resolveStrayRangedHit(mk({ size: 'enorme' }), mk(), ranged, 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(29);
   });
   it('+1 cat (Grande vs Moyen) : Dévastatrice mais pas de ×N', () => {
     // 8 + max(2,4)=12, ×1 → 12 − 3 = 9
-    expect(resolveStrayRangedHit(mk({ size: 'grande' }), mk(), ranged, 34, 52).woundsLost).toBe(9);
+    expect(resolveStrayRangedHit(mk({ size: 'grande' }), mk(), ranged, 34, 52, { rng: makeRNG(1595) }).woundsLost).toBe(9);
   });
 });
 
@@ -201,7 +201,7 @@ describe('resolveStrayRangedHit — tir dévié sur un allié (LDB 14 l.116)', (
   it('touche automatiquement la victime depuis le jet d’origine (sans relancer)', () => {
     const att = mk({ label: 'Tireur' });
     const ally = mk({ label: 'Allié', wounds: { current: 10, max: 10 } });
-    const res = resolveStrayRangedHit(att, ally, bow, 30, 55); // roll 30 ≤ cible 55 → touche
+    const res = resolveStrayRangedHit(att, ally, bow, 30, 55, { rng: makeRNG(1595) }); // roll 30 ≤ cible 55 → touche
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBeGreaterThan(0); // dégâts recalculés sur l'allié
     expect(res.location).toBeTruthy();
@@ -246,7 +246,7 @@ describe('AttackResult — la RAISON du départage voyage sur le détail de lign
     const atk = evaluateTest(32, 45, 45); // DR 1
     const def = evaluateTest(21, 30, 30); // DR 1
     expect(atk.sl).toBe(def.sl);
-    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive');
+    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive', { rng: makeRNG(1595) });
     expect(res.attackerDetail!.decided).toEqual({ by: 'valeur', own: 45, other: 30 });
     expect(res.defenderDetail!.decided, 'la ligne perdante n’explique rien : son verdict est dit par l’autre').toBeUndefined();
   });
@@ -254,7 +254,7 @@ describe('AttackResult — la RAISON du départage voyage sur le détail de lign
   it('DR ET valeurs nues égaux → les DEUX lignes portent le statu quo', () => {
     const atk = evaluateTest(32, 45, 45);
     const def = evaluateTest(32, 45, 45);
-    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive');
+    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive', { rng: makeRNG(1595) });
     expect(res.hit).toBe(false);
     expect(res.attackerDetail!.decided).toEqual({ by: 'egalite' });
     expect(res.defenderDetail!.decided).toEqual({ by: 'egalite' });
@@ -263,7 +263,7 @@ describe('AttackResult — la RAISON du départage voyage sur le détail de lign
   it('DR différents → AUCUNE raison : le cas nominal ne se commente pas', () => {
     const atk = evaluateTest(13, 45, 45); // DR 3
     const def = evaluateTest(21, 30, 30); // DR 1
-    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive');
+    const res = finishMelee(attaquant, defenseur, sword, atk, def, 'esquive', { rng: makeRNG(1595) });
     expect(res.attackerDetail!.decided).toBeUndefined();
     expect(res.defenderDetail!.decided).toBeUndefined();
   });
@@ -277,7 +277,7 @@ describe('AttackResult — la RAISON du départage voyage sur le détail de lign
     const atk = evaluateTest(13, 45, 45); // DR 3 naturel
     const def = evaluateTest(1, 55, 55); // DR 5 naturel → 3 une fois la Taille appliquée
     expect(atk.sl, 'précondition : les DR AFFICHÉS diffèrent').not.toBe(def.sl);
-    const res = finishMelee(grand, pareur, sword, atk, def, 'parade');
+    const res = finishMelee(grand, pareur, sword, atk, def, 'parade', { rng: makeRNG(1595) });
     expect(res.hit, 'précondition : le défenseur l’emporte au départage à la valeur nue').toBe(false);
     expect(res.attackerDetail!.decided, 'aucune phrase : elle dirait « DR égaux » là où l’écran montre 3 contre 5').toBeUndefined();
     expect(res.defenderDetail!.decided).toBeUndefined();
@@ -303,7 +303,7 @@ describe('attackTestLabel — libellé du Test SUIT combatValue, ne ment jamais 
   });
   it('resolveMeleePassive avec un bélier : le breakdown affiche « Force », pas « Corps à corps »', () => {
     const hit = evaluateTest(20, 60);
-    const r = resolveMeleePassive(mk({ characteristics: { ...mk().characteristics, force: 60 } }), mk(), belier, hit);
+    const r = resolveMeleePassive(mk({ characteristics: { ...mk().characteristics, force: 60 } }), mk(), belier, hit, { rng: makeRNG(1595) });
     expect(r.attackerDetail!.label).toBe('Force');
   });
 });
@@ -383,8 +383,8 @@ describe('Charge montée — dégâts à la Force + Taille de la monture (LDB 14
     const def = mk({ label: 'Gobelin', size: 'moyenne' });
     const okAtk = { roll: 35, target: 50, success: true, sl: 2, isDouble: false }; // touche nette (déterministe)
     // Seul le proxy de dégâts (monture Grande, BF 6) change : touche identique → DÉGÂTS isolés.
-    const normal = resolveMeleePassive(att, def, sword, okAtk);
-    const charge = resolveMeleePassive(att, def, sword, okAtk, undefined, [], { sb: 6, size: 'grande' });
+    const normal = resolveMeleePassive(att, def, sword, okAtk, { rng: makeRNG(1595) });
+    const charge = resolveMeleePassive(att, def, sword, okAtk, { rng: makeRNG(1595) }, undefined, [], { sb: 6, size: 'grande' });
     expect(normal.hit && charge.hit).toBe(true);
     expect(charge.damage!).toBeGreaterThan(normal.damage!); // Force de la monture (6) > Force du cavalier (3)
     expect(charge.cleave).toBe(true); // monture Grande vs Moyenne → Frappe Mortelle (balayage)
@@ -436,7 +436,7 @@ describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la réso
       const origine = resolveRanged(a, c, bow, makeRNG(9), dist).attackerDetail!;
       expect(origine.difficulty, 'la fixture doit VRAIMENT composer un palier').toBe(palier);
       expect(inexplique(origine)).toBe(0);
-      const re = rederivePassiveAttack(a, c, bow, bumpSL(hydrateTR(origine)), 'ranged', undefined, false, frozenDifficulty(origine));
+      const re = rederivePassiveAttack(a, c, bow, bumpSL(hydrateTR(origine)), 'ranged', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine));
       expect(dit(re.attackerDetail!)).toEqual(dit(origine));
       expect(inexplique(re.attackerDetail!), 'aucune chip « autres » après la Chance').toBe(0);
       expect(REDERIVATIONS.recomposees, 'la Difficulté est TRANSPORTÉE, jamais recomposée').toBe(repli);
@@ -456,7 +456,7 @@ describe('MÊLÉE + Chance : le surnombre survit au re-jet (#1153 L4)', () => {
     expect(inexplique(origine)).toBe(0);
     const re = finishMelee(
       a, b, sword, bumpSL(hydrateTR(origine)), hydrateTR(r.defenderDetail!), 'parade',
-      undefined, [], [], undefined, undefined, false, undefined, frozenDifficulty(origine),
+      { rng: makeRNG(1595) }, undefined, [], [], undefined, undefined, false, undefined, frozenDifficulty(origine),
     );
     expect(dit(re.attackerDetail!)).toEqual(dit(origine));
     expect(inexplique(re.attackerDetail!)).toBe(0);
@@ -491,7 +491,7 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
     const a = mk({ id: 'a', weapons: [bow] });
     const origine = resolveRanged(a, mk({ id: 'c' }), bow, makeRNG(9), 80).attackerDetail!; // bande Extrême (−30)
     // Le tir dévie vers l'allié intercalé : cible SANS le −20 du tir dans la mêlée (LDB 14 l.116).
-    const d = resolveStrayRangedHit(a, mk({ id: 'x2' }), bow, origine.roll, origine.target + 20, origine).attackerDetail!;
+    const d = resolveStrayRangedHit(a, mk({ id: 'x2' }), bow, origine.roll, origine.target + 20, { rng: makeRNG(1595) }, origine).attackerDetail!;
     expect(d.difficulty, 'même jet, même Difficulté').toBe(origine.difficulty);
     expect((d.mods ?? []).map((m) => `${m.label}:${m.value}`)).toContain('Tir dévié:20');
     expect(inexplique(d)).toBe(0);
@@ -513,11 +513,11 @@ describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.36
     it(`mêlée, ${nom} : balayage de Taille et ajustements de DR identiques`, () => {
       const w = imprecise('melee');
       const atk = evaluateTest(de, 60);
-      const origine = resolveMeleePassive(grand(), cible(), w, atk);
+      const origine = resolveMeleePassive(grand(), cible(), w, atk, { rng: makeRNG(1595) });
       if (atk.success) expect(origine.cleave, 'la fixture doit VRAIMENT poser le balayage').toBe(true);
       const compo = frozenDifficulty(origine.attackerDetail);
-      expect(rederivePassiveAttack(grand(), cible(), w, atk, 'melee', undefined, false, compo))
-        .toEqual(resolveMeleePassive(grand(), cible(), w, atk, undefined, [], undefined, false, compo));
+      expect(rederivePassiveAttack(grand(), cible(), w, atk, 'melee', { rng: makeRNG(1595) }, undefined, false, compo))
+        .toEqual(resolveMeleePassive(grand(), cible(), w, atk, { rng: makeRNG(1595) }, undefined, [], undefined, false, compo));
     });
   }
   it('tir passif : ajustements de DR identiques à `resolveRanged`', () => {
@@ -527,7 +527,7 @@ describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.36
     const rng = makeRNG(5);
     let origine = resolveRanged(a, c, w, rng, 10);
     while (!origine.hit) origine = resolveRanged(a, c, w, rng, 10);
-    const re = rederivePassiveAttack(a, c, w, hydrateTR(origine.attackerDetail!), 'ranged', undefined, false, frozenDifficulty(origine.attackerDetail));
+    const re = rederivePassiveAttack(a, c, w, hydrateTR(origine.attackerDetail!), 'ranged', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine.attackerDetail));
     expect(re).toEqual(origine);
   });
 });
@@ -539,9 +539,9 @@ describe('Re-dérivation passive au même dé : Charge montée, Pratique/Peu fia
     const atk = evaluateTest(22, 60);
     const proxy = { sb: 6, size: 'grande' as const };
     const a = mk({ id: 'a', size: 'moyenne' });
-    const origine = resolveMeleePassive(a, cible(), epee, atk, undefined, [], proxy);
+    const origine = resolveMeleePassive(a, cible(), epee, atk, { rng: makeRNG(1595) }, undefined, [], proxy);
     expect(origine.cleave, 'la Taille de la monture pose le balayage').toBe(true);
-    expect(rederivePassiveAttack(a, cible(), epee, atk, 'melee', undefined, false, frozenDifficulty(origine.attackerDetail), proxy)).toEqual(origine);
+    expect(rederivePassiveAttack(a, cible(), epee, atk, 'melee', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine.attackerDetail), proxy)).toEqual(origine);
   });
   for (const [q, delta] of [['Pratique', 1], ['Peu fiable', -1]] as const) {
     it(`${q} (LDB 60) : un tir passif RATÉ reçoit ${delta > 0 ? '+' : ''}${delta} DR`, () => {
@@ -551,7 +551,7 @@ describe('Re-dérivation passive au même dé : Charge montée, Pratique/Peu fia
       let o = resolveRanged(a, cible(), arc, rng, 10);
       while (o.hit) o = resolveRanged(a, cible(), arc, rng, 10);
       expect(o.netSL).toBe(o.attackerDetail!.sl + delta);
-      const re = rederivePassiveAttack(a, cible(), arc, hydrateTR(o.attackerDetail!), 'ranged', undefined, false, frozenDifficulty(o.attackerDetail));
+      const re = rederivePassiveAttack(a, cible(), arc, hydrateTR(o.attackerDetail!), 'ranged', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(o.attackerDetail));
       expect(re).toEqual(o);
     });
   }

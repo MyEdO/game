@@ -187,10 +187,10 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
 
   it('à 0, le coup suivant SANS double est un Critique de Structure ; au-dessus de 0, non', () => {
     const { S, H } = start('porte');
-    expect(rederivePassiveAttack(H, S!, hache, sansDouble, 'melee').critical, 'contrôle : Structure intacte').toBe(false);
+    expect(rederivePassiveAttack(H, S!, hache, sansDouble, 'melee', { rng: makeRNG(1595) }).critical, 'contrôle : Structure intacte').toBe(false);
     S!.wounds.current = 0;
     expect(critiquesDuCoup(S!, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(S!, { coupCritique: null, prise: true, current: 0 }), blessures: 1 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
-    const res = rederivePassiveAttack(H, S!, hache, sansDouble, 'melee');
+    const res = rederivePassiveAttack(H, S!, hache, sansDouble, 'melee', { rng: makeRNG(1595) });
     expect(res.critical, 'le Coup Critique seul').toBe(false);
     applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, res);
     expect(etapesDeCritique()).toBe(1);

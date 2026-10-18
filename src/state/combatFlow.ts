@@ -812,7 +812,7 @@ export function resolveAttack(
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
         const rescued = res.attackerRoll > ad.target - (cm?.value ?? 0); // aurait échoué sans le bonus → 0 DR (l.146)
-        const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, ad, withhold);
+        const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, { rng: battleRng() }, ad, withhold);
         stray.ajouts = [tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' })];
         return { res: stray, weapon, victim };
       }
@@ -837,7 +837,7 @@ export function resolveAttack(
     if (inMelee && !res.hit) {
       const ally = strayShotVictim(res, attacker, target, battle, battleRng());
       if (ally) {
-        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail, withhold);
+        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, { rng: battleRng() }, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.strayMelee', { name: ally.label })];
         return { res: stray, weapon, victim: ally };
       }
@@ -886,9 +886,9 @@ export function resolveDualSecond(
   // reçoivent FIGÉE — la 2ᵉ frappe annonce la Difficulté qui a fait sa cible.
   const compo = composeAttack(mods);
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'none' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
-  if (mode === 'none') return resolveMeleePassive(attacker, target, offWeapon, atk, opts?.location, env, undefined, false, compo);
+  if (mode === 'none') return resolveMeleePassive(attacker, target, offWeapon, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo);
   const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -2595,7 +2595,7 @@ function naissanceDuCoupDuMarin(coup: CoupDeTouche, attaquant: Combatant, marin:
   if (coup.mode === 'melee') {
     const { res, weapon } = coup;
     const jet = garanti(res.attackerDetail, attaquant.id, "jet d'attaque du coup qui porte le Critique d'Équipage (MDG 13 l.584)");
-    return { ...qui, mode: 'melee', weapon, res: toucheAuJetPose(attaquant, marin, weapon, jet, res.netSL, !!res.retenu, res.dmgProxy) };
+    return { ...qui, mode: 'melee', weapon, res: toucheAuJetPose(attaquant, marin, weapon, jet, res.netSL, { rng: battleRng() }, !!res.retenu, res.dmgProxy) };
   }
   const { touche } = coup;
   const critLocation = localisationRelanceeDuProjectile(touche, marin);
@@ -3066,7 +3066,7 @@ export function defenseGagneeEnMelee(attacker: Combatant, target: Combatant, wea
 function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup, ajout: string): boolean {
   const arme = q.res.parryWeapon ?? armeDeMainPrincipale(defenseur);
   if (contreSurDefenseGagnee(defenseur, q.res.parryWeapon)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
-  const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL);
+  const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL, { rng: battleRng() });
   const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), ajout] };
   return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === OPS_DIFFEREES;
 }
@@ -3766,6 +3766,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     attackerId: attacker.id, defenderId: target.id, weapon, location: pa.location, atk, def: null, result: null,
     env, withhold: pa.withhold, atkCompo: frozenDifficulty(pa.result!.attackerDetail!),
     ...(dmgProxy ? { dmgProxy } : {}),
+    ...(pa.result!.critLocation ? { critLocation: pa.result!.critLocation } : {}),
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'ranged') {
@@ -4249,15 +4250,14 @@ export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigg
   for (const src of freeAttackSourcesOf(actor)) {
     for (const eff of src.effects) {
       if (eff.trigger !== trigger || !flowHasFreeAttack(eff.flow)) continue;
-      if (defenseEnCours(get())) return true; // fenêtre vivante : la source suivante se déclarera à la fermeture
+      if (defenseEnCours(get())) return true; // #1858
       // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
       // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
       runCombatFlow(
         { mode: 'combat', get, set, target: actor, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
         eff.flow,
       );
-      // Le verdict se lit sur le SLOT : le Flow (nœud `test`/`choice` en amont) ne le remonte pas.
-      if (defenseEnCours(get())) return true;
+      if (defenseEnCours(get())) return true; // #1858
     }
   }
   return false;

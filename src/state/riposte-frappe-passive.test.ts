@@ -17,6 +17,7 @@ import { avanceEtapeCascade, poseSurDeNonTombe } from './cascadeTestKit';
 import { unarmedWeapon } from '../engine/items';
 import { weaponsFromTraits } from '../engine/creatureEquip';
 import { findCritEntrySuffered } from '../engine/critical';
+import { makeRNG } from '../engine/dice';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 60, 'capacite-de-tir': 30, force: 60, endurance: 20, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -84,8 +85,8 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
 
   it('R3 — frappe avec l’arme de PARADE Rapide, jamais `weapons[0]` (LDB 10 l.1037)', () => {
     monte({ pbAttaquant: 30, armes: [HACHE, RAPIERE] });
-    const attendu = resolveMeleePassive(cur('d'), cur('a'), RAPIERE, { roll: 12, target: 60, success: true, sl: 4, isDouble: false }).woundsLost!;
-    const hache = resolveMeleePassive(cur('d'), cur('a'), HACHE, { roll: 12, target: 60, success: true, sl: 4, isDouble: false }).woundsLost!;
+    const attendu = resolveMeleePassive(cur('d'), cur('a'), RAPIERE, { roll: 12, target: 60, success: true, sl: 4, isDouble: false }, { rng: makeRNG(1595) }).woundsLost!;
+    const hache = resolveMeleePassive(cur('d'), cur('a'), HACHE, { roll: 12, target: 60, success: true, sl: 4, isDouble: false }, { rng: makeRNG(1595) }).woundsLost!;
     expect(attendu).not.toBe(hache);
     coup(defenseGagnee(RAPIERE)); draine();
     expect(30 - cur('a').wounds.current).toBe(attendu);
@@ -173,7 +174,7 @@ const esquiveGagnee = (roll = 12, dr = 4): AttackResult => ({
 } as unknown as AttackResult);
 /** Blessures de la frappe de `d` à l'arme `w`, au jet `roll` et au DR `dr`. */
 const blessures = (w: Weapon, dr = 4, roll = 12): number =>
-  resolveMeleePassive(cur('d'), cur('a'), w, { roll, target: 60, success: true, sl: dr, isDouble: false }).woundsLost!;
+  resolveMeleePassive(cur('d'), cur('a'), w, { roll, target: 60, success: true, sl: dr, isDouble: false }, { rng: makeRNG(1595) }).woundsLost!;
 
 describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () => {
   beforeEach(() => { useGame.setState({ battle: null }); });

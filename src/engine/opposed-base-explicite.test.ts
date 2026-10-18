@@ -154,7 +154,7 @@ describe('#1153 L6 — la nue survit au RollBreakdown (fenêtre de défense, Cha
     const D = hero({ skills: SKILLS_DODGE, enc: 14 }); // fondue 25 ≠ nue 45
     const atk = hydrateTR(resolveMelee(A, D, epee, makeRNG(3)).attackerDetail!);
     const def1 = rollMeleeDefender(D, 'esquive', makeRNG(9));
-    const detail = finishMelee(A, D, epee, atk, def1, 'esquive').defenderDetail!;
+    const detail = finishMelee(A, D, epee, atk, def1, 'esquive', { rng: makeRNG(1595) }).defenderDetail!;
     const def2 = hydrateTR(detail); // exactement `FLOWS.defense.bonus.derive`, hors bumpSL
     expect(detail.base, 'le détail AFFICHE toujours la valeur testée').toBe(defenseValue(D, 'esquive'));
     expect(def2.base, 'mais le jet réhydraté reprend la NUE').toBe(def1.base);
