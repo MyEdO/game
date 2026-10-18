@@ -990,11 +990,31 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
   return construireEvaluateur({ lecture, cible, peutLire }, false)
 }
 
+/** Les évaluations d'expression qui ne reçoivent pas le contexte de l'expression : l'expression et l'évaluateur
+ *  (`valeurs`) seulement. Seule source de « l'évaluation lit son contexte » : `valeurs` y aiguille, la clé d'un
+ *  argument (`clesDeLEvaluateur`) n'en porte pas le contexte. */
+const EVALUATIONS_SANS_CONTEXTE = Object.freeze({
+  lie: (e, valeurs) => valeurs(e.de, e.ctx),
+  booleen: (e) => [{ booleen: e.v }],
+  scalaire: (e) => [{ scalaire: e.v }],
+  native: (e) => [{ native: e.nom }],
+  lit: (e) => [{ texte: e.v }],
+  chemin: (e) => [borne(posix.normalize(e.v || '.'))],
+  espace: (e) => [{ espace: e.racine, cheminExterne: e.chemin }],
+  couverture: (e) => [couverture(e.origine, e.raison)],
+  non: (e) => [{ non: e.raison }],
+  transforme: (e) => [{ non: e.raison }],
+})
+
+/** Les clés canoniques de l'évaluateur du régime `ferme` (`clesCanoniques`) : la forme d'un argument porte son contexte
+ *  sauf si son expression a une évaluation sans contexte (`EVALUATIONS_SANS_CONTEXTE`). */
+export const clesDeLEvaluateur = (ferme) => clesCanoniques({ ferme, litSonContexte: (e) => !Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e?.k) })
+
 /** L'évaluateur du régime `ferme` : noyau fermé d'un lot (`evaluerLotDuDepot`), clés structurelles, preuves booléennes
  *  recalculées ; sinon l'évaluateur ouvert (`evaluateurDuDepot`). */
 function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe, stade = () => {} }, ferme) {
   stade('noyau', null)
-  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesCanoniques({ ferme })
+  const { cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments } = clesDeLEvaluateur(ferme)
   /** Les requêtes de chaque évaluation tracée en cours, la plus interne au sommet. */
   const traces = []
   const noter = (requete) => { if (traces.length) traces[traces.length - 1].add(requete) }
@@ -1233,22 +1253,15 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
 
   /** Évalue `e` dans le module `ctx.f`, paramètres de `ctx.env.fn` liés à `ctx.env.args` (null : relais). */
   function valeurs(e, ctx) {
-    switch (e.k) {
-      case 'lie': return valeurs(e.de, e.ctx)
-      case 'booleen': return [{ booleen: e.v }]
-      case 'scalaire': return [{ scalaire: e.v }]
-      case 'native': return [{ native: e.nom }]
+    const k = e.k
+    if (Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, k)) return EVALUATIONS_SANS_CONTEXTE[k](e, valeurs)
+    switch (k) {
       case 'negation': {
         const b = booleenDe(e.de, ctx)
         return b === null ? [{ non: 'booléen indécidable' }] : [{ booleen: !b }]
       }
       case 'garde': return gardePossible(e, ctx) ? valeurs(e.de, ctx) : []
       case 'chaine': return chaineDe(e.de, ctx)
-      case 'lit': return [{ texte: e.v }]
-      case 'chemin': return [borne(posix.normalize(e.v || '.'))]
-      case 'hors': return [{ hors: true }]
-      case 'espace': return [{ espace: e.racine, cheminExterne: e.chemin }]
-      case 'couverture': return [couverture(e.origine, e.raison)]
       case 'temporaire': return valeurs(e.prefixe, ctx).map((v) => {
         if ('espace' in v) return { ...v, cheminExterne: posix.dirname(v.cheminExterne || '.') }
         const prefixe = 'texte' in v ? ancrer(v.texte) : v
@@ -1273,8 +1286,6 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
           return cs.map((c) => 'texte' in c && 'chemin' in ancrer(c.texte) && !/[*?[:]/.test(c.texte) ? { chemin: prefixeDeMotif(c.texte), sous: `image Git : ${image.map((v) => texteDeCle(cleDe(v))).join(',')}` } : couverture(e.origine, `pathspec indéterminé : ${texteDeCle(cleDe(c))}`))
         })
       }
-      case 'non': return [{ non: e.raison }]
-      case 'transforme': return [{ non: e.raison }]
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'projection': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'etale': return valeurs(e.de, ctx)

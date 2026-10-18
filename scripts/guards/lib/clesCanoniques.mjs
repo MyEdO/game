@@ -31,18 +31,15 @@ const MODES = Object.freeze({
   cellules: Object.freeze({ strict: true, cellules: true }),
 })
 
-/** Les expressions dont l'évaluation ne lit rien du contexte de leur forme (`valeurs`, racinesBalayees.mjs). */
-const EXPRESSIONS_SANS_CONTEXTE = new Set(['booleen', 'scalaire', 'native', 'lit', 'chemin', 'hors', 'espace', 'couverture', 'non', 'transforme', 'lie'])
-
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
- * associée après clé et DAG cyclique refusés), toute clé en mode `cellules` ; sinon, `cleCanonique` prend son mode
- * (`MODES`) et les clés des valeurs sont textuelles. Un argument vaut par ses valeurs et sa forme : son expression et ce
- * que son évaluation lit de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments,
- * paramètres), rien pour une expression de `EXPRESSIONS_SANS_CONTEXTE`.
- * @param {{ ferme: boolean }} regime
+ * associée après clé refusée), toute clé en mode `cellules`, sans `cleCanonique` ; sinon,
+ * `cleCanonique` prend son mode (`MODES`) et les clés des valeurs sont textuelles. Un argument vaut par ses valeurs et
+ * sa forme : son expression et, si `litSonContexte(expression)`, son contexte entier (module, preuve booléenne, chaîne
+ * d'environnements : fonction, arguments, paramètres) ; sinon, aucun contexte. Hors domaine JSON : `CLE_DOMAINE_JSON`.
+ * @param {{ ferme: boolean, litSonContexte: (e: unknown) => boolean }} regime
  */
-export function clesCanoniques({ ferme }) {
+export function clesCanoniques({ ferme, litSonContexte }) {
   const referencesPrivees = new WeakMap()
   const objetsCles = new WeakSet()
   const clesDesValeurs = new WeakMap()
@@ -329,7 +326,8 @@ export function clesCanoniques({ ferme }) {
       if (!tokensDe(descriptor, tokens)) {
         stable = false
         tokens = []
-        const projete = JSON.stringify(descriptor)
+        let projete
+        try { projete = JSON.stringify(descriptor) } catch (erreur) { if (!(erreur instanceof TypeError)) throw erreur }
         if (projete === undefined) throw new Error('CLE_DOMAINE_JSON')
         tokensDe(JSON.parse(projete), tokens, true)
       }
@@ -342,12 +340,13 @@ export function clesCanoniques({ ferme }) {
       return descripteurs.get(signature)
     }
     const contexteDe = (ctx) => {
+      const preuveBooleenne = referenceDe(ctx.preuveBooleenne)
       const chaine = []
       for (let env = ctx.env; env; env = env.parent) {
         observer(env)
         chaine.push(tuple('env', env.fn, env.args ? referenceDe(env.args) : null, env.params ? referenceDe(env.params) : null))
       }
-      return interner(tuple('contexte', ctx.f, referenceDe(ctx.preuveBooleenne), tuple(...chaine)))
+      return interner(tuple('contexte', ctx.f, preuveBooleenne, tuple(...chaine)))
     }
     const memo = new WeakMap()
     const references = ferme ? referencesPrivees : memo
@@ -361,7 +360,6 @@ export function clesCanoniques({ ferme }) {
       }
       observer(v)
       if (ferme) objetsCles.add(v)
-      if (ferme && pile.has(v)) throw new Error('DAG_PRIVE_CYCLIQUE')
       if (pile.has(v)) return !strict && formesDesArguments.has(v) ? interner(tuple('coupe', v.map(referenceDe)))
         : interner(tuple('cycle', pile.size - pile.get(v)))
       if (references.has(v)) return references.get(v)
@@ -378,7 +376,7 @@ export function clesCanoniques({ ferme }) {
       pile.set(v, pile.size)
       const forme = formesDesArguments.get(v)
       const descriptor = forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e),
-        EXPRESSIONS_SANS_CONTEXTE.has(forme.e?.k) ? null : contexteDe(forme.ctx))
+        litSonContexte(forme.e) ? contexteDe(forme.ctx) : null)
         : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
       pile.delete(v)
@@ -469,7 +467,6 @@ export function clesCanoniques({ ferme }) {
   const uniques = (vals) => ferme && vals.length < 2 ? [...vals] : [...new Map(vals.map((v) => [cleDe(v), v])).values()]
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
   const cleDesArgs = (args) => args ? cleDesValeurs(({ referenceDe }) => referenceDe(args), args, clesDesArguments) : ''
-  /** Le noyau fermé ne construit que des clés en mode `cellules`. */
-  const cleFermee = (faire, racine, cache) => cleCanonique(faire, racine, cache, 'cellules')
-  return Object.freeze({ cleCanonique: ferme ? cleFermee : cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments })
+  const cles = { cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments }
+  return Object.freeze(ferme ? cles : { ...cles, cleCanonique })
 }
