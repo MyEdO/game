@@ -396,7 +396,7 @@ test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, a
   }
 })
 
-test('capture immédiate : flux relayé et fichier lisible avant la clôture native, verdict cible en queue', { timeout: 15000 }, async () => {
+test('capture immédiate : flux relayé et fichier lisible avant la fin de Vitest, son code en queue', { timeout: 15000 }, async () => {
   const base = fauxDepot("import fs from 'node:fs';process.stdout.write('CAPTURE_AVANT_FIN\\n');const attente=setInterval(()=>{if(fs.existsSync(process.env.FIN_FIXTURE)){clearInterval(attente);process.exit(37)}},10)")
   const liberation = join(base, 'fin-fixture')
   const enfant = spawn(process.execPath, [join(base, 'entree.mjs'), '--coverage'], {

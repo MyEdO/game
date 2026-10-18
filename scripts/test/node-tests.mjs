@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // LANCEUR DES TESTS `node --test` D'UNE GATE (#1759) :
-//   node scripts/test/node-tests.mjs <gate> [drapeaux de `node --test`…] [--reacquerir-memoire]
+//   node scripts/test/node-tests.mjs <gate> [drapeaux de `node --test`…]
 // Les arguments supplémentaires vont à `node --test` AVANT les fichiers (`--test-name-pattern=…`,
 // `--test-concurrency=…`…) : un lanceur qui les avalerait rendrait le filtrage d'un cas impossible.
 //
@@ -13,11 +13,12 @@
 // gates ne doit pas être découvert APRÈS coup, par un vert qui ne prouve rien.
 //
 // Le lancement prend le verrou machine des gestes lourds (`verrouGestesLourds.mjs`, #2603), ou l'emprunte
-// par le jeton de son appelant, puis part sous `lancerNodeMesure` (`memoire.mjs`), supervisé.
+// par le jeton de son appelant, lance `node --test` en enfant direct et le rend à la sortie de l'enfant
+// (#2586 c.6244746949).
 //
 // Les DURÉES par fichier (#2497) : le reporter `dureesNodeTest.mjs` écrit sous `os.tmpdir()`, puis la ligne
 // `[durees] node <gate> {json}` (`ligneDeDurees`) les imprime au journal, lu par `scripts/test/dureesCi.mjs`.
-import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
+import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
@@ -25,8 +26,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { GATES, RACINES, couverture, listerTests, testsDe } from '../gates/testsParGate.mjs'
 import { prendreVerrouAsync } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
-import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { lancerNodeMesure } from './memoire.mjs'
+import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -71,39 +71,39 @@ function dureesDe(sortie) {
 /**
  * Lance `node --test` sur les `tests` de la gate `gate` depuis `racine` (`reportersDuLancement`), sous le verrou
  * `verrou` (par défaut `verrouGestesLourds(racine)`) pris par `prendreVerrouAsync` avec `env` (le jeton d'un
- * appelant s'y emprunte) et `signal` : refusé, il imprime le refus et rend `CODE_DIFFERE`. Pris, `executer` (`lancerNodeMesure`)
- * joue l'enfant supervisé par `superviser`, l'env augmenté du jeton de la prise, sous les `mesures` mémoire
- * (`forcer` les réacquiert). Imprime la ligne des durées (`ligneDeDurees`) si le reporter en a rendu. Le dossier
- * temporaire (sous `temporaire`) et le verrou ne se rendent que sur un arrêt prouvé `mort`. Rend le code de sortie ;
- * un rapport des durées illisible LÈVE (`dureesDe`).
+ * appelant s'y emprunte) et `signal` : refusé, il imprime le refus et rend `CODE_DIFFERE`. Pris, `enfant` (`spawn`)
+ * lance `node --test` en direct, sorties héritées, l'env augmenté du jeton de la prise et `signal` transmis ; un
+ * échec de lancement s'imprime et vaut 1. Imprime la ligne des durées (`ligneDeDurees`) si le reporter en a rendu.
+ * À la fermeture de l'enfant, le dossier temporaire (sous `temporaire`) s'efface et le verrou se rend. Rend le code de
+ * sortie de l'enfant (`codeEnfant`) ; un rapport des durées illisible LÈVE (`dureesDe`).
  * @param {{ gate: string, tests: string[], drapeaux?: string[], racine?: string, temporaire?: string, tty?: boolean,
- *   superviser?: typeof lancerProcessusSupervise, imprimer?: (ligne: string) => void, env?: NodeJS.ProcessEnv,
- *   verrou?: Pick<Parameters<typeof prendreVerrouAsync>[0], 'chemin' | 'libelle' | 'attente' | 'identite'>, signal?: AbortSignal,
- *   mesures?: Parameters<typeof lancerNodeMesure>[0]['mesures'], forcer?: boolean, executer?: typeof lancerNodeMesure }} p
+ *   enfant?: typeof spawn, imprimer?: (ligne: string) => void, env?: NodeJS.ProcessEnv,
+ *   verrou?: Pick<Parameters<typeof prendreVerrouAsync>[0], 'chemin' | 'libelle' | 'attente' | 'identite'>, signal?: AbortSignal }} p
  */
-export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, superviser = lancerProcessusSupervise, imprimer = console.log, env = process.env, verrou, signal, mesures, forcer = false, executer = lancerNodeMesure }) {
+export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, temporaire = tmpdir(), tty = process.stdout.isTTY === true, enfant = spawn, imprimer = console.log, env = process.env, verrou, signal }) {
   const prise = await prendreVerrouAsync({ ...(verrou ?? verrouGestesLourds(racine)), env, signal, cwd: racine, commande: 'node-tests ' + gate })
   if (prise.etat !== 'pris') { imprimer(prise.message); return CODE_DIFFERE }
-  let retraitPermis = true
   const dossier = mkdtempSync(join(temporaire, 'durees-node-'))
   try {
     const sortie = join(dossier, 'durees.json')
-    const resultat = await executer({ racine, fichiers: tests, argv: ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie })],
-      env: { ...env, ...prise.env }, signal, mesures, forcer, superviser, journal: imprimer })
-    retraitPermis = resultat.arret?.etat === 'mort'
+    const code = await new Promise((rendre) => {
+      let echec = false
+      const p = enfant(process.execPath, ['--test', ...drapeaux, ...reportersDuLancement(drapeaux, { tty, sortie }), ...tests],
+        { cwd: racine, stdio: 'inherit', env: { ...env, ...prise.env }, signal })
+      p.on('error', (e) => { echec = true; imprimer(`[node-tests] lancement de node --test impossible : ${e.message}`) })
+      p.on('close', (c, s) => rendre(echec ? 1 : codeEnfant(c, s)))
+    })
     const lu = dureesDe(sortie)
     if (lu?.durees) imprimer(ligneDeDurees(gate, lu.durees, racine))
-    return resultat.code
+    return code
   } finally {
-    if (retraitPermis) {
-      rmSync(dossier, { recursive: true, force: true })
-      prise.liberer()
-    }
+    rmSync(dossier, { recursive: true, force: true })
+    prise.liberer()
   }
 }
 
 /**
- * L'ENTRÉE de la CLI sur `argv` (`<gate> [drapeaux…] [--reacquerir-memoire]`) : usage, couverture des tests de
+ * L'ENTRÉE de la CLI sur `argv` (`<gate> [drapeaux…]`) : usage, couverture des tests de
  * `lister`, puis `lancer` (`lancerGate`). REND le code de sortie : 2 sur un usage, une répartition ou une gate vide
  * fautifs, et sur toute erreur levée, imprimée par `journal` préfixée `[node-tests]`, sa cause comprise (#2586).
  * @param {string[]} argv
@@ -111,8 +111,7 @@ export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, 
  */
 export async function entree(argv, { lancer = lancerGate, lister = () => listerTests(RACINE), journal = console.error } = {}) {
   const gate = argv[0]
-  const forcer = argv.includes('--reacquerir-memoire')
-  const drapeaux = argv.slice(1).filter((a) => a !== '--reacquerir-memoire')
+  const drapeaux = argv.slice(1)
   if (!gate || !GATES.includes(gate)) {
     journal(
       '[tests] usage : node scripts/test/node-tests.mjs <gate> [drapeaux de `node --test`…] — ' +
@@ -137,7 +136,7 @@ export async function entree(argv, { lancer = lancerGate, lister = () => listerT
       journal(`[tests] ${gate} : aucun test sous ses racines (${RACINES[gate].join(', ')}) — table ou arbre à revoir`)
       return 2
     }
-    return await lancer({ gate, tests, drapeaux, forcer })
+    return await lancer({ gate, tests, drapeaux })
   } catch (erreur) {
     const e = /** @type {any} */ (erreur)
     journal(`[node-tests] ${e?.message ?? String(e)}`)

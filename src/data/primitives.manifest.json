@@ -23,7 +23,7 @@
     "label": "lancerProcessusSupervise/superviserProcessus/sortieDeSupervision",
     "fichier": "scripts/guards/lib/superviserProcessus.mjs",
     "concept": "fabrique asynchrone commune de domaine natif : vrai ChildProcess hôte et contrôle séparé, cible authentifiée par instance IPC, requêtes synchrones de vue RSS et attribution sur instances natives tenues, clôture exclusive et certificat zéro natif joints au résultat cible et au close des flux ; projection pure de cible et transaction unique du contrôle des écritures",
-    "perimetre": "spawnBorne, gates, Vitest, familles Node mesurées, hooks et publication ; Windows processusJob.cs/hoteSupervision.ps1, Linux hoteSupervision.py, worker enfantSupervise.mjs ; propriétaire des canaux et fichiers privés v1",
+    "perimetre": "spawnBorne, gates, familles Node mesurées, hooks et publication ; Windows processusJob.cs/hoteSupervision.ps1, Linux hoteSupervision.py, worker enfantSupervise.mjs ; propriétaire des canaux et fichiers privés v1",
     "verrou": "scripts/guards/lib/superviserProcessus.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },
   {
@@ -1987,8 +1987,8 @@
     "label": "profilsDuLancement/collecterMemoire/admettreLancementNode/lancerNodeMesure",
     "fichier": "scripts/test/memoire.mjs",
     "concept": "admission des familles Node et profils résidents par entrée native exclusive ; challenge frais de gate CommonJS bloquée, attribution sur identité native tenue, vue exhaustive dédupliquée, parent explicite et ACK seulement après échantillon complet ; expirations structurées sans publication ni apprentissage sur échec",
-    "perimetre": "node-tests et test:perimetre ; gate builtin-only scripts/test/memoire-precharge.cjs première --require, même collecteur et contrôle natif de lancerProcessusSupervise",
-    "verrou": "memoire.test.mjs, node-tests.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
+    "perimetre": "test:perimetre ; gate builtin-only scripts/test/memoire-precharge.cjs première --require, même collecteur et contrôle natif de lancerProcessusSupervise",
+    "verrou": "memoire.test.mjs, scripts/guards/lib/domaineNatif.test.mjs"
   },
   {
     "id": "controleEcritures",

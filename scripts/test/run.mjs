@@ -19,7 +19,7 @@ import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import {
   argumentsEnfant,
   bilanDiagnostic,
@@ -53,10 +53,9 @@ import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { prendreVerrouAsync, tenantEnUneLigne } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
-import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
-export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, superviser = lancerProcessusSupervise, inventorier = spawnSync } = {}) {
+export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, inventorier = spawnSync } = {}) {
   const RACINE = racine
   const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
   // Outillage LOCAL exigé AVANT tout lancement (#1679 L1c) : sans `node_modules/vitest` dans CET
@@ -141,17 +140,19 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
   // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup
   // (drapeau global à un seul processus, filtre qui ne touche qu'un côté, chemin à métacaractère).
   let partageEffectif = false
-  let clotureConfirmee = true
-  let arretDemande = false
-  const controles = new Set()
-  const arreter = async () => {
-    arretDemande = true
-    const enCours = [...controles]
-    for (const controle of enCours) controle.demanderArret()
-    for (const fin of await Promise.all(enCours.map((controle) => controle.fin)))
-      if (fin.arret.etat !== 'mort') clotureConfirmee = false
+  // Enfants Vitest vivants, chacun avec la promesse de son `close` : l'atelier et le verrou ne se rendent
+  // qu'après le `close` de tous. Un arrêt (signal du lanceur, annulation) est relayé à chacun et interdit
+  // tout lancement ultérieur.
+  const enfants = new Map()
+  let arret = null
+  const arreter = (s) => {
+    arret ??= s
+    for (const p of enfants.keys()) p.kill(s)
   }
-  signal?.addEventListener('abort', arreter, { once: true })
+  const annuler = () => arreter('SIGTERM')
+  signal?.addEventListener('abort', annuler, { once: true })
+  process.on('SIGINT', arreter)
+  process.on('SIGTERM', arreter)
 
   let fdCapture = null
   const ecrireCapture = (texte) => {
@@ -232,34 +233,40 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     })
   }
 
-  /** Lancement à un seul processus Vitest : machine sous le seuil de partage, drapeau global à un
-   *  seul processus, ou filtre qui ne touche qu'un côté. */
-  async function lancerVitest(args, prefixe = '') {
-    let controle
-    try {
-      const lancement = await superviser(process.execPath, args, { cwd: RACINE, env: ENV, stdio: ['inherit', 'pipe', 'pipe'], signal })
-      controle = lancement.controle
-      controles.add(controle)
-      relayer(lancement.hote.stdout, process.stdout, { prefixe })
-      relayer(lancement.hote.stderr, process.stderr, { prefixe, erreur: true })
-      if (arretDemande || signal?.aborted) controle.demanderArret()
-      const fin = await controle.fin
-      if (fin.arret.etat !== 'mort') clotureConfirmee = false
-      else controles.delete(controle)
-      if (fin.resultatCible.error) throw Object.assign(new Error(fin.resultatCible.error.message), { code: fin.resultatCible.error.code })
-      return fin.arret.etat === 'mort' ? codeEnfant(fin.resultatCible.status, fin.resultatCible.signal) : 1
-    } catch (e) {
+  /** Un processus Vitest lancé directement, sorties relayées : rend son code (`codeEnfant`), 1 si le
+   *  lancement échoue ou si un arrêt est déjà demandé. */
+  function lancerVitest(args, prefixe = '') {
+    if (arret || signal?.aborted) return Promise.resolve(1)
+    const echouer = (e) => {
       const ligne = prefixe + '[test] lancement de Vitest impossible : ' + e.message
       process.stderr.write(ligne + '\n'); ecrireCapture(ligne + '\n'); observer(ligne, true)
-      await arreter()
-      return 1
+      arreter('SIGTERM')
     }
+    let p
+    try {
+      p = spawn(process.execPath, args, { cwd: RACINE, env: ENV, stdio: ['inherit', 'pipe', 'pipe'] })
+    } catch (e) {
+      echouer(e)
+      return Promise.resolve(1)
+    }
+    relayer(p.stdout, process.stdout, { prefixe })
+    relayer(p.stderr, process.stderr, { prefixe, erreur: true })
+    let echec = false
+    const fin = new Promise((res) => {
+      p.on('error', (e) => { echec = true; echouer(e) })
+      p.on('close', (code, s) => {
+        enfants.delete(p)
+        res(echec ? 1 : codeEnfant(code, s))
+      })
+    })
+    enfants.set(p, fin)
+    return fin
   }
 
+  /** Lancement à un seul processus Vitest : machine sous le seuil de partage, drapeau global à un
+   *  seul processus, ou filtre qui ne touche qu'un côté. */
   function lancementUnique(args) {
     if (refuserDemande(Math.min(CAPACITE.portes, maxWorkersMono(CPUS)))) return Promise.resolve(2)
-    if (signal?.aborted) return Promise.resolve(1)
-    process.on('SIGINT', arreter); process.on('SIGTERM', arreter)
     return lancerVitest([VITEST, 'run', ...bornesWorkers(args, CPUS, DEMANDE), ...args])
   }
 
@@ -341,14 +348,9 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     const debut = Date.now()
 
     const lancerCote = async (cote) => {
-      if (signal?.aborted) return { cote, code: 1 }
       const config = ecrireConfig(cote, partition[cote].map((f) => posix(path.relative(RACINE, f))))
       return { cote, code: await lancerVitest(argumentsEnfant(VITEST, config, WORKERS[cote], ARGV, DEMANDE), '[' + cote + '] ') }
     }
-
-    const relais = arreter
-    process.on('SIGINT', relais)
-    process.on('SIGTERM', relais)
 
     const resultats = await Promise.all(cotes.map(lancerCote))
     const real = ((Date.now() - debut) / 1000).toFixed(1)
@@ -362,19 +364,14 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
   try {
     code = await principal()
   } finally {
-    await arreter()
-    if (clotureConfirmee) supprimer(ATELIER)
+    arreter('SIGTERM')
+    await Promise.all(enfants.values())
     process.removeListener('SIGINT', arreter)
     process.removeListener('SIGTERM', arreter)
-    signal?.removeEventListener('abort', arreter)
+    signal?.removeEventListener('abort', annuler)
     clearInterval(minuterieMemoire)
-    if (clotureConfirmee) verrou.liberer()
-  }
-  if (!clotureConfirmee) {
-    code = 1
-    const ligne = '[test] ARRET_INDETERMINE : clôture des processus non confirmée\n'
-    process.stderr.write(ligne)
-    ecrireCapture(ligne)
+    supprimer(ATELIER)
+    verrou.liberer()
   }
   echantillonnerMemoire()
   // Le bloc `[diag]` précède le résumé (dont la ligne `capture :` clôt la sortie) et, dans le

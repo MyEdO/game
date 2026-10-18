@@ -10,7 +10,7 @@ const site = (fichier, ligne) => [fichier, ligne].join(':')
 for (const porteur of ['commentaire', 'raison']) test(`suite citée ${porteur} : cible existante verte puis supprimée rouge`, () => {
   const racine = mkdtempSync(join(tmpdir(), 'refs-suite-'))
   try {
-    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
+    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/rules', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
     const cible = 'scripts/test/temoin.test.mjs'
     writeFileSync(join(racine, cible), '')
     writeFileSync(join(racine, 'scripts/porteur.mjs'), porteur === 'commentaire' ? `// ${cible}\n// src/ui/X.test.tsx ; src/x.test.ts ; src/.test.ts\nconst exemple = '// scripts/test/invente.test.mjs'\n` : `const ECRIT_LU = { gate: { raison: '${cible}' } }\nconst fixture = { raison: 'scripts/test/invente.test.mjs' }`)
@@ -28,7 +28,7 @@ for (const porteur of ['commentaire', 'raison']) test(`suite citée ${porteur} :
 test('préfiltre : jetons complets, spans AST et politique de chemins conservés', () => {
   const racine = mkdtempSync(join(tmpdir(), 'refs-prefiltre-'))
   try {
-    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
+    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/rules', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
     const cible = 'scripts/test/temoin.test.mjs'
     const autre = 'src/9_alpha-beta.test.tsx'
     writeFileSync(join(racine, cible), '')
@@ -90,7 +90,7 @@ registerHooks({ load(url, context, nextLoad) {
 test('préfiltre : raisons et identifiant encodés restent jugés par AST', () => {
   const racine = mkdtempSync(join(tmpdir(), 'refs-encodees-'))
   try {
-    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
+    for (const dir of ['src', 'scripts/test', 'scripts/git-hooks', 'scripts/hooks', 'docs', '.claude/rules', '.claude/agents', '.claude/skills', '.codex/agents']) mkdirSync(join(racine, dir), { recursive: true })
     const cible = 'scripts/test/temoin.test.mjs'
     writeFileSync(join(racine, 'scripts/raisons.mjs'), "const ECRIT_LU = { raison: 'scr\\u0069pts/test/temoin.test.mjs' }\n")
     writeFileSync(join(racine, 'scripts/continuation.mjs'), "const ECRIT_LU = { raison: 'scripts\\x2ftest/te\\\nmoin.test.mjs' }\n")

@@ -4,13 +4,12 @@ const { isMainThread } = process.getBuiltinModule('node:worker_threads')
 const dossier = process.env.WFRP_MEMOIRE_DOSSIER
 if (isMainThread && dossier) {
   const { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync } = process.getBuiltinModule('node:fs')
-  const { join } = process.getBuiltinModule('node:path')
   const { randomUUID } = process.getBuiltinModule('node:crypto')
   const generation = process.env.WFRP_MEMOIRE_GENERATION
   const echouer = () => { throw Object.assign(new Error('première mesure mémoire non acquittée'), { code: 'MESURE_MEMOIRE_INCOMPLETE' }) }
   if (!generation) echouer()
   const id = randomUUID()
-  const base = join(dossier, 'emissions', id)
+  const base = dossier + '/emissions/' + id
   const challenges = base + '.challenges'
   mkdirSync(challenges)
   const publier = (fichier, valeur) => {
@@ -30,7 +29,7 @@ if (isMainThread && dossier) {
   while (true) {
     if (Date.now() >= echeance) echouer()
     for (const nom of readdirSync(challenges).filter((n) => n.endsWith('.json'))) {
-      const challenge = lire(join(challenges, nom))
+      const challenge = lire(challenges + '/' + nom)
       if (challenge.version !== 1 || challenge.generation !== generation || challenge.id !== id || typeof challenge.identifiant !== 'string' || !challenge.identifiant || typeof challenge.nonce !== 'string' || !/^[a-f0-9]{64}$/.test(challenge.nonce)) echouer()
       if (nom !== challenge.nonce + '.json') echouer()
       const nonce = challenge.nonce
@@ -40,9 +39,9 @@ if (isMainThread && dossier) {
       }
     }
     let acquittee = false
-    for (const nom of readdirSync(join(dossier, 'acquittements')).filter((n) => n.endsWith('.json'))) {
+    for (const nom of readdirSync(dossier + '/acquittements').filter((n) => n.endsWith('.json'))) {
       if (acquittementsVus.has(nom)) continue
-      const ack = lire(join(dossier, 'acquittements', nom))
+      const ack = lire(dossier + '/acquittements/' + nom)
       if (ack.version !== 1 || ack.generation !== generation || !ack.emissions || typeof ack.emissions !== 'object') echouer()
       if (nonces.has(ack.emissions[id])) acquittee = true
       acquittementsVus.add(nom)

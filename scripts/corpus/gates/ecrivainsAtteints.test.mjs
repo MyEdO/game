@@ -19,14 +19,8 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
-    // +5 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic (`ecritureJsonAtomique.mjs` → `renommageResilient.mjs`) sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER`
-    // ou d'os.tmpdir(), sous la supervision de `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; il
-    // tient le verrou des gestes lourds (`verrou.mjs`) sous le répertoire git COMMUN. L'arbre n'est jamais écrit.
-    'scripts/guards/lib/ecritureJsonAtomique.mjs',
-    'scripts/guards/lib/renommageResilient.mjs',
-    'scripts/guards/lib/superviserProcessus.mjs',
-    'scripts/test/memoire.mjs',
+    // +1 le 2026-10-17 (#2586) : `node-tests.mjs` tient le verrou des gestes lourds (`verrou.mjs`) sous le
+    // répertoire git COMMUN. L'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
   ],
   'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
@@ -311,8 +305,8 @@ const ATTENDU = {
     // +1 le 2026-10-05 (#2328) : le banc de la porte de publication forge ses chantiers fusionnés sous
     // `instanceDeDepot` (os.tmpdir(), `rmSync` en finally) ; l'arbre du dépôt n'est jamais écrit.
     'scripts/guards/lib/livraison.test.mjs',
-    // +2 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir() ; le banc du domaine natif
+    // +2 le 2026-10-17 (#2586) : les bancs qui importent `perimetre.mjs` atteignent `memoire.mjs`, qui pose ses émissions
+    // et son diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir() ; le banc du domaine natif
     // (`domaineNatif.test.mjs`) pose ses fixtures sous os.tmpdir(), `rmSync` en finally. L'arbre n'est jamais écrit.
     'scripts/guards/lib/domaineNatif.test.mjs',
     'scripts/test/memoire.mjs',
@@ -444,9 +438,6 @@ const ATTENDU = {
     // +1 le 2026-10-13 (#2596) : le banc de la sonde pose `<base>.code` et `<base>.log` sous `mkdtempSync` d'os.tmpdir(),
     // `rmSync` en finally ; `sonde.mjs` ne fait que LIRE — l'arbre n'est jamais écrit.
     'scripts/ops/sonde.test.mjs',
-    // +1 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir() ; l'arbre n'est jamais écrit.
-    'scripts/test/memoire.mjs',
   ],
   'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
@@ -515,9 +506,9 @@ const ATTENDU = {
     // +1 (#2603) : le banc du verrou des gestes lourds forge un dépôt JETABLE (`instanceDeDepot`,
     // sous os.tmpdir(), `rmSync` en finally) et y tient le verrou ; l'arbre n'est jamais écrit.
     'scripts/test/verrouGestesLourds.test.mjs',
-    // +5 le 2026-10-17 (#2586) : `node-tests.mjs` et `perimetre.mjs` lancent leurs fichiers par `memoire.mjs`, qui pose
+    // +5 le 2026-10-17 (#2586) : `perimetre.mjs` lance ses fichiers par `memoire.mjs`, qui pose
     // ses émissions et son diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la
-    // supervision de `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()), comme `run.mjs` (Vitest) ; les
+    // supervision de `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; les
     // bancs `memoire.test.mjs` et `mesures.test.mjs` posent leurs dossiers et dépôts sous os.tmpdir(), `rmSync` en
     // finally. L'arbre n'est jamais écrit.
     'scripts/guards/lib/superviserProcessus.mjs',
@@ -585,11 +576,9 @@ const ATTENDU = {
     // +1 le 2026-09-07 (#1709) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     'scripts/guards/lib/depotGabarit.mjs',
-    // +2 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la supervision de
-    // `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
+    // +1 le 2026-10-17 (#2586) : les bancs qui importent `gitPorte.mjs` lancent git sous `superviserProcessus.mjs`
+    // (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/superviserProcessus.mjs',
-    'scripts/test/memoire.mjs',
   ],
   'deps:unused': [],
   'test:recette': ['scripts/guards/lib/protectionWorktree.mjs',
@@ -600,14 +589,8 @@ const ATTENDU = {
     // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
     // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
     'scripts/recette/lib.test.mjs',
-    // +5 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic (`ecritureJsonAtomique.mjs` → `renommageResilient.mjs`) sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER`
-    // ou d'os.tmpdir(), sous la supervision de `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; il
-    // tient le verrou des gestes lourds (`verrou.mjs`) sous le répertoire git COMMUN. L'arbre n'est jamais écrit.
-    'scripts/guards/lib/ecritureJsonAtomique.mjs',
-    'scripts/guards/lib/renommageResilient.mjs',
-    'scripts/guards/lib/superviserProcessus.mjs',
-    'scripts/test/memoire.mjs',
+    // +1 le 2026-10-17 (#2586) : `node-tests.mjs` tient le verrou des gestes lourds (`verrou.mjs`) sous le
+    // répertoire git COMMUN. L'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
   ],
   typecheck: [],
@@ -617,15 +600,10 @@ const ATTENDU = {
     'scripts/guards/lib/purgerPerimes.mjs',
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
-    // +5 le 2026-10-17 (#2586) : `run.mjs` lance Vitest par `superviserProcessus.mjs`, dont le dossier de supervision
-    // naît sous un `mkdtempSync` d'os.tmpdir() et y publie par `ecritureJsonAtomique.mjs` (→ `renommageResilient.mjs`) ;
-    // `superviserProcessus.mjs` importe `controleEcritures.mjs` ; `protectionWorktree.mjs` est acquis par `gitPorte.mjs`,
-    // dont l'unique écrivain `retirerResiduelVide` n'est appelé que depuis `retirerWorktree`. L'arbre n'est jamais écrit.
-    'scripts/guards/lib/controleEcritures.mjs',
-    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    // +1 le 2026-10-17 (#2586) : `protectionWorktree.mjs` est acquis par `gitPorte.mjs` (importé par
+    // `verrouGestesLourds.mjs`), dont l'unique écrivain `retirerResiduelVide` n'est appelé que depuis `retirerWorktree`.
+    // L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
-    'scripts/guards/lib/renommageResilient.mjs',
-    'scripts/guards/lib/superviserProcessus.mjs',
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
   // de CODE par `ecrireOuVerifier`.
@@ -762,11 +740,6 @@ const ATTENDU = {
     // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
-    // +2 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la supervision de
-    // `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
-    'scripts/guards/lib/superviserProcessus.mjs',
-    'scripts/test/memoire.mjs',
   ],
   'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs', ],
   // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
@@ -812,7 +785,7 @@ const ATTENDU = {
     "scripts/test/node-tests.mjs",
     "scripts/test/perimetre.mjs",
     "scripts/test/verrou.mjs",
-    // +2 le 2026-10-17 (#2586) : `node-tests.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
+    // +2 le 2026-10-17 (#2586) : `perimetre.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
     // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la supervision de
     // `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
     "scripts/guards/lib/superviserProcessus.mjs",
