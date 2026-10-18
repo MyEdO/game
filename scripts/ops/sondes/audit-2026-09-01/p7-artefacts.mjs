@@ -1,11 +1,11 @@
-// SONDE (lecture seule) — skill : chemins cités existants/MORTS, portes exécutables citées, part des segments de vécu porteurs d'une clause normative.
+// SONDE (lecture seule) — skill `orchestrer-des-agents` (SKILL.md et annexes) : chemins cités existants/MORTS, portes exécutables citées, part des segments de vécu porteurs d'une clause normative.
 // Usage : node scripts/ops/sondes/audit-2026-09-01/p7-artefacts.mjs
 
 import fs from 'fs';
-import { RACINE } from './_socle.mjs';
+import { RACINE, skillOrchestration } from './_socle.mjs';
 
 const root=RACINE + '/';
-const t=fs.readFileSync(root+'.claude/skills/orchestrer-des-agents/SKILL.md','utf8');
+const t=skillOrchestration();
 const paths=[...new Set([...t.matchAll(/`([a-zA-Z0-9_./-]*(?:src|scripts|\.claude|docs)[a-zA-Z0-9_./-]*)`/g)].map(m=>m[1]))];
 const ok=paths.filter(p=>fs.existsSync(root+p)), ko=paths.filter(p=>!fs.existsSync(root+p));
 console.log('chemins cites',paths.length,'existent',ok.length,'MORTS',ko.length);

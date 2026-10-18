@@ -111,6 +111,15 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
 });
 
+test('une annexe Markdown d’un skill s’adapte comme son SKILL.md, sans frontmatter', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nLire `.claude/skills/demo/annexe.md`.\n')],
+    ['.claude/skills/demo/annexe.md', Buffer.from('# Annexe\n\nLire CLAUDE.md et `.claude/skills/demo/SKILL.md`.\n')],
+  ]));
+  assert.equal(out.get('.agents/skills/demo/annexe.md').toString(),
+    '<!-- GENERATED: agents:sync; source=.claude/skills/demo/annexe.md -->\n# Annexe\n\nLire AGENTS.md et `.agents/skills/demo/SKILL.md`.\n');
+});
+
 test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
   const out = transformSkillTree(new Map([
     ['.claude/skills/mod/.claude-plugin/plugin.json', Buffer.from('{ "name": "mod" }')],

@@ -2,7 +2,7 @@
 // un `model` ne reçoit pas de `model` à l'appel. `Workflow` : tout `agent()` du script porte des options
 // littérales FERMÉES et un `agentType` LITTÉRAL qui nomme un type déclaré sous `.claude/agents/`
 // (`defautsDesSitesDAgent`, couche universelle, scripts/guards/lib/formeDeWorkflow.mjs). Calibrage :
-// `.claude/skills/orchestrer-des-agents/SKILL.md`.
+// `.claude/skills/orchestrer-des-agents/calibrage.md`.
 //
 // Le script jugé, dans cet ordre : `tool_input.script` ; le fichier `tool_input.scriptPath` ;
 // `tool_input.name`, résolu en `<CLAUDE_PROJECT_DIR>/.claude/workflows/<name>.js`. `resumeFromRunId` accompagne
@@ -18,7 +18,7 @@ import { defautsDesSitesDAgent } from '../guards/lib/formeDeWorkflow.mjs'
 import { OUTILS_DE_DELEGATION, fichesDAgent, typesDeclares } from '../guards/lib/typesDAgent.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
-const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options littéral fermé et `agentType: \'<type>\'`, un type de `.claude/agents/` (table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`)'
+const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options littéral fermé et `agentType: \'<type>\'`, un type de `.claude/agents/` (table de `.claude/skills/orchestrer-des-agents/calibrage.md`)'
 
 const refus = (raison) => ({ decision: 'deny', raison: `⛔ Workflow : ${raison} — ${CONSIGNE}.` })
 

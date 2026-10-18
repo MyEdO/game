@@ -9,6 +9,19 @@ description: À utiliser pour écrire/modifier du code (même « petit »), disp
 Moi = décomposer, spécifier, vérifier, intégrer ; seul code de ma main : l'intégration triviale et les
 gates.
 
+## Index
+
+Ce fichier porte le suivi de vague et les étapes 0 à 6 du cycle. Le reste vit en annexes de ce skill : lis
+l'annexe au moment de son déclencheur.
+
+| Déclencheur | Annexe |
+|---|---|
+| Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.claude/skills/orchestrer-des-agents/publication.md` |
+| Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.claude/skills/orchestrer-des-agents/fermeture.md` |
+| Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.claude/skills/orchestrer-des-agents/calibrage.md` |
+| Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, sessions, épique, métriques | `.claude/skills/orchestrer-des-agents/regime-de-vague.md` |
+| Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.claude/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
+
 ## Suivi
 
 - **Le suivi de vague `.git/suivi/<N>.json` est, sur le poste, la SEULE source du plan et du prochain
@@ -113,6 +126,9 @@ sur un grand diff dilue l'attention.
 - **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765).
+- **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
+  fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
+  critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`.claude/skills/orchestrer-des-agents/calibrage.md`).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"`, à défaut committer au retour. **Les recetteurs sont SÉQUENTIELS** : jamais deux en vol (même serveur dev, même
@@ -153,148 +169,4 @@ test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
   en lentilles : charte/primitives, hiérarchie-densité, cohérence inter-écrans, « prototype ou
   produit ? », défauts concrets), lisibilité si du style a bougé. Sur un sous-système, audit adversarial :
   un raccourci qui « borne le reste » est un défaut, pas un choix.
-
-**7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement ; chaque
-tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
-Commits intermédiaires `refs #N`, seul le solde clôt.
-- **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
-  lots dans un worktree. Une sonde non suivie sort de l'arbre avant `ops:publier`.
-- **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
-  seul sur éjection) : index STAGÉ → `git restore --staged` d'abord ; `git fetch`, `git merge --no-commit
-  origin/main`, jamais un rebase (#2178) ; aucune reconstruction des dérivés sous `MERGE_HEAD` ; `git rm`
-  d'une cible pure → `npm run gen` ; gardes du périmètre rejouées sur l'arbre fusionné. Fusion propre ou
-  non substantielle : SANS trailers ; `CLIQUET:` pour le seul apport de la résolution ; 10 lignes ou plus
-  sous `src/` → `JUGE:`/`REFUTATION:` (+ `JUGE-VISION:` si un écran change) au message, ou dans un commit
-  DESCENDANT ou le solde `.claude/soldes/ref-<N>.md` ou `<N>.md` d'un ticket cité qui NOMME son sha
-  (`npm run livraison:plage`).
-- **Jamais une veille, un train ou un outil `scripts/ops/` lancé depuis un worktree où un agent édite cet
-  outil** : il exécute le WIP. Publier avant de dispatcher, ou suivre par `gh pr view` ; un « train mort »
-  se recoupe par le pid réel et `git ls-remote` avant toute relance.
-- **Sur l'arbre partagé, aucun `checkout`/`restore`/`reset`/`stash` n'est sûr**, même sur un généré ou ma
-  propre écriture : un stray se défait en supprimant ou recréant les fichiers puis en rejouant le
-  générateur ; un WIP écrasé se récupère par `git stash apply <sha>`, jamais `pop` ; du travail à porter
-  sur la branche d'une autre session, c'est elle qui le porte, à l'arrêt.
-
-Le verdict d'une suite en fond se LIT puis se DÉCIDE, jamais `tail … && git push`. Une branche
-`chantier/**` se pousse LIBREMENT ; après CHAQUE push, attendre son run EN FOND par `npm run ops:ci --
---attendre` (`Monitor`), `--echecs <run>` pour relire une course, jamais `gh run` ni `sleep` ; un rouge se
-rejoue par `npm run gates -- --gates <noms>`. Un train `--detache` se suit par la commande `veille=`
-qu'il imprime (`Monitor`, ré-armée par `--depuis <dernier #seq>`), jamais par un filtre de son log.
-Migrations : le job `migrations` de `ci.yml` les joue sur la branche, aucun rejeu local. Au retour de
-chaque agent, vérifier qu'il ne laisse aucun processus.
-
-**8. Fermeture.** Toute vague qui ferme des tickets se termine par une **passe de réfutation NON
-demandée** AVANT toute annonce ; l'annonce porte les VERDICTS (TIENT / FRAGILE / RÉFUTÉ), jamais un score.
-Périmètre : fermetures, splits, claims d'agents, écarts non ticketés, ABSTENTIONS (« bloqué » → « prouve
-que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS. Ces règles se DURCISSENT sous pression de temps, elles ne s'y suspendent pas.
-- **Le juge de fermeture est NEUF** : brief = DoD, diff, tests. Le `verdict:` d'un solde est SA sortie.
-  Un DoD ou un solde QUANTIFIÉ (« tout », « jamais », « chaque ») porte l'ÉNUMÉRATION de sa classe :
-  commande et sortie, jamais une liste de mémoire (#1561).
-- **Chaque clôture de phase : juge « ARCHITECTURE À REBOURS »** — partant de zéro, cette couture
-  existerait-elle ?
-- **C'est le TRAVAIL qui se ferme.** Une clause de DoD portée par un ticket ouvert n'est pas soldée
-  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE ») ; l'objectif suivant ne raccourcit jamais le DoD. Hors
-  DoD, plus d'un ticket de reste → le lot GROSSIT ou le ticket RESTE OUVERT ; tout reste naît rattaché à
-  une VAGUE NOMMÉE ; « LIVRÉ » exige des restes soldés ou GELÉS par arbitrage utilisateur daté. Une vague
-  ferme au moins autant qu'elle ouvre.
-- Un ticket que J'ÉCRIS sur un socle porte son `## Invariant` ; une question qu'il pose se confronte
-  D'ABORD aux invariants (tickets-programmes, doctrines) : si une doctrine répond, le ticket ÉNONCE.
-
-## Régime de vague et d'épique
-
-**Un orchestrateur qui a des tickets ne s'arrête pas** (utilisateur, 2026-08-31 : « Un orchestrator
-n'arrete jamais tant qu'il a des tickets a traiter »). Dès que les agents sont rendus : dispatcher le
-prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, charge machine).
-- **Ne remonte à l'utilisateur que** : règles de jeu (cérémonie), goût et forme, budget, `[entériné]`.
-- **Agir par défaut**, hors de cette liste : une question d'ingénierie
-  qu'une bonne pratique tranche se tranche, justifiée au ticket ; une bascule qui touche d'autres
-  sessions, leur ÉCRIRE (`SendMessage`) avant ; un sentier dont ma cible dépend et que personne ne tient
-  est à moi.
-- **Orchestrateur de sessions : j'attribue les tickets et décide du sort des sessions en vol** (finir,
-  arrêter, relancer), sans le demander (utilisateur, 2026-10-08 : « C'est toi l'orchestrator, c'est toi
-  qui décide ») ; je consigne au suivi.
-- **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
-  que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille`.
-  `scripts/ops/session.mjs:19`
-- **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
-  fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
-  critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (Calibrage).
-- **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
-  (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
-- **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out).
-  Après une interruption, reprendre le CHEMIN CRITIQUE ; une trouvaille hors chemin part en ticket sauf
-  si elle rougit la CI ou casse le livrable ; un arrêt se dit avec sa vraie cause, jamais « bloqué par
-  l'utilisateur » sans verbatim.
-- **Défaut dans le périmètre d'un autre chantier** : dédupliquer par symptôme ET remède, lire le ticket
-  propriétaire en entier, y déposer faits mesurés et questions, ne rien committer qui préempte sa réponse
-  (#1739). Un fichier qu'un autre chantier touche s'édite dans mon worktree : la collision se règle à la
-  fusion.
-- **Frictions** : chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
-  versée au sas du suivi (`--friction <texte>`) ; elle n'en sort en ticket (gabarit #101,
-  `domaine:outillage`, sous-issue de #2189, `--verser-friction <n> <ticket>`) que VIVANTE sur
-  `origin/main` (sonde, ou occurrence postérieure au correctif), chiffrée, récurrente ou d'au moins
-  30 min. Même critère pour tout candidat d'audit (mod, garde, outil).
-- **Un lot fait 10-12 tickets d'un MÊME domaine**, les tickets ouverts qui citent un même fichier :
-  `gh api "search/issues?q=repo:MyEdO/game+is:issue+is:open+%22<chemin>%22+in:body&per_page=100"`.
-- **Validation utilisateur = ASYNCHRONE** : le lot en attente de goût se PARQUE (worktree conservé,
-  capture prête, question consignée), la vague CONTINUE ; en ABSENCE, dispatcher ce qui n'appelle aucun
-  goût ; écrans et arbitrages en PRÉSENCE. **Checkpoint avant épuisement de quota** : suivi à jour,
-  tickets commentés.
-- **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, enfants nés à leur
-  vague ; ÉTAT au suivi, STRUCTURE aux sous-issues, aucune checklist au corps. Une vague fait DÉCROÎTRE
-  son compteur. Épique muette 14 jours sans label `gelée` = à SIGNALER.
-- **Métriques** au suivi, à l'ouverture de session et chaque SEMAINE (`npm run ops:stock-issues`) :
-  travail restant, croissance nette (≤ 0), émises sans épique, balance par vague ; fermetures dépilant
-  le stock de plus de 28 jours (≥ 50 %), restes résorbés sous deux semaines (≥ 60 %). Deux semaines
-  sans mesure = anomalie à signaler.
-
-## Répondre à l'utilisateur
-
-- **Toute décision passe par AskUserQuestion** : plusieurs questions par appel, un item par question,
-  jamais en prose de fin de message ni dans une spec. Un arbitrage de règle passe d'abord par
-  `arbitre-raw` (#2601), puis arrive avec verbatim du livre, situation chiffrée de nos données, code
-  (`fichier:ligne`) et ce que l'arbitre a établi ; un bloc manque → pas de question. Une réponse libre
-  est souvent une CONTRE-QUESTION ou une correction : boucle suspendue jusqu'à réponse.
-- **Une option est une AFFIRMATION** : chaque coût et bénéfice se sonde, sonde collée, ou se dit non
-  vérifié ; relire le rapport d'agent plutôt que ma mémoire. Une sortie VIDE avec un compteur non nul
-  est une sonde cassée.
-- **Toute demande de PERMISSION d'outil qui atteint l'utilisateur est un défaut** : nommer son émetteur (hook
-  `scripts/hooks/*`, classificateur du harnais, mon propre enchaînement) et corriger à la racine ; un hook fautif se ticketise avec ses sondes. « Pourquoi
-  X n'est pas fait ? » est l'ordre de faire X : ne soumettre que les RÉSULTATS, jamais le droit de commencer.
-- **Avant de classer un sujet « arbitrage utilisateur », relire l'ATTENDU validé et le RAW** : s'ils
-  répondent, EXÉCUTER. Un « non » vaut au périmètre EXACT refusé.
-- **Une phrase qui constate une ABSENCE** se lit comme un DÉFAUT quand l'élément figure au dessin ou au
-  spécimen. Si les deux lectures mènent à des gestes opposés, redemander en une ligne ; ne jamais défaire
-  du travail livré sur une phrase ambiguë.
-- **Retours en rafale sur un sujet complexe** : accuser réception, laisser atterrir le travail en vol,
-  synthétiser le problème de FOND, proposer UNE direction argumentée, la faire VALIDER, puis exécuter ;
-  sans cette synthèse, ni tout jeter, ni inverser une décision de la veille, ni re-briefer un agent en
-  vol. Retours de playtest : par THÈMES, flux réel cartographié (`fichier:ligne` + réf RAW), cluster
-  corrigé en lot, audit de ce que le joueur n'a pas nommé (information parfaite, télégraphe de la menace,
-  lisibilité positionnelle, économie d'action, cause→effet).
-- **Juger avant d'exposer au goût** : planche, maquette ou capture passe d'abord un juge-vision ou mon
-  jugement écrit défaut par défaut ; les défauts nommés se corrigent et se recapturent ; n'exposer que des
-  candidats défendus (#1343).
-- **Jamais « complet » sur un trou connu** : la limite de couverture s'écrit dans le livrable ET
-  l'annonce ; un « reste » ne se cite que vérifié dans le code et rattaché au travail fait.
-
-## Calibrage
-
-| Étage | Type (`.claude/agents/`) | Modèle | Effort |
-|---|---|---|---|
-| Lecture / comparaison de masse | `lecteur` | sonnet | medium |
-| Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
-| Code sous spec précise | `codeur` | opus | medium |
-| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
-| Rédaction fidèle au Source (fiches, synthèses de règles) | `redacteur` | opus | medium |
-| Question de règle de jeu, avant l'utilisateur | `arbitre-raw` | opus | medium |
-| Art vectoriel sur le rig SVG | `artiste` | opus | medium |
-| Recette navigateur en joueur | `recetteur` | sonnet | medium |
-| Joueur cloisonné de table simulée | `joueur` | sonnet | low |
-| MJ de table simulée | `mj-de-table` | sonnet | medium |
-| Juge de workflow contre le `Source/` (complétude, fidélité, analyse) | `juge-de-source` | opus | high |
-
-Ces types plutôt que `general-purpose` ; **JAMAIS Sonnet en effort haut/xhigh**. La cérémonie suit le
-risque RÉEL, pas le flag ultracode : petite feature testée → 1 codeur + gates ; tâche large ou incertaine
-(audit moteur, migration, extraction massive), donnée, vérification → workflow multi-agents ; reviewer
-adversarial pour les régressions silencieuses et l'art, jamais l'art à l'aveugle.
+- Au retour de chaque agent, vérifier qu'il ne laisse aucun processus.

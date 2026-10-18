@@ -236,9 +236,10 @@ const ATTENDU = {
     // +1 le 2026-10-12 (#2537) : le banc de la garde des types en lecture seule pose ses scripts sous le
     // scratchpad FORGÉ de sa session, sous os.tmpdir() (`rmSync` en finally) ; la garde juge, rien n'est exécuté.
     'scripts/hooks/lecture-seule-guard.test.mjs',
-    // +1 le 2026-10-17 (#2712) : le banc de l'index mémoire des sous-agents pose son dépôt JETABLE sous
-    // os.tmpdir() (`mkdtempSync`, `rmSync` en finally) ; le hook lit l'index, rien n'est écrit dans l'arbre.
-    'scripts/hooks/memoire-sous-agent.test.mjs',
+    // +1 le 2026-10-17 (#2712, #2725) : le banc du contexte des sous-agents pose son dépôt JETABLE sous
+    // os.tmpdir() (`mkdtempSync`, `rmSync` en finally) ; le hook lit l'index et les règles communes, rien
+    // n'est écrit dans l'arbre.
+    'scripts/hooks/contexte-sous-agent.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',

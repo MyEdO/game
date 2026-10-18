@@ -113,14 +113,16 @@ export function transformSkillTree(sourceFiles) {
   for (const [source, bytes] of sourceFiles) {
     if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
-    if (!source.endsWith('/SKILL.md')) {
+    if (!source.endsWith('.md')) {
       outputs.set(destination, Buffer.from(bytes));
       continue;
     }
+    // Une annexe Markdown d'un skill (doc skills, « Add supporting files ») se lit comme son SKILL.md :
+    // même adaptation, sans frontmatter.
     const text = utf8.decode(bytes);
-    const parsed = readFrontmatter(text, source);
-    const frontmatter = normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0];
-    const body = adapt(parsed.body).split('.claude/skills/').join('.agents/skills/');
+    const skill = source.endsWith('/SKILL.md');
+    const frontmatter = skill ? normalizeText(text).match(/^---\n[\s\S]*?\n---\n/)[0] : '';
+    const body = adapt(skill ? readFrontmatter(text, source).body : text).split('.claude/skills/').join('.agents/skills/');
     outputs.set(destination, Buffer.from(`${frontmatter}${GENERATED_PREFIX}${source} -->\n${body}`));
   }
   return outputs;
@@ -249,7 +251,7 @@ export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
-  { phase: 'SubagentStart', script: 'memoire-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Mémoire du dépôt au sous-agent (conteneur distant)' },
+  { phase: 'SubagentStart', script: 'contexte-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Règles communes et mémoire du dépôt au sous-agent' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
   { phase: 'SessionStart', script: 'regles-projection-oubli.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Oubli des règles projetées à la compaction' },
 ];

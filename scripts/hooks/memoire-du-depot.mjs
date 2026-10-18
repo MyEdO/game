@@ -1,6 +1,6 @@
 // La MÉMOIRE committée du dépôt (`.claude/memory/`), que seule une session LOCALE charge (doc memory :
 // « Auto memory is machine-local ») : en conteneur distant, les hooks la portent au contexte de la
-// session (`bootstrap-conteneur.mjs`) et des sous-agents qui peuvent la lire (`memoire-sous-agent.mjs`), #2710.
+// session (`bootstrap-conteneur.mjs`) et des sous-agents qui peuvent la lire (`contexte-sous-agent.mjs`), #2710.
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
