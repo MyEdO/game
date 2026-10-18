@@ -326,7 +326,7 @@ L'immunité est conditionnelle : elle ne s'applique que si la créature a **plus
 **Sources RAW** : `LDB 85 l.51` — condition d'immunité
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.23, l.51) → `TraitDef`, `a-distance`, `arme`, `weaponGroup`, `actionPrise`, `a-sang-froid`, `affame`, `amphibie`, `caudale`, `weaponFromTrait`, +42 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/creatureEquip.ts`, `src/engine/psychology.ts`, +12 fichiers
+- `LDB 85` (l.23, l.51) → `TraitDef`, `a-distance`, `arme`, `weaponGroup`, `actionPrise`, `a-sang-froid`, `affame`, `amphibie`, `caudale`, `weaponFromTrait`, +43 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/creatureEquip.ts`, `src/engine/psychology.ts`, +12 fichiers
 
 ---
 
@@ -511,7 +511,7 @@ Confère la capacité d'entrer en Frénésie (idem trait de créature Frénésie
 **Sources RAW** : `LDB 10 l.506`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.255, l.398, l.506) → `deplierAjouts`, `distraire-roll`, `distraire`, `TriggeredEffect`, `combattant-en-espace-clos`, `concocter`, `contorsionniste`, `controle-de-la-frenesie`, `cooperatif`, `costaud`, +41 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/flowCore.ts`, +2 fichiers
+- `LDB 10` (l.255, l.398, l.506) → `deplierAjouts`, `distraire-roll`, `distraire`, `TriggeredEffect`, `combattant-en-espace-clos`, `concocter`, `contorsionniste`, `controle-de-la-frenesie`, `cooperatif`, `armeDeMainPrincipale`, +42 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/combat.ts`, +3 fichiers
 
 ---
 
@@ -580,7 +580,7 @@ Cette immunité ne supprime pas les afflictions déjà actives de façon permane
 
 **Voir aussi** : `destin.md` (Détermination)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.59) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `BattementModal`, +92 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
+- `LDB 17` (l.59) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `BattementModal`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
 
 ---
 
@@ -617,8 +617,8 @@ Cette immunité ne supprime pas les afflictions déjà actives de façon permane
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 10` (l.1051) → `fearImmuneVs`, `fearSourceFor`, `CombatFeature`, `resolvePsychAI`, `sansPeurVs`, `resolvePeurTest`, `resolveTerreurTest`, `CascadeStepMeta`, `robuste`, `sans-peur`, +8 — `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/psychology.ts`, `src/state/combat/turnHooks.ts`, `src/state/combatFlow.ts`, +1 fichiers
-- `LDB 17` (l.59) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `BattementModal`, +92 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
-- `LDB 21` (l.5-95) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `encounterPsych`, `REPORT_DE_COMBATTANT`, `nightmare`, `PsychAffliction`, `combat-psych`, `opRow`, +82 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +35 fichiers
+- `LDB 17` (l.59) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `BattementModal`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
+- `LDB 21` (l.5-95) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `encounterPsych`, `REPORT_DE_COMBATTANT`, `nightmare`, `PsychAffliction`, `combat-psych`, `fearSourceFor`, +82 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +35 fichiers
 - `LDB 85` (l.178-179, l.382-383) → `TraitDef`, `morsure`, `doc`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `attaqueDEcart`, `Formula`, `attaquesNaturelles`, `spawnMutations`, +93 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/traits.json`, +22 fichiers
 
 ---

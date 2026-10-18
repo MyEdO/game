@@ -150,7 +150,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 > **Verbatim** (l.20) : « Une fois qu'un Sort a été mémorisé, un lanceur de Sorts le connaît de façon permanente, sauf circonstances particulières. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.16-20) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +56 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, +8 fichiers
+- `LDB 46` (l.16-20) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +59 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, +9 fichiers
 
 ---
 
@@ -169,7 +169,7 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 > **Verbatim** (l.24) : « Pour lancer un Sort, effectuez un Test de Langue (Magick). Sur un succès, comparez votre DR au Niveau d'Incantation (NI) du Sort (indiqué dans sa description). Si votre DR est égal ou supérieur au NI du Sort, il est lancé comme dans la description du Sort. Sur un échec, la tentative échoue et rien ne se produit. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +61 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, +10 fichiers
+- `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +64 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, +11 fichiers
 - `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `TEST_PROLONGATION`, `Condition`, `langue-prehensile`, `doc`, `mutationsAtSpawn`, +28 — `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +10 fichiers
 
 ---
@@ -196,7 +196,11 @@ Un **Critique** au Test d'incantation (double réussi, `LDB 46 l.28` renvoie à 
 > **Verbatim** (`VDM 02 l.52`) : « Le Personnage doit effectuer un lancer sur le Tableau des Incantations Imparfaites Mineures (voir **WFJDR**, page 234) à moins qu'il ne dispose du Talent *Diction instinctive*. Un Personnage qui obtient une Incantation Critique peut également choisir l'un des trois effets supplémentaires suivants : »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.27-32) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, `mineure-secousse-spirituelle`, +60 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/critical.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +9 fichiers
+- `LDB 18` (l.7-25, l.53) → `criticals-ldb-tete`, `CritEntry`, `followsCharacterRules`, `isHealable`, `blessure-spectaculaire`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `coup-a-l-il`, `estDebout`, +101 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +29 fichiers
+- `LDB 40` (l.13) → `isPrayerFamily`, `poolDeNonCumul`, `castInfoIsPrayer`, `castInfo`, `effectGlobalTestLines`, `castTestDRMods`, `ActiveEffect`, `PassiveKind`, `createCombatSlice` — `src/engine/characteristics.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/conditions.ts`, `src/engine/magic.ts`, `src/engine/ops.ts`, `src/engine/types.ts`, +1 fichiers
+- `LDB 46` (l.24, l.26-32, l.101) → `miscast-mineure`, `mineure-signe-de-sorciere`, `followsCharacterRules`, `mineure-lait-caille`, `overcastAxes`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `REPORT_DE_COMBATTANT`, `mineure-cerumen`, `combat-spell-plus`, +86 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, +20 fichiers
+- `VDM 2` (l.52, l.54) → `CritChoice`, `applyFullPower`, `castAfterCrit`, `isDispellableCast` — `src/engine/magic.ts`, `src/state/combatFlow.ts`
+- dette : #1035
 
 ---
 
@@ -289,7 +293,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 | 96–00 | Chaos en cascade | Effectuer un nouveau lancer sur le Tableau des Incantations Imparfaites **Majeures**. |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.34-55) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +62 — `src/data/index.ts`, `src/data/miscast.json`, `src/engine/critical.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, `src/engine/types.ts`, +5 fichiers
+- `LDB 46` (l.34-55) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +65 — `src/data/index.ts`, `src/data/miscast.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +6 fichiers
 
 ---
 
@@ -409,7 +413,7 @@ Porter les couleurs appropriées au Vent manipulé aide à l'attirer. C'est pour
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.150-152) → `DispelModal`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `HoverTargeting`, `FocusInterruptHook`, `dispel-roll`, `jetSurfaced`, `armourCastDRPenalty`, `RollRowProps`, `focalisation-etendue`, +54 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +21 fichiers
-- `VDM 2` (l.5, l.169) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `magic-vdm-incantation`, `ItemInstance`, `malepierreDR`, `malepierreCharge`, `malepierreReserveOf`, +5 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
+- `VDM 2` (l.5, l.169) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `magic-vdm-incantation`, `malepierreDR`, `malepierreCharge`, `ItemInstance`, `malepierreReserveOf`, +5 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
 
 ---
 
@@ -504,8 +508,12 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 > **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `FLOWS`, `previewDefense`, `passiveOutcome`, `rangedDefenseModes`, `GameState`, +4 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
-- `LDB 46` (l.99-101) → `followsCharacterRules`, `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, +17 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +10 fichiers
+- `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `RegimeDePorteur`, `FLOWS`, `previewDefense`, `passiveOutcome`, `rangedDefenseModes`, +8 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, +5 fichiers
+- `LDB 46` (l.30, l.99-101) → `miscast-mineure`, `mineure-signe-de-sorciere`, `followsCharacterRules`, `mineure-lait-caille`, `overcastAxes`, `mineure-mildiou`, `REPORT_DE_COMBATTANT`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, +87 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, +19 fichiers
+- `LDB 47` (l.410) → `scenario`, `domeWardTraits`, `seuilsDeSauvegarde`, `HitModifierCtx`, `DECLARATIONS_D_OPS`, `SourceDeSauvegarde`, `formatWardSave`, `hitModifiers`, `lireEnSeuil`, `AttackResult`, +15 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/combat.ts`, `src/engine/ops.ts`, `src/engine/traits/dispatch.ts`, `src/engine/types.ts`, +6 fichiers
+- `LDB 63` (l.13, l.30, l.32, l.78) → `repairCostBrass`, `doc`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `DecisionDeCritique`, +49 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +10 fichiers
+- `EDO 11` (l.196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
+- sans code : `ADE II 4` (l.349)
 
 ---
 
@@ -604,7 +612,7 @@ Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Pe
 > « Les Sorts infligeant des Dégâts ignorent les PA des armures en métal, et se dirigent vers toutes les autres cibles dans les 2 mètres, à l'exception de ceux possédant le Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre Bonus de Force Mentale, traités comme un Projectile magique. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.105) → `maitre-de-la-bete`, `peau-de-chasseur`, `serres-d-ambre`, `vol-du-destin`, `arc-de-t-essla`, `bouclier-ceruleen` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
+- `LDB 48` (l.104-106) → `maitre-de-la-bete`, `peau-de-chasseur`, `serres-d-ambre`, `vol-du-destin`, `arc-de-t-essla`, `bouclier-ceruleen` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
 
 ---
 
@@ -644,7 +652,8 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 - **Lecture du silence, décision d'orchestrateur révisable, non entérinée** (#1595 c.6232294713, 2026-10-17) : Déviation d'une Blessure critique de sort du Métal à un emplacement protégé par une armure métallique. Le bonus se fige à la frappe (« si votre Sort frappe un Bras protégé par 2 PA d'une armure métallique, il inflige +2 Dégâts supplémentaires et ignore les PA » — `LDB 48 l.399`), la Blessure Critique étant « issue d'une attaque » (`LDB 63 l.30`) : la Déviation n'ôte aucune Blessure, Blessure supplémentaire 0. Le texte ne dit pas si ce bonus se relit quand « vos PA sont à présent réduits de 1 Point » (`LDB 63 l.32`). Déviabilité même du cas : [§ Projectiles Magiques](#projectiles-magiques).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.398) → `gainCorruption`, `isProfane`, `GameOp`, `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, +3 — `src/data/spells.json`, `src/engine/corruption.ts`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, `src/state/corruptionFlow.ts`
+- `LDB 48` (l.399) → `gainCorruption`, `isProfane`, `GameOp`, `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, +3 — `src/data/spells.json`, `src/engine/corruption.ts`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, `src/state/corruptionFlow.ts`
+- `LDB 63` (l.30, l.32) → `repairCostBrass`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `DecisionDeCritique`, `ActiveEffect`, +38 — `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, +7 fichiers
 
 ---
 
@@ -672,7 +681,9 @@ Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par s
 > « L'armure magique protège également des attaques qui ignorent les protections des armures non magiques. » — `ADE II 04 l.349`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.582-585) → `castContextMods`, `caresse-de-laniph`, `dernieres-paroles`, `la-faux-de-shyish`, `le-voile-violet-de-shyish`, `mort-rapide`, `sanctifier`, `vol-de-vie`, `vortex-d-ames`, `destrier-d-ombre`, +7 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
+- `LDB 48` (l.584-588) → `castContextMods`, `caresse-de-laniph`, `dernieres-paroles`, `la-faux-de-shyish`, `le-voile-violet-de-shyish`, `mort-rapide`, `sanctifier`, `vol-de-vie`, `vortex-d-ames`, `destrier-d-ombre`, +7 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
+- `VDM 8` (l.243) → `ailes-grises`, `bosquet-d-ombre`, `charme-changeant`, `chut`, `corne-d-andar` — `src/data/spells.json`
+- sans code : `ADE II 4` (l.349)
 
 ---
 
@@ -755,7 +766,7 @@ La **malepierre** est un éclat de magie pure dans le plan matériel — manifes
 - `LDB 19` (l.40, l.51-53) → `CorruptionModal`, `combat-end-corruption`, `EXPOSURE_LADDER`, `testDeCorruption`, `sombre-pacte`, `physique`, `exposureLevelSchema`, `corruption-mineure`, `corruption-moderee`, `corruption-majeure`, +18 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +10 fichiers
 - `LDB 44` (l.113-119) → `doc` — `src/data/schemas/defs/trappings.ts`
 - `LDB 46` (l.164-173) → `DispelModal`, `windsModFromRoll`, `FocusModal`, `force-des-vents`, `rollWindsOfMagic`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `doc`, `windsMagicModOf`, `HoverTargeting`, +70 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +32 fichiers
-- `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `ItemInstance`, `malepierreDR`, `malepierreCharge`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
+- `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `malepierreDR`, `malepierreCharge`, `ItemInstance`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
 - dette : #884
 
 ---
