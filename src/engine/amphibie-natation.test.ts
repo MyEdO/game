@@ -4,7 +4,7 @@ import type { Combatant } from './types';
 
 /**
  * Amphibie (LDB 85 l.21, VERBATIM du desc) : « Elle peut ajouter son bonus d'Agilité au DR de tous les Tests
- * de Natation… ». Exprimé en donnée : passive `skillDRBonus{ skill:'natation', bonus:{ bonusOf:'Ag' } }` —
+ * de Natation… ». Exprimé en donnée : passive `skillDRBonus{ skill:'natation', bonus:{ bonusOf:'agilite' } }` —
  * lu par `skillDRBonus(c, skill)` que la couche de Test générique applique (rollFlows). Par-créature (BAg).
  */
 const mk = (traits: { id: string }[], ag: number): Combatant => ({

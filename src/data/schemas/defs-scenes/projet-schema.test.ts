@@ -317,7 +317,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     const narratif = {
       affaires: [],
       indices: [],
-      presetsPnj: [{ id: 'le-borgne', profil: { char: { CC: 40 }, traits: [] } }],
+      presetsPnj: [{ id: 'le-borgne', profil: { char: { 'capacite-de-combat': 40 }, traits: [] } }],
       objets: [],
       documents: [],
       etats: [],
@@ -410,7 +410,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
       const entites = (scenes[0].entities as Record<string, unknown>[]);
       scenes[0] = { ...scenes[0], entities: [{ ...entites[0], presetId }, ...entites.slice(1)] };
       const narratif = d.narratif as { presetsPnj: unknown[] };
-      if (declare) narratif.presetsPnj = [...narratif.presetsPnj, { id: presetId, profil: { char: { CC: 40 }, traits: [] } }];
+      if (declare) narratif.presetsPnj = [...narratif.presetsPnj, { id: presetId, profil: { char: { 'capacite-de-combat': 40 }, traits: [] } }];
       return { ...d, scenes };
     };
     expect(ok(avecPreset('preset-temoin', true)), 'preset DÉCLARÉ refusé').toBe(true);

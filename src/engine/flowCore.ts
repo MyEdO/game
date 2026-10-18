@@ -93,7 +93,7 @@ export type ActorRef = 'target' | 'caster';
 export type ActorField = 'woundsCurrent' | 'woundsMax' | 'size' | 'advantage';
 /** Référence à UNE Caractéristique EFFECTIVE d'un acteur (`bonus:true` → son Bonus). Toutes les
  *  Caractéristiques sont exposées (pas de champ ad hoc) — lues par les seuils relatifs, ex. Voie d'eau
- *  « coule à Endurance » ⇔ `{who:'target', char:'E'}` (MDG 13). */
+ *  « coule à Endurance » ⇔ `{who:'target', char:'endurance'}` (MDG 13). */
 export type CharRef = { who: ActorRef; char: CharKey; bonus?: boolean };
 /** SUJET d'une comparaison `compare` : `who` (cible/lanceur) × (une donnée fixe, la valeur/stacks d'un
  *  État nommé, ou une Caractéristique — 0 si absent → « la cible a l'État X » ⇔ `{who:'target', condition:X} >= 1`). */
@@ -159,7 +159,7 @@ export type Condition =
    *  CONSTANTE ou le champ d'un AUTRE acteur (« cible plus petite que l'attaquant » ⇔
    *  `{who:'target',field:'size'} '<' {who:'caster',field:'size'}`). Régénération « PB > 0 » ⇔
    *  `{who:'target',field:'woundsCurrent'} >= 1`. Acteur absent → false. `factor` met à l'échelle la valeur
-   *  référencée (« la MOITIÉ de l'Endurance » ⇔ `{who:'target',char:'E',factor:0.5}`, Voie d'eau). */
+   *  référencée (« la MOITIÉ de l'Endurance » ⇔ `{who:'target',char:'endurance',factor:0.5}`, Voie d'eau). */
   | { kind: 'compare'; subject: CompareSubject; op: CompareOp; value: number | (CompareSubject & { factor?: number }) }
   /** Seuil de MARGE / DR du contexte (`ctx.sl`) : vrai si `sl ≥ atLeast`. Permet d'authorer les issues
    *  échelonnées d'une manœuvre (Regard pétrifiant : « si la marge atteint 6 DR → Pétrifié », LDB 85

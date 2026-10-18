@@ -569,6 +569,17 @@ export const charKeySchema = z.enum([
  */
 export const charStatKeySchema = enumNomme({ ...CHAR_LABELS, M: 'Mouvement', B: 'Blessures' });
 
+/**
+ * Un PROFIL chiffré (`CustomStatblock.char`, `Creature.char`) : clés FERMÉES sur `charStatKeySchema`,
+ * chacune facultative. Écrit en objet à champs optionnels, jamais en `z.record` : `z.record(z.enum, …)`
+ * est EXHAUSTIF en zod 4 (il exigerait les 12 clés), et `z.record(z.string(), …)` accepterait toute clé.
+ */
+export function profilChiffreSchema<V extends z.ZodType>(valeur: V) {
+  return nommerChamps(z.strictObject(
+    tableTotale(charStatKeySchema.options, () => valeur.optional()),
+  ), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) })));
+}
+
 /** `SizeCategory` (`src/engine/size.ts:14`) — CANON de la Taille (LDB 85), porte UNIQUE des defs qui
  *  nomment une catégorie (`trappings.sizeFor`, `CustomStatblock.size`). */
 export const sizeCategorySchema = enumNomme({

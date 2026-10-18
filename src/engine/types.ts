@@ -911,7 +911,7 @@ export interface ActiveEffect {
    *  d'Endurance et de FM, −10 Ag/I/Int », LDB 71 l.33) : le mod ne s'applique qu'aux Tests de cette
    *  carac, lu par `testValue` (engine/skills) ; EXCLU des `testMod` GLOBAUX (`effectGlobalTestMod`). */
   testModChar?: CharKey;
-  /** RESTREINT un `testModChar:'CC'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
+  /** RESTREINT un `testModChar:'capacite-de-combat'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
    *  Épaule luxée « Tests effectués avec ce bras », LDB 18/AA) : lu par `combatValue`/`defenseValue`
    *  (parade), jamais l'autre main. Absent = les deux mains (comportement historique). */
   testModHand?: 'main' | 'off';

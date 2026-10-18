@@ -8,7 +8,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, difficultySchema, enumNomme, formulaSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { conditionSchema, gameOpSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -129,7 +129,7 @@ const doc = document(
     contexts: z.array(activityContextSchema),
     // ── TestSpec (src/engine/skills.ts) ──
     skills: z.array(voieDeCompetenceSchema).optional(),
-    char: z.string().optional(),
+    char: charKeySchema.optional(),
     difficulty: difficultySchema.optional(),
     combined: z.boolean().optional(),
     // ── ActivityDef propre ──

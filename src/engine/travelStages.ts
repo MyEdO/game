@@ -244,7 +244,7 @@ export function weatherLightningNervous(w: Weather): boolean {
 
 /** Une caractéristique est-elle « physique » au sens EDOC 8 l.82 (liste MAISON éditable) ? */
 export function isPhysicalTestChar(char: CharKey): boolean {
-  return (weatherPhysicalTestChars as string[]).includes(char);
+  return weatherPhysicalTestChars.includes(char);
 }
 /** Méthode d'Approvisionnement (LDB 09 l.565-572, option « Trouver de la nourriture et des herbes »). */
 export type ForageMethod = 'recherche' | 'chasse' | 'piegeage';

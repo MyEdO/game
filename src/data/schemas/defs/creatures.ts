@@ -7,7 +7,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema } from '../grammaire/valeurs';
+import { availabilitySchema, charKeySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
 import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
 
@@ -23,7 +23,7 @@ const optionalWildcardSchema = nommerChamps(z.strictObject({
   label: z.string(),
 }), { note: { label: "note" }, label: { label: "libellé" } });
 const swapGrantSchema = z.union([
-  nommerChamps(z.strictObject({ char: z.string(), value: nommerNoeud(z.number(), { nom: 'valeur' }) }), { char: { label: "caractéristiques" }, value: { label: "valeur" } }),
+  nommerChamps(z.strictObject({ char: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }), { char: { label: "caractéristiques" }, value: { label: "valeur" } }),
   refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
 ]);
 const optionalSwapSchema = nommerChamps(z.strictObject({
@@ -65,7 +65,7 @@ const champs = {
      *  le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun Groupe. */
     grantGroups: z.array(z.string()).optional(),
     /** src/data/index.ts */
-    char: z.record(z.string(), z.union([z.number(), z.null()])),
+    char: profilChiffreSchema(z.number().nullable()),
     traits: z.array(traitInstanceSchema),
     optionals: z.array(optionalEntrySchema),
     skills: z.array(competenceChiffreeAEmplacementSchema),
