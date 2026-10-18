@@ -90,7 +90,7 @@ describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`
 
   it('règle ON + Calme Accessible (+20) ÉCHOUE → Trauma posé sur le héros visé', () => {
     setRule('psych-acquisition-optional', true);
-    const h = hero({ id: 'h1', characteristics: { ...CHARS, FM: 10 } as never }); // Calme +20 → cible 30
+    const h = hero({ id: 'h1', characteristics: { ...CHARS, 'force-mentale': 10 } }); // Calme +20 → cible 30
     useGame.setState({ party: [h] });
     seedBattleRng(1); // 1ᵉʳ jet > 30 → Calme échoue
     applyEffects(useGame.getState, useGame.setState, [{ type: 'ambitionLost', heroId: 'h1' }]);

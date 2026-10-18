@@ -1,15 +1,39 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
 import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, resolve, win32 } from 'node:path'
-import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure, classerFiliation, argumentsProcessus } from './processusWorktrees.mjs'
+import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure, classerFiliation, argumentsProcessus, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
 import { citerArgv } from './lancerDetache.mjs'
 import { litteralJs } from './litteralJs.mjs'
 
 const DRIVE = 'C' + ':'
+
+test('#2795 le backend atteste les échecs de lecture, jamais les snapshots ni une identité modifiée', () => {
+  const natif = 'proprietaire illisible : Exception Owner : Paramètre incorrect'
+  const instable = 'identite illisible : identite modifiee pendant inspection'
+  const p = { pid: 704, cwd: null, commande: 'node', creation: 'a', erreurs: [natif, instable, 'collecteur absent'] }
+  assert.equal(porteeProcessus({ processus: [p] }).processus[0].erreursLecture, undefined)
+  const original = childProcess.execFileSync
+  const system = process.env.SystemRoot
+  try {
+    process.env.SystemRoot = system ?? DRIVE + '/Windows'
+    childProcess.execFileSync = () => JSON.stringify({ processus: [p] })
+    syncBuiltinESMExports()
+    const vu = mesurerProcessusWorktrees({ platform: 'win32' }).processus[0]
+    assert.deepEqual(vu.erreursLecture, [natif])
+    assert.deepEqual(vu.erreurs, [...p.erreurs, 'cwd illisible'])
+  } finally {
+    childProcess.execFileSync = original
+    syncBuiltinESMExports()
+    if (system === undefined) delete process.env.SystemRoot
+    else process.env.SystemRoot = system
+  }
+})
 
 test('arguments processus Windows : CRT, apostrophe littérale, chaînes vides et aller-retour du canon citerArgv', () => {
   const valeurs = ['', DRIVE + "\\l'apostrophe\\test avec espace.mjs", 'a"b', 'fin\\', '\\\\"', 'onglet\tinterne', "l'apostrophe", 'a\\ b']
@@ -29,7 +53,7 @@ test('arguments processus Windows : CRT, apostrophe littérale, chaînes vides e
 })
 
 test('projection mémoire : topologie RSS globale, métadonnées ciblées dans la même vue', () => {
-  const vue = mesurerProcessusWorktrees({ memoireSeulement: true, pidsAInspecter: [process.pid, process.pid], timeout: 2000 })
+  const vue = mesurerProcessusWorktrees({ memoireSeulement: true, pidsAInspecter: [process.pid, process.pid], timeout: DELAI_MESURE_PROCESSUS_MS })
   assert.equal(vue.indeterminee, undefined)
   const courant = vue.processus.find((p) => p.pid === process.pid)
   assert.equal(courant.ppid, process.ppid)
@@ -46,6 +70,7 @@ test('projection mémoire : topologie RSS globale, métadonnées ciblées dans l
 
 test('#2626 : le mode identités garde PID, parent et création sans lire cwd ni commande', () => {
   const complet = mesurerProcessusWorktrees({ pids: [process.pid] }).processus[0]
+  assert.equal(resolve(complet.image), resolve(process.execPath))
   const leger = mesurerProcessusWorktrees({ pids: [process.pid], identites: true }).processus[0]
   assert.equal(leger.pid, process.pid)
   assert.equal(leger.ppid, process.ppid)

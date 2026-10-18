@@ -216,6 +216,17 @@ export const ECRIT_LU = {
       'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
       'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
   },
+  'comptes:plage': {
+    ecrit: [],
+    lit: ['src/', 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+    raison: RETRAIT_WORKTREE_FERME +
+      'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/` et `Source/` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      'et pose chacune sous un `mkdtempSync` d’os.tmpdir(), effacé en finally, deux fois : avec une COPIE de `scripts/`, `package.json` ' +
+      'et `tsconfig.json` de l’arbre (le détecteur de la tête), puis avec ceux du commit de base lus par git (`detecteurDuCommit`), `node_modules` lié (`lierDependances`) et les cibles de code produites ' +
+      'DANS l’image (`genererCodeSansCertifier`, cwd = l’image) ; chaque image se mesure dans un processus tsx fils ; ' +
+      'aucune écriture dans l’arbre',
+  },
   'test:corpus': {
     ecrit: [],
     lit: LIT_DES_AUDITS,
@@ -228,12 +239,15 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
+      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; le contrôle du protocole génère ses schémas sous un mkdtempSync de os.tmpdir(), retiré en finally ; ' +
+      'session-version.mjs et son banc vérifient version et registre sans écriture fs ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
+      'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +

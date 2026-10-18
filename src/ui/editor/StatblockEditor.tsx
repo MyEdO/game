@@ -14,7 +14,7 @@ import { charAbr, creatures, findCreatureById, skillRefLabel, tailleDuProfil, ta
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';
 import { bonus } from '../../engine/characteristics';
 import { SpellsField } from './OptionalTraitsPicker';
-import { TraitListField } from '../compendium/StructFields';
+import { TraitListField } from './codex/StructFields';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { parseSkillRef, parseTalentRef } from './refFormatLivre';

@@ -184,21 +184,21 @@ describe('Duel judiciaire — premier sang mesuré sur le coup FINALISÉ (#471 d
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it('coup base 2 Blessures + Critique qui en ajoute 2 (table LDB 18) = 4 > seuil 3 → premier sang déclenché', () => {
+  it('coup relancé au Bras gauche (1 Blessure) + Coupure profonde (+3, LDB 18) = 4 > seuil 3 → premier sang déclenché', () => {
     const { H, E } = setup();
     E.important = true; // LDB 18 l.44 : hors Mort subite
     E.wounds = { current: 20, max: 20, base: 20 } as never;
-    E.armour = { corps: 0, testa: 0, brasD: 0, brasG: 0, jambeD: 0, jambeG: 0 } as never;
-    useGame.getState().seedRng(8); // graine calibrée : table de Critique « Coupure profonde » ajoute exactement 2 Blessures
+    E.armour = { corps: 0, tete: 0, brasD: 0, brasG: 0, jambeD: 0, jambeG: 0 } as never;
+    useGame.getState().seedRng(1); // graine calibrée : table du Bras, « Coupure profonde » (+3 Blessures)
     useGame.setState({ battle: { ...useGame.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
     const res: AttackResult = {
-      hit: true, attackerRoll: 33, netSL: 1, location: 'corps', damage: 2, woundsLost: 2,
+      hit: true, attackerRoll: 33, netSL: 1, location: 'corps', critLocation: 'brasG', damage: 2, woundsLost: 2,
       critical: true, advantageTo: 'attacker', defenderDefeated: false, log: '',
     };
     applyAttackResult(useGame.getState, useGame.setState, H, E, H.weapons[0], res);
     draineCascade(useGame.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
     const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;
-    expect(20 - e.wounds.current).toBe(4); // 2 de base + 2 du Critique — la perte RÉELLE du coup, pas juste `res.woundsLost`
+    expect(20 - e.wounds.current).toBe(4); // 1 de base (relancée au Bras gauche) + 3 du Critique
     expect(e.outOfRencontre).toBe(true);
     expect(e.exitReason).toBe('firstBlood');
   });

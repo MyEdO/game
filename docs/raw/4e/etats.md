@@ -37,7 +37,7 @@ La durée de chaque État est précisée dans sa description ; cependant, certai
 
 **Voir aussi** : Avantage (`combat.md`), Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
+- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
 ---
 
@@ -82,7 +82,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `EtatTestCtx`, `DEFENSE_LABEL`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
+- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
 
 ---
 
@@ -253,7 +253,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 
 **Voir aussi** : Traumatisme (`traumatisme.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.80-84) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `EnemyAction`, `Formula`, `needsRecoveryRoll`, `brise`, `peutTenter`, `describeStateRecovery`, `empetre`, +14 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, +10 fichiers
+- `LDB 16` (l.80-84) → `combat-fatigue`, `TEST_PROLONGATION`, `doc`, `EnemyAction`, `Formula`, `needsRecoveryRoll`, `brise`, `peutTenter`, `describeStateRecovery`, `formulaForShape`, +14 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, +10 fichiers
 
 ---
 
@@ -522,7 +522,7 @@ Le LDB 16 exprime toutes les durées en Rounds. Plusieurs sources introduisent d
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.117) → `jsonOpSchema`, `etatNonCumulable`, `doc`, `equipageApte`, `stopBleedOutcome`, `mouvementIntact`, `bestHelmsman`, `empileSurPionExistant`, `opRow`, `toucheSauvee`, +40 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/activities.ts`, +21 fichiers
-- `LDB 40` (l.56, l.59, l.63, l.64, l.68, l.71, l.72, l.73, l.75, l.77, l.79, l.84, l.85) → `jsonOpSchema`, `NestedTest`, `SinPoints`, `JsonRow`, `applyTriggeredTestBranch`, `peche`, `LIBELLE_DE_FORME`, `wrath-table`, `liveTableDecl`, `miscastTableRows`, +42 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/miscast.ts`, `src/data/schemas/grammaire/valeurs.ts`, +10 fichiers
+- `LDB 40` (l.56, l.59, l.63, l.64, l.68, l.71, l.72, l.73, l.75, l.77, l.79, l.84, l.85) → `jsonOpSchema`, `NestedTest`, `SinPoints`, `LIBELLE_DE_FORME`, `JsonRow`, `applyTriggeredTestBranch`, `peche`, `wrath-table`, `liveTableDecl`, `miscastTableRows`, +42 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/miscast.ts`, `src/data/schemas/grammaire/valeurs.ts`, +10 fichiers
 - `LDB 46` (l.36, l.39-40, l.43-44, l.45, l.46, l.47-48, l.49, l.59, l.60, l.62, l.63, l.64, l.68, l.74, l.75, l.78, l.80) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, +66 — `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, +8 fichiers
 
 ---
@@ -605,7 +605,7 @@ Ces tableaux utilisent tous les États standards (Hémorragique, Sonné, Aveugl�
 
 **Voir aussi** : Traumatisme (`traumatisme.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `fr`, `amputationSchema`, `pendant`, `CritEscalation`, `attackHandGate`, `finishDefenseResult`, `Formula`, +130 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +18 fichiers
+- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `fr`, `amputationSchema`, `pendant`, `CritEscalation`, `attackHandGate`, `finishDefenseResult`, `Formula`, +131 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +18 fichiers
 
 ---
 

@@ -11,7 +11,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { z } from 'zod';
 
-import { CodexEdit } from './CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, datasetSerializeRoot, setDataset } from '../../data/overrides';
 import { DEFS_DE_DOCUMENT, validateDataset } from '../../data/schemas/validate';
 import { descendre } from '../../data/schemas/grammaire/descente';

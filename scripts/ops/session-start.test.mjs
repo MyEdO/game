@@ -46,7 +46,7 @@ test('préflight refuse configuration absente, JSON illisible, hooks divergents 
     const consigne = join(worktree, '2527.md'); fs.writeFileSync(consigne, 'faire')
     let effets = 0
     await assert.rejects(lancerSession({ ticket: 2527, agent: 'codex', consigne }, {
-      contexte: () => ({ worktree, gitCommun: worktree, head: 'a'.repeat(40), branche: 'b' }), natif: () => 'codex.exe', contrat: () => {},
+      contexte: () => ({ worktree, gitCommun: worktree, head: 'a'.repeat(40), branche: 'b' }), natif: () => 'codex.exe', contrat: () => {}, version: async () => {}, protocole: () => {},
       terminal: () => { effets++; return { nom: 'PS' } }, sessionsDe: () => { effets++; }, lancerWT: () => { effets++; },
     }), /HOOKS : (CONFIGURATION|SCRIPT)/)
     assert.equal(effets, 0)

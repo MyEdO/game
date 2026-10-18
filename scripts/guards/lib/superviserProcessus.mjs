@@ -18,6 +18,12 @@ const DELAI_IPC = 15000
 /** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
 export const MESURES_INDETERMINEES_MAX = 20
 const erreur = (code, message) => Object.assign(new Error(message), { code })
+const erreurMesure = (cause, message = cause.message) => Object.assign(new Error(message, { cause }), {
+  code: 'EMESURE', codeMesure: cause.code, categorie: cause.categorie,
+})
+const publierErreur = (cause, code = 'ECONTROLE') => ({ code: cause.code ?? code, message: cause.message,
+  ...(cause.code === 'EMESURE' ? { codeMesure: cause.codeMesure, categorie: cause.categorie, cause: { code: cause.cause?.code, categorie: cause.cause?.categorie, message: cause.cause?.message } } : {}),
+})
 function promesse() {
   let resoudre
   let rejeter
@@ -74,7 +80,7 @@ async function lancerSousHote(commande, args, options, lancement) {
   if (signal?.aborted) throw raisonAnnulation(signal)
   let vueInitiale = []
   if (surveillerGit) {
-    try { vueInitiale = mesurer() } catch (e) { throw erreur('EMESURE', e.message) }
+    try { vueInitiale = mesurer() } catch (e) { throw erreurMesure(e) }
   }
   const interpreteur = interpreteurHote()
   const ancetres = ancetresValidesDe(process.pid, vueInitiale)
@@ -299,7 +305,7 @@ async function lancerSousHote(commande, args, options, lancement) {
       try { vue = mesurer() } catch (e) {
         echecs += 1
         if (gardiens.some(mortProuvee)) faute('parent disparu', 'EPARENT')
-        else if (echecs >= MESURES_INDETERMINEES_MAX) faute(`${echecs} mesures consécutives indéterminées : ${e.message}`, 'EMESURE')
+        else if (echecs >= MESURES_INDETERMINEES_MAX) demanderArret(erreurMesure(e, `${echecs} mesures consécutives indéterminées : ${e.message}`))
         return
       }
       echecs = 0
@@ -333,7 +339,7 @@ async function lancerSousHote(commande, args, options, lancement) {
           let certificat
           try { certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8')) } catch {}
           if (certificat?.version === 1 && certificat.generation === generation) Object.assign(arret, { echeance: certificat.echeance, methode: certificat.methode, zeroNatif: certificat.zero === true })
-          resultatPublie = { resultatCible: { ...(resultat ?? { status: null, signal: null }), error: { code: interruption?.code ?? 'ECONTROLE', message: interruption?.message ?? terminaison.cause.message } }, arret }
+          resultatPublie = { resultatCible: { ...(resultat ?? { status: null, signal: null }), error: publierErreur(interruption ?? terminaison.cause) }, arret }
           return resultatPublie
         }
         completDansBorne = true
@@ -354,12 +360,12 @@ async function lancerSousHote(commande, args, options, lancement) {
         arret = { pid, etat: mort ? 'mort' : 'indetermine', echeance: fermeture?.echeance, methode: certificat?.methode,
           erreurs: mort ? [] : [...indetermine.erreurs, ...(certificat?.erreurs ?? [])] }
         let resultatCible = resultat ?? { status: null, signal: null }
-        if (interruption) resultatCible = { ...resultatCible, error: { code: interruption.code ?? 'ECONTROLE', message: interruption.message } }
+        if (interruption) resultatCible = { ...resultatCible, error: publierErreur(interruption) }
         resultatCible = { ...resultatCible, status: transaction.finaliser(resultatCible.status) }
         resultatPublie = { resultatCible, arret }
         return resultatPublie
       } catch (e) {
-        resultatPublie = { resultatCible: { status: null, signal: null, error: { code: e.code ?? 'ECONTROLE', message: e.message } }, arret: arret ?? arretIndetermine({ operation: 'cloture', pid, cause: e }) }
+        resultatPublie = { resultatCible: { status: null, signal: null, error: publierErreur(e) }, arret: arret ?? arretIndetermine({ operation: 'cloture', pid, cause: e }) }
         return resultatPublie
       } finally {
         if (pid === null) pret.rejeter(interruption ?? erreur('ERESULTAT', 'cible absente'))
@@ -405,7 +411,7 @@ export async function superviserProcessus({ commande, args = [], entree, heriter
     const { resultatCible, arret } = await finNative(controle)
     stdout += sortie.end(); stderr += erreurs.end()
     return { ...resultatCible, stdout, stderr, arret }
-  } catch (e) { return { status: null, signal: null, stdout, stderr, error: { code: e.code ?? 'ECONTROLE', message: e.message } } }
+  } catch (e) { return { status: null, signal: null, stdout, stderr, error: publierErreur(e) } }
 }
 
 export function sortieDeSupervision(resultat, journal = process.stderr) {

@@ -38,7 +38,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     useGame.setState({ pendingCascade: null });
     const res: AttackResult = {
       hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',
-      defenderDefeated: false, woundsLost: 3, location: 'corps', log: 'touche !',
+      defenderDefeated: false, woundsLost: 3, location: 'corps', critLocation: 'corps', log: 'touche !',
     } as AttackResult;
     applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0], res);
     // La Blessure critique se tire d'abord (étape unique, #1426) — aucun siège ne tenant l'ennemi, le

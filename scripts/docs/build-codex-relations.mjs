@@ -328,7 +328,7 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
 \`src/data/schemas/exposition-derivee.ts\` construit \`CATEGORY_DATASET_DERIVE\` et
-\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/compendium/CodexEdit.tsx\` les consomme
+\`OBJECT_CATEGORY_DERIVE\` depuis \`SCHEMA_DEFS\`, et \`src/ui/editor/codex/CodexEdit.tsx\` les consomme
 telles quelles — plus aucune table à la main. La source lue à l'EXÉCUTION pour l'INDEX du Codex
 reste \`CODEX_SPECS\` (\`${REGISTRY}\`, dont \`CODEX\` est la projection). Les deux sont tenus égaux
 par \`${CONTRATS}\`, dont voici les cas, tels que la garde les nomme :

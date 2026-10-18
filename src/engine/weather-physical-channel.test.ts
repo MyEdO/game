@@ -61,3 +61,13 @@ describe('#341 — canal météo « Tests physiques » : les 4 familles traverse
     expect(weatherTestMods('pluie', 'agilite')).toEqual([]);
   });
 });
+
+describe('#2724 — le canal est la seule porte de weatherTestMod.ts', () => {
+  it('le module n’exporte que weatherTestMods ; le calcul brut ne se nomme pas au type', async () => {
+    // @ts-expect-error TS2339
+    type Brut = (typeof import('./weatherTestMod'))['weatherPhysicalTestMod'];
+    const brut: Brut | undefined = undefined;
+    expect(Object.keys(await import('./weatherTestMod'))).toEqual(['weatherTestMods']);
+    expect(brut).toBeUndefined();
+  });
+});

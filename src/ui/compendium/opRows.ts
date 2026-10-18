@@ -5,7 +5,7 @@
  * Couverture = ANCRES NOMINATIVES (les kinds ci-dessous, à id résoluble dans une catégorie du Codex) +
  * REPLI EXHAUSTIF `humanizeOp` (compile-time, `assertNever` dans humanize.ts) pour tout le reste — un
  * kind SANS id stable (invocation d'arme nommée, marqueur d'atelier…) ou pointant une catégorie hors
- * Codex tombe en `{t:'text'}`. JAMAIS `opSummary` (résumeur d'ATELIER, `editor/GameOpEditor.tsx`).
+ * Codex tombe en `{t:'text'}`. JAMAIS `opSummary` (résumeur d'ATELIER, `editor/interne/resumeDOp.ts`).
  */
 import { slBonus, estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import type { CodexRow } from './registry';

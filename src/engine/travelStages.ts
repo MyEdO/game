@@ -244,15 +244,8 @@ export function weatherLightningNervous(w: Weather): boolean {
 
 /** Une caractéristique est-elle « physique » au sens EDOC 8 l.82 (liste MAISON éditable) ? */
 export function isPhysicalTestChar(char: CharKey): boolean {
-  return (weatherPhysicalTestChars as string[]).includes(char);
+  return weatherPhysicalTestChars.includes(char);
 }
-/** Pénalité de la météo `w` à un Test basé sur la caractéristique `char` (Pluie diluvienne -10 aux
- *  Tests physiques, l.82) — 0 si la météo n'en porte pas ou si `char` n'est pas physique. */
-export function weatherPhysicalTestMod(w: Weather, char: CharKey): number {
-  const mod = weatherCondition(w).physicalTestMod;
-  return mod != null && isPhysicalTestChar(char) ? mod : 0;
-}
-
 /** Méthode d'Approvisionnement (LDB 09 l.565-572, option « Trouver de la nourriture et des herbes »). */
 export type ForageMethod = 'recherche' | 'chasse' | 'piegeage';
 

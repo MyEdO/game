@@ -22,7 +22,7 @@
  * `data-tone` sur la bande de section (`Section`) — jamais une classe par ton.
  */
 import type { ReactNode } from 'react';
-import { garanti } from '../state/combatants';
+import { garanti } from '../lib/garanti';
 import type { Combatant, HitLocation } from '../engine/types';
 import { roundsLabel, clockLabel, type Duration } from '../engine/duration';
 import { locationLabel } from '../engine/combat';

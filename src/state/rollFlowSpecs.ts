@@ -29,7 +29,8 @@ import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, garanti, inBattleId } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import {
   resolveAttack, attackWeaponOf, firedWeapon, bestDefenseMode, effectiveSpellOf,
   disengageOutcome, castContextMods,
@@ -381,7 +382,7 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
  *  de jet et le champ du foe figé (les commentaires les appelaient « CALQUE EXACT »). Chance « +1 DR »
  *  re-oppose (lentille `bumpSL`) ; Résilience « Je ne faillirai pas ! » = l'emporter (issue 'success'). */
 function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & { result?: unknown }>(cfg: {
-  key: keyof GameState & string;
+  key: RollFlowSpec<P>['key'];
   actorId: (p: P) => string;
   rollActor: (s: GameState, actor: Combatant) => TestResult;
   /** Jet de l'ACTEUR : lecture (`p.def` — Désengagement/Au Contact/Empoignade ; `p.atk` — Distraire) et pose. */

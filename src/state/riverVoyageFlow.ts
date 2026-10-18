@@ -60,7 +60,8 @@ import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cas
 import { checkPartyWiped } from './partyWipe';
 import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn, equipageApte, garanti } from './combatants';
+import { actorIn, equipageApte } from './combatants';
+import { garanti } from '../lib/garanti';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';

@@ -41,6 +41,7 @@ import {
   woundsFromHit,
   compteDuCoup,
   apresDeviations,
+  localisationRelanceeDe,
   sansLeCoupCritiqueIgnore,
   type CompteDuCoup,
   toucheAuJetPose,
@@ -69,7 +70,6 @@ import {
   canFireWhileEngaged,
   ligneDuCoup,
   freeAttackWeapon,
-  causeDuCoupCritique,
   defaultParryWeapon,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -155,7 +155,8 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId, garanti } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
@@ -2358,10 +2359,11 @@ function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, 
  *  Localisation : LDB 63 l.30, l.32 ; LDB 18 l.53 ; LDB 63 l.78. */
 function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const { mres, spell, overcastDamageSteps } = touche;
-  const relance = touche.critLocation !== undefined;
-  const loc = touche.critLocation ?? mres.location ?? 'corps';
-  const woundsLost = mres.woundsLost ?? 0;
+  const relancee = localisationRelanceeDe({ hit: !!mres.hit, critLocation: touche.critLocation });
+  const relance = relancee !== undefined;
+  const loc = relancee ?? mres.location ?? 'corps';
   const aPleinesPA = (): number => evaluateMissile(caster, cible, spell, mres, loc, overcastDamageSteps).woundsLost ?? 0;
+  const woundsLost = relance ? aPleinesPA() : (mres.woundsLost ?? 0);
   const blessures = n === 0 && !relance ? woundsLost
     : woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n, { casse: relance }), spell, mres, loc, overcastDamageSteps).woundsLost ?? 0) - aPleinesPA());
   const compte = critiquesDuCoup(cible, { coupCritique: causeDuProjectile(touche), prise: true, current: cible.wounds.current, touche: true, relance, blessures });
@@ -2559,7 +2561,7 @@ function naissanceDuCoupDuMarin(coup: CoupDeTouche, attaquant: Combatant, marin:
   }
   const { touche } = coup;
   const critLocation = localisationRelanceeDuProjectile(touche, marin);
-  const mres = evaluateMissile(attaquant, marin, touche.spell, touche.mres, critLocation, touche.overcastDamageSteps);
+  const mres = evaluateMissile(attaquant, marin, touche.spell, touche.mres, undefined, touche.overcastDamageSteps);
   return { ...qui, mode: 'projectile', touche: { ...touche, targetId: marin.id, mres, critLocation, critiques: undefined } };
 }
 
@@ -2720,8 +2722,6 @@ function appliquerLaTouche(
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
-  // #1595 c.6247370933
-  if (relanceLaLocalisation(target, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current })) res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
@@ -2769,7 +2769,7 @@ function appliquerLaTouche(
   const { relance, blessures } = compte;
   if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
-    if (relance) { res.location = lieu; res.localisationRelancee = true; }
+    if (relance) res.location = lieu;
     res.woundsLost = blessures;
     const { lancerDuTableau, infligees } = encaisserLeCoup({
       get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon,
@@ -3897,9 +3897,10 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
 }
 
 /**
- * Applique le PREMIER coup restant d'une bordée (MDG 14 l.128) par la couture du coup ; les suivants
- * voyagent dans sa suite (`enchainement: 'bordee'`), si bien qu'une fenêtre ouverte par un coup
- * (sauvegarde, Critique) les reprend à sa fermeture. Une cible hors de combat ne reçoit plus rien.
+ * Fait naître le coup du PREMIER tir restant sur la cible vivante (`toucheAuJetPose`), puis l'applique par
+ * la couture du coup (MDG 14 l.128) ; les suivants voyagent dans sa suite (`enchainement: 'bordee'`), si
+ * bien qu'une fenêtre ouverte par un coup (sauvegarde, Critique) les reprend à sa fermeture. Une cible
+ * hors de combat ne reçoit plus rien.
  * Rend `true` quand un coup a suspendu.
  */
 export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee): boolean {
@@ -3909,7 +3910,8 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
   const tireur = inBattleId(battle, tir.tireurId);
   const cible = inBattleId(battle, bordee.targetId);
   if (!tireur || !cible || isOutOfAction(cible)) return false;
-  return applyAttackResult(get, set, tireur, cible, tir.weapon, tir.res,
+  const res = toucheAuJetPose(tireur, cible, tir.weapon, tir.jet, tir.jet.sl, { rng: battleRng() });
+  return applyAttackResult(get, set, tireur, cible, tir.weapon, res,
     { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } }) === OPS_DIFFEREES;
 }
 
@@ -5901,6 +5903,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     ...(mres.woundsLost != null ? { woundsLost: mres.woundsLost } : {}),
     ...(mres.touche ? { touche: mres.touche } : {}),
     ...(mres.ajouts ? { ajouts: mres.ajouts } : {}),
+    ...(ch.critLocation ? { critLocation: ch.critLocation } : {}),
   };
   // Une RÉ-ENTRÉE de fenêtre de Critique porte la touche déjà passée par les sauvegardes.
   if (!ch.critiques) {
@@ -5920,7 +5923,6 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
   if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
-  const loc = mres.location ?? 'corps';
   const twice = critRollTwiceFor(caster);
   const touche: ToucheDeProjectile = { ...ch, mres };
   const suspendu: CoupSuspendu = { mode: 'projectile', touche };
@@ -5931,6 +5933,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
+  const loc = compte.lieu;
   cible.wounds.current = Math.max(0, currentBefore - compte.compte.blessures);
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
   const mReinj = reinjuryBleed(cible, loc);
@@ -5977,7 +5980,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees, ...(compte.compte.relance ? { localisationRelancee: true as const } : {}) }), { ...mres, woundsLost: compte.compte.blessures }, infligees);
+  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees }), { ...mres, location: loc, woundsLost: compte.compte.blessures }, infligees);
 }
 
 /** La Localisation relancée d'une touche de Projectile sur `cible`, décidée à sa naissance par
@@ -6005,7 +6008,6 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   let mres = touche.mres;
   // LDB 18 l.53, l.55.
   const critLocation = localisationRelanceeDuProjectile(touche, cible);
-  if (critLocation) mres = evaluateMissile(caster, cible, spell, mres, critLocation, touche.overcastDamageSteps);
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
   // cible — les Dégâts en découlent (`evaluateMissile`), le plancher de 1 Blessure reste celui du
   // RAW (LDB 13 l.155-163). Le jet figé (roll/Surincantation) n'est pas rejoué : seul le DR change.

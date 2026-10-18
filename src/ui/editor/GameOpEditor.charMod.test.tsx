@@ -7,7 +7,8 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { GameOpEditor, opSummary } from './GameOpEditor';
+import { GameOpEditor } from './GameOpEditor';
+import { opSummary } from './interne/resumeDOp';
 import type { GameOp } from '../../engine/ops';
 import { noeudDuChamp } from '../../data/schemas/validate';
 

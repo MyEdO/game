@@ -189,9 +189,9 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
     expect(log.join(' ')).toMatch(/usage du membre récupéré/);
   });
 
-  // #193 — « Tests effectués avec ce bras » (LDB/AA) : `recoverDisabledLimb` scope le `testMod{char:'CC'}`
+  // #193 — « Tests effectués avec ce bras » (LDB/AA) : `recoverDisabledLimb` scope le `testMod{char:'capacite-de-combat'}`
   // à la main RÉELLE du membre (convention DROITIER, MÊME donnée pour brasD/brasG).
-  it("`recoverDisabledLimb` injecte `weaponHand` sur un `testMod{char:'CC'}` selon la Localisation (brasD → main, brasG → off)", () => {
+  it("`recoverDisabledLimb` injecte `weaponHand` sur un `testMod{char:'capacite-de-combat'}` selon la Localisation (brasD → main, brasG → off)", () => {
     const cD = C({ traumas: [{ label: 'x', location: 'brasD', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
     expect(recoverDisabledLimb(cD, 0).penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'main' }]);
     const cG = C({ traumas: [{ label: 'x', location: 'brasG', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });

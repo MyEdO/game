@@ -3,7 +3,7 @@
  * dimensions de la scène, et toggles de CALQUES (déplacés de la Palette — ils concernent la vue).
  */
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { garanti } from '../../state/combatants';
+import { garanti } from '../../lib/garanti';
 import { terrainLabel } from '../../state/terrain';
 import { Icon } from '../Icon';
 import type { Layers, Pt, Tool } from './editorState';

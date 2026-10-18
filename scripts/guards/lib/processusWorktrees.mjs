@@ -6,6 +6,12 @@ import { versCheminNatif } from './commandeShell.mjs'
 import { canoniser } from '../../docs/lib/chemin-mesure.mjs'
 import { listerDossier } from './lister.mjs'
 
+export const DELAI_MESURE_PROCESSUS_MS = 5000
+
+export const normaliserErreurProcessus = (texte) => String(texte).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const identiteInstable = (texte) => /identite.*(?:modifie|change|instable)/.test(normaliserErreurProcessus(texte))
+const avecProvenanceLecture = (p) => ({ ...p, erreursLecture: (p.erreurs ?? []).filter((e) => typeof e === 'string' && !identiteInstable(e) && /^(?:cwd|commande|image|proprietaire|creation|resident|identite|inspection native) illisible(?:\s*:|$)/.test(normaliserErreurProcessus(e))) })
+
 export const sousArbre = (chemin, racine, platform = process.platform, { strict = true } = {}) => {
   const p = platform === 'win32' ? path.win32 : path.posix
   const normaliser = (c) => {
@@ -51,6 +57,7 @@ export function liensProcessus(processus, racine, platform = process.platform, o
   const p = platform === 'win32' ? path.win32 : path.posix
   const liens = []
   if (processus.cwd && sousArbre(processus.cwd, racine, platform, options)) liens.push('cwd')
+  if (processus.image && p.isAbsolute(processus.image) && sousArbre(processus.image, racine, platform, options)) liens.push('image ' + processus.image)
   for (const brut of [...(processus.argv ?? argumentsProcessus(processus.commande, platform)), ...referencesCommande(processus.commande)]) {
     const argument = brut.startsWith('--') && brut.includes('=') ? brut.slice(brut.indexOf('=') + 1) : brut
     if (argument.startsWith('-')) continue
@@ -72,17 +79,18 @@ export function referencesCommande(commande) {
 }
 
 export function porteeProcessus(vue) {
+  const erreursGlobales = vue.erreursGlobales ?? vue.erreurs ?? []
+  const processus = vue.processus.map((p) => ({ ...p, erreurs: [...new Set([
+    ...(p.erreurs ?? []), ...(!p.commande ? ['commande illisible'] : []),
+    ...(!p.cwd ? ['cwd illisible'] : []), ...(!p.creation ? ['création illisible'] : []),
+  ])] }))
   const horsPortee = vue.processus.filter((p) => !p.proprietaire || p.proprietaire !== vue.utilisateur)
   const noms = [...new Set(horsPortee.map((p) => p.nom || 'PID ' + p.pid))].sort()
-  const erreurs = [...(vue.erreurs ?? [])]
-  for (const p of vue.processus.filter((p) => p.proprietaire === vue.utilisateur)) {
-    const causes = [...(p.erreurs ?? [])]
-    if (!p.commande) causes.push('commande illisible')
-    if (!p.cwd) causes.push('cwd illisible')
-    if (!p.creation) causes.push('création illisible')
-    if (causes.length) erreurs.push('PID ' + p.pid + ' ' + p.nom + ' : ' + [...new Set(causes)].join('; '))
+  const erreurs = [...erreursGlobales]
+  for (const p of processus.filter((p) => p.proprietaire === vue.utilisateur)) {
+    if (p.erreurs.length) erreurs.push('PID ' + p.pid + ' ' + p.nom + ' : ' + p.erreurs.join('; '))
   }
-  return { ...vue, erreurs: [...new Set(erreurs)], horsPortee, portee: `examinés : commandes et cwd lisibles de tous les processus ; utilisateur=${vue.utilisateur} ; hors portée : ${horsPortee.length} processus d'autres comptes ou propriétaires illisibles (${noms.join(', ') || 'aucun'}) — propriétaire seul exclu du jugement d'indétermination` }
+  return { ...vue, processus, erreursGlobales, erreurs: [...new Set(erreurs)], horsPortee, portee: `examinés : commandes, images et cwd de tous les processus ; utilisateur=${vue.utilisateur} ; hors portée : ${horsPortee.length} processus d'autres comptes ou propriétaires illisibles (${noms.join(', ') || 'aucun'}) — propriétaire seul exclu du jugement d'indétermination` }
 }
 
 /** Précision d'une date de création mesurée, par source : `etimes` de ps et `btime` de `/proc/stat` à la
@@ -135,7 +143,8 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
       if (timeout !== undefined && e.code === 'ETIMEDOUT') return indeterminee(timeout)
       throw e
     }
-    const vue = JSON.parse(sortie)
+    const brute = JSON.parse(sortie)
+    const vue = { ...brute, processus: brute.processus.map(avecProvenanceLecture) }
     return identites ? { ...vue, pids } : { ...porteeProcessus(vue), pids }
   }
   if (platform !== 'linux') throw new Error('mesure processus non supportée : ' + platform)
@@ -174,6 +183,7 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
             if (!item.commande) item.erreurs.push('commande illisible')
           } catch (e) { item.erreurs.push('commande illisible : ' + e.message) }
           try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
+          try { item.image = readlinkSync(dossier + '/exe') } catch (e) { item.erreurs.push('image illisible : ' + e.message) }
         }
       }
       const apres = readFileSync(dossier + '/stat', 'utf8')
@@ -182,7 +192,7 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, p
       if (e.code === 'ENOENT' || e.code === 'ESRCH') continue
       item.erreurs.push(e.message)
     }
-    processus.push(item)
+    processus.push(avecProvenanceLecture(item))
   }
   const vue = { utilisateur: String(uid), processus, erreurs: [], pids }
   return identites ? vue : porteeProcessus(vue)

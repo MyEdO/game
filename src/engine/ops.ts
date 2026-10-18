@@ -425,8 +425,8 @@ export type GameOp =
       onlyIfCondition?: string; unlessCondition?: string;
       /** Force d'évasion d'un État à Test opposé (Empêtré : « se libérer » contre cette Force, LDB 16
        *  l.66) — résolue contre le RÉFÉRENT (`ctx.caster ?? target`) À L'APPLICATION et FIGÉE sur l'entrée
-       *  de condition. Ex. `{ charOf: 'FM' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
-       *  Force d'entrave égale votre Force Mentale »), `{ charOf: 'Int' }` (Enchevêtrement des Arcanes),
+       *  de condition. Ex. `{ charOf: 'force-mentale' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
+       *  Force d'entrave égale votre Force Mentale »), `{ charOf: 'intelligence' }` (Enchevêtrement des Arcanes),
        *  ou un littéral (`60`). Absente ⇒ le flux de récupération garde son défaut (Force de la source
        *  vivante, ou Test simple). */
       escapeStrength?: Formula;
@@ -759,8 +759,8 @@ export type GameOp =
    *  le collecteur passif et lu par `testValue/passiveTestMod` — n'altère PAS la Caractéristique (≠ charMod).
    *  EXÉCUTÉ via `applyOps` (≠ passif d'État) : porte aussi `movementOnly`/`weaponHand`, portée MEMBRE d'une
    *  pénalité de récupération (#193, Épaule luxée/Genou démis LDB+AA, « Tests effectués avec ce bras »/« cette
-   *  jambe ») — `weaponHand` restreint un `char:'CC'` à l'arme tenue dans CETTE main (lu par `combatValue`/
-   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'Ag'` typiquement)
+   *  jambe ») — `weaponHand` restreint un `char:'capacite-de-combat'` à l'arme tenue dans CETTE main (lu par `combatValue`/
+   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'agilite'` typiquement)
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
    *  = comportement historique (global, comme avant #193). */
@@ -1027,7 +1027,7 @@ export type GameOp =
    *  jamais « lancé »). */
   | { op: 'offTerrainMod'; terrain: string; mSet?: number; testDR?: number; suffocates?: boolean }
   /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
-   *  Chance (Chanceux), Détermination (Obstiné). `mod` = Formula (`{bonusOf:'E'}` pour Dur à cuire).
+   *  Chance (Chanceux), Détermination (Obstiné). `mod` = Formula (`{bonusOf:'endurance'}` pour Dur à cuire).
    *  Lu par heroMaxWounds/fortuneMax/resolveMax — data-driven, jamais par libellé. Destin/Résilience
    *  N'ONT PAS de maximum dérivé (un octroi passe par `gainResource`) → EXCLUS de l'union (#292). */
   | { op: 'attrMod'; attr: 'wounds' | 'fortune' | 'resolve'; mod: Formula }

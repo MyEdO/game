@@ -9,7 +9,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit, dedicatedFieldKeys, editableDataset, editableEntries, editableObjectDataset } from './CodexEdit';
+import { CodexEdit, dedicatedFieldKeys, editableDataset, editableEntries, editableObjectDataset } from '../editor/codex/CodexEdit';
 import { DEFS_DE_DOCUMENT, brouillonNeuf, noeudDeLEntree, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';

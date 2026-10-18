@@ -2,7 +2,10 @@ import { lstatSync, readFileSync, rmdirSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
-import { liensProcessus, mesurerProcessusWorktrees, sousArbre } from './processusWorktrees.mjs'
+import { DELAI_MESURE_PROCESSUS_MS, liensProcessus, mesurerProcessusWorktrees, normaliserErreurProcessus, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
+import { ancetresValidesDe } from './arbreProcessus.mjs'
+import { CATEGORIES_DE_REFUS, prefixeDeRefus } from './categorieDeRefus.mjs'
+import { CACHE_FRAICHEUR } from '../../docs/lib/cache-fraicheur.mjs'
 import { listerDossier, listerEntrees } from './lister.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
@@ -12,10 +15,35 @@ const citation = (texte) => coupeAuMot(String(texte ?? '').replace(/\s+/g, ' ').
 const enumeration = (libelle, elements, separateur = ', ') => libelle + ' (' + elements.length + ') : ' + elements.slice(0, ELEMENTS_CITES).join(separateur)
   + (elements.length > ELEMENTS_CITES ? separateur + '+' + (elements.length - ELEMENTS_CITES) + ' autres' : '')
 
+const texteDeCause = (cause) => typeof cause === 'string' ? cause : cause.message ?? String(cause)
+function categorieDeCause(cause) {
+  if (Object.hasOwn(CATEGORIES_DE_REFUS, cause?.categorie)) return cause.categorie
+  if (cause?.code) {
+    if (['EACCES', 'EPERM'].includes(cause.code)) return 'permission'
+    if (['ETIMEDOUT', 'ESRCH', 'ENOENT', 'MESURE_PROCESSUS_EXPIREE'].includes(cause.code)) return 'transitoire'
+    return cause.code === 'EINVAL' ? 'validation' : 'panne'
+  }
+  const texte = normaliserErreurProcessus(texteDeCause(cause))
+  if (/identite.*(?:modifie|change|instable)/.test(texte)) return 'transitoire'
+  if (/EACCES|EPERM|acces refuse|access denied|permission denied/i.test(texte)) return 'permission'
+  if (/ETIMEDOUT|ESRCH|ENOENT|partiel|partial|disparu|identite.*(?:modifie|change|instable)|MESURE_PROCESSUS_EXPIREE/i.test(texte)) return 'transitoire'
+  if (/EINVAL|invalide|non absolu|non attribuable/i.test(texte)) return 'validation'
+  return 'panne'
+}
+
+function defautDeCollecte(cause, erreursLecture) {
+  const texte = normaliserErreurProcessus(texteDeCause(cause))
+  if (/canonisation|identite.*(?:modifie|change|instable)/.test(texte)) return false
+  if (typeof cause === 'string' && erreursLecture.includes(cause)) return true
+  if (!/^(?:cwd|commande|image|proprietaire|creation) illisible(?:\s*:|$)/.test(texte)) return false
+  if (typeof cause === 'string' && /^(?:cwd|commande|image|proprietaire|creation) illisible$/.test(texte)) return true
+  return ['permission', 'transitoire'].includes(categorieDeCause(cause))
+}
+
 /** Un processus nommé sur UNE ligne bornée : PID, exécutable, commande coupée au mot. */
 export const designerProcessus = (p) => 'PID ' + p.pid + (p.nom ? ' ' + p.nom : '') + ' — ' + citation(p.commande)
 
-const RECONSTRUCTIBLES = ['node_modules', 'server/node_modules', 'dist', '.vite']
+const RECONSTRUCTIBLES = ['node_modules', 'server/node_modules', 'dist', '.vite', dirname(CACHE_FRAICHEUR).replaceAll('\\', '/')]
 
 export function ignoresAuthores(racine, ignores) {
   const authores = []
@@ -42,37 +70,60 @@ export function ignoresAuthores(racine, ignores) {
   return [...new Set(authores)].sort()
 }
 
-/**
- * `indeterminees` : les processus que la mesure n'a pas su lire, propres à la MACHINE et non à l'arbre —
- * rendus à part pour qu'un inventaire de N arbres les cite une fois ; `refus` en porte le compte, et
- * `ok` reste faux tant qu'il en reste une.
- * @returns {{ok: boolean, refus: string[], indeterminees: string[], portee?: string}}
- */
+/** @returns {{ok: boolean, refus: string[], indeterminees: string[], horsMesure: string[], portee?: string}} */
 export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesurerProcessusWorktrees, etat = etatDeLArbre, sessions } = {}) {
   const refus = []
   const indeterminees = []
+  const horsMesure = []
   const lies = []
   try {
-    if (!isAbsolute(chemin)) throw new Error('chemin de worktree non absolu : ' + chemin)
-    const vue = snapshot ?? processus()
+    if (!isAbsolute(chemin)) throw Object.assign(new Error('chemin de worktree non absolu : ' + chemin), { categorie: 'validation' })
+    const vue = porteeProcessus(snapshot ?? processus({ timeout: DELAI_MESURE_PROCESSUS_MS }))
     for (const p of vue.processus) {
+      let liens = []
+      const causes = [...p.erreurs]
       try {
-        const liens = liensProcessus(p, chemin)
-        if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
+        liens = liensProcessus(p, chemin)
       } catch (e) {
-        const liens = liensProcessus(p, chemin, process.platform, { strict: false })
-        if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
-        if (p.proprietaire && p.proprietaire === vue.utilisateur) indeterminees.push('PID ' + p.pid + ' ' + p.nom + ' — ' + citation(e.message))
+        liens = liensProcessus(p, chemin, process.platform, { strict: false })
+        causes.push(e)
+      }
+      if (!p.cwd) {
+        for (const ancetre of ancetresValidesDe(p.pid, vue.processus)) {
+          if (!ancetre.cwd) continue
+          let lie = false
+          try { lie = sousArbre(ancetre.cwd, chemin) }
+          catch (e) {
+            causes.push({ message: 'ancêtre PID ' + ancetre.pid + ' : ' + e.message, categorie: categorieDeCause(e) })
+            lie = liensProcessus({ cwd: ancetre.cwd }, chemin, process.platform, { strict: false }).includes('cwd')
+          }
+          if (lie) liens.push('ancêtre PID ' + ancetre.pid + ' cwd')
+        }
+      }
+      if (liens.length) lies.push(designerProcessus(p) + ' — ' + citation(liens.map(citation).join(', ')))
+      if (causes.length) {
+        const groupes = new Map()
+        for (const cause of causes) {
+          const categorie = categorieDeCause(cause)
+          if (!groupes.has(categorie)) groupes.set(categorie, new Set())
+          groupes.get(categorie).add(texteDeCause(cause))
+        }
+        const exclu = p.cwd === null && !liens.length && causes.some((c) => /^cwd illisible/i.test(texteDeCause(c))) && causes.every((c) => defautDeCollecte(c, p.erreursLecture ?? []))
+        for (const [categorie, textes] of groupes) {
+          const diagnostic = prefixeDeRefus(categorie) + ' PID ' + p.pid + ' ' + (p.nom ?? '') + (p.image ? ' image=' + p.image : '') + ' : ' + citation([...textes].join('; '))
+          ;(exclu ? horsMesure : indeterminees).push(diagnostic)
+        }
       }
     }
-    if (lies.length) refus.push(enumeration('processus liés', lies, ' | '))
-    for (const erreur of vue.erreurs ?? []) indeterminees.push(citation(erreur))
-    if (indeterminees.length) refus.push('mesure processus indéterminée : ' + indeterminees.length + ' processus, cités à part')
+    if (lies.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('processus liés', lies, ' | '))
+    for (const erreur of vue.erreursGlobales) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : categorieDeCause(erreur)) + ' ' + citation(texteDeCause(erreur)))
+    if (vue.indeterminee && !vue.erreursGlobales.length) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne') + ' ' + citation(vue.indeterminee))
+    refus.push(...new Set(indeterminees))
     const arbres = etat(depotDe(chemin), { ignores: true, strict: true })
     const sales = arbres.filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
-    if (sales.length) refus.push(enumeration('modifications non commitées', sales))
+    if (sales.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('modifications non commitées', sales))
     const ignores = ignoresAuthores(chemin, arbres.filter((e) => e.etat === '!!').flatMap((e) => e.chemins))
-    if (ignores.length) refus.push(enumeration('ignoré authoré', ignores))
+    if (ignores.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('ignoré authoré', ignores))
     const commun = dossierGitCommun(depotDe(chemin))
     if (!commun.disponible) throw new Error(commun.raison)
     const dossier = sessions ?? join(commun.valeur, 'sessions')
@@ -83,18 +134,18 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
       const carte = JSON.parse(readFileSync(fichier, 'utf8'))
       if (!carte || typeof carte.worktree !== 'string' || !isAbsolute(carte.worktree) || typeof carte.etat !== 'string') throw new Error('carte session non attribuable : ' + fichier)
       if (!sousArbre(carte.worktree, chemin)) continue
-      if (carte.etat !== 'fermee') refus.push('session ' + fichier + ' — ' + carte.etat)
+      if (carte.etat !== 'fermee') refus.push(prefixeDeRefus('métier') + ' session ' + fichier + ' — ' + carte.etat)
       if (carte.etat === 'fermee' && (!carte.controleur || !carte.jobHost)) throw new Error('projection session fermée incomplète : ' + fichier)
       for (const id of [carte.controleur, carte.jobHost, carte.agentProcessus, carte.lanceur].filter(Boolean)) {
         if (!Number.isInteger(id.pid) || typeof id.creation !== 'string') throw new Error('identité session illisible : ' + fichier)
         const present = vue.processus.find((p) => p.pid === id.pid)
         if (present && !present.creation) throw new Error('identité session indéterminée : PID ' + id.pid + ' — ' + fichier)
         const vivant = present?.creation === id.creation ? present : null
-        if (vivant) refus.push('session ' + fichier + ' — ' + designerProcessus(vivant))
+        if (vivant) refus.push(prefixeDeRefus('métier') + ' session ' + fichier + ' — ' + designerProcessus(vivant))
       }
     }
-    return { ok: refus.length === 0, refus, indeterminees, portee: vue.portee }
-  } catch (e) { return { ok: false, refus: [...refus, 'mesure indéterminée : ' + e.message], indeterminees } }
+    return { ok: refus.length === 0, refus, indeterminees, horsMesure, portee: vue.portee }
+  } catch (e) { return { ok: false, refus: [...refus, prefixeDeRefus(categorieDeCause(e)) + ' mesure indéterminée : ' + e.message], indeterminees, horsMesure } }
 }
 
 export function retirerResiduelVide(chemin) {

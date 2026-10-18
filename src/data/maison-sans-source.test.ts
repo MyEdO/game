@@ -45,7 +45,7 @@ describe('maison sans source — collections nominatives', () => {
   for (const masquee of [false, true]) {
     it(masquee ? 'les exemptions ne masquent que les identités déclarées' : 'les entrées maison sans source sont déclarées et soldées', () => {
       const ecart = ecartMaison(mesure(masquee), masquee ? MAISON_MASQUEES : MAISON_SANS_SOURCE);
-      expect(ecart.neuves, 'Entrées neuves : déclarer fichier/id dans scripts/guards/lib/integriteStock.mjs :\n' + ecart.neuves.join('\n')).toEqual([]);
+      expect(ecart.neuves, 'Entrées neuves : une entrée `maison` porte aussi sa `source` (#1469) — scripts/guards/lib/integriteStock.mjs ne fait que décroître :\n' + ecart.neuves.join('\n')).toEqual([]);
       expect(ecart.perimees, 'Entrées soldées : retirer de scripts/guards/lib/integriteStock.mjs :\n' + ecart.perimees.join('\n')).toEqual([]);
     });
   }

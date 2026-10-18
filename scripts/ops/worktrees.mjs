@@ -31,7 +31,7 @@ import {
 import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
-import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
+import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 import { PREFIXE_DE_CHANTIER } from './nomsDeChantier.mjs'
 
@@ -93,8 +93,12 @@ export const shaCourt = (head) => (head ? String(head).slice(0, 7) : '?')
 export const refDe = (w) => w.branche ?? (w.inscrit === false ? 'hors git' : `détaché@${shaCourt(w.head)}`)
 
 /** LA raison — pourquoi on y touche, ou pourquoi on n'y touche pas. PURE. */
-export function raisonDe(w) {
-  if (w.protection && !w.protection.ok) return w.protection.refus.join(' ; ')
+export function raisonDe(w, { details = true } = {}) {
+  if (w.protection && !w.protection.ok) {
+    if (details) return w.protection.refus.join(' ; ')
+    const diagnostics = new Set(w.protection.indeterminees ?? [])
+    return [...w.protection.refus.filter((r) => !diagnostics.has(r)), ...(diagnostics.size ? ['mesure processus indéterminée — diagnostics cités à part'] : [])].join(' ; ')
+  }
   switch (w.classe) {
     case 'principal': return 'arbre principal — jamais touché'
     case 'tenu': return 'tenu par ce processus (script ou cwd) — jamais retiré depuis lui : rejouer depuis un autre worktree'
@@ -117,7 +121,7 @@ export function raisonDe(w) {
 export const indetermineesDe = (entrees) => [...new Set(entrees.flatMap((w) => w.protection?.indeterminees ?? []))]
 
 /** Une ligne d'inventaire : `<classe>\t<chemin>\t<branche|détaché@sha>\t<raison>`. PURE. */
-export const ligneDInventaire = (w) => [w.classe, w.chemin, refDe(w), raisonDe(w)].join('\t')
+export const ligneDInventaire = (w) => [w.classe, w.chemin, refDe(w), raisonDe(w, { details: false })].join('\t')
 
 /** Compte par classe, dans l'ordre de `CLASSES`, classes vides omises. PURE. */
 export function comptesParClasse(worktrees) {
@@ -197,7 +201,7 @@ export function inventaire({
   const fusionLue = sansFetch || gestes.fetchOrigin(depot).disponible === true
 
   let snapshot
-  try { snapshot = processus() } catch (e) { snapshot = { processus: [], erreurs: [e.message] } }
+  try { snapshot = processus({ timeout: DELAI_MESURE_PROCESSUS_MS }) } catch (e) { snapshot = { processus: [], erreurs: [e] } }
   const worktrees = bruts.map((w) => {
     if (w.principal) return { ...w, absent: false, sale: false, fusionne: null, classe: 'principal' }
     const absent = nature(w.chemin) !== 'repertoire'
@@ -289,7 +293,9 @@ function main() {
   }
   const entrees = [...vu.worktrees, ...vu.nonInscrits]
   const indeterminees = indetermineesDe(entrees)
-  if (indeterminees.length) process.stdout.write(`mesure processus indéterminée — ${indeterminees.length} processus, refus de chaque arbre mesuré :\n${indeterminees.map((i) => `  ${i}\n`).join('')}\n`)
+  if (indeterminees.length) process.stdout.write(`mesure processus indéterminée — ${indeterminees.length} diagnostics de refus des arbres concernés :\n${indeterminees.map((i) => `  ${i}\n`).join('')}\n`)
+  const horsMesure = [...new Set(entrees.flatMap((w) => w.protection?.horsMesure ?? []))]
+  if (horsMesure.length) process.stdout.write(`processus sans preuve de lien, hors mesure — ${horsMesure.length} diagnostics :\n${horsMesure.map((i) => `  ${i}\n`).join('')}\n`)
   for (const w of entrees) process.stdout.write(`${ligneDInventaire(w)}\n`)
   if (vu.portee) process.stdout.write(vu.portee + '\n')
   const comptes = comptesParClasse(entrees)
