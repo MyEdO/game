@@ -51,7 +51,7 @@ test('acquisition : un historique au-delà du disponible refuse avant tout lance
   const historique = { fichier, blob: entree.blob, picOctets: 3 * 2 ** 30, parentOctets: 2 ** 28, descendantsInclus: true, metrique: 'working-set' }
   for (const [cas, profil, forcer] of [['périmé', { ...historique, blob: 'perime' }, false], ['forcé', historique, true]]) {
     mesures.memos['memoire-node.json'] = { [entree.cle]: profil }
-    const r = await lancerNodeMesure({ ...p, forcer })
+    const r = await lancerNodeMesure({ ...p, forcer, platform: 'win32' })
     assert.deepEqual([r.code, r.refus, r.admission?.minimumOctets, r.message], [CODE_DIFFERE, 'MEMOIRE_INSUFFISANTE', 3 * 2 ** 30 + 2 ** 28, '[memoire] MEMOIRE_INSUFFISANTE : minimum 3328 Mo, disponible 2048 Mo'], cas)
   }
 })
@@ -63,7 +63,7 @@ test('arrêt : une fin native rejetée rend l’arrêt indéterminé, nommé au 
   const controle = { pid: 42, phase: 'execution', pret: new Promise(() => {}), demanderArret() {}, get fin() { return Promise.reject(perte) } }
   const superviser = Object.assign(async () => ({ hote: {}, controle }), { optionsEffectives: projection.optionsEffectives })
   const r = await lancerNodeMesure({ racine, fichiers: [fichier], argv: ['--test'], env: { WFRP_MEMOIRE_DOSSIER: racine }, mesures: mesuresEnMemoire(),
-    superviser, journal: (s) => journaux.push(s), limiteMs: 5000 })
+    superviser, journal: (s) => journaux.push(s), limiteMs: 5000, platform: 'win32' })
   assert.equal(r.arret.etat, 'indetermine')
   assert.deepEqual(r.arret.erreurs.map(({ operation, pid, code, message }) => ({ operation, pid, code, message })),
     [{ operation: 'fin', pid: 42, code: 'FIN_PERDUE', message: 'fin native perdue' }])
@@ -92,7 +92,7 @@ test('options Node : gate CJS première, précharges homonymes conservées et ga
 test('options incompatibles : alias snapshots et isolation none refusés avant toute factory', async (t) => {
   const racine = temporaire(t, 'memoire-refus-options-')
   for (const argv of [['--snapshot-blob=x'], ['--snapshot_blob', 'x'], ['--build_snapshot'], ['--test-isolation=none'], ['--experimental_test_isolation', 'none']]) {
-    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, superviser: () => assert.fail('cible interdite'), journal() {} })
+    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, superviser: () => assert.fail('cible interdite'), journal() {}, platform: 'win32' })
     assert.equal(r.code, 2)
     assert.equal(r.arret.etat, 'mort')
     assert.match(r.error.message, /snapshot|isolation/)
