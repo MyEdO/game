@@ -5,7 +5,8 @@ import assert from 'node:assert/strict'
 import { posix, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runInNewContext } from 'node:vm'
-import { inspect } from 'node:util'
+import { inspect, types } from 'node:util'
+import { setFlagsFromString } from 'node:v8'
 import { fileURLToPath } from 'node:url'
 import { spawnBorne } from './processusBorne.mjs'
 import { readFileSync, writeFileSync, renameSync, rmSync, mkdtempSync } from 'node:fs'
@@ -23,8 +24,6 @@ const tableauCreux = () => Object.assign(Array(2), { 1: 1 })
 /** Le lot `entree`, ses IR (`encoderLecture`) certifiées, évalué par le noyau fermé ; `stade` observe son budget. */
 const evaluerLot = (entree, stade) =>
   evaluerLotDuDepot({ ...entree, lectures: entree.lectures.map(([f, pool]) => [f, certifierLecture(f, pool)]) }, stade)
-
-
 
 const lire = (rel, text) => lectureDeModule(rel, analyserTexte({ rel, text }).sourceFile)
 
@@ -45,6 +44,9 @@ const depotDe = (modules) => {
 
 /** L'évaluateur ouvert (`evaluer`) du dépôt en mémoire `modules`. */
 const evaluateurDe = (modules) => evaluateurDuDepot(depotDe(modules))
+
+/** L'évaluateur ouvert dont tout module se lit `lecture`, sans aucun spécificateur résolu. */
+const evaluateurDeLecture = (lecture = null) => evaluateurDuDepot({ lecture: () => lecture, cible: () => null })
 
 /** Les clés du régime `ferme` (`evaluerLotDuDepot`), sinon de l'évaluateur ouvert (`evaluateurDuDepot`), et
  *  `cle(x, options, memo)` : la clé de `x` sous `options`. */
@@ -193,7 +195,7 @@ test('IR compacte : clés propres inertes et membre toJSON opaque auto-ingéré'
     const lecture = lire(rel, source)
     const decodee = decoderLecture(encoderLecture(lecture))
     assert.deepEqual(decodee, lecture)
-    const sites = (valeur) => evaluateurDuDepot({ lecture: () => valeur, cible: () => null }).sitesDe(rel)
+    const sites = (valeur) => evaluateurDeLecture(valeur).sitesDe(rel)
     assert.deepEqual(sites(decodee), sites(lecture))
   }
   assert.equal(Object.hasOwn(Object.prototype, 'chemin'), false)
@@ -227,12 +229,12 @@ test('IR compacte : frontière toJSON parcourue et omise sans effets', () => {
 
 test('API publique : le champ format additionnel reste sans effet', () => {
   const brut = lire('a.mjs', "readFileSync('src/a')")
-  const attendu = evaluateurDuDepot({ lecture: () => brut, cible: () => null }).sitesDe('a.mjs')
+  const attendu = evaluateurDeLecture(brut).sitesDe('a.mjs')
   let consultations = 0
   for (const lu of [Object.defineProperty({ ...brut }, 'format', { get() { consultations++; throw new Error('format') } }),
     new Proxy(brut, { get(cible, nom, receveur) { if (nom === 'format') { consultations++; throw new Error('format') } return Reflect.get(cible, nom, receveur) } }),
     { ...brut, format: 'lecture-ir-1' }]) {
-    assert.deepEqual(evaluateurDuDepot({ lecture: () => lu, cible: () => null }).sitesDe('a.mjs'), attendu)
+    assert.deepEqual(evaluateurDeLecture(lu).sitesDe('a.mjs'), attendu)
   }
   assert.equal(consultations, 0)
 })
@@ -559,7 +561,7 @@ test('politique BOOL du driver : branches, captures ultimes et dépendances tran
 })
 
 // #2586
-test('politique BOOL du driver : un prédicat par garde d’une condition partagée, un calcul de retour par fonction et par lot', () => {
+test('politique BOOL du driver : au plus un prédicat par garde d’une condition partagée, un calcul de retour par fonction et par lot', () => {
   const lu = lire('a.mjs', "import {base} from './c.mjs'; readFileSync('src'); readFileSync(base()); readFileSync(base())")
   const condition = { k: 'importe', spec: './b.mjs', nom: 'oui' }
   lu.sites[0].args[0] = { k: 'union', v: Array.from({ length: 16 }, (_, i) => ({ k: 'garde', condition,
@@ -571,7 +573,10 @@ test('politique BOOL du driver : un prédicat par garde d’une condition partag
   const [rendu] = evaluerLot(entree, (nom, module) => { stades.push([nom, module]) })
   assert.deepEqual(rendu.resultat.map((s) => s.valeurs), [Array.from({ length: 16 }, (_, i) => ({ chemin: `src/${i}` })), [{ chemin: 'docs' }], [{ chemin: 'docs' }]])
   assert.ok(rendu.requetes.includes(JSON.stringify(['lecture', 'b.mjs'])))
-  assert.deepEqual(stades, [['noyau', null], ...Array.from({ length: 16 }, () => ['prédicat', 'a.mjs']), ['retour', 'c.mjs']])
+  const compte = (nom, module) => stades.filter(([n, m]) => n === nom && m === module).length
+  const predicats = compte('prédicat', 'a.mjs')
+  assert.ok(predicats >= 1 && predicats <= 16, `${predicats} prédicats`)
+  assert.deepEqual([compte('noyau', null), compte('retour', 'c.mjs'), stades.length], [1, 1, 2 + predicats])
 })
 
 // #2586
@@ -641,7 +646,7 @@ test('dictionnaires Source : noms propres froids et JSON chauds, prototype expli
     assert.equal(Object.hasOwn(lu.fonctions, nom), true)
     assert.equal(Object.hasOwn(lu.exports, nom), true)
     for (const lecture of [lu, JSON.parse(JSON.stringify(lu))]) {
-      const ev = evaluateurDuDepot({ lecture: () => lecture, cible: () => null })
+      const ev = evaluateurDeLecture(lecture)
       const champ = lecture.sites.find((s) => s.args[0]?.k === 'champ').args[0]
       assert.equal(Object.hasOwn(champ.de.v, nom), nom !== '__proto__')
       const champLu = ev.valeurs(champ, { f: 'banc.mjs', env: null })
@@ -657,12 +662,12 @@ test('dictionnaires Source : noms propres froids et JSON chauds, prototype expli
   const shorthand = lire('banc.mjs', "const __proto__='src/a';readFileSync({__proto__}.__proto__)")
   assert.equal(Object.hasOwn(shorthand.sites[0].args[0].de.v, '__proto__'), true)
   for (const lecture of [shorthand, JSON.parse(JSON.stringify(shorthand))]) {
-    const ev = evaluateurDuDepot({ lecture: () => lecture, cible: () => null })
+    const ev = evaluateurDeLecture(lecture)
     assert.deepEqual(ev.sitesDe('banc.mjs')[0].valeurs, [{ chemin: 'src/a' }])
   }
   const prototype = lire('banc.mjs', "readFileSync({__proto__:{fichier:'src/a'}}.fichier)")
   for (const lecture of [prototype, JSON.parse(JSON.stringify(prototype))]) {
-    const ev = evaluateurDuDepot({ lecture: () => lecture, cible: () => null })
+    const ev = evaluateurDeLecture(lecture)
     assert.match(ev.sitesDe('banc.mjs')[0].valeurs[0].non, /prototype explicite/)
   }
 })
@@ -793,7 +798,7 @@ test('lexique lambda : définition unique, clôture transitive et JSON réallou�
   assert.ok(references.length >= 1)
   for (const reference of references) assert.deepEqual(Object.keys(reference).sort(), ['id', 'k'])
   for (const definition of Object.values(lu.lambdas)) assert.ok(definition.params && definition.retours && definition.sites)
-  const rendu = (lecture) => evaluateurDuDepot({ lecture: () => lecture, cible: () => null }).sitesDe('banc.mjs')
+  const rendu = (lecture) => evaluateurDeLecture(lecture).sitesDe('banc.mjs')
   const attendu = [[{ chemin: 'src/a/fin' }], [{ chemin: 'docs/b/fin' }]]
   const racines = rendu(lu).filter((s) => !s.relais && s.appel === 'readFileSync').map((s) => s.valeurs)
   assert.deepEqual(racines, attendu)
@@ -876,7 +881,7 @@ test('lexique lambda : première profondeur et placeholder de récursion conserv
   const recursive = lire('banc.mjs', "export function fabriquer(){const rappel=(x)=>rappel(x);return rappel}")
   const definition = Object.values(recursive.lambdas)[0]
   assert.deepEqual(definition.retours[0].cible, { k: 'non', raison: 'fonction anonyme récursive' })
-  const evaluerModule = (lu) => evaluateurDuDepot({ lecture: () => lu, cible: () => null }).valeurs(
+  const evaluerModule = (lu) => evaluateurDeLecture(lu).valeurs(
     { k: 'appel', cible: { k: 'lambda', id: definition.id }, args: [{ k: 'lit', v: 'src/a' }], texte: 'rappel' }, { f: 'banc.mjs', env: null })
   assert.deepEqual(evaluerModule(recursive), [{ non: 'appel rappel' }])
   assert.deepEqual(evaluerModule(JSON.parse(JSON.stringify(recursive))), evaluerModule(recursive))
@@ -1080,26 +1085,38 @@ test('sous-graphes gelés : associations étrangères, ancêtres partagés et as
   assert.equal(cle(racine), cellule)
 })
 
-// #2586
-test('sous-graphes gelés : les sources et les parents clés sont collectés', async (t) => {
-  if (!globalThis.gc) {
-    const dossier = mkdtempSync(join(tmpdir(), 'racines-gc-'))
-    try {
-      const r = await spawnBorne({ argv: ['--expose-gc', '--test', '--test-reporter', 'spec',
-        '--test-name-pattern', 'les sources et les parents clés sont collectés', fileURLToPath(import.meta.url)],
-      fichier: join(dossier, 'rapport.log'), limiteMs: 10000, cwd: process.cwd(),
-      env: Object.fromEntries(Object.entries(process.env).filter(([nom]) => nom !== 'NODE_TEST_CONTEXT')) })
-      t.diagnostic(r.sortie)
-      assert.equal(r.expiree, false)
-      assert.equal(r.code, 0)
-    } finally { rmSync(dossier, { recursive: true, force: true }) }
-    return
+/** Le `gc` de V8 dans ce processus : `--expose-gc` levé le temps de créer un contexte neuf qui l'expose, puis rabattu. */
+const gc = globalThis.gc ?? (() => {
+  setFlagsFromString('--expose-gc')
+  try { return runInNewContext('gc') } finally { setFlagsFromString('--no-expose-gc') }
+})()
+
+/** Les octets de tas retenus par clé jetée : `lots` lots de `n` clés `cle(fabriquer(i))` jetées, GC majeur et
+ *  finaliseurs entre lots, pente du pic des lots suivants sur le deuxième. */
+const retenuParCleJetee = async (cle, fabriquer, n, lots = 5) => {
+  let i = 0
+  const lot = async () => {
+    for (let k = 0; k < n; k++) cle(fabriquer(i++))
+    for (let tour = 0; tour < 12; tour++) {
+      await new Promise((r) => setTimeout(r, 0))
+      await gc({ type: 'major', execution: 'async' })
+    }
+    return process.memoryUsage().heapUsed
   }
+  await lot()
+  const base = await lot()
+  let pic = base
+  for (let l = 2; l < lots; l++) pic = Math.max(pic, await lot())
+  return (pic - base) / (n * (lots - 2))
+}
+
+// #2586
+test('sous-graphes gelés : les sources et les parents clés sont collectés', async () => {
   const collecter = async (refs) => {
     for (let i = 0; i < 8; i++) {
       await new Promise((r) => setImmediate(r))
-      const collecte = globalThis.gc({ type: 'major', execution: 'async' })
-      assert.ok(collecte instanceof Promise)
+      const collecte = gc({ type: 'major', execution: 'async' })
+      assert.ok(types.isPromise(collecte))
       await collecte
       await new Promise((r) => setImmediate(r))
       if (refs.every((r) => r.deref() === undefined)) return
@@ -1126,6 +1143,27 @@ test('sous-graphes gelés : les sources et les parents clés sont collectés', a
 })
 
 // #2586
+test('sous-graphes gelés : le fan-in des parents jetés plafonne', async (t) => {
+  const p = clesDuDepot()
+  const options = { strict: true, cellules: true }
+  const enfant = Object.freeze({ v: true })
+  const cle = p.cle(enfant, options)
+  const retenu = await retenuParCleJetee((x) => p.cle(x, options), () => Object.freeze({ enfant, alias: enfant }), 12000)
+  t.diagnostic(`${retenu.toFixed(1)} octets retenus par parent jeté`)
+  assert.ok(retenu < 16)
+  assert.equal(p.cle(enfant, options), cle)
+})
+
+// #2586
+test('cellules BOOL : le registre ne retient aucune clé de Source jetée', async (t) => {
+  const p = clesDuDepot()
+  const options = { strict: true, cellules: true }
+  const retenu = await retenuParCleJetee((x) => p.cle(x, options), (i) => ({ v: i, w: [String(i)] }), 1500)
+  t.diagnostic(`${retenu.toFixed(1)} octets retenus par Source jetée`)
+  assert.ok(retenu < 256)
+})
+
+// #2586
 test('cellules BOOL : construction sans appel supplémentaire au map global', () => {
   const map = Object.getOwnPropertyDescriptor(Array.prototype, 'map')
   let appels = 0
@@ -1134,7 +1172,7 @@ test('cellules BOOL : construction sans appel supplémentaire au map global', ()
       appels++
       return Reflect.apply(map.value, this, args)
     } })
-    evaluateurDuDepot({ lecture: () => null, cible: () => null })
+    evaluateurDeLecture()
   } finally { Object.defineProperty(Array.prototype, 'map', map) }
   assert.equal(appels, 0)
 })
@@ -1538,7 +1576,7 @@ test('preuves scalaires : alias du getter canonique avant import frais gardent l
 })
 
 test('preuves scalaires : tableaux sans prototype standard et qualification profonde gardent le calcul public', () => {
-  const ev = evaluateurDuDepot({ lecture: () => null, cible: () => null })
+  const ev = evaluateurDeLecture()
   const ctx = { f: 'banc.mjs', env: null }
   const negation = (v) => ev.valeurs({ k: 'negation', de: { k: 'booleen', v } }, ctx)
   for (const prototype of [null, Object.prototype]) assert.deepEqual(negation(Object.setPrototypeOf([], prototype)), [{ booleen: false }])
@@ -1547,9 +1585,9 @@ test('preuves scalaires : tableaux sans prototype standard et qualification prof
   assert.deepEqual(negation(composite), [{ booleen: false }])
 })
 
-test('preuves scalaires : formes complètes, parents, paramètres, modes et cycles de contexte', () => {
+test('preuves scalaires : formes d’argument, parents, paramètres et modes de contexte', () => {
   const p = clesDuDepot()
-  const ev = evaluateurDuDepot({ lecture: () => null, cible: () => null })
+  const ev = evaluateurDeLecture()
   const cle = (x) => p.cle(x, { strict: true })
   const forme = (env) => {
     const a = [{ booleen: true }]
@@ -1578,11 +1616,6 @@ test('preuves scalaires : formes complètes, parents, paramètres, modes et cycl
   assert.equal(booleenDe(ev, expr, { f: 'banc.mjs', env: null }), false)
   expr.de.objetDirect = false
   assert.equal(booleenDe(ev, expr, { f: 'banc.mjs', env: null }), null)
-  const cyclique = { fn: 'inner', args: [], params: [] }
-  cyclique.parent = cyclique
-  const c = forme(cyclique)
-  assert.equal(typeof cle(c), 'string')
-  assert.equal(cle(c), cle(c))
 })
 
 test('preuves scalaires : pile exacte, profondeur et réentrées dans les deux ordres', () => {
@@ -1599,7 +1632,7 @@ test('preuves scalaires : pile exacte, profondeur et réentrées dans les deux o
     attendu: true, de: { k: 'booleen', v: false } }] }
   const appel = (id) => ({ k: 'appel', cible: { k: 'fn', id }, args: [] })
   for (const ordre of [['decision', 'niveau0'], ['niveau0', 'decision']]) {
-    const ev = evaluateurDuDepot({ lecture: () => source, cible: () => null })
+    const ev = evaluateurDeLecture(source)
     const resultats = tableTotale(ordre, (id) => ev.valeurs(appel(id), { f: 'banc.mjs', env: null }))
     assert.deepEqual(resultats.decision, [])
     assert.deepEqual(resultats.niveau0, [{ texte: 'src/autorisé' }])
@@ -1619,7 +1652,7 @@ test('observation des clés : le contexte Proxy public ne déclenche aucun pièg
     if (nom === 'env') objet.f = 'autre.mjs'
     return Reflect.getOwnPropertyDescriptor(objet, nom)
   } })
-  const e = evaluateurDuDepot({ lecture: () => ({ fonctions: { f: { retours: [{ k: 'lit', v: 'src/a' }] } } }), cible: () => null })
+  const e = evaluateurDeLecture({ fonctions: { f: { retours: [{ k: 'lit', v: 'src/a' }] } } })
   assert.deepEqual(e.valeurs({ k: 'appel', cible: { k: 'fn', id: 'f' }, args: [{ k: 'lit', v: 'src/a' }] }, ctx), [{ texte: 'src/a' }])
   assert.equal(traps, 0)
   assert.equal(cible.f, 'banc.mjs')

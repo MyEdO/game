@@ -26,10 +26,9 @@ const prototypesInertes = () => {
 
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
- * associée après clé, DAG cyclique et clé hors cellules strictes refusés), clés des valeurs en cellules structurelles à
- * formes projetées, refus nommé d'une source inadmissible ; sinon, clés textuelles des valeurs, et une clé `strict` lit
- * les formes complètes. Un argument vaut par ses valeurs et sa forme : son expression et tout ce que son évaluation lit
- * de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments, paramètres).
+ * associée après clé, DAG cyclique et clé hors cellules strictes refusés), clés des valeurs en cellules structurelles ;
+ * sinon, clés textuelles des valeurs. Un argument vaut par ses valeurs et sa forme : son expression et tout ce que son
+ * évaluation lit de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments, paramètres).
  * @param {{ ferme: boolean }} regime
  */
 export function clesCanoniques({ ferme }) {
@@ -44,6 +43,7 @@ export function clesCanoniques({ ferme }) {
   const sousGraphesRevalides = new WeakMap()
   const dependancesDesFormes = new WeakMap()
   const preparerPreuve = () => ({ valide: true, parents: new Set(), parentsInscrits: new WeakSet(), nettoyage: null })
+  /** Inscrit `parent` au fan-in de `preuve`, qui ne retient que ses parents vivants : son tas plafonne (#2586). */
   const inscrireParent = (preuve, parent) => {
     if (!preuve.nettoyage) preuve.nettoyage = { iterateur: preuve.parents.values(), restants: preuve.parents.size }
     const suivant = preuve.nettoyage.iterateur.next()
@@ -69,6 +69,18 @@ export function clesCanoniques({ ferme }) {
     liste: Object.freeze({ marqueur: 'liste' }), objet: Object.freeze({ marqueur: 'objet' }),
     fin: Object.freeze({ marqueur: 'fin' }), enfant: Object.freeze({ marqueur: 'enfant' }),
   })
+  const elaguerCellule = new FinalizationRegistry(({ tokens, lien }) => {
+    const branches = [cellulesBooleennes]
+    for (const token of tokens) {
+      const suivante = branches.at(-1).get(token)
+      if (suivante === undefined) return
+      branches.push(suivante)
+    }
+    if (branches.at(-1).get(finCelluleBooleenne) !== lien) return
+    branches.at(-1).delete(finCelluleBooleenne)
+    for (let i = tokens.length; i > 0 && branches[i].size === 0; i--) branches[i - 1].delete(tokens[i - 1])
+  })
+  /** La cellule canonique de `tokens`, tenue tant qu'une clé la tient : le registre ne retient aucune clé morte (#2586). */
   const celluleDe = (tokens) => {
     let branche = cellulesBooleennes
     for (const token of tokens) {
@@ -76,11 +88,13 @@ export function clesCanoniques({ ferme }) {
       if (suivante === undefined) branche.set(token, suivante = new Map())
       branche = suivante
     }
-    let cellule = branche.get(finCelluleBooleenne)
+    let cellule = branche.get(finCelluleBooleenne)?.deref()
     if (cellule === undefined) {
       cellule = Object.freeze({ tokens: Object.freeze([...tokens]) })
       referencesBooleennes.add(cellule)
-      branche.set(finCelluleBooleenne, cellule)
+      const lien = new WeakRef(cellule)
+      branche.set(finCelluleBooleenne, lien)
+      elaguerCellule.register(cellule, { tokens: cellule.tokens, lien })
     }
     return cellule
   }
@@ -352,8 +366,7 @@ export function clesCanoniques({ ferme }) {
       }
       pile.set(v, pile.size)
       const forme = formesDesArguments.get(v)
-      const descriptor = !ferme && strict && forme ? tuple('argument', v.map(referenceDe), referenceDe(forme))
-        : forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), contexteDe(forme.ctx, referenceDe))
+      const descriptor = forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), contexteDe(forme.ctx, referenceDe))
         : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
       pile.delete(v)
@@ -376,7 +389,7 @@ export function clesCanoniques({ ferme }) {
     }
     return cle
     } catch (erreur) {
-      if (!strict || !(erreur instanceof RangeError)) throw erreur
+      if (ferme || !strict || !(erreur instanceof RangeError)) throw erreur
       return null
     }
   }
@@ -422,11 +435,7 @@ export function clesCanoniques({ ferme }) {
   }
   const composerCle = (...parties) => ferme && parties.some((x) => referencesBooleennes.has(x))
     ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
-  const cleDesValeurs = (faire, racine, cache) => {
-    const cle = cleCanonique(faire, racine, cache, ferme ? { strict: true, cellules: true } : {})
-    if (ferme && cle === null) throw new Error('CLE_STRUCTURELLE_SOURCE_INADMISSIBLE')
-    return cle
-  }
+  const cleDesValeurs = (faire, racine, cache) => cleCanonique(faire, racine, cache, ferme ? { strict: true, cellules: true } : {})
   /** La clé d'une valeur ; un objet rendu vaut par sa clé canonique (`cleDesValeurs`). */
   const cleDe = (v) => {
     if ('booleen' in v) return `b${v.booleen}`
