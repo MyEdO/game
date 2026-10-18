@@ -266,7 +266,7 @@ test('écriture : texte changé → refus, cible intacte, aucun temporaire ; sin
     const cible = join(dossier, '7.json')
     FS.writeFileSync(cible, 'édité ailleurs')
     const refus = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'lu avant', geste: 'la mesure', pid: 11 })
-    assert.deepEqual([refus.ok, refus.rejouable], [false, true])
+    assert.deepEqual([refus.ok, refus.categorie, refus.rejouable], [false, 'transitoire', true])
     assert.match(refus.refus, /a changé pendant la mesure/)
     assert.equal(FS.readFileSync(cible, 'utf8'), 'édité ailleurs')
     assert.deepEqual(restes(dossier), [])
@@ -274,6 +274,9 @@ test('écriture : texte changé → refus, cible intacte, aucun temporaire ; sin
     assert.equal(FS.readFileSync(cible, 'utf8'), 'neuf')
     const apparu = ecrireSuivi({ cible, contenu: 'autre', attendu: null, geste: 'le lot', pid: 11 })
     assert.deepEqual([apparu.ok, apparu.rejouable, /est apparu pendant le lot/.test(apparu.refus)], [false, true, true])
+    const temporaireCasse = { ...FS, writeFileSync: (p, ...r) => { if (String(p).endsWith('.tmp')) throw Object.assign(new Error('EACCES'), { code: 'EACCES' }); return FS.writeFileSync(p, ...r) } }
+    const casse = ecrireSuivi({ cible, contenu: 'autre', attendu: 'neuf', geste: 'le lot', pid: 11, fs: temporaireCasse })
+    assert.deepEqual([casse.ok, casse.categorie, casse.rejouable, /relancer/.test(casse.refus)], [false, 'panne', false, false])
     const neuve = join(dossier, '8.json')
     assert.deepEqual(ecrireSuivi({ cible: neuve, contenu: 'créé', attendu: null, geste: 'le lot', pid: 11 }), { ok: true })
     assert.equal(FS.readFileSync(neuve, 'utf8'), 'créé')
@@ -414,7 +417,8 @@ test('mesure : `<N>.mesure.json` écrit, JAMAIS le suivi ; portée = items ∪ f
     assert.match(digestDuSuivi(lu, { maintenant: tard }), /\n\[suivi #665\] ⚠ mesure PÉRIMÉE \(re-mesure demandée\)\n# Vague du tome 1/)
     assert.deepEqual(restes(dossier), [])
     const absent = mesurerLeSuivi({ numero: 10, dossier, mesure: mesureFactice(compte) })
-    assert.deepEqual([absent.code, /absent/.test(absent.stderr)], [1, true])
+    assert.match(absent.stderr, /^\[suivi\] \[validation · non retentable\] .*absent/)
+    assert.equal(absent.code, 1)
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })
 

@@ -318,7 +318,7 @@ export function editer({ numero, dossier, session = null, json = false, mutation
     let horsOutil = false
     if (texte !== null) {
       const vu = lireSuivi(texte)
-      if (!vu.ok && vu.genre !== 'empreinte') return refus('métier', `${cible} : ${vu.refus} — rien n'est écrit`)
+      if (!vu.ok && vu.genre !== 'empreinte') return refus('panne', `${cible} : ${vu.refus} — rien n'est écrit`)
       suivi = vu.suivi
       horsOutil = !vu.ok
     }
@@ -330,7 +330,7 @@ export function editer({ numero, dossier, session = null, json = false, mutation
     if (texte === null) fs.mkdirSync(dossier, { recursive: true })
     const ecrit = ecrireSuivi({ cible, contenu: texteDuSuivi(applique.suivi), attendu: texte, geste: 'le lot', fs, pid })
     if (ecrit.ok) break
-    if (!ecrit.rejouable) return refus('panne', ecrit.refus)
+    if (!ecrit.rejouable) return refus(ecrit.categorie, ecrit.refus)
     if (essai >= ESSAIS_D_EDITION) return refus('transitoire', `${ecrit.refus} (${ESSAIS_D_EDITION} essais)`)
     attendreSync(PAUSE_ENTRE_ESSAIS_MS)
   }
