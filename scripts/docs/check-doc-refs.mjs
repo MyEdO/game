@@ -391,14 +391,14 @@ async function principal() {
   // chaque session et pointent vers `src/`/`scripts/`/`docs/` ; un renommage les laissait mentir
   // jusqu'à ce qu'un agent suive le pointeur (deux chemins morts ont vécu des mois). MÊME résolution
   // que les sens 1 et 6 — aucune seconde définition de « ce chemin existe-t-il ».
-  // PÉRIMÈTRE dit : le credo, les règles communes des sous-agents (`.claude/sous-agents.md`), `.claude/rules/*.md`, `.claude/agents/*.md`, `.claude/skills/**/*.md` (SKILL.md et annexes), leurs jumeaux Codex
-  // maintenus À LA MAIN (`.codex/agents/*.toml`) et le credo Codex que `agents:sync` produit
-  // (`.codex/credo.md`, `scripts/agents/compat-core.mjs`). Hors périmètre, dit aussi :
+  // PÉRIMÈTRE dit : le credo, les instructions du dépôt (`AGENTS.md`, que `CLAUDE.md` importe), les règles communes des
+  // sous-agents (`.claude/sous-agents.md`), `.claude/rules/*.md`, `.claude/agents/*.md`, `.claude/skills/**/*.md` (SKILL.md et
+  // annexes) et leurs jumeaux Codex maintenus À LA MAIN (`.codex/agents/*.toml`). Hors périmètre, dit aussi :
   // `.claude/memory/**` (les fiches citent l'état d'un jour, pas un pointeur à suivre) et
   // `.claude/settings.json` (les hooks qu'il déclare sont déjà jugés par la parité des canaux).
   const CONTEXTE_FICHIERS = [
     '.claude/credo.md',
-    '.codex/credo.md',
+    'AGENTS.md',
     '.claude/sous-agents.md',
     ...listerArbre('.claude/rules', { filtre: (r) => r.endsWith('.md') }).map((r) => `.claude/rules/${r}`),
     ...listerArbre('.claude/agents', { filtre: (r) => r.endsWith('.md') }).map((r) => `.claude/agents/${r}`),

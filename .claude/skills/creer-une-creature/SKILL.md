@@ -7,7 +7,7 @@ description: À utiliser quand on ajoute une créature, un monstre ou un PNJ au 
 
 Lire **`docs/creer-une-creature.md`** et le suivre intégralement — registre `defs/`, corps nu ≠ tenue,
 illustration `art-ref/` obligatoire, pièges codifiés. Le statbloc vient du Source (FR, plus le Core
-Rulebook 5e — `CLAUDE.md` § *Sources VF* ; règle stricte 1) ; l'apparence est de la donnée
+Rulebook 5e — `AGENTS.md` § *Sources VF* ; règle stricte 1) ; l'apparence est de la donnée
 (registres `defs/`, jamais de regex sur les noms — `docs/architecture.md` § Direction visuelle).
 QC : golden tests + reconnaissabilité par agent aveugle.
 

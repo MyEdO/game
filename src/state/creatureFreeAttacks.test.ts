@@ -7,6 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import { areGrappling, setGrapple } from '../engine/grapple';
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { draineCascade } from './cascadeTestKit';
 
 // Attaques GRATUITES de créature (Taille & traits) : Morsure / Attaque caudale / Piétinement,
 // chacune 1 Avantage, OPPOSÉE (cible Surprise ici → résolution instantanée), gratuite (LDB 85).
@@ -42,7 +43,10 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 1;
     const before = H.wounds.current;
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
-    expect(suspended).toBe(false); // cible Surprise → instantané, pas de modale
+    // Cible Surprise : aucune défense ; la Blessure critique d'un porteur tenu ouvre son étape (LDB 63 l.30).
+    expect(suspended).toBe(true);
+    expect(useGame.getState().battle!.acted, 'Action intacte pendant la fenêtre').toBe(false);
+    draineCascade(useGame.getState);
     const st = useGame.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
     expect(st.battle!.acted).toBe(false); // attaque GRATUITE : l'Action n'est pas consommée
@@ -95,6 +99,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 5;
+    H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
     const before = H.wounds.current;
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;
@@ -208,6 +213,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 8, value: 9 }]; E.advantage = 0; E.characteristics['capacite-de-combat'] = 95; // coût 0 : pas besoin d'Avantage
+    H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
     const before = H.wounds.current;
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(suspended).toBe(false); // cible Surprise → résolution instantanée

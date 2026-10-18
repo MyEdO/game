@@ -107,4 +107,4 @@ function evaluer(entree, contexte) {
   }))
 }
 
-export const garde = { nom: 'fermeture-hors-commit', outils: OUTILS_SHELL, evaluer }
+export const garde = { nom: 'fermeture-hors-commit', categorie: 'métier', outils: OUTILS_SHELL, evaluer }

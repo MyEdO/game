@@ -10,6 +10,7 @@ import { bonus } from './characteristics';
 import { resolveMeleePassive } from './combat';
 import { createHero } from './character';
 import type { Weapon, Combatant } from './types';
+import { makeRNG } from './dice';
 
 /**
  * Structures destructibles de siège — modèle de Dégâts (ADE II 8). Tests DÉTERMINISTES via
@@ -139,13 +140,13 @@ describe('Bonus d’Endurance compté par catégorie de Taille (AA 10 l.98)', ()
     const mur = struct('mur-de-chateau');
     const humain = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Humain', seed: 1 });
     const atk = { roll: 5, target: 100, success: true, sl: 5, isDouble: false };
-    expect(resolveMeleePassive(humain, mur, epee, atk).log)
+    expect(resolveMeleePassive(humain, mur, epee, atk, { rng: makeRNG(1595) }).log)
       .toContain('BE 6 × 3 (Taille Énorme contre Moyenne) = 18');
     // Arme de siège de mêlée (sans Bélier, qui hors-porte redeviendrait improvisée) : le terme
     // DISPARAÎT du journal — le BE se compte une fois.
     // `damage` non nul : un profil à +0 est IMPROVISÉ (LDB 62 l.135) et perdrait justement l'Atout Siège.
     const marteauDeSiege = mkWeapon({ label: 'Marteau de siège', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'siege' }] });
-    expect(resolveMeleePassive(humain, mur, marteauDeSiege, atk).log).toContain('(BE+PA)');
+    expect(resolveMeleePassive(humain, mur, marteauDeSiege, atk, { rng: makeRNG(1595) }).log).toContain('(BE+PA)');
   });
 });
 

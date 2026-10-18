@@ -186,6 +186,7 @@ describe('Duel judiciaire — premier sang mesuré sur le coup FINALISÉ (#471 d
 
   it('coup base 2 Blessures + Critique qui en ajoute 2 (table LDB 18) = 4 > seuil 3 → premier sang déclenché', () => {
     const { H, E } = setup();
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     E.wounds = { current: 20, max: 20, base: 20 } as never;
     E.armour = { corps: 0, testa: 0, brasD: 0, brasG: 0, jambeD: 0, jambeG: 0 } as never;
     useGame.getState().seedRng(8); // graine calibrée : table de Critique « Coupure profonde » ajoute exactement 2 Blessures

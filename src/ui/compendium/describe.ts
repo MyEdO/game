@@ -82,15 +82,6 @@ export function effectsSection(effects: TriggeredEffect[] | undefined, title = '
   return rows.length ? { title, layout: 'list', rows } : null;
 }
 
-/** Capacités-marqueurs IRRÉDUCTIBLES (TraitCapabilities/QualityCapabilities — flags booléens lus par
- *  le moteur) → section lisible. Le mapping flag→libellé (display) est fourni par l'appelant ; l'ordre
- *  suit le mapping. Ignore les non-booléens (Indices, encDelta…) — surfacés ailleurs s'il le faut. */
-export function capabilitySection(caps: Record<string, unknown> | undefined, labels: Record<string, string>, title = 'Capacités'): CodexSection | null {
-  if (!caps) return null;
-  const present = Object.keys(labels).filter((k) => caps[k] === true).map((k) => labels[k]);
-  return present.length ? { title, layout: 'list', rows: [{ t: 'text', text: present.join(' · ') }] } : null;
-}
-
 /** Un `rollTable` se cache-t-il quelque part dans le Flow (n'importe quelle branche `do`) ? Réutilise le
  *  walker générique `walkFlow` (ref #540) — jauge s'il y a une table à EXPANSER en rangées lisibles. */
 const flowHasRollTable = (f: Flow): boolean => {

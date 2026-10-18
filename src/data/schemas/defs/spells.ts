@@ -34,7 +34,7 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
 ]);
 
 /** `SpellTarget` (`engine/spellRange.ts`). `maison` : valeur maison ÉDITABLE portant sa
- *  justification, quand le RAW laisse un point ouvert — CLAUDE.md règle 7. */
+ *  justification, quand le RAW laisse un point ouvert — AGENTS.md règle 7. */
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
   nommerChamps(z.strictObject({ kind: z.literal('count'), n: formulaSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }),

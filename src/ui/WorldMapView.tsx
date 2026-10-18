@@ -224,7 +224,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     ? (vessel ? vesselNavalTraits(vessel) : null)
     : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
   const seaPropulsion = vessel ? garanti(propulsionDuNavire(vessel.vehicleId, vessel.upgrades, 'maritime'), vessel.vehicleId, 'propulsion du navire') : null;
-  const seaM = seaPropulsion && (vessel?.wounds == null || vessel.wounds.current > 0) ? seaPropulsion.m : 0;
+  const seaM = seaPropulsion ? seaPropulsion.m : 0; // MDG 13 l.656, l.674
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du

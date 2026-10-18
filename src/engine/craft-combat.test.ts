@@ -3,6 +3,7 @@ import { parseQualityInstance } from './qualities/normalize';
 import { finishMelee } from './combat';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';
+import { makeRNG } from './dice';
 
 const fighter = (cc: number, weapon: Weapon): Combatant =>
   ({
@@ -19,7 +20,7 @@ describe('Pratique / Peu Fiable en mêlée — Test opposé (LDB 60 l.22/58)', (
   // atk raté (DR -1) mais def raté pire (DR -2) → l'attaquant GAGNE l'opposé malgré son échec (DR net 1).
   const atk = evaluateTest(63, 50); // 63 > 50 → échec, DR -1
   const def = evaluateTest(72, 50); // 72 > 50 → échec, DR -2
-  const run = (atkQ: string[]) => finishMelee(fighter(50, sword(atkQ)), fighter(50, sword()), sword(atkQ), atk, def, 'parade');
+  const run = (atkQ: string[]) => finishMelee(fighter(50, sword(atkQ)), fighter(50, sword()), sword(atkQ), atk, def, 'parade', { rng: makeRNG(1595) });
 
   it('base : jet d’attaque RATÉ mais opposé GAGNÉ (DR net 1) → touche', () => {
     const r = run([]);

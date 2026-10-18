@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 /**
- * GARDE D'HYGIÈNE de `Source/` — les livres VF sont la vérité CITABLE du dépôt (CLAUDE.md règle 1).
+ * GARDE D'HYGIÈNE de `Source/` — les livres VF sont la vérité CITABLE du dépôt (AGENTS.md règle 1).
  * UN relevé, `git -c core.quotePath=false ls-files --eol -- Source/`, et DEUX volets :
  *
  *  1. FINS DE LIGNE — `.gitattributes:5` (`* text=auto eol=lf`) impose le LF dans l'index ET dans la

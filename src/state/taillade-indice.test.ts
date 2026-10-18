@@ -70,6 +70,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     return { H, E };
   }
 

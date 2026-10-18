@@ -22,9 +22,9 @@ function banc(t, { auSommeil = () => {} } = {}) {
   const dossier = mkdtempSync(join(process.env.WFRP_SESSION_TEST_FIXTURES ?? tmpdir(), 'sessions-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fixtures = join(dossier, 'fixtures'); mkdirSync(fixtures)
+  for (const surface of ['claude', 'codex']) mkdirSync(join(dossier, `.${surface}`), { recursive: true })
+  fs.copyFileSync(join(racineScripts, '.claude/credo.md'), join(dossier, '.claude/credo.md'))
   for (const surface of ['claude', 'codex']) {
-    mkdirSync(join(dossier, `.${surface}`), { recursive: true })
-    fs.copyFileSync(join(racineScripts, `.${surface}/credo.md`), join(dossier, `.${surface}/credo.md`))
     const rel = surface === 'claude' ? '.claude/settings.json' : '.codex/hooks.json'
     fs.copyFileSync(join(racineScripts, rel), join(dossier, rel))
     for (const hook of aplatirHooks(JSON.parse(readFileSync(join(dossier, rel), 'utf8')), rel)) {

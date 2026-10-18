@@ -54,7 +54,9 @@ const REGLES = reglesOptionnelles as Regle[];
  *  de la fouille d'une pièce : MAISON. */
 /** Puis 92 = 54 + 38 (#1595, 2026-10-12) : `sea-salissures-difficulty` — MDG 13 l.148 ne chiffre pas la
  *  Difficulté du Test de Résistance du navire : MAISON. */
-const PARTITION = { total: 92, source: 54, maison: 38 };
+/** Puis 93 = 54 + 39 (#1595, 2026-10-16) : `structure-soin-magique` — AA 10 l.134 laisse au MJ l'effet des
+ *  Sorts et Miracles sur une Structure : MAISON. */
+const PARTITION = { total: 93, source: 54, maison: 39 };
 
 /**
  * COEXISTENCE `source` + `maison` (chaîne non vide) sur les entrées de PREMIER niveau de `src/data`,

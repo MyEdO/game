@@ -22,4 +22,4 @@ function evaluer(entree, { dir, baseDeLAppel }) {
   })
 }
 
-export const garde = { nom: 'superpowers-ecriture', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL], evaluer }
+export const garde = { nom: 'superpowers-ecriture', categorie: 'métier', outils: [...OUTILS_ECRITURE, ...OUTILS_SHELL], evaluer }

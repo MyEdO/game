@@ -40,4 +40,4 @@ export function evaluer(entree, { lireSettings = () => JSON.parse(readFileSync(S
   }
 }
 
-export const garde = { nom: 'confirmation-hors-bash', outils: OUTILS_SHELL.filter((o) => o !== 'Bash'), evaluer: (entree) => evaluer(entree) }
+export const garde = { nom: 'confirmation-hors-bash', categorie: 'validation', outils: OUTILS_SHELL.filter((o) => o !== 'Bash'), evaluer: (entree) => evaluer(entree) }

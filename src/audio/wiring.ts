@@ -25,10 +25,10 @@ export function initAudioWiring(): void {
   bus.on(EVT.ANIM_ATTACK, (p: { kind?: 'melee' | 'ranged' | 'spell' }) => {
     lastAttackKind = p?.kind ?? 'melee';
   });
-  bus.on(EVT.ANIM_IMPACT, (p: { result?: { hit?: boolean; critical?: boolean; parried?: boolean } }) => {
+  bus.on(EVT.ANIM_IMPACT, (p: { result?: { hit?: boolean; critiques?: number; parried?: boolean } }) => {
     const r = p?.result;
     if (!r) return;
-    if (r.critical) return playSfx('critique');
+    if (r.critiques) return playSfx('critique');
     if (r.hit) return playSfx(lastAttackKind === 'spell' ? 'sort' : lastAttackKind === 'ranged' ? 'tranche' : 'impact');
     playSfx('parade'); // déjoué : parade/esquive — le métal claque
   });

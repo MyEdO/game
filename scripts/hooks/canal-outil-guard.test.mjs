@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 import { LEAN_CTX_VERSION, LECTURE, familleLeanCtx } from '../guards/lib/contratGarde.mjs'
 import { REGISTRE } from './registre.mjs'
-import { CONSIGNE, garde } from './canal-outil-guard.mjs'
+import { CONSIGNE, CONSIGNE_NATIVE, garde } from './canal-outil-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const FICHE = join(REPO, '.claude', 'memory', 'game-sonde-canal.md')
@@ -25,7 +25,7 @@ test('la garde est au registre PreToolUse du répartiteur, AVANT les gardes d’
   assert.equal(REGISTRE.PreToolUse[0], garde)
 })
 
-test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et toute écriture non jugeable est REFUSÉ, avec le canal prescrit', () => {
+test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et toute écriture non jugeable est REFUSÉ, avec le canal prescrit de sa famille', () => {
   const cas = [
     ['ctx_execute (code arbitraire)', 'mcp__lean-ctx__ctx_execute', { action: 'code', language: 'javascript', code: 'require("fs")' }],
     ['ctx_call → ctx_execute', 'mcp__lean-ctx__ctx_call', { tool: 'ctx_execute', arguments: { action: 'code', language: 'shell', code: 'echo x' } }],
@@ -67,7 +67,9 @@ test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et 
   for (const [nom, outil, entree] of cas) {
     const { decision, raison } = decisionDe(outil, entree)
     assert.equal(decision, 'deny', nom)
-    assert.ok(raison.includes(CONSIGNE), `${nom} : ${raison}`)
+    const lean = outil.startsWith('mcp__lean-ctx__')
+    assert.ok(raison.includes(lean ? CONSIGNE : CONSIGNE_NATIVE), `${nom} : ${raison}`)
+    if (!lean) assert.ok(!/ctx_/.test(raison), `${nom} : un refus natif ne prescrit aucun outil lean-ctx, peut-être absent : ${raison}`)
   }
 })
 

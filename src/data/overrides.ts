@@ -93,7 +93,7 @@ import { ARTILLERY_MISFIRE } from './artilleryMisfire';
  *  du dialecte (sin-paramétrage), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`,
  *  qui suppose de vrais `GameOp`). */
 export interface MiscastRowEntry {
-  id: string; min: number; max: number; label: string;
+  id: string; min: number; max: number | null; label: string;
   ops?: Record<string, unknown>[];
   test?: { skill?: RefDesignee; characteristic?: string; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
   reroll?: 'majeure' | 'mineure-x2';

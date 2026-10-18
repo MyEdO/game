@@ -3,6 +3,7 @@
 Time matters here: do not spend time that can be avoided, and the earlier a correct result is obtained, the better.
 
 - Un code de sortie ne se lit jamais à travers un pipe ; status 1 sans assertion en échec = erreur de collecte.
+- **Canal par geste** : lire → `Read` ou `ctx_read` ; chercher → `git grep` (fait foi) ou `ctx_search` ; éditer → `Edit`/`Write` ou `ctx_patch` ; commande → `Bash`, seul couvert par `permissions.ask`. Un outil lean-ctx absent de la session ne se cherche pas : le canal natif vaut.
 - Appels longs et tâches de fond : `.claude/sous-agents.md`, injecté à tout sous-agent à canal shell ; sa règle « Rien ne te survit » vaut aussi pour la session principale.
 - **Git Bash** : `\\` arrive en `\`, même entre apostrophes ou en heredoc cité : écris le texte par Write au scratchpad et lance-le par son chemin, ou passe par PowerShell (#2603). MSYS réécrit `<rév>:<chemin>` : `MSYS_NO_PATHCONV=1`, ou `git ls-tree <rév> -- <f>`.
 - **`grep`** : seul, le hook RTK le réécrit en `rtk grep` ; composé, l'alias lean-ctx `lean_ctx_track` rend un FAUX ZÉRO. Motif à `\`, `[` ou `"` : `git grep`, `/usr/bin/grep` ou `\grep` ; sur fichiers, finis par `< /dev/null`.

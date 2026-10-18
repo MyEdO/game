@@ -17,6 +17,7 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../engine/flowCore';
 import { weaponIdentity } from '../engine/items';
+import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
 import { isOutOfAction, combatTestPenalty } from '../engine/conditions';
@@ -250,6 +251,8 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng?: RNG; ma
   /** TYPE de l'attaque courante (`weapon.type` : 'melee'/'ranged') — filtre les effets `onHit`/`onWoundLoss`
    *  dont `attackType` ne le matche pas. Posé par les émetteurs onHit/onWoundLoss. */
   attackType?: 'melee' | 'ranged';
+  /** D'où naît la Blessure critique (`onCrit`) — filtre les effets `coupCritique` par `estUnCoupCritique`. */
+  origine?: OrigineCritique;
   /** `set` du store — fourni quand un Test de trigger peut être routé en cascade influençable (héros
    *  manuel) ou résolu inline (ennemi/auto). Câblé sur tous les `fireTriggers` de combat (onHit/
    *  onWoundLoss/onKill/onStartled/onRoundStart/Domaine + manœuvres) ; INERTE tant qu'aucune donnée de
@@ -408,6 +411,7 @@ export function applyTriggeredEffects(
     if (eff.condition && eff.condition !== ctx.conditionName) continue;
     // Filtre par TYPE d'attaque (onHit/onWoundLoss) : un effet `attackType` ne réagit qu'à ce type.
     if (eff.attackType && eff.attackType !== ctx.attackType) continue;
+    if (eff.coupCritique && !estUnCoupCritique(ctx.origine)) continue;
     for (const t of targetsFor(get, actor, eff.on, ctx.victim)) {
       // On n'applique pas un effet à une cible DÉJÀ hors de combat (pas d'éclaboussure sur un cadavre) —
       // SAUF le PORTEUR réagissant à SON PROPRE événement (`on:'self'`) : une unité doit pouvoir réagir à

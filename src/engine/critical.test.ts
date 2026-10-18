@@ -4,13 +4,14 @@ import type { RNG } from './dice';
 import {
   resolveCritique, jeuDeCritique, critiqueTriviale, aaCriticalOffset, aaDeathByCriticalCount,
   critLocationRoll, critWoundLocation, prendreAmputationsDifferees,
-  critEntryCodexCategory, findCritEntrySuffered,
+  critEntryCodexCategory, findCritEntrySuffered, critTableRows,
 } from './critical';
 import { removeSurgicalTrauma, permanentAmputations } from './trauma';
 import { applyOps, type GameOp } from './ops';
 import { spellOps, type Flow, type FlowTestNode } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { CRITIQUE_DOCS, critiqueTable, type JeuDeCritique } from '../data/criticals';
+import { findTableEntryIndex } from './tables';
 import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
 
@@ -138,10 +139,14 @@ describe.each(JEUX)('resolveCritique (%s) — invariants partagés par les deux 
 // CE QUI DIVERGE — la SÉVÉRITÉ et le LIBELLÉ de journal, et rien d'autre.
 // ---------------------------------------------------------------------------------------------
 describe('sévérité et journal — les deux seules divergences entre les jeux', () => {
-  it('LDB 18 l.17 : overkill > Bonus d’Endurance → −20 sur le d100 (minimum 01)', () => {
-    const a = resolveCritique('ldb', cible(35), 'corps', makeRNG(7), { overkill: 0 }); // BE(35) = 3
-    const b = resolveCritique('ldb', cible(35), 'corps', makeRNG(7), { overkill: 10 }); // 10 > 3 → −20
-    expect(b.roll).toBe(Math.max(1, a.roll - 20));
+  it('LDB 18 l.17 ; #1595 c.6222318751 : −20 si 0 < dépassement < BE, strictement ; minimum 01', () => {
+    const jet = (overkill: number, de = 50): number => resolveCritique('ldb', cible(45), 'corps', seq(de), { overkill }).roll; // BE 4
+    expect(jet(0)).toBe(50);
+    expect(jet(1)).toBe(30);
+    expect(jet(3)).toBe(30);
+    expect(jet(4), 'égalité : pas de −20').toBe(50);
+    expect(jet(6)).toBe(50);
+    expect(jet(1, 10), 'minimum 01').toBe(1);
   });
 
   it('AA 07 l.36 : +10 par Blessure au-delà de 0 — et le décalage pousse jusqu’à la ligne LÉTALE plafond', () => {
@@ -654,5 +659,46 @@ describe('critWoundLocation — règle UNIQUE de localisation du Coup Critique (
     expect(critWoundLocation(makeRNG(3), 'humanoide', 'tete')).toBe('tete');
     // forme du corps ignorée quand l'override est fourni (c'est une loc déjà résolue en amont).
     expect(critWoundLocation(makeRNG(7), 'serpent', 'jambeD')).toBe('jambeD');
+  });
+});
+
+describe('CriticalResolved.naturel : le d100 du tableau, avant le modificateur de sévérité (LDB 10 l.773 ; #1595 c.6227274650 Q3)', () => {
+  it('aa, 8 Blessures au-delà de 0 : roll 128, naturel 48 (AA 07 l.36)', () => {
+    const r = resolveCritique('aa', cible(), 'corps', makeRNG(1), { overkill: 8, forcedRoll: 48 });
+    expect(r.roll).toBe(128);
+    expect(r.naturel).toBe(48);
+  });
+  it('ldb, dépassement sous le BE : roll 28, naturel 48 (LDB 18 l.17)', () => {
+    const r = resolveCritique('ldb', cible(), 'corps', makeRNG(1), { overkill: 1, forcedRoll: 48 });
+    expect(r.roll).toBe(28);
+    expect(r.naturel).toBe(48);
+  });
+});
+
+describe('Aux Armes : la dernière rangée de chaque table est ouverte (AA 07 l.105, l.131, l.157, l.183)', () => {
+  const OUVERTES: [HitLocation, 'tete' | 'bras' | 'corps' | 'jambe', string][] = [
+    ['tete', 'tete', 'aa-tete-00'], ['brasD', 'bras', 'aa-bras-136'], ['corps', 'corps', 'aa-corps-116'], ['jambeD', 'jambe', 'aa-jambe-126'],
+  ];
+  it.each(OUVERTES)('%s : la donnée écrit `max: null`, les rangées lues l’ouvrent', (_loc, cle, id) => {
+    const rangees = critTableRows('aa', cle);
+    const derniere = critiqueTable('aa', _loc)[critiqueTable('aa', _loc).length - 1];
+    expect(derniere.id).toBe(id);
+    expect(derniere.max).toBeNull();
+    for (const jet of [derniere.min, 150, 1000]) expect(findTableEntryIndex(rangees, jet), `jet ${jet}`).toBe(rangees.length - 1);
+  });
+  it.each(OUVERTES)('%s : 100, 150 et 1000 au-delà du dernier plafond écrit tombent sur la dernière rangée', (loc, _cle, id) => {
+    const derniere = critiqueTable('aa', loc)[critiqueTable('aa', loc).length - 1];
+    for (const jet of [100, 150, 1000].filter((j) => j >= derniere.min)) {
+      const r = resolveCritique('aa', cible(), loc, makeRNG(1), { forcedRoll: jet });
+      expect(r.roll, `jet ${jet}`).toBe(jet);
+      expect(r.entryId, `jet ${jet}`).toBe(id);
+      expect(r.lethal).toBe(true);
+      expect(critiqueTriviale('aa', loc, jet)).toBe(false);
+    }
+  });
+  it.each(OUVERTES)('%s : le plafond de l’avant-dernière rangée reste fermé', (loc) => {
+    const table = critiqueTable('aa', loc);
+    const avantDerniere = table[table.length - 2];
+    expect(resolveCritique('aa', cible(), loc, makeRNG(1), { forcedRoll: avantDerniere.max! }).entryId).toBe(avantDerniere.id);
   });
 });

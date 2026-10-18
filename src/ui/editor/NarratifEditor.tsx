@@ -1017,7 +1017,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
 
 type OngletDuPnj = 'profil' | 'apparence' | 'couverture';
 
-/** Rubriques du formulaire d'un PNJ (CLAUDE.md, règle stricte 4). */
+/** Rubriques du formulaire d'un PNJ (AGENTS.md, règle stricte 4). */
 const ongletsDuPnj = (preset: PresetPnj): TabItem<OngletDuPnj>[] => [
   { key: 'profil', label: 'Profil' },
   { key: 'apparence', label: 'Apparence' },

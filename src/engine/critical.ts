@@ -6,23 +6,26 @@
  * Le SOCLE résout la séquence, la même pour les deux jeux : lookup `findTableEntry` → jet de la
  * rangée → `onRepeat` → `traumas` → `amputation` → `stampCriticalEscalation` → `fireCritTriggers`.
  * Les FEUILLES n'adressent que ce qui diffère, déclaré une fois dans `REGIMES` : le modificateur de
- * SÉVÉRITÉ du d100 (LDB 18 l.17 : −20 quand l'overkill dépasse le Bonus d'Endurance, minimum 01 /
- * AA 07 l.36 : +10 par Blessure au-delà de 0) et le libellé de journal.
+ * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
 import { d100, d10, RNG, defaultRNG } from './dice';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation, Trauma } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDoc, critiqueTable,
-  type CritEntry, type CritTableKey, type JeuDeCritique,
+  type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
+import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
 import { combatStakeRef, type StakeRef } from '../data';
 import { type GameOp } from './ops';
+import { isStructure, isEngin } from './structures';
+import { isVehicle, estNavire } from './coque';
+import { usesSuddenDeath } from './conditions';
 
 export type { CritTableKey, JeuDeCritique };
 
@@ -134,6 +137,9 @@ export interface CriticalResolved {
   desc: string;
   /** Jet d100 effectif (après modificateur de sévérité). */
   roll: number;
+  /** d100 lancé, avant modificateur de sévérité : « le lancer du tableau des Critiques », LDB 10 l.773 ;
+   *  #1595 c.6227274650 Q3. */
+  naturel: number;
   log: string;
 }
 
@@ -193,22 +199,15 @@ export function critLocationRoll(rng: RNG = defaultRNG, shape: BodyShape = 'huma
   return hitLocationByShape(d100(rng), shape);
 }
 
-/** LDB 18 l.53 : la Localisation d'un Coup Critique est un 1d100 FRAIS (jamais l'inversion de la touche),
- *  SAUF `override` — le Critique déjà montré (Déviation) ou la loc choisie (« Je ne faillirai pas ! »,
- *  LDB 17 l.68). SOURCE UNIQUE de la règle : mêlée, défense opposée et tir/magie en dérivent, puis
- *  passent le résultat à `applyCriticalToTarget` qui ne re-tire JAMAIS → le double tirage est impossible. */
+/** Localisation de la Blessure critique : 1d100 (LDB 18 l.53 ; AA 07 l.32), ou `override` déjà décidée
+ *  (LDB 17 l.68 ; #1595 c.6226467544). */
 export function critWoundLocation(rng: RNG, bodyShape: BodyShape = 'humanoide', override?: HitLocation): HitLocation {
   return override ?? critLocationRoll(rng, bodyShape);
 }
 
-/**
- * Réduction du d100 de SÉVÉRITÉ d'une Blessure critique — LDB 18 l.17 (verbatim : « vous ôtez -20 à
- * votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 »), quand les PB négatifs
- * dépassent le Bonus d'Endurance. SOURCE UNIQUE du modificateur : le régime `ldb` l'applique à SON
- * lookup, la DÉCLARATION d'étape à table le porte en `mod` (négatif) — les deux lisent la même valeur.
- */
-export function critSeverityReduction(target: Combatant, overkill: number): number {
-  return overkill > bonus(effectiveChar(target, 'endurance')) ? 20 : 0;
+/** LDB 18 l.17 ; #1595 c.6222318751. */
+function severiteLdb(target: Combatant, overkill: number): number {
+  return overkill > 0 && overkill < bonus(effectiveChar(target, 'endurance')) ? -20 : 0;
 }
 
 /** Décalage AA du jet de Critique (AA 07 l.36) : +10 par Blessure au-delà de 0. PUR. */
@@ -231,7 +230,7 @@ interface RegimeCritique {
  * (`crit-n-plus-1.test.ts`) puisse en poser une et la retirer — le moteur, lui, ne l'écrit jamais.
  */
 export const REGIMES_DE_CRITIQUE: Record<string, RegimeCritique> = {
-  ldb: { severite: (target, overkill) => -critSeverityReduction(target, overkill), journal: 'Blessure critique' },
+  ldb: { severite: severiteLdb, journal: 'Blessure critique' },
   aa: { severite: (_target, overkill) => aaCriticalOffset(overkill), journal: 'Blessure critique AA' },
 };
 
@@ -257,9 +256,153 @@ export function jeuDeCritique(twice = false): JeuDeCritique {
   return !twice && rule('combat-aa-blessures') === 'aa' ? 'aa' : 'ldb';
 }
 
-/** Lignes de la table d'un (jeu, clé) — passées PAR RÉFÉRENCE au registre d'étapes (zéro duplication). */
-export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): CritEntry[] {
-  return critiqueDoc(jeu, key).entries;
+/** Porteur d'une Blessure critique : le régime qui compte les Critiques d'un coup. */
+export type Porteur = 'personnage' | 'structure' | 'navire' | 'vehicule-routier' | 'inerte';
+/** Ce qui ouvre une Blessure critique : le Coup Critique (LDB 13 l.183, LDB 14 l.3 ; en `aa`, le passage à 0
+ *  d'un Personnage, AA 07 l.34, l.36, l.38 ; #1595 c.6226467544), le dépassement des Blessures (LDB 13 l.161,
+ *  LDB 18 l.23 ; EDOC 07 l.334), ou un coup sur une coque à 0 (AA 10 l.114 ; MDG 13 l.656). */
+export type OrigineCritique = 'coup-critique' | 'depassement' | 'a-zero';
+/** Cause d'un Coup Critique : double (LDB 13 l.183), Empaleuse (LDB 62 l.248), Incantation critique (LDB 46 l.28, l.30). */
+export type CauseCoupCritique = 'double' | 'empaleuse' | 'incantation-critique';
+export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
+/** Ce que `critiquesDuCoup` compte d'un coup. `current` = Blessures AVANT le coup ; `touche` : AA 10 l.114 ;
+ *  MDG 13 l.656 ; `relance` = verdict de `relanceLaLocalisation` à la naissance du coup (LDB 18 l.53, l.55 ;
+ *  AA 07 l.25, l.32) ; `blessures` = Blessures du coup à sa Localisation (LDB 13 l.159). */
+export interface CoupACompter {
+  coupCritique: CauseCoupCritique | null;
+  prise: boolean;
+  current: number;
+  touche: boolean;
+  relance: boolean;
+  blessures: number;
+}
+declare const marqueDuCompte: unique symbol;
+/** `relance` : LDB 17 l.68 ; LDB 18 l.53 ; AA 07 l.32. `blessures` : LDB 13 l.159. Marque anti-littéral :
+ *  seul `critiquesDuCoup` la pose, le spread la conserve (#2694). */
+export interface CompteDesCritiques {
+  critiques: readonly CritiqueDuCoup[];
+  mortSubite: boolean;
+  relance: boolean;
+  readonly blessures: number;
+  readonly [marqueDuCompte]: true;
+}
+
+/** Ce Critique est-il un Coup Critique ? SOURCE UNIQUE des lecteurs d'un Critique déjà compté (Bâclée,
+ *  `onCrit` filtré, titre). Partielle et Points faibles se lisent AVANT le compte : au jet
+ *  (`applyHit`, `AttackResult.critical`) et à la Localisation relancée (`woundsAtCritLocation`), qui
+ *  n'existe que par `CompteDesCritiques.relance`. Relance ⇒ Coup Critique ; pas la réciproque (#1595 c.6226467544,
+ *  branche 2). LDB 13 l.183 ; LDB 14 l.3 ; LDB 18 l.23 ; AA 07 l.34, l.38 ; #1595 c.6226467544. */
+export function estUnCoupCritique(origine: OrigineCritique | null | undefined): boolean {
+  return origine === 'coup-critique';
+}
+
+/** Ce qu'un PORTEUR adresse au compte — table jumelle de `REGIMES_DE_CRITIQUE`. */
+interface RegimeDePorteur {
+  /** AA 10 l.114 ; MDG 13 l.656 ; MSRC 07 l.74. */
+  aZeroToutCoup: boolean;
+  /** AA 10 l.114 ; #1595 c.6221792068 Q5. */
+  coupCritiqueCompte(lost: number, current: number): boolean;
+  /** LDB 13 l.161 ; AA 07 l.36 ; EDOC 07 l.334, LDB 14 l.3. */
+  depassement: boolean;
+  /** LDB 14 l.3, LDB 13 l.161, #1595 c.6220635824 ; AA 07 l.42 ; #1595 c.6221792068 Q1. */
+  plafond(jeu: JeuDeCritique): 0 | 1 | 2;
+  /** LDB 18 l.53 : d100 nu du Coup Critique (`ldb`, Personnage). */
+  coupCritiqueNu(jeu: JeuDeCritique): boolean;
+  /** AA 07 l.32 ; LDB 18 l.53 ; LDB 13 l.133 ; AA 10 l.105 ; MDG 13 l.571 ; EDOC 07 l.334. */
+  relance: boolean;
+  /** AA 07 l.25, l.34, l.36, l.38 ; LDB 18 l.23 ; #1595 c.6226467544, c.6227274650 Q4. */
+  passageAZeroEstCoupCritique(jeu: JeuDeCritique): boolean;
+  /** LDB 63 l.30 : la victime choisit (fenêtre Dévier/Subir). */
+  fenetre: boolean;
+  /** Le coup se clôt sur les PB du porteur : Premier sang, 0 PB (LDB 18 l.15), liens levés ; AA 10 l.127. */
+  clore: boolean;
+}
+
+const toujours = (): boolean => true;
+const jamais = (): boolean => false;
+
+export const REGIMES_DE_PORTEUR: Record<Porteur, RegimeDePorteur> = {
+  personnage: { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: (jeu) => (jeu === 'ldb' ? 2 : 1), coupCritiqueNu: (jeu) => jeu === 'ldb', relance: true, passageAZeroEstCoupCritique: (jeu) => jeu === 'aa', fenetre: true, clore: true },
+  structure: { aZeroToutCoup: true, coupCritiqueCompte: (lost, current) => lost >= current * 0.25, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, relance: false, passageAZeroEstCoupCritique: jamais, fenetre: false, clore: false },
+  navire: { aZeroToutCoup: true, coupCritiqueCompte: toujours, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, relance: false, passageAZeroEstCoupCritique: jamais, fenetre: false, clore: true },
+  'vehicule-routier': { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: () => 1, coupCritiqueNu: jamais, relance: false, passageAZeroEstCoupCritique: jamais, fenetre: false, clore: true },
+  inerte: { aZeroToutCoup: false, coupCritiqueCompte: jamais, depassement: false, plafond: () => 0, coupCritiqueNu: jamais, relance: false, passageAZeroEstCoupCritique: jamais, fenetre: false, clore: true },
+};
+
+const FORMES_DE_PERSONNAGE: ReadonlySet<BodyShape> = new Set(['humanoide', 'quadrupede', 'oiseau', 'serpent', 'araignee']);
+
+/** Porteur d'un combattant — SEUL classifieur du régime de Critique, TOTAL : une forme sans ligne lève. */
+export function porteurDeCritique(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>): Porteur {
+  if (isStructure(c)) return 'structure';
+  if (isVehicle(c)) return estNavire(c) ? 'navire' : 'vehicule-routier';
+  if (c.inert || isEngin(c)) return 'inerte';
+  const forme = c.bodyShape ?? 'humanoide';
+  if (FORMES_DE_PERSONNAGE.has(forme)) return 'personnage';
+  throw new Error(`porteurDeCritique : « ${c.label} » (forme « ${forme} ») n'a pas de ligne dans REGIMES_DE_PORTEUR.`);
+}
+
+/** Le régime d'un porteur, pour les lecteurs du store (fenêtre, plafond). */
+export function regimeDePorteur(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>): RegimeDePorteur {
+  return REGIMES_DE_PORTEUR[porteurDeCritique(c)];
+}
+
+/** La Localisation de la Blessure critique se relance-t-elle ? SEUL prédicat, lu à la naissance du coup ;
+ *  `current` = Blessures AVANT le coup. AA 07 l.25, l.32, l.52 ; LDB 18 l.53, l.55 ; LDB 18 l.44, l.46 ;
+ *  AA 07 l.65, l.67 ; #1595 c.6226467544, c.6227274650 Q1, Q2, Q4. */
+export function relanceLaLocalisation(
+  c: Combatant, coup: Pick<CoupACompter, 'coupCritique' | 'prise' | 'current'>, jeu: JeuDeCritique = jeuDeCritique(),
+): boolean {
+  if (!coup.prise || usesSuddenDeath(c)) return false;
+  const R = regimeDePorteur(c);
+  return R.relance && (coup.coupCritique !== null || (R.passageAZeroEstCoupCritique(jeu) && coup.current <= 0));
+}
+
+/** Le coup est-il « supérieur au total » (LDB 13 l.161) ou fait-il « tomber à 0 » (AA 07 l.36) ? */
+function depasse(jeu: JeuDeCritique, lost: number, current: number): boolean {
+  return jeu === 'aa' ? lost >= current : lost > current;
+}
+
+/** Le compte, marqué : seul constructeur de `CompteDesCritiques`. */
+function compteNe(critiques: readonly CritiqueDuCoup[], mortSubite: boolean, relance: boolean, blessures: number): CompteDesCritiques {
+  return { critiques, mortSubite, relance, blessures } as CompteDesCritiques;
+}
+
+/**
+ * Les Blessures critiques d'UN coup, dans leur ordre d'application — SOURCE UNIQUE du compte, pour l'arme
+ * et la magie. `coup.relance` est le verdict de `relanceLaLocalisation`, jamais recalculé ici.
+ * Prise : ADE II 08 l.296, l.300 ; MDG 13 l.605, l.614 ; LDB 85 l.98, l.278 ; LDB 47 l.358.
+ * Mort subite : LDB 18 l.44, l.46 ; AA 07 l.65, l.67 ; #1595 c.6219992594.
+ */
+export function critiquesDuCoup(c: Combatant, coup: CoupACompter, jeu: JeuDeCritique = jeuDeCritique()): CompteDesCritiques {
+  const { current, blessures: lost } = coup;
+  if (!coup.prise) return compteNe([], false, false, lost);
+  const R = REGIMES_DE_PORTEUR[porteurDeCritique(c)];
+  if (usesSuddenDeath(c)) return compteNe([], R.depassement && jeu !== 'aa' && depasse(jeu, lost, current), false, lost);
+  const overkill = Math.max(0, lost - current);
+  const critiques: CritiqueDuCoup[] = [];
+  const cc = coup.coupCritique !== null && R.coupCritiqueCompte(lost, current);
+  if (cc) critiques.push({ origine: 'coup-critique', overkill: R.coupCritiqueNu(jeu) ? 0 : overkill });
+  else if (coup.touche && R.aZeroToutCoup && current <= 0) critiques.push({ origine: 'a-zero', overkill });
+  if (R.depassement && depasse(jeu, lost, current)) critiques.push({ origine: R.passageAZeroEstCoupCritique(jeu) ? 'coup-critique' : 'depassement', overkill });
+  return compteNe(critiques.slice(0, R.plafond(jeu)), false, coup.relance, lost);
+}
+
+const rangeesOuvertes = memoParVersion(
+  ['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe', 'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe'],
+  (): Map<CritTable, (CritEntry & { max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
+);
+
+/** Les rangées d'une table de Critiques telles que `findTableEntry` les lit : AA 07 l.105, l.131,
+ *  l.157, l.183 ouverts par `tableOuverte`. Mémoïsées sur les datasets du seam. */
+function rangeesLues(table: CritTable): (CritEntry & { max: number })[] {
+  const rangees = rangeesOuvertes().get(table);
+  if (!rangees) throw new Error('rangeesLues : table de Critiques absente de CRITIQUE_DOCS.');
+  return rangees;
+}
+
+/** Lignes de la table d'un (jeu, clé), lues par `rangeesLues`. */
+export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { max: number })[] {
+  return rangeesLues(critiqueDoc(jeu, key).entries);
 }
 
 /**
@@ -268,7 +411,7 @@ export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): CritEntry[
  * Lue par la couche combat pour ne pas incrémenter `criticalWounds`. PUR.
  */
 export function critiqueTriviale(jeu: JeuDeCritique, location: HitLocation, roll: number): boolean {
-  const entry = findTableEntry(critiqueTable(jeu, location), Math.max(1, roll));
+  const entry = findTableEntry(rangeesLues(critiqueTable(jeu, location)), Math.max(1, roll));
   return !entry.lethal && !(entry.ops ?? []).some((o) => o.op === 'wounds');
 }
 
@@ -280,7 +423,7 @@ export function aaDeathByCriticalCount(inconscient: boolean, wounds: number, cri
 
 /** Ce que l'appelant peut moduler sur un Coup Critique — tout est optionnel, le socle a ses défauts. */
 export interface OptionsCritique {
-  /** PB perdus au-delà des PB courants (LDB 18 l.17 : réduction de sévérité ; AA 07 l.36 : +10 chacun). */
+  /** PB perdus au-delà des PB courants : LDB 18 l.17 ; AA 07 l.36. */
   overkill?: number;
   /** Bénédiction de Sauvagerie (LDB 41 l.170) : deux lancers, le porteur béni CHOISIT lequel. */
   twice?: boolean;
@@ -299,6 +442,11 @@ export interface OptionsCritique {
   forcedRoll?: number;
 }
 
+/** d100 nu du tableau des Critiques. LDB 18 l.53 ; LDB 41 l.170 ; #1595 c.6229550544. */
+export function lancerDuTableau(rng: RNG, twice: boolean): number {
+  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
+}
+
 /**
  * Résout une Blessure critique sur `target` à la `location`, dans le `jeu` donné. Le nœud `test` de
  * l'entrée n'est PAS joué ici : il ressort en `testFlow`, enjeu posé, et l'appelant `state` l'ouvre
@@ -315,9 +463,9 @@ export function resolveCritique(
   const { overkill = 0, twice = false, forcedRoll } = options;
   const regime = regimeDe(jeu);
   const be = bonus(effectiveChar(target, 'endurance'));
-  const raw = forcedRoll ?? (twice ? Math.max(d100(rng), d100(rng)) : d100(rng));
+  const raw = forcedRoll ?? lancerDuTableau(rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
-  const entry = structuredClone(findTableEntry(critiqueTable(jeu, location), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
+  const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
   // Nœud `test` de la rangée : FABRIQUÉ à part (enjeu à la LIGNE), jamais roulé — il part par la porte.
   const rangee = noeudDeRangee(entry, jeu, location);
@@ -363,6 +511,7 @@ export function resolveCritique(
     traumas,
     desc: entry.desc,
     roll,
+    naturel: raw,
     log: `${regime.journal} (${locationLabel(location, target.bodyShape)}) — ${entry.label}${entry.lethal ? ' — MORT !' : ''}.`,
   };
 }

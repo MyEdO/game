@@ -50,7 +50,7 @@ describe('Défense du champion / Riposte — contre-attaque (PINNING avant migra
     seedBattleRng(7);
     const { hero, enemy } = setup([{ id: 'champion' }]);
     const before = hero.wounds.current;
-    applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0], defenderWins);
+    applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0], { ...defenderWins, parryWeapon: enemy.weapons[0] });
     const h = useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(h.wounds.current).toBeLessThan(before); // l'attaquant a encaissé la contre-attaque
     expect(useGame.getState().battle!.log.some((e) => /riposte|champion|contre/i.test(e.text))).toBe(true);
@@ -60,7 +60,7 @@ describe('Défense du champion / Riposte — contre-attaque (PINNING avant migra
     seedBattleRng(7);
     const { hero, enemy } = setup([]); // pas de Champion
     const before = hero.wounds.current;
-    applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0], defenderWins);
+    applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0], { ...defenderWins, parryWeapon: enemy.weapons[0] });
     const h = useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(h.wounds.current).toBe(before);
   });
@@ -70,7 +70,7 @@ describe('Défense du champion / Riposte — contre-attaque (PINNING avant migra
     const { hero, enemy } = setup([{ id: 'champion' }]);
     const before = hero.wounds.current;
     applyAttackResult(useGame.getState, useGame.setState, hero, enemy, hero.weapons[0],
-      { ...defenderWins, advantageTo: 'attacker', netSL: 1 });
+      { ...defenderWins, parryWeapon: enemy.weapons[0], advantageTo: 'attacker', netSL: 1 });
     const h = useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(h.wounds.current).toBe(before);
   });

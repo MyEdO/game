@@ -864,7 +864,7 @@
     "roll": 63,
     "log": "Blessure critique AA (Jambe droite) — Mauvaise coupure."
   },
-  "ldb|2|tete|8": {
+  "ldb|2|tete|2": {
     "location": "tete",
     "entryId": "machoire-fracturee",
     "label": "Mâchoire fracturée",
@@ -909,7 +909,7 @@
     "roll": 154,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|2|brasG|8": {
+  "ldb|2|brasG|2": {
     "location": "brasG",
     "entryId": "cassure-nette",
     "label": "Cassure nette",
@@ -987,7 +987,7 @@
     "roll": 154,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|2|brasD|8": {
+  "ldb|2|brasD|2": {
     "location": "brasD",
     "entryId": "cassure-nette",
     "label": "Cassure nette",
@@ -1065,7 +1065,7 @@
     "roll": 154,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|2|corps|8": {
+  "ldb|2|corps|2": {
     "location": "corps",
     "entryId": "cotes-fracturees",
     "label": "Côtes fracturées",
@@ -1127,7 +1127,7 @@
     "roll": 154,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|2|jambeG|8": {
+  "ldb|2|jambeG|2": {
     "location": "jambeG",
     "entryId": "mauvaise-coupure",
     "label": "Mauvaise coupure",
@@ -1196,7 +1196,7 @@
     "roll": 154,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|2|jambeD|8": {
+  "ldb|2|jambeD|2": {
     "location": "jambeD",
     "entryId": "mauvaise-coupure",
     "label": "Mauvaise coupure",
@@ -2066,7 +2066,7 @@
     "roll": 73,
     "log": "Blessure critique AA (Jambe droite) — Jambe charcutée."
   },
-  "ldb|4|tete|8": {
+  "ldb|4|tete|2": {
     "location": "tete",
     "entryId": "machoire-cassee",
     "label": "Mâchoire cassée",
@@ -2147,7 +2147,7 @@
     "roll": 173,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|4|brasG|8": {
+  "ldb|4|brasG|2": {
     "location": "brasG",
     "entryId": "coude-fracasse",
     "label": "Coude fracassé",
@@ -2191,7 +2191,7 @@
     "roll": 173,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|4|brasD|8": {
+  "ldb|4|brasD|2": {
     "location": "brasD",
     "entryId": "coude-fracasse",
     "label": "Coude fracassé",
@@ -2235,7 +2235,7 @@
     "roll": 173,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|4|corps|8": {
+  "ldb|4|corps|2": {
     "location": "corps",
     "entryId": "dos-froisse",
     "label": "Dos froissé",
@@ -2275,7 +2275,7 @@
     "roll": 173,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|4|jambeG|8": {
+  "ldb|4|jambeG|2": {
     "location": "jambeG",
     "entryId": "tendon-rompu",
     "label": "Tendon rompu",
@@ -2404,7 +2404,7 @@
     "roll": 173,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|4|jambeD|8": {
+  "ldb|4|jambeD|2": {
     "location": "jambeD",
     "entryId": "tendon-rompu",
     "label": "Tendon rompu",
@@ -3204,7 +3204,7 @@
     "roll": 69,
     "log": "Blessure critique AA (Jambe droite) — Genou méchamment tordu."
   },
-  "ldb|6|tete|8": {
+  "ldb|6|tete|2": {
     "location": "tete",
     "entryId": "coup-percutant",
     "label": "Coup percutant",
@@ -3238,7 +3238,7 @@
     "roll": 133,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|6|brasG|8": {
+  "ldb|6|brasG|2": {
     "location": "brasG",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -3442,7 +3442,7 @@
     "roll": 133,
     "log": "Blessure critique AA (Bras gauche) — Tendons coupés."
   },
-  "ldb|6|brasD|8": {
+  "ldb|6|brasD|2": {
     "location": "brasD",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -3646,7 +3646,7 @@
     "roll": 133,
     "log": "Blessure critique AA (Bras droit) — Tendons coupés."
   },
-  "ldb|6|corps|8": {
+  "ldb|6|corps|2": {
     "location": "corps",
     "entryId": "souffle-coupe",
     "label": "Souffle coupé",
@@ -3726,7 +3726,7 @@
     "roll": 133,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|6|jambeG|8": {
+  "ldb|6|jambeG|2": {
     "location": "jambeG",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -3795,7 +3795,7 @@
     "roll": 133,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|6|jambeD|8": {
+  "ldb|6|jambeD|2": {
     "location": "jambeD",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -4264,7 +4264,7 @@
     "roll": 2,
     "log": "Blessure critique AA (Jambe droite) — Orteil contusionné."
   },
-  "ldb|8|tete|8": {
+  "ldb|8|tete|2": {
     "location": "tete",
     "entryId": "blessure-spectaculaire",
     "label": "Blessure spectaculaire",
@@ -4447,7 +4447,7 @@
     "roll": 96,
     "log": "Blessure critique AA (Tête) — Mâchoire mutilée."
   },
-  "ldb|8|brasG|8": {
+  "ldb|8|brasG|2": {
     "location": "brasG",
     "entryId": "choc-au-bras",
     "label": "Choc au bras",
@@ -4512,7 +4512,7 @@
     "roll": 96,
     "log": "Blessure critique AA (Bras gauche) — Épaule luxée."
   },
-  "ldb|8|brasD|8": {
+  "ldb|8|brasD|2": {
     "location": "brasD",
     "entryId": "choc-au-bras",
     "label": "Choc au bras",
@@ -4577,7 +4577,7 @@
     "roll": 96,
     "log": "Blessure critique AA (Bras droit) — Épaule luxée."
   },
-  "ldb|8|corps|8": {
+  "ldb|8|corps|2": {
     "location": "corps",
     "entryId": "rien-qu-une-egratignure",
     "label": "Rien qu'une égratignure !",
@@ -4653,7 +4653,7 @@
     "roll": 96,
     "log": "Blessure critique AA (Corps) — Clavicule cassée."
   },
-  "ldb|8|jambeG|8": {
+  "ldb|8|jambeG|2": {
     "location": "jambeG",
     "entryId": "orteil-contusionne",
     "label": "Orteil contusionné",
@@ -4793,7 +4793,7 @@
     "roll": 96,
     "log": "Blessure critique AA (Jambe gauche) — Genou démis."
   },
-  "ldb|8|jambeD|8": {
+  "ldb|8|jambeD|2": {
     "location": "jambeD",
     "entryId": "orteil-contusionne",
     "label": "Orteil contusionné",
@@ -5336,7 +5336,7 @@
     "roll": 20,
     "log": "Blessure critique AA (Jambe droite) — Perte d'équilibre."
   },
-  "ldb|10|tete|8": {
+  "ldb|10|tete|2": {
     "location": "tete",
     "entryId": "coup-percutant",
     "label": "Coup percutant",
@@ -5370,7 +5370,7 @@
     "roll": 131,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|10|brasG|8": {
+  "ldb|10|brasG|2": {
     "location": "brasG",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -5574,7 +5574,7 @@
     "roll": 131,
     "log": "Blessure critique AA (Bras gauche) — Tendons coupés."
   },
-  "ldb|10|brasD|8": {
+  "ldb|10|brasD|2": {
     "location": "brasD",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -5778,7 +5778,7 @@
     "roll": 131,
     "log": "Blessure critique AA (Bras droit) — Tendons coupés."
   },
-  "ldb|10|corps|8": {
+  "ldb|10|corps|2": {
     "location": "corps",
     "entryId": "souffle-coupe",
     "label": "Souffle coupé",
@@ -5858,7 +5858,7 @@
     "roll": 131,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|10|jambeG|8": {
+  "ldb|10|jambeG|2": {
     "location": "jambeG",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -5927,7 +5927,7 @@
     "roll": 131,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|10|jambeD|8": {
+  "ldb|10|jambeD|2": {
     "location": "jambeD",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -6560,7 +6560,7 @@
     "roll": 52,
     "log": "Blessure critique AA (Jambe droite) — Genou tordu."
   },
-  "ldb|12|tete|8": {
+  "ldb|12|tete|2": {
     "location": "tete",
     "entryId": "blessure-spectaculaire",
     "label": "Blessure spectaculaire",
@@ -6605,7 +6605,7 @@
     "roll": 109,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|12|brasG|8": {
+  "ldb|12|brasG|2": {
     "location": "brasG",
     "entryId": "choc-au-bras",
     "label": "Choc au bras",
@@ -6670,7 +6670,7 @@
     "roll": 109,
     "log": "Blessure critique AA (Bras gauche) — Épaule luxée."
   },
-  "ldb|12|brasD|8": {
+  "ldb|12|brasD|2": {
     "location": "brasD",
     "entryId": "choc-au-bras",
     "label": "Choc au bras",
@@ -6735,7 +6735,7 @@
     "roll": 109,
     "log": "Blessure critique AA (Bras droit) — Épaule luxée."
   },
-  "ldb|12|corps|8": {
+  "ldb|12|corps|2": {
     "location": "corps",
     "entryId": "rien-qu-une-egratignure",
     "label": "Rien qu'une égratignure !",
@@ -6811,7 +6811,7 @@
     "roll": 109,
     "log": "Blessure critique AA (Corps) — Clavicule cassée."
   },
-  "ldb|12|jambeG|8": {
+  "ldb|12|jambeG|2": {
     "location": "jambeG",
     "entryId": "orteil-contusionne",
     "label": "Orteil contusionné",
@@ -6999,7 +6999,7 @@
     "roll": 109,
     "log": "Blessure critique AA (Jambe gauche) — Pied écrasé."
   },
-  "ldb|12|jambeD|8": {
+  "ldb|12|jambeD|2": {
     "location": "jambeD",
     "entryId": "orteil-contusionne",
     "label": "Orteil contusionné",
@@ -7860,7 +7860,7 @@
     "roll": 57,
     "log": "Blessure critique AA (Jambe droite) — Coupure à l'orteil."
   },
-  "ldb|14|tete|8": {
+  "ldb|14|tete|2": {
     "location": "tete",
     "entryId": "coup-a-l-il",
     "label": "Coup à l'œil",
@@ -7894,7 +7894,7 @@
     "roll": 125,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|14|brasG|8": {
+  "ldb|14|brasG|2": {
     "location": "brasG",
     "entryId": "torsion",
     "label": "Torsion",
@@ -7965,7 +7965,7 @@
     "roll": 125,
     "log": "Blessure critique AA (Bras gauche) — Biceps déchiqueté."
   },
-  "ldb|14|brasD|8": {
+  "ldb|14|brasD|2": {
     "location": "brasD",
     "entryId": "torsion",
     "label": "Torsion",
@@ -8036,7 +8036,7 @@
     "roll": 125,
     "log": "Blessure critique AA (Bras droit) — Biceps déchiqueté."
   },
-  "ldb|14|corps|8": {
+  "ldb|14|corps|2": {
     "location": "corps",
     "entryId": "coup-bas",
     "label": "Coup bas",
@@ -8100,7 +8100,7 @@
     "roll": 125,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|14|jambeG|8": {
+  "ldb|14|jambeG|2": {
     "location": "jambeG",
     "entryId": "coupure-mineure-3",
     "label": "Coupure mineure",
@@ -8258,7 +8258,7 @@
     "roll": 125,
     "log": "Blessure critique AA (Jambe gauche) — Tendon coupé."
   },
-  "ldb|14|jambeD|8": {
+  "ldb|14|jambeD|2": {
     "location": "jambeD",
     "entryId": "coupure-mineure-3",
     "label": "Coupure mineure",
@@ -8781,7 +8781,7 @@
     "roll": 24,
     "log": "Blessure critique AA (Jambe droite) — Cheville tordue."
   },
-  "ldb|16|tete|8": {
+  "ldb|16|tete|2": {
     "location": "tete",
     "entryId": "oreille-tranchee",
     "label": "Oreille tranchée",
@@ -8820,7 +8820,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|16|brasG|8": {
+  "ldb|16|brasG|2": {
     "location": "brasG",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -8862,7 +8862,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|16|brasD|8": {
+  "ldb|16|brasD|2": {
     "location": "brasD",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -8904,7 +8904,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|16|corps|8": {
+  "ldb|16|corps|2": {
     "location": "corps",
     "entryId": "clavicule-tordue",
     "label": "Clavicule tordue",
@@ -8946,7 +8946,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|16|jambeG|8": {
+  "ldb|16|jambeG|2": {
     "location": "jambeG",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -8986,7 +8986,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|16|jambeD|8": {
+  "ldb|16|jambeD|2": {
     "location": "jambeD",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -9697,7 +9697,7 @@
     "roll": 68,
     "log": "Blessure critique AA (Jambe droite) — Genou méchamment tordu."
   },
-  "ldb|18|tete|8": {
+  "ldb|18|tete|2": {
     "location": "tete",
     "entryId": "coupure-mineure",
     "label": "Coupure mineure",
@@ -9731,7 +9731,7 @@
     "roll": 120,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|18|brasG|8": {
+  "ldb|18|brasG|2": {
     "location": "brasG",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -9895,7 +9895,7 @@
     "roll": 120,
     "log": "Blessure critique AA (Bras gauche) — Main ouverte."
   },
-  "ldb|18|brasD|8": {
+  "ldb|18|brasD|2": {
     "location": "brasD",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -10059,7 +10059,7 @@
     "roll": 120,
     "log": "Blessure critique AA (Bras droit) — Main ouverte."
   },
-  "ldb|18|corps|8": {
+  "ldb|18|corps|2": {
     "location": "corps",
     "entryId": "coup-au-ventre",
     "label": "Coup au ventre",
@@ -10128,7 +10128,7 @@
     "roll": 120,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|18|jambeG|8": {
+  "ldb|18|jambeG|2": {
     "location": "jambeG",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -10292,7 +10292,7 @@
     "roll": 120,
     "log": "Blessure critique AA (Jambe gauche) — Pied sectionné."
   },
-  "ldb|18|jambeD|8": {
+  "ldb|18|jambeD|2": {
     "location": "jambeD",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -10862,7 +10862,7 @@
     "roll": 6,
     "log": "Blessure critique AA (Jambe droite) — Orteil contusionné."
   },
-  "ldb|20|tete|8": {
+  "ldb|20|tete|2": {
     "location": "tete",
     "entryId": "blessure-majeure-a-l-il",
     "label": "Blessure majeure à l'œil",
@@ -10902,7 +10902,7 @@
     "roll": 156,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|20|brasG|8": {
+  "ldb|20|brasG|2": {
     "location": "brasG",
     "entryId": "ligament-rompu",
     "label": "Ligament rompu",
@@ -10945,7 +10945,7 @@
     "roll": 156,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|20|brasD|8": {
+  "ldb|20|brasD|2": {
     "location": "brasD",
     "entryId": "ligament-rompu",
     "label": "Ligament rompu",
@@ -10988,7 +10988,7 @@
     "roll": 156,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|20|corps|8": {
+  "ldb|20|corps|2": {
     "location": "corps",
     "entryId": "blessure-beante-2",
     "label": "Blessure béante",
@@ -11029,7 +11029,7 @@
     "roll": 156,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|20|jambeG|8": {
+  "ldb|20|jambeG|2": {
     "location": "jambeG",
     "entryId": "genou-mechamment-tordu",
     "label": "Genou méchamment tordu",
@@ -11083,7 +11083,7 @@
     "roll": 156,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|20|jambeD|8": {
+  "ldb|20|jambeD|2": {
     "location": "jambeD",
     "entryId": "genou-mechamment-tordu",
     "label": "Genou méchamment tordu",
@@ -11560,7 +11560,7 @@
     "roll": 44,
     "log": "Blessure critique AA (Jambe droite) — Coup à la cuisse."
   },
-  "ldb|22|tete|8": {
+  "ldb|22|tete|2": {
     "location": "tete",
     "entryId": "oreille-tranchee",
     "label": "Oreille tranchée",
@@ -11599,7 +11599,7 @@
     "roll": 143,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|22|brasG|8": {
+  "ldb|22|brasG|2": {
     "location": "brasG",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -11641,7 +11641,7 @@
     "roll": 143,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|22|brasD|8": {
+  "ldb|22|brasD|2": {
     "location": "brasD",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -11683,7 +11683,7 @@
     "roll": 143,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|22|corps|8": {
+  "ldb|22|corps|2": {
     "location": "corps",
     "entryId": "clavicule-tordue",
     "label": "Clavicule tordue",
@@ -11725,7 +11725,7 @@
     "roll": 143,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|22|jambeG|8": {
+  "ldb|22|jambeG|2": {
     "location": "jambeG",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -11765,7 +11765,7 @@
     "roll": 143,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|22|jambeD|8": {
+  "ldb|22|jambeD|2": {
     "location": "jambeD",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -12211,7 +12211,7 @@
     "roll": 10,
     "log": "Blessure critique AA (Jambe droite) — Orteil contusionné."
   },
-  "ldb|24|tete|8": {
+  "ldb|24|tete|2": {
     "location": "tete",
     "entryId": "coupure-mineure",
     "label": "Coupure mineure",
@@ -12245,7 +12245,7 @@
     "roll": 114,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|24|brasG|8": {
+  "ldb|24|brasG|2": {
     "location": "brasG",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -12393,7 +12393,7 @@
     "roll": 114,
     "log": "Blessure critique AA (Bras gauche) — Doigt sectionné."
   },
-  "ldb|24|brasD|8": {
+  "ldb|24|brasD|2": {
     "location": "brasD",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -12541,7 +12541,7 @@
     "roll": 114,
     "log": "Blessure critique AA (Bras droit) — Doigt sectionné."
   },
-  "ldb|24|corps|8": {
+  "ldb|24|corps|2": {
     "location": "corps",
     "entryId": "coup-au-ventre",
     "label": "Coup au ventre",
@@ -12623,7 +12623,7 @@
     "roll": 114,
     "log": "Blessure critique AA (Corps) — Hémorragie interne."
   },
-  "ldb|24|jambeG|8": {
+  "ldb|24|jambeG|2": {
     "location": "jambeG",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -12786,7 +12786,7 @@
     "roll": 114,
     "log": "Blessure critique AA (Jambe gauche) — Pied écrasé."
   },
-  "ldb|24|jambeD|8": {
+  "ldb|24|jambeD|2": {
     "location": "jambeD",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -13622,7 +13622,7 @@
     "roll": 60,
     "log": "Blessure critique AA (Jambe droite) — Coupure à l'orteil."
   },
-  "ldb|26|tete|8": {
+  "ldb|26|tete|2": {
     "location": "tete",
     "entryId": "coup-percutant",
     "label": "Coup percutant",
@@ -13656,7 +13656,7 @@
     "roll": 132,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|26|brasG|8": {
+  "ldb|26|brasG|2": {
     "location": "brasG",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -13860,7 +13860,7 @@
     "roll": 132,
     "log": "Blessure critique AA (Bras gauche) — Tendons coupés."
   },
-  "ldb|26|brasD|8": {
+  "ldb|26|brasD|2": {
     "location": "brasD",
     "entryId": "dechirure-musculaire",
     "label": "Déchirure musculaire",
@@ -14064,7 +14064,7 @@
     "roll": 132,
     "log": "Blessure critique AA (Bras droit) — Tendons coupés."
   },
-  "ldb|26|corps|8": {
+  "ldb|26|corps|2": {
     "location": "corps",
     "entryId": "souffle-coupe",
     "label": "Souffle coupé",
@@ -14144,7 +14144,7 @@
     "roll": 132,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|26|jambeG|8": {
+  "ldb|26|jambeG|2": {
     "location": "jambeG",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -14213,7 +14213,7 @@
     "roll": 132,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|26|jambeD|8": {
+  "ldb|26|jambeD|2": {
     "location": "jambeD",
     "entryId": "coup-a-la-cuisse",
     "label": "Coup à la cuisse",
@@ -14705,7 +14705,7 @@
     "roll": 41,
     "log": "Blessure critique AA (Jambe droite) — Coup à la cuisse."
   },
-  "ldb|28|tete|8": {
+  "ldb|28|tete|2": {
     "location": "tete",
     "entryId": "coup-a-l-il",
     "label": "Coup à l'œil",
@@ -14739,7 +14739,7 @@
     "roll": 123,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|28|brasG|8": {
+  "ldb|28|brasG|2": {
     "location": "brasG",
     "entryId": "torsion",
     "label": "Torsion",
@@ -14810,7 +14810,7 @@
     "roll": 123,
     "log": "Blessure critique AA (Bras gauche) — Biceps déchiqueté."
   },
-  "ldb|28|brasD|8": {
+  "ldb|28|brasD|2": {
     "location": "brasD",
     "entryId": "torsion",
     "label": "Torsion",
@@ -14881,7 +14881,7 @@
     "roll": 123,
     "log": "Blessure critique AA (Bras droit) — Biceps déchiqueté."
   },
-  "ldb|28|corps|8": {
+  "ldb|28|corps|2": {
     "location": "corps",
     "entryId": "coup-bas",
     "label": "Coup bas",
@@ -14945,7 +14945,7 @@
     "roll": 123,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|28|jambeG|8": {
+  "ldb|28|jambeG|2": {
     "location": "jambeG",
     "entryId": "coupure-mineure-3",
     "label": "Coupure mineure",
@@ -15103,7 +15103,7 @@
     "roll": 123,
     "log": "Blessure critique AA (Jambe gauche) — Tendon coupé."
   },
-  "ldb|28|jambeD|8": {
+  "ldb|28|jambeD|2": {
     "location": "jambeD",
     "entryId": "coupure-mineure-3",
     "label": "Coupure mineure",
@@ -15626,7 +15626,7 @@
     "roll": 22,
     "log": "Blessure critique AA (Jambe droite) — Cheville tordue."
   },
-  "ldb|30|tete|8": {
+  "ldb|30|tete|2": {
     "location": "tete",
     "entryId": "nez-casse",
     "label": "Nez cassé",
@@ -15707,7 +15707,7 @@
     "roll": 167,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|30|brasG|8": {
+  "ldb|30|brasG|2": {
     "location": "brasG",
     "entryId": "artere-endommagee",
     "label": "Artère endommagée",
@@ -15748,7 +15748,7 @@
     "roll": 167,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|30|brasD|8": {
+  "ldb|30|brasD|2": {
     "location": "brasD",
     "entryId": "artere-endommagee",
     "label": "Artère endommagée",
@@ -15789,7 +15789,7 @@
     "roll": 167,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|30|corps|8": {
+  "ldb|30|corps|2": {
     "location": "corps",
     "entryId": "degats-arteriels",
     "label": "Dégâts artériels",
@@ -15830,7 +15830,7 @@
     "roll": 167,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|30|jambeG|8": {
+  "ldb|30|jambeG|2": {
     "location": "jambeG",
     "entryId": "cuisse-laceree",
     "label": "Cuisse lacérée",
@@ -15906,7 +15906,7 @@
     "roll": 167,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|30|jambeD|8": {
+  "ldb|30|jambeD|2": {
     "location": "jambeD",
     "entryId": "cuisse-laceree",
     "label": "Cuisse lacérée",
@@ -16653,7 +16653,7 @@
     "roll": 68,
     "log": "Blessure critique AA (Jambe droite) — Genou méchamment tordu."
   },
-  "ldb|32|tete|8": {
+  "ldb|32|tete|2": {
     "location": "tete",
     "entryId": "coupure-mineure",
     "label": "Coupure mineure",
@@ -16687,7 +16687,7 @@
     "roll": 119,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|32|brasG|8": {
+  "ldb|32|brasG|2": {
     "location": "brasG",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -16851,7 +16851,7 @@
     "roll": 119,
     "log": "Blessure critique AA (Bras gauche) — Main ouverte."
   },
-  "ldb|32|brasD|8": {
+  "ldb|32|brasD|2": {
     "location": "brasD",
     "entryId": "coupure-mineure-2",
     "label": "Coupure mineure",
@@ -17015,7 +17015,7 @@
     "roll": 119,
     "log": "Blessure critique AA (Bras droit) — Main ouverte."
   },
-  "ldb|32|corps|8": {
+  "ldb|32|corps|2": {
     "location": "corps",
     "entryId": "coup-au-ventre",
     "label": "Coup au ventre",
@@ -17084,7 +17084,7 @@
     "roll": 119,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|32|jambeG|8": {
+  "ldb|32|jambeG|2": {
     "location": "jambeG",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -17248,7 +17248,7 @@
     "roll": 119,
     "log": "Blessure critique AA (Jambe gauche) — Pied sectionné."
   },
-  "ldb|32|jambeD|8": {
+  "ldb|32|jambeD|2": {
     "location": "jambeD",
     "entryId": "cheville-tordue",
     "label": "Cheville tordue",
@@ -18085,7 +18085,7 @@
     "roll": 56,
     "log": "Blessure critique AA (Jambe droite) — Coupure à l'orteil."
   },
-  "ldb|34|tete|8": {
+  "ldb|34|tete|2": {
     "location": "tete",
     "entryId": "oreille-tranchee",
     "label": "Oreille tranchée",
@@ -18124,7 +18124,7 @@
     "roll": 141,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|34|brasG|8": {
+  "ldb|34|brasG|2": {
     "location": "brasG",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -18166,7 +18166,7 @@
     "roll": 141,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|34|brasD|8": {
+  "ldb|34|brasD|2": {
     "location": "brasD",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -18208,7 +18208,7 @@
     "roll": 141,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|34|corps|8": {
+  "ldb|34|corps|2": {
     "location": "corps",
     "entryId": "clavicule-tordue",
     "label": "Clavicule tordue",
@@ -18250,7 +18250,7 @@
     "roll": 141,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|34|jambeG|8": {
+  "ldb|34|jambeG|2": {
     "location": "jambeG",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -18290,7 +18290,7 @@
     "roll": 141,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|34|jambeD|8": {
+  "ldb|34|jambeD|2": {
     "location": "jambeD",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -18730,7 +18730,7 @@
     "roll": 1,
     "log": "Blessure critique AA (Jambe droite) — Orteil contusionné."
   },
-  "ldb|36|tete|8": {
+  "ldb|36|tete|2": {
     "location": "tete",
     "entryId": "commotion-cerebrale",
     "label": "Commotion cérébrale",
@@ -18839,7 +18839,7 @@
     "roll": 176,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|36|brasG|8": {
+  "ldb|36|brasG|2": {
     "location": "brasG",
     "entryId": "epaule-luxee",
     "label": "Épaule luxée",
@@ -18937,7 +18937,7 @@
     "roll": 176,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|36|brasD|8": {
+  "ldb|36|brasD|2": {
     "location": "brasD",
     "entryId": "epaule-luxee",
     "label": "Épaule luxée",
@@ -19035,7 +19035,7 @@
     "roll": 176,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|36|corps|8": {
+  "ldb|36|corps|2": {
     "location": "corps",
     "entryId": "hanche-fracturee",
     "label": "Hanche fracturée",
@@ -19132,7 +19132,7 @@
     "roll": 176,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|36|jambeG|8": {
+  "ldb|36|jambeG|2": {
     "location": "jambeG",
     "entryId": "entaille-au-tibia",
     "label": "Entaille au tibia",
@@ -19221,7 +19221,7 @@
     "roll": 176,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|36|jambeD|8": {
+  "ldb|36|jambeD|2": {
     "location": "jambeD",
     "entryId": "entaille-au-tibia",
     "label": "Entaille au tibia",
@@ -19874,7 +19874,7 @@
     "roll": 52,
     "log": "Blessure critique AA (Jambe droite) — Genou tordu."
   },
-  "ldb|38|tete|8": {
+  "ldb|38|tete|2": {
     "location": "tete",
     "entryId": "machoire-fracturee",
     "label": "Mâchoire fracturée",
@@ -19919,7 +19919,7 @@
     "roll": 153,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|38|brasG|8": {
+  "ldb|38|brasG|2": {
     "location": "brasG",
     "entryId": "cassure-nette",
     "label": "Cassure nette",
@@ -19997,7 +19997,7 @@
     "roll": 153,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|38|brasD|8": {
+  "ldb|38|brasD|2": {
     "location": "brasD",
     "entryId": "cassure-nette",
     "label": "Cassure nette",
@@ -20075,7 +20075,7 @@
     "roll": 153,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|38|corps|8": {
+  "ldb|38|corps|2": {
     "location": "corps",
     "entryId": "cotes-fracturees",
     "label": "Côtes fracturées",
@@ -20137,7 +20137,7 @@
     "roll": 153,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|38|jambeG|8": {
+  "ldb|38|jambeG|2": {
     "location": "jambeG",
     "entryId": "mauvaise-coupure",
     "label": "Mauvaise coupure",
@@ -20206,7 +20206,7 @@
     "roll": 153,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|38|jambeD|8": {
+  "ldb|38|jambeD|2": {
     "location": "jambeD",
     "entryId": "mauvaise-coupure",
     "label": "Mauvaise coupure",
@@ -20681,7 +20681,7 @@
     "roll": 8,
     "log": "Blessure critique AA (Jambe droite) — Orteil contusionné."
   },
-  "ldb|40|tete|8": {
+  "ldb|40|tete|2": {
     "location": "tete",
     "entryId": "oreille-tranchee",
     "label": "Oreille tranchée",
@@ -20720,7 +20720,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Tête) — Crâne fracassé — MORT !."
   },
-  "ldb|40|brasG|8": {
+  "ldb|40|brasG|2": {
     "location": "brasG",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -20762,7 +20762,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Bras gauche) — Démembrement brutal — MORT !."
   },
-  "ldb|40|brasD|8": {
+  "ldb|40|brasD|2": {
     "location": "brasD",
     "entryId": "clef-de-bras",
     "label": "Clef de bras",
@@ -20804,7 +20804,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Bras droit) — Démembrement brutal — MORT !."
   },
-  "ldb|40|corps|8": {
+  "ldb|40|corps|2": {
     "location": "corps",
     "entryId": "clavicule-tordue",
     "label": "Clavicule tordue",
@@ -20846,7 +20846,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Corps) — Éventré — MORT !."
   },
-  "ldb|40|jambeG|8": {
+  "ldb|40|jambeG|2": {
     "location": "jambeG",
     "entryId": "genou-tordu",
     "label": "Genou tordu",
@@ -20886,7 +20886,7 @@
     "roll": 144,
     "log": "Blessure critique AA (Jambe gauche) — Bassin fracassé — MORT !."
   },
-  "ldb|40|jambeD|8": {
+  "ldb|40|jambeD|2": {
     "location": "jambeD",
     "entryId": "genou-tordu",
     "label": "Genou tordu",

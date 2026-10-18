@@ -1,8 +1,7 @@
 /**
- * NAUFRAGE EN MER — séquence de survie GÉNÉRIQUE (aucun couplage campagne), un SEUL chemin pour les deux
- * sites où le navire de campagne coule : l'avarie de voyage (`seaVoyageFlow`, coque à 0 hors combat) et le
- * combat naval perdu avec la coque coulée (`checkBattleOver`). Une coque coule quand ses Blessures tombent
- * à 0 (MDG 13 l.674 : « Quand l'Indice devient égal au score d'Endurance du navire, il coule »).
+ * NAUFRAGE EN MER — séquence de survie GÉNÉRIQUE (aucun couplage campagne), un SEUL chemin pour le site où
+ * le navire de campagne coule : le combat naval perdu avec la coque coulée (`checkBattleOver`, État
+ * `naufrage`, MDG 13 l.674). Une coque à 0 Blessure ne coule pas (MDG 13 l.656).
  *
  * Cascade INFLUENÇABLE (#269) : chaque héros conscient à bord tente de rejoindre la surface à la NAGE —
  * Test de Natation (LDB 09 l.372 : « votre capacité à nager dans l'eau sans vous noyer… dans des courants
@@ -82,7 +81,7 @@ function shorePlace(get: Get): MapPlace | undefined {
  * le navire (coque + cargaison perdues, IMMÉDIAT — indépendant de l'issue des jets) et surface le
  * dénouement (modale document + journal). `aboardIds` : héros à bord (défaut = tout le groupe vivant) — le
  * combat naval passe l'équipage de la coque coulée. Le navire qui sombre est celui de campagne, sinon
- * (passage) celui du voyage (`travelPlan.vehicle`, `seaVoyageFlow`) : l'un des deux est requis.
+ * (passage) celui du voyage (`travelPlan.vehicle`) : l'un des deux est requis.
  */
 export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] } = {}): void {
   const vessel = get().vessel;

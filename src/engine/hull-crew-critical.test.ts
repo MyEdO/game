@@ -3,10 +3,10 @@ import { applyHullCritical, exposedCrew } from './shipCritical';
 import { vehicleCombatant } from './vehicle';
 import { findVehicleById } from '../data';
 import { makeRNG } from './dice';
-import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, COND } from './conditions';
+import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
 
-/** Marin minimal (Combattant de personnage) — assez pour `resolveCritique`/`applyOps`. */
+/** Marin minimal (Combattant de personnage) — assez pour les Éclats (`applyOps`). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
   id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
@@ -16,21 +16,28 @@ const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
 const hull = () => vehicleCombatant(findVehicleById('cogue')!)!; // rig 'voile'
 
 /**
- * Liaison ÉQUIPAGE↔COQUE (MDG 13-14) : un Critique encaissé par un navire RÉPERCUTE sur de VRAIS marins —
- * coup à l'Équipage = Critique de PERSONNAGE sur un marin exposé ; Éclats = 9 Dégâts à autant de marins.
+ * Liaison ÉQUIPAGE↔COQUE (MDG 13-14) : le coup à l'Équipage DÉSIGNE le marin exposé qui encaisse le coup
+ * (sa résolution vit au flux : `applyHullCriticalToTarget`) ; Éclats = 9 Dégâts à autant de marins.
  */
 describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un journal)', () => {
-  it("Localisation Équipage (d100≤9) → un marin EXPOSÉ subit un Critique de personnage (resolveCritique)", () => {
+  // MDG 13 l.584 ; #1595 c.6228605059 (b).
+  it('Équipage : le moteur désigne le premier marin exposé et ne résout rien sur lui', () => {
     const ship = hull();
-    const crew = [sailor('marin-1'), sailor('marin-2')];
-    const before = crew[0].wounds.current;
-    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5); // loc 5 → Équipage
+    const crew = [sailor('mort', { dead: true }), sailor('marin-1', { label: 'Marin' }), sailor('marin-2')];
+    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5);
     expect(r.location).toBe('equipage');
-    expect(r.crewCrit?.crewId).toBe('marin-1'); // le 1er marin exposé encaisse
-    expect(r.crewCrit?.crit.label).toBeTruthy();
-    // Un Critique de personnage retire des PB (ops) et/ou pose un Trauma/État → le marin est touché.
-    const touched = crew[0].wounds.current < before || (crew[0].traumas?.length ?? 0) > 0 || crew[0].conditions.length > 0;
-    expect(touched).toBe(true);
+    expect(r.marinId).toBe('marin-1');
+    expect(r.hullOps).toEqual([]);
+    expect(r.shrapnel).toEqual([]);
+    expect(crew[1].wounds.current).toBe(13);
+    expect(crew[1].conditions).toEqual([]);
+    expect(r.lines.join(' ')).toMatch(/Équipage touché : Marin encaisse le coup/);
+  });
+
+  it('hors Équipage : aucun marin désigné', () => {
+    const r = applyHullCritical(hull(), [sailor('marin-1')], 'voile', makeRNG(1), 50, 8);
+    expect(r.location).toBe('coque');
+    expect(r.marinId).toBeUndefined();
   });
 
   it('Coque (d100=50, d10=8) → Voie d’eau sur la coque + Éclats 6 : 6 marins encaissent l’effet (9 Dégâts − BE)', () => {
@@ -59,28 +66,31 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     const dead = [sailor('mort', { dead: true })];
     expect(exposedCrew(dead)).toHaveLength(0);
     const r = applyHullCritical(ship, dead, 'voile', makeRNG(2), 5);
-    expect(r.crewCrit).toBeUndefined();
+    expect(r.marinId).toBeUndefined();
     expect(r.lines.join(' ')).toMatch(/aucun marin exposé/);
   });
 });
 
-/**
- * Modèle de MORT d'une coque (MDG 13) : une coque N'EST PAS un figurant — pas de « Mort Subite » de
- * mook, pas d'« À Terre »/« Inconscient » ; elle est détruite (hors-jeu) quand ses Blessures tombent à 0.
- */
-describe('Coque — mise hors de combat à 0 PB (ni figurant, ni Inconscient)', () => {
+/** Coque à 0 Blessure : MDG 13 l.656, l.674 ; MSRC 07 l.74. */
+describe('Coque — à 0 PB reste en jeu, ne sort que coulée (ni figurant, ni Inconscient)', () => {
   it("une coque n'utilise jamais la Mort Subite (figurant)", () => {
     expect(usesSuddenDeath(hull())).toBe(false);
   });
-  it('détruite à 0 PB → hors de combat (sans État À Terre ni Inconscient)', () => {
+  it('à 0 PB → toujours en jeu, sans État À Terre ni Inconscient ni horloge de LDB 18 l.15', () => {
     const s = hull();
     s.wounds.current = 0;
     applyZeroWounds(s);
     expect(hasCondition(s, COND.aTerre)).toBe(false);
-    expect(isOutOfAction(s)).toBe(true);
+    expect(isOutOfAction(s)).toBe(false);
     tickDeath(s);
     expect(hasCondition(s, COND.inconscient)).toBe(false);
-    expect(s.roundsAtZero ?? 0).toBe(0); // pas de cascade de mort lente sur une coque
+    expect(s.roundsAtZero ?? 0).toBe(0);
+  });
+  it('coulée (État naufrage, MDG 13 l.674) → hors de combat', () => {
+    const s = hull();
+    s.wounds.current = 0;
+    addCondition(s, 'naufrage');
+    expect(isOutOfAction(s)).toBe(true);
   });
   it('coque intacte (PB > 0) → toujours en combat', () => {
     expect(isOutOfAction(hull())).toBe(false);

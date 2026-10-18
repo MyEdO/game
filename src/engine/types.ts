@@ -1482,6 +1482,9 @@ export interface Combatant {
    *  Sert à poser la BRÈCHE (`setStructureDown`) à sa destruction. `side` redéclare `state/scene` WallSide ici
    *  (même union) pour ne pas faire dépendre le moteur PUR de l'état. */
   structureEdge?: { x: number; y: number; side: WallEdgeSide; z?: number };
+  /** Structure tirée sur la ligne Effondrement (AA 10 l.127), posé par `applyStructureCriticalToTarget` ; la
+   *  brèche et le retrait suivent au balayage de `checkBattleOver`. */
+  effondree?: boolean;
   /** Objet INERTE explicite (ni structure de siège, ni véhicule-coque) : une pièce SERVIE inanimée — affût
    *  d'artillerie d'un emplacement (AA/MDG 12) — qui se REND par son espèce (engin) mais n'a NI réaction de
    *  combat (Parade/Esquive/Localisation/Engagement, via `isInanimate`) NI tour propre (hors `order`). Son seul
@@ -1803,6 +1806,9 @@ export interface Combatant {
   /** Réaction de Porte-Bouclier (variante AA 13 l.84) déjà employée ce Round : « une fois par Round ».
    *  Posé par `applyShieldReaction`, purgé au franchissement de Round. */
   usedShieldReactionRound?: boolean;
+  /** Ripostes jouées ce Round, plafonnées par `ContreSurDefense.plafond` (LDB 10 l.1037). Purgé au
+   *  franchissement de Round. */
+  ripostesThisRound?: number;
   /** Distraire (LDB 10 l.364 / AA 13 l.51) : distrait par un adversaire → ne peut gagner AUCUN Avantage
    *  (mode groupe : sa réserve) jusqu'à la FIN de ce Round de bataille. Compteur de Rounds restants
    *  décrémenté au franchissement de Round (2 = « jusqu'à la fin du PROCHAIN Round » quand posé en cours

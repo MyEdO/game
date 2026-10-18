@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveCritique, findCritEntrySuffered, critEntryCodexCategory, REGIMES_DE_CRITIQUE } from './critical';
 import { CRITIQUE_DOCS, critiqueDoc, critiqueTable, critiqueEntries, type CritDoc, type JeuDeCritique } from '../data/criticals';
+import { bumperDataset } from '../data/versionDataset';
 import type { Combatant } from './types';
 import type { RNG } from './dice';
 
@@ -14,6 +15,7 @@ import type { RNG } from './dice';
  * coûte rien du tout.
  *
  * Le test POSE un 9ᵉ document en mémoire, le joue, puis le retire — l'arbre de donnée n'est pas touché.
+ * Pose et retrait versionnent `criticalsTete` (`src/data/versionDataset.ts`).
  */
 
 const seq = (...values: number[]): RNG => {
@@ -53,12 +55,25 @@ const NEUVIEME: CritDoc = {
   ],
 };
 
-const poser = () => CRITIQUE_DOCS.push(NEUVIEME);
+const poser = () => {
+  CRITIQUE_DOCS.push(NEUVIEME);
+  bumperDataset('criticalsTete');
+};
 const retirer = () => {
   const i = CRITIQUE_DOCS.indexOf(NEUVIEME);
-  if (i >= 0) CRITIQUE_DOCS.splice(i, 1);
+  if (i >= 0) {
+    CRITIQUE_DOCS.splice(i, 1);
+    bumperDataset('criticalsTete');
+  }
   delete REGIMES_DE_CRITIQUE[JEU_NEUF];
 };
+
+const instantane = () => ({
+  documents: CRITIQUE_DOCS.length,
+  rangees: CRITIQUE_DOCS.reduce((n, d) => n + d.entries.length, 0),
+  regimes: Object.keys(REGIMES_DE_CRITIQUE).sort(),
+});
+const AU_CHARGEMENT = instantane();
 
 describe('N+1 — un 9ᵉ document-table lu sans une ligne de moteur', () => {
   afterEach(retirer);
@@ -92,9 +107,7 @@ describe('N+1 — un 9ᵉ document-table lu sans une ligne de moteur', () => {
     expect(() => resolveCritique(JEU_NEUF, cible(), 'tete', seq(50))).toThrow(/jeu-de-morsure/);
   });
 
-  it('l’arbre de donnée est intact après la morsure (8 documents, 160 rangées)', () => {
-    expect(CRITIQUE_DOCS.length).toBe(8);
-    expect(CRITIQUE_DOCS.reduce((n, d) => n + d.entries.length, 0)).toBe(160);
-    expect(Object.keys(REGIMES_DE_CRITIQUE).sort()).toEqual(['aa', 'ldb']);
+  it('l’arbre de donnée est intact après la morsure : documents, rangées et régimes du chargement', () => {
+    expect(instantane()).toEqual(AU_CHARGEMENT);
   });
 });

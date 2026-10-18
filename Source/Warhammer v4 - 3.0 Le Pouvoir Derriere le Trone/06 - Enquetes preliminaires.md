@@ -447,7 +447,7 @@ Liebnitz est un homme trapu, presque un peu gros, mais visiblement doté d'une s
 
 ### **Le Temple de Shallya**
 
-Les Personnages peuvent rencontrer des novices très facilement, mais ils ont besoin d'une bonne raison pour obtenir un rendezvous avec la Grande Prêtresse, Isolde Begegnen.
+Les Personnages peuvent rencontrer des novices très facilement, mais ils ont besoin d'une bonne raison pour obtenir un rendez-vous avec la Grande Prêtresse, Isolde Begegnen.
 
 Ici, les prêtres condamnent ouvertement l'impôt des temples : ils n'acceptent pas que l'argent de cette taxe aille remplir les coffres du Graf, alors qu'il devrait servir à aider les pauvres et les malades. L'impôt nain et l'impôt sur les parchemins ciblent quant à eux certains des plus généreux bienfaiteurs de leur temple, ce qui n'arrange rien. Le temple est petit, et il est clair qu'il ne conserve qu'une infime partie des dons qui lui sont faits.
 

@@ -13,6 +13,7 @@ import { prendreVerrou } from '../test/verrou.mjs'
 import { GESTES_DU_BOARD, issuesDeGh, mesurer } from './board.mjs'
 import { lignesDeLaMesure, lireMesure, porteeDe } from './suiviDonnee.mjs'
 import { ecrireSuivi, lireLeSuivi, nomDeLaMesure, relire } from './suiviFichiers.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { inventaire } from './worktrees.mjs'
 
 /** Le verrou de la mesure EN COURS du suivi de l'épique `n`, pris sans attente pour toute sa durée. PURE. */
@@ -60,7 +61,7 @@ const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Obj
  */
 export function mesurerLeSuivi({ numero, dossier, sansFetch = false, json = false, fs = FS, pid = process.pid, maintenant = new Date(), mesure = {} }) {
   const lu = lireLeSuivi({ dossier, epique: numero, lisibles: [], fs })
-  if (!lu.suivi) return { code: 1, stdout: '', stderr: `[suivi] ${lu.alerte}\n` }
+  if (!lu.suivi) return { code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(fs.existsSync(lu.chemin) ? 'panne' : 'validation')} ${lu.alerte}\n` }
   const verrou = prendreVerrou({ chemin: join(dossier, nomDuVerrouDeMesure(numero)), libelle: `mesure du suivi #${numero}`, pid, commande: 'scripts/ops/suivi.mjs --mesurer', cwd: dossier, fs })
   if (verrou.etat !== 'pris') {
     const deja = `mesure du suivi #${numero} déjà en cours : rien n'est lancé`
@@ -89,7 +90,7 @@ function mesurerSousVerrou({ numero, dossier, sansFetch, json, fs, pid, maintena
     profil,
   }
   const ecrit = ecrireSuivi({ cible, contenu: `${JSON.stringify(document, null, 2)}\n`, attendu: avant, geste: 'la mesure', fs, pid })
-  if (!ecrit.ok) return { code: 1, stdout: '', stderr: `[suivi] ${ecrit.refus}\n${vu.ok ? '' : `[suivi] mesure refusée : ${vu.refus}\n`}` }
+  if (!ecrit.ok) return { code: 1, stdout: '', stderr: `[suivi] ${prefixeDeRefus(ecrit.categorie)} ${ecrit.refus}\n${vu.ok ? '' : `[suivi] mesure refusée : ${vu.refus}\n`}` }
   const rendu = json
     ? JSON.stringify(document)
     : [...lignesDeLaMesure({ epique: numero, mesure: lireMesure(relire(cible, fs)) }), ...document.anomalies.map((a) => `- ⚠ ${a.texte}`), ligneDeProfil(profil)].join('\n')

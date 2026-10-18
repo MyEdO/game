@@ -61,7 +61,7 @@ function isActionableTarget(target: EventTarget | null): boolean {
 /**
  * MasterDetail — GABARIT DE COMPOSITION UNIQUE d'un maître-détail (liste à gauche, détail au
  * centre) : deux slots posés sur `Split`/`Stack` (couche LAYOUT), empilement ≤700px (breakpoints
- * canon), 360px sans scroll horizontal. Réconciliation avec la piste ÉCARTÉE `useMasterDetail` (CLAUDE.md « Pistes
+ * canon), 360px sans scroll horizontal. Réconciliation avec la piste ÉCARTÉE `useMasterDetail` (`docs/architecture.md` « Pistes de mutualisation
  * évaluées puis écartées ») : le rejet portait sur le HOOK D'ÉTAT PARTAGÉ (marchand ⇄ carte
  * divergent après sélection) — il reste écarté. Cette primitive est un GABARIT DE LAYOUT pur :
  * aucun état de sélection dedans, l'appelant possède `list`/`detail` (boutons a11y natifs ou

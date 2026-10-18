@@ -1458,7 +1458,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(keys).toContain('g2-charge');
     expect(keys).toContain('g4-recharger');
     // Les textes attendus sont LUS DANS LA DONNÉE (aucune chaîne de règle recopiée dans ce test) : c'est
-    // le contrat « le texte de règle affiché est du verbatim recollable dans `Source/` » (CLAUDE.md 5).
+    // le contrat « le texte de règle affiché est du verbatim recollable dans `Source/` » (AGENTS.md 5).
     const fiche = regles.find((r) => r.id === 'charger')!;
     const qualite = findQualityById('recharge')!;
     expect(fiche.desc.length, 'la fiche regles/charger doit porter son verbatim').toBeGreaterThan(80);

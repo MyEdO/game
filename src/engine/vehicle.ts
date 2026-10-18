@@ -84,7 +84,7 @@ export interface VehicleRepairResult {
  * restaure (1d10 + DR) points de Dégâts. » Le résolveur est PUR : il ne mute pas la coque, il rend les
  * points à rendre ; c'est l'appelant qui les pose (`applyOps`, op `heal`).
  *
- * L'heure est facturée à la TENTATIVE, échec compris — arbitrage MAISON (CLAUDE.md règle 7) : le
+ * L'heure est facturée à la TENTATIVE, échec compris — arbitrage MAISON (AGENTS.md règle 7) : le
  * passage emploie « tenter des réparations » et « chaque réparation » pour le même geste, il ne
  * tranche pas le coût d'un jet raté ; l'attacher au seul succès rendrait la réessai gratuite et
  * illimitée, ce qui invente autant. L'absence des trois conditions matérielles (l.351), elle, ne

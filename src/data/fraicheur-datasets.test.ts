@@ -396,7 +396,7 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     const evts = datasetArray('seaBoardEvents');
     const premier = evts[0];
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
-    setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max - 1 } : e)));
-    expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max - 1);
+    setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max! - 1 } : e)));
+    expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max! - 1);
   });
 });

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { endState } from './conditions';
+import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
@@ -42,11 +43,19 @@ describe('endState — état de fin lisible (#237)', () => {
   it('sortie générique (sans motif) = « hors-combat »', () => {
     expect(endState(mk({ outOfRencontre: true }))).toBe('hors-combat');
   });
-  it('figurant tombé à 0 PB (Mort Subite) = « hors-combat »', () => {
-    expect(endState(mk({ kind: 'enemy', wounds: { current: 0, max: 12 } }))).toBe('hors-combat');
+  describe('figurant tombé à 0 PB', () => {
+    afterEach(() => resetRule('combat-aa-blessures'));
+    it("'aa' : Mort Subite à 0 Blessure (AA 07 l.65) = « hors-combat »", () => {
+      setRule('combat-aa-blessures', 'aa');
+      expect(endState(mk({ kind: 'enemy', wounds: { current: 0, max: 12 } }))).toBe('hors-combat');
+    });
+    it("'ldb' : à 0 exact, pas de dépassement (LDB 18 l.46) = null", () => {
+      expect(endState(mk({ kind: 'enemy', wounds: { current: 0, max: 12 } }))).toBe(null);
+    });
   });
-  it('coque coulée (0 PB) = « hors-combat » ; coque intacte = null', () => {
-    expect(endState(mk({ bodyShape: 'vehicule', wounds: { current: 0, max: 40 } } as Partial<Combatant>))).toBe('hors-combat');
+  it('coque coulée (État naufrage, MDG 13 l.674) = « hors-combat » ; coque à 0 PB = null (MDG 13 l.656)', () => {
+    expect(endState(mk({ bodyShape: 'vehicule', wounds: { current: 0, max: 40 }, conditions: [{ id: 'naufrage', value: 1 }] } as Partial<Combatant>))).toBe('hors-combat');
+    expect(endState(mk({ bodyShape: 'vehicule', wounds: { current: 0, max: 40 } } as Partial<Combatant>))).toBe(null);
     expect(endState(mk({ bodyShape: 'vehicule', wounds: { current: 40, max: 40 } } as Partial<Combatant>))).toBe(null);
   });
   it('objet INERTE (affût servi) = null (0 PB permanent, jamais une fin)', () => {

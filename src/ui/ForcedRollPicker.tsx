@@ -5,6 +5,7 @@ import { maxForcedRoll } from '../engine/tests';
 import { FIXED_ROLL_MAX } from '../engine/fixedDie';
 import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
+import { t } from '../i18n';
 
 /** Les 6 localisations d'un Coup Critique (ordre du tableau LDB). */
 const CRIT_LOCS: HitLocation[] = ['tete', 'corps', 'brasD', 'brasG', 'jambeD', 'jambeG'];
@@ -26,7 +27,7 @@ export function CritLocationPicker({ current, onSet, shape = 'humanoide' }: {
   }));
   return (
     <div className="rm-options">
-      <span className="mini-title"><Icon id="fire/flame" size="sm" /> Localisation du Coup Critique (Je ne faillirai pas !)</span>
+      <span className="mini-title"><Icon id="fire/flame" size="sm" /> {t('touche.nouvelleLocalisation', { lieu: t('touche.nouvelleLocalisationAuChoix') })}</span>
       <OptionChooser options={options} layout="grid" />
     </div>
   );

@@ -235,7 +235,7 @@ ${tableGroupesResume}
 ## Provenance
 
 ${MAISON.length} règles sur ${REGLES.length} portent un champ \`maison\` : le RAW ne chiffre pas la
-valeur, l'arbitrage est explicite (CLAUDE.md règle 7). ${AVEC_SOURCE.length} portent une ancre
+valeur, l'arbitrage est explicite (AGENTS.md règle 7). ${AVEC_SOURCE.length} portent une ancre
 \`source: {book, page}\` au folio imprimé. ${AVEC_ACTION.length} portent une \`action\` rendue sous la
 rangée quand la règle atteint sa valeur de déclenchement.
 

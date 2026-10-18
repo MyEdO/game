@@ -43,7 +43,7 @@ import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
-import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
@@ -89,30 +89,38 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     // avec une base de Capacité de Combat, quelle que soit l'arme en main.
     // Mode et arme de parade viennent du jet du DÉFENSEUR (figés dans son détail), la pénalité
     // d'esquive du contexte de la résolution — jamais un défaut forgé.
-    // p.withhold (Retenir ses coups, AA) propagé : la re-dérivation Chance/Résilience garde le coup non létal.
+    // LDB 18 l.30 ; AA 07 l.59
     const mode = dd.mode ?? bestDefenseMode(target);
     const dodge = p.dodgeMods ?? [];
     // Substitution sociale (Intimidation/Dressage, LDB 09 l.207/287) : base et libelle viennent du jet
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     return weapon.type === 'ranged'
-      ? finishRanged(attacker, target, weapon, atk2, def, mode, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo)
-      : finishMelee(attacker, target, weapon, atk2, def, mode, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
+      ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
+      : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
-  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo, dmgProxy);
+  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
+}
+
+/** Arme avec laquelle cette Défense pare : la DÉCLARÉE (`defenseSetParryWeapon`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
+export function parryWeaponOf(defender: Combatant, p: PendingDefense): Weapon | undefined {
+  return (p.parryWeaponUid ? defender.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined) ?? defaultParryWeapon(defender);
 }
 
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
- *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; `parry` = arme de parade choisie. */
-function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], parry?: Weapon, metresPerTile = 2): AttackResult {
+ *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; l'arme de parade est `parryWeaponOf`. */
+function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], metresPerTile = 2): AttackResult {
   const sub = defenseSubOf(defender, p);
+  const parry = parryWeaponOf(defender, p);
   const atk = forcedOpposedAtk(p, def);
+  // LDB 18 l.53 ; AA 07 l.32
+  const tirage = { rng: battleRng(), fige: p.result?.critLocation ?? p.critLocation };
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
   return p.weapon.type === 'ranged'
-    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo)
-    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
+    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
+    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
 
 /**
@@ -645,7 +653,7 @@ export const FLOWS = {
       read: (p) => (p.def ? { roll: p.def.roll, target: p.def.target, base: p.def.base } : null),
       write: (s, p, actor, _g, tr) => {
         const att = actorIn(s, p.attackerId);
-        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), undefined, sceneMetresPerTile(s.scene)) } : null;
+        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) } : null;
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
@@ -668,13 +676,12 @@ export const FLOWS = {
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
         const def2 = forcedTR(dDie, p.def.target, Math.max(evaluateTest(dDie, p.def.target).sl, opposedForcedFloor(p.atk.sl, cancelled)), p.def.base);
-        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), undefined, mpt) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), mpt) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
       const dodgeMods = defenseDodgeMods(s, actor);
-      const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, parry, p.weapon, defenseSubOf(actor, p));
-      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, parry, mpt) };
+      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, parryWeaponOf(actor, p), p.weapon, defenseSubOf(actor, p));
+      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, mpt) };
     },
     outcome: (p) => testOutcome(p.def),
     bonus: {
@@ -684,8 +691,7 @@ export const FLOWS = {
         if (!attacker) return null;
         const dd = p.result!.defenderDetail!;
         const def2 = bumpSL(hydrateTR(dd));
-        const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -700,8 +706,7 @@ export const FLOWS = {
         const attacker = actorIn(s, p.attackerId); if (!attacker) return null;
         // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.applyRoll — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, target: p.def!.target, base: p.def!.base, success: tr.success, sl: tr.sl });
-        const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) };
       },
     },
   }),
@@ -1230,7 +1235,7 @@ export const FLOWS = {
       write: (s, slot, actor, _g, tr, p) => {
         if (slot.kind === 'calme') return { calme: { roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success } };
         const t = p ? actorIn(s, p.moverId) : undefined;
-        return actor && t ? { result: rederivePassiveAttack(actor, t, backstabWeapon(actor), tr, 'melee', undefined, false, frozenDifficulty(slot.result?.attackerDetail)) } : null;
+        return actor && t ? { result: rederivePassiveAttack(actor, t, backstabWeapon(actor), tr, 'melee', { rng: battleRng(), fige: slot.result?.critLocation }, undefined, false, frozenDifficulty(slot.result?.attackerDetail)) } : null;
       },
     },
     resolve: (s, slot, actor, _get, forced, p) => {
@@ -1251,7 +1256,7 @@ export const FLOWS = {
         // Dé PAR DÉFAUT = LE MEILLEUR (LDB 17 l.68), jamais le dé raté courant.
         const bDie = bestForcedRoll(ad.target);
         const atk2 = forcedTR(bDie, ad.target, Math.max(evaluateTest(bDie, ad.target).sl, 1));
-        return { result: rederivePassiveAttack(actor, target, weapon, atk2, 'melee', undefined, false, frozenDifficulty(ad)) };
+        return { result: rederivePassiveAttack(actor, target, weapon, atk2, 'melee', { rng: battleRng(), fige: slot.result?.critLocation }, undefined, false, frozenDifficulty(ad)) };
       }
       return { result: resolveBackstabAttack(actor, target, battleRng()) };
     },
@@ -1266,7 +1271,7 @@ export const FLOWS = {
         const target = p ? actorIn(s, p.moverId) : undefined;
         if (!target) return null;
         const atk2 = bumpSL(hydrateTR(slot.result!.attackerDetail!));
-        return { result: rederivePassiveAttack(actor, target, backstabWeapon(actor), atk2, 'melee', undefined, false, frozenDifficulty(slot.result!.attackerDetail)) };
+        return { result: rederivePassiveAttack(actor, target, backstabWeapon(actor), atk2, 'melee', { rng: battleRng(), fige: slot.result!.critLocation }, undefined, false, frozenDifficulty(slot.result!.attackerDetail)) };
       },
     },
   }),

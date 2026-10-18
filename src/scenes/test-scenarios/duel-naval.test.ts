@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { seedBattleRng } from '../../state/battleRng';
 import { scenario } from './duel-naval';
@@ -12,6 +12,7 @@ import { chebyshev } from '../../state/path';
 import { runEnemyAI, checkBattleOver } from '../../state/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { fr } from '../../i18n/messages/fr';
+import { draineCascade, poseSurDeNonTombe } from '../../state/cascadeTestKit';
 const scenarioConstruit = scenario.construire();
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */
@@ -152,5 +153,78 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     const { baseM, manoeuvre } = shipManeuverParams(ship('cogue-duel'), 'maritime');
     expect(manoeuvre).toBeGreaterThan(0);
     expect(chebyshev(avant, ship('cogue-duel').pos!), 'la coque avance de M, ni plus ni moins').toBe(baseM);
+  });
+});
+
+// LDB 63 l.30 ; MDG 13 l.584 ; #1595
+describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne se rejouent pas', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('Dévier : PA −1 par Déviation, deux tirs joués une fois, la main passe', () => {
+    launch(692);
+    const b = useGame.getState().battle!;
+    const grimm = ship('grimm-duel'), cogue = ship('cogue-duel');
+    grimm.pos = { x: 8, y: 7 };
+    cogue.pos = { x: 8, y: 3 };
+    const marin = 'pregen-101';
+    grimm.crewIds = [marin, ...grimm.crewIds!.filter((id) => id !== marin)];
+    const tribord = cogue.postes!.find((p) => p.side === 'tribord')!;
+    cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
+    useGame.setState({ facing: { ...useGame.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, turn: b.order.indexOf('cogue-duel') } });
+    const bordees = vi.spyOn(useGame.getState(), 'shipAutoBattery');
+    const tirs = () => useGame.getState().battle!.log.filter((l) => l.text.includes(`touche ${grimm.label}`)).length;
+    const paAvant = ship(marin).armour.corps;
+
+    runEnemyAI(useGame.getState, useGame.setState, 'cogue-duel');
+    const etapes = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
+    expect(etapes.map((s) => s.actorId), 'la fenêtre du marin est ouverte').toContain(marin);
+    expect(tirs(), 'le tir 2 est joué avant la décision du marin').toBe(2);
+    const cap = useGame.getState().facing['cogue-duel'];
+    const pos = { ...ship('cogue-duel').pos! };
+    vi.advanceTimersByTime(5000);
+
+    const devies = draineCascade(useGame.getState, 200, undefined, () => 'devier').filter((k) => k === 'deviation').length;
+    vi.advanceTimersByTime(20000);
+    expect(devies).toBeGreaterThan(0);
+    expect(ship(marin).armour.corps, 'PA −1 par Déviation').toBe(paAvant - devies);
+    expect(ship(marin).criticalWounds ?? 0).toBe(0);
+    expect(tirs(), 'chaque tir part une fois').toBe(2);
+    expect(bordees, 'une seule bordée').toHaveBeenCalledTimes(1);
+    expect(useGame.getState().facing['cogue-duel'], 'le tour du navire ne se rejoue pas').toBe(cap);
+    expect(ship('cogue-duel').pos, 'le tour du navire ne se rejoue pas').toEqual(pos);
+    const apres = useGame.getState().battle!;
+    expect(apres.over, 'le combat continue').toBeNull();
+    expect(useGame.getState().pendingRoundStart, 'la main a quitté la cogue : pause de début de Round').not.toBeNull();
+  });
+
+  // MDG 14 l.37 ; #1852 ; #1595
+  it('un coup INTERMÉDIAIRE de la volée suspend : à la reprise, la cogue ne rejoue pas son tour', () => {
+    launch(2);
+    const b = useGame.getState().battle!;
+    const cogue = ship('cogue-duel');
+    cogue.pos = { x: 8, y: 3 };
+    ship('grimm-duel').pos = { x: 8, y: 9 };
+    const tribord = cogue.postes!.find((p) => p.side === 'tribord')!;
+    cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
+    const pirate = { ...structuredClone(ship('pregen-101')), id: 'pirate', label: 'Pirate', pos: { x: 8, y: 5 }, traits: [{ id: 'demoniaque', value: 9 }] } as unknown as Combatant;
+    useGame.setState({ facing: { ...useGame.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, combatants: [...b.combatants, pirate], turn: b.order.indexOf('cogue-duel') } });
+    const bordees = vi.spyOn(useGame.getState(), 'shipAutoBattery');
+    const pv = ship('pirate').wounds.current;
+    const cap = useGame.getState().facing['cogue-duel'];
+    const pos = { ...ship('cogue-duel').pos! };
+
+    expect(useGame.getState().shipAutoBattery('cogue-duel', 'pirate')).toBe(true);
+    expect(useGame.getState().pendingCascade, 'le 1er coup suspend sur la sauvegarde').not.toBeNull();
+    expect(ship('pirate').wounds.current, 'le 2e coup attend dans la suite').toBe(pv);
+    vi.advanceTimersByTime(5000);
+    draineCascade(useGame.getState, 200, poseSurDeNonTombe(1));
+    vi.advanceTimersByTime(20000);
+
+    expect(bordees, 'une seule bordée').toHaveBeenCalledTimes(1);
+    expect(useGame.getState().facing['cogue-duel'], 'le tour du navire ne se rejoue pas').toBe(cap);
+    expect(ship('cogue-duel').pos, 'le tour du navire ne se rejoue pas').toEqual(pos);
+    expect(useGame.getState().battle!.over, 'le combat continue').toBeNull();
+    expect(useGame.getState().pendingRoundStart, 'la main a quitté la cogue : pause de début de Round').not.toBeNull();
   });
 });

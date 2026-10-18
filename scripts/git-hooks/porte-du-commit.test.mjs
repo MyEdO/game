@@ -41,12 +41,52 @@ import {
   jugerLeCommit,
   shasCitesDuSolde,
 } from './porte-du-commit.mjs'
-import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
+import { apportDeLaResolution, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { lignesDuContenu } from '../guards/lib/stock.mjs'
-import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
+
+for (const nom of ['JUGE', 'REFUTATION', 'JUGE-VISION']) {
+  test(`#2767 commit : ${nom} exige sa propre ligne`, () => {
+    const preuve = 'preuve adversariale assez longue pour couvrir le diff relu complètement'
+    const evaluer = (texte) => {
+      const message = `chore: refs #2767\n\n${nom === 'JUGE-VISION' ? `JUGE: ${preuve}\n` : ''}${texte}`
+      return (nom === 'REFUTATION' ? evaluateAntiEsquive : evaluateJuge)({ message, stagedTouchesSrc: true, stagedSrcLines: 10, stagedTouchesUi: nom === 'JUGE-VISION' })
+    }
+    for (const texte of [`Sonde du ${nom}: ${preuve}`, `${nom.toLowerCase()}: ${preuve}`, `${nom}:\n${preuve}`, `${nom}\n: ${preuve}`, `${nom}: bref`]) {
+      assert.match(evaluer(texte)?.reason ?? '', /^\[validation · non retentable\]/, texte)
+    }
+    for (const texte of [`Sonde du ${nom}: bref\n${nom}: ${preuve}`, `${nom}: bref\n${nom}: ${preuve}`, `\t${nom} : ${preuve}\r\n`]) {
+      assert.equal(evaluer(texte), null, texte)
+    }
+  })
+}
+
+test('#2774 commit : seule la substance sous src déclenche les deux preuves', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'README.md': 'socle\n' }, message: 'socle' })
+  const git = gitDe(racine)
+  const lignes = (n) => Array.from({ length: n }, (_, i) => `export const x${i} = ${i}\n`).join('')
+  try {
+    mkdirSync(join(racine, 'src'), { recursive: true })
+    mkdirSync(join(racine, 'scripts'), { recursive: true })
+    writeFileSync(join(racine, 'scripts', 'outil.mjs'), lignes(50))
+    writeFileSync(join(racine, 'src', 'a.ts'), lignes(1))
+    git('add', 'src/a.ts', 'scripts/outil.mjs')
+    const evaluer = (message) => jugerLeCommit({ message, dir: racine, today: TODAY })
+    assert.equal(await evaluer('chore: refs #2774'), null)
+    writeFileSync(join(racine, 'src', 'a.ts'), lignes(10))
+    git('add', 'src/a.ts')
+    const refus = (await evaluer('chore: refs #2774'))?.reason ?? ''
+    assert.match(refus, /sans réfutation/)
+    assert.match(refus, /sans juge/)
+    assert.match(refus, /\[validation · non retentable\]/)
+    assert.match(refus, /lignes changées sous src\//)
+    const preuve = 'preuve indépendante sur le diff complet et les contournements discriminants'
+    assert.equal(await evaluer(`chore: refs #2774\n\nJUGE: ${preuve}\nREFUTATION: ${preuve}`), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 const TODAY = '2026-07-14'
 /** La racine du dépôt, ancrée sur l'emplacement de ce banc. */
@@ -284,35 +324,30 @@ test('validateRefFile : section Réfutation trop maigre', () => {
 
 // ── analyzeDiffDuCommit ────────────────────────────────────────────────────────────────────────────
 const entree = (plus, moins, chemin) => ({ plus, moins, chemins: [chemin] })
-test('analyzeDiffDuCommit : touche src/**, compte les lignes', () => {
+test('analyzeDiffDuCommit : conserve les chemins src et docs', () => {
   const raw = [entree(5, 2, 'src/engine/character.ts'), entree(1, 0, 'docs/plans/truc.md')]
-  const r = analyzeDiffDuCommit(raw)
-  assert.equal(r.touchesSrc, true)
-  assert.equal(r.totalLines, 8)
+  assert.deepEqual(analyzeDiffDuCommit(raw), { touchesUi: false, fichiers: ['src/engine/character.ts', 'docs/plans/truc.md'] })
 })
 
-test('analyzeDiffDuCommit : docs-only ne touche pas src', () => {
+test('analyzeDiffDuCommit : docs-only ne touche pas un écran', () => {
   const raw = [entree(10, 3, 'docs/architecture.md')]
-  const r = analyzeDiffDuCommit(raw)
-  assert.equal(r.touchesSrc, false)
+  assert.deepEqual(analyzeDiffDuCommit(raw), { touchesUi: false, fichiers: ['docs/architecture.md'] })
 })
 
-test('analyzeDiffDuCommit : vide/absent → aucune touche, 0 ligne', () => {
-  assert.deepEqual(analyzeDiffDuCommit([]), { touchesSrc: false, touchesUi: false, totalLines: 0, fichiers: [] })
-  assert.deepEqual(analyzeDiffDuCommit(undefined), { touchesSrc: false, touchesUi: false, totalLines: 0, fichiers: [] })
+test('analyzeDiffDuCommit : vide/absent → aucun écran ni fichier', () => {
+  assert.deepEqual(analyzeDiffDuCommit([]), { touchesUi: false, fichiers: [] })
+  assert.deepEqual(analyzeDiffDuCommit(undefined), { touchesUi: false, fichiers: [] })
 })
 
 test('analyzeDiffDuCommit : touche src/ui/** → touchesUi', () => {
   const raw = [entree(3, 1, 'src/ui/RollShell.tsx')]
   const r = analyzeDiffDuCommit(raw)
-  assert.equal(r.touchesSrc, true)
   assert.equal(r.touchesUi, true)
 })
 
 test('analyzeDiffDuCommit : src/** hors src/ui/** → touchesUi false', () => {
   const raw = [entree(3, 1, 'src/engine/combat.ts')]
   const r = analyzeDiffDuCommit(raw)
-  assert.equal(r.touchesSrc, true)
   assert.equal(r.touchesUi, false)
 })
 
@@ -325,7 +360,7 @@ test('analyzeDiffDuCommit : lit le numstat TEL QUEL, sans second filtrage de che
   ]
   const r = analyzeDiffDuCommit(raw)
   assert.deepEqual(
-    [r.touchesUi, r.touchesSrc, r.totalLines, r.fichiers.length], [true, true, 75, 3],
+    r, { touchesUi: true, fichiers: ['src/ui/RollShell.tsx', 'scripts/git-hooks/porte-du-commit.mjs', '.claude/settings.json'] },
     'le numstat que git a rendu EST la portée : rien ne s’y retranche après coup',
   )
 })
@@ -365,17 +400,17 @@ test('porte du ticket : un fichier GÉNÉRÉ de src/ reste de la substance', () 
 const REFUTATION_LINE_OK = 'REFUTATION: un juge adversarial a rejoué le diff et tenté 2 contournements, aucun ne passe.'
 
 test('evaluateAntiEsquive : diff ne touche pas src → silence', () => {
-  const d = evaluateAntiEsquive({ message: 'ref #371 doc', stagedTouchesSrc: false, stagedTotalLines: 100 })
+  const d = evaluateAntiEsquive({ message: 'ref #371 doc', stagedTouchesSrc: false, stagedSrcLines: 100 })
   assert.equal(d, null)
 })
 
 test('evaluateAntiEsquive : diff < 10 lignes → silence (one-liner sur la suite verte)', () => {
-  const d = evaluateAntiEsquive({ message: 'fix: typo, ref #371', stagedTouchesSrc: true, stagedTotalLines: 9 })
+  const d = evaluateAntiEsquive({ message: 'fix: typo, ref #371', stagedTouchesSrc: true, stagedSrcLines: 9 })
   assert.equal(d, null)
 })
 
 test('evaluateAntiEsquive : fermeture déjà couverte par evaluate() → silence', () => {
-  const d = evaluateAntiEsquive({ message: 'corrige #9', stagedTouchesSrc: true, stagedTotalLines: 100 })
+  const d = evaluateAntiEsquive({ message: 'corrige #9', stagedTouchesSrc: true, stagedSrcLines: 100 })
   assert.equal(d, null)
 })
 
@@ -383,7 +418,7 @@ test('evaluateAntiEsquive : "ref #N" src touché sans réfutation → deny', () 
   const d = evaluateAntiEsquive({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     readRefFile: () => null,
   })
   assert.ok(d)
@@ -395,7 +430,7 @@ test('evaluateAntiEsquive : "ref #N" avec ligne REFUTATION: inline valide → pa
   const d = evaluateAntiEsquive({
     message: `feat: truc, ref #371\n\n${REFUTATION_LINE_OK}`,
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
   })
   assert.equal(d, null)
 })
@@ -404,7 +439,7 @@ test('evaluateAntiEsquive : "ref #N" avec ligne REFUTATION: trop courte → deny
   const d = evaluateAntiEsquive({
     message: 'feat: truc, ref #371\n\nREFUTATION: vu.',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     readRefFile: () => null,
   })
   assert.ok(d)
@@ -414,7 +449,7 @@ test('evaluateAntiEsquive : "ref #N" avec fichier ref-N.md conforme → pass', (
   const d = evaluateAntiEsquive({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     readRefFile: (n) => (n === 371 ? refFile() : null),
   })
   assert.equal(d, null)
@@ -424,7 +459,7 @@ test('evaluateAntiEsquive : "ref #N" avec fichier ref-N.md non conforme → deny
   const d = evaluateAntiEsquive({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     readRefFile: (n) => (n === 371 ? refFile({ desc: 'ok.' }) : null),
   })
   assert.ok(d)
@@ -438,7 +473,7 @@ test('evaluateAntiEsquive : aucun ticket rattaché (ni fermeture, ni ref #N), sr
   const d = evaluateAntiEsquive({
     message: 'feat: refonte truc',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     readRefFile: () => { throw new Error('ne doit pas être appelé — aucun ticket rattaché') },
   })
   assert.equal(d, null)
@@ -486,15 +521,15 @@ const JUGE_LINE_OK = 'JUGE: un agent juge adversarial a rejoué le diff contre l
 const JUGE_VISION_LINE_OK = 'JUGE-VISION: captures fraîches jugées contre l\'attendu, mécanisme et pixels vérifiés.'
 
 test('evaluateJuge : diff ne touche pas src → silence', () => {
-  assert.equal(evaluateJuge({ message: 'ref #371 doc', stagedTouchesSrc: false, stagedTotalLines: 100 }), null)
+  assert.equal(evaluateJuge({ message: 'ref #371 doc', stagedTouchesSrc: false, stagedSrcLines: 100 }), null)
 })
 
 test('evaluateJuge : diff < 10 lignes → silence', () => {
-  assert.equal(evaluateJuge({ message: 'fix: typo', stagedTouchesSrc: true, stagedTotalLines: 9 }), null)
+  assert.equal(evaluateJuge({ message: 'fix: typo', stagedTouchesSrc: true, stagedSrcLines: 9 }), null)
 })
 
 test('evaluateJuge : fermeture de ticket → silence (déjà couverte par le solde)', () => {
-  assert.equal(evaluateJuge({ message: 'corrige #9', stagedTouchesSrc: true, stagedTotalLines: 100 }), null)
+  assert.equal(evaluateJuge({ message: 'corrige #9', stagedTouchesSrc: true, stagedSrcLines: 100 }), null)
 })
 
 // Scope tranché #591 : évaluateJuge partage EXACTEMENT le déclencheur d'evaluateAntiEsquive — un
@@ -503,7 +538,7 @@ test('evaluateJuge : aucun ticket rattaché, src touché → silence (#591)', ()
   const d = evaluateJuge({
     message: 'feat: refonte truc',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: false,
     readRefFile: () => { throw new Error('ne doit pas être appelé — aucun ticket rattaché') },
   })
@@ -511,7 +546,7 @@ test('evaluateJuge : aucun ticket rattaché, src touché → silence (#591)', ()
 })
 
 test('evaluateJuge : "ref #N" src touché sans ligne JUGE → deny', () => {
-  const d = evaluateJuge({ message: 'feat: refonte truc, ref #501', stagedTouchesSrc: true, stagedTotalLines: 100, stagedTouchesUi: false })
+  const d = evaluateJuge({ message: 'feat: refonte truc, ref #501', stagedTouchesSrc: true, stagedSrcLines: 100, stagedTouchesUi: false })
   assert.ok(d)
   assert.match(d.reason, /JUGE:/)
 })
@@ -520,14 +555,14 @@ test('evaluateJuge : "ref #N" src touché avec ligne JUGE: valide, hors UI → p
   const d = evaluateJuge({
     message: `feat: refonte truc, ref #501\n\n${JUGE_LINE_OK}`,
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: false,
   })
   assert.equal(d, null)
 })
 
 test('evaluateJuge : "ref #N" ligne JUGE: trop courte → deny', () => {
-  const d = evaluateJuge({ message: 'feat: truc, ref #501\n\nJUGE: vu.', stagedTouchesSrc: true, stagedTotalLines: 100 })
+  const d = evaluateJuge({ message: 'feat: truc, ref #501\n\nJUGE: vu.', stagedTouchesSrc: true, stagedSrcLines: 100 })
   assert.ok(d)
 })
 
@@ -535,7 +570,7 @@ test('evaluateJuge : "ref #N" src/ui touché avec JUGE: seul (sans JUGE-VISION) 
   const d = evaluateJuge({
     message: `feat: bouton, ref #501\n\n${JUGE_LINE_OK}`,
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: true,
   })
   assert.ok(d)
@@ -546,7 +581,7 @@ test('evaluateJuge : "ref #N" src/ui touché avec JUGE: et JUGE-VISION: → pass
   const d = evaluateJuge({
     message: `feat: bouton, ref #501\n\n${JUGE_LINE_OK}\n${JUGE_VISION_LINE_OK}`,
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: true,
   })
   assert.equal(d, null)
@@ -556,7 +591,7 @@ test('evaluateJuge : "ref #N" avec fichier ref-N.md portant "## Juge" conforme, 
   const d = evaluateJuge({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: false,
     readRefFile: (n) => (n === 371 ? jugeFile() : null),
   })
@@ -567,7 +602,7 @@ test('evaluateJuge : "ref #N" UI touchée, fichier ref-N.md sans "## Juge-Vision
   const d = evaluateJuge({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: true,
     readRefFile: (n) => (n === 371 ? jugeFile() : null),
   })
@@ -579,7 +614,7 @@ test('evaluateJuge : "ref #N" UI touchée, fichier ref-N.md avec "## Juge" ET "#
   const d = evaluateJuge({
     message: 'feat: truc, ref #371',
     stagedTouchesSrc: true,
-    stagedTotalLines: 100,
+    stagedSrcLines: 100,
     stagedTouchesUi: true,
     readRefFile: (n) => (n === 371 ? `${jugeFile()}\n${jugeVisionFile()}` : null),
   })
@@ -1661,8 +1696,8 @@ test('#2328 DoD 1 — une fusion en cours dont la RÉSOLUTION insère >10 lignes
     const resolu = `${ecranDe(3).replace('= 0', '= 300')}${ecranDe(12, 'r')}`
     writeFileSync(join(racine, ecran), resolu); git('add', ecran)
     const commande = 'merge: refs #42 — intègre main'
-    const lu = analyzeDiffDuCommit(diffDuCommit(racine).numstat())
-    assert.ok(lu.touchesUi && lu.totalLines >= 10, `témoin : la résolution est de la substance d'écran — ${JSON.stringify(lu)}`)
+    const lu = apportDeLaResolution(patchsParChemin(diffDuCommit(racine).diff()))
+    assert.ok(lu.ecran && lu.lignesChangees >= 10, `témoin : la résolution est de la substance d'écran — ${JSON.stringify(lu)}`)
     assert.equal(await evaluer(commande), null, 'sauver une fusion n’est pas une livraison')
 
     const { racine: ordinaire } = instanceDeDepot({ fichiers: { [ecran]: ecranDe(3) }, message: 'socle' })

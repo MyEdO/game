@@ -944,7 +944,7 @@
     },
     "capabilities": {
       "seesInDark": true,
-      "darkSightTiles": 999
+      "darkSightTiles": null
     }
   },
   {

@@ -705,7 +705,8 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
       const o = v as Record<string, unknown>;
       const cles = Object.keys(o);
       if (cles.includes('difficulty')) {
-        const plage = typeof o.min === 'number' && typeof o.max === 'number';
+        const borne = (b: unknown) => typeof b === 'number' || b === null;
+        const plage = borne(o.min) && borne(o.max) && (typeof o.min === 'number' || typeof o.max === 'number');
         const identite = cles.some((k) => ID.has(k));
         const reference = cles.some((k) => RX_CLE_REFERENCE.test(k));
         if (plage && identite) intersections['plage∩identité'] += 1;

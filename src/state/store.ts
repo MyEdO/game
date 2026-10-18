@@ -1472,6 +1472,8 @@ export interface GameState extends RollFlowActionsMap {
   defenseSetParryWeapon: (uid: string | null) => void;
   /** Déclare/efface la réaction de Porte-Bouclier (variante AA 13 l.84) pour cette défense au Bouclier. */
   defenseSetShieldReaction: (kind: 'damage' | 'push' | null) => void;
+  /** Déclare ou refuse la Riposte (LDB 10 l.1037) pour cette défense. */
+  defenseSetRiposte: (riposte: boolean) => void;
   // defense{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
   defenseConfirm: () => void;
   /** « Je te renie ! » (LDB 17 l.67) : résout le choix (true = refuser la mutation, 1 Résilience). */

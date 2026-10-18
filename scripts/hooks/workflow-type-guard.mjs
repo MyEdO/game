@@ -63,4 +63,4 @@ function evaluer(entree, { baseDeLAppel, env = {}, platform = process.platform }
   return refus(`${lu.lieu} : ${defauts.map((d) => d.message.replace(/^.*?:(\d+) — /, 'l.$1 — ')).join(' ; ')}`)
 }
 
-export const garde = { nom: 'workflow-type', outils: [...OUTILS_DE_DELEGATION], evaluer }
+export const garde = { nom: 'workflow-type', categorie: 'validation', outils: [...OUTILS_DE_DELEGATION], evaluer }
