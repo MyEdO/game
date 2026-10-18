@@ -24,17 +24,26 @@ const prototypesInertes = () => {
   return true
 }
 
+/** Les modes d'une clé : `texte` (projection JSON), `strict` (certifiée, `null` hors domaine), `cellules` (stricte, en cellules). */
+const MODES = Object.freeze({
+  texte: Object.freeze({ strict: false, cellules: false }),
+  strict: Object.freeze({ strict: true, cellules: false }),
+  cellules: Object.freeze({ strict: true, cellules: true }),
+})
+
+/** Les expressions dont l'évaluation ne lit rien du contexte de leur forme (`valeurs`, racinesBalayees.mjs). */
+const EXPRESSIONS_SANS_CONTEXTE = new Set(['booleen', 'scalaire', 'native', 'lit', 'chemin', 'hors', 'espace', 'couverture', 'non', 'transforme', 'lie'])
+
 /**
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
- * associée après clé, DAG cyclique et clé hors cellules strictes refusés), clés des valeurs en cellules structurelles ;
- * sinon, clés textuelles des valeurs. Un argument vaut par ses valeurs et sa forme : son expression et tout ce que son
- * évaluation lit de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments, paramètres).
+ * associée après clé et DAG cyclique refusés), toute clé en mode `cellules` ; sinon, `cleCanonique` prend son mode
+ * (`MODES`) et les clés des valeurs sont textuelles. Un argument vaut par ses valeurs et sa forme : son expression et ce
+ * que son évaluation lit de son contexte (module, preuve booléenne, chaîne d'environnements : fonction, arguments,
+ * paramètres), rien pour une expression de `EXPRESSIONS_SANS_CONTEXTE`.
  * @param {{ ferme: boolean }} regime
  */
 export function clesCanoniques({ ferme }) {
   const referencesPrivees = new WeakMap()
-  const argumentsPrives = new WeakMap()
-  const groupesPrives = new WeakMap()
   const objetsCles = new WeakSet()
   const clesDesValeurs = new WeakMap()
   const clesDesArguments = new WeakMap()
@@ -124,8 +133,9 @@ export function clesCanoniques({ ferme }) {
       return retiree
     },
   })
-  const cleCanonique = (faire, racine, cache, { strict = false, cellules = false } = {}) => {
-    if (ferme && (!strict || !cellules)) throw new Error('CLE_PRIVEE_HORS_REGIME')
+  const cleCanonique = (faire, racine, cache, mode) => {
+    if (!Object.hasOwn(MODES, mode)) throw new Error('CLE_MODE_INCONNU')
+    const { strict, cellules } = MODES[mode]
     try {
     if (!ferme && strict && !prototypesInertes()) return null
     const deja = cache?.get(racine)
@@ -182,8 +192,7 @@ export function clesCanoniques({ ferme }) {
     const objets = new Map()
     const fermetures = new Map()
     const preuveDe = (objet) => {
-      if (ferme) return undefined
-      if (!strict || !cellules) return undefined
+      if (ferme || !cellules) return undefined
       const preuve = sousGraphesGeles.get(objet)
       return preuve?.preuve.valide && prototypesInertes() ? preuve : undefined
     }
@@ -211,11 +220,11 @@ export function clesCanoniques({ ferme }) {
       if (!slots) { stable = false; return false }
       const { proprietes } = slots
       objets.set(objet, { ...slots, slotsGeles: strict && slotsGeles.has(objet), forme: formesDesArguments.get(objet) })
-      const precedent = strict && cellules && sousGraphesRevalides.get(objet)
+      const precedent = cellules && sousGraphesRevalides.get(objet)
       const inchange = precedent && precedent.slots.prototype === slots.prototype && precedent.slots.noms.length === slots.noms.length &&
         slots.noms.every((nom, i) => nom === precedent.slots.noms[i] &&
           ['value', 'enumerable', 'writable', 'configurable'].every((champ) => Object.is(proprietes[i][champ], precedent.slots.proprietes[i][champ])))
-      const fermeture = strict && cellules ? { actif: true, eligible: Object.isFrozen(objet) && !formesDesArguments.has(objet),
+      const fermeture = cellules ? { actif: true, eligible: Object.isFrozen(objet) && !formesDesArguments.has(objet),
         reutilisable: !formesDesArguments.has(objet), inchange: !!inchange, precedent, slots } : null
       if (fermeture) fermetures.set(objet, fermeture)
       if (strict) for (const p of proprietes) {
@@ -320,7 +329,9 @@ export function clesCanoniques({ ferme }) {
       if (!tokensDe(descriptor, tokens)) {
         stable = false
         tokens = []
-        tokensDe(JSON.parse(JSON.stringify(descriptor)), tokens, true)
+        const projete = JSON.stringify(descriptor)
+        if (projete === undefined) throw new Error('CLE_DOMAINE_JSON')
+        tokensDe(JSON.parse(projete), tokens, true)
       }
       if (cellules) return celluleDe(tokens)
       const signature = signatureDe(tokens)
@@ -330,13 +341,13 @@ export function clesCanoniques({ ferme }) {
       }
       return descripteurs.get(signature)
     }
-    const contexteDe = (ctx, argumentsDe) => {
+    const contexteDe = (ctx) => {
       const chaine = []
       for (let env = ctx.env; env; env = env.parent) {
         observer(env)
-        chaine.push(tuple('env', env.fn, env.args ? argumentsDe(env.args) : null, env.params ? referenceDe(env.params) : null))
+        chaine.push(tuple('env', env.fn, env.args ? referenceDe(env.args) : null, env.params ? referenceDe(env.params) : null))
       }
-      return interner(tuple('contexte', ctx.f, ctx.preuveBooleenne === true, tuple(...chaine)))
+      return interner(tuple('contexte', ctx.f, referenceDe(ctx.preuveBooleenne), tuple(...chaine)))
     }
     const memo = new WeakMap()
     const references = ferme ? referencesPrivees : memo
@@ -360,27 +371,28 @@ export function clesCanoniques({ ferme }) {
         return preuve.cellule
       }
       const fermeture = fermetures.get(v)
-      if (strict && cellules && fermeture?.reutilisable && !fermeture.eligible && fermeture.inchange && revisionAvant === revisionDesFormes) {
+      if (cellules && fermeture?.reutilisable && !fermeture.eligible && fermeture.inchange && revisionAvant === revisionDesFormes) {
         references.set(v, fermeture.precedent.cellule)
         return fermeture.precedent.cellule
       }
       pile.set(v, pile.size)
       const forme = formesDesArguments.get(v)
-      const descriptor = forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e), contexteDe(forme.ctx, referenceDe))
+      const descriptor = forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e),
+        EXPRESSIONS_SANS_CONTEXTE.has(forme.e?.k) ? null : contexteDe(forme.ctx))
         : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
       pile.delete(v)
       const reference = interner(descriptor)
       references.set(v, reference)
-      if (strict && cellules && stable && fermetures.get(v)?.eligible && revisionAvant === revisionDesFormes)
+      if (cellules && stable && fermetures.get(v)?.eligible && revisionAvant === revisionDesFormes)
         sousGraphesGeles.set(v, { cellule: reference, preuve: fermetures.get(v).preuve })
-      if (strict && cellules && stable && fermeture?.reutilisable && !fermeture.eligible && revisionAvant === revisionDesFormes)
+      if (cellules && stable && fermeture?.reutilisable && !fermeture.eligible && revisionAvant === revisionDesFormes)
         sousGraphesRevalides.set(v, { slots: fermeture.slots, cellule: reference, enfants: new Map(fermeture.slots.proprietes
           .filter((p) => p.value && typeof p.value === 'object' && !referencesBooleennes.has(p.value))
           .map((p) => [p.value, references.get(p.value)])) })
       return reference
     }
-    const reference = faire({ interner, referenceDe, observer, tuple, contexteDe })
+    const reference = faire({ interner, referenceDe, tuple })
     const cle = cellules ? reference : JSON.stringify([reference, table])
     if (stable && cache) {
       const records = [...objets.values()]
@@ -435,7 +447,7 @@ export function clesCanoniques({ ferme }) {
   }
   const composerCle = (...parties) => ferme && parties.some((x) => referencesBooleennes.has(x))
     ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
-  const cleDesValeurs = (faire, racine, cache) => cleCanonique(faire, racine, cache, ferme ? { strict: true, cellules: true } : {})
+  const cleDesValeurs = (faire, racine, cache) => cleCanonique(faire, racine, cache, ferme ? 'cellules' : 'texte')
   /** La clé d'une valeur ; un objet rendu vaut par sa clé canonique (`cleDesValeurs`). */
   const cleDe = (v) => {
     if ('booleen' in v) return `b${v.booleen}`
@@ -456,35 +468,8 @@ export function clesCanoniques({ ferme }) {
   }
   const uniques = (vals) => ferme && vals.length < 2 ? [...vals] : [...new Map(vals.map((v) => [cleDe(v), v])).values()]
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
-  const cleDesArgs = (args) => {
-    if (!args) return ''
-    return cleDesValeurs(({ interner, referenceDe, observer, tuple, contexteDe }) => {
-      const memo = ferme ? argumentsPrives : new WeakMap()
-      const vus = new Set()
-      const groupes = ferme ? groupesPrives : new WeakMap()
-      let coupes = 0
-      const ensemble = (as) => {
-        observer(as)
-        if (ferme) objetsCles.add(as)
-        if (groupes.has(as)) return groupes.get(as)
-        const avant = coupes
-        const groupe = interner(tuple('arguments', as.map((a) => {
-          observer(a)
-          if (ferme) objetsCles.add(a)
-          if (vus.has(a)) { coupes++; return interner(tuple('coupe', a.map(referenceDe))) }
-          if (memo.has(a)) return memo.get(a)
-          vus.add(a)
-          const forme = formesDesArguments.get(a)
-          const reference = interner(tuple('argument', a.map(referenceDe), referenceDe(forme?.e), forme ? contexteDe(forme.ctx, ensemble) : null))
-          vus.delete(a)
-          memo.set(a, reference)
-          return reference
-        })))
-        if (coupes === avant) groupes.set(as, groupe)
-        return groupe
-      }
-      return ensemble(args)
-    }, args, clesDesArguments)
-  }
-  return Object.freeze({ cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments })
+  const cleDesArgs = (args) => args ? cleDesValeurs(({ referenceDe }) => referenceDe(args), args, clesDesArguments) : ''
+  /** Le noyau fermé ne construit que des clés en mode `cellules`. */
+  const cleFermee = (faire, racine, cache) => cleCanonique(faire, racine, cache, 'cellules')
+  return Object.freeze({ cleCanonique: ferme ? cleFermee : cleCanonique, cleDesArgs, cleDe, texteDeCle, composerCle, uniques, formesDesArguments })
 }

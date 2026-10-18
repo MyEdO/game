@@ -1011,7 +1011,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
   const observationsDePreuve = []
   const clesDesReponses = new WeakMap()
   const cleDeReponse = (reponse) => cleCanonique(({ referenceDe }) => referenceDe(reponse), reponse,
-    reponse && typeof reponse === 'object' ? clesDesReponses : null, { strict: true })
+    reponse && typeof reponse === 'object' ? clesDesReponses : null, 'strict')
   const observerReponse = (nature, args, reponse) => {
     if (!observationsDePreuve.length) return reponse
     const cle = cleDeReponse(reponse)
@@ -1074,13 +1074,13 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     }
     if (ferme) return calculer()
     const entree = { e, ctx, pile: [...pile] }
-    const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true })
+    const cle = cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules')
     if (cle === null) return calculer()
     const deja = preuvesBooleennes.get(cle)
     if (deja && deja.reponses.every(({ nature, args, cle: avant }) => {
       const reponse = nature === 'lecture' ? lecture(...args) : nature === 'cible' ? cible(...args) : peutLire(...args)
       return cleDeReponse(reponse) === avant
-    }) && cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle) {
+    }) && cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules') === cle) {
       fusionner(deja.requetes)
       return deja.resultat
     }
@@ -1090,7 +1090,7 @@ function construireEvaluateur({ lecture: lectureDe, cible: cibleDe, peutLire: pe
     try { preuve = tracer(() => memoisable(calculer)) } finally { observationsDePreuve.pop() }
     const { resultat: { resultat, stable }, requetes } = preuve
     if (stable && observation.inerte && (typeof resultat === 'boolean' || resultat === null) &&
-      cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, { strict: true, cellules: true }) === cle)
+      cleCanonique(({ referenceDe }) => referenceDe(entree), entree, clesDesEntreesBooleennes, 'cellules') === cle)
       preuvesBooleennes.set(cle, { resultat, requetes, reponses: observation.reponses })
     return resultat
   }

@@ -49,10 +49,10 @@ const evaluateurDe = (modules) => evaluateurDuDepot(depotDe(modules))
 const evaluateurDeLecture = (lecture = null) => evaluateurDuDepot({ lecture: () => lecture, cible: () => null })
 
 /** Les clés du régime `ferme` (`evaluerLotDuDepot`), sinon de l'évaluateur ouvert (`evaluateurDuDepot`), et
- *  `cle(x, options, memo)` : la clé de `x` sous `options`. */
+ *  `cle(x, mode, memo)` : la clé de `x` au mode `mode` de l'évaluateur ouvert, la clé du noyau fermé sinon. */
 const clesDuDepot = (ferme = false) => {
   const cles = clesCanoniques({ ferme })
-  return { ...cles, cle: (x, options, memo = null) => cles.cleCanonique(({ referenceDe }) => referenceDe(x), x, memo, options) }
+  return { ...cles, cle: (x, mode, memo = null) => cles.cleCanonique(({ referenceDe }) => referenceDe(x), x, memo, mode) }
 }
 
 /** Les `questions` sur les `modules` (chemin → texte) lus par `depot`, par les deux régimes de production, égaux résultats
@@ -85,7 +85,10 @@ test('pile et retours : cycles nommés, réentrées, profondeur, arguments captu
   assert.deepEqual(pile("export function f(d) { readdirSync(d); return f(join(d, 'x')) }\n", "import { f } from './p.mjs'\nf('src')\n"),
     [['f', [{ chemin: 'src' }, { chemin: 'src/x' }, cycle('f')]]])
   assert.deepEqual(pile("export function g(d, n) { readdirSync(d); return n ? x(join(d, 'b')) : y(d) }\nexport function x(d) { return g(d, false) }\nexport function y(d) { return g(d, false) }\n",
-    "import { g } from './p.mjs'\ng('a', true)\n"), [['g', [{ chemin: 'a' }, { chemin: 'a/b' }, cycle('g, x'), cycle('g, x, y'), cycle('g, y')]]])
+    "import { g } from './p.mjs'\ng('a', true)\n"), [['g', [{ chemin: 'a' }, { chemin: 'a/b' }, cycle('g, x'), cycle('g, y'), cycle('g, x, y')]]])
+  assert.deepEqual(pile('export function h(d) { return g(d, true) }\nexport function g(d, n) { readdirSync(d); return n ? x(d) : y(d) }\n' +
+    'export function x(d) { return g(d, false) }\nexport function y(d) { return g(d, false) }\n', "import { h } from './p.mjs'\nh('a')\n"),
+  [['h', [{ chemin: 'a' }, cycle('g, x'), cycle('g, y')]]])
   const anneau = Array.from({ length: 16 }, (_, i) => `export function c${i}(d) { readdirSync(d); return c${(i + 1) % 16}(d) }\n`).join('')
   assert.deepEqual(pile(anneau, "import { c0 } from './p.mjs'\nc0('src')\n"),
     [['c0', [{ chemin: 'src' }, cycle(Array.from({ length: 16 }, (_, i) => 'c' + i).sort().join(', '))]]])
@@ -613,18 +616,13 @@ test('clés P : texte des clés fermées égal à la clé ouverte, restitution, 
   }
   const a = [{ texte: 'src/a' }]
   const args = [a]
-  const e = { k: 'lit', v: 'src/a' }
+  const e = { k: 'param', fn: 'f', index: 0, nom: 'd' }
   const ctx = { f: 'banc.mjs', env: { fn: 'f', args } }
   forme(a, e, ctx)
   assert.throws(() => verifier({ poignee: a }), /DAG_PRIVE_CYCLIQUE/)
-  const cyclique = verifier(args, true)
-  assert.equal(verifier(args, true), cyclique)
-  const b = [{ texte: 'src/a' }]
-  const autres = [b]
-  forme(b, { k: 'lit', v: 'src/a' }, { f: 'banc.mjs', env: { fn: 'f', args: autres } })
-  assert.equal(verifier(autres, true), cyclique)
+  assert.throws(() => verifier(args, true), /DAG_PRIVE_CYCLIQUE/)
   const capture = verifier({ objet: { nom: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } })
-  const opaque = structurel.cle({ pile: [capture] }, { strict: true, cellules: true })
+  const opaque = structurel.cle({ pile: [capture] }, 'cellules')
   assert.notEqual(opaque, null)
   const compose = structurel.composerCle('retour banc.mjs#f(', capture, ')')
   assert.equal(structurel.texteDeCle(compose), `retour banc.mjs#f(${structurel.texteDeCle(capture)})`)
@@ -673,10 +671,10 @@ test('dictionnaires Source : noms propres froids et JSON chauds, prototype expli
 })
 
 /** L'ORACLE d'une clé mémoïsée : le texte de la clé de `x` par une instance NEUVE, sans mémo, aux `formes` associées. */
-const cleFroide = (x, options, formes = []) => {
+const cleFroide = (x, mode, formes = []) => {
   const neuves = clesDuDepot()
   for (const [objet, forme] of formes) neuves.formesDesArguments.set(objet, forme)
-  return neuves.texteDeCle(neuves.cle(x, options))
+  return neuves.texteDeCle(neuves.cle(x, mode))
 }
 
 /** Le booléen que l'évaluateur prouve pour `e` : sa négation publique, renversée ; `null` si indécidable. */
@@ -689,12 +687,12 @@ const booleenDe = (ev, e, ctx) => {
 test('clés strictes textuelles : formes indépendantes, dépendances négatives et mémo égal à la clé froide', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const options = { strict: true }
-  const cle = (x) => p.cle(x, options, cache)
+  const mode = 'strict'
+  const cle = (x) => p.cle(x, mode, cache)
   const feuille = Object.freeze([])
   const racine = Object.freeze({ feuille })
   const original = cle(racine)
-  assert.equal(original, cleFroide(racine, options))
+  assert.equal(original, cleFroide(racine, mode))
   for (let i = 0; i < 200; i++) {
     p.formesDesArguments.set([], { e: { k: 'lit', v: i }, ctx: { f: 'banc.mjs', env: { args: [] } } })
     assert.equal(cle(racine), original)
@@ -703,11 +701,11 @@ test('clés strictes textuelles : formes indépendantes, dépendances négatives
   p.formesDesArguments.set(feuille, forme)
   const avecForme = cle(racine)
   assert.notEqual(avecForme, original)
-  assert.equal(avecForme, cleFroide(racine, options, [[feuille, forme]]))
+  assert.equal(avecForme, cleFroide(racine, mode, [[feuille, forme]]))
   forme.e.v = 'b'
   p.formesDesArguments.set(feuille, forme)
   assert.notEqual(cle(racine), avecForme)
-  assert.equal(cle(racine), cleFroide(racine, options, [[feuille, forme]]))
+  assert.equal(cle(racine), cleFroide(racine, mode, [[feuille, forme]]))
   p.formesDesArguments.delete(feuille)
   assert.equal(cle(racine), original)
   const enfant = { v: 'a' }
@@ -715,33 +713,33 @@ test('clés strictes textuelles : formes indépendantes, dépendances négatives
   const avant = cle(parent)
   enfant.v = 'b'
   assert.notEqual(cle(parent), avant)
-  assert.equal(cle(parent), cleFroide(parent, options))
+  assert.equal(cle(parent), cleFroide(parent, mode))
 })
 
 // #2586
 test('clés P : invalidation des ancêtres par la forme, formes gelées et copies gelées égales', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const options = { strict: true, cellules: true }
-  const cle = (x, memo = cache) => p.cle(x, options, memo)
+  const mode = 'cellules'
+  const cle = (x, memo = cache) => p.cle(x, mode, memo)
   const texte = (x) => p.texteDeCle(cle(x))
   const feuille = Object.freeze([Object.freeze({ texte: 'src/a' })])
   const racine = Object.freeze({ feuille })
   const original = cle(racine)
   assert.equal(cle(racine), original)
-  assert.equal(p.texteDeCle(original), cleFroide(racine, options))
+  assert.equal(p.texteDeCle(original), cleFroide(racine, mode))
   assert.equal(cle(original, null), original)
-  const forme = { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: null } }
+  const forme = { e: { k: 'param', fn: 'f', index: 0, nom: 'd' }, ctx: { f: 'banc.mjs', env: null } }
   p.formesDesArguments.set(feuille, forme)
   const avecForme = cle(racine)
   assert.notEqual(avecForme, original)
-  assert.equal(texte(racine), cleFroide(racine, options, [[feuille, forme]]))
+  assert.equal(texte(racine), cleFroide(racine, mode, [[feuille, forme]]))
   forme.ctx.f = 'autre.mjs'
   assert.notEqual(cle(racine), avecForme)
-  assert.equal(texte(racine), cleFroide(racine, options, [[feuille, forme]]))
-  const formeGelee = gelerLaConstante({ e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: null } })
+  assert.equal(texte(racine), cleFroide(racine, mode, [[feuille, forme]]))
+  const formeGelee = gelerLaConstante({ e: { k: 'param', fn: 'f', index: 0, nom: 'd' }, ctx: { f: 'banc.mjs', env: null } })
   p.formesDesArguments.set(feuille, formeGelee)
-  for (let i = 0; i < 3; i++) assert.equal(texte(racine), cleFroide(racine, options, [[feuille, formeGelee]]), String(i))
+  for (let i = 0; i < 3; i++) assert.equal(texte(racine), cleFroide(racine, mode, [[feuille, formeGelee]]), String(i))
   p.formesDesArguments.delete(feuille)
   assert.equal(cle(racine), original)
   for (let i = 0; i < 100; i++) assert.equal(cle(gelerLaConstante(structuredClone(racine)), null), original)
@@ -890,10 +888,10 @@ test('lexique lambda : première profondeur et placeholder de récursion conserv
 // #2586
 test('sous-graphes revalidés : enveloppes fraîches, mutations profondes et qualification, égales à la clé froide', () => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
+  const mode = 'cellules'
   const verifier = (x, formes = []) => {
-    const a = p.cle(x, options)
-    assert.equal(p.texteDeCle(a), cleFroide(x, options, formes))
+    const a = p.cle(x, mode)
+    assert.equal(p.texteDeCle(a), cleFroide(x, mode, formes))
     return a
   }
   const branche = { enfant: { liste: [{ v: true }] } }
@@ -965,51 +963,50 @@ test('sous-graphes revalidés : enveloppes fraîches, mutations profondes et qua
 // #2586
 test('sous-graphes gelés : fermeture, mêmes cellules, modes et formes, égaux à la clé froide', () => {
   const p = clesDuDepot()
-  const cle = (x, cellules = true, strict = true) => p.cle(x, { strict, cellules })
+  const cle = (x, mode = 'cellules') => p.cle(x, mode)
   const enfant = gelerLaConstante({ e: { k: 'booleen', v: true }, ctx: { f: 'a', env: { fn: 'f', args: [] } }, pile: ['a', 'b'] })
   const racine = gelerLaConstante({ gauche: enfant, droite: enfant })
   const froid = cle(racine)
   assert.equal(cle(racine), froid)
-  assert.equal(p.texteDeCle(froid), cleFroide(racine, { strict: true, cellules: true }))
+  assert.equal(p.texteDeCle(froid), cleFroide(racine, 'cellules'))
   assert.equal(cle(structuredClone(racine)), froid)
   for (let i = 0; i < 20; i++) {
     assert.equal(cle(racine), froid)
     assert.equal(cle(gelerLaConstante(structuredClone(racine))), froid)
   }
-  for (const cellules of [false, true]) for (const strict of [false, true])
-    assert.equal(p.texteDeCle(cle(racine, cellules, strict)), cleFroide(racine, { strict, cellules }))
+  for (const mode of ['texte', 'strict', 'cellules']) assert.equal(p.texteDeCle(cle(racine, mode)), cleFroide(racine, mode))
   const mutable = { v: true }
   const parent = Object.freeze({ enfant: mutable })
   const a = cle(parent)
   mutable.v = false
   assert.notEqual(cle(parent), a)
-  assert.equal(p.texteDeCle(cle(parent)), cleFroide(parent, { strict: true, cellules: true }))
+  assert.equal(p.texteDeCle(cle(parent)), cleFroide(parent, 'cellules'))
   const argumentsFormes = gelerLaConstante([{ v: true }])
   const forme = gelerLaConstante({ e: { k: 'booleen', v: true }, ctx: { f: 'a', env: { args: [] } } })
   p.formesDesArguments.set(argumentsFormes, forme)
   const avecForme = Object.freeze({ argumentsFormes })
-  assert.equal(p.texteDeCle(cle(avecForme)), cleFroide(avecForme, { strict: true, cellules: true }, [[argumentsFormes, forme]]))
-  assert.notEqual(p.texteDeCle(cle(avecForme)), cleFroide(avecForme, { strict: true, cellules: true }))
+  assert.equal(p.texteDeCle(cle(avecForme)), cleFroide(avecForme, 'cellules', [[argumentsFormes, forme]]))
+  assert.notEqual(p.texteDeCle(cle(avecForme)), cleFroide(avecForme, 'cellules'))
 })
 
 // #2586
 test('sous-graphes gelés : cycles, alias, pile et mémo d’un encodage égaux à la clé froide', () => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
+  const mode = 'cellules'
   const cycle = { v: true }
   cycle.soi = cycle
   Object.freeze(cycle)
   const parent = Object.freeze({ cycle })
-  const a = p.cle(parent, options)
+  const a = p.cle(parent, mode)
   assert.notEqual(a, null)
-  assert.equal(p.texteDeCle(a), cleFroide(parent, options))
+  assert.equal(p.texteDeCle(a), cleFroide(parent, mode))
   const imbrique = Object.freeze({ parent })
-  const avecPile = p.cle(imbrique, options)
+  const avecPile = p.cle(imbrique, mode)
   assert.notEqual(avecPile, null)
-  assert.equal(p.texteDeCle(avecPile), cleFroide(imbrique, options))
+  assert.equal(p.texteDeCle(avecPile), cleFroide(imbrique, mode))
   const args = gelerLaConstante([{ v: true }])
   const encoder = (cles) => {
-    const ancienne = cles.cle(args, options)
+    const ancienne = cles.cle(args, mode)
     const faire = ({ referenceDe, interner, tuple }) => {
       const premier = referenceDe(args)
       cles.formesDesArguments.set(args, gelerLaConstante({ e: { k: 'booleen', v: false }, ctx: { f: 'a', env: { args: [] } } }))
@@ -1018,7 +1015,7 @@ test('sous-graphes gelés : cycles, alias, pile et mémo d’un encodage égaux 
       assert.equal(second, premier)
       return interner(tuple(premier, second))
     }
-    return cles.texteDeCle(cles.cleCanonique(faire, args, null, options))
+    return cles.texteDeCle(cles.cleCanonique(faire, args, null, mode))
   }
   assert.equal(encoder(p), encoder(clesDuDepot()))
 })
@@ -1027,10 +1024,10 @@ test('sous-graphes gelés : cycles, alias, pile et mémo d’un encodage égaux 
 test('sous-graphes gelés : révisions des formes avant et pendant l’encodage, égales à la clé froide', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const options = { strict: true, cellules: true }
+  const mode = 'cellules'
   const enfant = gelerLaConstante([{ v: true }])
   const racine = Object.freeze({ enfant })
-  const cle = (memo = cache) => p.cle(racine, options, memo)
+  const cle = (memo = cache) => p.cle(racine, mode, memo)
   const forme = (v) => gelerLaConstante({ e: { k: 'booleen', v }, ctx: { f: 'a', env: { args: [] } } })
   const ancienne = cle(null)
   assert.equal(cle(), ancienne)
@@ -1039,36 +1036,36 @@ test('sous-graphes gelés : révisions des formes avant et pendant l’encodage,
   const nouvelle = cle()
   assert.notEqual(nouvelle, ancienne)
   assert.equal(cle(null), nouvelle)
-  assert.equal(p.texteDeCle(nouvelle), cleFroide(racine, options, [[enfant, fausse]]))
+  assert.equal(p.texteDeCle(nouvelle), cleFroide(racine, mode, [[enfant, fausse]]))
   p.formesDesArguments.delete(enfant)
   assert.equal(cle(null), ancienne)
   assert.equal(cle(), ancienne)
   p.formesDesArguments.set(enfant, undefined)
-  assert.equal(p.texteDeCle(cle()), cleFroide(racine, options, [[enfant, undefined]]))
+  assert.equal(p.texteDeCle(cle()), cleFroide(racine, mode, [[enfant, undefined]]))
   p.formesDesArguments.delete(enfant)
   const pendant = forme(false)
   p.cleCanonique(({ referenceDe }) => {
     const reference = referenceDe(racine)
     p.formesDesArguments.set(enfant, pendant)
     return reference
-  }, racine, new WeakMap(), options)
+  }, racine, new WeakMap(), mode)
   const apresEncodage = cle()
   assert.notEqual(apresEncodage, ancienne)
   assert.equal(cle(null), apresEncodage)
-  assert.equal(p.texteDeCle(apresEncodage), cleFroide(racine, options, [[enfant, pendant]]))
+  assert.equal(p.texteDeCle(apresEncodage), cleFroide(racine, mode, [[enfant, pendant]]))
 })
 
 // #2586
 test('sous-graphes gelés : associations étrangères, ancêtres partagés et associations rendues', () => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
-  const cle = (x) => p.cle(x, options)
+  const mode = 'cellules'
+  const cle = (x) => p.cle(x, mode)
   const enfant = gelerLaConstante([{ v: true }])
   const gauche = Object.freeze({ enfant })
   const droite = Object.freeze({ enfant })
   const racine = Object.freeze({ gauche, droite })
   const cellule = cle(racine)
-  assert.equal(p.texteDeCle(cellule), cleFroide(racine, options))
+  assert.equal(p.texteDeCle(cellule), cleFroide(racine, mode))
   for (let i = 0; i < 5; i++) p.formesDesArguments.set([], { i })
   assert.equal(cle(racine), cellule)
   p.formesDesArguments.set(enfant, undefined)
@@ -1091,9 +1088,10 @@ const gc = globalThis.gc ?? (() => {
   try { return runInNewContext('gc') } finally { setFlagsFromString('--no-expose-gc') }
 })()
 
-/** Les octets de tas retenus par clé jetée : `lots` lots de `n` clés `cle(fabriquer(i))` jetées, GC majeur et
+/** Les octets de tas retenus par clé jetée : cinq lots de `n` clés `cle(fabriquer(i))` jetées, GC majeur et
  *  finaliseurs entre lots, pente du pic des lots suivants sur le deuxième. */
-const retenuParCleJetee = async (cle, fabriquer, n, lots = 5) => {
+const retenuParCleJetee = async (cle, fabriquer, n) => {
+  const lots = 5
   let i = 0
   const lot = async () => {
     for (let k = 0; k < n; k++) cle(fabriquer(i++))
@@ -1124,41 +1122,41 @@ test('sous-graphes gelés : les sources et les parents clés sont collectés', a
     assert.fail(`sources retenues après huit tâches de GC : ${refs.filter((r) => r.deref() !== undefined).length} sur ${refs.length}`)
   }
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
+  const mode = 'cellules'
   const enfant = Object.freeze({ v: true })
-  const cle = p.cle(enfant, options)
+  const cle = p.cle(enfant, mode)
   const creer = (n) => Array.from({ length: n }, () => {
     const parent = Object.freeze({ enfant, alias: enfant })
-    p.cle(parent, options)
+    p.cle(parent, mode)
     return new WeakRef(parent)
   })
   const jeterSource = () => {
     const source = Object.freeze({ v: false })
-    p.cle(source, options)
+    p.cle(source, mode)
     return new WeakRef(source)
   }
   await collecter([jeterSource(), ...creer(128)])
   for (let lot = 0; lot < 4; lot++) await collecter(creer(256))
-  assert.equal(p.cle(enfant, options), cle)
+  assert.equal(p.cle(enfant, mode), cle)
 })
 
 // #2586
 test('sous-graphes gelés : le fan-in des parents jetés plafonne', async (t) => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
+  const mode = 'cellules'
   const enfant = Object.freeze({ v: true })
-  const cle = p.cle(enfant, options)
-  const retenu = await retenuParCleJetee((x) => p.cle(x, options), () => Object.freeze({ enfant, alias: enfant }), 12000)
+  const cle = p.cle(enfant, mode)
+  const retenu = await retenuParCleJetee((x) => p.cle(x, mode), () => Object.freeze({ enfant, alias: enfant }), 12000)
   t.diagnostic(`${retenu.toFixed(1)} octets retenus par parent jeté`)
   assert.ok(retenu < 16)
-  assert.equal(p.cle(enfant, options), cle)
+  assert.equal(p.cle(enfant, mode), cle)
 })
 
 // #2586
 test('cellules BOOL : le registre ne retient aucune clé de Source jetée', async (t) => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
-  const retenu = await retenuParCleJetee((x) => p.cle(x, options), (i) => ({ v: i, w: [String(i)] }), 1500)
+  const mode = 'cellules'
+  const retenu = await retenuParCleJetee((x) => p.cle(x, mode), (i) => ({ v: i, w: [String(i)] }), 1500)
   t.diagnostic(`${retenu.toFixed(1)} octets retenus par Source jetée`)
   assert.ok(retenu < 256)
 })
@@ -1181,8 +1179,8 @@ test('cellules BOOL : construction sans appel supplémentaire au map global', ()
 test('cellules BOOL : équivalence canonique dans chaque historique et modes des deux hits', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const cle = (x, cellules, memo = null) => p.cle(x, { strict: true, cellules }, memo)
-  const descriptor = (v) => p.cleCanonique(({ interner, tuple }) => interner(tuple('scalaire', v)), null, null, { strict: true, cellules: true })
+  const cle = (x, cellules, memo = null) => p.cle(x, cellules ? 'cellules' : 'strict', memo)
+  const descriptor = (v) => p.cleCanonique(({ interner, tuple }) => interner(tuple('scalaire', v)), null, null, 'cellules')
   assert.notEqual(descriptor(1), descriptor('1'))
   assert.notEqual(descriptor(true), descriptor(1))
   const cycle = () => { const x = { v: true }; x.soi = x; return x }
@@ -1204,7 +1202,7 @@ test('cellules BOOL : équivalence canonique dans chaque historique et modes des
     if (gele) gelerProfond(racine)
     for (let tour = 0; tour < 3; tour++) for (const mode of modes) assert.equal(cle(racine, mode, cache), cle(racine, mode))
   }
-  const forme = { e: { k: 'booleen', v: true }, ctx: { f: 'a', env: { args: [], fn: 'f' } } }
+  const forme = { e: { k: 'param', fn: 'f', index: 0, nom: 'p' }, ctx: { f: 'a', env: { args: [], fn: 'f' } } }
   const args = [{ booleen: true }]
   p.formesDesArguments.set(args, forme)
   const avant = [cle(args, false), cle(args, true)]
@@ -1218,7 +1216,7 @@ test('cellules BOOL : équivalence canonique dans chaque historique et modes des
 // #2586
 test('cellules BOOL : copies égales, valeurs distinctes et source refusée', () => {
   const p = clesDuDepot()
-  const options = { strict: true, cellules: true }
+  const options = 'cellules'
   const racine = { enfant: [{ booleen: true }], ctx: { f: 'a', env: null }, pile: [] }
   const exacte = p.cle(racine, options)
   for (let i = 0; i < 100; i++) assert.equal(p.cle(structuredClone(racine), options), exacte)
@@ -1234,7 +1232,7 @@ test('cellules BOOL : copies égales, valeurs distinctes et source refusée', ()
 test('slots gelés : descendants, formes fraîches, admission locale et prototypes', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const cle = (x, memo = cache, strict = true) => p.cle(x, { strict }, memo)
+  const cle = (x, memo = cache, mode = 'strict') => p.cle(x, mode, memo)
   const enfant = { v: true }
   const parent = Object.freeze({ enfant })
   const avant = cle(parent)
@@ -1278,14 +1276,14 @@ test('slots gelés : descendants, formes fraîches, admission locale et prototyp
   }
   assert.equal(cle(source), exacte)
   const ordinaire = { z: undefined, a: -0, v: [null, 1] }
-  assert.equal(cle(ordinaire, null, false), p.cle(ordinaire, {}))
+  assert.equal(cle(ordinaire, null, 'texte'), p.cle(ordinaire, 'texte'))
 })
 
 // #2586
 test('certificat du graphe gelé : clé exacte, associations étrangères et révisions des formes', () => {
   const p = clesDuDepot()
   const cache = new WeakMap()
-  const cle = (x, memo = cache, strict = true) => p.cle(x, { strict }, memo)
+  const cle = (x, memo = cache, mode = 'strict') => p.cle(x, mode, memo)
   const geler = (x) => { gelerProfond(x); return x }
   const forme = (v) => geler({ e: { k: 'lit', v }, ctx: { f: 'banc.mjs', env: { args: [] } } })
   const enfant = geler([{ texte: 'src/a' }])
@@ -1322,7 +1320,7 @@ test('certificat du graphe gelé : clé exacte, associations étrangères et ré
   assert.notEqual(cle(tableau), avantExpression)
   const env = { args: [], fn: 'f' }
   const tableauEnv = geler([{ texte: 'src/e' }])
-  p.formesDesArguments.set(tableauEnv, Object.freeze({ e: geler({ k: 'lit', v: 'src/e' }), ctx: Object.freeze({ f: 'banc.mjs', env }) }))
+  p.formesDesArguments.set(tableauEnv, Object.freeze({ e: geler({ k: 'param', fn: 'f', index: 0, nom: 'd' }), ctx: Object.freeze({ f: 'banc.mjs', env }) }))
   const avantEnv = cle(tableauEnv)
   env.fn = 'g'
   assert.notEqual(cle(tableauEnv), avantEnv)
@@ -1332,11 +1330,11 @@ test('certificat du graphe gelé : clé exacte, associations étrangères et ré
     const reference = referenceDe(pendantEncodage)
     p.formesDesArguments.set(pendantEncodage, forme('src/f'))
     return reference
-  }, pendantEncodage, cache, { strict: true })
+  }, pendantEncodage, cache, 'strict')
   assert.notEqual(cle(pendantEncodage), avantEncodage)
   assert.equal(cle(pendantEncodage), cle(pendantEncodage, null))
   const nonStrict = geler({ v: [true] })
-  assert.equal(cle(nonStrict, cache, false), cle(nonStrict, null, false))
+  assert.equal(cle(nonStrict, cache, 'texte'), cle(nonStrict, null, 'texte'))
   const prototype = Object.getOwnPropertyDescriptor(Object.prototype, 'certificat2586')
   const toJSON = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON')
   try {
@@ -1383,7 +1381,7 @@ test('façade des formes : contrat natif, absence, undefined, chaîne et contour
   for (const methode of ['get', 'has', 'set', 'delete'])
     assert.throws(() => WeakMap.prototype[methode].call(table, b, a), TypeError)
   const cache = new WeakMap()
-  const cle = () => p.cle(a, { strict: true }, cache)
+  const cle = () => p.cle(a, 'strict', cache)
   const avant = cle()
   assert.throws(() => table.set(0, b), TypeError)
   assert.equal(cle(), avant)
@@ -1504,7 +1502,7 @@ test('preuves scalaires : graphes refusés sans effet technique, sources à gett
   const cles = clesDuDepot()
   for (const x of [tableauCreux(), Object.assign([1], { map: Array.prototype.map }), Object.assign([1], { extra: 1 }),
     Object.assign({}, { [Symbol('x')]: 1 }), Object.create({ x: 1 }), { enfant: { get v() { throw new Error('getter technique') } } }])
-    assert.equal(cles.cle(x, { strict: true }), null)
+    assert.equal(cles.cle(x, 'strict'), null)
   for (const [nom, e, contexte, rendu] of [
     ['v', { k: 'booleen' }, ctx, true],
     ['k', { v: true }, ctx, 'booleen'],
@@ -1588,7 +1586,7 @@ test('preuves scalaires : tableaux sans prototype standard et qualification prof
 test('preuves scalaires : formes d’argument, parents, paramètres et modes de contexte', () => {
   const p = clesDuDepot()
   const ev = evaluateurDeLecture()
-  const cle = (x) => p.cle(x, { strict: true })
+  const cle = (x) => p.cle(x, 'strict')
   const forme = (env) => {
     const a = [{ booleen: true }]
     p.formesDesArguments.set(a, { e: { k: 'paramLambda', fn: 'outer', index: 0, nom: 'flag' }, ctx: { f: 'banc.mjs', env } })
@@ -1672,28 +1670,37 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
     }
     assert.ok(egales && distinctes, `${nom} : la matrice porte des paires égales et distinctes`)
   }
-  /** La valeur COMPLÈTE de `x` à l'instant de l'observation : chaque argument porte ses valeurs et sa forme entière ;
-   *  son texte (`inspect`, clés triées, cycles nommés) est l'oracle. */
+  const evaluateur = evaluateurDeLecture()
+  /** L'évaluation publique de l'expression d'une forme lit-elle son contexte ? Un espion pris pour contexte le dit. */
+  const litLeContexte = (forme) => {
+    let lu = false
+    const lire = () => { lu = true }
+    evaluateur.valeurs(forme.e, new Proxy({}, { get: lire, has: lire, ownKeys: () => { lire(); return [] }, getOwnPropertyDescriptor: lire }))
+    return lu
+  }
+  /** La valeur COMPLÈTE de `x` à l'instant de l'observation : chaque argument porte ses valeurs, l'expression de sa forme
+   *  et le contexte entier que son évaluation lit ; son texte (`inspect`, clés triées, cycles nommés) est l'oracle. */
   const complet = (c, x, vus = new Map()) => {
     if (x === null || typeof x !== 'object') return x
     if (vus.has(x)) return vus.get(x)
     const forme = c.formesDesArguments.get(x)
     const copie = forme ? {} : Array.isArray(x) ? [] : {}
     vus.set(x, copie)
-    if (forme) Object.assign(copie, { valeurs: x.map((y) => complet(c, y, vus)), forme: complet(c, forme, vus) })
+    if (forme) Object.assign(copie, { valeurs: x.map((y) => complet(c, y, vus)), e: complet(c, forme.e, vus), ctx: litLeContexte(forme) ? complet(c, forme.ctx, vus) : null })
     else for (const nom of Object.keys(x)) copie[nom] = complet(c, x[nom], vus)
     return copie
   }
   const texteComplet = (c, x) => inspect(complet(c, x), { depth: Infinity, sorted: true, maxArrayLength: Infinity, maxStringLength: Infinity, breakLength: Infinity })
   const observerArgs = (c, nom, args) => ({ nom, cle: c.cleDesArgs(args), oracle: texteComplet(c, args) })
   const observerValeur = (c, nom, v) => ({ nom, cle: c.cleDe(v), oracle: texteComplet(c, v) })
+  const parametre = { k: 'param', fn: 'g', index: 0, nom: 'p' }
   const dag = (c, profondeur, variante = {}) => {
     let args = null
     for (let niveau = 0; niveau <= profondeur; niveau++) {
       const enfant = args
       args = Array.from({ length: 2 }, () => {
         const a = [{ texte: 'src/a' }]
-        const expression = variante.forme && niveau === profondeur ? { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] } : { k: 'lit', v: 'src/a' }
+        const expression = variante.forme && niveau === profondeur ? { k: 'liste', v: [parametre] } : { ...parametre }
         c.formesDesArguments.set(a, { e: variante.lie ? { k: 'lie', de: expression, ctx: { f: 'banc.mjs', env: enfant ? { fn: 'f', args: enfant } : null } } : expression,
           ctx: { f: variante.module && niveau === profondeur ? 'autre.mjs' : 'banc.mjs', env: enfant ? { fn: 'f', args: enfant } : null } })
         return a
@@ -1703,7 +1710,7 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
   }
   const arbre = (c, profondeur) => Array.from({ length: 2 }, () => {
     const a = [{ texte: 'src/a' }]
-    c.formesDesArguments.set(a, { e: { k: 'lit', v: 'src/a' }, ctx: { f: 'banc.mjs', env: profondeur ? { fn: 'f', args: arbre(c, profondeur - 1) } : null } })
+    c.formesDesArguments.set(a, { e: parametre, ctx: { f: 'banc.mjs', env: profondeur ? { fn: 'f', args: arbre(c, profondeur - 1) } : null } })
     return a
   })
   const lie = (c, forme, texte = 'src/a') => {
@@ -1714,10 +1721,9 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
   const cycle = (c, texte) => {
     const a = [{ texte }]
     const args = [a]
-    c.formesDesArguments.set(a, { e: { k: 'lit', v: texte }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
+    c.formesDesArguments.set(a, { e: parametre, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
     return args
   }
-  const parametre = { k: 'param', fn: 'g', index: 0, nom: 'p' }
   const contextes = {
     'parent relais': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: { fn: 'g', args: null } } }),
     'parent relais #2': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: { fn: 'g', args: null } } }),
@@ -1727,12 +1733,13 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
     'sans arguments': () => ({ f: 'banc.mjs', env: { fn: 'f', args: null, parent: null } }),
     'sans environnement': () => ({ f: 'banc.mjs', env: null }),
     'preuve booléenne': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: null }, preuveBooleenne: true }),
+    'preuve booléenne fausse': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], parent: null }, preuveBooleenne: false }),
     'paramètres': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], params: [{ nom: 'q' }], parent: null } }),
     'paramètres défaut': () => ({ f: 'banc.mjs', env: { fn: 'f', args: [[{ texte: 'src/x' }]], params: [{ nom: 'q', defaut: { k: 'lit', v: 'src/d' } }], parent: null } }),
   }
-  const enContexte = (c, ctx) => {
+  const enContexte = (c, ctx, e = parametre) => {
     const a = [{ texte: 'src/a' }]
-    c.formesDesArguments.set(a, { e: parametre, ctx })
+    c.formesDesArguments.set(a, { e, ctx })
     return [a]
   }
   const lambda = (args) => ({ lambda: { id: 'lambda:1', sites: [], retours: [] }, ctx: { f: 'banc.mjs', env: { fn: 'f', args } } })
@@ -1747,8 +1754,13 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
     args.push(observerArgs(c, 'ordre', ordre()), observerArgs(c, 'ordre #2', ordre()), observerArgs(c, 'ordre inverse', ordre().reverse()))
     for (const [nom, forme] of [['scalaire', { k: 'lit', v: 'src/a' }], ['liste', { k: 'liste', v: [{ k: 'lit', v: 'src/a' }] }], ['scalaire #2', { k: 'lit', v: 'src/a' }]])
       args.push(observerArgs(c, `forme ${nom}`, lie(c, forme)))
-    for (const [nom, texte] of [['cycle', 'src/a'], ['cycle #2', 'src/a'], ['cycle docs', 'docs/b']]) args.push(observerArgs(c, nom, cycle(c, texte)))
-    for (const [nom, ctx] of Object.entries(contextes)) args.push(observerArgs(c, `contexte ${nom}`, enContexte(c, ctx())))
+    for (const [nom, texte] of [['cycle', 'src/a'], ['cycle #2', 'src/a'], ['cycle docs', 'docs/b']])
+      if (ferme) assert.throws(() => c.cleDesArgs(cycle(c, texte)), /DAG_PRIVE_CYCLIQUE/)
+      else args.push(observerArgs(c, nom, cycle(c, texte)))
+    for (const [nom, ctx] of Object.entries(contextes)) {
+      args.push(observerArgs(c, `contexte ${nom}`, enContexte(c, ctx())))
+      for (const v of [false, true]) args.push(observerArgs(c, `constante ${v} en contexte ${nom}`, enContexte(c, ctx(), { k: 'booleen', v })))
+    }
     partition(args, `arguments ${nomDuRegime}`)
     const valeurs = [
       observerValeur(c, 'objet', { objet: { fichier: { k: 'lit', v: 'src/a' } }, ctx: { f: 'banc.mjs', env: null } }),
@@ -1778,9 +1790,9 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
     const noter = (nom) => etats.push(observerArgs(c, nom, repetes))
     noter('initial')
     const forme = c.formesDesArguments.get(repetes[0])
-    forme.e.v = 'docs/mutation'
+    forme.e.index = 1
     noter('expression mutée')
-    forme.e.v = 'src/a'
+    forme.e.index = 0
     noter('expression rétablie')
     forme.ctx.f = 'autre.mjs'
     noter('module muté')
@@ -1816,24 +1828,118 @@ test('clés canoniques : partition de la valeur complète sur DAG partagé, réa
   const descripteurs = [-0, 0, NaN, Infinity, null, undefined, fonction, Symbol('s'), avecJSON, 'fonction', { b: 2, a: 1 }, { a: 1, b: 2 },
     { a: undefined, b: fonction, c: null }, { c: null }, creux, [null, 1], [1, null], '\\u0000"[]{}', { toJSON: () => ({ b: 2, a: 1 }) },
     'S3:L;', 'L;', 'N7;', '7', 7, [7], { a: 7 }, [['a', 7]], [8], [], {}, true, 'B1;', new Proxy(['enfant', 7], {}), ['enfant', 7]]
-  const atteignables = [[false, [{}, { strict: true }, { strict: true, cellules: true }]], [true, [{ strict: true, cellules: true }]]]
-  const projection = (c, ds, options) => c.cleCanonique(({ interner, tuple }) => interner(tuple(...ds.map(interner))), null, null, options)
+  const atteignables = [[false, ['texte', 'strict', 'cellules']], [true, ['cellules']]]
+  const projection = (c, ds, mode) => c.cleCanonique(({ interner, tuple }) => interner(tuple(...ds.map(interner))), null, null, mode)
   const circulaire = {}
   circulaire.a = circulaire
   const tableauCirculaire = []
   tableauCirculaire.push(tableauCirculaire)
-  for (const [ferme, options] of atteignables) for (const option of options) {
+  for (const [ferme, modes] of atteignables) for (const option of modes) {
     const c = clesDuDepot(ferme)
-    const nom = `projection ${ferme ? 'fermé' : 'ouvert'} ${JSON.stringify(option)}`
+    const nom = `projection ${ferme ? 'fermé' : 'ouvert'} ${option}`
     partition(descripteurs.flatMap((x, i) => descripteurs.map((y, j) => ({ nom: `${i},${j}`, cle: projection(c, [['d', x], ['d', y]], option), oracle: JSON.stringify([['d', x], ['d', y]]) }))), nom)
     for (const d of [1n, circulaire, tableauCirculaire]) {
       assert.throws(() => JSON.stringify([['d', d]]), TypeError)
       assert.throws(() => projection(c, [['d', d]], option), TypeError, nom)
     }
   }
-  t.diagnostic('Partition des clés = partition de la valeur complète (formes et contextes entiers) et du JSON des projections, dans chaque régime et option atteignables')
+  t.diagnostic('Partition des clés = partition de la valeur complète (formes et contextes que leur évaluation lit) et du JSON des projections, dans chaque régime et option atteignables')
 })
 
+
+// #2586
+test('clés canoniques : seul le mode cellules au noyau fermé, hors domaine JSON nommé, pile débordée refusée par régime', () => {
+  const ferme = clesDuDepot(true)
+  const ouvert = clesDuDepot()
+  const valeur = { objet: { a: [1] } }
+  const cellule = ferme.cle(valeur)
+  assert.notEqual(ferme.texteDeCle(cellule), cellule)
+  for (const mode of ['texte', 'strict', 'cellules', undefined]) assert.equal(ferme.cle(valeur, mode), cellule, String(mode))
+  assert.equal(ouvert.cle(valeur, 'texte'), ferme.texteDeCle(cellule))
+  for (const mode of ['inconnu', undefined, 'toString']) assert.throws(() => ouvert.cle(valeur, mode), /CLE_MODE_INCONNU/)
+  const union = { k: 'union', v: [{ k: 'objet', v: { a: { k: 'lit', v: 'src/a' } } }, { k: 'objet', v: { b: { k: 'lit', v: 'docs/b' } } }] }
+  assert.equal(evaluer(union).length, 2)
+  for (const prototype of [Object.prototype, Array.prototype]) {
+    const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
+    Object.defineProperty(prototype, 'toJSON', { configurable: true, value: () => undefined })
+    try {
+      assert.throws(() => evaluer(union), /CLE_DOMAINE_JSON/)
+      for (const c of [clesDuDepot(), clesDuDepot(true)]) {
+        assert.throws(() => c.cleDe({ objet: { a: 1 } }), /CLE_DOMAINE_JSON/)
+        assert.throws(() => c.cleDesArgs([[{ texte: 'src/a' }]]), /CLE_DOMAINE_JSON/)
+      }
+      for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle({ a: [1] }, mode), null)
+    } finally {
+      if (avant) Object.defineProperty(prototype, 'toJSON', avant)
+      else delete prototype.toJSON
+    }
+  }
+  const profond = () => {
+    let v = { texte: 'src/a' }
+    for (let i = 0; i < 100000; i++) v = { objet: v }
+    return v
+  }
+  for (const c of [clesDuDepot(), clesDuDepot(true)]) assert.throws(() => c.cleDe(profond()), RangeError)
+  for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle(profond(), mode), null)
+})
+
+// #2586
+test('cellules BOOL : identité canonique sous GC — course entre mort et recréation, branches partagées, compositions préfixes', async () => {
+  const purger = async () => {
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 0))
+      await gc({ type: 'major', execution: 'async' })
+    }
+  }
+  {
+    const p = clesDuDepot()
+    const fabriquer = () => ({ v: 1, w: ['a'] })
+    let lien
+    ;(() => { lien = new WeakRef(p.cle(fabriquer(), 'cellules')) })()
+    await new Promise((r) => setTimeout(r, 0))
+    gc()
+    assert.equal(lien.deref(), undefined, 'la première cellule meurt avant sa recréation')
+    const recreee = p.cle(fabriquer(), 'cellules')
+    await purger()
+    assert.equal(p.cle(fabriquer(), 'cellules'), recreee)
+    const sous = p.cle(['a'], 'cellules')
+    assert.equal(p.cle(['a'], 'cellules'), sous)
+  }
+  {
+    const p = clesDuDepot()
+    const formes = [
+      (i) => ({ v: i, w: [String(i)] }),
+      (i) => ({ v: i % 7, w: [String(i % 3), [i % 5]] }),
+      (i) => [i % 4, [i % 2, ['x']], { a: i % 3 }],
+      (i) => ({ a: { b: { c: [i % 6] } } }),
+    ]
+    const vivantes = new Map()
+    for (let tour = 0; tour < 6; tour++) {
+      for (let i = 0; i < 400; i++) for (const [k, fabriquer] of formes.entries()) {
+        const cle = p.cle(fabriquer(i), 'cellules')
+        if ((i + tour) % 5 === 0) vivantes.set(`${k}:${i}`, cle)
+      }
+      await purger()
+      for (const [id, cle] of vivantes) {
+        const [k, i] = id.split(':').map(Number)
+        assert.equal(p.cle(formes[k](i), 'cellules'), cle, `tour ${tour}, ${id}`)
+      }
+    }
+  }
+  {
+    const p = clesDuDepot(true)
+    const a = p.cle(Object.freeze({ v: true }))
+    const b = p.cle(Object.freeze({ v: false }))
+    const courte = p.composerCle('d', a)
+    ;(() => { for (let i = 0; i < 200; i++) p.composerCle('d', a, b, String(i)) })()
+    await purger()
+    assert.equal(p.composerCle('d', a), courte)
+    const longue = p.composerCle('d', a, b)
+    ;(() => { p.composerCle('d', a) })()
+    await purger()
+    assert.equal(p.composerCle('d', a, b), longue)
+  }
+})
 
 // #2586
 test('image Git déclarée : nouveau producteur, alias et même sélecteur canonique', () => {
