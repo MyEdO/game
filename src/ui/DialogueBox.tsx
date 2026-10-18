@@ -10,6 +10,7 @@ import { Coins } from './Coins';
 import { Icon } from './Icon';
 import type { IconIdInput } from './icons';
 import { SpeakerBanner } from './SpeakerBanner';
+import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision, groupDecisionSeat } from './ownership';
 import { useModalA11y } from './Modal';
@@ -114,7 +115,7 @@ export function DialogueBox() {
       })}
       {!owns && <SpectatorChip label={meneur} action="répond pour le groupe…" />}
     </>}>
-      {node.desc}
+      {node.desc && <Prose md={node.desc} paquet compact />}
     </SpeakerBanner>
   );
 }

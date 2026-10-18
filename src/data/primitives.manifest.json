@@ -419,9 +419,18 @@
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
     "css": "src/ui/styles/team-segments.css",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
+    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée ; `paquet` : prose de paquet nommée par les identités en vigueur (`nommer`), exclusive des annotations",
     "perimetre": "tout champ de prose RAW",
-    "verrou": "no-html-in-prose.test.ts"
+    "verrou": "no-html-in-prose.test.ts, src/ui/prose-sites.test.ts"
+  },
+  {
+    "id": "identites",
+    "type": "primitives.manifest",
+    "label": "nommer/identitesResolues/useIdentites",
+    "fichier": "src/state/identites.ts",
+    "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
+    "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
+    "verrou": "src/state/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "resolveRender",

@@ -54,11 +54,11 @@ function StadeLu({ indice, stade, documents, attenue }: { indice: Indice; stade:
   const doc = stade.documentId !== undefined ? documents.find((d) => d.id === stade.documentId) : undefined;
   return (
     <>
-      {stade.prose !== undefined && <Prose md={stade.prose} porteur={porteurDuNarratif({ campaignDoc }, 'indices', indice.id, `stades[${indice.stades.indexOf(stade)}].prose`)} />}
+      {stade.prose !== undefined && <Prose md={stade.prose} paquet porteur={porteurDuNarratif({ campaignDoc }, 'indices', indice.id, `stades[${indice.stades.indexOf(stade)}].prose`)} />}
       <StadeSource source={stade.source} />
       {doc && (
         <ParchmentCard title={doc.titre} attenue={attenue}>
-          <Prose md={doc.prose} porteur={porteurDuNarratif({ campaignDoc }, 'documents', doc.id, 'prose')} />
+          <Prose md={doc.prose} paquet porteur={porteurDuNarratif({ campaignDoc }, 'documents', doc.id, 'prose')} />
           <StadeSource source={doc.source} />
         </ParchmentCard>
       )}

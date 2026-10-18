@@ -18,7 +18,7 @@ afterEach(() => demonterRacines());
 const campaignNarratif = {
   ...emptyNarratif(),
   etats: [
-    { id: 'campagne-sosie-heros', label: 'Le sosie de Kastor Lieberung', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' as const } },
+    { id: 'campagne-sosie-heros', label: 'Le sosie du mort', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' as const } },
     { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' as const } },
   ],
 };
