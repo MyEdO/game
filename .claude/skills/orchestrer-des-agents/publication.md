@@ -6,7 +6,8 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
-  lots dans un worktree. Une sonde non suivie sort de l'arbre avant `ops:publier`.
+  lots dans un worktree (utilisateur, 2026-09-14 : « Ca me rends dingue que tu ais a faire des commandes
+  git sur la branche principale »). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
   seul sur éjection) : index STAGÉ → `git restore --staged` d'abord ; `git fetch`, `git merge --no-commit
   origin/main`, jamais un rebase (#2178) ; aucune reconstruction des dérivés sous `MERGE_HEAD` ; `git rm`
@@ -18,7 +19,9 @@ Commits intermédiaires `refs #N`, seul le solde clôt.
 - **Jamais une veille, un train ou un outil `scripts/ops/` lancé depuis un worktree où un agent édite cet
   outil** : il exécute le WIP. Publier avant de dispatcher, ou suivre par `gh pr view` ; un « train mort »
   se recoupe par le pid réel et `git ls-remote` avant toute relance.
-- **Sur l'arbre partagé, aucun `checkout`/`restore`/`reset`/`stash` n'est sûr**, même sur un généré ou ma
+- **Sur l'arbre partagé, aucun `checkout`/`restore`/`reset`/`stash` n'est sûr**, et aucun hook ne
+  l'arbitre (utilisateur, 2026-09-26 : « Pour les joker et les git destructifs, maintenant qu'on est en
+  worktree, personne ne touche a l'arbre principal, cette garde ne sert plus. »), même sur un généré ou ma
   propre écriture : un stray se défait en supprimant ou recréant les fichiers puis en rejouant le
   générateur ; un WIP écrasé se récupère par `git stash apply <sha>`, jamais `pop` ; du travail à porter
   sur la branche d'une autre session, c'est elle qui le porte, à l'arrêt.

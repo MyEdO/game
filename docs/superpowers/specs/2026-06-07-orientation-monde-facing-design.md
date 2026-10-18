@@ -50,7 +50,7 @@ mort** à supprimer. Le présent sous-projet corrige la racine **et** consolide 
 **Non-objectifs**
 - Pas de règles de combat de flanc/dos (visuel seulement).
 - Pas de rotation 3D du rig (le rig est un paper-doll 2D ; on garde le snap 8→3 vues + miroir
-  — cf. note projet `game-rig-2d-paper-doll`).
+  — cf. `.claude/rules/rendu-et-rig.md`).
 - Pas de caméra à 8 positions (la projection iso ne gère que les paliers de 90° ; un vrai 45°
   serait un autre chantier). **Caméra = 4 positions ; orientation perso = 8 directions.**
 

@@ -12,7 +12,8 @@ que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS
 - **Chaque clôture de phase : juge « ARCHITECTURE À REBOURS »** — partant de zéro, cette couture
   existerait-elle ?
 - **C'est le TRAVAIL qui se ferme.** Une clause de DoD portée par un ticket ouvert n'est pas soldée
-  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE ») ; l'objectif suivant ne raccourcit jamais le DoD. Hors
+  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE » ; utilisateur, 2026-09-01 : « Pas de demi-migration j'ai
+  dit, ça sert à quoi si on ferme l'épique sans avoir terminé ? ») ; l'objectif suivant ne raccourcit jamais le DoD. Hors
   DoD, plus d'un ticket de reste → le lot GROSSIT ou le ticket RESTE OUVERT ; tout reste naît rattaché à
   une VAGUE NOMMÉE ; « LIVRÉ » exige des restes soldés ou GELÉS par arbitrage utilisateur daté. Une vague
   ferme au moins autant qu'elle ouvre.
