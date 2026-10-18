@@ -1443,9 +1443,20 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **« Browser is already in use »** : le profil Chrome de Playwright MCP
   (`%LOCALAPPDATA%/ms-playwright-mcp/mcp-chrome-<hash>`) est un par racine de session (hash de la
   première root MCP) : les sessions de même racine se le disputent. Dès la première occurrence,
-  ni réessai, ni attente, ni arrêt de ses processus : jouer la recette par le kit (§ « Session tenue »,
+  ni réessai ni attente : jouer la recette par le kit (§ « Session tenue »,
   patron `scripts/qc/capture-jeu.mjs`). Une capture versionnée sort du `shot` du kit, jamais du volet
   intégré, qui sert à regarder.
+- **« Browser already in use » / « Target page… has been closed » PERSISTANT (2026-07-16)** : si
+  l'erreur persiste aussi par le kit, ce n'est PAS une contention active mais un lock Chrome MORT
+  (reliquat d'une session Playwright jamais fermée proprement, pipe `--remote-debugging-pipe`
+  orphelin) — signature : les PID `chrome.exe` du profil concerné restent FIGÉS (zéro churn) entre
+  deux vérifications. Récupération : identifier UNIQUEMENT les processus du profil dédié
+  `ms-playwright-mcp\<id>` par leur ligne de commande (ex. `Get-CimInstance Win32_Process -Filter
+  "Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*ms-playwright-mcp*' }`), puis
+  `Stop-Process` sur CES PID uniquement — JAMAIS un kill global par nom d'image (`chrome.exe`
+  seul) : d'autres Chrome tournent sur la machine, dont celui de l'utilisateur.
+- **Page vide après `browser_navigate`** : `browser_navigate` seul laisse parfois la page à
+  `readyState: interactive` avec un root vide ; `browser_close` puis `browser_navigate` suffit.
 - **Jamais de `dispatchEvent`/`MouseEvent` synthétique** pour cliquer un token/bouton — provoque de
   FAUSSES erreurs `setPointerCapture` (l'élément n'a jamais reçu de vrai pointeur). Utiliser les
   VRAIS clics Playwright (`browser_click`, sélecteur `data-cid`/rôle/texte).

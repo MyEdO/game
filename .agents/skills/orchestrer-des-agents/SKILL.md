@@ -59,8 +59,11 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
   ops:synchroniser`, jamais `git pull` (#2187).
 - **Ticket de plus de ~2 semaines, ou repris d'une session fermée** : RE-MESURE en lecture seule sur
   l'arbre courant contre `docs/doctrines.md`, plus l'inventaire des analyses déjà faites ; commentaire
-  « RE-MESURE » au ticket. Un arbitrage UI ancien est un CONTEXTE, jamais un veto ; un arbitrage de règle
-  de jeu ne périme pas.
+  « RE-MESURE » au ticket (utilisateur, 2026-09-03 : « Le ticket est tres vieux, donc prends bien en
+  compte nos régles d'aujourd'hui et potentiellement ce qui est cité a pu énormement changer »). Un
+  arbitrage UI ancien est un CONTEXTE, jamais un veto (utilisateur, 2026-09-19 : « "Dock decision" date
+  d'il y a 2 mois et l'interface a tellement changé qu'il est devenu incompatible avec la fiche de
+  personnage ») ; un arbitrage de règle de jeu ne périme pas.
 - **Avant de prescrire le traitement d'une CLASSE** (texte joueur, références, surfaces, formes de
   données) ou d'ouvrir un ticket : `gh search issues "<mots>" -R MyEdO/game`, les épiques du domaine, et
   pour une décision d'interface les messages `user` des transcripts ; citer l'arbitrage trouvé avec sa date.
@@ -68,13 +71,15 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
 **2. Brief.** Périmètre de fichiers exact, primitives cibles nommées, réfs RAW nues,
 chemin ABSOLU du worktree, interdit de tout `git checkout/restore/reset/stash/add/commit`, « rendu
 final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une liste de tests (#2400).
-- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min) : découper en lots partitionnés par
+- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min ; utilisateur, 2026-10-17 : « 1hr50, c
+  'est du codeur ca ») : découper en lots partitionnés par
   FICHIERS disjoints, lancés en parallèle. Au-delà d'1 h, le codeur rend l'item en cours et le reste se
   répartit ; jamais d'items ajoutés par `SendMessage` à un codeur en vol. La borne est un `Monitor` sur
   l'horloge + `TaskStop`, pas le budget écrit.
 - **Socle → les trois sections de `.claude/agents/codeur.md`, sinon le codeur REFUSE** ; `## Design
   jugé :` cite le rendu du `juge`.
-- **Le brief ne prescrit jamais un appel d'outil de plus de 270 s** (#2596).
+- **Le brief ne prescrit jamais un appel d'outil de plus de 270 s** (#2596), ni un outil dont il n'a pas
+  vérifié ce qu'il fait (`ops:publier` ne fusionne pas en local, hors éjection de la file).
 - **Un brief POSE les questions, il ne les pré-répond pas** : provenance d'une règle, consommateur, état
   d'un fichier se demandent en SORTIE, citation exigée. Le banni est l'affirmation NON citée : verbatim,
   réf RAW nue, ligne de `package.json`, sortie de sonde collés restent légitimes. **Toute RÈGLE affirmée
@@ -95,7 +100,9 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
   mutualisée ou ticketée, morts adjacents purgés) ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
 - **Lot de structure = UN concept sur TOUS ses porteurs** (datasets, ops, tables, scènes, saves,
-  éditeur, Codex), jamais par dataset ni « données d'abord » ; N sites à la même retouche → le lot est le
+  éditeur, Codex), jamais par dataset ni « données d'abord » (utilisateur, 2026-08-09 : « En tout cas je
+  n'aime pas le travail fait a moitié et les demi-migrations » ; 2026-08-14 : « murer le neuf c'est
+  valider du legacy qui vivra eternellement ») ; N sites à la même retouche → le lot est le
   SOCLE qui les rend déclaratifs. Fermeture : un motif qui ne compile plus, ou une garde rouge.
 - **Tout compromis de TRANSITION** (shim, branchement gardé) s'inscrit au REGISTRE DES FOSSILES du
   ticket-mère avec la phase qui le tue ; le cliquet de migration meurt avec la dernière démolition. Une
@@ -111,9 +118,13 @@ diff du codeur → commit sur la branche du worktree → push (CI) → juge de d
 **Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
 liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
 sur un grand diff dilue l'attention.
-- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** : grief DANS la classe gardée →
+- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** (utilisateur, 2026-10-15 : « Ca
+  devient concept tes numeros, j'ai l'impression que tu as lancé 256 juges différents quand je vois
+  jt18 et T3z6¹⁶ ») : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
-  l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765).
+  l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765). Une
+  ALERTE d'une règle prudente n'est pas un site perdu tant que ses appelants n'ont pas été relus
+  (`.claude/soldes/1765.md:34`).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"`, à défaut committer au retour. **Les recetteurs sont SÉQUENTIELS** : jamais deux en vol (même serveur dev, même
@@ -141,13 +152,16 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
 test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
 - **Aucun créneau, file ni feu vert pour les gestes lourds** (fusion, `ops:chantier`, publication,
   `test:perimetre`) : chaque session les lance quand son travail l'exige (utilisateur, 2026-10-08 :
-  « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail »). Une mesure
+  « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail », puis « Surtout
+  qu'on en a jamais eu besoin, on a trop peu de session pour devoir bloquer les gestes lourds »). Une mesure
   faussée par la charge se rejoue, la charge se note au ticket.
 - ⚠ **Les portes machine sont un PLANCHER** : « portes vertes » ne se dit jamais « vérifié ». **Tout lot
   qui ajoute une donnée ou une mécanique NOMME sa PORTE** (le geste joueur qui l'atteint) dans son DoD, et
   la recette la traverse (garde `src/data/tables.test.ts`).
 - **Les CLAIMS ARCHITECTURAUX se contre-grep** ; exiger la SORTIE BRUTE des
-  portes au rendu. **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
+  portes au rendu ; un vert ne vaut que s'il porte un compte de tests > 0 (les enfants Vitest tournent
+  en `--passWithNoTests`, `scripts/test/partition.mjs:303`). **Une trouvaille de SONDE devient un test
+  committé** dans le commit de fix.
 - **Friction de recette MESURÉE par script = hypothèse** ; seule la capture vaut fait. Avant tout brief de
   correction, le recetteur la re-mesure isolément (sonde discriminante nommée, tableau brut).
 - **Livraison d'ÉCRAN → trois passes** : recette fonctionnelle (DoD), jugement d'écran (captures → juge
@@ -159,7 +173,8 @@ test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
-  lots dans un worktree. Une sonde non suivie sort de l'arbre avant `ops:publier`.
+  lots dans un worktree (utilisateur, 2026-09-14 : « Ca me rends dingue que tu ais a faire des commandes
+  git sur la branche principale »). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
   seul sur éjection) : index STAGÉ → `git restore --staged` d'abord ; `git fetch`, `git merge --no-commit
   origin/main`, jamais un rebase (#2178) ; aucune reconstruction des dérivés sous `MERGE_HEAD` ; `git rm`
@@ -171,7 +186,9 @@ Commits intermédiaires `refs #N`, seul le solde clôt.
 - **Jamais une veille, un train ou un outil `scripts/ops/` lancé depuis un worktree où un agent édite cet
   outil** : il exécute le WIP. Publier avant de dispatcher, ou suivre par `gh pr view` ; un « train mort »
   se recoupe par le pid réel et `git ls-remote` avant toute relance.
-- **Sur l'arbre partagé, aucun `checkout`/`restore`/`reset`/`stash` n'est sûr**, même sur un généré ou ma
+- **Sur l'arbre partagé, aucun `checkout`/`restore`/`reset`/`stash` n'est sûr**, et aucun hook ne
+  l'arbitre (utilisateur, 2026-09-26 : « Pour les joker et les git destructifs, maintenant qu'on est en
+  worktree, personne ne touche a l'arbre principal, cette garde ne sert plus. »), même sur un généré ou ma
   propre écriture : un stray se défait en supprimant ou recréant les fichiers puis en rejouant le
   générateur ; un WIP écrasé se récupère par `git stash apply <sha>`, jamais `pop` ; du travail à porter
   sur la branche d'une autre session, c'est elle qui le porte, à l'arrêt.
@@ -194,7 +211,8 @@ que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS
 - **Chaque clôture de phase : juge « ARCHITECTURE À REBOURS »** — partant de zéro, cette couture
   existerait-elle ?
 - **C'est le TRAVAIL qui se ferme.** Une clause de DoD portée par un ticket ouvert n'est pas soldée
-  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE ») ; l'objectif suivant ne raccourcit jamais le DoD. Hors
+  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE » ; utilisateur, 2026-09-01 : « Pas de demi-migration j'ai
+  dit, ça sert à quoi si on ferme l'épique sans avoir terminé ? ») ; l'objectif suivant ne raccourcit jamais le DoD. Hors
   DoD, plus d'un ticket de reste → le lot GROSSIT ou le ticket RESTE OUVERT ; tout reste naît rattaché à
   une VAGUE NOMMÉE ; « LIVRÉ » exige des restes soldés ou GELÉS par arbitrage utilisateur daté. Une vague
   ferme au moins autant qu'elle ouvre.
@@ -207,13 +225,18 @@ que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS
 n'arrete jamais tant qu'il a des tickets a traiter »). Dès que les agents sont rendus : dispatcher le
 prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, charge machine).
 - **Ne remonte à l'utilisateur que** : règles de jeu (cérémonie), goût et forme, budget, `[entériné]`.
-- **Agir par défaut**, hors de cette liste : une question d'ingénierie
+- **Agir par défaut**, hors de cette liste (utilisateur, 2026-07-17 : « n'attends vraiment pas mon
+  retour pour continuer » ; 2026-09-23 à 2026-09-25 : « Pourquoi tu t'es arrete alors ? Tu ne fais plus
+  rien ? ») : une question d'ingénierie
   qu'une bonne pratique tranche se tranche, justifiée au ticket ; une bascule qui touche d'autres
   sessions, leur ÉCRIRE (`SendMessage`) avant ; un sentier dont ma cible dépend et que personne ne tient
-  est à moi.
+  est à moi (utilisateur, 2026-09-20 : « n'hésite pas a reprendre des chantiers dont tu as besoin pour
+  avancer sur ta tache. La session en // ne touche aucun de ces chantiers »).
 - **Orchestrateur de sessions : j'attribue les tickets et décide du sort des sessions en vol** (finir,
-  arrêter, relancer), sans le demander (utilisateur, 2026-10-08 : « C'est toi l'orchestrator, c'est toi
-  qui décide ») ; je consigne au suivi.
+  arrêter, relancer), sans le demander (utilisateur, 2026-09-30 : « tu es l'orchestrator des sessions
+  liés a l'épique sur 665. Tu ne fais pas des tickets, tu coordonne les autres sessions claude. », puis
+  « C'est toi qui décide, c'est toi qui chappote tout » ; 2026-10-08 : « C'est toi l'orchestrator, c'est
+  toi qui décide ») ; je consigne au suivi.
 - **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
   que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille`.
   `scripts/ops/session.mjs:19`
@@ -222,15 +245,23 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (Calibrage).
 - **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
   (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
-- **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out).
-  Après une interruption, reprendre le CHEMIN CRITIQUE ; une trouvaille hors chemin part en ticket sauf
+- **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out ;
+  utilisateur, 2026-09-28 : « Je te rappel que notre objectif est "Adaptation du chapitre 1 campagne
+  impériale" », puis « Enfin le Tome 1, pas le chapitre 1 »).
+  Après une interruption, reprendre le CHEMIN CRITIQUE (utilisateur, 2026-09-27 : « Je compte sur toi
+  pour ne pas redériver ») ; une trouvaille hors chemin part en ticket sauf
   si elle rougit la CI ou casse le livrable ; un arrêt se dit avec sa vraie cause, jamais « bloqué par
   l'utilisateur » sans verbatim.
 - **Défaut dans le périmètre d'un autre chantier** : dédupliquer par symptôme ET remède, lire le ticket
   propriétaire en entier, y déposer faits mesurés et questions, ne rien committer qui préempte sa réponse
-  (#1739). Un fichier qu'un autre chantier touche s'édite dans mon worktree : la collision se règle à la
-  fusion.
-- **Frictions** : chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
+  (#1739 ; utilisateur, 2026-09-20 : « On a un vrai chantier dans l'épique sur les sources, il faut
+  absoluement éviter de le saboter en prenant des décisions contradictoires »). Un fichier qu'un autre
+  chantier touche s'édite dans mon worktree : la collision se règle à la fusion (utilisateur,
+  2026-08-10 : « m en fiche si y a du wip voisin, c'est une excuse pour ne jamais finir son travail »).
+- **Frictions** (utilisateur, 2026-10-05 : « si les sessions tombent sur des difficultés, ont fait des
+  actions répété mais via des scripts, ou tout axe qui mérite une analyse afin d'apporter des
+  améliorations […], ca ùérite peut etre ca place dans un fichier de suivis d'amélioration continue ») :
+  chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
   versée au sas du suivi (`--friction <texte>`) ; elle n'en sort en ticket (gabarit #101,
   `domaine:outillage`, sous-issue de #2189, `--verser-friction <n> <ticket>`) que VIVANTE sur
   `origin/main` (sonde, ou occurrence postérieure au correctif), chiffrée, récurrente ou d'au moins
@@ -263,9 +294,10 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   `scripts/hooks/*`, classificateur du harnais, mon propre enchaînement) et corriger à la racine ; un hook fautif se ticketise avec ses sondes. « Pourquoi
   X n'est pas fait ? » est l'ordre de faire X : ne soumettre que les RÉSULTATS, jamais le droit de commencer.
 - **Avant de classer un sujet « arbitrage utilisateur », relire l'ATTENDU validé et le RAW** : s'ils
-  répondent, EXÉCUTER. Un « non » vaut au périmètre EXACT refusé.
+  répondent, EXÉCUTER (utilisateur, 2026-07-10 : « C'est fou que tu aies besoin de moi pour ça. »). Un
+  « non » vaut au périmètre EXACT refusé.
 - **Une phrase qui constate une ABSENCE** se lit comme un DÉFAUT quand l'élément figure au dessin ou au
-  spécimen. Si les deux lectures mènent à des gestes opposés, redemander en une ligne ; ne jamais défaire
+  spécimen (utilisateur, 2026-08-17 : « Plutôt rien faire que tu saboter le projet !!! »). Si les deux lectures mènent à des gestes opposés, redemander en une ligne ; ne jamais défaire
   du travail livré sur une phrase ambiguë.
 - **Retours en rafale sur un sujet complexe** : accuser réception, laisser atterrir le travail en vol,
   synthétiser le problème de FOND, proposer UNE direction argumentée, la faire VALIDER, puis exécuter ;
@@ -275,7 +307,8 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   lisibilité positionnelle, économie d'action, cause→effet).
 - **Juger avant d'exposer au goût** : planche, maquette ou capture passe d'abord un juge-vision ou mon
   jugement écrit défaut par défaut ; les défauts nommés se corrigent et se recapturent ; n'exposer que des
-  candidats défendus (#1343).
+  candidats défendus (#1343 ; utilisateur, 2026-09-26 : « Regarde les de ton coté avant de me les
+  exposer »).
 - **Jamais « complet » sur un trou connu** : la limite de couverture s'écrit dans le livrable ET
   l'annonce ; un « reste » ne se cite que vérifié dans le code et rattaché au travail fait.
 

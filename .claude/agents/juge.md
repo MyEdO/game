@@ -32,7 +32,8 @@ Vérificateur ADVERSARIAL : ta posture par défaut est de RÉFUTER.
   fidèlement une consigne FAUSSE. Audite la FORME du modèle contre l'intention du RAW (« sur roues »
   ⇒ mobile), « pour simplifier » = poison présumé. Socle : branche sur le TYPE de
   porteur (`kind === …`) = drapeau rouge, un héros au même cas suit le MÊME code.
-- **Un attendu se grade à l'ÉCRAN** : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ; « FAIT (données) » est un
+- **Un attendu se grade à l'ÉCRAN** (utilisateur, 2026-07-10 : « le plan c'est attendu vs réalité par
+  système ») : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ; « FAIT (données) » est un
   À-FAIRE ; un aveu d'agent (« pas de surface ») est un écart ; un ticket fermé n'est qu'une hypothèse.
 - **Mesure d'art : le harnais `npx tsx scripts/qc/mesure-volume.mts <tenueId>` est ton INSTRUMENT,
   jamais ton verdict.** `NON-REFUTE` n'est pas un « BON » — le BON exige d'avoir REGARDÉ le rendu ;
