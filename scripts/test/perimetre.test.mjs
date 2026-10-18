@@ -140,11 +140,18 @@ test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, 
   const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs', 'scripts/corpus-isole/guards/trois.test.mjs']
   const local = 'scripts/test/local.test.mjs'
   const retenus = new Map([[corpus[0], { rang: 0 }], [corpus[1], { rang: 2 }], [corpus[2], { rang: 3 }], [local, { rang: 0 }]])
-  const plan = planDExecution(retenus, { budget: 100, estimations: new Map([...retenus.keys()].map((t) => [t, { ms: 1 }])) })
-  assert.deepEqual(plan.lances, [local])
-  assert.deepEqual(plan.aLaCI, corpus)
-  assert.deepEqual([...plan.lances, ...plan.aLaCI].sort(), [...retenus.keys()].sort())
-  assert.equal(new Set([...plan.lances, ...plan.aLaCI]).size, retenus.size)
+  for (const [cas, estimations] of [
+    ['durées connues', new Map([...retenus.keys()].map((t) => [t, { ms: 1 }]))],
+    ['audit sans durée', new Map([[local, { ms: 1 }]])],
+  ]) {
+    const plan = planDExecution(retenus, { budget: 100, estimations })
+    assert.deepEqual(plan.lances, [local], cas)
+    assert.deepEqual(plan.aLaCI, corpus, cas)
+    assert.deepEqual([...plan.lances, ...plan.aLaCI].sort(), [...retenus.keys()].sort(), cas)
+    assert.equal(new Set([...plan.lances, ...plan.aLaCI]).size, retenus.size, cas)
+    assert.deepEqual(plan.causes, { budget: 0, audit: 3, 'durée inconnue': 0 }, `${cas} : un audit se renvoie pour sa cause, jamais pour son budget ni sa durée (#2651)`)
+    assert.deepEqual(plan.rangs.map((r) => r.inconnues), plan.rangs.map(() => 0), `${cas} : un audit n'est pas une durée inconnue`)
+  }
 })
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
@@ -180,7 +187,7 @@ function forger(t, base, apres, { commiter = true } = {}) {
 }
 
 const deriver = (racine, bornes = { base: 'HEAD~1', tete: 'HEAD' }) =>
-  perimetreDuDepot(racine, bornes, { dossierDesMemos: join(racine, '.git', 'perimetre') })
+  perimetreDuDepot(racine, bornes, { dossierDesMemos: join(racine, '.git', 'perimetre'), env: envDeDepotForge() })
 
 const lienDe = (perimetre, test) => {
   const lien = perimetre.retenus.get(test)

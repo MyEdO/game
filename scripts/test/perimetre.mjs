@@ -728,7 +728,7 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
  *  le disque (arbre de travail) ou dans `tete`, mémos sous `dossierDesMemos`. */
 export async function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos = join(racine, CACHE), lectureSeule = false, env, signal, retenir } = {}) {
   const derive = await derivationBornee({ racine, base, tete, dossierDesMemos, lectureSeule }, { env, signal, retenir })
-  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine), derive.tete, rels) : lireDuDisque(racine)
+  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env }), derive.tete, rels) : lireDuDisque(racine)
   return { ...derive, lire }
 }
 

@@ -22,14 +22,13 @@ import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { gitDe } from './gitDeBanc.mjs'
+import { PROLOGUE_DE_FAUX_VITEST, VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 
-/** Vitest de substitution : trace ses arguments dans `TRACE_DOSSIER` (`<côté>-<pid>.json`), puis sort sur
+/** Vitest de substitution : trace ses arguments dans `TRACE_DOSSIER` (`traceDuCote()`), puis sort sur
  *  `FAUX_VITEST_CODE`, ou attend indéfiniment sous `FAUX_VITEST_ATTENTE`. */
 const FAUX_VITEST =
-  "import fs from 'node:fs'\n" +
-  "import path from 'node:path'\n" +
-  "const cote = process.argv.some((a) => a.includes('vitest.jsdom.')) ? 'jsdom' : 'node'\n" +
-  "if (process.env.TRACE_DOSSIER) fs.writeFileSync(path.join(process.env.TRACE_DOSSIER, cote + '-' + process.pid + '.json'), JSON.stringify(process.argv.slice(2)))\n" +
+  PROLOGUE_DE_FAUX_VITEST +
+  "if (process.env.TRACE_DOSSIER) fs.writeFileSync(traceDuCote(), JSON.stringify(process.argv.slice(2)))\n" +
   "if (process.env.FAUX_VITEST_ATTENTE) setInterval(() => {}, 1000)\n" +
   "else process.exit(Number(process.env.FAUX_VITEST_CODE ?? 0))\n"
 
@@ -190,8 +189,30 @@ test('lancerTests : une suite qu’on ne peut énumérer, VIDE comprise, est un 
   t.mock.restoreAll()
   assert.equal(code, 1)
   assert.ok(ecrits.some((e) => e.startsWith('[test] REFUS — énumération de la suite impossible : suiteVitest : aucune suite Vitest sous ')), ecrits.join(''))
+  const capture = readFileSync(join(p.racine, 'node_modules/.cache', `vitest-run-${process.pid}.txt`), 'utf8')
+  assert.match(capture, /^\[test\] REFUS — énumération de la suite impossible : /m, 'la capture porte le refus')
   assert.deepEqual(vus, [])
   assert.equal(existsSync(p.verrou.chemin), false)
+})
+
+test('lancerTests : sous PARTIE et partage node/jsdom, les deux côtés jouent EXACTEMENT la tranche — les K parties partitionnent la suite (#2651)', async (t) => {
+  const suite = Array.from({ length: 8 }, (_, n) => (n % 2 ? `ecran${n}.test.tsx` : `moteur${n}.test.ts`))
+  const K = 2
+  const joues = []
+  for (let i = 1; i <= K; i += 1) {
+    const p = fixtureRun(t)
+    writeFileSync(join(p.racine, 'node_modules/vitest/vitest.mjs'), VITEST_DE_PARTIE)
+    for (const n of suite) writeFileSync(join(p.racine, n), n.endsWith('.tsx') ? '// @vitest-environment jsdom\n' : 'export {}\n')
+    const code = await lancerTests({ ...p, argv: [], enumerer: () => suite,
+      env: { ...p.env, WFRP_TEST_COEURS: '16', [VARIABLE_PARTIE]: `${i}/${K}` } })
+    assert.equal(code, 0, `partie ${i}`)
+    const lancements = lancementsDe(p.traces)
+    assert.deepEqual(lancements.map(([cote]) => cote), ['node', 'jsdom'], `partie ${i} : le partage node/jsdom n'a pas eu lieu`)
+    const inclus = lancements.flatMap(([, , include]) => include)
+    assert.equal(new Set(inclus).size, inclus.length, `partie ${i} : un fichier joué des deux côtés`)
+    joues.push(...inclus)
+  }
+  assert.deepEqual(joues.sort(), [...suite].sort(), 'les parties jouées ne partitionnent pas la suite')
 })
 
 test('lancerTests : annulation avant principal interdit aussi énumération PARTIE', async (t) => {

@@ -296,7 +296,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
     balayerAteliersMorts()
     fs.mkdirSync(ATELIER, { recursive: true })
 
-    // La suite a UNE définition, celle du périmètre (`suiteVitestDuDepot`, #2651) ; absolue en barres obliques,
+    // La suite a UNE définition, celle des shards de la CI (`suiteVitestDuDepot`, #2651) ; absolue en barres obliques,
     // comme Vitest résout ses fichiers, pour `partitionner` et `cotesRequis` ; relative dans les `include` générés.
     let suite
     try {
@@ -327,8 +327,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
         observer(refus, true)
         return 1
       }
-      const garde = new Set(tranche.fichiers)
-      fichiers = tous.filter((_, i) => garde.has(suite[i]))
+      fichiers = tranche.fichiers.map((rel) => `${base}/${rel}`)
       args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
     }
     const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))
