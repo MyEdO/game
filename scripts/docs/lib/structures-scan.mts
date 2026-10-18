@@ -44,6 +44,7 @@ import {
   CLES_RESERVEES,
   CONCEPTS,
   CONCEPT_REFERENCE,
+  entreeAuSite,
   GRAPHIE_REFERENCE,
   GRAPHIES_ENVELOPPANTES,
   ROLES_ENVELOPPE,
@@ -228,16 +229,9 @@ const candidatsStructurels = (o: Record<string, unknown>, dansTableau: boolean):
     (c) => (dansTableau || c.candidatureHorsTableau) && c.noyau!.every((k) => typeof o[k] === 'number'),
   ).map((c) => c.id);
 
-/**
- * Statut d'une signature AU SITE : une entrée SITE-QUALIFIée du lexique gagne sur l'entrée nue de la
- * même graphie (`site` absent = repli universel). Sans site fourni par l'appelant, seules les entrées
- * nues répondent — un littéral de schéma n'a pas de dataset.
- */
+/** Statut d'une signature AU SITE, lu sur son entrée de lexique (`entreeAuSite`). */
 const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: string }): Classement => {
-  const candidates = c.signatures.filter((s) => s.sig === sig);
-  const hit =
-    (site && candidates.find((s) => s.site && (s.site.datasets?.includes(site.dataset) ?? true) && s.site.champs.includes(site.champ)))
-    ?? candidates.find((s) => !s.site);
+  const hit = entreeAuSite(c, sig, site);
   return { concept: c.id, strate: c.strate, statut: hit?.statut ?? 'divergente', note: hit?.note ?? '', signature: sig };
 };
 

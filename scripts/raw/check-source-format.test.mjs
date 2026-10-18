@@ -333,8 +333,9 @@ test('un livre de `books.json` dont le dossier MANQUE lève — un corpus amput�
 // --- Le STOCK committé ---
 
 test('stock COMMITTÉ : chaque écart mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
+  const { neuves, perimees, accrues } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
   assert.deepEqual(neuves, [], `écart(s) hors du stock :\n${neuves.join('\n')}`)
+  assert.deepEqual(accrues, [], `écart(s) dont le nombre GRANDIT :\n${accrues.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 

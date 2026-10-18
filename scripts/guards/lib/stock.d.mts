@@ -3,18 +3,36 @@ export interface EcartsDeStock {
   neuves: string[];
   /** Clés du STOCK que l'observé ne porte plus (décorées par `remede.perimee`). */
   perimees: string[];
+  /** Clés des deux côtés dont le compte OBSERVÉ dépasse celui du stock : phrase FIXE de la primitive. */
+  accrues: string[];
+  /** Clés des deux côtés dont le compte OBSERVÉ est plus petit (décorées par `remede.baisse`). */
+  baisses: string[];
   /** Clés DISTINCTES du stock. */
   taille: number;
 }
 
+type RemedesDeCle<O, S> = {
+  neuve?: (cle: string, entree: O) => string;
+  perimee?: (cle: string, entree: S) => string;
+};
+
+/** Sans `nombre` : la clé seule se compare, `accrues` et `baisses` restent vides. */
 export function ecartsDeStock<O, S>(p: {
   observe: Iterable<O>;
   stock: Iterable<S>;
   cle: (entree: O | S) => string;
-  remede?: {
-    neuve?: (cle: string, entree: O) => string;
-    perimee?: (cle: string, entree: S) => string;
-  };
+  nombre?: undefined;
+  cible?: undefined;
+  remede?: RemedesDeCle<O, S>;
+}): EcartsDeStock;
+/** Avec `nombre` : le compte sort de la clé, et la `cible` qui solde une hausse est exigée. */
+export function ecartsDeStock<O, S>(p: {
+  observe: Iterable<O>;
+  stock: Iterable<S>;
+  cle: (entree: O | S) => string;
+  nombre: (entree: O | S) => number;
+  cible: (cle: string, entree: O) => string;
+  remede?: RemedesDeCle<O, S> & { baisse?: (cle: string, entree: O) => string };
 }): EcartsDeStock;
 
 export const CHAMPS_DE_GROUPE: readonly ['famille', 'fichier', 'ref'];
@@ -52,7 +70,7 @@ export function sitesEnEntrees<S extends Site & { famille?: string }>(
   sites: readonly S[],
 ): (EntreeDeSite & Omit<S, 'file' | 'ref' | 'famille'>)[];
 
-export function estNeuveOuAccrue(mesuree: unknown, tenue: unknown): boolean;
+export function estNeuveOuAccrue<E>(mesuree: E, tenue: E | undefined, nombre?: (entree: E) => number | undefined): boolean;
 
 export function survieDeLecheance<E extends Record<string, unknown>>(
   mesurees: Iterable<E>,
@@ -66,24 +84,24 @@ export function ecartDuVolet(p: {
   remede?: { neuve?: (cle: string, entree: EntreeDeSite) => string };
 }): EcartsDeStock;
 
-export function nombresAccrus(observe: Iterable<object>, stock: Iterable<object>, ou?: string): string[];
 export function remedeNomme(lignes: readonly string[], cle: string): boolean;
 
 export function refusDeCroissance<M, S>(
   mesurees: Iterable<M>,
   stock: Iterable<S>,
-  p: { cle: (entree: M | S) => string; nom: string; motif: string },
+  p: { cle: (entree: M | S) => string; nombre?: (entree: M | S) => number | undefined; nom: string; motif: string },
 ): string | null;
 export function refusDeCroissance(
   mesurees: Iterable<EntreeDeSite>,
   stock: Iterable<Partial<EntreeDeSite>>,
-  p: { cle?: (entree: EntreeDeSite) => string; nom: string; motif: string },
+  p: { cle?: (entree: EntreeDeSite) => string; nombre?: (entree: EntreeDeSite) => number | undefined; nom: string; motif: string },
 ): string | null;
 
 export function champsAveugles<E extends Record<string, unknown>>(
   stock: Iterable<E>,
   cle: (entree: E) => string,
   champs: readonly (keyof E & string)[],
+  nombre?: (entree: E) => number,
 ): string[];
 
 export function couvertureDuBalayage(p: {

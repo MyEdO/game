@@ -37,6 +37,7 @@ export const STRUCTURES_ENVELOPPE: ReadonlyArray<{
   detail: string;
   document: string;
   chemin: string;
+  occurrences: number;
   lot: string;
   date: string;
 }>;

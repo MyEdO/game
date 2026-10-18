@@ -24,6 +24,7 @@
     "agents:check": "node scripts/agents/compat-cli.mjs check",
     "mods:check": "node scripts/mods/verifier.mjs",
     "livraison:plage": "node scripts/guards/livraison-plage.mjs",
+    "comptes:plage": "node scripts/lancer-local.mjs tsx -- tsx scripts/guards/comptes-plage.mts",
     "test:agents": "node scripts/gates/testsSansEcriture.mjs test:agents",
     "test:hooks": "node scripts/gates/testsSansEcriture.mjs test:hooks",
     "banc:pre-commit": "node scripts/test/banc-pre-commit.mjs",

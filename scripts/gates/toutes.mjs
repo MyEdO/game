@@ -218,6 +218,17 @@ export const ECRIT_LU = {
       'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
       'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
   },
+  'comptes:plage': {
+    ecrit: [],
+    lit: ['src/', 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+    raison: RETRAIT_WORKTREE_FERME +
+      'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/` et `Source/` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      'et pose chacune sous un `mkdtempSync` d’os.tmpdir(), effacé en finally, avec une COPIE de `scripts/`, `package.json` ' +
+      'et `tsconfig.json` de l’arbre (le détecteur), `node_modules` lié (`lierDependances`) et les cibles de code produites ' +
+      'DANS l’image (`genererCodeSansCertifier`, cwd = l’image) ; chaque image se mesure dans un processus tsx fils ; ' +
+      'aucune écriture dans l’arbre',
+  },
   'test:ops': {
     ecrit: [],
     lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.codex/credo.md', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],

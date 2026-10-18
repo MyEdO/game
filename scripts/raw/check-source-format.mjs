@@ -498,16 +498,16 @@ function main() {
     for (const t of soudes) console.log(`  ${t.file} — ${t.ref}`)
   }
 
-  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-format-stock.json' })
-  if (neuves.length) {
+  const { neuves, perimees, accrues } = ecartDuVolet({ sites, stock, ou: 'source-format-stock.json' })
+  if (neuves.length || accrues.length) {
     console.log('RÉGRESSION — écart(s) hors du stock :')
-    for (const o of neuves) console.log(`  ${o}`)
+    for (const o of [...neuves, ...accrues]) console.log(`  ${o}`)
   }
   if (perimees.length) {
     console.log('Entrée(s) SOLDÉE(s) (livre ré-extrait) :')
     for (const s of perimees) console.log(`  ${s}`)
   }
-  if (!neuves.length && !perimees.length && !grain.length && !mobilier.length && !soudes.length) {
+  if (!neuves.length && !accrues.length && !perimees.length && !grain.length && !mobilier.length && !soudes.length) {
     console.log('OK — cliquet aligné, aucune régression, aucun écart au grain, aucun mobilier de page, aucun titre soudé.')
     return
   }

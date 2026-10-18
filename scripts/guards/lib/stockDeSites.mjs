@@ -204,6 +204,10 @@ export const entreesRegenerees = (sites, { lot, date, ancien = [] } = {}) =>
 export const comptesParFamille = (items, familles) =>
   tableTotale(familles, (f) => items.filter((s) => s.famille === f).length)
 
+/** Le motif de tout écrivain qui refuse la croissance : `DECROISSANT`, et l'écrivain des comptes
+ *  (`actualiserOccurrences`, `occurrencesStock.mjs`). */
+export const MOTIF_DECROISSANT = "Cet outil ne peut qu'écrire un stock PLUS PETIT."
+
 /** Politique `DECROISSANT` : la régénération n'écrit qu'un stock PLUS PETIT — une entrée neuve ou
  *  accrue est refusée ; sous `--amorce`, rien n'est refusé (le stock qui naît face aux sites que sa
  *  garde mesure déjà). Ne date rien. */
@@ -212,7 +216,7 @@ export const DECROISSANT = Object.freeze({
   datee: false,
   refus: ({ chemin, collection, entrees, stock, amorce }) => (amorce ? null : refusDeCroissance(entrees, stock, {
     nom: `${chemin} : ${collection.nom}`,
-    motif: `Cet outil ne peut qu'écrire un stock PLUS PETIT.${collection.motif ? ` ${collection.motif}` : ''}`,
+    motif: `${MOTIF_DECROISSANT}${collection.motif ? ` ${collection.motif}` : ''}`,
   })),
 })
 
