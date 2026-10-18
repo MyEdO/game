@@ -500,6 +500,11 @@ export const ECRIT_LU = {
     },
     lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', 'src/', '.claude/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
+      'les lecteurs des cibles pures atteignent build-all.mjs, fraicheur-docs.mjs, enregistreur-lectures.mjs et journal.mjs ; ' +
+      'les lecteurs RAW appellent rendreCible/renduDe, sans passer par executerLesGenerateurs ou genererCode, ' +
+      'ni par la certification ou la copie de fraîcheur ; ces chemins de rendu n’appellent pas le journal hérité ; ' +
+      'build-atlas-index.test.mjs appelle installer sur sa racine rawDir jetable ; l’autoactivation du collecteur reste ' +
+      'conditionnée par WFRP_LECTURES_RACINE/WFRP_LECTURES_SORTIE, et testsSansEcriture refuse toute écriture dans l’arbre réel ; ' +
       'harnais de l’Atlas : il lit les fiches que les trois rapports écrivent ; éprouvant les scripts ' +
       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
@@ -524,7 +529,10 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
-      'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
+      'les écrivains acquis par le producteur pur d’Implémente (ecriture-derives.mjs, ecritureJsonAtomique.mjs, ' +
+      'renommageResilient.mjs, test/verrou.mjs) ne sont pas appelés par rendreCible/renduDe ; ' +
+      'la commande appelle ces lectures, sans exécution des générateurs ni certification ou copie ; ' +
+      'LIT le registre de livres et le normaliseur de références ' +
       '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
@@ -541,6 +549,8 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
+      'le lecteur de l’Atlas importe build-all.mjs et ses écrivains ; rendreCible/renduDe n’appellent ni ' +
+      'executerLesGenerateurs ou genererCode, ni la certification, la copie ou le journal hérité ; ' +
       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
       + 'donc un renvoi mort est un renvoi faux, jamais un héritage à geler. LIT les pages de l’Atlas, '
       + 'le registre de livres (énumération des cœurs, `pagesDeLAtlas`) et l’extracteur de liens partagé '

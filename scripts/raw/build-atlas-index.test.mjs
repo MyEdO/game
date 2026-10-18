@@ -3,6 +3,9 @@
 // l'état du jour, pas le RÉGIME (« un cœur de plus au registre est une ligne de plus »).
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { installer } from '../docs/lib/enregistreur-lectures.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 import {
   RAPPORT, NOM_INDEX, rendre, ancreDuCoeur,
@@ -103,5 +106,37 @@ test('rapport pur : domaine neuf, liens depuis la cible et aucune lecture de sa 
     assert.equal(texte.includes('## Domaines coeur-beta'), false)
     assert.equal(ancreDuCoeur(COEUR_A), 'domaines-coeur-alpha')
     assert.equal(texte.includes('# Alpha'), false)
+  }, { coeur: COEUR_A })
+})
+
+test('sources mesurées : seules les sondes nominatives des index pilotent le rapport', () => {
+  avecAtlasFixture({ [NOM_INDEX]: '# Alpha\n' }, (rawDir) => {
+    const mesurer = () => {
+      const collecteur = installer({ racine: rawDir, ignores: new Set() })
+      let texte
+      try { texte = rendre(rawDir, REGISTRE, DOMAINES).get(RAPPORT) }
+      finally { collecteur.restaurer() }
+      const sources = collecteur.rendu()
+      assert.deepEqual(sources.dossiers, {})
+      assert.deepEqual(sources.fichiers, [])
+      assert.deepEqual(sources.sondes.map(({ chemin, type }) => [chemin, type]), [
+        [`${COEUR_A}/${NOM_INDEX}`, 'stat'], [`${COEUR_B}/${NOM_INDEX}`, 'stat'],
+      ])
+      return { texte, sources }
+    }
+    const avant = mesurer()
+    for (const rapport of ['atlas.generated.md', 'implemente.generated.md']) writeFileSync(join(rawDir, rapport), '# Rapport\n')
+    assert.deepEqual(mesurer(), avant)
+    mkdirSync(join(rawDir, COEUR_B))
+    writeFileSync(join(rawDir, COEUR_B, NOM_INDEX), '# Beta\n')
+    const avecBeta = mesurer()
+    assert.notEqual(avecBeta.texte, avant.texte)
+    assert.match(avecBeta.texte, /## Domaines coeur-beta/)
+    rmSync(join(rawDir, COEUR_B, NOM_INDEX))
+    assert.deepEqual(mesurer(), avant)
+    mkdirSync(join(rawDir, COEUR_B, NOM_INDEX))
+    const indexDossier = mesurer()
+    assert.equal(indexDossier.texte, avant.texte)
+    assert.notDeepEqual(indexDossier.sources, avant.sources)
   }, { coeur: COEUR_A })
 })

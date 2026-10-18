@@ -21,7 +21,6 @@ import { CLASSES as CLASSES_REANCHOR } from './reanchor.mjs'
 import { CLASSES as CLASSES_COUNTS } from './check-atlas-counts.mjs'
 import { CLASSES as CLASSES_IMPLEMENTE } from './build-implemente.mjs'
 import { CLASSES as CLASSES_ENTITE } from './check-entity-in-chapter.mjs'
-import { CLASSES as CLASSES_INDEX } from './build-atlas-index.mjs'
 import { CLASSES as CLASSES_CROISSANCE } from '../migrations/lib/croissance.mjs'
 import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, entitesDe, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, plagesDEntites, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
 import booksData from '../../src/data/books.json' with { type: 'json' }
@@ -538,7 +537,7 @@ test('pagesDeLAtlas : DEUX cœurs portent le même nom de fiche — les deux sor
 // c'est la déclaration de l'autre qui les tient.
 const ACCEPTATIONS = [
   { classes: ['fiche', 'catalogue', 'auteur', 'epreuve'],
-    declarants: { 'coverage.mjs': CLASSES_COVERAGE, 'check-refs.mjs': CLASSES_CHECK_REFS, 'reconcile.mjs': CLASSES_RECONCILE, 'build-atlas-index.mjs': CLASSES_INDEX },
+    declarants: { 'coverage.mjs': CLASSES_COVERAGE, 'check-refs.mjs': CLASSES_CHECK_REFS, 'reconcile.mjs': CLASSES_RECONCILE },
     attendu: [NOM_AUTEUR, 'alpha/catalogue-z.md', 'alpha/domaine.md', 'alpha/epreuve-2000-01-01.md', 'alpha/sources.md', 'beta/domaine.md'] },
   { classes: ['fiche', 'catalogue', 'auteur'],
     declarants: { 'citation-graphy-guard.mjs': CLASSES_GRAPHY, 'audit-refs-chapitre.mjs': CLASSES_AUDIT_REFS },

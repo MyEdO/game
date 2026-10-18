@@ -640,6 +640,11 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/enregistreur-lectures.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -749,7 +754,13 @@ const ATTENDU = {
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],
-  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/test/verrou.mjs',
+  ],
   // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module passe par `ecrireDoc` derrière sa porte `import.meta.main` (`main` de build-implemente.mjs),
@@ -762,7 +773,16 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   // #1824
-  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2801
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/test/verrou.mjs',
+  ],
   'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-source-format': ['scripts/guards/lib/protectionWorktree.mjs', ],

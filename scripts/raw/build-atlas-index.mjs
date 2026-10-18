@@ -1,23 +1,36 @@
+import { statSync } from 'node:fs'
+import { join } from 'node:path'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
-import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, pagesDeLAtlas, REGISTRE_LIVRES } from './_lib.mjs'
+import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, REGISTRE_LIVRES } from './_lib.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const NOM_INDEX = '00-index.md'
 export const RAPPORT = 'docs/raw/atlas.generated.md'
-export const CLASSES = ['fiche', 'catalogue', 'auteur', 'epreuve']
 export const titreDuCoeur = (coeur) => `Domaines ${coeur}`
 export const ancreDuCoeur = (coeur) => ancreDeTitre(titreDuCoeur(coeur))
 
+function indexesDesCoeurs(rawDir, registre) {
+  return new Map(coeursDuRegistre(registre).map((coeur) => {
+    try { return [coeur, statSync(join(rawDir, coeur, NOM_INDEX)).isFile()] }
+    catch (erreur) {
+      if (erreur.code === 'ENOENT' || erreur.code === 'ENOTDIR') return [coeur, false]
+      throw erreur
+    }
+  }))
+}
+
 export function lignesDesCoeurs(rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
-  const pages = pagesDeLAtlas(rawDir, { classes: CLASSES, registre, absent: 'vide' })
+  return lignesDesCoeursDepuisIndexes(registre, indexesDesCoeurs(rawDir, registre))
+}
+
+function lignesDesCoeursDepuisIndexes(registre, indexes) {
   const coeurs = coeursDe(registre)
   const livresDuRegistre = livresDeCoeur(booksDe(registre), coeurs)
   return coeursDuRegistre(registre).map((coeur) => {
     const livres = livresDuRegistre.filter(([abbr]) => coeurs.get(abbr) === coeur).map(([abbr]) => abbr)
     const sigles = livres.length ? ` — livre(s) de cœur : ${livres.join(', ')}` : ''
-    const index = pages.find((p) => p.coeur === coeur && p.nom === NOM_INDEX)
-    return index ? `- [\`${coeur}/\`](${index.relatif})${sigles}` : `- \`${coeur}/\` — dossier à créer${sigles}`
+    return indexes.get(coeur) ? `- [\`${coeur}/\`](${coeur}/${NOM_INDEX})${sigles}` : `- \`${coeur}/\` — dossier à créer${sigles}`
   })
 }
 
@@ -28,10 +41,10 @@ export function lignesDesDomaines(domaines, coeur) {
 }
 
 export function rendre(rawDir = RAWDIR, registre = REGISTRE_LIVRES, registreDomaines) {
-  const lignes = ['# Atlas RAW — Index calculé', '', '> Généré par `node scripts/raw/build-atlas-index.mjs`.', '', '## Cœurs', '', ...lignesDesCoeurs(rawDir, registre), '']
-  const pages = pagesDeLAtlas(rawDir, { classes: CLASSES, registre, absent: 'vide' })
-  for (const coeur of coeursDuRegistre(registre)) {
-    if (!pages.some((p) => p.coeur === coeur && p.nom === NOM_INDEX)) continue
+  const indexes = indexesDesCoeurs(rawDir, registre)
+  const lignes = ['# Atlas RAW — Index calculé', '', '> Généré par `node scripts/raw/build-atlas-index.mjs`.', '', '## Cœurs', '', ...lignesDesCoeursDepuisIndexes(registre, indexes), '']
+  for (const [coeur, existe] of indexes) {
+    if (!existe) continue
     lignes.push(`## ${titreDuCoeur(coeur)}`, '', ...lignesDesDomaines(domainesDe(coeur, registreDomaines), coeur), '')
   }
   return new Map([[RAPPORT, lignes.join('\n')]])

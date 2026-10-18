@@ -138,13 +138,15 @@ for (const parentModifie of [true, false]) test(`certification : plusieurs séle
     const initial = { fichiers: new Map(preparation.fichiers), dossiers: structuredClone(preparation.dossiers), vue: preparation.vue, cache: structuredClone(preparation.cache) }
     const avant = avantGenerateur(racine, g, opts, preparation)
     poser(racine, doc('a'), 'sortie')
-    let captures = 0
+    let capturesPropres = 0
     const vu = certifierGenerateur(racine, g, entree, { ...opts, ciblesSurDisque: (motifs, cwd) => {
-      captures++
-      if (captures === 7) poser(racine, '.git/info/exclude', '')
+      if (JSON.stringify(motifs) === JSON.stringify(g.targets)) {
+        capturesPropres++
+        if (capturesPropres === 2) poser(racine, '.git/info/exclude', '')
+      }
       return ciblesSurDisque(motifs, cwd)
     } }, avant)
-    assert.equal(captures, 7)
+    assert.equal(capturesPropres, 2)
     assert.equal(vu.ok, false)
     assert.equal(vu.raison, parentModifie ? 'parent de sortie modifié ou non capturé : docs' : 'source modifiée pendant certification')
     assert.equal(vu.sourceModifiee, !parentModifie)
