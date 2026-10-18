@@ -801,7 +801,8 @@ export async function arreterGatesSurSignal({ signal, vivants, verrousTenus, jou
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
  * `horloge` porte les chronomètres et l'attente du verrou, jamais l'horloge murale des enfants supervisés.
- * `prendre` prend le verrou des gestes lourds, `lancer` joue chaque gate (`spawnBorne`).
+ * `prendre` prend le verrou des gestes lourds, `lancer` joue chaque gate (`spawnBorne`), `sortir` reçoit le
+ * code du gestionnaire de SIGINT/SIGTERM (`process.exit`).
  * REND le code de sortie.
  */
 export async function principal({
@@ -811,6 +812,7 @@ export async function principal({
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
   env = process.env, signal, verrou: instance, prendre = prendreVerrouAsync, lancer = spawnBorne, horloge = Date.now,
+  sortir = process.exit,
 } = {}) {
   const configuration = instance ?? verrouGestesLourds(racine)
   const secondesDepuis = (debut) => (horloge() - debut) / 1000
@@ -906,7 +908,7 @@ export async function principal({
   let arretSurSignal
   const arreterSurSignal = (signal) => {
     arretDesAttentes.abort()
-    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => process.exit(code))
+    arretSurSignal ??= arreterGatesSurSignal({ signal, vivants, verrousTenus, journal, lancementsEnCours }).then((code) => sortir(code))
   }
   const surSigint = () => arreterSurSignal('SIGINT')
   const surSigterm = () => arreterSurSignal('SIGTERM')
