@@ -1,8 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
-import childProcess from 'node:child_process'
-import { syncBuiltinESMExports } from 'node:module'
 import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'

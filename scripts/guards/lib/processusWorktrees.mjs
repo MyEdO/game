@@ -73,7 +73,7 @@ export function cheminDArgument(argument, platform = process.platform) {
   }
   if (platform !== 'win32') return chemin
   chemin = chemin.replace(PREFIXE_DE_PERIPHERIQUE, '')
-  const interdit = chemin.search(/[\u0000-\u001f<>"|?*]|(?<!^[A-Za-z]):/)
+  const interdit = chemin.search(/[^ -\uffff]|[<>"|?*]|(?<!^[A-Za-z]):/)
   return (interdit === -1 ? chemin : chemin.slice(0, interdit)) || null
 }
 
