@@ -765,7 +765,6 @@ const ATTENDU = {
   'raw:check-source-puces': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:corpus': [
-    "scripts/corpus/guards/balayages-non-resolus.test.mjs",
     "scripts/corpus/guards/lister.test.mjs",
     "scripts/corpus/migrations/idempotence-ordre-des-cles.test.mjs",
     "scripts/docs/build-all.mjs",
@@ -787,13 +786,28 @@ const ATTENDU = {
     "scripts/raw/sonde-titres.mjs",
     "scripts/raw/workflow-args.mjs",
     "scripts/test/node-tests.mjs",
-    "scripts/test/perimetre.mjs",
     "scripts/test/verrou.mjs",
-    // +2 le 2026-10-17 (#2586) : `perimetre.mjs` lance ses fichiers par `memoire.mjs`, qui pose ses émissions et son
-    // diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir(), sous la supervision de
-    // `superviserProcessus.mjs` (dossier `mkdtempSync` d'os.tmpdir()) ; l'arbre n'est jamais écrit.
+    "scripts/guards/lib/superviserProcessus.mjs",
+  ],
+  // #2586 : la garde des balayages non résolus dérive par `balayagesNonResolus` de `perimetre.mjs` (mémos sous un
+  // `mkdtempSync` d'os.tmpdir()), qui lance ses fichiers par `memoire.mjs` (émissions et diagnostic sous un
+  // `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir()), supervisé par `superviserProcessus.mjs` ; l'arbre n'est jamais écrit.
+  'test:corpus-isole': [
+    "scripts/corpus-isole/guards/balayages-non-resolus.test.mjs",
+    "scripts/docs/build-all.mjs",
+    "scripts/docs/lib/ecriture-derives.mjs",
+    "scripts/docs/lib/fraicheur-docs.mjs",
+    "scripts/git-hooks/journal.mjs",
+    "scripts/guards/lib/ecritureJsonAtomique.mjs",
+    "scripts/guards/lib/lintStage.mjs",
+    "scripts/guards/lib/protectionWorktree.mjs",
+    "scripts/guards/lib/purgerPerimes.mjs",
+    "scripts/guards/lib/renommageResilient.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",
     "scripts/test/memoire.mjs",
+    "scripts/test/node-tests.mjs",
+    "scripts/test/perimetre.mjs",
+    "scripts/test/verrou.mjs",
   ],
   'server:typecheck': [],
 }

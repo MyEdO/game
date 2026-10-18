@@ -4,7 +4,7 @@
 // règle générale (`EXEMPTIONS`) et range le reste par classe (`CLASSES`, la famille de l'entrée de site) ; la
 // régénération du stock (`regenerations`) sert `regenStock.mts` :
 //   npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs [--check]
-// Le verdict vit dans `scripts/guards/balayages-non-resolus.test.mjs`.
+// Le verdict vit dans `scripts/corpus-isole/guards/balayages-non-resolus.test.mjs`.
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { phraseDeNaissance } from './stock.mjs'

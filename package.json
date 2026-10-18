@@ -27,6 +27,7 @@
     "test:agents": "node scripts/gates/testsSansEcriture.mjs test:agents",
     "test:hooks": "node scripts/gates/testsSansEcriture.mjs test:hooks",
     "test:corpus": "node scripts/gates/testsSansEcriture.mjs test:corpus",
+    "test:corpus-isole": "node scripts/gates/testsSansEcriture.mjs test:corpus-isole --test-concurrency=1",
     "banc:pre-commit": "node scripts/test/banc-pre-commit.mjs",
     "test:perimetre": "node --import=./scripts/guards/lib/perimetreSansEcriture.mjs scripts/test/perimetre.mjs",
     "guard:budget-contexte": "node scripts/guards/budget-contexte.mjs",

@@ -2,7 +2,7 @@
 // périmètre de tests ne rattache à aucune racine est une lecture qui échappe à la dérivation. Elle se rend
 // résoluble, ou elle est au stock (`scripts/guards/balayages-non-resolus-stock.json`), qui ne fait que DÉCROÎTRE :
 // l'écart nominatif dans les deux sens (`ecartDuVolet`), le stock point fixe de sa régénération.
-//   node --test scripts/corpus/guards/balayages-non-resolus.test.mjs   (gate `test:corpus`)
+//   node --test scripts/corpus-isole/guards/balayages-non-resolus.test.mjs   (gate `test:corpus-isole`)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { join } from 'node:path'

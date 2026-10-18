@@ -183,9 +183,9 @@ const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/se
 })
 
 test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, partition sans doublon', () => {
-  const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs']
+  const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs', 'scripts/corpus-isole/guards/trois.test.mjs']
   const local = 'scripts/test/local.test.mjs'
-  const retenus = new Map([[corpus[0], { rang: 0 }], [corpus[1], { rang: 2 }], [local, { rang: 0 }]])
+  const retenus = new Map([[corpus[0], { rang: 0 }], [corpus[1], { rang: 2 }], [corpus[2], { rang: 3 }], [local, { rang: 0 }]])
   const plan = planDExecution(retenus, { budget: 100, estimations: new Map([...retenus.keys()].map((t) => [t, { ms: 1 }])) })
   assert.deepEqual(plan.lances, [local])
   assert.deepEqual(plan.aLaCI, corpus)

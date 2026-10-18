@@ -37,7 +37,7 @@ import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { gateDe } from '../gates/testsParGate.mjs'
+import { GATES_D_AUDIT, gateDe } from '../gates/testsParGate.mjs'
 import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { CACHE, lireDuDisque, estTestNode, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
@@ -170,8 +170,8 @@ function murDesFichiers(fichiers, { workers = {}, surcouts = {}, paquets = (f, t
 const fichiersVides = () => tableTotale(FAMILLES, () => [])
 
 /**
- * La politique d'exécution (#2400) : touché HORS budget, toujours lancé, hors un test de la gate `test:corpus`
- * (`gateDe`), qui part à la CI à tout rang, touché compris (#2586) ; puis la racine balayée, les rangs
+ * La politique d'exécution (#2400) : touché HORS budget, toujours lancé, hors un test d'une gate d'audit
+ * (`GATES_D_AUDIT`, `gateDe`), qui part à la CI à tout rang, touché compris (#2586) ; puis la racine balayée, les rangs
  * d'import, setup et toolchain dans l'ordre, chacun trié par signal (`SIGNAUX`), puis spécificité de la
  * racine (`specificite`, la plus petite d'abord), puis estimation croissante, puis chemin. Un test s'ajoute
  * tant que le MUR estimé (`murDesFichiers`) des tests lancés, diminué de celui des seuls touchés, reste ≤ `budget`
@@ -210,7 +210,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
     const ciDuRang = new Set()
     const bilan = { rang: libelleDuRang(rang), murMs: 0, sansDuree: 0, murCiMs: 0, nCi: 0, lances: 0, aLaCI: 0, inconnues: 0 }
     for (const t of tests) {
-      if (gateDe(t) === 'test:corpus') {
+      if (GATES_D_AUDIT.includes(gateDe(t))) {
         aLaCI.push(t)
         bilan.aLaCI += 1
         continue
@@ -549,8 +549,8 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   for (const r of plan.rangs)
     journal(`  ${r.rang} : mur estimé ${texteDuMur(r.murMs, r)}, ${r.lances} lancé(s)${r.inconnues ? ` ; ${r.inconnues} de durée inconnue ${r.rang === 'touché' ? 'lancé(s) hors estimation' : 'à la CI'}` : ''}${r.aLaCI ? ` ; ${r.aLaCI} fichier(s) ${r.rang.replace('import ', '')} restent à la CI` : ''}`)
   journal(`budget ${budget} s de mur (touché hors budget) : ${plan.lances.length} lancé(s), mur estimé ${texteDuMur(plan.murMs, plan)}, dont ${secondes(plan.murBudgeteMs)} au budget ; → CI ${plan.aLaCI.length}`)
-  for (const t of plan.aLaCI.filter((t) => gateDe(t) === 'test:corpus'))
-    journal(`→ CI ${t} : audit du dépôt réel, gate test:corpus (${texteDuLien(retenus.get(t))})`)
+  for (const t of plan.aLaCI.filter((t) => GATES_D_AUDIT.includes(gateDe(t))))
+    journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
   if (options.liste) return 0
   const lint = lintDesTouches(racine, touches, post)

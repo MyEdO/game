@@ -84,6 +84,9 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  */
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
 
+/** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
+const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
@@ -215,8 +218,13 @@ export const ECRIT_LU = {
   },
   'test:corpus': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc'],
+    lit: LIT_DES_AUDITS,
     raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+  },
+  'test:corpus-isole': {
+    ecrit: [],
+    lit: LIT_DES_AUDITS,
+    raison: 'Les audits du dépôt réel joués sans concurrence lisent leurs corpus ; leurs mémos et copies restent sous un `mkdtempSync` d’os.tmpdir(), retiré en finally, et leurs stocks se lisent sans réécriture.',
   },
   'test:ops': {
     ecrit: [],
