@@ -15,6 +15,9 @@ import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 const PROFILS = 'memoire-node.json'
 const PRECHARGE = fileURLToPath(new URL('./memoire-precharge.cjs', import.meta.url))
 const CONTRAT = 'domaine-natif-v1-gate-cjs-challenge-ack-transactionnel-v2'
+/** La concurrence d'un lancement node SANS profil mémoire utilisable (#2586) : celle de l'acquisition, et celle, fixe,
+ *  d'une plateforme sans mesure native (`lancerNodeMesure`). */
+export const CONCURRENCE_SANS_PROFIL = 1
 const empreinte = (texte) => createHash('sha256').update(texte).digest('hex')
 const erreur = (message) => Object.assign(new Error(message), { code: 'MESURE_MEMOIRE_INCOMPLETE' })
 const lire = (p) => {
@@ -182,7 +185,7 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
           throw erreur('identité native invalide ou dupliquée')
         ids.add(p.identifiant); pids.add(p.pid)
         if (!['vivant', 'sortie'].includes(p.etat) || !Array.isArray(p.erreurs) || p.erreurs.length || !Number.isSafeInteger(p.residentOctets) || p.residentOctets < 0 || p.metriqueMemoire !== vue.metriqueMemoire)
-          throw erreur('RSS natif incomplet')
+          throw erreur('working-set natif incomplet')
         if (['hote', 'worker', 'cible'].includes(p.role)) {
           if ((p.etat !== 'vivant' && p.role !== 'cible') || p.entreeId !== null || (p.role === 'cible' && p.pid !== pid)) throw erreur('infrastructure native contradictoire')
         } else if (p.role !== null || (p.entreeId !== null && !entrees.has(p.entreeId))) throw erreur('attribution native inconnue')
@@ -264,10 +267,10 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
         if (roles.has(p.role)) throw erreur('infrastructure native dupliquée')
         roles.add(p.role)
         sommeParent += p.residentOctets
-        if (!Number.isSafeInteger(sommeParent)) throw erreur('somme RSS parent invalide')
+        if (!Number.isSafeInteger(sommeParent)) throw erreur('somme working-set parent invalide')
       } else {
         const fichier = entrees.get(p.entreeId), somme = (sommes.get(fichier) ?? 0) + p.residentOctets
-        if (!Number.isSafeInteger(somme)) throw erreur('somme RSS entrée invalide')
+        if (!Number.isSafeInteger(somme)) throw erreur('somme working-set entrée invalide')
         sommes.set(fichier, somme)
       }
     }
@@ -321,8 +324,47 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
   }
 }
 
+/** Les arguments `node --test` des `fichiers` sous `argv`, toute `--test-concurrency` remplacée par
+ *  `CONCURRENCE_SANS_PROFIL`. PURE. */
+const aConcurrenceSansProfil = (argv, fichiers) => {
+  const sansConcurrence = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--test-concurrency') i++
+    else if (!argv[i].startsWith('--test-concurrency=')) sansConcurrence.push(argv[i])
+  }
+  return [...sansConcurrence.filter((a) => a !== '--test'), '--test', '--test-concurrency=' + CONCURRENCE_SANS_PROFIL, ...fichiers]
+}
+
+/** Le lancement `node --test` des `fichiers` (#2586). Sous win32, mesuré : profils (`profilsDuLancement`), admission
+ *  ou acquisition, collecte (`collecterMemoire`). Sous toute autre `platform`, l'hôte ne sert aucune vue : lancement
+ *  à `CONCURRENCE_SANS_PROFIL`, rien d'appris, raison au journal ; `forcer` y échoue fermé en `ENONSUPPORTE`
+ *  (#2586 c.6245552712). */
 export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, limiteMs = 30 * 60_000,
-  mesures, forcer = false, journal = console.log, superviser = lancerProcessusSupervise, mesurer = mesurerProcessusWorktrees, surControle }) {
+  mesures, forcer = false, journal = console.log, superviser = lancerProcessusSupervise, mesurer = mesurerProcessusWorktrees, surControle,
+  platform = process.platform }) {
+  const diffuser = async (...argumentsSupervision) => {
+    const lancement = await superviser(...argumentsSupervision)
+    lancement.hote.stdout?.on('data', (d) => process.stdout.write(d))
+    lancement.hote.stderr?.on('data', (d) => process.stderr.write(d))
+    return lancement
+  }
+  if (platform !== 'win32') {
+    if (forcer) {
+      const error = Object.assign(new Error('--reacquerir-memoire : mesure mémoire indisponible sous ' + platform), { code: 'ENONSUPPORTE' })
+      journal('[memoire] ENONSUPPORTE : ' + error.message)
+      return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } }
+    }
+    journal('[memoire] mesure indisponible sous ' + platform + ', concurrence fixe ' + CONCURRENCE_SANS_PROFIL + ' : ' + fichiers.join(', '))
+    const dossier = mkdtempSync(join(env.WFRP_MEMOIRE_DOSSIER ?? tmpdir(), 'wfrp-node-'))
+    let resultat
+    try {
+      resultat = await spawnBorne({ argv: aConcurrenceSansProfil(argv, fichiers), cwd: racine, env, signal, limiteMs,
+        fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20, superviser: diffuser })
+      return { ...resultat, concurrence: CONCURRENCE_SANS_PROFIL }
+    } finally {
+      if (!resultat || resultat.arret?.etat === 'mort') rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 })
+    }
+  }
   try { environnementDeLaMesure(env, argv, racine) } catch (error) { return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } } }
   const profils = profilsDuLancement({ racine, fichiers, argv, env, mesures, superviser })
   const acquisition = forcer || profils.entrees.some((e) => !e.utilisable)
@@ -345,14 +387,9 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
         return refuser(admission, disponibleOctets)
       }
     }
-    concurrence = 1
-    const sansConcurrence = []
-    for (let i = 0; i < argv.length; i++) {
-      if (argv[i] === '--test-concurrency') i++
-      else if (!argv[i].startsWith('--test-concurrency=')) sansConcurrence.push(argv[i])
-    }
-    args = [...sansConcurrence.filter((a) => a !== '--test'), '--test', '--test-concurrency=1', ...fichiers]
-    journal('[memoire] acquisition utile en concurrence 1 : ' + profils.entrees.filter((e) => forcer || !e.utilisable).map((e) => e.fichier).join(', '))
+    concurrence = CONCURRENCE_SANS_PROFIL
+    args = aConcurrenceSansProfil(argv, fichiers)
+    journal('[memoire] acquisition utile en concurrence ' + concurrence + ' : ' + profils.entrees.filter((e) => forcer || !e.utilisable).map((e) => e.fichier).join(', '))
   } else {
     const mesure = disponible()
     const admission = admettreLancementNode({ fichiers, argv, parentOctets,
@@ -379,12 +416,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     resultat = await spawnBorne({ argv: args, cwd: racine,
       env: { ...environnementDeLaMesure(env, args, racine), WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
       signal: signalCompose, limiteMs, fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20,
-      superviser: async (...argumentsSupervision) => {
-        const lancement = await superviser(...argumentsSupervision)
-        lancement.hote.stdout?.on('data', (d) => process.stdout.write(d))
-        lancement.hote.stderr?.on('data', (d) => process.stderr.write(d))
-        return lancement
-      },
+      superviser: diffuser,
       surControle: (vu) => {
         controle = vu
         surControle?.(vu)

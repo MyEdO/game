@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { admettreLancementNode, collecterMemoire, decomposerOptionsNode, environnementDeLaMesure, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
+import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 const gate = fileURLToPath(new URL('./memoire-precharge.cjs', import.meta.url))
@@ -281,7 +282,7 @@ test('inspection complète : chemins uniques, erreurs et cwd exigés, argv compl
   }
 })
 
-test('transaction RSS : membre commun inconnu, RSS invalide et somme non sûre empêchent tout ACK', async (t) => {
+test('transaction working-set : membre commun inconnu, working-set invalide et somme non sûre empêchent tout ACK', async (t) => {
   for (const cas of ['inconnu', 'rss', 'erreurs', 'overflow', 'role', 'duplique']) {
     let instant = 0
     const f = await terrain(t, 'a.mjs', { maintenant: () => instant, avantVue: (numero, ps) => {
@@ -301,7 +302,7 @@ test('transaction RSS : membre commun inconnu, RSS invalide et somme non sûre e
   }
 })
 
-test('transaction RSS : expiration structurée après affectation conserve propriété, aucun ACK ni pic partiel', async (t) => {
+test('transaction working-set : expiration structurée après affectation conserve propriété, aucun ACK ni pic partiel', async (t) => {
   const f = await terrain(t, 'a.mjs', { avantVue: (numero) => {
     if (numero === 2) throw Object.assign(new Error('expiration structurée'), { code: 'EXPIRATION', origine: 'controle-natif', operation: 'vue', expiree: true })
   } })
@@ -320,7 +321,7 @@ test('transaction RSS : expiration structurée après affectation conserve propr
   assert.equal(f.collecte.terminer().qualite.rejets, 1)
 })
 
-test('transaction RSS : exception étiquetée, infrastructure absente et changement identité restent fatals', async (t) => {
+test('transaction working-set : exception étiquetée, infrastructure absente et changement identité restent fatals', async (t) => {
   for (const cas of ['fausse-expiration', 'parent-absent', 'identite']) {
     const f = await terrain(t, 'a.mjs', { avantVue: (numero, ps) => {
       if (numero !== 2) return
@@ -409,12 +410,28 @@ function bancMesurePhysique(t) {
   return { fichier, executions, mesures, journaux, p: { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s), limiteMs: 20000 } }
 }
 
-test('#2586 mesure physique Linux : la vue native refusée ENONSUPPORTE échoue fermé, arrêt mort, aucun profil écrit', { skip: process.platform !== 'linux' }, async (t) => {
-  const { mesures, journaux, p } = bancMesurePhysique(t)
-  const r = await lancerNodeMesure(p)
-  assert.deepEqual([r.code, r.arret.etat, r.memoire, r.defautCollecte?.cause?.code], [1, 'mort', undefined, 'ENONSUPPORTE'], journaux.join('\n'))
+test('#2586 lancement node sous Linux : aucune vue demandée, verdict utile en concurrence fixe, aucun profil ; forcé, échoue fermé ENONSUPPORTE sans lancement', async (t) => {
+  const { executions, mesures, journaux, p } = bancMesurePhysique(t)
+  const vues = [], lances = []
+  const superviser = async (commande, args, options) => {
+    lances.push(args)
+    const lancement = await lancerProcessusSupervise(commande, args, options)
+    const mesurerDomaine = lancement.controle.mesurerDomaine
+    lancement.controle.mesurerDomaine = (...a) => { vues.push(a); return mesurerDomaine(...a) }
+    return lancement
+  }
+  const r = await lancerNodeMesure({ ...p, superviser, platform: 'linux' })
+  assert.deepEqual([r.code, r.arret.etat, r.concurrence, r.memoire, vues.length], [1, 'mort', 1, undefined, 0], journaux.join('\n'))
+  assert.equal(lances.length, 1)
+  assert.ok(lances[0].includes('--test-concurrency=1'), JSON.stringify(lances))
+  assert.equal(readFileSync(executions, 'utf8'), 'x')
   assert.equal(mesures.memos['memoire-node.json'], undefined)
-  assert.ok(journaux.some((s) => s.includes('ENONSUPPORTE')), journaux.join('\n'))
+  assert.ok(journaux.includes('[memoire] mesure indisponible sous linux, concurrence fixe 1 : court.test.mjs'), journaux.join('\n'))
+  journaux.length = 0
+  const force = await lancerNodeMesure({ ...p, superviser: () => assert.fail('aucun lancement'), platform: 'linux', forcer: true })
+  assert.deepEqual([force.code, force.error?.code, force.arret.etat], [2, 'ENONSUPPORTE', 'mort'], journaux.join('\n'))
+  assert.equal(readFileSync(executions, 'utf8'), 'x')
+  assert.deepEqual(journaux, ['[memoire] ENONSUPPORTE : --reacquerir-memoire : mesure mémoire indisponible sous linux'])
 })
 
 test('mesure physique Windows : verdict utile unique, profil complet puis admission, aucune exécution préalable', { skip: process.platform !== 'win32' }, async (t) => {

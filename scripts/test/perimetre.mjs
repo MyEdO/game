@@ -38,7 +38,7 @@ import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gateDe } from '../gates/testsParGate.mjs'
-import { lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
+import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { CACHE, lireDuDisque, estTestNode, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
 
@@ -487,7 +487,7 @@ export function planDuPerimetre(retenus, { mesures, lire, budget, signaux, worke
   const profils = configurationNode ? profilsDuLancement({ ...configurationNode, mesures,
     fichiers: [...retenus.keys()].filter((t) => familleDe(t) === 'node'), argv: argumentsNode('') }).entrees : null
   const utilisables = new Set(profils?.filter((p) => p.utilisable).map((p) => p.fichier))
-  const workersNode = profils ? (paquet) => configurationNode.forcer || paquet.some((t) => !utilisables.has(t)) ? 1 : workers?.node ?? 1 : undefined
+  const workersNode = profils ? (paquet) => configurationNode.forcer || paquet.some((t) => !utilisables.has(t)) ? CONCURRENCE_SANS_PROFIL : workers?.node ?? 1 : undefined
   return { ci, facteurs, estimations, surcouts, plan: planDExecution(retenus, { budget, estimations, signaux, workers, surcouts, workersNode }) }
 }
 
@@ -495,8 +495,8 @@ const argumentsNode = (sortie) => ['--test', '--test-reporter=spec', '--test-rep
   `--test-reporter=${pathToFileURL(join(RACINE, 'scripts/test/dureesNodeTest.mjs')).href}`, `--test-reporter-destination=${sortie}`]
 
 /** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
- *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. */
-export async function principal(args, racine, { env = process.env, verrou, signal } = {}) {
+ *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. `platform` va à `lancerNodeMesure`. */
+export async function principal(args, racine, { env = process.env, verrou, signal, platform } = {}) {
   const configuration = verrou ?? verrouGestesLourds(racine)
   const prise = await prendreVerrouAsync({
     ...configuration, env, signal, cwd: racine, commande: 'test:perimetre',
@@ -504,10 +504,10 @@ export async function principal(args, racine, { env = process.env, verrou, signa
   })
   if (prise.etat !== 'pris') { console.error(prise.message); return CODE_DIFFERE }
   let retraitPermis = true
-  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, retenir: () => { retraitPermis = false } }) }
+  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, platform, retenir: () => { retraitPermis = false } }) }
   finally { if (retraitPermis) prise.liberer() }
 }
-async function executerPerimetre(args, racine, { env, signal, retenir }) {
+async function executerPerimetre(args, racine, { env, signal, retenir, platform }) {
   const options = lireArguments(args)
   const debut = performance.now()
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, signal, retenir })
@@ -568,7 +568,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir }) {
     }),
     ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
-  const { code, reels, joues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire })
+  const { code, reels, joues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform })
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
   journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
@@ -584,7 +584,7 @@ export const raisonDuRefus = (r) => r.message ?? (r.sortie ?? '').split(/\r?\n/)
  *  confirmée (`retenir`) ou un lancement interrompu arrête la suite sans apprendre ; sinon chaque famille apprend ses
  *  durées (`apprendre`) et son surcoût (`bilanDuLancement`). Rend le premier code non nul, le mur réel par famille et
  *  les lancements joués. */
-export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
+export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer, platform }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
   const reels = {}
   const joues = []
   for (const { famille, sortie, args } of lancements) {
@@ -592,7 +592,7 @@ export async function executerLancements({ lancements, racine, node, env, signal
     const debutDuLancement = performance.now()
     const fichiers = famille === 'node' ? args.filter((a) => node.includes(a)) : []
     const r = famille === 'node'
-      ? await lancerNode({ racine, fichiers, argv: args.filter((a) => !fichiers.includes(a)), env, signal, mesures, journal, forcer })
+      ? await lancerNode({ racine, fichiers, argv: args.filter((a) => !fichiers.includes(a)), env, signal, mesures, journal, forcer, platform })
       : await lancer({ argv: args, cwd: racine, env, signal, fichier: join(cache, 'lancement-' + process.pid + '.log'),
         limiteMs: 30 * 60_000, maxBuffer: 16 * 2 ** 20 })
     if (famille !== 'node' && r.sortie) process.stdout.write(r.sortie)

@@ -632,7 +632,7 @@ test('plan Node : profils de la configuration reporters effective, source modifi
     `--test-reporter=${new URL('./dureesNodeTest.mjs', import.meta.url).href}`, '--test-reporter-destination=ailleurs.json']
   const profils = profilsDuLancement({ racine, fichiers: tests, argv, mesures, env: {} })
   memos['memoire-node.json'] = Object.fromEntries(profils.entrees.map((e) => [e.cle, {
-    fichier: e.fichier, blob: e.blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'RSS',
+    fichier: e.fichier, blob: e.blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'working-set',
   }]))
   assert.equal(mur(), 1000 + REPLI_SURCOUT_MS.node)
   configurationNode.forcer = true
@@ -903,11 +903,12 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
     + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
 })
 
-/** Le lancement `principal` du dépôt `racine` sur son dernier commit, en sous-processus HORS du contexte de ce test
- *  (`NODE_TEST_CONTEXT` retiré : ses `node --test` lancent leurs fichiers) : sa sortie et son code. */
-const lancerPrincipal = (racine, options = []) => {
+/** Le lancement `principal` du dépôt `racine` sur son dernier commit, sous la plateforme `platform` (celle du
+ *  processus par défaut), en sous-processus HORS du contexte de ce test (`NODE_TEST_CONTEXT` retiré : ses `node --test`
+ *  lancent leurs fichiers) : sa sortie et son code. */
+const lancerPrincipal = (racine, options = [], platform = process.platform) => {
   const module = pathToFileURL(join(import.meta.dirname, 'perimetre.mjs')).href
-  const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = await principal(['--base', 'HEAD~1', '--tete', 'HEAD', ...${JSON.stringify(options)}], ${JSON.stringify(racine)})`
+  const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = await principal(['--base', 'HEAD~1', '--tete', 'HEAD', ...${JSON.stringify(options)}], ${JSON.stringify(racine)}, { platform: ${JSON.stringify(platform)} })`
   return spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } })
 }
 
@@ -917,7 +918,7 @@ const LINT_FORGE = {
   'scripts/lint-forge.mjs': 'process.stdout.write(JSON.stringify({ diagnostics: [], number_of_files: 0 }))\n',
 }
 
-test('principal : un test node touché ROUGE → code non nul et ligne de relance de ce seul fichier ; vert → code 0, aucune ligne rouge', (t) => {
+test('principal : un test node touché ROUGE → code non nul et ligne de relance de ce seul fichier ; vert → code 0, aucune ligne rouge ; sous Linux, aucune vue ni profil, concurrence fixe, et --reacquerir-memoire échoue fermé ENONSUPPORTE', (t) => {
   const forgerAvec = (attendu) => forger(t, LINT_FORGE, { 'scripts/n.test.mjs':
     `import { test } from 'node:test'
 import assert from 'node:assert/strict'\ntest('n', () => assert.equal(1, ${attendu}))\n` })
@@ -929,6 +930,20 @@ import assert from 'node:assert/strict'\ntest('n', () => assert.equal(1, ${atten
   const vert = lancerPrincipal(forgerAvec(1))
   assert.equal(vert.status, 0, vert.stdout + vert.stderr)
   assert.deepEqual(lignes(vert.stdout).filter((l) => l.startsWith('[perimetre] rouge')), [], vert.stdout)
+  const sansMesure = '[perimetre] [memoire] mesure indisponible sous linux, concurrence fixe 1 : scripts/n.test.mjs'
+  const mesure = (sortie) => lignes(sortie).filter((l) => /^\[perimetre\] \[memoire\] (acquisition|admission|observation|MESURE_MEMOIRE_INCOMPLETE|cause)/.test(l))
+  if (process.platform === 'win32') assert.ok(lignes(vert.stdout).some((l) => l.startsWith('[perimetre] [memoire] observation Node : ')), vert.stdout)
+  const racineLinux = forgerAvec(1)
+  const linux = lancerPrincipal(racineLinux, [], 'linux')
+  assert.equal(linux.status, 0, linux.stdout + linux.stderr)
+  assert.ok(lignes(linux.stdout).includes(sansMesure), linux.stdout)
+  assert.deepEqual(mesure(linux.stdout), [], linux.stdout)
+  assert.equal(existsSync(join(racineLinux, '.git', 'perimetre', 'memoire-node.json')), false)
+  const force = lancerPrincipal(racineLinux, ['--reacquerir-memoire'], 'linux')
+  assert.notEqual(force.status, 0, force.stdout + force.stderr)
+  assert.ok(lignes(force.stdout).includes('[perimetre] [memoire] ENONSUPPORTE : --reacquerir-memoire : mesure mémoire indisponible sous linux'), force.stdout)
+  assert.deepEqual(mesure(force.stdout), [], force.stdout)
+  assert.equal(existsSync(join(racineLinux, '.git', 'perimetre', 'memoire-node.json')), false)
 })
 
 test('apprendre : un rapport aux échecs mal formés n’en rapporte aucun', (t) => {

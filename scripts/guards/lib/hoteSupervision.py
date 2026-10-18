@@ -171,9 +171,11 @@ class Domaine:
     def terminer(self):
         try:
             echeance = self.cloture()
+            borne = echeance
         except Exception as erreur:
             self.erreurs.append(str(erreur))
             echeance = 0
+            borne = maintenant() + self.delai
         zero = False
         while True:
             for pid in enfants_directs():
@@ -187,7 +189,7 @@ class Domaine:
             except ChildProcessError:
                 zero = maintenant() <= echeance
                 break
-            if maintenant() >= echeance:
+            if maintenant() >= borne:
                 break
             time.sleep(0.001)
         if not zero:
