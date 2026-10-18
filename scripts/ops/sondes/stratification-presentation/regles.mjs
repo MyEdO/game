@@ -24,10 +24,10 @@ export const CATEGORIES = Object.freeze([
 /** @type {ReadonlyArray<Readonly<Regle>>} */
 export const REGLES = Object.freeze([
   {
-    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/state/(frontiere-state-gameiso|netownership-import-isole|rollflow-no-drift|pilote-cascade)\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|console-no-title-only|editor/no-datalist|compendium/no-json-fields)\.test\.tsx?$`),
+    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/state/(frontiere-state-gameiso|netownership-import-isole|rollflow-no-drift|pilote-cascade)\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|console-no-title-only|editor/no-datalist|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee|state/(combat-event-emission-coverage|condition-event-counter|guest-surface-class)|ui/(echap-couture-unique|raccourcis-registre))\.test\.ts$`),
     categorie: 'outillage',
     raison: 'Gardes de dépôt (garde structurelle, cliquet à stock, lint de source) : outillage de développement dans les trois zones, quel que soit le code gardé.',
-    preuve: 'src/state/frontiere-state-gameiso.test.ts:2 (« garde STRUCTURELLE ») ; src/state/pilote-cascade.test.ts:2 (« garde de cliquet ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts',
+    preuve: 'src/state/frontiere-state-gameiso.test.ts:2 (« garde STRUCTURELLE ») ; src/state/pilote-cascade.test.ts:2 (« garde de cliquet ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts ; src/ui/echap-couture-unique.test.ts:2 (« GARDE DÉCROISSANTE ») ; src/state/guest-surface-class.test.ts:2 (« GARDE DE CLASSE »)',
   },
   {
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
@@ -91,17 +91,21 @@ export const REGLES = Object.freeze([
   },
   {
     motif: new RegExp(String.raw`^src/state/(keybindings|keybindingsPrefs|round-start-keybind|dismissStack|resoudreEchap)(\.|-)|^src/ui/(useDismissLayer|useGameKeyboard|useGamepad)[.-]|^src/ui/(echap-|dialogue-touches|wrap-keyboard-vs-cursor|marche-tenue-clavier|raccourcis-)`),
-    categorie: 'douteux',
-    famille: 'saisie-cablee-wfrp',
-    raison: 'Saisie clavier/manette et pile d\'Échap : le mécanisme (InputMap, ui_cancel) est fourni par un moteur, mais la table d\'actions et l\'échelle d\'Échap (intent-cancel → toggle-menu) sont propres à WFRP ; les deux côtés (state, ui) forment une seule classe.',
-    preuve: 'src/state/resoudreEchap.ts:1-11 (pile puis « ÉCHELLE MÉTIER du registre ») ; src/ui/useGamepad.ts:1-4 (dispatche runBindingById) ; src/ui/useDismissLayer.ts imports ../state/resoudreEchap',
+    categorie: 'interface-wfrp',
+    raison: 'Saisie clavier/manette et pile d\'Échap : la table d\'actions et l\'échelle d\'Échap (intent-cancel → toggle-menu) sont propres à WFRP, même classe que l\'état d\'affichage/saisie propre à WFRP (modalArbiter, hotbarBridge, combatCursor) ; les deux côtés (state, ui) forment une seule classe. Les gardes echap-couture-unique et raccourcis-registre sont prises avant, par la règle des gardes.',
+    preuve: 'src/state/keybindings.ts:308-409 ; src/state/resoudreEchap.ts:1-11 (pile puis « ÉCHELLE MÉTIER du registre ») ; src/ui/useGamepad.ts:1-4 (dispatche runBindingById) ; src/ui/useDismissLayer.ts imports ../state/resoudreEchap',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(vision|visionState|rooms|roomPortals)(\.|-)`),
-    categorie: 'douteux',
-    famille: 'vision-et-pieces',
-    raison: 'Brouillard de guerre et pièces : lus par le rendu ET par les règles (découverte de porte secrète, combatFlow, navigation d\'exploration).',
-    preuve: 'src/state/vision.ts:2 ; importeurs : decouvertePorteSecrete.ts (vision, rooms), combatFlow.ts (visionState), exploreNav.ts (roomPortals), gameIso/stage',
+    motif: new RegExp(String.raw`^src/state/(vision|visionState)(\.|-)`),
+    categorie: 'orchestration-regles',
+    raison: 'Brouillard de guerre : moteur pur de visibilité et de champ de lumière couplé à Scene, lu par les règles (découverte de porte secrète, combatFlow) ; même classe que lineOfSight.ts.',
+    preuve: 'src/state/vision.ts:2 ; src/state/visionState.ts:1-15',
+  },
+  {
+    motif: new RegExp(String.raw`^src/state/(rooms|roomPortals)(\.|-)`),
+    categorie: 'moteur-generique',
+    raison: 'Pièces : zone intérieure authorée et ses portails, requête spatiale lue par l\'état et par le rendu ; même classe que path.ts.',
+    preuve: 'src/state/rooms.ts:1-16',
   },
   {
     motif: new RegExp(String.raw`^src/state/(stageYaw|stagePan|stageWalk|stageGestes|lacet-libre)(\.|-)`),
@@ -135,18 +139,36 @@ export const REGLES = Object.freeze([
     preuve: 'src/ui/icons/index.ts:1 ; src/ui/Ornaments.tsx:1 ; src/ui/WaxSeal.tsx:1',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/(Modal|Cadre|ScreenShell|Planche|Band|ParchmentCard|ModalSubject)[.-]|^src/ui/(planche|modal-shell-non-jet)\.test`),
+    motif: new RegExp(String.raw`^src/ui/(Cadre|Planche|Band)[.-]|^src/ui/planche\.test`),
+    categorie: 'moteur-generique',
+    raison: 'Cadres sans notion WFRP (aucun import engine/data) : mécanisme de Panel/Container du moteur, même classe que Layout.',
+    preuve: 'src/ui/Cadre.tsx:1-2 ; src/ui/Planche.tsx:1-2',
+  },
+  {
+    motif: new RegExp(String.raw`^src/ui/ModalSubject[.-]`),
+    categorie: 'interface-wfrp',
+    raison: 'Bandeau sujet de modale : portrait du combattant (engine/types Combatant).',
+    preuve: 'src/ui/ModalSubject.tsx:1-4',
+  },
+  {
+    motif: new RegExp(String.raw`^src/ui/(Modal|ScreenShell|ParchmentCard)[.-]|^src/ui/modal-shell-non-jet\.test`),
     categorie: 'douteux',
     famille: 'cadre-fenetre',
-    raison: 'Cadres/fenêtres : Window/Popup/Panel de moteur fournissent le mécanisme, mais le squelette est lié à WFRP (bandeau sujet-combattant, engine/types, backdrops).',
+    raison: 'Modale, coquille d\'écran et carte parchemin : Window/Popup/Panel de moteur fournissent le mécanisme, mais leur squelette est lié à WFRP (bandeau sujet-combattant, engine/types, monnaie, narratif de campagne).',
     preuve: 'src/ui/Modal.tsx:1 imports ../engine/types, ./ModalSubject ; src/ui/ScreenShell.tsx imports ../engine/money, ../state/campaignNarratif',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/compendium/(CodexRef|registry|relations)[.-]|^src/ui/styles/codex-ref\.css$`),
+    motif: new RegExp(String.raw`^src/ui/compendium/CodexRef[.-]|^src/ui/styles/codex-ref\.css$`),
+    categorie: 'interface-wfrp',
+    raison: 'Affordance de règle en jeu (référence Codex cliquable dans les jets, fiches, Prose), et sa feuille.',
+    preuve: 'src/ui/ChanceButtons.tsx:2 ; 32 importeurs de CodexRef hors compendium (tests exclus)',
+  },
+  {
+    motif: new RegExp(String.raw`^src/ui/compendium/(registry|relations)[.-]`),
     categorie: 'douteux',
     famille: 'codex-en-jeu',
-    raison: 'Compendium=outillage, mais ces trois modules servent aussi en jeu (liage Codex dans Prose, chips) : deux catégories tiennent. Feuille codex-ref.css incluse.',
-    preuve: 'src/ui/Prose.tsx imports ./compendium/CodexRef, ./compendium/relations ; 38 importeurs de CodexRef hors compendium',
+    raison: 'Compendium=outillage, mais ces deux modules servent aussi en jeu (liage Codex dans Prose) : deux catégories tiennent.',
+    preuve: 'src/ui/Prose.tsx imports ./compendium/relations',
   },
   {
     motif: new RegExp(String.raw`^src/ui/styles/(base|components|layout|tabs|frames|modal|cadre|ornaments|band|infobulle|boite-ancree|screen-shell|planche|gauges|media-select)\.css$|^src/ui/styles\.css$`),
