@@ -1,5 +1,5 @@
 // COLLECTIONS À COMPTE (#2705) : les stocks dont chaque entrée porte un COMPTE d'occurrences
-// (`occurrences`), déclarés UNE fois ici — leur fichier, leur nom, l'identité de site d'une entrée, sa
+// (`occurrences`), déclarés UNE fois ici — leur porteur (fichier de stock), leur nom, l'identité de site d'une entrée, sa
 // MESURE dans le corpus scanné, et la CIBLE qui solde une hausse. Les contrats
 // (`src/data/structures-contrat.test.ts`, `src/data/slots-contrat.test.ts`), l'écrivain
 // (`scripts/guards/occurrences-structures.mts`) et la porte de plage (`scripts/guards/comptes-plage.mts`)
@@ -59,27 +59,27 @@ function redeclarationsComptees(redeclarations) {
  * compte et hors pilotage ; `cible` la phrase de la voie qui solde une hausse de ce site.
  */
 export const COLLECTIONS_A_COMPTE = Object.freeze([
-  { fichier: STRUCTURES, nom: 'STRUCTURES_FORMES', site: siteDeForme, cible: cibleDeForme,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_FORMES', site: siteDeForme, cible: cibleDeForme,
     mesure: ({ scan }) => scan.formes.filter((f) => f.statut === 'historique' || f.statut === 'divergente') },
-  { fichier: STRUCTURES, nom: 'STRUCTURES_OPS', site: (o) => `${o.op} | ${o.signature} | ${o.dataset}`,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_OPS', site: (o) => `${o.op} | ${o.signature} | ${o.dataset}`,
     cible: () => 'Migrer la signature vers la cible L1c : union discriminée d’`OP_DEFS`, refs EMBOÎTÉES (`gameOpSchema`, src/data/schemas/grammaire/mecanique.ts).',
     mesure: ({ scan, typage }) => scan.ops.filter((o) => estDetteDOp(o, typage)) },
-  { fichier: STRUCTURES, nom: 'STRUCTURES_HOMONYMES', site: (h) => h.cle,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_HOMONYMES', site: (h) => h.cle,
     cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2), la valeur hors concept change de clé.',
     mesure: ({ scan }) => scan.homonymes.map((h) => ({ cle: h.cle, classes: h.classes, occurrences: h.total })) },
-  { fichier: STRUCTURES, nom: 'STRUCTURES_ENVELOPPE', site: siteDEnveloppe,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_ENVELOPPE', site: siteDEnveloppe,
     cible: () => 'Migrer : l’enveloppe porte sa clé CIBLE (`ROLES_ENVELOPPE`, scripts/docs/lib/structures-lexique.mts) — L1b #1467, L1d #1469.',
     mesure: ({ scan }) => scan.enveloppe.map((e) => ({ ...e, occurrences: e.entrees })) },
-  { fichier: STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
     cible: (_cle, r) => `Migrer : composer ${r.commun ? `\`${r.commun}\`` : 'le nœud commun'} de la grammaire (src/data/schemas/grammaire/) au lieu de le re-taper.`,
     mesure: ({ redeclarations }) => redeclarationsComptees(redeclarations) },
-  { fichier: STRUCTURES, nom: 'STRUCTURES_ORPHELINES', site: (o) => `${o.dataset} | ${o.champ} | ${o.signature}`,
+  { porteur: STRUCTURES, nom: 'STRUCTURES_ORPHELINES', site: (o) => `${o.dataset} | ${o.champ} | ${o.signature}`,
     cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2) — la clé qui annonce une référence porte une référence qui résout, ou change de nom.',
     mesure: ({ scan }) => scan.orphelines },
-  { fichier: SLOTS, nom: 'SLOTS_SANS_DECLARATION', site: siteDeSlot,
+  { porteur: SLOTS, nom: 'SLOTS_SANS_DECLARATION', site: siteDeSlot,
     cible: () => 'Migrer : adopter la fabrique `ref`/`refs`/`specRef`/`pick` (`idDe`) sur le schéma du champ.',
     mesure: ({ sansSlot }) => sansSlot },
-  { fichier: SLOTS, nom: 'SLOTS_INATTEIGNABLES', site: siteDeSlot,
+  { porteur: SLOTS, nom: 'SLOTS_INATTEIGNABLES', site: siteDeSlot,
     cible: () => 'Migrer : la référence se pose en chaîne, pour qu’une case de l’occurrence la porte (`ANGLES_MORTS_SLOTS`).',
     mesure: ({ inatteignables }) => inatteignables },
 ].map((c) => Object.freeze(c)))

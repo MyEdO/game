@@ -93,8 +93,7 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
     const racine = mkdtempSync(join(tmpdir(), 'detecteur-base-'));
     const image = mkdtempSync(join(tmpdir(), 'detecteur-image-'));
     try {
-      const env = envDeDepotForge();
-      const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: racine, env, encoding: 'utf8' });
+      const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' });
       git('init', '-q');
       mkdirSync(join(racine, 'scripts'));
       writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 1;\n');
@@ -104,7 +103,7 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
       const base = git('rev-parse', 'HEAD').trim();
       writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 2;\n');
       git('commit', '-q', '-am', 'tête');
-      detecteurDuCommit(depotDe(racine, { env }), base).poser(image);
+      detecteurDuCommit(depotDe(racine, { env: envDeDepotForge() }), base).poser(image);
       expect(readFileSync(join(image, 'scripts/detecteur.mjs'), 'utf8')).toBe('export const version = 1;\n');
     } finally {
       rmSync(racine, { recursive: true, force: true });
@@ -130,7 +129,7 @@ function opDe(donnee: unknown, choisir: (op: Record<string, unknown>) => boolean
 
 describe('jugerLesComptes — la plage d’un dépôt, chaque borne mesurée dans SON image', () => {
   it('un schéma qui régresse est refusé ; une op TYPÉE ajoutée passe ; une op NON TYPÉE ajoutée est refusée MÊME sous `CLIQUET:`', { timeout: 300_000 }, () => {
-    const suivis = execFileSync('git', ['ls-files', '-z', 'src', 'Source'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }).split('\0').filter(Boolean);
+    const suivis = execFileSync('git', ['ls-files', '-z', 'src', 'Source'], { cwd: ROOT, env: envDeDepotForge(), encoding: 'utf8', maxBuffer: 1 << 26 }).split('\0').filter(Boolean);
     const { racine } = instanceDeDepot({ fichiers: tableTotale(suivis, (rel) => readFileSync(join(ROOT, rel), 'utf8')) });
     const depot = depotDe(racine, { env: envDeDepotForge() });
     const commiter = (rel: string, muter: (texte: string) => string, message: string) => {

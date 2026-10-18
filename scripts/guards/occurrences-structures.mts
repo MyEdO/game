@@ -13,10 +13,10 @@ const root = position >= 0 ? resolve(args[position + 1]) : resolve(dirname(fileU
 const corpus = corpusDesComptes(root);
 const collections = await Promise.all(COLLECTIONS_A_COMPTE.map(async (c) => ({
   ...c,
-  rel: c.fichier,
-  texte: readFileSync(resolve(root, c.fichier), 'utf8'),
+  rel: c.porteur,
+  texte: readFileSync(resolve(root, c.porteur), 'utf8'),
   observe: c.mesure(corpus),
-  stock: (await import(pathToFileURL(resolve(root, c.fichier)).href))[c.nom],
+  stock: (await import(pathToFileURL(resolve(root, c.porteur)).href))[c.nom],
 })));
 const resultat = actualiserOccurrences(collections);
 if ('refus' in resultat) {

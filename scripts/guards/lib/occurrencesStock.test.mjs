@@ -18,7 +18,7 @@ test('COUVERTURE : tout tableau exporté d’un `*Stock.mjs` dont les entrées p
   })))
   assert.deepEqual(
     collectionsACompteDe(modules).sort(),
-    COLLECTIONS_A_COMPTE.map((c) => `${c.fichier} : ${c.nom}`).sort(),
+    COLLECTIONS_A_COMPTE.map((c) => `${c.porteur} : ${c.nom}`).sort(),
     'une collection qui porte un compte hors de `COLLECTIONS_A_COMPTE` échappe à la porte `comptes:plage` et au refus de `--write`.',
   )
 })

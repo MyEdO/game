@@ -22,8 +22,8 @@ import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { GitIndisponible, TRONC, baseCommune, depotDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import { COLLECTIONS_A_COMPTE, occurrencesDe, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
-import { cleDeSite, ecartsDeStock, sitesEnEntrees, SEPARATEUR_DE_REMEDE, type EntreeDeSite } from './stock.mjs';
-import { scanAll } from '../../raw/check-source-format.mjs';
+import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
+import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
 
 /** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
  *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`estDetteDOp`). */
@@ -61,15 +61,6 @@ type SousLaPorte = {
   readonly nombre: (e: EntreeDeCompte) => number;
 };
 
-/** Le volet à `nombre` de la mise en forme des chapitres de `Source/` (`scripts/raw/check-source-format.mjs`),
- *  mesuré par ses sites (`scanAll`) : une entrée de stock de sites, sa clé `cleDeSite`, son compte `nombre`. */
-const SOURCE_FORMAT = {
-  nom: 'scripts/raw/source-format-stock.json',
-  site: (e: EntreeDeCompte) => cleDeSite(e as unknown as EntreeDeSite),
-  cible: () => 'Corriger le site : la mise en forme du chapitre (scripts/raw/check-source-format.mjs).',
-  nombre: (e: EntreeDeCompte) => Number(e.nombre),
-} as const;
-
 /** Tout ce que la porte juge : les collections à compte (`COLLECTIONS_A_COMPTE`) et le volet `SOURCE_FORMAT`. */
 const SOUS_LA_PORTE: readonly SousLaPorte[] = [...COLLECTIONS_A_COMPTE.map((c) => ({ ...c, nombre: occurrencesDe })), SOURCE_FORMAT];
 
@@ -92,7 +83,7 @@ export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
       cle: c.site,
       nombre: c.nombre,
       cible: c.cible,
-      remede: { neuve: (k, e) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : la dette NAÎT. ${c.cible(k, e)} Aucune écriture ne l’admet.` },
+      remede: { neuve: remedeDeNaissance(c.cible) },
     });
     return [...neuves, ...accrues].map((l) => `${c.nom} : ${l}`);
   });

@@ -39,7 +39,7 @@ export type NomDeCollectionACompte = keyof MesureDe;
 export type EntreeDeCompte = { readonly occurrences: number } & Readonly<Record<string, unknown>>;
 
 export type CollectionACompte<N extends NomDeCollectionACompte = NomDeCollectionACompte> = {
-  readonly fichier: string;
+  readonly porteur: string;
   readonly nom: N;
   readonly site: (e: EntreeDeCompte) => string;
   readonly cible: (cle: string, e: EntreeDeCompte) => string;

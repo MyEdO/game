@@ -78,8 +78,7 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
   assert.equal(neuves.length, 1)
   assert.match(neuves[0], /src\/b\.ts/)
   assert.match(neuves[0], /site NEUF/)
-  assert.match(neuves[0], /corriger le site/)
-  assert.doesNotMatch(neuves[0], /CLIQUET:|déclarer/)
+  assert.match(neuves[0], /CLIQUET:/)
   assert.equal(perimees.length, 1)
   assert.match(perimees[0], /src\/c\.ts/)
   assert.match(perimees[0], /entrée SOLDÉE/)
@@ -92,7 +91,7 @@ test('ecartDuVolet : remède neuf optionnel reçoit clé intégrale et entrée, 
   const appele = []
   const remede = { neuve: (k, e) => { appele.push([k, e]); return `${k} — remède spécifique` } }
   const defaut = ecartDuVolet({ sites, stock: [], ou: 'fixture-stock.mjs' })
-  assert.deepEqual(defaut.neuves, [`${cle} — site NEUF : corriger le site — fixture-stock.mjs ne fait que décroître, aucune entrée n’y entre.`])
+  assert.deepEqual(defaut.neuves, [`${cle} — site NEUF : corriger la réf, ou déclarer une entrée dans fixture-stock.mjs et la porter au message par \`CLIQUET:\`.`])
   assert.deepEqual(ecartDuVolet({ sites, stock: [], ou: 'fixture-stock.mjs', remede }).neuves, [`${cle} — remède spécifique`])
   assert.deepEqual(appele, [[cle, entree]])
   const stock = [{ fichier: 'src/fixture.ts', ref: 'flow — fixture', occurrence: 1, nombre: 3 }]

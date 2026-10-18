@@ -113,6 +113,12 @@ export function ecartsDeStock({ observe, stock, cle, nombre, cible, remede = {} 
   return { neuves, perimees, accrues, baisses, taille: tenues.size };
 }
 
+/** Le remède d'un site NEUF sous la porte des comptes (`SOUS_LA_PORTE`, `corpusDesComptes.mts`), de la
+ *  `cible` qui le solde. PURE.
+ *  @template E @param {(cle: string, entree: E) => string} cible @returns {(cle: string, entree: E) => string} */
+export const remedeDeNaissance = (cible) => (k, e) =>
+  `${k}${SEPARATEUR_DE_REMEDE}site NEUF : la dette NAÎT. ${cible(k, e)} Aucune écriture ne l’admet.`;
+
 /** La phrase « à la naissance » d'un `quoi` de stock : les comptes par famille, dans l'ordre de `familles`.
  *  SEULE écriture de cette phrase ; `naissanceDu` est sa lecture. PURE. */
 export const phraseDeNaissance = (comptes, familles) =>
@@ -280,7 +286,7 @@ export function ecartDuVolet({ sites, stock, ou, remede = {} }) {
     nombre: (e) => e.nombre,
     cible: () => `Corriger le site (${ou}).`,
     remede: {
-      neuve: remede.neuve ?? ((k) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : corriger le site — ${ou} ne fait que décroître, aucune entrée n’y entre.`),
+      neuve: remede.neuve ?? ((k) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : corriger la réf, ou déclarer une entrée dans ${ou} et la porter au message par \`CLIQUET:\`.`),
       perimee: (k, e) => `${cleOuEntree(k, e)}${SEPARATEUR_DE_REMEDE}entrée SOLDÉE : le site a disparu, retirer cette entrée de ${ou}.`,
     },
   });

@@ -77,6 +77,8 @@ export function survieDeLecheance<E extends Record<string, unknown>>(
   p: Partial<Echeance> & { ancien?: Iterable<Record<string, unknown>> },
 ): (E & Partial<Echeance>)[];
 
+export function remedeDeNaissance<E>(cible: (cle: string, entree: E) => string): (cle: string, entree: E) => string;
+
 export function ecartDuVolet(p: {
   sites: readonly Site[];
   stock: Iterable<Partial<EntreeDeSite>>;
