@@ -28,7 +28,7 @@ import { touchActors } from './combatOrParty';
 import { surfaceOf } from './rollSeam';
 import { gainCorruption } from './corruptionFlow';
 
-import type { Get, Set } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, type TestResult } from '../engine/tests';
 import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview } from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
@@ -199,7 +199,7 @@ export type RollOutcome = TestOutcome;
 
 export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = P, Ctx = void> {
   /** Clé du pending dans le store (ex. `'pendingBattement'`). */
-  key: keyof GameState & string;
+  key: Exclude<keyof GameState, 'journal'> & string;
   /**
    * MULTI (N jets dans une modale) : énumère les SLOTS de jet du pending, leur id, et les ré-injecte.
    * ABSENT ⇒ MONO : le pending EST le slot unique (`pid` ignoré par les handlers). Une SEULE fabrique
@@ -325,7 +325,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * par défaut (nulle le pending ET la cascade-hôte, cf. `cancel`). */
   onCancel?: (get: Get, set: Set, p: P) => void;
   /** Patch de re-rendu après mutation en place de l'acteur. Défaut : `touchActors` (combat ⇄ groupe). */
-  touch?: (s: GameState) => Partial<GameState>;
+  touch?: (s: GameState) => PatchDeFlux;
 }
 
 export interface RollFlowHandlers {
@@ -535,7 +535,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return { slot, commit: (patch, opts) => set({
         [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
         ...(opts?.touch ? touch(get()) : {}),
-      } as Partial<GameState>) };
+      } as PatchDeFlux) };
     }
     const slots = spec.multi.slots(p);
     const slot = pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0];
@@ -545,7 +545,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
         : x)),
       ...(opts?.touch ? touch(get()) : {}),
-    } as Partial<GameState>) };
+    } as PatchDeFlux) };
   };
   // Slot TÉMOIN d'un multi (façon MultiRollList) : pas d'INFLUENCE joueur (Résilience, Résistance
   // (Menace), renversement). Son jet est NÉ ROULÉ chez un porteur qu'aucun siège ne surface (cible IA
@@ -754,7 +754,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // no-op quand le flux est autonome (pending seul) et correct quand il est l'étape d'une cascade
       // (l'arbitre garantit une seule modale active → toute `pendingCascade` présente est SON hôte).
       if (spec.onCancel) { spec.onCancel(get, set, p); return; }
-      set({ [spec.key]: null, pendingCascade: null } as Partial<GameState>);
+      set({ [spec.key]: null, pendingCascade: null } as PatchDeFlux);
     },
     darkPact(get, set, pid) {
       const s = get(); const p = pendingOf(s); if (!p) return;

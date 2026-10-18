@@ -152,7 +152,7 @@ dans le même commit, avec sa recette navigateur si un écran change (credo, « 
 | `frontiere-state-gameiso.test.ts` | 5 | le mur `murs/purete-imports` refuse aussi l'`import type` de `gameIso` depuis `state` ; `murs/purete` voit l'index du dossier (`(^|/)gameIso(/|$)`), le gabarit sans expression, `require` et `typeof import()`, pour toutes les couches. Bancs dans `lint-parite.test.mjs` (dont les cas a3 et a5 du juge), puis le test part |
 | `charKeyLegacy.mjs` | 4 | fermer d'abord les champs typés `string` : `src/data/index.ts:1394` (`char`), `src/data/schemas/defs/creatures.ts:26,68`, `activities.ts:132`, `miscast.ts:70`, `src/data/overrides.ts:98`, vers `charKeySchema`/`CharKey` (et `charStatKeySchema` pour un profil de créature). Preuve : `@ts-expect-error` sur les formes, refus zod au chargement |
 | `weatherTestModQuarantine.mjs`, part `weatherPhysicalTestMod` | 1 | la fonction quitte `travelStages.ts:251` pour `weatherTestMod.ts`, non exportée ; `travelStages.test.ts` réécrit contre `weatherTestMods`. Les deux listes de lecteurs restantes suivent le §6 en vague 2 |
-| `journalWrite.mjs` | 4 | le `Set` des flux (`src/state/flowTypes.ts`) prend `PatchDeFlux = Partial<Omit<GameState,'journal'>> & { journal?: never }`. Écrivains légitimes, tous dans `store.ts` : l'action `log`, l'état initial, `startScene` (`:2298`), `applyLoadedSave` (`:92`). Route brute restante : `useGame.setState` (API zustand, 43 sites de production) ; sa fermeture (store exporté au `setState` resserré, remise à zéro des tests par un kit) est en vague 2. `src/state/combatFlow.ts` ne doit pas bouger : sinon la ligne passe en vague 3 |
+| `journalWrite.mjs` | 4 | le `Set` des flux (`src/state/flowTypes.ts`) prend `PatchDeFlux = Partial<Omit<GameState,'journal'>> & { journal?: never }`. Écrivains légitimes : dans `store.ts`, l'action `log`, l'état initial, `startScene` (`:2298`), `applyLoadedSave` (`:92`) ; dans `netFlow.ts`, `applyNetSnapshot` ; les deux remplaceurs reçoivent `RemplacerLEtat`. Route brute restante : `useGame.setState` (API zustand, 43 sites de production) ; sa fermeture (store exporté au `setState` resserré, remise à zéro des tests par un kit) est en vague 2. `src/state/combatFlow.ts` ne doit pas bouger : sinon la ligne passe en vague 3 |
 
 **Vague 1b (PR suivante) — pures, mêmes critères :** `murs/possession` (rang 1 : `ownsLocally`
 non exporté, `ownsLocal` rejoint `state/netOwnership` ; poison `ui/ownership.ts:14-15`, groupe mort
@@ -312,7 +312,7 @@ fichiers touchés. Chaque commit chaud reste petit pour qu'un conflit se résolv
 | `jambesGabaritAudit.ts` | F1->F2 | oui (97) | - | - | migration d'art |
 | `jambesGabaritStock.mjs` | F1->F2 | oui (97) | - | - | migration d'art |
 | `jouer-workflow.mjs` | OUTIL | non | - | - | - |
-| `journalWrite.mjs` | F1 | non | type-ferme : patch de set exclut journal hors log (store.ts) | S | journal écrit hors action log |
+| `journalWrite.mjs` | F1 | non | type-ferme : patch de set exclut journal hors log (store.ts) ; reste ouvert au type `journal: undefined` (sans `exactOptionalPropertyTypes`), la clé calculée et `useGame.setState` (vague 2) | S | journal écrit hors action log |
 | `labelLogic.mjs` | F1->F2 | oui (~30 DETTES_DE_LIBELLE) | - | - | label et id sont des string |
 | `lancerDetache.mjs` | OUTIL | non | - | - | - |
 | `lancerHook.mjs` | OUTIL | non | - | - | - |
