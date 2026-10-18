@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { critiquesDuCoup, estUnCoupCritique, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
+import { critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
 import { resetRule, setRule } from './policy';
 import type { Combatant } from './types';
 
@@ -17,8 +17,11 @@ const routier = porteur({ bodyShape: 'vehicule', creatureId: 'charrette' });
 const engin = porteur({ bodyShape: 'engin', inert: true });
 
 const compte = (
-  c: Combatant, jeu: JeuDeCritique, coup: { cc?: CauseCoupCritique; prise?: boolean; current: number; lost: number },
-) => critiquesDuCoup(c, { coupCritique: coup.cc ?? null, prise: coup.prise ?? true, current: coup.current, blessures: () => coup.lost }, jeu);
+  c: Combatant, jeu: JeuDeCritique, coup: { cc?: CauseCoupCritique; prise?: boolean; current: number; lost: number; touche?: boolean },
+) => {
+  const ne = { coupCritique: coup.cc ?? null, prise: coup.prise ?? true, current: coup.current };
+  return critiquesDuCoup(c, { ...ne, touche: coup.touche ?? true, relance: relanceLaLocalisation(c, ne, jeu), blessures: coup.lost }, jeu);
+};
 
 afterEach(() => { resetRule('combat-sudden-death'); });
 
@@ -95,11 +98,16 @@ describe('critiquesDuCoup — porteur × jeu × cause', () => {
 
   it('coup sans prise (sauvegarde, Bouclier anti-flèches, immunité, coque bloquée) : rien, sur tout porteur', () => {
     for (const c of [personnage, structure, navire, routier])
-      expect(compte(c, 'ldb', { cc: 'double', prise: false, current: 0, lost: 9 })).toEqual({ critiques: [], mortSubite: false, relance: false });
+      expect(compte(c, 'ldb', { cc: 'double', prise: false, current: 0, lost: 9 })).toEqual({ critiques: [], mortSubite: false, relance: false, blessures: 9 });
+  });
+
+  it.each([[structure], [navire]])('%#, Dégât hors touche sur une coque à 0 : aucun a-zero (AA 10 l.114 ; MDG 13 l.656)', (c) => {
+    expect(origines(compte(c, 'ldb', { current: 0, lost: 3, touche: false }))).toEqual([]);
+    expect(origines(compte(c, 'ldb', { current: 0, lost: 3, touche: true }))).toEqual(['a-zero:3']);
   });
 });
 
-describe('CompteDesCritiques.relance — la relance suit le Coup Critique du Personnage (AA 07 l.25, l.32 ; LDB 18 l.53 ; #1595 c.6226467544)', () => {
+describe('relanceLaLocalisation — la relance suit le Coup Critique du Personnage (AA 07 l.25, l.32 ; LDB 18 l.53 ; #1595 c.6226467544)', () => {
   it.each([
     [personnage, 'aa', null, 0, true],
     [personnage, 'aa', null, -2, true],
@@ -113,17 +121,24 @@ describe('CompteDesCritiques.relance — la relance suit le Coup Critique du Per
     [navire, 'aa', 'incantation-critique', 3, false],
     [routier, 'aa', null, 0, false],
   ] as const)('%#', (c, jeu, cause, current, attendu) => {
-    expect(critiquesDuCoup(c, { coupCritique: cause, prise: true, current, blessures: () => 5 }, jeu).relance).toBe(attendu);
+    expect(relanceLaLocalisation(c, { coupCritique: cause, prise: true, current }, jeu)).toBe(attendu);
   });
 
-  it.each([
-    ['aa', 0, [true]],
-    ['aa', 3, [false]],
-    ['ldb', 0, [false]],
-  ] as const)('critiquesDuCoup, Personnage, %s, %i PB, sans cause : relance %j', (jeu, current, attendu) => {
-    const relances: boolean[] = [];
-    critiquesDuCoup(personnage, { coupCritique: null, prise: true, current, blessures: (rel) => { relances.push(rel); return 5; } }, jeu);
-    expect(relances).toEqual(attendu);
+  it.each(['ldb', 'aa'] as const)('%s : faux sous non-prise et sous Mort subite, même sur un double (LDB 85 l.98 ; LDB 18 l.44, l.46 ; AA 07 l.65, l.67)', (jeu) => {
+    expect(relanceLaLocalisation(personnage, { coupCritique: 'double', prise: true, current: 3 }, jeu), 'témoin').toBe(true);
+    expect(relanceLaLocalisation(personnage, { coupCritique: 'double', prise: false, current: 3 }, jeu)).toBe(false);
+    expect(relanceLaLocalisation(figurant, { coupCritique: 'double', prise: true, current: 3 }, jeu)).toBe(false);
+  });
+
+  it("aa, sans double : vrai sur une cible déjà à 0, faux au passage à 0 (AA 07 l.25, l.32)", () => {
+    expect(relanceLaLocalisation(personnage, { coupCritique: null, prise: true, current: 0 }, 'aa')).toBe(true);
+    expect(relanceLaLocalisation(personnage, { coupCritique: null, prise: true, current: 3 }, 'aa')).toBe(false);
+    expect(compte(personnage, 'aa', { current: 3, lost: 3 }).critiques.map((x) => x.origine), 'le passage à 0 porte son Critique').toEqual(['coup-critique']);
+  });
+
+  it('critiquesDuCoup rend le verdict reçu, sans le recalculer', () => {
+    expect(critiquesDuCoup(personnage, { coupCritique: null, prise: true, current: 3, touche: true, relance: true, blessures: 1 }, 'ldb').relance).toBe(true);
+    expect(critiquesDuCoup(personnage, { coupCritique: 'double', prise: true, current: 3, touche: true, relance: false, blessures: 1 }, 'ldb').relance).toBe(false);
   });
 });
 
@@ -141,14 +156,12 @@ describe("Le Coup Critique du passage à 0 reste au Personnage, en aa (#1595 c.6
 
 describe('critiquesDuCoup — Mort subite (LDB 18 l.44, l.46 ; AA 07 l.65, l.67 ; #1595 c.6219992594)', () => {
   it('ldb : aucun Critique, même sur un double ; la Mort subite sur le dépassement, sans relance de Localisation', () => {
-    const relances: boolean[] = [];
-    const r = critiquesDuCoup(figurant, { coupCritique: 'double', prise: true, current: 3, blessures: (rel) => { relances.push(rel); return 5; } }, 'ldb');
-    expect(r).toEqual({ critiques: [], mortSubite: true, relance: false });
-    expect(relances).toEqual([false]);
-    expect(compte(figurant, 'ldb', { cc: 'double', current: 8, lost: 5 })).toEqual({ critiques: [], mortSubite: false, relance: false });
+    expect(relanceLaLocalisation(figurant, { coupCritique: 'double', prise: true, current: 3 }, 'ldb')).toBe(false);
+    expect(compte(figurant, 'ldb', { cc: 'double', current: 3, lost: 5 })).toEqual({ critiques: [], mortSubite: true, relance: false, blessures: 5 });
+    expect(compte(figurant, 'ldb', { cc: 'double', current: 8, lost: 5 })).toEqual({ critiques: [], mortSubite: false, relance: false, blessures: 5 });
   });
   it('aa : aucun Critique, et la sortie reste celle de horsDeCombatParMortSubite', () => {
-    expect(compte(figurant, 'aa', { cc: 'double', current: 3, lost: 5 })).toEqual({ critiques: [], mortSubite: false, relance: false });
+    expect(compte(figurant, 'aa', { cc: 'double', current: 3, lost: 5 })).toEqual({ critiques: [], mortSubite: false, relance: false, blessures: 5 });
   });
   it('règle off : le figurant reçoit ses Critiques', () => {
     setRule('combat-sudden-death', 'off');

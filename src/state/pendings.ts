@@ -407,8 +407,8 @@ export interface PendingAttack {
    *  l'Atout Immobilisante, cf. `effectiveWeapon`). Proposé seulement si l'arme tirée porte la capacité
    *  `ItemCapabilities.ropeMode` (arbitrage user « mode de tir choisi », #476). */
   harpoonRopeCut?: boolean;
-  /** Réussite FORCÉE via « Je ne faillirai pas ! » (Résilience, LDB 17 l.68) : débloque, sur un Coup
-   *  Critique, le choix de la Localisation (cf. `critLocation` du résultat). */
+  /** Réussite FORCÉE, « Je ne faillirai pas ! » (LDB 17 l.68) : ouvre le choix d'`AttackResult.critLocation`
+   *  sous `CompteDesCritiques.relance`. */
   forced?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
@@ -971,6 +971,9 @@ export interface ToucheDeProjectile {
   rebond?: RebondDeChaine;
   /** Blessure Critique choisie par le lanceur (LDB 46 l.30) — `crit && choice === 'critique'`, tranché à l'ouverture. */
   critWound: boolean;
+  /** Localisation relancée de la touche sur `targetId`, décidée à sa naissance ; absente = Localisation de touche.
+   *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
+  critLocation?: HitLocation;
   overcastDamageSteps: number;
   overcastDurationSteps: number;
   chosenTableRolls?: number;

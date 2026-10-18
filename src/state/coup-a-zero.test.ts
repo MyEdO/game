@@ -11,7 +11,7 @@ import { createHero } from '../engine/character';
 import { recomputeLoadout } from '../engine/items';
 import { rederivePassiveAttack } from '../engine/combat';
 import { isOutOfAction, hasCondition } from '../engine/conditions';
-import { critiquesDuCoup } from '../engine/critical';
+import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import { t } from '../i18n';
 
@@ -86,7 +86,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const h = tireur();
     const dil = coque('diligence', 'dil', 0);
     poser([h, dil]);
-    const aZero = (c: Combatant) => critiquesDuCoup(c, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.length;
+    const aZero = (c: Combatant) => critiquesDuCoup(c, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(c, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.length;
     expect(aZero(dil)).toBe(0);
     expect(aZero(coque('cogue', 'nav', 0)), 'contrôle : le navire à 0').toBe(1);
     expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'ranged').critical).toBe(false);
@@ -108,7 +108,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(isOutOfAction(apres)).toBe(false);
-    expect(critiquesDuCoup(apres, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.map((c) => c.origine), 'à 0 : chaque nouveau coup est Critique').toEqual(['a-zero']);
+    expect(critiquesDuCoup(apres, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(apres, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.map((c) => c.origine), 'à 0 : chaque nouveau coup est Critique').toEqual(['a-zero']);
   });
 });
 

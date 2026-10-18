@@ -199,10 +199,8 @@ export function critLocationRoll(rng: RNG = defaultRNG, shape: BodyShape = 'huma
   return hitLocationByShape(d100(rng), shape);
 }
 
-/** LDB 18 l.53 : la Localisation d'un Coup Critique est un 1d100 FRAIS (jamais l'inversion de la touche),
- *  SAUF `override` — le Critique déjà montré (Déviation) ou la loc choisie (« Je ne faillirai pas ! »,
- *  LDB 17 l.68). SOURCE UNIQUE de la règle : mêlée, défense opposée et tir/magie en dérivent, puis
- *  passent le résultat à `applyCriticalToTarget` qui ne re-tire JAMAIS → le double tirage est impossible. */
+/** Localisation de la Blessure critique : 1d100 (LDB 18 l.53 ; AA 07 l.32), ou `override` déjà décidée
+ *  (LDB 17 l.68 ; #1595 c.6226467544). */
 export function critWoundLocation(rng: RNG, bodyShape: BodyShape = 'humanoide', override?: HitLocation): HitLocation {
   return override ?? critLocationRoll(rng, bodyShape);
 }
@@ -267,8 +265,27 @@ export type OrigineCritique = 'coup-critique' | 'depassement' | 'a-zero';
 /** Cause d'un Coup Critique : double (LDB 13 l.183), Empaleuse (LDB 62 l.248), Incantation critique (LDB 46 l.28, l.30). */
 export type CauseCoupCritique = 'double' | 'empaleuse' | 'incantation-critique';
 export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
-/** `relance` : la Localisation de la Blessure critique se relance (LDB 17 l.68 ; LDB 18 l.53 ; AA 07 l.32). */
-export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean; relance: boolean }
+/** Ce que `critiquesDuCoup` compte d'un coup. `current` = Blessures AVANT le coup ; `touche` : AA 10 l.114 ;
+ *  MDG 13 l.656 ; `relance` = verdict de `relanceLaLocalisation` à la naissance du coup (LDB 18 l.53, l.55 ;
+ *  AA 07 l.25, l.32) ; `blessures` = Blessures du coup à sa Localisation (LDB 13 l.159). */
+export interface CoupACompter {
+  coupCritique: CauseCoupCritique | null;
+  prise: boolean;
+  current: number;
+  touche: boolean;
+  relance: boolean;
+  blessures: number;
+}
+declare const marqueDuCompte: unique symbol;
+/** `relance` : LDB 17 l.68 ; LDB 18 l.53 ; AA 07 l.32. `blessures` : LDB 13 l.159. Marque anti-littéral :
+ *  seul `critiquesDuCoup` la pose, le spread la conserve (#2694). */
+export interface CompteDesCritiques {
+  critiques: readonly CritiqueDuCoup[];
+  mortSubite: boolean;
+  relance: boolean;
+  readonly blessures: number;
+  readonly [marqueDuCompte]: true;
+}
 
 /** Ce Critique est-il un Coup Critique ? SOURCE UNIQUE des lecteurs d'un Critique déjà compté (Bâclée,
  *  `onCrit` filtré, titre). Partielle et Points faibles se lisent AVANT le compte : au jet
@@ -329,14 +346,15 @@ export function regimeDePorteur(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 
   return REGIMES_DE_PORTEUR[porteurDeCritique(c)];
 }
 
-/** La Localisation de la Blessure critique se relance-t-elle (1d100 frais, jamais l'inversion de la touche) ?
- *  SOURCE UNIQUE du déclencheur de relance. `current` = Blessures AVANT le coup. AA 07 l.25, l.32, l.52 ;
- *  LDB 18 l.53, l.55 ; #1595 c.6226467544, c.6227274650 Q1, Q2, Q4. */
-function relanceLaLocalisation(
-  c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>, cause: CauseCoupCritique | null, current: number, jeu: JeuDeCritique,
+/** La Localisation de la Blessure critique se relance-t-elle ? SEUL prédicat, lu à la naissance du coup ;
+ *  `current` = Blessures AVANT le coup. AA 07 l.25, l.32, l.52 ; LDB 18 l.53, l.55 ; LDB 18 l.44, l.46 ;
+ *  AA 07 l.65, l.67 ; #1595 c.6226467544, c.6227274650 Q1, Q2, Q4. */
+export function relanceLaLocalisation(
+  c: Combatant, coup: Pick<CoupACompter, 'coupCritique' | 'prise' | 'current'>, jeu: JeuDeCritique = jeuDeCritique(),
 ): boolean {
+  if (!coup.prise || usesSuddenDeath(c)) return false;
   const R = regimeDePorteur(c);
-  return R.relance && (cause !== null || (R.passageAZeroEstCoupCritique(jeu) && current <= 0));
+  return R.relance && (coup.coupCritique !== null || (R.passageAZeroEstCoupCritique(jeu) && coup.current <= 0));
 }
 
 /** Le coup est-il « supérieur au total » (LDB 13 l.161) ou fait-il « tomber à 0 » (AA 07 l.36) ? */
@@ -344,35 +362,29 @@ function depasse(jeu: JeuDeCritique, lost: number, current: number): boolean {
   return jeu === 'aa' ? lost >= current : lost > current;
 }
 
+/** Le compte, marqué : seul constructeur de `CompteDesCritiques`. */
+function compteNe(critiques: readonly CritiqueDuCoup[], mortSubite: boolean, relance: boolean, blessures: number): CompteDesCritiques {
+  return { critiques, mortSubite, relance, blessures } as CompteDesCritiques;
+}
+
 /**
  * Les Blessures critiques d'UN coup, dans leur ordre d'application — SOURCE UNIQUE du compte, pour l'arme
- * et la magie. Deux phases : le Coup Critique est-il retenu (prise, Mort subite, porteur, cause) ? Puis
- * `blessures(relance)` donne les Blessures du coup à la Localisation (relancée si le Coup Critique est
- * retenu, LDB 18 l.53, l.55 ; AA 07 l.32) ; `current` = Blessures AVANT le coup.
+ * et la magie. `coup.relance` est le verdict de `relanceLaLocalisation`, jamais recalculé ici.
  * Prise : ADE II 08 l.296, l.300 ; MDG 13 l.605, l.614 ; LDB 85 l.98, l.278 ; LDB 47 l.358.
  * Mort subite : LDB 18 l.44, l.46 ; AA 07 l.65, l.67 ; #1595 c.6219992594.
  */
-export function critiquesDuCoup(
-  c: Combatant,
-  coup: { coupCritique: CauseCoupCritique | null; prise: boolean; current: number; blessures: (relance: boolean) => number },
-  jeu: JeuDeCritique = jeuDeCritique(),
-): CompteDesCritiques {
-  if (!coup.prise) return { critiques: [], mortSubite: false, relance: false };
+export function critiquesDuCoup(c: Combatant, coup: CoupACompter, jeu: JeuDeCritique = jeuDeCritique()): CompteDesCritiques {
+  const { current, blessures: lost } = coup;
+  if (!coup.prise) return compteNe([], false, false, lost);
   const R = REGIMES_DE_PORTEUR[porteurDeCritique(c)];
-  const { current } = coup;
-  if (usesSuddenDeath(c)) {
-    if (!R.depassement || jeu === 'aa') return { critiques: [], mortSubite: false, relance: false };
-    return { critiques: [], mortSubite: depasse(jeu, coup.blessures(false), current), relance: false };
-  }
-  const relance = relanceLaLocalisation(c, coup.coupCritique, current, jeu);
-  const lost = coup.blessures(relance);
+  if (usesSuddenDeath(c)) return compteNe([], R.depassement && jeu !== 'aa' && depasse(jeu, lost, current), false, lost);
   const overkill = Math.max(0, lost - current);
   const critiques: CritiqueDuCoup[] = [];
   const cc = coup.coupCritique !== null && R.coupCritiqueCompte(lost, current);
   if (cc) critiques.push({ origine: 'coup-critique', overkill: R.coupCritiqueNu(jeu) ? 0 : overkill });
-  else if (R.aZeroToutCoup && current <= 0) critiques.push({ origine: 'a-zero', overkill });
+  else if (coup.touche && R.aZeroToutCoup && current <= 0) critiques.push({ origine: 'a-zero', overkill });
   if (R.depassement && depasse(jeu, lost, current)) critiques.push({ origine: R.passageAZeroEstCoupCritique(jeu) ? 'coup-critique' : 'depassement', overkill });
-  return { critiques: critiques.slice(0, R.plafond(jeu)), mortSubite: false, relance };
+  return compteNe(critiques.slice(0, R.plafond(jeu)), false, coup.relance, lost);
 }
 
 const rangeesOuvertes = memoParVersion(

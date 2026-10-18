@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveVolley } from './volley';
 import { causeDuCoupCritique } from './combat';
-import { critiquesDuCoup } from './critical';
+import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { crewTestSuccess } from './crewMorale';
 import { setRule, resetRule } from './policy';
 import type { RNG } from './dice';
@@ -67,7 +67,7 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
     const cible = navire(0);
     const r = resolveVolley(firing, [poste(['g1'])], cible, 3, true, [gunner('g1')], fixed(34));
     expect(r[0].res.critical, '34 ≠ double : pas de Coup Critique').toBe(false);
-    const compte = critiquesDuCoup(cible, { coupCritique: causeDuCoupCritique(r[0].res), prise: true, current: 0, blessures: () => r[0].res.woundsLost ?? 0 });
+    const compte = critiquesDuCoup(cible, { coupCritique: causeDuCoupCritique(r[0].res), prise: true, current: 0, touche: true, relance: relanceLaLocalisation(cible, { coupCritique: causeDuCoupCritique(r[0].res), prise: true, current: 0 }), blessures: r[0].res.woundsLost ?? 0 });
     expect(compte.critiques.map((c) => c.origine)).toEqual(['a-zero']);
   });
 

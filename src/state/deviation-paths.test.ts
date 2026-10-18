@@ -464,6 +464,30 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     temoin.int(1, 100);
     expect(battleRng().int(1, 1_000_000), 'même graine, un seul dé consommé').toBe(temoin.int(1, 1_000_000));
   });
+
+  // LDB 18 l.53, l.55 ; LDB 63 l.30 ; #1595 c.6226467544.
+  it('Déviation subie : la Localisation relancée est celle de la naissance, relue au recompte sans re-tirage', () => {
+    resetRule('combat-aa-blessures');
+    const graine = 4;
+    seedBattleRng(graine);
+    const des = makeRNG(graine);
+    const relancee = critWoundLocation(des, 'humanoide');
+    expect(critWoundLocation(des, 'humanoide'), 'un re-tirage changerait le lieu').not.toBe(relancee);
+    const caster = mage('enemy', 'e-mage');
+    const t = mk('hero', 'h-cible', { armour: uniformArmour(4) });
+    setBattle([caster, t, mk('enemy', 'e-temoin')]);
+    const touche = evaluateMissile(caster, t, missileSpell(), jet).location!;
+    castMissile(caster, t, missileSpell(), { critical: true });
+    expect(relancee, 'la graine sépare les deux Localisations').not.toBe(touche);
+    expect(devSteps()[0].critSeverity?.location, 'la fenêtre au lieu né').toBe(relancee);
+    const dev = tireLaSeverite().deviation!;
+    expect(dev.mode === 'projectile' && dev.touche.critLocation, 'la décision voyage sur la touche').toBe(relancee);
+    resolveDeviation(useGame.getState, useGame.setState, dev, false);
+    draineCascade(useGame.getState);
+    const journal = useGame.getState().battle!.log.map((l) => l.text);
+    expect(live('h-cible').criticalWounds).toBe(1);
+    expect(critiqueA(journal, relancee), 'le Critique au lieu né').toBe(true);
+  });
 });
 
 // ── Après la Blessure critique infligée : une fabrique pour la mêlée, l'opposé, la reprise et le Projectile ──

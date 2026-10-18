@@ -39,7 +39,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, critiquesDuCoup, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
+import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -493,8 +493,8 @@ export interface AttackResult {
   defenderRoll?: number;
   netSL: number;
   location?: HitLocation;
-  /** RAW-2 (LDB 17 l.68) : localisation du Coup Critique CHOISIE par le joueur via « Je ne faillirai pas ! »
-   *  — court-circuite le tirage aléatoire dans `applyCriticalToTarget`. Absente = localisation au hasard. */
+  /** Localisation relancée de la Blessure critique, tirée (LDB 18 l.53, l.55 ; AA 07 l.32) ou choisie
+   *  (LDB 17 l.68) ; absente = non encore décidée. #1595 c.6226467544. */
   critLocation?: HitLocation;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
@@ -1611,7 +1611,8 @@ export function apercuDesCritiques(
   res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise' | 'hit' | 'woundsLost'>,
   jeu: JeuDeCritique = jeuDeCritique(),
 ): CompteDesCritiques {
-  return critiquesDuCoup(cible, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current, blessures: () => res.woundsLost ?? 0 }, jeu);
+  const coup = { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current };
+  return critiquesDuCoup(cible, { ...coup, touche: true, relance: relanceLaLocalisation(cible, coup, jeu), blessures: res.woundsLost ?? 0 }, jeu);
 }
 
 /** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159 ; #1595 c.6230022636. */
