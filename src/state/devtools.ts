@@ -1790,7 +1790,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const arme = auteur?.weapons[0];
       const ctx = auteur && arme ? {
         attackerId: auteur.id, attackerKind: auteur.kind, weapon: arme.label,
-        coup: { mode: 'melee' as const, weapon: arme, res: toucheAuJetPose(auteur, coque, arme, { label: arme.label, base: 100, modifier: 0, target: 100, roll: jet, success: true, sl: 0 }, 0) },
+        coup: { mode: 'melee' as const, weapon: arme, res: toucheAuJetPose(auteur, coque, arme, { label: arme.label, base: 100, difficulty: 'intermediaire', modifier: 0, target: 100, roll: jet, success: true, sl: 0 }, 0) },
       } : undefined;
       const log: string[] = [];
       applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ...(ctx ? { ctx } : {}) });
