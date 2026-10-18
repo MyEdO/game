@@ -16,7 +16,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit, editableDataset, editableObjectDataset, dedicatedFieldKeys } from './CodexEdit';
+import { CodexEdit, editableDataset, editableObjectDataset, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { libelleDuChamp, inferFields } from './editFields';
 import { metaPourFichier, chargeDiscriminee, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from './registry';

@@ -7,4 +7,10 @@
 import type { GameState } from './store';
 
 export type Get = () => GameState;
-export type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
+/** Le patch d'un flux : `journal` n'y figure pas ; ses écrivains sont l'action `log` du store, `startScene` et
+ *  le remplacement d'état (`RemplacerLEtat`) (#319, #2724). */
+export type PatchDeFlux = Partial<Omit<GameState, 'journal'>> & { journal?: never };
+export type Set = (partial: PatchDeFlux | ((s: GameState) => PatchDeFlux)) => void;
+/** Le `set` brut du store, réservé au REMPLACEMENT d'état (sauvegarde chargée, snapshot de l'hôte), qui
+ *  porte `journal` avec le reste (#2724). */
+export type RemplacerLEtat = (etat: Partial<GameState>) => void;

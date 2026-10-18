@@ -7,6 +7,7 @@ function Selectionner-Processus {
   if (-not $Identites -or $MemoireSeulement) { $proprietes += 'WorkingSetSize' }
   if ($Identites -or -not $MemoireSeulement) { $proprietes += 'Name' }
   if ((-not $Identites -and -not $MemoireSeulement) -or ($MemoireSeulement -and $PidsAInspecter)) { $proprietes += 'CommandLine' }
+  if (-not $Identites -and -not $MemoireSeulement) { $proprietes += 'ExecutablePath' }
   $selection = New-Object 'System.Collections.Generic.HashSet[int]'
   if ($Pids) { foreach ($cible in $Pids.Split(',')) { [void]$selection.Add([int]$cible) } }
   Get-CimInstance Win32_Process -Property $proprietes | Where-Object { -not $Pids -or $selection.Contains([int]$_.ProcessId) }
@@ -137,7 +138,7 @@ if ($PidsAInspecter) { foreach ($cible in $PidsAInspecter.Split(',')) { [void]$a
 $items = @()
 foreach ($p in $cibles) {
   $creation = if ($p.CreationDate) { $p.CreationDate.ToUniversalTime().ToString('o') } else { '' }
-  $item = @{pid=[int]$p.ProcessId;ppid=[int]$p.ParentProcessId;nom=[string]$p.Name;creation=$creation;commande=[string]$p.CommandLine;cwd=$null;proprietaire=$null;residentOctets=[long]$p.WorkingSetSize;metriqueMemoire='WorkingSet Windows';erreurs=@()}
+  $item = @{pid=[int]$p.ProcessId;ppid=[int]$p.ParentProcessId;nom=[string]$p.Name;image=[string]$p.ExecutablePath;creation=$creation;commande=[string]$p.CommandLine;cwd=$null;proprietaire=$null;residentOctets=[long]$p.WorkingSetSize;metriqueMemoire='WorkingSet Windows';erreurs=@()}
   if ($null -eq $p.WorkingSetSize) { $item.erreurs += 'resident illisible' }
   if (-not $creation) { $item.erreurs += 'creation illisible' }
   if ($MemoireSeulement -and -not $aInspecter.Contains([int]$p.ProcessId)) {

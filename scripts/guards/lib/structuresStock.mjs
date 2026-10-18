@@ -329,7 +329,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "creatures.json", champ: "appearance", signature: "species,tenue", statut: "divergente", strate: "Référence", occurrences: 107, lot: "L3 #1463", date: "2026-08-30", motif: "apparence : ESPÈCE et TENUE" },
   { concept: "reference", dataset: "creatures.json", champ: "appearance", signature: "species,tenue+…", statut: "divergente", strate: "Référence", occurrences: 70, lot: "L3 #1463", date: "2026-08-30", motif: "apparence : ESPÈCE et TENUE" },
   { concept: "reference", dataset: "creatures.json", champ: "appearance", signature: "species+…", statut: "divergente", strate: "Référence", occurrences: 52, lot: "L3 #1463", date: "2026-08-30", motif: "apparence : ESPÈCE" },
-  { concept: "reference", dataset: "creatures.json", champ: "grant", signature: "char,value", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "monster", signature: "tete", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-30", motif: "apparence de MONSTRE par localisation" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id", statut: "historique", strate: "Référence", occurrences: 133, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id,value", statut: "historique", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
@@ -854,7 +853,7 @@ export const STRUCTURES_ENVELOPPE = [
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "names.json", chemin: "(entrées)", occurrences: 7, lot: "L1d #1469", date: "2026-08-23" },
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "naval-progression.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "pregens.json", chemin: "(entrées)", occurrences: 8, lot: "L1d #1469", date: "2026-08-23" },
-  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "primitives.manifest.json", chemin: "(entrées)", occurrences: 210, lot: "L1d #1469", date: "2026-08-23" },
+  { role: "source", cle: "source", motif: "clé absente", detail: "", document: "primitives.manifest.json", chemin: "(entrées)", occurrences: 211, lot: "L1d #1469", date: "2026-08-23" },
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "progression-schemas.derived.json", chemin: "(entrées)", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "qualitySubtypes.json", chemin: "(entrées)", occurrences: 3, lot: "L1d #1469", date: "2026-08-23" },
   { role: "source", cle: "source", motif: "clé absente", detail: "", document: "qualityTypes.json", chemin: "(entrées)", occurrences: 2, lot: "L1d #1469", date: "2026-08-23" },
@@ -878,15 +877,15 @@ export const STRUCTURES_ENVELOPPE = [
 /** Objet qui ANNONCE une référence (clé `…Id`/`…Ids`/`…Ref`, clé réservée, clé d'identité) et qui
  *  ne résout vers RIEN, sans être un document ni une op : HORS STRATE. `L1a #1466` quand le NOM de
  *  la clé annonçait une FK (`clé de référence non résolue`) — branche VIDE à ce jour, 0 ligne —,
- *  `#1553` sinon. CE QUE LE MOTIF DIT, ligne à ligne (mesuré 2026-09-23, #1473) : `clé réservée`
- *  96 lignes / 407 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
+ *  `#1553` sinon. CE QUE LE MOTIF DIT, ligne à ligne (mesuré 2026-10-18, #2724) : `clé réservée`
+ *  97 lignes / 412 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
  *  ci-dessous — la garde `src/data/plage-bornes-contrat.test.ts` (sonde D) les recalcule et exige
  *  que cet en-tête les CITE, elle ne les compare plus à un littéral recopié. Le motif `clé
  *  réservée` ne décrit PAS une valeur qui pointerait vers rien — le déclencheur est le NOM
  *  (`CLES_RESERVEES` du lexique : skill, char, talent, price, cost, count, source), et le contenu
- *  est légitime : `source` à lui seul déclenche 64 des 96 lignes (145 occurrences), qui portent de
+ *  est légitime : `source` à lui seul déclenche 64 des 97 lignes (145 occurrences), qui portent de
  *  vraies références de livre. Il se solde donc au VOCABULAIRE (#1463 S2 : un nom de concept est
- *  réservé à son type), jamais en curant un contenu. Les 98 lignes de ce volet ne sont pas du
+ *  réservé à son type), jamais en curant un contenu. Les 99 lignes de ce volet ne sont pas du
  *  ressort de `L1b #1467`, dont le dénominateur (205) les comptait ; elles portent leur lot ligne
  *  à ligne. */
 export const STRUCTURES_ORPHELINES = [
@@ -916,6 +915,7 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "barge-du-sel-projet.json", champ: "statblock", signature: "char,label,skills,type", motif: "clé réservée", occurrences: 4, lot: "#1553", date: "2026-08-23" },
   { dataset: "careerLevels.json", champ: "trappings", signature: "count,text", motif: "clé réservée", occurrences: 25, lot: "#1553", date: "2026-08-23" },
   { dataset: "classes.json", champ: "trappings", signature: "count,text", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
+  { dataset: "creatures.json", champ: "grant", signature: "char,value", motif: "clé réservée", occurrences: 5, lot: "#1553", date: "2026-10-18" }, // #2724 : `char` y est un littéral de `charKeySchema` (#1463, arbitrages L0 point 3)
   { dataset: "creatures.json", champ: "purchase", signature: "availability,price", motif: "clé réservée", occurrences: 14, lot: "#1553", date: "2026-08-23" },
   { dataset: "crew-roles.json", champ: "wage", signature: "daily,source,weekly", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "details.json", champ: "texts", signature: "age,ambitionLong,ambitionShort,nom,taille", motif: "identité non résolue", occurrences: 1, lot: "#1553", date: "2026-08-23" },

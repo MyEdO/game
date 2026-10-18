@@ -8,7 +8,7 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { SpecsField } from './StructFields';
+import { SpecsField } from '../editor/codex/StructFields';
 import type { SpecEntry } from '../../data';
 
 beforeAll(() => {

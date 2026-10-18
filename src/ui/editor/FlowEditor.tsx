@@ -36,7 +36,8 @@ import {
 } from './EffectList';
 import type { RacineDeCatalogue } from '../../state/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
-import { ConditionEditor, condSummary } from './ConditionEditor';
+import { ConditionEditor } from './ConditionEditor';
+import { condSummary } from './interne/resumeDeCondition';
 
 /** Normalise un Flow en liste de blocs éditables (un `seq` expose ses étapes ; sinon bloc unique). */
 function asSteps(flow: Flow): Flow[] {

@@ -543,7 +543,7 @@ const compareSubjectSchema = z.union([
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
- *  `etats.json` #14 « inondation » — `{who,char:'E',factor:0.5}` — vérifié en isolation). La forme
+ *  `etats.json` #14 « inondation » — `{who,char:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
   z.number(),

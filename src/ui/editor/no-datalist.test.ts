@@ -24,8 +24,8 @@ const EXCLUDED = (rel: string) => rel === 'src/ui/compendium/RefField.tsx';
 
 /** Stock GELÉ de datalist en surface d'atelier DEV (#410, 2026-07-13). */
 const BASELINE: Record<string, number> = {
-  'src/ui/compendium/CodexEdit.tsx': 1,
-  'src/ui/compendium/StructFields.tsx': 2,
+  'src/ui/editor/codex/CodexEdit.tsx': 1,
+  'src/ui/editor/codex/StructFields.tsx': 2,
 };
 
 /** Retire commentaires ligne/bloc (les JSDoc de RefField/CodexEdit CITENT `<datalist>` en prose). */

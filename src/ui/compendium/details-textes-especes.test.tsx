@@ -8,7 +8,7 @@ import { tableTotale } from '../../lib/tableTotale';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { DetailsTextsField } from './CodexEdit';
+import { DetailsTextsField } from '../editor/codex/CodexEdit';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 
 beforeAll(() => {

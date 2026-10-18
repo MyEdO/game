@@ -8,17 +8,123 @@ import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
-import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal } from './session.mjs'
+import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, refusSession } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { verifierVersionCodex } from './session-version.mjs'
+import { projeter, surfaceDe } from '../hooks/repartition.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
-
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
-function banc(t, { auSommeil = () => {} } = {}) {
+
+test('Codex : cible canonique, envoi authentifié, veille native sans sondage et état sans secret', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } }, veiller: async (p) => { appels.push(p); return { seq: 4, etat: 'inactif', type: 'fin' } }, auSommeil: () => assert.fail('veille par sondage') })
+  const r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+  await assert.rejects(b.sessions.envoyer('banc', 'faux', { message: 'corriger' }), /\[permission · non retentable\]/)
+  assert.equal(appels.length, 0)
+  assert.deepEqual(await b.sessions.envoyer('2461', r.jeton, { message: 'corriger', requestId: r.carte.sessionId, timeoutMs: 123 }), { ok: true, requestId: r.carte.sessionId })
+  assert.equal(appels[0].sessionId, r.carte.sessionId); assert.equal(appels[0].message, 'corriger'); assert.equal(appels[0].jeton, r.jeton)
+  assert.equal((await b.sessions.attendre('banc', { depuis: 3, timeoutMs: 456 })).type, 'fin')
+  assert.deepEqual(appels[1], { dossier: b.dossier, sessionId: r.carte.sessionId, depuis: 3, timeoutMs: 456 })
+  const etat = b.sessions.etat(r.carte.sessionId)
+  for (const cle of ['empreinteJeton', 'empreinteNonce', 'empreinteNonceHook']) assert.equal(cle in etat, false)
+  assert.throws(() => b.sessions.etat('thread-libre'), /\[métier · non retentable\].*NON INSCRIT/)
+  rmSync(join(b.dossier, `${r.carte.sessionId}.sessionstart`))
+  assert.throws(() => b.sessions.projectionCodex(r.carte.sessionId, { rapport: { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' } }), /REÇU SESSIONSTART ABSENT/)
+})
+
+test('CLI : envoi sans requestId génère une identité réutilisable à la couture canonique', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => {
+    assert.match(p.requestId ?? '', /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+    appels.push(p)
+    return { ok: true }
+  } })
+  const r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+  const appeler = async (options) => {
+    let texte = ''
+    const code = await commandeSession(['envoyer', 'banc', '--message', 'ajuste', '--json', ...options], { stdout: { write: (m) => { texte += m } }, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, env: {}, stdin: (async function* () { yield JSON.stringify({ jeton: r.jeton }) })() })
+    assert.equal(code, 0)
+    return JSON.parse(texte)
+  }
+  const premier = await appeler([])
+  assert.equal(premier.requestId, appels[0].requestId)
+  const rejoue = await appeler(['--request-id', premier.requestId])
+  assert.equal(rejoue.requestId, premier.requestId)
+  assert.equal(appels[1].requestId, appels[0].requestId)
+})
+
+test('CLI : envoi reçoit la capacité stdin ; outils expose le contrat et refuse options étrangères', async () => {
+  const id = 'd4afafad-8b29-4df4-9847-8f8f15e58a5c', appels = []
+  const sessions = { envoyer: async (...p) => { appels.push(p); return { ok: true } }, etat: (cible) => ({ sessionId: cible }) }
+  const dependances = { stdout: { write() {} }, contexte: () => ({ gitCommun: racineScripts }), sessionsDe: () => sessions, stdin: (async function* () { yield '{"jeton":"capacité"}' })(), env: {} }
+  assert.equal(await commandeSession(['envoyer', id, '--message', 'ajuste', '--request-id', id, '--timeout-ms', '12'], dependances), 0)
+  assert.deepEqual(appels[0], [id, 'capacité', { message: 'ajuste', requestId: id, timeoutMs: 12 }])
+  const outils = outilsSession()
+  assert.deepEqual(outils.outils.map((o) => o.name), ['codex_envoyer', 'codex_attendre', 'codex_etat'])
+  assert.ok(outils.outils.every((o) => o.description.length > 100 && o.inputSchema.additionalProperties === false))
+  assert.match(outils.refusTechnique, /^\[panne · non retentable\]/)
+  assert.deepEqual(refusSession(new Error('[permission · non retentable] Jeton incorrect')), { prefixe: '[permission · non retentable]', categorie: 'permission', retentable: false, raison: 'Jeton incorrect' })
+  assert.equal(refusSession(new Error('I/O inconnu')).categorie, 'panne')
+  assert.deepEqual(outils.prefixesDeRefus.length, 5)
+  assert.equal(outils.outils.find((o) => o.name === 'codex_attendre').inputSchema.properties.timeoutMs.maximum, 240_000)
+  assert.equal(await commandeSession(['outils', '--json'], { stdout: { write() {} }, contexte: () => assert.fail('registre requis') }), 0)
+  let reponse = ''
+  assert.equal(await commandeSession(['attendre', id, '--json'], { ...dependances, stdout: { write: (m) => { reponse += m } }, sessionsDe: () => ({ attendre: async () => ({ etat: 'indeterminee' }) }) }), 3)
+  assert.equal(JSON.parse(reponse).refus.categorie, 'transitoire')
+  for (const argv of [['etat', id, '--message', 'x'], ['envoyer', id, '--message', ' '], ['attendre', id, '--depuis', '-1'], ['envoyer', id, '--message', 'x', '--request-id', 'thread-libre']]) assert.throws(() => optionsSession(argv), /\[validation · non retentable\]/)
+})
+
+test('lanceur Codex : version et protocole contrôlés avant réservation et fenêtre', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, '2528.md'); writeFileSync(consigne, 'faire')
+  for (const faute of ['version', 'protocole']) {
+    const appels = []
+    await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, { contexte: () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }), natif: () => b.fichiers.codex, version: async (exe) => { assert.equal(exe, b.fichiers.codex); appels.push('version'); if (faute === 'version') throw new Error('version refusée') }, protocole: ({ executable }) => { assert.equal(executable, b.fichiers.codex); appels.push('protocole'); throw new Error('protocole refusé') }, sessionsDe: () => assert.fail('réservation atteinte'), terminal: () => assert.fail('fenêtre atteinte') }), /refus/)
+    assert.deepEqual(appels, faute === 'version' ? ['version'] : ['version', 'protocole'])
+  }
+})
+
+test('environnement agent : contrôle parent sans casse, projection Codex et configuration préservée', () => {
+  const configuration = { CODEX_HOME: 'configuration-utilisateur', GH_TOKEN: 'jeton-banc', WFRP_SESSION_START: 'contexte-enfant' }
+  const controles = ['WFRP_SESSION_JETON', 'WFRP_SESSION_REVENDICATION', 'CLAUDE_CODE_CHILD_SESSION', 'CLAUDE_PROJECT_DIR']
+  const env = Object.freeze({ ...configuration, ...tableTotale(controles.flatMap((cle) => [cle, cle.toLowerCase(), cle[0] + cle.slice(1).toLowerCase()]), () => 'parent') })
+  const avant = { ...env }, propre = envAgent(env)
+  assert.equal(surfaceDe(propre), 'codex')
+  assert.deepEqual(propre, configuration)
+  assert.deepEqual(env, avant)
+  assert.deepEqual(projeter({ decision: { decision: 'deny', reason: 'refus du banc' }, contexte: null }, 'PreToolUse', surfaceDe(propre)), {
+    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'refus du banc' },
+  })
+})
+
+test('préflights Codex : chaque exécuteur reçoit le même environnement nettoyé et garde les réglages utilisateur', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, '2528.md'); writeFileSync(consigne, 'faire')
+  const env = { WFRP_SESSION_JETON: 'parent', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', WFRP_SESSION_START: 'reçu-parent', GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }
+  const propre = { GH_TOKEN: 'github-conservé', CODEX_HOME: 'config-utilisateur' }, appels = []
+  env.CLAUDE_PROJECT_DIR = 'projet-parent'
+  const executer = (exe, args, options) => {
+    assert.equal(options.env.CLAUDE_PROJECT_DIR, undefined)
+    assert.equal(exe, b.fichiers.codex)
+    assert.deepEqual(options.env, propre)
+    appels.push(args.join(' '))
+    return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? 'app-server --dangerously-bypass-hook-trust --config' : '--listen' }
+  }
+  await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, {
+    contexte: () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }), natif: () => b.fichiers.codex, env, executer,
+    version: (exe, options = {}) => verifierVersionCodex(exe, { ...options, executer: options.executer ?? executer, fetcher: async () => ({ ok: true, json: async () => ({ version: '0.163.0' }) }) }),
+    protocole: ({ executable, executer: commande = executer }) => { commande(executable, ['--version'], {}); commande(executable, ['app-server', 'generate-json-schema'], {}) },
+    preflight: async () => hooksBanc.codex, terminal: () => { throw new Error('préflights terminés') },
+  }), /préflights terminés/)
+  assert.deepEqual(appels, ['--version', '--version', 'app-server generate-json-schema', '--version', '--help', 'app-server --help'])
+  assert.equal(env.WFRP_SESSION_JETON, 'parent')
+})
+
+function banc(t, { auSommeil = () => {}, envoyer, veiller } = {}) {
   const dossier = mkdtempSync(join(process.env.WFRP_SESSION_TEST_FIXTURES ?? tmpdir(), 'sessions-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fixtures = join(dossier, 'fixtures'); mkdirSync(fixtures)
@@ -36,7 +142,7 @@ function banc(t, { auSommeil = () => {} } = {}) {
   for (const fichier of Object.values(fichiers)) writeFileSync(fichier, '')
   let maintenant = 1000
   const vivants = new Map([[10, identite(10)], [20, identite(20)], [30, identite(30)]])
-  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50; auSommeil(sessions, vivants) }, lanceur: () => identite(99) })
+  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50; auSommeil(sessions, vivants) }, lanceur: () => identite(99), envoyer, veiller })
   const claim = sessions.revendiquer
   sessions.revendiquer = (...args) => {
     const carte = claim(...args)
@@ -207,7 +313,7 @@ test('planAgent dérive l’argv Codex de la politique, envAgent retire les secr
   const politique = lirePolitique()
   const plan = planAgent(carte, { natif: b.fichiers.codex, consigne: 'faire', rapport: b.fichiers.rapport, schema: b.fichiers.schema, politique })
   assert.equal(plan.shell, false)
-  assert.deepEqual(plan.args, ['exec', '-m', politique.model, '-c', `model_reasoning_effort="${politique.reasoningEffort}"`, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', '-C', b.dossier, '-o', b.fichiers.rapport, '--output-schema', b.fichiers.schema, 'faire'])
+  assert.deepEqual(plan.args, ['-c', `model="${politique.model}"`, '-c', `model_reasoning_effort="${politique.reasoningEffort}"`, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', 'app-server', '--listen', 'stdio://'])
   for (const interdit of [/dangerously-bypass-approvals/, /^--add-dir$/, /^--sandbox$/, /^--approve-for-me$/, /^-p$/, /windows\.sandbox/, /network_access/]) assert.ok(!plan.args.some((a) => interdit.test(a)), String(interdit))
   assert.throws(() => planAgent(carte, { natif: 'codex.cmd', politique }), /NATIF/)
   for (const fautive of [{ ...politique, sandbox: 'workspace-write' }, { ...politique, profile: 'wfrp-agent' }, { ...politique, ignoreUserConfig: false }, { ...politique, reasoningEffort: 'banane' }, { ...politique, model: 'gpt-5' }]) assert.throws(() => planAgent(carte, { natif: 'codex.exe', consigne: 'faire', rapport: 'r', schema: 's', politique: fautive }), /POLITIQUE INVALIDE/)
@@ -231,7 +337,7 @@ test('lanceur injecté : Codex sans fichier de profil, capacité une fois, boots
   let ouvert = 0, argv, env
   const gestes = {
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
-    terminal: () => ({ nom: 'PS', closeOnExit: 'graceful' }), natif: () => b.fichiers.codex, contrat: () => true,
+    terminal: () => ({ nom: 'PS', closeOnExit: 'graceful' }), natif: () => b.fichiers.codex, contrat: () => true, version: async () => true, protocole: () => true,
     sessionsDe: () => b.sessions, env: { WFRP_SESSION_JETON: 'ancien', GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint' },
     lancerWT: (exe, args, opts) => { ouvert++; argv = args; env = opts.env; assert.equal(exe, 'wt.exe'); const c = b.sessions.lister().cartes.find((c) => c.nom === 'banc'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
   }
@@ -334,26 +440,6 @@ test('raccord : WT zéro après fermeture sans claim refuse faux succès', async
     sessionsDe: () => ({ ...b.sessions, reserver: (p) => { reservation = b.sessions.reserver(p); return reservation } }),
     lancerWT: () => { b.sessions.demanderArret(reservation.carte.sessionId, reservation.jeton); return { status: 0 } },
   }), /DÉMARRAGE ÉCHOUÉ/)
-})
-
-test('raccord : claim entre snapshot et mutation ferme sur constat frais sous verrou', async (t) => {
-  const b = banc(t, { auSommeil: (sessions, vivants) => {
-    assert.equal(sessions.lire(id).etat, 'arret-demande')
-    sessions.sortie(id, { codeAgent: null, arret: true }); vivants.clear()
-  } }), r = b.reserver(), id = r.carte.sessionId
-  b.vivants.delete(10); b.vivants.delete(30)
-  const rm = fs.rmSync
-  let intercale = false
-  fs.rmSync = function (chemin, ...args) {
-    const resultat = rm.call(this, chemin, ...args)
-    if (!intercale && String(chemin) === join(b.dossier, 'registre.lock.reprise')) {
-      intercale = true
-      b.vivants.set(10, identite(10)); b.vivants.set(30, identite(30)); b.revendiquer(r)
-    }
-    return resultat
-  }
-  try { assert.equal((await b.sessions.fermer(id, r.jeton, { timeoutMs: 100 })).etat, 'sortie'); assert.ok(intercale) }
-  finally { fs.rmSync = rm }
 })
 
 test('raccord : WT erreur après claim conserve raison et événement unique après sortie superviseur', async (t) => {
@@ -517,11 +603,11 @@ test('supervision Codex : rapport absent ou JSON illisible sur sortie 0 nommés,
     const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => lireRapportDe(chemin), periodeMs: 1 })
     b.vivants.delete(20); queueMicrotask(() => child.emit('exit', 0, null))
     const fin = await promesse
-    assert.equal(fin.codeAgent, 0); assert.equal(fin.issueSortie, 'echec'); assert.equal(fin.raison, cas.attendu); assert.equal(fin.rapport, undefined)
+    assert.equal(fin.codeAgent, 0); assert.equal(fin.issueSortie, 'echec'); assert.match(fin.raison, new RegExp(cas.attendu)); assert.equal(fin.rapport, undefined)
   }
 })
 
-test('supervision conserve le refus du reçu comme cause primaire et ne range aucun rapport sans démarrage prouvé', async (t) => {
+test('supervision extrait la cause native sans reçu et garde le défaut du reçu séparément', async (t) => {
   for (const panne of ['absent', 'nonce']) for (const sortie of ['nonzero', 'rapport-invalide', 'rapport-valide']) {
     await t.test(`${panne}/${sortie}`, async (t) => {
     const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
@@ -538,7 +624,9 @@ test('supervision conserve le refus du reçu comme cause primaire et ne range au
     })
     b.vivants.delete(20); queueMicrotask(() => child.emit('exit', sortie === 'nonzero' ? 9 : 0, null))
     const fin = await promesse
-    assert.equal(fin.raison, panne === 'absent' ? 'REÇU SESSIONSTART ABSENT' : 'REÇU SESSIONSTART NONCE INCORRECT', `${panne}/${sortie}`)
+    const defautRecu = panne === 'absent' ? 'REÇU SESSIONSTART ABSENT' : 'REÇU SESSIONSTART NONCE INCORRECT'
+    assert.equal(fin.raison, sortie === 'nonzero' ? 'AGENT SORTI EN 9 : cause secondaire de sortie' : defautRecu, `${panne}/${sortie}`)
+    if (sortie === 'nonzero') assert.ok(fin.observations.includes(defautRecu))
     assert.equal(fin.issueSortie, 'echec'); assert.equal(fin.rapport, undefined); assert.equal(lectures, 0)
     assert.equal(b.sessions.lire(r.carte.sessionId).rapport, undefined)
     })
@@ -565,42 +653,57 @@ test('rapport : le schéma est la seule source ; un mot-clé hors de l’interpr
   for (const inconnu of [{ type: 'toString' }, { type: ['string', 'constructor'] }, { ...schema, properties: { ...schema.properties, x: false } }, true, [], null, 3, { ...schema, minProperties: 1 }, { ...schema, properties: { ...schema.properties, resume: { type: 'string', format: 'uri' } } }, { type: 'number' }, { ...schema, additionalProperties: true }]) assert.throws(() => validateurDeSchema(inconnu), /SCHÉMA HORS INTERPRÈTE/, JSON.stringify(inconnu))
 })
 
-test('contrôleur : le rapport validé passe dans la carte, puis ni .rapport ni .stderr ne restent au registre', async (t) => {
+test('contrôleur : le pont conserve la carte et le rapport entre tours, transporte contexte et diagnostic', async (t) => {
   const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId
   b.revendiquer(r)
   const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
-  const script = `require('fs').writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))}); process.stderr.write('trace du banc\\n')`
-  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', script], options) })
+  let terminer, notification
+  const travail = piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', pont: ({ plan, carte, dossier, consigne, schema, env, notifier }) => {
+    assert.ok(plan.args.includes('app-server')); assert.equal(carte.sessionId, id)
+    assert.ok(consigne.includes('Rapport final JSON')); assert.ok(existsSync(schema))
+    assert.equal(env.WFRP_SESSION_JETON, undefined)
+    const contexte = JSON.parse(Buffer.from(env.WFRP_SESSION_START, 'base64').toString())
+    assert.equal(contexte.sessionId, id)
+    const child = new EventEmitter(); child.pid = 20
+    terminer = () => child.emit('exit', 0, null)
+    notification = notifier
+    const journalDiagnostic = join(dossier, 'trace-du-pont.log')
+    writeFileSync(journalDiagnostic, 'trace conservée')
+    notifier({ etat: 'inactif', rapport, threadId: 'propre', dureeMs: 42, outils: 3, jetons: { totalTokens: 100 } })
+    return { child, cause: async () => '', journalDiagnostic }
+  } })
+  let fin
+  try {
+    await new Promise((ok) => setImmediate(ok))
+    assert.deepEqual(b.sessions.lire(id).rapport, rapport)
+    assert.equal(b.sessions.lire(id).etat, 'vivante')
+    assert.equal(b.sessions.lire(id).codex.etat, 'inactif')
+    assert.throws(() => notification({ etat: 'inactif', rapport: { ...rapport, ticket: 4 } }), /RAPPORT ÉTRANGER/)
+    assert.deepEqual(b.sessions.lire(id).rapport, rapport)
+  } finally { terminer(); fin = await travail }
   assert.deepEqual(fin.rapport, rapport); assert.equal(fin.issueSortie, 'sortie')
-  for (const suffixe of ['.rapport', '.stderr']) assert.equal(existsSync(join(b.dossier, `${id}${suffixe}`)), false, suffixe)
+  assert.equal(existsSync(join(b.dossier, `${id}.rapport`)), false)
+  assert.equal(readFileSync(fin.journalDiagnostic, 'utf8'), 'trace conservée')
 })
 
-test('contrôleur : une purge impossible est nommée sur stderr sans changer l’issue', async (t) => {
-  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId, lignes = []
+test('contrôleur : démarrage raté conserve stderr primaire, reçu absent secondaire et première cause', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId
   b.revendiquer(r)
-  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
-  const script = `require('fs').writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))})`
-  t.mock.method(process.stderr, 'write', (morceau) => { lignes.push(String(morceau)); return true })
-  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', script], options), retirer: () => { throw Object.assign(new Error('occupé'), { code: 'EBUSY' }) } })
-  assert.deepEqual(fin.rapport, rapport); assert.equal(fin.issueSortie, 'sortie')
-  for (const suffixe of ['.rapport', '.stderr']) assert.ok(lignes.includes(`[session] PURGE IMPOSSIBLE : ${join(b.dossier, `${id}${suffixe}`)} — EBUSY\n`), suffixe)
-})
-
-test('contrôleur : un petit-enfant qui écrit sur stderr après la sortie 0 de Codex ne recrée pas le journal purgé', { timeout: 30_000 }, async (t) => {
-  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId, lignes = []
-  b.revendiquer(r)
-  const debut = join(b.dossier, 'petit-enfant.debut'), fini = join(b.dossier, 'petit-enfant.fini')
-  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
-  const petit = `const fs = require('fs'); fs.writeFileSync(${JSON.stringify(debut)}, ''); setTimeout(() => process.stderr.write('tardif du petit-enfant\\n', () => { fs.writeFileSync(${JSON.stringify(fini)}, ''); process.exit(0) }), 400)`
-  const parent = `const fs = require('fs'), { spawn } = require('child_process'); fs.writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))}); spawn(process.execPath, ['-e', ${JSON.stringify(petit)}], { detached: true, stdio: ['ignore', 'ignore', 'inherit'] }).unref(); const borne = Date.now() + 5000; while (!fs.existsSync(${JSON.stringify(debut)}) && Date.now() < borne) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20); process.exit(0)`
-  t.mock.method(process.stderr, 'write', (morceau) => { lignes.push(String(morceau)); return true })
-  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', parent], options) })
-  assert.equal(fin.codeAgent, 0); assert.ok(existsSync(debut), `petit-enfant démarré — stderr : ${lignes.join('')}`)
-  const borne = Date.now() + 5000
-  while (!existsSync(fini) && Date.now() < borne) await new Promise((ok) => setTimeout(ok, 20))
-  await new Promise((ok) => setTimeout(ok, 200))
-  assert.ok(existsSync(fini), 'petit-enfant a écrit'); assert.ok(lignes.join('').includes('tardif du petit-enfant'))
-  assert.equal(existsSync(join(b.dossier, `${id}.stderr`)), false)
+  rmSync(join(b.dossier, `${id}.sessionstart`))
+  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', pont: ({ dossier }) => {
+    const child = new EventEmitter(); child.pid = 20
+    const journalDiagnostic = join(dossier, 'diagnostic-du-transport.log')
+    writeFileSync(journalDiagnostic, 'première erreur native')
+    queueMicrotask(() => child.emit('exit', 2, null))
+    return { child, cause: async () => 'première erreur native', journalDiagnostic }
+  } })
+  assert.equal(fin.raison, 'AGENT SORTI EN 2 : première erreur native')
+  assert.ok(fin.observations.includes('REÇU SESSIONSTART ABSENT'))
+  assert.equal(readFileSync(fin.journalDiagnostic, 'utf8'), 'première erreur native')
+  b.vivants.clear()
+  const apres = await b.sessions.echecDemarrage(id, r.jeton, 'REÇU SESSIONSTART ABSENT : observation tardive')
+  assert.equal(apres.raison, fin.raison)
+  assert.ok(apres.observations.includes('REÇU SESSIONSTART ABSENT : observation tardive'))
 })
 
 function runSessionJob(t, programme, timeoutMs) {
@@ -656,7 +759,7 @@ test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex
   let wt = 0
   const gestes = {
     cwd: b.dossier, contexte: (worktree) => ({ racine: b.dossier, gitCommun: b.dossier, worktree, branche: 'main', head: 'a'.repeat(40) }),
-    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true,
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, version: async () => true, protocole: () => true,
     sessionsDe: () => b.sessions, lancerWT: () => { wt++; const c = b.sessions.lister().cartes.find((c) => c.etat === 'reservee'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } }, env: {},
   }
   const r = await lancerSession(options, gestes), c = b.sessions.lire(r.sessionId)
@@ -731,14 +834,14 @@ test('correction 6 : cartes null/tableau/propres invalides signalées, voisine v
 test('correction 7 : existence exe insuffisante, contrat CLI injecté requis avant réserve/WT', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2461.md'); writeFileSync(consigne, 'faire')
   let wt = 0, contrats = 0
-  const gestes = { cwd: b.dossier, contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }), terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.codex, sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {}, contrat: () => { contrats++; throw new Error('CONTRAT CLI INCOMPATIBLE') } }
+  const gestes = { cwd: b.dossier, contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }), terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.codex, version: async () => true, protocole: () => true, sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {}, contrat: () => { contrats++; throw new Error('CONTRAT CLI INCOMPATIBLE') } }
   await assert.rejects(lancerSession({ ticket: 2461, consigne, nom: 'banc', agent: 'codex', worktree: b.dossier }, gestes), /CONTRAT CLI INCOMPATIBLE/)
   assert.equal(contrats, 1); assert.equal(wt, 0); assert.equal(b.sessions.lister().cartes.length, 0)
-  const requis = ['--dangerously-bypass-hook-trust', '--model', '--config', '--output-schema', '--output-last-message']
-  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 1.0' : args[0] === '--help' ? 'Commands: exec' : requis.filter((x) => x !== omis).join('\n') } }
+  const requis = ['--dangerously-bypass-hook-trust', '--config', '--listen']
+  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? `Commands: app-server\n${requis.filter((x) => x !== '--listen' && x !== omis).join('\n')}` : omis === '--listen' ? '' : '--listen' } }
   verifierContratAgent('codex', b.fichiers.codex, { executer: executer(), env: {} })
   for (const omis of requis) assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: executer(omis), env: {} }), new RegExp(`CONTRAT CLI INCOMPATIBLE : ${omis}`))
-  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 1.0' : args[0] === '--help' ? 'Commands: review' : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : exec/)
+  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
 })
 
 test('snapshot OS unique par passe pour plusieurs dizaines de cartes historiques', (t) => {
@@ -750,23 +853,69 @@ test('snapshot OS unique par passe pour plusieurs dizaines de cartes historiques
   assert.equal(snapshots, 1); assert.equal(sondes, 0)
 })
 
-test('course : cartes lues sous verrou avant snapshot, inscription pendant constat ne clôture pas un host vivant', (t) => {
-  const b = banc(t), r = b.reserver()
-  let premiere = true
-  const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, lanceur: () => identite(99), inventaire: () => {
-    assert.ok(existsSync(join(b.dossier, 'registre.lock')), 'snapshot acquis sous verrou')
-    if (!premiere) return [identite(40)]
-    premiere = false
-    const c = JSON.parse(readFileSync(join(b.dossier, `${r.carte.sessionId}.json`), 'utf8'))
-    Object.assign(c, { etat: 'nettoyage', controleur: identite(10), jobHost: identite(40), issueSortie: 'sortie', sortieLe: new Date(2000).toISOString(), codeAgent: 0 })
-    delete c.empreinteNonce
-    writeFileSync(join(b.dossier, `${r.carte.sessionId}.json`), JSON.stringify(c))
-    return []
+test('mesure hors verrou : réconciliation, revendication et arrêt laissent projeter Codex', (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex' })
+  let snapshots = 0
+  const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+    assert.equal(existsSync(join(b.dossier, 'registre.lock')), false, 'inventaire sans registre.lock')
+    b.sessions.projectionCodex(r.carte.sessionId, { seq: ++snapshots })
+    return [...b.vivants.values()]
   } })
-  const vu = sessions.lister()
-  assert.equal(vu.evenements.filter((e) => e.type === 'clôture').length, 0)
-  assert.equal(sessions.lire(r.carte.sessionId).etat, 'nettoyage')
-  assert.throws(() => sessions.reserver({ ...r.carte, sessionId: undefined }), /COLLISION/)
+  sessions.lister()
+  sessions.revendiquer(r.carte.sessionId, r.nonce, { controleurPid: 10, jobHostPid: 30 })
+  assert.equal(sessions.demanderArret(r.carte.sessionId, r.jeton).etat, 'arret-demande')
+  assert.equal(snapshots, 3)
+  assert.equal(sessions.lire(r.carte.sessionId).codex.seq, 3)
+})
+
+test('mesure périmée : naissance, revendication et changements de chaque identité restent indéterminés', (t) => {
+  for (const changement of ['naissance', 'revendication', 'controleur', 'jobHost', 'agentProcessus', 'creation', 'absence']) {
+    const b = banc(t), r = b.reserver()
+    if (!['naissance', 'revendication'].includes(changement)) { b.revendiquer(r); b.sessions.agentDemarre(r.carte.sessionId, identite(20)) }
+    let id = r.carte.sessionId, premiere = true
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+      if (!premiere) return [...b.vivants.values()]
+      premiere = false
+      if (changement === 'naissance') { const neuve = b.reserver({ ticket: 2462, nom: 'neuve' }); b.revendiquer(neuve); id = neuve.carte.sessionId }
+      else if (changement === 'revendication') b.revendiquer(r)
+      else b.sessions.muter(id, (c) => {
+        if (changement === 'absence') delete c.agentProcessus
+        else if (changement === 'creation') { c.jobHost = { pid: 30, creation: 'nouvelle-date' }; b.vivants.set(30, c.jobHost) }
+        else { c[changement] = identite(40); b.vivants.set(40, identite(40)) }
+      })
+      return []
+    } })
+    const vu = sessions.lister().cartes.find((c) => c.sessionId === id)
+    assert.equal(vu.etat, 'vivante', changement)
+    assert.equal(vu.etatMesure, 'indeterminee', changement)
+    assert.equal(vu.evenements.some((e) => ['échec', 'clôture'].includes(e.type)), false, changement)
+    assert.equal(sessions.lister().cartes.find((c) => c.sessionId === id).etatMesure, 'vivante', changement)
+  }
+})
+
+test('mesure périmée : arrêt refuse une identité changée et nettoyage attend une mesure fraîche', (t) => {
+  for (const nettoyage of [false, true]) {
+    const b = banc(t), r = b.reserver(); b.revendiquer(r)
+    if (nettoyage) b.sessions.sortie(r.carte.sessionId, { codeAgent: 0 })
+    let premiere = true
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 2000, inventaire: () => {
+      if (!premiere) return []
+      premiere = false
+      b.sessions.muter(r.carte.sessionId, (c) => { c.jobHost = identite(40) })
+      return []
+    } })
+    if (nettoyage) {
+      const c = sessions.lister().cartes[0]
+      assert.equal(c.etat, 'nettoyage'); assert.equal(c.etatMesure, 'indeterminee')
+      assert.equal(c.evenements.some((e) => e.type === 'clôture'), false)
+      assert.equal(sessions.lister().cartes[0].etat, 'fermee')
+    } else {
+      assert.throws(() => sessions.demanderArret(r.carte.sessionId, r.jeton), /\[transitoire · retentable\]/)
+      assert.equal(sessions.lire(r.carte.sessionId).etat, 'vivante')
+      assert.equal(existsSync(join(b.dossier, `${r.carte.sessionId}.stop`)), false)
+      assert.equal(sessions.lister().cartes[0].etat, 'echec-controle')
+    }
+  }
 })
 
 test('crash host : présence garde orpheline ; absence complète donne échec consommable sans code0 ni publication et libère slot', async (t) => {

@@ -179,7 +179,7 @@ describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement 
 });
 
 // #193 — Épaule luxée (LDB/AA) : « Tests effectués avec ce bras » subissent -10 pendant 1d10 jours.
-// `recoverDisabledLimb` scope le testMod{char:'CC'} à la main du membre (weaponHand) — PAS l'autre main.
+// `recoverDisabledLimb` scope le testMod{char:'capacite-de-combat'} à la main du membre (weaponHand) — PAS l'autre main.
 describe('combatValue/defenseValue — testMod{char} scopé par main (#193, weaponHand)', () => {
   const withPenalty = (hand: 'main' | 'off') => hero({
     activeEffects: [{ label: 'Épaule luxée (récupération)', bonus: 0, duration: { scale: 'permanent' }, testMod: -10, testModChar: 'capacite-de-combat', testModHand: hand }],
