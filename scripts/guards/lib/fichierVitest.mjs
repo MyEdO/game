@@ -21,10 +21,6 @@
 // ni banc), mais il n'est pas de la production : `estKitDeTest`, en UN exemplaire.
 //
 // La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans qu'on y revienne.
-//
-// SECOND CONCEPT, la LECTURE d'un glob de `test.include` : les racines de `npm test` vivent dans
-// `racinesDeLaSuite.mjs`, d'où `vite.config.ts` tire ses globs ; une garde qui confronte un glob au
-// prédicat de suite le DÉPLIE par `finsDuGlob`, jamais par une copie locale.
 
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 
@@ -82,19 +78,3 @@ export const EST_KIT_DE_TEST = new RegExp(`${SUFFIXE_KIT}$`);
  * @returns {boolean}
  */
 export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel);
-
-/** Le séparateur d'un glob d'`include` : ce qui précède est le DOSSIER, ce qui suit la FIN de nom. */
-export const SEPARATEUR_GLOB = '/**/*';
-
-/**
- * Les FINS DE NOM qu'un glob d'`include` accepte, l'accolade dépliée en une fin par dialecte. Aucune
- * forme de nom de suite n'est réécrite ici : c'est le glob qui la porte.
- * @param {string} motif un glob d'`include`.
- * @returns {string[]}
- */
-export function finsDuGlob(motif) {
-  const [dir, suffixe] = motif.split(SEPARATEUR_GLOB);
-  if (!dir || !suffixe) throw new Error(`finsDuGlob : glob d'include non reconnu — ${motif}`);
-  const accolade = /\{([a-z,]+)\}$/.exec(suffixe);
-  return accolade ? accolade[1].split(',').map((d) => suffixe.replace(accolade[0], d)) : [suffixe];
-}

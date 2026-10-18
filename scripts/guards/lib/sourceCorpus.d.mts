@@ -22,6 +22,10 @@ export interface ReadCorpusOptions {
  *  agrégé une base vide resterait muette derrière une base peuplée. */
 export function readCorpus(dirs: string[], opts?: ReadCorpusOptions): readonly CorpusFile[];
 
+/** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande, puis
+ *  partagée : un chemin n'a qu'un texte. Son `rel` est POSIX depuis la racine de CE dépôt (`../` hors de lui). */
+export function entreeDe(p: string): Readonly<CorpusFile>;
+
 /** Relâche tous les corpus mémoïsés : la lecture suivante retourne au disque. Le relâchement est
  *  TOTAL (toutes les clés, pas une) et l'IDENTITÉ des tableaux et des entrées est perdue — les mémos
  *  par identité des appelants repartent de zéro. Les tests de `sourceCorpus.mjs` l'appellent. */

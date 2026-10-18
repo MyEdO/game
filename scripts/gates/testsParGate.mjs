@@ -10,16 +10,15 @@
 // contient. Toute lecture des « tests d'une gate » (package.json via `scripts/test/node-tests.mjs`,
 // `ecrivainsAtteints`, doc générée) passe ICI, et nulle part ailleurs.
 //
-// La source de la LISTE est GIT, pas le disque : ce que la CI joue, c'est ce qui est SUIVI. Un test
-// laissé dans l'arbre sans être suivi (fixture d'un banc, reste d'un chantier) ne se joue donc pas
-// ici — sinon le vert local et le vert de CI cessent de parler du même ensemble.
+// La source de la LISTE est GIT, pas le disque (`listerTests`, image `TRAVAIL`) : suivis et non encore
+// indexés, jamais un fichier ignoré ni supprimé — l'arbre que la CI reçoit au commit.
 //
 // Une racine appartient à UNE gate : `couverture()` rend rouge, nominativement, tout test qu'aucune
 // racine ne prend (orphelin) ou que deux prennent (doublon) — garde `testsParGate.test.mjs`.
 import { GitIndisponible, TRAVAIL, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
 
-/** Suffixe qui fait d'un fichier un test joué par `node --test`. */
-const SUFFIXE_TEST = '.test.mjs'
+/** Le chemin POSIX relatif `rel` est-il un test `scripts/**` joué par `node --test` ? */
+export const estTestNode = (rel) => rel.startsWith('scripts/') && rel.endsWith('.test.mjs')
 
 /**
  * Racines par gate — table GELÉE : un banc qui veut une autre répartition en passe une COPIE en
@@ -93,7 +92,7 @@ export function listerTests(racine = process.cwd()) {
     if (!(e instanceof GitIndisponible)) throw e
     throw new Error(`testsParGate : git ne rend pas les fichiers sous ${racine}/scripts (${e.raison}) — la répartition des tests ne se devine pas`, { cause: e })
   }
-  return chemins.filter((f) => f.endsWith(SUFFIXE_TEST)).sort()
+  return chemins.filter(estTestNode).sort()
 }
 
 /**
