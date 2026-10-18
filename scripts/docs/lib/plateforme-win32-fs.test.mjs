@@ -1,14 +1,24 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fsSousWin32 } from './plateforme-win32-fs.mjs'
+import { analyserTexte } from '../../guards/lib/dialecte.mjs'
+import { evaluateurDuDepot, lectureDeModule } from '../../guards/lib/racinesBalayees.mjs'
 
 const callbacks = ['readFile', 'fileExists', 'directoryExists', 'getAccessibleEntries', 'realpath']
 const lecteur = 'C' + ':'
-const windows = lecteur + '\\depot\\src\\é.ts'
-const posix = '/depot/src/é.ts'
+function racineDuBanc() { return '/depot' }
+export const CONTRATS_DE_DERIVATION = [{ fonction: racineDuBanc, namespace: '/depot' }]
+const windows = lecteur + racineDuBanc().replace(/\//g, '\\') + '\\src\\é.ts'
+const posix = `${racineDuBanc()}/src/é.ts`
+
+test('racine du banc : valeurs absolues indépendantes', () => {
+  assert.equal(posix, '/depot/src/é.ts')
+  assert.equal(windows, 'C' + ':' + '\\depot\\src\\é.ts')
+  assert.equal(lecteur + posix, 'C' + ':' + '/depot/src/é.ts')
+})
 
 for (const nom of callbacks) {
   test(`${nom} : le callback original reçoit Windows avant la délégation POSIX`, () => {
@@ -111,7 +121,7 @@ test('les effets hors des cinq callbacks sont conservés sans adaptation', () =>
 })
 
 test('les séparateurs Windows sont convertis uniquement pour le disque', () => {
-  for (const [entree, attendu] of [[lecteur + '/depot/src/é.ts', posix], [windows, posix], ['src\\é.ts', 'src/é.ts'], ['/depot/src/é.ts', posix]]) {
+  for (const [entree, attendu] of [[lecteur + posix, posix], [windows, posix], ['src\\é.ts', 'src/é.ts'], [posix, posix]]) {
     const appels = []
     const adapte = fsSousWin32({ readFile: (nom) => { appels.push(nom); return undefined } }, {
       readFile: (nom) => { appels.push(nom); return '' },
@@ -119,4 +129,24 @@ test('les séparateurs Windows sont convertis uniquement pour le disque', () => 
     assert.equal(adapte.readFile(entree), '')
     assert.deepEqual(appels, [entree, attendu])
   }
+})
+
+test('racine du banc : le vrai Source conserve le contrat et toutes les lectures dérivées', () => {
+  const rel = 'scripts/docs/lib/plateforme-win32-fs.test.mjs'
+  const texte = readFileSync(new URL('./plateforme-win32-fs.test.mjs', import.meta.url), 'utf8')
+  const lecture = lectureDeModule(rel, analyserTexte({ rel, text: texte }).sourceFile)
+  assert.deepEqual(lecture.fonctions.racineDuBanc.contrat, { namespace: '/depot' })
+  const evaluateur = evaluateurDuDepot({ lecture: (f) => f === rel ? lecture : null, cible: () => null })
+  const sites = evaluateur.sitesDe(rel).filter((s) => s.appel === 'readFile')
+  const couvert = (raison) => ({ chemin: '', sous: `couverture corpus entier : ${rel}#racineDuBanc:/depot — ${raison}` })
+  const valeurs = sites.at(-1)?.valeurs
+  const attendues = [
+    couvert('namespace externe recomposé'),
+    couvert('descente dans namespace susceptible de lien'),
+    { chemin: 'src/é.ts' },
+  ]
+  assert.equal(valeurs.length, attendues.length)
+  assert.deepEqual(new Set(valeurs.map((v) => JSON.stringify(v))), new Set(attendues.map((v) => JSON.stringify(v))))
+  assert.equal(valeurs.some((v) => v.hors === true), false)
+  assert.equal(valeurs.some((v) => /^chemin absolu /.test(v.non ?? '')), false)
 })

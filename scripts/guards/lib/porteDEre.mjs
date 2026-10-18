@@ -43,7 +43,7 @@ export const cheminDuModule = (url, racine = RACINE_DU_CODE) => relative(racine,
 export const ereDuCommit = (depot, sha, tronc) => baseCommune(depot, sha, tronc)
 
 /** Empreinte d'une fermeture `[chemin, texte][]`. */
-const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...textes].sort(([a], [b]) => parUnitesDeCode(a, b)))).digest('hex')
+export const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...textes].sort(([a], [b]) => parUnitesDeCode(a, b)))).digest('hex')
 
 /**
  * La fermeture d'imports de `module` sur le disque de `racine` : `[chemin, texte][]`, chaque texte tel que
@@ -51,11 +51,14 @@ const empreinteDe = (textes) => createHash('sha256').update(JSON.stringify([...t
  * module.
  * @param {string} module @param {string} [racine] @returns {[string, string | null][]}
  */
-export function fermetureSurDisque(module, racine = RACINE_DU_CODE) {
+export function fermetureSurDisque(module, racine = RACINE_DU_CODE, { specificateurs } = {}) {
   const base = resolve(racine).split(sep).join('/')
   /** @type {Map<string, string>} */
   const lus = new Map()
-  const membres = clotureDImports([module], { racine, dynamiques: true, specificateurs: { lire: () => undefined, ecrire: (abs, texte) => lus.set(abs, texte) } })
+  const membres = clotureDImports([module], { racine, dynamiques: true, specificateurs: {
+    lire: (abs, texte) => { lus.set(abs, texte); return specificateurs?.lire(abs, texte) },
+    ecrire: (abs, texte, sites) => { lus.set(abs, texte); specificateurs?.ecrire(abs, texte, sites) },
+  } })
   return [...membres].map((rel) => [rel, lus.get(`${base}/${rel}`) ?? null])
 }
 

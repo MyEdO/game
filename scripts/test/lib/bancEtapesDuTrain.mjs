@@ -1,24 +1,16 @@
-import * as importe0_0 from '../guards/lib/dialecte.mjs'
-import * as importe0_1 from 'node:fs'
-import * as importe0_2 from 'node:module'
-import * as importe0_3 from 'node:path'
-import * as importe0_4 from 'node:url'
-import * as importe0_5 from '../guards/lib/dialecte.mjs'
-import * as importe0_6 from '../guards/lib/importGraph.mjs'
-export const bancetapesDuTraintestmjs = (() => {
-const ast = importe0_0.ast
-const existsSync = importe0_1.existsSync
-const readFileSync = importe0_1.readFileSync
-const isBuiltin = importe0_2.isBuiltin
-const resolve = importe0_3.resolve
-const fileURLToPath = importe0_4.fileURLToPath
-const typescript = importe0_5.typescript
-const clotureDImports = importe0_6.clotureDImports
-const estModule = importe0_6.estModule
-const resolveImport = importe0_6.resolveImport
-const RACINE = fileURLToPath(new URL('../..', import.meta.url))
-const ETAPES = fileURLToPath(new URL('./etapesDuTrain.mjs', import.meta.url))
+import { ast, typescript } from '../../guards/lib/dialecte.mjs'
+import { existsSync, readFileSync } from 'node:fs'
+import { isBuiltin } from 'node:module'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { clotureDImports, estModule, resolveImport } from '../../guards/lib/importGraph.mjs'
+const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
+const ETAPES = fileURLToPath(new URL('../../ops/etapesDuTrain.mjs', import.meta.url))
 const posix = (chemin) => chemin.split('\\').join('/')
+/**
+ * Les liaisons INERTES des modules intégrés, par (module, nom) ; `'*'` : le module entier, défaut et
+ * espace de noms compris. Toute autre liaison d'un module intégré est lanceuse.
+ */
 const INERTES = new Map([
   ['path', '*'],
   ['url', '*'],
@@ -30,8 +22,14 @@ const estInerte = (integre, nom) => {
   const inertes = INERTES.get(integre)
   return inertes === '*' || (inertes instanceof Set && inertes.has(nom))
 }
+/** Les accès qui ouvrent un module intégré sans import : nodejs.org/api/process.html (`getBuiltinModule`), nodejs.org/api/module.html (`createRequire`). */
 const MENTIONS = new Set(['getBuiltinModule', 'binding', '_linkedBinding', 'createRequire'])
+/** Les noms GLOBAUX du processus qui joue ce test : un global neuf de Node y entre de lui-même. */
 const GLOBAUX = new Set([...Object.getOwnPropertyNames(globalThis), 'globalThis'])
+/**
+ * Les globaux INERTES : toute autre lecture d'un global est un accès AMBIANT, lanceur. Réf. des
+ * capacités : nodejs.org/api/globals.html, tc39.es/ecma262 (§ 19, objet global).
+ */
 const AMBIANTS_INERTES = new Set([
   'undefined',          // valeur
   'Object',             // données
@@ -61,10 +59,13 @@ const AMBIANTS_INERTES = new Set([
   'Int32Array',         // mémoire du même processus
   'console',            // écrit sur les flux déjà ouverts du processus, ne lance rien
 ])
-const DISQUE = Object.freeze({ lire: (chemin) => readFileSync(chemin, 'utf8'), existe: existsSync })
+/** Le DISQUE : la source d'un module, et l'existence d'un chemin pour `resolveImport`. */
+const lireSurDisque = (chemin) => readFileSync(chemin, 'utf8')
+const DISQUE = Object.freeze({ lire: lireSurDisque, existe: existsSync })
 const arbreDe = (chemin, disque = DISQUE) => {
   return ast({ rel: chemin, text: disque.lire(chemin) })
 }
+/** Un nom qui n'est PAS une référence : propriété d'un accès membre, clé d'un littéral objet, nom de membre. */
 function estNomDePropriete(n) {
   const ts = typescript()
   const p = n.parent
@@ -76,11 +77,13 @@ const texteLitteral = (n) => {
   const ts = typescript()
   return n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) ? n.text : null
 }
+/** Les noms qu'un motif de liaison (`const { a, b: [c] } = …`) déclare. */
 function identifiantsLies(nom) {
   const ts = typescript()
   if (ts.isIdentifier(nom)) return [nom.text]
   return nom.elements.flatMap((e) => (ts.isOmittedExpression(e) ? [] : identifiantsLies(e.name)))
 }
+/** Les noms qu'une liste d'instructions déclare dans SA portée : imports, `var`/`let`/`const`, fonctions, classes. */
 function nomsDeclares(instructions) {
   const ts = typescript()
   return instructions.flatMap((st) => {
@@ -92,6 +95,7 @@ function nomsDeclares(instructions) {
       ...(!namedBindings ? [] : ts.isNamespaceImport(namedBindings) ? [namedBindings.name.text] : namedBindings.elements.map((e) => e.name.text))]
   })
 }
+/** Les noms qu'un nœud lie pour ses descendants : paramètres, nom propre d'une expression, variable de boucle ou de `catch`. */
 function nomsLiesPar(n) {
   const ts = typescript()
   if (ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n)) return nomsDeclares(n.statements)
@@ -104,6 +108,12 @@ function nomsLiesPar(n) {
     return n.initializer.declarations.flatMap((d) => identifiantsLies(d.name))
   return []
 }
+/**
+ * Un accès AMBIANT : un identifiant LU (ni nom de propriété, ni étiquette) qui porte un nom de
+ * `GLOBAUX` hors de `AMBIANTS_INERTES`, et qu'aucune portée englobante ne déclare. Un nom d'export
+ * n'est pas lu : `lectureDe` ne visite aucun `export { … }`. Un `var` hissé hors de son bloc n'est pas
+ * suivi : l'erreur est du côté lanceur.
+ */
 function estAmbiant(n) {
   const ts = typescript()
   if (!GLOBAUX.has(n.text) || AMBIANTS_INERTES.has(n.text)) return false
@@ -112,6 +122,11 @@ function estAmbiant(n) {
   for (let a = p; a; a = a.parent) if (nomsLiesPar(a).includes(n.text)) return false
   return true
 }
+/**
+ * La lecture d'un module pour le point fixe : ses liaisons importées, ses ré-exports, ses
+ * déclarations de tête (les noms qu'elles lient, ceux qu'elles référencent, et si elles sont RACINE :
+ * un accès de `MENTIONS`, un chargement dynamique ou un accès ambiant), ses exports.
+ */
 function lectureDe(chemin, disque = DISQUE) {
   const ts = typescript()
   const versModule = (spec) => (isBuiltin(spec) ? { integre: spec.replace(/^node:/, '') }
@@ -189,6 +204,13 @@ function lectureDe(chemin, disque = DISQUE) {
   }
   return lu
 }
+/**
+ * Le point fixe INTER-MODULES sur la clôture : pour chaque module, les liaisons LOCALES qui
+ * atteignent un lancement (`locaux`) et les EXPORTS qui en portent une. Une liaison d'un module
+ * intégré hors de `INERTES`, ou d'un spécificateur qui ne se résout pas dans la clôture (un paquet),
+ * est tenue pour lanceuse : sa source n'est pas lue. Une déclaration de tête où une instruction RANGE une liaison lanceuse (membre
+ * droit d'une affectation, argument d'un appel de méthode sur elle) devient lanceuse à son tour.
+ */
 function lanceursDeLaCloture(cloture, disque = DISQUE) {
   const lectures = new Map(cloture.map((f) => [posix(f), lectureDe(f, disque)]))
   const exportsLanceurs = new Map([...lectures.keys()].map((f) => [f, new Set()]))
@@ -233,5 +255,5 @@ function lanceursDeLaCloture(cloture, disque = DISQUE) {
 }
 const clotureDesEtapes = () =>
   [...clotureDImports([ETAPES], { racine: RACINE })].map((rel) => resolve(RACINE, rel)).filter(estModule)
-return { RACINE, ETAPES, posix, INERTES, estInerte, MENTIONS, GLOBAUX, AMBIANTS_INERTES, DISQUE, arbreDe, estNomDePropriete, texteLitteral, identifiantsLies, nomsDeclares, nomsLiesPar, estAmbiant, lectureDe, lanceursDeLaCloture, clotureDesEtapes }
-})()
+
+export { ETAPES, clotureDesEtapes, lanceursDeLaCloture, lectureDe, posix }

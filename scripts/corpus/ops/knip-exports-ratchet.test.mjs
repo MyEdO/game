@@ -1,45 +1,28 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-
-import { join, dirname, resolve, relative } from 'node:path'
-
+import { readFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { BASELINE, REPO } from '../../ops/knip-exports-ratchet.mjs'
+import { listerArbre } from '../../guards/lib/lister.mjs'
+import { liaisonsDe, resolveImport } from '../../guards/lib/importGraph.mjs'
 
+/** Graphe d'imports NOMMÉS de `src/**` : cible relative → { nom → Set(importateurs) }. */
 function usageParNom() {
   const src = join(REPO, 'src')
-  const files = []
-  const walk = (d) => {
-    for (const e of readdirSync(d)) {
-      const p = join(d, e)
-      if (statSync(p).isDirectory()) walk(p)
-      else if (/\.tsx?$/.test(e)) files.push(p)
-    }
-  }
-  walk(src)
+  const files = listerArbre(src, { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => join(src, rel))
   const rel = (p) => relative(REPO, p).split('\\').join('/')
-  const resoudre = (from, spec) => {
-    if (!spec.startsWith('.')) return null
-    const base = resolve(dirname(from), spec)
-    for (const c of [base, base + '.ts', base + '.tsx', join(base, 'index.ts'), join(base, 'index.tsx')])
-      if (existsSync(c) && statSync(c).isFile()) return rel(c)
-    return null
-  }
   const usage = new Map()
   for (const f of files) {
-    for (const m of readFileSync(f, 'utf8').matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
-      const cible = resoudre(f, m[2])
-      if (!cible) continue
+    for (const liaison of liaisonsDe(f, readFileSync(f, 'utf8'))) {
+      if (liaison.genre !== 'import' || liaison.forme !== 'nommee') continue
+      const absolu = resolveImport(f, liaison.spec)
+      if (!absolu) continue
+      const cible = rel(absolu)
       if (!usage.has(cible)) usage.set(cible, new Map())
       const parNom = usage.get(cible)
-      for (const brut of m[1].split(',')) {
-        const nom = brut.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, '').trim()
-        if (!nom) continue
-        if (!parNom.has(nom)) parNom.set(nom, new Set())
-        parNom.get(nom).add(rel(f))
-      }
+      const nom = liaison.importe.nom
+      if (!parNom.has(nom)) parNom.set(nom, new Set())
+      parNom.get(nom).add(rel(f))
     }
   }
   return usage

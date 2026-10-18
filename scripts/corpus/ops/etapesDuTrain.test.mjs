@@ -1,11 +1,11 @@
+// CLÔTURE des ÉTAPES du train (#1806), gardée contre une retouche de bonne foi : une étape n'atteint
+// aucun LANCEMENT de processus hors de son contexte.
+//   node --test scripts/corpus/ops/etapesDuTrain.test.mjs   (chaîné dans `npm run test:corpus`)
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
-import { bancetapesDuTraintestmjs } from '../../ops/bancEtapesDuTrain.mjs'
-const { ETAPES, posix, lectureDe, lanceursDeLaCloture, clotureDesEtapes } = bancetapesDuTraintestmjs
+import { ETAPES, posix, lectureDe, lanceursDeLaCloture, clotureDesEtapes } from '../../test/lib/bancEtapesDuTrain.mjs'
 const LANCEURS = lanceursDeLaCloture(clotureDesEtapes())
 
 test('le module des ÉTAPES n’acquiert aucune liaison qui atteint un lancement, depuis aucun module', () => {

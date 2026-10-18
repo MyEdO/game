@@ -1,19 +1,15 @@
+// Filet des citations des docs PURS (#2203) : chaque `fichier:ligne` qu'un générateur de `GENERATORS`
+// rend porte, à ±2 lignes du site SUR LE DISQUE, l'un des identifiants backtiqués de sa ligne. Le doc
+// n'est pas commité : ce qu'on juge est son RENDU (`renduDe`), jamais un fichier de `docs/`.
+//   node --test scripts/corpus/docs/citations-rendues.test.mjs  (chaîné dans `npm run test:corpus`)
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { readFileSync } from 'node:fs'
-
 import path from 'node:path'
-
 import { fileURLToPath } from 'node:url'
-
 import { GENERATORS, renduDe } from '../../docs/build-all.mjs'
-
 import { estUnDocMarkdown } from '../../docs/lib/ecriture-derives.mjs'
-
-import { banccitationsrenduestestmjs } from '../../docs/lib/bancGenerateurs.mjs'
-const { fautesDeCitations } = banccitationsrenduestestmjs
+import { fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
 
 const RACINE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 

@@ -1,49 +1,16 @@
+// Porte de version de Node (#1801), câblage des modules Node de `scripts/node-requis.test.mjs` :
+//     sa clôture STATIQUE lue ne porte ni module TypeScript ni attribut d'import (Node < 22.18, < 20.10) ;
+//     son AST pose la porte en PREMIÈRE requête de module, donc avant toute autre évaluation.
 import { ast } from '../../guards/lib/dialecte.mjs'
-
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { readFileSync } from 'node:fs'
-
 import { dirname, join, relative } from 'node:path'
-
-import { fileURLToPath } from 'node:url'
-
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../../agents/compat-core.mjs'
-
 import { typescript } from '../../guards/lib/dialecte.mjs'
-
 import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
+import { RACINE, SCRIPTS, PILOTES, MODULES_LANCES } from '../../test/lib/bancNodeRequis.mjs'
 
-import { listerDossier } from '../../guards/lib/lister.mjs'
-
-import { bancnoderequistestmjs } from '../../bancNodeRequis.mjs'
-const { modulesDuHook } = bancnoderequistestmjs
-
-const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
-
-const DOSSIER_HOOKS = join(RACINE, /core\.hooksPath (\S+)/.exec(SCRIPTS.postinstall)[1])
-
-const HOOKS_SHELL = listerDossier(DOSSIER_HOOKS).filter((f) => !f.includes('.'))
-
-const PILOTES = [...new Set([...SCRIPTS.postinstall.matchAll(/merge\.[\w-]+\.driver "node (\S+)/g)].map((m) => m[1]))]
-
-const HOOKS_AGENT = [SURFACE_CLAUDE, SURFACE_CODEX].flatMap((surface) =>
-  aplatirHooks(JSON.parse(readFileSync(join(RACINE, surface), 'utf8')), surface),
-)
-
-const MODULES_HOOKS_AGENT = [...new Set(HOOKS_AGENT.filter((h) => h.script).map((h) => `scripts/hooks/${h.script}`))]
-
-const MODULES_PAR_HOOK = new Map(HOOKS_SHELL.map((hook) => [
-  hook,
-  modulesDuHook(readFileSync(join(DOSSIER_HOOKS, hook), 'utf8')).map((m) => relative(RACINE, join(DOSSIER_HOOKS, m)).replaceAll('\\', '/')),
-]))
-
-const MODULES_DES_HOOKS_SHELL = [...new Set([...MODULES_PAR_HOOK.values()].flat())]
-
-const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...MODULES_DES_HOOKS_SHELL, ...PILOTES, ...MODULES_HOOKS_AGENT]
-
+/** Le point d'entrée commun des hooks d'outil (#2187) : il charge la porte par `import()`, après le verrou d'outillage. */
 const BARRIERE = 'scripts/hooks/barriere-outil.mjs'
 
 test('clôture STATIQUE de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent : aucun module TypeScript, aucun attribut d’import', () => {

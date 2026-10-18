@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mesurerEnRendu } from '../../docs/build-all.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-import { touchesDocSources } from '../../git-hooks/docs-rebuild.mjs'
+import { touchesDocSources } from '../../git-hooks/selection-des-derives.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 

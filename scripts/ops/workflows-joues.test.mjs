@@ -1,23 +1,36 @@
+// LES SCRIPTS DE WORKFLOW, JOUÉS AVEC DES DOUBLURES — sans un seul agent.
+//
+// Un script de `.claude/workflows/` est du JavaScript pur qu'aucun `import` ne peut charger
+// (`export const meta` d'un côté, `return` de premier niveau de l'autre : le harnais l'enveloppe
+// dans une fonction async). Ces tests l'enveloppent DE LA MÊME FAÇON et lui donnent des doublures
+// pour `agent`/`parallel`/`pipeline` : ce qui est vérifié est ce que le script REND et ce qu'il
+// ENVOIE, pas une réécriture de l'un ou de l'autre dans un test.
+//
+// `workflows.test.mjs` juge leur FORME (sans les exécuter), racine du schéma de chaque site comprise,
+// et exige que chaque script reconnu soit nommé par un banc ; ce fichier-ci juge leur COMPORTEMENT,
+// et l'enveloppe applique le même jugement de racine à l'objet SÉRIALISÉ que reçoit chaque agent
+// atteint : un banc dont un agent reçoit une racine fautive est rouge.
+//
+// Ce qui s'y joue : `table-simulee` consomme-t-elle le dossier, refuse-t-elle des ids de PJ confondus,
+// cloisonne-t-elle ses joueurs, enchaîne-t-elle les tirages, dérive-t-elle son plafond du dossier, tait-elle le plafond au MJ et aux joueurs
+// (prompt ET options de chaque appel, copiés à l'appel : schéma, type d'agent, modèle, effort),
+// contraint-elle PAR LE SCHÉMA de chaque appel toute désignation d'un ensemble fermé (PJ, déclencheur
+// en attente, beat, persona, secret, échange, sosie), tient-elle un état par déclencheur et fait-elle
+// d'une fuite de secret une anomalie ; `dossier-de-chapitre` rend-il une fiche au schéma `ficheDeDossier`
+// sur des formes PROJETÉES par le lanceur (`scripts/raw/workflow-args.mjs`), keye-t-il chaque lecture au
+// label de sa lentille, APPLIQUE-t-il les corrections de son juge de complétude, et sa fiche s'écrit-elle
+// par le lanceur pour armer la table ; tout agent de tout workflow exécute-t-il une commande simple ; un
+// verdict de SUCCÈS se rend-il jamais sur un trou.
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { join } from 'node:path'
-
 import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
-
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-
 import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
-
 import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
-
-import { bancworkflowsjouestestmjs } from './workflowsBanc.mjs'
-const { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, SANS_SOSIE, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, ENTREE_BEAT, completude, repondreAuDossier, jouerDossier, sauf } = bancworkflowsjouestestmjs
+import { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, SANS_SOSIE, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, ENTREE_BEAT, completude, repondreAuDossier, jouerDossier, sauf } from '../test/lib/bancWorkflows.mjs'
 
 const ARGS_TABLE_PERSONAS = ['rôliste', 'fouineur', 'saboteur', 'hors-cadre'];
 
@@ -25,6 +38,7 @@ const IDS_DES_PJ = FICHES_PJ.pjs.map((pj) => pj.id);
 
 const journalEnvoye = (prompt) => jsonEntre(prompt, 'JOURNAL COMPLET :\n', '\n\nDÉCLENCHEURS NON JOUÉS OU ÉCARTÉS');
 
+/** Ce qu'un objet d'un schéma admet : `additionalProperties`, les clés EXIGÉES, les clés décrites. */
 const clesDe = (objet) => [objet.additionalProperties, objet.required, Object.keys(objet.properties)];
 
 const mjQuiFinit = (numero, premier, schema) => ({ ...mjSansFin(numero, premier, schema), fin: true });
@@ -438,6 +452,7 @@ const AVEC_COMPAGNON = argsDossier(['EDOC-03']);
 
 const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
 
+/** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
 const dansUnJetable = async (corps) => {
   const dir = mkdtempSync(join(tmpdir(), 'dossiers-'));
   try {

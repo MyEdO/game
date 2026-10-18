@@ -1,20 +1,186 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
+import { createHash } from 'node:crypto'
+import { registerHooks } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
+import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
+import { profilsDuLancement } from './memoire.mjs'
+import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+
+// #2586
+function bancDeCloture(t, fichier, familles) {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-cloture-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const lancements = familles.map((famille, i) => ({
+    famille, sortie: famille ? join(racine, i + '.json') : null,
+    args: famille ? [fichier] : ['scripts/docs/build-all.mjs', '--check'],
+  }))
+  const journal = [], ecritures = [], spawns = []
+  let retenues = 0
+  const options = {
+    lancements, racine, cache: racine, node: [fichier], env: {}, mesures: {
+      lire: () => ({}), ecrire: (...args) => { ecritures.push(args) },
+    }, workers: { node: 1, vitest: 1 }, code: 0,
+    journal: (texte) => { journal.push(texte) }, retenir: () => { retenues++ },
+  }
+  const rapport = JSON.stringify({ workers: 1, durees: { [join(racine, fichier)]: 42 }, echecs: [] })
+  const lancer = (resultat) => async () => {
+    const charge = lancements[spawns.length]
+    spawns.push(charge.famille)
+    if (charge.sortie) writeFileSync(charge.sortie, rapport)
+    return resultat
+  }
+  return { options, journal, ecritures, spawns, rapport, lancer, retenues: () => retenues }
+}
+
+test('clôture non confirmée : stoppe tous les lancements et conserve les rapports sans apprendre, même code zéro ou arrêt absent', async (t) => {
+  for (const famille of ['node', 'vitest', null]) {
+    for (const arret of [{ etat: 'indetermine' }, undefined]) {
+      for (const code of [0, 1]) {
+        const b = bancDeCloture(t, 'scripts/a.test.mjs', [famille, 'vitest', 'node', null])
+        for (const charge of b.options.lancements.slice(1)) if (charge.sortie) writeFileSync(charge.sortie, 'rapport suivant intact')
+        const lancer = b.lancer({ code, arret })
+        const rendu = await executerLancements(b.options, { lancer, lancerNode: lancer })
+        assert.deepEqual(b.spawns, [famille])
+        assert.equal(b.retenues(), 1)
+        assert.notEqual(rendu.code, 0)
+        assert.deepEqual(b.ecritures, [])
+        assert.deepEqual(rendu.reels, {})
+        assert.equal(rendu.joues.length, 1)
+        assert.notEqual(rendu.joues[0].code, 0)
+        assert.match(b.journal[0], /clôture non confirmée/)
+        assert.match(ligneDeRelance({ code: rendu.code, lancements: rendu.joues, lint: { code: 0, defauts: [] } }), /^rouge/)
+        if (b.options.lancements[0].sortie) assert.equal(readFileSync(b.options.lancements[0].sortie, 'utf8'), b.rapport)
+        for (const charge of b.options.lancements.slice(1)) if (charge.sortie) assert.equal(readFileSync(charge.sortie, 'utf8'), 'rapport suivant intact')
+      }
+    }
+  }
+})
+
+test('clôture morte : autorise les familles suivantes et les docs, apprend puis retire leurs rapports', async (t) => {
+  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['vitest', 'node', null])
+  const lancer = b.lancer({ code: 0, arret: { etat: 'mort' } })
+  const rendu = await executerLancements(b.options, { lancer, lancerNode: lancer })
+  assert.deepEqual(b.spawns, ['vitest', 'node', null])
+  assert.equal(b.retenues(), 0)
+  assert.equal(rendu.code, 0)
+  assert.equal(rendu.joues.length, 3)
+  assert.deepEqual(Object.keys(rendu.reels), ['vitest', 'node'])
+  assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 2)
+  for (const charge of b.options.lancements) if (charge.sortie) assert.equal(existsSync(charge.sortie), false)
+})
+
+test('refus d’admission : un lanceur qui rend `CODE_DIFFERE` est nommé avec sa raison, jamais compté rouge sans fichier', async (t) => {
+  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['vitest', 'node'])
+  const ligne = '[memoire] MEMOIRE_INSUFFISANTE : minimum 5408 Mo, disponible 4656 Mo'
+  const lancer = async () => { b.spawns.push('vitest'); return { code: CODE_DIFFERE, sortie: '[verrou] attente\n' + ligne + '\n', arret: { etat: 'mort' } } }
+  const lancerNode = async () => { b.spawns.push('node'); return { code: CODE_DIFFERE, message: ligne.replace('5408', '3328'), arret: { etat: 'mort' } } }
+  const rendu = await executerLancements(b.options, { lancer, lancerNode })
+  assert.deepEqual(b.spawns, ['vitest', 'node'])
+  assert.equal(rendu.code, CODE_DIFFERE)
+  assert.deepEqual(rendu.joues.map((j) => j.refus), [ligne, ligne.replace('5408', '3328')])
+  const relance = ligneDeRelance({ code: rendu.code, lancements: rendu.joues, lint: { code: 0, defauts: [] } })
+  assert.equal(relance, `rouge — refus d'admission, aucun test joué : vitest : ${ligne} ; node : ${ligne.replace('5408', '3328')}`)
+})
+
+test('principal : annonce le propriétaire du verrou pendant son attente', async (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-attente-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const chemin = join(racine, 'verrou')
+  const tenant = { pid: process.pid, cwd: racine, commande: 'charge propriétaire', date: '2026-10-16T10:51:24Z' }
+  writeFileSync(chemin, JSON.stringify(tenant))
+  const journal = []
+  t.mock.method(console, 'error', (texte) => { journal.push(texte) })
+  let instant = 0
+  const code = await principal([], racine, { env: {}, verrou: { chemin, libelle: 'banc', horloge: () => instant++, attente: { echeanceMs: 3, pasMs: 1 } } })
+  assert.equal(code, CODE_DIFFERE)
+  assert.ok(journal.some((texte) => texte.startsWith('[verrou] PID ' + tenant.pid + ' · ') && texte.includes(tenant.commande) && texte.includes(tenant.cwd) && texte.includes(tenant.date)))
+})
+
+test('dérivation échouée : diagnostic depuis la sortie bornée sans relire le journal', async () => {
+  const erreur = Object.assign(new Error('capture supérieure à 5 octets'), { code: 'ENOBUFS' })
+  let traces
+  await assert.rejects(derivationBornee({ racine: tmpdir() }, {
+    limiteMs: 123,
+    lancer: async ({ argv }) => {
+      traces = dirname(argv.at(-1))
+      writeFileSync(argv.at(-1), JSON.stringify({ stade: 'lectures', module: 'module-du-banc' }))
+      return { code: 1, sortie: 'préfixe capturé', error: erreur, arret: { etat: 'indetermine' } }
+    },
+  }), (e) => {
+    assert.equal(e.cause, erreur)
+    assert.match(e.message, /stade lectures, module module-du-banc, durée \d+ ms, limite 123 ms, code 1, arrêt indetermine/)
+    assert.match(e.message, /ENOBUFS : capture supérieure à 5 octets\npréfixe capturé$/)
+    return true
+  })
+  assert.ok(existsSync(traces), 'arrêt indéterminé conserve les traces')
+  rmSync(traces, { recursive: true, force: true })
+})
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
+
+
+// #2586
+ test('slots gelés owner : N+1, lecture directe et prélue, mémos JSON froids/chauds et blob changé', async () => {
+  const urls = ['prelue', 'directe'].map((mode) => new URL('./perimetreDerivation.mjs?slots-owner-' + mode, import.meta.url).href)
+  const hook = registerHooks({ load(specifier, contexte, suivant) {
+    const rendu = suivant(specifier, contexte)
+    if (!urls.includes(specifier)) return rendu
+    let texte = Buffer.from(rendu.source).toString('utf8')
+    const constructeur = 'APPEL_DE_LECTURE, evaluateurDuDepot,'
+    assert.equal(texte.split(constructeur).length, 2)
+    texte = texte.replace(constructeur, 'APPEL_DE_LECTURE, evaluateurDuDepot as construireEvaluateur,')
+    texte += '\nfunction evaluateurDuDepot(options) { if (options.clesStructurelles !== true) throw new Error("MODE_STRUCTUREL_OWNER_ABSENT"); return construireEvaluateur(options); }\n'
+    texte = texte.replace('  const lectures = new Map()', '  const lectures = new Map()\n  lectures.set = (f, lu) => { if (lu) verifierGel(lu); return Map.prototype.set.call(lectures, f, lu) }')
+    if (specifier === urls[1]) texte = texte.replace('    prelire(new Set(', '    if (false) prelire(new Set(')
+    texte += '\nexport const observationsSlots = [];\nfunction verifierGel(lu) { const pile = [lu]; const vus = new Set(); while (pile.length) { const o = pile.pop(); if (!o || typeof o !== "object" || vus.has(o)) continue; vus.add(o); if (!Object.isFrozen(o)) throw new Error("lecture owner non gelée"); pile.push(...Object.values(o)); } observationsSlots.push(lu); }\n'
+    return { ...rendu, source: texte }
+  } })
+  try {
+    for (const url of urls) {
+      const { deriverPerimetre, observationsSlots } = await import(url)
+      const modules = new Map([
+        ['scripts/nouveau.test.mjs', "import { inédit } from './nouveau.mjs'; inédit(true)"],
+        ['scripts/nouveau.mjs', "import { readFileSync } from 'node:fs'; export function inédit(flag) { if (flag) readFileSync('src/a.json') }"],
+      ])
+      const json = new Map()
+      let hits = 0
+      const memos = {
+        lire(nature, cle) { if (nature === 'evaluations') return undefined; const bytes = json.get(nature + ':' + cle); if (bytes === undefined) return undefined; if (nature === 'lectures') hits++; return JSON.parse(bytes) },
+        ecrire(nature, cle, lu) { json.set(nature + ':' + cle, JSON.stringify(lu)) },
+      }
+      const entree = { racine: new URL('../..', import.meta.url).pathname.replace(/^\/(?=[A-Z]:)/, ''), touches: ['src/a.json'], post: [...modules.keys(), 'src/a.json'], avant: [], lire: (rels) => new Map(rels.map((f) => [f, modules.get(f) ?? null])), memos }
+      const froid = deriverPerimetre(entree)
+      const nombre = observationsSlots.length
+      assert.ok(nombre > 0)
+      const chaud = deriverPerimetre(entree)
+      assert.deepEqual(chaud, froid)
+      assert.ok(hits > 0)
+      assert.ok(observationsSlots.length > nombre)
+      assert.ok(froid.retenus.has('scripts/nouveau.test.mjs'))
+      modules.set('scripts/nouveau.mjs', modules.get('scripts/nouveau.mjs').replace('src/a.json', 'src/b.json'))
+      const change = deriverPerimetre(entree)
+      assert.equal(change.retenus.has('scripts/nouveau.test.mjs'), false)
+      assert.notDeepEqual(change, froid)
+    }
+  } finally { hook.deregister() }
+})
 
 test('#2586 périmètre : corpus touché ou importé retenu, gate CI explicite, partition sans doublon', () => {
   const corpus = ['scripts/corpus/ops/un.test.mjs', 'scripts/corpus/guards/deux.test.mjs']
@@ -67,60 +233,99 @@ const lienDe = (perimetre, test) => {
   return lien
 }
 
-test('import direct : le test qui importe le fichier touché est retenu, distance 1', (t) => {
+// #2586
+test('garde réelle des instruments : ajout et modification sous scripts, sélection avant budget', async (t) => {
+  const garde = 'scripts/guards/lib/gitHorsHote.test.mjs'
+  const fermeture = Object.fromEntries(fermetureSurDisque(garde).filter(([, texte]) => texte !== null))
+  const texte = `import { execFileSync } from 'node:child_process'\n${'execFileSync'}('git', ['status'])\n`
+  for (const modification of [false, true]) {
+    const probe = 'scripts/selection-probe.test.mjs'
+    const racine = forger(t, { ...fermeture, ...(modification ? { [probe]: 'export const avant = true\n' } : {}) }, { [probe]: texte })
+    assert.deepEqual(sitesDuDepot(racine), [{ chemin: probe, ligne: 2, forme: 'lanceur', extrait: texte.trim().split('\n')[1] }])
+    const perimetre = await deriver(racine)
+    assert.deepEqual(perimetre.toolchain, [])
+    assert.equal(perimetre.retenus.get(probe)?.rang, 0)
+    const lien = lienDe(perimetre, garde)
+    assert.deepEqual([lien.nature, lien.touche, lien.rang], ['racine balayée', probe, 1], JSON.stringify(lien))
+    assert.ok(['.', 'scripts'].includes(lien.racine), JSON.stringify(lien))
+    const site = lien.site.match(/^(.+):(\d+) (.+)$/)
+    assert.ok(site, lien.site)
+    const source = fermeture[site[1]]
+    assert.equal(typeof source, 'string', lien.site)
+    assert.ok(source.split('\n')[Number(site[2]) - 1].includes(site[3]), lien.site)
+    const estimations = new Map([...perimetre.retenus.keys()].map((f) => [f, { ms: 1000 }]))
+    for (const [budget, local] of [[2, true], [0.5, false]]) {
+      const plan = planDExecution(perimetre.retenus, { budget, estimations, workers: { node: 1 }, surcouts: { node: 0 } })
+      assert.equal(plan.lances.includes(garde), local)
+      assert.equal(plan.aLaCI.includes(garde), !local)
+      assert.ok(plan.lances.includes(probe))
+      const union = [...plan.lances, ...plan.aLaCI]
+      assert.deepEqual([...union].sort(), [...perimetre.retenus.keys()].sort())
+      assert.equal(new Set(union).size, perimetre.retenus.size)
+    }
+  }
+  const probe = 'src/selection-probe.test.mjs'
+  const racine = forger(t, fermeture, { [probe]: texte })
+  assert.deepEqual(sitesDuDepot(racine), [])
+  const perimetre = await deriver(racine)
+  assert.deepEqual(perimetre.toolchain, [])
+  assert.equal(perimetre.retenus.has('scripts/temoin.test.mjs'), false)
+})
+
+test('import direct : le test qui importe le fichier touché est retenu, distance 1', async (t) => {
   const racine = forger(t, { 'scripts/a.test.mjs': "import './lib.mjs'\n", 'scripts/lib.mjs': 'export const a = 1\n' },
     { 'scripts/lib.mjs': 'export const a = 2\n' })
-  const lien = lienDe(deriver(racine), 'scripts/a.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/a.test.mjs')
   assert.deepEqual([lien.nature, lien.distance, lien.chaine], ['import', 1, ['scripts/a.test.mjs', 'scripts/lib.mjs']])
 })
 
-test('import transitif : la chaîne la plus courte et sa distance', (t) => {
+test('import transitif : la chaîne la plus courte et sa distance', async (t) => {
   const racine = forger(t, {
     'scripts/b.test.mjs': "import './mid.mjs'\n",
     'scripts/mid.mjs': "export { f } from './feuille.mjs'\n",
     'scripts/feuille.mjs': 'export const f = 1\n',
   }, { 'scripts/feuille.mjs': 'export const f = 2\n' })
-  const lien = lienDe(deriver(racine), 'scripts/b.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/b.test.mjs')
   assert.deepEqual([lien.nature, lien.distance, lien.chaine], ['import', 2, ['scripts/b.test.mjs', 'scripts/mid.mjs', 'scripts/feuille.mjs']])
 })
 
-test('importeur pendu vers un fichier SUPPRIMÉ : la résolution contre la base garde l’arc', (t) => {
+test('importeur pendu vers un fichier SUPPRIMÉ : la résolution contre la base garde l’arc', async (t) => {
   const racine = forger(t, {
     'scripts/c.test.mjs': "import './importeur.mjs'\n",
     'scripts/importeur.mjs': "import './parti.mjs'\n",
     'scripts/parti.mjs': 'export const p = 1\n',
   }, { 'scripts/parti.mjs': null })
-  const lien = lienDe(deriver(racine), 'scripts/c.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/c.test.mjs')
   assert.deepEqual([lien.nature, lien.distance, lien.touche], ['import', 2, 'scripts/parti.mjs'])
 })
 
-test('fichier AJOUTÉ, non suivi, sous une racine balayée littérale', (t) => {
+test('fichier AJOUTÉ, non suivi, sous une racine balayée littérale', async (t) => {
   const racine = forger(t, { 'scripts/d.test.mjs': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n", 'donnees/un.json': '{}' },
     { 'donnees/deux.json': '{}' }, { commiter: false })
-  const lien = lienDe(deriver(racine, { base: 'HEAD' }), 'scripts/d.test.mjs')
+  const lien = lienDe((await deriver(racine, { base: 'HEAD' })), 'scripts/d.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.site, lien.touche], ['racine balayée', 'donnees', 'scripts/d.test.mjs:2 readdirSync', 'donnees/deux.json'])
 })
 
-test('racine portée par une constante IMPORTÉE', (t) => {
+test('racine portée par une constante IMPORTÉE', async (t) => {
   const racine = forger(t, {
     'scripts/e.test.mjs': "import { RACINES_SCAN } from './scan.mjs'\nimport { readdirSync } from 'node:fs'\nreaddirSync(RACINES_SCAN)\n",
     'scripts/scan.mjs': "export const RACINES_SCAN = ['corpus']\n",
     'corpus/x.ts': 'export const x = 1\n',
   }, { 'corpus/x.ts': 'export const x = 2\n' })
-  const lien = lienDe(deriver(racine), 'scripts/e.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/e.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'corpus', 'scripts/e.test.mjs:3 readdirSync'])
 })
 
-test('import.meta.glob à motif littéral : arc vers chaque fichier visé', (t) => {
+test('import.meta.glob à motif littéral : arc vers chaque fichier visé', async (t) => {
   const racine = forger(t, {
     'src/f.test.ts': "const jeux = import.meta.glob('./jeux/*.json', { eager: true })\nexport default jeux\n",
     'src/jeux/a.json': '{}',
   }, { 'src/jeux/a.json': '{"a":1}' })
-  const lien = lienDe(deriver(racine), 'src/f.test.ts')
+  const lien = lienDe((await deriver(racine)), 'src/f.test.ts')
   assert.deepEqual([lien.nature, lien.distance, lien.chaine], ['import', 1, ['src/f.test.ts', 'src/jeux/a.json']])
 })
 
-test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance propagée par eux', (t) => {
+test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance propagée par eux', async (t) => {
   const racine = forger(t, {
     'vite.config.ts': "import { fileURLToPath } from 'node:url'\nexport default { test: { setupFiles: [fileURLToPath(new URL('./src/setup.ts', import.meta.url))] } }\n",
     'src/setup.ts': "import './store'\n",
@@ -128,7 +333,7 @@ test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance 
     'src/g.test.ts': 'export const g = 1\n',
     'src/h.test.ts': "import './store'\n",
   }, { 'src/store.ts': 'export const s = 2\n' })
-  const perimetre = deriver(racine)
+  const perimetre = (await deriver(racine))
   const g = lienDe(perimetre, 'src/g.test.ts')
   assert.deepEqual([g.nature, g.touche], ['setup', 'src/store.ts'])
   const h = lienDe(perimetre, 'src/h.test.ts')
@@ -138,18 +343,30 @@ test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance 
   assert.deepEqual(paliersDe(perimetre.retenus), { 'touché': 0, 'racine balayée': 0, 'import d=1': 1, 'import d=2': 0, 'import d=3': 0, 'import d≥4': 0, 'setup seul': 1, 'toolchain seule': 0 })
 })
 
-test('racine balayée dont le site n’est atteint que par les setupFiles : rang `setup`', (t) => {
+// #2586
+test('setupFiles : une lambda locale de configuration conserve son lexique autonome', async (t) => {
+  const racine = forger(t, {
+    'vite.config.ts': "const holder={rappel:(nom='src/setup.ts')=>nom};const rappel=holder.rappel;export default {test:{setupFiles:[rappel()]}}",
+    'src/setup.ts': "import './store'",
+    'src/store.ts': 'export const s = 1',
+    'src/g.test.ts': 'export const g = 1',
+  }, { 'src/store.ts': 'export const s = 2' })
+  const lien = lienDe((await deriver(racine)), 'src/g.test.ts')
+  assert.deepEqual([lien.nature, lien.touche], ['setup', 'src/store.ts'])
+})
+
+test('racine balayée dont le site n’est atteint que par les setupFiles : rang `setup`', async (t) => {
   const racine = forger(t, {
     'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n",
     'donnees/x.json': '{}',
     'src/g.test.ts': 'export const g = 1\n',
   }, { 'donnees/x.json': '{"x":1}' })
-  const g = lienDe(deriver(racine), 'src/g.test.ts')
+  const g = lienDe((await deriver(racine)), 'src/g.test.ts')
   assert.deepEqual([g.nature, g.racine, g.site, g.touche], ['setup', 'donnees', 'src/setup.ts:2 readdirSync', 'donnees/x.json'])
 })
 
-test('relais de la clôture des setupFiles appelé par un test : la racine s’attribue au site où elle devient concrète, rang racine balayée', (t) => {
+test('relais de la clôture des setupFiles appelé par un test : la racine s’attribue au site où elle devient concrète, rang racine balayée', async (t) => {
   const racine = forger(t, {
     'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
     'src/setup.ts': "import '../scripts/lib/corpus.mjs'\n",
@@ -159,13 +376,13 @@ test('relais de la clôture des setupFiles appelé par un test : la racine s’a
     'src/g.test.ts': 'export const g = 1\n',
     'donnees/x.json': '{}',
   }, { 'donnees/x.json': '{"x":1}' })
-  const perimetre = deriver(racine)
+  const perimetre = (await deriver(racine))
   const n = lienDe(perimetre, 'src/n.test.ts')
   assert.deepEqual([n.nature, n.rang, n.racine, n.site], ['racine balayée', 1, 'donnees', 'src/n.test.ts:2 lireCorpus'])
   assert.equal(perimetre.retenus.has('src/g.test.ts'), false)
 })
 
-test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide l’évaluation de son appelant, mémos internes compris', (t) => {
+test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide l’évaluation de son appelant, mémos internes compris', async (t) => {
   const depot = (corps) => forger(t, {
     'scripts/lib/r.mjs': "import { readdirSync } from 'node:fs'\nimport { base } from './q.mjs'\nexport function lister(d) { return readdirSync(base(d)) }\n",
     'scripts/lib/q.mjs': `import { join } from 'node:path'\nexport const base = (d) => ${corps}\n`,
@@ -176,17 +393,17 @@ test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide
   const memos = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
   t.after(() => rmSync(memos, { recursive: true, force: true }))
   const avecMemos = (racine) => perimetreDuDepot(racine, { base: 'HEAD~1', tete: 'HEAD' }, { dossierDesMemos: memos })
-  const premier = avecMemos(depot('d')).retenus
+  const premier = (await avecMemos(depot('d'))).retenus
   assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => premier.has(f)), [false, false])
-  const { retenus } = avecMemos(depot("join('autre', d)"))
+  const { retenus } = (await avecMemos(depot("join('autre', d)")))
   assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => [retenus.get(f)?.nature, retenus.get(f)?.racine]),
     [['racine balayée', 'autre/donnees'], ['racine balayée', 'autre/donnees']])
 })
 
-test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entière', (t) => {
+test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entière', async (t) => {
   const racine = forger(t, { 'tsconfig.json': '{}', 'server/package.json': '{}', 'src/h.test.ts': 'export const h = 1\n' },
     { 'tsconfig.json': '{ "compilerOptions": {} }', 'server/package.json': '{ "private": true }' })
-  const perimetre = deriver(racine)
+  const perimetre = (await deriver(racine))
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
   assert.deepEqual([...perimetre.retenus.keys()].sort(), ['scripts/temoin.test.mjs', 'src/h.test.ts'])
   assert.equal(perimetre.retenus.get('src/h.test.ts').nature, 'toolchain')
@@ -252,43 +469,43 @@ test('lancement vitest : `run.mjs` reçoit `--regime=<r>`, que son lanceur lit e
   }
 })
 
-test('renommage : le chemin QUITTÉ reste touché sous la racine qui le balayait', (t) => {
+test('renommage : le chemin QUITTÉ reste touché sous la racine qui le balayait', async (t) => {
   const racine = forger(t, { 'scripts/i.test.mjs': "import { readdirSync } from 'node:fs'\nreaddirSync('anciens')\n", 'anciens/a.md': 'a\n', 'anciens/b.md': 'b\n' },
     { 'nouveaux/a.md': { de: 'anciens/a.md' } })
-  const lien = lienDe(deriver(racine), 'scripts/i.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/i.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.touche], ['racine balayée', 'anciens', 'anciens/a.md'])
 })
 
-test('readFileSync d’un fichier EXACT : retenu quand ce fichier change, pas quand son voisin change', (t) => {
+test('readFileSync d’un fichier EXACT : retenu quand ce fichier change, pas quand son voisin change', async (t) => {
   const base = { 'scripts/j.test.mjs': "import { readFileSync } from 'node:fs'\nreadFileSync('donnees/lu.json', 'utf8')\n", 'donnees/lu.json': '{}', 'donnees/voisin.json': '{}' }
-  const lien = lienDe(deriver(forger(t, base, { 'donnees/lu.json': '{"a":1}' })), 'scripts/j.test.mjs')
+  const lien = lienDe((await deriver(forger(t, base, { 'donnees/lu.json': '{"a":1}' }))), 'scripts/j.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.touche], ['racine balayée', 'donnees/lu.json', 'donnees/lu.json'])
-  assert.equal(deriver(forger(t, base, { 'donnees/voisin.json': '{"a":1}' })).retenus.has('scripts/j.test.mjs'), false)
+  assert.equal((await deriver(forger(t, base, { 'donnees/voisin.json': '{"a":1}' }))).retenus.has('scripts/j.test.mjs'), false)
 })
 
-test('existsSync d’un fichier qui APPARAÎT : la sonde d’absence est une lecture', (t) => {
+test('existsSync d’un fichier qui APPARAÎT : la sonde d’absence est une lecture', async (t) => {
   const racine = forger(t, { 'scripts/k.test.mjs': "import { existsSync } from 'node:fs'\nexistsSync('donnees/drapeau.json')\n" },
     { 'donnees/drapeau.json': '{}' })
-  const lien = lienDe(deriver(racine), 'scripts/k.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/k.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'donnees/drapeau.json', 'scripts/k.test.mjs:2 existsSync'])
 })
 
-test('RELAIS inter-module : le site d’appel, ses arguments liés, déclare la racine', (t) => {
+test('RELAIS inter-module : le site d’appel, ses arguments liés, déclare la racine', async (t) => {
   const racine = forger(t, {
     'scripts/lib/lister.mjs': "import { readdirSync } from 'node:fs'\nexport function listerTests(racine = process.cwd()) {\n  return readdirSync(racine)\n}\n",
     'scripts/l.test.mjs': "import { listerTests } from './lib/lister.mjs'\nlisterTests('donnees')\n",
     'donnees/a.json': '{}',
   }, { 'donnees/a.json': '{"a":1}' })
-  const lien = lienDe(deriver(racine), 'scripts/l.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/l.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.site, lien.specificite], ['racine balayée', 'donnees', 'scripts/l.test.mjs:2 listerTests', 1])
 })
 
-test('deux racines balayées couvrent le fichier touché : la plus SPÉCIFIQUE est retenue', (t) => {
+test('deux racines balayées couvrent le fichier touché : la plus SPÉCIFIQUE est retenue', async (t) => {
   const racine = forger(t, {
     'scripts/s.test.mjs': "import { readdirSync } from 'node:fs'\nreaddirSync('.')\nreaddirSync('donnees')\n",
     'donnees/a.json': '{}',
   }, { 'donnees/a.json': '{"a":1}' })
-  const lien = lienDe(deriver(racine), 'scripts/s.test.mjs')
+  const lien = lienDe((await deriver(racine)), 'scripts/s.test.mjs')
   assert.deepEqual([lien.racine, lien.site, lien.specificite], ['donnees', 'scripts/s.test.mjs:3 readdirSync', 1])
 })
 
@@ -364,8 +581,84 @@ test('mur du plan : un surcoût par LANCEMENT — des chemins assez longs pour d
   assert.equal(paquetsDeLancement(tests).length, 2)
   const estimations = new Map(tests.map((t) => [t, { ms: 1000 }]))
   const plan = planDExecution(new Map(tests.map((t) => [t, { rang: 0 }])), { estimations, workers: { vitest: 160 }, surcouts: { vitest: 500 } })
-  assert.equal(plan.murParFamille.vitest, 1000 + 2 * 500)
+  assert.equal(plan.murParFamille.vitest, 2 * 1000 + 2 * 500)
   assert.equal(paquetsDeLancement(tests.slice(0, 2)).length, 1)
+})
+
+test('paquets utiles : budget séquentiel, inconnues et longues isolées, union exacte puis plafond argv', () => {
+  const tests = ['f', 'd', 'b', 'e', 'a', 'c']
+  const estimations = new Map([['a', { ms: 2 }], ['b', { ms: 3 }], ['c', { ms: 0 }], ['e', { ms: 8 }], ['f', { ms: 2 }]])
+  const paquets = paquetsDeLancement(tests, { estimations, budgetMs: 5 })
+  assert.deepEqual(paquets, [['a', 'b'], ['c'], ['d'], ['e'], ['f']])
+  assert.deepEqual(paquets.flat(), [...tests].sort())
+  assert.equal(new Set(paquets.flat()).size, tests.length)
+  assert.deepEqual(paquetsDeLancement([...tests, 'a'], { estimations, budgetMs: 5 }), paquets)
+  assert.deepEqual(paquetsDeLancement(tests, { estimations, budgetMs: 0 }), [...tests].sort().map((t) => [t]))
+  const longs = Array.from({ length: 160 }, (_, i) => `${String(i).padStart(3, '0')}${'x'.repeat(200)}`)
+  const groupes = paquetsDeLancement(longs, { estimations: new Map(longs.map((t) => [t, { ms: 1 }])), budgetMs: 100 })
+  assert.deepEqual(groupes.map((p) => p.length), [100, 60])
+  const argv = paquetsDeLancement(longs, { estimations: new Map(longs.map((t) => [t, { ms: 1 }])), budgetMs: 160 })
+  assert.equal(argv.length, 2)
+  assert.deepEqual(argv.flat(), longs)
+  assert.equal(new Set(argv.map((_, i) => rapportDuLancement('/r', 42)('node', i))).size, argv.length)
+})
+
+test('plan Node : acquisition simulée sur un worker, mêmes paquets séquentiels et plafond trente minutes', () => {
+  const tests = ['scripts/a.test.mjs', 'scripts/b.test.mjs', 'scripts/c.test.mjs']
+  const retenus = new Map(tests.map((t) => [t, { rang: 0 }]))
+  const estimations = new Map(tests.map((t) => [t, { ms: 1000 }]))
+  const plan = planDExecution(retenus, { estimations, budget: 2, workers: { node: 8 }, workersNode: () => 1, surcouts: { node: 10 } })
+  assert.deepEqual(plan.paquets.node, [tests.slice(0, 2), tests.slice(2)])
+  assert.deepEqual(plan.concurrencesNode, [1, 1])
+  assert.equal(plan.murParFamille.node, 3020)
+  const grands = new Map(tests.map((t) => [t, { ms: 1_000_000 }]))
+  assert.deepEqual(planDExecution(retenus, { estimations: grands, budget: 9000 }).paquets.node, tests.map((t) => [t]))
+})
+
+test('plan Node : profils de la configuration reporters effective, source modifiée et réacquisition', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-profils-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const tests = ['scripts/a.test.mjs', 'scripts/b.test.mjs']
+  mkdirSync(join(racine, 'scripts'))
+  for (const fichier of tests) writeFileSync(join(racine, fichier), 'export {}')
+  const memos = { 'durees.json': tableTotale(tests, () => 1000) }
+  const mesures = { lire: (nom, valider = (x) => x) => valider(memos[nom] ?? {}) }
+  const configurationNode = { racine, env: {} }
+  const p = { mesures, lire: () => new Map(), budget: 180, workers: { node: 8 }, configurationNode }
+  const retenus = new Map(tests.map((f) => [f, { rang: 0 }]))
+  const mur = () => planDuPerimetre(retenus, p).plan.murParFamille.node
+  assert.equal(mur(), 2000 + REPLI_SURCOUT_MS.node)
+  const argv = ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
+    `--test-reporter=${new URL('./dureesNodeTest.mjs', import.meta.url).href}`, '--test-reporter-destination=ailleurs.json']
+  const profils = profilsDuLancement({ racine, fichiers: tests, argv, mesures, env: {} })
+  memos['memoire-node.json'] = Object.fromEntries(profils.entrees.map((e) => [e.cle, {
+    fichier: e.fichier, blob: e.blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'RSS',
+  }]))
+  assert.equal(mur(), 1000 + REPLI_SURCOUT_MS.node)
+  configurationNode.forcer = true
+  assert.equal(mur(), 2000 + REPLI_SURCOUT_MS.node)
+  configurationNode.forcer = false
+  writeFileSync(join(racine, tests[0]), 'export const modifie = 1')
+  assert.equal(mur(), 2000 + REPLI_SURCOUT_MS.node)
+})
+
+test('paquet achevé : apprentissage visible avant le suivant interrompu, rouge agrégé sans rejeu', async (t) => {
+  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['node', 'node', 'node'])
+  let appels = 0
+  b.options.workers.node = 8
+  const rendu = await executerLancements(b.options, { lancerNode: async () => {
+    const lancement = b.options.lancements[appels++]
+    writeFileSync(lancement.sortie, b.rapport)
+    if (appels === 1) return { code: 1, concurrence: 1, arret: { etat: 'mort' } }
+    assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 1)
+    assert.ok(b.journal.some((s) => s.includes('servis 1, plan 8')))
+    return { code: 0, concurrence: 1, annulee: true, arret: { etat: 'mort' } }
+  } })
+  assert.equal(appels, 2)
+  assert.equal(rendu.code, 1)
+  assert.equal(rendu.joues.length, 2)
+  assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 1)
+  assert.equal(existsSync(b.options.lancements[1].sortie), true)
 })
 
 /** Le mur du plan de `durees` (`{ [test]: ms }`), tous au rang touché, sur `workers`. */
@@ -380,8 +673,8 @@ test('mur simulé (sonde 1 #2474) : node démarre ses fichiers dans l’ordre LE
 /** 30 fichiers de 10 s, puis le plus long (100 s) en FIN de lexique, sur 15 workers (sonde 3 #2474, durées synthétiques). */
 const LONG_EN_FIN = { ...Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`scripts/a${String(i).padStart(2, '0')}.test.mjs`, 10_000])), 'scripts/z.test.mjs': 100_000 }
 
-test('mur simulé (sonde 3 #2474) : le plus long en fin de lexique démarre après les précédents — Σ(précédents)/W + max, pas max', () => {
-  assert.equal(murDuPlan(LONG_EN_FIN, { node: 15 }), 30 * 10_000 / 15 + 100_000)
+test('mur simulé : trois parents Node sous budget de 180 s, les dix-huit puis douze courts puis le long', () => {
+  assert.equal(murDuPlan(LONG_EN_FIN, { node: 15 }), 20_000 + 10_000 + 100_000)
 })
 
 test('surcoutObserve : mur réel − mur simulé sur les workers effectifs, plancher 0 ; le démarrage tardif du plus long n’est pas du surcoût', () => {
@@ -486,16 +779,41 @@ test('signalDe : symbole touché importé par nom, module sinon ; espace de noms
   assert.deepEqual(signalDe({ distance: 2 }, [{ forme: 'espace', importe: { nom: '*' } }], touches), { signal: 'reste', noms: [] })
 })
 
-test('signal dérivé sur un dépôt : l’import par nom d’un export modifié est un SYMBOLE', (t) => {
+test('signal dérivé sur un dépôt : l’import par nom d’un export modifié est un SYMBOLE', async (t) => {
   const racine = forger(t, {
     'scripts/lib.mjs': 'export const a = 1\nexport const b = 1\n',
     'scripts/s.test.mjs': "import { a } from './lib.mjs'\n",
     'scripts/m.test.mjs': "import { b } from './lib.mjs'\n",
     'scripts/e.test.mjs': "import * as lib from './lib.mjs'\nexport default lib\n",
   }, { 'scripts/lib.mjs': 'export const a = 2\nexport const b = 1\n' })
-  const { signaux } = deriver(racine)
+  const { signaux } = (await deriver(racine))
   assert.deepEqual(['scripts/s.test.mjs', 'scripts/m.test.mjs', 'scripts/e.test.mjs'].map((f) => signaux.get(f)),
     [{ signal: 'symbole', noms: ['a'] }, { signal: 'module', noms: [] }, { signal: 'module', noms: [] }])
+})
+
+test('mémos signés par le tsconfig : le même blob sous deux tsconfig ne partage pas son mémo (T3)', (t) => {
+  const [a, b, c] = ['{}', '{ "compilerOptions": { "verbatimModuleSyntax": true } }', '{}'].map((tsconfig) => {
+    const racine = mkdtempSync(join(tmpdir(), 'perimetre-tsconfig-'))
+    t.after(() => rmSync(racine, { recursive: true, force: true }))
+    writeFileSync(join(racine, 'tsconfig.json'), tsconfig)
+    return racine
+  })
+  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const ecrits = memosDe(dossier, versionDesMemosDeDerivation(a))
+  ecrits.ecrire('specificateurs', '.ts:blob', [])
+  ecrits.sauver()
+  assert.equal(memosDe(dossier, versionDesMemosDeDerivation(b)).lire('specificateurs', '.ts:blob'), undefined)
+  assert.deepEqual(memosDe(dossier, versionDesMemosDeDerivation(c)).lire('specificateurs', '.ts:blob'), [])
+})
+
+test('mémos signés par la fermeture du propriétaire, hors CLI (C2)', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-versionnant-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const meme = { fermeture: () => [['scripts/test/perimetreDerivation.mjs', 'texte']] }
+  const autre = { fermeture: () => [['scripts/test/perimetreDerivation.mjs', 'autre texte']] }
+  assert.equal(versionDesMemosDeDerivation(racine, meme), versionDesMemosDeDerivation(racine, meme))
+  assert.notEqual(versionDesMemosDeDerivation(racine, autre), versionDesMemosDeDerivation(racine, meme))
 })
 
 test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', () => {
@@ -587,9 +905,9 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
 
 /** Le lancement `principal` du dépôt `racine` sur son dernier commit, en sous-processus HORS du contexte de ce test
  *  (`NODE_TEST_CONTEXT` retiré : ses `node --test` lancent leurs fichiers) : sa sortie et son code. */
-const lancerPrincipal = (racine) => {
+const lancerPrincipal = (racine, options = []) => {
   const module = pathToFileURL(join(import.meta.dirname, 'perimetre.mjs')).href
-  const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = principal(['--base', 'HEAD~1', '--tete', 'HEAD'], ${JSON.stringify(racine)})`
+  const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = await principal(['--base', 'HEAD~1', '--tete', 'HEAD', ...${JSON.stringify(options)}], ${JSON.stringify(racine)})`
   return spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } })
 }
 
@@ -601,7 +919,8 @@ const LINT_FORGE = {
 
 test('principal : un test node touché ROUGE → code non nul et ligne de relance de ce seul fichier ; vert → code 0, aucune ligne rouge', (t) => {
   const forgerAvec = (attendu) => forger(t, LINT_FORGE, { 'scripts/n.test.mjs':
-    `import { test } from 'node:test'\nimport assert from 'node:assert/strict'\ntest('n', () => assert.equal(1, ${attendu}))\n` })
+    `import { test } from 'node:test'
+import assert from 'node:assert/strict'\ntest('n', () => assert.equal(1, ${attendu}))\n` })
   const lignes = (sortie) => sortie.split(/\r?\n/)
   const rouge = lancerPrincipal(forgerAvec(2))
   assert.notEqual(rouge.status, 0, rouge.stdout + rouge.stderr)
@@ -715,6 +1034,34 @@ test('apprendre : une écriture des mesures qui échoue s’imprime avec sa caus
   assert.equal(ecrireLesMesures(enPanne, 'surcouts.json', { node: 1 }), false)
 })
 
+test('mesures illisibles : le plan lève AVANT tout lancement, l’entrée et l’écriture impriment la cause (SyntaxError, EISDIR) (#2586)', (t) => {
+  const commun = mkdtempSync(join(tmpdir(), 'perimetre-memo-illisible-'))
+  t.after(() => rmSync(commun, { recursive: true, force: true }))
+  const imprime = []
+  t.mock.method(console, 'log', (texte) => { imprime.push(texte) })
+  for (const [poser, cause] of [[(f) => writeFileSync(f, '{ tronqu'), 'SyntaxError'], [(f) => mkdirSync(f), 'EISDIR']]) {
+    const dossier = mkdtempSync(join(commun, 'm-'))
+    poser(join(dossier, 'durees.json'))
+    const mesures = mesuresDe(dossier)
+    assert.throws(() => planDuPerimetre(new Map(), { mesures, lire: () => new Map() }),
+      (e) => new RegExp(`illisible — cause ${cause} : `).test(texteDeLEchec(e)))
+    imprime.length = 0
+    assert.equal(ecrireLesMesures(mesures, 'durees.json', { 'scripts/n.test.mjs': 1 }), false)
+    assert.match(imprime.join('\n'), new RegExp(`^\\[perimetre\\] mesures non écrites — .*illisible — cause ${cause} : `))
+  }
+})
+
+test('entrée du CLI : un mémo des mesures corrompu sort en 2 et imprime sa cause (#2586)', async (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-entree-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  writeFileSync(join(dossier, 'durees.json'), '{ tronqu')
+  const erreurs = []
+  t.mock.method(console, 'error', (texte) => { erreurs.push(texte) })
+  const executer = async (argv, racine) => planDuPerimetre(new Map(), { mesures: mesuresDe(racine), lire: () => new Map() })
+  assert.equal(await entreeDuCli([], dossier, { executer }), 2)
+  assert.match(erreurs.join('\n'), /^\[perimetre\] .*illisible — cause SyntaxError : /)
+})
+
 test('mesures : un mémo JSON valide qui n’est pas un objet (null, tableau, nombre) se lit vide et se fusionne sans lever', (t) => {
   const commun = mkdtempSync(join(tmpdir(), 'perimetre-memo-forme-'))
   t.after(() => rmSync(commun, { recursive: true, force: true }))
@@ -729,7 +1076,7 @@ test('mesures : un mémo JSON valide qui n’est pas un objet (null, tableau, no
 test('mesures : des écrivains CONCURRENTS ne perdent aucune écriture', async (t) => {
   const commun = mkdtempSync(join(tmpdir(), 'perimetre-concurrents-'))
   t.after(() => rmSync(commun, { recursive: true, force: true }))
-  const module = new URL('./perimetre.mjs', import.meta.url).href
+  const module = new URL('./mesures.mjs', import.meta.url).href
   const ecrivain = (i) => `const { mesuresDe } = await import(${JSON.stringify(module)})
 const m = mesuresDe(${JSON.stringify(commun)})
 for (let k = 0; k < 15; k += 1) m.ecrire('durees.json', { ['e${i}-' + k]: k })`
@@ -796,7 +1143,7 @@ test('minorant PAR FAMILLE (sonde du juge de diff) : la famille qui porte un tes
   const plan = planDExecution(retenus, { budget: 180, estimations, workers: { node: 15 }, surcouts: { node: 2911 } })
   assert.deepEqual(plan.sansDureeParFamille, { vitest: 0, node: 1 })
   assert.equal(texteDuReel(5000, plan.murParFamille.node, plan.sansDureeParFamille.node),
-    'mur réel 5.0 s pour ≥ 3.9 s estimés (écart ≤ +28 %, estimation minorante : 1 test(s) sans durée)')
+    'mur réel 5.0 s pour ≥ 6.8 s estimés (écart ≤ -27 %, estimation minorante : 1 test(s) sans durée)')
   assert.equal(texteDuReel(5000, 4000, 0), 'mur réel 5.0 s pour 4.0 s estimés (écart +25 %)')
 })
 
@@ -812,4 +1159,45 @@ test('part CI PAR RANG (sonde du juge de mesure #2497) : seules les durées CI d
 
 test('part CI NÉGATIVE (anomalie d’ordonnancement) : « non séparable », jamais planchée en 0 ni dite absorbée', () => {
   assert.equal(texteDuMur(180_000, { murCiMs: -1702, nCi: 54 }), '180.0 s, part CI non séparable (54 test(s) estimés depuis la CI)')
+})
+
+test('--liste : empreinte intégrale du dépôt conserve fichiers, mémos et mesures après deux passages', (t) => {
+  const racine = forger(t, { 'scripts/a.test.mjs': "import {readFileSync} from 'node:fs';readFileSync('donnees/a.json')", 'donnees/a.json': '{}' }, { 'donnees/a.json': '{"a":1}' })
+  const empreintes = () => new Map(readdirSync(racine, { recursive: true }).filter((r) => statSync(join(racine, r)).isFile())
+    .sort().map((r) => [r, createHash('sha256').update(readFileSync(join(racine, r))).digest('hex')]))
+  const avant = empreintes()
+  for (let i = 0; i < 2; i++) {
+    const vu = lancerPrincipal(racine, ['--liste'])
+    assert.equal(vu.status, 0, vu.stdout + vu.stderr)
+    assert.match(vu.stdout, /CI non rapatriée — --liste n’écrit rien/)
+    assert.deepEqual(empreintes(), avant)
+  }
+})
+
+test('diagnostic périmètre : clôture conserve causes, certificat natif et défaut collecte au journal', async (t) => {
+  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['node', 'vitest'])
+  const error = new Error('enveloppe', { cause: Object.assign(new Error('lecture native'), { code: 'EIO' }) })
+  const lancer = b.lancer({ code: 1, error, defautCollecte: new Error('collecte parallèle'),
+    arret: { etat: 'indetermine', pid: 42, echeance: 1234, methode: 'job-windows', zeroNatif: false,
+      erreurs: [{ operation: 'constat', pid: 42, code: 'EACCES', message: 'preuve absente' }] } })
+  await executerLancements(b.options, { lancer, lancerNode: lancer })
+  const texte = b.journal.join('')
+  assert.match(texte, /EIO — lecture native/)
+  assert.match(texte, /constat PID 42 EACCES — preuve absente/)
+  assert.match(texte, /collecte parallèle/)
+  assert.match(texte, /"arret":\{"etat":"indetermine","pid":42,"echeance":1234,"methode":"job-windows","zeroNatif":false,/)
+  for (const ligne of b.journal) assert.match(ligne, /^[^\n]+$/, `ligne de journal non unique : ${JSON.stringify(ligne)}`)
+  assert.equal(b.spawns.length, 1)
+  assert.deepEqual(b.ecritures, [])
+})
+
+test('apprendre : un rapport illisible lève avec sa cause et s’efface (#2586)', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-illisible-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const rapport = rapportDuLancement(racine, 4243)('vitest', 0)
+  mkdirSync(dirname(rapport), { recursive: true })
+  writeFileSync(rapport, '{ tronqu')
+  const mesures = { lire: () => ({}), ecrire: () => { throw new Error('écriture inattendue') } }
+  assert.throws(() => apprendre(racine, rapport, mesures, 'vitest', 2), (e) => /rapport .* illisible/.test(e.message) && e.cause instanceof SyntaxError)
+  assert.equal(existsSync(rapport), false, 'le rapport illisible survit à son lancement')
 })

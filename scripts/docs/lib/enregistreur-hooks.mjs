@@ -51,7 +51,11 @@ export function initialize(donnees) {
   motifsPropres = donnees.motifsPropres ?? []
   motifsDeclares = donnees.motifsDeclares ?? []
   installer({ racine: donnees.racine, ignores, cibles: [...cibles], motifsPropres, motifsDeclares, ciblesDerivees: [...ciblesDerivees],
-    observer: (mesure) => brut.appendFileSync(`${sortie}.${process.pid}.hooks-mesures.jsonl`, `${JSON.stringify(mesure)}\n`) })
+    observer: (mesure) => {
+      const cheminMesures = `${sortie}.${process.pid}.hooks-mesures.jsonl`
+      try { brut.appendFileSync(cheminMesures, `${JSON.stringify(mesure)}\n`) }
+      catch (e) { throw new Error(`collecte : ${cheminMesures} : ${e.message}`, { cause: e }) }
+    } })
   const lire = fs.readFileSync
   const ouvrir = fs.openSync
   const lireAsync = fs.promises.readFile
@@ -76,21 +80,21 @@ export async function load(url, contexte, suivant) {
 
 /** Chemin (ou URL `file:`) lu par ce thread — appendu une fois, s'il est sous la racine mesurée. */
 function noterChemin(cible) {
-  try {
-    if (!racine || !sortie) return
-    const chemin =
-      typeof cible === 'string' ? cible
-      : Buffer.isBuffer(cible) ? cible.toString('utf8')
-      : cible instanceof URL && cible.protocol === 'file:' ? fileURLToPath(cible)
-      : null
-    if (!chemin) return
-    const rel = relatifSousRacine(racine, chemin)
-    if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees, motifsDeclares) || vus.has(rel)) return
-    if (cibles.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
-      try { if (brut.lstatSync(path.join(racine, rel)).isFile()) return }
-      catch (e) { if (cheminAbsent(e)) return; throw e }
-    }
-    vus.add(rel)
-    brut.appendFileSync(`${sortie}.${process.pid}.hooks.jsonl`, `${rel}\n`)
-  } catch { /* une lecture non enregistrable ne casse jamais le générateur */ }
+  if (!racine || !sortie) return
+  const chemin =
+    typeof cible === 'string' ? cible
+    : Buffer.isBuffer(cible) ? cible.toString('utf8')
+    : cible instanceof URL && cible.protocol === 'file:' ? fileURLToPath(cible)
+    : null
+  if (!chemin) return
+  const rel = relatifSousRacine(racine, chemin)
+  if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees, motifsDeclares) || vus.has(rel)) return
+  if (cibles.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
+    try { if (brut.lstatSync(path.join(racine, rel)).isFile()) return }
+    catch (e) { if (cheminAbsent(e)) return; throw e }
+  }
+  const cheminHooks = `${sortie}.${process.pid}.hooks.jsonl`
+  try { brut.appendFileSync(cheminHooks, `${rel}\n`) }
+  catch (e) { throw new Error(`collecte : ${cheminHooks} : ${e.message}`, { cause: e }) }
+  vus.add(rel)
 }

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process'
 import { coursesCi, journalDe, lignesDuJournal } from '../guards/lib/coursesCi.mjs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { fait, indisponible } from '../guards/lib/gitPorte.mjs'
+import { dureesValides } from './mesures.mjs'
 
 /** Le mémo des durées de la CI, sous `dossierDesMesures` : `{ run, attempt, sha, date, vitest, node }`. */
 export const DUREES_CI = 'durees-ci.json'
@@ -22,11 +23,6 @@ const PARTIE = /^\[partie\] (\d+\/\d+) : (\d+) fichier\(s\)/
 
 /** La ligne de durées d'une gate node (`scripts/test/node-tests.mjs`). */
 const LIGNE_NODE = /^\[durees\] node (\S+) (\{.*\})$/
-
-/** Les entrées `{ [fichier]: ms }` d'un objet dont la valeur est un nombre fini ≥ 0. PURE. */
-export const dureesValides = (lu) => lu !== null && typeof lu === 'object' && !Array.isArray(lu)
-  ? Object.fromEntries(Object.entries(lu).filter(([, ms]) => Number.isFinite(ms) && ms >= 0))
-  : {}
 
 /**
  * Les durées par fichier d'un journal `gh run view <id> --log` (`lignesDuJournal`). `lus` : les durées Vitest lues ;

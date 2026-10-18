@@ -1,19 +1,56 @@
 // Verrou CONSULTATIF entre processus de la machine (#1679 L1c-M7, #2279 N0, #2187, #2603) : un fichier pris
 // par `linkSync` exclusif, qui porte son tenant dès qu'il existe :
 //   `{ pid, commande, cwd, date, generation, creation? }`
-// `generation` (randomUUID) nomme LA prise ; `creation` (`performance.timeOrigin` du preneur, ms epoch)
-// n'est écrit que sous l'option `identite`. Il refuse le second preneur en NOMMANT le premier, ou le fait
+// `generation` (randomUUID) nomme LA prise ; `creation` (ms epoch) : `performance.timeOrigin` au PID courant,
+// la mesure de l'`identite` à un PID tiers, absente si elle est indéterminée. Il refuse le second preneur en NOMMANT le premier, ou le fait
 // attendre sous une échéance ; il ne tue personne.
 import { createHash, randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
 import { basename, dirname, resolve } from 'node:path'
 import { NAISSANCE_ABSENTE, creationMemorisee, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
 export const PREFIXE_JETON_VERROU = 'WFRP_VERROU_'
 const instanceDuVerrou = (chemin) => process.platform === 'win32' ? resolve(chemin).toLowerCase() : resolve(chemin)
-export const variableDuVerrou = (chemin) => PREFIXE_JETON_VERROU + createHash('sha256').update(instanceDuVerrou(chemin)).digest('hex')
+const variableDuVerrou = (chemin) => PREFIXE_JETON_VERROU + createHash('sha256').update(instanceDuVerrou(chemin)).digest('hex')
+
+/** Les jetons `[clé, valeur]` du verrou `chemin` dans `env`, clé comparée sans casse (#2603). PURE.
+ *  @param {NodeJS.ProcessEnv} env @param {string} chemin @returns {[string, string | undefined][]} */
+export function jetonsDuVerrou(env, chemin) {
+  const variable = variableDuVerrou(chemin).toUpperCase()
+  return Object.entries(env).filter(([cle]) => cle.toUpperCase() === variable)
+}
+
+/** Les clés d'un jeton d'emprunt, triées. */
+const CLES_DU_JETON = 'generation,instance,secret,version'
+
+/**
+ * Le verdict des `jetons` d'emprunt (`jetonsDuVerrou`) face au `tenant` du verrou d'`instance` (#2603) :
+ * `{ ok: true }`, ou `{ raison, cause? }` — `DOUBLON` (plus d'un jeton), `JSON` (illisible, `cause` = l'erreur),
+ * `CLES`, `VERSION`, `INSTANCE`, `GENERATION` (pas celle du tenant), `SECRET` (empreinte du tenant non
+ * reconnue), `MORT` (tenant jugé mort par `vivant`). PURE hors de `vivant`.
+ * @param {[string, string | undefined][]} jetons
+ * @param {{ instance: string, tenant: Tenant | null, vivant: (tenant: Tenant) => boolean }} p
+ * @returns {{ ok: true } | { raison: 'JSON' | 'DOUBLON' | 'CLES' | 'VERSION' | 'INSTANCE' | 'GENERATION' | 'SECRET' | 'MORT', cause?: unknown }}
+ */
+export function verdictDuJeton(jetons, { instance, tenant, vivant }) {
+  if (jetons.length !== 1) return { raison: 'DOUBLON' }
+  let jeton
+  try {
+    jeton = JSON.parse(jetons[0][1] ?? '')
+  } catch (cause) {
+    return { raison: 'JSON', cause }
+  }
+  if (jeton === null || typeof jeton !== 'object' || Object.keys(jeton).sort().join(',') !== CLES_DU_JETON) return { raison: 'CLES' }
+  if (jeton.version !== 1) return { raison: 'VERSION' }
+  if (jeton.instance !== instance) return { raison: 'INSTANCE' }
+  if (!tenant || tenant.generation !== jeton.generation) return { raison: 'GENERATION' }
+  if (typeof jeton.secret !== 'string' || tenant.empreinte !== createHash('sha256').update(jeton.secret).digest('hex')) return { raison: 'SECRET' }
+  if (!vivant(tenant)) return { raison: 'MORT' }
+  return { ok: true }
+}
 
 /** Message de refus : ce que le verrou garde (`libelle`), qui le tient, et les deux sorties. */
 export function refusVerrou({ chemin, tenant, libelle }) {
@@ -30,12 +67,14 @@ export const tenantEnUneLigne = (tenant) =>
   `PID ${tenant?.pid ?? '?'} · ${tenant?.commande || '(commande inconnue)'} · arbre ${tenant?.cwd || '(inconnu)'} · depuis ${tenant?.date ?? '(inconnu)'}`
 
 /**
- * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string, generation?: string, creation?: number }} Tenant
+ * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string, generation?: string, empreinte?: string, creation?: number }} Tenant
  * @typedef {{ echeanceMs: number, pasMs: number, parTenant?: boolean, annoncer?: (tenant: Tenant | null) => void }} Attente
- * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs: number }} Identite
+ * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number }} Identite
+ * @typedef {{ identite?: Identite, estVivant?: (pid: number) => boolean, horloge?: () => number }} Juge
  * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
  *   fs?: typeof fsReel, estVivant?: (pid: number) => boolean, maintenant?: () => string,
- *   attente?: Attente, horloge?: () => number, identite?: Identite, env?: NodeJS.ProcessEnv, signal?: AbortSignal }} Prise
+ *   attente?: Attente, horloge?: () => number, identite?: Identite, env?: NodeJS.ProcessEnv, signal?: AbortSignal,
+ *   borneMs?: number | null, orphelins?: Map<string, Orphelin> }} Prise
  */
 
 /**
@@ -45,9 +84,14 @@ export const tenantEnUneLigne = (tenant) =>
  * d'attente sans fin. `parTenant` remet l'échéance à zéro à chaque changement de tenant. Un verrou
  * laissé par un PID MORT, ou illisible, est REPRIS sous le verrou de reprise `<chemin>.reprise`
  * (`reprendre`). `liberer` ne retire que le verrou qui porte encore la `generation` de la prise.
- * `identite` : le tenant porte `creation`, et un PID vivant dont `lireCreation` rend une date postérieure à
- * `creation + toleranceMs` est un PID RÉUTILISÉ, donc mort ; `null` (indéterminé) vaut vivant. Lu une fois
- * par texte de verrou distinct, puis tous les `pasMs`. Refusée hors du processus courant.
+ * `identite` (`IDENTITE_MESUREE` par défaut) : un PID vivant dont `lireCreation` rend une date postérieure à la
+ * `creation` du tenant + `toleranceMs` est un PID RÉUTILISÉ, donc mort ; `null` (indéterminé) vaut vivant ; un
+ * tenant sans `creation` se juge sur son existence (`naissanceDuTenant`). Lu une fois par texte de verrou
+ * distinct, puis tous les `pasMs` (sans `pasMs`, à chaque jugement). `estVivant` est la sonde d'existence de
+ * `estPidVivantDepuis`. `borneMs` et `orphelins` : le juge est `consignant` (âge borné, tenant absent consigné).
+ * La prise écrit sa `creation` : `performance.timeOrigin` au PID courant, `identite.lireCreation(pid)` à un PID tiers.
+ * Un jeton d'emprunt du verrou dans `env` est jugé par `verdictDuJeton` : valide, la prise est empruntée ;
+ * invalide, refus DÉFINITIF qui nomme sa raison.
  * `fs`, `estVivant`, `maintenant`, `dormir` et `horloge` s'injectent (mesure). Sommeil BLOQUANT
  * (`attendreSync`) : un appelant qui garde une boucle d'événements vivante prend `prendreVerrouAsync`.
  * `dormir` rythme aussi le rejeu de `liberer` ; `liberer` étant synchrone, la forme async y garde `attendreSync`.
@@ -65,9 +109,27 @@ const dormirAsync = (ms, signal) => new Promise((fini) => {
   if (signal?.aborted) terminer()
 })
 
-/** `prendreVerrou`, au sommeil NON bloquant (`dormir` rend une promesse). */
+/** Les réveils des attentes async de ce processus, par instance de verrou, que `liberer` appelle (#2586). */
+const reveils = new Map()
+
+/** Le sommeil de `dormir` abrégé par une libération de `instance` dans ce processus (`reveils`), ou par `signal`. */
+const dormirJusquALiberation = (dormir, instance, signal) => async (ms) => {
+  const reveil = new AbortController()
+  const abonnes = reveils.get(instance) ?? new Set()
+  reveils.set(instance, abonnes)
+  const reveiller = () => reveil.abort()
+  abonnes.add(reveiller)
+  try {
+    await dormir(ms, signal ? AbortSignal.any([signal, reveil.signal]) : reveil.signal)
+  } finally {
+    abonnes.delete(reveiller)
+    if (!abonnes.size) reveils.delete(instance)
+  }
+}
+
+/** `prendreVerrou`, au sommeil NON bloquant (`dormir(ms, signal)` rend une promesse), réveillé par `dormirJusquALiberation`. */
 export async function prendreVerrouAsync({ dormir = dormirAsync, signal, ...prise }) {
-  const resultat = await deroulerAsync(etapesDePrise({ ...prise, signal }), (ms) => dormir(ms, signal))
+  const resultat = await deroulerAsync(etapesDePrise({ ...prise, signal }), dormirJusquALiberation(dormir, instanceDuVerrou(prise.chemin), signal))
   if (signal?.aborted && resultat.etat === 'pris') {
     resultat.liberer()
     return { etat: 'refus', message: '[verrou] acquisition annulée' }
@@ -88,15 +150,17 @@ export function sousEcheanceAsync({ attente, horloge = Date.now, essai, abouti, 
 
 /**
  * ATTEND que le verrou `chemin` soit libre, sans le PRENDRE. REND `{ etat: 'libre' }` (absent, illisible,
- * ou tenu par un PID mort) ou, à `echeanceMs`, `{ etat: 'occupe', tenant }`. Même pas, même annonce que
- * `prendreVerrou`.
+ * ou tenu par un PID mort ou réutilisé) ou, à `echeanceMs`, `{ etat: 'occupe', tenant }`. Même pas, même annonce,
+ * même juge de vie (`identite`) que `prendreVerrou`.
  * @param {{ chemin: string, attente?: Attente, fs?: typeof fsReel, estVivant?: (pid: number) => boolean,
- *   dormir?: (ms: number) => void, horloge?: () => number }} p
+ *   dormir?: (ms: number) => void, horloge?: () => number, identite?: Identite }} p
  */
-export function attendreLibre({ chemin, attente, fs = fsReel, estVivant = estPidVivant, dormir = attendreSync, horloge = Date.now }) {
+export function attendreLibre({ chemin, attente, fs = fsReel, estVivant = estPidVivant, dormir = attendreSync, horloge = Date.now, identite = IDENTITE_MESUREE }) {
+  const vivant = vivantSelon({ estVivant, identite, horloge })
   const essai = () => {
-    const tenant = tenantDuTexte(lireBrut(fs, chemin))
-    return tenant && estVivant(tenant.pid) ? { etat: 'occupe', tenant } : { etat: 'libre' }
+    const brut = lireBrut(fs, chemin)
+    const tenant = tenantDuTexte(brut)
+    return tenant && vivant(tenant, brut) ? { etat: 'occupe', tenant } : { etat: 'libre' }
   }
   return derouler(sousEcheance({ attente, horloge, essai, abouti: (vu) => vu.etat === 'libre' }), dormir)
 }
@@ -113,18 +177,16 @@ function etapesDePrise({
   maintenant = () => new Date().toISOString(),
   attente,
   horloge = Date.now,
-  identite,
+  identite = IDENTITE_MESUREE,
   dormir = attendreSync,
   env = {},
   signal,
+  borneMs = null,
+  orphelins,
 }) {
-  if (identite && pid !== process.pid) {
-    throw new Error(`[verrou] ${libelle} : l'identité ne se prend qu'au PID courant (${process.pid}), pas au PID ${pid}`)
-  }
-  const creation = identite ? performance.timeOrigin : undefined
-  const vivant = vivantSelon({ estVivant, identite, horloge })
+  const creation = pid === process.pid ? performance.timeOrigin : (identite.lireCreation(pid) ?? undefined)
+  const vivant = consignant(chemin, borneMs, { estVivant, identite, horloge }, orphelins)
   const instance = instanceDuVerrou(chemin)
-  const variable = variableDuVerrou(chemin)
   const secret = randomUUID()
   const empreinte = createHash('sha256').update(secret).digest('hex')
   const annule = () => ({ etat: 'refus', message: `[verrou] ${libelle} : acquisition annulée` })
@@ -132,24 +194,18 @@ function etapesDePrise({
     attente, horloge,
     essai: () => {
       if (signal?.aborted) return annule()
-      const jetons = Object.entries(env).filter(([cle]) => cle.toUpperCase() === variable.toUpperCase())
-      const transmis = jetons[0]
-      if (transmis) {
-        let jeton
-        try { jeton = JSON.parse(transmis[1]) } catch { /* #2586 */ }
+      const jetons = jetonsDuVerrou(env, chemin)
+      if (jetons.length) {
         const brut = lireBrut(fs, chemin)
-        const tenant = tenantDuTexte(brut)
-        const valide = jetons.length === 1 && jeton && Object.keys(jeton).sort().join(',') === 'generation,instance,secret,version' && jeton.version === 1 && jeton.instance === instance &&
-          typeof jeton.secret === 'string' && tenant?.generation === jeton.generation &&
-          tenant.empreinte === createHash('sha256').update(jeton.secret).digest('hex') && vivant(tenant, brut)
-        return valide
-          ? { etat: 'pris', emprunte: true, env: { [variable]: transmis[1] }, liberer() {} }
-          : { etat: 'refus', definitif: true, message: `[verrou] ${libelle} : jeton d'emprunt invalide` }
+        const verdict = verdictDuJeton(jetons, { instance, tenant: tenantDuTexte(brut), vivant: (tenant) => vivant(tenant, brut) })
+        if ('ok' in verdict) return { etat: 'pris', emprunte: true, env: { [variableDuVerrou(chemin)]: jetons[0][1] }, liberer() {} }
+        const message = `[verrou] ${libelle} : jeton d'emprunt invalide (${verdict.raison})`
+        return { etat: 'refus', definitif: true, message, ...('cause' in verdict ? { cause: verdict.cause } : {}) }
       }
       const prise = prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, vivant, maintenant, creation, dormir, empreinte })
       if (prise.etat === 'pris') {
         if (signal?.aborted) { prise.liberer(); return annule() }
-        prise.env = { [variable]: JSON.stringify({ version: 1, instance, generation: prise.generation, secret }) }
+        prise.env = { [variableDuVerrou(chemin)]: JSON.stringify({ version: 1, instance, generation: prise.generation, secret }) }
       }
       return prise
     },
@@ -158,13 +214,12 @@ function etapesDePrise({
 }
 
 /**
- * Le juge de vie d'un tenant, `(tenant, brut) => boolean` : `estVivant(pid)`, puis, sous `identite`, sa
- * `creation` confrontée à la date que `lireCreation` mesure, une fois par texte `brut`, puis tous les `pasMs`.
- * @param {{ estVivant: (pid: number) => boolean, identite?: Identite, horloge: () => number }} p
+ * Le juge de vie d'un tenant, `(tenant, brut) => boolean` : `estPidVivantDepuis` à sa naissance
+ * (`naissanceDuTenant`), la date que `lireCreation` mesure lue une fois par texte `brut`, puis tous les `pasMs`.
+ * @param {Juge} [juge]
  */
-function vivantSelon({ estVivant, identite, horloge }) {
-  if (!identite) return (/** @type {Tenant} */ tenant) => estVivant(tenant.pid)
-  const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs, horloge })
+function vivantSelon({ estVivant = estPidVivant, identite = IDENTITE_MESUREE, horloge = Date.now } = {}) {
+  const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs ?? 0, horloge })
   return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => estPidVivantDepuis(tenant.pid, naissanceDuTenant(tenant), {
     toleranceMs: identite.toleranceMs,
     lireCreation: (pid) => lire(pid, brut),
@@ -281,6 +336,7 @@ function liberer({ chemin, texte, pid, generation, fs, vivant, dormir }) {
       } finally {
         fs.rmSync(reprise, { force: true })
       }
+      for (const reveiller of [...(reveils.get(instanceDuVerrou(chemin)) ?? [])]) reveiller()
       return
     }
     throw new Error(`[verrou] ${chemin} : non libéré, le verrou de reprise ${reprise} reste tenu par un vivant`)
@@ -350,7 +406,7 @@ function tenantDuTexte(brut) {
 /** Le tenant que porte le verrou `chemin`, `null` s'il est absent, illisible ou sans PID. @param {string} chemin */
 export const tenantDe = (chemin) => tenantDuTexte(lireBrut(fsReel, chemin))
 
-/** La naissance du PID d'un tenant : sa `creation`, `NAISSANCE_ABSENTE` pour un tenant pris sans `identite` (#2603). PURE. @param {Tenant} tenant */
+/** La naissance du PID d'un tenant : sa `creation`, `NAISSANCE_ABSENTE` pour un tenant qui n'en porte pas (#2603). PURE. @param {Tenant} tenant */
 export const naissanceDuTenant = (tenant) => tenant.creation ?? NAISSANCE_ABSENTE
 
 /** L'âge (s) d'un tenant à l'`horloge`, `null` sans date lisible. PURE. */
@@ -359,16 +415,19 @@ export const ageDe = (tenant, horloge) => {
   return Number.isFinite(date) ? Math.round((horloge() - date) / 1000) : null
 }
 
+/** Le tenant `tenant` n'a-t-il pas dépassé `borneMs` d'âge (`null` : sans borne) à l'`horloge` ? PURE. */
+const sousBorne = (tenant, borneMs, horloge) => {
+  const age = borneMs === null ? null : ageDe(tenant, horloge)
+  return age === null || age * 1000 <= /** @type {number} */ (borneMs)
+}
+
 /**
- * Le `estVivant` d'une prise du verrou `chemin` : `estVivant(pid)`, et le tenant `pid` relu n'a pas dépassé
- * `borneMs` d'âge.
- * @param {string} chemin @param {number} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
+ * Le juge de vie `(tenant, brut) => boolean` d'un tenant (`vivantSelon` de `juge`) qui n'a pas dépassé `borneMs` d'âge.
+ * @param {number | null} borneMs @param {Juge} [juge]
  */
-export const vivantSousBorne = (chemin, borneMs, estVivant, horloge) => (/** @type {number} */ pid) => {
-  if (!estVivant(pid)) return false
-  const tenant = tenantDe(chemin)
-  const age = tenant?.pid === pid ? ageDe(tenant, horloge) : null
-  return age === null || age * 1000 <= borneMs
+export const vivantSousBorne = (borneMs, juge = {}) => {
+  const vivant = vivantSelon(juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => vivant(tenant, brut) && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
 }
 
 /** La date de modification ISO du fichier `chemin`, `null` s'il manque. @param {string} chemin */
@@ -383,18 +442,19 @@ export function mtimeDe(chemin) {
 /** @typedef {{ verrou: string, pid: number, depuis: string | null, preuve: 'jeton du journal' | 'PID mort' | 'âge > borne' }} Orphelin */
 
 /**
- * Le `estVivant` d'une prise du verrou `chemin` (`vivantSousBorne`, sans borne si `borneMs` est `null`) qui
- * CONSIGNE dans `orphelins` (clé `chemin`) son tenant jugé absent (#2493) : `PID mort`, ou `âge > borne`.
- * @param {string} chemin @param {number | null} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
- * @param {Map<string, Orphelin>} orphelins
+ * Le juge de vie `(tenant, brut) => boolean` du verrou `chemin` (`vivantSousBorne`, sans borne si `borneMs` est
+ * `null`) qui CONSIGNE dans `orphelins` (clé `chemin`) son tenant jugé absent (#2493) : `PID mort` (mort ou
+ * réutilisé, `vivantSelon`), ou `âge > borne`.
+ * @param {string} chemin @param {number | null} borneMs @param {Juge} [juge] @param {Map<string, Orphelin>} [orphelins]
  */
-export const consignant = (chemin, borneMs, estVivant, horloge, orphelins) => (/** @type {number} */ pid) => {
-  const tenant = tenantDe(chemin)
-  const vivant = borneMs === null ? estVivant(pid) : vivantSousBorne(chemin, borneMs, estVivant, horloge)(pid)
-  if (!vivant && tenant?.pid === pid) {
-    orphelins.set(chemin, { verrou: chemin, pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: estVivant(pid) ? 'âge > borne' : 'PID mort' })
+export const consignant = (chemin, borneMs, juge = {}, orphelins) => {
+  const vivant = vivantSelon(juge)
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
+    const enVie = vivant(tenant, brut)
+    const retenu = enVie && sousBorne(tenant, borneMs, juge.horloge ?? Date.now)
+    if (!retenu) orphelins?.set(chemin, { verrou: chemin, pid: tenant.pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: enVie ? 'âge > borne' : 'PID mort' })
+    return retenu
   }
-  return vivant
 }
 
 /** Les orphelins `orphelins` nommés : `<nom> (PID p mort depuis d, preuve)`, joints par `, `. PURE. @param {Orphelin[]} orphelins */

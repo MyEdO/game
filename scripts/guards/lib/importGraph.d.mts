@@ -82,6 +82,7 @@ export function clotureDImports(
     dynamiques?: boolean;
     arbre?: EnsembleDeFichiers;
     specificateurs?: MemoDeSpecificateurs;
+    tailleLot?: number;
   },
 ): Set<string>;
 /** L'ensemble de fichiers contre lequel une marche résout et lit (chemins absolus POSIX). */
@@ -107,6 +108,7 @@ export function directImportsOf(
   options?: { racine?: string; existe?: (abs: string) => boolean; alias?: readonly Alias[]; diagnostics?: readonly Diagnostic[] },
 ): string[];
 export const CHEMIN_TSCONFIG: string;
+export const LOT_D_ANALYSE: number;
 /** Les alias que déclare le texte d'un `tsconfig.json`, cibles posées sous `racine`. */
 export function aliasDe(texte: string | null, racine: string): Alias[];
 /** Les alias du `tsconfig.json` que porte le disque sous `racine` (répertoire courant par défaut). */

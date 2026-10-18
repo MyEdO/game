@@ -1,59 +1,33 @@
+// Porte de version de Node (#1801) : la règle PURE, puis son CÂBLAGE dans chaque point d'entrée qui
+// rend un verdict, tel que `package.json` le déclare, joué sur un FAUX ARBRE en dossier temporaire
+// dont `engines.node` exige un Node inexistant :
+//   - `.npmrc` : VRAIS `.npmrc` et porte copiés ;
+//   - les modules Node (`npm run gates`, `.mjs` des hooks shell du `core.hooksPath`, pilotes
+//     `merge.<nom>.driver`, hooks d'agent de `.claude/settings.json` et `.codex/hooks.json`) : chacun
+//     EXÉCUTÉ avec sa clôture d'imports copiée — les hooks shell par leur VRAI script —, sous
+//     `--no-experimental-strip-types` — le chargement d'un Node 22 < 22.18 ;
+//     sa clôture STATIQUE et son AST : `scripts/corpus/generateurs/node-requis.test.mjs`.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-
-import { dirname, join, relative } from 'node:path'
-
-import { fileURLToPath } from 'node:url'
-
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from './agents/compat-core.mjs'
-
+import { dirname, join } from 'node:path'
 import { clotureDImports } from './guards/lib/importGraph.mjs'
-
-import { listerDossier } from './guards/lib/lister.mjs'
-
 import { CODE_DE_REFUS, refusDeVersion } from './node-requis.mjs'
+import { RACINE, DOSSIER_HOOKS, HOOKS_SHELL, HOOKS_AGENT, MODULES_HOOKS_AGENT, MODULES_PAR_HOOK, MODULES_LANCES } from './test/lib/bancNodeRequis.mjs'
 
-import { bancnoderequistestmjs } from './bancNodeRequis.mjs'
-const { modulesDuHook } = bancnoderequistestmjs
-
-const RACINE = fileURLToPath(new URL('..', import.meta.url))
-
-const { scripts: SCRIPTS } = JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8'))
-
-const DOSSIER_HOOKS = join(RACINE, /core\.hooksPath (\S+)/.exec(SCRIPTS.postinstall)[1])
-
-const HOOKS_SHELL = listerDossier(DOSSIER_HOOKS).filter((f) => !f.includes('.'))
-
-const PILOTES = [...new Set([...SCRIPTS.postinstall.matchAll(/merge\.[\w-]+\.driver "node (\S+)/g)].map((m) => m[1]))]
-
-const HOOKS_AGENT = [SURFACE_CLAUDE, SURFACE_CODEX].flatMap((surface) =>
-  aplatirHooks(JSON.parse(readFileSync(join(RACINE, surface), 'utf8')), surface),
-)
-
-const MODULES_HOOKS_AGENT = [...new Set(HOOKS_AGENT.filter((h) => h.script).map((h) => `scripts/hooks/${h.script}`))]
-
-const MODULES_PAR_HOOK = new Map(HOOKS_SHELL.map((hook) => [
-  hook,
-  modulesDuHook(readFileSync(join(DOSSIER_HOOKS, hook), 'utf8')).map((m) => relative(RACINE, join(DOSSIER_HOOKS, m)).replaceAll('\\', '/')),
-]))
-
-const MODULES_DES_HOOKS_SHELL = [...new Set([...MODULES_PAR_HOOK.values()].flat())]
-
-const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...MODULES_DES_HOOKS_SHELL, ...PILOTES, ...MODULES_HOOKS_AGENT]
-
+/** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil. */
 const CODE_BLOQUANT_PRETOOLUSE = 2
 
+/** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
 
+/** Les `post-*` qui rendent le code de leur `.mjs` tel quel (#2187, verdict 6026872846 point 2) : son lecteur le lit. */
 const POST_TRANSPARENTS = new Set(['post-merge'])
 
+/** githooks(5) : les arguments que git passe au hook dans le geste qui le fait AGIR — `post-checkout`
+ *  un changement de BRANCHE (`$3` = 1), `post-rewrite` un `rebase`. Les autres refusent avant de les lire. */
 const ARGUMENTS_D_UN_GESTE = { 'post-checkout': ['0'.repeat(40), 'f'.repeat(40), '1'], 'post-rewrite': ['rebase'] }
 
 const EXIGENCE_INTENABLE = '>=999.0.0'
@@ -85,6 +59,7 @@ test('plage composée : seuls les moteurs compatibles avec les dépendances sont
   assert.match(refusDeVersion(plage, 'illisible'), /version de Node illisible/)
 })
 
+/** Arbre à l'exigence intenable : `package.json` qui la porte, `.npmrc` et porte réels. */
 function arbreIntenable() {
   const racine = mkdtempSync(join(tmpdir(), 'node-requis-'))
   mkdirSync(join(racine, 'scripts', 'git-hooks'), { recursive: true })
@@ -98,6 +73,8 @@ function arbreIntenable() {
   return racine
 }
 
+/** L'arbre intenable, plus la clôture d'imports de chaque module lancé, les hooks shell réels et le
+ *  `node_modules` réel. */
 function arbreDesModules() {
   const racine = arbreIntenable()
   for (const rel of clotureDImports(MODULES_LANCES, { racine: RACINE })) {
@@ -108,6 +85,7 @@ function arbreDesModules() {
   return racine
 }
 
+/** Environnement sans ce que `npm run` pose à l'appelant (`npm_config_*` serait lu comme configuration). */
 function envNu() {
   return Object.fromEntries(Object.entries(process.env).filter(([cle]) => !/^npm_/i.test(cle)))
 }

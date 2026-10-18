@@ -17,18 +17,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
 import { ANTIDATE, efface, joue } from '../../migrations/lib/joue.mjs'
-
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
-
-const MIGRATIONS = path.join(RACINE, 'scripts/migrations');
-
-/** Les migrations DATÉES du dossier, dans l'ordre lexical — le périmètre que `replay.mjs` rejoue. */
-const DATEES = fs
-  .readdirSync(MIGRATIONS)
-  .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
-  .sort((a, b) => a.localeCompare(b, 'en'));
+import { DATEES, RACINE } from '../../test/lib/bancIdempotence.mjs'
 
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -69,7 +59,7 @@ const renverse = (doc) => {
  * absence de dépôt : sans `Source/`, des migrations sortent 1 sur une extraction introuvable — une
  * raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
  *
- * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (lourds,
+ * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
  */
 const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];

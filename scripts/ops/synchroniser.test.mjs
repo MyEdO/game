@@ -16,14 +16,16 @@ import {
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import {
-  ETAPES, ligneDeLEtat, mesurerPrincipal, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur, texteDeSession,
+  ETAPES, consommerLaPlage, ligneDeLEtat, mesurerPrincipal, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur, texteDeSession,
   verrouDuConsommateur,
 } from './synchroniser.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
-import { attendreLibre, sousEcheanceAsync } from '../test/verrou.mjs'
-import { estPidDeProcessus, estPidVivant } from '../guards/lib/pid.mjs'
-import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
+import { attendreLibre, naissanceDuTenant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { NAISSANCE_ABSENTE, estPidDeProcessus, estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLaReconstruction, demanderLaReconstruction, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
 
 const ENV = envDeDepotForge()
@@ -152,13 +154,27 @@ test('duDe : lecture unique, disparition concurrente et erreurs strictes', async
   assert.equal(fs.readFileSync, original)
 })
 
+/** Le processus `pid` NÉ à sa mesure (`IDENTITE_MESUREE`), prise dès que le banc le reçoit, `NAISSANCE_ABSENTE`
+ *  indéterminée (#2603) ; `null` sans PID de processus. @param {number | undefined} pid */
+const neMesure = (pid) => (estPidDeProcessus(pid) ? { pid: /** @type {number} */ (pid), naissance: IDENTITE_MESUREE.lireCreation(/** @type {number} */ (pid)) ?? NAISSANCE_ABSENTE } : null)
+
+/** Le processus `ne` (`neMesure`) vit-il encore ? `estPidVivantDepuis` à sa naissance. @param {ReturnType<typeof neMesure>} ne */
+const vitEncore = (ne) => ne !== null && estPidVivantDepuis(ne.pid, ne.naissance, IDENTITE_MESUREE)
+
+test('#2603 — banc : un processus NÉ à sa mesure (`neMesure`) vit sous l’identité ; fini, ou né avant sa création mesurée (réutilisé), il ne vit plus', () => {
+  assert.equal(vitEncore(neMesure(process.pid)), true, 'le banc, mesuré à sa naissance')
+  assert.equal(vitEncore({ pid: process.pid, naissance: performance.timeOrigin - 3_600_000 }), false, 'réutilisé')
+  assert.equal(vitEncore(neMesure(spawnSync(process.execPath, ['-e', '']).pid)), false, 'un enfant fini')
+  assert.equal(neMesure(undefined), null)
+})
+
 /**
- * La plage due du principal `principal` SOLDÉE : son verrou de consommateur libre, chaque PID de `pids` mort
- * et, sous `solde`, `du.json` absent ou en `echec`, sous 60 s ; aucun consommateur détaché ne survit au test.
- * REND la plage restante.
- * @param {string} principal @param {readonly (number | undefined)[]} [pids] @param {{ solde?: boolean }} [p]
+ * La plage due du principal `principal` SOLDÉE : son verrou de consommateur libre, chaque processus de `nes`
+ * (`neMesure`) mort et, sous `solde`, `du.json` absent ou en `echec`, sous 60 s ; aucun consommateur détaché ne
+ * survit au test. REND la plage restante.
+ * @param {string} principal @param {readonly ReturnType<typeof neMesure>[]} [nes] @param {{ solde?: boolean }} [p]
  */
-async function consommationFinie(principal, pids = [], { solde: exige = true } = {}) {
+async function consommationFinie(principal, nes = [], { solde: exige = true } = {}) {
   const chemin = verrouDuConsommateur(join(principal, '.git'))
   const solde = await sousEcheanceAsync({
     attente: { echeanceMs: 60_000, pasMs: 50 },
@@ -170,11 +186,11 @@ async function consommationFinie(principal, pids = [], { solde: exige = true } =
         if (e.code === 'EPERM') return false
         throw e
       }
-      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec != null) && !pids.some((pid) => estPidVivant(pid))
+      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec != null) && !nes.some(vitEncore)
     },
     abouti: (fini) => fini,
   })
-  assert.equal(solde, true, `consommateur toujours vivant ou plage due non soldée : ${JSON.stringify({ du: duDe(principal), pids })}`)
+  assert.equal(solde, true, `consommateur toujours vivant ou plage due non soldée : ${JSON.stringify({ du: duDe(principal), pids: nes.map((ne) => ne?.pid) })}`)
   return duDe(principal)
 }
 
@@ -182,7 +198,7 @@ async function consommationFinie(principal, pids = [], { solde: exige = true } =
  *  attendu jusqu'au solde. */
 async function synchroniserEtConsommer(p, principal = /** @type {string} */ (p.depuis)) {
   const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, ...p })
-  await consommationFinie(principal, [vu.consommateurs?.pid], { solde: vu.consommateurs?.etat === 'en-cours' })
+  await consommationFinie(principal, [neMesure(vu.consommateurs?.pid)], { solde: vu.consommateurs?.etat === 'en-cours' })
   return vu
 }
 
@@ -589,7 +605,7 @@ describe('synchroniserPrincipal — matrice', () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
     const { marque, liberation } = barriereDuConsommateur(m.principal)
-    const pids = []
+    const nes = []
     const erreurs = []
     let attente
     let finie = false
@@ -600,7 +616,7 @@ describe('synchroniserPrincipal — matrice', () => {
         try {
           const etat = JSON.parse(v.stdout)
           const pid = etat?.consommateurs?.pid
-          if (estPidDeProcessus(pid)) pids.push(pid)
+          if (estPidDeProcessus(pid)) nes.push(neMesure(pid))
           return etat
         } catch (e) {
           erreursLecture.push(e)
@@ -609,7 +625,7 @@ describe('synchroniserPrincipal — matrice', () => {
       })
       if (erreursLecture.length === 1) throw erreursLecture[0]
       if (erreursLecture.length) throw new AggregateError(erreursLecture, 'sorties JSON des synchroniseurs illisibles')
-      attente = consommationFinie(m.principal, pids).then(
+      attente = consommationFinie(m.principal, nes).then(
         () => { finie = true; return { status: 'fulfilled' } },
         (reason) => { finie = true; return { status: 'rejected', reason } },
       )
@@ -628,19 +644,19 @@ describe('synchroniserPrincipal — matrice', () => {
       assert.equal(head(m.principal), U)
       assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
       assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
-      assert.equal(pids.some((pid) => estPidVivant(pid)), false)
+      assert.equal(nes.some(vitEncore), false)
     } catch (e) {
       erreurs.push(e)
     } finally {
       try { writeFileSync(liberation, '') } catch (e) { erreurs.push(e) }
-      const reglements = await Promise.allSettled([attente, consommationFinie(m.principal, pids)])
+      const reglements = await Promise.allSettled([attente, consommationFinie(m.principal, nes)])
       for (const reglement of reglements) {
         if (reglement.status === 'rejected') erreurs.push(reglement.reason)
         else if (reglement.value?.status === 'rejected') erreurs.push(reglement.value.reason)
       }
     }
     const uniques = [...new Set(erreurs)]
-    t.diagnostic(JSON.stringify({ pids: [...new Set(pids)], vivants: pids.filter(estPidVivant), erreurs: uniques.map((e) => e instanceof Error ? e.message : String(e)) }))
+    t.diagnostic(JSON.stringify({ pids: [...new Set(nes.map((ne) => ne?.pid))], vivants: nes.filter(vitEncore).map((ne) => ne?.pid), erreurs: uniques.map((e) => e instanceof Error ? e.message : String(e)) }))
     if (uniques.length === 1) throw uniques[0]
     if (uniques.length) throw new AggregateError(uniques, 'échec du banc et de ses consommateurs')
   })
@@ -748,7 +764,7 @@ describe('synchroniserPrincipal — matrice', () => {
     try {
       const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
       assert.equal(vu.etat, 'avance', JSON.stringify(vu))
-      const du = await consommationFinie(m.principal, [vu.consommateurs.pid], { solde: false })
+      const du = await consommationFinie(m.principal, [neMesure(vu.consommateurs.pid)], { solde: false })
       assert.deepEqual([du?.de, du?.vers, du?.echec ?? null], [m.B, U, null], readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8'))
       const lignes = readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8')
       assert.match(lignes, new RegExp(`reconstruction seq=1 — soldee, code ${codeDiffere}, journal `))
@@ -777,7 +793,7 @@ describe('synchroniserPrincipal — matrice', () => {
     try {
       const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
       assert.equal(vu.etat, 'avance', JSON.stringify(vu))
-      const du = await consommationFinie(m.principal, [vu.consommateurs.pid])
+      const du = await consommationFinie(m.principal, [neMesure(vu.consommateurs.pid)])
       assert.deepEqual([du?.de, du?.vers, du?.echec?.code], [U, U2, 3], JSON.stringify(du))
       const { logs } = cheminsDeLaReconstruction(m.principal)
       assert.equal(resolve(dirname(du.echec.log)), resolve(logs), du.echec.log)
@@ -888,6 +904,22 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.equal(head(m.principal), U)
   })
 
+  test('borne d’âge du CONSOMMATEUR (#2493) : son verrou et `synchro.verrou` tenus par un VIVANT plus vieux que leur borne sont repris', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const commun = join(m.principal, '.git')
+    const vieux = JSON.stringify({ pid: process.pid, commande: 'ops:synchroniser --consommer', date: '2026-01-01T00:00:00.000Z' })
+    const log = join(commun, 'synchro-consommateurs', `${process.pid}.log`)
+    writeFileSync(verrouDuConsommateur(commun), vieux)
+    assert.equal(await consommerLaPlage({ depuis: m.principal, env: ENV }), 0)
+    assert.match(readFileSync(log, 'utf8'), /verrou orphelin repris : synchro-consommateurs\.verrou \(PID \d+ depuis 2026-01-01T00:00:00\.000Z, âge > borne\)/)
+    const du = join(commun, 'synchro-consommateurs', 'du.json')
+    writeFileSync(du, JSON.stringify({ de: m.B, vers: m.B, du: '2026-01-01T00:00:00.000Z', echec: null }))
+    writeFileSync(join(commun, 'synchro.verrou'), vieux)
+    assert.equal(await consommerLaPlage({ depuis: m.principal, env: ENV, attente: { echeanceMs: 200, pasMs: 20 } }), 0)
+    assert.doesNotMatch(readFileSync(log, 'utf8'), /verrou de synchronisation tenu/)
+    assert.equal(existsSync(du), false, 'la plage se solde sous `synchro.verrou` repris')
+  })
+
   test('17 appel depuis un WT : le principal avance, HEAD du WT inchangé', async () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
@@ -915,7 +947,7 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
       const reprise = lancer(m.principal)
       assert.equal(reprise.status, 0, reprise.stderr)
       const vu = JSON.parse(reprise.stdout)
-      assert.equal(await consommationFinie(m.principal, [vu.consommateurs?.pid]), null, 'la plage due finit consommée')
+      assert.equal(await consommationFinie(m.principal, [neMesure(vu.consommateurs?.pid)]), null, 'la plage due finit consommée')
       assert.equal(vu.etat, ETAPES.indexOf(arret) < ETAPES.indexOf('liberation') ? 'avance' : 'a-jour', reprise.stdout)
       assert.equal(head(m.principal), U)
       assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
@@ -1039,11 +1071,17 @@ function hookReconstruisant(racine, codePasse) {
   hookDeFixture(racine, `"${posix(process.execPath)}" "${posix(demande)}"\n`)
 }
 
-/** Les détachés de reconstruction de `racine` (leurs journaux `<pid>.log`) attendus jusqu'à leur fin, bornée :
- *  REND ceux encore vivants à l'échéance. */
+/** Les détachés de reconstruction de `racine` (leurs journaux `<pid>.log`, chacun NÉ à sa première vue, `neMesure`)
+ *  attendus jusqu'à leur fin, bornée : REND ceux encore vivants à l'échéance. */
 async function reconstructionsFinies(racine) {
   const { logs } = cheminsDeLaReconstruction(racine)
-  const vivants = () => (existsSync(logs) ? readdirSync(logs) : []).map((f) => Number.parseInt(f, 10)).filter((pid) => pid !== process.pid && estPidVivant(pid))
+  /** @type {Map<number, ReturnType<typeof neMesure>>} */
+  const nes = new Map()
+  const vit = (/** @type {number} */ pid) => {
+    if (!nes.has(pid)) nes.set(pid, neMesure(pid))
+    return vitEncore(nes.get(pid) ?? null)
+  }
+  const vivants = () => (existsSync(logs) ? readdirSync(logs) : []).map((f) => Number.parseInt(f, 10)).filter((pid) => pid !== process.pid && vit(pid))
   await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: vivants, abouti: (v) => v.length === 0 })
   return vivants()
 }
@@ -1077,11 +1115,13 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
     const { marque, liberation } = barriereDuConsommateur(m.principal)
     scriptsDansLePrincipal(m.principal)
     let P
+    let consommateur = null
     try {
       const cli = spawnSync(process.execPath, [join(m.principal, 'scripts', 'ops', 'synchroniser.mjs'), '--json'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 10_000 })
       assert.equal(cli.status, 0, `${cli.error?.message ?? ''} ${cli.stderr}`)
       const vu = JSON.parse(cli.stdout)
       P = vu.consommateurs.pid
+      consommateur = neMesure(P)
       const L = vu.consommateurs.log
       assert.deepEqual([vu.etat, vu.de, vu.vers, vu.consommateurs.etat], ['avance', m.B, U, 'en-cours'])
       assert.equal(L, logDe(m.principal, P))
@@ -1095,14 +1135,15 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
         essai: () => { try { return existsSync(marque) ? JSON.parse(readFileSync(verrouDuConsommateur(join(m.principal, '.git')), 'utf8')) : null } catch { return null } },
       })
       assert.equal(tenant?.pid, P, 'le consommateur tient son verrou')
-      assert.equal(estPidVivant(P), true)
+      assert.equal(Number.isFinite(tenant.creation), true, 'le consommateur écrit sa naissance à son verrou')
+      assert.equal(estPidVivantDepuis(P, naissanceDuTenant(tenant), IDENTITE_MESUREE), true)
       const U2 = committer(m.amont, { 'a.md': 'c\n' })
       const seconde = await synchroniserPrincipal({ depuis: m.principal, env: ENV, consommateur: SYNCHRONISEUR, gestes: { attente: ATTENTE } })
       assert.deepEqual([seconde.etat, seconde.de, seconde.vers, seconde.consommateurs.pid, seconde.consommateurs.de], ['avance', U, U2, P, m.B])
-      assert.equal(estPidVivant(P), true)
+      assert.equal(estPidVivantDepuis(P, naissanceDuTenant(tenant), IDENTITE_MESUREE), true)
       assert.equal(existsSync(liberation), false)
       writeFileSync(liberation, '')
-      assert.equal(await consommationFinie(m.principal, [P]), null)
+      assert.equal(await consommationFinie(m.principal, [consommateur]), null)
       const lignes = readFileSync(logDe(m.principal, P), 'utf8')
       assert.deepEqual(lignes.match(/post-merge ORIG_HEAD=\w+ HEAD=\w+ — début/g), [
         `post-merge ORIG_HEAD=${B9} HEAD=${U9} — début`, `post-merge ORIG_HEAD=${B9} HEAD=${U2.slice(0, 9)} — début`,
@@ -1112,7 +1153,7 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
       assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
     } finally {
       writeFileSync(liberation, '')
-      await consommationFinie(m.principal, [P])
+      await consommationFinie(m.principal, [consommateur])
     }
   })
 
@@ -1127,6 +1168,25 @@ describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la mai
     const orphelins = (etat) => etat.orphelins.map((o) => [basename(o.verrou), o.pid, o.preuve])
     assert.deepEqual(orphelins(mesure), [['index.lock', mort, 'jeton du journal'], ['synchro.verrou', mort, 'PID mort'], ['outillage.verrou', mort, 'PID mort']])
     assert.match(ligneDeLEtat(mesure), new RegExp(`^interrompu : avance \\w{9}\\.\\.\\w{9} entamée \\(étape avance\\), HEAD \\w{9} — reprise due \\(journal .+journal\\.json\\) ; verrous orphelins à reprendre : index\\.lock \\(PID ${mort} mort depuis \\S+, jeton du journal\\), synchro\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\), outillage\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\)`))
+    const ecrit = readFileSync(mesure.journal, 'utf8')
+    assert.equal(Number.isFinite(JSON.parse(ecrit).creation), true, 'le synchroniseur écrit sa naissance au journal')
+    const synchro = join(m.principal, '.git', 'synchro.verrou')
+    const tenantEcrit = readFileSync(synchro, 'utf8')
+    /** Les verrous du PID courant, né à `creation` au journal et à `synchro.verrou`, que la mesure sous `identite` dit orphelins. */
+    const orphelinsNes = (creation, identite) => {
+      writeFileSync(mesure.journal, JSON.stringify({ ...JSON.parse(ecrit), pid: process.pid, creation }))
+      writeFileSync(synchro, JSON.stringify({ ...JSON.parse(tenantEcrit), pid: process.pid, creation }))
+      return (mesurerPrincipal({ depuis: m.principal, visee: U, env: ENV, ...(identite ? { identite } : {}) }).orphelins ?? [])
+        .map((o) => [basename(o.verrou), o.pid, o.preuve]).filter(([, pid]) => pid === process.pid).map(([verrou, , preuve]) => [verrou, preuve])
+    }
+    const reutilise = [['index.lock', 'jeton du journal'], ['synchro.verrou', 'PID mort']]
+    assert.deepEqual(orphelinsNes(performance.timeOrigin - 3_600_000), reutilise, 'PID vivant né après la naissance du journal : réutilisé, donc mort')
+    assert.deepEqual(orphelinsNes(performance.timeOrigin), [], 'même naissance : vivant')
+    const feinte = { lireCreation: () => 1_000, toleranceMs: 0 }
+    assert.deepEqual(orphelinsNes(500, feinte), reutilise, 'l’identité INJECTÉE juge le journal et les verrous')
+    assert.deepEqual(orphelinsNes(1_000, feinte), [], 'l’identité injectée, même naissance : vivant')
+    writeFileSync(mesure.journal, ecrit)
+    writeFileSync(synchro, tenantEcrit)
     const U2 = committer(m.amont, { 'a.md': 'c\n' })
     const etapes = []
     const vu = await sync(m.principal, { etape: (nom) => { etapes.push(nom) } })
@@ -1234,4 +1294,29 @@ describe('incertains', () => {
     assert.ok(passages > 0)
     assert.equal(stage(m.principal).length, 0)
   })
+})
+
+test('#2491 mesure du principal : les deux dépôts Git consomment le sommeil injecté', async (t) => {
+  const { default: cp } = await import('node:child_process')
+  const { syncBuiltinESMExports } = await import('node:module')
+  const { BACKOFFS_MS, STATUS_DLL_INIT_FAILED } = await import('../guards/lib/spawnResilient.mjs')
+  const m = monde({ 'a.md': 'a\n' })
+  const original = cp.spawnSync
+  const rejoues = new Set()
+  const attentes = []
+  const mesure = t.mock.method(cp, 'spawnSync', (executable, args, options) => {
+    const cible = executable === 'git' && (args.includes('--git-common-dir') ? 'racine' : args.includes('--git-path') ? 'principal' : null)
+    if (cible && !rejoues.has(cible)) {
+      rejoues.add(cible)
+      return { status: STATUS_DLL_INIT_FAILED, stdout: '', stderr: '' }
+    }
+    return original(executable, args, options)
+  })
+  syncBuiltinESMExports()
+  try {
+    const vu = mesurerPrincipal({ depuis: m.principal, visee: m.B, env: ENV, dormir: (ms) => attentes.push(ms) })
+    assert.equal(vu.etat, 'a-jour')
+    assert.deepEqual([...rejoues], ['racine', 'principal'])
+    assert.deepEqual(attentes, [BACKOFFS_MS[0], BACKOFFS_MS[0]])
+  } finally { mesure.mock.restore(); syncBuiltinESMExports() }
 })

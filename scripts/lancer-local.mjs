@@ -20,7 +20,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { separerInvocation } from './guards/lib/invocation.mjs'
 import { refusOutillageLocal } from './outillage-local.mjs'
-import { codeEnfant } from './test/partition.mjs'
+import { codeEnfant } from './guards/lib/codesDeSortie.mjs'
 
 const EST_BIN_NPM = /(^|[\\/])node_modules[\\/]\.bin[\\/]?$/
 

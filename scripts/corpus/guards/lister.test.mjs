@@ -1,31 +1,20 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
-import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-
 import { dirname, join } from 'node:path'
-
 import { fileURLToPath } from 'node:url'
-
-import { listerArbre, parUnitesDeCode, correspondGlob } from '../../guards/lib/lister.mjs'
-
+import { listerArbre, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
-
-import { ciblesSurDisque } from '../../docs/build-all.mjs'
-
-import { lintFixtures, directivesLint } from '../../guards/lib/lint.testkit.mjs'
-
+import { lintFixtures, directivesLint, directivesLintCiblees } from '../../guards/lib/lint.testkit.mjs'
+import { cleDeContenu, lignesDuContenu } from '../../guards/lib/stock.mjs'
 import { lancerLint } from '../../guards/lib/lintStage.mjs'
-
 import configurationLint, { REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
-
-import { banclistertestmjs } from '../../guards/lib/bancLister.mjs'
-const { blocsDuMur, couvre, exempte, racinesDuRegistre } = banclistertestmjs
+import { blocsDuMur, couvre, exempte, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
+
+// --- (c) CLÔTURE : les modules atteints hors des globs, lintés par les règles du mur -------------
 
 test('CLÔTURE — aucun module atteint par une racine du registre, hors des globs du mur, n’enfreint ses règles', async () => {
   const cloture = [...clotureDImports(racinesDuRegistre(), { racine: RACINE_DEPOT })].sort()
@@ -51,17 +40,36 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
   assert.deepEqual(sites, [], sites.join('\n'))
 })
 
+/** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
+ *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
+ *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
+ *  le CONTENU de la ligne que la directive ÉTEINT (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
+ *  la suivante pour `-next-line`, la sienne pour `-line` ; la forme bloc, qui n'éteint pas UNE ligne,
+ *  est refusée. Le texte de la directive se répète (le même crochet dans `enregistreur-lectures.mjs`),
+ *  la ligne qu'elle éteint non. */
 const EXEMPTIONS_DU_MUR = [
-  'scripts/guards/lib/sourceCorpus.test.mjs:37',
-  'scripts/docs/lib/enregistreur-lectures.mjs:104', 'scripts/docs/lib/enregistreur-lectures.mjs:110',
-  'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:173',
-  'scripts/docs/lib/enregistreur-lectures.mjs:177', 'scripts/docs/lib/enregistreur-lectures.mjs:198',
-  'scripts/docs/lib/enregistreur-lectures.mjs:204',
-  'scripts/test/partition.mjs:191', 'scripts/test/partition.mjs:196',
+  "scripts/guards/lib/sourceCorpus.test.mjs :: import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'",
+  'scripts/docs/lib/enregistreur-lectures.mjs :: readdirSync: fs.readdirSync, opendirSync: fs.opendirSync, readdir: fs.readdir, globSync: fs.globSync, glob: fs.glob,',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: promisesReaddir: fs.promises.readdir, promisesOpendir: fs.promises.opendir, promisesGlob: fs.promises.glob,',
+  "scripts/docs/lib/enregistreur-lectures.mjs :: const entreesDe = (abs) => brut.readdirSync(abs, { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))",
+  'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: synchrone(brut.readdirSync, noterDossier), opendirSync: synchrone(brut.opendirSync, noterDossier), readdir: aRappel(brut.readdir, noterDossier), globSync: avantGlob(brut.globSync), glob: avantGlob(brut.glob) })',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: brut.readdirSync, opendirSync: brut.opendirSync, readdir: brut.readdir, globSync: brut.globSync, glob: brut.glob })',
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: fs.opendirSync(path.join(racine, 'o')).closeSync()",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: await (await fs.promises.opendir(path.join(racine, 'p'))).close()",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: await new Promise((fin, echec) => fs.readdir(path.join(racine, 'r'), (e) => (e ? echec(e) : fin())))",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(fs.globSync('a/**/*.md', { cwd: racine }).map((p) => p.split(path.sep).join('/')), ['a/b/x.md'])",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })",
+  'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
+  'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]
 
 const porteCommentaireEslint = texte => texte.includes('eslint') || texte.includes('oxlint')
 
+/** Les fichiers de code qu'arme au moins une règle du mur, marchés depuis les racines que ses globs
+ *  nomment (premier segment de chaque glob). */
 function fichiersSousLeMur() {
   const blocs = blocsDuMur()
   const racines = [...new Set(blocs.flatMap((c) => c.files.map((g) => g.split('/')[0])))].sort(parUnitesDeCode)
@@ -98,9 +106,22 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
     assert.ok(sousLeMur.includes(temoin), `la marche des globs du mur ne voit plus \`${temoin}\``)
   }
   const porteurs = sousLeMur.filter((rel) => porteCommentaireEslint(readFileSync(join(RACINE_DEPOT, rel), 'utf8')))
-  const vues=porteurs.flatMap(rel=>directivesLint(readFileSync(join(RACINE_DEPOT,rel),'utf8'),rel,regles).map(l=>rel+':'+l))
-  assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode))
+  const vues = []
+  for (const rel of porteurs) {
+    const code = readFileSync(join(RACINE_DEPOT, rel), 'utf8')
+    for (const { ligne, cible } of directivesLintCiblees(code, rel, regles)) {
+      assert.notEqual(cible, null, `${rel}:${ligne} : directive de forme BLOC — elle n’éteint pas UNE ligne, écrire \`-next-line\` ou \`-line\``)
+      const cle = cleDeContenu(rel, code, cible)
+      assert.equal(lignesDuContenu(rel, code, cle).length, 1, `exemption AMBIGUË : « ${cle} » désigne plusieurs lignes`)
+      vues.push(cle)
+    }
+  }
+  assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode), 'directive hors exemption, ou exemption PÉRIMÉE')
   const plante = code => directivesLint(code,'scripts/docs/zz-plante-directives.mjs',regles)
+  const cibles = code => directivesLintCiblees(code,'scripts/docs/zz-plante-directives.mjs',regles).map(d => d.cible)
+  assert.deepEqual(cibles('// oxlint-disable-next-line murs/ordre-total -- r\nfs.readdirSync(x)\nautre()'),[2],'`-next-line` vise la ligne suivante')
+  assert.deepEqual(cibles('fs.readdirSync(x) // oxlint-disable-line murs/ordre-total -- r\nautre()'),[1],'`-line` vise sa ligne')
+  assert.deepEqual(cibles('/* oxlint-disable murs/ordre-total */\nautre()\nfs.readdirSync(x)'),[null],'la forme bloc ne vise aucune ligne')
   assert.deepEqual(plante('// oxlint-disable-next-line murs/ordre-total -- r\nx()'),[1])
   assert.deepEqual(plante('/* oxlint-disable */\nx()'),[1])
   assert.deepEqual(plante('const re = /eslint-disable/;'),[])
@@ -120,71 +141,4 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
   assert.deepEqual(await plante('/*eslint no-console: 0, "murs/ordre-total-imports": ["error", {}] */\nx()\n'), [1])
   assert.deepEqual(await plante('/* eslint murs/marques: "off" */\nx()\n'), [])
   assert.deepEqual(await plante('/* eslint no-console: off -- murs/ordre-total-locale: y */\nx()\n'), [], 'la justification n’est pas une règle')
-})
-
-test('correspondGlob : `*` ne franchit PAS un séparateur', () => {
-  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', 'pages/raw/catalogue-*.md'), true)
-  // Le cas qui compte : `pages/*.md` NE couvre PAS une page d'un sous-dossier — sans quoi un
-  // manuscrit de `pages/raw/` passerait pour dérivé.
-  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', 'pages/*.md'), false)
-  assert.equal(correspondGlob('pages/systemes.md', 'pages/*.md'), true)
-})
-
-test('correspondGlob : `**` vaut ZÉRO ou plusieurs dossiers', () => {
-  const motif = 'pages/raw/**/catalogue-*.md'
-  assert.equal(correspondGlob('pages/raw/un-coeur/catalogue-divers.md', motif), true)
-  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', motif), true)
-  assert.equal(correspondGlob('pages/raw/un-coeur/plus-bas/catalogue-divers.md', motif), true)
-  // Ce que `**` n'autorise pas : sortir de la racine du motif, ni changer le nom visé.
-  assert.equal(correspondGlob('pages/autre/un-coeur/catalogue-divers.md', motif), false)
-  assert.equal(correspondGlob('pages/raw/un-coeur/combat.md', motif), false)
-})
-
-test('correspondGlob : `{a,b}` vaut l’une de ses alternatives, dans son segment', () => {
-  const motif = 'pages/*/{index,_registre.genere}.md'
-  assert.equal(correspondGlob('pages/un-coeur/index.md', motif), true)
-  assert.equal(correspondGlob('pages/un-coeur/_registre.genere.md', motif), true)
-  assert.equal(correspondGlob('pages/un-coeur/_registreXgenere.md', motif), false)
-  assert.equal(correspondGlob('pages/un-coeur/autre.md', motif), false)
-  assert.equal(correspondGlob('pages/un-coeur/index/x.md', 'pages/*/{index,autre}/x.md'), true)
-})
-
-test('correspondGlob : un chemin rendu par Windows se lit en POSIX', () => {
-  assert.equal(correspondGlob('pages\\raw\\un-coeur\\catalogue-divers.md', 'pages/raw/**/catalogue-*.md'), true)
-})
-
-const PAGES_FORGEES = [
-  'pages/00-index.md',
-  'pages/systemes.md',
-  'pages/raw/00-index.md',
-  'pages/raw/combat.md',
-  'pages/raw/un-coeur/00-index.md',
-  'pages/raw/un-coeur/combat.md',
-  'pages/raw/un-coeur/plus-bas/00-index.md',
-  'pages/autre/00-index.md',
-]
-
-test('ciblesSurDisque ⇔ correspondGlob : les DEUX lecteurs du motif s’accordent sur un arbre FORGÉ', () => {
-  const racine = mkdtempSync(join(tmpdir(), 'cibles-'))
-  try {
-    for (const page of PAGES_FORGEES) {
-      mkdirSync(join(racine, dirname(page)), { recursive: true })
-      writeFileSync(join(racine, page), '')
-    }
-    // Joker MÉDIAN (`**` et `*`), joker FINAL, motif sans joker : le dépliage du disque doit rendre
-    // exactement ce que le filtre retient — ni plus (une marche trop large), ni moins (un motif
-    // inerte, qu'aucune page ne satisfait alors que le filtre dit vrai).
-    for (const motif of [
-      'pages/raw/**/00-index.md', 'pages/raw/*/00-index.md', 'pages/*.md', 'pages/**/combat.md',
-      'pages/**/*.md', 'pages/raw/00-index.md',
-    ]) {
-      assert.deepEqual(
-        ciblesSurDisque([motif], racine).sort(),
-        PAGES_FORGEES.filter((p) => correspondGlob(p, motif)).sort(),
-        `déplié ≠ filtré pour « ${motif} »`,
-      )
-    }
-  } finally {
-    rmSync(racine, { recursive: true, force: true })
-  }
 })

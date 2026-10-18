@@ -1,11 +1,21 @@
-// Banc du lanceur des gates node (#2497) : la ligne `[durees]` et le reporter de sortie gardé.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { lancerGate, reporterParDefaut, reportersDuLancement } from './node-tests.mjs'
+import { entree, lancerGate, reporterParDefaut, reportersDuLancement } from './node-tests.mjs'
+
+test('lancerGate : arrêt indéterminé conserve durées et verrou', async (t) => {
+  const temporaire = mkdtempSync(join(tmpdir(), 'node-tests-retention-'))
+  t.after(() => rmSync(temporaire, { recursive: true, force: true }))
+  const verrou = { chemin: join(temporaire, 'geste.verrou'), libelle: 'fixture' }
+  const code = await lancerGate({ gate: 'fixture', tests: ['un.test.mjs'], racine: temporaire, temporaire, verrou,
+    imprimer: () => {}, executer: async () => ({ code: 1, arret: { etat: 'indetermine' } }) })
+  assert.equal(code, 1)
+  assert.equal(readdirSync(temporaire).some((n) => n.startsWith('durees-node-')), true)
+  assert.equal(readdirSync(temporaire).includes('geste.verrou'), true)
+})
 
 const durees = (args) => args.filter((a) => a.startsWith('--test-reporter')).slice(-2)
 
@@ -29,9 +39,7 @@ test('reportersDuLancement : le `--test-reporter` de l’appelant n’est pas do
   assert.equal(reportersDuLancement(['--test-reporter=dot', '--test-reporter-destination=f.txt'], { tty: false, sortie: 's' }).length, 2)
 })
 
-/** BOUT EN BOUT par la couture `lancerGate` sur un dépôt jetable : le vrai `node --test` et le vrai reporter des
- *  durées ; seule la sortie du processus est captée (`stdio: 'pipe'`), hors du contexte du test runner parent. */
-test('lancerGate : imprime `[durees] node <gate>` en chemins RELATIFS POSIX, n’écrit rien sous la racine et efface son dossier temporaire', (t) => {
+test('lancerGate : imprime `[durees] node <gate>` en chemins RELATIFS POSIX, n’écrit rien sous la racine et efface son dossier temporaire', async (t) => {
   const racine = mkdtempSync(join(tmpdir(), 'node-tests-'))
   const temporaire = mkdtempSync(join(tmpdir(), 'node-tests-temporaire-'))
   t.after(() => [racine, temporaire].forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -42,22 +50,51 @@ test('lancerGate : imprime `[durees] node <gate>` en chemins RELATIFS POSIX, n�
   delete env.NODE_TEST_CONTEXT
   let destinations = []
   let stdout = ''
-  const spawn = (cmd, args, options) => {
+  const superviser = async (cmd, args, options) => {
     destinations = args.filter((a) => a.startsWith('--test-reporter-destination='))
-    const r = spawnSync(cmd, args, { ...options, env, stdio: 'pipe', encoding: 'utf8' })
-    stdout = r.stdout
-    return r
+    const lancement = await lancerProcessusSupervise(cmd, args, { ...options, env: { ...env, ...options.env }, stdio: 'pipe' })
+    lancement.hote.stdout.on('data', (d) => { stdout += d })
+    return lancement
   }
   const imprimes = []
-  const code = lancerGate({ gate: 'test:essai', tests: ['scripts/a/un.test.mjs'], racine, temporaire, tty: false, spawn, imprimer: (l) => imprimes.push(l) })
+  const code = await lancerGate({ gate: 'test:essai', tests: ['scripts/a/un.test.mjs'], racine, temporaire, tty: false, superviser, env, verrou: { chemin: join(temporaire, 'geste.verrou'), libelle: 'fixture' }, mesures: { lire: () => ({}), ecrire() {} }, imprimer: (l) => imprimes.push(l) })
   assert.equal(code, 0)
   assert.match(stdout, reporterParDefaut(process.versions.node, false) === 'tap' ? /^TAP version 13/ : /✔ un/, 'la sortie par défaut de la version qui tourne, hors terminal')
-  assert.equal(imprimes.length, 1)
-  const [, gate, json] = /^\[durees\] node (\S+) (\{.*\})$/.exec(imprimes[0])
+  const lignesDurees = imprimes.filter((l) => l.startsWith('[durees]'))
+  assert.equal(lignesDurees.length, 1)
+  const [, gate, json] = /^\[durees\] node (\S+) (\{.*\})$/.exec(lignesDurees[0])
   assert.equal(gate, 'test:essai')
   assert.deepEqual(Object.keys(JSON.parse(json)), ['scripts/a/un.test.mjs'])
   assert.ok(Number.isInteger(JSON.parse(json)['scripts/a/un.test.mjs']))
   assert.deepEqual(readdirSync(racine, { recursive: true }).sort(), avant, 'rien d’écrit sous la racine')
   assert.equal(destinations[1].startsWith(`--test-reporter-destination=${join(temporaire, 'durees-node-')}`), true, 'le rapport sous le dossier temporaire')
   assert.deepEqual(readdirSync(temporaire), [], 'le dossier temporaire est effacé')
+})
+
+test('lancerGate : rapport des durées ABSENT, code rendu ; ILLISIBLE, il lève en nommant le rapport, sa cause portée', async (t) => {
+  const temporaire = mkdtempSync(join(tmpdir(), 'node-tests-durees-'))
+  t.after(() => rmSync(temporaire, { recursive: true, force: true }))
+  const lancer = (ecrire) => lancerGate({ gate: 'fixture', tests: ['un.test.mjs'], racine: temporaire, temporaire, imprimer: () => {},
+    verrou: { chemin: join(temporaire, 'geste.verrou'), libelle: 'fixture' },
+    executer: async ({ argv }) => {
+      const sortie = argv.filter((a) => a.startsWith('--test-reporter-destination=')).at(-1).slice('--test-reporter-destination='.length)
+      ecrire(sortie)
+      return { code: 3, arret: { etat: 'mort' } }
+    } })
+  assert.equal(await lancer(() => {}), 3)
+  await assert.rejects(lancer((sortie) => writeFileSync(sortie, '{"durees":')), (e) => /rapport des durées .*durees\.json illisible/.test(e.message) && e.cause instanceof SyntaxError)
+  assert.deepEqual(readdirSync(temporaire), [], 'dossier et verrou rendus après la levée')
+})
+
+test('entree : une erreur levée (mémo corrompu) sort préfixée `[node-tests]`, sa cause imprimée, code 2', async () => {
+  const lignes = []
+  const code = await entree(['test:runner'], {
+    lister: () => ['scripts/test/un.test.mjs'], journal: (l) => lignes.push(l),
+    lancer: async () => { throw new Error('mémo /m/profils.json illisible', { cause: new SyntaxError('JSON tronqué') }) },
+  })
+  assert.equal(code, 2)
+  assert.deepEqual(lignes, ['[node-tests] mémo /m/profils.json illisible', '[node-tests] cause : JSON tronqué'])
+  const lances = []
+  assert.equal(await entree(['test:runner', '--x', '--reacquerir-memoire'], { lister: () => ['scripts/test/un.test.mjs'], journal: () => {}, lancer: async (p) => { lances.push(p); return 0 } }), 0)
+  assert.deepEqual(lances, [{ gate: 'test:runner', tests: ['scripts/test/un.test.mjs'], drapeaux: ['--x'], forcer: true }])
 })

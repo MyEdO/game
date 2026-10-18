@@ -1,16 +1,13 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { fileURLToPath } from 'node:url'
-
 import { ventilationDeGit } from '../../guards/lib/cssImages.mjs'
-
-import { banccssCouchestestmjs } from '../../guards/lib/bancCssCouches.mjs'
-const { six, invariants, volet } = banccssCouchestestmjs
+import { six, invariants, volet } from '../../test/lib/bancCssCouches.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
+/** Les chiffres signés du juge (commentaire #1806 5803399612, 2026-09-23) ; RETOURNÉ mesuré sur le
+ *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock. */
 const ATTENDU = {
   '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 77]],
   'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 133]],

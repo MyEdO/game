@@ -11,7 +11,7 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
-//    `SONDE_D_EXISTENCE` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `SONDE_D_EXISTENCE`, `VIE_SUR_PID_LU` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -551,6 +551,48 @@ export const SONDE_D_EXISTENCE = Object.freeze({
     const signal = sansEnveloppe(n.arguments[1]);
     const nul = (ts.isNumericLiteral(signal) && Number(signal.text) === 0) || (ts.isStringLiteral(signal) && signal.text === '0');
     return nul ? 'sonde d’existence de processus recopiée (`estPidVivant`)' : null;
+  },
+});
+
+/** La sonde d'existence d'un pid, par son module. */
+const SONDE_DE_VIE = Object.freeze({ 'scripts/guards/lib/pid.mjs': Object.freeze(['estPidVivant']) });
+
+/** `id` est-il l'import de la sonde `SONDE_DE_VIE` ?
+ *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function sondeDeVieImportee(id, sf, contexte) {
+  const l = liaisonImportee(id, sf, contexte);
+  const module = l && contexte.module(l.spec);
+  return Boolean(module && (SONDE_DE_VIE[module] ?? []).includes(l.nom));
+}
+
+/** `id` lie-t-il la sonde `SONDE_DE_VIE` : son import, ou un paramètre, une liaison déstructurée ou une
+ *  variable dont elle est l'initialiseur (`{ estVivant = estPidVivant }`) ?
+ *  @param {ts.Identifier} id @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function lieLaSondeDeVie(id, sf, contexte) {
+  if (sondeDeVieImportee(id, sf, contexte)) return true;
+  const declarations = contexte.checker().getSymbolAtLocation(id)?.declarations ?? [];
+  return declarations.map((d) => d.resolve()).some((d) => {
+    if (!(ts.isParameterDeclaration(d) || ts.isBindingElement(d) || ts.isVariableDeclaration(d)) || !d.initializer) return false;
+    const initialiseur = sansEnveloppe(d.initializer);
+    return ts.isIdentifier(initialiseur) && sondeDeVieImportee(initialiseur, sf, contexte);
+  });
+}
+
+/** La VIE JUGÉE SUR UN PID LU, sans sa naissance : un appel à `estPidVivant` — importé, ou lié par un
+ *  paramètre, une liaison déstructurée ou une variable qu'il initialise — et `estPidVivant` passé en argument
+ *  (`pids.filter(estPidVivant)`). La sonde injectée à `estPidVivantDepuis` (`{ estVivant }`) n'en est pas une
+ *  (#2603 #2586). Angle mort : la sonde lue d'un objet (`g.estVivant(pid)`), réaffectée, ou réexportée. */
+export const VIE_SUR_PID_LU = Object.freeze({
+  nom: 'VIE_SUR_PID_LU',
+  indice: (texte) => texte.includes('estPidVivant'),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
+  reconnait: (n, sf, contexte) => {
+    if (!ts.isCallExpression(n)) return null;
+    const appele = sansEnveloppe(n.expression);
+    const juge = estAppelDeclare(n, sf, SONDE_DE_VIE, contexte) ?? (ts.isIdentifier(appele) && lieLaSondeDeVie(appele, sf, contexte) ? appele.text : null);
+    const passee = n.arguments.map(sansEnveloppe).find((a) => ts.isIdentifier(a) && sondeDeVieImportee(a, sf, contexte));
+    if (!juge && !passee) return null;
+    return `vie jugée sur un pid sans sa naissance : \`${juge ?? /** @type {ts.Identifier} */ (passee).text}\` dans \`${englobanteDe(n)}\` (\`estPidVivantDepuis\`)`;
   },
 });
 

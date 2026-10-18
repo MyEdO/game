@@ -1,13 +1,29 @@
+// CLÔTURE des ÉTAPES du train (#1806), gardée contre une retouche de bonne foi : une étape n'atteint
+// aucun LANCEMENT de processus hors de son contexte.
+//   node --test scripts/ops/etapesDuTrain.test.mjs   (chaîné dans `npm run test:ops`)
+//
+// La frontière est une CAPACITÉ, pas un nom. Sur la clôture d'imports de `etapesDuTrain.mjs`
+// (`clotureDImports`, `importGraph.mjs`), un point fixe INTER-MODULES calcule les liaisons qui
+// atteignent un lancement. Les SOURCES de capacité d'un module, chacune avec sa règle (une source
+// neuve = une ligne) :
+//   | source                          | règle                                                        |
+//   | import d'un module intégré      | lanceur hors de la liste blanche `INERTES` (module, nom)     |
+//   | import d'un paquet              | lanceur : sa source n'est pas lue                            |
+//   | import d'un module du dépôt     | lanceur si le module l'exporte lanceur (point fixe) ;        |
+//   |                                 | lanceur s'il n'est pas lu (JSON, `.cjs`, `.cts`)             |
+//   | import dynamique, `require`     | déclaration RACINE                                           |
+//   | `createRequire`, `getBuiltinModule`, `binding` | déclaration RACINE (`MENTIONS`)               |
+//   | accès ambiant (global lu)       | déclaration RACINE hors de la liste blanche `AMBIANTS_INERTES` |
+//   | évaluation (`eval`, `Function`) | accès ambiant, jamais inerte                                 |
+//   | `import.meta`                   | inerte (`url`, `resolve`, `dirname`, `filename`)             |
+// Une déclaration de tête qui référence une liaison lanceuse l'est à son tour, et tout export qui en
+// porte une. Le module des étapes n'en acquiert aucune et ne lit aucun accès ambiant. Résidu que ce
+// test ne garde pas : évaluation par `.constructor`, état mutable posé par un autre module, effet au
+// chargement d'un module de la clôture (#2073).
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { resolve } from 'node:path'
-
-import { bancetapesDuTraintestmjs } from './bancEtapesDuTrain.mjs'
-const { posix, lanceursDeLaCloture } = bancetapesDuTraintestmjs
-
-
+import { posix, lanceursDeLaCloture } from '../test/lib/bancEtapesDuTrain.mjs'
 
 test('le point fixe suit le RANGEMENT, le ré-export, l’espace de noms et le défaut, d’un module à l’autre ; une liaison intégrée hors de `INERTES` lance, un global lu hors de `AMBIANTS_INERTES` aussi', () => {
   const sources = new Map()

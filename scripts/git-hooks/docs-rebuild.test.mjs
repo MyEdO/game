@@ -1,16 +1,14 @@
 // #1773, #2329, #2475, #2603
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { dirname, join } from 'node:path'
-
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, CODE_DIFFERE, CODE_SOURCE_MODIFIEE, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_SOURCE_MODIFIEE, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -24,7 +22,9 @@ import { pathspecsDeRequeteGit, selectionDesGenerateurs, touchesDocSources } fro
 import { couvertParPathspec } from '../guards/lib/lister.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { attendreLibre, prendreVerrou, tenantDe } from '../test/verrou.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('#2285 callback docs : refus complet et commit ordinaire silencieux', () => {
@@ -76,6 +76,7 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
   }
 })
 
+/** Une mesure FORGÉE : un fichier lu, un dossier LISTÉ, une cible signée. */
 const MESURE = {
   'g/a.mjs': { cibles: ['docs/a.md'], fichiers: ['src/ui/Prose.tsx', 'notes/lue.md'], dossiers: ['.github/workflows'] },
 }
@@ -156,6 +157,7 @@ test('un fichier dans un dossier NEUF sous un dossier LISTÉ fait régénérer :
   assert.equal(touchesDocSources(['src/nouveau/plus/bas/x.ts'], mesure), true)
 })
 
+/** Une mesure FORGÉE à deux générateurs : `g/m.mjs` (le périmètre restreint) et `g/p.mjs` (hors). */
 const MESURE_DEUX = {
   'g/m.mjs': { cibles: [], fichiers: ['src/m.ts', 'scripts/m.mjs'], dossiers: ['data'] },
   'g/p.mjs': { cibles: [], fichiers: ['notes/p.md', 'scripts/p.mjs'], dossiers: ['.github/workflows'] },
@@ -204,6 +206,7 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   }
 })
 
+// #2327
 test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’index, conflits et lockfile compris ; hors fusion, ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: {
     'commun.txt': 'base\n', 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n',
@@ -249,6 +252,7 @@ test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’in
   }
 })
 
+// #2327
 test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’emporte l’index ; argument 0 : ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n' } })
   const git = gitDe(racine, { net: true })
@@ -462,8 +466,12 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
   }
 })
 
-/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière, le verrou, la porte. */
-const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
+/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière et ses `import()` (le verrou, la
+ *  porte), le répartiteur sans les siens (ses gardes) — dérivés de leurs imports (`clotureDImports`). */
+const CHAINE_DE_LA_BARRIERE = [...new Set([
+  ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'barriere-outil.mjs')], { racine: RACINE, typesEffaces: true }),
+  ...clotureDImports([join(RACINE, 'scripts', 'hooks', 'repartiteur.mjs')], { racine: RACINE, typesEffaces: true, dynamiques: false }),
+])]
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {
   const lock = JSON.stringify({ name: 'banc2187', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'banc2187', version: '1.0.0' } } })
@@ -1164,9 +1172,10 @@ test('(i) le détaché de la reconstruction naît sans `GIT_INDEX_FILE` ni jeton
   }
 })
 
-/** Les détachés `pids` attendus jusqu'à leur fin, bornée : REND ceux encore vivants à l'échéance. */
+/** Les détachés `pids` attendus jusqu'à leur fin, bornée, nés au plus tard à cet appel qui les a lus : REND ceux encore vivants à l'échéance (#2603). */
 function attendreLesDetaches(pids) {
-  const vivants = () => pids.filter((pid) => estPidVivant(pid))
+  const lus = Date.now()
+  const vivants = () => pids.filter((pid) => estPidVivantDepuis(pid, lus, IDENTITE_MESUREE))
   const fin = Date.now() + 60_000
   while (vivants().length && Date.now() < fin) attendreSync(100)
   return vivants()
@@ -1285,5 +1294,22 @@ test('(d) rebase de 3 picks : 3 post-commit et un post-rewrite demandent, aucune
     const lances = existsSync(journal) ? lire().filter((l) => l.startsWith('lance ')).map((l) => Number(l.slice('lance '.length))) : []
     assert.deepEqual(attendreLesDetaches(lances), [])
     rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
+  }
+})
+
+// #2493 #2603
+test('reconstruction : le verrou de l’arbre laissé par un PID mort est repris, et NOMMÉ orphelin au journal de la passe', () => {
+  const racine = depotDeReconstruction()
+  const chemins = cheminsDeLaReconstruction(racine)
+  try {
+    assert.equal(demanderLaReconstruction(racine, { detacher: () => process.pid }), 1)
+    mkdirSync(dirname(chemins.verrou), { recursive: true })
+    writeFileSync(chemins.verrou, JSON.stringify({ pid: 4242, generation: 'g', date: '2026-10-17T00:00:00.000Z' }))
+    assert.equal(servirLesDemandes({ racine, passe: () => 0, estVivant: (pid) => pid !== 4242, identite: IDENTITE_DU_BANC }), 1)
+    const nom = chemins.verrou.slice(dirname(chemins.verrou).length + 1)
+    const journal = readFileSync(join(chemins.logs, `${process.pid}.log`), 'utf8')
+    assert.ok(journal.includes(`verrou orphelin repris : ${nom} (PID 4242 mort depuis 2026-10-17T00:00:00.000Z, PID mort)`), journal)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })

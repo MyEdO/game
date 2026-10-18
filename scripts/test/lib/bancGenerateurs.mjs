@@ -1,8 +1,12 @@
-export const banccitationsrenduestestmjs = (() => {
 const REF = /`((?:src|scripts|server|docs)\/[\w./@-]+):(\d+)`/g
 const JETON = /`([^`]+)`/g
 const IDENT = /^[A-Za-z_$][\w$]*$/
+/** Demi-largeur de la fenêtre autour du site cité, en lignes. */
 const DEMI_FENETRE = 2
+/**
+ * Les fautes de citation d'un doc rendu : `lire(chemin)` rend le texte du fichier cité, ou `null`.
+ * Une ligne sans identifiant backtiqué ne juge que l'existence du site. PURE.
+ */
 function fautesDeCitations(doc, texte, lire) {
   const fautes = []
   texte.split('\n').forEach((ligne, i) => {
@@ -29,10 +33,9 @@ function fautesDeCitations(doc, texte, lire) {
   })
   return fautes
 }
-return { REF, JETON, IDENT, DEMI_FENETRE, fautesDeCitations }
-})()
 
-export const bancplateformewin32testmjs = (() => {
+/** Les ÉCARTS entre le rendu de `script` sur l'hôte et sous win32 (cible → texte, chacun) : une cible
+ *  d'un seul côté, ou un corps différent. PUR. */
 function ecartsDeRendu(script, hote, win32) {
   const ecarts = []
   for (const cible of new Set([...hote.keys(), ...win32.keys()])) {
@@ -42,5 +45,5 @@ function ecartsDeRendu(script, hote, win32) {
   }
   return ecarts
 }
-return { ecartsDeRendu }
-})()
+
+export { ecartsDeRendu, fautesDeCitations }

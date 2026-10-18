@@ -1,35 +1,30 @@
+// CLIQUET du CLASSEMENT DU PUSH (#1738) — `ci.yml` confronté à la MESURE `ECRIT_LU`.
+//   node --test scripts/gates/classerPush.test.mjs   (chaîné dans `npm run test:hooks`)
+//
+// `ci.yml` EST la porte : il doit se lire seul (quel step joue sur une fiche de mémoire). Ce banc
+// confronte cette DÉCISION à la MESURE — ce que la gate LIT — DANS LES DEUX SENS, comme
+// `ruleset-main.test.mjs` confronte le ruleset à `jobsCi()`. Une gate neuve mal classée fait rougir
+// en la NOMMANT, qu'elle soit sautée à tort ou jouée pour rien.
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
 import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
-
 import { join, dirname, relative, resolve } from 'node:path'
-
 import { tmpdir } from 'node:os'
-
 import { fileURLToPath } from 'node:url'
-
 import { ACTION_PROLOGUE, DOCUMENTAIRE, CI_SEULEMENT_PRODUIT, COMMANDE_CLASSER, CONDITION_PRODUIT, ID_PROLOGUE, classer, classerPush, baseDuDiff, gatesSautables } from './classerPush.mjs'
-
 import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
-
 import { stepsDu } from './workflowsDuDepot.mjs'
-
 import { ECRIT_LU } from './toutes.mjs'
-
 import { lancerGit } from '../test/gitDeBanc.mjs'
-
-import { bancclasserPushtestmjs } from './bancClasserPush.mjs'
-const { jetonNomme } = bancclasserPushtestmjs
+import { jetonNomme } from '../test/lib/bancClasserPush.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 
 const CLASSEUR = join(RACINE, 'scripts', 'gates', 'classerPush.mjs')
+
+// (a) — le CLASSEMENT lui-même.
 
 test('une fiche de mémoire seule est un push DOCUMENTAIRE', () => {
   assert.deepEqual(classer(['.claude/memory/x.md']).produit, false)
@@ -60,6 +55,8 @@ test('un préfixe SANS `/` final ne prend que le fichier EXACT : `CLAUDE.md.bak`
   assert.equal(classer(['CLAUDE.md']).produit, false)
   assert.equal(classer(['CLAUDE.md.bak']).produit, true)
 })
+
+// (b) — CONFRONTATION `ci.yml` ↔ `ECRIT_LU`.
 
 const gates = gatesDeCi({ cwd: RACINE })
 
@@ -170,6 +167,8 @@ test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON'
   }
 })
 
+// (d) — le CLI, sur des dépôts JETABLES de `os.tmpdir()`.
+
 const gitDe = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 test('#2285 famille classer callback : diagnostic du merge-base', () => {
@@ -209,6 +208,7 @@ test('#2285 famille classer CLI : catch Git complet', () => {
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
+/** Un dépôt jetable avec un `main` d'un commit, une branche de travail, et `origin` sur lui-même. */
 function depotJetable() {
   const racine = mkdtempSync(join(tmpdir(), 'wfrp-classer-'))
   const git = gitDe(racine)
@@ -229,6 +229,7 @@ function ecrire(racine, chemin, contenu) {
   writeFileSync(join(racine, chemin), contenu)
 }
 
+/** Joue le CLI dans `cwd` et rend `{ code, stdout, stderr }` — le code de sortie est LU, pas deviné. */
 function jouerCli(cwd, env) {
   const vu = spawnSync(process.execPath, [CLASSEUR], { cwd, encoding: 'utf8', env: { ...envDeDepotForge(), ...env }, timeout: 10000 })
   return { code: vu.status, stdout: vu.stdout ?? '', stderr: vu.stderr ?? '' }
@@ -343,8 +344,12 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
   }
 })
 
+// ── Avant `npm ci` : la fermeture des imports n'atteint aucun paquet ─────────────────────────────
+
+/** Imports statiques, réexports, imports nus et `import()` dynamiques d'un source. */
 const IMPORTS = /(?:^|\n)\s*(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
+/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt, graphie de l'hôte). */
 function fermetureDesImports(depart) {
   const fichiers = new Set()
   const paquets = []
@@ -370,6 +375,8 @@ test('le classement tourne AVANT `npm ci` : la fermeture de ses imports n’atte
   assert.ok(fichiers.includes(join('scripts', 'guards', 'lib', 'gitPorte.mjs')), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
   assert.deepEqual(paquets, [], `imports hors node:* et hors dépôt dans la fermeture de ${fichiers.join(', ')}`)
 })
+
+// ── Chemins d'ÉCHEC : jamais DOCUMENTAIRE ─────────────────────────────────────────────────────────
 
 test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classement CONSERVATEUR', () => {
   const { racine, git } = depotJetable()

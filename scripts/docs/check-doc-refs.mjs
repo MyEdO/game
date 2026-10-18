@@ -14,6 +14,7 @@ import { parUnitesDeCode, listerArbre, listerDossier } from '../guards/lib/liste
 import { estSuiteVitest, SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { cibleProduite, generateurDe } from './build-all.mjs'
+import { ast, typescript } from '../guards/lib/dialecte.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
@@ -77,6 +78,45 @@ const lineAt = (text, index) => text.slice(0, index).split('\n').length
 
 /** Chemin de code cité dans un texte quelconque (prose d'un `.md`, commentaire ou chaîne d'un `.mjs`). */
 const CHEMIN_RE = /\b(?:src|scripts)\/[A-Za-z0-9_./*-]+/g
+/** Nom de fichier dont le RADICAL fait un seul caractère (`src/ui/X.tsx`, `src/x.ts`, `scripts/x.mjs`) :
+ *  la métavariable de prose du dépôt, jamais un fichier réel. */
+const estMetavariable = (tok) => /(^|\/)[A-Za-z](?:\.[A-Za-z0-9]+)*$/.test(tok)
+const NOM_DE_SUITE = new RegExp(`(^|/)[\\w-][\\w.-]*${SUFFIXE_SUITE}$`)
+
+function* candidatsSuites(text) {
+  for (const m of text.matchAll(CHEMIN_RE)) {
+    const tok = cheminCite(text, m)
+    if (!estMetavariable(tok) && NOM_DE_SUITE.test(tok)) yield { tok, index: m.index }
+  }
+}
+
+for (const file of [...fichiersSources(SRC_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts']), ...fichiersSources(SCRIPTS_DIR, ['.ts', '.tsx', '.js', '.mjs', '.mts'])]) {
+  const text = readFileSync(file, 'utf8')
+  // #2586
+  if (candidatsSuites(text).next().done && !text.includes('ECRIT_LU') && !text.includes('\\u')) continue
+  const sf = ast({ rel: file, text })
+  const ts = typescript()
+  const spans = new Map()
+  const commentaire = (range) => spans.set(range.pos, { text: text.slice(range.pos, range.end), position: range.pos })
+  const raison = (n) => {
+    if (ts.isStringLiteralLikeNode(n)) spans.set(n.pos, { text: n.text, position: n.getStart(sf) + 1 })
+    else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) { raison(n.left); raison(n.right) }
+  }
+  const visiter = (n) => {
+    for (const range of ts.getLeadingCommentRanges(text, n.pos) ?? []) commentaire(range)
+    for (const range of ts.getTrailingCommentRanges(text, n.end) ?? []) commentaire(range)
+    if (ts.isPropertyAssignment(n) && n.name?.text === 'raison') {
+      let porteur = n
+      while (porteur && !(ts.isVariableDeclaration(porteur) && ts.isIdentifier(porteur.name) && porteur.name.text === 'ECRIT_LU')) porteur = porteur.parent
+      if (porteur) raison(n.initializer)
+    }
+    n.forEachChild(visiter)
+  }
+  visiter(sf)
+  for (const span of spans.values()) for (const { tok, index } of candidatsSuites(span.text)) {
+    jugerChemin(tok, { file, line: lineAt(text, span.position + index), kind: 'suite citée mais absente', tok })
+  }
+}
 
 // `listerDossier(DOCS_DIR)` est NON récursif : ne liste que les fichiers .md à plat dans docs/. Les
 // sous-dossiers (docs/plans/, docs/raw/…) sont donc déjà hors périmètre par construction —
@@ -310,9 +350,6 @@ for (const f of DOCS_LISANT) {
 // des chemins qui n'ont pas vocation à exister ici (mesuré : 116 des 124 chemins morts du périmètre
 // large sont des fixtures de test) — même raison que l'exclusion `docs/plans/` du sens 5.
 const HOOKS_DIRS = ['scripts/git-hooks', 'scripts/hooks']
-/** Nom de fichier dont le RADICAL fait un seul caractère (`src/ui/X.tsx`, `src/x.ts`, `scripts/x.mjs`) :
- *  la métavariable de prose du dépôt, jamais un fichier réel. */
-const estMetavariable = (tok) => /(^|\/)[A-Za-z](\.[A-Za-z0-9]+)?$/.test(tok)
 /** Un jeton porteur d'un JOKER (`*`, `?`, `[`) est un MOTIF de prose (`scripts/_tmp-qc-*.mts`,
  *  `*-guard.test.ts`), pas un chemin : il ne se confronte pas au disque. SEULE définition — les sens
  *  6 et 7 la partagent. */

@@ -11,6 +11,8 @@ import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneCon
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
@@ -601,19 +603,40 @@ test('contrôleur : un petit-enfant qui écrit sur stderr après la sortie 0 de 
   assert.equal(existsSync(join(b.dossier, `${id}.stderr`)), false)
 })
 
-test('JobHost partage la création atomique du Job et son nettoyage borné', () => {
-  const ps = readFileSync(new URL('./session-process.ps1', import.meta.url), 'utf8')
-  const natif = readFileSync(new URL('../guards/lib/processusJob.cs', import.meta.url), 'utf8')
-  assert.match(ps, /Add-Type -Path.*processusJob\.cs/)
-  assert.match(natif, /0x00002000/)
-  assert.match(natif, /PROC_THREAD_ATTRIBUTE_JOB_LIST/)
-  assert.match(natif, /0x00080000/)
-  assert.match(natif, /TerminateJobObject\(job/)
-  assert.match(natif, /ActiveProcesses/)
-  assert.match(natif, /cleanup\.ElapsedMilliseconds >= 5000/)
-  assert.match(ps, /exit 0/)
-  assert.doesNotMatch(natif, /BREAKAWAY/)
-  assert.doesNotMatch(ps, /taskkill|Stop-Process|ConvertFrom-Json|RedirectStandard|AnonymousPipe/)
+function runSessionJob(t, programme, timeoutMs) {
+  const dossier = mkdtempSync(join(tmpdir(), 'session-job-run-')), script = join(dossier, 'worker.mjs'), sonde = join(dossier, 'run.ps1')
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  writeFileSync(script, programme)
+  writeFileSync(sonde, [
+    'param([string]$Cs, [string]$Node, [string]$Script, [string]$Tmp, [int]$TimeoutMs)',
+    "$ErrorActionPreference = 'Stop'",
+    '$env:TMP = $Tmp; $env:TEMP = $Tmp',
+    'Add-Type -Path $Cs',
+    '$chrono = [Diagnostics.Stopwatch]::StartNew(); $erreur = $null',
+    'try { [SessionJob]::Run($Node, (\'"\' + $Node + \'" "\' + $Script + \'"\'), $Tmp, $TimeoutMs) } catch { $erreur = $_.Exception.GetBaseException().Message }',
+    'ConvertTo-Json -Compress @{ ms = $chrono.ElapsedMilliseconds; erreur = $erreur }',
+  ].join('\r\n'))
+  const cs = fileURLToPath(new URL('../guards/lib/processusJob.cs', import.meta.url))
+  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', sonde, '-Cs', cs, '-Node', process.execPath, '-Script', script, '-Tmp', dossier, '-TimeoutMs', String(timeoutMs)], { encoding: 'utf8', windowsHide: true, timeout: 60_000 })
+  assert.equal(vu.error, undefined, vu.error?.message)
+  assert.equal(vu.status, 0, vu.stderr)
+  return { dossier, ...JSON.parse(vu.stdout) }
+}
+
+test('SessionJob.Run lève ETIMEDOUT à l\'échéance du worker au lieu de rendre normalement', { skip: process.platform !== 'win32', timeout: 60_000 }, (t) => {
+  const vu = runSessionJob(t, 'setTimeout(() => {}, 10_000)', 500)
+  assert.equal(vu.erreur, 'ECLOTURE ETIMEDOUT Node controller timeout')
+  assert.ok(vu.ms < 5000, `Run rendu en ${vu.ms} ms`)
+})
+
+test('JobHost : le Job tient la descendance détachée du worker et la vide sous la borne de clôture de 2000 ms', { skip: process.platform !== 'win32', timeout: 60_000 }, (t) => {
+  const vu = runSessionJob(t, `import { spawn } from 'node:child_process'; import fs from 'node:fs'; import { join, dirname } from 'node:path'; import { fileURLToPath } from 'node:url'; const dossier = dirname(fileURLToPath(import.meta.url)); const publier = 'require("fs").writeFileSync(require("path").join(process.argv[1], process.argv[2] + ".json"), JSON.stringify({ pid: process.pid, naissance: performance.timeOrigin }))'; spawn(process.execPath, ['-e', publier + '; setInterval(() => {}, 1000)', dossier, 'enfant'], { detached: true, stdio: 'ignore' }).unref(); fs.writeFileSync(join(dossier, 'worker.json'), JSON.stringify({ pid: process.pid, naissance: performance.timeOrigin })); setInterval(() => {}, 1000)`, 5000)
+  assert.equal(vu.erreur, 'ECLOTURE ETIMEDOUT Node controller timeout')
+  assert.ok(vu.ms < 5000 + 2000 + 1500, `Run rendu en ${vu.ms} ms`)
+  for (const nom of ['worker', 'enfant']) {
+    const { pid, naissance } = JSON.parse(readFileSync(join(vu.dossier, `${nom}.json`), 'utf8'))
+    assert.equal(estPidVivantDepuis(pid, naissance, IDENTITE_MESUREE), false, nom)
+  }
 })
 
 test('politique : schéma strict lu une fois ; sandbox et approbation à leur seule valeur prouvée ; clé inconnue, réseau, profil et type faux refusés', (t) => {

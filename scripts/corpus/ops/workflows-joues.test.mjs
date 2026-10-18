@@ -1,19 +1,11 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { readFileSync } from 'node:fs'
-
 import { join } from 'node:path'
-
 import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
-
 import { lireWorkflow } from '../../guards/lib/formeDeWorkflow.mjs'
-
 import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../../guards/lib/jouer-workflow.mjs'
-
-import { bancworkflowsjouestestmjs } from '../../ops/workflowsBanc.mjs'
-const { RACINE, jouer, ARGS_TABLE, FICHES_PJ, jetsDe, analyseCouvrante, repondreALaTable, jouerTable, mjSansFin, mjAuxSorts, analyseSignal, argsDossier, ARGS_DOSSIER, repondreAuDossier, jouerDossier, sauf } = bancworkflowsjouestestmjs
+import { RACINE, jouer, ARGS_TABLE, FICHES_PJ, jetsDe, analyseCouvrante, repondreALaTable, jouerTable, mjSansFin, mjAuxSorts, analyseSignal, argsDossier, ARGS_DOSSIER, repondreAuDossier, jouerDossier, sauf } from '../../test/lib/bancWorkflows.mjs'
 
 const FUITE = { echange: 2, secret: 'sec1', constat: 'la narration nomme le secret, aucun indice trouvé n’y mène' };
 
@@ -21,15 +13,20 @@ const AVEC_COMPAGNON = argsDossier(['EDOC-03']);
 
 const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
 
+// ── CLASSES : tout workflow du dépôt ───────────────────────────────────────────────────────────────
+
+/** Le nom de fichier d'un script : ce qu'un banc NOMME (porte B9 de `workflows.test.mjs`). */
 const nomDe = (chemin) => chemin.split(/[\\/]/).pop();
 
 const ATLAS = join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js');
 
+/** Un périmètre de FIXTURE : un cœur, un livre, un domaine — rien du registre réel. */
 const ARGS_ATLAS = {
   coeur: 'alpha', domaines: [{ cle: 'domaine-un', titre: 'Domaine de fixture' }], lot: ['domaine-un'],
   livres: [{ ab: 'BKA', dir: 'Source/Fixture - Base Alpha', coeur: 'alpha', language: 'Langue-A' }],
 };
 
+/** Un atlas qui répond à chaque phase ; `fidele: false` ouvre la correction de fidélité et la re-vérification. */
 const repondreALAtlas = (fidele) => (prompt, opts) => ({
   Cadrage: { coverageRefs: [{ ab: 'BKA', nn: '05' }] },
   Cartographie: { items: [{ item: 'Une règle', kind: 'table', ref: 'BKA 05 l.1', gist: 'g' }] },
@@ -41,12 +38,15 @@ const repondreALAtlas = (fidele) => (prompt, opts) => ({
   Verif: { faithful: fidele, issues: fidele ? [] : ['une valeur fausse'] },
 })[opts.phase];
 
+/** Par script de workflow du dépôt : des runs qui atteignent ses agents. */
 const RUNS_COUVRANTS = {
   'dossier-de-chapitre.js': () => [jouerDossier(AVEC_COMPAGNON, { oublis: { declencheurs: [ENTREE_D2] } })],
   'table-simulee.js': () => [jouerTable(mjSansFin)],
   'atlas-domain.workflow.js': () => [jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(true)), jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(false))],
 };
 
+/** Ce qui fige un agent de fond (une commande qui attend une autorisation) : changement de dossier,
+ *  enchaînement, shell prescrit, fichier de sonde écrit ou lu par redirection. */
 const INTERDITS_D_EXECUTION = /(^|[\s`"(])cd\s|&&|Shell = Bash|git -C|dossier de sondes|s'écrit sous|redirection fichier/i;
 
 const CONTRAT_D_EXECUTION = /Toute commande passe par l'outil `ctx_shell`, son paramètre `cwd` = l'arbre[^:\n]* : UNE commande simple par appel, [^\n]*; UN SEUL appel `ctx_shell` par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
@@ -69,6 +69,8 @@ test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de 
   assert.deepEqual([...new Set(executants)].sort(), ['dossier-de-chapitre.js', 'table-simulee.js'], 'témoin : les workflows dont les agents exécutent');
 });
 
+/** Par workflow qui rend un verdict : ses verdicts de SUCCÈS, un run témoin qui en rend un, et UNE injection
+ *  par espèce de trou, qui la produit. Les espèces se MESURENT aux `trous` que le témoin rend. */
 const VERDICTS_DE_SUCCES = {
   'table-simulee.js': {
     succes: ['SIGNAL', 'THÉÂTRE'],

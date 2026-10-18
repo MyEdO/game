@@ -1,4 +1,5 @@
-import { CODE_DIFFERE, generateursDeCode } from '../docs/build-all.mjs'
+import { generateursDeCode } from '../docs/build-all.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 export function argumentsDeGenerationCode(test, generateurs) {
   return test

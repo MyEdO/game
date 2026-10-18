@@ -1,23 +1,57 @@
+// PORTE DE FORME DES SCRIPTS DE WORKFLOW DU DÉPÔT — reconnus à leur CONTENU par l'AST
+// (`lireWorkflow`, scripts/guards/lib/formeDeWorkflow.mjs : `export const meta` de premier niveau),
+// jamais à leur dossier. Chaque table (`TABLES` de formeDeWorkflow.mjs) se keye sur le chemin RELATIF à la racine.
+//
+// Un workflow enchaîne des agents sans passer par l'interprétation d'un modèle : ce que le script
+// écrit est ce qui part. Les propriétés qui décident du RÉSULTAT — quel type d'agent juge, quel
+// modèle et quel effort il porte, dans quelle phase, sous quel schéma, et ce qu'on lui demande de ne
+// pas lancer — se lisent donc à la FORME du script, jamais à l'exécution (un run coûte des dizaines
+// d'agents).
+//
+// La porte est keyée sur la `phase` et l'`agentType` LITTÉRAUX, jamais sur le `label` : le label est
+// de l'affichage (doctrine id/label du CLAUDE.md), il se renomme sans qu'aucune règle ne bouge.
+//
+// LA RACINE DU SCHÉMA (invariant : aucune propriété racine d'un schéma passé à `agent()` n'accepte
+// une chaîne — run `wf_564ccc33-1bf`, #1993) se juge ICI, seul point qui voit TOUS les sites :
+// ce qui DÉCIDE de la racine est un littéral FERMÉ, résolu par LIAISON, inatteignable par le code ;
+// tout ce qui vit SOUS une propriété racine est libre. Le squelette résolu est jugé par
+// `defautsDeRacine`, la fonction que la doublure (`jouer-workflow.mjs`) applique à l'objet
+// sérialisé. Résidu : une mutation d'intrinsèque (`Object.prototype.toJSON`) n'est vue que par
+// cette doublure, sur les chemins qu'un banc atteint.
+//
+// CE QUE LA PORTE VOIT DES PROMPTS (mesuré : le seul texte du site d'appel ne couvrait que 388 des
+// 74 000 caractères réels d'un prompt, et aucun de ceux d'un prompt rendu par une fonction) :
+//   · la SYNTAXE — les diagnostics natifs sont lus et rendus
+//     (`node --check` refuse ces scripts à cause du `return` de premier niveau, et le lint ignore
+//     `.claude/**` : cette porte est le SEUL lecteur de leur syntaxe) ;
+//   · le PROMPT RÉSOLU : le littéral du site d'appel, ses `${IDENT}` remplacés par la valeur des
+//     constantes de premier niveau du même fichier, récursivement ;
+//   · TOUT texte littéral du fichier, à n'importe quelle profondeur — c'est ce qui couvre les
+//     consignes portées par un tableau et les prompts rendus par une fonction.
+// Restent hors de vue : ce qui vient de `args` à l'exécution, et une chaîne interdite coupée EN DEUX
+// par une interpolation. Un identifiant de premier niveau que la résolution n'atteint pas est NOMMÉ
+// (`prompt-non-resolu`), jamais passé en silence.
 import { ast } from '../../guards/lib/dialecte.mjs'
-
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
-import { existsSync, readFileSync } from 'node:fs'
-
+import { readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
-
 import { fileURLToPath } from 'node:url'
-
 import { bancsDeWorkflowDuDepot, reconnaissanceDuDepot } from '../../guards/lib/jouer-workflow.mjs'
+import { etagesDe, REGIMES, EXCEPTIONS_MECANIQUES, TABLES, estTexte, analyser as analyserForme } from '../../guards/lib/formeDeWorkflow.mjs'
+import { FICHES, TYPES_DECLARES, RACINE, muter, vus as voirDefauts } from '../../test/lib/bancWorkflows.mjs'
 
-import { bancworkflowstestmjs } from '../../ops/workflowsBanc.mjs'
-const { RACINE, ETAGES, REGIMES, EXCEPTIONS_MECANIQUES, TABLES, estTexte, analyser, muter, vus } = bancworkflowstestmjs
-
+const CALIBRAGE = readFileSync(new URL('../../../.claude/skills/orchestrer-des-agents/SKILL.md', import.meta.url), 'utf8')
+const ETAGES = etagesDe(FICHES)
 const CE_FICHIER = fileURLToPath(import.meta.url);
 
-export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
+/**
+ * Défauts des TABLES de la porte (B7, B8). PUR.
+ * @param {typeof TABLES} tables
+ * @param {{ scripts: string[], phases: Map<string, { declarees: Set<string>, deSites: Set<string> }>, typesDeclares: Set<string> }} contexte
+ * @returns {string[]}
+ */
+export function defautsDesTables(tables, { scripts, phases, typesDeclares }) {
   const defauts = [];
   /** Une phase des tables est déclarée ET portée par au moins un SITE `agent(` : le régime ne vaut que là. */
   const declareeEtDeSite = (ou, fichier, phase) => {
@@ -38,7 +72,7 @@ export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
       declareeEtDeSite(`REGIMES[${fichier}]`, fichier, phase);
     }
   }
-  const noms = tables.exceptions.map((e) => `${e.fichier} / ${e.phase} / ${e.type ?? 'absent'}`);
+  const noms = tables.exceptions.map((e) => `${e.fichier} / ${e.phase} / ${e.type}`);
   if (noms.length > tables.plafond) defauts.push(`EXCEPTIONS_MECANIQUES : ${noms.length} entrées pour ${tables.plafond} au plus — en retirer est libre, en ajouter se justifie au commit`);
   if (JSON.stringify(noms) !== JSON.stringify(tables.nommees)) defauts.push(`EXCEPTIONS_MECANIQUES : ${JSON.stringify(noms)} diffère des exceptions NOMMÉES ${JSON.stringify(tables.nommees)}`);
   for (const e of tables.exceptions) {
@@ -49,11 +83,19 @@ export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
     }
     declareeEtDeSite(ou, e.fichier, e.phase);
     if (String(e.raison ?? '').length < 20) defauts.push(`${ou} : raison de moins de 20 caractères`);
-    if (e.type !== null && !agentExiste(e.type)) defauts.push(`${ou} : type \`${e.type}\` sans \`.claude/agents/${e.type}.md\``);
+    if (!typesDeclares.has(e.type)) defauts.push(`${ou} : type \`${e.type}\` non déclaré sous \`.claude/agents/\` (\`name:\` du frontmatter)`);
   }
   return defauts;
 }
 
+/**
+ * B9 — les scripts qu'aucun banc ne NOMME : le nom de fichier d'un script doit être le dernier
+ * segment d'un littéral de chaîne d'un fichier de test qui importe `jouer-workflow.mjs`. PUR,
+ * STATIQUE — aucun processus fils, indépendant de l'ordre des tests.
+ * @param {string[]} scripts chemins RELATIFS
+ * @param {{ fichier: string, source: string }[]} bancs
+ * @returns {string[]}
+ */
 export function scriptsSansBanc(scripts, bancs) {
   const nommes = new Set();
   for (const { fichier, source } of bancs) {
@@ -71,6 +113,7 @@ const relatif = (f) => relative(RACINE, f).split(sep).join('/');
 
 const reconnaissance = reconnaissanceDuDepot(RACINE);
 
+/** Chemins RELATIFS (séparateur `/`) des scripts de workflow du dépôt. */
 const scripts = reconnaissance.scripts.map(relatif);
 
 const sources = new Map(scripts.map((f) => [f, readFileSync(join(RACINE, f), 'utf8')]));
@@ -82,9 +125,10 @@ const parRegle = (regle) => [...analyses.values()].flatMap((a) => a.defauts).fil
 const contexteReel = (phases = analyses) => ({
   scripts,
   phases,
-  agentExiste: (type) => existsSync(join(RACINE, '.claude', 'agents', `${type}.md`)),
+  typesDeclares: TYPES_DECLARES,
 });
 
+/** Les bancs du dépôt, hors CETTE porte (ses tables nomment chaque script). */
 const bancs = bancsDeWorkflowDuDepot(RACINE).filter((f) => f !== CE_FICHIER).map((f) => ({ fichier: relatif(f), source: readFileSync(f, 'utf8') }));
 
 test('il y a des workflows à juger (sinon la porte est verte pour rien)', () => {
@@ -159,9 +203,9 @@ test('COUVERTURE : chaque script de workflow reconnu est nommé par un banc', ()
 
 test('la porte MORD quand une phase de RÉDACTION part sur un autre type ou un autre modèle', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Synthese', agentType: 'lecteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
   assert.deepEqual(vus(mute, fichier), [
-    "agent : phase de RÉDACTION `Synthese` : `agentType: 'lecteur'` exigé (lu : `juge`)",
+    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge`)",
     "agent : phase de RÉDACTION `Synthese` : `model: 'opus'` exigé AUSSI (lu : `sonnet`) — un sous-agent ne tourne jamais sur le modèle de session",
   ]);
 });
@@ -230,3 +274,7 @@ test('B9 — retirer des bancs le littéral qui nomme un script le laisse SANS b
   }));
   assert.deepEqual(scriptsSansBanc(scripts, bancs.map((b) => mutes.get(b) ?? b)), ['.claude/workflows/table-simulee.js']);
 });
+
+function analyser(source, fichier, tables) { return analyserForme(source, fichier, tables, CALIBRAGE, FICHES) }
+
+function vus(source, fichier) { return voirDefauts(source, fichier, CALIBRAGE) }

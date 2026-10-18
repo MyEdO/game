@@ -37,8 +37,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
-import { verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
+import { estGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { cheminsDeLEcrivain, ecrivainTenu, ENV_EPOQUE, preempterLesDerives } from './lib/ecrivain-derives.mjs'
 import { gitDirDe } from '../hooks/barriere-outil.mjs'
 import { ecrireDoc, ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
@@ -163,14 +164,14 @@ const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url
  * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier
  * de `ENV_CIBLES_RENDUES`.
  */
-function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees, motifsDeclares }) {
+function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees, motifsDeclares, env: environnement = process.env }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     ...(mode === 'rendre' ? [RENDRE_SEUL] : []),
     script,
     ...(mode === 'verifier' ? ['--check'] : []),
   ]
-  const env = envIsole(process.env, binLocal(cwd))
+  const env = envIsole(environnement, binLocal(cwd))
   if (lectures) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim()
   if (rendues) env[ENV_CIBLES_RENDUES] = rendues
   if (lectures) {
@@ -287,11 +288,11 @@ export function preparerLectures(cwd, racineLectures) {
  * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
  * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
-export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees, motifsDeclares }) {
+export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees, motifsDeclares, env = process.env }) {
   mkdirSync(lectures, { recursive: true })
   const ecrites = ciblesSurDisque(g.targets, cwd)
   const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
-  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
+  run(g, { cwd, env, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
   const lues = fusionnerLectures(lectures)
   return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()], git: lues.git ?? [], sondes: lues.sondes ?? [], incomplet: lues.incomplet ?? [] } }
 }
@@ -401,6 +402,7 @@ export function executer(p) {
 function executerLesGenerateurs({
   cwd,
   argv = process.argv,
+  env = process.env,
   generateurs = GENERATORS,
   verificateurs = NON_GENERATOR_CHECKS,
 }) {
@@ -496,7 +498,7 @@ function executerLesGenerateurs({
         }
         try {
           mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
-            cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
+            cwd, env, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
             rendues: path.join(dossier, 'cibles-rendues'),
           }), { mesurer: etapeHeritee(cwd) })
         } catch (e) {
@@ -601,7 +603,7 @@ function executerLesGenerateurs({
       try {
         etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${script}`, () => execFileResilient(process.execPath, [script], {
           cwd,
-          env: envIsole(process.env, binLocal(cwd)),
+          env: envIsole(env, binLocal(cwd)),
           ...sortiesDe(quiet),
         }, { site: `build-all/${script}` }), { mesurer: etapeHeritee(cwd) })
       } catch (e) {
@@ -631,29 +633,21 @@ function executerLesGenerateurs({
   }
 }
 
-/** Code de sortie « DIFFÉRÉ » (`EX_TEMPFAIL`, sysexits.h) : le verrou des gestes lourds est resté tenu jusqu'à
- *  l'échéance de son attente, rien n'a tourné (#2603). */
-export const CODE_DIFFERE = 75
-
 /** Code de sortie « SOURCE MODIFIÉE » : une source du générateur a changé pendant sa passe (`SourceModifiee`),
  *  préemption transitoire que l'appelant rejoue (#2603). Valeur maison, hors de la plage sysexits.h. */
 export const CODE_SOURCE_MODIFIEE = 79
-
-/** Vrai si `argv` est un geste LOURD, qui prend le verrou des gestes lourds (#2603) : tout mode, hors
- *  `--code` et `--check --only`. */
-export const estGesteLourd = (argv) => !argv.includes('--code') && !(argv.includes('--check') && argv.includes('--only'))
 
 /**
  * `geste()` joué sous le verrou des gestes lourds de `cwd` (`verrouGestesLourds`), pris sous `attente` : REND son
  * code, ou `CODE_DIFFERE` si le verrou est resté tenu à l'échéance, rien n'ayant tourné.
  * @param {{ cwd: string, argv: string[], geste: () => number | Promise<number>, attente?: { echeanceMs: number, pasMs: number, parTenant?: boolean } }} p
  */
-export async function sousGestesLourds({ cwd, argv, geste, attente }) {
+export async function sousGestesLourds({ cwd, argv, geste, attente, env = process.env, signal }) {
   const verrou = verrouGestesLourds(cwd)
   const delai = attente ?? verrou.attente
   const annoncer = (tenant) => console.error(`docs:build — en attente : ${verrou.libelle} : ${tenantEnUneLigne(tenant)} (échéance ${delai.echeanceMs / 60_000} min par tenant)`)
   const prise = prendreVerrou({
-    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd,
+    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd, env, signal,
     commande: ['node', 'scripts/docs/build-all.mjs', ...argv].join(' '),
     attente: { ...delai, annoncer },
   })
@@ -662,7 +656,7 @@ export async function sousGestesLourds({ cwd, argv, geste, attente }) {
     return CODE_DIFFERE
   }
   try {
-    return await geste()
+    return await geste({ env: { ...env, ...prise.env } })
   } finally {
     prise.liberer()
   }
@@ -683,7 +677,7 @@ async function main() {
     process.exitCode = await executer({ cwd })
     return
   }
-  process.exitCode = await sousGestesLourds({ cwd, argv, geste: () => executer({ cwd }) })
+  process.exitCode = await sousGestesLourds({ cwd, argv, geste: ({ env }) => executer({ cwd, env }) })
 }
 
 if (import.meta.main) main()

@@ -9,14 +9,20 @@
 //      `scripts/docs/build-all.mjs`) est SOUS les globs `files:` de chaque bloc du mur « ordre total »
 //      de `oxlint.config.mjs` — les globs se LISENT depuis la config, jamais recopiés ici. Chaque règle
 //      du mur y est déclarée par UN seul bloc, en `error` (UNICITÉ).
-//  (c), IGNORES, DIRECTIVES, (d) : `scripts/corpus/guards/lister.test.mjs`
+//  (d) MOTIF     : `correspondGlob` lit un motif aux règles du PATHSPEC git — `*` ne franchit pas un
+//      `/`, `**` vaut ZÉRO ou plusieurs dossiers. Le cas qui fait la fonction : une cible de
+//      générateur descendue d'un dossier (`docs/raw/<coeur>/catalogue-*.md`). Et l'ACCORD des deux
+//      lecteurs de cette grammaire : le dépliage sur disque (`ciblesSurDisque`) rend EXACTEMENT ce
+//      que le filtre rend — une grammaire de motif locale à un site rendrait un motif inerte.
+//  (c), IGNORES, DIRECTIVES : `scripts/corpus/guards/lister.test.mjs`
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { cheminAbsent, listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
+import { dirname, join } from 'node:path'
+import { cheminAbsent, listerDossier, listerEntrees, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
+import { ciblesSurDisque } from '../../docs/build-all.mjs'
 import { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 import { blocDe, blocsDuMur, couvre, exempte, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
 
@@ -65,15 +71,15 @@ test('photographie typée : nature avant/après, lien, dossier vide et absence r
     writeFileSync(join(dir, 'A'), 'a')
     mkdirSync(join(dir, 'Cible'))
     symlinkSync(join(dir, 'Cible'), join(dir, 'Lien'), process.platform === 'win32' ? 'junction' : 'dir')
-    const avant = listerDossier(dir, { avecTypes: true })
+    const avant = listerEntrees(dir)
     assert.deepEqual(avant, { nature: 'directory', entrees: [{ nom: 'A', nature: 'file' }, { nom: 'Cible', nature: 'directory' }, { nom: 'Lien', nature: 'link' }] })
     assert.deepEqual(listerDossier(dir), ['A', 'Cible', 'Lien'])
-    assert.deepEqual(listerDossier(join(dir, 'A'), { absent: 'vide', avecTypes: true }), { nature: 'other', entrees: [] })
-    assert.deepEqual(listerDossier(join(dir, 'absent'), { absent: 'vide', avecTypes: true }), { nature: 'absent', entrees: [] })
-    assert.deepEqual(listerDossier(join(dir, 'Cible'), { avecTypes: true }), { nature: 'directory', entrees: [] })
+    assert.deepEqual(listerEntrees(join(dir, 'A'), { absent: 'vide' }), { nature: 'other', entrees: [] })
+    assert.deepEqual(listerEntrees(join(dir, 'absent'), { absent: 'vide' }), { nature: 'absent', entrees: [] })
+    assert.deepEqual(listerEntrees(join(dir, 'Cible')), { nature: 'directory', entrees: [] })
     rmSync(join(dir, 'A'))
     mkdirSync(join(dir, 'A'))
-    assert.equal(listerDossier(dir, { avecTypes: true }).entrees[0].nature, 'directory')
+    assert.equal(listerEntrees(dir).entrees[0].nature, 'directory')
     assert.equal(avant.entrees[0].nature, 'file')
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
@@ -199,7 +205,7 @@ test('`cheminAbsent` — ENOENT, ENOTDIR et ENAMETOOLONG sont absents ; une lect
   assert.equal(cheminAbsent(undefined), false)
   const dir = mkdtempSync(join(tmpdir(), 'lister-nom-long-'))
   try {
-    assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide', avecTypes: true }), { nature: 'absent', entrees: [] })
+    assert.deepEqual(listerEntrees(join(dir, 'JAB'.repeat(100)), { absent: 'vide' }), { nature: 'absent', entrees: [] })
     assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide' }), [])
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
@@ -223,5 +229,79 @@ test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’oxli
     assert.equal(blocs.length, 1, `\`${regle}\` déclarée par ${blocs.length} blocs — un bloc postérieur qui la redéclare (\`off\`, \`warn\`, d’autres options) éteint le mur :\n  ${blocs.join('\n  ')}`)
     assert.equal(blocDe(regle).rules[regle], valeur, `\`${regle}\` : son bloc ne pose pas la valeur de \`REGLES_ORDRE_TOTAL\``)
     assert.equal(valeur[0], 'error', `\`${regle}\` n’est pas en \`error\``)
+  }
+})
+
+// ── (d) MOTIF ──────────────────────────────────────────────────────────────────────────
+// Chemins de fixture sous une racine INVENTÉE (`pages/`) : ce banc juge la GRAMMAIRE d'un motif,
+// pas l'arbre du jour — et un chemin de doc écrit ici serait, lui, confronté au disque par le
+// sens 5 de `scripts/docs/check-doc-refs.mjs`.
+
+test('correspondGlob : `*` ne franchit PAS un séparateur', () => {
+  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', 'pages/raw/catalogue-*.md'), true)
+  // Le cas qui compte : `pages/*.md` NE couvre PAS une page d'un sous-dossier — sans quoi un
+  // manuscrit de `pages/raw/` passerait pour dérivé.
+  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', 'pages/*.md'), false)
+  assert.equal(correspondGlob('pages/systemes.md', 'pages/*.md'), true)
+})
+
+test('correspondGlob : `**` vaut ZÉRO ou plusieurs dossiers', () => {
+  const motif = 'pages/raw/**/catalogue-*.md'
+  assert.equal(correspondGlob('pages/raw/un-coeur/catalogue-divers.md', motif), true)
+  assert.equal(correspondGlob('pages/raw/catalogue-divers.md', motif), true)
+  assert.equal(correspondGlob('pages/raw/un-coeur/plus-bas/catalogue-divers.md', motif), true)
+  // Ce que `**` n'autorise pas : sortir de la racine du motif, ni changer le nom visé.
+  assert.equal(correspondGlob('pages/autre/un-coeur/catalogue-divers.md', motif), false)
+  assert.equal(correspondGlob('pages/raw/un-coeur/combat.md', motif), false)
+})
+
+test('correspondGlob : `{a,b}` vaut l’une de ses alternatives, dans son segment', () => {
+  const motif = 'pages/*/{index,_registre.genere}.md'
+  assert.equal(correspondGlob('pages/un-coeur/index.md', motif), true)
+  assert.equal(correspondGlob('pages/un-coeur/_registre.genere.md', motif), true)
+  assert.equal(correspondGlob('pages/un-coeur/_registreXgenere.md', motif), false)
+  assert.equal(correspondGlob('pages/un-coeur/autre.md', motif), false)
+  assert.equal(correspondGlob('pages/un-coeur/index/x.md', 'pages/*/{index,autre}/x.md'), true)
+})
+
+test('correspondGlob : un chemin rendu par Windows se lit en POSIX', () => {
+  assert.equal(correspondGlob('pages\\raw\\un-coeur\\catalogue-divers.md', 'pages/raw/**/catalogue-*.md'), true)
+})
+
+/** L'arbre FORGÉ du volet (d) : deux niveaux de dossier, la page posée à la racine du motif comme
+ *  celle posée dessous, et un voisin qu'aucun motif ne doit attraper. */
+const PAGES_FORGEES = [
+  'pages/00-index.md',
+  'pages/systemes.md',
+  'pages/raw/00-index.md',
+  'pages/raw/combat.md',
+  'pages/raw/un-coeur/00-index.md',
+  'pages/raw/un-coeur/combat.md',
+  'pages/raw/un-coeur/plus-bas/00-index.md',
+  'pages/autre/00-index.md',
+]
+
+test('ciblesSurDisque ⇔ correspondGlob : les DEUX lecteurs du motif s’accordent sur un arbre FORGÉ', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'cibles-'))
+  try {
+    for (const page of PAGES_FORGEES) {
+      mkdirSync(join(racine, dirname(page)), { recursive: true })
+      writeFileSync(join(racine, page), '')
+    }
+    // Joker MÉDIAN (`**` et `*`), joker FINAL, motif sans joker : le dépliage du disque doit rendre
+    // exactement ce que le filtre retient — ni plus (une marche trop large), ni moins (un motif
+    // inerte, qu'aucune page ne satisfait alors que le filtre dit vrai).
+    for (const motif of [
+      'pages/raw/**/00-index.md', 'pages/raw/*/00-index.md', 'pages/*.md', 'pages/**/combat.md',
+      'pages/**/*.md', 'pages/raw/00-index.md',
+    ]) {
+      assert.deepEqual(
+        ciblesSurDisque([motif], racine).sort(),
+        PAGES_FORGEES.filter((p) => correspondGlob(p, motif)).sort(),
+        `déplié ≠ filtré pour « ${motif} »`,
+      )
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })

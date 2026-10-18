@@ -1,13 +1,8 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { createRequire } from 'node:module'
-
 import { calculerFormats, couleurs, serialisation, grapheDeForme, FormatNonDerivable } from './gen-formats.mjs'
-
-import { bancgenformatstestmjs } from './bancFormats.mjs'
-const { parConstante } = bancgenformatstestmjs
+import { parConstante } from './test/lib/bancFormats.mjs'
 
 test('canonique : deux graphes isomorphes numérotés autrement, cycles compris, sérialisent pareil', () => {
   // A = { a: string, suite?: A } ; U = A | null — le même graphe, nœuds dans deux ordres.
@@ -28,6 +23,7 @@ test('canonique : deux graphes isomorphes numérotés autrement, cycles compris,
   assert.notEqual(serialisation(g1, couleurs(g1)), serialisation(g3, couleurs(g3)))
 })
 
+/** Le format de chaque cas `nom → source du type T`, chacun dans son module virtuel. */
 const formatsDe = (cas) => {
   const racines = Object.keys(cas).map((k) => ({ constante: k, module: `src/__cas_${k}.ts`, type: 'T' }))
   const recouvrement = Object.fromEntries(Object.entries(cas).map(([k, v]) => [`src/__cas_${k}.ts`, v]))

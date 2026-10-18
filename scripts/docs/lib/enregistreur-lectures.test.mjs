@@ -5,7 +5,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { installer } from './enregistreur-lectures.mjs'
-import { listerDossier } from '../../guards/lib/lister.mjs'
+import { listerDossier, listerEntrees } from '../../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -66,6 +66,37 @@ test('collecte hooks : append impossible après préparation rejette import et p
         assert.match(vu.stderr, /EISDIR|EPERM|EACCES/)
         assert.doesNotMatch(vu.stdout, /import terminé/)
       } else assert.match(vu.stdout, /import terminé/)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// #2586
+test('collecte hooks : observer de mesure impossible rejette import', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'collecte-mesures-'))
+  const sortie = path.join(racine, 'lecture')
+  const fixture = path.join(racine, 'generateur.mjs')
+  const ignores = path.join(racine, 'ignores.json')
+  writeFileSync(ignores, '[]')
+  writeFileSync(path.join(racine, 'donnee.txt'), 'lue dans le thread des hooks')
+  writeFileSync(path.join(racine, 'neuf.mjs'), 'export const neuf = 1')
+  writeFileSync(path.join(racine, 'crochet.mjs'), `import fs from 'node:fs'; export async function load(url, contexte, suivant) { if (url.endsWith('/neuf.mjs')) fs.readFileSync(${JSON.stringify(path.join(racine, 'donnee.txt'))}); return suivant(url, contexte) }`)
+  try {
+    for (const invalide of [false, true]) {
+      writeFileSync(fixture, `import fs from 'node:fs'; import { register } from 'node:module'; const mesures = ${JSON.stringify(sortie)} + '.' + process.pid + '.hooks-mesures.jsonl'; if (${invalide}) { fs.rmSync(mesures, { force: true }); fs.mkdirSync(mesures); } register('./crochet.mjs', import.meta.url); await import('./neuf.mjs'); console.log('import terminé');`)
+      const vu = spawnSync(process.execPath, ['--import', pathToFileURL(path.join(ICI, 'enregistreur-lectures.mjs')).href, fixture], {
+        cwd: racine, encoding: 'utf8', timeout: 15_000,
+        env: { ...process.env, NODE_OPTIONS: '', WFRP_LECTURES_RACINE: racine, WFRP_LECTURES_SORTIE: sortie, WFRP_LECTURES_IGNORES: ignores },
+      })
+      const mesures = `${sortie}.${vu.pid}.hooks-mesures.jsonl`
+      if (invalide) {
+        assert.notEqual(vu.status, 0, vu.stderr)
+        assert.ok(vu.stderr.includes(mesures), vu.stderr)
+        assert.doesNotMatch(vu.stdout, /import terminé/)
+      } else {
+        assert.equal(vu.status, 0, vu.stderr)
+        assert.match(vu.stdout, /import terminé/)
+        assert.match(readFileSync(mesures, 'utf8'), /donnee\.txt/)
+      }
     }
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -211,7 +242,7 @@ test('collecteur froid : glob futur propre absent puis créé, sondes exclues et
   try {
     fs.existsSync(path.join(racine, 'data/froid.generated.ts'))
     assert.throws(() => fs.statSync(path.join(racine, 'data/froid.generated.ts')), { code: 'ENOENT' })
-    const avant = listerDossier(path.join(racine, 'data'), { avecTypes: true })
+    const avant = listerEntrees(path.join(racine, 'data'))
     fs.writeFileSync(path.join(racine, 'data/froid.generated.ts'), 'produit')
     fs.readFileSync(path.join(racine, 'data/froid.generated.ts'))
     fs.statSync(path.join(racine, 'data/dossier.generated.ts'))

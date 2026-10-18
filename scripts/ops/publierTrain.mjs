@@ -315,13 +315,14 @@ export function mortDuRun(journal, { vivant: estVivant = estPidVivant, identite 
  * fusion (`mesurer`). Mort ailleurs : transition ROUGE, verdict `rouge moteur`. Le verdict porte
  * `constat: { par, a }` ; journal et log écrits. REND le verdict, `null` sans constat.
  * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number,
- *          mesurer?:(visee:string|null) => object}} p
+ *          dormir?:(ms:number) => void, mesurer?:(visee:string|null) => object}} p
  */
-export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
+export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now, dormir = attendreSync, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee, horloge: maintenant, dormir }) }) {
   if (!existsSync(chemins.json)) return null
   const verrou = prendreVerrou({
     chemin: `${chemins.json}.constat.verrou`, libelle: 'constat de la mort du train', commande: par,
-    attente: { echeanceMs: 10_000, pasMs: 100 },
+    attente: { echeanceMs: 10_000, pasMs: 100 }, horloge: maintenant, dormir,
+    maintenant: () => new Date(maintenant()).toISOString(),
   })
   if (verrou.etat !== 'pris') return null
   try {
@@ -347,7 +348,7 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
       verdict = { etat: 'rouge', etape: 'moteur', raison, constat }
     }
     journal.verdict = verdict
-    ecrireJsonAtomique(chemins.json, journal)
+    ecrireJsonAtomique(chemins.json, journal, { attendre: dormir })
     appendFileSync(chemins.log, `[publier] ${nom ?? 'moteur'} — ${dit}\n${ligneDePublication(verdict, journal.tete)}\n`)
     return verdict
   } finally {
@@ -431,7 +432,7 @@ export function veillerLeTrain({
 /** Le dépôt du train dans `racine` : une panne de lecture y LÈVE `GitIndisponible`, et le train
  *  s'arrête ROUGE en la nommant (`main`) — lue `null`, elle passait pour un arbre propre ou pour
  *  l'absence d'un rebase entamé. */
-const depotDuTrain = (racine) => depotDe(racine)
+const depotDuTrain = (racine, dormir) => depotDe(racine, { attendre: dormir })
 
 /** Chemins que l'état de l'arbre (`etatDeLArbre`) rend SALES, dédupliqués. @param {import('../guards/lib/gitPorte.mjs').Depot} depot */
 const cheminsSales = (depot) => [...new Set(etatDeLArbre(depot).flatMap((e) => e.chemins).filter(Boolean))]
@@ -531,12 +532,14 @@ function numeroDeTicket(geste, numero) {
  * `estDocDerive` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
-export function contexteDe({ racine, branche, options, journaliser, fdLog, publication = null, maintenant = Date.now }) {
-  const depot = depotDuTrain(racine)
+export function contexteDe({ racine, branche, options, journaliser, fdLog, publication = null, maintenant = Date.now, dormir = attendreSync }) {
+  const depot = depotDuTrain(racine, dormir)
   const stdio = ['ignore', fdLog, fdLog]
   const parentsVus = new Map()
   return {
     racine,
+    maintenant,
+    dormir,
     questions: questionsDuTrain(depot),
     branche,
     publication,
@@ -650,20 +653,20 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, publi
         return { ok: true, vu: lu, ligne: ligneDeLEtat(lu) }
       } catch {
         const cause = vu.error?.message ?? `code ${vu.status}${vu.signal ? ` signal ${vu.signal}` : ''}`
-        const mesure = mesurerPrincipal({ depuis: racine, visee: cible })
+        const mesure = mesurerPrincipal({ depuis: racine, visee: cible, horloge: maintenant, dormir })
         return { ok: false, raison: cause, mesure, ligne: `synchroniseur sorti sans état (${cause}) ; re-mesure : ${ligneDeLEtat(mesure)}` }
       }
     },
   }
 }
 
-async function main() {
+async function main({ maintenant, dormir }) {
   const options = optionsDe(process.argv.slice(2))
   if (options.inconnus.length) {
     process.stderr.write(`${refusDOptions(options.inconnus)}\n`)
     process.exit(1)
   }
-  const depot = depotDuTrain(RACINE)
+  const depot = depotDuTrain(RACINE, dormir)
   const toplevel = racineDe(depot)
   if (!toplevel || resolve(toplevel) !== resolve(RACINE)) {
     process.stderr.write(`[publier] REFUS : ${RACINE} n'est pas la racine de son dépôt (git dit ${toplevel ?? 'rien'})\n`)
@@ -676,7 +679,7 @@ async function main() {
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
   // #2493 : le run mort sans verdict est constaté AVANT tout mode, et avant la rotation du log (`ouvrirLog`).
   const identite = identiteDuTrain()
-  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite })
+  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite, maintenant, dormir })
 
   if (options.veiller) {
     return veillerLeTrain({
@@ -688,8 +691,9 @@ async function main() {
       lire: () => lireJournal(chemins.json, branche),
       ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
       identite,
-      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, identite }),
+      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, identite, maintenant, dormir }),
       trace: () => verdictDeTrace(chemins.dossier, options.veiller),
+      maintenant, dormir,
     })
   }
 
@@ -717,11 +721,11 @@ async function main() {
     writeSync(fdLog, texte)
     if (!enfant) process.stderr.write(texte)
   }
-  const ctx = contexteDe({ racine: RACINE, branche, options, journaliser, fdLog, publication })
+  const ctx = contexteDe({ racine: RACINE, branche, options, journaliser, fdLog, publication, maintenant, dormir })
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
   const lancement = lancementDe(process.env)
   entameDuRun(journal, { run: idDeRun({ pid: publication?.pid ?? process.pid, lancement }), pid: process.pid, creation: performance.timeOrigin, fileTimeoutMin: options.fileTimeoutMin })
-  ecrireJsonAtomique(chemins.json, journal)
+  ecrireJsonAtomique(chemins.json, journal, { attendre: dormir })
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)
   let verdict
@@ -730,7 +734,7 @@ async function main() {
       const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), ctx.tete)
       journaliser(`[publier] reprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`)
     }
-    verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => ecrireJsonAtomique(chemins.json, j), journaliser })
+    verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => ecrireJsonAtomique(chemins.json, j, { attendre: dormir }), journaliser })
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : `ARRÊT INATTENDU : ${e?.stack ?? e}` }
     if (e instanceof GitIndisponible) journaliser(`${verdict.raison}\n`)
@@ -738,7 +742,7 @@ async function main() {
   journal.verdict = verdict
   if (journal.publication && journal.etapes['push-branche']?.etat === 'vert')
     journal.publication.publie = journal.etapes['push-branche'].tete
-  ecrireJsonAtomique(chemins.json, journal)
+  ecrireJsonAtomique(chemins.json, journal, { attendre: dormir })
   journaliser(`${ligneDePublication(verdict, journal.tete)}\n`)
   closeSync(fdLog)
   return codeDeVerdict(verdict)
@@ -748,11 +752,11 @@ async function main() {
  * `main`, dont une panne de git AVANT le train (racine, branche, tête vivante) sort en ligne finale
  * NOMMÉE (`chuteMoteur`) sur stderr, jamais en pile brute. Le train du snapshot a pour stderr le log de l'enfant
  * (`publierDepuisSnapshot`, #2603).
- * @returns {number}
+ * @returns {Promise<number>}
  */
-export async function executerPublication() {
+export async function executerPublication({ maintenant = Date.now, dormir = attendreSync } = {}) {
   try {
-    return await main()
+    return await main({ maintenant, dormir })
   } catch (e) {
     const { texte, code } = chuteMoteur(raisonDeLErreur(e))
     process.stderr.write(texte)

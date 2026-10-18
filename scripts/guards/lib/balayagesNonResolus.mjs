@@ -28,7 +28,7 @@ export const EXEMPTIONS = Object.freeze([
   Object.freeze({
     classe: 'module qui balaie la racine du dépôt',
     exempte: (valeur) => valeur.moduleBalaieLeDepot,
-    justification: "un site RÉSOLU du même module balaie la racine du dépôt : tout fichier touché retient déjà chaque test qui atteint ce module, aucune autre lecture n'y échappe à la dérivation.",
+    justification: "un site RÉSOLU du module, ou d'un module qu'il importe même transitivement, balaie la racine du dépôt : tout fichier touché retient déjà chaque test qui atteint ce module, aucune autre lecture n'y échappe à la dérivation.",
   }),
 ])
 
@@ -77,7 +77,7 @@ export function classer(nonResolus) {
 }
 
 /** La MESURE du dépôt de `racine` : `classer` de ses balayages non résolus. */
-export const mesure = (racine = RACINE, options) => classer(balayagesNonResolus(racine, options))
+export const mesure = async (racine = RACINE, options) => classer(await balayagesNonResolus(racine, options))
 
 /** Le `quoi` du stock, comptes par classe à sa naissance. */
 const QUOI = (comptes) => 'Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site '
@@ -92,7 +92,8 @@ const QUOI = (comptes) => 'Balayages NON RÉSOLUS de la dérivation du périmèt
  * @param {(import('./stock.mjs').Site & { famille: string })[]} [sites]
  * @returns {import('./stockDeSites.mjs').RegenerationDeStock[]}
  */
-export function regenerations(sites = mesure().sites) {
+export async function regenerations(sites) {
+  sites ??= (await mesure()).sites
   return [{
     chemin: CHEMIN_DU_STOCK,
     politique: DECROISSANT,

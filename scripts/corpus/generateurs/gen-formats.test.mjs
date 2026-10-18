@@ -1,19 +1,14 @@
+// `gen-formats.mjs` (#2404) : le format d'une donnée persistée est STABLE (entre processus, entre ordres
+// de chargement, indépendant des ids internes), SENSIBLE (un champ optionnel ajouté, un type de champ
+// changé le changent) et TOTAL (any/unknown et drapeau non traité échouent, chemin nommé).
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
 import { readFileSync } from 'node:fs'
-
 import { fileURLToPath } from 'node:url'
-
 import { RACINES, calculerFormats, defsDeSequence } from '../../gen-formats.mjs'
-
 import { readCorpus } from '../../guards/lib/sourceCorpus.mjs'
-
-import { bancgenformatstestmjs } from '../../bancFormats.mjs'
-const { parConstante } = bancgenformatstestmjs
+import { parConstante } from '../../test/lib/bancFormats.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 

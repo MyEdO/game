@@ -3,13 +3,13 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, openSync, closeSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync, ChildProcess } from 'node:child_process'
 import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { listerDossier } from './lister.mjs'
-import { MESURES_INDETERMINEES_MAX, sortieDeSupervision, superviserProcessus } from './superviserProcessus.mjs'
-import { ancetresValidesDe, identitePresente, mesurerArbreProcessus, tuerArbre } from './arbreProcessus.mjs'
+import { listerDossier, listerEntrees } from './lister.mjs'
+import { MESURES_INDETERMINEES_MAX, sortieDeSupervision, superviserProcessus, lancerProcessusSupervise } from './superviserProcessus.mjs'
+import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
 
 test('un hook refuse de démarrer quand son parent a disparu pendant la mesure initiale', async () => {
   const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => [] })
@@ -89,6 +89,17 @@ test('une identité PID réutilisée ne désigne jamais le processus capturé', 
 
 const VUE_SAINE = '2026-10-16T01:00:00.000000000Z'
 
+/** L'identité de création des gardiens de `vue` : leur `creation` lue dans la vue injectée, `decalageMs` en plus (#2586). */
+function identiteDe(vue, decalageMs = 0) {
+  return {
+    lireCreation: (pid) => {
+      const gardien = vue.find((p) => p.pid === pid)
+      return gardien ? Date.parse(gardien.creation) + decalageMs : null
+    },
+    toleranceMs: 0,
+  }
+}
+
 test('supervision : une panne de mesure isolée suivie d’une vue saine laisse le hook aller à son terme', { timeout: 20000 }, async () => {
   let lectures = 0
   const vu = await superviserProcessus({
@@ -97,6 +108,7 @@ test('supervision : une panne de mesure isolée suivie d’une vue saine laisse 
     timeout: 15000,
     surveillerGit: true,
     estVivant: () => true,
+    identite: identiteDe(vueHook(VUE_SAINE)),
     mesurer: () => {
       lectures += 1
       if (lectures === 2) throw new Error('CIM injecté indisponible')
@@ -117,6 +129,7 @@ test('supervision : des pannes de mesure consécutives au-delà de la borne inte
     timeout: 45000,
     surveillerGit: true,
     estVivant: () => true,
+    identite: identiteDe(vueHook(VUE_SAINE)),
     mesurer: () => {
       lectures += 1
       if (lectures === 1) return vueHook(VUE_SAINE)
@@ -154,6 +167,7 @@ test('supervision : une mesure en échec avec un gardien prouvé mort (ESRCH) in
     timeout: 15000,
     surveillerGit: true,
     estVivant: (pid) => { sondes.push(pid); return pid !== -2626 },
+    identite: identiteDe(vueHook(VUE_SAINE)),
     mesurer: () => {
       if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
       throw new Error('CIM injecté indisponible')
@@ -162,6 +176,25 @@ test('supervision : une mesure en échec avec un gardien prouvé mort (ESRCH) in
   assert.equal(vu.error?.code, 'EPARENT')
   assert.equal(vu.error.message, 'parent disparu')
   assert.ok(sondes.includes(-2626))
+})
+
+test('supervision : une mesure en échec avec un gardien au pid réutilisé (né après sa capture) interrompt en EPARENT sans attendre la borne', { timeout: 20000 }, async () => {
+  let lectures = 0
+  const vu = await superviserProcessus({
+    commande: process.execPath,
+    args: ['-e', 'setInterval(()=>{},1000)'],
+    timeout: 15000,
+    surveillerGit: true,
+    estVivant: () => true,
+    identite: identiteDe(vueHook(VUE_SAINE), 60_000),
+    mesurer: () => {
+      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
+      throw new Error('CIM injecté indisponible')
+    },
+  })
+  assert.equal(vu.error?.code, 'EPARENT')
+  assert.equal(vu.error.message, 'parent disparu')
+  assert.ok(lectures < 1 + MESURES_INDETERMINEES_MAX, `${lectures} lectures`)
 })
 
 test('supervision : une sonde de pid qui lève reste indéterminée, jamais une mort', { timeout: 60000 }, async () => {
@@ -208,7 +241,6 @@ test('supervision : le plafond tue aussi le petit-fils détaché persistant', { 
     assert.match(vu.error?.message, /échéance/)
     assert.ok(!mesurerArbreProcessus().some((p) => p.pid === petitFils && p.etat !== 'Z'), 'le petit-fils doit avoir disparu')
   } finally {
-    if (petitFils) tuerArbre(petitFils)
     rmSync(racine, { recursive: true, force: true })
   }
 })
@@ -235,6 +267,15 @@ function bancSupervision(t) {
   return { dossier, script }
 }
 
+/** Joue le script `pilote` dans un Node à part ; son code de sortie nul fait le verdict, sa sortie le diagnostic (#2586). */
+async function jouerPilote(pilote) {
+  const enfant = spawn(process.execPath, [pilote], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let sortie = ''
+  enfant.stdout.on('data', (d) => { sortie += d }); enfant.stderr.on('data', (d) => { sortie += d })
+  const status = await new Promise((ok, non) => { enfant.once('error', non); enfant.once('close', ok) })
+  assert.equal(status, 0, sortie)
+}
+
 test('IPC : le résultat lu après la fermeture de l’hôte conserve la réussite et les flux', { timeout: 20000 }, async (t) => {
   const b = bancSupervision(t)
   const cible = b.script('cible-ipc', "process.stdin.setEncoding('utf8');let entree='';process.stdin.on('data',texte=>entree+=texte);process.stdin.on('end',()=>{process.stdout.write('sortie:'+entree);process.stderr.write('erreur intacte')})")
@@ -243,11 +284,14 @@ import assert from 'node:assert/strict'
 import net from 'node:net'
 import childProcess from 'node:child_process'
 import { syncBuiltinESMExports } from 'node:module'
-let hoteFerme = false; let resultatApresFermeture = false; let pause = false
+let hoteFerme = false; let resultatApresFermeture = false; let pause = false; let reprendre
 const spawn = childProcess.spawn
 childProcess.spawn = (...args) => {
   const enfant = spawn(...args)
-  enfant.once('close', () => { hoteFerme = true })
+  enfant.once('close', () => {
+    hoteFerme = true
+    reprendre?.()
+  })
   return enfant
 }
 const creer = net.createServer
@@ -258,7 +302,8 @@ net.createServer = (ecouter) => creer((socket) => {
     if (String(texte).includes('"type":"options"')) {
       pause = true
       socket.pause()
-      setTimeout(() => socket.resume(), 1000)
+      reprendre = () => socket.resume()
+      if (hoteFerme) reprendre()
     }
     return retour
   }
@@ -319,7 +364,6 @@ test('confinement : parent bref, feuille détachée et processus étranger prés
     assert.ok(vue.some((p) => p.pid === etranger.pid && p.etat !== 'Z'), 'le processus étranger doit rester vivant')
     console.log(`CONFINEMENT bref : feuille=${feuillePid} absente, étranger=${etranger.pid} vivant`)
   } finally {
-    if (feuillePid && feuillePid !== etranger.pid) tuerArbre(feuillePid)
     etranger.kill(); await finEtranger
   }
 })
@@ -392,14 +436,12 @@ test('confinement : mort du Node appelant nettoie une feuille déjà orpheline',
     const prives = listerDossier(b.dossier).filter((n) => n.startsWith('wfrp-supervision-'))
     assert.ok(prives.length, 'le contrôle du canal privé doit porter sur le dossier du Node mort')
     for (const prive of prives) {
-      const fichiers = listerDossier(join(b.dossier, prive), { avecTypes: true }).entrees.filter((e) => e.nature === 'file')
+      const fichiers = listerEntrees(join(b.dossier, prive)).entrees.filter((e) => e.nature === 'file')
       assert.ok(fichiers.every((f) => !/options|resultat/.test(f.nom)), 'aucune option ni résultat dans le privé')
       for (const fichier of fichiers) assert.ok(!readFileSync(join(b.dossier, prive, fichier.nom), 'utf8').includes('memoire-2626-privee'))
     }
   } finally {
-    if (hote && identitePresente(hote, mesurerArbreProcessus())) tuerArbre(hote.pid)
-    if (ciblePid) tuerArbre(ciblePid)
-    node.kill()
+    node.kill(); await fin
   }
 })
 
@@ -428,4 +470,347 @@ test('IPC : EOF avant les options complètes refuse la cible et conserve stdin s
   } finally {
     await new Promise((ok) => serveur.close(ok))
   }
+})
+
+test('factory : vrai ChildProcess hôte, cible distincte, streams avant fin et résultat cible conservé', { timeout: 15000 }, async () => {
+  const { hote, controle } = await lancerProcessusSupervise(process.execPath, ['-e', "process.stdout.write('IMMÉDIAT\\n');setTimeout(()=>process.exit(37),300)"])
+  assert.ok(hote instanceof ChildProcess)
+  hote.stdin.end()
+  const { pidCible, instanceCible } = await controle.pret
+  assert.ok(Number.isSafeInteger(pidCible)); assert.notEqual(pidCible, hote.pid); assert.ok(instanceCible)
+  assert.equal(controle.phase, 'execution')
+  assert.equal(controle.estFermeture({ code: 'FERMETURE', origine: 'controle-natif', terminale: true }), false)
+  let finie = false
+  controle.fin.then(() => { finie = true })
+  const texte = await new Promise((ok) => hote.stdout.once('data', (b) => ok(b.toString())))
+  assert.match(texte, /IMMÉDIAT/); assert.equal(finie, false)
+  const fin = await controle.fin
+  assert.equal(fin.resultatCible.status, 37); assert.equal(fin.resultatCible.pid, pidCible)
+  assert.equal(hote.exitCode, 0); assert.equal(fin.arret.etat, 'mort')
+  assert.equal(controle.phase, 'termine')
+  assert.throws(() => controle.mesurerDomaine(), (cause) => {
+    assert.equal(controle.estFermeture(cause), true)
+    assert.equal(controle.estFermeture({ ...cause }), false)
+    return true
+  })
+})
+
+test('factory : en processus nu, la projection est l’identité des options reçues', () => {
+  const env = { TEMOIN: 'intact' }; const options = { env, cwd: process.cwd() }
+  const args = ['--test', 'cible.test.mjs']
+  const vue = lancerProcessusSupervise.optionsEffectives(process.execPath, args, options)
+  assert.strictEqual(vue.options, options)
+  assert.strictEqual(vue.args, args)
+  assert.deepEqual(env, { TEMOIN: 'intact' })
+  assert.deepEqual(lancerProcessusSupervise.optionsEffectives('autre', [], options), { args: [], options })
+})
+
+test('factory : sous la précharge, la projection porte l’intercepteur sans nonce ni modification des options reçues', () => {
+  const precharge = new URL('./perimetreSansEcriture.mjs', import.meta.url).href
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const code = `
+    const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)});
+    const env = { TEMOIN: 'intact' }; const options = { env, cwd: process.cwd() };
+    const vue = lancerProcessusSupervise.optionsEffectives(process.execPath, ['--test', 'cible.test.mjs'], options);
+    const autre = lancerProcessusSupervise.optionsEffectives('autre', [], options);
+    console.log(JSON.stringify({ env, args: vue.args, intercepte: vue.options.env.NODE_OPTIONS.includes('intercepterEcritures'),
+      nonce: 'WFRP_TESTS_REFUS' in vue.options.env, autreIdentite: autre.options === options }));
+  `
+  const environnement = { ...process.env }
+  delete environnement.NODE_TEST_CONTEXT
+  const r = spawnSync(process.execPath, ['--import', precharge, '--input-type=module', '--eval', code], { env: environnement, encoding: 'utf8' })
+  assert.equal(r.status, 0, r.stderr)
+  assert.deepEqual(JSON.parse(r.stdout), { env: { TEMOIN: 'intact' }, args: ['--test', 'cible.test.mjs'], intercepte: true, nonce: false, autreIdentite: true })
+})
+
+for (const mode of ['persistant', 'close-en-file']) test('clôture bornée : hôte de protocole réel ' + mode, { timeout: 10000 }, async (t) => {
+  const b = bancSupervision(t)
+  const liberation = join(b.dossier, 'liberer-hote')
+  const atomique = new URL('./ecritureJsonAtomique.mjs', import.meta.url).href
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const hoteFixture = b.script('hote-protocole', `
+import { spawn } from 'node:child_process'
+import { connect } from 'node:net'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ecrireJsonAtomique, publierJsonSiAbsent } from ${JSON.stringify(atomique)}
+import { creationMemorisee, estPidVivantDepuis } from ${JSON.stringify(new URL('./pid.mjs', import.meta.url).href)}
+import { IDENTITE_MESUREE } from ${JSON.stringify(new URL('../../test/identiteMesuree.mjs', import.meta.url).href)}
+const [adresse, jeton, dossier, liberation, mode, naissanceParent] = process.argv.slice(2)
+const identiteParent = { ...IDENTITE_MESUREE, lireCreation: creationMemorisee(IDENTITE_MESUREE.lireCreation, { pasMs: 1000, horloge: Date.now }) } // #2586
+const configuration = JSON.parse(readFileSync(join(dossier, 'configuration.json'), 'utf8'))
+const canal = connect(adresse); canal.setEncoding('utf8')
+canal.once('connect', () => canal.write(JSON.stringify({type:'pret',jeton})+'\\n'))
+let tampon = ''
+canal.on('data', (d) => {
+  tampon += d
+  if (!tampon.includes('\\n')) return
+  const enfant = spawn(process.execPath, ['-e', 'process.exit(37)'], {stdio:'ignore'})
+  enfant.once('spawn', () => canal.write(JSON.stringify({type:'cible',pid:enfant.pid,instanceCible:'fixture-exacte'})+'\\n'))
+  enfant.once('close', (status, signal) => {
+    publierJsonSiAbsent(join(dossier, 'cloture.json'), {version:1,generation:configuration.generation,echeance:Date.now()+configuration.delaiArretMs})
+    const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'ledger-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
+    canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-exacte',resultat:{status,signal,pid:enfant.pid}})+'\\n')
+    if (mode === 'close-en-file') process.exit(0)
+    const attente = setInterval(() => { if (existsSync(liberation) || !estPidVivantDepuis(process.ppid, Number(naissanceParent), identiteParent)) { clearInterval(attente); process.exit(0) } }, 5)
+  })
+})
+`)
+  const pilote = b.script('pilote-watchdog', `
+import assert from 'node:assert/strict'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
+import { existsSync, writeFileSync } from 'node:fs'
+const spawn = childProcess.spawn
+const immediat = global.setImmediate; const minuterie = global.setTimeout
+let hote; let dossier; let closeEnFile; let closeDistribue = false
+childProcess.spawn = (_commande, args, options) => {
+  const windows = args.includes('-ControlDirectory')
+  dossier = windows ? args[args.indexOf('-ControlDirectory')+1] : args[6]
+  const adresse = windows ? args[args.indexOf('-CommandLine')+1] : null
+  const commandeWorker = windows ? /"([^"]+)" "([^"]+)"$/.exec(adresse) : null
+  const adresseIPC = windows ? commandeWorker[1] : args[4]
+  const jeton = windows ? commandeWorker[2] : args[5]
+  hote = spawn(process.execPath, [${JSON.stringify(hoteFixture)}, adresseIPC, jeton, dossier, ${JSON.stringify(liberation)}, ${JSON.stringify(mode)}, String(Date.now())], options) // #2586
+  if (${JSON.stringify(mode)} === 'close-en-file') {
+    const emettre = hote.emit.bind(hote)
+    hote.emit = (nom, ...valeurs) => {
+      if (nom !== 'close') return emettre(nom, ...valeurs)
+      closeEnFile = () => { closeDistribue = true; emettre(nom, ...valeurs) }
+      for (const suite of quandCloseEnFile.splice(0)) suite()
+      return true
+    }
+  }
+  return hote
+}
+const quandCloseEnFile = []
+const apresCloseEnFile = (suite) => { if (closeEnFile) suite(); else quandCloseEnFile.push(suite) }
+if (${JSON.stringify(mode)} === 'close-en-file') global.setTimeout = (fn, ms, ...args) => ms > 100 ? minuterie(fn, ms, ...args) : minuterie(() => apresCloseEnFile(() => {
+  immediat(() => immediat(closeEnFile))
+  fn(...args)
+}), ms)
+syncBuiltinESMExports()
+const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
+const { controle } = await lancerProcessusSupervise(process.execPath, ['--version'], {delaiArretMs:100})
+hote.stdin.end(); hote.stdout.resume(); hote.stderr.resume()
+try {
+  await controle.pret
+  const fin = await controle.fin
+  if (${JSON.stringify(mode)} === 'persistant') {
+    assert.equal(fin.arret.etat, 'indetermine')
+    assert.equal(fin.arret.zeroNatif, true)
+    assert.equal(hote.exitCode, null)
+    assert.equal(controle.phase, 'cloture')
+    assert.equal(existsSync(dossier), true)
+    writeFileSync(${JSON.stringify(liberation)}, 'fin')
+    await controle.finPhysique
+    assert.equal(fin.arret.etat, 'indetermine')
+    assert.equal(await controle.fin, fin)
+  } else {
+    assert.ok(closeEnFile); assert.equal(closeDistribue, true)
+    assert.equal(fin.arret.etat, 'mort')
+    assert.equal(fin.resultatCible.status, 37)
+  }
+  assert.equal(existsSync(dossier), false)
+  assert.equal(controle.phase, 'termine')
+} finally {
+  writeFileSync(${JSON.stringify(liberation)}, 'fin')
+  await controle.finPhysique
+}
+`)
+  await jouerPilote(pilote)
+})
+
+test('#2586 requête native : une clôture publiée sans réponse lève FERMETURE avant l’échéance de la requête', { timeout: 15000 }, async (t) => {
+  const b = bancSupervision(t)
+  const atomique = new URL('./ecritureJsonAtomique.mjs', import.meta.url).href
+  const lister = new URL('./lister.mjs', import.meta.url).href
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const hoteFixture = b.script('hote-cloture-sans-reponse', `
+import { spawn } from 'node:child_process'
+import { connect } from 'node:net'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ecrireJsonAtomique, publierJsonSiAbsent } from ${JSON.stringify(atomique)}
+import { listerDossier } from ${JSON.stringify(lister)}
+const [adresse, jeton, dossier] = process.argv.slice(2)
+const configuration = JSON.parse(readFileSync(join(dossier, 'configuration.json'), 'utf8'))
+const canal = connect(adresse); canal.setEncoding('utf8')
+canal.once('connect', () => canal.write(JSON.stringify({type:'pret',jeton})+'\\n'))
+let tampon = ''; let lance = false
+canal.on('data', (d) => {
+  tampon += d
+  if (lance || !tampon.includes('\\n')) return
+  lance = true
+  const enfant = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {stdio:'ignore'})
+  enfant.once('spawn', () => canal.write(JSON.stringify({type:'cible',pid:enfant.pid,instanceCible:'fixture-cloture'})+'\\n'))
+  const veille = setInterval(() => {
+    if (!listerDossier(join(dossier, 'requetes')).some((nom) => nom.endsWith('.json'))) return
+    clearInterval(veille)
+    publierJsonSiAbsent(join(dossier, 'cloture.json'), {version:1,generation:configuration.generation,echeance:Date.now()+configuration.delaiArretMs})
+    enfant.kill()
+  }, 5)
+  enfant.once('close', (status, signal) => {
+    const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'ledger-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
+    canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-cloture',resultat:{status,signal,pid:enfant.pid}})+'\\n', () => process.exit(0))
+  })
+})
+`)
+  const pilote = b.script('pilote-cloture-sans-reponse', `
+import assert from 'node:assert/strict'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
+const spawn = childProcess.spawn
+let hote
+childProcess.spawn = (_commande, args, options) => {
+  const windows = args.includes('-ControlDirectory')
+  const dossier = windows ? args[args.indexOf('-ControlDirectory')+1] : args[6]
+  const commandeWorker = windows ? /"([^"]+)" "([^"]+)"$/.exec(args[args.indexOf('-CommandLine')+1]) : null
+  const adresseIPC = windows ? commandeWorker[1] : args[4]
+  const jeton = windows ? commandeWorker[2] : args[5]
+  hote = spawn(process.execPath, [${JSON.stringify(hoteFixture)}, adresseIPC, jeton, dossier], options)
+  return hote
+}
+syncBuiltinESMExports()
+const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
+const { controle } = await lancerProcessusSupervise(process.execPath, ['--version'], {delaiArretMs:2000})
+hote.stdin.end(); hote.stdout.resume(); hote.stderr.resume()
+await controle.pret
+const debut = Date.now()
+let cause
+try { controle.mesurerDomaine({ timeout: 5000 }) } catch (e) { cause = e }
+const duree = Date.now() - debut
+assert.equal(controle.estFermeture(cause), true, cause?.code + ' : ' + cause?.message)
+assert.ok(duree < 5000, duree + ' ms')
+const fin = await controle.fin
+assert.equal(fin.arret.etat, 'mort', JSON.stringify(fin))
+await controle.finPhysique
+`)
+  await jouerPilote(pilote)
+})
+
+test('#2586 refus avant l’hôte : un signal déjà annulé rejette avec hoteLance false', async () => {
+  const annulation = new AbortController()
+  annulation.abort()
+  await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { signal: annulation.signal }),
+    (e) => e.code === 'ABORT_ERR' && e.hoteLance === false)
+})
+
+test('#2586 refus après l’hôte : une panne qui suit le spawn rejette avec hoteLance true', { timeout: 20000 }, async (t) => {
+  const b = bancSupervision(t)
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const pilote = b.script('pilote-refus-apres-hote', `
+import assert from 'node:assert/strict'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
+const spawn = childProcess.spawn
+childProcess.spawn = (_commande, _args, options) => {
+  const hote = spawn(process.execPath, ['-e', 'setTimeout(()=>{},200)'], { ...options, stdio: 'ignore' })
+  const once = hote.once.bind(hote)
+  hote.once = (...args) => { once(...args); throw Object.assign(new Error('panne après lancement'), { code: 'EPANNE' }) }
+  return hote
+}
+syncBuiltinESMExports()
+const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
+await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
+  (e) => e.code === 'EPANNE' && e.hoteLance === true)
+`)
+  await jouerPilote(pilote)
+})
+
+test('#2586 requête native : une réponse tenue sans partage par un tiers se relit sous l’échéance de la requête', { skip: process.platform !== 'win32', timeout: 30000 }, async (t) => {
+  const b = bancSupervision(t)
+  const atomique = new URL('./ecritureJsonAtomique.mjs', import.meta.url).href
+  const lister = new URL('./lister.mjs', import.meta.url).href
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const hoteFixture = b.script('hote-reponse-tenue', `
+import { spawn, spawnSync } from 'node:child_process'
+import { connect } from 'node:net'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { ecrireJsonAtomique } from ${JSON.stringify(atomique)}
+import { listerDossier } from ${JSON.stringify(lister)}
+const NL = String.fromCharCode(10)
+const [adresse, jeton, dossier] = process.argv.slice(2)
+const configuration = JSON.parse(readFileSync(join(dossier, 'configuration.json'), 'utf8'))
+const canal = connect(adresse); canal.setEncoding('utf8')
+canal.once('connect', () => canal.write(JSON.stringify({type:'pret',jeton})+NL))
+let tampon = ''; let lance = false
+canal.on('data', (d) => {
+  tampon += d
+  if (lance || !tampon.includes(NL)) return
+  lance = true
+  const enfant = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {stdio:'ignore'})
+  enfant.once('spawn', () => canal.write(JSON.stringify({type:'cible',pid:enfant.pid,instanceCible:'fixture-reponse-tenue'})+NL))
+  let repondu = false
+  const veille = setInterval(() => {
+    if (existsSync(join(dossier, 'cloture.json'))) { clearInterval(veille); enfant.kill(); return }
+    if (repondu) return
+    const nom = listerDossier(join(dossier, 'requetes')).find((n) => n.endsWith('.json'))
+    if (!nom) return
+    repondu = true
+    const requete = JSON.parse(readFileSync(join(dossier, 'requetes', nom), 'utf8'))
+    const reponse = join(dossier, 'reponses', requete.id + '.json')
+    const temporaire = reponse + '.tenu'
+    writeFileSync(temporaire, JSON.stringify({version:1,generation:configuration.generation,id:requete.id,ok:true,vue:{processus:[],metriqueMemoire:'fixture'}}))
+    spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      "$h=[IO.File]::Open('" + temporaire + "','Open','Read','Delete'); [IO.File]::Move('" + temporaire + "','" + reponse + "'); Start-Sleep -Milliseconds 1500; $h.Close()"],
+      {stdio:'ignore', windowsHide:true, timeout:20000})
+  }, 5)
+  enfant.once('close', (status, signal) => {
+    const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
+    ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:'job-windows',zero:true,echeance:cloture.echeance,erreurs:[]})
+    canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-reponse-tenue',resultat:{status,signal,pid:enfant.pid}})+NL, () => process.exit(0))
+  })
+})
+`)
+  const pilote = b.script('pilote-reponse-tenue', `
+import assert from 'node:assert/strict'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
+const spawn = childProcess.spawn
+let hote
+childProcess.spawn = (_commande, args, options) => {
+  const dossier = args[args.indexOf('-ControlDirectory')+1]
+  const commandeWorker = /"([^"]+)" "([^"]+)"$/.exec(args[args.indexOf('-CommandLine')+1])
+  hote = spawn(process.execPath, [${JSON.stringify(hoteFixture)}, commandeWorker[1], commandeWorker[2], dossier], options)
+  return hote
+}
+syncBuiltinESMExports()
+const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
+const { controle } = await lancerProcessusSupervise(process.execPath, ['--version'], {delaiArretMs:2000})
+hote.stdin.end(); hote.stdout.resume(); hote.stderr.resume()
+await controle.pret
+const vue = controle.mesurerDomaine({ timeout: 15000 })
+assert.equal(vue.metriqueMemoire, 'fixture')
+controle.demanderArret()
+await controle.fin
+await controle.finPhysique
+`)
+  await jouerPilote(pilote)
+})
+
+test('#2586 refus après l’hôte : des écouteurs de l’hôte qui lèvent rejettent sans attendre une fermeture jamais écoutée', { timeout: 20000 }, async (t) => {
+  const b = bancSupervision(t)
+  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
+  const pilote = b.script('pilote-ecouteurs-qui-levent', `
+import assert from 'node:assert/strict'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
+const spawn = childProcess.spawn
+childProcess.spawn = (_commande, _args, options) => {
+  const hote = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { ...options, stdio: 'ignore' })
+  hote.unref()
+  hote.on = () => { throw Object.assign(new Error('écouteur refusé'), { code: 'EPANNE' }) }
+  process.once('exit', () => hote.kill())
+  return hote
+}
+syncBuiltinESMExports()
+const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
+await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
+  (e) => e.code === 'EPANNE' && e.hoteLance === true)
+`)
+  await jouerPilote(pilote)
 })

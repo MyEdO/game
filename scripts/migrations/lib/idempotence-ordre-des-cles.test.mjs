@@ -36,19 +36,9 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
 import { echapperRegex } from '../../../src/lib/regex.ts'
 import { ANTIDATE, efface, joue } from './joue.mjs'
-
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
-
-const MIGRATIONS = path.join(RACINE, 'scripts/migrations');
-
-/** Les migrations DATÉES du dossier, dans l'ordre lexical — le périmètre que `replay.mjs` rejoue. */
-const DATEES = fs
-  .readdirSync(MIGRATIONS)
-  .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
-  .sort((a, b) => a.localeCompare(b, 'en'));
+import { DATEES, MIGRATIONS, RACINE } from '../../test/lib/bancIdempotence.mjs'
 
 /** Le texte d'une migration — les dérivations ci-dessous s'y font par regex. */
 const texteDe = (migration) => fs.readFileSync(path.join(MIGRATIONS, migration), 'utf8');

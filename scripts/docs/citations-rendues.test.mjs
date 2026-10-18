@@ -1,9 +1,6 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
-import { banccitationsrenduestestmjs } from './lib/bancGenerateurs.mjs'
-const { fautesDeCitations } = banccitationsrenduestestmjs
+import { fautesDeCitations } from '../test/lib/bancGenerateurs.mjs'
 
 test('fautesDeCitations : le symbole à ±2 lignes du site passe ; au-delà, ou site hors fichier, faute nommée', () => {
   const source = ['a', 'b', 'function cible() {', 'c', 'd', 'e', 'f'].join('\n')

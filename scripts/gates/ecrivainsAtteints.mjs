@@ -59,21 +59,7 @@ export function corpusParGate(racine = process.cwd()) {
   const par = {}
   let tests
   const lister = () => (tests ??= listerTests(racine))
-  const textes = new Map()
-  const existants = new Map()
-  const mesure = {
-    cache: new Map(),
-    arbre: {
-      existe: (abs) => {
-        if (!existants.has(abs)) existants.set(abs, existsSync(abs))
-        return existants.get(abs)
-      },
-      lire: (abss) => new Map(abss.map((abs) => {
-        if (!textes.has(abs)) textes.set(abs, readFileSync(abs, 'utf8'))
-        return [abs, textes.get(abs)]
-      })),
-    },
-  }
+  const mesure = { cache: new Map() }
   for (const gate of gatesDeCi({ cwd: racine })) {
     let commande = scripts[gate.nom] || gate.commande
     for (let i = 0; i < 4; i += 1)

@@ -2,7 +2,8 @@
 // plage qui en dépendent vivent dans `plageStock.test.mjs` et `stocksNominatifs.test.mjs`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { rmSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { depotDe } from './gitPorte.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
@@ -12,6 +13,29 @@ import { RACINE } from './bindingsVivants.mjs'
 import * as stocksActuels from './stocksNominatifs.mjs'
 import { fermetureSurDisque, groupesParEre, jugeDeLEre } from './porteDEre.mjs'
 import { lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
+
+test('fermeture disque : hits des spécificateurs conservent textes et refont les priorités de résolution', () => {
+  const { racine } = instanceDeDepot({ fichiers: {
+    'a.mjs': "export { x } from './x.mjs'", 'x.mts': 'export const x=1',
+  } })
+  try {
+    const cache = new Map()
+    let ecritures = 0
+    const specificateurs = {
+      lire: (abs, texte) => cache.get(`${abs}:${texte}`),
+      ecrire: (abs, texte, sites) => { ecritures++; cache.set(`${abs}:${texte}`, sites) },
+    }
+    const froid = fermetureSurDisque('a.mjs', racine, { specificateurs })
+    const avant = ecritures
+    assert.deepEqual(fermetureSurDisque('a.mjs', racine, { specificateurs }), froid)
+    assert.equal(ecritures, avant)
+    assert.ok(froid.some(([f, texte]) => f === 'x.mts' && texte === 'export const x=1'))
+    writeFileSync(join(racine, 'x.mjs'), 'export const x=2')
+    const neuf = fermetureSurDisque('a.mjs', racine, { specificateurs })
+    assert.ok(neuf.some(([f, texte]) => f === 'x.mjs' && texte === 'export const x=2'))
+    assert.equal(neuf.some(([f]) => f === 'x.mts'), false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('#2586 porteDEre : inventaire et lectures groupées par frontière, absents sans lecture', async (t) => {
   const module = 'scripts/porte.mjs'

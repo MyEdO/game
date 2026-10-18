@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { cheminGit, cheminsIgnores, configurationDe, depotDe, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe } from '../../guards/lib/gitPorte.mjs'
-import { cheminAbsent, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
 import { canoniser, dansLaMesure, EXCLUSIONS_FIXES, relatifSousRacine } from './chemin-mesure.mjs'
 /**
  * Chemins IGNORÉS par git sous la racine, en UNE invocation : `--directory` rend un dossier ignoré en
@@ -68,7 +68,7 @@ function empreinteDuPerimetre(racine, reperes) {
   for (const rel of reperes.parents) entree('parent', rel, contenuDe(path.join(reperes.racineGit, rel)))
   const exclus = new Set(reperes.exclus)
   const marcher = (rel) => {
-    for (const { nom, nature } of listerDossier(rel ? path.join(racine, rel) : racine, { absent: 'vide', avecTypes: true }).entrees) {
+    for (const { nom, nature } of listerEntrees(rel ? path.join(racine, rel) : racine, { absent: 'vide' }).entrees) {
       const enfant = rel ? `${rel}/${nom}` : nom
       if (rel && nom.toLowerCase() === '.git') throw new Error(`dépôt imbriqué : ${enfant}`)
       if (nature === 'link') throw new Error(`lien dans l'arbre : ${enfant}`)

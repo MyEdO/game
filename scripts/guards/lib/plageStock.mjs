@@ -321,6 +321,17 @@ export async function croissancesDeLaPlage(p = {}) {
   return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
 }
 
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: lectureDeLaPlage, lectures: 'corpus' },
+  { fonction: croissancesDeLaPlage, lectures: 'corpus', retour: { type: 'objetPartiel', champs: {
+    refus: { type: 'collection', element: { type: 'objetPartiel', champs: { ere: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } } } },
+    reclassements: { type: 'collection', element: { type: 'objetPartiel', champs: { ere: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] } } } },
+    notes: { type: 'collection', element: { type: 'chaine' } },
+    plage: { type: 'chaine' },
+    indisponible: { type: 'union', variantes: [{ type: 'chaine' }, { type: 'null' }] },
+  } } },
+]
+
 /** La porte de plage telle qu'une ère la charge (`jugeDeLEre`) : son module, ses deux juges, et sa
  *  VIE, une image JSON-objet dont `entreesNominatives` voit l'entrée. */
 export const PORTE_DE_PLAGE = Object.freeze({

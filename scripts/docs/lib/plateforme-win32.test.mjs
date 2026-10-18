@@ -1,21 +1,12 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { fileURLToPath, pathToFileURL } from 'node:url'
-
 import path from 'node:path'
-
 import { cwdDonne, estModuleDuDepot, hooksSdkSousWin32, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
-
-import { bancplateformewin32testmjs } from './bancGenerateurs.mjs'
-const { ecartsDeRendu } = bancplateformewin32testmjs
+import { ecartsDeRendu } from '../../test/lib/bancGenerateurs.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 
@@ -146,6 +137,9 @@ test('ecartsDeRendu : corps différent, cible d’un seul côté, rendu identiqu
   assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'x']]), rendu([['cible-a.md', 'x']])), [])
 })
 
+/** `node <args>` depuis `racine` rendu sous win32 (`IMPORT_WIN32`), dépôt rendu : ce que voit un module selon son LIEU.
+ *  Sur un hôte win32, la simulation n'est pas chargée : l'attendu s'éprouve contre le win32 RÉEL, la
+ *  simulation se vérifie sur l'hôte POSIX de la CI — le diagnostic le NOMME. */
 function sousWin32(t, racine, args) {
   if (HOTE === 'win32') t.diagnostic('hôte win32 : simulation NON chargée — attendu éprouvé contre le win32 réel ; la simulation se vérifie en CI Linux')
   const r = spawnSync(process.execPath, [...IMPORT_WIN32, ...args], {
@@ -178,6 +172,9 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
   }
 })
 
+/** Un dépôt jetable dont `src/entree.mjs` porte `source`, rendu sous win32 : ce qu'il imprime, parsé.
+ *  `parLien` : la racine est donnée (cwd, `WFRP_PLATEFORME_RACINE`, entrée) par un lien symbolique
+ *  (`junction` : un lien de répertoire que win32 pose sans privilège, ignoré ailleurs). */
 function vuDuDepot(t, source, { parLien = false } = {}) {
   const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-')))
   const lien = `${racine}-lien`
@@ -280,6 +277,8 @@ test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie
   assert.deepEqual(vu, [graphieDeLHote, '/usr/bin:/bin', racine])
 })
 
+// Sur l'arbre réel, les deux modules de la simulation sont SOUS la racine : leurs enveloppes de `fs`
+// passent des chemins POSIX à l'hôte, qui résout le relatif par le cwd de l'hôte.
 test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve son `jsx` et `fs` résout le relatif sur le disque', (t) => {
   const source = [
     "import { getTsconfig } from 'get-tsconfig'",
