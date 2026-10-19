@@ -10,6 +10,7 @@ import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { ignoresAuthores, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
+import { listerDossier } from './lister.mjs'
 
 const snapshot = { portee: 'banc', processus: [] }
 function terrain(t) {
@@ -225,7 +226,7 @@ test('#2795 sans fichier .git, l’arbre se mesure par SON dossier d’administr
     for (const [v, valeur] of variables) if (valeur === undefined) delete process.env[v]; else process.env[v] = valeur
   }
   assert.equal(propre.ok, true, 'ses suivis supprimés ne comptent pas, ce qu’ignoraient ses .gitignore supprimés non plus, le non-suivi du principal non plus, ses propres suivis restent suivis : ' + propre.refus.join(' ; '))
-  assert.deepEqual(fs.readdirSync(temporaire), [], 'la copie des règles est effacée')
+  assert.deepEqual(listerDossier(temporaire), [], 'la copie des règles est effacée')
   rmSync(temporaire, { recursive: true })
   mkdirSync(join(b.arbre, 'notes'))
   writeFileSync(join(b.arbre, 'notes', 'note.md'), 'authoré sous un motif du .gitignore supprimé')
