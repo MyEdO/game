@@ -8,8 +8,8 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { CodexEdit } from '../editor/codex/CodexEdit';
-import { datasetArray, resetData } from '../../data/overrides';
+import { CodexEdit } from '../../editor/codex/CodexEdit';
+import { datasetArray, resetData } from '../../../data/overrides';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
