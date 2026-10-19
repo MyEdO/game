@@ -237,6 +237,19 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/lib/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
     ['src/state/parite-minuterie.test.ts','setTimeout(f,0);','murs/minuteries',0],
     ['src/ui/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['server/src/parite-alea.ts','export const a=Math.random();','no-restricted-properties',1],
+    ['server/src/sous/parite-alea-valeur.ts','export const f=(g)=>g(Math.random);','no-restricted-properties',1],
+    ['server/src/parite-alea-destructure.ts','const {random}=Math; export const a=random();','no-restricted-properties',1],
+    ['server/src/parite-alea-global.ts','export const a=globalThis.Math.random();','no-restricted-properties',1],
+    ['server/src/parite-alea-self.ts','export const a=self.Math.random();','no-restricted-properties',1],
+    ['server/src/parite-alea-window.ts',"export const a=window['Math'].random();",'no-restricted-properties',1],
+    ['server/src/parite-alea-alias-global.ts','const g=globalThis; export const a=g.Math.random();','no-restricted-properties',1],
+    ['server/src/parite-alea-chaine.ts','export const a=globalThis.self.Math.random();','no-restricted-properties',1],
+    ['server/src/parite-alea-chaine-double.ts','export const a=globalThis.globalThis.Math.random();','no-restricted-properties',1],
+    ['server/src/parite-alea-neutre.ts','export const a=Math.floor(1);','no-restricted-properties',0],
+    ['server/src/parite-alea.test.ts','export const a=Math.random();','no-restricted-properties',0],
+    ['server/src/parite-alea.test.tsx','export const a=Math.random();','no-restricted-properties',0],
+    ['src/parite-alea.ts','export const a=Math.random();','no-restricted-properties',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

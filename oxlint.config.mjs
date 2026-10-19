@@ -587,6 +587,20 @@ export const BLOCS_LINT = [
     },
   },
   {
+    // CWE-338, #2724
+    files: ['server/src/**'],
+    excludeFiles: ['server/src/**/*.test.*'],
+    rules: {
+      'no-restricted-properties': ['error', ...[
+        { object: 'Math', property: 'random' },
+        { property: 'Math' },
+      ].map((cible) => ({
+        ...cible,
+        message: 'Aléa du serveur (CWE-338) : `server/src` émet les secrets de partie (token hôte, token de siège, code de room) ; tirer par `secureRandom` (`server/src/rand.ts`).',
+      }))],
+    },
+  },
+  {
     files: GLOBS_DE_MOD,
     excludeFiles: [...BANCS_DE_MOD, ...COUTURE_DE_MOD],
     rules: { 'murs/mod-sans-regle': ['error', ...VERROU_MOD] },

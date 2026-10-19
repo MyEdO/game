@@ -5,7 +5,7 @@
 // Ne cible QUE la forme `.find(/.findIndex(` — une comparaison `>= x.min && <= x.max` HORS `.find`
 // (ex. `waterExposure.ts` : simple test d'appartenance sur un modificateur, pas une recherche de
 // table) reste un motif DIFFÉRENT, volontairement hors périmètre. Module ESM pur, exécutable par
-// `node` nu — même patron que `journalWrite.mjs`/`serverMathRandom.mjs`.
+// `node` nu — même patron que `journalWrite.mjs`.
 
 /** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.
  * @param {string} src @returns {string} */

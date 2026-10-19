@@ -561,18 +561,6 @@
     },
     {
       "famille": "paramètre non lié",
-      "fichier": "server/src/no-math-random-guard.test.ts",
-      "ref": "readdirSync : paramètre dir",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "server/src/no-math-random-guard.test.ts",
-      "ref": "statSync : paramètre dir",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
       "fichier": "src/data/generic-domain-import-guard.test.ts",
       "ref": "scanAllPrimitives : paramètre p",
       "occurrence": 1
