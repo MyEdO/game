@@ -819,20 +819,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/combatGate.ts",
-    motif: "désormais",
-    ancre: "// `aiDriven` vit désormais avec les primitives d'« qui pilote quoi » (`netOwnership`, dont dépend",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/state/combatGeometry.ts",
-    motif: "désormais",
-    ancre: "inférieure dont la case est désormais SOUS son empreinte (LDB 85 l.373-374 : un plus grand « se",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/crit-test-porte.test.ts",
     motif: "désormais",
     ancre: "Il naît désormais comme une ÉTAPE, et c'est le socle (`resolveFlowTest`) qui décide de sa surface.",

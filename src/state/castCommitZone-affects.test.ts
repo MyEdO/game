@@ -1,5 +1,5 @@
 /**
- * `castCommitZone` (src/state/combatFlow.ts:3502) — `affects` (SpellTarget kind:'area',
+ * `castCommitZone` (src/state/combatFlow.ts:3499) — `affects` (SpellTarget kind:'area',
  * src/engine/spellRange.ts:31) : la Zone d'Effet déclare EN DONNÉE, par une `Condition` du
  * vocabulaire existant (src/engine/flowCore.ts:116), quels candidats elle retient.
  *  - champ absent = LDB 47 l.28 ;

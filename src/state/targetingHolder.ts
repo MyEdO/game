@@ -3,7 +3,7 @@
  * clic : l'aiguilleur `targetingModes.currentTargetingMode` (quel mode rendre/commiter) et la
  * possession réseau `netOwnership.intentAllowedFor` (quel siège a le droit de cliquer).
  *
- * Module VOLONTAIREMENT LÉGER (le type de l'état, et `stateFields` qui n'importe aucun runtime) : `netOwnership`
+ * Module VOLONTAIREMENT LÉGER (le type de l'état, et `slotsDeJet` qui n'importe aucun runtime) : `netOwnership`
  * est importé par `combatFlow`, et `targetingModes` se déclare module FEUILLE du moteur de combat —
  * router le clic en important l'aiguilleur depuis `netOwnership` créerait le cycle
  * `netOwnership → targetingModes → combatFlow → netOwnership`. La dépendance va donc du LOURD vers
@@ -11,7 +11,7 @@
  * verdict ⇄ mode réellement rendu est GARDÉE (`targeting-holder-vs-mode.test.ts`).
  */
 import type { GameState } from './store';
-import { sansCorps } from './stateFields';
+import { sansCorps } from './slotsDeJet';
 
 /** Les `pending*` HORS-modale (`modalArbiter.HORS_MODAL`) qui peuvent tenir le ciblage carte —
  *  ÉNUMÉRATION RUNTIME (le type en dérive) : les gardes itèrent CETTE liste, jamais une copie. */

@@ -30,7 +30,8 @@ import { milieuDuVoyage } from '../engine/shipBuild';
 import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
+import { findFreeTile, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
+import { removeEntity } from './combatPlacement';
 import { t } from '../i18n';
 import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { planClimb } from './climbMove';
@@ -2097,7 +2098,7 @@ export const useGame = create<GameState>((set, get) => ({
   // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
   // `state/intents.ts` `CLASSE_DES_ACTIONS`). Chez un invité ils sont INERTES — sans cette
   // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
-  // L'écran, lui, reste visible : il porte son refus par `GatedAction` (patron `store.ts:1942`).
+  // L'écran, lui, reste visible : il porte son refus par `GatedAction` (patron `store.ts:1943`).
   acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
   cloreChapitre: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
   ajournerChapterRecap: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null })),

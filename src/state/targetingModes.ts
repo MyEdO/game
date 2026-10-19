@@ -57,11 +57,12 @@ import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, selectedAttackOption,
   freeAttackTargetOk, auContactEligible, grappleActionEligible, firedAttackBlock,
-  displaceSmaller, retenuParLaPeur, frenzyTarget, applyZoneCrossings, noteApproachMove,
+  retenuParLaPeur, frenzyTarget, noteApproachMove,
   placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates,
   cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade,
   captureMoveSnapshot, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackOption,
 } from './combatFlow';
+import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
 
 export type HoverTargeting =
   | { kind: 'none' }

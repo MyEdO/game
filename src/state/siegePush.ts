@@ -3,7 +3,7 @@
  * pour se déplacer sur le champ de bataille » — RAW muet sur un Test ou une vitesse chiffrée). Décision de
  * design (#156, Lot 2) : mouvement SIMPLE (aucun jet), effort collectif de l'Équipe — le CHEF de pièce
  * pousse, l'ENGIN et TOUS les servants du poste (`ShipPoste.crewIds`) translatent du MÊME delta (formation
- * rigide), exactement comme `shipAdvance` (store.ts:1239) déplace une coque + son équipage. Distance
+ * rigide), exactement comme `shipAdvance` (store.ts:1240) déplace une coque + son équipage. Distance
  * plafonnée à une valeur MAISON éditable (`rule('siege-engine-push-speed')`, engine/policy.ts).
  *
  * Module FEUILLE (aucune dépendance combatFlow/combatSlice) : mute les combattants, l'appelant (store)
@@ -73,7 +73,7 @@ export function pushEligible(active: Combatant): boolean {
 
 /** Effectif de poussée SUFFISANT : ≥ la moitié de l'Équipe requise (ADE II 8 l.233 — « [les armes de
  *  siège] ne peuvent être utilisées avec moins de la moitié de l'Équipe nécessaire » ; ici étendu à l'EFFORT
- *  de déplacement, pas seulement le tir, MÊME seuil que `firedAttackBlock`, combatFlow.ts:296-310). Effectif
+ *  de déplacement, pas seulement le tir, MÊME seuil que `firedAttackBlock`, combatFlow.ts:299-313). Effectif
  *  BRUT (`exposedCrew` : vivant + conscient) — le RAW ADE II ne pose ICI aucune exigence de Compétence
  *  (≠ `servingCrewPresent`, qui filtre par Projectiles pour la courbe AA/MDG — hors sujet ADE II, cf.
  *  `warMachineCrew.ts` en-tête). PUR. */

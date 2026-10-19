@@ -43,7 +43,8 @@ import {
 } from '../engine/seaVoyage';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
-import { registerCascadeApplier, chainStep } from './cascade';
+import { registerCascadeApplier } from './cascade';
+import { chainStep } from './enchainerEtape';
 import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { actorIn } from './combatants';

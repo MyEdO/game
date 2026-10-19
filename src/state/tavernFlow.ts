@@ -68,7 +68,7 @@ import { actorIn } from './combatants';
 import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './sceneNpc';
 import type { Scene } from './scene';
-import { jetSurfaced } from './netOwnership';
+import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel } from '../data';

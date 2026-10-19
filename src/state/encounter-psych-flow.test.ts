@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { sceneFearSources, openScriptedPsych } from './encounterPsychFlow';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './netOwnership';
+import { seatOwns } from './sieges';
 import { psychDRAdjust } from '../engine/combat';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';

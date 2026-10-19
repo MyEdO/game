@@ -15,7 +15,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  * (`type: 'scene'`) et le schéma l'EXIGE (#1552) — même régime que le statbloc embarqué
  * (`./communs.ts` `customStatblockSchema`, `type: 'statblock'`). Son identité est NOMINALE, jamais
  * positionnelle : mesuré sur les 2 racines de `src/scenes` (4 projets, 28 scènes), 28/28 portent
- * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/state/store.ts:182-183`,
+ * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/state/store.ts:183-184`,
  * `registerScene`), le delta d'instance persisté par `sceneId` (`src/state/sceneInstance.ts:9`),
  * l'effet `transition: { scene }` et `worldMap.places[].scene`.
  */

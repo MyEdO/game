@@ -12,7 +12,7 @@
  * lorsque vous vous mettez debout. » — UN État, jamais la source entière.
  *
  * CHEMIN RÉEL de bout en bout : le Sort du catalogue est lancé par `applyCast` (`state/combatFlow`,
- * l'appel même que la confirmation d'incantation fait, `combatFlow.ts:4983-4991`), la Surincantation de
+ * l'appel même que la confirmation d'incantation fait, `combatFlow.ts:4980-4988`), la Surincantation de
  * Durée passe par ses pas (`overcast.duration` → `overcastDurationParts`), la Détermination par le
  * store (`spendResolveCondition`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
  * `state/roundHooks`).
@@ -69,7 +69,7 @@ const vue = (id: string): Combatant => useGame.getState().battle!.combatants.fin
 
 /**
  * Lance Transmutation de Chamon sur `cible`, `steps` pas de Surincantation de DURÉE — MÊME appel que la
- * confirmation d'incantation (`combatFlow.ts:4983-4991` : `overcastDurationParts(overcastSourceOf(spell),
+ * confirmation d'incantation (`combatFlow.ts:4980-4988` : `overcastDurationParts(overcastSourceOf(spell),
  * pc.overcast?.duration ?? 0)` → `durationMult`/`durationBonusRounds`).
  */
 function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {

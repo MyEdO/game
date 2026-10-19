@@ -8,7 +8,9 @@ import {
 } from './combatFlow';
 import { stakeAtTableRow } from './cascade';
 import { combatStakeRef } from '../data';
-import { modalOwnerOf, seatOwns, ownsLocal } from './netOwnership';
+import { ownsLocal } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
+import { seatOwns } from './sieges';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resolveCritique } from '../engine/critical';
 import { testScene } from '../scenes/test-fixture';
@@ -25,7 +27,7 @@ import type { CascadeStep } from './pendings';
  *    prédicats de siège coïncident — un test local ne prouve rien) ;
  *  - `groupOwner` du CAST (moment PARTAGÉ d'incantation) ne se pose que par le mint, à l'ouverture
  *    comme à la bascule `shareCastStep` — les autres bascules de possession restent des mutations
- *    d'étape (`combatSlice.ts:638`, désengagement) : elles passent la porte au lot 5b ;
+ *    d'étape (`combatSlice.ts:639`, désengagement) : elles passent la porte au lot 5b ;
  *  - les AFFICHAGES adossés à ces situations (Imparfaite/Colère, Critique de Structure) passent par
  *    leur mint sans rien perdre de leur en-tête ni de leur enjeu.
  */

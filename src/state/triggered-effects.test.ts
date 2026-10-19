@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
 import './combatFlow'; // effet de bord : installe le routeur de Test + l'applier triggeredTest
-import { runPureFlowLines } from './combatEffects';
+import { runPureFlowLines } from './combat/flowEval';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 

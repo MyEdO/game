@@ -423,7 +423,7 @@ describe('(b) réciproque fail-closed — aucune case d’action hors registre',
 /**
  * POURQUOI CHAQUE INTERLUDE PORTE SON PROPRE DISPATCHER (#1411 P0-B) — les sorties ne sont pas
  * interchangeables : `battleSelectAction` (sortie de la bordée) est AVALÉ sous un flux différé
- * (`combatBusy`, `combatSlice.ts:2875`), là où `cleaveEnd`/`dualStrikeSkip` sont justement les verbes
+ * (`combatBusy`, `combatSlice.ts:2876`), là où `cleaveEnd`/`dualStrikeSkip` sont justement les verbes
  * DE ces flux. Un dispatcher mutualisé rendrait la sortie muette dès qu'un flux se superpose. Le
  * témoin POSITIF (sans flux, la sortie mord) borne la mesure.
  */

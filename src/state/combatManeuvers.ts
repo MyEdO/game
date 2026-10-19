@@ -463,7 +463,7 @@ export function resolveManeuver(
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
   // centrée sur l'attaquant (`allAround`/`allFoes`) ⇒ rien à viser. Seul l'ATTAQUANT tourne, à la
-  // différence de la passe d'armes d'`applyAttackResult` (combatFlow.ts:2409) qui tourne AUSSI le
+  // différence de la passe d'armes d'`applyAttackResult` (combatFlow.ts:2406) qui tourne AUSSI le
   // défenseur : une manœuvre touche N cibles ou une zone, et son défenseur n'y répond par aucun jet orienté.
   const faceTarget = (tgt?: Combatant | null): void => {
     const from = attacker.pos!, to = tgt?.pos;

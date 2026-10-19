@@ -9,7 +9,8 @@ import { useGame } from './store';
 import { surfaceRow, bandStep, bandStepId, surfaceOf } from './rollSeam';
 import { startCascade } from './cascade';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocal, seatOwns } from './netOwnership';
+import { ownsLocal } from './netOwnership';
+import { seatOwns } from './sieges';
 import type { BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
 

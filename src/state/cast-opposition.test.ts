@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { modalOwnerOf, ownsLocal, intentAllowedFor } from './netOwnership';
+import { ownsLocal, intentAllowedFor } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
 import { castingBaseValue } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 

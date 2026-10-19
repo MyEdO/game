@@ -13,7 +13,7 @@
  * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) : ces régressions y sont
  * INVISIBLES — d'où le harnais à deux sièges (#1262 B7). Deux formes de « second siège » servent ici,
  * toutes deux réelles : un INVITÉ qui possède un héros (`ownership`) et le siège MJ (`gmSeat`) qui
- * conduit les ennemis (bac-à-sable — `netOwnership.seatOwns`/`jetSurfaced`).
+ * conduit les ennemis (bac-à-sable — `sieges.seatOwns`/`jetSurfaced`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
@@ -24,7 +24,8 @@ import { seedBattleRng } from './battleRng';
 import { hasCondition, addCondition, isOutOfAction, COND } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns, humanControlled } from './netOwnership';
+import { humanControlled } from './netOwnership';
+import { seatOwns } from './sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';

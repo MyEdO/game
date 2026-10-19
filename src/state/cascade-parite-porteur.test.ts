@@ -4,7 +4,8 @@ import { startCascade, pushStep, registerTableStep, registerCascadeApplier, susp
 import { tableStep, displayStep, monoStep, worldStep, surfaceDeLEtape, surfaceOf } from './rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
 import { actorIn } from './combatants';
-import { WORLD_STEP_OWNER, canFixDie, seatInfluences } from './netOwnership';
+import { canFixDie, seatInfluences } from './netOwnership';
+import { WORLD_STEP_OWNER } from './pendings';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixtureText } from '../i18n/fixtureText';

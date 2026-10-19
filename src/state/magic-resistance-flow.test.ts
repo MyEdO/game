@@ -4,7 +4,7 @@
  *  - Projectile : les Dégâts suivent le DR réduit, et le Martyr (`LDB 43 l.107`) encaisse ces Dégâts-là ;
  *  - Sort à État/durée : `ctx.sl` réduit → magnitude moindre ;
  *  - ZONE : le plus haut score du TALENT parmi les CIBLES du lancement vaut pour tout le lancement —
- *    un porteur présent sur le terrain mais non ciblé ne compte pas (combatFlow.ts:4393) ;
+ *    un porteur présent sur le terrain mais non ciblé ne compte pas (combatFlow.ts:4356) ;
  *  - NI par cible (sous-point #1007) : DR réduit sous le NI → le Sort n'affecte plus cette cible ;
  *  - DIFFÉRENTIEL : une cible sans résistance PROPRE ne bouge sur aucun de ces chemins, SAUF si un
  *    porteur du Talent figure parmi les cibles du lancement (clause de zone).

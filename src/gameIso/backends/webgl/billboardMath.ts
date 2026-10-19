@@ -153,7 +153,7 @@ export function boxUnitsPerM(kind: BillboardKind, scaleK: number): number {
 // 4. PALIER DE RASTERISATION
 // ————————————————————————————————————————————————————————————————
 
-/** Zoom maximal du jeu — borne haute de `setZoom` (`src/state/store.ts:1674`, littéral non exporté). */
+/** Zoom maximal du jeu — borne haute de `setZoom` (`src/state/store.ts:1675`, littéral non exporté). */
 export const ZOOM_MAX = 2.6;
 /** Garde-fous de texture : sous 16 px un billboard n'est plus lisible, au-delà de 2048 px on sort des
  *  tailles de texture sûres. */

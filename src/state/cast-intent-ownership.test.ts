@@ -27,11 +27,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, flowActionName, type JetOwnerRef } from './flowVerbs';
-import { intentAllowedFor, modalOwnerOf, seatInfluences } from './netOwnership';
+import { intentAllowedFor, seatInfluences } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
 import { GUEST_INTENTS } from './intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
-import { PENDING_BY_JET, type HostJet } from './stateFields';
+import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };

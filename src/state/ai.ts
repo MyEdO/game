@@ -19,7 +19,7 @@
  *
  * Lot 4 — CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → comportement Lot 3 inchangé) :
  * FEU CONCENTRÉ via le surnombre RAW (`outnumberEnvMelee` réutilise `outnumberMod`/LDB 14 avec le MÊME
- * décompte que la résolution `combatFlow.ts:425` → l'IA converge sur une cible que ses alliés encadrent),
+ * décompte que la résolution `combatFlow.ts:428` → l'IA converge sur une cible que ses alliés encadrent),
  * ÉVITEMENT du DANGER (`dangerAt` : danger-map des héros, l'ennemi fuit les cases exposées) et COHÉSION
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
@@ -139,7 +139,7 @@ export interface EnemyTurnInput {
   facing?: Record<string, Dir8>;
   /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
    *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (surnombre RAW en
-   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, cf. combatFlow.ts:425) et
+   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, cf. combatFlow.ts:428) et
    *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
    *  inchangé (le golden et les fixtures sans escouade restent identiques). */
   squad?: Combatant[];
@@ -163,7 +163,7 @@ export interface EnemyTurnInput {
   /** Restriction d'armes à distance EFFECTIVE de la rencontre (#537, résolue par `banRangedActive(battle)`
    *  — SOURCE UNIQUE, `ai.ts` reste pur sans `battle`). Sous ban, l'IA ne considère PLUS ses armes à distance
    *  comme jouables (`hasRanged`) : elle bascule mêlée/approche au lieu de télégraphier un tir no-op
-   *  (`resolveAttack` le refuserait silencieusement, combatFlow.ts:628-631). Ne touche PAS aux sorts offensifs
+   *  (`resolveAttack` le refuserait silencieusement, combatFlow.ts:620-623). Ne touche PAS aux sorts offensifs
    *  (NADJ 06 l.181 : la restriction ne vise QUE les projectiles). ABSENT = comportement historique inchangé. */
   banRanged?: boolean;
   /** MÉMO de Ligne de Vue de la DÉCISION en cours (`makeLosMemo`, `lineOfSight.ts`). L'appelant impur
@@ -736,7 +736,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
   /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`src/state/combatFlow.ts:425`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
+   *  (`src/state/combatFlow.ts:428`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
    *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
    *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
    *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun

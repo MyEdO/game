@@ -23,7 +23,8 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, victimeDuCoup, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, victimeDuCoup, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { removeEntity, applyZoneCrossings, displaceSmaller, setZoneCrossTestHook } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './lineOfSight';
@@ -105,7 +106,7 @@ import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './combatants';
 import { garanti } from '../lib/garanti';
 import { aPorteeDe } from './exploreNav';
-import { controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
+import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './combatCursor';
 import { cycleTarget, cyclePrevTarget, cursorActor } from './targeting';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
@@ -486,7 +487,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // PRÉCÉDENCE déclarée `maneuverResume` > `roundBoundary` (le défaut que corrige #942 L1 était l'inverse :
     // la borne de Round, première dans la chaîne, AFFAMAIT la reprise de tour d'une séquence FUSIONNÉE).
     // Les deux bornes ne sont PAS équivalentes : au franchissement, `advanceTurn` a DÉJÀ posé `{turn: 0, round}` et
-    // joué les décomptes une-fois-par-Round (combatFlow.ts:5245-5246 → `resolveRoundBoundary` →
+    // joué les décomptes une-fois-par-Round (combatFlow.ts:5242-5243 → `resolveRoundBoundary` →
     // `openRoundEndCascade`) ; le `roundBoundary` de la séquence porte seulement `enterRoundStartPause`.
     // Lui céder la place SACRIFIE donc, pour le Round COURANT, la pause de début de Round et son reset
     // per-Round (`shotsThisTurn`/`acted`/`movementUsed`…) — au profit du tour EN COURS. Moindre mal :
@@ -3592,7 +3593,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const b = get().battle;
         // Les États PORTÉS par le Sort partent à ce geste (#1695) : leurs lignes rejoignent CELLES de
         // l'Action (`finishPlayerAction` ci-dessous). Pas de récepteur `ConditionEmit` ici : le canal
-        // déclaré du store (`pendingLogQueue.stateId`, `store.ts:676`) n'a encore AUCUN producteur.
+        // déclaré du store (`pendingLogQueue.stateId`, `store.ts:677`) n'a encore AUCUN producteur.
         const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, undefined, logLines);
         set(touchActors(get()));
         logLines.push(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' }));

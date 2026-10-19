@@ -1,26 +1,20 @@
 /**
  * Garde unique de reprise du combat — « une modale / une pause empêche-t-elle l'IA d'avancer ? ».
  *
- * Avant, quatre sites (`resumeEnemyTurn`, `resumeSuspendedAI`, `advanceTurn`, `maybeRunEnemyTurn`)
- * recopiaient — et DIVERGEAIENT sur — la même liste de `pending*` bloquants. Ce module en fait UNE
- * définition. Étape A1 : strictement ISO-comportement, les divergences historiques de chaque site
- * (surveille-t-il `pendingCast` ? `pendingRoundStart` ?) sont rendues explicites via `opts`. L'étape
- * A1-bis unifie ces divergences (dérivation depuis le registre `MODAL_DEFS`).
+ * Les quatre sites de reprise (`resumeEnemyTurn`, `resumeSuspendedAI`, `advanceTurn`,
+ * `maybeRunEnemyTurn`) lisent UNE définition de la liste des `pending*` bloquants ; ce que chacun
+ * surveille en propre (`pendingCast` ? `pendingRoundStart` ?) est explicite via `opts`.
  *
  * Module FEUILLE (convention « baril ») : n'importe RIEN de `combatFlow` ; ré-exporté par lui.
  */
 import type { ArbiterState } from './modalArbiter';
 
-// `aiDriven` vit désormais avec les primitives d'« qui pilote quoi » (`netOwnership`, dont dépend
-// `controlsActive`) ; ré-exporté ICI pour ne pas casser ses consommateurs historiques (`from './combatGate'`).
-export { aiDriven } from './netOwnership';
-
 /**
  * Une modale de combat (ou la pause de Round) bloque-t-elle l'avancée/reprise de l'IA ?
- * `opts` reflète À L'IDENTIQUE ce que chaque garde historique surveillait :
- *  - `cast`       (défaut `true`)  : `resumeSuspendedAI` ne testait PAS `pendingCast`.
- *  - `roundStart` (défaut `false`) : seul `maybeRunEnemyTurn` testait `pendingRoundStart` ici
- *    (`advanceTurn` le fait par un `return` séparé en amont — comportement préservé côté appelant).
+ * `opts` dit ce que chaque site surveille en propre :
+ *  - `cast`       (défaut `true`)  : `resumeSuspendedAI` ne teste PAS `pendingCast`.
+ *  - `roundStart` (défaut `false`) : `maybeRunEnemyTurn` teste `pendingRoundStart` ici
+ *    (`advanceTurn` le fait par un `return` séparé en amont).
  */
 export function combatAdvanceBlocked(
   s: ArbiterState,

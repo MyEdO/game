@@ -56,7 +56,7 @@ export type NetView = Pick<GameState['net'], 'mode' | 'mySeat' | 'ownership'> & 
 /**
  * Même prédicat, pour un écran HORS COMBAT piloté par son état réseau EN PROP (Interlude, écran de
  * Groupe : rendus en SSR par un seam de test, sans store). L'état réduit couvre EXACTEMENT ce que le
- * routage lit alors : `seatOwns` (netOwnership) consulte `net.ownership`, `net.gmSeat` et `battle` —
+ * routage lit alors : `seatOwns` (sieges) consulte `net.ownership`, `net.gmSeat` et `battle` —
  * et sa branche `gmSeat` ne concerne QUE les combattants `kind:'enemy'` PRÉSENTS dans `battle`. Sans
  * combat il n'y en a aucun : le verdict d'un HÉROS est son siège d'attribution, MJ ou pas.
  */

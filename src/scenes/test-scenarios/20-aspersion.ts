@@ -21,7 +21,7 @@ import type { Scene } from '../../state/scene';
  * Terrain 100 % terrestre (aucune tuile d'eau) : `spawn.ts` (`placeCombatant`) dérive `offTerrain:
  * true` au placement, sans intervention manuelle. Adjacence AU SPAWN (pas de déplacement requis pour
  * la recette) : `startCombat` place le héros SOLO à `(heroStart.x − 1, heroStart.y)`
- * (`combatSlice.ts:2424`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
+ * (`combatSlice.ts:2425`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
 function porteurDOutre() {
   const h = pregen(PREGEN.soldat);

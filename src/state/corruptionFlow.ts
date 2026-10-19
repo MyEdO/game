@@ -49,7 +49,7 @@ import { valeurDuTest } from '../engine/skills';
 import { pushReveal } from './combatFlow';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
-import { tenuParUnHumain } from './netOwnership';
+import { tenuParUnHumain } from './sieges';
 import { followsCharacterRules } from '../engine/relations';
 import { resultLine, freeCons, tableStep, type BuiltCascadeStep } from './rollSeam';
 import { t, deElide } from '../i18n';

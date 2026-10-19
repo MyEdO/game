@@ -10,7 +10,7 @@ import { cascadeDeTest } from './cascadeTestKit';
  * `checkBattleOver` à la clôture de N'IMPORTE QUELLE cascade, pas seulement `purpose:'combat'`. Aucun
  * purpose non-combat ne coexiste avec un combat AUJOURD'HUI, mais le garde précédent ne routait le
  * re-check QUE dans la branche `purpose==='combat'` — un futur purpose ouvert en combat (ex. un Test
- * d'Avantage `purpose:'test'` déjà tiré pendant un combat ailleurs dans le code, combatSlice.ts:3163)
+ * d'Avantage `purpose:'test'` déjà tiré pendant un combat ailleurs dans le code, combatSlice.ts:3164)
  * referait le trou d'écrasement/victoire-manquée sans qu'aucun test ne le voie.
  *
  * Ce test construit l'état HYPOTHÉTIQUE (combat actif + cascade `purpose:'test'` pendante + dernier

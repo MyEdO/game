@@ -464,7 +464,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   };
   // ÉTAPE-JET : le rendu est INCONDITIONNEL (#1852) — ce que garantissent DEUX portes en amont, et
   // elles seules : le socle refuse de poser le curseur sur un hôte qui n'a pas de quoi rendre un corps
-  // (`cascade.poserLeCurseur` → `stateFields.hoteOrphelin`, prédicat TOTAL : slot, acteurs, donnée
+  // (`cascade.poserLeCurseur` → `slotsDeJet.hoteOrphelin`, prédicat TOTAL : slot, acteurs, donnée
   // d'étape), et l'effacement VOULU de l'incantation pendant un ciblage CARTE est une condition
   // d'élection de l'ARBITRE (`modalArbiter`, entrée `cascade`).
   if (cur.jet) return JET_RENDERERS[cur.jet]();

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { tenuParUnHumain } from './netOwnership';
+import { tenuParUnHumain } from './sieges';
 import { applyAttackResult, resolveDeviation } from './combatFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resetRule } from '../engine/policy';

@@ -17,7 +17,7 @@
  *                      une op de `STRAY_IMPURE_OPS` (`interruptFocus`/`breakBlade`/`delayed`) HORS branche
  *                      `success`/`fail` d'un `test` (`flowHasImpureOpOutsideTest`, engine/flowCore) : ces
  *                      ops n'ont de hook que dans le do-loop de `runCombatFlow` avec son contexte de
- *                      branche — ailleurs, le walker pur `runPureFlowLines` (state/combatEffects) les
+ *                      branche — ailleurs, le walker pur `runPureFlowLines` (state/combat/flowEval) les
  *                      avalerait en silence. `grantFreeAttack` top-level reste légitime (résolu par
  *                      `resolveFreeAttacks`).
  *

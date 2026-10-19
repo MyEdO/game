@@ -108,7 +108,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     expect(live(H.id).wounds.current).toBe(before - (3 + 5 + 7));
   });
 
-  // combatEffects.ts:123 (`drainPendingLog`) · cascade.ts:1352 (`consequences`)
+  // combatEffects.ts:123 (`drainPendingLog`) · cascade.ts:1339 (`consequences`)
   it('HÉROS manuel : les lignes de la continuation rejoignent les conséquences de l’étape, la file différée est vide', () => {
     seedBattleRng(5);
     const { H } = setup();

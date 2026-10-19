@@ -80,7 +80,7 @@ import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
-import { defenseSurfaced } from './netOwnership';
+import { aiDriven, defenseSurfaced } from './netOwnership';
 import { combatDistance } from './footprint';
 import { reachTiles } from '../engine/engagement';
 import { canonEdge } from './sceneEdit';
@@ -121,7 +121,7 @@ import { cadence } from '../engine/cadence';
 import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefValue } from './preferences';
 import { pickActiveModalKey, autoPolicyOf } from './modalArbiter';
 import { willAutoResolve } from './combatAuto';
-import { aiDriven, combatAdvanceBlocked } from './combatGate';
+import { combatAdvanceBlocked } from './combatGate';
 import { endTurnArmed } from './endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
 import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from './combatManeuvers';
@@ -658,8 +658,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
     // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `setParty`
-    // ne pose que `state.party` (`store.ts:2155`), et c'est `startScene` qui cherche son point de départ
-    // DANS `scene.entities` (`store.ts:2159`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
+    // ne pose que `state.party` (`store.ts:2156`), et c'est `startScene` qui cherche son point de départ
+    // DANS `scene.entities` (`store.ts:2160`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
     const chargee = g().scene;
     if (!chargee || chargee.entities.length === 0)
       throw new Error(

@@ -8,7 +8,8 @@ import { fleeReachable } from './path';
 import { emptyScene } from './scene';
 import { stacks, hasCondition, COND } from '../engine/conditions';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
-import { intentAllowedFor, modalOwnerOf } from './netOwnership';
+import { intentAllowedFor } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
   const scene = emptyScene(14, 14);

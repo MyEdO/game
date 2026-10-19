@@ -37,7 +37,7 @@ Les panneaux **POV** sont gelés comme comparables : la voie volumique a son POV
 
 | Écarté | Raison |
 |---|---|
-| Rangée **edge-on** ×4 des planches contact | plus de vis-à-vis PAR CONSTRUCTION : le chemin joueur est restreint aux 4 crans diagonaux (`src/state/store.ts:1585`, `camEdge: false`) |
+| Rangée **edge-on** ×4 des planches contact | plus de vis-à-vis PAR CONSTRUCTION : le chemin joueur est restreint aux 4 crans diagonaux (`src/state/store.ts:1586`, `camEdge: false`) |
 | `env-vitrine-batiments.png` | la scène `vitrine-batiments` n'a aucune route vers l'écran de jeu (montée par l'écran DEV du spike, qui meurt à C5b) |
 | `occlusion-*.png`, `walls.png` | diagnostics du tri en profondeur per-tuile affine — mécanique absente du volumique (tampon Z), rien à comparer |
 | `pilote-*-avant-apres.png` | comparaisons entre deux états d'un rendu affine, sans objet hors de ce backend |

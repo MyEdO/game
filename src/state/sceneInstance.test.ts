@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { captureMutation, applyMutation, type SceneMutation } from './sceneInstance';
 import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from './scene';
 import { useGame } from './store';
-import { removeEntity } from './combatGeometry';
+import { removeEntity } from './combatPlacement';
 import { readSlot, saveToSlot, deleteSlot, type SaveGame } from './saves';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */

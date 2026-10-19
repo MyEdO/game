@@ -757,7 +757,7 @@ export function CombatConsole() {
   // ARMES À DISTANCE du porteur — le SÉLECTEUR DU REGISTRE (`armes-a-distance`, déclaré par l'entrée
   // `reload`), jamais un filtre recopié : deux pistolets sont DEUX armes, chacune avec son cycle de
   // charge (`weaponLoad.ts`, registre par `uid`) et sa munition — ce que les dispatchers mesurent déjà
-  // (`combatSlice.ts:1928` `battleReload`, `:2139` `battleSelectAmmo`, tous deux paramétrés par l'arme).
+  // (`combatSlice.ts:1939` `battleReload`, `:2151` `battleSelectAmmo`, tous deux paramétrés par l'arme).
   const rangedWs = ACTION_CANDIDATES['armes-a-distance']({ active, battle, netMode: net.mode }) as Weapon[];
   const heldSet = activeLoadout(active);
   // G1 porte l'arme DU SET, lue par `uid` — jamais la première arme de `c.weapons`, dont l'ordre ne dit
@@ -792,7 +792,7 @@ export function CombatConsole() {
     if (!ammo) return [];
     const choix = compatibleAmmo(active, w);
     const choisissable = live && !frenzied && choix.length >= 2;
-    // Chambre PLEINE : c'est ce que MESURE le dispatcher pour décider s'il décharge (`combatSlice.ts:2136`,
+    // Chambre PLEINE : c'est ce que MESURE le dispatcher pour décider s'il décharge (`combatSlice.ts:2137`,
     // mêmes prédicats) — donc ce que le panneau doit annoncer au candidat qui n'est pas celui en chambre.
     const chargee = (w.reload ?? 0) > 0 && weaponLoaded(active, w);
     const options: ParamOption[] = choisissable
@@ -920,7 +920,7 @@ export function CombatConsole() {
     active.mountId ? cellFor('dismount', 'geste', { off: actionVerrouillee }) : undefined,
     active.mannedPoste ? cellFor('leave-poste', 'geste', { off: busy }) : undefined,
     // La barre : le BARREUR la tient (`atHelm`), et la COQUE elle-même quand c'est SON tour — même case,
-    // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1362`).
+    // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1363`).
     atHelm || navire ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
@@ -1174,7 +1174,7 @@ export function CombatConsole() {
   // porteur. Chaque candidat EST l'entrée de registre `reload` avec SON `weaponUid` — même verdict
   // d'offre, même dispatcher (`battleReload`) que l'alvéole à une seule arme.
   // Une arme DÉJÀ CHARGÉE est un candidat INERTE, avec son état dit : c'est exactement ce que mesure
-  // le dispatcher pour refuser (`combatSlice.ts:1936`, prédicat `reloadable`).
+  // le dispatcher pour refuser (`combatSlice.ts:1937`, prédicat `reloadable`).
   const rechargeOptions: ParamOption[] = rechargeChoisissable
     ? rechargeables.map((w) => {
         const cell = cellFor('reload', 'arme', { key: `recharge-${w.uid}`, label: w.label, args: { weaponUid: w.uid } });

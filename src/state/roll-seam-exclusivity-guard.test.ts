@@ -1128,7 +1128,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
     const etal = 'export function lot(base, min, max) { return base.int(min, max); }\n';
     expect(scanDesHorsPorte('src/state/x.ts', etal, desRollers()).map((s) => s.name), 'forme d’etalLot.ts:60').toEqual(['rng.int']);
     const battle = 'export function victime(crowd) { return crowd[battleRng().int(0, crowd.length - 1)]; }\n';
-    expect(scanDesHorsPorte('src/state/x.ts', battle, desRollers()).map((s) => s.name), 'forme de combatFlow.ts:800').toEqual(['rng.int']);
+    expect(scanDesHorsPorte('src/state/x.ts', battle, desRollers()).map((s) => s.name), 'forme de combatFlow.ts:797').toEqual(['rng.int']);
   });
 
   it('zéro faux positif : un `roll` LOCAL (déclencheur de flux, non importé du moteur) n’est pas un dé', () => {
@@ -1498,7 +1498,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     // `freeAttackHookImpl`) n'a pas d'appel par nom : le dispatcher d'ops de `runCombatFlow` le lit et
     // rompt sa boucle à la première fenêtre ouverte (`combat/triggeredTest.ts:473`, #1852). Le signal
     // MEURT là : `runCombatFlow` rend `void` (`combat/triggeredTest.ts:456`), et son appelant
-    // `resolveFreeAttacks` le redérive de l'état par `defenseEnCours` (`combatFlow.ts:4069`, `:4077`).
+    // `resolveFreeAttacks` le redérive de l'état par `defenseEnCours` (`combatFlow.ts:4066`, `:4077`).
     // Une seule représentation jusqu'au dispatcher : #2639.
     expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
     expect(relaisDuCoup().sites, 'un relais NEUF d’un point du coup : son appelant doit consommer son retour').toEqual([

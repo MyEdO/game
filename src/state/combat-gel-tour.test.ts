@@ -5,7 +5,7 @@ import { seedBattleRng } from './battleRng';
 import { startCascade } from './cascade';
 import { idDansLaSequence } from './rollSeam';
 import { pickActiveModalKey } from './modalArbiter';
-import { hoteOrphelin, PENDING_BY_JET, type HostJet } from './stateFields';
+import { hoteOrphelin, PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import type { CascadeStep } from './pendings';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';

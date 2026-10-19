@@ -22,7 +22,7 @@ import { setCadence, resetCadence } from '../engine/cadence';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
-import { seatOwns } from './netOwnership';
+import { seatOwns } from './sieges';
 import { modalOwnerOf } from './modalArbiter';
 import { corruptionThreshold } from '../engine/corruption';
 import { testScene } from '../scenes/test-fixture';

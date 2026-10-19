@@ -146,7 +146,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
 
   it('la Nuée quitte un Engagement SANS Test, liens levés et déplacement rouvert', () => {
     // Volet joué par la porte JOUEUR (`battleDisengage`) : la Nuée ENNEMIE se pilote sous un siège MJ
-    // (`net.gmSeat`, `netOwnership.ts:259-262,301-306`). L'IA, elle, ne joue PAS ce volet : `src/state/ai.ts`
+    // (`net.gmSeat`, `sieges.ts:65-68`, `netOwnership.ts:213-218`). L'IA, elle, ne joue PAS ce volet : `src/state/ai.ts`
     // n'appelle jamais `startDisengage` — ticket ouvert par l'orchestratrice (#1718).
     const { scene, nueeId } = nueeScene();
     const { battle, heroId } = startNuee(scene);

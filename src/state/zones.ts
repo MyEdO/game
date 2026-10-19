@@ -181,7 +181,7 @@ export function decayZones(zones: BattleZone[] | undefined): { zones: BattleZone
 /** Traversée : applique l'`onCross` de chaque zone dont une case du CHEMIN fait partie —
  *  UNE application par zone et par déplacement (« quiconque traverse le mur »). Zones GATÉES par
  *  un `crossTest` (Forêt d'épines) sont SAUTÉES ici (fonction PURE, sans accès get/set) — résolues
- *  cadence-aware par `applyZoneCrossings` (combatGeometry.ts), seule couture qui les traite. */
+ *  cadence-aware par `applyZoneCrossings` (combatPlacement.ts), seule couture qui les traite. */
 export function crossZones(
   zones: BattleZone[] | undefined,
   mover: Combatant,

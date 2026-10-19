@@ -42,7 +42,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Frisson paralysant', 'attaque-Action de mêlée magique, 1 Sonné/DR sans dégât (creatureAttacks.ts + combatFlow)'],
   ['Venin', 'Empoisonné sur PB infligés — `effects` AUTHORÉ du trait (Test de Résistance paramétré par l’arg, fireTriggers onHit)'],
   ['Constricteur', 'Empêtré sur touche — `effects` AUTHORÉ du trait (condition empetre, escapeStrength=Force, fireTriggers onHit)'],
-  ['Contagieux', 'transmet au TOUCHER la maladie hébergée (`$arg`) — `effects` AUTHORÉ onHit on:victim → op `exposeDisease{difficultyShift:-2, incubation:\'instant\'}` (ops.ts:1576), moissonnée par `applyAttackResult` (combatFlow.ts:2127) et résolue au bilan de fin de combat (`decideCombatEndHeroTests`, combatFlow.ts:5032) ; cf. `state/contagieux.test.ts`'],
+  ['Contagieux', 'transmet au TOUCHER la maladie hébergée (`$arg`) — `effects` AUTHORÉ onHit on:victim → op `exposeDisease{difficultyShift:-2, incubation:\'instant\'}` (ops.ts:1576), moissonnée par `applyAttackResult` (combatFlow.ts:2124) et résolue au bilan de fin de combat (`decideCombatEndHeroTests`, combatFlow.ts:5029) ; cf. `state/contagieux.test.ts`'],
   ['Absorption', 'engloutissement de fin de Round MÉCANISÉ 100% data-driven (`absorption.effects` : onRoundEnd Empêtré×BF + Empoigné + Digéré ; digestion drain BF ignore PA/BE + créature guérit ; redirection onWoundLoss ; un/Round ; purge à la mort) — dispatché par `fireTriggers`, cf. `absorption.test.ts` (EDO 11 l.222)'],
   ['Vampirique', 'drain de PB sur Morsure (combatFlow.applyFreeAttackEffects — gating « kind=morsure » sans Condition Flow)'],
   ['Se cabrer', 'Piétinement payé par l’Action de Mouvement — `capabilities.freeTrample` lu par `freeAttackCost` (LDB 85 l.314)'],
@@ -121,7 +121,7 @@ const JOURNAL_MJ = new Map<string, string>([
   // la desc verbatim est affichée, rien n'est inventé. `raw.manifest.json` ne peut pas porter cette
   // dette : son intégrité (`validerDette`, scripts/raw/build-implemente.mjs) n'accepte qu'un topic
   // ou une fiche de `docs/raw/*.md`, or l'entité vit en catalogue.
-  ['Siphonnage de sort', 'se déclenche quand un ENNEMI résout une incantation : `onCastResolved` est émis sur le LANCEUR (`self: caster`, combatFlow.ts:4274) et `emitCombatEvent` diffuse à `audience ?? [self]` (combatEvents.ts:32), aucun Trigger n\'observe le cast d\'autrui ; la table `vdm-siphonnage-de-sort` (tables.json) existe et reste à câbler — #862'],
+  ['Siphonnage de sort', 'se déclenche quand un ENNEMI résout une incantation : `onCastResolved` est émis sur le LANCEUR (`self: caster`, combatFlow.ts:4271) et `emitCombatEvent` diffuse à `audience ?? [self]` (combatEvents.ts:32), aucun Trigger n\'observe le cast d\'autrui ; la table `vdm-siphonnage-de-sort` (tables.json) existe et reste à câbler — #862'],
 ]);
 
 // Traits dont la mécanique est portée par les helpers de `dispatch` (capabilities/passive/effects/
@@ -208,7 +208,7 @@ const DISPATCH = new Set<string>([
   'Pisteur',
   // Grimpant (LDB 85 l.160-162) : capabilities `autoClimb` + `climbFullSpeed` (donnée), lues par
   // `hasAutoClimb`/`hasClimbFullSpeed` (dispatch.ts:374/380) → traversée verticale du pathing
-  // (`path.climbTraverseFor`), coût de Mouvement plein (`store.ts:2005/2023`) et décision d'IA
+  // (`path.climbTraverseFor`), coût de Mouvement plein (`store.ts:2006/2023`) et décision d'IA
   // (`ai-climb.test.ts`). Canal dispatch.
   'Grimpant',
   // Lanceur de Sorts : capability `spellcaster` (donnée), lue par `knowsCastingSkill` (magic.ts:278) —
