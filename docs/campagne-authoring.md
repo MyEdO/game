@@ -440,7 +440,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
   narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
-  ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
+  ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/adressabilite/interne/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
 - **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
   le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le

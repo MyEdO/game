@@ -501,6 +501,29 @@ test('murs/interne : la pose brute du clavier ne s’importe que sous src/ui/cla
   }
 })
 
+test('murs/interne : le geste de fermeture et le verdict vivant ne s’importent que sous leur dossier', () => {
+  const REGLE='murs/interne'
+  const VERDICT='source/adressabilite/interne/derive-decoupes.mjs'
+  const FERMER='fermeture/interne/fermer-depuis-main.mjs'
+  const cas = [
+    ['scripts/migrations/2099-01-01-parite-verdict.mjs',`import { judge } from '../${VERDICT}';\nexport const j=judge;`,1],
+    ['scripts/migrations/lib/parite-verdict.mjs',`export const j=async()=>(await import('../../${VERDICT}')).judge;`,1],
+    ['scripts/source/parite-relais.mjs',`export { judge } from '../${VERDICT}';`,1],
+    ['src/data/source/parite-verdict.test.ts',`import { judge } from '../../../scripts/${VERDICT}';\nexport const j=judge;`,1],
+    ['scripts/source/adressabilite/parite-verdict.test.ts',"import { judge } from './interne/derive-decoupes.mjs';\nexport const j=judge;",0],
+    ['scripts/ops/parite-train.mjs',`import { fermerLeTicket } from './${FERMER}';\nexport const f=fermerLeTicket;`,1],
+    ['scripts/ops/parite-train-require.cjs',`module.exports=require('./${FERMER}');`,1],
+    ['scripts/guards/lib/parite-fermer.mjs',`export const f=async()=>(await import('../../ops/${FERMER}')).fermerLeTicket;`,1],
+    ['scripts/ops/fermeture/interne/parite-fermer.test.mjs',"import { fermerLeTicket } from './fermer-depuis-main.mjs';\nexport const f=fermerLeTicket;",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) assert.equal(m.severity,2)
+  }
+})
+
 test('murs/echap-import : `CODE_ECHAP` ne s’importe que sous src/state/clavier et src/ui/clavier, tests compris', () => {
   const REGLE='murs/echap-import'
   const cas = [

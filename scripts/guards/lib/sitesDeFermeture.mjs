@@ -14,17 +14,17 @@
 //     qu'il connaît (`gh issue close`, `gh issue edit --state closed`, `gh api … state=closed`, cette
 //     dernière couvrant le PATCH REST `-f state=closed`) sont donc mesurées ici à l'identique : une
 //     seconde table dirait « ferme » d'une commande que la garde laisse passer, ou l'inverse ;
-//   · le CORPUS est `sourcesSuivies` (modulesFeuilles.mjs) — git, jamais le disque ;
+//   · le CORPUS est `sourcesSuivies` (sourcesSuivies.mjs) — git, jamais le disque ;
 //   · le BLANCHIMENT est `codeSeul` (commentPoison.mjs), qui retire les COMMENTAIRES en gardant les
 //     chaînes : un argv de fermeture EST une donnée littérale, l'effacer rendrait la garde aveugle.
 //
 // CE QUE LA LECTURE STATIQUE NE PEUT PAS VOIR, dit : un argv dont les jetons ne sont pas des
 // littéraux (`gh([...verbe, numero])`). L'unicité ne se tient donc pas sur les seuls argv — elle se
-// tient d'abord sur les IMPORTS (`modulesFeuilles.mjs`), qui, eux, ne se contournent pas.
+// tient d'abord sur les IMPORTS : le geste vit sous `scripts/ops/fermeture/interne/` (mur `murs/interne`).
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { codeSeul } from './commentPoison.mjs'
-import { RACINE, sourcesSuivies } from './modulesFeuilles.mjs'
+import { RACINE, sourcesSuivies } from './sourcesSuivies.mjs'
 import { fermetureGh } from './fermetures.mjs'
 
 /**
@@ -34,7 +34,7 @@ import { fermetureGh } from './fermetures.mjs'
  */
 export const SITES_DECLARES = Object.freeze([
   Object.freeze({
-    fichier: 'scripts/ops/fermer-depuis-main.mjs',
+    fichier: 'scripts/ops/fermeture/interne/fermer-depuis-main.mjs',
     pourquoi:
       'ferme les tickets SOLDÉS d’une plage de main rattrapée depuis la dernière course réussie (`baseDeLaPlage`), checks requis du sha poussé verts ' +
       '(scripts/ops/checks-requis.mjs) — job `fermetures` ' +
@@ -49,7 +49,7 @@ export const SITES_DECLARES = Object.freeze([
       'écarté de la conversion REST par le solde de #1804, mesuré CI-seulement',
   }),
   Object.freeze({
-    fichier: 'scripts/ops/fermer-depuis-main.test.mjs',
+    fichier: 'scripts/ops/fermeture/interne/fermer-depuis-main.test.mjs',
     pourquoi: 'MESURE la graphie du geste sur un `appel` INJECTÉ — aucun appel ne part vers GitHub',
   }),
   Object.freeze({

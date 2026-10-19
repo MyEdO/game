@@ -153,9 +153,10 @@ scripts/source/             Le côté NODE de la chaîne d'adressage de prose �
                             le parsing vit dans `src/data/source/decoupe.ts` (PUR). `lecteur-fs.mjs` lit
                             et mémorise un chapitre du `Source/` ; `resoudre.mjs` porte les deux portes
                             FAIL-CLOSED (`resoudreProse` pour UNE entrée, `materialiser` pour une racine
-                            de document) et `cheminChapitre` ; `derive-decoupes.mjs` DÉRIVE une adresse
-                            d'une `desc` existante et rend le verdict d'adressabilité (`judge`, consommé
-                            par les migrations) ; `adresses.mjs` est L'INVENTAIRE des adresses du dépôt
+                            de document) et `cheminChapitre` ; `adressabilite/interne/derive-decoupes.mjs`
+                            DÉRIVE une adresse d'une `desc` existante et rend le verdict d'adressabilité
+                            (`judge`), interne à `adressabilite/` (mur `murs/interne`) : aucune migration
+                            datée ne l'atteint ; `adresses.mjs` est L'INVENTAIRE des adresses du dépôt
                             (walk unique des deux racines par `listerArbre`, lu par la garde de
                             re-résolution, par la sonde de matérialisation et par l'outil de réparation) ;
                             `reecriture-ancree.mjs` remplace un fragment de TEXTE à sa place exacte

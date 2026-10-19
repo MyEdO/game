@@ -175,17 +175,6 @@ const ATTENDU = {
     // +1 le 2026-09-05 (#1679 L3b) : la porte de rôle du lecteur à ordre total pose ses dossiers-fixtures
     // (`mkdtempSync` + `writeFileSync`) sous `os.tmpdir()` — l'arbre n'est jamais écrit.
     'scripts/guards/lib/lister.test.mjs',
-    // +1 le 2026-10-05 (#1887 6a-2c) : le banc de la garde des migrations au verdict vivant forge un
-    // dépôt JETABLE (`mkdtempSync` sous os.tmpdir(), `mkdirSync`/`writeFileSync` des migrations et du
-    // module relais, `rmSync` en finally) — la clôture d'imports exige de vrais fichiers à résoudre ;
-    // l'arbre du dépôt n'est jamais écrit.
-    'scripts/guards/lib/migrationsVerdictVivant.test.mjs',
-    // +1 le 2026-09-18 (#1813) : la garde des MODULES FEUILLES fabrique un arbre JETABLE
-    // (`mkdtempSync` sous os.tmpdir(), `mkdirSync`/`writeFileSync` pour la feuille, son banc et les
-    // sources du cas, `rmSync` en finally) — éprouver les graphies d'import qui atteignent une feuille
-    // exige de VRAIS fichiers à résoudre, et l'arbre du dépôt n'est jamais écrit : mesuré le
-    // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
-    'scripts/guards/lib/modulesFeuilles.test.mjs',
     'scripts/guards/lib/plageStock.test.mjs',
     // +1 le 2026-10-08 (#2503) : le banc de la porte d'une ÈRE forge des dépôts JETABLES
     // (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) dont il charge l'ère ; l'arbre du dépôt

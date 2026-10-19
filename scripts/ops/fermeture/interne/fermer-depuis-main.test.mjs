@@ -1,12 +1,11 @@
 // CLIQUET du GESTE de fermeture (node --test, sans réseau) : `appel` est FEINT, et le module sous
-// test est une FEUILLE — `scripts/corpus/ops/fermer-depuis-main.test.mjs` le vérifie sur les
-// imports du dépôt.
+// test est INTERNE à `scripts/ops/fermeture/` (mur `murs/interne`).
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEPOT, lireTicket } from '../guards/lib/ticketsGh.mjs'
+import { DEPOT, lireTicket } from '../../../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
-import { fermeturesDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
+import { fermeturesDeLaPlage, marqueDe } from '../../../guards/lib/plageFermante.mjs'
 import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
 
 // ── LE geste de fermeture, par REST (#1813) ───────────────────────────────────

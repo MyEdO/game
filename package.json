@@ -73,7 +73,7 @@
     "ops:audit": "node scripts/ops/audit-stock.mjs",
     "ops:stock-issues": "node scripts/ops/stock-issues.mjs",
     "ops:fermetures-non-citees": "node scripts/ops/fermetures-non-citees.mjs",
-    "ops:fermer": "node scripts/ops/fermer-depuis-main.mjs",
+    "ops:fermer": "node scripts/ops/fermeture/interne/fermer-depuis-main.mjs",
     "ops:ruleset": "node scripts/ops/ruleset-main.mjs",
     "ops:chantier": "node scripts/ops/chantier.mjs",
     "ops:session": "node scripts/ops/session.mjs",

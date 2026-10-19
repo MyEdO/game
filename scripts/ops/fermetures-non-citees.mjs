@@ -13,7 +13,7 @@
 //
 // Usage : `npm run ops:fermetures-non-citees` (fenêtre 7 j) ou
 // `node scripts/ops/fermetures-non-citees.mjs --depuis 2026-08-20`. Le nom dit le RAPPORT : `ops:fermer`
-// est le geste qui FERME (scripts/ops/fermer-depuis-main.mjs), celui-ci ne fait que mesurer.
+// est le geste qui FERME (scripts/ops/fermeture/interne/fermer-depuis-main.mjs), celui-ci ne fait que mesurer.
 // Le comparateur est PUR (`comparerFermetures`) ; la lecture de GitHub et de git vit dans `main`.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

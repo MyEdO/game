@@ -71,7 +71,7 @@ test('les DEUX régimes de fermeture du dépôt sont nommés, chacun avec ce qu�
   const vu = recensementDesFermetures()
   const parFichier = new Map(vu.sites.map((s) => [s.fichier, s.formes]))
   // Le job `fermetures` de fermetures.yml : les tickets SOLDÉS d'une plage de main (`baseDeLaPlage`).
-  assert.deepEqual(parFichier.get('scripts/ops/fermer-depuis-main.mjs'), ['gh api … state=closed'])
+  assert.deepEqual(parFichier.get('scripts/ops/fermeture/interne/fermer-depuis-main.mjs'), ['gh api … state=closed'])
   // Le canari : la survivante d'un signalement rouge, quand la course repasse au vert.
   assert.deepEqual(parFichier.get('scripts/ops/signaler-rouge.mjs'), ['gh issue close'])
   for (const d of SITES_DECLARES) assert.ok(d.pourquoi.trim(), `${d.fichier} sans invariant dit`)

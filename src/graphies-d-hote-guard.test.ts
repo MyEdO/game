@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
+import { RACINE, sourcesSuivies } from '../scripts/guards/lib/sourcesSuivies.mjs';
 import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';

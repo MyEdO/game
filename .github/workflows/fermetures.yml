@@ -48,7 +48,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
-        run: node scripts/ops/fermer-depuis-main.mjs --rattraper "$BEFORE..$SHA"
+        run: node scripts/ops/fermeture/interne/fermer-depuis-main.mjs --rattraper "$BEFORE..$SHA"
 
       # Ce workflow n'est pas la porte : il se NOMME en rougissant — registre
       # scripts/gates/workflowsDuDepot.mjs (#1779). Le signaleur n'importe que `node:*`.
@@ -61,7 +61,7 @@ jobs:
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
         run: |
-          PLAGE="$(node scripts/ops/fermer-depuis-main.mjs --plage "$BEFORE..$SHA")" || PLAGE="<plage non calculée, voir ce run>"
+          PLAGE="$(node scripts/ops/fermeture/interne/fermer-depuis-main.mjs --plage "$BEFORE..$SHA")" || PLAGE="<plage non calculée, voir ce run>"
           RAPPORT="$RUNNER_TEMP/fermetures-rapport.md"
           echo "Run $RUN_URL sur $SHA : job \`$STATUT\` — rejouer à la main : \`npm run ops:fermer -- $PLAGE\`" > "$RAPPORT"
           node scripts/ops/signaler-rouge.mjs \

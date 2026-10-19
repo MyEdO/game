@@ -1,5 +1,5 @@
 // NATURE d'une fermeture — la ligne `NATURE: <nature> [#M]` du solde `.claude/soldes/<N>.md`, source
-// UNIQUE de ce que le fermeur pose en `state_reason` (`scripts/ops/fermer-depuis-main.mjs`) et de ce
+// UNIQUE de ce que le fermeur pose en `state_reason` (`scripts/ops/fermeture/interne/fermer-depuis-main.mjs`) et de ce
 // que la porte du commit exige comme preuve (`validateSolde`, `scripts/git-hooks/porte-du-commit.mjs`).
 // Credo (épique #2561) : « Une issue se ferme CORRIGÉE ou PROUVÉE SANS OBJET (doublon de #M, constat
 // non reproduit à `<sha>` avec sonde collée, ou décision utilisateur datée). La fermeture suit la

@@ -1,6 +1,6 @@
 // Tests du DÉCIDEUR DE TEXTE d'une adresse (#1887, lot 6a-2a) : les unités que le rendu produit
 // (`unitesDe`), la préparation d'un texte libre (`unitesDuTexte`), `aligner` et la décision de `judge`
-// (`scripts/source/derive-decoupes.mjs`). Les volets « dépôt » lisent les adresses stockées et le VRAI
+// (`scripts/source/adressabilite/interne/derive-decoupes.mjs`). Les volets « dépôt » lisent les adresses stockées et le VRAI
 // `Source/` ; les forges et la composition des cas-limites lisent une fixture.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -10,12 +10,12 @@ import {
   type ChapitreParse, type DescRef, type Fragment, type Unite,
   MIN_FRAGMENT, aligner, estErreur, fragmentBlocs, fragmentCellule, findAllRuns, findCells, joinNorm, memeTexte, normText, parseChapitre,
   resoudreAdresse, tablesOf, unitesDe, unitesDuBloc, unitesDuTexte,
-} from './decoupe.ts';
-import { adressesDuDepot } from '../../../scripts/source/adresses.mjs';
+} from '../../../src/data/source/decoupe.ts';
+import { adressesDuDepot } from '../adresses.mjs';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { chapitresDe, lireChapitre } from '../../../scripts/source/lecteur-fs.mjs';
+import { chapitresDe, lireChapitre } from '../lecteur-fs.mjs';
 // @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vite.config.ts`
-import { PRESENTE_AU_LIVRE, judge, verifier } from '../../../scripts/source/derive-decoupes.mjs';
+import { PRESENTE_AU_LIVRE, judge, verifier } from './interne/derive-decoupes.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const LDB = 'livre-de-base';

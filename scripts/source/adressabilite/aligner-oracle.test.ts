@@ -5,18 +5,19 @@
 // Table d'oracle corrigée de #1887, cas 1 à 12. Les sources sont le VRAI `Source/` ; les forges `Fs` et
 // `Fb` sont GÉNÉRÉES depuis le corpus, jamais recopiées.
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   type Alignement, type ChapitreParse, type Section, type Unite,
   aligner, estDeContenu, estErreur, estSeparateur, fragmentBlocs, parseTable, unitesDe, unitesDuBloc, unitesDuTexte,
-} from './decoupe.ts';
+} from '../../../src/data/source/decoupe.ts';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { chapitresDe, lireChapitre } from '../../../scripts/source/lecteur-fs.mjs';
+import { chapitresDe, lireChapitre } from '../lecteur-fs.mjs';
 // @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vite.config.ts`
-import { PRESENTE_AU_LIVRE, contenueNonProposee, judge } from '../../../scripts/source/derive-decoupes.mjs';
+import { PRESENTE_AU_LIVRE, contenueNonProposee, judge } from './interne/derive-decoupes.mjs';
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
-import { BOOKS, livreDuSigle } from '../../../scripts/raw/_lib.mjs';
+import { BOOKS, livreDuSigle } from '../../raw/_lib.mjs';
+// @ts-expect-error - lanceur git des bancs ESM JS (pas de types) — même convention que `vite.config.ts`
+import { gitDeLArbreReel } from '../../test/gitDeBanc.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const NL = '\n';
@@ -107,7 +108,7 @@ describe('3. D6 : un texte sans contenu', () => {
 
 describe('4, 4b. D5 : la bannière absorbée est une unité d’HABILLAGE, sautée quand la desc l’omet', () => {
   const NOUVELLE = 'scripts/migrations/2026-10-06-1887-regles-navigation-progression.mjs';
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', maxBuffer: 1 << 26 });
+  const git: (...args: string[]) => string = gitDeLArbreReel(RACINE);
   /** La desc de `regles:navigation-progression` au PARENT du commit qui ajoute sa migration (`HEAD` avant). */
   const desc = (): string => {
     const ajout = git('log', '--diff-filter=A', '--format=%H', '--', NOUVELLE).trim().split(NL).filter(Boolean).pop();

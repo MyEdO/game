@@ -2,7 +2,7 @@
 // `gh` ferme un ticket hors commit (`fermetureGh`). Un seul module la définit, et tous ses lecteurs la
 // consomment — la porte du commit (`scripts/git-hooks/porte-du-commit.mjs`), la garde de fermeture hors
 // commit (`scripts/hooks/fermeture-hors-commit-guard.mjs`), le recensement des sites de fermeture
-// (`sitesDeFermeture.mjs`), le closer de publication (`scripts/ops/fermer-depuis-main.mjs`), la mesure
+// (`sitesDeFermeture.mjs`), le closer de publication (`scripts/ops/fermeture/interne/fermer-depuis-main.mjs`), la mesure
 // des fermetures non citées et les cliquets. Deux graphies pour un même concept rendent des ensembles
 // différents pour un même message : un solde exigé au commit ne ferme alors pas son ticket à la
 // publication.

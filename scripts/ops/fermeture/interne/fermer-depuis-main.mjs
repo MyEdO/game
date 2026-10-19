@@ -7,29 +7,28 @@
 // annulée ou jamais lancée est rattrapée par la suivante, dans la limite de son plafond de recul — le
 // dépasser est DIT par un `::warning::`.
 //
-// Ce fichier est une FEUILLE, et c'est ce qui tient l'invariant « un seul site ferme » : il porte le
-// GESTE et rien d'autre, le vocabulaire de LECTURE d'une plage fermante vivant dans
-// `scripts/guards/lib/plageFermante.mjs`. Rien dans le dépôt ne l'importe — cliquet dans
-// `fermer-depuis-main.test.mjs` et dans `publier.test.mjs`.
+// Ce fichier est INTERNE à `scripts/ops/fermeture/` (mur `murs/interne`, #2724), et c'est ce qui tient
+// l'invariant « un seul site ferme » : il porte le GESTE et rien d'autre, le vocabulaire de LECTURE d'une
+// plage fermante vivant dans `scripts/guards/lib/plageFermante.mjs`.
 //
-// Usage : node scripts/ops/fermer-depuis-main.mjs <base>..<sha>   (`npm run ops:fermer -- <plage>`)
-//         node scripts/ops/fermer-depuis-main.mjs --rattraper <before>..<sha>   (CI : base reculée, puis fermée)
-//         node scripts/ops/fermer-depuis-main.mjs --plage <before>..<sha>   (imprime la plage rattrapée, ne ferme rien)
+// Usage : node scripts/ops/fermeture/interne/fermer-depuis-main.mjs <base>..<sha>   (`npm run ops:fermer -- <plage>`)
+//         node scripts/ops/fermeture/interne/fermer-depuis-main.mjs --rattraper <before>..<sha>   (CI : base reculée, puis fermée)
+//         node scripts/ops/fermeture/interne/fermer-depuis-main.mjs --plage <before>..<sha>   (imprime la plage rattrapée, ne ferme rien)
 // Le geste GitHub appartient à l'orchestrateur et à la CI, jamais à un agent.
 import { fileURLToPath } from 'node:url'
-import { coursesCi } from '../guards/lib/coursesCi.mjs'
-import { depotDe, parentsDe, shaDe } from '../guards/lib/gitPorte.mjs'
-import { natureDuSolde, raisonDeFermeture } from '../guards/lib/nature.mjs'
+import { coursesCi } from '../../../guards/lib/coursesCi.mjs'
+import { depotDe, parentsDe, shaDe } from '../../../guards/lib/gitPorte.mjs'
+import { natureDuSolde, raisonDeFermeture } from '../../../guards/lib/nature.mjs'
 import {
   WORKFLOW_FERMETURES, avertissementIntraitable, avertissementRapportee, avertissementRouvert, baseDeLaPlage,
   commitsDeLaPlage, decisionPour, fermeturesDeLaPlage, marqueDe, marqueRecente, motifDePlageIllisible,
   posteUnSolde, soldeDuCommit,
-} from '../guards/lib/plageFermante.mjs'
+} from '../../../guards/lib/plageFermante.mjs'
 import {
   DEPOT, appelGhRunner, cheminTicket, dernierEtatDe, lireTicket, poserCommentaire,
-} from '../guards/lib/ticketsGh.mjs'
+} from '../../../guards/lib/ticketsGh.mjs'
 
-const RACINE = fileURLToPath(new URL('../..', import.meta.url))
+const RACINE = fileURLToPath(new URL('../../../..', import.meta.url))
 
 const appelGh = appelGhRunner({ cwd: RACINE, maxBuffer: 32 * 1024 * 1024 })
 
@@ -138,7 +137,7 @@ function main() {
   const mode = MODES.includes(process.argv[2]) ? process.argv[2] : null
   const demandee = process.argv[mode ? 3 : 2]
   if (!demandee || !demandee.includes('..')) {
-    process.stderr.write('usage : node scripts/ops/fermer-depuis-main.mjs [--rattraper|--plage] <before>..<sha>\n')
+    process.stderr.write('usage : node scripts/ops/fermeture/interne/fermer-depuis-main.mjs [--rattraper|--plage] <before>..<sha>\n')
     process.exit(2)
   }
   let plage = demandee

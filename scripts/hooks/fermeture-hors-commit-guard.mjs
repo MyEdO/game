@@ -69,7 +69,7 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
   if (budget.sature) return REFUS_SATURE
   const parCommit =
     `la fermeture passe par un commit \`corrige #N\` porteur de son solde (.claude/soldes/<N>.md) — ` +
-    `le job \`fermetures\` de fermetures.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
+    `le job \`fermetures\` de fermetures.yml (\`scripts/ops/fermeture/interne/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
     `le solde, checks requis du sha publié sur main verts. Une issue sans objet se ferme par le même chemin : ` +
     `la ligne "NATURE: ${grammaireDesNatures()}" de son solde (scripts/guards/lib/nature.mjs) fait le ` +
     `state_reason (absente = corrigé). Fermer à la main court-circuite le contrôle entier.`

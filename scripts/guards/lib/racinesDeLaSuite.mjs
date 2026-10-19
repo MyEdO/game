@@ -16,6 +16,7 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
   racine('server/src', ['.ts']),
   racine('scripts/map', ['.ts']),
   racine('scripts/qc', ['.ts']),
+  racine('scripts/source', ['.ts']),
 ])
 
 /** Les motifs de `test.exclude`. */

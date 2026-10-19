@@ -156,9 +156,6 @@ export const ECRIT_LU = {
       'suivi par git (`git ls-files --cached -- *.json`), saute les porteurs connus et PARSE le reste, ' +
       'donc public/qc/*.json, server/package.json, server/package-lock.json, server/tsconfig.json, ' +
       'knip.json et package-lock.json ; il n’en écrit aucun, et aucune gate n’écrit sous public/ ni server/ ; ' +
-      '+1 écrivain le 2026-09-18 (#1813) : `modulesFeuilles.test.mjs` fabrique l’arbre jetable où il éprouve ' +
-      'les graphies d’import qui atteignent une FEUILLE (`mkdtempSync` sous os.tmpdir(), `rmSync` en finally) — ' +
-      'sonde `git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; ' +
       '+1 écrivain le 2026-09-20 (#1825) : `guards/lib/jouer-workflow.test.mjs` écrit ses scripts ' +
       'JOUETS sous `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l’enveloppe qu’il éprouve charge un ' +
       'FICHIER, et l’arbre n’est jamais écrit ; +2 écrivains le 2026-09-22 (#1873) : ' +

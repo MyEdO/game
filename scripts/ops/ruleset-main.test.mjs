@@ -235,7 +235,7 @@ test('les fermetures vivent HORS de `ci.yml` : `fermetures.yml` lit les checks r
   assert.deepEqual(declencheursDe(texte), ['push'])
   const runs = stepsDu(texte).map((s) => s.bloc)
   const iChecks = runs.findIndex((b) => b.includes('node scripts/ops/checks-requis.mjs'))
-  const iFermer = runs.findIndex((b) => b.includes('node scripts/ops/fermer-depuis-main.mjs'))
+  const iFermer = runs.findIndex((b) => b.includes('node scripts/ops/fermeture/interne/fermer-depuis-main.mjs'))
   assert.ok(iChecks >= 0 && iFermer > iChecks, 'aucun ticket ne se ferme avant la lecture des checks requis')
   assert.ok(!/^\s*if:/m.test(runs[iFermer]), 'la fermeture ne joue QUE si les checks requis sont verts (succès du step précédent)')
 })

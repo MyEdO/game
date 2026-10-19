@@ -25,13 +25,13 @@ import { fileURLToPath } from 'node:url'
 import {
   MIN_FRAGMENT, aligner, cellRefFor, estDeContenu, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse,
   unitesDuBloc, unitesDuTexte,
-} from '../../src/data/source/decoupe.ts'
-import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
-import { lieuxDe } from './lieux.mjs'
-import { sigleDe } from '../raw/_lib.mjs'
-import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+} from '../../../../src/data/source/decoupe.ts'
+import { chapitresDe, lireChapitre } from '../../lecteur-fs.mjs'
+import { lieuxDe } from '../../lieux.mjs'
+import { sigleDe } from '../../../raw/_lib.mjs'
+import { coupeAuMot } from '../../../../src/lib/coupeAuMot.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
 
 /** Chapitres PARSÉS d'un livre, dans l'ordre. @returns {{ ch: string, chapitre: object }[]} */
 function chapitresDuLivre(bookId) {
@@ -70,9 +70,9 @@ function montage(chapitre, unites) {
  * LA décision de `judge` : re-résout l'adresse en ses unités (`unitesDeLAdresse`), puis juge
  * l'ÉGALITÉ (`aligner`, `ajoute` vide) entre les unités de la desc et celles de l'adresse.
  * `undefined` si elle tient, la divergence sinon.
- * @param {import('../../src/data/source/decoupe.ts').ChapitreParse} chapitre
- * @param {import('../../src/data/source/decoupe.ts').DescRef} ref
- * @param {import('../../src/data/source/decoupe.ts').Unite[]} unites
+ * @param {import('../../../../src/data/source/decoupe.ts').ChapitreParse} chapitre
+ * @param {import('../../../../src/data/source/decoupe.ts').DescRef} ref
+ * @param {import('../../../../src/data/source/decoupe.ts').Unite[]} unites
  * @returns {string|undefined}
  */
 export function verifier(chapitre, ref, unites) {
@@ -96,8 +96,8 @@ const partieStricteDuBloc = (s, b, unites) => (aligner(unites, unitesDuBloc(s, b
 
 /**
  * Juge une entrée : SEULE définition du verdict d'adressabilité du dépôt — le rapport de dérivation
- * ci-dessous en juge par elle, jamais par un second chemin. Aucune migration datée ne l'importe
- * (`scripts/guards/lib/migrationsVerdictVivant.mjs`).
+ * ci-dessous en juge par elle, jamais par un second chemin. Interne à `scripts/source/adressabilite/`
+ * (mur `murs/interne`, #1887, #2724) : aucune migration datée ne l'atteint.
  * @returns {{ verdict: string, ref?: object, reason?: string, verification?: string }}
  */
 export function judge(entry) {
@@ -164,7 +164,7 @@ export function judge(entry) {
 function main() {
   const dataset = process.argv[2]
   if (!dataset) {
-    console.error('usage: node scripts/source/derive-decoupes.mjs <dataset>   (nom sans .json)')
+    console.error('usage: node scripts/source/adressabilite/interne/derive-decoupes.mjs <dataset>   (nom sans .json)')
     process.exit(2)
   }
   const data = JSON.parse(readFileSync(join(ROOT, 'src', 'data', `${dataset}.json`), 'utf8'))
