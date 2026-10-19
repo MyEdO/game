@@ -133,6 +133,7 @@ export const ECRIT_LU = {
       '`testsSansEcriture.mjs` refuse les mutations fs des processus Node héritant du préchargeur dans la racine, ignorés compris, et photographie état et empreintes avant/après la suite ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
       'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
+      'fichiersLus (scripts/test/lib/bancLister.mjs) copie les fichiers armés et les fichiers d’ignore suivis sous mkdtempSync de os.tmpdir(), y lance la commande du lint, puis rmSync en finally ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
