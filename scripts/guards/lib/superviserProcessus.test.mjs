@@ -9,9 +9,11 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerEntrees } from './lister.mjs'
 import { gitEnFond } from '../../test/gitDeBanc.mjs'
+import { jouerSousSuspendeur } from '../../test/suspendeurDeMesure.mjs'
 import { sortieDeSupervision, superviserProcessus, lancerProcessusSupervise } from './superviserProcessus.mjs'
 import { ancetresValidesDe, gardienDisparu, mesurerArbreProcessus } from './arbreProcessus.mjs'
-import { estPidVivant } from './pid.mjs'
+import { creationMemorisee, estPidVivantDepuis } from './pid.mjs'
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
 
 test('une erreur de supervision refuse la sortie même après un enfant réussi', () => {
   let diagnostic = ''
@@ -81,7 +83,6 @@ test('supervision : sortie volumineuse drainée et stdio explicite sans pipe', {
 
 test('supervision : le plafond tue aussi le petit-fils détaché persistant', { timeout: 30000 }, async () => {
   const racine = mkdtempSync(join(tmpdir(), '2626-supervision-'))
-  let petitFils
   try {
     const feuille = join(racine, 'feuille.mjs')
     const parent = join(racine, 'parent.mjs')
@@ -89,24 +90,30 @@ test('supervision : le plafond tue aussi le petit-fils détaché persistant', { 
     const pid = join(racine, 'pid')
     writeFileSync(feuille, `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>writeFileSync(${JSON.stringify(preuve)},String(Date.now())),20)`)
     writeFileSync(parent, `import {spawn} from 'node:child_process';spawn(process.execPath,[${JSON.stringify(feuille)}],{detached:true,stdio:['ignore',1,2]}).unref();setInterval(()=>{},1000)`)
-    const vu = await superviserProcessus({ commande: process.execPath, args: [parent], timeout: 3500 })
-    petitFils = Number(readFileSync(pid, 'utf8'))
+    const supervision = superviserProcessus({ commande: process.execPath, args: [parent], timeout: 3500 })
+    const petitFils = identiteMesureeDe(Number(await attendreFichier(pid)))
+    const vu = await supervision
     const avant = readFileSync(preuve, 'utf8')
     await new Promise((resolve) => setTimeout(resolve, 400))
     assert.equal(readFileSync(preuve, 'utf8'), avant, 'le petit-fils écrit encore après le retour du superviseur')
     assert.match(vu.error?.message, /échéance/)
-    assert.ok(!mesurerArbreProcessus().some((p) => p.pid === petitFils && p.etat !== 'Z'), 'le petit-fils doit avoir disparu')
+    assert.ok(gardienDisparu(petitFils, mesurerArbreProcessus()), 'le petit-fils doit avoir disparu')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
+/** L'identité de création des P de `jouerHook`, mesurée au plus une fois par seconde et par PID (#2603). */
+const IDENTITE_MEMORISEE = { ...IDENTITE_MESUREE, lireCreation: creationMemorisee(IDENTITE_MESUREE.lireCreation, { pasMs: 1000, horloge: Date.now }) }
+
 /** Joue `superviserProcessus({ surveillerGit: true })` dans un Node P à l'ascendance RÉELLE de `mode` et rend `{ vu, temoins }`
  *  que P écrit (#2586, #2626). `orphelin` : P lancé par un relais vivant dont le parent est sorti, aucun git au-dessus ;
- *  `parent-mort` : le relais sort dès P lancé, P attend sa mort ; `git` : P lancé par un alias `!` de git, l'ascendance
- *  d'un hook. Les modes `git-…` suivants lancent une cible longue, puis : `git-tue`, le parent de P tué ; `git-mesure-coupee`,
- *  la mesure de P rendue impossible (son `SystemRoot` retiré) un temps puis rétablie, puis retirée pour de bon,
- *  `temoins.depuisCoupureMs` du dernier retrait à la fin ; `git-mesure-coupee-tue`, la mesure retirée puis le parent tué. */
+ *  `parent-mort` : le relais sort dès P lancé, P attend sa mort. Relais et P attendent la mort de LEUR lanceur, PID et
+ *  naissance reçus par argv, car hors win32 le `process.ppid` d'un orphelin est déjà son nouveau parent (getppid(2)) ;
+ *  `git` : P lancé par un alias `!` de git, l'ascendance d'un hook. Les modes `git-…` suivants lancent une cible longue,
+ *  puis : `git-tue`, le parent de P tué ; `git-mesure-coupee`, la mesure de P rendue impossible (son `SystemRoot` retiré)
+ *  un temps puis rétablie, puis retirée pour de bon, `temoins.depuisCoupureMs` du dernier retrait à la fin ;
+ *  `git-mesure-coupee-tue`, la mesure retirée puis le parent tué. */
 async function jouerHook(t, mode) {
   const b = bancSupervision(t)
   const sortie = join(b.dossier, 'resultat.json')
@@ -115,21 +122,23 @@ import { spawn } from 'node:child_process'
 import { existsSync, renameSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { superviserProcessus } from ${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)}
-const [role, mode, sortie] = process.argv.slice(2)
-const parent = process.ppid
+import { creationMemorisee, estPidVivantDepuis } from ${JSON.stringify(new URL('./pid.mjs', import.meta.url).href)}
+import { IDENTITE_MESUREE } from ${JSON.stringify(new URL('../../test/identiteMesuree.mjs', import.meta.url).href)}
+const naissance = Date.now()
+const [role, mode, sortie, lanceur, naissanceDuLanceur] = process.argv.slice(2)
+const identite = { ...IDENTITE_MESUREE, lireCreation: creationMemorisee(IDENTITE_MESUREE.lireCreation, { pasMs: 1000, horloge: Date.now }) }
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms))
 const publier = (chemin, texte) => { writeFileSync(chemin + '.tmp', texte); renameSync(chemin + '.tmp', chemin) }
-const vivant = (pid) => { try { process.kill(pid, 0); return true } catch (e) { return e.code === 'EPERM' } }
-const attendreMort = async (pid) => { while (vivant(pid)) await pause(20) }
-const relancer = (suite, options) => spawn(process.execPath, [fileURLToPath(import.meta.url), suite, mode, sortie], options)
+const attendreMortDuLanceur = async () => { while (estPidVivantDepuis(Number(lanceur), Number(naissanceDuLanceur), identite)) await pause(20) }
+const relancer = (suite, options) => spawn(process.execPath, [fileURLToPath(import.meta.url), suite, mode, sortie, String(process.pid), String(naissance)], options)
 if (role === 'a') relancer('i', { detached: true, stdio: 'ignore' }).unref()
 else if (role === 'i') {
-  await attendreMort(parent)
+  await attendreMortDuLanceur()
   const p = relancer('p', { detached: true, stdio: 'ignore' })
   if (mode === 'parent-mort') p.unref()
   else await new Promise((ok) => p.once('close', ok))
 } else {
-  if (mode === 'parent-mort') await attendreMort(parent)
+  if (mode === 'parent-mort') await attendreMortDuLanceur()
   const longue = mode.startsWith('git-')
   const cible = longue ? "require('fs').writeFileSync(" + JSON.stringify(sortie + '.cible') + ",'');setInterval(()=>{},1000)" : 'process.exit(0)'
   let finie = false
@@ -140,14 +149,14 @@ else if (role === 'i') {
     const systemRoot = process.env.SystemRoot
     if (mode === 'git-mesure-coupee') { delete process.env.SystemRoot; await pause(3750); process.env.SystemRoot = systemRoot; await pause(1500) }
     if (mode.startsWith('git-mesure-coupee')) { delete process.env.SystemRoot; temoins.coupure = Date.now() }
-    publier(sortie + '.parent', String(parent))
+    publier(sortie + '.parent', String(process.ppid))
   }
   const vu = await supervision
   if (temoins.coupure) temoins.depuisCoupureMs = Date.now() - temoins.coupure
-  publier(sortie, JSON.stringify({ vu, temoins, pid: process.pid }))
+  publier(sortie, JSON.stringify({ vu, temoins, pid: process.pid, naissance }))
 }
 `)
-  if (mode.startsWith('git')) {
+  if (mode === 'git' || mode.startsWith('git-')) {
     const node = process.execPath.replaceAll('\\', '/')
     const git = gitEnFond(['-c', `alias.wfrp-hook=!"${node}" "${hook.replaceAll('\\', '/')}" p ${mode} "${sortie.replaceAll('\\', '/')}"`, 'wfrp-hook'], { cwd: b.dossier })
     let ferme = false
@@ -159,8 +168,8 @@ else if (role === 'i') {
     }
     await fin
   } else spawn(process.execPath, [hook, 'a', mode, sortie], { stdio: 'ignore' })
-  const { vu, temoins, pid } = JSON.parse(await attendreFichier(sortie, 1200))
-  while (estPidVivant(pid)) await new Promise((ok) => setTimeout(ok, 25))
+  const { vu, temoins, pid, naissance } = JSON.parse(await attendreFichier(sortie, 1200))
+  while (estPidVivantDepuis(pid, naissance, IDENTITE_MEMORISEE)) await new Promise((ok) => setTimeout(ok, 25))
   return { vu, temoins }
 }
 
@@ -233,62 +242,13 @@ test('#2795 mesure initiale impossible : EMESURE conserve le code, la catégorie
   assert.doesNotThrow(() => JSON.stringify(vu))
 })
 
-/** Suspend (NtSuspendProcess) chaque `powershell.exe` enfant du PID `-Cible`, jusqu'à la sortie de ce PID ; imprime le PID
- *  de chaque suspendu, et crée `-Pret` une fois armé. */
-const SUSPENDEUR_PS1 = `param([uint32]$Cible, [string]$Pret)
-Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Threading;
-public static class Suspendeur {
-  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-  struct Entree { public uint dwSize, cntUsage, th32ProcessID; public IntPtr th32DefaultHeapID; public uint th32ModuleID, cntThreads, th32ParentProcessID; public int pcPriClassBase; public uint dwFlags; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szExeFile; }
-  [DllImport("kernel32.dll")] static extern IntPtr CreateToolhelp32Snapshot(uint drapeaux, uint pid);
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32FirstW(IntPtr cliche, ref Entree e);
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32NextW(IntPtr cliche, ref Entree e);
-  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint acces, bool herite, uint pid);
-  [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr h, uint ms);
-  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
-  [DllImport("ntdll.dll")] static extern int NtSuspendProcess(IntPtr h);
-  public static void Boucle(uint cible) {
-    IntPtr surveille = OpenProcess(0x00100000, false, cible);
-    if (surveille == IntPtr.Zero) throw new Exception("cible introuvable : " + cible);
-    var vus = new HashSet<uint>();
-    while (WaitForSingleObject(surveille, 0) != 0) {
-      IntPtr cliche = CreateToolhelp32Snapshot(2, 0);
-      var e = new Entree(); e.dwSize = (uint)Marshal.SizeOf(typeof(Entree));
-      for (bool ok = Process32FirstW(cliche, ref e); ok; ok = Process32NextW(cliche, ref e)) {
-        if (e.th32ParentProcessID != cible || !string.Equals(e.szExeFile, "powershell.exe", StringComparison.OrdinalIgnoreCase) || !vus.Add(e.th32ProcessID)) continue;
-        IntPtr h = OpenProcess(0x0800, false, e.th32ProcessID);
-        if (h != IntPtr.Zero && NtSuspendProcess(h) == 0) Console.WriteLine(e.th32ProcessID);
-        if (h != IntPtr.Zero) CloseHandle(h);
-      }
-      CloseHandle(cliche);
-      Thread.Sleep(2);
-    }
-    CloseHandle(surveille);
-  }
-}
-'@
-[IO.File]::WriteAllText($Pret, '')
-[Suspendeur]::Boucle($Cible)
-`
-
 // La mesure Windows est un `powershell.exe` enfant du superviseur, borné par `DELAI_MESURE_PROCESSUS_MS` (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc dans le processus superviseur lui-même.
 const MESUREUR_SUSPENDU = { skip: process.platform !== 'win32' && 'mesure Linux sans processus mesureur distinct à suspendre' }
 
 test('#2795 mesure initiale expirée deux fois : EMESURE porte le code et la catégorie transitoire de sa cause, avant tout hôte', { ...MESUREUR_SUSPENDU, timeout: 90000 }, async (t) => {
-  const b = bancSupervision(t)
-  const pret = join(b.dossier, 'suspendeur-pret')
-  const suspendeur = join(b.dossier, 'suspendeur.ps1')
-  writeFileSync(suspendeur, SUSPENDEUR_PS1)
-  const pilote = b.script('expiree', `
+  const vu = await jouerSousSuspendeur(t, `
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
 const { lancerProcessusSupervise, superviserProcessus } = await import(${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)})
-const debut = Date.now()
-while (!existsSync(${JSON.stringify(pret)})) { assert.ok(Date.now() - debut < 30000, 'suspendeur jamais armé'); await new Promise((ok) => setTimeout(ok, 25)) }
 const echeance = /^\\[transitoire · retentable\\] mesure des processus indéterminée : échéance de \\d+ ms atteinte$/
 await assert.rejects(lancerProcessusSupervise('executable-introuvable-2795', [], { surveillerGit: true }), (e) => {
   assert.deepEqual([e.code, e.codeMesure, e.categorie, e.hoteLance], ['EMESURE', 'MESURE_PROCESSUS_EXPIREE', 'transitoire', false], e.message)
@@ -301,19 +261,9 @@ assert.deepEqual([vu.status, vu.error?.code, vu.error?.codeMesure, vu.error?.cat
 assert.deepEqual(vu.error.cause, { code: 'MESURE_PROCESSUS_EXPIREE', categorie: 'transitoire', message: vu.error.message })
 assert.match(vu.error.message, echeance)
 `)
-  const suspendus = []
-  let fin
-  await jouerPilote(b, pilote, (enfant) => {
-    const hote = spawn(join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', suspendeur, '-Cible', String(enfant.pid), '-Pret', pret], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
-    let erreurs = ''
-    hote.stdout.setEncoding('utf8').on('data', (d) => suspendus.push(...d.split(/\s+/).filter(Boolean)))
-    hote.stderr.setEncoding('utf8').on('data', (d) => { erreurs += d })
-    fin = new Promise((ok) => hote.once('close', (status) => ok({ status, erreurs })))
-    t.after(() => hote.kill())
-  })
-  assert.deepEqual(await fin, { status: 0, erreurs: '' })
-  assert.equal(suspendus.length, 4, `mesureurs suspendus : ${suspendus}`)
+  assert.equal(vu.status, 0, vu.sortie)
+  assert.deepEqual(vu.suspendeur, { status: 0, erreurs: '' })
+  assert.equal(vu.suspendus.length, 4, `mesureurs suspendus : ${vu.suspendus}`)
 })
 
 test('supervision générique longue : aucune mesure de processus, même rendue impossible en vol', { ...MESURE_RETIRABLE, timeout: 60000 }, async (t) => {
@@ -334,6 +284,14 @@ assert.equal(vu.stdout.trim(), 'fin générique')
   await jouerPilote(b, pilote)
 })
 
+/** L'identité `{ pid, creation }` du processus VIVANT `pid`, mesurée : un PID réutilisé après sa mort ne la porte pas, et
+ *  `gardienDisparu` juge sa disparition sur elle (#2586). */
+function identiteMesureeDe(pid) {
+  const identite = mesurerArbreProcessus().find((p) => p.pid === pid)
+  assert.ok(identite?.creation, `processus ${pid} absent de la vue`)
+  return identite
+}
+
 function bancSupervision(t) {
   const dossier = mkdtempSync(join(tmpdir(), '2626-confinement-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
@@ -341,11 +299,9 @@ function bancSupervision(t) {
   return { dossier, script }
 }
 
-/** Joue le script `pilote` dans un Node à part, `accompagner(enfant)` appelé dès son lancement ; son code de sortie nul fait
- *  le verdict, sa sortie le diagnostic (#2586). */
-async function jouerPilote(b, pilote, accompagner = () => {}) {
+/** Joue le script `pilote` dans un Node à part ; son code de sortie nul fait le verdict, sa sortie le diagnostic (#2586). */
+async function jouerPilote(b, pilote) {
   const enfant = spawn(process.execPath, [pilote], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier } })
-  accompagner(enfant)
   let sortie = ''
   enfant.stdout.on('data', (d) => { sortie += d }); enfant.stderr.on('data', (d) => { sortie += d })
   const status = await new Promise((ok, non) => { enfant.once('error', non); enfant.once('close', ok) })
@@ -479,12 +435,12 @@ test('confinement : interruption par signal du processus refuse le succès et ne
   const pid = join(b.dossier, 'pid')
   const cible = b.script('signal', `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>{},1000)`)
   const supervision = superviserProcessus({ commande: process.execPath, args: [cible], timeout: 15000 })
-  const ciblePid = Number(await attendreFichier(pid))
+  const lancee = identiteMesureeDe(Number(await attendreFichier(pid)))
   // SIGINT et SIGTERM de ce processus relaient aussi depotGabarit.mjs:32-33, chargé par gitDeBanc.mjs.
   process.emit('SIGHUP')
   const vu = await supervision
   assert.equal(vu.error?.code, 'EINTR')
-  assert.ok(!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z'))
+  assert.ok(gardienDisparu(lancee, mesurerArbreProcessus()))
 })
 
 test('confinement : mort du Node appelant nettoie une feuille déjà orpheline', { timeout: 30000 }, async (t) => {
@@ -499,17 +455,16 @@ test('confinement : mort du Node appelant nettoie une feuille déjà orpheline',
   const node = spawn(process.execPath, [appelant], { stdio: ['ignore', 'ignore', fd], env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier } })
   closeSync(fd)
   const fin = new Promise((r) => node.once('close', r))
-  let ciblePid; let hote
   try {
-    ciblePid = Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + readFileSync(diagnostic, 'utf8'))))
-    hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
+    const cible = identiteMesureeDe(Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + readFileSync(diagnostic, 'utf8')))))
+    const hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
     assert.ok(hote, 'hôte natif propriétaire présent')
     node.kill('SIGKILL'); await fin
     for (let i = 0; i < 50; i++) {
-      if (!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z')) break
+      if (gardienDisparu(cible, mesurerArbreProcessus())) break
       await new Promise((r) => setTimeout(r, 30))
     }
-    assert.ok(!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z'), 'la feuille survit à la mort de Node')
+    assert.ok(gardienDisparu(cible, mesurerArbreProcessus()), 'la feuille survit à la mort de Node')
     const prives = listerDossier(b.dossier).filter((n) => n.startsWith('wfrp-supervision-'))
     assert.ok(prives.length, 'le contrôle du canal privé doit porter sur le dossier du Node mort')
     for (const prive of prives) {

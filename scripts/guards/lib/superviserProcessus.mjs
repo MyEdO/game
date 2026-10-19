@@ -11,6 +11,7 @@ import { arretIndetermine, texteDeCause } from './arretNatif.mjs'
 import { ecrireJsonAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { LANCEMENTS_SUPERVISES, relancerApresNettoyage } from './controleEcritures.mjs'
 import { citerArgv } from './lancerDetache.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const DELAI_IPC = 15000
 /** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
@@ -32,7 +33,7 @@ const pauseSynchrone = new Int32Array(new SharedArrayBuffer(4))
 const raisonAnnulation = (signal) => signal.reason instanceof Error && typeof signal.reason.code === 'string' ? signal.reason : erreur('ABORT_ERR', 'lancement annulé')
 const SIGNAUX_DU_PROCESSUS = ['SIGINT', 'SIGTERM', 'SIGHUP']
 const interruptionsActives = new Set()
-const relaisDeSignal = Object.fromEntries(SIGNAUX_DU_PROCESSUS.map((nom) => [nom, () => { for (const interrompre of interruptionsActives) interrompre(nom) }]))
+const relaisDeSignal = tableTotale(SIGNAUX_DU_PROCESSUS, (nom) => () => { for (const interrompre of interruptionsActives) interrompre(nom) })
 
 /** Abonne `interrompre(nom)` aux signaux du processus par UN écouteur par signal, partagé par tous les lancements
  *  en cours ; REND le désabonnement (#2586). */
