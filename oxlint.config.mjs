@@ -81,6 +81,9 @@ const VERROU_LISTAGE = [
   `JSXMemberExpression[property.name=${NOMS_MARCHE}]`,
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
+const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/lib/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+
 const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
 const VERROU_LOCALE_COMPARE = [
   ...cles('property', NOMS_LOCALE).map((c) => `MemberExpression${c}`),
@@ -542,6 +545,15 @@ export const BLOCS_LINT = [
     // #2724
     files: ['src/**', 'scripts/**'],
     rules: { 'murs/interne': 'error' },
+  },
+  {
+    // #1897, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: {
+      'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))],
+      'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))],
+    },
   },
   {
     // #495, #2724

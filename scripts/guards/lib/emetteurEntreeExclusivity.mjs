@@ -2,7 +2,7 @@ import { ast, typescript } from './dialecte.mjs';
 // Garde d'EXCLUSIVITÉ de l'émetteur d'entrée du kit de recette (#1953) : l'émetteur BRUT du CDP
 // (`emetteursBruts`, `scripts/recette/lib.mjs`) n'est référencé que dans les ÉMETTEURS — `brancherCdp`
 // qui le pose, `geste` (souris, toucher) et `frappe` (clavier) qui le lisent. Mécanique ICI, jouée par
-// `src/emetteur-entree-exclusivity-guard.test.ts` — patron `stockageWebExclusivity.mjs`. Module ESM
+// `src/emetteur-entree-exclusivity-guard.test.ts` — patron `clesDeStockage.mjs`. Module ESM
 // pur, exécutable par `node` nu.
 //
 // Détection par AST : un site est une RÉFÉRENCE, jamais une occurrence textuelle — un commentaire ou

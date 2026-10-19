@@ -8,6 +8,8 @@ export default {
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
     ...['ordre-total-imports', 'canal-issue', 'purete-imports', 'atelier']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
+    ['stockage-web', builtinRules.get('no-restricted-properties')],
+    ['stockage-web-global', builtinRules.get('no-restricted-globals')],
     ['interne', interne],
   ]),
 }

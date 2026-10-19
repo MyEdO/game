@@ -211,6 +211,38 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
   assert.equal(unused.messages[0].line,1)
 })
 
+test('murs/stockage-web : le stockage web nommé sous src/ est refusé, quel que soit son porteur, hors instruments Vitest', () => {
+  const PROPRIETE='murs/stockage-web', GLOBAL='murs/stockage-web-global'
+  const cas = [
+    ['src/state/parite-sw-nu.ts','export const lire = (k: string) => sessionStorage.getItem(k);',GLOBAL],
+    ['src/ui/parite-sw-typeof.ts',"export const a = typeof localStorage === 'undefined';",GLOBAL],
+    ['src/ui/parite-sw-window.ts','window.localStorage.clear();',PROPRIETE],
+    ['src/audio/parite-sw-globalthis.ts','export const s = (globalThis as { sessionStorage?: Storage }).sessionStorage;',PROPRIETE],
+    ['src/net/parite-sw-self.ts','export const s = self.localStorage;',PROPRIETE],
+    ['src/lib/parite-sw-indexe.ts',"export const s = globalThis['sessionStorage'];",PROPRIETE],
+    ['src/lib/parite-sw-gabarit.ts','export const s = globalThis[`localStorage`];',PROPRIETE],
+    ['src/state/parite-sw-destructure.ts','export const { localStorage: s } = window;',PROPRIETE],
+    ['src/state/parite-sw-objet.ts','export const s = porteur.sessionStorage;',PROPRIETE],
+    ['src/state/parite-sw-neutre.ts',[
+      '// le localStorage en commentaire',
+      'export const t = "miroir localStorage";',
+      "export type G = 'localStorage' | 'sessionStorage';",
+      'export type T = { localStorage?: Storage }; export const o = { sessionStorage: 1 };',
+      'export function f(localStorage: number) { return localStorage; }',
+      'export const couture = (genre: G): Storage | null => globalThis[genre] ?? null;',
+    ].join('\n'),null],
+    ['src/state/parite-sw.test.ts','(globalThis as { localStorage?: Storage }).localStorage = fake; sessionStorage.clear();',null],
+    ['src/gameIso/parite-sw.bench.ts','localStorage.clear();',null],
+    ['scripts/parite-sw.mjs','window.localStorage.clear();',null],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const [filePath,,regle]=cas[i]
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===PROPRIETE||m.ruleId===GLOBAL)
+    assert.deepEqual(vus.map(m=>[m.ruleId,m.severity,m.line]),regle?[[regle,2,1]]:[],`${filePath}: ${JSON.stringify(resultats[i].messages)}`)
+  }
+})
+
 test('positions Unicode et erreur de parse sans code sont rendues par le vrai CLI', () => {
   const code='const texte="é😀"; debugger; console.log(texte);'
   const parse='export const é = ;'
