@@ -198,6 +198,45 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
+    ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
+    ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
+    ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],
+    ['src/state/parite-minuterie-window.ts','window.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/lib/parite-minuterie-globalthis.ts','globalThis.setInterval(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-self.ts','self.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-global.ts','global.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-destructuree.ts','const {setTimeout:poser}=window;poser(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-type.ts','export type T=ReturnType<typeof setTimeout>;','murs/minuteries',0],
+    ['src/state/parite-minuterie-tierce.ts','horloge.setTimeout(f,0);','murs/minuteries-hote',0],
+    ['src/state/parite-minuterie-import-node.ts',"import {setTimeout} from 'node:timers';setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/lib/parite-minuterie-import-timers.ts',"import {setInterval} from 'timers';setInterval(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-espace.ts',"import * as t from 'node:timers';t.setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-neutre.ts',"import {clearTimeout} from 'node:timers';clearTimeout(x);",'murs/minuteries-import',0],
+    ['src/state/parite-minuterie-appel-import.ts',"import {setTimeout} from './horloge';setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-declare.ts','declare const setTimeout:(f:()=>void,n:number)=>number;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-declare-fonction.ts','declare function setInterval(f:()=>void,n:number):number;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-parametre.ts','export function g(setTimeout:(f:()=>void,n:number)=>void){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-neutre.ts','export const poserPlusTard=(f:()=>void)=>f;','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-objet.ts','const {setTimeout}=horloge;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-appel-window-as.ts','const {setInterval}=window as Window;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-require.ts',"import timers=require('node:timers');import setTimeout=timers.setTimeout;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-objet.ts','export const g=({setTimeout}:{setTimeout:(f:()=>void,n:number)=>void})=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-defaut.ts','export const g=(setTimeout=h)=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-catch.ts','try{x();}catch(setTimeout){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-tableau.ts','const [setTimeout]=paire;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-namespace.ts','namespace setTimeout {}setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;export const t=new setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;export const t=new setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-new-window-as.ts','const {setInterval}=window as Window;export const t=new setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');return new setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-neutre.ts','export const t=new Horloge(f,0);','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-methode.ts','export const o={setTimeout(f:()=>void){return f;}};','murs/minuteries-appel',0],
+    ['src/lib/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
+    ['src/state/parite-minuterie.test.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['src/ui/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {
@@ -205,6 +244,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     assert.equal(messages.length,cas[i][3],JSON.stringify(resultats[i]))
     for(const m of messages) {assert.equal(m.severity,2);assert.equal(m.line,1);assert.ok(m.column>0)}
   }
+  assert.deepEqual(resultats[cas.findIndex(([filePath])=>filePath==='src/lib/minuteries.ts')].messages.filter(m=>(m.ruleId??'').startsWith('murs/minuteries')),[])
   const unused=lintFixtures([{filePath:'src/parite-directive.ts',code:'// eslint-disable-next-line murs/marques -- sonde\nexport const a=1;'}])[0]
   assert.equal(unused.messages.length,1)
   assert.equal(unused.messages[0].severity,1)

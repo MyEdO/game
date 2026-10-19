@@ -112,6 +112,13 @@ const GLOBS_GENERATEURS = [
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
+const SOURCE_DES_MINUTERIES = 'src/lib/minuteries.ts';
+const MINUTERIES = ['setTimeout', 'setInterval'];
+const HOTES = ['window', 'globalThis', 'self', 'global'];
+const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
+const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
+const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state et src/lib, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
+
 const msgPurete = (amont, aval, suite, types) =>
   `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} ${types ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION'} — ${suite}`;
 
@@ -539,6 +546,17 @@ export const BLOCS_LINT = [
     rules: {
       'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
       'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
+    },
+  },
+  {
+    // #415, #2724
+    files: ['src/state/**', 'src/lib/**'],
+    excludeFiles: [SOURCE_DES_MINUTERIES, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    rules: {
+      'murs/minuteries': ['error', ...MINUTERIES.map((name) => ({ name, message: MSG_MINUTERIE }))],
+      'murs/minuteries-hote': ['error', ...HOTES.flatMap((object) => MINUTERIES.map((property) => ({ object, property, message: MSG_MINUTERIE })))],
+      'murs/minuteries-import': ['error', { paths: MODULES_DE_MINUTERIES.map((name) => ({ name, importNames: MINUTERIES, message: MSG_MINUTERIE })) }],
+      'murs/minuteries-appel': ['error', { selector: APPEL_DE_MINUTERIE, message: MSG_MINUTERIE }],
     },
   },
   {

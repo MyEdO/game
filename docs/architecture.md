@@ -187,6 +187,10 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             données perdues ; ouverture bornée #776, une connexion par opération ; leur
                             poignée `accesBase` (magasins typés, `vider`) ; doublure
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
+                            `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
+                            `scheduleFlowTimer`, `clearTrackedTimer`), vidé au teardown de test
+                            (`clearTrackedTimers`, #405) ; seul lieu de `src/state` et `src/lib` où
+                            `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
                             (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
                             chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés

@@ -36,7 +36,7 @@ import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { dataLabel } from '../data';
-import { scheduleFlowTimer } from './combatTimers';
+import { scheduleFlowTimer } from '../lib/minuteries';
 import { journaliser } from './combatLog';
 
 /**

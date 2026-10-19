@@ -13,6 +13,7 @@
  * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la suppression
  * de la base par un autre onglet.
  */
+import { clearTrackedTimer, scheduleFlowTimer } from './minuteries';
 
 /** Un magasin déclaré : sa `keyPath`, absente pour un magasin à clés externes. */
 export interface MagasinDeclare {
@@ -81,12 +82,12 @@ function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
     const regler = (geste: () => void): boolean => {
       if (regle) return false;
       regle = true;
-      clearTimeout(timer);
+      clearTrackedTimer(timer);
       geste();
       return true;
     };
     const echouer = (erreur: unknown) => regler(() => reject(erreur));
-    const timer = setTimeout(() => echouer(new Error('IndexedDB open : délai dépassé')), IDB_OPEN_TIMEOUT_MS);
+    const timer = scheduleFlowTimer(() => echouer(new Error('IndexedDB open : délai dépassé')), IDB_OPEN_TIMEOUT_MS);
     const recreer = () => {
       const req = fabriqueIdb().deleteDatabase(base.nom);
       req.onblocked = () => echouer(new Error('IndexedDB delete : bloqué par une autre connexion ouverte'));
