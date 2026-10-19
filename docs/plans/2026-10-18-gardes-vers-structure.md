@@ -164,8 +164,13 @@ le délai de `src/lib/indexedDb.ts` migre vers la primitive de minuterie, aucune
 objet), `serverMathRandom` (rang 6, 0 exemption, tests de `server/src` hors périmètre),
 `console-no-title-only` (rang 6, sur le périmètre de `CONSOLE_FILES` : 5 fichiers),
 `guest-flow-surface` + `guest-surface-class` (rang 4 : table totale
-`Record<ActionStore,'invité'|'hôte'|'local'>` d'où dérivent `GUEST_INTENTS` et `COMBAT_INTENTS` ;
-les 3 + 154 entrées deviennent des valeurs de la table, reclassement chiffré au commit).
+`Record<ActionStore,'invité'|'hôte'|'local'|'interne'>` d'où dérivent `GUEST_INTENTS` et
+`COMBAT_INTENTS` ; les 3 + 154 entrées deviennent des valeurs de la table, reclassement chiffré au
+commit. Amendement du juge : une action `<flux><Maj>…` est `invité` par le type, hors ouvreur
+`parHote` et élection locale ; seuls les flux à surface dérivée (mono, multi `coop: true`) sortent
+de la table ; une ouverture `interne` nomme `<module>.<fonction>`. Le volet émission d'écran → classe
+reste en rang 7 sans liste, `src/net/intents.test.ts` : aucun écran n'émet une action `interne`, et
+toute action `hôte`/`local` est émise par un écran).
 
 **Vague 2 (PR suivantes du ticket) — sites à migrer, formes à trancher, recette navigateur :**
 `aria-primitive-guard` (5 rôles, 4 fichiers), `echap-couture-unique` (2 vivants, 2 périmés),
