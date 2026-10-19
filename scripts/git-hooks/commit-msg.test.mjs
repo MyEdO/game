@@ -764,6 +764,21 @@ test('commit-msg, dépôt réel : un stock nominatif qui GRANDIT dans l\'index e
   }
 })
 
+test('commit-msg, dépôt réel : un stock SOUS LA PORTE `comptes:plage` qui GRANDIT est refusé MÊME sous un `CLIQUET:` au compte exact (#2705)', () => {
+  const porteur = 'scripts/guards/lib/structuresStock.mjs'
+  const { racine: repo, depot } = depotDeChantier({ fichiers: { [porteur]: 'export const STOCK = [\n]\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, porteur), ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
+    gitDe(repo)('add', porteur)
+    const refus = decisionOf(`feat: deux sites (refs #1806)\n\nCLIQUET: ${porteur} +2 — deux sites mesurés ce jour, compte exact au message`, repo)
+    assert.equal(refus?.decision, 'deny', 'un CLIQUET n’admet aucune croissance sous la porte des comptes')
+    assert.match(refus.reason, /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT : scripts\/guards\/lib\/structuresStock\.mjs : \+2/)
+    assert.match(refus.reason, /Migrer vers la forme cible ; la porte comptes:plage refuse toute hausse, aucun `CLIQUET:` ne l'admet/)
+  } finally {
+    rmSync(depot, { recursive: true, force: true })
+  }
+})
+
 // La revue se fait PAR TICKET (décision utilisateur du 2026-10-05, #2365) : aucun cumul de commits
 // depuis la dernière archive `revue-palier-*` ne conditionne une fermeture.
 test('commit-msg, dépôt réel : 12 commits de substance depuis la dernière archive `revue-palier-*`, sans revue neuve, ne bloquent AUCUNE fermeture', () => {
