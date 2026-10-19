@@ -81,10 +81,11 @@ export function environnementDeLaMesure(env, argv, cwd) {
   return { ...env, NODE_OPTIONS: ['--require', PRECHARGE, ...gardees].map(citer).join(' ') }
 }
 
-export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, mesures = mesuresDe(dossierDesMesures(racine)) }) {
+export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, mesures }) {
   const argumentsDuLancement = [...(argv.includes('--test') ? argv : ['--test', ...argv]), ...fichiers.filter((f) => !argv.includes(f))]
-  const effectives = lancerProcessusSupervise.optionsEffectives(process.execPath, argumentsDuLancement,
-    { cwd: racine, env: environnementDeLaMesure(env, argumentsDuLancement, racine) })
+  const envDeMesure = environnementDeLaMesure(env, argumentsDuLancement, racine)
+  mesures ??= mesuresDe(dossierDesMesures(racine))
+  const effectives = lancerProcessusSupervise.optionsEffectives(process.execPath, argumentsDuLancement, { cwd: racine, env: envDeMesure })
   argv = effectives.args
   env = effectives.options.env
   const configuration = []
@@ -105,7 +106,7 @@ export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, mesu
       Number.isSafeInteger(historique?.picOctets) && historique.picOctets > 0 && Number.isSafeInteger(historique?.parentOctets) && historique.parentOctets > 0 &&
       historique?.descendantsInclus === true && typeof historique.metrique === 'string' }
   })
-  return { entrees, mesures, toolchain }
+  return { entrees, mesures, toolchain, envDeMesure }
 }
 
 export function admettreLancementNode({ fichiers, profils, parentOctets, disponibleOctets, cpus, argv = [], objectifOctets }) {
@@ -242,7 +243,8 @@ export function collecterMemoire({ controle, pid, fichiers, racine, dossier, gen
           if (inspection?.code === 'MESURE_PROCESSUS_EXPIREE' && Object.hasOwn(inspection, 'indeterminee')) throw expiration(inspection.indeterminee)
           if (!inspection || Object.hasOwn(inspection, 'indeterminee') || inspection.expiree || !Array.isArray(inspection.processus)) throw erreur('inspection initiale indéterminée')
           const [m] = inspection.processus
-          if (inspection.processus.length !== 1 || creationExacte(m.creationNative) !== creationExacte(p.creation) || !m.cwd) throw erreur('inspection initiale sans identité exacte')
+          if (m?.erreurs.length) throw erreur('inspection initiale illisible : ' + m.erreurs.join('; '))
+          if (inspection.processus.length !== 1 || creationExacte(m.creationNative) !== creationExacte(p.creation)) throw erreur('inspection initiale sans identité exacte')
           const cheminsLus = new Set(argumentsProcessus(m.commande, 'win32').filter((a) => a && !a.startsWith('-')).map((a) => canonique(a, m.cwd)))
           const trouves = candidats.filter((c) => cheminsLus.has(c.chemin))
           if (trouves.length !== 1) throw erreur('association initiale non unique : ' + trouves.length + ' candidats')
@@ -357,8 +359,11 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
       if (!resultat || resultat.arret?.etat === 'mort') rmSync(dossier, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 })
     }
   }
-  try { environnementDeLaMesure(env, argv, racine) } catch (error) { return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } } }
-  const profils = profilsDuLancement({ racine, fichiers, argv, env, mesures })
+  let profils
+  try { profils = profilsDuLancement({ racine, fichiers, argv, env, mesures }) } catch (error) {
+    if (error.code !== 'MESURE_MEMOIRE_INCOMPLETE') throw error
+    return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } }
+  }
   const acquisition = forcer || profils.entrees.some((e) => !e.utilisable)
   const parentOctets = Math.max(0, ...profils.entrees.map((e) => e.historique?.parentOctets ?? 0))
   const disponible = () => ({ disponibleOctets: memoireDisponibleMo(env) * 2 ** 20, cpus: coeurs(env, availableParallelism) })
@@ -405,7 +410,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
   let defautSignale = false
   try {
     resultat = await spawnBorne({ argv: args, cwd: racine,
-      env: { ...environnementDeLaMesure(env, args, racine), WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
+      env: { ...profils.envDeMesure, WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
       signal: signalCompose, limiteMs, fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20,
       superviser: diffuser,
       surControle: (vu) => { controle = vu },

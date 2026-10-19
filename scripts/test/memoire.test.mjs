@@ -87,23 +87,38 @@ test('options incompatibles : alias snapshots et isolation none refusés avant t
   assert.throws(() => environnementDeLaMesure({ NODE_OPTIONS: '--snapshot_blob=x' }, [], racine), /snapshot/)
 })
 
-test('profils : sans lancement, corpus et destinations indépendants, reporter et contenu distingués, contrat antérieur invalidé', async (t) => {
-  const lancements = () => process.getActiveResourcesInfo().filter((r) => /Process|Pipe|TCP|TTY/.test(r)).sort()
-  const ouverts = lancements()
-  const racine = temporaire(t, 'memoire-profils-'), mesures = mesuresEnMemoire()
+/** Les profils se calculent dans un node sous `--permission` sans `--allow-child-process` : toute tentative de lancement,
+ *  synchrone ou non, y est refusée, et `NODE_DEBUG=child_process` la journalise avant le refus (`spawn`, `spawnSync`). */
+test('profils : sans lancement, synchrone compris, corpus et destinations indépendants, reporter et contenu distingués, contrat antérieur invalidé', async (t) => {
+  const racine = temporaire(t, 'memoire-profils-'), corps = join(racine, 'profils.mjs')
   writeFileSync(join(racine, 'a.mjs'), 'export {}')
-  const p = { racine, fichiers: ['a.mjs'], argv: ['--test'], env: {}, mesures }
-  const lire = (patch = {}) => profilsDuLancement({ ...p, ...patch })
-  const a = lire().entrees[0]
-  assert.equal(a.cle, lire({ fichiers: ['a.mjs', 'b.mjs'], argv: ['--test', '--test-reporter-destination=x'] }).entrees[0].cle)
-  assert.notEqual(a.cle, lire({ argv: ['--test', '--test-reporter=spec'] }).entrees[0].cle)
-  writeFileSync(join(racine, 'a.mjs'), 'export const x = 1')
-  assert.equal(a.cle, lire().entrees[0].cle)
-  assert.notEqual(a.blob, lire().entrees[0].blob)
-  mesures.memos['memoire-node.json'] = { [hacher('ancien-contrat-' + a.cle)]: { blob: lire().entrees[0].blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'rss' } }
-  assert.equal(lire().entrees[0].utilisable, false)
-  await new Promise((r) => setTimeout(r, 50))
-  assert.deepEqual(lancements(), ouverts)
+  writeFileSync(corps, `import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { profilsDuLancement } from ${JSON.stringify(new URL('./memoire.mjs', import.meta.url).href)}
+const hacher = ${hacher}, mesuresEnMemoire = ${mesuresEnMemoire}
+const racine = ${JSON.stringify(racine)}, mesures = mesuresEnMemoire()
+const p = { racine, fichiers: ['a.mjs'], argv: ['--test'], env: {}, mesures }
+const lire = (patch = {}) => profilsDuLancement({ ...p, ...patch })
+const a = lire().entrees[0]
+assert.equal(a.cle, lire({ fichiers: ['a.mjs', 'b.mjs'], argv: ['--test', '--test-reporter-destination=x'] }).entrees[0].cle)
+assert.notEqual(a.cle, lire({ argv: ['--test', '--test-reporter=spec'] }).entrees[0].cle)
+writeFileSync(join(racine, 'a.mjs'), 'export const x = 1')
+assert.equal(a.cle, lire().entrees[0].cle)
+assert.notEqual(a.blob, lire().entrees[0].blob)
+mesures.memos['memoire-node.json'] = { [hacher('ancien-contrat-' + a.cle)]: { blob: lire().entrees[0].blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'rss' } }
+assert.equal(lire().entrees[0].utilisable, false)
+`)
+  const env = { ...process.env, NODE_DEBUG: 'child_process', TEMP: racine, TMP: racine }
+  delete env.NODE_OPTIONS
+  delete env.NODE_TEST_CONTEXT
+  const enfant = spawn(process.execPath, ['--permission', '--allow-fs-read=*', '--allow-fs-write=' + racine, corps], { cwd: racine, env, stdio: ['ignore', 'ignore', 'pipe'] })
+  let erreurs = ''
+  enfant.stderr.on('data', (d) => { erreurs += d })
+  const code = await new Promise((r, j) => { enfant.once('error', j); enfant.once('close', r) })
+  assert.deepEqual([...erreurs.matchAll(/^CHILD_PROCESS \d+: (spawn\w*) .*?^ {2}file: '([^']*)'/gms)].map((m) => m[1] + ' ' + m[2]), [])
+  assert.equal(code, 0, erreurs)
 })
 
 /** Le dossier commun des terrains : les entrées `a.mjs`, `b.mjs`, `c.mjs` et le corps `enfant.cjs` des processus
@@ -151,18 +166,15 @@ async function terrain(t, fichier, options = {}) {
   const processus = [creer(2, 'hote', 3), creer(3, 'worker', 7), creer(10, null, 20), creer(entree.pid, null, 100, entree.creation), creer(DESCENDANT, null, 300)]
   const identites = [], fermetures = new WeakSet()
   let captures = 0
-  /** Le budget d'une requête native, tenu comme `echanger` (`superviserProcessus.mjs`). */
-  const budget = (operation, { timeout }) => {
-    if (!Number.isFinite(timeout) || timeout < 0) throw Object.assign(new Error('timeout de requête natif invalide'), { code: 'BORNE_INVALIDE' })
-    if (timeout === 0) throw Object.assign(new Error('échéance de requête native épuisée'), { code: 'ETIMEDOUT', origine: 'controle-natif', operation, expiree: true })
-  }
+  /** L'obligation de `collecterMemoire` envers toute requête native : son reste d'échéance d'observation, `]0, 2000]` ms. */
+  const budget = ({ timeout }) => assert.ok(timeout > 0 && timeout <= 2000, 'requête native hors échéance d’observation : ' + timeout)
   const controle = {
     pid: 10,
     phase: 'execution',
     estFermeture: (cause) => fermetures.has(cause),
-    mesurerDomaine(o) { budget('vue', o); captures++; options.avantVue?.(captures, processus); return { processus: processus.map((p) => ({ ...p })), metriqueMemoire: 'working-set' } },
+    mesurerDomaine(o) { budget(o); captures++; options.avantVue?.(captures, processus); return { processus: processus.map((p) => ({ ...p })), metriqueMemoire: 'working-set' } },
     attribuer(p, o) {
-      budget('attribuer', o)
+      budget(o)
       identites.push(p)
       const m = processus.find((m) => m.identifiant === p.identifiant && m.pid === p.pid && m.creation === p.creation)
       assert.ok(m)
@@ -282,7 +294,19 @@ test('inspection complète : création native exacte, même milliseconde différ
   const f = await terrain(t, 'a.mjs', { entree: { pid: reelle.pid, creation: reelle.creation.slice(0, -2) + (chiffre === '9' ? '8' : String(Number(chiffre) + 1)) + 'Z' } })
   f.emission(10); f.emission(f.entree)
   f.collecte.echantillonner()
-  assert.match(f.collecte.defaut.message, /identité exacte/)
+  assert.equal(f.collecte.defaut?.message, 'collecte impossible : inspection initiale sans identité exacte')
+  assert.equal(f.ack(), null)
+  assert.equal(f.collecte.qualite.echantillonsValides, 0)
+})
+
+/** Le PID du processus System : vivant, son PEB refusé à tout processus utilisateur (OpenProcess, ERROR_ACCESS_DENIED). */
+const SYSTEM = 4
+
+test('inspection complète : une entrée que l’inspection marque illisible est refusée par sa cause, sans ACK', MESURE_NATIVE, async (t) => {
+  const f = await terrain(t, 'a.mjs', { entree: { pid: SYSTEM, creation: '2026-10-01T00:00:00.1234567Z' } })
+  f.emission(10); f.emission(f.entree)
+  f.collecte.echantillonner()
+  assert.match(f.collecte.defaut?.message ?? '', /^collecte impossible : inspection initiale illisible : cwd illisible : \[win32 5\]/)
   assert.equal(f.ack(), null)
   assert.equal(f.collecte.qualite.echantillonsValides, 0)
 })
