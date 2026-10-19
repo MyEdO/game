@@ -123,7 +123,7 @@ function OptionBouton({
 
 /**
  * Sélecteur d'« options de jet » PARTAGÉ — source unique du choix Parade/Esquive (Défense),
- * Sacrifier/Esquiver/Fuir (Désengagement), Calme/Résistance (Résistance). Remplace les `.seg` /
+ * Sacrifier/Esquiver/Fuir (Désengagement), nature d'une Influence corruptrice (Corruption). Remplace les `.seg` /
  * `.rm-loc-grid` réécrits à la main dans chaque modale. Le métier reste dans la modale ; ce composant
  * ne fait que rendre les boutons et propager `onSelect`.
  *

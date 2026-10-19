@@ -10,7 +10,8 @@ import { z } from 'zod';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
-import { refOuSpec, idDe, refs, specDe } from './ref';
+import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
+import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
@@ -166,6 +167,30 @@ export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
  * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
+
+/** Les espaces où le FOYER d'une règle peut vivre — l'entité qui la PORTE, `regle` (`regles.json`)
+ *  n'étant que le foyer des règles de cadre (#1117, amendement A). */
+export const typeDeFoyerSchema = enumNomme({
+  regle: 'Règle de jeu',
+  skill: 'Compétence',
+  talent: 'Talent',
+  etat: 'État',
+  quality: 'Qualité',
+  characteristic: 'Caractéristique',
+  spell: 'Sort',
+  psychology: 'État psychologique',
+  symptome: 'Symptôme',
+  steamBreakdown: 'Panne de navire à vapeur',
+});
+export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
+
+/**
+ * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
+ * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
+ * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ */
+export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
+export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
 
 /**
  * Réf de source récurrente `{ book, page }` — vue sur 2-3 datasets (`characteristics.json`,
@@ -891,28 +916,13 @@ export function admetLePeche(noeud: unknown): boolean {
   return porte;
 }
 
-/** Compétences du Test d'Exposition à une Influence corruptrice — alphabet FERMÉ (`LDB 19 l.23-75`).
- *  SOURCE UNIQUE : les deux portes `corruptionExposure.skill` (op `GameOp`, effet de scène), le
- *  sélecteur de l'atelier (`ui/editor/GameOpEditor.tsx`) et la couture du slot
- *  (`state/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
-export const TESTS_DE_CORRUPTION = ['resistance', 'calme'] as const;
-export type TestDeCorruption = (typeof TESTS_DE_CORRUPTION)[number];
-
-/** Référence de Compétence BORNÉE à `TESTS_DE_CORRUPTION` : porte UNIQUE des deux slots
- *  `corruptionExposure.skill` (`LDB 19 l.23-75`). La feuille `idDe('skill')` (`grammaire/ref.ts`) porte
- *  la référence ; la borne se compose EN SORTIE de la feuille (`transform`), sans cloner la feuille. */
-const estTestDeCorruption = (v: unknown): v is TestDeCorruption => (TESTS_DE_CORRUPTION as readonly unknown[]).includes(v);
-export const refTestDeCorruption = nommerChamps(z.strictObject({
-  id: idDe('skill').transform((v, ctx): TestDeCorruption => {
-    if (estTestDeCorruption(v)) return v;
-    ctx.addIssue({
-      code: 'custom',
-      input: v,
-      message: `corruptionExposure.skill : « ${v} » hors des deux Compétences admises — Résistance (« resistance ») ou Calme (« calme ») (LDB 19 l.23-75).`,
-    });
-    return z.NEVER;
-  }),
-}), { id: { label: "identifiant" } });
+/** NATURE d'une Influence corruptrice (`LDB 19 l.29`) — clés des Tests de la fiche `influences-corruptrices`
+ *  (`TESTS_DE_REGLE`, `engine/ruleRefs.ts`). SOURCE UNIQUE : les deux portes `corruptionExposure.nature`
+ *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale (`ui/CorruptionModal.tsx`) et
+ *  la couture du slot (`state/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
+export const NATURES_D_INFLUENCE = TESTS_DE_REGLE['influences-corruptrices'];
+export type NatureDInfluence = (typeof NATURES_D_INFLUENCE)[number];
+export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE, (n) => n));
 
 /**
  * FOURCHETTE d'une rangée de table de tirage — forme CANONIQUE du concept `plage`

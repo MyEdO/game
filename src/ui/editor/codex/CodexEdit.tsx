@@ -24,7 +24,7 @@ import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { RefField, SaisieSuggeree, cfgDeLaFeuille, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
+import { RefField, SaisieSuggeree, cfgDeLaFeuille, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
 import { Icon } from '../../Icon';
@@ -1813,6 +1813,8 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   const libelles = useValeursDistinctes(kind === 'stringList' ? refDs : undefined, 'label');
   const { partagees, datalist } = useSuggestionsPartagees(libelles);
 
+  const cfgType = cfgDuNoeudType(field.noeud);
+  if (cfgType) return <RefField cfg={cfgType} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
   const cfgDId = kind === 'text' ? cfgDeLaFeuille(field.noeud) : undefined;
   if (cfgDId) return <RefField cfg={cfgDId} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
   if (kind === 'stringList') {

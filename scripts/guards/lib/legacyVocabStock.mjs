@@ -833,13 +833,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/corruption-lot-e.test.ts",
-    motif: "désormais",
-    ancre: "/** Franchit le seuil : le Test de Résistance est désormais une MODALE (kind 'seuil') —",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/crit-test-porte.test.ts",
     motif: "désormais",
     ancre: "Il naît désormais comme une ÉTAPE, et c'est le socle (`resolveFlowTest`) qui décide de sa surface.",

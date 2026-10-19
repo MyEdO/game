@@ -151,8 +151,8 @@ export const CLASSE_DES_ACTIONS = {
   handGateConfirm: 'invité', handGateCancel: 'invité', recoverConfirm: 'invité',
   recoverCancel: 'invité',
   healSetMode: 'invité', healConfirm: 'invité', healCancel: 'invité',
-  // Corruption (LDB 19 l.29) : choix Résistance/Calme AVANT le jet (le jet et son influence sont dérivés).
-  corruptionSetSkill: 'invité',
+  // Corruption (LDB 19 l.29) : choix de la nature de l'Influence AVANT le jet (le jet et son influence sont dérivés).
+  corruptionSetNature: 'invité',
   // Manoeuvres d'arme et de mouvement (#1017) : OUVREUR + paramètre pré-jet + résolution ; le jet et
   // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
   battleBattement: 'invité', battementSetFoe: 'invité', battementConfirm: 'invité',

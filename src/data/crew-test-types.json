@@ -14,7 +14,10 @@
         "timonier"
       ],
       "essential": "capitaine",
-      "rule": "test-equipage-progression",
+      "rule": {
+        "id": "test-equipage-progression",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 122,
@@ -32,7 +35,10 @@
         "timonier"
       ],
       "essential": "mousse",
-      "rule": "test-equipage-progression-poursuite",
+      "rule": {
+        "id": "test-equipage-progression-poursuite",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 122,
@@ -50,7 +56,10 @@
         "chansonnier"
       ],
       "essential": "timonier",
-      "rule": "test-equipage-manoeuvre",
+      "rule": {
+        "id": "test-equipage-manoeuvre",
+        "type": "regle"
+      },
       "steering": true,
       "source": {
         "book": "mer-des-griffes",
@@ -69,7 +78,10 @@
         "chansonnier"
       ],
       "essential": "vigie",
-      "rule": "test-equipage-perception",
+      "rule": {
+        "id": "test-equipage-perception",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,
@@ -87,7 +99,10 @@
         "navigateur"
       ],
       "essential": "navigateur",
-      "rule": "test-equipage-orientation",
+      "rule": {
+        "id": "test-equipage-orientation",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,
@@ -105,7 +120,10 @@
         "chansonnier"
       ],
       "essential": "mousse",
-      "rule": "test-equipage-affaler",
+      "rule": {
+        "id": "test-equipage-affaler",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,
@@ -123,7 +141,10 @@
         "chansonnier"
       ],
       "essential": "mousse",
-      "rule": "test-equipage-extermination-nuisibles",
+      "rule": {
+        "id": "test-equipage-extermination-nuisibles",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,
@@ -141,7 +162,10 @@
         "chirurgien"
       ],
       "essential": "cuisinier",
-      "rule": "test-equipage-rude-epreuve",
+      "rule": {
+        "id": "test-equipage-rude-epreuve",
+        "type": "regle"
+      },
       "moraleOnNegativeDR": true,
       "source": {
         "book": "mer-des-griffes",
@@ -160,7 +184,10 @@
         "navigateur"
       ],
       "essential": "mousse",
-      "rule": "test-equipage-entretien",
+      "rule": {
+        "id": "test-equipage-entretien",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,
@@ -178,7 +205,10 @@
         "timonier"
       ],
       "essential": "artilleur",
-      "rule": "test-equipage-batterie",
+      "rule": {
+        "id": "test-equipage-batterie",
+        "type": "regle"
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 123,

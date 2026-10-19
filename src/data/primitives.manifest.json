@@ -560,6 +560,15 @@
     "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/refField/ref-field-sous-liste.test.tsx"
   },
   {
+    "id": "refTypee",
+    "type": "primitives.manifest",
+    "label": "refTypee/declarationDeRefTypee",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "une référence TYPÉE `{ id, type }` dont le `type` choisit l'espace d'ids où l'`id` doit résoudre (`refTypee`), et sa déclaration lue par l'éditeur et le scan (`declarationDeRefTypee`)",
+    "perimetre": "foyer de règle des enjeux, des Activités et des Tests d'équipage (`foyerDeRegleSchema`), champ polymorphe de l'éditeur (`RefField`), ouverture au Codex (`cibleCodex`), résolution du scan des structures (`espaceNomme`)",
+    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/ref-field-polymorphe.test.tsx"
+  },
+  {
     "id": "refCouvre",
     "type": "primitives.manifest",
     "label": "refCouvre",

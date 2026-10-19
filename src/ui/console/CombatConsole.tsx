@@ -7,7 +7,7 @@ import { actionPrise, wastesAction, endTurnArmed } from '../../state/endTurnGuar
 import { advantageCapFor } from '../../engine/advantage';
 import { attackWeapon } from '../../engine/combat';
 import { availableAttacks, selfManeuversOf, selfManeuverApplicable, previewResourceDelta, STANCE_BLOCK } from '../../state/combatFlow';
-import { findSpellById, byId, findActionById, ACTIONS, type ActionDef } from '../../data/index';
+import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
 import { actionGate, runAction, currentInterludeAction, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../state/actionRegistry';
 import { offresDuRegistre } from '../../state/registreOffres';
@@ -739,7 +739,7 @@ export function CombatConsole() {
       family,
       icon: over.icon ?? icon(def.icon as IconIdInput),
       label: over.label ?? def.label,
-      rule: over.rule ?? (def.rule && def.ruleCategory ? ({ category: def.ruleCategory, id: def.rule } as CodexTarget) : undefined),
+      rule: over.rule ?? (def.rule ? cibleCodex(def.rule) : undefined),
       gate: verdict.ok ? undefined : verdict.reason,
       secondaires: gestes2e(def, family, over.args, over.progres),
       on: over.on ?? (arme || undefined),

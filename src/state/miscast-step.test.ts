@@ -336,8 +336,8 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   });
 
   it('SONDE A bis — les Points de Sorcellerie tombent UN PAR UN : le Test de seuil s’ouvre AU gain qui franchit', () => {
-    // LDB 19 l.70 : le Test de Résistance se joue à CHAQUE gain. Un gain groupé de N n'en jouerait
-    // qu'un seul — d'où `sorceryCorruptionLines` qui appelle `gainCorruption(…, 1)` N fois.
+    // LDB 19 l.70 : le Test `corrompu` se joue à chaque gain — `sorceryCorruptionLines` appelle
+    // `gainCorruption(…, 1)` N fois.
     const seuilDe = (c: Combatant) => bonus(effectiveChar(c, 'force-mentale')) + bonus(effectiveChar(c, 'endurance'));
 
     // (a) LOIN du seuil : les deux jets versent DEUX Points, chacun sa ligne « +1 » (jamais un « +2 »).
@@ -378,7 +378,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     const rendus = useGame.getState().journal.filter((t) => /Points? de Corruption/.test(t));
     for (const g of rendus) expect(g, 'un gain groupé « +2 » au lieu de gains « +1 »').toMatch(/\+1 Point de Corruption/);
 
-    // (b) JUSTE sous le seuil : c'est le gain QUI FRANCHIT qui ouvre le Test de Résistance — donc dès
+    // (b) JUSTE sous le seuil : c'est le gain QUI FRANCHIT qui ouvre le Test `corrompu` — donc dès
     // le PREMIER jet. Un gain groupé de 2 ne l'aurait joué qu'une fois, après coup.
     useGame.setState({ pendingCascade: null, suspendedCascades: [], pendingCorruption: null });
     const bord = mageSolo();

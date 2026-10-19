@@ -18,7 +18,7 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { resetCadence } from '../engine/cadence';
 import { tenuParUnHumain, pilotedByHuman, defenseSurfaced, aiDriven, seatOwns } from './netOwnership';
-import { fleeCalme, fleeNeedCalme } from './pendings';
+import { fleeTouche, fleeToucheDu } from './pendings';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 
@@ -127,8 +127,8 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     const pd = g().pendingDisengage;
     expect(pd, 'la fenêtre de fuite a été résolue sans le fuyard').toBeTruthy();
     expect(pd!.fuir, 'le flux `flee` doit être OUVERT').toBeTruthy();
-    expect(fleeCalme(pd!)!.interactive, 'le fuyard est un acteur JOUÉ : son Test de Calme lui revient').toBe(true);
-    expect(fleeNeedCalme(pd!) ? fleeCalme(pd!)!.calme : null, 'son Calme a été jeté à sa place').toBeNull();
+    expect(fleeTouche(pd!)!.interactive, 'le fuyard est un acteur JOUÉ : le Test de sa fiche `fuite` lui revient').toBe(true);
+    expect(fleeToucheDu(pd!) ? fleeTouche(pd!)!.jet : null, 'le Test de sa fiche `fuite` a été jeté à sa place').toBeNull();
     // …et le siège qui le possède peut mener la fenêtre à son terme.
     expect(seatOwns(g(), 1, H[0].id)).toBe(true);
   });

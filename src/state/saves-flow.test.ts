@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame, resetSceneRegistry } from './store';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
 import { idDeSortVivant } from '../data/sortsFusionnes';
 import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, type SaveGame } from './saves';
@@ -240,7 +241,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
     // LE DÉFAUT, sur le chemin réel : `FallModal` dérive sa phase par `phaseDeChute` à l'ouverture.
     expect(() => phaseDeChute(tombantUnique as never)).toThrow(TypeError);
-    const courante: PendingFall = { to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };
+    const courante: PendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };
     expect(phaseDeChute(courante)).toBe('choice');
   });
   it('l’empreinte d’un décor à recette TOURNE avec son cap (#1509)', () => {

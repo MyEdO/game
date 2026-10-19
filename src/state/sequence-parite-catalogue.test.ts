@@ -299,8 +299,8 @@ const V8C1: Site[] = [
   },
   {
     site: 'merchantFlow.ts:369 — recherche active (sujet + détail par `stepDetail`)',
-    avant: `${HEROS3} — recherche active (Ragot ${31}) : une journée aux marchés porte ses fruits (Disponibilité +10 %, LDB 59 l.50).`,
-    apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk', { roll: 31 })),
+    avant: `${HEROS3} — recherche active : une journée aux marchés porte ses fruits (Disponibilité +10 %, LDB 59 l.50).`,
+    apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk')),
   },
 ];
 

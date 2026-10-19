@@ -2,25 +2,25 @@
 // `occurrencesStock.mjs`) sur une racine, et la PORTE DE PLAGE qui refuse qu'un compte monte ou qu'un
 // site naisse entre la base d'une plage et sa tête.
 //
-// DÉTECTEURS CONSTANTS : la base et la tête se mesurent par le MÊME code, posé dans chaque image — deux fois,
-// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base) ;
-// tout `src/` vient de l'image — donnée, defs, grammaire, `OP_DEFS`. Ce qui monte sous l'un ou l'autre est la
-// DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui ne se lie pas est sautée et
-// nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
+// DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
+// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base).
+// L'image est celle de SON commit : `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code,
+// produites par son propre `genererCode` (scripts/docs/build-all.mjs) avant la pose du détecteur. Ce qui monte
+// sous l'un ou l'autre est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui
+// ne se lie pas est sautée et nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
 // ANGLE MORT : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711).
-import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { GENERATORS, genererCode } from '../../docs/build-all.mjs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lierDependances } from '../../migrations/replay-head.mjs';
 import { scanDuCorpus, scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
-import { gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
+import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, TRONC, baseCommune, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
@@ -123,20 +123,37 @@ export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
   poser: (dossier) => ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR),
 });
 
+/** La première ligne d'erreur d'un processus enfant : la première `…Error`, sinon la dernière ligne de son stderr. */
+const premiereErreur = (vu: SpawnSyncReturns<string>): string =>
+  (vu.stderr ?? '').split('\n').find((l) => /^\w*Error\b/.test(l)) ?? (vu.stderr ?? '').trim().split('\n').slice(-1)[0];
+
+/** La génération du code d'une image : le `genererCode` de SON `scripts/docs/build-all.mjs` (argv[1]), cwd = l'image. */
+const GENERATION_DE_L_IMAGE = 'const { genererCode } = await import(process.argv[1]); process.exitCode = await genererCode({ cwd: process.cwd(), quiet: true });';
+
+/** L'env de la génération d'une image : sans l'espace de noms de git (`GIT_*`, `git help git`, « ENVIRONMENT
+ *  VARIABLES ») ni l'écrivain des dérivés de l'arbre qui tourne (`ENV_EPOQUE`, `ENV_TENU`, ecrivain-derives.mjs). */
+const envDeGeneration = (): NodeJS.ProcessEnv =>
+  Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_') && nom !== ENV_EPOQUE && nom !== ENV_TENU));
+
 /**
- * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
- * `detecteur`, ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
- * et ses cibles de code produites et certifiées localement (`genererCode`). Un `dossier` contenu dans un dépôt git est
- * refusé (`ImageDansUnDepot`) avant toute écriture.
+ * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise) et son propre
+ * code (`DU_DETECTEUR` de `arbre`), ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`),
+ * ses cibles de code produites par SA génération (`GENERATION_DE_L_IMAGE`) dans un processus enfant, puis son
+ * `scripts/` retiré et le code du `detecteur` posé, qui seul mesure. Un `dossier` contenu dans un dépôt git est refusé
+ * (`ImageDansUnDepot`) avant toute écriture.
  */
 function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
   const gitDir = gitDirContenant(dossier);
   if (gitDir !== null) throw new ImageDansUnDepot(`${dossier} : l’image d’une borne se pose hors de tout dépôt git — ${gitDir} le contient`);
-  ecrireDeLImage(depot, arbre, dossier, DE_L_IMAGE);
-  detecteur.poser(dossier);
+  ecrireDeLImage(depot, arbre, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
   lierDependances(dossier);
-  if (genererCode({ cwd: dossier, quiet: true, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
-    throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites`);
+  const vu = spawnSync(process.execPath, ['--input-type=module', '-e', GENERATION_DE_L_IMAGE, pathToFileURL(join(dossier, 'scripts/docs/build-all.mjs')).href], {
+    cwd: dossier, env: envDeGeneration(), encoding: 'utf8', maxBuffer: 1 << 28,
+  });
+  if (vu.status !== 0)
+    throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
+  rmSync(join(dossier, 'scripts'), { recursive: true, force: true });
+  detecteur.poser(dossier);
 }
 
 /** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`. */
@@ -144,10 +161,7 @@ function mesurerImage(dossier: string): Comptes {
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), POINT_D_ENTREE], {
     cwd: dossier, encoding: 'utf8', maxBuffer: 1 << 28,
   });
-  if (vu.status !== 0) {
-    const erreur = (vu.stderr ?? '').split('\n').find((l) => /^\w*Error\b/.test(l)) ?? (vu.stderr ?? '').trim().split('\n').slice(-1)[0];
-    throw new MesureImpossible(`mesure de l’image en échec (${vu.status ?? vu.signal}) — ${erreur}`);
-  }
+  if (vu.status !== 0) throw new MesureImpossible(`mesure de l’image en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
   return new Map(JSON.parse(vu.stdout) as [string, EntreeDeCompte[]][]);
 }
 

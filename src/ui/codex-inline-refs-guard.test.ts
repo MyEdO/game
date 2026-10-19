@@ -34,7 +34,8 @@ import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { codexLookupById } from './compendium/registry';
-import { ACTIONS } from '../data/index';
+import { ACTIONS, ACTIVITY_STAKES, COMBAT_STAKES, FLOW_STAKES, NIGHT_STAKES, VOYAGE_STAKES, cibleCodex, crewTestTypes } from '../data/index';
+import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 
 export interface CodexRefLiteral {
   line: number;
@@ -212,15 +213,36 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     expect(dynamiques, 'plus aucune ref dynamique vue : le compteur d’angle mort a lâché').toBeGreaterThan(50);
   });
 
-  it('REGISTRE DES ACTIONS : chaque `rule`/`ruleCategory` d’`actions.json` résout au Codex', () => {
-    // Les foyers de règle des cases de console sont passés du COMPOSANT à la DONNÉE : sans cette
-    // sonde, une ref morte y serait invisible (le popover muet à l'écran, la garde verte).
-    const portees = ACTIONS.filter((a) => a.rule && a.ruleCategory);
-    expect(portees.length, 'aucune action ne porte de foyer de règle : la sonde ne mesurerait rien').toBeGreaterThan(20);
+  it('FOYERS DE RÈGLE de la donnée : chaque `rule` des 7 porteurs résout au Codex', () => {
+    // Les foyers de règle (cases de console, enjeux de jet, Activités, Tests d'équipage) vivent dans
+    // la DONNÉE : le parse juge l'id dans l'espace de son type, cette sonde juge la FICHE que le ⓘ
+    // ouvre (`cibleCodex` → `codexLookupById`) — le popover muet à l'écran, la garde verte, sinon.
+    const porteurs: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
+      'actions.json': ACTIONS, 'activities.json': ACTIVITY_STAKES, 'combat-stakes.json': COMBAT_STAKES,
+      'crew-test-types.json': crewTestTypes, 'flow-stakes.json': FLOW_STAKES, 'night-stakes.json': NIGHT_STAKES,
+      'voyage-stakes.json': VOYAGE_STAKES,
+    };
+    const portees = Object.entries(porteurs).flatMap(([f, l]) => l.flatMap((e) => (e.rule ? [{ f, id: e.id, cible: cibleCodex(e.rule) }] : [])));
+    for (const [f, l] of Object.entries(porteurs)) expect(l.some((e) => e.rule), `${f} ne porte plus aucun foyer : la sonde ne le mesure plus`).toBe(true);
     const mortes = portees
-      .filter((a) => !codexLookupById(a.ruleCategory!, a.rule!))
-      .map((a) => `${a.id} → ${a.ruleCategory}/${a.rule}`);
-    expect(mortes, `Réf Codex MORTE au registre des actions :\n  ${mortes.join('\n  ')}`).toEqual([]);
+      .filter((p) => !codexLookupById(p.cible.category, p.cible.id))
+      .map((p) => `${p.f} « ${p.id} » → ${p.cible.category}/${p.cible.id}`);
+    expect(mortes, `Foyer de règle MORT au Codex :\n  ${mortes.join('\n  ')}`).toEqual([]);
+  });
+
+  it('FICHE EN LECTURE : chaque porteur de foyer exposé au Codex montre sa section « Règle » vers la fiche du foyer', () => {
+    const exposes: Record<string, readonly { id: string; rule?: FoyerDeRegle }[]> = {
+      activities: ACTIVITY_STAKES, combatStakes: COMBAT_STAKES, crewTestTypes, flowStakes: FLOW_STAKES,
+      nightStakes: NIGHT_STAKES, voyageStakes: VOYAGE_STAKES,
+    };
+    const ecarts = Object.entries(exposes).flatMap(([categorie, l]) => l.flatMap((e) => {
+      if (!e.rule) return [];
+      const cible = cibleCodex(e.rule);
+      const rangees = codexLookupById(categorie, e.id)?.sections?.find((s) => s.title === 'Règle')?.rows ?? [];
+      return rangees.some((r) => r.t === 'ref' && r.category === cible.category && r.id === cible.id)
+        ? [] : [`${categorie} « ${e.id} » → ${cible.category}/${cible.id}`];
+    }));
+    expect(ecarts, `Foyer absent de la fiche en lecture :\n  ${ecarts.join('\n  ')}`).toEqual([]);
   });
 
   it('chaque ref littérale de `src/ui/**` résout au Codex, par id STABLE', () => {

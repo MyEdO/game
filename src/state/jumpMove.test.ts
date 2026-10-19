@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, type Scene, type Terrain, type Effect } from './scene';
 import { flowEffects, type Flow } from './flow';
 import { planJump } from './jumpMove';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * `planJump` traduit un PAS de saut (du chemin 3D) en plan jouable, SANS nouveau flux : un saut dans
  * la portée libre (LDB 15 l.76) se franchit d'office ; un saut plus long = l'Effet `test` existant
- * (Athlétisme, « Saut ») dont l'échec déclenche `fall` dans le gouffre/niveau inférieur. Réutilise
+ * (Test `saut` de la fiche) dont l'échec déclenche `fall` dans le gouffre/niveau inférieur. Réutilise
  * `test` + `fall` (déjà livrés) → zéro modale dédiée.
  */
 function platformGap(): Scene {
@@ -32,16 +33,16 @@ describe('planJump', () => {
     const node = (plan.kind === 'test' ? plan.flow : null) as Extract<Flow, { kind: 'test' }>;
     expect(node.kind).toBe('test');
     expect(node.test.skill).toEqual({ id: 'athletisme' });
-    expect(node.test.difficulty).toBe('intermediaire'); // sans élan
+    expect(node.test).toMatchObject(testDeRegle('saut', 'sans-elan'));
     const fall = flowEffects(node.fail)[0] as Extract<Effect, { type: 'fall' }>;
     expect(fall.type).toBe('fall');
     expect(fall.to).toEqual({ x: 2, y: 1, z: 0 }); // tombe sur le parterre (z0) sous le gouffre (x=2)
     expect(fall.metres).toBe(4); // 1 étage ≈ 4 m
   });
 
-  it('avec un élan suffisant (≥ M/2 cases), le Test est Accessible (+20)', () => {
+  it('avec un élan suffisant (≥ M/2 cases), le Test est celui « avec élan » de la fiche `saut`', () => {
     const plan = planJump(scene, { x: 1, y: 1, z: 1 }, { x: 3, y: 1, z: 1 }, 4, 2); // élan 2 ≥ ceil(4/2)=2
-    expect(plan.kind === 'test' && (plan.flow as Extract<Flow, { kind: 'test' }>).test.difficulty).toBe('accessible');
+    expect(plan.kind === 'test' && (plan.flow as Extract<Flow, { kind: 'test' }>).test).toMatchObject(testDeRegle('saut', 'avec-elan'));
   });
 
   it('gouffre SANS surface sous lui (même étage, aucune couche) : refus NOMMÉ, jamais une chute sur rien', () => {

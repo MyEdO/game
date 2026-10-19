@@ -12,9 +12,10 @@
  * prouve que du PUR, et n'importe donc rien hors de `src/data` (pureté de couche, #1709).
  */
 import { describe, it, expect } from 'vitest';
-import { props } from './index';
+import { findById, props } from './index';
 import { indexParId } from './versionDataset';
-import { setDataset } from './overrides';
+import { collectionDuDataset, setDataset } from './overrides';
+import { DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
 
 const ids = (): string[] => props.map((p) => p.id);
 
@@ -40,5 +41,36 @@ describe('#1692 — l’index vivant d’un dataset', () => {
       setDataset('props', livres);
     }
     expect(vivant('__vivant-1692__')).toBeUndefined();
+  });
+});
+
+describe('#2820 — un index par binding, quel que soit le lecteur', () => {
+  it('même binding, même clé : le MÊME accesseur', () => {
+    const fixture = [{ id: 'fixture-a' }];
+    expect(indexParId('talents', fixture)).toBe(indexParId('talents', fixture));
+  });
+
+  it('même binding relu sous une autre clé : lève en nommant les deux clés', () => {
+    const fixture = [{ id: 'fixture-b' }];
+    indexParId('talents', fixture);
+    expect(() => indexParId('skills', fixture)).toThrow(/« talents ».*« skills »/);
+  });
+});
+
+describe('#2820 — la porte `entreeDeCategorie` de `findById`', () => {
+  it('chaque id de la collection d’une catégorie se résout en son entrée, racine ou nichée', () => {
+    const cats = Object.entries(DATASET_DE_LA_CATEGORIE);
+    expect(cats.some(([, d]) => d.chemin.length > 0)).toBe(true);
+    const fautives = cats.flatMap(([cat, d]) =>
+      (collectionDuDataset(d.cle) as readonly { id: string; label: string }[]).flatMap((e) => {
+        const lu = findById(cat, e.id);
+        return lu === e || lu?.label === e.label ? [] : [`${cat}/${e.id} : ${lu === undefined ? '(rien)' : `« ${lu.label} »`} au lieu de « ${e.label} »`];
+      }),
+    );
+    expect(fautives).toEqual([]);
+  });
+
+  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])('une clé du prototype (`%s`) ne nomme aucune catégorie', (cle) => {
+    expect(findById(cle, 'talents')).toBeUndefined();
   });
 });

@@ -185,17 +185,13 @@ describe('Intégrité des données src/data/*.json', () => {
     const bad = activities.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
     expect(bad, `Activité(s) sans icône du registre (src/ui/icons) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
-  it("9 — actions.json : id unique, icône du registre, règle liée à une catégorie (registre des actions, spec HUD zone 12)", () => {
-    const actions = JSON.parse(readFileSync(join(DIR, 'actions.json'), 'utf8')) as {
-      id: string; icon?: string; rule?: string; ruleCategory?: string;
-    }[];
+  it("9 — actions.json : id unique, icône du registre (registre des actions, spec HUD zone 12)", () => {
+    const actions = JSON.parse(readFileSync(join(DIR, 'actions.json'), 'utf8')) as { id: string; icon?: string }[];
     const badIcon = actions.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
     expect(badIcon, `Action(s) sans icône du registre (src/ui/icons) :\n  ${badIcon.join('\n  ')}`).toEqual([]);
     const seen = new Set<string>();
     const dupes = actions.filter((a) => (seen.has(a.id) ? true : (seen.add(a.id), false))).map((a) => a.id);
     expect(dupes, `Id(s) d'action en double :\n  ${dupes.join('\n  ')}`).toEqual([]);
-    const orphanRule = actions.filter((a) => !!a.rule !== !!a.ruleCategory).map((a) => a.id);
-    expect(orphanRule, `Action(s) dont rule et ruleCategory ne vont pas ensemble :\n  ${orphanRule.join('\n  ')}`).toEqual([]);
   });
 });
 

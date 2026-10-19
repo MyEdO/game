@@ -28,7 +28,7 @@ function enrolledEntityIds(): string[] {
   return (enc.members ?? []).map((m) => m.entityId);
 }
 
-/** Résout la cascade de fin de combat (Tests de Résistance maladie/Corruption influençables) — lance
+/** Résout la cascade de fin de combat (Tests de maladie et `influences-corruptrices`, influençables) — lance
  *  chaque étape puis valide, jusqu'à fermeture (`finishCombatEnd` → écran de victoire). No-op si aucune. */
 function drainCombatEndCascade(): void {
   for (let guard = 0; guard < 30; guard++) {
@@ -90,7 +90,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     for (const c of b.combatants) if (c.kind === 'enemy') c.dead = true;
     useGame.setState({ battle: { ...b } });
     checkBattleOver(useGame.getState, useGame.setState);
-    // Les mutants portent le Trait Corruption (Mineure) → cascade de fin de combat (Test de Résistance
+    // Les mutants portent le Trait Corruption (Mineure) → cascade de fin de combat (Test `influences-corruptrices`
     // INFLUENÇABLE) AVANT l'écran de victoire. On la résout pour atteindre la victoire (+ réconciliation).
     drainCombatEndCascade();
 

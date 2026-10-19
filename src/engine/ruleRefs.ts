@@ -117,6 +117,27 @@ export const RANGEES_DE_REGLE = {
 export type RegleChiffree = keyof typeof RANGEES_DE_REGLE;
 export type RangeeDe<R extends RegleChiffree> = (typeof RANGEES_DE_REGLE)[R][number];
 
+/**
+ * Les règles qui NOMMENT un Test et ses clés, que le moteur lit de leur fiche (`regles.json`, champ
+ * `tests`) par `testDeRegle` (`src/engine/reglesChiffrees.ts`) : aucun site n'écrit sa compétence, sa
+ * Difficulté ni son libellé — ni l'ouvreur, ni le jet, ni l'écran qui l'annonce ou le propose. Seule
+ * substitution de site : la compétence du cavalier (`testDuCavalier`, `src/engine/movement.ts`, LDB 14
+ * l.179). Clés = ids des fiches : la SITUATION que le Test tranche, jamais sa compétence. #1173
+ */
+export const TESTS_DE_REGLE = {
+  course: ['courir'],
+  chute: ['tenter'],
+  saut: ['avec-elan', 'sans-elan'],
+  fuite: ['touche-en-fuyant'],
+  'calme-d-approche': ['se-rapprocher', 'source-se-rapproche'],
+  'interruption-de-focalisation': ['maintenir'],
+  'influences-corruptrices': ['physique', 'spirituelle'],
+  corrompu: ['contenir'],
+} as const satisfies Record<string, readonly string[]>;
+
+export type RegleATest = keyof typeof TESTS_DE_REGLE;
+export type TestDe<R extends RegleATest> = (typeof TESTS_DE_REGLE)[R][number];
+
 /** La fiche Codex de chaque règle NON chiffrée, en ids STABLES. Les producteurs de `ModLine` la
  *  consomment (`RULE_REF.charger`), l'affichage la résout en chip cliquable — jamais un
  *  `{category, id}` recopié au site de push. Garde d'intégrité : `src/engine/rule-refs.test.ts`. */

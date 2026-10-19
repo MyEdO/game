@@ -46,8 +46,6 @@ export function ActivityModal() {
     support: pa.support, skill: tested?.id, characteristic: tested ? undefined : actDef?.char, spec: tested?.spec,
   });
   const extraMods: ModLine[] = [...supMods, ...activityModLines(pa.mod, pa.modLabel)];
-  // Cible affichée : celle du jet (pré-cuite dès l'ouverture en bataille, sinon dérivée base+Difficulté).
-  const target1 = rolled ? pa.target : undefined;
 
   // « Échec » CANONIQUE (gate des relances Chance/Pacte), aligné sur le `failed` du flux `activity` : un
   // Test combiné non-`full` (un `partial` = échec global RAW) OU une tenue perdue (opposition) OU un jet
@@ -63,7 +61,7 @@ export function ActivityModal() {
     row: {
       combatant: actor,
       d: rolled ? testBreakdown(pa.skillLabel, base, { roll: pa.roll!, target: pa.target, sl: pa.sl, success: pa.success }, pa.difficulty, extraMods.length ? extraMods : undefined) : undefined,
-      pending: testPending(pa.skillLabel, base, target1, pa.difficulty, extraMods.length ? extraMods : undefined),
+      pending: testPending(pa.skillLabel, base, undefined, pa.difficulty, extraMods.length ? extraMods : undefined),
     },
     // Test COMBINÉ : un volet qui tombe reste un échec global (LDB 12 l.202-208) même quand la ligne
     // affiche la réussite de skill-1 — c'est ce `lost` qui garde la Résilience offerte.
@@ -90,7 +88,7 @@ export function ActivityModal() {
     rows.push(buildRollRow({
       row: {
         d: rolled ? testBreakdown(pa.skill2, pa.skillValue2 ?? 0, { roll: pa.roll!, target: pa.target2, sl: pa.sl2 ?? 0, success: pa.success2 }, pa.difficulty, secondMods) : undefined,
-        pending: testPending(pa.skill2, pa.skillValue2 ?? 0, rolled ? pa.target2 : undefined, pa.difficulty, secondMods),
+        pending: testPending(pa.skill2, pa.skillValue2 ?? 0, undefined, pa.difficulty, secondMods),
       },
     }, {
       key: 'skill2',

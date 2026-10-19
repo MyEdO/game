@@ -14,6 +14,7 @@ import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from '../net/intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -48,7 +49,7 @@ const FIXTURES: Record<string, Partial<GameState>> = {
   flee: {
     ...groupCascade,
     pendingDisengage: { moverId: H_HOST, fuir: { participants: [
-      { id: H_HOST, kind: 'backstab', result: null }, { id: H_OWNER, kind: 'calme', calme: null },
+      { id: H_HOST, kind: 'backstab', result: null }, { id: H_OWNER, kind: 'touche', test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
     ] } },
   } as unknown as Partial<GameState>,
   counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<GameState>,
@@ -65,7 +66,7 @@ const FIXTURES: Record<string, Partial<GameState>> = {
   } as unknown as Partial<GameState>,
   // Chute volontaire du groupe (#700) : la fenêtre appartient à l'initiateur (l'hôte), chaque rangée à SON siège.
   fall: {
-    pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: true })) },
+    pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: true })) },
   } as unknown as Partial<GameState>,
 };
 
@@ -143,7 +144,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   }
 
   it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
-    const s = base({ pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<GameState>);
+    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<GameState>);
     expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, true]), 'le siège du héros déclare pour lui').toBe(true);
     expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, true]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
     expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, false]), 'siège TIERS').toBe(false);
@@ -152,7 +153,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   });
 
   it('fallChoose avec l’axe HAUTEUR (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
-    const s = base({ pendingFall: { to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<GameState>);
+    const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<GameState>);
     expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, false, true]), 'le siège du héros déclare sa suspension').toBe(true);
     expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, false, true]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
     expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, true, true]), 'siège TIERS').toBe(false);

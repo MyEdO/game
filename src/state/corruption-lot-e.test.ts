@@ -36,7 +36,7 @@ describe('Âme pure (LDB 10) — seuil de Corruption +niveau', () => {
 });
 
 describe('« Je te renie ! » (LDB 17 l.67)', () => {
-  /** Franchit le seuil : le Test de Résistance est désormais une MODALE (kind 'seuil') —
+  /** Franchit le seuil : le Test `corrompu` est une MODALE (kind 'seuil') —
    *  on lance puis on FORCE l'échec (déterministe) avant d'acquitter. */
   function corruptPastThreshold(h: Combatant): void {
     h.characteristics.endurance = 1;

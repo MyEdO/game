@@ -7,7 +7,8 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
-import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
+import { memoParVersion } from '../../data/versionDataset';
+import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
@@ -18,14 +19,14 @@ import {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
-  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
+  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
-import type { RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
+import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
@@ -346,6 +347,13 @@ const idRefRow = (category: string, id: string, spec?: string, show?: string): C
   const label = refLabel(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
+/** Rangée du FOYER d'une règle (`{ id, type }`) : sa fiche Codex (`cibleCodex`). */
+const foyerRow = (foyer: FoyerDeRegle): CodexRow => {
+  const { category, id } = cibleCodex(foyer);
+  return idRefRow(category, id);
+};
+/** Section « Règle » d'un porteur de foyer (`rule`). */
+const regleChips = (foyer: FoyerDeRegle | undefined) => chips('Règle', foyer ? [foyerRow(foyer)] : []);
 /** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
 const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
@@ -610,7 +618,7 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
 // re-matérialisent à la lecture qui suit (`memoParVersion`), et les composants abonnés
 // (`useVersionDesDatasets`) re-rendent.
 type IndexDeCategorie = { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> };
-const LOOKUP = memoParVersion(CLES_VERSIONNEES, () => new Map<string, IndexDeCategorie>());
+const LOOKUP = memoParVersion(CLES_DE_DATASET, () => new Map<string, IndexDeCategorie>());
 
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
@@ -644,9 +652,9 @@ interface CodexCategorySpec {
   build: () => CodexItem[];
 }
 
-/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_VERSIONNEES` : datasets et règles). */
+/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_DE_DATASET`). */
 function makeCategory(spec: CodexCategorySpec): CodexCategory {
-  const projection = memoParVersion(CLES_VERSIONNEES, () => {
+  const projection = memoParVersion(CLES_DE_DATASET, () => {
     const items = spec.build();
     return { items, facets: deriveFacets(spec.key, items) };
   });
@@ -1285,25 +1293,25 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'nightStakes', label: 'Enjeux — cascade de repos', group: 'Tables', sourceRef: 'LDB 18/09/20/21',
-    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake })),
+    build: () => datasetArray('nightStakes').map((e) => depuisEnveloppe(e, { desc: e.stake, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Jumeau du précédent pour les cascades de VOYAGE (#1117) : le contenu est un GABARIT de descripteur
     // mécanique (trous `{nom}` remplis par le flux), là où l'enjeu de nuit est un verbatim figé.
     key: 'voyageStakes', label: 'Enjeux — cascade de voyage', group: 'Tables', sourceRef: 'MSRC 7 · MDG 12',
-    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
+    build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par son `id`.
     // Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
     key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
-    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
+    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
   {
     // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
     // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
     key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
-    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template })),
+    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
 
   {
@@ -1835,6 +1843,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         chips('Compétence libre', (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),
+        regleChips(a.rule),
       ),
     })),
   },
@@ -2084,7 +2093,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'crewTestTypes', label: 'Tests d’équipage (types)', group: 'Monde',
     build: () => crewTestTypes.map((t) => depuisEnveloppe(t, {
       meta: facts(fact('Rôle essentiel', crewRoles.find((r) => r.id === t.essential)?.label ?? t.essential)),
-      sections: sections(chips('Rôles contributeurs', t.roles.map((id) => idRefRow('crewRoles', id)))),
+      sections: sections(
+        chips('Rôles contributeurs', t.roles.map((id) => idRefRow('crewRoles', id))),
+        regleChips(t.rule),
+      ),
     })),
   },
   {
@@ -2562,13 +2574,20 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Procédures / options de jeu au texte VERBATIM (Sombre Pacte, Empoignade, modes d'attaque…) —
     // cible des tooltips `CodexRef` qui portaient une paraphrase de règle (#392).
     key: 'regles', label: 'Règles de jeu', group: 'Monde',
-    // Une règle chiffrée montre les valeurs que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
-    build: () => regles.map((r) => depuisEnveloppe(r, r.rangees?.length ? {
-      sections: [{
-        title: 'Valeurs chiffrées', layout: 'list' as const,
-        rows: r.rangees.map((x): CodexRow => ({ t: 'kv', k: x.label, v: x.palier !== undefined ? DIFFICULTY_LABELS[x.palier] : `${x.valeur! >= 0 ? '+' : '−'}${Math.abs(x.valeur!)}` })),
-      }],
-    } : undefined)),
+    // Une règle chiffrée montre les valeurs et les Tests que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
+    build: () => regles.map((r) => {
+      const sections: CodexSection[] = [
+        ...(r.rangees?.length ? [{
+          title: 'Valeurs chiffrées', layout: 'list' as const,
+          rows: r.rangees.map((x): CodexRow => ({ t: 'kv', k: x.label, v: x.palier !== undefined ? DIFFICULTY_LABELS[x.palier] : `${x.valeur! >= 0 ? '+' : '−'}${Math.abs(x.valeur!)}` })),
+        }] : []),
+        ...(r.tests?.length ? [{
+          title: 'Tests nommés', layout: 'list' as const,
+          rows: r.tests.map(({ label, test: t }): CodexRow => ({ t: 'kv', k: label, v: `${refLabel('skills', t.skill)} ${DIFFICULTY_LABELS[t.difficulty]}` })),
+        }] : []),
+      ];
+      return depuisEnveloppe(r, sections.length ? { sections } : undefined);
+    }),
   },
 ];
 

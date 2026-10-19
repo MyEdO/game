@@ -104,7 +104,7 @@ type FreeAttackHook = (
 let freeAttackHook: FreeAttackHook | undefined;
 export function setFreeAttackHook(fn: FreeAttackHook): void { freeAttackHook = fn; }
 
-/** HOOK de la branche d'ÉCHEC du Test de Calme d'interruption de Focalisation (op `interruptFocus`, IMPURE)
+/** HOOK de la branche d'ÉCHEC du Test `interruption-de-focalisation` (op `interruptFocus`, IMPURE)
  *  — injecté par le store (`setFocusInterruptHook` dans `createCombatSlice`), pointe sur
  *  `applyFocusInterruption` (combatFlow). Appelé par `runCombatFlow` lorsqu'un `do`/`ops` porte un
  *  `interruptFocus` : la cible perd ses DR focalisés (couverts par son composant) + subit une Imparfaite

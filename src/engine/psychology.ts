@@ -4,12 +4,14 @@
  * exemples du livre l'utilisent). P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
-import { Combatant, type EffectSource } from './types';
+import { Combatant, type Difficulty, type EffectSource } from './types';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG, defaultRNG } from './dice';
-import { rollTest, evaluateTest, extendedTestStep } from './tests';
+import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
+import { testValue } from './skills';
 import { findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { SizeCategory, sizeGap } from './size';
@@ -133,6 +135,13 @@ export function fearSourceFor(self: Combatant, foe: Combatant, selfSizeForSize?:
 export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition, failAmount: d?.failAmount, becomes: d?.becomes as PsychType | undefined };
+}
+
+/** Le Test de Psychologie d'un état, lu en DONNÉES (`psychology.json` `test`) — SOURCE UNIQUE du Test de
+ *  combat, de la bande de rencontre et de la puce d'état ; défauts : en-tête de ce module. */
+export function psychTest(kind: PsychType): { skill: RefDesignee; difficulty: Difficulty } {
+  const td = findPsychologyById(kind)?.test;
+  return { skill: td?.skill ?? { id: 'calme' }, difficulty: td?.difficulty ?? 'intermediaire' };
 }
 
 /** Une affliction psy est-elle ACTIVE ? Ciblé (Animosité/Haine/…) : drapeau `active` ; Peur/Terreur : DR
@@ -387,15 +396,13 @@ export function isFrenzied(c: Combatant): boolean {
 }
 
 /** Test de Force Mentale pour entrer en Frénésie (LDB 21 l.31). Succès → on entre. */
-export function resolveFrenzyEntry(fm: number, rng: RNG = defaultRNG): { success: boolean; roll: number; target: number; sl: number } {
-  const t = rollTest(fm, 'intermediaire', rng);
-  return { success: t.success, roll: t.roll, target: t.target, sl: t.sl };
+export function resolveFrenzyEntry(fm: number, rng: RNG = defaultRNG): JetPose {
+  return jetPose(rollTest(fm, 'intermediaire', rng));
 }
 
-/** Valeur de Calme : Force Mentale effective + avances de la compétence Calme (« Sang-froid »). */
+/** Valeur de Test de Calme (`testValue`, États compris, LDB 16 l.125). */
 export function calmeValue(c: Combatant): number {
-  const adv = c.skills.find((s) => s.id === 'calme')?.advances ?? 0;
-  return effectiveChar(c, 'force-mentale') + adv;
+  return testValue(c, 'calme');
 }
 
 /** Un Round de Test ÉTENDU de Calme contre la Peur (LDB 21 l.25) : cumule le DR jusqu'à l'Indice.

@@ -6,15 +6,15 @@
  * DÉCLARÉE (`form`) : `verbatim` = contigu au Source bloc par bloc ; `descripteur` = assemblage
  * mécanique de ce que le résolveur applique, dont le verbatim intégral vit dans la fiche `rule`.
  *
- * FOYER (`rule` + `ruleCategory`) ou ENTRÉE (`entryCategory`) : le renvoi cible l'entité qui PORTE
+ * FOYER (`rule`, référence `{ id, type }`) ou ENTRÉE (`entryCategory`) : le renvoi cible l'entité qui PORTE
  * déjà la règle (compétence, Talent, État, Qualité, Caractéristique, sort, panne…), `regles.json`
  * n'étant que le foyer des règles de cadre. Quand le foyer DESCEND à l'entrée jouée (la chanson
  * chantée, le type de Test d'équipage), l'entrée déclare `entryCategory` et le producteur passe
  * l'`entryId` pris de SON état. Au moins l'un des deux est exigé : un enjeu sans porte est refusé —
- * les deux invariants d'entrée sont portés par `options.affinerEntree`, AVANT le sceau de la fabrique.
+ * l'invariant d'entrée est porté par `options.affinerEntree`, AVANT le sceau de la fabrique.
  */
 import { z } from 'zod';
-import { stakeFormSchema } from '../grammaire/valeurs';
+import { foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 
 export const file = 'flow-stakes.json';
@@ -33,10 +33,8 @@ const doc = document(
      *  absent (3 sur 3 — il n'y a alors aucun texte à qualifier). Ici `template` est REQUIS : tout
      *  enjeu porte un texte, donc tout enjeu déclare sa forme. */
     form: stakeFormSchema,
-    /** Id du FOYER de la règle (entité porteuse, ou fiche de `regles.json` à défaut). */
-    rule: z.string().optional(),
-    /** Catégorie Codex du foyer (`'regles'`, `'skills'`, `'talents'`, `'etats'`…). */
-    ruleCategory: z.string().optional(),
+    /** FOYER de la règle (entité porteuse, ou fiche de `regles.json` à défaut). */
+    rule: foyerDeRegleSchema.optional(),
     /** Catégorie Codex de l'ENTRÉE JOUÉE quand le foyer descend jusqu'à elle (`'seaShanties'`,
      *  `'crewTestTypes'`) — le producteur fournit alors l'`entryId` depuis son état. */
     entryCategory: z.string().optional(),
@@ -51,7 +49,6 @@ const doc = document(
       label: 'Règle associée',
       hint: 'Entité qui porte la règle derrière le jet (compétence, Talent, État, sort, panne…)',
     },
-    ruleCategory: { label: 'Catégorie de la règle', hint: 'Catégorie Codex de l’entité qui porte la règle' },
     entryCategory: {
       label: 'Catégorie de l’entrée jouée',
       hint: 'Catégorie Codex de l’entrée jouée quand la règle descend jusqu’à l’entrée (chanson chantée, type de Test d’équipage)',
@@ -65,12 +62,9 @@ const doc = document(
     exiges: ['source'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; rule?: string; ruleCategory?: string; entryCategory?: string };
-        if (!e.entryCategory && !(e.rule && e.ruleCategory)) {
-          ctx.addIssue({ code: 'custom', message: `${e.id} : ni foyer (rule+ruleCategory) ni entryCategory` });
-        }
-        if (e.rule && !e.ruleCategory) {
-          ctx.addIssue({ code: 'custom', message: `${e.id} : rule sans ruleCategory` });
+        const e = v as { id: string; rule?: unknown; entryCategory?: string };
+        if (!e.entryCategory && !e.rule) {
+          ctx.addIssue({ code: 'custom', message: `${e.id} : ni foyer (rule) ni entryCategory` });
         }
       }),
   },

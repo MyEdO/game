@@ -1393,7 +1393,7 @@ function WindRoseDemo() {
 function RollLineDemo() {
   return (
     <Stack>
-      <PendingRollLine p={testPending('Athlétisme', 45, 45, 'intermediaire')} />
+      <PendingRollLine p={testPending('Athlétisme', 45, undefined, 'intermediaire')} />
       <RollLine d={testBreakdown('Athlétisme', 45, { roll: 32, target: 45, sl: 1, success: true }, 'intermediaire')} />
       <RollLine d={testBreakdown('Corps à corps', 52, { roll: 88, target: 52, sl: -3, success: false })} />
       <TableRollLine table="Table des Critiques" roll={73} result="Bras — entaille profonde" />

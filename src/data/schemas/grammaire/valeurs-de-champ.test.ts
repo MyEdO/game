@@ -106,6 +106,8 @@ const NOMMES = [
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|ranged|zone|allFoes|allAround|self',
   'physique|mentale',
+  // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
+  'physique|spirituelle',
   'prop|roof|relief',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
@@ -150,6 +152,8 @@ const NOMMES = [
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
+  'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
 ].sort();
 
 /**

@@ -55,7 +55,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   grantWeapon: 'Invoquer une arme magique',
   grantNaturalWeapon: 'Accorder une arme naturelle',
   grantFreeAttack: 'Accorder une attaque gratuite',
-  interruptFocus: 'Interrompre la Focalisation', // marqueur combat-interne (branche d’échec du Test de Calme) — non author-pickable
+  interruptFocus: 'Interrompre la Focalisation', // marqueur combat-interne (branche d’échec du Test `interruption-de-focalisation`) — non author-pickable
   breakBlade: 'Désarmer / briser la lame', // marqueur combat-interne (victoire du Test de Piège-lame) — non author-pickable
   push: 'Poussée (repousser de N m)',
   teleport: 'Téléportation du lanceur',
@@ -163,7 +163,6 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   skillDRBonus: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
   grantReverseToken: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
   castPenalty: [{ field: 'skill.id', ds: 'skills', label: 'Compétence de magie', required: false }],
-  corruptionExposure: [{ field: 'skill.id', ds: 'skills', label: 'Compétence du Test', required: false }],
   suppressSymptom: [{ field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   aggravateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   attenuateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],

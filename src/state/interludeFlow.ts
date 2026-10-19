@@ -40,7 +40,7 @@ import { isFumble } from '../engine/oups';
 import { combatValue } from '../engine/combat';
 import { spellCost, ritualReduction } from '../engine/grimoire';
 import { focusSkillFor, castingValue, consumeMalepierre } from '../engine/magic';
-import { gainCorruption, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
+import { gainCorruption, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { applyMiscast } from './combatFlow';
 import { buySpell as partyBuySpell, depenserPx } from './partyFlow';
@@ -48,8 +48,8 @@ import { testValue, type SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import { effectiveEntry } from '../engine/variants';
-import { effectiveChar } from '../engine/characteristics';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
+import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
@@ -645,7 +645,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     const tMax = effectiveEntry(t).max; // entrée EFFECTIVE (engine/variants.ts) — une variante réglée republie le Maxi
     const ck: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence'; // Maxi « Bonus de X » → carac
     const fails = st.learnFails?.[t.id] ?? 0; // clé = id stable du Talent
-    skillValue = effectiveChar(h, ck) + 10 * fails;
+    skillValue = testValue(h, undefined, ck) + 10 * fails;
     skillLabel = `${CHAR_LABELS[ck]}${fails ? ` (+${fails * 10} d'acharnement)` : ''}`;
     extra.talent = t.id;
     extra.xpCost = xpCost;
@@ -705,7 +705,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
       skillLabel = skillInstanceLabel(best.k);
       extra.difficulty = 'accessible';
     } else {
-      skillValue = effectiveChar(h, 'intelligence');
+      skillValue = testValue(h, undefined, 'intelligence');
       skillLabel = CHAR_LABELS.intelligence;
       extra.difficulty = 'complexe';
     }
@@ -1253,9 +1253,9 @@ export function confirmActivity(get: Get, set: Set): void {
         lines.push(...applyOps(h, immediate, {
           rng: battleRng(), label: def.label, now: get().gameTime, source: { kind: 'activity', id: def.id }, sl: pa.sl,
           onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
-          onCorruptionExposure: (level: ExposureLevel, skill?: import('../data/schemas/grammaire/ref').RefDesignee) => {
+          onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
             // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
-            poseCorruptionPending(get, set, { heroId: h.id, level, skill: testDeCorruption(skill), skillLocked: skill != null, menace: 'corruption' });
+            poseCorruptionPending(get, set, expositionPending(h.id, level, nature));
             return [msg('if.corruptionTest', { name: h.label, level })];
           },
         }));

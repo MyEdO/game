@@ -21,7 +21,7 @@ import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
 import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { applyOps } from '../engine/ops';
-import { extendedTestStep } from '../engine/tests';
+import { extendedTestStep, cibleMesuree, type CibleMesuree } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { addCondition, loseWounds, releaseConditionLocks } from '../engine/conditions';
@@ -90,12 +90,12 @@ export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Comba
  *  d'opération `pendingSurgery`), montée par le monteur canonique (`rollLine`, #1153) : la valeur est
  *  DÉCOMPOSABLE quand le soigneur est un héros (Guérison + Soutien LDB 12), et sans fiche pour un PNJ
  *  payant — la cible est alors le seuil fourni, écrêté comme `rollTest` l'écrêtera. */
-function healLineTarget(healer: { actor?: Combatant; skill: number; support?: SupportDetail }, difficulty: Difficulty): number {
-  return rollLine({
+function healLineTarget(healer: { actor?: Combatant; skill: number; support?: SupportDetail }, difficulty: Difficulty): CibleMesuree {
+  return cibleMesuree(rollLine({
     actor: healer.actor,
     ...(healer.actor ? { test: { skill: HEAL_SKILL } } : {}),
     valeur: healer.skill, soutien: healer.support, difficulty,
-  }).target;
+  }));
 }
 
 /** Ouvre l'infirmerie (hors combat). Patient par défaut : celui demandé, sinon le premier soignable. */
@@ -182,7 +182,7 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
     pendingHeal: {
       healerId: healer.id ?? 'pnj-soigneur', healerName: healer.label, targetId: patient.id, targetName: patient.label,
       mode: act, intBonus: healer.intBonus, skillValue: healer.skill, support: healer.support,
-      difficulty, target: healLineTarget(healer, difficulty), roll: null, success: false, sl: 0, paidCost,
+      difficulty, ...healLineTarget(healer, difficulty), roll: null, success: false, sl: 0, paidCost,
     },
   });
 }
@@ -213,7 +213,7 @@ export function openSurgeryPass(get: Get, set: Set): void {
       // celle que `rollTest` jettera (`FLOWS.surgery`, `simpleTestResolve`). `sg.skill` est l'instantané
       // FIGÉ à l'armement (le chirurgien peut avoir changé d'État depuis) : aucune fiche vivante à en
       // déduire, la valeur reste celle de l'opération engagée.
-      target: healLineTarget({ skill: sg.skill, support: sg.support }, sg.difficulty),
+      ...healLineTarget({ skill: sg.skill, support: sg.support }, sg.difficulty),
       roll: null, success: false, sl: 0,
       traumaIdx: sg.traumaIdx, targetDR: sg.targetDR, cumDR: sg.cumDR, paidCost: sg.paidCost,
     },

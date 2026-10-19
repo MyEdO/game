@@ -12,6 +12,7 @@ import { makePregens, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 function party2() {
   const all = makePregens();
@@ -30,7 +31,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
   it('ouvre pendingCorruption sur le héros visé ; le gain suit corruptionGain (niveau + DR)', () => {
     const { a, party } = party2();
     useGame.setState({ party });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     const pc = useGame.getState().pendingCorruption;
     expect(pc).toBeTruthy();
     expect(pc!.heroId).toBe(a.id);
@@ -45,39 +46,42 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
     expect(useGame.getState().journal.join('\n')).toMatch(/Corruption/);
   });
 
-  it('compétence DÉTERMINÉE par la source (skill) → verrouillée, corruptionSetSkill sans effet', () => {
+  it('nature IMPOSÉE par la source → figée, corruptionSetNature sans effet', () => {
     const { a, party } = party2();
     useGame.setState({ party });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'calme' }, heroId: a.id }]);
-    expect(useGame.getState().pendingCorruption!.skill).toBe('calme');
-    expect(useGame.getState().pendingCorruption!.skillLocked).toBe(true);
-    useGame.getState().corruptionSetSkill('resistance'); // verrouillé → ignoré
-    expect(useGame.getState().pendingCorruption!.skill).toBe('calme');
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'spirituelle', heroId: a.id }]);
+    expect(useGame.getState().pendingCorruption!.nature).toBe('spirituelle');
+    expect(useGame.getState().pendingCorruption!.natureFixee).toBe(true);
+    useGame.getState().corruptionSetNature('physique'); // figée → ignoré
+    expect(useGame.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
 
-  it('compétence INDÉTERMINÉE (skill absent) → défaut Résistance, choix joueur autorisé', () => {
+  it('nature INDÉTERMINÉE (absente) → première nature, choix joueur autorisé', () => {
     const { a, party } = party2();
     useGame.setState({ party });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: a.id }]);
-    expect(useGame.getState().pendingCorruption!.skill).toBe('resistance'); // défaut affiché
-    expect(useGame.getState().pendingCorruption!.skillLocked).toBeFalsy();
-    useGame.getState().corruptionSetSkill('calme'); // le joueur tranche
-    expect(useGame.getState().pendingCorruption!.skill).toBe('calme');
+    expect(useGame.getState().pendingCorruption!.nature).toBe('physique'); // défaut affiché
+    expect(useGame.getState().pendingCorruption!.natureFixee).toBeFalsy();
+    useGame.getState().corruptionSetNature('spirituelle'); // le joueur tranche
+    expect(useGame.getState().pendingCorruption!.nature).toBe('spirituelle');
     // Après le jet, plus de changement possible.
     useGame.getState().corruptionRoll();
-    useGame.getState().corruptionSetSkill('resistance');
-    expect(useGame.getState().pendingCorruption!.skill).toBe('calme');
+    useGame.getState().corruptionSetNature('physique');
+    expect(useGame.getState().pendingCorruption!.nature).toBe('spirituelle');
   });
 
-  it('seuil (l.80) : Résistance verrouillée', () => {
+  it('seuil (LDB 19 l.70) : le Test de `corrompu`, sans nature à choisir', () => {
     const { a, party } = party2();
     a.corruption = 99; // au-delà du seuil BFM+BE
     useGame.setState({ party });
     gainCorruption(useGame.getState, useGame.setState, a, 1);
     const pc = useGame.getState().pendingCorruption;
     expect(pc?.kind).toBe('seuil');
-    expect(pc?.skill).toBe('resistance');
-    expect(pc?.skillLocked).toBe(true);
+    expect(pc?.test).toEqual(testDeRegle('corrompu', 'contenir'));
+    expect(pc?.nature).toBeUndefined();
+    const avant = pc!.test;
+    useGame.getState().corruptionSetNature('spirituelle'); // seuil → ignoré
+    expect(useGame.getState().pendingCorruption!.test).toEqual(avant);
   });
 
   /**
@@ -93,7 +97,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
     const seuil = useGame.getState().pendingCorruption!;
     expect(seuil.kind, 'la fenêtre en place est le Test de seuil de a').toBe('seuil');
 
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', skill: { id: 'resistance' }, heroId: b.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: b.id }]);
 
     expect(useGame.getState().pendingCorruption, 'le seuil n’a pas été écrasé').toEqual(seuil);
     expect(useGame.getState().corruptionQueue.map((q) => q.heroId), 'l’Exposition prend RANG').toEqual([b.id]);
@@ -109,7 +113,7 @@ describe('Effet corruptionExposure → modale → resolveCorruption', () => {
   it('exposition repoussée (DR suffisant) → aucun Point', () => {
     const { a, party } = party2();
     useGame.setState({ party });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'moderee', skill: { id: 'calme' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'moderee', nature: 'spirituelle', heroId: a.id }]);
     useGame.getState().corruptionRoll();
     useGame.setState({ pendingCorruption: { ...useGame.getState().pendingCorruption!, roll: 5, target: 45, sl: 4, success: true } });
     useGame.getState().resolveCorruption();

@@ -4,13 +4,20 @@
  * et jette un Test de Ragot du groupe ; sur un succès, un réassort FRAIS est tiré avec +10 % de
  * Disponibilité (LDB 59 l.50) — cumulable avec la Carrière cohérente jusqu'au plafond +20 %.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { emptyScene } from './scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { availabilitySearchBonus } from '../engine/disponibilite';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { battleRng } from './battleRng';
+import { cibleDuTest, evaluateTest } from '../engine/tests';
+import { partyAssisted } from '../engine/skills';
+import { traceLineOf } from '../engine/traceLine';
+import { stepDetail } from './rollSeam';
+import { dataLabel, refLabel } from '../data';
+import { t } from '../i18n';
 
 /** Héros doué en Ragot (Soc élevée) — le Test réussit tant que le d100 ≤ sa valeur. */
 const gossiper = (soc: number): Combatant =>
@@ -43,6 +50,24 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     useGame.getState().searchAvailability();
     expect(useGame.getState().gameTime).toBe(t0 + MINUTES_PER_DAY);
     expect(useGame.getState().merchant).not.toBeNull(); // le marchand reste ouvert, stock rafraîchi
+  });
+
+  // Journal : le jet au patron UNIQUE des Tests nommés (`traceLineOf`, dérivé par le socle de cascade),
+  // puis la conséquence, qui ne redit pas le dé — jamais « (Ragot dé) », où le dé se lit comme un niveau.
+  it('le journal porte la ligne de dé du Ragot, puis la journée aux marchés', () => {
+    const h = { ...gossiper(90), label: 'Colporteur' } as Combatant;
+    useGame.setState({ party: [h], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60, journal: [] });
+    useGame.getState().openMerchant('pnj');
+    const des = vi.spyOn(battleRng(), 'int');
+    useGame.getState().searchAvailability();
+    const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
+    des.mockRestore();
+    expect(d100, 'un seul d100 : le Ragot').toHaveLength(1);
+    const jet = evaluateTest(d100[0], cibleDuTest(partyAssisted([h], 'ragot', 'sociabilite')!.value));
+    const journal = useGame.getState().journal.map(String);
+    const de = journal.indexOf(traceLineOf({ who: h.label, label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
+    expect(de, journal.join(' | ')).toBeGreaterThanOrEqual(0);
+    expect(journal.slice(de + 1), journal.join(' | ')).toContain(String(stepDetail(dataLabel(h.label), t(jet.success ? 'mf.searchOk' : 'mf.searchKo'))));
   });
 
   it('Ragot réussi → réassort AVEC le bonus ; échoué → réassort SANS (stocks distincts)', () => {

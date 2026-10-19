@@ -35,7 +35,6 @@ import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps } from '../engine/ops';
 import { testValue } from '../engine/skills';
-import { effectiveChar } from '../engine/characteristics';
 import { battleRng } from './battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { bourseOf, creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
@@ -122,7 +121,7 @@ function valeurDesCoequipiers(p: TavernPayload): number {
  */
 export function tavernGameValue(hero: Combatant, game: TavernGame): number {
   if (game.skill) return testValue(hero, game.skill.id, game.characteristic, game.skill.spec);
-  if (game.characteristic) return effectiveChar(hero, game.characteristic);
+  if (game.characteristic) return testValue(hero, undefined, game.characteristic);
   return testValue(hero, 'pari'); // aucune Compétence indiquée → Pari (l.11)
 }
 

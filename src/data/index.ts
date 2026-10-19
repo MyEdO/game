@@ -7,8 +7,11 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
+import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
+import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
@@ -221,11 +224,9 @@ export interface NightStakeEntry {
    *  Source, bloc par bloc ; `descripteur` = assemblage mécanique assumé, fiche `rule` exigée. */
   form?: StakeForm;
   source: SourceRef;
-  /** FOYER de la règle derrière l'étape : l'id de l'ENTITÉ qui la porte (amendement A) — une fiche
+  /** FOYER de la règle derrière l'étape : l'ENTITÉ qui la porte (amendement A) — une fiche
    *  `regles.json` seulement quand aucune entité ne l'héberge. */
-  rule?: string;
-  /** Catégorie Codex du foyer (`'regles'` par défaut : `'skills'`, `'etats'`, `'symptoms'`…). */
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
 }
 export const NIGHT_STAKES = nightStakesJson as NightStakeEntry[];
 
@@ -238,17 +239,15 @@ export interface VoyageStakeEntry {
   label: string;
   kind: string;
   template: string;
-  /** Id du FOYER de la règle — l'entité qui la PORTE (Compétence, État…), à défaut la fiche de cadre
+  /** FOYER de la règle — l'entité qui la PORTE (Compétence, État…), à défaut la fiche de cadre
    *  de `regles.json`. Même contrat que `flow-stakes`/`combat-stakes`. */
-  rule?: string;
-  /** Catégorie Codex du foyer (`'regles'` par défaut, `'skills'`, `'etats'`…). */
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
   source: SourceRef;
 }
 export const VOYAGE_STAKES = voyageStakesJson as VoyageStakeEntry[];
 
 /** ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par son `id` (`FlowStakeId`). Le foyer de la
- *  règle est l'entité qui la PORTE (`rule` + `ruleCategory`), ou l'ENTRÉE jouée quand `entryCategory`
+ *  règle est l'entité qui la PORTE (`rule`), ou l'ENTRÉE jouée quand `entryCategory`
  *  la déclare : cf. `schemas/defs/flow-stakes.ts`. */
 export interface FlowStakeEntry {
   id: FlowStakeId;
@@ -256,8 +255,7 @@ export interface FlowStakeEntry {
   label: string;
   template: string;
   form: StakeForm;
-  rule?: string;
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
   /** Catégorie Codex de l'ENTRÉE jouée — le renvoi descend jusqu'à elle quand la clé la nomme. */
   entryCategory?: string;
   source: SourceRef;
@@ -280,8 +278,7 @@ export interface CombatStakeEntry {
    *  porte alors que son foyer de règle. `form` le qualifie, donc absente avec lui. */
   template?: string;
   form?: StakeForm;
-  rule?: string;
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
   /** Catégorie Codex de l'ENTRÉE jouée — le renvoi descend jusqu'à elle quand la clé la nomme. */
   entryCategory?: string;
   /** La catégorie de l'entrée est celle de l'ENTITÉ SOURCE de l'effet, que seul le PRODUCTEUR connaît
@@ -302,8 +299,7 @@ export interface ActivityStakeEntry {
   id: string;
   stake?: string;
   stakeForm?: StakeForm;
-  rule?: string;
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
 }
 export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 
@@ -332,8 +328,7 @@ export interface ActionDef {
   /** Arbitrage NON-verbatim du coût — la RAISON en clair (même patron que `TraitData.maison`). */
   maison?: string;
   source?: SourceRef;
-  rule?: string;
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
   keys?: string[];
   blocked?: { ticket: string; raison: string };
   /** Sortie d'interlude atteignable à la touche d'annulation (`surface: 'interlude'`) — `false` :
@@ -435,6 +430,16 @@ export type StakeRef = CatalogStake | AuthoredStake | DerivedStake;
 export interface ResolvedStake {
   text?: string;
   rule?: { category: string; id: string };
+}
+
+/** FICHE Codex d'une référence typée : l'id, dans la catégorie que déclare le fichier de l'espace de son
+ *  type (`CATEGORIE_CODEX_DU_FICHIER`). LÈVE, en le nommant, sur un type dont le fichier n'a pas de
+ *  catégorie unique : seuls les types PROJETÉS l'exigent. */
+export function cibleCodex(r: RefTypee): { category: string; id: string } {
+  const espace = espaceDe(r.type);
+  const category = CATEGORIE_CODEX_DU_FICHIER[espace];
+  if (category === undefined) throw new Error(`cibleCodex : « ${espace} » (type « ${r.type} ») ne déclare pas une catégorie Codex unique — la fiche de « ${r.id} » ne s'ouvre nulle part.`);
+  return { category, id: r.id };
 }
 
 /** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
@@ -584,12 +589,12 @@ function entryText(key: StakeKey): string | undefined {
 function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; id: string } } | undefined {
   // La fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au symptôme
   // Blessé, pas à l'intro du chapitre des maladies) ; à défaut, la fiche du kind.
-  const kindRule = (id?: string, category = 'regles') => entryRule(key) ?? (id ? { category, id } : undefined);
+  const kindRule = (foyer?: FoyerDeRegle) => entryRule(key) ?? (foyer ? cibleCodex(foyer) : undefined);
   if (key.dataset === 'night') {
     const e = NIGHT_STAKES.find((x) => x.kind === key.kind);
     if (!e) return undefined;
-    // Le FOYER peut être une entité (compétence, État, symptôme) — sa catégorie voyage avec l'id.
-    const rule = kindRule(e.rule, e.ruleCategory ?? 'regles');
+    // Le FOYER peut être une entité (compétence, État, symptôme) — son type voyage avec l'id.
+    const rule = kindRule(e.rule);
     return { text: e.stake, ...(rule ? { rule } : {}) };
   }
   if (key.dataset === 'weather') {
@@ -609,7 +614,7 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     // l'entrée ; l'ENTRÉE JOUÉE (chanson, type de Test d'équipage) prime quand la clé la nomme.
     const e = FLOW_STAKES.find((x) => x.id === key.kind);
     if (!e) return undefined;
-    const rule = kindRule(e.rule, e.ruleCategory ?? 'regles');
+    const rule = kindRule(e.rule);
     return { text: entryText(key) ?? e.template, ...(rule ? { rule } : {}) };
   }
   if (key.dataset === 'combat') {
@@ -617,7 +622,7 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     // l'ENTRÉE JOUÉE (la maladie contractée, la manœuvre subie, le sort prolongé) prime sur le kind.
     const e = COMBAT_STAKES.find((x) => x.kind === key.kind);
     if (!e) return undefined;
-    const rule = kindRule(e.rule, e.ruleCategory ?? 'regles');
+    const rule = kindRule(e.rule);
     // Entrée SANS gabarit : le foyer voyage seul (aucune phrase à rendre — l'issue se lit en chips).
     const text = entryText(key) ?? e.template;
     return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
@@ -629,11 +634,11 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     // règle vit ailleurs (Augure → la table des Symboles).
     const e = ACTIVITY_STAKES.find((x) => x.id === key.kind);
     if (!e?.stake) return undefined;
-    return { text: e.stake, rule: e.rule ? { category: e.ruleCategory ?? 'regles', id: e.rule } : { category: 'activities', id: e.id } };
+    return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
   }
   const e = VOYAGE_STAKES.find((x) => x.kind === key.kind);
   if (!e) return undefined;
-  const rule = kindRule(e.rule, e.ruleCategory ?? 'regles');
+  const rule = kindRule(e.rule);
   return { text: e.template, ...(rule ? { rule } : {}) };
 }
 
@@ -2363,6 +2368,15 @@ export interface RegleData {
   source: SourceRef;
   /** Les valeurs que le livre chiffre, lues par `engine/reglesChiffrees.ts` (schéma `defs/regles.ts`). */
   rangees?: RangeeDeRegleData[];
+  /** Les Tests que la règle nomme, lus par `engine/reglesChiffrees.ts` (`testDeRegle`) ; la Difficulté y
+   *  est exigée par le schéma. */
+  tests?: TestDeRegleData[];
+}
+export interface TestDeRegleData {
+  id: string;
+  label: string;
+  source: SourceRef;
+  test: import('../engine/flowCore').FlowTest & { skill: NonNullable<import('../engine/flowCore').FlowTest['skill']>; difficulty: Difficulty };
 }
 export interface RangeeDeRegleData {
   id: string;
@@ -2374,12 +2388,11 @@ export interface RangeeDeRegleData {
   plafond?: number;
 }
 export const regles = adressee<RegleData>(reglesJson);
-/** Index par `id` STABLE — patron des datasets HORS seam `ARRAYS` d'`overrides.ts` (même forme que
- *  `lieuServiceById`) : `regles` n'y est pas routé, `indexParId` ne peut donc pas le clefer. */
-const regleParId = new Map(regles.map((r) => [r.id, r]));
+/** Index VIVANT par `id` STABLE : `regles` est routé par le seam `ARRAYS` d'`overrides.ts`. */
+const regleParId = indexParId('regles', regles);
 /** Résout une fiche de Règle par son `id` STABLE. */
 export function findRegleById(id: string): RegleData | undefined {
-  return regleParId.get(id);
+  return regleParId(id);
 }
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
@@ -2750,10 +2763,10 @@ export interface CrewTestTypeData {
   label: string;
   roles: string[];
   essential: string;
-  /** Fiche de RÈGLE (`regles.json`) qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est
-   *  à un clic depuis l'étape. L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind` joué
-   *  (`voyage-stakes.json`, `voyageStake`) : deux natures, deux datasets. */
-  rule?: string;
+  /** FOYER de la règle qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est à un clic
+   *  depuis sa fiche Codex (`cibleCodex`). L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind`
+   *  joué (`voyage-stakes.json`, `voyageStake`) : deux natures, deux datasets. */
+  rule?: FoyerDeRegle;
   /** MDG 14 l.110. */
   moraleOnNegativeDR?: boolean;
   /** Test d'équipage qui DIRIGE le navire — MSRC 12 l.66/140. */
@@ -3429,36 +3442,26 @@ export type AdvancementRef =
   | { pick: number; of: AdvancementRef[] }
   | { random: number };
 
-/** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. */
+/** ENTRÉE d'une catégorie Codex par `id`, lue sur la collection vivante de son dataset — au bout de son
+ *  chemin dans la racine vivante de son fichier (`DATASET_DE_LA_CATEGORIE`, `RACINES_VIVANTES`) — par
+ *  l'index vivant du dataset (`indexParId`) ; `undefined` hors de ces catégories (clés du prototype
+ *  comprises) ou pour un id absent. Porte générique de `findById`. */
+export function entreeDeCategorie(category: string, id: string): { id: string; label: string } | undefined {
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_LA_CATEGORIE, category)) return undefined;
+  const d = DATASET_DE_LA_CATEGORIE[category];
+  const entrees = suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[] | undefined;
+  return entrees && indexParId(d.cle, entrees)(id);
+}
+/** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. Une catégorie
+ *  sans `case` se lit par la porte générique `entreeDeCategorie`. */
 export function findById(category: string, id: string): { label: string } | undefined {
   switch (category) {
-    case 'skills': return byId('skill', id);
-    case 'talents': return findTalentById(id);
-    case 'trappings': return findTrappingById(id);
-    case 'weaponGroups': return findWeaponGroupById(id);
     case 'qualitySubtypes': return findQualitySubtypeById(id);
     case 'breathTypes': return findBreathTypeById(id);
     case 'damageTypes': return findDamageTypeById(id);
     case 'qualityTypes': return findQualityTypeById(id);
-    case 'groups': return findGroupById(id);
-    case 'domains': return findDomainById(id);
-    case 'qualities': return findQualityById(id);
     case 'spells': return findSpellById(id);
-    case 'maneuvers': return findManeuverById(id);
-    case 'careers': return findCareerById(id);
-    case 'classes': return findClassById(id);
-    case 'races': return findSpeciesById(id);
-    case 'etats': return findConditionById(id);
-    case 'psychologies': return findPsychologyById(id); // clé de CATÉGORIE Codex (cf. `CATEGORY_BY_SOURCE_KIND`)
-    case 'traits': return findTraitById(id);
-    case 'mutations': return findMutationById(id); // clé de CATÉGORIE Codex (compendium/registry, relations)
-    case 'symptoms': return findSymptomById(id);
-    case 'maladies': return findDiseaseById(id) ? { label: findDiseaseById(id)!.label } : undefined;
-    case 'shipStations': return findShipStation(id);
-    case 'crewRoles': return findCrewRoleById(id);
-    case 'creatures': return findCreatureById(id);
-    case 'navalTraits': return findNavalTrait(id);
-    default: return undefined;
+    default: return entreeDeCategorie(category, id);
   }
 }
 /** Libellé d'affichage d'un id, par source de spéc. */

@@ -6345,9 +6345,7 @@
           {
             "op": "corruptionExposure",
             "level": "moderee",
-            "skill": {
-              "id": "resistance"
-            }
+            "nature": "physique"
           }
         ]
       }
@@ -6382,9 +6380,7 @@
           {
             "op": "corruptionExposure",
             "level": "majeure",
-            "skill": {
-              "id": "resistance"
-            }
+            "nature": "physique"
           }
         ]
       }
