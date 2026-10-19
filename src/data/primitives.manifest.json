@@ -391,8 +391,17 @@
     "type": "primitives.manifest",
     "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
-    "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
+    "concept": "axe contrôleur (qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
+    "verrou": "netOwnership.test.ts"
+  },
+  {
+    "id": "sieges",
+    "type": "primitives.manifest",
+    "label": "tenuParUnHumain/seatOwns/worldSeat/jetSurfaced",
+    "fichier": "src/state/sieges.ts",
+    "concept": "tenue d'un porteur de dé par un siège (qui tient, qui possède), lue sur l'état réseau",
+    "perimetre": "surfaçage des jets, possession coop",
     "verrou": "netOwnership.test.ts"
   },
   {

@@ -281,7 +281,7 @@ describe('un dé déclaré ARRÊTE la chaîne des modifiers', () => {
 describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON étape (identité, pas position)', () => {
   it('BALAYAGE : 2ᵉ et 3ᵉ cibles sauvegardantes — les trois sont frappées, dans l’ordre', () => {
     // Pendant une application, la poussée entre dans la FENÊTRE d’insertion, pas dans `participants`
-    // (`cascade.ts:974-981`) : un parquage « dernière du tableau » muterait l’étape DÉJÀ résolue et
+    // (`cascade.ts:961-968`) : un parquage « dernière du tableau » muterait l’étape DÉJÀ résolue et
     // perdrait la chaîne en silence.
     const demon = { id: 'demoniaque', value: 8 };
     const fort = { ...CHARS, 'capacite-de-combat': 90 };

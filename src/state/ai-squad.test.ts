@@ -1,7 +1,7 @@
 /**
  * LOT 4 — CONTEXTE D'ESCOUADE & COORDINATION (déterministe, sans dé). Trois comportements émergents :
  *  (a) FEU CONCENTRÉ — l'IA converge sur la cible que ses alliés ENCADRENT (surnombre RAW : meilleure
- *      proba de toucher → plus de dégâts attendus). Parité du décompte avec `combatFlow.ts:425` vérifiée.
+ *      proba de toucher → plus de dégâts attendus). Parité du décompte avec `combatFlow.ts:428` vérifiée.
  *  (b) ÉVITEMENT du DANGER — entre deux cases d'approche équidistantes, l'IA choisit la MOINS exposée à
  *      la menace des héros (danger-map).
  *  (c) `squad` OPTIONNEL — sans escouade, l'action est STRICTEMENT identique au Lot 3.
@@ -67,9 +67,9 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     expect(tidOf(a)).toBe('alone'); // tie-break par id (≠ « flanked ») → l'escouade est bien la cause de (a)
   });
 
-  it('parité du DÉCOMPTE avec combatFlow.ts:425 : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
+  it('parité du DÉCOMPTE avec combatFlow.ts:428 : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
     // L'IA réutilise `outnumberMod(adj + 1)` où `adj` = alliés à combatDistance ≤ 1 (MÊME filtre que la
-    // résolution combatFlow.ts:425, qui inclut l'attaquant). On vérifie ici la fonction partagée.
+    // résolution combatFlow.ts:428, qui inclut l'attaquant). On vérifie ici la fonction partagée.
     expect(outnumberMod(1 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un')); // 1 allié + attaquant
     expect(outnumberMod(2 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'trois-contre-un')); // 2 alliés + attaquant
     expect(outnumberMod(0 + 1)).toBeNull(); // attaquant seul → pas de surnombre

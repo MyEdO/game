@@ -21,7 +21,7 @@ import type { EtalLotRow } from './pendings';
 import type { RNG } from '../engine/dice';
 import { battleRng } from './battleRng';
 import { surfaceOf } from './rollSeam';
-import { WORLD_STEP_OWNER } from './netOwnership';
+import { WORLD_STEP_OWNER } from './pendings';
 import { lotEnregistreur, lotRejoueur, type EtalDraw } from './etalLot';
 
 /** Un générateur d'étal : il TIRE (via le rng qu'on lui donne), il POSE son état, il ne rend rien.

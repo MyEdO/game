@@ -37,7 +37,7 @@ import { actorIn } from './combatants';
 import { spawnEnemy } from './spawn';
 import { testValue } from '../engine/skills';
 import type { LivingRef } from '../engine/possession';
-import { jetSurfaced } from './netOwnership';
+import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
 import { freeCons, bandStep, bandRowOfStep, choiceStep, makeBandFactory, rollStep, type BuiltCascadeStep } from './rollSeam';
 import {

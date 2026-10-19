@@ -15,7 +15,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { openAttackCascade, maybeOpenDefense } from './combatFlow';
-import { intentAllowedFor, modalOwnerOf } from './netOwnership';
+import { intentAllowedFor } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
 import { jetOwnedIntents } from './flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
 import { seedBattleRng } from './battleRng';

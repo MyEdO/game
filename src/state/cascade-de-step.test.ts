@@ -8,7 +8,7 @@ import {
 } from './cascade';
 import { dieStep, pushDie } from './rollSeam';
 import { spyApplier } from './cascadeTestKit';
-import { WORLD_STEP_OWNER } from './netOwnership';
+import { WORLD_STEP_OWNER } from './pendings';
 import type { CascadeStep } from './pendings';
 
 /**

@@ -11,7 +11,6 @@
  * OUVERT porte `fixed`, les lignes émises sont les conséquences de CE jet — c'est exactement ce qu'il
  * faut marquer. Hors modale, aucun pending n'est ouvert : aucune ligne n'est touchée.
  */
-import { PENDING_FIELD_KEYS } from './stateFields';
 import type { GameState } from './store';
 
 /** Mention ajoutée en fin de ligne (sobre : le journal n'a pas d'autre décoration de provenance). */
@@ -49,7 +48,7 @@ function slotFixed(v: unknown): boolean {
 /** Un jet SAISI par le joueur est-il ouvert (donc en cours d'application) ? */
 export function fixedJetOpen(s: GameState): boolean {
   const st = s as unknown as Record<string, unknown>;
-  return PENDING_FIELD_KEYS.some((k) => slotFixed(st[k]));
+  return Object.keys(st).some((k) => k.startsWith('pending') && slotFixed(st[k]));
 }
 
 /** Ajoute la mention à une ligne qui ne la porte pas déjà (le journal reste lisible, sans doublon). */

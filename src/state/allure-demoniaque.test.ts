@@ -3,7 +3,7 @@ import type { Combatant } from '../engine/types';
 import { evalCondition, spellFlowFor } from '../engine/flowCore';
 import type { ConditionCtx } from '../engine/flowCore';
 import { chaosDomainOf } from '../engine/combatFeatures/dispatch';
-import { runPureFlowLines } from './combatEffects';
+import { runPureFlowLines } from './combat/flowEval';
 import { buildActorView } from './combat/flowEval';
 import { findSpellById } from '../data';
 

@@ -8,7 +8,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { gainCorruption } from './corruptionFlow';
-import { tenuParUnHumain, pilotedByHuman } from './netOwnership';
+import { pilotedByHuman } from './netOwnership';
+import { tenuParUnHumain } from './sieges';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 

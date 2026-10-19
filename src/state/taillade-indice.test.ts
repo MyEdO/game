@@ -32,7 +32,7 @@ function hemorragies(c: Combatant | undefined): number {
   return c?.conditions?.find((x) => x.id === 'hemorragique')?.value ?? 0;
 }
 
-/** Le Critique, tel que `combatFlow` l'émet (`combatFlow.ts:2422`) — porteur, victime, arme. */
+/** Le Critique, tel que `combatFlow` l'émet (`combatFlow.ts:2419`) — porteur, victime, arme. */
 function porterUnCritique(attaquant: Combatant, victime: Combatant, weapon: Weapon): void {
   const get = useGame.getState, set = useGame.setState;
   emitCombatEvent('onCrit', {

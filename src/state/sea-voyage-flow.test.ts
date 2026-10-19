@@ -44,7 +44,8 @@ import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
 import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { jetStepPresentable } from '../ui/CascadeModal';
-import { WORLD_STEP_OWNER, seatOwns } from './netOwnership';
+import { WORLD_STEP_OWNER } from './pendings';
+import { seatOwns } from './sieges';
 import { contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET, estJete } from '../engine/tests';
@@ -1366,7 +1367,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
 
   /**
    * #1426 — le dé de Désertion est un dé de MONDE : le siège qui POSSÈDE le monde (ici l'hôte solo,
-   * `netOwnership.worldSeat`) le VOIT et le lance, comme le jet d'un héros. L'option de confort
+   * `sieges.worldSeat`) le VOIT et le lance, comme le jet d'un héros. L'option de confort
    * « Dés fixés » n'entre pas dans cette surface : elle n'ajoute que la POSE du dé.
    */
   it('seam de jet — Désertion : SANS siège MJ, le siège du monde tient la fenêtre (la journée reprend quand il l\'a jouée)', () => {
@@ -1393,7 +1394,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const { modalOwnerOf } = await import('./modalArbiter');
-    const { seatOwns } = await import('./netOwnership');
+    const { seatOwns } = await import('./sieges');
     const owner = modalOwnerOf(get());
     expect(seatOwns(get(), 1, owner ?? undefined)).toBe(true);
     expect(seatOwns(get(), 0, owner ?? undefined)).toBe(false);

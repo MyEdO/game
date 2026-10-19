@@ -172,38 +172,38 @@ const SIGNES: Site[] = [3, 0, -2].map((sl) => ({
 
 const COMBAT: Site[] = [
   {
-    site: 'combatFlow.ts:1862 — chute de passerelle',
+    site: 'combatFlow.ts:1859 — chute de passerelle',
     avant: `Gustav chute de la passerelle qui s'effondre.`,
     apres: t('cf.gangwayCollapse', { name: 'Gustav' }),
   },
   {
-    site: 'combatFlow.ts:2461 — mise hors de combat',
+    site: 'combatFlow.ts:2458 — mise hors de combat',
     avant: `Gustav est mis hors de combat !`,
     apres: t('cf.outOfAction', { name: 'Gustav' }),
   },
   {
-    site: 'combatFlow.ts:4014 — sort introuvable',
+    site: 'combatFlow.ts:4011 — sort introuvable',
     avant: `Sort « Dard de feu » introuvable.`,
     apres: t('cf.spellNotFound', { spell: 'Dard de feu' }),
   },
   {
-    site: 'combatFlow.ts:4020 — incantation bloquée',
+    site: 'combatFlow.ts:4017 — incantation bloquée',
     avant: `Gustav ne peut pas incanter : Propos ésotériques.`,
     apres: t('cf.cannotCast', { name: 'Gustav', reason: 'Propos ésotériques' }),
   },
   {
-    site: 'combatFlow.ts:4399 — prière bloquée',
+    site: 'combatFlow.ts:4396 — prière bloquée',
     avant: `Gustav ne peut pas prier : Vous abusez de ma patience.`,
     apres: t('cf.cannotPray', { name: 'Gustav', reason: 'Vous abusez de ma patience' }),
   },
   {
-    site: 'combatFlow.ts:4051 — pas de ligne de vue',
+    site: 'combatFlow.ts:4048 — pas de ligne de vue',
     avant: `Dard de feu : pas de ligne de vue.`,
     apres: t('cf.noLineOfSight', { spell: 'Dard de feu' }),
   },
   {
     // `effet` = le `label` de la ligne d'`oups.json` (ponctuation comprise) — la donnée, telle quelle.
-    site: 'combatFlow.ts:2656 — en-tête du Tableau des Oups !',
+    site: 'combatFlow.ts:2653 — en-tête du Tableau des Oups !',
     avant: `Gustav — Maladresse ! Arme abîmée (1 Dégât) ; vous agirez en dernier au prochain Round.`,
     apres: t('cf.oups', { name: 'Gustav', effet: 'Arme abîmée (1 Dégât) ; vous agirez en dernier au prochain Round.' }),
   },
@@ -339,47 +339,47 @@ const V8C2: Site[] = [
     apres: t('step.sujetPrecision', { sujet: 'Fièvre', precision: MALADIE }),
   },
   {
-    site: 'combatEffects.ts:950 — Petite Prière exaucée (≤ typographique + apostrophe)',
+    site: 'combatEffects.ts:945 — Petite Prière exaucée (≤ typographique + apostrophe)',
     avant: `${HEROS3} prie sur le site sacré (${1} ≤ ${3}) — et les dieux l'entendent !`,
     apres: t('eff.petitePriereOk', { name: HEROS3, roll: 1, threshold: 3 }),
   },
   {
-    site: 'combatEffects.ts:1450 — Humeur de Manann (le SIGNE est porté par l’appelant)',
+    site: 'combatEffects.ts:1399 — Humeur de Manann (le SIGNE est porté par l’appelant)',
     avant: `Humeur de Manann : ${''}${-3} (${'Tempête essuyée'}).`,
     apres: t('eff.manannFactor', { delta: `${''}${-3}`, factor: 'Tempête essuyée' }),
   },
   {
-    site: 'combatEffects.ts:1484 — ajustement du navire (fragments joints par l’appelant)',
+    site: 'combatEffects.ts:1433 — ajustement du navire (fragments joints par l’appelant)',
     avant: `Ajustement du navire : ${['nom « La Sirène »', 'moral 5'].join(', ')}.`,
     apres: t('eff.vesselDone', { parts: [t('eff.vesselName', { label: NAVIRE }), t('eff.vesselMorale', { n: 5 })].join(', ') }),
   },
   {
-    site: 'combatEffects.ts:1153 — protection magique contre l’exposition (fragment de 2ᵉ clé)',
+    site: 'combatEffects.ts:1102 — protection magique contre l’exposition (fragment de 2ᵉ clé)',
     avant: `${HEROS3} ignore ${'le froid et les intempéries'} (protection magique).`,
     apres: t('eff.weatherWarded', { name: HEROS3, what: t('eff.wardFroid') }),
   },
   {
-    site: 'combatEffects.ts:239 — titre du Flow de récolte (fabrique `stepDetail`)',
+    site: 'combatEffects.ts:234 — titre du Flow de récolte (fabrique `stepDetail`)',
     avant: `Récolter — ${BETE}`,
     apres: stepDetail(t('eff.harvest'), dataLabel(BETE)),
   },
   {
-    site: 'store.ts:1673 — avance de coque (pluriel porté par la variable)',
+    site: 'store.ts:1674 — avance de coque (pluriel porté par la variable)',
     avant: `${NAVIRE} avance de ${2} case${'s'} (cap ${'NE'}).`,
     apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
   },
   {
-    site: 'store.ts:2265 — vol terrestre (issue + fragment « porteurs » optionnels)',
+    site: 'store.ts:2266 — vol terrestre (issue + fragment « porteurs » optionnels)',
     avant: `Vol terrestre — ${'le convoi fuit'} : ${12} Enc de cargaison pillée (${30} %${`, ${2} porteurs`}).`,
     apres: t('store.cargoRaid', { issue: t('store.cargoRaidFled'), enc: 12, pct: 30, porteurs: t('store.fragCargoPorters', { n: 2 }) }),
   },
   {
-    site: 'store.ts:2434 — la porte tient (DEUX pluriels dans la même phrase)',
+    site: 'store.ts:2435 — la porte tient (DEUX pluriels dans la même phrase)',
     avant: `${'Porte de chêne'} : ${3} dégât${'s'}, reste ${1} Blessure${''}.`,
     apres: t('store.doorHolds', { label: 'Porte de chêne', n: 3, s: 's', left: 1, sB: '' }),
   },
   {
-    site: 'store.ts:2391 — dissipation (clé `cs.*` REPRISE, fragment optionnel)',
+    site: 'store.ts:2392 — dissipation (clé `cs.*` REPRISE, fragment optionnel)',
     avant: `${'Dard de feu'} est dissipé${` (${3} cibles libérées)`}.`,
     apres: t('cs.dispelDone', { spell: 'Dard de feu', extra: t('cs.fragDispelFreed', { n: 3 }) }),
   },
@@ -641,7 +641,7 @@ const V8C4: Site[] = [
     apres: t('sact.stash', { name: HEROS3, money: '12 CO' }),
   },
   {
-    site: 'portFlow.ts:239 — Marchandage d’ACHAT (DR du vendeur optionnel + issue en 2ᵉ clé)',
+    site: 'portFlow.ts:240 — Marchandage d’ACHAT (DR du vendeur optionnel + issue en 2ᵉ clé)',
     avant: `${HEROS3} — Marchandage (${34} vs ${58}${`, vendeur +${2} DR`}) : ${`remise de ${10} %`}.`,
     apres: t('port.bargainLine', {
       name: HEROS3, roll: 34, opp: 58, seller: t('port.fragSellerDR', { dr: 2 }),

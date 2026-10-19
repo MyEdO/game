@@ -5,15 +5,15 @@
  * le `ConditionCtx` de combat et le calcul de gate vivent ICI (aucune copie par site).
  *
  * Module FEUILLE : n'importe RIEN de combatFlow/combatEffects (que des briques engine + le modèle `flow`)
- * → aucun cycle. Réutilisé par `combatEffects` (runPureFlowLines), `triggeredEffects` (resolveInlineFlowTest)
+ * → aucun cycle. Définit le walker pur `runPureFlowLines` ; réutilisé par `triggeredEffects` (resolveInlineFlowTest)
  * et `combat/triggeredTest` (resolveFlowTest / simpleTriggeredTestStep).
  */
 import { type Combatant } from '../../engine/types';
 import { buildActorView } from '../../engine/actorView';
 import { immunityTypes } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
-import type { GameOp, OpsCtx } from '../../engine/ops';
-import { certainFlowOps, evalCondition } from '../../engine/flowCore';
+import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
+import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx } from '../../engine/flowCore';
 import { type Condition, type ConditionCtx, type Flow, type FlowTest, flowTestGateOpen, flowHasTest } from '../flow';
 
 /** Vue d'un combattant pour les Conditions d'acteur — SOURCE UNIQUE côté MOTEUR
@@ -32,6 +32,49 @@ export function combatConditionCtx(c: Combatant, ctx: OpsCtx): ConditionCtx {
     foeInLoS: ctx.foeInLoS, hiddenFromFoes: ctx.hiddenFromFoes, engaged: ctx.engaged, nearestFoeDist: ctx.nearestFoeDist,
     target: buildActorView(c), caster: buildActorView(ctx.caster),
   };
+}
+
+/**
+ * Walker PUR d'un Flow d'EFFET DÉCLENCHÉ (traits/talents/atouts/États/psychologie/manœuvres/Attributs de
+ * Domaine — JAMAIS les sorts, qui passent par `runCastFlow`→`runCombatFlow`) : exécute `seq`/`do`/`if`
+ * contre une CIBLE (et le lanceur/porteur pour les feuilles `on:'caster'`), accumulant son journal dans
+ * un `string[]` RENDU, sans `get`/`set`. Couvre la Condition `compare` lue sur `target`/`caster` +
+ * `sl`/`location`/`woundsDealt`/`attackKind` du contexte d'incantation.
+ *
+ * GARDE-FOU anti-jet-silencieux (calque `flattenFlow:280`) : un nœud `test` LÈVE — un Test EN COMBAT est
+ * interactif/cadence-aware (étape de cascade ou jet inline avec branche honorée), résolu par
+ * `resolveFlowTest`/`runCombatFlow`, JAMAIS en avalant la branche succès. Ses appelants sont
+ * PROUVÉS sans nœud `test` au 1ᵉʳ niveau (un trigger `test` top-level est routé en amont par `testRouter`,
+ * une branche de Test n'en contient pas) ; si un `test` enfoui apparaît un jour (Lot 4), l'erreur le rend
+ * détectable au lieu de redevenir un jet silencieux. MÊME doctrine pour une op qui DEMANDE UN DÉ
+ * (#1508) : sa magnitude s'ouvre à la porte (`applyLeafOps`/`ouvrirChute`), et `applyOps` la tirerait
+ * ici en silence — un `fall` authoré sur un passif/trait y perdait ses deux dés. */
+export function runPureFlowLines(target: Combatant, caster: Combatant | undefined, flow: Flow, ctx: OpsCtx): string[] {
+  if (flowHasOpADe(flow)) throw new Error('runPureFlowLines: une op à DÉ ouvre sa magnitude à la porte — utiliser applyLeafOps/runCombatFlow.');
+  const lines: string[] = [];
+  const walk = (f: Flow): void => {
+    switch (f.kind) {
+      case 'seq': f.steps.forEach(walk); break;
+      case 'do':
+        if (f.effect.type === 'ops') {
+          const unit = f.effect.on === 'caster' ? caster : target;
+          // Contexte de FEUILLE (`leafOpsCtx`) : untilTime/label bakés (consommable) priment sur le ctx
+          // appelant. Les ops IMPURES (`delayed`…) sont routées en amont vers runCombatFlow (flowHasImpureOp).
+          if (unit) lines.push(...applyOps(unit, f.effect.ops, leafOpsCtx(ctx, f.effect)));
+        }
+        break;
+      case 'if':
+        // Condition `compare` : `target` = la cible du sous-Flow, `caster` = le lanceur/porteur.
+        // `location`/`woundsDealt` : contexte de la touche courante (Assommante Tête, Venin sur PB).
+        if (evalCondition(f.cond, combatConditionCtx(target, { ...ctx, caster }))) walk(f.then);
+        else if (f.else) walk(f.else);
+        break;
+      case 'test':
+        throw new Error('runPureFlowLines: un nœud `test` est cadence-aware — utiliser runCombatFlow/resolveFlowTest.');
+    }
+  };
+  walk(flow);
+  return lines;
 }
 
 /**

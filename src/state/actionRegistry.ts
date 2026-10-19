@@ -146,7 +146,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     et(fantassin, ACTION_GATES['action-libre-hors-frenesie'])(ctx),
   'mouvement-intact': mouvementIntact,
   'mouvement-restant-fantassin': (ctx) => et(fantassin, ACTION_GATES['mouvement-restant'])(ctx),
-  /** MIROIR de la garde de `cancelMove` (`combatSlice.ts:975-979`) : le segment restaurable est le
+  /** MIROIR de la garde de `cancelMove` (`combatSlice.ts:976-980`) : le segment restaurable est le
    *  SNAPSHOT, pas le compteur — `battleStandUp` écrit `movementUsed` sans en poser un, et le
    *  dispatcher n'aurait rien à défaire. Le contrôle du siège n'entre pas ici (il est au dispatcher
    *  et aux contextes de surface : `live` pour la console, `cur` pour la touche). */
@@ -511,7 +511,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
     else get().castPlaceZone(false);
   },
   batterySelectNone: (get) => get().battleSelectAction(null),
-  /** Téléportation (`combatFlow.ts:5384` : `action: 'teleport'` + `reachable` = `flyReachable` depuis
+  /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis
    *  la case du lanceur, qui contient donc SA case au coût 0, `path.ts:318`) : la sortie de l'interlude
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
   teleportStay: (get) => {

@@ -1,6 +1,6 @@
 /**
  * SURFACE D'UN JET EN COOP (#1262 V0) — un jet SE SURFACE dès qu'un siège humain QUELCONQUE possède
- * son porteur (`netOwnership.jetSurfaced`, seat-agnostique), jamais seulement le siège LOCAL.
+ * son porteur (`sieges.jetSurfaced`, seat-agnostique), jamais seulement le siège LOCAL.
  *
  * Le chemin mesuré : chez l'HÔTE (siège 0), le héros `H1` appartient au siège 1 (invité). Le jet de
  * `H1` a un joueur — c'est l'invité qui le roulera — donc il doit remonter en fenêtre (surface `M`)
@@ -12,7 +12,8 @@ import { useGame } from './store';
 import { spyApplier } from './cascadeTestKit';
 import { setGmSeat } from './netFlow';
 import { openRoll, rollSansPilote, type RollRequest } from './rollSeam';
-import { jetSurfaced, humanControlled } from './netOwnership';
+import { humanControlled } from './netOwnership';
+import { jetSurfaced } from './sieges';
 import type { Combatant } from '../engine/types';
 
 const KIND = 'sonde-siege-invite';

@@ -34,7 +34,8 @@ import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSlee
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import { combatDistance } from '../footprint';
-import { porteeEnCases, pushBackTiles } from '../combatGeometry';
+import { porteeEnCases } from '../combatGeometry';
+import { pushBackTiles } from '../combatPlacement';
 import { sceneMetresPerTile } from '../scene';
 import { inBattleId } from '../combatants';
 import { t } from '../../i18n';

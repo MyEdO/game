@@ -9,7 +9,7 @@ import type { Weapon } from '../engine/types';
  * la fois, par priorité explicite (ordre du registre). La file est implicite — une modale moins
  * prioritaire dont le `pending` est posé n'apparaît qu'une fois les plus prioritaires fermées.
  * Les tests passent des pendings MINCES (la forme suffit à l'arbitre), sauf l'étape-jet élue : son
- * corps (slot + acteurs présents au combat, `stateFields.sansCorps`) est celui que le jeu pose.
+ * corps (slot + acteurs présents au combat, `slotsDeJet.sansCorps`) est celui que le jeu pose.
  */
 // CLÉS contraintes à `keyof GameState` (un pending typo'd ou SUPPRIMÉ → erreur tsc), VALEURS libres
 // (`unknown`) pour garder les pendings MINCES. L'ancien `s: object` + cast masquait toute faute de clé.

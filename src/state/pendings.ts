@@ -1819,9 +1819,8 @@ export interface CascadeRoll {
  * vont dans `PendingCascade.log`, pas en étapes.
  */
 /** Sentinel d'owner d'une étape `worldOwner` (seam de jet #275 Décision 3 — désertion, Moral) : aucun
- *  `actorId` à router — `netOwnership.seatOwns` le reconnaît pour router au siège MJ (`gmSeat`) quand
- *  il existe, à l'hôte sinon. Vit ICI (neutre) pour que `modalArbiter.ts` et `netOwnership.ts` (qui
- *  s'importent déjà l'un l'autre) n'aient pas à se réimporter en cycle. */
+ *  `actorId` à router — `sieges.seatOwns` le reconnaît pour router au siège MJ (`gmSeat`) quand
+ *  il existe, à l'hôte sinon. Vit ICI (neutre) pour que `modalArbiter.ts` et `sieges.ts` le lisent sans cycle. */
 export const WORLD_STEP_OWNER = '__world-step__';
 
 /** Agrégation d'une étape À PARTICIPANTS (batch multi — Test d'équipage, seam de jet #275 Décision 4
@@ -2096,7 +2095,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   groupOwner?: boolean;
   /** Étape tenue par le siège MONDE (#275 Décision 3 — désertion, Moral, périls sans acteur unique, Test
    *  d'un navire ; posée par `worldStep`, `monoStep` porteur `monde`, `displayStep`, `tableStep`) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
-   *  quand il existe, à l'hôte sinon (`netOwnership.seatOwns` via le sentinel `WORLD_STEP_OWNER`). */
+   *  quand il existe, à l'hôte sinon (`sieges.seatOwns` via le sentinel `WORLD_STEP_OWNER`). */
   worldOwner?: boolean;
   /** Libellé du Test affiché (« Résistance », « Calme », « Survie en extérieur »…) — la COMPÉTENCE
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une

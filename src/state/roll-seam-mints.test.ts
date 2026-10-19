@@ -14,13 +14,15 @@ import { useGame } from './store';
 import {
   monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep,
   pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand,
-  type BuiltCascadeStep, type HostJet, type HostSpec,
+  type BuiltCascadeStep, type HostSpec,
 } from './rollSeam';
 import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from './cascade';
 import { pushCombatStep } from './combatEffects';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocal, seatOwns } from './netOwnership';
-import { PENDING_BY_JET, type PendingKey } from './stateFields';
+import { ownsLocal } from './netOwnership';
+import { seatOwns } from './sieges';
+import type { PendingKey } from './stateFields';
+import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import type { CascadeStep } from './pendings';
 import type { GameState } from './store';
 import { nightBands } from './nightBands';

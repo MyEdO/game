@@ -65,6 +65,22 @@ export function inBattleId(battle: GameState['battle'], id: string | undefined):
 }
 
 /**
+ * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : la file de combat ET le groupe.
+ * DISTINCT d'`actorIn`, qui choisit l'un OU l'autre (`battle?.combatants ?? party`) : un héros du
+ * groupe resté HORS de la file d'un combat ouvert (allié en réserve, héros non engagé) y est
+ * introuvable, et un porteur introuvable ne se surface pas — son dé se résoudrait d'office alors
+ * qu'un siège le tient. La possession, elle, ne connaît pas cette frontière : `net.ownership` est
+ * keyée par id, sans égard au combat en cours.
+ *
+ * EXPORTÉ (#1426) pour la porte des jets (`rollSeam`), qui résout les MÊMES porteurs : le côté d'une
+ * requête (`resolveMonoSide`) et le porteur d'une rangée de bande (`rowSurfacee`). Possession, surface
+ * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
+ */
+export function porteurParId(s: GameState, id: string): Combatant | undefined {
+  return inBattleId(s.battle, id) ?? s.party.find((c) => c.id === id);
+}
+
+/**
  * COQUE par id — un navire vit dans la file de COMBAT quand il se bat (2026-07-16, verbatim
  * utilisateur : « Les navires sont des combattants oui, c’est déjà le cas non ? », fiche
  * `.claude/memory/user-arbitrage-navires-combattants.md`), et dans le PLAN DE TRAJET pendant un voyage

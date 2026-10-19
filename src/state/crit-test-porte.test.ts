@@ -3,7 +3,7 @@ import { useGame, type BattleState } from './store';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
 import { resolveCritique } from '../engine/critical';
-import { runPureFlowLines } from './combatEffects';
+import { runPureFlowLines } from './combat/flowEval';
 import { testValue } from '../engine/skills';
 import { addCondition } from '../engine/conditions';
 import { CRITIQUE_DOCS } from '../data/criticals';

@@ -3,7 +3,9 @@
  * le combattant concerné — modale ouverte → son concerné seul ('*' = tous) ; sinon le tour actif.
  */
 import { describe, it, expect } from 'vitest';
-import { intentAllowedFor, modalOwnerOf, seatOwns, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally } from './netOwnership';
+import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally } from './netOwnership';
+import { modalOwnerOf } from './modalArbiter';
+import { seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';

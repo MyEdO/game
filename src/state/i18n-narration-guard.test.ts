@@ -155,7 +155,7 @@ const BASELINE: Record<string, number> = {
  *   - phrase FR sans accent, sans guillemets ET sans mot-outil : `reprend connaissance.`,
  *     `Vente : …`, la forme `{sujet} — {quoi} !` (`{label} — MALADRESSE ({roll}) !`, `interludeFlow`)
  *     restent hors du compte. MESURÉ sur trois d'entre eux (`isFrench` rendu `false` pour les trois) :
- *     `combatEffects.ts:1568` « incante … (rituel garanti). », `consumableFlow.ts:128` « utilise : … »,
+ *     `combatEffects.ts:1517` « incante … (rituel garanti). », `consumableFlow.ts:128` « utilise : … »,
  *     `partyFlow.ts:615` « +{xp} PX (Ambition accomplie). ». Conséquence à dire : le compte de
  *     `consumableFlow.ts` est 0 — le fichier n'a donc PAS d'entrée de baseline, et cette absence ne
  *     veut pas dire « aucun texte FR », seulement « aucun que ce prédicat sache voir » ;

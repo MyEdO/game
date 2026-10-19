@@ -16,7 +16,8 @@ import { resolveActGates } from './combatFlow'; // baril : charge `combat/turnHo
 import { cascadeAppliers } from './cascade';
 import { surfaceOf } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocal, seatOwns, humanControlled } from './netOwnership';
+import { ownsLocal, humanControlled } from './netOwnership';
+import { seatOwns } from './sieges';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { CascadeStep } from './pendings';

@@ -16,7 +16,9 @@ import { weatherFromRoll, type Season } from '../engine/travelStages';
 import { buildAuthorPerilSteps } from './authorPerils';
 import { DE_NON_NOMME } from './etalLot';
 import type { MapRoute } from './worldMap';
-import { WORLD_STEP_OWNER, seatOwns, canFixDie } from './netOwnership';
+import { canFixDie } from './netOwnership';
+import { WORLD_STEP_OWNER } from './pendings';
+import { seatOwns } from './sieges';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -37,7 +39,7 @@ import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascad
  *
  * UN SEUL prédicat décide qu'un jet se joue dans une fenêtre : `rollSeam.surfaceOf`, keyé par le
  * PORTEUR. Le monde (`WORLD_STEP_OWNER`) est toujours tenu par un siège humain — le siège MJ s'il
- * existe, l'hôte sinon (`netOwnership.worldSeat`) — donc son dé se VOIT et se JOUE comme celui d'un
+ * existe, l'hôte sinon (`sieges.worldSeat`) — donc son dé se VOIT et se JOUE comme celui d'un
  * héros. L'option de confort « Dés fixés » n'entre pas dans cette surface : elle n'ajoute que la POSE
  * du dé (`canFixDie`). Seule la cadence déférée à un automate rend le monde muet.
  *
@@ -178,7 +180,7 @@ const enFile = (cs: Combatant[]) => ({ combatants: cs, order: cs.map((c) => c.id
 
 /**
  * LA SURFACE SE JUGE SUR L'ID DU PORTEUR (#1426) — `surfaceOf` ne reçoit qu'un id, et la résolution de
- * cet id (`netOwnership.tenuParUnHumain`) décide seule. Deux vérités que cette résolution doit tenir,
+ * cet id (`sieges.tenuParUnHumain`) décide seule. Deux vérités que cette résolution doit tenir,
  * et qu'une recherche « file de combat OU groupe » (`actorIn`) ou une lecture de possession brute
  * (`seatOwns`) rendraient fausses :
  *  - un héros du GROUPE resté hors de la file d'un combat ouvert reste tenu par son siège ;

@@ -27,8 +27,8 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { WORLD_STEP_OWNER } from './netOwnership';
-import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './stateFields';
+import { WORLD_STEP_OWNER } from './pendings';
+import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
@@ -36,20 +36,7 @@ import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { dataLabel } from '../data';
-import { scheduleFlowTimer } from '../lib/minuteries';
 import { journaliser } from './combatLog';
-
-/**
- * ENCHAÎNEMENT d'une étape depuis l'applier de la PRÉCÉDENTE — le séquenceur est la maison de ce
- * geste, et sa SOURCE UNIQUE (`portFlow`, `landMarketFlow`). Une conséquence qui veut OUVRIR l'étape
- * suivante ne peut pas le faire pendant que la cascade courante commite encore la sienne : d'où le
- * report d'un tour de boucle. Sur le chemin INLINE (surface I, aucune cascade ouverte) l'ouverture est
- * DIRECTE et le flux reste synchrone — c'est ce que voit un jet non surfacé, et donc ses tests.
- */
-export function chainStep(get: Get, open: () => void): void {
-  if (get().pendingCascade) scheduleFlowTimer(open, 0);
-  else open();
-}
 
 /**
  * Conséquence d'une étape, appliquée à la VALIDATION. Mute le héros (via get/set), renvoie les
@@ -520,7 +507,7 @@ export function stepInteraction(step: CascadeStep): 'jet' | 'table' | 'de' | 'ba
  *  batch → TOUS les participants INTERACTIFS ont un `result` ; quantité → un nombre est posé
  *  (`amount` — le mint en pose un d'ouverture, cf. `rollSeam.quantityStep`) ; choix → tranchée
  *  (`chosen`) ; affichage → toujours, sauf une étape HÔTE dont la fenêtre n'a pas rendu sa donnée
- *  (`stateFields.hoteEnAttente`, #1765).
+ *  (`slotsDeJet.hoteEnAttente`, #1765).
  *
  *  CONTRAT d'une rangée TÉMOIN (`interactive:false`) : elle NAÎT avec son `result` — c'est son
  *  PRODUCTEUR qui le roule à la construction (`pursuitFlow.pursuitRow`, `ui/opposedFrozen`). Rien ne
@@ -1532,7 +1519,7 @@ export function porteursDeLEtape(st: CascadeStep): string[] {
  * place d'une fenêtre (cf. `poserLeCurseur` ci-dessous) — et il se juge au MÊME appel pour TOUT
  * porteur : `rollSeam.surfaceOf(porteurDe(st))`. Un héros conduit par l'IA, un ennemi sans siège MJ,
  * un acteur inconnu ne tiennent aucune fenêtre ; le monde, lui, est toujours tenu par un siège humain
- * (`netOwnership.worldSeat`) — seule la cadence déférée à un automate l'en dessaisit.
+ * (`sieges.worldSeat`) — seule la cadence déférée à un automate l'en dessaisit.
  *
  * TABLE **ET** JET (#1479) : une étape MONO qu'aucun humain ne tient bloquait la séquence net — aucune
  * fenêtre ne la lançait, `stepReady` la refusait, `cascadeNext` restait en no-op définitif. Les BANDES
@@ -1554,7 +1541,7 @@ function tirageSansSiege(get: Get, st: CascadeStep | undefined): boolean {
  *
  * DEV : la violation THROW (le producteur fautif se voit au premier passage) ; en PROD elle se
  * journalise et l'étape est FRANCHIE — une partie en cours ne se fige pas sur une fenêtre morte.
- * Prédicat PUR et TOTAL (tous les `HostJet`) : `stateFields.hoteOrphelin`.
+ * Prédicat PUR et TOTAL (tous les `HostJet`) : `slotsDeJet.hoteOrphelin`.
  *
  * Joué à l'ARRIVÉE du curseur seulement (ouverture, avancée, reprise, et l'append qui tire le curseur
  * hors du bilan) : le curseur POSÉ sur l'étape dont la fenêtre vient de rendre sa donnée n'est pas un

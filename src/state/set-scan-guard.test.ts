@@ -48,7 +48,7 @@ import { runSetScan } from '../../scripts/guards/lib/setScan.mjs';
  * MÊME `set()` qui réécrit `battle.preview` — un seul cadre de rendu, sinon la jauge survit à l'aperçu
  * qu'elle chiffrait. Hors portée de `resetFields(scope)` : ses deux scopes sont des CADRES (`scene`,
  * `combatStart`), et `hoverDelta` porte `resetOn: []` (`stateFields.ts`) — un scope par geste de souris
- * casserait l'invariant du manifeste. Sites : `combatSlice.ts:846` (clic hors de toute portée : purge de
+ * casserait l'invariant du manifeste. Sites : `combatSlice.ts:847` (clic hors de toute portée : purge de
  * l'aperçu), `:883` (tap 1 zone de Course), `:893` (tap 1 aperçu de Marche), `:915` (commit du segment,
  * l'acteur a bougé). Les trois autres sites `hoverDelta` du même commit (`battleRun` 1223, `runConfirm`,
  * `runCancel`) étaient DÉJÀ comptés par leur `pendingRun` : ils n'ajoutent rien.

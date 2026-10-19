@@ -174,7 +174,7 @@ export function draineEtLit(get: () => GameState, max = 200): string[] {
 }
 
 /**
- * DRAINE une séquence dont la SUITE est DIFFÉRÉE (`cascade.chainStep` → timer 0) : chaque étape est
+ * DRAINE une séquence dont la SUITE est DIFFÉRÉE (`enchainerEtape.chainStep` → timer 0) : chaque étape est
  * jouée par `avanceEtapeCascade`, puis l'appelant fait tourner son horloge (`avancerTimers`, typiquement
  * `() => vi.runAllTimers()` sous faux timers) pour que la continuation ouvre l'étape suivante.
  *

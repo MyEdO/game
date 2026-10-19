@@ -1,19 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { combatantsWithinRadius, occupied, pushBackTiles, displaceSmaller, findFreeTile } from './combatGeometry';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { combatantsWithinRadius, occupied, findFreeTile } from './combatGeometry';
+import { emptyScene, type Terrain } from './scene';
 import type { BattleState } from './store';
-import type { Get } from './flowTypes';
-import type { Combatant } from '../engine/types';
-import type { GameState } from './store';
+import { mk, battle } from './pionsEtages.testkit';
 
 /**
  * Fixes z-blind #798 (combatantsWithinRadius) / #799 (occupied — bloqueurs + barrières) / #802
- * (pushBackTiles/findFreeTile/displaceSmaller/nearestFreeOutside) : deux combattants/barrières
- * superposés à même (x,y) sur des étages différents doivent rester SÉPARÉS par tout ce module.
+ * (findFreeTile) : deux combattants/barrières superposés à même (x,y) sur des étages différents
+ * doivent rester SÉPARÉS par tout ce module.
  */
-const mk = (id: string, x: number, y: number, z?: number, extra?: Partial<Combatant>): Combatant =>
-  ({ id, name: id, pos: z ? { x, y, z } : { x, y }, wounds: { current: 10, max: 10, base: 10 }, conditions: [], ...extra }) as unknown as Combatant;
-const battle = (cs: Combatant[], zones: BattleState['zones'] = []): BattleState => ({ combatants: cs, zones }) as unknown as BattleState;
 
 describe('combatantsWithinRadius — défaut Z-AWARE (#798)', () => {
   it('un combattant au même (x,y) mais à un autre étage que le centre est HORS rayon', () => {
@@ -52,53 +47,6 @@ describe('occupied — bloqueurs ET barrières séparés par étage (#799)', () 
     const mover = mk('m', 0, 0);
     const b = battle([mover], [{ label: 'mur-arcane', tiles: [{ x: 5, y: 5 }], rounds: 1, permanent: true, barrier: {} }] as BattleState['zones']);
     expect(occupied(b, mover).has('5,5')).toBe(true);
-  });
-});
-
-describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
-  function twoLayerScene(): Scene {
-    const s = emptyScene(10, 10); // z0 : tout 'herbe' (marchable)
-    const z1 = new Array(10 * 10).fill('herbe') as Terrain[];
-    z1[5 * 10 + 6] = 'mur'; // (6,5) infranchissable à l'étage 1
-    s.layers.push({ z: 1, tiles: z1 });
-    return s;
-  }
-
-  it('un mur à l’étage de la cible bloque la poussée même si le SOL (z=0) y est libre', () => {
-    const scene = twoLayerScene();
-    const attacker = mk('a', 4, 5);
-    const target = mk('t', 5, 5, 1); // à l'étage 1
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as GameState;
-    const moved = pushBackTiles(get, attacker, target, 1);
-    expect(moved).toBe(0);
-    expect(target.pos).toEqual({ x: 5, y: 5, z: 1 }); // reste sur place, reste à z=1
-  });
-
-  it('même géométrie mais cible au sol (z=0) : le mur de l’étage 1 ne la concerne pas, elle glisse', () => {
-    const scene = twoLayerScene();
-    const attacker = mk('a', 4, 5);
-    const target = mk('t', 5, 5); // sol
-    const get: Get = () => ({ scene, battle: battle([attacker, target]) }) as unknown as GameState;
-    const moved = pushBackTiles(get, attacker, target, 1);
-    expect(moved).toBe(1);
-    expect(target.pos).toEqual({ x: 6, y: 5 });
-  });
-});
-
-describe('displaceSmaller — ne dégage que sur SON étage (#802)', () => {
-  it('un plus petit au même (x,y) mais à un AUTRE étage n’est PAS déplacé ; celui du MÊME étage l’est', () => {
-    const scene = emptyScene(10, 10);
-    const mover = mk('m', 5, 5, undefined, { size: 'grande' }); // empreinte 2×2 au sol
-    const sameFloor = mk('s', 5, 5, undefined, { size: 'petite' });
-    const upperFloor = mk('u', 5, 5, 1, { size: 'petite' });
-    const b = battle([sameFloor, upperFloor]);
-    const get: Get = () => ({ scene, battle: b }) as unknown as GameState;
-
-    const moved = displaceSmaller(get, mover);
-
-    expect(moved).toBe(true);
-    expect(upperFloor.pos).toEqual({ x: 5, y: 5, z: 1 }); // intact : autre étage, hors d'atteinte
-    expect(sameFloor.pos).not.toEqual({ x: 5, y: 5 }); // dégagé de sous l'empreinte du mover
   });
 });
 

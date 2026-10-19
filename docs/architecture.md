@@ -337,7 +337,8 @@ src/state/
                               séparés que combatFlow ré-exporte (`export * from './combatX'`) pour ne
                               pas casser les importeurs — un module feuille n'importe RIEN de combatFlow
                               (tout passe par get().xxx / modules feuilles). Déjà sortis : combatGeometry.ts
-                              (géométrie pure) et combatEffects.ts (effets de scène/campagne : applyEffects,
+                              (géométrie pure), combatPlacement.ts (gestes de placement qui écrivent
+                              la bataille) et combatEffects.ts (effets de scène/campagne : applyEffects,
                               butin attribuable, checkTriggers, pushReveal). NE PAS extraire le preview
                               (previewAttack/Defense) : il partage attackEnv/bestDefenseMode avec la
                               résolution → cycle. La cohésion preview↔résolution est voulue.

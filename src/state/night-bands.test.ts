@@ -24,7 +24,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { nightBands, splitBandRows, EXPOSURE_BAND_KINDS } from './nightBands';
 import { pushStep } from './cascade';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './netOwnership';
+import { seatOwns } from './sieges';
 import { checkBattleOver, applyEffects } from './combatFlow';
 import { addCondition } from '../engine/conditions';
 import { contractDisease } from '../engine/disease';

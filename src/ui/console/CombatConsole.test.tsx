@@ -2387,7 +2387,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     }) as unknown as ShipPoste;
 
   /** La COQUE du groupe : un vrai `vehicleCombatant` (facette `hull` de `vehicles.json`), du camp
-   *  joueur (`kind:'hero'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2777`). */
+   *  joueur (`kind:'hero'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2778`). */
   function navire(): Combatant {
     const hull = vehicleCombatant(findVehicleById('bateau-de-patrouille')!)!;
     hull.id = 'ship';
@@ -2817,7 +2817,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 // L'annulation du déplacement n'est pas une case de plus : elle vit sur la ressource qu'elle rend.
 // Le contrat est une AFFORDANCE-VÉRITÉ — elle n'est à l'écran que là où `cancelMove` mordrait
 // vraiment. Le compteur `movementUsed` ne suffit pas à le dire : `battleStandUp` l'écrit SANS poser
-// de `moveSnapshot` (`combatSlice.ts:1663`), et le dispatcher n'aurait alors rien à restaurer.
+// de `moveSnapshot` (`combatSlice.ts:1664`), et le dispatcher n'aurait alors rien à restaurer.
 describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvement', () => {
   const geste = () => host.querySelector('.cc-gutter-move [data-action="undo-move"]') as HTMLButtonElement | null;
 

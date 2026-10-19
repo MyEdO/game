@@ -7,7 +7,7 @@
  * `MODAL_DEFS`, donc leurs gestes retombaient sur `modalOwnerOf`, qui ne consulte QUE `MODAL_DEFS`.
  * Sous un `fateSave` (1ʳᵉ entrée du registre, priorité maximale) le repli désignait la VICTIME :
  * l'attaquant qui balaie était REFUSÉ à l'intent, et le clic de la victime — accepté — mourait dans
- * la garde `controlsCombatant` de `battleClickEntity` (combatSlice.ts:1013). Résultat mesuré :
+ * la garde `controlsCombatant` de `battleClickEntity` (combatSlice.ts:1014). Résultat mesuré :
  * PERSONNE ne poursuivait le balayage.
  *
  * Le geste RÉEL voyage par `battleClickEntity`/`battleClickTile` (dispatchés par
@@ -21,7 +21,8 @@ import { join } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame, type BattleState } from './store';
 import { initialFields } from './stateFields';
-import { intentAllowedFor, withActingSeat, seatOwns, ROUTES } from './netOwnership';
+import { intentAllowedFor, withActingSeat, ROUTES } from './netOwnership';
+import { seatOwns } from './sieges';
 import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
 import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from './modalArbiter';
 import { GUEST_INTENTS } from './intents';

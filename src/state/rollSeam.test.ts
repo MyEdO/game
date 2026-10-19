@@ -6,7 +6,7 @@ import { setGmSeat } from './netFlow';
 import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
 import { testSkillLabel } from '../data';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './netOwnership';
+import { seatOwns } from './sieges';
 import type { Combatant } from '../engine/types';
 
 /**
@@ -14,7 +14,7 @@ import type { Combatant } from '../engine/types';
  * des PORTEURS de la requête (#1479 — il n'existe plus de classe de jet : héros, ennemi, monde, Test
  * subi passent par le même calcul). Chaque test enregistre un applier DÉDIÉ (kind unique, namespacé) et observe : (a) si une
  * modale/cascade s'est ouverte (`pendingCascade`) — surface M/V ; (b) si l'applier a tourné d'office —
- * surface I (`runCascadeImmediate`, `cascade.ts:194`).
+ * surface I (`runCascadeImmediate`, `cascade.ts:181`).
  */
 describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   const applied: { kind: string; success: boolean; sl: number }[] = [];

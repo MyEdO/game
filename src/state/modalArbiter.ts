@@ -16,7 +16,8 @@
  */
 import type { GameState } from './store';
 import { WORLD_STEP_OWNER } from './pendings';
-import { sansCorps, type PendingKey } from './stateFields';
+import type { PendingKey } from './stateFields';
+import { sansCorps } from './slotsDeJet';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
 export type ArbiterState = Partial<GameState>;
@@ -150,7 +151,7 @@ export const MODAL_DEFS = [
   }, tientLaMain: (s) => !!s.pendingCascade, owner: (s) => {
     // Étape de GROUPE (enfoncer une porte) → '*' (chacun pilote ses héros) ; étape MONDE sans acteur
     // (`worldOwner`, seam #275 Décision 3 — désertion/Moral) → sentinel routé au siège MJ par
-    // `netOwnership.seatOwns` ; sinon le héros de l'étape.
+    // `sieges.seatOwns` ; sinon le héros de l'étape.
     const cur = s.pendingCascade?.participants[s.pendingCascade.cursor];
     if (cur?.groupOwner) return '*';
     if (!cur?.actorId && cur?.worldOwner) return WORLD_STEP_OWNER;

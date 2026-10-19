@@ -1644,7 +1644,7 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
  *
  * NIVEAU 1, et l'état des autres niveaux est MESURÉ, pas supposé : une op à dé IMBRIQUÉE (rangée de
  * `rollTable`, palier de `rollThreshold`, forme d'un échelon) n'est pas énumérée et ses dés tombent
- * sous `applyOps` (`imbrique` retire `ctx.des`) ; le walker PUR `state/combatEffects.runPureFlowLines`
+ * sous `applyOps` (`imbrique` retire `ctx.des`) ; le walker PUR `state/combat/flowEval.runPureFlowLines`
  * appelle `applyOps` hors de la porte. Ces deux chemins sont au solde `DES_HORS_PORTE_STOCK` (comptés
  * à l'`applyOps` de leurs appelants), qui les porte jusqu'à zéro (#1508). Une récursion ici ne les
  * couvrirait pas : elle annoncerait des dés que la branche non prise ne tire jamais.

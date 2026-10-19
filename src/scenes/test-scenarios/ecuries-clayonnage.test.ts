@@ -28,7 +28,7 @@ const scenarioConstruit = scenario.construire();
  *    ossature devant le troisième — franchissement et vue s'y séparent ;
  *  · la dernière rangée est LIBRE de toute arête : les deux camps se rejoignent par le sud, sans quoi
  *    l'IA déciderait sans cible atteignable ;
- *  · chaque arête de structure intacte devient un combattant inerte (`combatSlice.ts:2843`) — le
+ *  · chaque arête de structure intacte devient un combattant inerte (`combatSlice.ts:2844`) — le
  *    compte se relit sur les arêtes de la carte, jamais sur un chiffre.
  */
 

@@ -236,20 +236,22 @@ import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
 import { emitCombatEvent } from './combatEvents';
 import { massBattleTrackHit } from './massBattleFlow';
-// Géométrie de combat extraite (placement/déplacement/zones/flanc-dos/vision) — importée pour
-// l'usage interne ET ré-exportée (baril) pour les importeurs de combatFlow.
+// Géométrie de combat (`combatGeometry`) et gestes de placement (`combatPlacement`) — importés pour
+// l'usage interne ET ré-exportés (baril) pour les importeurs de combatFlow.
 import {
-  occupied, cannotStopOn, moveEnv, displaceSmaller, removeEntities, inRect,
-  applyZoneCrossings, isFlankOrRear, seesInDark, smokeOf, porteeEnCases,
+  occupied, cannotStopOn, moveEnv, inRect,
+  isFlankOrRear, seesInDark, smokeOf, porteeEnCases,
 } from './combatGeometry';
+import { displaceSmaller, removeEntities, applyZoneCrossings } from './combatPlacement';
 export * from './combatGeometry';
+export * from './combatPlacement';
 import { releaseSeat, releaseUnavailableSeats } from './seating';
-// --- Résolveur d'aire des munitions/armes à effet de zone (Tir de zone / Explosion) extrait → combatArea.ts (baril) ---
+// --- Résolveur d'aire des munitions/armes à effet de zone (Tir de zone / Explosion) : combatArea.ts (baril) ---
 export * from './combatArea';
 import { resolveWeaponArea, areaTargets, blastRadiusTiles, type AreaTargets } from './combatArea';
-// --- Garde de reprise unique (« une modale / une pause bloque l'IA ? ») extraite → combatGate.ts (baril) ---
+// --- Garde de reprise unique (« une modale / une pause bloque l'IA ? ») : combatGate.ts (baril) ---
 export * from './combatGate';
-import { combatAdvanceBlocked, aiDriven } from './combatGate';
+import { combatAdvanceBlocked } from './combatGate';
 import { perceivedTiles } from './visionState';
 import { cadenceAutoCombat } from '../engine/cadence';
 
@@ -262,17 +264,18 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
   return inBattleId(battle, battle.order[battle.turn]);
 }
 
-// --- Effets de scène/campagne extraits → combatEffects.ts (baril) ---
+// --- Effets de scène/campagne : combatEffects.ts (baril) ---
 export * from './combatEffects';
 import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, ouvrirChute, cloturer, registerCloture, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
-// --- Manœuvres de créature (énumération + résolveurs roll/apply) extraites → combatManeuvers.ts (baril) ---
+// --- Manœuvres de créature (énumération + résolveurs roll/apply) : combatManeuvers.ts (baril) ---
 export * from './combatManeuvers';
 // --- Refonte par coutures : registre de hooks de cycle de vie + mise en place (barils, modules FEUILLES) ---
 export * from './combatHooks';
 export * from './combatSetup';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
-import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain } from './netOwnership';
+import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
+import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
 export * from './combat/triggeredTest'; // baril : enregistre l'applier de cascade `triggeredTest` + installe le routeur de Test des triggers (effet de bord)
@@ -525,8 +528,6 @@ export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG 
   };
 }
 
-// applyZoneCrossings → combatGeometry.ts
-
 /** Surprise au début du combat (LDB 13 l.52-81) : le camp pris en EMBUSCADE (`surprisedSide`) subit UN
  *  Test opposé de Discrétion/Perception (l.77) — la Discrétion la plus FAIBLE des embusqueurs, jetée UNE
  *  fois, contre TOUS les guetteurs. Ce jet unique (`rollFrozenOpposedAttacker`) est le FREEZE partagé par
@@ -587,15 +588,6 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   const drained = drainPendingLog(get, set);
   if (drained.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...drained] } });
 }
-
-// DIR8_RING / isFlankOrRear → combatGeometry.ts
-
-/** Environnement d'attaque (LdV/couvert/météo/mouvement/tir-mêlée/surnombre/monture) — SOURCE UNIQUE
- *  des modificateurs positionnels/scéniques, partagée par la RÉSOLUTION (`resolveAttack`) ET l'APERÇU
- *  (`previewAttack`), pour que l'aperçu affiche EXACTEMENT ce que le jet appliquera (R4). Pur (lit l'état).
- *  `blocked` = tir sans Ligne de Vue ; `inMelee`/`crowd`/`cm`/`sc` servent à la résolution (tir dévié,
- *  « Tirer dans le tas », dodge météo) — l'aperçu n'utilise que `env`/`blocked`. */
-// seesInDark → combatGeometry.ts
 
 /** Météo du JOUR de voyage EN COURS (EDOC 8) portée par le plan de voyage — contexte de « conditions
  *  du jour » COMMUN aux Activités de l'Étape ET au combat qui s'ouvre pendant la journée (embuscade sous
@@ -720,6 +712,11 @@ export function withAttackerAt(battle: BattleState, attacker: Combatant): Battle
   return { ...battle, combatants };
 }
 
+/** Environnement d'attaque (LdV/couvert/météo/mouvement/tir-mêlée/surnombre/monture) — SOURCE UNIQUE
+ *  des modificateurs positionnels/scéniques, partagée par la RÉSOLUTION (`resolveAttack`) ET l'APERÇU
+ *  (`previewAttack`), pour que l'aperçu affiche EXACTEMENT ce que le jet appliquera (R4). Pur (lit l'état).
+ *  `blocked` = tir sans Ligne de Vue ; `inMelee`/`crowd`/`cm`/`sc` servent à la résolution (tir dévié,
+ *  « Tirer dans le tas », dodge météo) — l'aperçu n'utilise que `env`/`blocked`. */
 export interface AttackEnv { env: ModLine[]; blocked: boolean; inMelee: boolean; crowd: Combatant[]; cm: ModLine | null; sc: ReturnType<typeof sceneCombatModifiers>; flankRear?: boolean; }
 export function attackEnv(
   get: Get,

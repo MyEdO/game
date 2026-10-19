@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { occupied, displaceSmaller } from './combatFlow';
+import { occupied } from './combatFlow';
+import { displaceSmaller } from './combatPlacement';
 import { occupiesTile, footprintN } from './footprint';
 import type { BattleState } from './store';
 import type { Scene } from './scene';

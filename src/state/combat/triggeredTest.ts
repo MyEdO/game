@@ -31,11 +31,11 @@ import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/
 import { derivedStake, testSkillLabel } from '../../data';
 import { type Flow, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../flow';
 import { condCtx } from '../bourseFlow';
-import { buildActorView, combatConditionCtx, flowTestGated } from './flowEval';
+import { buildActorView, combatConditionCtx, flowTestGated, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
-import { runPureFlowLines, runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
+import { runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
   confierLaSuite, porterOpsCtx, jouerFlowEntier, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
 import { registerCascadeApplier } from '../cascade';
@@ -449,7 +449,7 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
 
 /** `playAfter` d'un applier de cascade, puis le drain de la file différée (`drainPendingLog`,
  *  combatEffects.ts:123) : les lignes rendues rejoignent les `consequences` de l'étape, que `commitStep`
- *  journalise après l'applier (cascade.ts:1352). */
+ *  journalise après l'applier (cascade.ts:1339). */
 function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, source?: EffectSource): string[] {
   playAfter(get, set, c, after, label, source);
   return drainPendingLog(get, set).map((e) => e.text);
@@ -910,10 +910,10 @@ export function bandeTriggeredTest(
   );
 }
 
-/** Implémentation du hook `setZoneCrossTestHook` (combatGeometry.ts, #500) — un `crossTest` de zone
+/** Implémentation du hook `setZoneCrossTestHook` (combatPlacement.ts, #500) — un `crossTest` de zone
  *  (Forêt d'épines, LDB 48 l.749) EST un `test` de Flow comme un autre : délègue à `routeTriggeredTest`,
  *  aucune machinerie propre. Injectée par le store (`createCombatSlice`), calque `freeAttackHookImpl`.
- *  `applyZoneCrossings` (l'appelant, combatGeometry.ts) n'a PAS accès à `drainPendingLog`
+ *  `applyZoneCrossings` (l'appelant, combatPlacement.ts) n'a PAS accès à `drainPendingLog`
  *  (combatEffects.ts, cycle) : on draine ICI la voie INLINE (ennemi/auto — `resolveFlowTest` y pousse
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */

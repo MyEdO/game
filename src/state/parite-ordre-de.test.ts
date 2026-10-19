@@ -5,7 +5,7 @@
  * `applyHit`.
  *
  * Mesuré sur 25 graines et sur les DEUX AXES qui pourraient cacher un code « spécial porteur » :
- *  — le KIND (héros / ennemi), et surtout la TENUE (`netOwnership.tenuParUnHumain`) — c'est elle, et
+ *  — le KIND (héros / ennemi), et surtout la TENUE (`sieges.tenuParUnHumain`) — c'est elle, et
  *    jamais le kind, qui décide si les voies Dévier/Subir s'ouvrent (LDB 63 l.30) ;
  *  — l'ARMURE : une fixture SANS PA n'ouvre AUCUNE voie et évite donc toute la branche de Déviation.
  *    Les porteurs BLINDÉS sont mesurés ici aussi, sans quoi le chemin qui compte n'est pas couvert.
@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyAttackResult } from './combatFlow';
-import { tenuParUnHumain } from './netOwnership';
+import { tenuParUnHumain } from './sieges';
 import { draineCascade } from './cascadeTestKit';
 import { seedBattleRng, battleRng } from './battleRng';
 import { createHero } from '../engine/character';
