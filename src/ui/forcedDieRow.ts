@@ -26,6 +26,7 @@
  */
 import { useRef } from 'react';
 import { FLOW_HANDLERS, FLOW_VERBS } from '../state/rollFlowSpecs';
+import type { FlowKey } from '../state/flowVerbs';
 import { canFixDie } from '../state/netOwnership';
 import { withPreRollFixedDie } from '../state/combatFlow';
 import { useGame } from '../state/store';
@@ -34,8 +35,6 @@ import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } fro
 import type { CascadeStep } from '../state/pendings';
 import type { GameState } from '../state/store';
 import type { RollRowProps } from './RollRow';
-
-export type FlowKey = keyof typeof FLOW_VERBS;
 
 /**
  * COMMIT du dé SAISI — la GARDE partagée des hôtes qui lancent (#1117). « Fixer le dé » vit dans

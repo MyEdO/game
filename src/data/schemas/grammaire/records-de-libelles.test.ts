@@ -172,12 +172,9 @@ const sourcesDuDepot = (): Fichier[] =>
 /**
  * STOCK NOMINATIF GELÉ, par `fichier:symbole` — les Records de libellés de valeurs qui vivaient déjà
  * hors de la grammaire quand le cliquet est né. Aucune DETTE NEUVE n'y entre : nommer un vocabulaire
- * par `enumNomme` retire sa ligne d'ici ; les lignes restantes portent leur raison au ticket #1714. La TABLE `[{id,label}]`
- * `combat.ts:RANGE_BANDS` est entrée le jour où le détecteur a couvert la forme (b) — elle préexistait
- * au cliquet, la COUVERTURE a grandi, pas la dette.
+ * par `enumNomme` retire sa ligne d'ici ; les lignes restantes portent leur raison au ticket #1714.
  */
 const STOCK: readonly string[] = [
-  'src/engine/combat.ts:RANGE_BANDS',
   'src/engine/size.ts:SIZE_LABEL',
   'src/ui/CarrierInventory.tsx:LOC_SHORT',
   'src/ui/EquipmentPanel.tsx:ZONE_OF_LOC',

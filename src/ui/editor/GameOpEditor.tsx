@@ -421,7 +421,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'money': return { op: 'money', montant: { brass: 1 } };
     case 'statusMod': return { op: 'statusMod', amount: 1 };
     case 'grantReverseToken': return { op: 'grantReverseToken' };
-    case 'castWard': return { op: 'castWard', radius: 5 };
+    case 'castWard': return { op: 'castWard', radius: 5, mod: 0 };
     case 'arrowWard': return { op: 'arrowWard' };
     // L'Indice naît à 1 : le 6 du Dôme est la valeur RAW de CE sort (`LDB 47 l.410`), pas un défaut de
     // l'op — et le Trait `protection` déclare son Indice sans valeur (`traits.json`, `indice.label`).

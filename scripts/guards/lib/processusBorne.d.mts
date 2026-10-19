@@ -18,7 +18,7 @@ export interface ArretProcessus {
 export interface ResultatCible {
   status: number | null;
   signal: NodeJS.Signals | null;
-  error?: { code: string; message: string };
+  error?: { code?: string; message: string; operation?: string; pid?: number | null; cause?: unknown };
   pid?: number;
 }
 export interface ProcessusNatif {
@@ -37,6 +37,7 @@ export interface ControleSupervision {
   readonly pid: number | null;
   readonly phase: 'demarrage' | 'execution' | 'cloture' | 'termine';
   estFermeture(cause: unknown): boolean;
+  /** Réglée au plus tard quand `fin` se résout ; une `fin` rejetée ne la garantit plus (#2586). */
   pret: Promise<{ pidCible: number; instanceCible: string }>;
   fin: Promise<{ resultatCible: ResultatCible; arret: ArretProcessus }>;
   finPhysique: Promise<void>;
@@ -57,6 +58,7 @@ export interface FabriqueSupervision {
   optionsEffectives?: (commande: string, argv: readonly string[], options: OptionsSupervision) => { args: readonly string[]; options: OptionsSupervision } | null;
 }
 export const DELAI_ARRET_MS: number;
+export function arretIndetermine(options: { operation: string; pid?: number | null; cause?: unknown; message?: string }): ArretProcessus & { etat: 'indetermine' };
 export function tuerArbre(controle: ControleSupervision, cause?: Error | string): Promise<ArretProcessus>;
 export interface ResultatProcessusBorne {
   code: number;

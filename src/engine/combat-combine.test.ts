@@ -192,7 +192,7 @@ describe('defenseModifiers — Avantage hors plafond, circonstances plafonnées 
     // Esquive en neige (−30, entrée de table l.82) + 2 pions Aveuglé (−20, État → jet) + Maniement de
     // deux armes (−10, Talent → jet) + Avantage +30 (jet). La combinaison ne borne QUE la neige :
     // −30 (circonstances) + (30 − 20 − 10) = −30.
-    const d = { advantage: 3, conditions: [{ id: 'aveugle', value: 2 }], weapons: [], defensiveStance: false, dualStrikeDefensePenalty: true } as unknown as Combatant;
+    const d = { advantage: 3, conditions: [{ id: 'aveugle', value: 2 }], weapons: [], defensiveStance: false, dualStrikeDefensePenalty: -10 } as unknown as Combatant;
     const mods = defenseModifiers(d, 'esquive', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]);
     expect(mods.filter((m) => m.value < 0).map((m) => `${m.label} ${m.value} ${m.famille}`))
       .toEqual(['Aveuglé -20 jet', 'Neige épaisse -30 circonstance', 'Maniement deux armes -10 jet']);

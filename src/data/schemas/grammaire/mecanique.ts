@@ -320,6 +320,12 @@ const DECLARATIONS_D_OPS = {
     amount: z.number(),
     flankRear: z.boolean().optional(),
   }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" }, flankRear: { label: "par le flanc ou par derrière" } }),
+  castWard: nommerChamps(z.strictObject({
+    op: z.literal('castWard'),
+    radius: formulaSchema,
+    mod: z.number(),
+    perSL: nommerChamps(z.strictObject({ every: z.number(), radiusFormula: formulaSchema }), { every: { label: "intervalle" }, radiusFormula: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
+  }), { op: { label: "opération" }, radius: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, mod: { label: "modificateur" }, perSL: { label: "rayon par DR" } }),
   incomingAdvantage: nommerChamps(z.strictObject({
     op: z.literal('incomingAdvantage'),
     mode: porteeDAssautSchema,
@@ -431,7 +437,7 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'condition',
+  'beginPsych', 'breakBlade', 'chain', 'charDRBonus', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',

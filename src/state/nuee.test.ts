@@ -32,7 +32,7 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
     const swarm = statblockToCombatant({ type: 'statblock', label: 'Nuée', char: { B: 5 }, traits: [{ id: 'nuee' }, { id: 'taille', arg: 'Petite' }] }, 's', { x: 0, y: 0 });
     const shooter = statblockToCombatant({ type: 'statblock', label: 'Tireur', char: {} }, 't', { x: 5, y: 0 });
     const mods = attackModifiers(shooter, swarm, bow, { kind: 'ranged' });
-    expect(mods.some((m) => m.label === 'Nuée (tir)' && m.value === 40)).toBe(true);
+    expect(mods).toContainEqual({ label: 'Nuée', value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }); // LDB 85 l.253
     expect(mods.some((m) => m.label.startsWith('Taille (cible)'))).toBe(false); // Taille ignorée (l.253)
   });
 });

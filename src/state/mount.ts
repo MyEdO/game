@@ -12,7 +12,7 @@ import { fearSizeAsMount } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
-import { RULE_REF } from '../engine/ruleRefs';
+import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
 import { Scene, isWalkable } from './scene';
 import { occupiesTile, footprintN, combatDistance } from './footprint';
@@ -288,22 +288,21 @@ export function canMove(battle: BattleState, c: Combatant): boolean {
 }
 
 /** Modificateurs d'attaque liés au Combat monté, injectés dans `env` (combat.ts reste pur, ignorant des
- *  montures) :
- *  - +20 si l'attaquant est un CAVALIER frappant une cible plus petite que SA monture (l.180, « toute attaque ») ;
- *  - −10 en MÊLÉE si l'on cible un CAVALIER (la cible chevauche) alors qu'on est plus petit que sa monture (l.181). */
+ *  montures) : un CAVALIER frappant une cible plus petite que SA monture (LDB 14 l.180, « toute attaque ») ;
+ *  en MÊLÉE, cibler un CAVALIER alors qu'on est plus petit que sa monture (l.181). */
 export function mountedAttackMods(battle: BattleState, attacker: Combatant, target: Combatant | null, kind: 'melee' | 'ranged'): ModLine[] {
   const out: ModLine[] = [];
   if (!target) return out;
   const attMount = mountOf(battle, attacker);
-  if (attMount && sizeGap(attMount.size, target.size) >= 1) out.push({ label: t('mount.modSmallerTarget'), value: 20, famille: 'circonstance', ref: RULE_REF['combat-monte'] });
+  if (attMount && sizeGap(attMount.size, target.size) >= 1) out.push(ligneDeRegle('combat-monte', 'cible-plus-petite'));
   const tgtMount = mountOf(battle, target); // la cible est-elle un cavalier ? (on frappe alors le cavalier, pas la monture)
-  if (kind === 'melee' && tgtMount && sizeGap(attacker.size, tgtMount.size) <= -1) out.push({ label: t('mount.modTargetRider'), value: -10, famille: 'circonstance', ref: RULE_REF['combat-monte'] });
+  if (kind === 'melee' && tgtMount && sizeGap(attacker.size, tgtMount.size) <= -1) out.push(ligneDeRegle('combat-monte', 'cibler-le-cavalier'));
   return out;
 }
 
 /** Ligne d'Esquive d'un cavalier (LDB 14 l.184), sauf Talent Acrobaties équestres ; aucune à pied. */
 export function mountedDodgeMods(defender: Combatant): ModLine[] {
-  return defender.mountId && !hasAcrobatiesEquestres(defender) ? [{ label: t('mount.modDodge'), value: -20, famille: 'circonstance', ref: RULE_REF['combat-monte'] }] : [];
+  return defender.mountId && !hasAcrobatiesEquestres(defender) ? [ligneDeRegle('combat-monte', 'esquive-a-cheval')] : [];
 }
 
 /** Montures LIBRES que `rider` (à pied) peut enfourcher, de la plus proche à la plus lointaine :

@@ -65,6 +65,7 @@ import {
   CHAR_LABELS,
   CharKey,
   Combatant,
+  type ModLine,
   HitLocation,
   HIT_LOCATION_LABELS,
   ItemInstance,
@@ -336,16 +337,20 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
   return n;
 }
 
-/** Somme des modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod`, par id) pour
- *  un mode d'attaque (`melee`/`ranged`) — inclut les ops `all`. Parasité : −10 en mêlée (LDB 85 l.257). */
-export function incomingAttackMod(c: Combatant, mode: 'melee' | 'ranged'): number {
-  let n = 0;
+/** Les modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod` de ses traits) pour un
+ *  mode d'attaque (`melee`/`ranged`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
+ *  (Parasité LDB 85 l.257, Nuée l.253). Circonstance : une condition de la CIBLE (`LDB 14 l.48`). */
+export function incomingAttackLines(c: Combatant, mode: 'melee' | 'ranged'): ModLine[] {
+  const out: ModLine[] = [];
   for (const t of c.traits ?? []) {
-    for (const op of findTraitById(t.id)?.passive ?? []) {
+    const trait = findTraitById(t.id);
+    let n = 0;
+    for (const op of trait?.passive ?? []) {
       if (op.op === 'incomingAttackMod' && (op.mode === mode || op.mode === 'all')) n += op.amount;
     }
+    if (n) out.push({ label: trait!.label, value: n, famille: 'circonstance', ref: { category: 'traits', id: t.id } });
   }
-  return n;
+  return out;
 }
 
 /** L'attaque du porteur compte-t-elle comme `keyword` (op passive `attackKeyword`, par id) ? Magique/
@@ -724,10 +729,9 @@ export type GameOp =
   /** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
    *  durée du Miracle » — Traits psy SUSPENDUS (portés par l'effet), restitués à l'expiration. */
   | { op: 'suppressPsych' }
-  /** N'écoutez point la Sorcière (LDB 42) : « Tous les Sorts qui ciblent quelque chose ou quelqu'un
-   *  dans les (BSoc) mètres subissent -20 aux Tests de Langue (Magick) » — aura portée par la cible
-   *  (le prêtre), rayon élargi « +BSoc m par +2 DR » via `perSL.radiusFormula`. */
-  | { op: 'castWard'; radius: Formula; perSL?: { every: number; radiusFormula: Formula } }
+  /** Aura anti-Sort portée par la cible (N'écoutez point la Sorcière, LDB 43 l.139-145) : `mod` au Test de Langue
+   *  (Magick) de tout Sort qui vise quelqu'un dans le rayon, élargi par DR via `perSL.radiusFormula`. */
+  | { op: 'castWard'; radius: Formula; mod: number; perSL?: { every: number; radiusFormula: Formula } }
   /** « Soumis aux règles de la Suffocation » (LDB 18 l.345-346 — Ombres étrangleuses,
    *  Transmutation de Chamon) : −1 PB/Round, 0 PB → Inconscient, mort après BE Rounds. */
   | { op: 'suffocate' }
@@ -976,8 +980,8 @@ export type GameOp =
    *  d'équipage » (MDG 09 l.224). Exécutée → `ActiveEffect.crewTestMod`, lu par `crewRoleValue`
    *  (engine/crewMorale) — le SEUL point de valeur des Tests d'équipage. */
   | { op: 'crewTestMod'; mod: number }
-  /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité : −10 au toucher en mêlée, LDB 85
-   *  p.340). PASSIF, lu par `incomingAttackMod` à la collecte des mods d'attaque — DISTINCT de `testMod`
+  /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité LDB 85 l.257, Nuée l.253).
+   *  PASSIF, lu par `incomingAttackLines` à la collecte des mods d'attaque — DISTINCT de `testMod`
    *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : `PorteeDAssaut`.
    *  Inerte dans `applyOps`. */
   | { op: 'incomingAttackMod'; mode: PorteeDAssaut; amount: number;
@@ -2596,9 +2600,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          castWard: { radiusMeters: radius },
+          castWard: { radiusMeters: radius, mod: o.mod },
         });
-        lines.push(t('op.castWard', { name: target.label, radius, src: nomDeSource(ctx) }));
+        lines.push(t('op.castWard', { name: target.label, radius, sign: o.mod >= 0 ? '+' : '−', n: Math.abs(o.mod), src: nomDeSource(ctx) }));
         break;
       }
       case 'arrowWard': {

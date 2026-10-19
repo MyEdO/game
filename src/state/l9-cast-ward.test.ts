@@ -39,7 +39,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     E.pos = { x: 15, y: 10 };
     // Aura du miracle posée sur le prêtre (rayon 4 m = 2 cases). `sourceSpellId` est stampé par `applyOps`
     // à tout effet durable issu d'un lancement (Prières comprises) : c'est LUI qui relie la chip à la fiche.
-    P.activeEffects = [{ label: 'N’écoutez point la Sorcière', bonus: 0, duration: { scale: 'rounds', left: 5 }, castWard: { radiusMeters: 4 }, sourceSpellId: 'n-ecoutez-point-la-sorciere' }];
+    P.activeEffects = [{ label: 'N’écoutez point la Sorcière', bonus: 0, duration: { scale: 'rounds', left: 5 }, castWard: { radiusMeters: 4, mod: -20 }, sourceSpellId: 'n-ecoutez-point-la-sorciere' }];
     useGame.setState({
       battle: { ...useGame.getState().battle! },
       pendingCast: { casterId: E.id, targetId: H.id, spellId: 'flechette', missile: true, focused: false, result: null },

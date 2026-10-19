@@ -751,7 +751,7 @@
       "page": 126
     },
     "capabilities": {
-      "salvo": true
+      "salvo": -10
     }
   },
   {
@@ -800,7 +800,7 @@
       "page": 124
     },
     "capabilities": {
-      "crewedTeam": true
+      "crewedTeam": -10
     }
   },
   {

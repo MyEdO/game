@@ -9,21 +9,23 @@
  *
  * PUR : aucune dépendance à la Scène (la géométrie « qui abrite qui » vit en `state/lineOfSight.ts`).
  */
-import { COUVERT_DIFFICULTES, type CouvertDifficulty, type CoverClass } from './types';
-
-/** Modificateur au Test de tir apporté par le couvert de la cible (`LDB 14 l.72/81/86`). */
-const COVER_MOD: Record<CoverClass, number> = { none: 0, imparfaite: -10, moyenne: -20, totale: -30 };
-export const coverModifier = (c: CoverClass): number => COVER_MOD[c];
+import { COUVERT_DIFFICULTES, DIFFICULTY_MODIFIERS, type CouvertDifficulty, type CoverClass } from './types';
 
 /** Classes de couvert dans l'ordre CROISSANT de protection — parallèle exact de `COUVERT_DIFFICULTES`.
  *  Source unique de l'ordre : la bijection, le cran de dégradation et le classement de l'IA en dérivent. */
 export const COVER_ORDER: readonly CoverClass[] = ['none', 'imparfaite', 'moyenne', 'totale'];
 
+/** Classe de couvert → Difficulté de tir sur qui s'y abrite (`LDB 14 l.72/81/86`). */
+const couvertEnDifficulte = (c: CoverClass): CouvertDifficulty => COUVERT_DIFFICULTES[COVER_ORDER.indexOf(c)];
+
+/** Modificateur au Test de tir apporté par le couvert de la cible : celui de sa Difficulté. */
+export const coverModifier = (c: CoverClass): number => DIFFICULTY_MODIFIERS[couvertEnDifficulte(c)];
+
 /** Le couvert LE PLUS PROTECTEUR des deux (modificateur le plus bas = rang le plus haut). Source UNIQUE
  *  de toute fusion de couvert : terrain × décor × arête au combat, et Améliorations de coque au naval
  *  (`DeckCoverClass ⊂ CoverClass`). */
 export const couvertLePlusProtecteur = (a: CoverClass, b: CoverClass): CoverClass =>
-  (COVER_MOD[b] < COVER_MOD[a] ? b : a);
+  (coverModifier(b) < coverModifier(a) ? b : a);
 
 /** Difficulté de tir → classe de couvert. Bijection sur les quatre Difficultés que la colonne
  *  « Pénalité de Couvert » porte (`AA 10 l.28-51`) : mêmes modificateurs, un rang pour un rang. */

@@ -194,7 +194,12 @@ export function qualitySocMod(w: QualityCarrier | undefined): number {
  *  et RETIRE la qualité → ces helpers ne voient plus d'Indice ici (déficit déjà appliqué). À défaut d'équipage
  *  modélisé (héros qui sert seul une pièce), l'Indice subsiste et l'arme est traitée comme maniée en solo. */
 export function crewedTeamIndice(w: QualityCarrier | undefined): number {
-  return resolveQualities(w).find((r) => r.caps?.crewedTeam)?.indice ?? 0;
+  return resolveQualities(w).find((r) => r.caps?.crewedTeam !== undefined)?.indice ?? 0;
+}
+
+/** Pénalité par Défaut redoublé de la qualité d'Arme d'équipe de `w` (MDG 12 l.460) ; `undefined` sans elle. */
+export function crewedTeamRedoublePenalty(w: QualityCarrier | undefined): QualityCapabilities['crewedTeam'] {
+  return resolveQualities(w).find((r) => r.caps?.crewedTeam !== undefined)?.caps?.crewedTeam;
 }
 
 /** DR cible du rechargement (Recharge Indice), DOUBLÉ pour une Arme d'équipe maniée seul
@@ -238,7 +243,7 @@ export function dangerousNine(w: QualityCarrier | undefined, roll: number, succe
 /** Chargeur (Indice) avant rechargement complet : À répétition (LDB 62 l.229/231) ou Salve (Aux Armes
  *  p.126) — l'arme tire Indice fois avant d'exiger un rechargement. undefined si l'arme n'en a pas. */
 export function magazineSize(w: QualityCarrier | undefined): number | undefined {
-  const r = resolveQualities(w).find((x) => x.caps?.magazine || x.caps?.salvo);
+  const r = resolveQualities(w).find((x) => x.caps?.magazine || x.caps?.salvo !== undefined);
   return r ? r.indice ?? 1 : undefined;
 }
 

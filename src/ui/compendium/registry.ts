@@ -2562,7 +2562,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Procédures / options de jeu au texte VERBATIM (Sombre Pacte, Empoignade, modes d'attaque…) —
     // cible des tooltips `CodexRef` qui portaient une paraphrase de règle (#392).
     key: 'regles', label: 'Règles de jeu', group: 'Monde',
-    build: () => regles.map((r) => depuisEnveloppe(r)),
+    // Une règle chiffrée montre les valeurs que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
+    build: () => regles.map((r) => depuisEnveloppe(r, r.rangees?.length ? {
+      sections: [{
+        title: 'Valeurs chiffrées', layout: 'list' as const,
+        rows: r.rangees.map((x): CodexRow => ({ t: 'kv', k: x.label, v: x.palier !== undefined ? DIFFICULTY_LABELS[x.palier] : `${x.valeur! >= 0 ? '+' : '−'}${Math.abs(x.valeur!)}` })),
+      }],
+    } : undefined)),
   },
 ];
 

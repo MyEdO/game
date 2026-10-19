@@ -98,6 +98,7 @@ const NOMMES = [
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',
+  'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'fixed|variable|all',
   'gable|stone-entry|chimney|sign|window-band|belfry',

@@ -392,7 +392,7 @@ export const fr = {
   'op.money.perd': 'perd',
   'op.grantNaturalWeapon': "{name} gagne l'attaque naturelle {weapon} (Dégâts {dmg}{quals}) ({src}).",
   'op.grantWeapon': '{name} invoque {item} (Dégâts {dmg}{quals}) ({src}).',
-  'op.castWard': '{name} : les Sorts visant la zone ({radius} m) subissent −20 en Langue (Magick) ({src}).',
+  'op.castWard': '{name} : les Sorts visant la zone ({radius} m) subissent {sign}{n} en Langue (Magick) ({src}).',
   'op.arrowWard': '{name} dresse un bouclier anti-flèches sur {diametre} m de diamètre : les projectiles organiques qui y entrent sont détruits ({src}).',
   'op.arrowWardCouvert': '{name} est sous le bouclier anti-flèches.',
   'op.domeWard': '{name} érige un dôme sur {diametre} m de diamètre : il octroie {trait} contre les attaques magiques ou à distance venant de l’extérieur ({src}).',
@@ -2511,9 +2511,6 @@ export const fr = {
   // ── #1318 V8c₅ — MONTURE hors de combat (`state/mount.ts`, LDB 14 l.182).
   'mount.unhorsed': '{rider} est désarçonné — sa monture ({mount}) est hors de combat.',
   // Modificateurs d'attaque du Combat monté (LDB 14 l.180/181) — composantes NOMMÉES de la modale d'attaque.
-  'mount.modSmallerTarget': 'Combat monté (cible plus petite)',
-  'mount.modTargetRider': 'Cibler le cavalier (plus petit que la monture)',
-  'mount.modDodge': 'Esquive à cheval',
 
   // ── #1318 V8c₅ — INVOCATIONS (`state/summonFlow.ts`) : placement, arrivée, dissipation.
   'summon.noRoom': '{name} ne trouve aucune case libre pour invoquer {ref}.',
