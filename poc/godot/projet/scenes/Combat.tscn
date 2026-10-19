@@ -1,15 +1,17 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
 [ext_resource type="PackedScene" path="res://scenes/Plateau2D.tscn" id="2_plateau_2d"]
 [ext_resource type="PackedScene" path="res://scenes/Plateau3D.tscn" id="3_plateau_3d"]
 [ext_resource type="PackedScene" path="res://scenes/Interface.tscn" id="4_interface"]
 [ext_resource type="Script" path="res://scripts/mesures.gd" id="5_mesures"]
+[ext_resource type="PackedScene" path="res://scenes/ModaleAttaque.tscn" id="6_modale_attaque"]
 
 [node name="Combat" type="Node"]
 script = ExtResource("1_combat")
 scene_plateau_2d = ExtResource("2_plateau_2d")
 scene_plateau_3d = ExtResource("3_plateau_3d")
+scene_modale_attaque = ExtResource("6_modale_attaque")
 
 [node name="Mesures" type="Node" parent="."]
 script = ExtResource("5_mesures")

@@ -13,6 +13,7 @@ const VOISINS: Array[Vector2i] = [
 
 @export var scene_plateau_2d: PackedScene
 @export var scene_plateau_3d: PackedScene
+@export var scene_modale_attaque: PackedScene
 
 @onready var _interface: InterfaceCombat = $Interface
 @onready var _mesures: Node = $Mesures
@@ -236,7 +237,7 @@ func _cliquer(case: Vector2i) -> void:
 	if occupant != "" and _mode != "" and _adversaires_adjacents(c).has(occupant):
 		_occupe = true
 		_rafraichir()
-		_attaquer(c.id, occupant)
+		await _attaquer_par_modale(c.id, occupant)
 		_occupe = false
 	elif _mode == "deplacer" and _atteignables.has(case):
 		var chemin: Array[Vector2i] = _atteignables[case]
@@ -267,14 +268,32 @@ func _deplacer(id: String, chemin: Array[Vector2i]) -> bool:
 	return true
 
 
+## Chemin de l'IA : le pont résout et applique sans modale.
 func _attaquer(attaquant: String, cible: String) -> bool:
 	var reponse := Pont.appeler("attaquer", {attaquant = attaquant, cible = cible})
 	if not reponse.get("ok", false):
 		return false
-	_plateau.attaquer(attaquant, cible)
-	_interface.afficher_jet(reponse.resultat, _combattant(attaquant).libelle, _combattant(cible).libelle)
-	_appliquer_vue(reponse.vue)
+	_jouer_attaque(attaquant, cible, reponse.resultat, reponse.vue)
 	return true
+
+
+## Chemin du joueur : `ModaleAttaque` (#2870) ouvre, lance, influence puis applique ou annule.
+func _attaquer_par_modale(attaquant: String, cible: String) -> void:
+	var modale: ModaleAttaque = scene_modale_attaque.instantiate()
+	add_child(modale)
+	if modale.ouvrir(attaquant, cible):
+		var issue: Dictionary = await modale.fermee
+		if issue.has("resultat"):
+			_jouer_attaque(attaquant, cible, issue.resultat, issue.vue)
+		elif issue.has("vue"):
+			_appliquer_vue(issue.vue)
+	modale.queue_free()
+
+
+func _jouer_attaque(attaquant: String, cible: String, resultat: Dictionary, vue: Dictionary) -> void:
+	_plateau.attaquer(attaquant, cible)
+	_interface.afficher_jet(resultat, _combattant(attaquant).libelle, _combattant(cible).libelle)
+	_appliquer_vue(vue)
 
 
 func _finir_tour() -> void:

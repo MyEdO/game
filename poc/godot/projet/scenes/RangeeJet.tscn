@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/rangee_jet.gd" id="1_rangee"]
+
+[node name="RangeeJet" type="VBoxContainer"]
+theme_override_constants/separation = 4
+script = ExtResource("1_rangee")
+
+[node name="Ligne" type="PanelContainer" parent="."]
+layout_mode = 2
+theme_type_variation = &"RangeeAttente"
+
+[node name="Colonnes" type="HBoxContainer" parent="Ligne"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Libelle" type="VBoxContainer" parent="Ligne/Colonnes"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.1
+theme_override_constants/separation = 0
+
+[node name="Competence" type="Label" parent="Ligne/Colonnes/Libelle"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Difficulte" type="Label" parent="Ligne/Colonnes/Libelle"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+autowrap_mode = 3
+
+[node name="Calcul" type="Label" parent="Ligne/Colonnes"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+theme_type_variation = &"CalculJet"
+
+[node name="De" type="Label" parent="Ligne/Colonnes"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_type_variation = &"Attenue"
+text = "à lancer"
+horizontal_alignment = 2
+
+[node name="DR" type="Label" parent="Ligne/Colonnes"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+theme_type_variation = &"Attenue"
+text = "—"
+horizontal_alignment = 2
+
+[node name="Mods" type="HFlowContainer" parent="."]
+layout_mode = 2
+theme_override_constants/h_separation = 5
+theme_override_constants/v_separation = 4

@@ -1,0 +1,232 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/modale_attaque.gd" id="1_modale"]
+[ext_resource type="Theme" path="res://theme/wfrp.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/RangeeJet.tscn" id="3_rangee"]
+
+[node name="ModaleAttaque" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_modale")
+
+[node name="Racine" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+
+[node name="Voile" type="ColorRect" parent="Racine"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Centre" type="CenterContainer" parent="Racine"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Cadre" type="PanelContainer" parent="Racine/Centre"]
+custom_minimum_size = Vector2(640, 0)
+layout_mode = 2
+theme_type_variation = &"CadreModale"
+
+[node name="Pile" type="VBoxContainer" parent="Racine/Centre/Cadre"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Titre" type="Label" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_type_variation = &"TitreModale"
+text = "Attaque"
+horizontal_alignment = 1
+
+[node name="SousTitre" type="Label" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+horizontal_alignment = 1
+
+[node name="Opposition" type="HBoxContainer" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Attaquant" type="VBoxContainer" parent="Racine/Centre/Cadre/Pile/Opposition"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Nom" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Attaquant"]
+layout_mode = 2
+theme_type_variation = &"TitrePanneau"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Jauge" type="ProgressBar" parent="Racine/Centre/Cadre/Pile/Opposition/Attaquant"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+theme_type_variation = &"JaugeBlessures"
+step = 1.0
+show_percentage = false
+
+[node name="Blessures" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Attaquant"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+horizontal_alignment = 1
+
+[node name="Fleche" type="VBoxContainer" parent="Racine/Centre/Cadre/Pile/Opposition"]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Arme" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Fleche"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+horizontal_alignment = 1
+
+[node name="Degats" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Fleche"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+horizontal_alignment = 1
+
+[node name="Signe" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Fleche"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+text = "→"
+horizontal_alignment = 1
+
+[node name="Cible" type="VBoxContainer" parent="Racine/Centre/Cadre/Pile/Opposition"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Nom" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Cible"]
+layout_mode = 2
+theme_type_variation = &"TitrePanneau"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="Jauge" type="ProgressBar" parent="Racine/Centre/Cadre/Pile/Opposition/Cible"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+theme_type_variation = &"JaugeBlessures"
+step = 1.0
+show_percentage = false
+
+[node name="Blessures" type="Label" parent="Racine/Centre/Cadre/Pile/Opposition/Cible"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+horizontal_alignment = 1
+
+[node name="Localisation" type="HBoxContainer" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Libelle" type="Label" parent="Racine/Centre/Cadre/Pile/Localisation"]
+layout_mode = 2
+theme_type_variation = &"Attenue"
+text = "Localisation"
+
+[node name="Choix" type="OptionButton" parent="Racine/Centre/Cadre/Pile/Localisation"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+focus_mode = 0
+
+[node name="Rangees" type="VBoxContainer" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Attaque" parent="Racine/Centre/Cadre/Pile/Rangees" instance=ExtResource("3_rangee")]
+layout_mode = 2
+
+[node name="Defense" parent="Racine/Centre/Cadre/Pile/Rangees" instance=ExtResource("3_rangee")]
+layout_mode = 2
+
+[node name="DrNet" type="Label" parent="Racine/Centre/Cadre/Pile"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"DrNet"
+horizontal_alignment = 2
+
+[node name="Phrase" type="Label" parent="Racine/Centre/Cadre/Pile"]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Critique" type="Label" parent="Racine/Centre/Cadre/Pile"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Critique"
+text = "CRITIQUE !"
+horizontal_alignment = 1
+
+[node name="Influences" type="HBoxContainer" parent="Racine/Centre/Cadre/Pile"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Relancer" type="Button" parent="Racine/Centre/Cadre/Pile/Influences"]
+layout_mode = 2
+focus_mode = 0
+text = "Relancer"
+
+[node name="PlusUnDR" type="Button" parent="Racine/Centre/Cadre/Pile/Influences"]
+layout_mode = 2
+focus_mode = 0
+text = "Chance : +1 DR"
+
+[node name="Pied" type="HBoxContainer" parent="Racine/Centre/Cadre/Pile"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="Annuler" type="Button" parent="Racine/Centre/Cadre/Pile/Pied"]
+layout_mode = 2
+focus_mode = 0
+text = "Annuler"
+
+[node name="Appliquer" type="Button" parent="Racine/Centre/Cadre/Pile/Pied"]
+visible = false
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BoutonPrimaire"
+text = "Appliquer"
+
+[node name="Lancer" type="Button" parent="Racine/Centre/Cadre/Pile/Pied"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BoutonPrimaire"
+text = "Lancer"
+
+[node name="Roulis" type="CenterContainer" parent="Racine"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Faces" type="Label" parent="Racine/Roulis"]
+layout_mode = 2
+theme_type_variation = &"DeRoulis"
+text = "00"
+horizontal_alignment = 1
+
+[node name="Cadence" type="Timer" parent="."]
+wait_time = 0.06
+
+[node name="Duree" type="Timer" parent="."]
+wait_time = 0.7
+one_shot = true
