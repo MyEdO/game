@@ -14,8 +14,10 @@ const parseur = new ConfigCommentParser()
 
 /** Les directives qui éteignent une des `regles` : la ligne de la directive, et la ligne qu'elle CIBLE
  *  selon sa forme — `-next-line` la ligne qui suit le commentaire, `-line` la sienne, `null` pour la
- *  forme bloc (`/* eslint-disable *\/`) et le commentaire de configuration, qui n'éteignent pas UNE ligne. */
+ *  forme bloc (`/* eslint-disable *\/`) et le commentaire de configuration, qui n'éteignent pas UNE ligne —,
+ *  et les `noms` de règles qu'elle nomme, lus comme oxlint (justification dès `--`, même collé ; noms séparés par virgules et blancs ; vide : directive globale). `regles` : liste, ou prédicat sur un nom. */
 export function directivesLintCiblees(texte, fichier, regles) {
+  const vise = typeof regles === 'function' ? regles : (nom) => regles.includes(nom)
   const parse = parseSync(fichier, texte)
   if (parse.errors.length) throw new Error(`${fichier}: ${parse.errors.map(e => e.message).join('; ')}`)
   const ligneDe = (pos) => texte.slice(0, pos).split('\n').length
@@ -23,17 +25,19 @@ export function directivesLintCiblees(texte, fichier, regles) {
     const d = parseur.parseDirective(c.value.trim().replace(/^oxlint(?=\b|-)/, 'eslint'))
     if (!d) return []
     let noms
-    if (d.label.startsWith('eslint-disable')) noms = Object.keys(parseur.parseListConfig(d.value))
+    if (d.label.startsWith('eslint-disable')) noms = Object.keys(parseur.parseListConfig(d.value.split('--')[0])).flatMap((cle) => cle.split(/\s+/)).filter(Boolean)
     else if (d.label === 'eslint' && c.type === 'Block') {
       const parsed = parseur.parseJSONLikeConfig(d.value)
       if (!parsed.ok) throw new Error(`${fichier}: directive invalide`)
       noms = Object.keys(parsed.config)
     } else return []
-    if (noms.length && !noms.some(n => regles.includes(n))) return []
+    if (noms.length && !noms.some(vise)) return []
     const cible = d.label === 'eslint-disable-next-line' ? ligneDe(c.end) + 1 : d.label === 'eslint-disable-line' ? ligneDe(c.start) : null
-    return [{ ligne: ligneDe(c.start), cible }]
+    return [{ ligne: ligneDe(c.start), cible, noms }]
   })
 }
+/** Le texte peut-il porter une directive ? Préfiltre de `directivesLintCiblees`, qui parse. */
+export const porteCommentaireEslint = (texte) => texte.includes('eslint') || texte.includes('oxlint')
 export function directivesLint(texte, fichier, regles) {
   return directivesLintCiblees(texte, fichier, regles).map(d => d.ligne)
 }

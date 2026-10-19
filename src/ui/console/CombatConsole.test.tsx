@@ -7,34 +7,34 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGame, movementRemaining, type BattleState } from '../state/store';
-import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
-import { contractDisease } from '../engine/disease';
-import { syncDerivedConditions, stacks } from '../engine/conditions';
-import type { Combatant, ConditionInstance, ItemInstance, ShipPoste, Weapon } from '../engine/types';
-import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon } from '../engine/items';
-import { weaponLoaded } from '../engine/weaponLoad';
-import { t } from '../i18n';
-import { visibleFocusables } from './focus';
-import { nomAccessible } from './nomsAccessibles.testkit';
-import { sousLayoutJsdom } from './layoutJsdom.testkit';
-import { hotbar } from '../state/hotbarBridge';
-import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../data/index';
-import { ActiveModal } from './ActiveModal';
-import { vehicleCombatant } from '../engine/vehicle';
-import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry';
-import { emptyScene } from '../state/scene';
-import { mdToText } from './Prose';
+import { useGame, movementRemaining, type BattleState } from '../../state/store';
+import { createHero } from '../../engine/character';
+import { makeRNG } from '../../engine/dice';
+import { contractDisease } from '../../engine/disease';
+import { syncDerivedConditions, stacks } from '../../engine/conditions';
+import type { Combatant, ConditionInstance, ItemInstance, ShipPoste, Weapon } from '../../engine/types';
+import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon } from '../../engine/items';
+import { weaponLoaded } from '../../engine/weaponLoad';
+import { t } from '../../i18n';
+import { visibleFocusables } from '../focus';
+import { nomAccessible } from '../nomsAccessibles.testkit';
+import { sousLayoutJsdom } from '../layoutJsdom.testkit';
+import { hotbar } from '../../state/hotbarBridge';
+import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../../data/index';
+import { ActiveModal } from '../ActiveModal';
+import { vehicleCombatant } from '../../engine/vehicle';
+import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../state/actionRegistry';
+import { emptyScene } from '../../state/scene';
+import { mdToText } from '../Prose';
 import { CombatConsole } from './CombatConsole';
-import { TARGETING_MODES } from '../state/targetingModes';
-import { coupeAuMot } from '../lib/coupeAuMot.mjs';
-import { BORNE_DU_CORPS } from './compendium/CodexRef';
+import { TARGETING_MODES } from '../../state/targetingModes';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { BORNE_DU_CORPS } from '../compendium/CodexRef';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { baseSection, mediaBlock } from '../../scripts/guards/lib/cssCouches.mjs';
-import { hpColor, ENEMY_TINT } from '../gameIso/teamColors';
-import { srgbToLinear } from '../gameIso/shade';
+import { baseSection, mediaBlock } from '../../../scripts/guards/lib/cssCouches.mjs';
+import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
+import { srgbToLinear } from '../../gameIso/shade';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -721,7 +721,7 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     expect(CC_CSS).not.toMatch(/overflow-wrap:\s*(anywhere|break-word)/);
     expect(CC_CSS).not.toMatch(/word-break:\s*break-all/);
     // Le libellé complet reste le NOM ACCESSIBLE de l'alvéole (`aria-label`) : l'infobulle native est
-    // proscrite (cf. `console-no-title-only.test.ts`), l'ellipse ne doit pas pour autant amputer
+    // proscrite (mur `murs/console-sans-title`), l'ellipse ne doit pas pour autant amputer
     // l'information. (Une case VIDE ne porte aucun libellé : elle ne nomme aucune capacité.)
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
@@ -2069,7 +2069,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     // aucun flanc (trois remises à zéro, qui laissent le liseré de la peau intact).
     const arche = ruleOf(CC_BASE, '.cc-arch');
     for (const p of ['background-image', 'border-top']) expect(decl(arche, p), p).toBeNull();
-    expect(readFileSync(join(process.cwd(), 'src', 'ui', 'CombatConsole.tsx'), 'utf8')).toMatch(/className="cc-arch skin-pont"/);
+    expect(readFileSync(join(process.cwd(), 'src', 'ui', 'console', 'CombatConsole.tsx'), 'utf8')).toMatch(/className="cc-arch skin-pont"/);
     for (const c of ['border-right', 'border-bottom', 'border-left']) expect(decl(arche, c), c).toBe('0');
     // Une région se distingue par ses ALVÉOLES : le coin porte les tokens de case, sans plaque à lui.
     expect(decl(ruleOf(CC_BASE, '.cc-corner'), '--cc-cell-edge')).toBeTruthy();
@@ -2135,7 +2135,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
       expect(r).toBeLessThan(0.62);
     }
     // Aucune taille d'icône FIGÉE au call-site de la console (le CSS est la seule échelle).
-    const tsx = readFileSync(join(process.cwd(), 'src', 'ui', 'CombatConsole.tsx'), 'utf8');
+    const tsx = readFileSync(join(process.cwd(), 'src', 'ui', 'console', 'CombatConsole.tsx'), 'utf8');
     expect(tsx, 'taille d’icône en px au call-site : l’échelle vit au CSS').not.toMatch(/<ItemIcon[^>]*size=\{\d+\}/);
   });
 

@@ -47,6 +47,10 @@ const ATTENDU = {
     // #2626
     'scripts/guards/lib/superviserProcessus.test.mjs',
     'scripts/guards/lib/superviserProcessus.mjs',
+    // +2 le 2026-10-19 (#2586) : le suspendeur de mesure et le banc d'`arbreProcessus` écrivent pilote, script
+    // PowerShell et témoin d'armement sous un `mkdtempSync` d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/arbreProcessus.test.mjs',
+    'scripts/test/suspendeurDeMesure.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',
     // +1 le 2026-10-17 (#2586) : chaque banc de `spawnBorne` pose son fichier de sortie sous un `mkdtempSync`
@@ -69,6 +73,9 @@ const ATTENDU = {
     'scripts/guards/lib/lint-parite.test.mjs',
     'scripts/guards/lib/lint.testkit.mjs',
     'scripts/guards/lib/lintStage.mjs',
+    // +1 le 2026-10-19 (#2724) : `fichiersLus` copie les fichiers mesurés sous un `mkdtempSync` d'os.tmpdir(), retiré
+    // par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/lib/bancLister.mjs',
     'scripts/guards/lib/tsProgram.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
@@ -618,8 +625,8 @@ const ATTENDU = {
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
     // +1 le 2026-10-17 (#2586) : `protectionWorktree.mjs` est acquis par `gitPorte.mjs` (importé par
-    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`.
-    // L'arbre n'est jamais écrit.
+    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`,
+    // et `etatDuDemiRetire` n'écrit que sous un `mkdtempSync` d'os.tmpdir(), effacé par `rmSync` en finally. L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
@@ -821,6 +828,8 @@ const ATTENDU = {
     "scripts/raw/reparer-titres.mjs",
     "scripts/raw/sonde-titres.mjs",
     "scripts/raw/workflow-args.mjs",
+    // #2724 : `fichiersLus` copie sous un `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally.
+    "scripts/test/lib/bancLister.mjs",
     "scripts/test/node-tests.mjs",
     "scripts/test/verrou.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",

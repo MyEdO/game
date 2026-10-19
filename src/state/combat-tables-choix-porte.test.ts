@@ -12,7 +12,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { modalOwnerOf, seatOwns, ownsLocally } from './netOwnership';
+import { modalOwnerOf, seatOwns, ownsLocal } from './netOwnership';
 import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from './pendings';
@@ -98,7 +98,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     // COOP : la fenêtre revient au siège de la victime, jamais à l'hôte qui tient l'attaquant.
     expect(modalOwnerOf(useGame.getState())).toBe(hero.id);
     expect(seatOwns(useGame.getState(), 1, hero.id)).toBe(true);
-    expect(ownsLocally(useGame.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 
   it('PIÈGE-LAME (Critique en parant) : options + charge `bladeTrap` + enjeu des deux voies, défaut « Critique »', () => {
@@ -132,7 +132,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     expect(st.bladeTrap!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
     expect(st.outcome!.length, 'ce que chaque voie coûte est écrit sous les options').toBeGreaterThan(0);
     expect(modalOwnerOf(useGame.getState()), 'COOP : le piégeur tranche SA parade').toBe(defenseur.id);
-    expect(ownsLocally(useGame.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 });
 

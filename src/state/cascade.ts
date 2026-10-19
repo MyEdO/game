@@ -36,7 +36,7 @@ import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { dataLabel } from '../data';
-import { scheduleFlowTimer } from './combatTimers';
+import { scheduleFlowTimer } from '../lib/minuteries';
 import { journaliser } from './combatLog';
 
 /**
@@ -1141,7 +1141,7 @@ export function pushStep(set: Set, step: CascadeStep | ((index: number) => Casca
  * à qui elle appartient — plus d'UN porteur ⇒ `groupOwner` (owner `'*'` : chaque siège voit la fenêtre
  * où se tient SA rangée) ; un SEUL porteur ⇒ `actorId` = ce porteur. Sans l'un des deux, l'arbitre
  * (`modalArbiter`, entrée `cascade`) rend `undefined`, donc la fenêtre à l'HÔTE SEUL — et le siège du
- * porteur ne voit jamais sa rangée (`netOwnership.ownsLocally`).
+ * porteur ne voit jamais sa rangée (`netOwnership.ownsLocal`).
  *
  * Les mints (`rollSeam.bandStep`, `buildBatchStep`) POSENT cette possession : la garde ne corrige
  * rien, elle FERME la forme — un montage manuscrit qui la perdrait n'entre pas dans une séquence.

@@ -38,7 +38,8 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawnSync } from 'node:child_process'
-import { arretIndetermine, spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { arretIndetermine } from '../guards/lib/arretNatif.mjs'
+import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -82,7 +83,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
  */
-const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
+const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables ; etatDuDemiRetire n'écrit que sous mkdtempSync d'os.tmpdir(), effacé par rmSync en finally. "
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
 const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
@@ -125,6 +126,7 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+      'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
       'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
@@ -134,6 +136,7 @@ export const ECRIT_LU = {
       '`testsSansEcriture.mjs` refuse les mutations fs des processus Node héritant du préchargeur dans la racine, ignorés compris, et photographie état et empreintes avant/après la suite ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
       'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
+      'fichiersLus (scripts/test/lib/bancLister.mjs) copie les fichiers armés et les fichiers d’ignore suivis sous mkdtempSync de os.tmpdir(), y lance la commande du lint, puis rmSync en finally ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
@@ -478,7 +481,8 @@ export const ECRIT_LU = {
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
       '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`) ; ' +
       'protectionWorktree.mjs est acquis par gitPorte.mjs : ses écrivains retirerResiduelVide (rmdirSync) et ' +
-      'relierFichierGit (writeFileSync exclusif) ne s’appellent que depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree',
+      'relierFichierGit (writeFileSync exclusif) ne s’appellent que depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree ; ' +
+      'etatDuDemiRetire n’écrit que sous mkdtempSync d’os.tmpdir(), effacé par rmSync en finally',
   },
   'test:raw': {
     ecrit: [],
@@ -801,9 +805,9 @@ const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
 
 const arretNonConfirme = (arret) => arret?.etat !== 'mort'
 
-/** `nom PID pid` de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
+/** `nom`, suivi de `PID pid` quand il est connu, de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
 const indetermineesDe = (verdicts) =>
-  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => `${nom} PID ${verdict.arret?.pid}`)
+  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => verdict.arret?.pid == null ? nom : `${nom} PID ${verdict.arret.pid}`)
 
 /**
  * Gestionnaire de SIGINT/SIGTERM : aborte `arret`, le signal que reçoit le lanceur de chaque gate, attend que chaque

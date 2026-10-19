@@ -4,6 +4,9 @@ import { spawn } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { mesurerArbreProcessus } from './arbreProcessus.mjs'
+import { arretIndetermine } from './arretNatif.mjs'
+import { relancerApresNettoyage } from './controleEcritures.mjs'
 import { diagnosticDuLancement, diagnosticArret, spawnBorne, tuerArbre } from './processusBorne.mjs'
 import { BACKOFFS_MS, STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 
@@ -117,32 +120,14 @@ test('exception callback : arrêt du vrai hôte et fin attendue', async (t) => {
   assert.equal(r.code, 1); assert.match(r.error.message, /callback impossible/); assert.equal(demandes, 1)
 })
 
-/** Contrôle natif sans processus dont la `fin` REJETTE par `cause`, d'elle-même (`spontanee`) ou à la demande d'arrêt. */
-function controleAFinRejetee(cause, { spontanee = false } = {}) {
-  let rejeter; const demandes = []
-  const fin = new Promise((_, non) => { rejeter = non })
-  fin.catch(() => {})
-  if (spontanee) rejeter(cause)
-  return { demandes, controle: { pid: 77, pret: Promise.resolve({ pidCible: 77, instanceCible: 'fixture' }), fin, finPhysique: Promise.resolve(),
-    demanderArret(raison) { demandes.push(raison); rejeter(cause) } } }
-}
-
-test('fin native rejetée : arrêt indéterminé nommé par sa cause, jamais un rejet ni une demande d’arrêt sans motif', async (t) => {
-  const cause = Object.assign(new Error('fin native rompue'), { code: 'EFIN' })
-  const arretAttendu = { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue', cause }] }
-  const seule = controleAFinRejetee(cause, { spontanee: true })
-  const r = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: seule.controle }) })
-  assert.equal(r.code, 1); assert.deepEqual(r.arret, arretAttendu); assert.equal(r.error.code, 'EFIN'); assert.equal(r.error.cause, cause)
-  assert.deepEqual(seule.demandes, [])
-  const sansPret = controleAFinRejetee(cause, { spontanee: true })
-  sansPret.controle.pret = new Promise(() => {})
-  const p = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: sansPret.controle }) })
-  assert.deepEqual(p.arret, arretAttendu, 'une fin rejetée ne garantit plus pret : son attente ne retient pas le rendu')
-  const surException = controleAFinRejetee(cause)
-  const s = await spawnBorne({ ...banc(t), argv: [], superviser: async () => ({ hote: {}, controle: surException.controle }),
-    surControle() { throw Object.assign(new Error('callback impossible'), { code: 'ECALLBACK' }) } })
-  assert.equal(s.code, 1); assert.deepEqual(s.arret, arretAttendu); assert.equal(s.error.code, 'ECALLBACK')
-  assert.equal(surException.demandes.length, 1)
+test('une cause sans prototype levée par `surPid` arrête la vraie cible avant l’échéance et se diagnostique sans lever', async (t) => {
+  const cause = Object.create(null)
+  const r = await spawnBorne({ ...banc(t), limiteMs: 20000, argv: ['-e', 'setInterval(()=>{},1000)'], surPid() { throw cause } })
+  assert.equal(r.error, cause)
+  assert.deepEqual([r.code, r.expiree, r.arret.etat], [1, false, 'mort'], JSON.stringify(diagnosticDuLancement(r)))
+  const lignes = []
+  diagnosticArret(r, (l) => lignes.push(l))
+  assert.deepEqual(lignes, ['[gates] erreur : [object Object]'])
 })
 
 test('rejeu au chargement : l’annulation réveille l’attente du rejeu et rend l’annulation, sans second lancement', async (t) => {
@@ -168,26 +153,17 @@ test('tuerArbre : demande immédiate et résultat de l’unique fin', async () =
   const attente = tuerArbre(controle, 'cause')
   assert.deepEqual(demandes, ['cause'])
   finir({ arret }); assert.equal(await attente, arret)
-  const absent = Object.assign(new Error('arrêt sans propriétaire natif'), { code: 'CONTROLE_ABSENT' })
-  assert.deepEqual(await tuerArbre(null), { pid: undefined, etat: 'indetermine', erreurs: [{ operation: 'controle', pid: undefined, code: 'CONTROLE_ABSENT', message: 'arrêt sans propriétaire natif', cause: absent }] })
 })
 
-test('tuerArbre : une fin rejetée rend l’arrêt indéterminé nommé par sa cause', async () => {
-  const cause = Object.assign(new Error('fin native rompue'), { code: 'EFIN' })
-  const { controle, demandes } = controleAFinRejetee(cause)
-  assert.deepEqual(await tuerArbre(controle, 'cause'), { pid: 77, etat: 'indetermine', erreurs: [{ operation: 'fin', pid: 77, code: 'EFIN', message: 'fin native rompue', cause }] })
-  assert.deepEqual(demandes, ['cause'])
-})
-
-test('tuerArbre : une cause sans code garde sa chaîne, jamais son nom de classe pour code', async () => {
+test('arrêt indéterminé : une cause sans code garde sa chaîne, jamais son nom de classe pour code', () => {
   const racine = Object.assign(new Error('pipe rompu'), { code: 'EPIPE' })
   const cause = new AggregateError([racine], 'fins natives rompues')
-  const arret = await tuerArbre(controleAFinRejetee(cause).controle, 'cause')
+  const arret = arretIndetermine({ operation: 'fin', pid: 77, cause })
   assert.deepEqual(arret.erreurs.map(({ operation, code, message }) => ({ operation, code, message })), [{ operation: 'fin', code: undefined, message: 'fins natives rompues' }])
   assert.equal(arret.erreurs[0].cause, cause)
   const lignes = []
   diagnosticArret({ arret }, (l) => lignes.push(l))
-  assert.deepEqual(lignes.slice(0, 3), ['[gates] arrêt indéterminé : fin PID 77 fins natives rompues', '[gates] cause : AggregateError — fins natives rompues', '[gates] cause agrégée : EPIPE — pipe rompu'])
+  assert.deepEqual(lignes.slice(0, 2), ['[gates] arrêt indéterminé : fin PID 77 AggregateError — fins natives rompues', '[gates] cause agrégée : EPIPE — pipe rompu'])
 })
 
 test('bornes : refus avant toute factory et ouverture', () => {
@@ -211,4 +187,64 @@ test('diagnostic : une erreur sans code s’imprime sous son nom, une valeur nue
   const lignes = []
   diagnosticArret({ error: new TypeError('acquisition échouée'), defautCollecte: 'collecte rompue', arret: { etat: 'mort', erreurs: [] } }, (l) => lignes.push(l))
   assert.deepEqual(lignes, ['[gates] erreur : TypeError — acquisition échouée', '[gates] collecte : collecte rompue'])
+})
+
+/** Les lignes de `diagnosticArret(resultat)` hors projection JSON, jugées : aucune valeur absente imprimée, aucun corps (ligne
+ *  sans son contexte) répété, chaque couple code–message de chaque chaîne cité, le rôle de collecte et l'en-tête de chaque
+ *  entrée d'arrêt présents (#2586). */
+function diagnosticJuge(resultat) {
+  const lignes = []
+  diagnosticArret(resultat, (l) => lignes.push(l))
+  const lues = lignes.filter((l) => !l.startsWith('[gates] diagnostic arrêt : '))
+  const texte = lues.join('\n')
+  assert.ok(!/undefined|null/.test(texte), texte)
+  const corps = lues.map((l) => l.slice('[gates] '.length).replace(/^(?:erreur|cause|cause agrégée|collecte) : |^arrêt indéterminé : (?:\S+ )?(?:PID \d+ ?)?/, '')).filter(Boolean)
+  assert.deepEqual(corps.filter((c, i) => corps.indexOf(c) !== i), [], texte)
+  const vues = new Set()
+  const recenser = (e) => {
+    if (e == null || vues.has(e)) return
+    vues.add(e)
+    if (typeof e !== 'object') { assert.ok(texte.includes(String(e)), `${e} : ${texte}`); return }
+    assert.ok(texte.includes(e.code ? `${e.code} — ${e.message}` : e.message), `${e.code} — ${e.message} : ${texte}`)
+    recenser(e.cause); for (const c of e.errors ?? []) recenser(c)
+  }
+  recenser(resultat.error); recenser(resultat.defautCollecte); for (const e of resultat.arret?.erreurs ?? []) recenser(e)
+  if (resultat.defautCollecte) assert.match(texte, /^\[gates\] collecte : /m)
+  for (const e of resultat.arret?.erreurs ?? []) assert.ok(lues.some((l) => l.startsWith(['[gates] arrêt indéterminé :', e.operation, e.pid == null ? '' : `PID ${e.pid}`].filter(Boolean).join(' '))), texte)
+  return lues
+}
+
+test('diagnostic, banc des résultats de production : rien de perdu, rien de répété, aucun rôle ni en-tête effacé', async (t) => {
+  const err = (code, message) => Object.assign(new Error(message), { code })
+  const lanceur = err('ELANCEUR', 'lanceur cassé')
+  diagnosticJuge({ code: 1, error: lanceur, arret: arretIndetermine({ operation: 'lancement', cause: lanceur, message: 'lanceur levé : arrêt non prouvé' }) })
+  const agrege = await spawnBorne({ ...banc(t), argv: [], superviser: async () => relancerApresNettoyage(err('EPANNE', 'écouteur de l’hôte levé'), () => { throw err('EBUSY', 'rmdir occupé') }) })
+  assert.equal(agrege.error.name, 'AggregateError')
+  assert.ok(diagnosticJuge(agrege).includes('[gates] cause agrégée : EPANNE — écouteur de l’hôte levé'))
+  const parent = err('EPARENT', 'parent disparu')
+  const certifie = { pid: 9, etat: 'indetermine', erreurs: [parent, 'EWORKER statut non nul', 'EWORKER statut non nul'].flatMap((cause) => arretIndetermine({ operation: 'cloture', pid: 9, cause }).erreurs) }
+  assert.deepEqual(diagnosticJuge({ code: 1, error: parent, arret: certifie }), ['[gates] erreur : EPARENT — parent disparu', '[gates] arrêt indéterminé : cloture PID 9', '[gates] arrêt indéterminé : cloture PID 9 EWORKER statut non nul'])
+  const vue = err('EMESURE', 'vue absente')
+  assert.deepEqual(diagnosticJuge({ code: 1, error: new Error('lancement interrompu ou arrêt non confirmé', { cause: vue }), defautCollecte: vue, arret: { pid: 3, etat: 'mort', erreurs: [] } }),
+    ['[gates] erreur : Error — lancement interrompu ou arrêt non confirmé', '[gates] collecte : EMESURE — vue absente'])
+  diagnosticJuge({ code: 1, error: new Error('lancement interrompu ou arrêt non confirmé', { cause: err('ETIMEDOUT', 'échéance 20 ms') }),
+    arret: arretIndetermine({ operation: 'cloture', pid: 4, cause: err('ECONTROLE', 'EOF du worker avant résultat') }) })
+})
+
+test('diagnostic d’un hôte natif réellement tué : chaque message une seule fois, l’entrée d’arrêt nommée', { timeout: 30000 }, async (t) => {
+  const p = banc(t)
+  const r = await spawnBorne({ ...p, limiteMs: 20000, argv: ['-e', 'setInterval(()=>{},1000)'], surPid: () => {
+    const hote = mesurerArbreProcessus().find((h) => h.ppid === process.pid && /^(?:powershell|python)/i.test(h.nom))
+    assert.ok(hote, 'hôte natif propriétaire présent')
+    process.kill(hote.pid)
+  } })
+  assert.equal(r.arret.etat, 'indetermine', JSON.stringify(diagnosticDuLancement(r)))
+  const lignes = []
+  assert.equal(diagnosticArret(r, (l) => lignes.push(l)), true)
+  const lues = lignes.filter((l) => !l.startsWith('[gates] diagnostic arrêt : '))
+  const messages = new Set()
+  const recenser = (e) => { if (e && typeof e === 'object') { messages.add(e.message); recenser(e.cause); for (const c of e.errors ?? []) recenser(c) } }
+  recenser(r.error); for (const e of r.arret.erreurs) recenser(e)
+  for (const message of messages) assert.equal(lues.filter((l) => l.endsWith(message)).length, 1, message + ' : ' + JSON.stringify(lues))
+  assert.ok(lues.some((l) => l.startsWith(`[gates] arrêt indéterminé : ${r.arret.erreurs[0].operation} PID ${r.arret.pid}`)), JSON.stringify(lues))
 })

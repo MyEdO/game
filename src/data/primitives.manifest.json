@@ -2,9 +2,9 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "label": "mesurerArbreProcessus/gardienDisparu/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "inspection des identités PID et création et chaîne des ancêtres validée par dates et protégée des cycles",
+    "concept": "inspection des identités PID et création, disparition d’un gardien jugée sur la vue ou, vue en échec, sur son PID daté, et chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "protection Git et supervision des hooks, publication isolée ; inspection sans autorité de clôture",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
@@ -172,7 +172,7 @@
     "css": "src/ui/styles/option-chooser.css",
     "poseurs": [
       "src/ui/CastModal.tsx",
-      "src/ui/PortraitPicker.tsx",
+      "src/ui/console/PortraitPicker.tsx",
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
@@ -380,7 +380,7 @@
   {
     "id": "netOwnership",
     "type": "primitives.manifest",
-    "label": "ownsLocally/pilotedByHuman/aiDriven/siegesRequis",
+    "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
     "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
@@ -1141,12 +1141,12 @@
     "id": "combatConsole",
     "type": "primitives.manifest",
     "label": "CombatConsole",
-    "fichier": "src/ui/CombatConsole.tsx",
+    "fichier": "src/ui/console/CombatConsole.tsx",
     "css": "src/ui/styles/combat-console.css",
     "nature": "organisme",
     "concept": "LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte",
     "perimetre": "HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette",
-    "verrou": "src/ui/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
+    "verrou": "src/ui/console/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
   },
   {
     "id": "combatStartSplash",
@@ -1907,7 +1907,7 @@
     "fichier": "src/lib/stockageWeb.ts",
     "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
+    "verrou": "src/lib/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/lib/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",
@@ -1975,10 +1975,19 @@
   {
     "id": "processusBorne",
     "type": "primitives.manifest",
-    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret/arretIndetermine",
+    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
     "fichier": "scripts/guards/lib/processusBorne.mjs",
-    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
+    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe ; diagnostic d’arrêt qui imprime chaque message une seule fois",
     "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
+    "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "arretNatif",
+    "type": "primitives.manifest",
+    "label": "arretIndetermine/texteDeCause",
+    "fichier": "scripts/guards/lib/arretNatif.mjs",
+    "concept": "arrêt `indetermine` d'une opération sur un PID, nommé par le code et le texte de sa cause gardée entière ; texte total d’une cause quelconque (message, marque d’objet ou primitive) qui ne lève jamais ; partagé par le superviseur natif, l'adaptateur borné et le lanceur des gates",
+    "perimetre": "tout arrêt de processus non prouvé mort",
     "verrou": "processusBorne.test.mjs"
   },
   {

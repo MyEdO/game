@@ -1,9 +1,9 @@
 import { Fragment, useState, type ReactNode } from 'react';
-import { CharFrame } from './CharFrame';
-import { PanneauParametre, type ParamOption } from './PanneauParametre';
-import { GatedAction } from './GatedAction';
-import { Icon } from './Icon';
-import type { Combatant } from '../engine/types';
+import { CharFrame } from '../CharFrame';
+import { PanneauParametre, type ParamOption } from '../PanneauParametre';
+import { GatedAction } from '../GatedAction';
+import { Icon } from '../Icon';
+import type { Combatant } from '../../engine/types';
 
 /**
  * CASE D'AFFECTATION — affordance UNIQUE « qui est affecté ici, et comment en ajouter un » : les

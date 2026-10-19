@@ -9,7 +9,6 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { admettreLancementNode, collecterMemoire, decomposerOptionsNode, environnementDeLaMesure, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
-import { lancerProcessusSupervise } from '../guards/lib/superviserProcessus.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 
 const gate = fileURLToPath(new URL('./memoire-precharge.cjs', import.meta.url))
@@ -46,7 +45,7 @@ test('acquisition : un historique au-delà du disponible refuse avant tout lance
   const racine = temporaire(t, 'memoire-acquisition-refus-'), fichier = 'lourd.test.mjs', mesures = mesuresEnMemoire()
   writeFileSync(join(racine, fichier), 'export {}')
   const p = { racine, fichiers: [fichier], argv: ['--test'], env: { WFRP_TEST_MEMOIRE_MO: '2048', WFRP_TEST_COEURS: '4' }, mesures,
-    superviser: projection, journal() {}, limiteMs: 5000 }
+    journal() {} }
   const [entree] = profilsDuLancement(p).entrees
   const historique = { fichier, blob: entree.blob, picOctets: 3 * 2 ** 30, parentOctets: 2 ** 28, descendantsInclus: true, metrique: 'working-set' }
   for (const [cas, profil, forcer] of [['périmé', { ...historique, blob: 'perime' }, false], ['forcé', historique, true]]) {
@@ -54,21 +53,6 @@ test('acquisition : un historique au-delà du disponible refuse avant tout lance
     const r = await lancerNodeMesure({ ...p, forcer, platform: 'win32' })
     assert.deepEqual([r.code, r.refus, r.admission?.minimumOctets, r.message], [CODE_DIFFERE, 'MEMOIRE_INSUFFISANTE', 3 * 2 ** 30 + 2 ** 28, '[memoire] MEMOIRE_INSUFFISANTE : minimum 3328 Mo, disponible 2048 Mo'], cas)
   }
-})
-
-test('arrêt : une fin native rejetée rend l’arrêt indéterminé, nommé au rendu et au journal', async (t) => {
-  const racine = temporaire(t, 'memoire-fin-rejetee-'), fichier = 'cible.test.mjs', journaux = []
-  writeFileSync(join(racine, fichier), 'export {}')
-  const perte = Object.assign(new Error('fin native perdue'), { code: 'FIN_PERDUE' })
-  const controle = { pid: 42, phase: 'execution', pret: new Promise(() => {}), demanderArret() {}, get fin() { return Promise.reject(perte) } }
-  const superviser = Object.assign(async () => ({ hote: {}, controle }), { optionsEffectives: projection.optionsEffectives })
-  const r = await lancerNodeMesure({ racine, fichiers: [fichier], argv: ['--test'], env: { WFRP_MEMOIRE_DOSSIER: racine }, mesures: mesuresEnMemoire(),
-    superviser, journal: (s) => journaux.push(s), limiteMs: 5000, platform: 'win32' })
-  assert.equal(r.arret.etat, 'indetermine')
-  assert.deepEqual(r.arret.erreurs.map(({ operation, pid, code, message }) => ({ operation, pid, code, message })),
-    [{ operation: 'fin', pid: 42, code: 'FIN_PERDUE', message: 'fin native perdue' }])
-  assert.equal(r.arret.erreurs[0].cause, perte)
-  assert.equal(journaux.filter((s) => s.includes('arrêt indéterminé : fin PID 42 FIN_PERDUE — fin native perdue')).length, 1, journaux.join('\n'))
 })
 
 test('lecture des sources : ENOENT signe le vide, toute autre erreur lève telle quelle', (t) => {
@@ -92,7 +76,7 @@ test('options Node : gate CJS première, précharges homonymes conservées et ga
 test('options incompatibles : alias snapshots et isolation none refusés avant toute factory', async (t) => {
   const racine = temporaire(t, 'memoire-refus-options-')
   for (const argv of [['--snapshot-blob=x'], ['--snapshot_blob', 'x'], ['--build_snapshot'], ['--test-isolation=none'], ['--experimental_test_isolation', 'none']]) {
-    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, superviser: () => assert.fail('cible interdite'), journal() {}, platform: 'win32' })
+    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, journal() {}, platform: 'win32' })
     assert.equal(r.code, 2)
     assert.equal(r.arret.etat, 'mort')
     assert.match(r.error.message, /snapshot|isolation/)
@@ -407,28 +391,18 @@ function bancMesurePhysique(t) {
   writeFileSync(join(racine, fichier), `import {appendFileSync} from 'node:fs';import {test} from 'node:test';appendFileSync(${JSON.stringify(executions)},'x');test('verdict',()=>{throw Error('rouge utile')})`)
   const mesures = mesuresEnMemoire(), env = { ...process.env }, journaux = []
   delete env.NODE_TEST_CONTEXT
-  return { fichier, executions, mesures, journaux, p: { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s), limiteMs: 20000 } }
+  return { fichier, executions, mesures, journaux, p: { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s) } }
 }
 
-test('#2586 lancement node sous Linux : aucune vue demandée, verdict utile en concurrence fixe, aucun profil ; forcé, échoue fermé ENONSUPPORTE sans lancement', async (t) => {
+test('#2586 lancement node sous Linux : aucune collecte, verdict utile en concurrence fixe, aucun profil ; forcé, échoue fermé ENONSUPPORTE sans lancement', async (t) => {
   const { executions, mesures, journaux, p } = bancMesurePhysique(t)
-  const vues = [], lances = []
-  const superviser = async (commande, args, options) => {
-    lances.push(args)
-    const lancement = await lancerProcessusSupervise(commande, args, options)
-    const mesurerDomaine = lancement.controle.mesurerDomaine
-    lancement.controle.mesurerDomaine = (...a) => { vues.push(a); return mesurerDomaine(...a) }
-    return lancement
-  }
-  const r = await lancerNodeMesure({ ...p, superviser, platform: 'linux' })
-  assert.deepEqual([r.code, r.arret.etat, r.concurrence, r.memoire, vues.length], [1, 'mort', 1, undefined, 0], journaux.join('\n'))
-  assert.equal(lances.length, 1)
-  assert.ok(lances[0].includes('--test-concurrency=1'), JSON.stringify(lances))
+  const r = await lancerNodeMesure({ ...p, platform: 'linux' })
+  assert.deepEqual([r.code, r.arret.etat, r.concurrence, r.memoire], [1, 'mort', 1, undefined], journaux.join('\n'))
   assert.equal(readFileSync(executions, 'utf8'), 'x')
   assert.equal(mesures.memos['memoire-node.json'], undefined)
   assert.ok(journaux.includes('[memoire] mesure indisponible sous linux, concurrence fixe 1 : court.test.mjs'), journaux.join('\n'))
   journaux.length = 0
-  const force = await lancerNodeMesure({ ...p, superviser: () => assert.fail('aucun lancement'), platform: 'linux', forcer: true })
+  const force = await lancerNodeMesure({ ...p, platform: 'linux', forcer: true })
   assert.deepEqual([force.code, force.error?.code, force.arret.etat], [2, 'ENONSUPPORTE', 'mort'], journaux.join('\n'))
   assert.equal(readFileSync(executions, 'utf8'), 'x')
   assert.deepEqual(journaux, ['[memoire] ENONSUPPORTE : --reacquerir-memoire : mesure mémoire indisponible sous linux'])

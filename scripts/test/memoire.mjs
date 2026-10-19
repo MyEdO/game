@@ -130,7 +130,7 @@ export function admettreLancementNode({ fichiers, profils, parentOctets, disponi
 }
 
 export function collecterMemoire({ controle, pid = controle?.pid, fichiers, racine, dossier, generation, mesurer = mesurerProcessusWorktrees,
-  surVue = () => {}, platform = process.platform, maintenant = Date.now }) {
+  platform = process.platform, maintenant = Date.now }) {
   const pics = new Map(), emissions = new Map(), entrees = new Map(fichiers.map((f) => [empreinte(f), f]))
   const engagements = new Map(), enSuspens = new Map()
   let parentOctets = 0, metrique, defaut, cloturee = false, valides = 0, rejets = 0, premiereCause, resultatQualite = 'en-cours'
@@ -292,7 +292,6 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
     for (const [fichier, somme] of sommes) pics.set(fichier, Math.max(pics.get(fichier) ?? 0, somme))
     valides++
     cibleAcquittee ||= [...engagements.values()].some((d) => d.type === 'parent')
-    surVue(vue)
   }
   return {
     get defaut() { return defaut },
@@ -339,11 +338,11 @@ const aConcurrenceSansProfil = (argv, fichiers) => {
  *  ou acquisition, collecte (`collecterMemoire`). Sous toute autre `platform`, l'hôte ne sert aucune vue : lancement
  *  à `CONCURRENCE_SANS_PROFIL`, rien d'appris, raison au journal ; `forcer` y échoue fermé en `ENONSUPPORTE`
  *  (#2586 c.6245552712). */
-export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, limiteMs = 30 * 60_000,
-  mesures, forcer = false, journal = console.log, superviser = lancerProcessusSupervise, mesurer = mesurerProcessusWorktrees, surControle,
-  platform = process.platform }) {
+export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, mesures, forcer = false,
+  journal = console.log, platform = process.platform }) {
+  const limiteMs = 30 * 60_000
   const diffuser = async (...argumentsSupervision) => {
-    const lancement = await superviser(...argumentsSupervision)
+    const lancement = await lancerProcessusSupervise(...argumentsSupervision)
     lancement.hote.stdout?.on('data', (d) => process.stdout.write(d))
     lancement.hote.stderr?.on('data', (d) => process.stderr.write(d))
     return lancement
@@ -366,7 +365,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     }
   }
   try { environnementDeLaMesure(env, argv, racine) } catch (error) { return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } } }
-  const profils = profilsDuLancement({ racine, fichiers, argv, env, mesures, superviser })
+  const profils = profilsDuLancement({ racine, fichiers, argv, env, mesures })
   const acquisition = forcer || profils.entrees.some((e) => !e.utilisable)
   const parentOctets = Math.max(0, ...profils.entrees.map((e) => e.historique?.parentOctets ?? 0))
   const disponible = () => ({ disponibleOctets: memoireDisponibleMo(env) * 2 ** 20, cpus: coeurs(env, availableParallelism) })
@@ -416,12 +415,9 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
       env: { ...environnementDeLaMesure(env, args, racine), WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation },
       signal: signalCompose, limiteMs, fichier: join(dossier, 'lancement.log'), maxBuffer: 16 * 2 ** 20,
       superviser: diffuser,
-      surControle: (vu) => {
-        controle = vu
-        surControle?.(vu)
-      },
+      surControle: (vu) => { controle = vu },
       surPid: (pidCible) => {
-        collecte = collecterMemoire({ controle, pid: pidCible, fichiers, racine, dossier, generation, mesurer })
+        collecte = collecterMemoire({ controle, pid: pidCible, fichiers, racine, dossier, generation })
         const echantillonner = () => {
           if (controle.phase !== 'execution') { clearInterval(minuterie); return }
           collecte.echantillonner()

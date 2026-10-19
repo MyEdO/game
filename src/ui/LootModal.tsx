@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { ownsLocal } from './ownership';
+import { ownsLocal } from '../state/netOwnership';
 import { Modal } from './Modal';
 import { GearAssignList } from './GearAssignList';
 import { RewardRecap } from './RewardRecap';

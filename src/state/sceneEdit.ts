@@ -589,9 +589,9 @@ export function setSceneFlags(scene: Scene, patch: Record<string, boolean>): Sce
 }
 
 /** Patche les champs de HAUT NIVEAU d'une entité (facing/label/crewIds/upgrades/light/statblock/foot…) —
- *  fusion superficielle. No-op si l'entité est absente. Source unique du câblage de données d'entité,
- *  partagée par `buildScene` (coque-navire : équipage/upgrades exposés, MDG 14) et l'inspecteur. */
-export function patchEntity(scene: Scene, id: string, patch: Partial<SceneEntity>): Scene {
+ *  fusion superficielle. No-op si l'entité est absente. Écriture mécanique privée au module : la porte
+ *  publique est `editEntity`, qui la compose avec le seam d'assise. */
+function patchEntity(scene: Scene, id: string, patch: Partial<SceneEntity>): Scene {
   return { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
 }
 
@@ -729,8 +729,9 @@ export function moveEntityTo(scene: Scene, id: string, to: Pt): Scene {
 }
 
 /** Patche le sous-objet `combat` d'une entité SANS écraser l'existant (fusionne skills/spells/optionals/
- *  hiddenUntilCombat). Qualifie p.ex. un servant-ref au bon Groupe de Projectiles (AA 10 l.142). No-op si absente. */
-export function patchEntityCombat(scene: Scene, id: string, patch: Partial<NonNullable<SceneEntity['combat']>>): Scene {
+ *  hiddenUntilCombat). No-op si absente. Écriture mécanique privée au module : la porte publique est
+ *  `editEntityCombat`. AA 10 l.142 */
+function patchEntityCombat(scene: Scene, id: string, patch: Partial<NonNullable<SceneEntity['combat']>>): Scene {
   return { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, combat: { ...e.combat, ...patch } } : e)) };
 }
 

@@ -18,7 +18,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
 type NetMode = 'local' | 'host' | 'guest';
-import { CombatConsole } from './CombatConsole';
+import { CombatConsole } from './console/CombatConsole';
 import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
 import { cascadeDeTest } from '../state/cascadeTestKit';

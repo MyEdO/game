@@ -9,7 +9,7 @@ import { scanEmetteurBrut, SCAN_DIRS, PROPRIETAIRE, EMETTEURS } from '../scripts
 /**
  * Garde d'exclusivité de l'émetteur d'entrée du kit de recette (#1953) : l'émetteur brut du CDP
  * (`emetteursBruts`) n'est référencé que dans `brancherCdp`, `geste` et `frappe`
- * (`scripts/recette/lib.mjs`). Patron `stockage-web-exclusivity-guard.test.ts`.
+ * (`scripts/recette/lib.mjs`). Patron `cles-de-stockage-guard.test.ts`.
  */
 function referencesHorsEmetteurs(dirs: string[], relDe: (rel: string) => string = (rel) => rel): string[] {
   const out: string[] = [];

@@ -42,7 +42,7 @@ import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-const CONSOLE_SRC = src('../ui/CombatConsole.tsx');
+const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
 const FRISE_SRC = src('../ui/InitiativeStrip.tsx');
 const TARGETING_SRC = src('./targetingModes.ts');
 
@@ -114,7 +114,7 @@ const OFFRES_SRC = src('./registreOffres.ts');
  *  appelants) : une entrée de ces surfaces SANS porteur déclaré est skippée EN SILENCE par le socle — elle
  *  n'atteindrait donc personne. C'est ce que la garde de porteur ci-dessous refuse. */
 const OFFRES_CONSOMMEES = [...new Set(
-  [OFFRES_SRC, src('../ui/CombatConsole.tsx')]
+  [OFFRES_SRC, src('../ui/console/CombatConsole.tsx')]
     .flatMap((s) => s.split("offresDuRegistre(").slice(1).map((suite) => suite.split("'")[1]))
     .filter((s) => ACTIONS.some((a) => a.surface === s)), // écarte la DÉCLARATION du socle (son paramètre)
 )];

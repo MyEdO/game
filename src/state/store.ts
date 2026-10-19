@@ -2093,8 +2093,8 @@ export const useGame = create<GameState>((set, get) => ({
   objectifsSoldes: [],
   chapitreDepuis: null,
   clotureConsommee: false,
-  // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (aucun n'est de
-  // `GUEST_INTENTS`, cf. `guest-surface-class.test.ts`). Chez un invité ils sont INERTES — sans cette
+  // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
+  // `net/intents.ts` `CLASSE_DES_ACTIONS`). Chez un invité ils sont INERTES — sans cette
   // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
   // L'écran, lui, reste visible : il porte son refus par `GatedAction` (patron `store.ts:1942`).
   acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),

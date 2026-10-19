@@ -16,7 +16,7 @@
 // CE QUI SE MESURE : chaque rejeu imprime `MARQUE_REJEU` sur stderr. C'est le compteur de PRESSION
 // du lanceur — la mémoire système, elle, ne discrimine rien.
 import { execFileSync } from 'node:child_process'
-import { setTimeout as delai } from 'node:timers/promises'
+import minuteries from 'node:timers/promises'
 
 /** `STATUS_DLL_INIT_FAILED` (0xC0000142) : le loader a refusé d'initialiser le processus. */
 export const STATUS_DLL_INIT_FAILED = 3221225794
@@ -46,23 +46,17 @@ const codeDeLErreur = (e) => (typeof e?.status === 'number' ? e.status : null)
 
 /**
  * `execFileSync` qui REJOUE quand le processus n'a pas démarré. Même signature, même valeur de
- * retour, mêmes exceptions pour tout autre échec. `site` nomme l'appelant dans la marque de rejeu.
- * `executer` est le lanceur injectable (défaut : `execFileSync`) — même patron que l'`attendre` de
- * `reessayerAuChargement` : il rend la boucle de rejeu vérifiable sans fabriquer de processus réel.
+ * retour, mêmes exceptions pour tout autre échec. `site` nomme l'appelant dans la marque de rejeu, écrite sur
+ * stderr.
  */
-export function execFileResilient(
-  commande,
-  args,
-  options = {},
-  { site = '?', journal = process.stderr, executer = execFileSync } = {},
-) {
+export function execFileResilient(commande, args, options = {}, { site = '?' } = {}) {
   for (let essai = 0; ; essai += 1) {
     try {
-      return executer(commande, args, options)
+      return execFileSync(commande, args, options)
     } catch (e) {
       if (!estEchecDeChargement(codeDeLErreur(e)) || essai >= BACKOFFS_MS.length) throw e
       rejeux.total += 1
-      journal.write(`${MARQUE_REJEU} : ${site} — ${commande} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
+      process.stderr.write(`${MARQUE_REJEU} : ${site} — ${commande} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
       attendreSync(BACKOFFS_MS[essai])
     }
   }
@@ -71,17 +65,18 @@ export function execFileResilient(
 /**
  * Rejoue un lancement ASYNCHRONE tant qu'il rend le code du loader. `lancer()` doit RE-CRÉER tout ce
  * qui est jeté par un essai (un descripteur de fichier de sortie se réouvre en `'w'`, sans quoi le
- * second essai écrirait à la suite du premier). REND le dernier résultat, rejoué ou non. `signal` abrège l'attente
- * d'un rejeu sans le décider : l'essai suivant, que `lancer` mène sous ce signal, rend l'annulation.
+ * second essai écrirait à la suite du premier). REND le dernier résultat, rejoué ou non ; la marque de rejeu va sur
+ * stderr. `signal` abrège l'attente d'un rejeu sans le décider : l'essai suivant, que `lancer` mène sous ce signal,
+ * rend l'annulation.
  */
-export async function reessayerAuChargement(lancer, { site = '?', journal = process.stderr, attendre, signal } = {}) {
-  const patienter = attendre ?? ((ms) => delai(ms, undefined, { signal: signal ?? undefined }).catch((e) => { if (e?.name !== 'AbortError') throw e }))
+export async function reessayerAuChargement(lancer, { site = '?', signal } = {}) {
+  const patienter = (ms) => minuteries.setTimeout(ms, undefined, { signal: signal ?? undefined }).catch(() => {})
   for (let essai = 0; ; essai += 1) {
     const resultat = await lancer(essai)
     if (!estEchecDeChargement(resultat?.code) || essai >= BACKOFFS_MS.length) return resultat
     rejeux.total += 1
-    journal.write(`${MARQUE_REJEU} : ${site} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
-    await patienter(BACKOFFS_MS[essai], signal)
+    process.stderr.write(`${MARQUE_REJEU} : ${site} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
+    await patienter(BACKOFFS_MS[essai])
   }
 }
 

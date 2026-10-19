@@ -19,7 +19,7 @@ import {
 import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from './cascade';
 import { pushCombatStep } from './combatEffects';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocally, seatOwns } from './netOwnership';
+import { ownsLocal, seatOwns } from './netOwnership';
 import { PENDING_BY_JET, type PendingKey } from './stateFields';
 import type { CascadeStep } from './pendings';
 import type { GameState } from './store';
@@ -381,7 +381,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
     expect(st.groupOwner).toBeUndefined();
     expect(st.actorId, 'porteur unique → l’étape le NOMME : l’arbitre a un owner à router (sans lui : fenêtre hôte seul)').toBe('H1');
     expect(modalOwnerOf(useGame.getState())).toBe('H1');
-    expect(ownsLocally(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
     expect(seatOwns(useGame.getState(), 1, 'H1'), 'elle est au siège 1, qui possède le porteur').toBe(true);
   });
 

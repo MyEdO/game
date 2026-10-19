@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ShipStateBlock, PosteDetail, ShipInspectBody } from './ShipSheet';
-import type { Combatant, SkillInstance } from '../engine/types';
+import type { Combatant, SkillInstance } from '../../engine/types';
 
 const mk = (id: string, dex: number, skills: { id: string; advances: number; spec?: string }[] = [], shipRole?: string): Combatant =>
   ({

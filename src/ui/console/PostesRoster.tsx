@@ -1,7 +1,7 @@
-import type { Combatant } from '../engine/types';
-import { type Poste, postesOccupes } from '../state/poste';
+import type { Combatant } from '../../engine/types';
+import { type Poste, postesOccupes } from '../../state/poste';
 import { AssignRow, type ParametreAffectation } from './AssignRow';
-import { CodexRef } from './compendium/CodexRef';
+import { CodexRef } from '../compendium/CodexRef';
 
 /**
  * Décision d'épinglage au clic d'un poste (PUR, testable sans DOM) : re-cliquer le poste ÉPINGLÉ le

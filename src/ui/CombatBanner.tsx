@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGame } from '../state/store';
 import { combatFeed, narrateIntent, narrateRefus } from '../gameIso/combatNarration';
 import { eteindreRefus, REFUS_MS } from '../state/refusVisible';
-import { scheduleFlowTimer, clearTrackedTimer } from '../state/combatTimers';
+import { scheduleFlowTimer, clearTrackedTimer } from '../lib/minuteries';
 import { Icon } from './Icon';
 import { TeamSegments } from './TeamSegments';
 

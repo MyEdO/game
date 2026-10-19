@@ -326,7 +326,7 @@ describe('#1262 V2 lot 3 — les BANDES de l’Étape se possèdent (classe #126
     expect(postes.groupOwner, 'deux héros postés : fenêtre PARTAGÉE').toBe(true);
     startCascade(get, set, { title: 'Étape', purpose: 'travelDay', steps: [postes] });
     // Owner « * » : chaque siège voit la fenêtre où se tient SA rangée — jamais `undefined`, qui la
-    // rendait à l'hôte SEUL (`netOwnership.ownsLocally`), lequel jouait alors le poste de l'invité.
+    // rendait à l'hôte SEUL (`netOwnership.ownsLocal`), lequel jouait alors le poste de l'invité.
     expect(modalOwnerOf(get())).toBe('*');
 
     // Résistance de traversée (Neige, l.86) : même bande, même possession.

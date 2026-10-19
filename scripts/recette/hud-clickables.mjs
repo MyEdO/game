@@ -468,7 +468,7 @@ const PROBE = `(() => {
 /**
  * Amène le combat jusqu'aux CASES du tour d'un héros (`.combat-console button.cc-cell`). Pendant la
  * pause d'initiative de début de Round, le pont ne porte que le bandeau de phase et son bouton
- * « Commencer … » (`.cc-phase [data-action='round-start']`, `src/ui/CombatConsole.tsx`), qui n'est PAS
+ * « Commencer … » (`.cc-phase [data-action='round-start']`, `src/ui/console/CombatConsole.tsx`), qui n'est PAS
  * dans une fenêtre : `resoudreModales` ne le voit pas, et `fastForward` ne le franchit pas. Sans ce
  * clic la sonde mesurait la phase (un bouton) au lieu du pont de tour — elle ne pouvait constater
  * aucun recouvrement des cases.

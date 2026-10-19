@@ -21,7 +21,7 @@ import type { ScreenDir } from './combatCursor';
 import { surfaceTientLaMain, type ArbiterState } from './modalArbiter';
 import { modaleDuDessus } from './dismissStack';
 import { walkMs } from '../geometry/walk';
-import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
+import { clearTrackedTimer, scheduleFlowTimer } from '../lib/minuteries';
 
 /** Pas TENU, dans le vocabulaire de la vue qui l'a armé : sens ÉCRAN en vue iso, cadran CAP-RELATIF en
  *  vue subjective. Les deux vues empruntent le même mécanisme, jamais deux. */
@@ -75,8 +75,7 @@ function commettre(get: () => GameState): void {
   if (pas.vue === 'iso') s.stepPartyDir(pas.dir);
   else s.stepPartyRelative(pas.rel);
   const arrivee = get().partyPos;
-  // Timer TRACÉ (`state/combatTimers.ts`) : un `setTimeout` nu sous `src/state` est inexprimable
-  // (garde structurelle #415). La durée vient de `walkMs`, la fonction même dont le rendu déduit la fin
+  // Timer TRACÉ (`lib/minuteries.ts`, mur `murs/minuteries`, #415). La durée vient de `walkMs`, la fonction même dont le rendu déduit la fin
   // du glissement (`fx/useWalkAnim`) : un pas d'une case vaut donc STEP_MS, mur compris — un pas refusé
   // se retente au rythme des autres au lieu de marteler.
   glissement = scheduleFlowTimer(() => {
