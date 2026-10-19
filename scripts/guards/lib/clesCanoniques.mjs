@@ -51,6 +51,19 @@ const parLeMoteur = (porteur) => {
   return JSON.parse(texte)
 }
 
+/** La LECTURE de `v`, jugée une fois : `plate`, ses descripteurs propres de donnée plate (`donneePlate`), sinon `null` ;
+ *  `valeur`, `v` s'il est plat, sinon sa projection par le moteur JSON (`toJSON` reçoit '') ; `proprietes`, les
+ *  descripteurs propres de `valeur`. Tout membre de `v` se lit par `proprietes`, jamais en direct (#2586). */
+const lecture = (v) => {
+  const plate = donneePlate(v)
+  const valeur = plate ? v : parLeMoteur({ '': v })['']
+  return { plate, valeur, proprietes: plate ?? Object.getOwnPropertyDescriptors(Object(valeur)) }
+}
+/** Le membre propre `nom` d'une lecture par ses descripteurs `proprietes`, `undefined` s'il manque. */
+const membre = (proprietes, nom) => proprePropriete(proprietes, nom) ? proprietes[nom].value : undefined
+/** Vrai d'une primitive : son texte, son nom de propriété ou sa coercition n'exécutent aucun code. */
+const primitive = (x) => Object(x) !== x
+
 /** Les modes d'une clé : `texte` (projection JSON), `strict` (certifiée, `null` hors domaine), `cellules` (stricte, en cellules). */
 const MODES = Object.freeze({
   texte: Object.freeze({ strict: false, cellules: false }),
@@ -74,11 +87,12 @@ const refusNomme = (surface) => /** @type {F} */ ((...a) => {
  * Les clés d'UN évaluateur : `ferme` = noyau fermé d'un lot (IR gelée, références privées mémoïsées, forme
  * associée après clé refusée), toute clé en mode `cellules`, sans `cleCanonique` ; sinon,
  * `cleCanonique` prend son mode (`MODES`) et les clés des valeurs sont textuelles. Un argument vaut par ses valeurs et
- * sa forme : son expression et, si `litSonContexte(expression)`, son contexte entier (module, preuve booléenne, chaîne
+ * sa forme : son expression et, si `litSonContexte({ k })` (`k`, genre de l'expression lu par descripteur, primitive
+ * sinon `undefined`), son contexte entier (module, preuve booléenne, chaîne
  * d'environnements : fonction, arguments, paramètres) ; sinon, aucun contexte. Hors domaine JSON : `CLE_DOMAINE_JSON`.
  * Cellules, preuves et mémos ne sont tenus que par l'instance, jamais par la fin du job : ils meurent avec son évaluateur
  * (un lot d'`evaluerLotDuDepot`, un appel d'`evaluer`) (#2586).
- * @param {{ ferme: boolean, litSonContexte: (e: unknown) => boolean }} regime
+ * @param {{ ferme: boolean, litSonContexte: (expression: { readonly k: unknown }) => boolean }} regime
  */
 export function clesCanoniques({ ferme, litSonContexte }) {
   const referencesPrivees = new WeakMap()
@@ -348,23 +362,23 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       }
       return descripteurs.get(signature)
     }
-    /** Les descripteurs propres de `o`, jugé à la lecture : ceux de la donnée plate, sinon ceux de sa projection JSON (#2586). */
-    const descripteursDe = (o) => donneePlate(o) ?? Object.getOwnPropertyDescriptors(Object(parLeMoteur({ '': o })['']))
-    const membre = (descripteurs, nom) => proprePropriete(descripteurs, nom) ? descripteurs[nom].value : undefined
-    /** Les membres d'une forme d'argument, lus par descripteurs avant tout code de l'appelant du parcours de son argument :
-     *  l'expression et, si `litSonContexte(e)`, le contexte (module, preuve booléenne, chaîne d'environnements) (#2586). */
+    /** Les membres d'une forme d'argument, lus par leurs descripteurs (`lecture`) : l'expression `e` et sa lecture `lueE`,
+     *  instantané unique dont son genre `k` décide (`litSonContexte`) et que sa référence décrit ; si elle lit son
+     *  contexte, le contexte (module, preuve booléenne, chaîne d'environnements) (#2586). */
     const membresDeForme = (forme) => {
-      const descripteurs = descripteursDe(forme)
+      const descripteurs = lecture(forme).proprietes
       const e = membre(descripteurs, 'e')
-      if (!litSonContexte(e)) return { e, contexte: null }
-      const ctx = descripteursDe(membre(descripteurs, 'ctx'))
+      const lueE = primitive(e) ? null : lecture(e)
+      const k = lueE ? membre(lueE.proprietes, 'k') : undefined
+      if (!litSonContexte(Object.freeze({ k: primitive(k) ? k : undefined }))) return { e, lueE, contexte: null }
+      const ctx = lecture(membre(descripteurs, 'ctx')).proprietes
       const chaine = []
       for (let env = membre(ctx, 'env'); env;) {
-        const lu = descripteursDe(env)
+        const lu = lecture(env).proprietes
         chaine.push({ env, fn: membre(lu, 'fn'), args: membre(lu, 'args'), params: membre(lu, 'params') })
         env = membre(lu, 'parent')
       }
-      return { e, contexte: { f: membre(ctx, 'f'), preuveBooleenne: membre(ctx, 'preuveBooleenne'), chaine } }
+      return { e, lueE, contexte: { f: membre(ctx, 'f'), preuveBooleenne: membre(ctx, 'preuveBooleenne'), chaine } }
     }
     const contexteDe = ({ f, preuveBooleenne, chaine }) => {
       const preuve = referenceDe(preuveBooleenne)
@@ -388,11 +402,11 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     }
     /** La référence de `v`, `k` reçu par `toJSON` : la donnée plate se parcourt, toute autre valeur vaut par sa
      *  projection JSON, que `projete` parcourt sans la rejuger (`tokensDe`, `projection`) ; le `faire` de `cleCanonique`
-     *  n'en reçoit que `v`. */
-    const referenceDe = (v, k = '', projete = false) => {
+     *  n'en reçoit que `v`. `lu`, la lecture de `v` déjà jugée (`lecture`) : la référence décrit cet instantané, hors mémo. */
+    const referenceDe = (v, k = '', projete = false, lu = null) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
       if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
-      if (ferme) {
+      if (ferme && !lu) {
         const deja = references.get(v)
         if (deja !== undefined) return deja
       }
@@ -401,9 +415,9 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       const rang = pile.get(v)
       if (rang !== undefined) return !strict && formesDesArguments.has(v) ? interner(tuple('coupe', elementsDe(proprietesDeLaPile[rang], projete)))
         : interner(tuple('cycle', pile.size - rang))
-      if (references.has(v)) return references.get(v)
-      const proprietes = projete ? Object.getOwnPropertyDescriptors(v) : donneePlate(v)
-      if (!proprietes) return referenceDe(parLeMoteur({ [k]: v })[k], k, true)
+      if (!lu && references.has(v)) return references.get(v)
+      const proprietes = lu ? lu.plate : projete ? Object.getOwnPropertyDescriptors(v) : donneePlate(v)
+      if (!proprietes) return referenceDe(lu ? lu.valeur : parLeMoteur({ [k]: v })[k], k, true)
       const preuve = preuveDe(v)
       if (preuve) {
         references.set(v, preuve.cellule)
@@ -417,11 +431,13 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       pile.set(v, pile.size)
       proprietesDeLaPile.push(proprietes)
       const forme = formesDesArguments.get(v)
+      const elements = forme || Array.isArray(v) ? elementsDe(proprietes, projete) : null
       const lue = forme && membresDeForme(forme)
-      const descriptor = forme ? tuple('argument', elementsDe(proprietes, projete), referenceDe(lue.e),
+      const descriptor = forme ? tuple('argument', elements, referenceDe(lue.e, '', false, lue.lueE),
         lue.contexte ? contexteDe(lue.contexte) : null)
-        : Array.isArray(v) ? tuple('liste', elementsDe(proprietes, projete))
-        : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(proprietes[nom].value, nom, projete))))
+        : elements ? tuple('liste', elements)
+        : tuple('objet', Object.keys(proprietes).filter((nom) => proprietes[nom].enumerable).sort()
+          .map((nom) => tuple(nom, referenceDe(proprietes[nom].value, nom, projete))))
       pile.delete(v)
       proprietesDeLaPile.pop()
       const reference = interner(descriptor)
@@ -487,28 +503,55 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     }
     return JSON.stringify([referenceDe(cle), table])
   }
-  const composerCle = (...parties) => ferme && parties.some((x) => referencesBooleennes.has(x))
-    ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
-  const cleDesValeurs = (faire, racine, cache) => cleCanonique(faire, racine, cache, ferme ? 'cellules' : 'texte')
-  /** La clé d'une valeur ; un objet rendu vaut par sa clé canonique (`cleDesValeurs`). */
-  const cleDe = (v) => {
-    if ('booleen' in v) return `b${v.booleen}`
-    if ('scalaire' in v) return `s${v.scalaire}`
-    if ('native' in v) return `native:${v.native}`
-    if ('poignee' in v) return cleDesValeurs(({ referenceDe }) => referenceDe(v), v, clesDesValeurs)
-    if ('chemin' in v) return `c${v.chemin}:${v.sous ?? ''}`
-    if ('espace' in v) return `e${v.espace}:${v.cheminExterne}`
-    if ('fragment' in v) return composerCle('d', cleDe(v.fragment))
-    if ('couvertureCorpusEntier' in v) return `u${JSON.stringify({ couvertureCorpusEntier: v.couvertureCorpusEntier })}`
-    if ('texte' in v) return `t${v.texte}`
-    if ('non' in v) return `n${v.non}`
-    if ('relais' in v) return `r${v.relais}`
-    if ('fn' in v) return `f${v.fn.f}#${v.fn.id}`
-    if ('hors' in v) return 'h'
-    if ('absent' in v) return 'a'
-    return cleDesValeurs(({ referenceDe }) => referenceDe(v), v, clesDesValeurs)
+  /** La composition de clés : chaque partie est un texte ou une cellule, jugée par son type, jamais convertie. */
+  const composerCle = (...parties) => {
+    let cellule = false
+    for (let i = 0; i < parties.length; i++) {
+      if (referencesBooleennes.has(parties[i])) cellule = true
+      else if (typeof parties[i] !== 'string') throw new TypeError('CLE_PARTIE_HORS_TEXTE')
+    }
+    return ferme && cellule ? celluleDe([compositionDeCle, ...parties]) : parties.join('')
   }
-  const uniques = (vals) => ferme && vals.length < 2 ? [...vals] : [...new Map(vals.map((v) => [cleDe(v), v])).values()]
+  const cleDesValeurs = (faire, racine, cache) => cleCanonique(faire, racine, cache, ferme ? 'cellules' : 'texte')
+  /** La clé d'une valeur, lue une fois (`lecture`) : un enregistrement à membres primitifs vaut par son gabarit, tout
+   *  autre objet rendu par sa clé canonique (`cleDesValeurs`), mémoïsée pour la seule donnée plate. */
+  const cleDe = (v) => {
+    const { plate, valeur, proprietes } = lecture(v)
+    const a = (nom) => proprePropriete(proprietes, nom)
+    const m = (nom) => membre(proprietes, nom)
+    const canonique = () => cleDesValeurs(({ referenceDe }) => referenceDe(valeur), valeur, plate ? clesDesValeurs : null)
+    const ecrite = (gabarit, ...membres) => membres.every(primitive) ? gabarit(...membres) : canonique()
+    if (a('booleen')) return ecrite((b) => `b${b}`, m('booleen'))
+    if (a('scalaire')) return ecrite((s) => `s${s}`, m('scalaire'))
+    if (a('native')) return ecrite((n) => `native:${n}`, m('native'))
+    if (a('poignee')) return canonique()
+    if (a('chemin')) return ecrite((c, sous) => `c${c}:${sous ?? ''}`, m('chemin'), m('sous'))
+    if (a('espace')) return ecrite((e, externe) => `e${e}:${externe}`, m('espace'), m('cheminExterne'))
+    if (a('fragment')) return composerCle('d', cleDe(m('fragment')))
+    if (a('couvertureCorpusEntier')) return `u${JSON.stringify({ couvertureCorpusEntier: m('couvertureCorpusEntier') })}`
+    if (a('texte')) return ecrite((t) => `t${t}`, m('texte'))
+    if (a('non')) return ecrite((n) => `n${n}`, m('non'))
+    if (a('relais')) return ecrite((r) => `r${r}`, m('relais'))
+    if (a('fn')) {
+      const fn = lecture(m('fn')).proprietes
+      return ecrite((f, id) => `f${f}#${id}`, membre(fn, 'f'), membre(fn, 'id'))
+    }
+    if (a('hors')) return 'h'
+    if (a('absent')) return 'a'
+    return canonique()
+  }
+  /** Les valeurs de clés distinctes (`cleDe`) d'une liste, lue une fois par ses descripteurs (`lecture`) ; la dernière
+   *  de chaque clé, au rang de la première. */
+  const uniques = (vals) => {
+    const { valeur, proprietes } = lecture(vals)
+    if (!Array.isArray(valeur)) throw new TypeError('CLE_LISTE_ATTENDUE')
+    const elements = []
+    for (let i = 0; i < proprietes.length.value; i++) elements.push(membre(proprietes, i))
+    if (ferme && elements.length < 2) return elements
+    const parCle = new Map()
+    for (let i = 0; i < elements.length; i++) parCle.set(cleDe(elements[i]), elements[i])
+    return [...parCle.values()]
+  }
   /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
   const cleDesArgs = (args) => args ? cleDesValeurs(({ referenceDe }) => referenceDe(args), args, clesDesArguments) : ''
   const cles = { cleDesArgs: refusNomme(cleDesArgs), cleDe: refusNomme(cleDe), texteDeCle: refusNomme(texteDeCle),

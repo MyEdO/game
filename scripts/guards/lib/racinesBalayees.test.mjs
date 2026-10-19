@@ -1948,7 +1948,7 @@ test('clés canoniques : un nœud partagé par cinquante parents ne se décrit q
 })
 
 // #2586
-test('clés canoniques : aucun code de l’appelant ne s’exécute hors du moteur JSON, par map dans faire, sous un toJSON hérité en accesseur, par un toJSON frère sur une forme d’argument ni sur un tuple muté', () => {
+test('clés canoniques : aucun code de l’appelant ne s’exécute hors du moteur JSON, par map dans faire, sous un toJSON hérité en accesseur, par un toJSON frère sur une forme d’argument ni sur un tuple muté, ni par cleDe, uniques, composerCle ou litSonContexte ; une forme se décide et se décrit sur une même lecture', () => {
   let hors = 0
   const noter = () => { if (!new Error().stack.includes('JSON.stringify')) hors++ }
   const sansCodeHorsMoteur = (cas, cle) => {
@@ -1996,6 +1996,51 @@ test('clés canoniques : aucun code de l’appelant ne s’exécute hors du mote
       cles.formesDesArguments.set(args, forme)
       sansCodeHorsMoteur(`${nom} accesseur posé sur ${membre} par le toJSON d’un élément de l’argument`, () => cles.cleDesArgs(args))
     }
+    const surfaces = {
+      'cleDe({ booleen: accesseur })': () => c.cleDe({ get booleen() { noter(); return true } }),
+      'cleDe({ texte: { toString } })': () => c.cleDe({ texte: { toString() { noter(); return 'x' } } }),
+      'cleDe(proxy à piège has)': () => c.cleDe(new Proxy({ texte: 'x' }, { has(t, k) { noter(); return Reflect.has(t, k) } })),
+      'cleDe({ fn: { f: accesseur } })': () => c.cleDe({ fn: { get f() { noter(); return 'm' }, id: 1 } }),
+      'cleDe({ fragment: accesseur })': () => c.cleDe({ get fragment() { noter(); return { texte: 'x' } } }),
+      'uniques(liste à map propre)': () => {
+        const liste = [{ texte: 'a' }, { texte: 'b' }]
+        liste.map = function (f) { noter(); return Array.prototype.map.call(this, f) }
+        return c.uniques(liste)
+      },
+      'uniques(liste à itérateur propre)': () => {
+        const liste = [{ texte: 'a' }]
+        liste[Symbol.iterator] = function* () { noter(); yield* Array.prototype.values.call(this) }
+        return c.uniques(liste)
+      },
+      'composerCle(partie à toString)': () => assert.throws(() => c.composerCle('d', { toString() { noter(); return 'x' } }), /^Error: CLE_DOMAINE_JSON$/),
+    }
+    for (const [cas, cle] of Object.entries(surfaces)) sansCodeHorsMoteur(`${nom} ${cas}`, cle)
+    for (const [cas, e] of [['à k en accesseur', { get k() { noter(); return 'appel' } }], ['proxy', new Proxy({ k: 'appel' }, { get(t, k) { noter(); return Reflect.get(t, k) } })]]) {
+      const cles = clesDeLEvaluateur(regime)
+      const args = [1]
+      cles.formesDesArguments.set(args, { e, ctx: { f: 'm', preuveBooleenne: null, env: null } })
+      sansCodeHorsMoteur(`${nom} expression de forme ${cas} jugée par litSonContexte`, () => cles.cleDesArgs(args))
+    }
+    const cleDuContexte = (f) => {
+      const cles = clesDeLEvaluateur(regime)
+      const e = { k: 'lit', v: 'x' }
+      const args = [{ toJSON() { e.k = 'appel'; return 0 } }]
+      cles.formesDesArguments.set(args, { e, ctx: { f, preuveBooleenne: null, env: { fn: 'g', args: [] } } })
+      const cle = cles.cleDesArgs(args)
+      return regime ? cles.texteDeCle(cle) : cle
+    }
+    assert.notEqual(cleDuContexte('m.mjs'), cleDuContexte('n.mjs'), `${nom} genre muté par un élément : décision et description d’une même lecture`)
+    const cleDeLaForme = (contexteDe) => {
+      const cles = clesDeLEvaluateur(regime)
+      const e = { k: 'appel' }
+      const args = [1]
+      cles.formesDesArguments.set(args, { e, ctx: contexteDe(e) })
+      const cle = cles.cleDesArgs(args)
+      return regime ? cles.texteDeCle(cle) : cle
+    }
+    const contexte = { f: 'm.mjs', preuveBooleenne: null, env: null }
+    assert.equal(cleDeLaForme((e) => ({ toJSON() { e.k = 'lit'; e.x = 1; return contexte } })), cleDeLaForme(() => contexte),
+      `${nom} expression mutée par le contexte : la référence décrit la lecture décidée`)
   }
   for (const mode of ['texte', 'strict', 'cellules']) {
     sansCodeHorsMoteur(`ouvert ${mode} tuple muté en accesseur par faire`, () => ouvert.cleCanonique(({ interner, tuple }) => {

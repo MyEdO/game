@@ -1012,7 +1012,7 @@ const paresseuse = (evaluer) => (e, ctx, ...reste) => evaluer(e, Object.hasOwn(E
 
 /** Les clés canoniques de l'évaluateur du régime `ferme` (`clesCanoniques`) : la forme d'un argument porte son contexte
  *  sauf si son expression a une évaluation sans contexte (`EVALUATIONS_SANS_CONTEXTE`). */
-export const clesDeLEvaluateur = (ferme) => clesCanoniques({ ferme, litSonContexte: (e) => !Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, e?.k) })
+export const clesDeLEvaluateur = (ferme) => clesCanoniques({ ferme, litSonContexte: ({ k }) => !Object.hasOwn(EVALUATIONS_SANS_CONTEXTE, k) })
 
 /** L'évaluateur du régime `ferme` : noyau fermé d'un lot (`evaluerLotDuDepot`), clés structurelles, preuves booléennes
  *  recalculées ; sinon l'évaluateur ouvert (`evaluateurDuDepot`). */
