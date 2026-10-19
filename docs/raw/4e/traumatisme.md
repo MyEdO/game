@@ -47,8 +47,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +33 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, `src/engine/magic.ts`, +15 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme1-points-de-blessure-perte-reduction-a-terre-et-inconscient)
 
 ---
 
@@ -71,8 +70,7 @@ Exemple : BE 4, 2 PB restants, 8 Dégâts → dépassement 6 ≥ BE → **pas** 
 
 **Voir aussi** : déclenchement du Coup Critique → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) (LDB 13/14) ; tableaux complets → [§ 4](#4-tableaux-des-critiques--renvoi).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `estDebout`, `coup-a-l-il`, +106 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +28 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme2-blessures-critiques-declenchement-et-overflow)
 
 ---
 
@@ -84,8 +82,7 @@ Exemple : BE 4, 2 PB restants, 8 Dégâts → dépassement 6 ≥ BE → **pas** 
 
 **Sources RAW** : `LDB 18 l.30`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.30) → `rederiveAttack`, `useAttackJetProps`, `EtatPanel`, `OrigineCritique`, `estUnCoupCritique`, `RegimeDePorteur`, `combat-sudden-death`, `AttackResult`, `resolveAttack`, `inDeathCondition`, +11 — `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme3-retenir-ses-coups)
 
 ---
 
@@ -109,8 +106,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 
 **Voir aussi** : tables complètes → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) ; Fractures → [§ 7](#7-fractures-mineure--majeure) ; Déchirures → [§ 8](#8-déchirures-musculaires-mineure--majeure) ; Amputations → [§ 9](#9-amputation--choc-traitement-et-séquelles-permanentes).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.53-55, l.56-187) → `criticals-ldb-tete`, `CritEntry`, `dechirure-jambe-mineure`, `critEscalationSchema`, `blessure-spectaculaire`, `HealMode`, `fr`, `actBlockReason`, `MedicState`, `availableHealModes`, +168 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, +21 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme4-tableaux-des-critiques-renvoi)
 
 ---
 
@@ -128,8 +124,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 
 **Voir aussi** : [Option : Mort Subite](#6-option--mort-subite) ; Destin → [destin.md](destin.md).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.34, l.38-40) → `rederiveAttack`, `useAttackJetProps`, `appliquerMortSubite`, `EtatPanel`, `combat-sudden-death`, `relanceLaLocalisation`, `critiquesDuCoup`, `AttackResult`, `resolveAttack`, `usesSuddenDeath`, +17 — `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme5-mort-condition-et-mort-lente)
 
 ---
 
@@ -141,8 +136,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 
 **Sources RAW** : `LDB 18 l.44-46`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.44-46) → `criticals-ldb-tete`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `finishDefenseResult`, `appliquerMortSubite`, `coup-percutant`, `il-au-beurre-noir`, +55 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +9 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme6-option-mort-subite)
 
 ---
 
@@ -180,8 +174,7 @@ L'os est salement fracturé ou a éclaté : « Il est fort peu probable qu'il se
 
 **Voir aussi** : [Amputation — Membre amputé](#9-amputation--choc-traitement-et-séquelles-permanentes) ; [Guérison des Blessures Critiques](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.193-213) → `dechirure-jambe-mineure`, `availableHealModes`, `dechirure-autre-mineure`, `fracture-torse-mineure`, `trauma-fracture`, `fracture-torse-majeure`, `fracture-jambe-mineure`, `fracture-jambe-majeure`, `fracture-tete-mineure`, `fracture-tete-majeure`, +27 — `src/data/criticals.json`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/traumas.json`, `src/engine/combat.ts`, +7 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismefracture-majeure-ldb-18-l-207-213)
 
 ---
 
@@ -211,8 +204,7 @@ La Compétence Guérison ne raccourcit pas la Majeure (elle informe seulement qu
 
 **Voir aussi** : [Guérison des Blessures Critiques](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.215-231) → `dechirure-jambe-mineure`, `CritEntry`, `amputationWoundDesc`, `availableHealModes`, `dechirure-jambe-majeure`, `feuille`, `dechirure-autre-mineure`, `Amputation`, `amputationSchema`, `dechirure-autre-majeure`, +40 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/mecanique.ts`, +11 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismedechirure-musculaire-majeure-ldb-18-l-226-231)
 
 ---
 
@@ -257,8 +249,7 @@ Toute amputation nécessite une **Chirurgie** pour être traitée. La blessure n
 
 **Voir aussi** : [Chirurgie](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie) ; États → [etats.md](etats.md).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.233-285) → `cumulSchema`, `faim`, `soif`, `dechirure-jambe-mineure`, `isFumble`, `recovery`, `CritEntry`, `amputationWoundDesc`, `TraumaCumul`, `dechirure-jambe-majeure`, +64 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +14 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismesequelles-permanentes-par-partie-amputee-ldb-18-l-242-285)
 
 ---
 
@@ -282,9 +273,7 @@ Un personnage est **blessé** s'il a perdu au moins 1 PB. Il n'y a **aucune pén
 
 **Voir aussi** : Compétence Guérison → [competences.md](competences.md) (LDB 09 l.255-269) ; [Guérison des Blessures Critiques](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie) ; Faim/Soif → [§ 13](#13-faim-et-soif) (sans provisions : pas de récupération naturelle).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
-- `LDB 18` (l.289-300) → `cumulSchema`, `faim`, `soif`, `recovery`, `dechirure-jambe-majeure`, `critEscalationSchema`, `exposure`, `dechirure-autre-majeure`, `exposure-heat-drop`, `TraumaFiche`, +38 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/traumas.ts`, +13 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme10-guerison-des-points-de-blessure)
 
 ---
 
@@ -311,8 +300,7 @@ Certaines entrées exigent une **Chirurgie** (indiquée dans le résultat). Les 
 
 **Voir aussi** : Compétence Guérison → [competences.md](competences.md) ; [Fractures](#7-fractures-mineure--majeure) ; [Déchirures](#8-déchirures-musculaires-mineure--majeure) ; [Amputation](#9-amputation--choc-traitement-et-séquelles-permanentes).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.303-320) → `faim`, `soif`, `bandEntry`, `recovery`, `critEscalationSchema`, `exposure`, `ExposureKind`, `exposure-heat-drop`, `exposureTestCount`, `HealWoundsOptions`, +30 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/voyage-stakes.json`, +15 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismechirurgie-ldb-18-l-314-320)
 
 ---
 
@@ -344,9 +332,7 @@ Se débarrasser d'une Possession lourde annule 1 Test échoué.
 
 **Voir aussi** : Possessions accordant bonus/malus aux Tests d'Exposition (LDB 65 l.44 / LDB 74 p.309).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.327-334) → `faim`, `soif`, `bandEntry`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `exposure`, `ExposureKind`, +42 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/exposure.ts`, +13 fichiers
-- `LDB 65` (l.44) → `exposureTarget`, `vetements-et-accessoires`, `ItemCapabilities`, `amulette`, `bijoux`, `bottes`, `canne-de-marche`, `cape`, `capuchon`, `masque`, +29 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, `src/engine/exposure.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismefroid-ldb-18-l-334)
 
 ---
 
@@ -378,8 +364,7 @@ Test de Résistance tous les **deux jours** sans nourriture.
 
 **Voir aussi** : Provisions / rations → [deplacement.md](deplacement.md#provisions-en-voyage) (consommation par jour), [maladies.md](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (eau, rations, faim en mer) ; [Guérison des PB](#10-guérison-des-points-de-blessure) (sans provisions : pas de récupération).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.337-343) → `faim`, `soif`, `bandEntry`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, `breathHoldSeconds`, +50 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/conditions.ts`, +18 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatismenourriture-ldb-18-l-342)
 
 ---
 
@@ -397,5 +382,4 @@ Source : `LDB 18 l.346`.
 
 **Voir aussi** : États → [etats.md](etats.md) ; sorts infligeant Suffocation (Ombres étrangleuses, Transmutation de Chamon).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.346) → `faim`, `soif`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, `breathHoldSeconds`, `exposure`, +38 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/conditions.ts`, +14 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4etraumatisme14-noyade-et-suffocation)
