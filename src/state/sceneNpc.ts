@@ -6,7 +6,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneEntity } from '../noyau/monde/scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../engine/statblock';
 import { nomDePreset, presetPnjById, resolvePresetCreature } from './campaignData';
@@ -98,7 +98,7 @@ export function pnjAuPreset(presetId: string, id: string): Combatant | undefined
  *
  * DETTE DITE (#1279 S4-c, décision d'architecture commissionnée à part) : cette dérivation est
  * ÉPHÉMÈRE. Il n'existe aucun registre de Combatants persistants hors combat (`actorIn` =
- * `battle.combatants ?? party`, `state/combatants.ts`), donc ce que la partie ÉCRIRAIT sur cette
+ * `battle.combatants ?? party`, `noyau/monde/combatants.ts`), donc ce que la partie ÉCRIRAIT sur cette
  * fiche — un État d'attrition (`SequenceRoundOps.attrition`, appliqué par `sequenceRoundOps` sur des
  * porteurs résolus par `actorIn`), un mouvement de bourse (`creditBourse`/`debitBourse` écrivent
  * dans `party`) — ne s'y déposerait pas. Le lot S4-b est donc en LECTURE SEULE : le PNJ joue de sa

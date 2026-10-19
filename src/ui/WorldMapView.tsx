@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../state/carriers';
 import { useGame } from '../state/store';
-import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../state/voyageCadence';
+import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../state/travelFlow';

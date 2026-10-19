@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Combatant, ShipPoste } from '../engine/types';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 
 /**
  * RECHARGE D'UN POSTE DE NAVIRE (MDG 12 l.462 / LDB 62 l.333) — Test ÉTENDU de Projectiles du CHEF de pièce

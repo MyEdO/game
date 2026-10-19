@@ -12,7 +12,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { creditBourse, bourseOf } from './bourseFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, sequenceBoardOf } from './sequenceCore';
 import { tavernParams, potProchain } from './tavernFlow';

@@ -18,7 +18,7 @@
  */
 import { effectiveSize, type SizeCategory } from '../engine/size';
 import type { Combatant } from '../engine/types';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { findCreatureById } from '../data';
 import { presetPnjById } from '../state/campaignData';
 import { entitySize } from '../state/spawn';

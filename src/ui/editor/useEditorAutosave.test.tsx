@@ -4,9 +4,9 @@ import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveSave, __resetAutosaveForTest, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
-import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
-import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
-import { emptyScene, type Scene } from '../../state/scene';
+import { __setFabriqueIdbForTest } from '../../web/indexedDb';
+import { brancherBasesSimulees } from '../../web/indexedDb.testkit';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

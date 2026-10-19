@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { openRoundEndCascade } from '../combatFlow';
-import { startCascade } from '../cascade';
+import { startCascade } from '../../noyau/cascade';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { addCondition, stacks, hasCondition, endOfRound, COND } from '../../engine/conditions';
-import { fireConditionEffects } from '../triggeredEffects';
+import { fireConditionEffects } from '../../noyau/triggeredEffects';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence, setCadence } from '../../engine/cadence';

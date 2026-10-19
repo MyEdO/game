@@ -6,8 +6,8 @@
  * ci-dessous compare le corps ASSIS à ce que le MÊME corps rend DEBOUT.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../state/scene';
-import { seatPoseOf, seatSitHeight, type SeatPose } from '../../state/seating';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
+import { seatPoseOf, seatSitHeight, type SeatPose } from '../../noyau/monde/seating';
 import { boxUnitsPerM } from '../backends/webgl/billboardMath';
 import { entityTokenScale } from '../sizeScale';
 import { GROUND_Y, rigComposition } from '../rig/composeRig';

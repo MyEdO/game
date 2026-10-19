@@ -2,7 +2,7 @@
  * COUVERT DE DÉCOR — le couvert RENDU par le moteur égale le couvert DÉCLARÉ par la donnée
  * (#1680 ligne 14).
  *
- * `lineOfSightCover` (`state/lineOfSight.ts`) lit `PropData.opaque` par `tileBlocksSight` AVANT de lire
+ * `lineOfSightCover` (`noyau/monde/lineOfSight.ts`) lit `PropData.opaque` par `tileBlocksSight` AVANT de lire
  * `PropData.cover` : une case opaque rend « bloqué » à distance, ou force « totale » quand la cible y
  * est collée, et `continue` — la classe de `cover` n'est jamais consultée. Un décor qui déclare
  * `opaque` ET une classe autre que « totale » énonce donc une règle que le moteur n'applique nulle
@@ -13,8 +13,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { props } from '../data';
-import { emptyScene, type Scene, type SceneEntity } from './scene';
-import { lineOfSightCover } from './lineOfSight';
+import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import { lineOfSightCover } from '../noyau/monde/lineOfSight';
 
 /** Une scène nue portant le seul décor mesuré, au centre. */
 const scèneAvec = (ref: string, at: { x: number; y: number }): Scene => {

@@ -29,7 +29,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * d'étape de MODALE (surface UI distincte, Phase D) — leurs chaînes ne sont PAS du journal.
  */
 
-const SCAN_DIRS = ['src/engine', 'src/state'];
+const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
 
 /** Fichiers DISPENSÉS par NATURE (#1117) : leur sortie n'est pas une surface de JEU mais une sortie
  *  d'OUTIL de développement — la console de recette (`__wfrp.*`), lue par un développeur/recetteur,

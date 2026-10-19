@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from './corruptionFlow';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
-import { seedBattleRng, battleRng } from './battleRng';
+import { stepInteraction, rollTableStep, tableStepDef } from '../noyau/cascade';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import {
   mutationKindFor, mutationNatureRows, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,

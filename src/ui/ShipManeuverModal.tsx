@@ -7,7 +7,7 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
-import { resultLine, freeCons } from '../state/rollSeam';
+import { resultLine, freeCons } from '../noyau/rollSeam';
 
 /** Virages proposés (MDG 13 — angle abstrait, choix d'UX) : crans d'octant signés (±1 = 45°, ±2 = 90°). */
 const TURN_OPTIONS: { key: string; label: string; steps: number }[] = [

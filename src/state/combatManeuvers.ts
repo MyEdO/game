@@ -16,10 +16,10 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, GameState } from './store';
-import { facingToward } from './dir8';
+import { facingToward } from '../noyau/monde/dir8';
 import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
-import { battleRng } from './battleRng';
-import { evLines } from './combatLog';
+import { battleRng } from '../noyau/battleRng';
+import { evLines } from '../noyau/combatLog';
 import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
 import { isVehicle } from '../engine/coque';
@@ -33,29 +33,29 @@ import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, type AttackKind,
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/defs/maneuvers';
 import { findTalentById, findPsychologyById, findManeuverById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
-import { registerCascadeApplier, startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { registerCascadeApplier, startCascade } from '../noyau/cascade';
+import { freeCons } from '../noyau/rollSeam';
 import { defenseSurfaced } from './netOwnership';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { touchActors } from './combatOrParty';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { GameOp } from '../engine/ops';
 import type { IconId } from '../ui/icons';
 import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './footprint';
-import { chebyshev, type Pt } from './path';
-import { combatantsWithinRadius } from './combatGeometry';
-import { smokeZone } from './lineOfSight';
-import { clampZoneTiles, inMapBounds } from './zones';
-import { applyTriggeredEffects, maneuverEffects } from './triggeredEffects';
+import { combatDistance } from '../noyau/monde/footprint';
+import { chebyshev, type Pt } from '../noyau/monde/path';
+import { combatantsWithinRadius } from '../noyau/monde/combatGeometry';
+import { smokeZone } from '../noyau/monde/lineOfSight';
+import { clampZoneTiles, inMapBounds } from '../noyau/monde/zones';
+import { applyTriggeredEffects, maneuverEffects } from '../noyau/triggeredEffects';
 import { canTakeAction } from '../engine/conditions';
 import { isEngagedWith, longerThanShort, markAttacked } from '../engine/engagement';
 import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
-import { campSpend } from './combat/advantagePool';
+import { campSpend } from '../noyau/combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';

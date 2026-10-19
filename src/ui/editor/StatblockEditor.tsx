@@ -8,7 +8,7 @@
  * Modèle WFRP4 : on part d'une créature de BASE du bestiaire puis on la personnalise
  * (les créatures d'aventure ne sont PAS dans le bestiaire générique → custom).
  */
-import { CustomStatblock } from '../../state/scene';
+import { CustomStatblock } from '../../noyau/monde/scene';
 import { CHAR_KEYS, CHAR_LABELS, CharKey } from '../../engine/types';
 import { charAbr, creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';

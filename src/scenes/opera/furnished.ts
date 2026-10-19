@@ -1,5 +1,5 @@
 import { parterreSeatCells, puitsRim } from './floorplan';
-import type { SceneEntity } from '../../state/scene';
+import type { SceneEntity } from '../../noyau/monde/scene';
 
 /**
  * Meublage FIDÈLE du Théâtre Staatsoper d'après le plan officiel (NADJ 08 folio 38 rez / folio 39 étage, images) — la

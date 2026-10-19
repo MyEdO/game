@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { setNorthDeg } from '../../state/sceneEdit';
 import { ambientScalar } from '../../state/vision';
 import { AMBIENT_INTENSITY, shadeSousSoleil, wantsContactShadow } from '../backends/webgl/sceneMeshes';

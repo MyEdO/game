@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 import { useGame } from '../state/store';
 import { Combatant } from '../engine/types';
-import { footprintN, sizeFootprint } from '../state/footprint';
+import { footprintN, sizeFootprint } from '../noyau/monde/footprint';
 import { mountOf } from '../state/mount';
 import { previewDifficultyOf } from '../state/targetingModes';
 import { modalBlocksMapHover } from '../state/mapHover';
@@ -38,9 +38,9 @@ import { Flies } from './stage/Ambiance';
 import { cameraTargeting, VW, VH } from './stage/useStageCamera';
 import { useStagePointer } from './stage/useStagePointer';
 import { useHoverTargeting } from './stage/useHoverTargeting';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from '../state/store';
-import type { Pt } from '../state/path';
+import type { Pt } from '../noyau/monde/path';
 import type { AreteProjetee } from './stage/aretesProjetees';
 
 /** OPACITÉ de la grille TACTIQUE (encre `--iso-grid`, partagée avec l'éditeur), plus basse que celle de

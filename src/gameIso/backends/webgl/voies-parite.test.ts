@@ -6,7 +6,7 @@ import { combatantTokenScale, footprintTokenScale, sizeTokenScale } from '../../
 import { tokenBodyKind } from '../../tokenBodyKind';
 import { parseProject } from '../../../state/worldMap';
 import { creatureToCombatant } from '../../../state/spawn';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import { creatures } from '../../../data';
 import type { BattleState } from '../../../state/store';
 import type { Combatant } from '../../../engine/types';

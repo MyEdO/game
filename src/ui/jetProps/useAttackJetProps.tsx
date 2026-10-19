@@ -8,7 +8,7 @@ import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attack
 import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { peutEtreEmpoigne } from '../../engine/grapple';
-import { combatDistance } from '../../state/footprint';
+import { combatDistance } from '../../noyau/monde/footprint';
 import { attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
 import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
@@ -22,10 +22,10 @@ import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from '../rollRowBuild';
 import { VsHeader } from '../VsHeader';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
-import { ev } from '../../state/combatLog';
+import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { Row } from '../Layout';
-import { composeRollLabel } from '../../state/rollSeam';
+import { composeRollLabel } from '../../noyau/rollSeam';
 import { testSkillLabel } from '../../data';
 
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou

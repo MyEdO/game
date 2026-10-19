@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { gatherInnInfo, innGatherInfoMinutes } from './innFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';

@@ -9,15 +9,15 @@ import { setStageRendererFactory } from './GameStage3D';
 import { battreStageFrames } from './stageFrames';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { useGame, type BattleState } from '../../state/store';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../state/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * LES PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — « le geste vit sur ce qui l'offre » :

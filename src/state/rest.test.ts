@@ -6,7 +6,7 @@ import type { HitLocation } from '../engine/types';
 const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, s, loc), opts, loc);
 import { contractDisease } from '../engine/disease';
 import { hasCondition, stacks } from '../engine/conditions';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { dayPhase, MINUTES_PER_DAY } from '../engine/clock';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';

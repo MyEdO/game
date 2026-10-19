@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NarratedSegments } from './NarratedLine';
 import { Icon } from './Icon';
-import type { CombatEvent } from '../state/combatLog';
+import type { CombatEvent } from '../noyau/combatLog';
 import { Prose } from './Prose';
 
 /** Forme minimale acceptée pour les combattants (suffit à `narrateEvent` — id/label/kind). */

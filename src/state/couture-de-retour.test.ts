@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene } from './scene';
-import { flowFromEffects } from './flow';
+import { emptyScene } from '../noyau/monde/scene';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { applyEffects } from './combatEffects';
 import { finalizeBattle } from './combatFlow';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { touchActors } from './combatOrParty';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { contractDisease, tickDisease } from '../engine/disease';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
@@ -272,7 +272,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/data/index.ts | xp: number;': 'type',
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
     'src/state/advancement.ts | xp: number;': 'type',
-    'src/state/pendings.ts | xp: number;': 'type',
+    'src/noyau/pendings.ts | xp: number;': 'type',
     'src/ui/creator/CreatorDice.tsx | xp: number;': 'type',
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
     'src/state/advancement.ts | xp: hero.xp ?? 0,': 'lecture',

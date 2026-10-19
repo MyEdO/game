@@ -4,13 +4,13 @@
  * Round REPOSE l'État en NOMMANT sa cause. La cause est ici la rangée 81-87 de la Colère des dieux
  * (« Purifier la chair », `LDB 40 l.75`), lue dans la DONNÉE — pas un op forgé.
  *
- * `src/state/battleRng.ts` ensemence par l'horloge à l'import : toute sonde sème (`seedBattleRng`).
+ * `src/noyau/battleRng.ts` ensemence par l'horloge à l'import : toute sonde sème (`seedBattleRng`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import './combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `end-of-round`)
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { makeRNG, type RNG } from '../engine/dice';
 import { applyOps, type GameOp } from '../engine/ops';

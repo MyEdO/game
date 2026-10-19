@@ -13,7 +13,7 @@ import { closeSequenceRound, type MancheClose } from './sequenceCore';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 const RULE = 'combat-aa-avantage-groupe';
 

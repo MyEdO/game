@@ -4,7 +4,7 @@ import type { Combatant, ShipPoste, SkillInstance } from '../engine/types';
 import type { FireArc } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { rollCrewRole } from './shipManeuver';
 import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';

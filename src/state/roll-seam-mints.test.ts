@@ -15,15 +15,15 @@ import {
   monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep,
   pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand,
   type BuiltCascadeStep, type HostSpec,
-} from './rollSeam';
-import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from './cascade';
+} from '../noyau/rollSeam';
+import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from '../noyau/cascade';
 import { pushCombatStep } from './combatEffects';
 import { modalOwnerOf } from './modalArbiter';
 import { ownsLocal } from './netOwnership';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import type { PendingKey } from './stateFields';
-import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
-import type { CascadeStep } from './pendings';
+import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
+import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from './store';
 import { nightBands } from './nightBands';
 import type { Combatant, Weapon } from '../engine/types';

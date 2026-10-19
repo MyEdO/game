@@ -2,7 +2,7 @@
  * Types d'APPARENCE d'authoring (sélections cosmétiques) — couche NEUTRE partagée : l'éditeur/scène
  * (`state`) les AUTHORE, le Combattant (`engine`, `Combatant.appearanceOverride`) les PORTE bruts, le
  * rig (`gameIso`) les RÉSOUT au rendu. Vivent ici (moteur) pour qu'aucun consommateur n'inverse les
- * couches (#187 : `Combatant` n'a plus à référencer `state/scene` pour son override d'apparence).
+ * couches (#187 : `Combatant` n'a plus à référencer `noyau/monde/scene` pour son override d'apparence).
  * Structurels purs (aucune valeur SVG/rendu) : les arts résolus vivent dans `gameIso/rig`.
  */
 

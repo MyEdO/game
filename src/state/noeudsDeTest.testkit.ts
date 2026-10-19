@@ -25,13 +25,13 @@ import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types'
 import { contractDisease, tickDisease } from '../engine/disease';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import type { GameState } from './store';
-import type { Flow, FlowTest } from './flow';
+import type { Flow, FlowTest } from '../noyau/monde/flow';
 import type { Get } from './flowTypes';
-import type { CascadeStep } from './pendings';
-import { battleRng } from './battleRng';
+import type { CascadeStep } from '../noyau/pendings';
+import { battleRng } from '../noyau/battleRng';
 import { draineCascade } from './cascadeTestKit';
 import { sceneLieu } from './restFlow';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 

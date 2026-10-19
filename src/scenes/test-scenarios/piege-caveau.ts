@@ -1,8 +1,8 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects, testFlow, type Condition } from '../../state/flow';
+import { flowFromEffects, testFlow, type Condition } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Le Caveau piégé » — VITRINE du système Flow + Condition en DONNÉES pures (zéro code applicatif).

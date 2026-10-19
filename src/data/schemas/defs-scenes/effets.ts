@@ -1,8 +1,8 @@
 import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 /**
- * EFFETS DE SCÈNE — les 57 variantes de l'union `Effect` (`src/state/scene.ts`) en zod, plus le
+ * EFFETS DE SCÈNE — les 57 variantes de l'union `Effect` (`src/noyau/monde/scene.ts`) en zod, plus le
  * `Flow<Effect>` de scène. Avec la feuille `ops` (`EffectOp`, possédée par la grammaire), l'union
- * compte 58 membres — le compte que porte le doc généré `docs/campagne-effects.md`. C'est la DÉFINITION : `state/scene.ts` en dérive ses alias par
+ * compte 58 membres — le compte que porte le doc généré `docs/campagne-effects.md`. C'est la DÉFINITION : `noyau/monde/scene.ts` en dérive ses alias par
  * `z.infer` ; seules les deux variantes qui portent un `Flow` (`delayedEffect`, `petitePriere`)
  * gardent un corps manuscrit, parce qu'`Effect` et `Flow<Effect>` sont MUTUELLEMENT récursifs et
  * qu'une récursion mutuelle en deux `discriminatedUnion` inférés ne compile pas (TS7022) : le
@@ -23,7 +23,7 @@ import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { Effect } from '../../../state/scene';
+import type { Effect } from '../../../noyau/monde/scene';
 import type { Flow } from '../../../engine/flowCore';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -589,7 +589,7 @@ export const petitePriereSchema = z.strictObject({
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** `Effect` (`state/scene.ts`) — l'union des 59 variantes. ANNOTÉE par le type manuscrit : la
+/** `Effect` (`noyau/monde/scene.ts`) — l'union des 59 variantes. ANNOTÉE par le type manuscrit : la
  *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
  *
  *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il

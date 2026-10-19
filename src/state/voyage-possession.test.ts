@@ -17,22 +17,22 @@
  * bande de Résistance de traversée naissaient de littéraux SANS possession — même fenêtre hôte-seul.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildSeaPlan, runSeaDay, resolvePortArrival } from './seaVoyageFlow';
 import { buildStageSteps, buildWeatherResistanceSteps } from './travelPostes';
-import { startCascade } from './cascade';
+import { startCascade } from '../noyau/cascade';
 import { addCondition, COND } from '../engine/conditions';
 import { creditBourse } from './bourseFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { type RNG } from '../engine/dice';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled } from './netOwnership';
-import { seatOwns } from './sieges';
-import { WORLD_STEP_OWNER } from './pendings';
-import { surfaceOf } from './rollSeam';
+import { seatOwns } from '../noyau/sieges';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
+import { surfaceOf } from '../noyau/rollSeam';
 import { partyAssisted } from '../engine/skills';
 import { buildScene } from './mapSpec';
 import { setRule, resetRule } from '../engine/policy';

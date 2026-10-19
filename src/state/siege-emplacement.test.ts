@@ -5,11 +5,11 @@ import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
 import { spawnEnemy } from './spawn';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { FireArc } from './fireArc';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 

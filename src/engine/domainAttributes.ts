@@ -80,7 +80,7 @@ export const isLiving = (c: Combatant): boolean => !isUndead(c) && !isDaemon(c);
 /** Riders « à la touche » d'un Sort du Domaine (Feu → En flammes ; Lumière → Aveuglé + frappe ;
  *  Mort → Exténué ; Vie → purge/flétrissure) — DONNÉE éditable (`DomainData.onHitEffects`, `TriggeredEffect[]`).
  *  Le gating (cible adverse / vivante / mort-vivante / résistance par Talent) vit dans les Conditions Flow
- *  `relation`/`has`. Appliqués par le dispatcher `state/triggeredEffects` (walker `runPureFlowLines`, `state/combat/flowEval`). */
+ *  `relation`/`has`. Appliqués par le dispatcher `noyau/triggeredEffects` (walker `runPureFlowLines`, `noyau/combat/flowEval`). */
 export function domainOnHitEffects(spell: SpellDomainRef): TriggeredEffect[] {
   // `DomainData.effects` est typé avec la feuille `Effect` complète (couche state, pour l'éditeur de
   // Flow partagé) ; un rider de Domaine ne porte JAMAIS de transition/dialogue (que des `GameOp`), donc

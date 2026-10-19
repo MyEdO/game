@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SCAN_DIRS = ['src/ui', 'src/state'];
+const SCAN_DIRS = ['src/ui', 'src/state', 'src/noyau'];
 
 function walk(dir, acc = []) {
   for (const e of readdirSync(dir)) {

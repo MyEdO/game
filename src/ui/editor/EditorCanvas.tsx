@@ -7,8 +7,8 @@ import type { JSX } from 'react';
  * masqués laissent cliquer à travers). La logique de mutation vit dans `editorState` (pur).
  */
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../state/scene';
-import { sceneZoneTiles } from '../../state/zones';
+import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../noyau/monde/scene';
+import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
 import { entiteFootTiles } from '../../state/spawn';

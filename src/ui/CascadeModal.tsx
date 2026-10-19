@@ -6,7 +6,7 @@ import { availableResistance, resistanceImproves } from '../engine/menace';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { StakeRule, OutcomeNote, sameCertainOps, sameEntityRef } from './StakeNote';
-import { branchCertainOps, branchBlockingEntity } from '../state/combat/flowEval';
+import { branchCertainOps, branchBlockingEntity } from '../noyau/combat/flowEval';
 import { resolveStake } from '../data';
 import { useAttackJetProps } from './jetProps/useAttackJetProps';
 import { useDefenseJetProps } from './jetProps/useDefenseJetProps';
@@ -26,20 +26,20 @@ import { TableRollLine } from './RollLine';
 import { testBreakdown, testPending, opposedLines } from './breakdown';
 import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
-import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
+import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../noyau/cascade';
 import { formatDice } from '../engine/dice';
 import { fourchette } from '../engine/tables';
 import { estJete, refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
-import { opposedAttackerLabel } from '../state/rollSeam';
+import { opposedAttackerLabel } from '../noyau/rollSeam';
 import { useOwns } from './ownership';
 import { sequenceAbandonEtatOf } from '../state/sequenceCore';
 import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
 import { opposedResponded } from './opposedFrozen';
 import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, SeuilDeSauvegarde } from '../state/pendings';
+import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, SeuilDeSauvegarde } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
@@ -358,7 +358,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const stakeProps = cur.stake ? { stake: cur.stake } : {};
   const stakeRule = (cur.stake ? resolveStake(cur.stake).rule : undefined) ?? cur.stakeRule;
   // TITRE = le pas COURANT (arbitrage user 2026-08-06, #1117). Une séquence APPEND (`pushStep`,
-  // `state/cascade.ts`) et n'écrit son `title` qu'à la CRÉATION : la fenêtre resterait titrée par le
+  // `noyau/cascade.ts`) et n'écrit son `title` qu'à la CRÉATION : la fenêtre resterait titrée par le
   // PREMIER pas pendant qu'on en joue un autre. Dérivation au RENDU (aucune écriture d'état) ; repli
   // sur le titre de séquence pour un pas sans libellé. Le titre porte l'icône du pas COURANT (elle
   // suit le même curseur) et le renvoi de règle, accolé au libellé d'étape (arbitrage user

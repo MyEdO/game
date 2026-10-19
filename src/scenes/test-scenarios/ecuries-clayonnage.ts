@@ -2,7 +2,7 @@ import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout }
 import type { Combatant } from '../../engine/types';
 import { pregen, PREGEN } from '../../data/pregens';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 

@@ -20,7 +20,7 @@ import { spawnEnemy } from '../../../state/spawn';
 import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory } from '../enemyProfile';
 import type { EnemyRigProfile } from '../enemyProfile';
 import { armourPart } from '../parts/equipment';
-import type { SceneEntity } from '../../../state/scene';
+import type { SceneEntity } from '../../../noyau/monde/scene';
 import type { Combatant } from '../../../engine/types';
 
 const REF = 'garde-du-village';

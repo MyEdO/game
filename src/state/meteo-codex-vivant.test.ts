@@ -14,7 +14,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { weather } from '../data/index';
 import { setDataset, datasetArray, datasetFile, datasetSerializeRoot } from '../data/overrides';
 import { validateDataset } from '../data/schemas/validate';
-import { tableStepDef } from './cascade';
+import { tableStepDef } from '../noyau/cascade';
 // La FAMILLE des tables de météo s'enregistre au chargement du module de voyage : on l'importe par ce
 // qu'on en LIT (le gabarit des rangées d'une saison), jamais par un import d'effet de bord.
 import { stageWeatherRows } from './travelFlow';

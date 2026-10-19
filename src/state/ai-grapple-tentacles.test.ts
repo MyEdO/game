@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput } from './ai';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 
 // IA — Tentacules (LDB 85 l.405) : « vous pouvez utiliser une Action d'Attaque GRATUITE pour résoudre

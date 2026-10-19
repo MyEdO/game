@@ -3,7 +3,7 @@ import { PROPS, propSvg, missingPropSvg } from './decor';
 import { MISSING_TONE } from './missing';
 import { findPropById } from '../../data';
 import { CAP_IDENTITE_PROP, empreinteDuProp } from '../../data/props.types';
-import { sceneMetresPerTile } from '../../state/scene';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 
 /** L'échelle à laquelle ce catalogue est jugé : le défaut du monde (`LDB 15 l.12`), LU à sa source
  *  unique — l'empreinte d'un décor à recette en dépend depuis #1509. */

@@ -6,10 +6,10 @@ import { applyShipPostes } from './shipPostes';
 import { attackEnv, previewAttack } from './combatFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 
 /**

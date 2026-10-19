@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { maybeOpenDefense, maybeRunEnemyTurn, drainerLesGratuites, aiTurnLog, clearAiTurnLog } from './combatFlow';
-import { seedBattleRng } from './battleRng';
-import { startCascade } from './cascade';
-import { idDansLaSequence } from './rollSeam';
+import { seedBattleRng } from '../noyau/battleRng';
+import { startCascade } from '../noyau/cascade';
+import { idDansLaSequence } from '../noyau/rollSeam';
 import { pickActiveModalKey } from './modalArbiter';
-import { hoteOrphelin, PENDING_BY_JET, type HostJet } from './slotsDeJet';
-import type { CascadeStep } from './pendings';
+import { hoteOrphelin, PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
+import type { CascadeStep } from '../noyau/pendings';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { applySurprise, computeMoveReach } from './combatFlow';
 import { chooseEnemyAction } from './ai';
 import { effectiveMovement } from '../engine/encumbrance';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
 
 import { useGame } from './store';

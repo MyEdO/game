@@ -14,7 +14,7 @@ import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
-import type { SuiteDeCoup } from './pendings';
+import type { SuiteDeCoup } from '../noyau/pendings';
 
 const g = () => useGame.getState();
 const TRAITS: TraitList = [{ id: 'morsure', value: 7 }, { id: 'attaque-caudale', value: 7 }];

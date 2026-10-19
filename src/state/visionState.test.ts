@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeStateVisible, computeStateVisibleAndLight, recordExplored, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
 import { computeLightField, type LightSource } from './vision';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
-import { Scene, WallSeg } from './scene';
+import { Scene, WallSeg } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 
 const DAY = 12 * 60;

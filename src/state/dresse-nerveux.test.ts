@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fireTriggers } from './triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { hasCondition, stacks, COND } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
 import { isBestial, isTerritorial } from '../engine/traits/dispatch';

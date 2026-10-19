@@ -18,7 +18,7 @@ import {
   type ProjKind,
   type Rot,
 } from '../../geometry/iso';
-import { METRES_PER_LEVEL } from '../../state/relief';
+import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { affineCamera, projectToScreen, rotYaw } from '../backends/webgl/cameras';
 
 /**

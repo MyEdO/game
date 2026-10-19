@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup, aiCreatureFreeAttacks } from './combatFlow';
-import { battleRng, seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';

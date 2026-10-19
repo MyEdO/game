@@ -5,7 +5,7 @@ import { TeamPortrait } from './TeamPortrait';
 import { useGame, type PendingBargain } from '../state/store';
 import { sceneNpc } from '../state/sceneNpc';
 import { emptyNarratif } from '../state/campaignNarratif';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../state/scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../noyau/monde/scene';
 import { skillBaseValue, testValue } from '../engine/skills';
 import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';

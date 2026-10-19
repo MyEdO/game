@@ -6,14 +6,14 @@
  * au stage, comme le corps React (`tokenBodyKind`). PUR : aucune caméra — seule la bascule
  * `top` (pions-portraits : cavalier et monture séparés) est une vérité de MODE DE VUE, pas de pose.
  */
-import type { Scene } from '../../state/scene';
-import { isMerScene, enrolledEntityIds } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
+import { isMerScene, enrolledEntityIds } from '../../noyau/monde/scene';
 import type { BattleState } from '../../state/store';
-import { combatantAtTile } from '../../state/combatGeometry';
+import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { isPassengerInBattle } from '../../state/shipPostes';
 import { isRider, isMount, riderOf } from '../../state/mount';
-import { RANG_MENEUR, seatPoseOf, type SeatPose } from '../../state/seating';
-import { CAP_GROUPE } from '../../state/combatants';
+import { RANG_MENEUR, seatPoseOf, type SeatPose } from '../../noyau/monde/seating';
+import { CAP_GROUPE } from '../../noyau/monde/combatants';
 import type { Combatant } from '../../engine/types';
 import { isStructure } from '../../engine/structures';
 import { isOverhang, capsSolid } from './floors';
@@ -35,7 +35,7 @@ export interface PartyToken {
   seat?: SeatPose;
   /** CLÉ du cap dans `store.facing`, publiée ICI et consommée telle quelle par TOUT ce qui dessine ce
    *  jeton (quad du monde volumique, disque de la vue du dessus). Le regard du groupe n'est keyé par
-   *  AUCUN héros (`CAP_GROUPE`, `state/combatants.ts`) : un meneur qui change ne le fait pas sauter. */
+   *  AUCUN héros (`CAP_GROUPE`, `noyau/monde/combatants.ts`) : un meneur qui change ne le fait pas sauter. */
   capKey: string;
 }
 
@@ -111,7 +111,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     if (cutByView(scene, visible, view, { x: ent.pos.x, y: ent.pos.y, z: ez }, false).cut) continue;
     if (!ez && covered(ent.pos.x, ent.pos.y)) continue; // l'occlusion par combattant ne vaut qu'au sol
     // ASSISE : un PNJ authored attablé (`Scene.seatAssignments`) porte son ancre et son cap depuis la
-    // SOURCE UNIQUE `state/seating` — le builder ne recalcule aucune géométrie de meuble.
+    // SOURCE UNIQUE `noyau/monde/seating` — le builder ne recalcule aucune géométrie de meuble.
     const assis = seatPoseOf(scene, { kind: 'entity', entityId: ent.id });
     out.push({
       kind: 'token',

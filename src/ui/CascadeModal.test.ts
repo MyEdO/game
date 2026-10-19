@@ -1,7 +1,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect } from 'vitest';
 import { jetStepPresentable, witnessRowKey } from './CascadeModal';
-import type { CascadeStep, CascadeTestStep } from '../state/pendings';
+import type { CascadeStep, CascadeTestStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 /**

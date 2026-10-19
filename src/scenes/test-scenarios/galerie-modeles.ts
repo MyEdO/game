@@ -2,9 +2,9 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { creatures, careers, tailleDuProfil, trappingsInstanciables } from '../../data/index';
 import { arena } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene, SceneEntity } from '../../state/scene';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { MonsterPartsSel } from '../../engine/authoringAppearance';
-import { sizeFootprint } from '../../state/footprint';
+import { sizeFootprint } from '../../noyau/monde/footprint';
 
 /**
  * Galerie EN JEU (exploration, SANS combat) de TOUS les modèles rendus par le monde de campagne :

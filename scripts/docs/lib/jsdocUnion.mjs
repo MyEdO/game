@@ -3,7 +3,7 @@ import { contexteImports, estAppelDeclare } from '../../guards/lib/canonUnique.m
 // Socle PARTAGÉ des générateurs de doc « vocabulaire » (#298bis) : lecture d'une union discriminée
 // TypeScript par AST (jamais de regex sur les accolades, les unions imbriquent
 // des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
-// scripts/docs/build-effects.mjs (union `Effect` de src/state/scene.ts) et
+// scripts/docs/build-effects.mjs (union `Effect` de src/noyau/monde/scene.ts) et
 // scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import * as ts from 'typescript/unstable/ast'

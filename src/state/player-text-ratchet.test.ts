@@ -78,7 +78,7 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/state/cascade-bande-possession.test.ts': 1,
   'src/state/cascade-batch-socle.test.ts': 1,
   'src/state/cascade-quantite-second.test.ts': 6,
-  'src/state/cascade.test.ts': 2,
+  'src/noyau/cascade.test.ts': 2,
   'src/state/combat-tables-choix-porte.test.ts': 1,
   'src/state/departage-etats-non-fondus.test.ts': 3,
   'src/state/miscast-step.test.ts': 1,
@@ -165,13 +165,13 @@ export function compteCasts(source: string): number {
 const HORS_CASCADE_STEP = new Set([
   'src/state/player-text-ratchet.test.ts',
   'src/state/built-brand-lint.test.ts',
-  'src/state/pendings.ts',
+  'src/noyau/pendings.ts',
 ]);
 
 /** Hors recensement du cliquet 1 (`rawText(`) : les DEUX HARNAIS qui nomment encore le motif — celui-ci
  *  (sondes de mutation) et `built-brand-lint.test.ts` (JSDoc du verrou).
  *
- *  RIEN D'AUTRE, et surtout pas `src/state/pendings.ts` : ce module de PRODUCTION ne nomme plus `rawText`
+ *  RIEN D'AUTRE, et surtout pas `src/noyau/pendings.ts` : ce module de PRODUCTION ne nomme plus `rawText`
  *  depuis la mort du fossile, donc l'exempter rendrait le tripwire AVEUGLE dans un fichier de production —
  *  exactement ce que la prose de tête promet de ne jamais être (« toute occurrence, où qu'elle soit »).
  *  La sonde « le tripwire VOIT un fichier de production » plus bas mesure les deux jeux sur un arbre
@@ -301,7 +301,7 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
   /**
    * LE TRIPWIRE VOIT LES FICHIERS DE PRODUCTION — la sonde qui a trouvé le défaut, promue en test.
    *
-   * Le cliquet 1 partageait l'exemption du cliquet 2, qui contient `src/state/pendings.ts` (un module de
+   * Le cliquet 1 partageait l'exemption du cliquet 2, qui contient `src/noyau/pendings.ts` (un module de
    * PRODUCTION, exempté là-bas parce qu'il NOMME `as CascadeStep` au JSDoc). Cette justification n'a
    * jamais valu pour `rawText` — et depuis la mort du fossile, `pendings.ts` ne nomme même plus le motif :
    * l'exemption ne couvrait plus rien qu'un ANGLE MORT, dans le seul fichier où il coûte le plus cher.
@@ -313,12 +313,12 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
   it('SONDE PROMUE : un `rawText(` dans un fichier de PRODUCTION exempté ailleurs est VU (l’ancien jeu était aveugle)', () => {
     const faux = mkdtempSync(join(tmpdir(), 'tripwire-rawtext-'));
     try {
-      mkdirSync(join(faux, 'src/state'), { recursive: true });
-      writeFileSync(join(faux, 'src/state/pendings.ts'), 'export const l = rawText("Tempête");\n', 'utf8');
+      mkdirSync(join(faux, 'src/noyau'), { recursive: true });
+      writeFileSync(join(faux, 'src/noyau/pendings.ts'), 'export const l = rawText("Tempête");\n', 'utf8');
 
       const vu = recense(faux, compteAppels, undefined, HORS_RAW_TEXT);
-      expect(vu, 'le jeu propre du cliquet 1 n’exempte AUCUN fichier de production').toEqual({ 'src/state/pendings.ts': 1 });
-      expect(violations(vu, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/state/pendings.ts : 1 appel(s) de rawText pour un gel de 0']);
+      expect(vu, 'le jeu propre du cliquet 1 n’exempte AUCUN fichier de production').toEqual({ 'src/noyau/pendings.ts': 1 });
+      expect(violations(vu, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/noyau/pendings.ts : 1 appel(s) de rawText pour un gel de 0']);
 
       const aveugle = recense(faux, compteAppels, undefined, HORS_CASCADE_STEP);
       expect(aveugle, 'PRÉIMAGE DU DÉFAUT : hériter de l’exemption du cliquet 2 rendait ce rouge invisible').toEqual({});
@@ -362,8 +362,8 @@ describe('#1318 V8a₀ T2 — les `as CascadeStep` des TESTS sont GELÉS (la pro
   });
 
   it('MUTATION : un cast de PLUS dans un test gelé rougit', () => {
-    expect(violations({ 'src/state/cascade.test.ts': 3 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
-      .toEqual(['src/state/cascade.test.ts : 3 cast(s) `as CascadeStep` pour un gel de 2']);
+    expect(violations({ 'src/noyau/cascade.test.ts': 3 }, GEL_AS_CASCADE_STEP, 'cast(s) `as CascadeStep`'))
+      .toEqual(['src/noyau/cascade.test.ts : 3 cast(s) `as CascadeStep` pour un gel de 2']);
   });
 
   it('MUTATION : un test NEUF qui caste rougit', () => {
@@ -435,9 +435,9 @@ describe('#1318 E7 T4/T5 — le SUCCESSEUR `fixtureText` est muré aux HARNAIS (
   });
 
   it('T4/T5 n’héritent d’AUCUNE exemption d’un autre cliquet : un fichier de PROD exempté ailleurs est vu', () => {
-    expect(HORS_CASCADE_STEP.has('src/state/pendings.ts'), 'ce fichier de production est hors du cliquet 2…').toBe(true);
-    expect(HORS_FIXTURE.has('src/state/pendings.ts'), '…et doit rester SOUS T4/T5, sans quoi la serrure a un angle mort de production').toBe(false);
-    expect(HORS_RAW_TEXT.has('src/state/pendings.ts'), '…et SOUS le cliquet 1, dont la prose promet « où qu’elle soit »').toBe(false);
+    expect(HORS_CASCADE_STEP.has('src/noyau/pendings.ts'), 'ce fichier de production est hors du cliquet 2…').toBe(true);
+    expect(HORS_FIXTURE.has('src/noyau/pendings.ts'), '…et doit rester SOUS T4/T5, sans quoi la serrure a un angle mort de production').toBe(false);
+    expect(HORS_RAW_TEXT.has('src/noyau/pendings.ts'), '…et SOUS le cliquet 1, dont la prose promet « où qu’elle soit »').toBe(false);
     expect([...HORS_FIXTURE]).toEqual(['src/state/player-text-ratchet.test.ts']);
   });
 

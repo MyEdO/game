@@ -10,8 +10,8 @@ import { findDomainById } from '../data';
 import { groupsFor } from './groups';
 import { evaluateMissile } from './magic';
 import { hasCondition, stacks, addCondition } from './conditions';
-import { runPureFlowLines } from '../state/combat/flowEval';
-import { applyTriggeredEffects } from '../state/triggeredEffects';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
+import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import type { Get } from '../state/flowTypes';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre

@@ -5,8 +5,8 @@
  * pour condition/coût/effets.
  */
 import { useState } from 'react';
-import { Dialogue, DialogueNode, DialogueChoice } from '../../state/scene';
-import { EMPTY_FLOW, type Flow } from '../../state/flow';
+import { Dialogue, DialogueNode, DialogueChoice } from '../../noyau/monde/scene';
+import { EMPTY_FLOW, type Flow } from '../../noyau/monde/flow';
 import { Ctx } from './EffectList';
 import { Icon } from '../Icon';
 import { ICON_DEFS } from '../icons';

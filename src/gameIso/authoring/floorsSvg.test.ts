@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildFloors } from '../builders/floors';
 import type { FloorEl } from '../builders/types';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { floorSvg, floorDepth } from './floorsSvg';
 import { depth, diamondPath, tileCenter, type Dims } from '../../geometry/iso';
 import { terrainGradientId } from '../catalog/terrain';

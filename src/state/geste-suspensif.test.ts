@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { applyEffects, runFlow } from './combatEffects';
-import type { Flow } from './flow';
-import type { Effect } from './scene';
+import type { Flow } from '../noyau/monde/flow';
+import type { Effect } from '../noyau/monde/scene';
 
 const get = () => useGame.getState();
 const heros = (label: string, seed: number) => {

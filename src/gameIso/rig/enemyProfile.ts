@@ -14,7 +14,7 @@ import type { TraitList } from '../../engine/statEntry';
 import { eyesArtFromKeys } from './parts/eyes';
 import type { MonsterParts } from './parts/monstrous';
 import { hashSeed } from '../../engine/dice';
-import type { SceneEntity } from '../../state/scene';
+import type { SceneEntity } from '../../noyau/monde/scene';
 import { bipedDef } from './creatures';
 import { resolveRender, type RenderResolution } from './bodyPlan';
 import { findCreatureById, isNamed, type CreatureData } from '../../data';

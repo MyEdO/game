@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type CastableSpell } from './ai';
-import { Scene } from './scene';
+import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
 

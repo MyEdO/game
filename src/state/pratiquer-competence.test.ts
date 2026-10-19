@@ -7,9 +7,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { WorldMap } from './worldMap';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
@@ -18,7 +18,7 @@ import { refLabel, skills, specPoolOf } from '../data';
 import { avecActivite } from './activiteMer.testkit';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import type { Combatant } from '../engine/types';
-import type { BatchParticipant } from './pendings';
+import type { BatchParticipant } from '../noyau/pendings';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>

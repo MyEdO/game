@@ -8,12 +8,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolveManeuver } from './combatManeuvers';
-import { zoneCovers } from './zones';
+import { zoneCovers } from '../noyau/monde/zones';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 
 const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, z: number): Combatant =>
   ({

@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RollLine, PendingRollLine, ANONYMES } from './RollLine';
-import { rollLine } from '../state/rollSeam';
+import { rollLine } from '../noyau/rollSeam';
 import type { RollBreakdown } from '../engine/combat';
 
 beforeEach(() => { ANONYMES.count = 0; });

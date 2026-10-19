@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyOups } from './combatFlow';
 import { OPS_DIFFEREES } from './combatEffects';
 import { useGame } from './store';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, recomputeLoadout } from '../engine/items';

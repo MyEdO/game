@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { setRule, resetRule } from '../../engine/policy';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { distributeCredit } from '../../state/bourseFlow';
 import { currentPlaceId, interludeCatalog } from '../../state/interludeFlow';
 import { draineCascade } from '../../state/cascadeTestKit';

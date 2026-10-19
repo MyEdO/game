@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { cloisons, piece } from '../../state/pieces.fixture';
 import { aretesUtilisables } from '../../state/aretes';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';

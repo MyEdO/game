@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { battleRng, seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { avanceEtapeCascade } from './cascadeTestKit';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { initialFields } from './stateFields';
 import { setRule, resetRule } from '../engine/policy';
 import { rederivePassiveAttack, resolveMelee, type AttackResult } from '../engine/combat';
@@ -14,7 +14,7 @@ import { makeRNG } from '../engine/dice';
 import { recomputeLoadout } from '../engine/items';
 import { applyOps, type GameOp } from '../engine/ops';
 import { rollShipCritical } from '../engine/shipCritical';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

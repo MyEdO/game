@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { brumeSheetGeometry, buildBrumeSheets, openSkyRuns, retainBrumeSheets } from './weatherSheets';
 import { sceneGroundSpan } from './weatherParticles';
-import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 import { isSheltered, shelterField } from '../../builders/roofs';
 import type { WeatherBrumeDef } from '../../catalog/ambiance';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { applyMiscast } from '../combatFlow';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { avanceEtapeCascade } from '../cascadeTestKit';
 import { createHero } from '../../engine/character';
 import { summarizeEffects, chipCodex } from '../../gameIso/effectIcons';

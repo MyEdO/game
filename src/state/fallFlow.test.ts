@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from './spawn';
@@ -10,7 +10,7 @@ import { planFranchissement } from './fallMove';
 import { phaseDeChute } from './fallMove';
 import { REFUS_FRANCHISSEMENT } from './gesteDArete';
 import { setRule, resetRule } from '../engine/policy';
-import type { TombantParticipant } from './pendings';
+import type { TombantParticipant } from '../noyau/pendings';
 import { t } from '../i18n';
 
 /**

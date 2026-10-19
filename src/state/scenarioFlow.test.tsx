@@ -7,7 +7,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { TestScenariosScreen } from '../ui/TestScenariosScreen';
 import { testScenarios } from '../scenes/test-scenarios';
 import { resetRule, setRule } from '../engine/policy';

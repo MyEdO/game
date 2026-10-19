@@ -20,8 +20,8 @@
 import type { GameState } from './store';
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
-import { battleRng } from './battleRng';
-import { zoneCovers } from './zones';
+import { battleRng } from '../noyau/battleRng';
+import { zoneCovers } from '../noyau/monde/zones';
 import { bonus, effectiveChar, refreshWounds } from '../engine/characteristics';
 import { recomputeLoadout } from '../engine/items';
 import {
@@ -38,22 +38,22 @@ import {
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
 import { findTableEntry } from '../engine/tables';
-import { registerCascadeApplier, registerTableStepFamily, pushStep, type TableStepDef } from './cascade';
+import { registerCascadeApplier, registerTableStepFamily, pushStep, type TableStepDef } from '../noyau/cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
-import { actorIn } from './combatants';
-import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
+import { actorIn } from '../noyau/monde/combatants';
+import type { PendingCascade, PendingCorruption, PendingMutationStep } from '../noyau/pendings';
 import { rule } from '../engine/policy';
 import { rollTest } from '../engine/tests';
 import { valeurDuTest } from '../engine/skills';
 import { pushReveal } from './combatFlow';
-import { checkPartyWiped } from './partyWipe';
-import { journaliser } from './combatLog';
-import { tenuParUnHumain } from './sieges';
+import { checkPartyWiped } from '../noyau/partyWipe';
+import { journaliser } from '../noyau/combatLog';
+import { tenuParUnHumain } from '../noyau/sieges';
 import { followsCharacterRules } from '../engine/relations';
-import { resultLine, freeCons, tableStep, type BuiltCascadeStep } from './rollSeam';
+import { resultLine, freeCons, tableStep, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { t, deElide } from '../i18n';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 

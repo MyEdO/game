@@ -150,7 +150,7 @@
     "id": "rollSeam",
     "type": "primitives.manifest",
     "label": "openRoll/surfaceDeLEtape",
-    "fichier": "src/state/rollSeam.ts",
+    "fichier": "src/noyau/rollSeam.ts",
     "concept": "surface DÉRIVÉE des porteurs : tenue × cadence × ordres de traversée → Modale/Visible-MJ/Interne, un seul site",
     "perimetre": "porte de résolution de tout Test influençable",
     "verrou": "roll-seam-exclusivity-guard.test.ts"
@@ -273,7 +273,7 @@
     "id": "actorIn",
     "type": "primitives.manifest",
     "label": "actorIn/inBattleId/ecrireActeur",
-    "fichier": "src/state/combatants.ts",
+    "fichier": "src/noyau/monde/combatants.ts",
     "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
     "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
@@ -309,7 +309,7 @@
     "id": "meneurDuMonde",
     "type": "primitives.manifest",
     "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
-    "fichier": "src/state/combatants.ts",
+    "fichier": "src/noyau/monde/combatants.ts",
     "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
     "perimetre": "toute lecture du meneur et toute écriture du cap d'exploration dans src/state, src/gameIso, src/ui",
     "verrou": "hero-debout-guard.test.ts"
@@ -345,7 +345,7 @@
     "id": "fireTriggers",
     "type": "primitives.manifest",
     "label": "fireTriggers",
-    "fichier": "src/state/triggeredEffects.ts",
+    "fichier": "src/noyau/triggeredEffects.ts",
     "concept": "dispatcher UNIQUE d'effet déclenché (donnée)",
     "perimetre": "Trait/Talent/Atout/État pour un Trigger",
     "verrou": "triggered-effects.test.ts (dispatcher unique)"
@@ -372,7 +372,7 @@
     "id": "cascade",
     "type": "primitives.manifest",
     "label": "cascade/registerCascadeApplier",
-    "fichier": "src/state/cascade.ts",
+    "fichier": "src/noyau/cascade.ts",
     "concept": "étapes-jets subis influençables + appliers enregistrés par kind",
     "perimetre": "toute conséquence différée en série",
     "verrou": "cascade-consequence-guard.test.ts"
@@ -399,7 +399,7 @@
     "id": "sieges",
     "type": "primitives.manifest",
     "label": "tenuParUnHumain/seatOwns/worldSeat/jetSurfaced",
-    "fichier": "src/state/sieges.ts",
+    "fichier": "src/noyau/sieges.ts",
     "concept": "tenue d'un porteur de dé par un siège (qui tient, qui possède), lue sur l'état réseau",
     "perimetre": "surfaçage des jets, possession coop",
     "verrou": "netOwnership.test.ts"
@@ -855,7 +855,7 @@
     "id": "cascadeSuspension",
     "type": "primitives.manifest",
     "label": "suspendActiveCascade/resumeSuspendedCascade",
-    "fichier": "src/state/cascade.ts",
+    "fichier": "src/noyau/cascade.ts",
     "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
     "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
@@ -1150,7 +1150,7 @@
     "css": "src/ui/styles/recap-line.css",
     "concept": "ligne de récap structurée : Row sans enroulement, icône et prose compacte, trio de tons ok/bad/info et étiquette de phase",
     "perimetre": "issue d’une fenêtre de jet, chronique d’un écran, carte-parchemin",
-    "verrou": "state/recapLine.ts — un site fournit la DONNÉE, jamais le markup (#1078)"
+    "verrou": "noyau/recapLine.ts — un site fournit la DONNÉE, jamais le markup (#1078)"
   },
   {
     "id": "multiRollList",
@@ -1463,10 +1463,10 @@
     "id": "indexedDb",
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
-    "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
+    "fichier": "src/web/indexedDb.ts",
+    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/web/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
-    "verrou": "src/lib/indexedDb.test.ts"
+    "verrou": "src/web/indexedDb.test.ts"
   },
   {
     "id": "coupeAuMot",
@@ -1501,7 +1501,7 @@
     "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
     "fichier": "src/lib/gelerProfond.ts",
     "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`)",
-    "perimetre": "clés de `memoByRef` (`state/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
+    "perimetre": "clés de `memoByRef` (`noyau/monde/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
     "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
   {
@@ -1967,10 +1967,10 @@
     "id": "stockageWeb",
     "type": "primitives.manifest",
     "label": "stockageWeb",
-    "fichier": "src/lib/stockageWeb.ts",
+    "fichier": "src/web/stockageWeb.ts",
     "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/lib/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/lib/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
+    "verrou": "src/web/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",

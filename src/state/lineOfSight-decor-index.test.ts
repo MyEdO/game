@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { lineOfSightCover } from './lineOfSight';
-import type { Scene, SceneEntity } from './scene';
+import { lineOfSightCover } from '../noyau/monde/lineOfSight';
+import type { Scene, SceneEntity } from '../noyau/monde/scene';
 
 function scene(w: number, h: number, entities: SceneEntity[]): Scene {
   return {

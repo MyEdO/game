@@ -10,7 +10,7 @@ import { cursorCommitIntent } from './combatCursor';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
 import { runAction } from './actionRegistry';
-import { flyReachable } from './path';
+import { flyReachable } from '../noyau/monde/path';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './spawn';

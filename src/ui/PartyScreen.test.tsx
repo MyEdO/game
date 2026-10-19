@@ -8,7 +8,7 @@ import { projectSave, type SavedProject } from '../state/projectLibrary';
 import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { datasetArray, setDataset } from '../data/overrides';
 import { resolveActiveAxes } from '../state/worldMap';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { allAxes } from '../data';
 import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';

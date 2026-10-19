@@ -23,7 +23,7 @@ import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, selfManeuversOf, selfManeuverApplicable, battementFoes, distraireFoes } from './combatManeuvers';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
 import { healableTargets } from '../engine/healing';
 import { waterSprayCandidates } from '../engine/suffocation';

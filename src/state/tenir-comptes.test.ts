@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { careers, levelsForCareer } from '../data';
 import { actorStatus } from '../engine/social';
 import { statusBudgetBrass, type StatusTier } from '../engine/money';

@@ -9,7 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { createHero } from '../../engine/character';
 import type { Combatant, Weapon } from '../../engine/types';
 import { buildApi } from '../../state/devtools';

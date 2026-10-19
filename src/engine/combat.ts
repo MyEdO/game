@@ -426,7 +426,7 @@ export interface RollBreakdown {
   /** Intitulé du jet : 'Corps à corps' / 'Parade' / 'Esquive' / 'Projectiles'. */
   label: string;
   /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — présent,
-   *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `state/pendings.LectureDuDe`). Absent = Test. */
+   *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `noyau/pendings.LectureDuDe`). Absent = Test. */
   seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
    *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
@@ -478,7 +478,7 @@ export interface RollBreakdown {
   decided?: VerdictReason;
   /** SECONDE LECTURE du MÊME dé — Test COMBINÉ (`LDB 12 l.202-208`, verbatim l.206 : « Faire un seul
    *  Test, en comparant donc un unique jet de pourcentage avec la valeur de ces deux Compétences »).
-   *  ZONE d'affichage de la ligne, DÉRIVÉE par le socle qui a évalué (`state/cascade.secondReadOf`) :
+   *  ZONE d'affichage de la ligne, DÉRIVÉE par le socle qui a évalué (`noyau/cascade.secondReadOf`) :
    *  aucune surface ne recompare le dé. Absente = la ligne n'a qu'une lecture (le cas de tous les
    *  jets ordinaires). */
   second?: SecondReadLine;
@@ -625,7 +625,7 @@ export function combineMods(mods: ModLine[]): number {
 }
 
 /** Ce que les modificateurs pesant sur la CIBLE DU d100 (le nombre visé) font de la Difficulté d'un
- *  jet de combat — forme UNIQUE, lue par le pré-jet (`state/rollSeam.ts`, monteur canonique) comme
+ *  jet de combat — forme UNIQUE, lue par le pré-jet (`noyau/rollSeam.ts`, monteur canonique) comme
  *  par le post-jet (`bd`). « Cible » désigne ici le NOMBRE visé, jamais l'adversaire. */
 export interface DifficultyComposition {
   /** Difficulté à AFFICHER : le palier composé quand il tombe sur un cran de l'échelle, la déclarée sinon. */

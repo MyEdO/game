@@ -277,7 +277,7 @@ export interface StructureData {
    *  porte en bois l.50 ; les 5 entrées ADE II, dont la table n'a pas cette colonne, ADE II 8 l.282-288). */
   couvertPenalty?: CouvertDifficulty;
   /** Laisse-t-elle VOIR à travers ? `undefined` = occultante ; seul `false` est écrivable, et il porte
-   *  son `maison` (LDB 14 l.86, LDB 85 l.329). Lu par le seul `areteOcculte` (`state/scene.ts`). */
+   *  son `maison` (LDB 14 l.86, LDB 85 l.329). Lu par le seul `areteOcculte` (`noyau/monde/scene.ts`). */
   occulte?: false;
   /** Catégorie de Taille de la Structure — entre dans le compte de son Bonus d'Endurance (`AA 10 l.98`).
    *  Aucune table de source ne l'imprime : c'est une valeur MAISON par entrée, éditable au Codex, dont la
@@ -470,7 +470,7 @@ export interface Weapon {
   /** Effets « à la touche » : repliés depuis l'enchantement de l'arme (op `augmentWeapon` / arme
    *  invoquée) par `recomputeLoadout`, OU portés en DONNÉE par le catalogue (`TrappingData.onHitEffects` —
    *  Canon à flammes nain « 2 + DR En flammes à chaque cible affectée », ADE II 8 l.243) → lus par
-   *  `effectsOf` (state/triggeredEffects), dispatchés à la touche (primaire ET zone d'Explosion). */
+   *  `effectsOf` (noyau/triggeredEffects), dispatchés à la touche (primaire ET zone d'Explosion). */
   onHitEffects?: import('./flowCore').TriggeredEffect[];
   /** PORTÉE MINIMALE : bande de portée la plus BASSE à laquelle l'arme peut tirer (ADE II 8 l.251/253).
    *  Une cible plus proche que cette bande REFUSE le tir (`firedAttackBlock`, `belowMinRangeBand`), ce n'est
@@ -1479,7 +1479,7 @@ export interface Combatant {
   /** Forme du corps (LDB 76 l.17-29) : choisit le Tableau de Localisation. Défaut `humanoide` au point de lecture. */
   bodyShape?: BodyShape;
   /** Structure de siège (`bodyShape:'structure'`) : l'ARÊTE de mur que cette structure occupe (`scene.walls`).
-   *  Sert à poser la BRÈCHE (`setStructureDown`) à sa destruction. `side` redéclare `state/scene` WallSide ici
+   *  Sert à poser la BRÈCHE (`setStructureDown`) à sa destruction. `side` redéclare `noyau/monde/scene` WallSide ici
    *  (même union) pour ne pas faire dépendre le moteur PUR de l'état. */
   structureEdge?: { x: number; y: number; side: WallEdgeSide; z?: number };
   /** Structure tirée sur la ligne Effondrement (AA 10 l.127), posé par `applyStructureCriticalToTarget` ; la

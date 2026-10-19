@@ -26,7 +26,7 @@ import { COND } from '../engine/conditions';
 import { DISEASES } from '../engine/disease';
 import { findLieuServiceById } from './index';
 import { SERVICE_CITE } from '../state/worldMap';
-import { terrainEntree } from '../state/terrain';
+import { terrainEntree } from '../noyau/monde/terrain';
 import pregensJson from './pregens.json';
 import { makePregens } from './pregens';
 import interludeEventsJson from './interludeEvents.json';

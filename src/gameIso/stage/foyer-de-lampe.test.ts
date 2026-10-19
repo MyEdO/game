@@ -14,14 +14,14 @@
  * trois autres — et le foyer de l'âtre est excentré en `y` (0,01 case), donc la rotation le déplace.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { mapLights } from '../../state/vision';
 import { props, findPropById, type PropVolumeRecipe } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
 import { gpToWorld } from '../backends/webgl/worldTris';
 import { pointLightWrites, FLAME_LIFT_M } from './stagePointLights';
-import type { Dir4 } from '../../state/dir8';
+import type { Dir4 } from '../../noyau/monde/dir8';
 
 /** Tolérance du contrat, en mètres — « la lampe est au foyer », pas « la lampe est à peu près là ». */
 const TOLERANCE_M = 0.1;
@@ -108,7 +108,7 @@ describe('la lampe d’un décor VOLUMIQUE est posée sur sa primitive émettric
 
   /**
    * EMPREINTE NON 1×1 — l'ancre d'un décor n'est PAS sa case : c'est le CENTRE de son empreinte
-   * (`decorAncre`, `state/footprint.ts`), que le builder applique à la recette. Une lampe calée sur
+   * (`decorAncre`, `noyau/monde/footprint.ts`), que le builder applique à la recette. Une lampe calée sur
    * `pos` seul reste juste tant que tous les émetteurs sont 1×1 (offset nul) et se détache dès la
    * première empreinte plus large — mesuré à 1,414 m sur un 2×2, quatorze fois la tolérance.
    *

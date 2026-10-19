@@ -14,7 +14,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { dismissStackKinds, subscribeDismissStack } from '../state/dismissStack';
 import { KEYBINDINGS, runBindingById } from '../state/clavier/keybindings';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { validTargets } from '../state/targeting';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';

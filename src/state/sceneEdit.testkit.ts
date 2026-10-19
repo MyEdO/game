@@ -9,9 +9,9 @@
  * d'eux redeviendrait le helper local d'un seul. La CANONICALISATION N/E n'est jamais réencodée ici :
  * elle passe par `canonEdge`/`setEdgeWall`.
  */
-import type { Scene, WallSeg } from './scene';
+import type { Scene, WallSeg } from '../noyau/monde/scene';
 import { canonEdge, setEdgeWall } from './sceneEdit';
-import type { CellSide } from './scene';
+import type { CellSide } from '../noyau/monde/scene';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
 export interface PlanRect { x: number; y: number; w: number; h: number }

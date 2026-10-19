@@ -4,7 +4,7 @@
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
  *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
-import { Scene } from '../state/scene';
+import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../state/worldMap';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';

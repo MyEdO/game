@@ -13,7 +13,7 @@ import {
   type SceneGroundAccent,
 } from './groundAccents';
 import { groundAccentsSvg, TUFT_LEAN_AMPLITUDE } from '../../authoring/detailSvg';
-import { terrainDetail } from '../../../state/terrain';
+import { terrainDetail } from '../../../noyau/monde/terrain';
 import { ISO_PX_PER_M } from '../../iso';
 import { TUFT_FAN } from '../../detail/expand';
 import { projGP } from '../../authoring/project';
@@ -22,7 +22,7 @@ import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from './worldTris';
 import { buildScene } from '../../../state/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { testScenarios } from '../../../scenes/test-scenarios';
-import { sceneMetresPerTile } from '../../../state/scene';
+import { sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Dims } from '../../../geometry/iso';
 import type { DetailRecipe } from '../../detail/types';
 

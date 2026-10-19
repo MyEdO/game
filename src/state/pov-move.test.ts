@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './scene';
-import { type Dir8 } from './dir8';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
+import { type Dir8 } from '../noyau/monde/dir8';
 import { povStepDest } from './exploreNav';
 import { useGame } from './store';
-import { capDuGroupe, poserCapDuGroupe } from './combatants';
+import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { createHero } from '../engine/character';
 
 /**

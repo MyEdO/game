@@ -6,7 +6,7 @@ import { applyShipPostes } from './shipPostes';
 import { itemFromTrappingById } from '../engine/items';
 import { findStructureById } from '../data';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 
 /**

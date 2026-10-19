@@ -116,7 +116,7 @@ function isEditorOnly(fileRel) {
 function main() {
   const datasets = listJsonFiles(DATA_DIR).filter((f) => !f.endsWith('.manifest.json'));
   const uiFiles = sourceFiles(join(ROOT, 'src/ui'));
-  const stateFiles = sourceFiles(join(ROOT, 'src/state'));
+  const stateFiles = [...sourceFiles(join(ROOT, 'src/state')), ...sourceFiles(join(ROOT, 'src/noyau'))];
   const gameplayFiles = [...uiFiles, ...stateFiles].filter((f) => !isEditorOnly(f.slice(ROOT.length + 1)));
   const editorFiles = uiFiles.filter((f) => isEditorOnly(f.slice(ROOT.length + 1)));
   const cache = new Map();

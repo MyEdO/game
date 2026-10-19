@@ -13,9 +13,9 @@
  * résolu de sa place ; un refus se dit en toutes lettres et n'écrit rien.
  */
 import { useState } from 'react';
-import type { Scene } from '../../state/scene';
-import { PARTY_MAX } from '../../state/combatants';
-import { labelEmplacement, releaseSeat, seatSlotsOf, type SeatAssignmentResult, type SeatOccupant } from '../../state/seating';
+import type { Scene } from '../../noyau/monde/scene';
+import { PARTY_MAX } from '../../noyau/monde/combatants';
+import { labelEmplacement, releaseSeat, seatSlotsOf, type SeatAssignmentResult, type SeatOccupant } from '../../noyau/monde/seating';
 import { normaliseAssises, seatOccupant } from '../../state/sceneEdit';
 import { ChipDeRefus } from '../ChipDeRefus';
 

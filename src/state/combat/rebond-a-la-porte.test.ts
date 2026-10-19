@@ -15,9 +15,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { applyCast } from '../combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { draineCascade } from '../cascadeTestKit';
-import { emptyScene } from '../scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { findSpell } from '../../data';
 import type { Combatant } from '../../engine/types';
 

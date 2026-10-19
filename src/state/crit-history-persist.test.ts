@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { readSlot, deleteSlot } from './saves';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

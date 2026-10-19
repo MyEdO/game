@@ -3,7 +3,7 @@ import { useGame } from '../../state/store';
 import { scenario } from './42-belier-porte';
 import { resolveAttack, firedWeapon, firedAttackBlock, attackPlan } from '../../state/combatFlow';
 import { placeCombatant } from '../../state/spawn';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { combatValue } from '../../engine/combat';
 import { effectiveChar } from '../../engine/characteristics';
 import { rule } from '../../engine/policy';

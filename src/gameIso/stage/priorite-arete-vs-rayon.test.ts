@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { tileEdge, type Dims } from '../../geometry/iso';
-import { emptyScene, isWalkable, liftDe, type Scene } from '../../state/scene';
+import { emptyScene, isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
 import { roomPortals, type RoomPortal } from '../../state/roomPortals';
 import { aretesUtilisables } from '../../state/aretes';
 import { cloisons, piece } from '../../state/pieces.fixture';
-import { METRES_PER_LEVEL, STEP_MAX_M } from '../../state/relief';
+import { METRES_PER_LEVEL, STEP_MAX_M } from '../../noyau/monde/relief';
 import { buildScene } from '../../state/mapSpec';
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../../state/store';
@@ -29,7 +29,7 @@ import { resoudrePixel, type CadreDePick, type EtatDePick } from './pickResolve'
 
 const dimsDe = (scene: Scene): Dims => ({ w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' });
 
-/** Le lift que le peintre des seuils passe à `tileEdge` : le SOCLE `state/scene.ts:liftDe`, celui que
+/** Le lift que le peintre des seuils passe à `tileEdge` : le SOCLE `noyau/monde/scene.ts:liftDe`, celui que
  *  l'hôte ferme sur la scène (`MondeDeCampagne.liftOf` → `SurcoucheIso`), pas une seconde hauteur. */
 const liftDePortail = (scene: Scene, p: { x: number; y: number; z?: number }): number => liftDe(scene, p);
 
@@ -43,7 +43,7 @@ const milieu = (a: { cx: number; cy: number }, b: { cx: number; cy: number }) =>
  * qu'un bâti offre au pointeur : au rez, deux pièces séparées par un mur mitoyen qui porte une PORTE
  * et, plus bas, une OUVERTURE sans porte (le `kind: 'passage'` de `roomPortals`), plus une sortie sur
  * l'extérieur ; à l'étage, deux pièces de plus reliées par une porte, leur plancher posé à UN niveau
- * d'écran (`state/relief.ts:METRES_PER_LEVEL`). Les deux couches sont dessinées EN HAUTEUR — le rez
+ * d'écran (`noyau/monde/relief.ts:METRES_PER_LEVEL`). Les deux couches sont dessinées EN HAUTEUR — le rez
  * soulevé d'un pas au-dessus du dehors, l'étage d'un niveau —, et c'est ce qu'une inversion à plat
  * renvoie sur la mauvaise case. */
 const CORPS = { x: 1, y: 1, w: 9, h: 7 };

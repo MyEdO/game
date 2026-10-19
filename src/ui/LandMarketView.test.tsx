@@ -4,9 +4,9 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LandMarketView } from './LandMarketView';
 import { useGame } from '../state/store';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { WorldMap } from '../state/worldMap';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -31,8 +31,8 @@ import { canFixDie } from '../state/netOwnership';
 import { withPreRollFixedDie } from '../state/combatFlow';
 import { useGame } from '../state/store';
 import { FIXED_ROLL_MAX } from '../engine/fixedDie';
-import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } from '../state/cascade';
-import type { CascadeStep } from '../state/pendings';
+import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } from '../noyau/cascade';
+import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from '../state/store';
 import type { RollRowProps } from './RollRow';
 

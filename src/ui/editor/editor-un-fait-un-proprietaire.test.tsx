@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { emptyScene, type Scene } from '../../state/scene';
-import { EMPTY_FLOW } from '../../state/flow';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
+import { EMPTY_FLOW } from '../../noyau/monde/flow';
 import { Inspector } from './Inspector';
 import { LogicDock } from './LogicDock';
 import { Palette } from './Palette';

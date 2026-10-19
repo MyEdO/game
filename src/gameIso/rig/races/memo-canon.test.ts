@@ -1,6 +1,6 @@
 /**
  * La résolution `RaceAppearanceData` → `RaceDef` est mémoïsée par IDENTITÉ DE RÉFÉRENCE, et elle
- * l'est par la primitive canonique `memoByRef` (`src/state/sceneMemo.ts`) — pas par une WeakMap
+ * l'est par la primitive canonique `memoByRef` (`src/noyau/monde/sceneMemo.ts`) — pas par une WeakMap
  * maison réinventée sur place (#1440). Deux moitiés : le COMPORTEMENT (même réf de donnée → même
  * `RaceDef`, sinon chaque frame reconstruit les overlays de features) et le CÂBLAGE (aucun cache
  * privé dans le module).
@@ -20,7 +20,7 @@ describe('rig/races — mémoïsation par la primitive canonique (#1440)', () =>
   });
 
   it('le module compose `memoByRef` au lieu d\'un cache privé', () => {
-    expect(SRC).toContain("import { memoByRef } from '../../../state/sceneMemo'");
-    expect(SRC.includes('new WeakMap'), 'cache maison réinventé — composer `memoByRef` (src/state/sceneMemo.ts)').toBe(false);
+    expect(SRC).toContain("import { memoByRef } from '../../../noyau/monde/sceneMemo'");
+    expect(SRC.includes('new WeakMap'), 'cache maison réinventé — composer `memoByRef` (src/noyau/monde/sceneMemo.ts)').toBe(false);
   });
 });

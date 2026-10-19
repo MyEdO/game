@@ -1324,7 +1324,7 @@ export const fr = {
   'tavern.cerevisSousLaTable': 'Un joueur roule sous la table : la partie s’arrête là.',
   'tavern.cerevisNote': 'le moins de chouettes l’emporte',
 
-  // ── #2389 — VERDICTS des dés de monde lus en seuil (`state/pendings.SeuilVerdict`).
+  // ── #2389 — VERDICTS des dés de monde lus en seuil (`noyau/pendings.SeuilVerdict`).
   'seuil.acheteurTrouve': 'acheteur trouvé',
   'seuil.aucunAcheteur': 'aucun acheteur',
   'seuil.expose': 'exposition',
@@ -1338,7 +1338,7 @@ export const fr = {
   // d'ISSUE, l.462) et de `cf.*`/`cs.*` (narration de combatFlow/combatSlice) : une étape se NOMME
   // avant tout jet, alors que ces deux-là racontent ce qui vient d'arriver. Patrons byte-identiques
   // aux littéraux d'origine (stock gelé par `state/player-text-ratchet.test.ts`).
-  // Les trois premiers sont les GABARITS que les fabriques du seam (`state/rollSeam.ts`) rendent.
+  // Les trois premiers sont les GABARITS que les fabriques du seam (`noyau/rollSeam.ts`) rendent.
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',
   'step.manche': 'Manche {n} — {quoi}',
@@ -1567,14 +1567,14 @@ export const fr = {
   'store.propInerteFallback': 'Ce décor',
   'store.dialogueNoMoney': 'Pas assez d’argent pour cette option.',
 
-  // ── ASSISE (`state/seating.ts`, `seating.*`) : le meneur prend place à un meuble, ou s'en relève. ──
+  // ── ASSISE (`noyau/monde/seating.ts`, `seating.*`) : le meneur prend place à un meuble, ou s'en relève. ──
   'seating.sat': 'Vous prenez place.',
   'seating.stood': 'Vous vous levez.',
   'seating.occupied': 'Toutes les places sont occupées.',
   'seating.noReachableSeat': 'Aucune place libre n’est accessible d’ici.',
   'seating.mustReachApproach': 'Vous devez rejoindre la place pour vous y asseoir.',
 
-  // ── UTILISABLE (`state/usable.ts`, `usable.*`) : les actions qu'une entité OFFRE au joueur. ──
+  // ── UTILISABLE (`noyau/monde/usable.ts`, `usable.*`) : les actions qu'une entité OFFRE au joueur. ──
   'usable.parler': 'Parler',
   'usable.commercer': 'Commercer',
   'usable.fouiller': 'Fouiller',

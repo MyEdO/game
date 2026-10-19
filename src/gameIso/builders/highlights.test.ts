@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import type { BattleState } from '../../state/store';
 import { Combatant } from '../../engine/types';
 import { buildHighlights, rangeBandTone, type HighlightEl, type HighlightsView } from './highlights';

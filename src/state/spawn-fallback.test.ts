@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RefIrresoluble, spawnEnemy } from './spawn';
 import { ficheDEntite, FicheAbsente } from './sceneNpc';
-import type { SceneEntity } from './scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { inFiringBand } from './combatFlow';
 import { tenueFor, tenueForClass } from '../gameIso/rig/parts/career';

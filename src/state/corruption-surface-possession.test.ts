@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { gainCorruption } from './corruptionFlow';
 import { pilotedByHuman } from './netOwnership';
-import { tenuParUnHumain } from './sieges';
+import { tenuParUnHumain } from '../noyau/sieges';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 

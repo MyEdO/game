@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import * as THREE from 'three';
 import { EditorCanvas } from './EditorCanvas';
 import { DEFAULT_LAYERS } from './editorState';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { tileCenter } from '../../geometry/iso';
 import { setStageRendererFactory, type StageRenderer } from '../../gameIso/stage/GameStage3D';
 import { hasSpritePicker } from '../../gameIso/stage/spritePicker';

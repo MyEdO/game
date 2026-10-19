@@ -4,7 +4,7 @@
  * (Test opposé), Évaluation.
  */
 import type { GameState } from './store';
-import { toRecapLines } from './recapLine';
+import { toRecapLines } from '../noyau/recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
@@ -12,7 +12,7 @@ import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../eng
 import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
-import type { SceneEntity } from './scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
@@ -29,11 +29,11 @@ import { findTrappingById, trappingsInstanciables, findVehicleById, findCreature
 import { MERCHANTS } from './merchants/index';
 import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
-import { registerCascadeApplier, startCascade } from './cascade';
-import { freeCons, openPartyTest } from './rollSeam';
-import { actorIn, ecrireActeur } from './combatants';
+import { registerCascadeApplier, startCascade } from '../noyau/cascade';
+import { freeCons, openPartyTest } from '../noyau/rollSeam';
+import { actorIn, ecrireActeur } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
-import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
+import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from '../noyau/pendings';
 import { sceneNpc } from './sceneNpc';
 import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
@@ -41,7 +41,7 @@ import { traceLineOf } from '../engine/traceLine';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {

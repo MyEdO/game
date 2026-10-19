@@ -11,7 +11,7 @@ import { suffocationTick, prepareBreathHold, breathHoldSeconds, hasWaterContaine
 import { inDeathCondition, hasCondition } from './conditions';
 import { applyOps } from './ops';
 import { findSpell } from '../data';
-import { spellOps } from '../state/flow';
+import { spellOps } from '../noyau/monde/flow';
 import { setRule, resetRule } from './policy';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */

@@ -11,7 +11,7 @@ import { findTableEntry } from './tables';
 import type { DiceSpec } from './dice';
 import { ARTILLERY_MISFIRE, type ArtilleryMisfireEntry } from '../data/artilleryMisfire';
 
-/** id de la table au registre des étapes à TABLE (`state/cascade.registerTableStep`) — ÉCRITURE
+/** id de la table au registre des étapes à TABLE (`noyau/cascade.registerTableStep`) — ÉCRITURE
  *  UNIQUE, lue par l'enregistrement comme par la demande de dé de la grappe d'Oups ! (`desDOups`). */
 export const TABLE_SALVE_MISFIRE = 'artillery-salve-misfire';
 

@@ -2,7 +2,7 @@
  * Projection isométrique (2.5D « à la Baldur's Gate ») — géométrie PURE (#161 :
  * hors du foyer `gameIso` car `state` (curseur de combat `combatCursor`, pas clavier d'exploration
  * `exploreNav`) en a besoin pour sa PROPRE logique — projection de tuile, pas du rendu SVG. Les dérivés
- * qui ont vraiment besoin du monde (métrique `WALL_H_M`/`isoPxToM`, via `state/relief`) restent dans
+ * qui ont vraiment besoin du monde (métrique `WALL_H_M`/`isoPxToM`, via `noyau/monde/relief`) restent dans
  * `gameIso/iso.ts`, qui importe cette géométrie plutôt que la redéfinir.
  *
  * Une tuile occupe TW de large et TH de haut en losange. Conventions partagées par le rendu ET le

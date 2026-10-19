@@ -22,7 +22,7 @@ export interface FauxCapabilities { fumbleOn9?: boolean; crewedTeam?: boolean }
 export interface FauxData {
   id: string;
   passive?: import('../engine/ops').GameOp[];
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   capabilities?: FauxCapabilities;
 }
 `)
@@ -40,14 +40,14 @@ export interface FauxData {
 
 test('un champ au bon NOM mais au mauvais TYPE ne compte pour aucun canal', () => {
   const f = forger('homonymes.ts', `
-export interface FauxSpell { effects?: import('../state/flow').Flow }
+export interface FauxSpell { effects?: import('../noyau/monde/flow').Flow }
 export interface FauxGroup { combat?: 'melee' | 'ranged' }
 export interface FauxLibre { passive?: string }
 `)
   const { entites, typesDrapeaux } = mesurerCanaux([f])
   assert.deepEqual(entites, [])
   assert.deepEqual(typesDrapeaux, [])
-  assert.equal(canalDuMembre('effects', "import('../state/flow').Flow"), null)
+  assert.equal(canalDuMembre('effects', "import('../noyau/monde/flow').Flow"), null)
   assert.equal(canalDuMembre('combat', "'melee' | 'ranged'"), null)
   assert.equal(canalDuMembre('combat', "import('../engine/combatFeatures/types').CombatFeature"), 'drapeaux')
 })

@@ -1,8 +1,8 @@
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * MÉTAMORPHOSE — un Enfant d'Ulric (lycanthrope, Middenheim p.116) commence en forme HUMAINE et adopte sa

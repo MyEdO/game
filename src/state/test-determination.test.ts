@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
-import type { PendingTest } from './pendings';
+import type { PendingTest } from '../noyau/pendings';
 import { isPsychImmune } from '../engine/psychology';
 import { socialPsychMod, socialPsychLabel } from '../engine/skills';
 

@@ -29,7 +29,7 @@ import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
 import { etats, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
-import { terrainsElectifs } from '../../state/terrain';
+import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
 import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
@@ -383,7 +383,7 @@ export function ResolveWindowField({ value, onChange }: {
 
 /**
  * Terrain d'ÉLECTION proposé par défaut à une op `offTerrainMod` : le PREMIER terrain non franchissable
- * à pied parmi les ÉLECTIFS (`state/terrain › terrainsElectifs`), dans l'ordre authoré. Un défaut
+ * à pied parmi les ÉLECTIFS (`noyau/monde/terrain › terrainsElectifs`), dans l'ordre authoré. Un défaut
  * d'éditeur se DÉRIVE de la donnée — le sens de l'op est « la créature se meut dans un élément que le
  * marcheur ne foule pas » ; l'auteur choisit ensuite dans la MÊME liste que celle du `<select>`.
  */

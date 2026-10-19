@@ -10,7 +10,7 @@ import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from '../state/modalArbiter';
 import { scenario } from '../scenes/test-scenarios/taverne-profil-standard';
 import { TavernGameModal } from './TavernGameModal';

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { validateScene } from '../../state/validateScene';
 import { siegeEmplacementEntity } from '../../state/siegeEmplacement';
 import { changePropRef, deleteSel, moveSel, eraseAt, placeEntity } from './editorState';

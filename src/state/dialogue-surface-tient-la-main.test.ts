@@ -18,7 +18,7 @@ import { runBindingById } from './clavier/keybindings';
 import { withActingSeat } from './netOwnership';
 import { parseProject } from './worldMap';
 import { makeShowcaseParty } from '../data/pregens';
-import type { Dialogue, Scene } from './scene';
+import type { Dialogue, Scene } from '../noyau/monde/scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 

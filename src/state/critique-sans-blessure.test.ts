@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { applyAttackResult, jouerLesTirsDeBordee } from './combatFlow';
 import { OPS_DIFFEREES } from './combatEffects';
 import { draineCascade } from './cascadeTestKit';
@@ -9,7 +9,7 @@ import { rederivePassiveAttack } from '../engine/combat';
 import { createHero } from '../engine/character';
 import { woundsFromHit } from '../engine/woundsCalc';
 import { testScene } from '../scenes/test-fixture';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { RNG } from '../engine/dice';
 import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';

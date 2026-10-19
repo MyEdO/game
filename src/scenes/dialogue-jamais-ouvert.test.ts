@@ -13,8 +13,8 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject } from '../state/worldMap';
 import { avisDialogueJamaisOuvert, validateScene, type Warning } from '../state/validateScene';
-import { emptyScene, type Scene } from '../state/scene';
-import { flowFromEffects } from '../state/flow';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { testScenarios } from './test-scenarios';
 
 const jamaisOuverts = (ws: Warning[]) =>

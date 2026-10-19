@@ -11,7 +11,7 @@ import { crowdEligible, eligibleAttackTargetIds, displayedReach, computeRunReach
 import { currentTargetingMode } from '../../state/targetingModes';
 import { armedIntentPortee, courseArmee, intentReach, PORTEE_ARME, type LocalIntent } from '../../state/localIntent';
 import { controlsCombatant } from '../../state/netOwnership';
-import { inBattleId } from '../../state/combatants';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { attackWeapon } from '../../engine/combat';
 import { effectiveWeaponRange } from '../../engine/weaponDamage';
 import { loadedAmmo } from '../../engine/items';

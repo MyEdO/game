@@ -9,7 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { FallModal } from './FallModal';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';

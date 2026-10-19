@@ -40,7 +40,7 @@ import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
 import { type BillboardKind } from './billboardMath';
 import { defsGlobaux } from '../../sprites';
-import { tousLesTerrains } from '../../../state/terrain';
+import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { propSvg } from '../../catalog/decor';
 import { AMBIANCE, METEO_SANS_EFFET, type WeatherLight } from '../../catalog/ambiance';
 import { bonesToSvg } from '../../rig/renderBones';
@@ -52,7 +52,7 @@ import { defaultAppearance, type Appearance } from '../../rig/appearance';
 import { armePrincipale, equipPorte, type EquipCtx } from '../../rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../../rig/parts/combatantVisuals';
 import { harnaisDeMonture, mountedRest, seatPlacement, seatRiderOnMount, seatedRest } from '../../rig/mountedRig';
-import { seatSitHeight, type SeatPose } from '../../../state/seating';
+import { seatSitHeight, type SeatPose } from '../../../noyau/monde/seating';
 import { diagOnce } from '../../rig/devDiag';
 import { addPose } from '../../rig/poses';
 import { seatedPose, weaponRest } from '../../rig/anim/weaponClips';
@@ -66,12 +66,12 @@ import { RIG_GROUND_PIVOT, groundStateOf, planGroundPose, rigGroundPose, rigGrou
 import { hash32 } from '../../../data/hash';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { entitySize } from '../../../state/spawn';
-import { sizeFootprint } from '../../../state/footprint';
+import { sizeFootprint } from '../../../noyau/monde/footprint';
 import { VIEWS, type View } from '../../rig/facing';
 import type { Rot } from '../../../geometry/iso';
-import type { Dir8 } from '../../../state/dir8';
-import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../state/scene';
-import { memoByRef, memoByRefDeps } from '../../../state/sceneMemo';
+import type { Dir8 } from '../../../noyau/monde/dir8';
+import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../noyau/monde/scene';
+import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { PERCABLE_ATTRIBUT } from './percageLocal';
 
 /** ÉCHANTILLONNEUR du champ de teinte de visibilité (1 = pleine), fourni par l'appelant
@@ -437,7 +437,7 @@ function terrainDeps(): readonly unknown[] {
   return tousLesTerrains();
 }
 
-/** READ-SET de `heightAt` (`state/scene.ts`) — la SEULE lecture de scène des passes de billboards
+/** READ-SET de `heightAt` (`noyau/monde/scene.ts`) — la SEULE lecture de scène des passes de billboards
  *  (`collectBillboards`, `actorBillboards` : elles prennent tout le reste de leurs éléments). */
 export function sceneHeightDeps(scene: Scene): readonly unknown[] {
   return [scene.layers, scene.dimensions];
@@ -997,7 +997,7 @@ export interface ActorPose {
    *  couleur d'anneau ET la teinte de sa silhouette se dérivent (`teamRingDecor`). Pour un couple
    *  MONTÉ, c'est l'ordinal du CAVALIER : il se lit avec `rider`, jamais avec la monture. */
   heroIndex?: number;
-  /** PLACE ASSISE tenue par ce corps (`state/seating`) — le meneur du groupe attablé. Elle porte
+  /** PLACE ASSISE tenue par ce corps (`noyau/monde/seating`) — le meneur du groupe attablé. Elle porte
    *  l'ancre du quad, le cap du corps et sa pose ; `x`/`y` ci-dessus restent la case LOGIQUE (l'abord),
    *  celle du brouillard et de la teinte. Aucun `mountId` : une chaise n'est pas une monture. */
   seat?: SeatPose;

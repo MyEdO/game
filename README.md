@@ -63,7 +63,7 @@ src/audio/              Musique et sons
 src/i18n/               Textes français de l'interface
 ```
 
-Le **schéma de Scène** (`src/state/scene.ts`) est l'unique contrat partagé par l'éditeur, le
+Le **schéma de Scène** (`src/noyau/monde/scene.ts`) est l'unique contrat partagé par l'éditeur, le
 runtime et la campagne : aucune scène n'est codée « en dur ».
 
 ## Périmètre & suite

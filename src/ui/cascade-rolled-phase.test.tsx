@@ -6,7 +6,7 @@
  *
  * Ce que ce test verrouille, et qu'aucun autre ne mesure : cette dérivation vaut la PHASE RÉELLE de
  * l'étape. Une étape n'atteint cette branche que si `stepInteraction` rend `'jet'`, donc avec
- * `target != null` (`state/cascade.ts`) — la ligne porte alors son `d` exactement quand `result` est
+ * `target != null` (`noyau/cascade.ts`) — la ligne porte alors son `d` exactement quand `result` est
  * posé. Mesuré sur la fenêtre MONTÉE (patron `cascade-subtitle.test.tsx`), aux DEUX phases : ce que
  * `rolled` pilote se LIT à l'écran — bouton « Lancer » avant, cycle d'influence après. Une
  * dérivation fausse inverse l'un ou l'autre.
@@ -17,7 +17,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
-import type { CascadeStep, CascadeRoll } from '../state/pendings';
+import type { CascadeStep, CascadeRoll } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {

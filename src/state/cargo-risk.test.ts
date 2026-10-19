@@ -7,10 +7,10 @@ import {
 } from '../engine/cargo';
 import { applyLandCargoRaid } from './carriers';
 import { spoilVesselCargoOnLeak } from './seaVoyageFlow';
-import { startCascade } from './cascade';
-import { seedBattleRng } from './battleRng';
+import { startCascade } from '../noyau/cascade';
+import { seedBattleRng } from '../noyau/battleRng';
 import { rule, setRule, resetRule } from '../engine/policy';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Possession } from '../engine/possession';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { presetPnjById, affaireById, indiceById, trappingById } from './campaignData';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { applyEffects } from './combatFlow';
 import type { Combatant } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /** Objet de campagne (id NON-colluant avec le global) : type `melee` → `kind:'melee'` distingue une
  *  vraie résolution catalogue-campagne d'un repli `customTrapping` (kind `misc`, label = id brut). */

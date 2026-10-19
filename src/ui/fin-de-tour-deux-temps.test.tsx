@@ -18,7 +18,7 @@ import { createHero } from '../engine/character';
 import { runAction } from '../state/actionRegistry';
 import { runBindingById } from '../state/clavier/keybindings';
 import { endTurnArmed } from '../state/endTurnGuard';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { CombatConsole } from './console/CombatConsole';
 

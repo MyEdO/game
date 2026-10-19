@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isWalkable, type Scene, type Terrain } from './scene';
-import { pathTo, walkNeighbors } from './path';
+import { emptyScene, isWalkable, type Scene, type Terrain } from '../noyau/monde/scene';
+import { pathTo, walkNeighbors } from '../noyau/monde/path';
 
 /**
  * PONT / TABLIER — over & under. Le relief auto-connecte les surfaces : on marche SOUS un tablier (on

@@ -4,7 +4,7 @@
  * `stage/percage.ts`). Rien ici ne connaît le peintre : c'est de la géométrie de scène.
  */
 import { Dims, tileCenter, depth, type ActorCapsule } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import { ISO_PX_PER_M } from '../iso';
 import { billboardHeightM } from '../backends/webgl/billboardMath';
 

@@ -18,12 +18,12 @@
 import { describe, expect, it } from 'vitest';
 import { AMBIANCE } from '../catalog/ambiance';
 import { applyVisibilityTint, bakeWorldGeometry, shadeSousSoleil, worldBakeDeps, type BakedWorld } from '../backends/webgl/sceneMeshes';
-import { memoByRefDeps } from '../../state/sceneMemo';
+import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
 import { SHADE_CYCLE, shadeFamily, type ShadeFamily } from '../backends/webgl/worldTris';
 import { shadeFactorOf } from '../backends/webgl/faceColors';
 import { extinctionDe, pointLightWrites } from './stagePointLights';
 import { stageLightScalars } from './stageLights';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { scenario as arene } from '../../scenes/test-scenarios/arene';
 import { scenario as opera } from '../../scenes/test-scenarios/opera';
 const operaConstruit = opera.construire();

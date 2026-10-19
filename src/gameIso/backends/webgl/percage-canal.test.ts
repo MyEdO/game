@@ -21,7 +21,7 @@ import {
   trousPercage,
 } from './percageLocal';
 import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
-import { sceneMetresPerTile } from '../../../state/scene';
+import { sceneMetresPerTile } from '../../../noyau/monde/scene';
 
 /** Les chunks d'origine — reconstitués en RETRANCHANT les blocs greffés, pour que la mesure tienne
  *  que la surcharge ait déjà été posée par un autre banc du même worker (`isolate: false`) ou non. */

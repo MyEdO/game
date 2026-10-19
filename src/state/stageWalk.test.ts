@@ -6,8 +6,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { bus, EVT } from './bus';
-import { emptyScene } from './scene';
-import { flowFromEffects } from './flow';
+import { emptyScene } from '../noyau/monde/scene';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { resetStageGestes } from './stageGestes';
 import { STEP_MS } from '../geometry/walk';
 import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './stageWalk';

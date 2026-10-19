@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
 import { MondeDeCampagne } from './MondeDeCampagne';

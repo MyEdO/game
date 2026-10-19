@@ -45,7 +45,7 @@ const GARDE = {
     'de `readCorpus` (`sourceCorpus.mjs`) — jamais une regex de ligne. Les RÈGLES (signatures, alias) sont ' +
     'DÉRIVÉES par introspection des schémas de la grammaire, jamais recopiées.',
   perimetre:
-    'les `*.ts` de PRODUCTION de `src/data/schemas/defs/`, `src/data/schemas/defs-scenes/` et `src/state/` ' +
+    'les `*.ts` de PRODUCTION de `src/data/schemas/defs/`, `src/data/schemas/defs-scenes/`, `src/state/` et `src/noyau/` ' +
     '(redéclarations + `.extend`), plus `src/data/schemas/grammaire/` pour le seul `.extend` — les littéraux ' +
     'de la grammaire SONT le canon, ils ne le redéclarent pas.',
   angleMort: [
@@ -90,7 +90,7 @@ const GARDE = {
 } as const;
 
 /** Périmètre des DEUX volets (redéclaration + `.extend`). */
-const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', 'src/state'];
+const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', 'src/state', 'src/noyau'];
 /** Périmètre du seul volet `.extend` — les littéraux de la grammaire SONT le canon. */
 const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
 

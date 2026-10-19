@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { startCascade, pushStep, registerTableStep, registerCascadeApplier, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from './cascade';
-import { tableStep, displayStep, monoStep, worldStep, surfaceDeLEtape, surfaceOf } from './rollSeam';
+import { startCascade, pushStep, registerTableStep, registerCascadeApplier, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from '../noyau/cascade';
+import { tableStep, displayStep, monoStep, worldStep, surfaceDeLEtape, surfaceOf } from '../noyau/rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { canFixDie, seatInfluences } from './netOwnership';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * GARDE DE PARITÉ DE PORTEUR (#1426) — le pilote de cascade traite une table de MONDE exactement
@@ -202,7 +202,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    * `tirageSansSiege` délègue au prédicat commun pour TOUT porteur, sans tester l'identité de l'étape.
    */
   it('FORME — `cascade.tirageSansSiege` délègue à `surfaceOf(porteurDe(st))`, sans brancher sur le porteur', () => {
-    const corps = corpsDe(join('src', 'state', 'cascade.ts'), 'function tirageSansSiege');
+    const corps = corpsDe(join('src', 'noyau', 'cascade.ts'), 'function tirageSansSiege');
     expect(corps, 'le porteur se dérive (`porteurDe`), il ne se teste pas').toContain('surfaceOf(get, porteurDe(st))');
     expect(corps, 'une branche par TYPE de porteur rouvre les deux tables de vérité de #1426').not.toMatch(/actorId|worldOwner/);
   });
@@ -216,8 +216,8 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    */
   it('FORME — `porteurDe` et `rollSeam.surfaceOf` RÉSOLVENT un id, ils ne le COMPARENT pas', () => {
     const cas = [
-      { corps: corpsDe(join('src', 'state', 'cascade.ts'), 'function porteurDe'), nom: 'cascade.porteurDe' },
-      { corps: corpsDe(join('src', 'state', 'rollSeam.ts'), 'export function surfaceOf'), nom: 'rollSeam.surfaceOf' },
+      { corps: corpsDe(join('src', 'noyau', 'cascade.ts'), 'function porteurDe'), nom: 'cascade.porteurDe' },
+      { corps: corpsDe(join('src', 'noyau', 'rollSeam.ts'), 'export function surfaceOf'), nom: 'rollSeam.surfaceOf' },
     ];
     for (const { corps, nom } of cas) {
       expect(corps, `${nom} : un marqueur de TYPE de porteur y est une branche par type`).not.toMatch(/worldOwner/);

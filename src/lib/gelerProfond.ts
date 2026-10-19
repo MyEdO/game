@@ -1,6 +1,6 @@
 /** Le GEL DE LA DONNÉE, ASSERTÉ en développement et en test (`import.meta.env?.DEV` ; `?.` car
  *  `import.meta.env` n'existe pas sous `tsx`) : une écriture en place dans une donnée gelée LÈVE au
- *  site fautif. En production, la donnée n'est pas gelée. Composé par `memoByRef` (`state/sceneMemo.ts`,
+ *  site fautif. En production, la donnée n'est pas gelée. Composé par `memoByRef` (`noyau/monde/sceneMemo.ts`,
  *  clés de scène) et par le seam des datasets (`data/overrides.ts`, entrées du catalogue, #2097). Une
  *  CONSTANTE DE MODULE (`gelerLaConstante`) est gelée sans condition, en production comprise. */
 export const GELER_LA_DONNEE = import.meta.env?.DEV === true;

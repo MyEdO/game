@@ -9,7 +9,7 @@
 import type { CodexRow, CodexSection } from './registry';
 import { opRows } from './opRows';
 import type { GameOp } from '../../engine/ops';
-import type { Flow, TriggeredEffect } from '../../state/flow';
+import type { Flow, TriggeredEffect } from '../../noyau/monde/flow';
 import { walkFlow } from '../../engine/flowCore';
 import { refLabel } from '../../data';
 import { statName } from '../../engine/statEntry';

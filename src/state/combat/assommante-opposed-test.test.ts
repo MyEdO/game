@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { fireTriggers } from '../triggeredEffects';
+import { fireTriggers } from '../../noyau/triggeredEffects';
 import '../combatFlow'; // effet de bord : installe le routeur de Test + l'applier triggeredTest + le hook onGainCondition
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { hasCondition } from '../../engine/conditions';
 import { resolveOpposed } from '../../engine/tests';
 import { jete } from '../../engine/tests.testkit';

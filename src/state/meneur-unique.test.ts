@@ -3,14 +3,14 @@
  * Question tenue ici : héros 1 à 0 Blessure, héros 2 debout — qui pivote
  * à Q/E, qui le regard de première personne suit, qui s'assoit, qui porte la lampe, qui grimpe, qui
  * le plateau anime, à qui appartient le cap d'entrée de scène ? UN SEUL id, celui de `meneurDuMonde`
- * (`src/state/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`.
+ * (`src/noyau/monde/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { emptyScene, type Scene, type WallClimb } from './scene';
-import { rotateDir8 } from './dir8';
-import { seatPoseOf, type SeatOccupant } from './seating';
-import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from './combatants';
+import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
+import { rotateDir8 } from '../noyau/monde/dir8';
+import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
+import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { sceneLightSources } from './visionState';
 import { partyTokenOf } from '../gameIso/builders/tokens';
 import { tokenChromes } from '../gameIso/builders/tokenChrome';

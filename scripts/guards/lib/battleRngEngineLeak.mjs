@@ -7,7 +7,7 @@
 // l'issue (Test opposé/étendu), sans jamais passer par la policy M/V/I.
 //
 // Détection par `estAppelDeclare` (`canonUnique.mjs`) : au niveau du FICHIER entier (pas de la ligne),
-// si le fichier appelle `battleRng` IMPORTÉ de `src/state/battleRng.ts` (même hoisté dans une variable
+// si le fichier appelle `battleRng` IMPORTÉ de `src/noyau/battleRng.ts` (même hoisté dans une variable
 // avant d'être repassé au résolveur), c'est la COEXISTENCE des deux qui est le signal — et chaque appel
 // lié à un résolveur de `src/engine` dont la SIGNATURE accepte un `RNG` est une violation (#912
 // affinage, ronde 3) : un résolveur PUR (`resolveOpposed`, `resolveTavernRound` — `TestResult,
@@ -39,7 +39,7 @@ import { codeSeul } from './codeSeul.mjs';
 const ts = tsModule;
 
 /** Le `battleRng` vivant, par son module. */
-const RNG_VIVANT = { 'src/state/battleRng.ts': ['battleRng'] };
+const RNG_VIVANT = { 'src/noyau/battleRng.ts': ['battleRng'] };
 
 /** Le type référence-t-il (nu ou en union/intersection) l'identifiant `RNG` ? @param {import('typescript/unstable/ast').TypeNode | undefined} t @returns {boolean} */
 function typeReferencesRng(t) {

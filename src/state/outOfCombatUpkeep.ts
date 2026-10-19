@@ -16,7 +16,7 @@ import { Combatant } from '../engine/types';
 import { RNG } from '../engine/dice';
 import { endOfRound, bleedDeathRoll, tickDeath, hasCondition } from '../engine/conditions';
 import { fateSaveOrDie } from '../engine/fortune';
-import { fireConditionEffects } from './triggeredEffects';
+import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { t } from '../i18n';
 
 /** A-t-il un effet périodique (perte de PB chaque Round) OU est-il à 0 PB (progression vers l'Inconscience) ? */

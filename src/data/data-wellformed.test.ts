@@ -11,13 +11,13 @@
  *  3. FORMULES       — tout champ Formula d'une `GameOp` (`amount`/`count`/… ) est `isValidFormula`
  *                      (number fini OU objet à clé connue). Une string qui fuit → rouge.
  *  4. PLACEHOLDERS   — une string `$…` n'est tolérée QUE si elle vaut `'$arg'`/`'$indice'` ET vit dans
- *                      les `effects` de `traits.json` (substituée par `withArg`, state/triggeredEffects).
+ *                      les `effects` de `traits.json` (substituée par `withArg`, noyau/triggeredEffects).
  *  6. FLOW PUR       — chaque `TriggeredEffect.flow` (champs `TriggeredEffect[]` du catalogue, extraits
  *                      par regex de `data/index.ts` — JAMAIS une liste de fichiers à la main) ne porte pas
  *                      une op de `STRAY_IMPURE_OPS` (`interruptFocus`/`breakBlade`/`delayed`) HORS branche
  *                      `success`/`fail` d'un `test` (`flowHasImpureOpOutsideTest`, engine/flowCore) : ces
  *                      ops n'ont de hook que dans le do-loop de `runCombatFlow` avec son contexte de
- *                      branche — ailleurs, le walker pur `runPureFlowLines` (state/combat/flowEval) les
+ *                      branche — ailleurs, le walker pur `runPureFlowLines` (noyau/combat/flowEval) les
  *                      avalerait en silence. `grantFreeAttack` top-level reste légitime (résolu par
  *                      `resolveFreeAttacks`).
  *
@@ -53,7 +53,7 @@ const COMPARE_OPS = new Set(['>=', '<=', '==', '<', '>', '!=']);
 // `TrappingData.consumable`) qui ne matchent pas ce motif → naturellement hors périmètre du verrou.
 const INDEX_SRC = readFileSync(fileURLToPath(new URL('index.ts', import.meta.url)), 'utf8');
 const TRIGGERED_EFFECT_FIELDS = new Set(
-  [...INDEX_SRC.matchAll(/(\w+)\?:\s*import\('\.\.\/(?:state\/flow|engine\/flowCore)'\)\.TriggeredEffect\[\]/g)].map((m) => m[1]),
+  [...INDEX_SRC.matchAll(/(\w+)\?:\s*import\('\.\.\/(?:noyau\/monde\/flow|engine\/flowCore)'\)\.TriggeredEffect\[\]/g)].map((m) => m[1]),
 );
 
 // Fichier DIALECTE compilé (cf. en-tête) : exclu de la famille Formule.
@@ -68,7 +68,7 @@ const FORMULA_FIELDS = [
   'durationMinutes', 'durationHours', 'afterMinutes', 'afterHours', 'afterDays', 'forMinutes', 'forHours', 'forDays',
 ];
 
-/** Templates d'instance substitués au runtime par `withArg` (state/triggeredEffects), PAR FICHIER — un
+/** Templates d'instance substitués au runtime par `withArg` (noyau/triggeredEffects), PAR FICHIER — un
  *  template n'est légitime que là où le paramètre existe :
  *  - `traits.json` : `$arg` (arg d'instance, « Venin (Difficile) ») ET `$indice` — un Trait porte les deux.
  *  - `qualities.json` : `$indice` SEUL. La branche QUALITÉ d'`effectSourcesOf` appelle `withArg(effects,

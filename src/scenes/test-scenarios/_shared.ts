@@ -1,7 +1,7 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
 import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
-import { Scene, Terrain } from '../../state/scene';
+import { Scene, Terrain } from '../../noyau/monde/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { IconId } from '../../ui/icons';
 import { buildEncounters, type AuthoredEncounter } from '../../state/encounterAuthoring';

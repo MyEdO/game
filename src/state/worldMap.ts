@@ -10,11 +10,11 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
-import type { Effect, Scene } from './scene';
+import type { Effect, Scene } from '../noyau/monde/scene';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from '../lib/garanti';
-import { normalizeScene } from './scene';
+import { normalizeScene } from '../noyau/monde/scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';

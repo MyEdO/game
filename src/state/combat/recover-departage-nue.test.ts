@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed } from '../../engine/tests';
 import type { Combatant } from '../../engine/types';
 

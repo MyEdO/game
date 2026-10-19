@@ -8,7 +8,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  *
  * QUESTION : quand une entité (héros, combattant, lieu, navire, donnée) n'est pas résolue, le rendu
  * écrit-il « ? », « Le groupe », « Navire » à sa place ? Non : une absence IMPOSSIBLE est requise par le
- * type ou lève (`garanti`, `state/combatants.ts`) ; une absence ATTEIGNABLE se NOMME en français de
+ * type ou lève (`garanti`, `noyau/monde/combatants.ts`) ; une absence ATTEIGNABLE se NOMME en français de
  * joueur (`libelleOuAbsence`, `data/index.ts` ; la source d'un lot d'ops par `nomDeSource`, `engine/ops.ts` ;
  * le navire de campagne par `nomDuNavire`, `state/carriers.ts`).
  *
@@ -34,10 +34,10 @@ const EXEMPTES = new Map<string, string>([
   ["src/engine/traceLine.ts|d.label ?? t('casc.dieTraceLabel')", AUTHORE],
   ["src/state/combatEffects.ts|e.label || t('eff.psychScene')", AUTHORE],
   ["src/state/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
-  ["src/state/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
+  ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
   ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],
   ['src/net/relay.ts|env.name ?? \'\'', OUTILLAGE],
-  ['src/state/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
+  ['src/noyau/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
   ['src/state/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
   ['src/state/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
   ['src/state/combatEffects.ts|step.label ?? \'\'', AUTHORE],
@@ -46,7 +46,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/state/combatSlice.ts|w?.label ?? \'pièce\'', SANS_ARME],
   ['src/state/devtools.ts|c?.label ?? \'—\'', OUTILLAGE],
   ['src/state/devtools.ts|here?.label ?? \'?\'', OUTILLAGE],
-  ['src/state/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],
+  ['src/noyau/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|s.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|r.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|cur.label ?? \'\'', AUTHORE],
@@ -77,7 +77,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/jetProps/useDefenseJetProps.tsx|pd.weapon?.label ?? \'Mains nues\'', SANS_ARME],
   ['src/ui/PossessionsScreen.tsx|selected.label ?? \'\'', AUTHORE],
   ['src/ui/ReloadModal.tsx|weapon?.label ?? \'arme\'', SANS_ARME],
-  ['src/state/cascade.ts|ctx?.title ?? choix.label ?? \'Choix\'', AUTHORE],
+  ['src/noyau/cascade.ts|ctx?.title ?? choix.label ?? \'Choix\'', AUTHORE],
 ]);
 
 const nu = (e: ts.Expression): ts.Expression => {

@@ -10,8 +10,8 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { startCascade, registerCascadeApplier } from '../state/cascade';
-import { choiceStep } from '../state/rollSeam';
+import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { choiceStep } from '../noyau/rollSeam';
 import { CascadeBody } from './CascadeModal';
 
 beforeAll(() => {

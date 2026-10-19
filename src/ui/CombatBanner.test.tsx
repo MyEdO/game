@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Bandeau de combat — région live du HUD (§14-4). Monté pour de VRAI (patron `createRoot`/`act`) sur
- * le VRAI store (`useGame.setState`) et de VRAIS événements de journal (`ev`, `src/state/combatLog`) :
+ * le VRAI store (`useGame.setState`) et de VRAIS événements de journal (`ev`, `src/noyau/combatLog`) :
  * la sélection du message passe par `combatFeed`/`narrateIntent` réels, aucun module n'est mocké
  * (`isolate: false` — cf. `src/vi-mock-isolate-guard.test.ts`).
  */
@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
-import { ev, type CombatEvent } from '../state/combatLog';
+import { ev, type CombatEvent } from '../noyau/combatLog';
 import { REFUS_MS } from '../state/refusVisible';
 import { CombatBanner } from './CombatBanner';
 

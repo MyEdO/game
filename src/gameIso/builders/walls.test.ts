@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { buildWalls, wallEnds } from './walls';
 import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { METRES_PER_LEVEL } from '../../state/relief';
+import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { structureAppearance } from '../catalog/structures';
-import { emptyScene, setDoorRevealed, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
+import { emptyScene, setDoorRevealed, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../noyau/monde/scene';
 import { buildScene } from '../../state/mapSpec';
 
 /**
@@ -265,7 +265,7 @@ describe('buildWalls — façades architecturales authorées', () => {
   });
 
   it('la largeur change seulement la portée horizontale, jamais la hauteur', () => {
-    // Une largeur = une SCÈNE (le jeu ne mute jamais une scène en place, cf. `state/sceneMemo.ts` et
+    // Une largeur = une SCÈNE (le jeu ne mute jamais une scène en place, cf. `noyau/monde/sceneMemo.ts` et
     // la garde `scene-mutation-guard.test.ts`) : deux authoring distincts, deux dérivations.
     const gableAt = (width: number) => {
       const scene = facadeScene();

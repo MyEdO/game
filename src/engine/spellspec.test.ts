@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { applyOps, resolveFormula } from './ops';
 import { spells, findSpellById, type SpellData } from '../data';
-import { spellOps } from '../state/flow';
+import { spellOps } from '../noyau/monde/flow';
 import { spellSupportOf } from './spellspec';
 
 function hero(p: Partial<Combatant> = {}): Combatant {

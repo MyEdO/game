@@ -6,7 +6,7 @@
  * scène (`stage/stageLights.ts`, dosée sur la MÊME donnée `nightVeilMax`), et un voile par-dessus lui
  * appliquerait le palier de nuit une seconde fois.
  */
-import { Scene } from '../../state/scene';
+import { Scene } from '../../noyau/monde/scene';
 import { Dims, tileCenter } from '../../geometry/iso';
 
 /** Mouches qui tournoient au-dessus de chaque cadavre (faune d'ambiance) — dans le groupe caméra. */

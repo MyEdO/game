@@ -1,10 +1,10 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif, type DocumentNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
-import type { DialogueChoice, DialogueNode, Scene } from '../../state/scene';
+import type { DialogueChoice, DialogueNode, Scene } from '../../noyau/monde/scene';
 
 /**
  * Recette des documents joueur de L'Ennemi dans l'Ombre (#679) : une liasse, dans un cabinet dédié,

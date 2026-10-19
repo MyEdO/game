@@ -14,14 +14,14 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
-import { capDuGroupe, meneurDuMonde } from '../../state/combatants';
+import { capDuGroupe, meneurDuMonde } from '../../noyau/monde/combatants';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { actorPoseKey, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
-import type { Dir8 } from '../../state/dir8';
+import type { Dir8 } from '../../noyau/monde/dir8';
 import type { Dims } from '../../geometry/iso';
 import { discCapPath } from '../builders/dynamicMarks';
 import { MondeDeCampagne } from './MondeDeCampagne';

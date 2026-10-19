@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { toBrass } from '../../engine/money';
 import { distributeCredit, partyMoneyTotal } from '../../state/bourseFlow';
 import { primaryCargoCarrier } from '../../state/carriers';

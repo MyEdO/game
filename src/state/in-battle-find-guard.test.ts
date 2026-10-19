@@ -6,7 +6,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 /**
  * Garde-fou « recherche de combattant EN COMBAT par id » (#279, F1 du programme structurel #276).
  * `X.combatants.find((c) => c.id === …)` réinvente `inBattleId(battle, id)`
- * (`src/state/combatants.ts`). Lot 1 a migré ~150 sites de `src/state` (find-par-id EXACT
+ * (`src/noyau/monde/combatants.ts`). Lot 1 a migré ~150 sites de `src/state` (find-par-id EXACT
  * uniquement — les prédicats COMPOSÉS, ex. `c.id === X && c.kind === 'hero'`, ne se réduisent pas
  * à un simple appel de primitive et RESTENT visibles ici, comptés).
  *
@@ -26,7 +26,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * (fichier assaini sans abaissement).
  */
 
-const SCAN_DIRS = ['src/state', 'src/ui', 'src/gameIso'];
+const SCAN_DIRS = ['src/state', 'src/noyau', 'src/ui', 'src/gameIso'];
 const EXCLUDED = (rel: string) => estFichierVitest(rel);
 
 /** Baseline gelée par fichier. src/state (recensement Lot 1, 2026-07-10 — 3 sites résiduels, tous
@@ -35,7 +35,7 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel);
 const BASELINES: Record<string, number> = {
   // FOYER de la primitive : l'implémentation d'`inBattleId` EST le motif. Gelée à son site UNIQUE
   // (le cliquet la surveille comme n'importe quel autre fichier) plutôt qu'exemptée en bloc.
-  'src/state/combatants.ts': 1,
+  'src/noyau/monde/combatants.ts': 1,
   // src/state (Lot 1)
   'src/state/combat/recover.ts': 1,
   'src/state/combatFlow.ts': 1,
@@ -107,7 +107,7 @@ describe('garde-fou « inBattleId » — find-par-id combattant EN COMBAT (cliqu
     expect(
       offenders,
       'Nouveau(x) find-par-id réinventé(s) — migrer vers inBattleId(battle, id) ' +
-        `(src/state/combatants.ts), ou si prédicat composé légitime AUGMENTER la baseline :\n${offenders.join('\n')}`,
+        `(src/noyau/monde/combatants.ts), ou si prédicat composé légitime AUGMENTER la baseline :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 

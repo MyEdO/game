@@ -16,7 +16,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
-const SCAN_DIRS = ['src/state'];
+const SCAN_DIRS = ['src/state', 'src/noyau'];
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || rel === 'src/state/store.ts';
 
 function countsByFile(): Record<string, number> {

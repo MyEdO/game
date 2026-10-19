@@ -10,13 +10,13 @@
  * l'INSPECTEUR, qui tient une instance, qui l'annonce au cap RÉEL (`Inspector.tsx`).
  */
 import { useState, type ReactNode } from 'react';
-import { DEFAULT_TERRAIN, sceneMetresPerTile, type Scene, type Terrain } from '../../state/scene';
+import { DEFAULT_TERRAIN, sceneMetresPerTile, type Scene, type Terrain } from '../../noyau/monde/scene';
 import { CAP_IDENTITE_PROP, empreinteDuProp } from '../../data/props.types';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
-import { terrainIds, terrainLabel } from '../../state/terrain';
-import { propDeclaredFoot } from '../../state/footprint';
+import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
+import { propDeclaredFoot } from '../../noyau/monde/footprint';
 import { terrainDef } from '../../gameIso/catalog/terrain';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findPropById, premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';

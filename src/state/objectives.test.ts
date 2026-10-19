@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatEffects';
 import { resetFields } from './stateFields';
-import type { Effect } from './scene';
+import type { Effect } from '../noyau/monde/scene';
 
 /**
  * Objectifs courants (#238 « je fais quoi maintenant ? ») : la pile `store.objectives`, posée/mise à

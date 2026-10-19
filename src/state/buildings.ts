@@ -5,7 +5,7 @@
  *
  * C'est le SEAM unique : la palette de l'éditeur, les ornements du rendu et la dérivation des toitures
  * (`toitureEffective`, `state/sceneEdit.ts`) passent par les accesseurs ci-dessous, jamais par le
- * tableau brut. La façade vit dans `src/state` — patron `state/terrain/index.ts` (#1690, même
+ * tableau brut. La façade vit dans `src/state` — patron `noyau/monde/terrain/index.ts` (#1690, même
  * domicile) : une façade de DONNÉE lue par le store obligerait sinon `src/state` à importer
  * `src/gameIso`, alors que le rendu dépend du store et jamais l'inverse (AGENTS.md règle 3, mur
  * `murs/purete-imports`, `scripts/guards/lib/couches.mjs`).
@@ -25,7 +25,7 @@
 import { buildings } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
 import type { BuildingDef, BuildingFeature } from '../data/buildings.types';
-import type { ArchitectureRect } from './scene';
+import type { ArchitectureRect } from '../noyau/monde/scene';
 
 export type { BuildingDef, BuildingFeature } from '../data/buildings.types';
 

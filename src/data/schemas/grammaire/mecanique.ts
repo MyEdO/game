@@ -1007,7 +1007,7 @@ function construire(regimes: Regimes) {
       proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
         // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
-        // seulement : `withArg` (`state/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
+        // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
         advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
         icon: z.string().optional(),
         yes: flow,

@@ -9,10 +9,10 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { type SavedProject } from '../../state/projectLibrary';
-import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
-import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../../web/indexedDb';
+import { brancherBasesSimulees } from '../../web/indexedDb.testkit';
 import { parseProject } from '../../state/worldMap';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { Editor } from './Editor';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

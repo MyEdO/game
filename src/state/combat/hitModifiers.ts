@@ -27,17 +27,17 @@ import type { Get, Set as SetFn } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';
 import type { AttackResult } from '../../engine/combat';
-import type { SeuilDeSauvegarde } from '../pendings';
+import type { SeuilDeSauvegarde } from '../../noyau/pendings';
 import { wardSaves, traitCapability } from '../../engine/traits/dispatch';
 import { canPushback } from '../../engine/qualities/dispatch';
 import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
-import { combatDistance } from '../footprint';
-import { porteeEnCases } from '../combatGeometry';
+import { combatDistance } from '../../noyau/monde/footprint';
+import { porteeEnCases } from '../../noyau/monde/combatGeometry';
 import { pushBackTiles } from '../combatPlacement';
-import { sceneMetresPerTile } from '../scene';
-import { inBattleId } from '../combatants';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { t } from '../../i18n';
 
 // ── Helpers propres aux sauvegardes, DÉPLACÉS depuis combatFlow (ré-exporté via le baril pour applyCast / tests) ──

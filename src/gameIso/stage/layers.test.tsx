@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, tileAt, type Scene } from '../../state/scene';
-import { terrainSolidHeightM } from '../../state/terrain';
+import { emptyScene, tileAt, type Scene } from '../../noyau/monde/scene';
+import { terrainSolidHeightM } from '../../noyau/monde/terrain';
 import { buildWalls } from '../builders/walls';
 import { buildRoofs } from '../builders/roofs';
 import type { Dims } from '../../geometry/iso';

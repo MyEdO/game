@@ -1,0 +1,1001 @@
+/**
+ * Schéma de Scène/Niveau — contrat UNIQUE partagé par :
+ *  - l'éditeur de niveau (lecture/écriture),
+ *  - le runtime (exploration + combat),
+ *  - le contenu de campagne (livré comme documents de scène à ce format).
+ *
+ * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
+ */
+import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
+import type { EntityAppearance } from '../../engine/authoringAppearance';
+import type { Flow, EffectOp } from './flow';
+import { type ScheduleSpec } from '../../engine/clock';
+// Les FORMES des 57 variantes d'`Effect` vivent en zod (`data/schemas/defs-scenes/effets.ts`) ;
+// l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
+import type { z } from 'zod';
+import type {
+  setFlagSchema, poserEtatSchema, designerHerosSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
+  giveMoneySchema, giveXpSchema, startCombatSchema, startMassBattleSchema, transitionSchema,
+  transitionBackSchema, startDialogueSchema, journalSchema, documentSchema, revealClueSchema,
+  discreditClueSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
+  openPortSchema, medicalAidSchema, restoreFortuneSchema, restSchema, mealPartySchema,
+  inflictNightmaresSchema, ambitionLostSchema, inflictPsychologySchema, inflictDiseaseSchema,
+  inflictHungerSchema, inflictThirstSchema, exposureNightSchema, inflictTraumaSchema,
+  zoneBlastSchema, fallSchema, setLightSchema, setDoorSchema, moveEntitySchema, playSfxSchema,
+  giveSinSchema, corruptionExposureSchema, waterExposureSchema, learnSpellSchema, castSpellSchema,
+  sessionEndSchema, openCharacterCreatorSchema, interludeSchema, grantFavorSchema,
+  startPursuitSchema, openTavernGamesSchema, openWorldMapSchema, setVesselSchema,
+  adjustManannSchema, adjustVesselSchema, endDialogueSchema,
+} from '../../data/schemas/defs-scenes/effets';
+import type { extendedTestSchema } from '../../data/schemas/grammaire/mecanique';
+// Idem pour les FORMES de la scène elle-même : le schéma zod (`data/schemas/defs-scenes/scene.ts`)
+// les DÉCLARE — champs, optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment.
+import type {
+  architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
+  architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
+  dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
+  facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
+} from '../../data/schemas/defs-scenes/scene';
+import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
+// Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
+// STRUCTURE, lue au dataset — même couture que `lineOfSight.ts`. `data/index.ts` ne dépend du noyau
+// qu'en TYPE, donc pas de cycle.
+import { findStructureById, semencesDeScene } from '../../data';
+import type { Dir8 } from './dir8';
+import type { Pt } from './path';
+import { terrainHorsGrille, terrainWalkable } from './terrain';
+import { entityBlockedAt } from './sceneRules';
+import { type Grade, gradeBetween, metricToLift, STEP_MAX_M } from './relief';
+import { aretesA } from './wallIndex';
+
+/** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
+ *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
+export type Terrain = string & {};
+
+/** Marque de TYPE d'une valeur GELÉE : ce qu'une migration REJOUE, jamais la semence du jour —
+ *  distinguable au checker par son alias, sans nom de symbole ni de fichier (#1789). */
+export type Fige<T> = T & { readonly __fige?: undefined };
+
+export type EntityKind = z.infer<typeof entityKindSchema>;
+
+/** Statbloc personnalisé (PNJ/bête custom d'éditeur) — moteur pur, `engine/statblock.ts` (#614) :
+ *  `LivingRef` (`engine/possession.ts`) porte la même dualité bestiaire|custom que ce type. */
+import type { CustomStatblock } from '../../engine/statblock';
+import { chebyshev } from '../../engine/grid';
+import type { SeatAssignments } from './seating';
+export type { CustomStatblock };
+
+/**
+ * Une ACTION AUTHORÉE sur une instance de décor (#1687) — le vocabulaire OUVERT des gestes qu'un
+ * auteur pose : fouiller, ouvrir, tirer un levier. Un geste N+1 coûte une déclaration, zéro ligne de
+ * code (`actionsDe` les rend toutes, `jouerAction` les joue toutes).
+ *
+ * `id` : identité STABLE, unique sur l'entité — c'est elle que la LOGIQUE manipule (drapeau
+ * d'épuisement, clé d'offre). `label` : surcharge d'AFFICHAGE de l'auteur ; absent, le libellé vient
+ * du catalogue i18n à la clé `usable.<id>`, jamais une chaîne française figée en donnée.
+ * `consume` : l'entité est RETIRÉE de la scène une fois l'action jouée (butin ramassé).
+ * `unique` : l'action n'est jouable qu'UNE fois — le drapeau `__action_<entId>_<id>` la ferme
+ * (`cleActionJouee`, `noyau/monde/usable.ts`). Absent ou `false` = REJOUABLE.
+ */
+export interface ActionAuthoree {
+  id: string;
+  label?: string;
+  flow: Flow;
+  consume?: boolean;
+  unique?: boolean;
+  /** Ce que l'action coûte à l'horloge, en MINUTES (« tout est horodaté »). Absent = `TIME_COST.search`,
+   *  le coût d'une fouille (`engine/timeCost.ts`) — un geste plus bref ou plus long se dit ici. */
+  minutes?: number;
+}
+
+/** RESTE MANUSCRIT (les 22 autres formes de la scène sont des `z.infer` de
+ *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` :
+ *  `appearance` porte ici `EntityAppearance`
+ *  (`engine/authoringAppearance`) là où le schéma compose `entityAppearanceSchema`, nœud-FRONTIÈRE
+ *  du vocabulaire partagé. */
+export interface SceneEntity {
+  id: string;
+  kind: EntityKind;
+  pos: { x: number; y: number };
+  /** Couche d'empilement (cf. `layers`). 0 ou absent = couche de base ; >0 = posée sur une couche
+   *  supérieure, rendue soulevée à la hauteur métrique de sa case, triée par-dessus la couche inférieure. */
+  z?: number;
+  /** Orientation MONDE (8 directions) — éditable, projetée au rendu (project + camRot). */
+  facing?: Dir8;
+  label?: string;
+  /** Référence au bestiaire (personnage) ou au catalogue de décor (prop, cf. PROPS). */
+  ref?: string;
+  /** Profil personnalisé (sinon on utilise `ref`). */
+  statblock?: CustomStatblock;
+  /** Id d'un preset de PNJ nommé du bloc `narratif.presetsPnj` (#671). Présent = l'entité est
+   *  INSTANCIÉE « base globale + surcharges embarquées » (le preset porte `base`/`profil`/`apparence`),
+   *  et non depuis `ref`/`statblock` — frontière RÉFÉRENCE vs NARRATIF (le PNJ nommé vit dans le
+   *  paquet de campagne, réfère la règle globale par id). Résolu par `resolvePresetCreature`. */
+  presetId?: string;
+  /** Coque/navire : `id`s des entités d'ÉQUIPAGE exposées à bord (MDG 14) — posés sur le Combattant au spawn. */
+  crewIds?: string[];
+  /** Coque/navire : pièces d'artillerie MONTÉES (postes AUTHORÉS par réf catalogue, MDG 12-13) —
+   *  HYDRATÉES au spawn (`hydratePoste`) sur le Combattant-coque, puis `applyShipPostes` sert chaque poste
+   *  à son chef de pièce. La base n'est PAS matérialisée dans la scène (#222). */
+  postes?: AuthoredShipPoste[];
+  /** Coque/navire : **Améliorations d'INSTANCE** (MDG 12, réfs par id ex. `{ id: 'blindage-fer' }`) —
+   *  s'ajoutent aux Traits du TYPE et modifient ce navire-ci (PA de coque, M, couvert…). Posées au spawn. */
+  upgrades?: NavalTraitRef[];
+  dialogueId?: string;
+  /** Apparence (calques) : override éditeur ; sinon auto-variée au seed de l'id. */
+  appearance?: EntityAppearance;
+  /** Animation d'ambiance en boucle (clé de AMBIENT_CLIPS) — rend l'entité via le rig. */
+  anim?: string;
+  /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — affichée par le rig (tenue prête si à
+   *  distance). Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
+  weapon?: string;
+  /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
+   *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`state/vision.ts`) qui le ramène aux
+   *  cases de la scène. Override de l'instance ; sinon le rayon vient du TYPE de prop
+   *  (`props.json` `light`). Absent + type sans `light` = pas de lumière.
+   *  `tone` (#1245, L4) : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement),
+   *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
+  light?: { radiusM: number; tone?: string };
+  /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `state/merchants`).
+   *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
+   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
+  /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `market-guild`/`market-mode`/
+   *  `market-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
+   *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
+   *  (state/merchantFlow, couture UNIQUE). */
+  merchant?: { archetype: string; settlement?: import('../../engine/disponibilite').Settlement; resaleRate?: number; buyMarkup?: number; restockDays?: number;
+      guild?: boolean; marketMode?: 'complet' | 'sans-disponibilite' | 'sans-marchandage' | 'simplifie'; tenirComptes?: boolean };
+  /** JOUEUR de taverne (#1279 S4) : présent = ce personnage PROPOSE une partie, et il la joue de SA
+   *  fiche (`TavernOpponent` `kind:'npc'` — ses Caractéristiques et ses Compétences avec avances,
+   *  jamais une valeur recopiée). RÔLE optionnel, au même titre que `dialogue`/`merchant`.
+   *
+   *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
+   *  L'Impératrice écarlate avec quiconque lui propose, la mise de départ étant d'1 pistole par
+   *  partie. » Un jeu, une mise de départ : c'est exactement ce que ces deux champs portent.
+   *  `EDO 01 l.202` en donne le second exemple (Phillipe Descartes, « quelle que soit la mise, mais
+   *  considère comme une perte de temps de jouer pour moins de 2/- »).
+   *
+   *  `gameId` = id d'une entrée de `tavernGames.json`, résolu au parse (`idDe('tavernGame')`). `stakeBrass` = mise de DÉPART en sous de
+   *  cuivre (la modale reste libre de la changer — l'auteur pose le défaut, pas une contrainte) ;
+   *  absente, la table s'accorde sans mise. */
+  tavernGame?: { gameId: string; stakeBrass?: number };
+  /** DÉCOR UTILISABLE (#1687) — deux faits NOMMÉS que l'auteur pose sur CETTE instance, jamais un
+   *  drapeau fourre-tout : `assise` ouvre les places que le TYPE porte (`placesJouables`,
+   *  `noyau/monde/seating.ts` — la seule capacité qui vive sur le type, donc la seule qu'un opt-in
+   *  d'instance ait à ouvrir), `actions` est le vocabulaire OUVERT des gestes authorés. Les autres
+   *  capacités (dialogue, marchand, jeu de taverne) vivent sur l'instance et se dérivent sans lui.
+   *  Lu par le dériveur UNIQUE `actionsDe` (`noyau/monde/usable.ts`) et par personne d'autre. */
+  usable?: { assise?: true; actions?: ActionAuthoree[] };
+  /** RÔLE combat optionnel (au même titre que dialogue/marchand) : présent = ce personnage peut être
+   *  enrôlé dans une rencontre (cf. EncounterMember). Porte les choix d'auteur qui DÉCRIVENT la
+   *  personne au combat — son profil (ref/statblock) et son apparence vivent déjà sur l'entité. */
+  combat?: {
+    /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` fusionnés au spawn OU notes composées
+     *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
+    optionals?: import('../../engine/statEntry').OptionalEntry[];
+    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/state/spawn.ts` › `spells`). */
+    spells?: string[];
+    /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
+    randomChars?: boolean;
+    /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées par-dessus celles du bestiaire au spawn.
+     *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 l.230). */
+    skills?: import('../../data').SkillRef[];
+    /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. `false`/absent = PNJ visible
+     *  qui devient hostile au déclenchement. */
+    hiddenUntilCombat?: boolean;
+  };
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
+}
+
+/** Un porteur de fiche d'entité PRÉSENT au moins — dérivé de `PORTEURS_DU_TYPE.personnage` (#1882),
+ *  patron de `PorteurDeFiche` (`engine/statblock.ts`) : l'absence de tous est irreprésentable. */
+type PorteurDEntite = (typeof PORTEURS_DU_TYPE)['personnage']['porteurs'][number];
+export type AuMoinsUnPorteurDeFiche = {
+  [K in PorteurDEntite]: Required<Pick<SceneEntity, K>> & Partial<Pick<SceneEntity, Exclude<PorteurDEntite, K>>>;
+}[PorteurDEntite];
+
+export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
+export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
+export type ArchitecturePart = z.infer<typeof architecturePartSchema>;
+export type ArchitectureStorey = z.infer<typeof architectureStoreySchema>;
+export type FacadeFeature = z.infer<typeof facadeFeatureSchema>;
+export type FacadeSection = z.infer<typeof facadeSectionSchema>;
+export type BuildingMass = z.infer<typeof buildingMassSchema>;
+export type RoofDefaults = z.infer<typeof roofDefaultsSchema>;
+/** `Scene.roofDefaults` — matière, pente de référence et borne de comble de la scène (#1715). */
+export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
+/** `Scene.reliefDefaults` — la matière de chaque PARTIE de relief (#1691), clés = `PARTS_RELIEF`. */
+export type ReliefDefaults = z.infer<typeof reliefDefaultsSchema>;
+export type ArchitectureBody = z.infer<typeof architectureBodySchema>;
+
+/** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
+ *  elle porte un `Flow<Effect>`, donc elle est MUTUELLEMENT récursive avec l'union ci-dessous, et
+ *  ce corps est l'ANNOTATION de `delayedEffectSchema` (`data/schemas/defs-scenes/effets.ts`, où
+ *  vivent sa mécanique et ses réfs). */
+export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;
+
+/** « Petites Prières » — seconde variante récursive (son `reward` est un `Flow<Effect>`) ; ANNOTE
+ *  `petitePriereSchema` (`data/schemas/defs-scenes/effets.ts`). */
+export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
+
+/**
+ * Union des 59 variantes d'effet de scène + la feuille `ops` = 60 membres. La FORME de chaque
+ * variante — champs, optionalités, mécanique, réfs RAW — vit dans
+ * `src/data/schemas/defs-scenes/effets.ts` ; ici on ne compose que les noms. `EffectOp`
+ * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
+ */
+export type Effect =
+  | z.infer<typeof setFlagSchema>
+  | z.infer<typeof poserEtatSchema>
+  | z.infer<typeof designerHerosSchema>
+  | z.infer<typeof setObjectiveSchema>
+  | z.infer<typeof clearObjectiveSchema>
+  | z.infer<typeof giveTrappingSchema>
+  | z.infer<typeof givePossessionSchema>
+  | z.infer<typeof giveMoneySchema>
+  | z.infer<typeof giveXpSchema>
+  | z.infer<typeof startCombatSchema>
+  | z.infer<typeof startMassBattleSchema>
+  | z.infer<typeof transitionSchema>
+  | z.infer<typeof transitionBackSchema>
+  | z.infer<typeof startDialogueSchema>
+  | z.infer<typeof journalSchema>
+  | z.infer<typeof documentSchema>
+  | z.infer<typeof revealClueSchema>
+  | z.infer<typeof discreditClueSchema>
+  | z.infer<typeof extendedTestSchema>
+  | z.infer<typeof forceDoorSchema>
+  | z.infer<typeof setTimeSchema>
+  | DelayedEffect
+  | z.infer<typeof openMerchantSchema>
+  | z.infer<typeof openPortSchema>
+  | z.infer<typeof medicalAidSchema>
+  | z.infer<typeof restoreFortuneSchema>
+  | z.infer<typeof restSchema>
+  | z.infer<typeof mealPartySchema>
+  | z.infer<typeof inflictNightmaresSchema>
+  | z.infer<typeof ambitionLostSchema>
+  | z.infer<typeof inflictPsychologySchema>
+  | z.infer<typeof inflictDiseaseSchema>
+  | z.infer<typeof inflictHungerSchema>
+  | z.infer<typeof inflictThirstSchema>
+  | z.infer<typeof exposureNightSchema>
+  | z.infer<typeof inflictTraumaSchema>
+  | EffectOp
+  | z.infer<typeof zoneBlastSchema>
+  | z.infer<typeof fallSchema>
+  | z.infer<typeof setLightSchema>
+  | z.infer<typeof setDoorSchema>
+  | z.infer<typeof moveEntitySchema>
+  | z.infer<typeof playSfxSchema>
+  | z.infer<typeof giveSinSchema>
+  | z.infer<typeof corruptionExposureSchema>
+  | z.infer<typeof waterExposureSchema>
+  | z.infer<typeof learnSpellSchema>
+  | z.infer<typeof castSpellSchema>
+  | PetitePriere
+  | z.infer<typeof sessionEndSchema>
+  | z.infer<typeof openCharacterCreatorSchema>
+  | z.infer<typeof interludeSchema>
+  | z.infer<typeof grantFavorSchema>
+  | z.infer<typeof startPursuitSchema>
+  | z.infer<typeof openTavernGamesSchema>
+  | z.infer<typeof openWorldMapSchema>
+  | z.infer<typeof setVesselSchema>
+  | z.infer<typeof adjustManannSchema>
+  | z.infer<typeof adjustVesselSchema>
+  | z.infer<typeof endDialogueSchema>;
+
+export type DialogueChoice = z.infer<typeof dialogueChoiceSchema>;
+
+export type DialogueNode = z.infer<typeof dialogueNodeSchema>;
+
+export type Dialogue = z.infer<typeof dialogueSchema>;
+
+/** Entité LOCUTRICE d'un nœud : override par nœud puis speaker de session, résolue dans la scène
+ *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
+export function speakerEntity(
+  entities: readonly SceneEntity[],
+  node: { speakerId?: string },
+  dialogue: { speakerId?: string }
+): SceneEntity | undefined {
+  const id = node.speakerId ?? dialogue.speakerId;
+  return id ? entities.find((e) => e.id === id) : undefined;
+}
+
+/** Fenêtre horaire d'un trigger (heure-du-jour, `before` EXCLUSIF). Champs absents = borne ouverte ;
+ *  objet vide = toujours vrai. Combinée en ET avec `rect`/`condition` : le déclencheur ne se produit
+ *  qu'en entrant dans la zone PENDANT cette fenêtre (spot-check « au bon endroit au bon moment »).
+ *  DÉCLARÉE dans le noyau engine (`engine/flowCore`, zéro dépendance) ; ré-exportée ici pour les
+ *  importeurs historiques de `./scene` (ConditionEditor, tests). */
+export type { TemporalCondition } from '../../engine/flowCore';
+
+export type Trigger = z.infer<typeof triggerSchema>;
+
+// Évaluation des conditions (flag/temporelle) : SOURCE UNIQUE `evalCondition` (src/noyau/monde/flow.ts).
+// Les anciens `condMet`/`temporalConditionMet` ont fondu dedans (algèbre de Conditions unifiée).
+
+export type EncounterMember = z.infer<typeof encounterMemberSchema>;
+
+export type EncounterDef = z.infer<typeof encounterDefSchema>;
+
+/** Une COUCHE. `tiles` est ÉLARGI à `Terrain` (= `string`) : `idDe('terrain')` BRANDE l'id qu'il rend,
+ *  et cette marque est un verdict de PARSE (une tuile hors de `terrains.json` est refusée nommément) —
+ *  l'authoring TS (`asciiMap`, `legend`, `terrainRects`) n'est pas parsé et écrit des chaînes nues.
+ *  Même patron d'élargissement que `EnveloppeDocument` (`grammaire/document.ts`) et `AxesData`. */
+export type Layer = Omit<z.infer<typeof layerSchema>, 'tiles'> & { tiles: Terrain[] };
+
+export type ZoneArea = z.infer<typeof zoneAreaSchema>;
+
+/** ZONE D'EFFET authorée (piège/hasard/aura environnementale). Payload = `GameOp[]` partagé avec les
+ *  zones de Sort (vocabulaire unique, appliqué par `applyOps`). `onCross` se déclenche à la TRAVERSÉE
+ *  (une case du chemin est dans l'aire), `perRound` au franchissement de Round pour qui STATIONNE dedans.
+ *  Tous les champs mécaniques (`onCross`/`perRound`/`crossTest`/`barrier`/`blocksLoS`) sont OPTIONNELS —
+ *  une zone `{id,label,area}` sans aucun d'eux est DESCRIPTIVE (nom de pièce, #782) : inerte au combat,
+ *  affichée seulement (`isDescriptiveZone`). */
+/** RESTE MANUSCRIT : `crossTest` NOMME ici le type moteur `FlowTest` (`engine/flowCore`), là où le
+ *  schéma compose `flowTestSchema`, nœud-FRONTIÈRE du vocabulaire partagé ; `tiles` NOMME de même
+ *  `Pt` (`noyau/monde/path`), là où le schéma compose `ptSchema` — divergence NOMINALE seule, assignabilité
+ *  mutuelle intacte dans les deux sens. */
+export interface SceneEffectZone {
+  id: string;
+  label: string;
+  area: ZoneArea;
+  presentation?: 'interior' | 'exterior';
+  /** EMPRISE EXACTE, quand la zone n'est pas pleine : la liste des cases qui lui appartiennent VRAIMENT
+   *  (pièce en L, cour découpée). `area` n'en est alors que la boîte englobante — c'est `tiles` qui fait
+   *  foi (`sceneZoneTiles`). Absent = la zone occupe TOUTE son aire. Écrit par le calque `zoneMap` de
+   *  l'authoring ASCII (un char = un ensemble libre de cases) et par le découpage cellulaire de
+   *  l'inspecteur. */
+  tiles?: Pt[];
+  blocksLoS?: boolean;
+  onCross?: import('../../engine/ops').GameOp[];
+  perRound?: import('../../engine/ops').GameOp[];
+  /** GATE de Test à la traversée (cf. `BattleZone.crossTest`, zones.ts) — même sémantique pour une
+   *  zone authorée (piège/hasard de scène). */
+  crossTest?: import('../../engine/flowCore').FlowTest;
+  /** BARRIÈRE infranchissable : aucune créature ne peut PÉNÉTRER dans l'aire (mur magique, cercle de
+   *  ward). `blockGroups` vide/absent = bloque TOUT le monde ; sinon ne bloque que les créatures dont
+   *  un Groupe correspond (ids, ex. `['demon', 'mort-vivant']` = barrière sacrée, profanes tenus à l'écart —
+   *  Protection de Phâ / Octogramme). Une créature DÉJÀ à l'intérieur peut sortir, pas re-rentrer. */
+  barrier?: { blockGroups?: string[] };
+  /** Étage de la zone — défaut 0 (plan de combat). Les zones DESCRIPTIVES de pièce portent le z de leur
+   *  étage pour l'affichage/atteignabilité par niveau ; le combat (2D) l'ignore. */
+  z?: number;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
+}
+
+/** Une zone d'effet est DESCRIPTIVE (nom de pièce) quand elle ne porte AUCUN champ mécanique — filtre
+ *  UNIQUE (#782) partagé par `sceneZonesToBattle` (zones.ts) et le calque de zones de l'éditeur
+ *  (`EditorCanvas`, le SEUL rendu qui affiche le nom d'une pièce). */
+export function isDescriptiveZone(ez: SceneEffectZone): boolean {
+  return !ez.onCross && !ez.perRound && !ez.crossTest && !ez.barrier && !ez.blocksLoS;
+}
+
+/** RESTE MANUSCRIT : le SEAM diverge en OPTIONALITÉ. `sceneSchema` voit le document AVANT
+ *  `normalizeScene` — `layers`/`entities`/`dialogues`/`triggers`/`encounters`/`flags` y sont
+ *  optionnels (un document ancien n'en porte pas), REQUIS ici (après normalisation, tout
+ *  consommateur les lit sans garde). */
+export interface Scene {
+  /** Type de document EMBARQUÉ (#1552) : la scène s'annonce dans la donnée, jamais hydratée en
+   *  mémoire — même régime que `CustomStatblock.type` (`engine/statblock.ts`). */
+  type: 'scene';
+  id: string;
+  label: string;
+  desc?: string;
+  dimensions: { w: number; h: number };
+  /** Échelle métrique d'une CASE (m/case) — défaut 2 (`LDB 15 l.12`). Une Scène MER (combat naval, MDG 13)
+   *  vaut ~10 (1 pt de Distance = 10 m, `ch.13 l.362`) → le M des navires et les portées canon (50/75/150 m)
+   *  tombent en nombres de cases jouables. Lue via `sceneMetresPerTile`.
+   *  Elle décide de TOUT ce qui traduit entre mètres et cases : les bandes de portée (`rangeBandAt`,
+   *  engine/combat.ts, #249) et l'avance des navires ; la géométrie des recettes de décor et l'ancre des
+   *  places assises, divisées par elle (`builders/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
+   *  des sources de lumière (`rayonEnCases`, `state/vision.ts`) ; et, du côté du RENDU, la cadence de la
+   *  cuisson (`gpToWorld`, `backends/webgl/worldTris.ts`), la pente des toits (`resolveMass`,
+   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `state/sceneEdit.ts`). */
+  metresPerTile?: number;
+  /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
+   *  (jour/nuit = horloge). Absent = extérieur. */
+  ambiance?: 'interieur' | 'exterieur';
+  /** Classification écologique de la Scène (éditable) — lue par les attributs de Domaine liés à
+   *  l'environnement (LDB 48 l.690 : la Vie/Ghyran gagne +10 à Incanter/Focaliser en zone rurale ou
+   *  sauvage). Absent = non spécifié (aucun bonus d'environnement). */
+  environment?: 'rural' | 'urbain' | 'sauvage';
+  /** Météo (LDB 14 l.68-82) — orthogonal à `ambiance`. Défaut 'clair'. Pénalise le combat
+   *  (brouillard/tempête/neige) ; lu par `sceneCombatModifiers`. */
+  weather?: 'clair' | 'pluie' | 'brouillard' | 'neige' | 'tempete';
+  /** Niveau de lumière ambiante (brouillard de guerre) : `id` d'un `lightLevels` (jour/nuit/ténèbres…)
+   *  ou `'auto'`/absent = suit l'horloge via `ambiance` (extérieur de nuit = sombre). Lu par `ambientScalar`. */
+  ambientLight?: string;
+  /** NORD de la carte — rotation HORAIRE (degrés, `[0,360[`) du nord réel par rapport au nord IMPLICITE
+   *  du plan, qui est `−y` (la forme canonique de `WallSeg.side:'N'` ci-dessous). Absent = 0 = le nord
+   *  implicite. Ne change AUCUNE géométrie ni aucun cap de jeu : seule la course du soleil s'y oriente
+   *  (rendu volumique, `gameIso/backends/webgl/sunJeu.ts`) — deux scènes voisines à la même heure y
+   *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
+  northDeg?: number;
+  /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles
+   *  (auberge/chez soi/camp, combinables) + qualité (piètre = ½ prix, nourriture à risque).
+   *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
+   *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
+  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: 'normale' | 'pietre' };
+  /** Offre de repos PAR ZONE (prioritaire sur `rest` là où le groupe se tient) — « paramétrable
+   *  sur la zone » : le quartier de l'auberge offre des chambres, la place du marché non. */
+  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: 'normale' | 'pietre' }[];
+  /** ZONES D'EFFET posées sur la carte (éditeur) — PIÈGES / hasards / brasiers : tout combattant qui
+   *  TRAVERSE (`onCross` : pic, flaque acide, glyphe) ou STATIONNE (`perRound` : nuage de poison,
+   *  brasier) y subit l'effet (Dégâts/soin/États en `GameOp[]`). Converties en `BattleZone`
+   *  PERMANENTES au début du combat — même runtime que les zones de Sort (Mur de feu, Grands feux).
+   *  `blocksLoS` masque la Ligne de Vue (fumée, ténèbres). Contenu 100 % donnée : aucune zone codée en dur. */
+  effectZones?: SceneEffectZone[];
+  /** Musique de la scène — ids de pistes du registre audio (defs `music`). Champ absent/undefined
+   *  = AUTOMATIQUE (intérieur/extérieur pour l'ambiance, piste de combat générique en combat) ;
+   *  `null` = SILENCE forcé. Éditable dans l'éditeur (onglet Scène). */
+  music?: { ambient?: string | null; combat?: string | null };
+  /** MATIÈRE de chaque PARTIE de relief que le builder de sols émet (#1691) : falaise, rampe, dalle de
+   *  tablier, pilier. REQUISE — `gameIso/builders/floors.ts` la LIT, il ne choisit plus rien ; le schema
+   *  refuse au parse une scène qui n'en porte pas, et `emptyScene` la pose à la création. La face d'un
+   *  terrain à BLOC PLEIN (mur) tient sa matière de son TERRAIN (`terrains.json › matiere`), pas d'ici. */
+  reliefDefaults: ReliefDefaults;
+  /** TOITURE par défaut de la scène (#1715) : couverture, pente de RÉFÉRENCE et borne de comble des
+   *  masses DÉRIVÉES. REQUISE — `toitureEffective` (`state/sceneEdit.ts`) la LIT, la dérivation ne
+   *  choisit plus rien ; le schema refuse au parse une scène qui n'en porte pas, et `emptyScene` la
+   *  pose à la création. Un corps la surcharge champ par champ (`ArchitectureBody.roofDefaults`), et
+   *  le TYPE de bâtiment du corps porte SA couverture (`buildings.json › roofMaterial`). */
+  roofDefaults: SceneRoofDefaults;
+  /** Couches d'empilement de la scène. Au moins une ; `z:0` = couche de base. Chaque couche a sa propre
+   *  grille aplatie w×h + ses hauteurs métriques (`Layer.height`). Les couches z>0 sont des surfaces
+   *  superposées (ponts, passerelles, étages) : on marche DESSUS et DESSOUS. Le franchissement vertical
+   *  s'auto-dérive du delta de hauteur entre voisines (`surfaceLink`) — aucun escalier explicite. */
+  layers: Layer[];
+  /** Murs sur ARÊTES de case (cloisons fines entre deux cases adjacentes) — bloquent le passage sans
+   *  occuper de tuile, contrairement au terrain `mur`. Forme canonique : `side:'N'` = arête entre (x,y)
+   *  et (x,y-1) ; `side:'E'` = arête entre (x,y) et (x+1,y). `door` = arête franchissable (porte). */
+  walls?: WallSeg[];
+  entities: SceneEntity[];
+  /** OCCUPATION des places assises offertes par le mobilier posé : `propId → slotId → occupant`
+   *  (`noyau/monde/seating.ts`, source UNIQUE de sa résolution et de sa mutation). Absent = personne
+   *  n'est assis ; `{}` explicite dit la même chose, et se distingue de l'absence à la CAPTURE de
+   *  mutation (un effacement complet ne doit pas ressusciter l'assise authorée). */
+  seatAssignments?: SeatAssignments;
+  /** Corps architecturaux authorés : volumes, façades et toitures intentionnels. */
+  architecture?: ArchitectureBody[];
+  dialogues: Dialogue[];
+  triggers: Trigger[];
+  encounters: EncounterDef[];
+  /** Ancres AUTHORÉES des Scènes de bataille sur le plan (S2) — chaque `sceneId` de la pioche de
+   *  Puissance de Bataille (`MassBattleState.pool`) reçoit un emplacement sur la carte. La PUISSANCE
+   *  des armées reste une abstraction NON rendue ; seul l'emplacement de l'ACTION cinématique (la
+   *  Scène du moment que résout un PJ) est posé, pour que `battleScenesToStations` en fasse des
+   *  Stations spatiales. Non peuplé = repli déterministe (le consommateur étale les Scènes). */
+  stations?: SceneStationAnchor[];
+  flags: Record<string, boolean>;
+  /** Points d'arrivée nommés (pour les transitions depuis une autre scène). `z` = étage visé (défaut 0,
+   *  cf. `normalizeScene`) — une transition vers un étage doit pouvoir NOMMER cet étage (#835 FU-5). */
+  entryPoints?: Record<string, { x: number; y: number; z?: number }>;
+  /** Scène de départ pour la campagne enchaînée. */
+  startMessage?: z.infer<typeof messageIntroductionSchema>;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
+}
+
+export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
+
+/** Échelle métrique d'une case (m/case) — défaut 2 (person-scale, LDB). Source UNIQUE pour la couche Mer. PUR. */
+export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | undefined): number {
+  return scene?.metresPerTile ?? 2;
+}
+
+/** La scène est-elle à l'échelle MER (combat naval OPÉRATIONNEL : navire-unité, équipage abstrait/passager) ?
+ *  Proxy = case ≥ 4 m (vs 2 m person-scale du Pont/sol). Pilote le modèle navire-unité (cf. couche Mer ⇄ Pont). PUR. */
+export function isMerScene(scene: { metresPerTile?: number } | null | undefined): boolean {
+  return sceneMetresPerTile(scene) >= 4;
+}
+
+/** Grille de tuiles d'une couche (défaut z=0 = base). Repli sur la 1ʳᵉ couche si `z` absent. */
+export function layerTiles(scene: Scene, z = 0): Terrain[] {
+  return (scene.layers.find((l) => l.z === z) ?? scene.layers[0]).tiles;
+}
+
+/** Ids des `SceneEntity` ENRÔLÉES dans une rencontre (membres d'un `EncounterDef`) — une entité enrôlée
+ *  est un combattant : elle affiche son équipement de combat. SOURCE UNIQUE (rendu iso ET POV). */
+export function enrolledEntityIds(scene: Scene): Set<string> {
+  return new Set(scene.encounters.flatMap((e) => (e.members ?? []).map((m) => m.entityId)));
+}
+
+/** Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. */
+export function startOf(scene: Scene): Pt | null {
+  const e = scene.entities.find((e) => e.kind === 'heroStart');
+  if (!e) return null;
+  return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
+}
+
+export function tileAt(scene: Scene, x: number, y: number, z = 0): Terrain {
+  if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainHorsGrille();
+  // Aucun repli de tuile : le schéma exige `tiles.length === w×h` sur chaque couche (#1789), donc
+  // toute case DANS la grille porte son terrain.
+  return layerTiles(scene, z)[y * scene.dimensions.w + x];
+}
+
+/** Hauteur RÉELLE (mètres) de la surface de la case (x,y) sur la couche `z` : >0 surélevée, <0 en
+ *  contrebas. Hors-grille ou sans tableau `height` → 0. Repli sur la 1ʳᵉ couche si `z` absent, comme
+ *  `tileAt`. PORTEUSE : pilote rampe/falaise (`surfaceLink`), distance verticale et chute. */
+export function heightAt(scene: Scene, x: number, y: number, z = 0): number {
+  if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return 0;
+  const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
+  return layer.height?.[y * scene.dimensions.w + x] ?? 0;
+}
+
+/**
+ * HAUTEUR MÉTRIQUE d'un point de grille — LE SOCLE : la hauteur de la surface sous `p`, sur la couche
+ * `p.z`. DÉCOUPLÉE de l'index de couche, qui ne sert qu'au TRI : la couche 0 porte du relief comme
+ * les autres, donc une absence de `z` vaut la couche 0, JAMAIS une hauteur nulle. Les coordonnées
+ * sont ARRONDIES (une position en cours de marche tombe entre deux cases ; `heightAt` indexe une
+ * case entière). C'est le sol que le monde volumique tend à ses passes de pose (`solM` de
+ * `gameIso/stage`), et ce dont l'élévation d'affichage `liftDe` dérive. PUR.
+ */
+export function hauteurDe(scene: Scene, p: Pt): number {
+  return heightAt(scene, Math.round(p.x), Math.round(p.y), p.z ?? 0);
+}
+
+/**
+ * ÉLÉVATION D'AFFICHAGE d'un point de grille — SOURCE UNIQUE du lift, celle que consomment le trait de
+ * mur (`gameIso/stage/layers.tsx`), le picking (`gameIso/stage/pickResolve.ts`), le curseur de
+ * combat, les arêtes, les surlignages et les aperçus de déplacement. DÉRIVÉ de `hauteurDe` : la
+ * hauteur métrique de la case rendue en unités de niveau. PUR.
+ */
+export function liftDe(scene: Scene, p: Pt): number {
+  return metricToLift(hauteurDe(scene, p));
+}
+
+/** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
+ *  (le crest builder `crestGeometry` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
+export function crenellatedAt(scene: Scene, x: number, y: number, z = 0): string | null {
+  if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return null;
+  const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
+  return layer.crenellated?.[y * scene.dimensions.w + x] ?? null;
+}
+
+/** La case (x,y,z) porte-t-elle une crénelure (marqueur de rendu) ? */
+export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolean {
+  return crenellatedAt(scene, x, y, z) !== null;
+}
+
+/** Le GROUPE peut-il être posé en `pt`, case de SON étage ? Seule lecture de cette question : le pas du
+ *  groupe (`moveParty`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
+export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: number }): boolean {
+  return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
+}
+
+export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+  if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
+  if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement
+  // Impassabilité de la MASSE = le TERRAIN (bloc plein `mur` = walkable:false) ; le sol du TUNNEL (`pierre`)
+  // reste marchable, la herse INTACTE barrant la bouche via `wallBetween`. Aucune règle « rempart » ici.
+  // `swim` : terrains d'ÉLECTION du mover (op passive `offTerrainMod` — `eau` pour Aquatique/Amphibie/
+  // Créature marine) qu'il TRAVERSE bien que globalement `walkable:false` (RAW « se déplace à sa pleine
+  // vitesse dans l'eau ») ; absent (exploration/décor) → walkabilité de terrain nue, byte-identique.
+  const t = tileAt(scene, x, y, z);
+  return terrainWalkable(t) || (swim !== undefined && swim.has(t));
+}
+
+/** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.
+ *  `path.ts` NEIGHBORS ; couches possiblement différentes) : compare leurs hauteurs métriques et classe
+ *  le franchissement à pied — `flat`/`ramp` marchable, `cliff` infranchissable horizontalement (on y
+ *  descend en chutant, on y monte par Escalade). SOURCE UNIQUE de l'auto-connexion du relief : remplace
+ *  les escaliers explicites ET la machinerie de rempart. `drop` = hauteur de `b` moins celle de `a`
+ *  (>0 = `b` plus haut). Renvoie null si `a` et `b` ne sont pas adjacentes en (x,y) (distance Chebyshev ≠ 1
+ *  → même case ou ≥ 2). La marchabilité du terrain/des murs reste séparée (`isWalkable`/`wallBetween`). */
+export function surfaceLink(
+  scene: Scene,
+  a: { x: number; y: number; z?: number },
+  b: { x: number; y: number; z?: number },
+): { grade: Grade; drop: number } | null {
+  if (chebyshev(a, b) !== 1) return null; // adjacent (cardinal ou diagonal)
+  const ha = heightAt(scene, a.x, a.y, a.z ?? 0);
+  const hb = heightAt(scene, b.x, b.y, b.z ?? 0);
+  return { grade: gradeBetween(ha, hb), drop: hb - ha };
+}
+
+/** OÙ l'on atterrit en quittant une surface : la case d'arrivée AVEC sa couche, ou le refus nommé. */
+export type Atterrissage =
+  | { kind: 'surface'; to: Pt; hauteur: number }
+  | { kind: 'aucune-surface' };
+
+/**
+ * SURFACE D'ATTERRISSAGE en (x,y) pour qui part de `hauteurDepart` (m) : la plus HAUTE surface
+ * MARCHABLE (`isWalkable`, tuile effondrée exclue) dont la hauteur ne dépasse pas le départ d'un pas
+ * (`STEP_MAX_M`), sur TOUTES les couches, par hauteur MÉTRIQUE — l'index de couche ne départage
+ * qu'une égalité (cf. `hauteurDe`). Calque de la boucle de couches de `path.ts::neighborsOf`. Seule
+ * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`state/fallMove.ts`),
+ * effondrement d'une passerelle (`collapseStructure`). `LDB 15 l.82`. PUR.
+ */
+export function surfaceDAtterrissage(scene: Scene, x: number, y: number, hauteurDepart: number): Atterrissage {
+  let best: { z: number; h: number } | null = null;
+  for (const layer of scene.layers) {
+    if (!isWalkable(scene, x, y, layer.z)) continue;
+    const h = heightAt(scene, x, y, layer.z);
+    if (h > hauteurDepart + STEP_MAX_M) continue;
+    if (!best || h > best.h || (h === best.h && layer.z > best.z)) best = { z: layer.z, h };
+  }
+  return best ? { kind: 'surface', to: { x, y, z: best.z }, hauteur: best.h } : { kind: 'aucune-surface' };
+}
+
+/** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une
+ *  case porte une chose (mur, porte, paroi de relief, wedge, pan de toit). Distinct de `Dir4`
+ *  (`noyau/monde/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
+ *  deux concepts : on ne « tourne » pas vers une arête, on ne pose pas un mur sur un cap. */
+export type CellSide = 'N' | 'E' | 'S' | 'O';
+
+/** Mur sur ARÊTE de case. `side:'N'` = arête entre (x,y) et (x,y-1) ; `side:'E'` = arête entre (x,y)
+ *  et (x+1,y). Les DIAGONALES `'\\'` (coin NO→SE) et `'/'` (coin NE→SO) tracent une cloison OBLIQUE en
+ *  travers de la case (x,y) — pour les parois en éventail / courbes (purement VISUELLES : le déplacement
+ *  reste orthogonal, géré par le sol / les arêtes N-E). `door` = franchissable (porte). `z` = étage. */
+export type WallSide = z.infer<typeof wallSideSchema>;
+export type WallSeg = z.infer<typeof wallSegSchema>;
+
+export type WallClimb = z.infer<typeof wallClimbSchema>;
+export type WallSecret = z.infer<typeof wallSecretSchema>;
+/** Case(s) bordant une arête : `porteuse` `(x,y)`, `voisine` à travers `side`, ou `les-deux`. */
+export type FaceDArete = z.infer<typeof faceDAreteSchema>;
+
+/** Les cases de la FACE `face` d'une arête : `porteuse` = `(x,y)` ; `voisine` = à travers `side` (`N` →
+ *  `(x,y-1)`, `E` → `(x+1,y)`) ; `les-deux` = l'une puis l'autre. Une cloison oblique (`\\`, `/`) n'a pas
+ *  de voisine. PUR. */
+export function casesDeFace(seg: { x: number; y: number; side: WallSide }, face: FaceDArete): { x: number; y: number }[] {
+  const voisine = seg.side === 'N' ? [{ x: seg.x, y: seg.y - 1 }] : seg.side === 'E' ? [{ x: seg.x + 1, y: seg.y }] : [];
+  const porteuse = [{ x: seg.x, y: seg.y }];
+  return face === 'porteuse' ? porteuse : face === 'voisine' ? voisine : [...porteuse, ...voisine];
+}
+
+/** Les propriétés d'un `WallSeg` qu'un char de LÉGENDE d'arête peut ÉCRIRE (`MapSpec.wallLegend`) :
+ *  la MATIÈRE mécanique (`structure`, id de `structures.json`) et/ou le LOOK pur (`appearance`, id de
+ *  `structureAppearance.json`). Liste UNIQUE — parse (`state/asciiMap`), recopie (`state/mapSpec`) et
+ *  clé d'export (`state/sceneToAscii`) itèrent dessus, jamais sur une énumération locale.
+ *  N+1 propriété = DEUX lignes : ici, et dans `wallSegSchema` (`data/schemas/defs-scenes/scene.ts`). */
+export const WALL_OVERLAY_KEYS = ['structure', 'appearance'] as const;
+
+/** Ce qu'un char de légende d'arête écrit sur une arête — cf. `WALL_OVERLAY_KEYS`. */
+export type WallOverlay = Pick<WallSeg, (typeof WALL_OVERLAY_KEYS)[number]>;
+
+/** Les clés DÉFINIES d'un overlay, jamais une clé posée à `undefined` : `wallSegSchema` est un
+ *  `z.strictObject` et une clé explicite à `undefined` ferait diverger toute comparaison structurelle. */
+export function wallOverlayOf(src: WallOverlay): WallOverlay {
+  const out: WallOverlay = {};
+  for (const k of WALL_OVERLAY_KEYS) if (src[k] !== undefined) out[k] = src[k];
+  return out;
+}
+
+/** Le segment ESCALADABLE sur l'arête (x,y,side,z), ou undefined. */
+export function climbAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side: WallSide, z = 0): WallSeg | undefined {
+  return aretesA(scene, x, y, side, z).find((w) => !!w.climb);
+}
+
+/** Segment ESCALADABLE sur l'arête CANONIQUE (cardinale) séparant deux cases adjacentes `a`/`b`, ou
+ *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `edgeOf` (arête canonique
+ *  partagée avec `wallBetween`). PUR. */
+export function climbEdgeBetween(
+  scene: Pick<Scene, 'walls'>,
+  a: { x: number; y: number; z?: number },
+  b: { x: number; y: number; z?: number },
+): WallSeg | undefined {
+  const e = edgeOf(a.x, a.y, b.x, b.y);
+  if (!e) return undefined;
+  return climbAt(scene, e.x, e.y, e.side, a.z ?? 0);
+}
+
+/** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
+ *  de l'état authored `closed`). Absent du flag = défaut authored (`!closed`). */
+export function doorKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__door_${x}_${y}_${side}_${z}`;
+}
+
+/** Une porte est-elle OUVERTE ? Flag runtime (`scene.flags[doorKey]`) prioritaire, sinon défaut authored
+ *  (`!seg.closed`). Une porte ouverte ne bloque ni la vue ni le passage ; fermée, elle bloque les deux. */
+export function doorIsOpen(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  const f = scene.flags?.[doorKey(seg.x, seg.y, seg.side, seg.z ?? 0)];
+  return f !== undefined ? f : !seg.closed;
+}
+
+/** Clé de flag de RÉVÉLATION d'une porte secrète (`scene.flags`) — présent & `true` = révélée.
+ *  Absent = masquée (défaut authored de `WallSeg.secret`). `EDO 08 l.404`. */
+export function secretKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__secret_${x}_${y}_${side}_${z}`;
+}
+
+/** Clé de flag de TENTATIVE de découverte d'une porte secrète (`scene.flags`) — présent & `true` = le
+ *  Test de Perception a été tenté (arbitrage utilisateur #700, 2026-09-29 : « Une seule (Recommandé) —
+ *  Un échec est définitif pour cette porte »). Absent = jamais tentée. `EDO 08 l.404`. */
+export function secretTenteKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__secret_tente_${x}_${y}_${side}_${z}`;
+}
+
+/** La porte secrète de ce segment est-elle RÉVÉLÉE ? Flag runtime ; absent = masquée (false). */
+export function porteRevelee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return scene.flags?.[secretKey(seg.x, seg.y, seg.side, seg.z ?? 0)] === true;
+}
+
+/** Porte AUTHORÉE — lecture du DOCUMENT (éditeur, compilation, export), sans état runtime. Seul lecteur
+ *  de `WallSeg.door` avec `secretAuteur` (garde `src/lecteurs-de-porte-guard.test.ts`) ; le JEU lit
+ *  `porteEnJeu`. */
+export function porteAuteur(seg: WallSeg): boolean {
+  return !!seg.door;
+}
+
+/** Porte SECRÈTE authorée — lecture du DOCUMENT : sa définition (`wallSecretSchema`), ou undefined.
+ *  Seul lecteur de `WallSeg.secret`. `EDO 08 l.404`. */
+export function secretAuteur(seg: WallSeg): WallSecret | undefined {
+  return seg.secret;
+}
+
+/** Porte secrète NON révélée : pour le JEU, l'arête n'est pas une porte (`porteEnJeu`). */
+export function porteMasquee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return !!secretAuteur(seg) && !porteRevelee(scene, seg);
+}
+
+/** La découverte de cette porte secrète a-t-elle été TENTÉE ? Flag runtime (`secretTenteKey`) ; absent =
+ *  jamais tentée (false). */
+export function porteTentee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return scene.flags?.[secretTenteKey(seg.x, seg.y, seg.side, seg.z ?? 0)] === true;
+}
+
+/** L'arête est-elle une PORTE pour le JEU ? Porte authorée ET (non secrète OU révélée). SEUL prédicat
+ *  RUNTIME de « porte ». */
+export function porteEnJeu(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return porteAuteur(seg) && !porteMasquee(scene, seg);
+}
+
+/** Porte AUTHORÉE non secrète — lecture STATIQUE, sans état runtime (ancrages d'authoring dérivés du
+ *  plan : une porte secrète n'y est jamais une entrée). */
+export function porteNonSecrete(seg: WallSeg): boolean {
+  return porteAuteur(seg) && !secretAuteur(seg);
+}
+
+/** Lecture d'une arête : `auteur` = le document authoré (éditeur), `jeu` = l'état runtime (partie, POV). */
+export type LectureDArete = 'auteur' | 'jeu';
+
+/** L'arête se lit-elle en PORTE sous cette lecture ? `auteur` : `porteAuteur` ; `jeu` : `porteEnJeu`. */
+export function porteSelon(scene: Pick<Scene, 'flags'>, seg: WallSeg, lecture: LectureDArete): boolean {
+  return lecture === 'auteur' ? porteAuteur(seg) : porteEnJeu(scene, seg);
+}
+
+/** Le segment de PORTE EN JEU sur l'arête (x,y,side,z), ou undefined (`porteEnJeu` : une porte secrète
+ *  masquée n'en est pas une). */
+export function doorAt(scene: Pick<Scene, 'walls' | 'flags'>, x: number, y: number, side: WallSide, z = 0): WallSeg | undefined {
+  return aretesA(scene, x, y, side, z).find((w) => porteEnJeu(scene, w));
+}
+
+/** Pose l'état RÉVÉLÉ/MASQUÉ d'une porte secrète (flag runtime) — renvoie une NOUVELLE Scène. No-op
+ *  (même réf) si l'arête ne porte pas de porte `secret`. PUR. */
+export function setDoorRevealed<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, revealed: boolean): S {
+  if (!aretesA(scene, x, y, side, z).some((w) => !!secretAuteur(w))) return scene;
+  return { ...scene, flags: { ...scene.flags, [secretKey(x, y, side, z)]: revealed } };
+}
+
+/** Pose la marque de TENTATIVE d'une porte secrète (flag runtime, `secretTenteKey`) — renvoie une
+ *  NOUVELLE Scène. No-op (même réf) si l'arête ne porte pas de porte `secret`. PUR. */
+export function setDoorTentee<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, tentee: boolean): S {
+  if (!aretesA(scene, x, y, side, z).some((w) => !!secretAuteur(w))) return scene;
+  return { ...scene, flags: { ...scene.flags, [secretTenteKey(x, y, side, z)]: tentee } };
+}
+
+/** Pose l'état OUVERT/FERMÉ d'une porte (flag runtime) — renvoie une NOUVELLE Scène (réf changée →
+ *  recompute de la vue + re-rendu). No-op (même réf) si pas de porte à cette arête. PUR. */
+export function setDoorOpen<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, open: boolean): S {
+  if (!doorAt(scene, x, y, side, z)) return scene;
+  return { ...scene, flags: { ...scene.flags, [doorKey(x, y, side, z)]: open } };
+}
+
+/** Bascule une porte (ouverte ↔ fermée). PUR (nouvelle Scène). */
+export function toggleDoorIn<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z = 0): S {
+  const seg = doorAt(scene, x, y, side, z);
+  if (!seg) return scene;
+  return setDoorOpen(scene, x, y, side, z, !doorIsOpen(scene, seg));
+}
+
+/** Clé de flag d'état d'une structure d'arête (`scene.flags`) — présent & `true` = ABATTUE (brèche).
+ *  Absent = défaut intact (une structure neuve tient ; pas de couche authored à inverser, à la différence
+ *  d'une porte qui peut être `closed` au départ). */
+export function structureDownKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__struct_down_${x}_${y}_${side}_${z}`;
+}
+
+/** La structure de cette arête est-elle ABATTUE ? Flag runtime override ; absent = intacte (false). Une
+ *  structure abattue ne bloque plus ni la vue ni le passage (la brèche est ouverte). */
+export function structureIsDown(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return scene.flags?.[structureDownKey(seg.x, seg.y, seg.side, seg.z ?? 0)] === true;
+}
+
+export type VictoryCondition = z.infer<typeof victoryConditionSchema>;
+
+/** Le segment portant une STRUCTURE sur l'arête (x,y,side,z), ou undefined. */
+export function structureAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side: WallSide, z = 0): WallSeg | undefined {
+  return aretesA(scene, x, y, side, z).find((w) => !!w.structure);
+}
+
+/** Pose l'état ABATTU/INTACT d'une structure d'arête (flag runtime) — renvoie une NOUVELLE Scène. No-op
+ *  (même réf) si aucune structure n'est posée sur l'arête. PUR. */
+export function setStructureDown<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, down: boolean): S {
+  if (!structureAt(scene, x, y, side, z)) return scene;
+  return { ...scene, flags: { ...scene.flags, [structureDownKey(x, y, side, z)]: down } };
+}
+
+const PREFIXE_TUILE_EFFONDREE = '__tile_down_';
+
+/** Clé de flag d'effondrement d'une TUILE d'étage (`scene.flags`) — présent & `true` = la passerelle de
+ *  la case (x,y,z) s'est effondrée (z>0). Absent = intacte. Calque le patron flag des portes/structures. */
+export function collapsedTileKey(x: number, y: number, z: number): string {
+  return `${PREFIXE_TUILE_EFFONDREE}${x}_${y}_${z}`;
+}
+
+/** Les tuiles EFFONDRÉES de la scène, en une chaîne (clés de flag triées) — ce que la marchabilité
+ *  d'étage (`isWalkable`, `tileCollapsed`) lit de `scene.flags`, et rien d'autre. */
+export function tuilesEffondreesSignature(scene: Pick<Scene, 'flags'>): string {
+  return Object.keys(scene.flags ?? {}).filter((k) => k.startsWith(PREFIXE_TUILE_EFFONDREE) && scene.flags![k] === true).sort().join(';');
+}
+
+/** La tuile (x,y,z) est-elle EFFONDRÉE ? (passerelle d'étage abattue après destruction de la structure
+ *  qui la portait). Flag runtime ; absent = intacte (false). */
+export function tileCollapsed(scene: Pick<Scene, 'flags'>, x: number, y: number, z: number): boolean {
+  return scene.flags?.[collapsedTileKey(x, y, z)] === true;
+}
+
+/** Marque la tuile (x,y,z) comme EFFONDRÉE (flag runtime) — renvoie une NOUVELLE Scène (réf changée →
+ *  recompute de la vue + re-rendu). PUR. */
+export function setTileCollapsed<S extends Pick<Scene, 'flags'>>(scene: S, x: number, y: number, z: number): S {
+  return { ...scene, flags: { ...scene.flags, [collapsedTileKey(x, y, z)]: true } };
+}
+
+/** Une arête est-elle OUVERTE (ne bloque NI passage NI vue) ? Prédicat CANONIQUE unique des deux modes
+ *  d'ouverture : porte ouverte OU structure abattue. Sinon l'arête bloque (mur plein, porte fermée,
+ *  porte secrète masquée, structure intacte). `wallBetween` (franchissabilité) s'y branche directement ; la TRANSPARENCE passe
+ *  par `areteOcculte`, qui compose ce prédicat avec l'opacité déclarée de la Structure. */
+export function wallIsOpen(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return (porteEnJeu(scene, seg) && doorIsOpen(scene, seg)) || (!!seg.structure && structureIsDown(scene, seg));
+}
+
+/** La Structure `id` coupe-t-elle la Ligne de Vue ? Défaut OCCULTANT : une arête sans structure (mur nu
+ *  d'authoring), une structure inconnue du dataset, ou une entrée sans champ `occulte` occultent toutes.
+ *  Seul `occulte: false` — qui exige son `maison` au schéma (`defs/structures.ts`) — laisse voir. */
+function structureOccultante(id?: string): boolean {
+  if (!id) return true;
+  return findStructureById(id)?.occulte !== false;
+}
+
+/** Une arête coupe-t-elle la LIGNE DE VUE ? Frère de `wallIsOpen`, et SEUL prédicat d'opacité d'arête :
+ *  une arête OUVERTE (porte ouverte, structure abattue) laisse voir, et parmi celles qui TIENNENT, seules
+ *  les Structures déclarées `occulte: false` (herse à barreaux, clôture d'enclos) et la croisée sans
+ *  `shuttered` (arbitrage #1712, 2026-09-08) laissent voir.
+ *  L’opacité n’est PAS la franchissabilité : une arête non occultante reste infranchissable
+ *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
+export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+}
+
+/** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non
+ *  adjacentes. L'arête entre (x,y) et (x,y+1) est le `N` de (x,y+1) ; entre (x,y) et (x+1,y) le `E` de (x,y). */
+export function edgeOf(ax: number, ay: number, bx: number, by: number): { x: number; y: number; side: 'N' | 'E' } | null {
+  if (by === ay && bx === ax + 1) return { x: ax, y: ay, side: 'E' };
+  if (by === ay && bx === ax - 1) return { x: bx, y: by, side: 'E' };
+  if (bx === ax && by === ay + 1) return { x: bx, y: by, side: 'N' };
+  if (bx === ax && by === ay - 1) return { x: ax, y: ay, side: 'N' };
+  return null;
+}
+
+/** Une arête séparant deux cases adjacentes du même étage satisfait-elle `prédicat` ? Résolution
+ *  d'arête PARTAGÉE par les deux questions qu'on lui pose — « barre-t-elle le pas ? » et « coupe-t-elle
+ *  la vue ? » : même géométrie (cardinal seul, cf. `edgeOf`), seul le prédicat par segment diffère. */
+function areteEntre(
+  scene: Scene, ax: number, ay: number, bx: number, by: number, z: number,
+  predicat: (seg: WallSeg) => boolean,
+): boolean {
+  if (!scene.walls?.length) return false;
+  const e = edgeOf(ax, ay, bx, by);
+  if (!e) return false;
+  return aretesA(scene, e.x, e.y, e.side, z).some(predicat);
+}
+
+/** Un mur sépare-t-il deux cases adjacentes du même étage ? (bloque le passage, pas la case). Un mur
+ *  plein bloque toujours ; une PORTE bloque seulement si elle est FERMÉE, une STRUCTURE seulement tant
+ *  qu'elle TIENT — les deux modes d'ouverture sont réunis par `wallIsOpen`. */
+export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
+  return areteEntre(scene, ax, ay, bx, by, z, (w) => !wallIsOpen(scene, w));
+}
+
+/** Une arête coupe-t-elle la LIGNE DE VUE entre deux cases adjacentes du même étage ? Pendant exact de
+ *  `wallBetween` pour la VUE — même arête, même géométrie, prédicat `areteOcculte`. Les deux verdicts
+ *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
+export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
+  return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+}
+
+/** Tuiles de PASSERELLE marchables de la couche AU-DESSUS de l'arête (`seg.z + 1`) — la case
+ *  porteuse `(seg.x,seg.y)` et sa voisine à travers l'arête (`casesDeFace` `les-deux`), prises à cette couche
+ *  et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la structure portant la
+ *  passerelle est abattue, ces tuiles s'effondrent (cf. `collapseStructure`). Ne renvoie QUE celles
+ *  réellement praticables (la passerelle réelle) ; les arêtes obliques (`\\`,`/`) n'ont pas de voisine. */
+export function parapetTilesAbove(scene: Scene, seg: { x: number; y: number; side: WallSide; z?: number }): { x: number; y: number; z: number }[] {
+  const z = (seg.z ?? 0) + 1;
+  return casesDeFace(seg, 'les-deux')
+    .filter((c) => terrainWalkable(tileAt(scene, c.x, c.y, z)))
+    .map((c) => ({ x: c.x, y: c.y, z }));
+}
+
+/**
+ * Matières de relief d'une scène NEUVE (#1691, en donnée #1716) — le défaut d'AUTHORING, pas une
+ * règle : DÉRIVÉE de la semence éditable (`semences-de-scene.json`). Chaque scène porte ensuite SES
+ * valeurs (panneau de scène de l'inspecteur) ; le builder ne connaît que celles de la scène.
+ */
+export const DEFAULT_RELIEF_DEFAULTS: ReliefDefaults = semencesDeScene.reliefDefaults;
+
+/**
+ * Toiture d'une scène NEUVE (#1715, en donnée #1716) — le défaut d'AUTHORING, pas une règle,
+ * DÉRIVÉE de la semence éditable : chaque scène porte ensuite SES valeurs (panneau de scène de
+ * l'inspecteur), un corps les surcharge, un type de bâtiment porte sa propre couverture.
+ */
+export const DEFAULT_ROOF_DEFAULTS: SceneRoofDefaults = semencesDeScene.roofDefaults;
+
+/**
+ * SOL d'une scène NEUVE (#1716) — DÉRIVÉE de la même semence. Source UNIQUE du terrain de
+ * DÉPART/REMPLISSAGE de tout le dépôt : la création d'une scène (`emptyScene`), la compilation d'un
+ * `MapSpec` sans `terrain` déclaré, le redimensionnement de l'éditeur, le pinceau par défaut de la
+ * palette et le repli de la légende d'export ASCII le lisent ICI — jamais un `'…'` de leur cru.
+ */
+export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain;
+
+/** Scène neuve — pose les défauts EXPLICITES au lieu de laisser `undefined` : le contrôle d'inspecteur
+ *  affiche alors la valeur RÉELLEMENT effective (2 m, horloge) au lieu d'un simple placeholder vide qui
+ *  laisserait l'auteur deviner (#841 FU-A). `environment` reste absent : « non spécifié » (aucun bonus de
+ *  Domaine) est une valeur légitime à part entière, pas un défaut caché.
+ *  Tout ce que la scène reçoit ici vient de la SEMENCE éditable (`semences-de-scene.json`, #1716) :
+ *  ce module ne choisit plus ni matière, ni terrain, ni échelle. `ambientLight` ABSENT de la semence
+ *  vaut `auto` — la sentinelle est l’absence côté semence (champ typé `idDe('lightLevel')`), et la
+ *  scène produite la porte EN CLAIR, comme avant #1716. */
+export function emptyScene(w = 20, h = 15): Scene {
+  return {
+    type: 'scene',
+    id: `scene-${Date.now()}`,
+    label: 'Nouvelle scène',
+    dimensions: { w, h },
+    ambiance: semencesDeScene.ambiance,
+    metresPerTile: semencesDeScene.metresPerTile,
+    ambientLight: semencesDeScene.ambientLight ?? 'auto',
+    reliefDefaults: { ...semencesDeScene.reliefDefaults },
+    roofDefaults: { ...semencesDeScene.roofDefaults },
+    layers: [{ z: 0, tiles: new Array(w * h).fill(semencesDeScene.terrain) }],
+    entities: [],
+    dialogues: [],
+    triggers: [],
+    encounters: [],
+    flags: {},
+  };
+}
+
+/**
+ * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
+ * sur `Scene`). Appelée APRÈS la porte du schéma, par `parseProject` (`projetSchema`) et
+ * `parseSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais un `?? []` saupoudré côté
+ * consommateur. PUR — ne mute pas `s`. */
+export function normalizeScene(s: Scene): Scene {
+  return {
+    ...s,
+    layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
+    entities: s.entities ?? [],
+    dialogues: s.dialogues ?? [],
+    triggers: s.triggers ?? [],
+    encounters: s.encounters ?? [],
+    flags: s.flags ?? {},
+  };
+}
+
+/** `ambiance` ne distingue qu'intérieur vs extérieur (le jour/nuit vient de l'horloge). Absent → extérieur. */
+export function normalizeAmbiance(a: Scene['ambiance']): 'interieur' | 'exterieur' {
+  return a === 'interieur' ? 'interieur' : 'exterieur';
+}
+
+/** Scène en intérieur (éclairée — l'obscurité de l'horloge ne s'y applique pas). */
+export function isIndoor(scene: Pick<Scene, 'ambiance'>): boolean {
+  return normalizeAmbiance(scene.ambiance) === 'interieur';
+}

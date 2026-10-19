@@ -8,7 +8,7 @@ import { willAutoResolve } from './combatAuto';
 import { evaluateTest, maxForcedRoll } from '../engine/tests';
 import { hitLocation, reverseRoll } from '../engine/combat';
 import { netSeatClosed } from './netFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { AttackResult } from '../engine/combat';

@@ -11,7 +11,7 @@ import {
   GROUND_ROWS,
   type Courses,
 } from './courses';
-import { tousLesTerrains } from '../../state/terrain';
+import { tousLesTerrains } from '../../noyau/monde/terrain';
 import { structureAppearances, matieresDe } from '../../data';
 
 /**

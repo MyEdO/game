@@ -1,7 +1,7 @@
 import { makeShowcaseParty } from '../../data/pregens';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
-import type { Scene, SceneEntity } from '../../state/scene';
-import { assignSeat, seatSlotsOf } from '../../state/seating';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
+import { assignSeat, seatSlotsOf } from '../../noyau/monde/seating';
 import type { TestScenario } from './_shared';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 

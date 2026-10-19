@@ -10,8 +10,8 @@ import { documentById } from '../../state/campaignData';
 import { walkFlow } from '../../engine/flowCore';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import { scenario } from './documents-edo';
-import type { Dialogue } from '../../state/scene';
-import type { Flow } from '../../state/flow';
+import type { Dialogue } from '../../noyau/monde/scene';
+import type { Flow } from '../../noyau/monde/flow';
 
 const paquet = paquetDuJeu(diligenceCampaign).narratif.documents;
 

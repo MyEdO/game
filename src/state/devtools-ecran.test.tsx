@@ -18,9 +18,9 @@ import { viewYawDeg, poserYaw, resetStageYaw, SENSIBILITE_DRAG_DEG_PX, lacetActi
 import { AreteOverlay } from '../gameIso/stage/AreteOverlay';
 import { scèneÀDeuxPièces, aretesDePortes } from '../gameIso/stage/arete-dans-la-chaine.fixture';
 import { Editor } from '../ui/editor/Editor';
-import { emptyScene } from './scene';
-import { __setFabriqueIdbForTest } from '../lib/indexedDb';
-import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
+import { emptyScene } from '../noyau/monde/scene';
+import { __setFabriqueIdbForTest } from '../web/indexedDb';
+import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { tileEdge, screenToTileF, type Dims } from '../geometry/iso';
 import { canonEdge } from './sceneEdit';
 import { nearestEdge } from '../ui/editor/editorState';

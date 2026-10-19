@@ -8,12 +8,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import { WATER_EXPOSURE } from '../data';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 const seq = (vals: number[]): RNG => {

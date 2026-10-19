@@ -12,7 +12,7 @@ import { useGame } from '../state/store';
 import { RollShell } from './RollShell';
 import { buildRollRow } from './rollRowBuild';
 import { ShantyModal } from './ShantyModal';
-import { resultLines, freeCons } from '../state/rollSeam';
+import { resultLines, freeCons } from '../noyau/rollSeam';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

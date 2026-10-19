@@ -1,4 +1,4 @@
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, Scene, Terrain } from '../state/scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, Scene, Terrain } from '../noyau/monde/scene';
 import { buildEncounter } from '../state/encounterAuthoring';
 
 const W = 22;

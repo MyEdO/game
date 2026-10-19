@@ -18,7 +18,7 @@ import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { toBrass } from '../engine/money';
 import type { Combatant } from '../engine/types';
-import type { Dialogue } from './scene';
+import type { Dialogue } from '../noyau/monde/scene';
 import type { GameState } from './store';
 
 const hero = (brass = 0): Combatant =>

@@ -6,7 +6,7 @@ import { TINT_SPREAD } from '../../detail/expand';
 import { reliefMaterial } from '../../catalog/relief';
 import { roofMaterial } from '../../catalog/roofs';
 import { structureAppearance } from '../../catalog/structures';
-import { tousLesTerrains } from '../../../state/terrain';
+import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { terrainGradient, terrainGradientId, MISSING_GRADIENT } from '../../catalog/terrain';
 import { propMaterial } from '../../catalog/propMaterials';
 import { MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../../catalog/missing';

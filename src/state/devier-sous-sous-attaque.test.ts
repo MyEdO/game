@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { battleRng, seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from './combatFlow';
 import { draineCascade } from './cascadeTestKit';
 import { spawnEnemy } from './spawn';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { toucheAuJetPose, type AttackResult, type RollBreakdown } from '../engine/combat';
 import { damageArmour } from '../engine/items';
 import { addCondition, hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../engine/types';
-import type { CoupDeTouche } from './pendings';
+import type { CoupDeTouche } from '../noyau/pendings';
 import { evaluateMissile } from '../engine/magic';
 import { findSpell } from '../data';
 import { makeRNG } from '../engine/dice';

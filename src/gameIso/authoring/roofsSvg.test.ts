@@ -4,10 +4,10 @@ import type { RoofEl } from '../builders/types';
 import { roofDepth, roofSvg } from './roofsSvg';
 import { diamondPath, footprintDepth, tileCenter, WALL_H, type Dims } from '../../geometry/iso';
 import { WALL_H_M } from '../iso';
-import { metricToLift, METRES_PER_LEVEL } from '../../state/relief';
+import { metricToLift, METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { roofMaterial } from '../catalog/roofs';
 import { shade, mix } from '../shade';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 
 /**
  * Backend écran-affine des toits : projette les éléments `roof` du pivot via le pont partagé (`projGP`).

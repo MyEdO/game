@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, structureAt, type WallSeg } from '../../state/scene';
-import { wallBetween } from '../../state/scene';
+import { emptyScene, structureAt, type WallSeg } from '../../noyau/monde/scene';
+import { wallBetween } from '../../noyau/monde/scene';
 import { canonEdge, edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeight, nearestEdge, pickWallEdge, patchWall, deleteSel } from './editorState';
 
 /**

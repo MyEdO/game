@@ -6,7 +6,7 @@
  */
 import { SOUND_DEFS } from './_registry.generated';
 import type { MusicContext, SoundDef } from './types';
-import { isIndoor, type Scene } from '../state/scene';
+import { isIndoor, type Scene } from '../noyau/monde/scene';
 
 /** Tranche minimale d'état nécessaire (évite de dépendre du store — testable à sec). */
 export interface MusicStateSlice {

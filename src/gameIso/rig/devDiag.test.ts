@@ -4,7 +4,7 @@ import { entityRigProfileFor } from './enemyProfile';
 import { tokenBodyKind } from '../tokenBodyKind';
 import { resetDiagOnce } from './devDiag';
 import { useGame } from '../../state/store';
-import { emptyScene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type SceneEntity } from '../../noyau/monde/scene';
 
 /**
  * Les sites de diagnostic du pipeline de rendu sont rappelés à chaque redérivation des sujets par

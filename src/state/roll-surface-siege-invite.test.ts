@@ -11,9 +11,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { spyApplier } from './cascadeTestKit';
 import { setGmSeat } from './netFlow';
-import { openRoll, rollSansPilote, type RollRequest } from './rollSeam';
+import { openRoll, rollSansPilote, type RollRequest } from '../noyau/rollSeam';
 import { humanControlled } from './netOwnership';
-import { jetSurfaced } from './sieges';
+import { jetSurfaced } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
 
 const KIND = 'sonde-siege-invite';

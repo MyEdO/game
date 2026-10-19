@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isDescriptiveZone, layerTiles, type Scene, type Terrain } from '../../state/scene';
+import { emptyScene, isDescriptiveZone, layerTiles, type Scene, type Terrain } from '../../noyau/monde/scene';
 import { isRoomZone } from '../../state/rooms';
 import {
   setMetresPerTile,
@@ -13,7 +13,7 @@ import {
 // `putLayer` : appelant unique `state/mapSpec.ts` (`buildScene`), sans porte en `src/ui/**` (#855).
 import { editEntity, editEntityCombat, putLayer, renameActionAuthoree } from '../../state/sceneEdit';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import type { ActionAuthoree, SceneEntity } from '../../state/scene';
+import type { ActionAuthoree, SceneEntity } from '../../noyau/monde/scene';
 
 /** Primitives pures consommées par le headless-editor `buildScene`. */
 

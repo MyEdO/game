@@ -17,7 +17,7 @@
  * caméra et l'élévation-écran vivent entièrement ici, jamais dans un builder.
  */
 import { tileCenter, type Dims } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import type { GP } from '../builders/types';
 
 export type Pt2 = [number, number];

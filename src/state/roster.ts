@@ -2,7 +2,7 @@ import type { Combatant } from '../engine/types';
 import type { Money } from '../engine/money';
 import type { CreatorDraft } from '../ui/creator/draft';
 import { t } from '../i18n';
-import { stockageWeb } from '../lib/stockageWeb';
+import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.

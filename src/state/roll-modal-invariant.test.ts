@@ -29,7 +29,7 @@ import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybe
 import { gainCorruption } from './corruptionFlow';
 import { createHero } from '../engine/character';
 import { buildWeapon } from '../engine/items';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { addCondition, COND } from '../engine/conditions';
 
 import { testScene } from '../scenes/test-fixture';
@@ -58,7 +58,7 @@ const SRC: Record<string, string> = {
   roundHooks: readCode('./combat/roundHooks.ts'),
   turnHooks: readCode('./combat/turnHooks.ts'),
   triggeredTest: readCode('./combat/triggeredTest.ts'),
-  triggeredEffects: readCode('./triggeredEffects.ts'),
+  triggeredEffects: readCode('../noyau/triggeredEffects.ts'),
 };
 
 /** Corps `{ … }` équilibré d'une fonction nommée (déclaration `function`/`export function`). */

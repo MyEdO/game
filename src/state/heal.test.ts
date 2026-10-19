@@ -6,7 +6,7 @@ import { availableHealModes } from '../engine/healing';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, s, loc), opts, loc);
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 
 function hero(p: Partial<Combatant>): Combatant {

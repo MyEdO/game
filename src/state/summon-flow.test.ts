@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applySummon, purgeExpiredSummons } from './summonFlow';
 import type { Combatant } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
 import { spells } from '../data';
 import { atteignables, cheminsVersLeCatalogue } from './partage.testkit';

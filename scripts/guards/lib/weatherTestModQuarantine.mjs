@@ -26,4 +26,4 @@ export const CHANNEL_ALLOWED = ['src/engine/combat.ts', 'src/state/travelPostes.
 /** Le LECTEUR des Précipitations sur le pont (MDG 13 l.185, #1936) : le monteur canonique d'une ligne de
  *  jet (déclaration `pont`) et les étages du moteur de combat (`Combatant.envPrecipitation`). */
 export const PRECIP_SYMBOL = 'precipitationTestMods';
-export const PRECIP_ALLOWED = ['src/engine/combat.ts', 'src/engine/crewMorale.ts', 'src/state/rollSeam.ts'];
+export const PRECIP_ALLOWED = ['src/engine/combat.ts', 'src/engine/crewMorale.ts', 'src/noyau/rollSeam.ts'];

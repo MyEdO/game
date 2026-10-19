@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildFloors, edgeBlends, isOverhang, capsSolid, capsSolidDirect, fogFloorZ } from './floors';
 import type { Face, FloorEl } from './types';
-import { emptyScene, heightAt, type Scene } from '../../state/scene';
-import { gradeBetween, STEP_MAX_M } from '../../state/relief';
-import { terrainMatiere } from '../../state/terrain';
+import { emptyScene, heightAt, type Scene } from '../../noyau/monde/scene';
+import { gradeBetween, STEP_MAX_M } from '../../noyau/monde/relief';
+import { terrainMatiere } from '../../noyau/monde/terrain';
 
 /**
  * Builder de sols du PIVOT : le franchissement vertical S'AUTO-DÉRIVE du delta de hauteur MÉTRIQUE

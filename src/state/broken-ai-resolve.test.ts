@@ -5,7 +5,7 @@ import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 /**

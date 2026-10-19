@@ -6,16 +6,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { availabilitySearchBonus } from '../engine/disponibilite';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { cibleDuTest, evaluateTest } from '../engine/tests';
 import { partyAssisted } from '../engine/skills';
 import { traceLineOf } from '../engine/traceLine';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 import { dataLabel, refLabel } from '../data';
 import { t } from '../i18n';
 

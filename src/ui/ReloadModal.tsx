@@ -7,7 +7,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, supportSplit } from './breakdown';
 import { combatValueModParts } from '../engine/combat';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeReload } from '../state/flowOutcomes';
 
 /** Vue pure de la modale de rechargement (testable sans store). */

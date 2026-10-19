@@ -20,7 +20,7 @@ import { gainCorruption } from './corruptionFlow';
 import { openMedic, medicAct } from './medicFlow';
 import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';

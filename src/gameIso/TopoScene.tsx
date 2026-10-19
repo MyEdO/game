@@ -23,7 +23,7 @@ import { stageSize, tileCenter, type Dims } from '../geometry/iso';
 import { IconG } from '../ui/Icon';
 import { MARKER_R, stationMarker, colocationOffsets } from './topoMarkers';
 import { relationColor } from './teamColors';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { Station } from '../state/stations';
 import type { Combatant } from '../engine/types';
 

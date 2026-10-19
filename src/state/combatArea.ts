@@ -30,18 +30,18 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, Weapon, HitLocation } from '../engine/types';
 import { estNavire } from '../engine/coque';
 import { woundsFromHit, rangeBandName } from '../engine/combat';
-import { sceneMetresPerTile } from './scene';
+import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveWeaponRange } from '../engine/weaponDamage';
 import { loadedAmmo } from '../engine/items';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { loseWounds, isOutOfAction } from '../engine/conditions';
 import { exposedCrew } from '../engine/shipCritical';
-import { combatantsWithinRadius } from './combatGeometry';
+import { combatantsWithinRadius } from '../noyau/monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
 import { t as tr, type MsgKey } from '../i18n';
 import { RNG, defaultRNG } from '../engine/dice';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 
 /** Contexte d'une touche à résoudre en aire — commun au tir individuel, à la bordée ET au pilonnage
  *  INDIRECT (« viser une case », AA 10 l.169/171 : mortier/catapulte à arc élevé visent un POINT au sol). */

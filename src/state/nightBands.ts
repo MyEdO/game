@@ -19,14 +19,14 @@
  *    compte les échecs déjà subis, et un délestage de Possession lourde (l.332) en ANNULE un — une
  *    vague construite avant la résolution des délestages compterait des échecs annulés.
  */
-import type { CascadeStep, BatchParticipant, CascadeRoll } from './pendings';
+import type { CascadeStep, BatchParticipant, CascadeRoll } from '../noyau/pendings';
 import type { EchecSansJet } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { isNightTestKind } from '../engine/types';
-import { registerCascadeApplier } from './cascade';
-import { actorIn } from './combatants';
-import { resultLines, bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type Consequence, type BandSpec, type BuiltCascadeStep } from './rollSeam';
+import { registerCascadeApplier } from '../noyau/cascade';
+import { actorIn } from '../noyau/monde/combatants';
+import { resultLines, bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type Consequence, type BandSpec, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
 
 /** Discriminant d'ENTRÉE DE RÈGLE d'une étape de nuit, lu dans son `meta` : la maladie et son symptôme

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyCast, wardedAgainst, organicProjectile, zoneRadiusTilesAt } from './combatFlow';
-import { sceneMetresPerTile, emptyScene } from './scene';
+import { sceneMetresPerTile, emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';

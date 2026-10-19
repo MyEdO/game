@@ -1,17 +1,17 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { FLOWS } from './rollFlowSpecs';
 import { canFixDie, intentAllowedFor } from './netOwnership';
 import { desFixes, setDesFixes, resetDesFixes, FIXED_ROLL_MAX, clampFixedRoll } from '../engine/fixedDie';
 import { PREFERENCES, setPreference, resetPreference } from './preferences';
 import { rowForcedDie } from '../ui/forcedDieRow';
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
-import { startCascade, registerTableStep } from './cascade';
+import { startCascade, registerTableStep } from '../noyau/cascade';
 import { spyApplier } from './cascadeTestKit';
-import { freeCons } from './rollSeam';
-import type { CascadeStep } from './pendings';
+import { freeCons } from '../noyau/rollSeam';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listProdFiles, scanFieldReads } from '../scripts/guards/lib/fieldConsumers.mjs';
 import type * as TS from 'typescript/unstable/ast';
@@ -9,7 +9,7 @@ import { detenteur } from './detenteur.testkit';
 
 /**
  * LECTEURS DE PORTE (#700) — une porte SECRÈTE non révélée n'est pas une porte pour le JEU : le seul
- * prédicat runtime de « porte » est `porteEnJeu` (`src/state/scene.ts`), la lecture AUTEUR passe par
+ * prédicat runtime de « porte » est `porteEnJeu` (`src/noyau/monde/scene.ts`), la lecture AUTEUR passe par
  * `porteAuteur` / `secretAuteur`. Le champ se lit au VÉRIFICATEUR DE TYPES (`scanFieldReads`,
  * `scripts/guards/lib/fieldConsumers.mjs`) : identité par SYMBOLE de `WallSeg.door` / `WallSeg.secret`,
  * aucun nom de receveur ni de fichier n'entre dans un crédit.
@@ -17,11 +17,11 @@ import { detenteur } from './detenteur.testkit';
 const GARDE = {
   question:
     'Quel site de `src/` lit `WallSeg.door` ou `WallSeg.secret` hors du corps d’un prédicat de ' +
-    '`state/scene.ts` ? Un lecteur qui relit `seg.door` rend jouable une porte secrète masquée.',
+    '`noyau/monde/scene.ts` ? Un lecteur qui relit `seg.door` rend jouable une porte secrète masquée.',
   primitive: '`scanFieldReads` (`scripts/guards/lib/fieldConsumers.mjs`), Program du dépôt tenu par `detenteur`.',
   perimetre: '`src/` de production (`listProdFiles`, tests exclus)',
   exemption:
-    'Au SITE, par FORME : (1) le corps d’un prédicat de `src/state/scene.ts` à UN paramètre (lecture ' +
+    'Au SITE, par FORME : (1) le corps d’un prédicat de `src/noyau/monde/scene.ts` à UN paramètre (lecture ' +
     'statique du segment, sans état runtime) que `src/state/porte-secrete.test.ts` importe, donc éprouve ; ' +
     '(2) la déclaration qui DÉCLARE le champ (`wallSegSchema.superRefine`, `auDeclarant`). Aucune table ' +
     'de fichiers ni de receveurs.',
@@ -34,7 +34,7 @@ const GARDE = {
 } as const;
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
-const SCENE = 'src/state/scene.ts';
+const SCENE = 'src/noyau/monde/scene.ts';
 const TEST_DES_PREDICATS = 'src/state/porte-secrete.test.ts';
 
 /** Arbre syntaxique d'un fichier du dépôt (`ast`, dialecte TS). */
@@ -44,13 +44,13 @@ function arbre(rel: string): TS.SourceFile {
   return sf;
 }
 
-/** Noms importés de `./scene` par le test des prédicats : les prédicats ÉPROUVÉS. */
+/** Noms importés de `SCENE` par le test des prédicats : les prédicats ÉPROUVÉS. */
 function predicatsEprouves(): Set<string> {
   const ts = typescript();
   const sf = arbre(TEST_DES_PREDICATS);
   const noms = new Set<string>();
   for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier) || st.moduleSpecifier.text !== './scene') continue;
+    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier) || posix.join(posix.dirname(TEST_DES_PREDICATS), st.moduleSpecifier.text) + '.ts' !== SCENE) continue;
     const liens = st.importClause?.namedBindings;
     if (!liens || !ts.isNamedImports(liens)) continue;
     for (const el of liens.elements) if (!el.isTypeOnly) noms.add((el.propertyName ?? el.name).text);
@@ -58,7 +58,7 @@ function predicatsEprouves(): Set<string> {
   return noms;
 }
 
-/** Fonctions de `state/scene.ts` à UN seul paramètre : lectures STATIQUES du segment. */
+/** Fonctions de `noyau/monde/scene.ts` à UN seul paramètre : lectures STATIQUES du segment. */
 function lecturesStatiques(): Set<string> {
   const ts = typescript();
   const sf = arbre(SCENE);
@@ -89,8 +89,8 @@ describe('lecteurs-de-porte-guard', () => {
     expect([...new Set(admis)].sort()).toEqual([
       'src/data/schemas/defs-scenes/scene.ts @wallSegSchema.door',
       'src/data/schemas/defs-scenes/scene.ts @wallSegSchema.secret',
-      'src/state/scene.ts @porteAuteur.door',
-      'src/state/scene.ts @secretAuteur.secret',
+      'src/noyau/monde/scene.ts @porteAuteur.door',
+      'src/noyau/monde/scene.ts @secretAuteur.secret',
     ]);
     for (const p of ['porteAuteur', 'secretAuteur']) {
       expect(predicatsEprouves().has(p), `${p} non éprouvé par ${TEST_DES_PREDICATS}`).toBe(true);

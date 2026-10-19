@@ -12,9 +12,9 @@
  *  · Vigilance (`has talent`) — appartenance figée : elle, se tranche, et le site pilote en vit.
  */
 import { describe, it, expect } from 'vitest';
-import { branchCertainOps, branchBlockingEntity, stableCondVerdict, combatConditionCtx } from './flowEval';
+import { branchCertainOps, branchBlockingEntity, stableCondVerdict, combatConditionCtx } from '../../noyau/combat/flowEval';
 import { etats, spells } from '../../data';
-import type { Flow } from '../flow';
+import type { Flow } from '../../noyau/monde/flow';
 import type { Combatant, TalentInstance } from '../../engine/types';
 
 const C = (over: Partial<Combatant> = {}): Combatant =>

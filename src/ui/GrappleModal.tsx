@@ -4,7 +4,7 @@ import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { baseTestModLines, GRAPPLE_TEST_CTX } from '../engine/combat';
 import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';

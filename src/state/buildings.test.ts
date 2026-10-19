@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, wallBetween, isWalkable, wallIsOpen, doorIsOpen, doorAt, type WallSeg } from './scene';
+import { emptyScene, wallBetween, isWalkable, wallIsOpen, doorIsOpen, doorAt, type WallSeg } from '../noyau/monde/scene';
 import { roofHidden } from './buildings';
-import { lineOfSightCover } from './lineOfSight';
+import { lineOfSightCover } from '../noyau/monde/lineOfSight';
 
 /**
  * Modèle « relief unifié » : un bâtiment n'est plus une entité monolithique (périmètre implicite +

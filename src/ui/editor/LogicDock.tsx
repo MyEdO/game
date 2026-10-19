@@ -6,14 +6,14 @@ import type { JSX } from 'react';
  * d'undo (fini le modèle copie locale + Annuler/Appliquer).
  */
 import { useRef } from 'react';
-import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/scene';
+import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../noyau/monde/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { nomDEntite } from '../../state/sceneNpc';
 import { presetDuNarratif } from '../../state/campaignData';
 import type { ThreatTier } from '../../engine/advantagePool';
-import { EMPTY_FLOW } from '../../state/flow';
+import { EMPTY_FLOW } from '../../noyau/monde/flow';
 import type { Warning } from '../../state/validateScene';
 import { nextEntityId } from '../../state/entityId';
 import { removeMember, patchMember, flowEffectCount } from './editorState';

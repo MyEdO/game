@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { runDailyUpkeep } from './upkeep';
 import { fireClockTriggers } from './clockHooks';
 import { sleepParty } from './restFlow';
-import { spellEffectOps, flowHasTest } from './flow';
+import { spellEffectOps, flowHasTest } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { attachMutation } from '../engine/corruption';
 import { applyOps } from '../engine/ops';

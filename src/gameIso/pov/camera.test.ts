@@ -21,8 +21,8 @@ import {
   type Vec3,
 } from './camera';
 import { WALL_H_M } from '../iso';
-import { METRES_PER_LEVEL } from '../../state/relief';
-import { emptyScene, type Scene } from '../../state/scene';
+import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { type Dir8 } from '../rig/facing';
 
 // — Fabrique de caméra de test : scène plate (herbe, height 0), groupe au centre regardant Nord.

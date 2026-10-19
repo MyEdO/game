@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { footprintN, occupiesTile, footprintsOverlap } from './footprint';
+import { footprintN, occupiesTile, footprintsOverlap } from '../noyau/monde/footprint';
 
 /**
  * Téléportation (sort « Téléportation », LDB 47) : comme TOUT autre atterrissage (Marche, Charge,

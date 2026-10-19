@@ -15,8 +15,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { startCascade } from './cascade';
-import type { CascadeStep } from './pendings';
+import { startCascade } from '../noyau/cascade';
+import type { CascadeStep } from '../noyau/pendings';
 
 describe('#1262 V2 L4 — une bande DÉCLARE sa possession', () => {
   beforeEach(() => {

@@ -11,7 +11,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * Stock NOMINATIF (fichier + nombre), plafond COLLÉ et décroissant : assainir un site l'ABAISSE.
  */
 
-const SCAN_DIRS = ['src/ui', 'src/state'];
+const SCAN_DIRS = ['src/ui', 'src/state', 'src/noyau'];
 
 /** Littéraux de LIGNE DE JET sans `difficulty` — exporté pour la preuve fail-closed. */
 export function scanHandmadeRollLines(src: string): number[] {

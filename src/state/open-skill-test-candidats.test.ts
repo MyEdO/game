@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from './flow';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 
 /** Candidats d'un Test de scène (`openSkillTest`) : seul qui peut tenter le Test s'y porte (LDB 09 l.30,

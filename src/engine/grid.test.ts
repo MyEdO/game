@@ -6,7 +6,7 @@
  * variante à écarts PRÉ-CALCULÉS (`Math.max(Math.abs(dx), Math.abs(dy))`, la soustraction ayant eu
  * lieu plus haut) comme celle sur SCALAIRES nommés par l'axe (`x1 - x0`). Trois définitions nommées et trente et une formules inline vivaient à côté du canon ; il n'en reste
  * qu'une, ici, dans le MOTEUR (règle 3 : `src/engine` ne dépend pas de `src/state`, c'est donc au
- * moteur de porter la primitive — `state/path` la réexporte pour ses appelants).
+ * moteur de porter la primitive — `noyau/monde/path` la réexporte pour ses appelants).
  */
 import { describe, it, expect } from 'vitest';
 import {

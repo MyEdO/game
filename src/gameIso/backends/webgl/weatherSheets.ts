@@ -23,7 +23,7 @@
  */
 import * as THREE from 'three';
 import type { WeatherBrumeDef } from '../../catalog/ambiance';
-import type { Scene } from '../../../state/scene';
+import type { Scene } from '../../../noyau/monde/scene';
 import { shelterField, shelterSectionAt } from '../../builders/roofs';
 import { sceneGroundSpan } from './weatherParticles';
 import { withRenderRank } from './renderRanks';

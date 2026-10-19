@@ -1,5 +1,5 @@
-import type { RecapLine } from '../state/recapLine';
-import { groupRecapLinesByPhase } from '../state/recapLine';
+import type { RecapLine } from '../noyau/recapLine';
+import { groupRecapLinesByPhase } from '../noyau/recapLine';
 import { Icon } from './Icon';
 import { TeamSegments } from './TeamSegments';
 import { Prose } from './Prose';

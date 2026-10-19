@@ -2,7 +2,7 @@
  * Poursuite TERRESTRE jouable (#95, LDB 15 l.88-108) : l'Effet `startPursuit` ouvre la boucle de manches
  * (cascade influençable du socle de séquence) ; chaque manche compare le DR le plus bas des poursuivis au
  * DR le plus haut des poursuivants et fait varier la Distance ; issue par `pursuitOutcome` (semé/rattrapé).
- * Réutilise les primitives PARTAGÉES `engine/pursuit` et la CASCADE (state/cascade), pas un flux parallèle.
+ * Réutilise les primitives PARTAGÉES `engine/pursuit` et la CASCADE (noyau/cascade), pas un flux parallèle.
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -16,8 +16,8 @@ import {
 } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
 import { closeSequenceRound, sequenceAbandonOf, type EtatDeFamille, type MancheClose } from './sequenceCore';
-import { startCascade } from './cascade';
-import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
+import { startCascade } from '../noyau/cascade';
+import { monoStep, displayStep, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { combatStakeRef } from '../data';
 import { createHero } from '../engine/character';
 import { skillBaseValue, testValue } from '../engine/skills';
@@ -25,7 +25,7 @@ import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { setCadence, resetCadence } from '../engine/cadence';
 

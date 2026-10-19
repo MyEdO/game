@@ -132,7 +132,7 @@ export const chaosAlignSchema = enumNomme({
 export const exposureLevelSchema = enumNomme({ mineure: 'mineure', moderee: 'modérée', majeure: 'majeure' });
 
 /**
- * `Dir8` (`src/state/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds
+ * `Dir8` (`src/noyau/monde/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds
  * qui la portent : `entities[].facing` d'une Scène (`defs-scenes/scene.ts`) et le cap d'une place assise
  * de décor (`defs/props.ts`).
  */

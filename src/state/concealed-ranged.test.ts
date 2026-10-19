@@ -3,7 +3,7 @@ import { attackEnv } from './combatFlow';
 import type { Get } from './flowTypes';
 import { attackModifiers, combineMods } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Cible dissimulée par le brouillard / la brume / l'obscurité : la rangée vit dans le bloc −20 de la

@@ -29,14 +29,14 @@
  * viennent tous de la donnée (`WeatherPrecipDef`, `src/data/ambiance.json`). PÉRIMÈTRE MESURÉ de ce
  * N+1 : le MOTEUR est N+1-par-donnée — un `WeatherPrecipDef` forgé, qui n'existe nulle part dans le
  * dépôt, tombe ici sans une ligne de code (`weatherParticles.test.ts`). Le VOCABULAIRE des types, lui,
- * est une énumération à TROIS sites — `Scene['weather']` (`state/scene.ts`), `WeatherFxId`
+ * est une énumération à TROIS sites — `Scene['weather']` (`noyau/monde/scene.ts`), `WeatherFxId`
  * (`catalog/ambiance.ts`) et l'objet strict du schéma (`data/schemas/defs/ambiance.ts`) : nommer un
  * type de plus édite ces trois-là, design antérieur à ce module.
  */
 import * as THREE from 'three';
 import type { WeatherPrecipDef } from '../../catalog/ambiance';
 import { hash32, seedStream } from '../../../data/hash';
-import { heightAt, sceneMetresPerTile, type Scene } from '../../../state/scene';
+import { heightAt, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import { withRenderRank } from './renderRanks';
 import { materiauPlanTransparent } from './worldMaterials';
 

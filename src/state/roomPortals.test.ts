@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene, isWalkable, setDoorOpen, setStructureDown, type Scene, type WallSeg } from './scene';
+import { emptyScene, isWalkable, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../noyau/monde/scene';
 import { portalsForParty, portalsFromRooms, roomPortals, type RoomPortal } from './roomPortals';
-import { pathTo, walkNeighbors, tileKey, type Pt } from './path';
+import { pathTo, walkNeighbors, tileKey, type Pt } from '../noyau/monde/path';
 import { effectiveArchitecture } from './sceneEdit';
 import { massFootprintCells } from '../gameIso/builders/roofs';
 import { isRoomZone, occupiedRoomIds, roomsByTile } from './rooms';

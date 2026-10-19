@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { hoverTargeting } from './targeting';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { testScene } from '../scenes/test-fixture';
 import type { Weapon } from '../engine/types';
 

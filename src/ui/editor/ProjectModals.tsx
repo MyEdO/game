@@ -3,7 +3,7 @@ import { Modal } from '../Modal';
 import { GatedAction } from '../GatedAction';
 import { Icon } from '../Icon';
 import { ListRow } from '../ListRow';
-import { Scene } from '../../state/scene';
+import { Scene } from '../../noyau/monde/scene';
 import { testScenarios, TestScenario } from '../../scenes/test-scenarios';
 import { projectsLoad, projectRemove, nomDeProjet, estRefusee, type EntreeListee, IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT } from '../../state/projectLibrary';
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';

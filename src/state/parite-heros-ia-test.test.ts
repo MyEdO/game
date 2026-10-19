@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { aiMaybeFrenzy, aiHandGate, attackWardGate, openAttackCascade, runEnemyAI } from './combatFlow';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { isFrenzied } from '../engine/psychology';

@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { initialFields } from './stateFields';
 import { openAttackCascade, doAttack, runPreemptShots } from './combatFlow';
-import { seedBattleRng } from './battleRng';
-import { emptyScene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
 const CHARS = (dex: number) => ({ 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });

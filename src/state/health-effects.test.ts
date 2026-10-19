@@ -6,8 +6,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
-import { cascadeAppliers } from './cascade';
-import { resultLine } from './rollSeam';
+import { cascadeAppliers } from '../noyau/cascade';
+import { resultLine } from '../noyau/rollSeam';
 import { makePregens } from '../data/pregens';
 import { findVehicleById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
@@ -122,7 +122,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     useGame.setState({ party, pendingCascade: null, journal: [] });
     const h = useGame.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('../noyau/pendings').CascadeStep;
     const out = cascadeAppliers['exposure-heat-drop'].apply(useGame.getState, useGame.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(0); // délestée
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // Test ANNULÉ, pas subi
@@ -134,7 +134,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     useGame.setState({ party, pendingCascade: null, journal: [] });
     const h = useGame.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('../noyau/pendings').CascadeStep;
     const out = cascadeAppliers['exposure-heat-drop'].apply(useGame.getState, useGame.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(1); // conservé
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(true); // 1ᵉʳ échec chaleur (l.330)

@@ -21,7 +21,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { useGame } from '../state/store';
 import { runFlow } from '../state/combatFlow';
-import { testFlow, EMPTY_FLOW } from '../state/flow';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import { combatStakeRef } from '../data';
 import type { StakeRef } from '../data';
 import { CascadeBody } from './CascadeModal';

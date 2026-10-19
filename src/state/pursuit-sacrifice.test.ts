@@ -18,7 +18,7 @@ import type { PursuitFoe } from '../engine/pursuit';
 import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 function heroes(): Combatant[] {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });

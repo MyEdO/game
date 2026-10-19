@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { moveReachFor } from './path';
-import type { Scene } from './scene';
+import { moveReachFor } from '../noyau/monde/path';
+import type { Scene } from '../noyau/monde/scene';
 import { grantTrait, removeGrantedTrait } from '../engine/grantedTraits';
 import { applyOps } from '../engine/ops';
 import { endOfRound } from '../engine/conditions';

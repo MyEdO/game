@@ -358,7 +358,7 @@ export function bestSkilledOption<T extends { skills?: RefDesignee[] }>(
 
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le
  *  bonus total qu'ils octroient. FORME UNIQUE, partagée par le moteur (`partyAssisted`/
- *  `bestAssistedOption`), les pendings qui la portent (`state/pendings.ts`) et la primitive de
+ *  `bestAssistedOption`), les pendings qui la portent (`noyau/pendings.ts`) et la primitive de
  *  breakdown qui la rend en ligne de mod (`ui/breakdown.ts` — `soutienMod`/`supportSplit`). */
 export interface SupportDetail {
   count: number;

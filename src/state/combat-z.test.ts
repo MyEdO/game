@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { occupied } from './combatGeometry';
+import { occupied } from '../noyau/monde/combatGeometry';
 import { placeCombatant } from './spawn';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 

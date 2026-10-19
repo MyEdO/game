@@ -47,6 +47,8 @@ export const EVT = {
   TIME_ADVANCED: 'time:advanced',
   /** UI → audio : le joueur lance les dés (clic « Lancer » d'une modale de jet). */
   DICE_ROLL: 'dice_roll',
+  /** store → audio : un Effet de scène `playSfx` demande un son ponctuel du registre {id}. */
+  SFX: 'sfx',
   /** store → * : fin de combat {victory:boolean} — gong de victoire, hooks futurs. */
   BATTLE_OVER: 'battle_over',
   /** store → * : un Test s'est résolu (`resolveTest`) {actorId, success, sl, roll, target} — SEAM

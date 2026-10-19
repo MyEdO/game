@@ -6,14 +6,14 @@
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
 import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
-import { inBattleId, porteurParId } from './combatants';
-import { seatOwns, jetSurfaced } from './sieges';
+import { inBattleId, porteurParId } from '../noyau/monde/combatants';
+import { seatOwns, jetSurfaced } from '../noyau/sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { desFixes } from '../engine/fixedDie';
 import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, type JetOwnerRef } from './flowVerbs';
 import type { PendingKey } from './stateFields';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
 
 /** Intents de JET dont le 1ᵉʳ argument est l'id du combattant qui tient le slot — DÉRIVÉS de
  *  `FLOW_VERBS` (`kind:'multi'` + `pidIsActor`), jamais énumérés à la main. */

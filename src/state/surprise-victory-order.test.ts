@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applySurprise, checkBattleOver } from './combatFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from './modalArbiter';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';

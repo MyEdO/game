@@ -33,7 +33,7 @@ import { careers } from '../data';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { interludeCatalog } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';

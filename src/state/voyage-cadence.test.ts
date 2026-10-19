@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { skills as SKILLS, crewRoles as CREW_ROLES, refLabel } from '../data';
-import { KINDS_SOUS_ORDRES, DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from './voyageCadence';
+import { KINDS_SOUS_ORDRES, DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { buildScene } from './mapSpec';

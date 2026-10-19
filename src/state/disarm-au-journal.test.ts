@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget, aiHandGate } from './combatFlow';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resolveCritique } from '../engine/critical';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import type { Combatant } from '../engine/types';

@@ -12,7 +12,7 @@ import {
   type ArchitecturePart, type ArchitectureStorey, type FacadeSection, type BuildingMass, type RoofDefaults,
   type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, type WallSecret, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
   secretAuteur,
-} from '../../state/scene';
+} from '../../noyau/monde/scene';
 import { isRoomZone } from '../../state/rooms';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
@@ -21,7 +21,7 @@ import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
-import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
+import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { nomDEntite } from '../../state/sceneNpc';
@@ -54,8 +54,8 @@ import { effectCtxOf } from './EffectList';
 import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
-import { actionsDe, ACTION_FOUILLER } from '../../state/usable';
-import { EMPTY_FLOW } from '../../state/flow';
+import { actionsDe, ACTION_FOUILLER } from '../../noyau/monde/usable';
+import { EMPTY_FLOW } from '../../noyau/monde/flow';
 import { StatblockEditor, emptyStatblock } from './StatblockEditor';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
@@ -72,8 +72,8 @@ import { nextEntityId } from '../../state/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
-import { estCardinal, type Dir8 } from '../../state/dir8';
-import { propFootTiles } from '../../state/footprint';
+import { estCardinal, type Dir8 } from '../../noyau/monde/dir8';
+import { propFootTiles } from '../../noyau/monde/footprint';
 import { Row, Stack } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { CAP_IDENTITE_PROP } from '../../data/props.types';
@@ -1720,7 +1720,7 @@ function EntityPanel({
 
 /**
  * DÉCOR UTILISABLE (#1687) — la case que l'auteur coche pour ACTIVER cette instance. Ce que le joueur
- * verra est RENDU ici en lecture par le dériveur UNIQUE (`actionsDe`, `state/usable.ts`) : l'auteur
+ * verra est RENDU ici en lecture par le dériveur UNIQUE (`actionsDe`, `noyau/monde/usable.ts`) : l'auteur
  * lit la même liste que le jeu, jamais une liste recopiée.
  *
  * L'activation n'a d'effet PROPRE que sur un décor dont le TYPE porte des places (c'est la seule

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { useGame } from './store';
 import { openLandMarket, landSellCargo } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
 import { snapshotSave } from './saves';

@@ -19,14 +19,14 @@
  * COÛT : `null`. L'économie du tour est celle du combat ; hors combat, un geste ne prend pas d'Action.
  */
 import { aPorteeDe } from './exploreNav';
-import { actionsDe } from './usable';
+import { actionsDe } from '../noyau/monde/usable';
 import { nomDEntite } from './sceneNpc';
 import { presetPnjById } from './campaignData';
-import { placesJouables } from './seating';
+import { placesJouables } from '../noyau/monde/seating';
 import { t } from '../i18n';
 import type { GameState } from './store';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneEntity } from '../noyau/monde/scene';
 
 /** Verdict d'une offre d'exploration — SOURCE UNIQUE : la pastille le peint, et le CLIC s'en sert pour
  *  savoir ce qu'il peut jouer sans rien demander (une offre refusée n'est pas « la » offre d'un clic). La porte est OUVERTE par défaut — `actionsDe` a déjà retiré ce
@@ -45,7 +45,7 @@ export function porteDOffre(scene: Scene, ent: SceneEntity, origine: string): Of
  *  Hors de portée, le clic MARCHE — la pastille, elle, ne promet rien d'immédiat.
  *
  *  « Utilisable » n'est pas un champ : une entité l'est parce qu'elle OFFRE quelque chose
- *  (`estUtilisable` = `actionsDe(...).length > 0`, modèle unique de `state/usable`) — on dérive donc
+ *  (`estUtilisable` = `actionsDe(...).length > 0`, modèle unique de `noyau/monde/usable`) — on dérive donc
  *  les offres une fois et on garde les porteurs non vides. */
 export function offresUtilisables(state: GameState): OffresRenduesParPorteur[] {
   const scene = state.scene;

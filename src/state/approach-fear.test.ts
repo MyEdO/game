@@ -12,7 +12,7 @@ import { approachFearTrigger, advanceTurn, finishPlayerAction } from './combatFl
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import './combat/triggeredTest'; // effet de bord : applier `triggeredTest` + appliers de cascade
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { stacks, COND } from '../engine/conditions';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { refLabel } from '../data';

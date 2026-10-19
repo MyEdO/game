@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type SceneEntity } from './scene';
+import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { applyMutation, captureMutation } from './sceneInstance';
-import { assignSeat, releaseSeat, type SeatAssignments, type SeatOccupant } from './seating';
+import { assignSeat, releaseSeat, type SeatAssignments, type SeatOccupant } from '../noyau/monde/seating';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';

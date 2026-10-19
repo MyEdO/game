@@ -4,7 +4,7 @@ import { posteAnchor, applyShipPostes } from './shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste, ShipDeck } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { FireArc } from './fireArc';
 
 /**

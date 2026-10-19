@@ -5,7 +5,7 @@ import { rigDuNavire } from '../engine/shipBuild';
 import { rollShipCritical } from '../engine/shipCritical';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { applyOps } from '../engine/ops';
-import { fireConditionEffects } from './triggeredEffects';
+import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { stacks } from '../engine/conditions';
 import { findVehicleById } from '../data';
 import { makeRNG } from '../engine/dice';

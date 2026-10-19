@@ -13,7 +13,7 @@ import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/sto
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import { detenteur } from '../detenteur.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from './store';
 
 const STOCK = 'scripts/guards/lib/piloteCascadeStock.mjs';

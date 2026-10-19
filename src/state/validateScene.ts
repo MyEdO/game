@@ -1,14 +1,14 @@
-import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from './scene';
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from '../noyau/monde/scene';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from './rooms';
-import { footprintTiles, sizeFootprint } from './footprint';
+import { footprintTiles, sizeFootprint } from '../noyau/monde/footprint';
 import { entitySize } from './spawn';
-import { METRES_PER_LEVEL } from './relief';
+import { METRES_PER_LEVEL } from '../noyau/monde/relief';
 import { realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
-import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from './flow';
+import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../noyau/monde/flow';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
@@ -25,8 +25,8 @@ import { presetDuNarratif } from './campaignData';
 import { placeServices, type WorldMap } from './worldMap';
 import { allMusicDefs } from '../audio/music';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
-import { seatAssignmentDefects } from './seating';
-import { memoByRefDeps } from './sceneMemo';
+import { seatAssignmentDefects } from '../noyau/monde/seating';
+import { memoByRefDeps } from '../noyau/monde/sceneMemo';
 import type { NarratifBlock } from './campaignNarratif';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
@@ -236,7 +236,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
     }
-    // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
+    // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `noyau/monde/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
     for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
     // Les familles qui MARCHENT (départ, connectivité, empreinte au sol) n'ont de sujet qu'à l'échelle du
@@ -346,7 +346,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         // (`buildWalls`) lisent tous deux la COTE : le relief est donc libre — une masse sur une butte,
         // une terrasse, un quai surélevé est une carte légitime. Ce qui reste falsifiable est
         // l'EMPILEMENT : le plancher de l'étage `z` doit dominer celui de l'étage `z-1` d'au moins la
-        // hauteur qu'un étage REPRÉSENTE (`METRES_PER_LEVEL`, `state/relief`), sinon ce qui remplit
+        // hauteur qu'un étage REPRÉSENTE (`METRES_PER_LEVEL`, `noyau/monde/relief`), sinon ce qui remplit
         // l'étage du dessous traverse le plancher du dessus — et le toit posé dessus descend dedans.
         // Cas nommé par la garde : une couche d'étage laissée SANS cote (`layer.height` absent) — ses
         // planchers, ses murs et sa toiture retombent tous au rez sans un mot.
@@ -437,7 +437,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         if (!membre) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → membre inexistant « ${m.entityId} »`);
         if (m.ridesEntityId && !entById.has(m.ridesEntityId)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → monture inexistante « ${m.ridesEntityId} »`);
         if (!membre) continue;
-        // EMPREINTE du combattant (`state/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
+        // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
         // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à
         // l'authoring, pas au jeu. L'ancre seule ne suffit donc pas à juger la pose.
         const n = sizeFootprint(entitySize(membre));

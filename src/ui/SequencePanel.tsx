@@ -15,7 +15,7 @@ import { sequenceBoardOf } from '../state/sequenceCore';
 import { Band } from './Band';
 import { LifeBar } from './LifeBar';
 import { t } from '../i18n';
-import { stepFraction } from '../state/rollSeam';
+import { stepFraction } from '../noyau/rollSeam';
 
 export function SequencePanel() {
   // Re-rendu à chaque avance de séquence : le slot `sequence` est la source (cumuls + rang de manche).

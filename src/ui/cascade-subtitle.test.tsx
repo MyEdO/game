@@ -15,9 +15,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
-import { dieStep } from '../state/rollSeam';
+import { dieStep } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
-import type { CascadeStep } from '../state/pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
@@ -213,7 +213,7 @@ describe('sous-titre de la branche JET — compteur en JETS DE DÉ', () => {
 
 /**
  * TITRE de la fenêtre = le pas COURANT (arbitrage user 2026-08-06, #1117). Une séquence APPEND
- * (`pushStep`, `state/cascade.ts`) et n'écrit son `title` qu'à la CRÉATION : sans dérivation AU RENDU,
+ * (`pushStep`, `noyau/cascade.ts`) et n'écrit son `title` qu'à la CRÉATION : sans dérivation AU RENDU,
  * la fenêtre resterait titrée par le PREMIER pas pendant qu'on en joue un autre (recette : cascade
  * « Défense » alors que le joueur joue « Approche menaçante · jet 2/2 »). Mesuré à l'ÉCRAN, sur
  * plusieurs FORMES de pas (jet, choix, batch) et avec le curseur qui avance.

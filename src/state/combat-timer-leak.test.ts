@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scheduleCombatTimer, scheduleFlowTimer, clearTrackedTimers } from '../lib/minuteries';
+import { scheduleCombatTimer, scheduleFlowTimer, clearTrackedTimers } from '../web/minuteries';
 
 /**
  * #405 : un beat de combat armé (`scheduleCombatTimer`, VRAI `setTimeout`) par un test SYNCHRONE qui

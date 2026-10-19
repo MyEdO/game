@@ -23,7 +23,7 @@ import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';

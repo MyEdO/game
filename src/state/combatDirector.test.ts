@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { beatHold } from './combatDirector';
 import { TEMPO } from './tempo';
-import { ev } from './combatLog';
+import { ev } from '../noyau/combatLog';
 import type { Get } from './flowTypes';
 
 const cs = [

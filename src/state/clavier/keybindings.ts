@@ -30,10 +30,10 @@ import { TOUCHES_IMPRIMEES } from '../dispositionConsole';
 import { runAction, currentInterludeAction, actionGate } from '../actionRegistry';
 import { validTargets, preemptShooterIds } from '../targeting';
 import type { ScreenDir } from '../combatCursor';
-import { combatantAtTile } from '../combatGeometry';
+import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
 import { arreterMarche, demarrerMarche } from '../stageWalk';
-import { clearTrackedTimer, scheduleFlowTimer } from '../../lib/minuteries';
+import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
 import { roomFocusAt } from '../rooms';
 
@@ -183,7 +183,7 @@ let minuterieMaintien: ReturnType<typeof setTimeout> | null = null;
 export const tournerCamera = (_g: () => GameState, dir: 1 | -1): void => {
   pasYaw(dir);
   if (minuterieMaintien) clearTrackedTimer(minuterieMaintien);
-  // Timer TRACÉ (`lib/minuteries.ts`, mur `murs/minuteries`, #415) : le registre annule les timers en
+  // Timer TRACÉ (`web/minuteries.ts`, mur `murs/minuteries`, #415) : le registre annule les timers en
   // vol au teardown de test. Ce geste d'ENTRÉE n'est ni un beat de combat ni une cascade de flux : les
   // deux exports du registre sont le MÊME `track`, et le renommer relève d'un lot transverse.
   minuterieMaintien = scheduleFlowTimer(() => {

@@ -11,11 +11,11 @@
  * (fail-fast d'authoring), l'éditeur l'affiche sous le bouton de pose (`GatedAction`). Jamais un
  * silence, jamais une carte incohérente compilée.
  */
-import type { Scene } from './scene';
-import { heightAt, tileAt, isWalkable } from './scene';
-import { estAbsent } from './terrain';
+import type { Scene } from '../noyau/monde/scene';
+import { heightAt, tileAt, isWalkable } from '../noyau/monde/scene';
+import { estAbsent } from '../noyau/monde/terrain';
 import { paintHeight } from './sceneEdit';
-import { STEP_MAX_M } from './relief';
+import { STEP_MAX_M } from '../noyau/monde/relief';
 
 /** Case d'une volée (la couche `z` est portée par la volée entière, jamais par la case). */
 export type StairCell = { x: number; y: number };

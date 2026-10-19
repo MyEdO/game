@@ -4,7 +4,7 @@ import { canActFirst, freeActFirst } from '../state/turnEconomy';
 import { preemptShooterIds } from '../state/targeting';
 import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../state/actionRegistry';
-import { actorIn, inBattleId } from '../state/combatants';
+import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../state/sceneNpc';
 import type { IconIdInput } from './icons';
 import { ciblageEntiteArme } from '../state/targetingModes';

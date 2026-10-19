@@ -14,7 +14,7 @@
  * arbitre Échap (fermer le menu d'abord, désélectionner ensuite) — aucun état dupliqué.
  */
 import type { Condition } from '../engine/flowCore';
-import type { CellSide } from './scene';
+import type { CellSide } from '../noyau/monde/scene';
 
 export interface CommandesEditeur {
   /** Rotation caméra de l'éditeur, d'un quart de tour (`-1` = anti-horaire). */

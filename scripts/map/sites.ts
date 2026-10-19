@@ -6,7 +6,7 @@
 import { terrainAt, type PlanDefect, type PlanDefectAt } from '../../src/state/planDefects';
 import { locateGrid, snippet, wallCellPos, wallEdgePos, type GridLocation } from './locate';
 import type { MapEntry, MapSource } from './registry';
-import type { Scene } from '../../src/state/scene';
+import type { Scene } from '../../src/noyau/monde/scene';
 
 /** `snippet` n'existe que si une grille ASCII source porte la case ; `sort` ordonne le rapport
  *  (ligne/colonne du fichier, ou y/x de la carte). */

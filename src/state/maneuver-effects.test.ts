@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyFreeAttackEffects, applyWail } from './combatFlow';
-import { applyTriggeredEffects, maneuverEffectsOf } from './triggeredEffects';
+import { applyTriggeredEffects, maneuverEffectsOf } from '../noyau/triggeredEffects';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

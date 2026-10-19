@@ -48,8 +48,8 @@ import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
-import { sceneMetresPerTile, type Scene } from '../../../state/scene';
-import { memoByRef } from '../../../state/sceneMemo';
+import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
+import { memoByRef } from '../../../noyau/monde/sceneMemo';
 import { TW } from '../../../geometry/iso';
 import type { Face } from '../../builders/types';
 import { detenteur } from '../../../detenteur.testkit';
@@ -58,7 +58,7 @@ import { detenteur } from '../../../detenteur.testkit';
  * Scènes-témoins BÂTIES et listes RETENUES par l'identité de la scène, dans UN détenteur du fichier
  * (#1801).
  *
- * Les trois listes suivent le patron canonique du dépôt (`memoByRef`, `state/sceneMemo.ts`, celui de
+ * Les trois listes suivent le patron canonique du dépôt (`memoByRef`, `noyau/monde/sceneMemo.ts`, celui de
  * l'écran). Ce fichier rejoue les mêmes cartes-témoins d'un cas à l'autre et la construction des
  * builders est la passe LOURDE ; les listes rendues sont LUES, jamais mutées (biais, géométrie et
  * empreintes rendent des tableaux neufs). Une scène bâtie DANS un cas garde son identité propre, donc

@@ -25,11 +25,11 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { MapRoute } from './worldMap';
-import type { Effect } from './scene';
-import type { BuiltCascadeStep } from './stepBrand';
-import { worldStep, freeCons } from './rollSeam';
+import type { Effect } from '../noyau/monde/scene';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { worldStep, freeCons } from '../noyau/rollSeam';
 import { dataLabel } from '../data';
-import { registerCascadeApplier } from './cascade';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects';
 import { t } from '../i18n';
 

@@ -34,7 +34,7 @@ function rendu() {
   const TOOL = 'build-vocabulaire'
 
   // Périmètre MESURÉ des colonnes « Résolveurs » et « Usage en donnée » (déclaré dans le .md).
-  const RESOLVER_ROOTS = ['src/engine', 'src/state']
+  const RESOLVER_ROOTS = ['src/engine', 'src/state', 'src/noyau']
   const DATA_ROOT = 'src/data'
 
   // ---------------------------------------------------------------------------
@@ -390,7 +390,7 @@ function rendu() {
   out += section(
     'EffectTrigger — les déclencheurs d\'effet',
     flow, 'EffectTrigger', 'kind', 'Déclencheur',
-    'Valeurs du champ `trigger` d\'un `TriggeredEffect`, dispatchées par `fireTriggers` (`src/state/triggeredEffects.ts`).',
+    'Valeurs du champ `trigger` d\'un `TriggeredEffect`, dispatchées par `fireTriggers` (`src/noyau/triggeredEffects.ts`).',
     { allowLiterals: true },
   )
   out += section(

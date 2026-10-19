@@ -15,7 +15,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { Editor } from './Editor';
 import { buildApi } from '../../state/devtools';
 import { parseProject } from '../../state/worldMap';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
 import { makeShowcaseParty } from '../../data/pregens';
 import { emptyNarratif } from '../../state/campaignNarratif';

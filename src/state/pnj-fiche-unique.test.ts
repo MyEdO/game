@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { emptyScene, type SceneEntity } from './scene';
+import { emptyScene, type SceneEntity } from '../noyau/monde/scene';
 import { ficheDEntite, FicheAbsente, sceneNpc } from './sceneNpc';
 import { playTavernGame, tavernNpcOffers } from './tavernFlow';
 import { activeSequence } from './sequenceCore';

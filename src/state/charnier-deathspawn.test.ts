@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { notifySlain } from './combatFlow';
 import type { Combatant } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Trait Charnier (frenchy.bzh) — « si la créature est vaincue, 3D10 Zombies sortent de sa carcasse ».

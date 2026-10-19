@@ -6,7 +6,7 @@
  * contre la MÊME vue. Un sujet que la vue ne porte pas ne s'évalue jamais à une valeur par défaut
  * muette : il est refusé AU PARSE (`data/schemas/grammaire/mecanique.ts`).
  *
- * `state/combat/flowEval.ts` compose ce constructeur et l'enrichit du contexte de RÉSOLUTION (DR,
+ * `noyau/combat/flowEval.ts` compose ce constructeur et l'enrichit du contexte de RÉSOLUTION (DR,
  * localisation, géométrie d'arène) que seul le combat connaît.
  */
 import { tableTotale } from '../lib/tableTotale';

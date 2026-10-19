@@ -5,7 +5,7 @@ import { maybeOpenDefense } from './combatFlow';
 import { spawnEnemy } from './spawn';
 import { pickActiveModalKey } from './modalArbiter';
 import { avanceEtapeCascade } from './cascadeTestKit';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { combatAdvanceBlocked } from './combatGate';
 import type { Weapon } from '../engine/types';

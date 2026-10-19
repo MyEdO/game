@@ -10,9 +10,9 @@ import type { JSX } from 'react';
  * `applyEffects`).
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { Effect, EncounterDef, Dialogue, Scene } from '../../state/scene';
+import { Effect, EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import { Icon } from '../Icon';
-import { EMPTY_FLOW } from '../../state/flow';
+import { EMPTY_FLOW } from '../../noyau/monde/flow';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';

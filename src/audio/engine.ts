@@ -9,7 +9,7 @@
 import { SOUND_DEFS } from './_registry.generated';
 import type { SoundDef } from './types';
 import { musicDefsFor, type MusicSelection } from './music';
-import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 
 const LS_KEY = 'wfrp4.audio';
 const byId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));

@@ -4,12 +4,12 @@
  * EXPLORÉ par scène (`explored[sceneId]`, persistant). `visible` est DÉRIVÉ au bord rendu (memo
  * d'IsoStage via `computeStateVisible`) — pas stocké, donc rien à invalider pendant la marche.
  */
-import { Scene, sceneMetresPerTile } from './scene';
-import { Pt } from './path';
+import { Scene, sceneMetresPerTile } from '../noyau/monde/scene';
+import { Pt } from '../noyau/monde/path';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './vision';
-import { memoByRef } from './sceneMemo';
-import { meneurDuMonde } from './combatants';
-import { smokeOf } from './combatGeometry';
+import { memoByRef } from '../noyau/monde/sceneMemo';
+import { meneurDuMonde } from '../noyau/monde/combatants';
+import { smokeOf } from '../noyau/monde/combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';

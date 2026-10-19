@@ -31,15 +31,15 @@ import { effectiveMovement } from '../engine/encumbrance';
 import { pursuitTargetMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { Combatant, Difficulty } from '../engine/types';
 import { byId, combatStakeRef } from '../data/index';
-import { battleRng } from './battleRng';
-import { registerCascadeApplier, rollBatchParticipant } from './cascade';
-import { actorIn } from './combatants';
+import { battleRng } from '../noyau/battleRng';
+import { registerCascadeApplier, rollBatchParticipant } from '../noyau/cascade';
+import { actorIn } from '../noyau/monde/combatants';
 import { spawnEnemy } from './spawn';
 import { testValue } from '../engine/skills';
 import type { LivingRef } from '../engine/possession';
-import { jetSurfaced } from './sieges';
+import { jetSurfaced } from '../noyau/sieges';
 import { cadenceAuto } from '../engine/cadence';
-import { freeCons, bandStep, bandRowOfStep, choiceStep, makeBandFactory, rollStep, type BuiltCascadeStep } from './rollSeam';
+import { freeCons, bandStep, bandRowOfStep, choiceStep, makeBandFactory, rollStep, type BuiltCascadeStep } from '../noyau/rollSeam';
 import {
   pursuitOutcome, pursuitMoveBonus, pursuitLaggard, npcSacrificeChoice, npcPursuerChoice,
   PURSUIT_ESCAPE_DISTANCE, type PursuitFoe, type PursuitPolicy, type PursuitRunner,
@@ -49,12 +49,12 @@ import {
   SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict, type MancheClose,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
-import type { BatchParticipant, CascadeStep } from './pendings';
+import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import type { GameState } from './store';
 import { traceLineOf } from '../engine/traceLine';
 import { t } from '../i18n';
 import { dataLabel } from '../data';
-import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
+import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from '../noyau/rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Adversaire AUTHORÉ d'une poursuite : une RÉFÉRENCE de vivant (bestiaire ou statbloc d'éditeur) et

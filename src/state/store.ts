@@ -13,13 +13,13 @@ import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
 import { coupleDIdentite } from './identites';
 import type { BattleActionMode } from './actionRegistry';
-import { fixedJetOpen, markFixedDie } from './fixedDieMark';
+import { fixedJetOpen, markFixedDie } from '../noyau/fixedDieMark';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import { dissipateSpell } from '../engine/dispel';
 import { type AttackKind } from '../engine/creatureAttacks';
-import { battleRng, seedBattleRng } from './battleRng';
-import { facingToward, DIR8_DELTA, rotateDir8, type Dir8 } from './dir8';
-import { footprintTiles, footprintN } from './footprint';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
+import { facingToward, DIR8_DELTA, rotateDir8, type Dir8 } from '../noyau/monde/dir8';
+import { footprintTiles, footprintN } from '../noyau/monde/footprint';
 import type { CombatCursor, ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
@@ -48,12 +48,12 @@ import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 export { activeCombatant, entityPickables } from './combatFlow';
 import { markActed } from './combatFlow';
-import { EMPTY_FLOW, type Flow } from './flow';
-import { moveEnv, type MoveSnapshot } from './combatGeometry';
+import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
+import { moveEnv, type MoveSnapshot } from '../noyau/monde/combatGeometry';
 import { movementRemaining } from './mount';
 export { movementRemaining, canMove } from './mount';
 
-import { type BattleZone } from './zones';
+import { type BattleZone } from '../noyau/monde/zones';
 import * as interludeFlow from './interludeFlow';
 import * as favorFlow from './favorFlow';
 import * as netFlow from './netFlow';
@@ -68,8 +68,8 @@ import { snapshotSave, saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlo
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import { initialFields, resetFields } from './stateFields';
 import { captureMutation, applyMutation as applySceneMutation, type SceneMutation } from './sceneInstance';
-import { assignSeat, memeCase, placesJouables, pruneSeatAssignments, RANG_MENEUR, releaseRecomposedRanks, releaseSeat, seatPoseOf, type SeatPose } from './seating';
-import { actionsDe, actionsAuthorees, cleActionJouee, estCapacite, type CapaciteId } from './usable';
+import { assignSeat, memeCase, placesJouables, pruneSeatAssignments, RANG_MENEUR, releaseRecomposedRanks, releaseSeat, seatPoseOf, type SeatPose } from '../noyau/monde/seating';
+import { actionsDe, actionsAuthorees, cleActionJouee, estCapacite, type CapaciteId } from '../noyau/monde/usable';
 import type { ClueState, IndiceAffiché } from './clues';
 import { togglePin, marquerVus } from './clues';
 import type { CodexFocus } from './codexFocus';
@@ -112,19 +112,19 @@ function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
   loadRuleOverrides(save.rules);
   bus.emit(EVT.SCENE_DIRTY);
 }
-import { ev, type CombatEvent, type ActorAim } from './combatLog';
+import { ev, type CombatEvent, type ActorAim } from '../noyau/combatLog';
 import { rule, ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { type HealMode } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
-import { campGain } from './combat/advantagePool';
+import { campGain } from '../noyau/combat/advantagePool';
 import { campaignStart } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
-import { checkPartyWiped } from './partyWipe';
+import { checkPartyWiped } from '../noyau/partyWipe';
 import { touchActors } from './combatOrParty';
-import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
-import { fireOwnTestFailed } from './triggeredEffects';
+import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
+import { fireOwnTestFailed } from '../noyau/triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot, testDExposition } from './corruptionFlow';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -143,7 +143,7 @@ import type {
   PendingFrenzy, PendingRenounce, PendingDefense,
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
-} from './pendings';
+} from '../noyau/pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
 import { postingTenu } from '../engine/activities';
@@ -157,11 +157,11 @@ export type { PendingRest } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from '../noyau/monde/scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
-import { chebyshev, Pt, tileKey } from './path';
+import { chebyshev, Pt, tileKey } from '../noyau/monde/path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
 import { bus, EVT } from './bus';
 import { emptyWorldMap } from './worldMap';
@@ -173,7 +173,7 @@ import { dayIndex, runDailyUpkeep, purgeSurAvanceDHorloge } from './upkeep';
 import type { DeferredUpkeepTest } from './upkeep';
 import * as travelFlow from './travelFlow';
 import * as billetFlow from './billetFlow';
-import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
+import { DEFAULT_VOYAGE_ORDERS } from '../noyau/voyageCadence';
 import { appliquerLotEtal } from './etalLotFlow';
 import * as portFlow from './portFlow';
 import * as landMarketFlow from './landMarketFlow';
@@ -181,11 +181,11 @@ import * as innFlow from './innFlow';
 import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
-import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
+import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from '../noyau/cascade';
 import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { nightBands } from './nightBands';
-import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
+import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { createCombatSlice } from './combatSlice';
 import { nomDEntite } from './sceneNpc';
 import { presetPnjById } from './campaignData';
@@ -215,7 +215,7 @@ export function scenesDuRegistre(): Scene[] {
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
 // pour la compat des imports existants (`from '../state/store'`).
-export * from './pendings';
+export * from '../noyau/pendings';
 
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
@@ -292,7 +292,7 @@ export interface BattleState {
   siege?: boolean;
   /** Zones persistantes (L11 — généralise l'ancienne fumée) : fumée du Souffle (blocksLoS),
    *  Mur de feu (onCross), Grands feux d'U'Zhul (perRound)… TTL décrémenté à chaque frontière
-   *  de Round (state/zones.ts). */
+   *  de Round (noyau/monde/zones.ts). */
   zones?: BattleZone[];
   /** « Avantages et Magie » (LDB 46 l.123-125) : cibles déjà visées par un Sort d'un Domaine CE Round —
    *  re-viser la même cible avec le même Vent donne +1 Avantage au lanceur. Purgé chaque Round. */
@@ -656,9 +656,9 @@ export interface GameState extends RollFlowActionsMap {
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
-   *  conséquence par `kind` + avancée du curseur dans `cascadeNext` (state/cascade.ts). */
+   *  conséquence par `kind` + avancée du curseur dans `cascadeNext` (noyau/cascade.ts). */
   pendingCascade: PendingCascade | null;
-  /** Pile de cascades SUSPENDUES (`suspendActiveCascade`/`resumeSuspendedCascade`, state/cascade.ts) :
+  /** Pile de cascades SUSPENDUES (`suspendActiveCascade`/`resumeSuspendedCascade`, noyau/cascade.ts) :
    *  quand un combat s'ouvre PENDANT une cascade active (ex. un abordage déclenché par l'applier d'une
    *  étape de voyage), la cascade active est poussée ICI (LIFO) plutôt qu'écrasée/perdue — le slot
    *  `pendingCascade` redevient disponible pour les cascades DU COMBAT. Résumée (tête de pile) au
@@ -669,7 +669,7 @@ export interface GameState extends RollFlowActionsMap {
    *  dessoûlage) ne peuvent pas s'ouvrir tout de suite. Ils sont DIFFÉRÉS ici puis CONSOMMÉS par
    *  `openCombatEndCascade` (fin de combat) — jamais roulés en silence. La garde `lastUpkeepDay` reste la
    *  référence anti-double-résolution (l'entretien lui-même n'est appliqué qu'une fois). */
-  deferredUpkeepQueue: import('./rollSeam').BuiltCascadeStep[];
+  deferredUpkeepQueue: import('../noyau/rollSeam').BuiltCascadeStep[];
   /** SÉQUENCE EN COURS (socle `state/sequenceCore`, #1279) : la situation qui se joue en MANCHES
    *  jusqu'à une issue — poursuite terrestre (LDB 15), jeu de taverne opposé (NADJ 16), demain les
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
@@ -1557,12 +1557,12 @@ export interface GameState extends RollFlowActionsMap {
   travelRecap: import('./travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */
-  startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }) => void;
+  startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('../noyau/voyageCadence').VoyageCadence }) => void;
   /** Reprend un voyage interrompu par une péripétie. */
   resumeTravel: () => void;
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
    *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
-  setVoyageCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
+  setVoyageCadence: (cadence: import('../noyau/voyageCadence').VoyageCadence) => void;
   /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
   setTravelRole: (heroId: string, role: import('../engine/activities').StagePosting | null) => void;
@@ -1837,14 +1837,14 @@ registerCloture('testRateDeLActeur', (get, set, c) => {
 });
 registerCloture('teardownDeVictoire', (get, set, c) => {
   if (c.batailleDeMasse) massBattleFlow.massBattleResumeCombat(get, set, c.kills);
-  // Teardown de combat (couture UNIVERSELLE, state/cascade.ts) : résume la cascade SUSPENDUE (ex. le
+  // Teardown de combat (couture UNIVERSELLE, noyau/cascade.ts) : résume la cascade SUSPENDUE (ex. le
   // reste d'une journée de voyage interrompue par un abordage) — APRÈS l'écran de victoire, jamais devant.
   resumeSuspendedCascade(get, set);
 });
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
- * `CAPACITES` (`state/usable.ts`) : une capacité N+1 ne compile pas sans son OFFRE *et* son
+ * `CAPACITES` (`noyau/monde/usable.ts`) : une capacité N+1 ne compile pas sans son OFFRE *et* son
  * exécuteur, et il n'existe pas de `if (actionId === …)` pour en ajouter une.
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
@@ -1856,7 +1856,7 @@ const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: Scen
 };
 
 /** Places JOUABLES d'une entité : la géométrie vit sur le TYPE de décor, donc seule une instance de
- *  décor en porte (`placesJouables`, `state/seating.ts`). */
+ *  décor en porte (`placesJouables`, `noyau/monde/seating.ts`). */
 function placesDe(scene: Scene, entityId: string) {
   const ent = scene.entities.find((e) => e.id === entityId);
   return ent?.kind === 'prop' ? placesJouables(scene, entityId) : [];
@@ -2351,7 +2351,7 @@ export const useGame = create<GameState>((set, get) => ({
     // ni point d'entrée nommé) ; sinon vers le CONTENU de la NOUVELLE carte (le cap hérité de
     // l'ancienne scène n'a aucun sens ici — en POV il peut regarder le vide hors-carte).
     const authored = !pos && !(entry && target.entryPoints?.[entry]) ? heroStart?.facing : undefined;
-    // Couture UNIVERSELLE de suspension (state/cascade.ts) : une cascade active PARQUÉE au lieu d'être
+    // Couture UNIVERSELLE de suspension (noyau/cascade.ts) : une cascade active PARQUÉE au lieu d'être
     // perdue par `resetFields('scene')` ci-dessous (ex. un abordage ouvre `startCombat` PUIS transitionne
     // vers sa scène — l'ORDRE des deux appels varie selon l'appelant, cette couture protège les deux).
     suspendActiveCascade(get, set);
@@ -2616,7 +2616,7 @@ export const useGame = create<GameState>((set, get) => ({
     //  4. sinon la raison française du refus (assise, ou fouille déjà épuisée).
     // On loote la table, PUIS on s'y attable : aucune des deux affordances n'est inatteignable.
     // La portée d'une place ne se mesure pas au meuble mais à son ABORD (`slot.approach`, seule
-    // couture `state/seating`), qui peut tomber hors du voisinage de la case d'ancrage.
+    // couture `noyau/monde/seating`), qui peut tomber hors du voisinage de la case d'ancrage.
     // Le MENEUR est l'emplacement 1 du groupe ; son id ne sert qu'à re-vérifier, à l'écriture, que
     // le meneur n'a pas changé entre le clic et le commit (coop).
     const leaderId = meneurDuMonde(get())?.id;
@@ -2833,7 +2833,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({ pendingVictory: null, battle: null, mode: 'exploration' });
     // DEUX lots à la suite : si le premier ouvre un dé à la porte (#1508), le second est SA suite et
     // ne doit pas passer devant — il part alors dans la continuation de l'étape ouverte, et le teardown
-    // de combat (couture UNIVERSELLE, state/cascade.ts) est la CLÔTURE qui les suit tous les deux.
+    // de combat (couture UNIVERSELLE, noyau/cascade.ts) est la CLÔTURE qui les suit tous les deux.
     let issue = leftoverGear.length ? applyEffects(get, set, leftoverGear) : undefined;
     if (cont?.length) {
       // #9 : téléport/dialogue de onVictory APRÈS « Continuer ». Si le butin a différé, ce lot-ci est SA

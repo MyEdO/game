@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import type { Combatant } from '../../engine/types';
 import type { AdvantagePools } from '../../engine/advantagePool';
 import {

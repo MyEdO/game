@@ -12,7 +12,7 @@ import { OptionChooser } from './OptionChooser';
 import { Icon } from './Icon';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../state/flowOutcomes';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */

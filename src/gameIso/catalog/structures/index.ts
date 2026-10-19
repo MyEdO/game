@@ -1,5 +1,5 @@
 import type { StructureAppearanceDef, WallPart } from './types';
-import type { WallSeg } from '../../../state/scene';
+import type { WallSeg } from '../../../noyau/monde/scene';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../missing';

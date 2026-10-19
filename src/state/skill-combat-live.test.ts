@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { createHero } from '../engine/character';
-import { emptyScene } from './scene';
-import { seedBattleRng } from './battleRng';
+import { emptyScene } from '../noyau/monde/scene';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import { combatValue } from '../engine/combat';
 import { skillBaseValue } from '../engine/skills';

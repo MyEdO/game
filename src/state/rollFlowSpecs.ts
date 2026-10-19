@@ -26,9 +26,9 @@ import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
 import { deDuJet, makeRollFlow, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
   resolveAttack, attackWeaponOf, firedWeapon, bestDefenseMode, effectiveSpellOf,
@@ -38,10 +38,10 @@ import {
   clearApproachMoves, defenseDodgeMods,
 } from './combatFlow';
 import { bus, EVT } from './bus';
-import { campRestitue, campSpend } from './combat/advantagePool';
+import { campRestitue, campSpend } from '../noyau/combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
-import { sceneMetresPerTile } from './scene';
+import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
 import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
@@ -50,8 +50,8 @@ import type { Difficulty } from '../engine/types';
 import { d100, defaultRNG, type RNG } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
-import { rollLine } from './rollSeam';
+import { rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from '../noyau/cascade';
+import { rollLine } from '../noyau/rollSeam';
 import { activityModLines } from '../engine/activities';
 import { testValue, valeurDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
@@ -184,7 +184,7 @@ function defenseSubOf(defender: Combatant, p: PendingDefense): DefenseSub | unde
 const DEFENSE_LABEL_FALLBACK = 'Intimidation';
 
 /** Opposition FIGÉE de l'étape de cascade COURANTE (celle dont le flux `cascadeBatch` lance les
- *  rangées) — la lecture, jamais une seconde source : `stepOpposedFreeze` (state/cascade.ts) décide
+ *  rangées) — la lecture, jamais une seconde source : `stepOpposedFreeze` (noyau/cascade.ts) décide
  *  seul de ce qu'est un freeze. `undefined` hors cascade ou sur une étape non opposée. */
 function currentStepFreeze(s: GameState) {
   const p = s.pendingCascade;
@@ -1001,7 +1001,7 @@ export const FLOWS = {
    * fois (l'étape courante = `participants[cursor]`), chacune son cycle Chance/+1 DR/Pacte/Résilience.
    * Le JET est kind-agnostique (Test « +0 » sur `step.target`, difficulté déjà appliquée) ; la
    * CONSÉQUENCE par `kind` + l'avancée du curseur vivent dans `cascadeNext`/`advanceCascade`
-   * (state/cascade.ts). Même fabrique que le Test Étendu — seule la sémantique d'étape change.
+   * (noyau/cascade.ts). Même fabrique que le Test Étendu — seule la sémantique d'étape change.
    */
   cascade: makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',

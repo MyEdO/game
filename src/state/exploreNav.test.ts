@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
-import type { Flow } from './flow';
+import { emptyScene, isWalkable, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import type { Flow } from '../noyau/monde/flow';
 import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, exploreStepDest, spawnFacing } from './exploreNav';
 import { chebyshev } from '../engine/grid';
-import { seatSlotsOf } from './seating';
+import { seatSlotsOf } from '../noyau/monde/seating';
 
 const emptyFlow: Flow = { kind: 'seq', steps: [] };
 

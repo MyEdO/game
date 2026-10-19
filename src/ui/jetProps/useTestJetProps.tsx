@@ -7,7 +7,7 @@ import { buildRollRow } from '../rollRowBuild';
 import { PortraitPicker } from '../console/PortraitPicker';
 import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
-import { ev } from '../../state/combatLog';
+import { ev } from '../../noyau/combatLog';
 import { describeTest, amazingTestLabel } from '../../state/flowOutcomes';
 import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';

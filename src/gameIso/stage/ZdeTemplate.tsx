@@ -11,8 +11,8 @@ import { zdeRadiusTiles, spellRangeTiles } from '../../engine/magic';
 import { findSpellById } from '../../data';
 import { placingZoneOf, placedZoneValidAt, castSightBlocked } from '../../state/combatFlow';
 import { Dims, diamondPath, diamondCorners } from '../../geometry/iso';
-import { chebyshev } from '../../state/path';
-import type { Pt } from '../../state/path';
+import { chebyshev } from '../../noyau/monde/path';
+import type { Pt } from '../../noyau/monde/path';
 import { ENEMY_CUE_TINT, INVALID_TINT } from '../highlightTints';
 
 export function ZdeTemplate({ battle, hover, pendingCast, pendingSiegeAim, activeC, dims }: {

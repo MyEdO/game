@@ -6,7 +6,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CellSide } from '../../src/state/scene';
+import type { CellSide } from '../../src/noyau/monde/scene';
 
 export interface GridLocation {
   file: string;

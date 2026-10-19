@@ -4,7 +4,7 @@ import { combatGeomOf, combatGeomOfList, pickAttackWeaponList } from './mount';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { GameState } from './store';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * #210 Lot 2 — l'attaque d'une pièce de MÊLÉE servie (bélier, ADE II 8 l.233) est ancrée à la

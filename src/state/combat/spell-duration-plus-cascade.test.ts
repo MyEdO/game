@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { openRoundEndCascade } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { endOfRound, pendingPlusExtensions, addCondition, COND } from '../../engine/conditions';
 import { testValue } from '../../engine/skills';
 import { testScene } from '../../scenes/test-fixture';

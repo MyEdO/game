@@ -6,7 +6,7 @@ import { setPreference, resetPreference } from './preferences';
 import { cadence } from '../engine/cadence';
 import { resolveRoundBoundary } from './combatFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 
 /**

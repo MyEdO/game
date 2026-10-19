@@ -4,7 +4,7 @@
  * la liste de l'ancien onglet « Scène »), carte du monde et ▶ Tester.
  */
 import { useEffect, useRef, type ReactNode } from 'react';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { publierEditeur } from '../../state/editeurBridge';
 import { Icon } from '../Icon';
 import { ENTREE_DE_MENU, Menu, type EntreeDeMenu } from '../composites/Menu';

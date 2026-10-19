@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './scene';
-import { pathTo } from './path';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
+import { pathTo } from '../noyau/monde/path';
 
 /**
  * Saut au pathfinding (LDB 15 l.76 : on saute librement de Mouvement/3 m ; au-delà, Test

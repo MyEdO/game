@@ -36,7 +36,7 @@ import { shade, mix } from '../shade';
 import type { DetailRecipe } from '../detail/types';
 import { projGP, type Pt2 } from './project';
 import { structureFaceSvg } from './wallsSvg';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import type { GP, RoofEl } from '../builders/types';
 
 // Épaisseurs ÉCRAN (px) des lignes — des formes, jamais des identités de couleur.

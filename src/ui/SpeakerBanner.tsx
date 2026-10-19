@@ -1,5 +1,5 @@
 import { forwardRef, type AriaAttributes, type AriaRole, type ReactNode } from 'react';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { tokenBodyKind } from '../gameIso/tokenBodyKind';
 import { Fleuron } from './Ornaments';
 import { useVersionDesDatasets } from './useVersionDesDatasets';

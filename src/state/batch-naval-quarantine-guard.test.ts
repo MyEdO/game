@@ -17,9 +17,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /** Modules GÉNÉRIQUES sous quarantaine (POSIX relatifs à la racine). */
 const QUARANTINED_FILES = [
-  'src/state/cascade.ts',
+  'src/noyau/cascade.ts',
   'src/ui/CascadeModal.tsx',
-  'src/state/pendings.ts',
+  'src/noyau/pendings.ts',
 ];
 
 describe('quarantaine d’import — batch générique de cascade dé-navalisé (#328)', () => {

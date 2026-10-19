@@ -3,7 +3,7 @@
  * les murs d'une scène ; les accès offerts sont ceux que `aretesUtilisables` dérive de son contrôleur
  * (`portalsForParty`), jamais une liste recopiée à côté de la scène.
  */
-import type { SceneEffectZone, WallSeg } from './scene';
+import type { SceneEffectZone, WallSeg } from '../noyau/monde/scene';
 
 /** Pièce intérieure (`isRoomZone`) rectangulaire, à l'étage `z`. */
 export const piece = (id: string, x: number, y: number, w = 1, h = 1, z = 0): SceneEffectZone => ({

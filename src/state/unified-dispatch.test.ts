@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { fireTriggers, freeAttackSourcesOf, effectSourcesOf } from './triggeredEffects';
-import { flowHasFreeAttack } from './flow';
+import { fireTriggers, freeAttackSourcesOf, effectSourcesOf } from '../noyau/triggeredEffects';
+import { flowHasFreeAttack } from '../noyau/monde/flow';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 

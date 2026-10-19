@@ -8,8 +8,8 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
-import { monoStep } from './rollSeam';
-import { registerCascadeApplier } from './cascade';
+import { monoStep } from '../noyau/rollSeam';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { registerSequence, startSequence, activeSequence } from './sequenceCore';
 
 declare module './sequenceContract' {

@@ -6,7 +6,7 @@ import { createHero } from '../engine/character';
 import { engage } from '../engine/engagement';
 import { buildEncounter } from './encounterAuthoring';
 import { testScene } from '../scenes/test-fixture';
-import type { CustomStatblock, Scene } from './scene';
+import type { CustomStatblock, Scene } from '../noyau/monde/scene';
 import type { Weapon } from '../engine/types';
 
 // Nuée — Trait Nuée (LDB 85 l.251-253).

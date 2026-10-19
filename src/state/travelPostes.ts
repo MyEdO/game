@@ -14,7 +14,7 @@
  *    la nuit : l'abri insère les jets d'Exposition). RAW : « chaque Personnage bénéficie d'une Activité
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { d100 } from '../engine/dice';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,
@@ -28,10 +28,10 @@ import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
 import { extendedTestStep, type EchecSansJet } from '../engine/tests';
-import { registerCascadeApplier } from './cascade';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { appliquerIssueActivite } from './activityIssue';
-import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from './rollSeam';
-import { toRecapLines } from './recapLine';
+import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from '../noyau/rollSeam';
+import { toRecapLines } from '../noyau/recapLine';
 import { t, type MsgKey } from '../i18n';
 import { rule } from '../engine/policy';
 import {
@@ -50,10 +50,10 @@ import { weatherRef } from '../engine/travelStages';
 import { partyWalkSpeed, vehicleTravel, type TravelMode } from '../engine/travel';
 import { partyMounts } from '../engine/mountTravel';
 import type { Possession } from '../engine/possession';
-import type { CascadeStepMeta, BatchParticipant } from './pendings';
+import type { CascadeStepMeta, BatchParticipant } from '../noyau/pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 
 const POSTE_ICON: Record<string, string> = {
   'plein-air': 'expedition/outdoors', approvisionnement: 'item/consumable', 'recueillir-informations': 'expedition/rumor', 'rester-aux-aguets': 'ui/eye',

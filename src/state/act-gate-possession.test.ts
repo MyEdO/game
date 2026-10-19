@@ -13,14 +13,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { resolveActGates } from './combatFlow'; // baril : charge `combat/turnHooks` (hooks + appliers)
-import { cascadeAppliers } from './cascade';
-import { surfaceOf } from './rollSeam';
+import { cascadeAppliers } from '../noyau/cascade';
+import { surfaceOf } from '../noyau/rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { ownsLocal, humanControlled } from './netOwnership';
-import { seatOwns } from './sieges';
-import { seedBattleRng } from './battleRng';
+import { seatOwns } from '../noyau/sieges';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 const NET0 = useGame.getState().net;

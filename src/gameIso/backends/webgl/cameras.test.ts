@@ -12,11 +12,11 @@ import {
   rotYaw,
 } from './cameras';
 import { LEVEL_H, TH, TW, tileCenter, type Dims, type ProjKind, type Rot } from '../../../geometry/iso';
-import { METRES_PER_LEVEL, metricToLift } from '../../../state/relief';
+import { METRES_PER_LEVEL, metricToLift } from '../../../noyau/monde/relief';
 import { buildScene } from '../../../state/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
-import { sceneMetresPerTile } from '../../../state/scene';
-import { DIR8_ORDER } from '../../../state/dir8';
+import { sceneMetresPerTile } from '../../../noyau/monde/scene';
+import { DIR8_ORDER } from '../../../noyau/monde/dir8';
 import { VH, VW, makeCamera, project } from '../../pov/camera';
 import { pxPerM } from './worldTris';
 import { ISO_PX_PER_M } from '../../iso';

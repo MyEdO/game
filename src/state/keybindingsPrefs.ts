@@ -3,7 +3,7 @@
  * au registre `keybindings` : évite tout cycle d'import (le store charge ces overrides à l'init, et
  * `keybindings`/le hook les consomment via `effectiveCodes`). `id de raccourci → event.code`.
  */
-import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 
 const OVERRIDES_KEY = 'wfrp4.keys';
 

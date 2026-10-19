@@ -5,14 +5,14 @@ import './combatFlow'; // effet de bord : routeur de Test + appliers
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect, EffectTrigger } from './flow';
+import type { TriggeredEffect, EffectTrigger } from '../noyau/monde/flow';
 import { resetCadence } from '../engine/cadence';
 
 /**

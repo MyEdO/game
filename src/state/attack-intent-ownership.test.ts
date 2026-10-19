@@ -19,7 +19,7 @@ import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { jetOwnedIntents } from './flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 

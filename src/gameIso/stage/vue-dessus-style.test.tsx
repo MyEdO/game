@@ -14,7 +14,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
-import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../noyau/monde/scene';
 import { setRevealAll } from '../../state/visionState';
 import type { ViewMode } from '../../geometry/iso';
 import { bakeWorldGeometry, type WorldGeometry } from '../backends/webgl/sceneMeshes';

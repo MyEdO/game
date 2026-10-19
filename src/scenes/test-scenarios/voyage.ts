@@ -1,4 +1,4 @@
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
@@ -8,7 +8,7 @@ import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
 import { buildScene } from '../../state/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du

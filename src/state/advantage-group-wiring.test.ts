@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { resolveRoundBoundary } from './combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 
 /**

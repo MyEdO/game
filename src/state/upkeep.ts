@@ -25,7 +25,7 @@
  *
  * N'importe QUE du moteur + battleRng + le bus d'horloge `clockHooks` (pas de cycle avec les flux).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { tickCampaignVesselWeek } from './shipCrew';
 import { dayIndex } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provisions';
@@ -33,7 +33,7 @@ import { testValue } from '../engine/skills';
 import { effectiveChar, bonus, refreshWounds } from '../engine/characteristics';
 import { loseWounds, syncDerivedConditions } from '../engine/conditions';
 import { type CharKey, type Difficulty, type UpkeepDeferTest, type NightTestKind } from '../engine/types';
-import { rollStep } from './rollSeam';
+import { rollStep } from '../noyau/rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
 import { conditionLabel } from '../data';

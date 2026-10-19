@@ -11,7 +11,7 @@
  * verdict ⇄ mode réellement rendu est GARDÉE (`targeting-holder-vs-mode.test.ts`).
  */
 import type { GameState } from './store';
-import { sansCorps } from './slotsDeJet';
+import { sansCorps } from '../noyau/slotsDeJet';
 
 /** Les `pending*` HORS-modale (`modalArbiter.HORS_MODAL`) qui peuvent tenir le ciblage carte —
  *  ÉNUMÉRATION RUNTIME (le type en dérive) : les gardes itèrent CETTE liste, jamais une copie. */

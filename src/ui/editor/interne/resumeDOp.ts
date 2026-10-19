@@ -15,7 +15,7 @@ import { giveTrappingLabel } from '../../../engine/items';
 import { formatTrait, formatWardSave } from '../../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../../engine/trauma';
 import { ruleDef } from '../../../engine/policy';
-import { terrainLabel } from '../../../state/terrain';
+import { terrainLabel } from '../../../noyau/monde/terrain';
 import { dureePropre, plancher } from '../../compendium/humanize';
 import { coupeAuMot } from '../../../lib/coupeAuMot.mjs';
 import { opMissingRefs } from '../refsDOp';

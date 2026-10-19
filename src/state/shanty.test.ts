@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { applyOps, skillDRBonus, charDRBonusOf } from '../engine/ops';
 import { testStatePenalty, addCondition } from '../engine/conditions';
 import { crewRoleValue, crewTalentDR, crewTestModOf } from '../engine/crewMorale';

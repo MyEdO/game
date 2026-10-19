@@ -10,15 +10,15 @@
  * (`stage/PlaquesDeNom`) : UNE liste, deux peintres.
  *
  * UNE ENTITÉ UTILISABLE EST UNE ENTITÉ UTILISABLE : aucun `kind` ne se lit ici, et l'appartenance se
- * tranche au dériveur UNIQUE `state/usable.estUtilisable` — celui-là même que le curseur et le clic
+ * tranche au dériveur UNIQUE `noyau/monde/usable.estUtilisable` — celui-là même que le curseur et le clic
  * consultent. Un décor fouillable, un meuble à s'asseoir et un marchand à qui parler y entrent par la
  * même porte, et par les DEUX corps que le champ leur donne : un décor (`PropEl`) ou un jeton
  * (`TokenEl`). Même couple d'entrées que les pastilles de gestes (`tokenChrome.tokenGesteMarks`) : ce
  * qui n'est pas POSTÉ n'a rien à porter.
  */
-import type { Scene, SceneEntity } from '../../state/scene';
-import { decorFootGeometry } from '../../state/footprint';
-import { estUtilisable } from '../../state/usable';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
+import { decorFootGeometry } from '../../noyau/monde/footprint';
+import { estUtilisable } from '../../noyau/monde/usable';
 import { nomDEntite } from '../../state/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 import { RING_A_PX } from './dynamicMarks';

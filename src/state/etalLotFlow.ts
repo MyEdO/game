@@ -17,11 +17,11 @@
  * sans rien poser rejoue les dés enregistrés et rend l'étal identique.
  */
 import type { Get, Set } from './flowTypes';
-import type { EtalLotRow } from './pendings';
+import type { EtalLotRow } from '../noyau/pendings';
 import type { RNG } from '../engine/dice';
-import { battleRng } from './battleRng';
-import { surfaceOf } from './rollSeam';
-import { WORLD_STEP_OWNER } from './pendings';
+import { battleRng } from '../noyau/battleRng';
+import { surfaceOf } from '../noyau/rollSeam';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
 import { lotEnregistreur, lotRejoueur, type EtalDraw } from './etalLot';
 
 /** Un générateur d'étal : il TIRE (via le rng qu'on lui donne), il POSE son état, il ne rend rien.

@@ -3,7 +3,7 @@ import { buildScene } from '../../state/mapSpec';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * BÉLIER — PORTE (ADE II 8 « Le théâtre de la guerre » l.233) : consommateur LIVE du modèle ENGIN DE

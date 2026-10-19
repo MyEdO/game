@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { runFlow } from '../../state/combatEffects';
 import { setRule, resetRule } from '../../engine/policy';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
 import { scenario } from './18-effets-scriptes';

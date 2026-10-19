@@ -13,8 +13,8 @@
  * de vue DÉRIVÉE de ses paramètres — une scène mutée (porte, décor, structure) arrive par une
  * nouvelle référence et re-dérive d'elle-même.
  */
-import type { Scene } from '../../state/scene';
-import { memoByRef } from '../../state/sceneMemo';
+import type { Scene } from '../../noyau/monde/scene';
+import { memoByRef } from '../../noyau/monde/sceneMemo';
 
 /** RÈGLE de vue d'un élément — d'où sa vérité (`states.visible`, `roofOccupied`…) est tirée.
  *  `enVue`/`horsVue` portent les `visKeys` : les seules cases qui la déterminent. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type WallClimb } from './scene';
+import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
 import { planClimb } from './climbMove';
 
 /**

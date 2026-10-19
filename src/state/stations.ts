@@ -8,7 +8,7 @@ import { isPosteManned } from './shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import type { FireArc } from './fireArc';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 export type StationKind = 'poste' | 'activity' | 'battleScene';
 

@@ -4,7 +4,7 @@
  * `src/data/prop-foot-migration.test.ts`, qui juge la SOURCE du JSON généré). Patron des
  * `scripts/guards/lib/*.d.mts`.
  */
-import type { Scene } from '../../src/state/scene';
+import type { Scene } from '../../src/noyau/monde/scene';
 
 /** Une fabrique = une scène complète du projet Arène. */
 export type AreneSceneFactory = () => Scene;

@@ -37,7 +37,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 
 ## 2. Navire de campagne (`state.vessel`)
 
-Câblé par des **Effects** (`src/state/scene.ts`), jamais en dur :
+Câblé par des **Effects** (`src/noyau/monde/scene.ts`), jamais en dur :
 
 - `setVessel` — POSE/REMPLACE le navire de campagne (`vehicleId`, `name`, `morale`, `hullCurrent`/
   `hullMax`, `saboteurDR`, `crew`). REMPLACE tout `state.vessel` : un second `setVessel` efface Humeur de
@@ -135,7 +135,7 @@ Une coque RICHE (équipage exposé `crewIds`, artillerie `postes`, amélioration
 `entities` + s'enrôle via `encounters[].members` (plus expressif que le terse).
 
 **Échelle & modèle de combat naval — `metresPerTile` toggle `isMerScene`.** `metresPerTile≥4`
-(`isMerScene`, `src/state/scene.ts`) bascule le combat naval en modèle NAVIRE-UNITÉ (équipage passager hors
+(`isMerScene`, `src/noyau/monde/scene.ts`) bascule le combat naval en modèle NAVIRE-UNITÉ (équipage passager hors
 `order`, tour de coque, action Bordée/Manœuvre — `combatOrder`/`isPassengerInBattle`). En dessous (défaut
 2 m/case, PERSON-scale) : l'équipage combat individuellement, les héros SERVENT les pièces (`Servir <pièce>`)
 et l'abordage se joue à la case. L'Allonge, elle, est le SEUL endroit où 2 m/case est figé : `reachTiles`
@@ -149,7 +149,7 @@ pour les scènes de TRAVERSÉE ; réserver le modèle navire-unité au jour où 
 
 ## 8. Objectifs de victoire (`EncounterDef.victoryCondition`)
 
-Six formes (`VictoryCondition`, `src/state/scene.ts`), défaut `allEnemiesDead` :
+Six formes (`VictoryCondition`, `src/noyau/monde/scene.ts`), défaut `allEnemiesDead` :
 `allEnemiesDead` · `destroyStructure` (arête) · `surviveRounds` · `reachZone` (rect) · `woundsThreshold`
 (reddition d'une cible sous `belowPercent` de ses Blessures) · `firstBlood` (fin de rencontre au premier
 sang — la première cible neutralisée clôt le combat, `threshold?` = seuil de Blessures ; le tir est banni

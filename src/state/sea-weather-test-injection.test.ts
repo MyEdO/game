@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from './flow';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from './travelFlow';
 import { RULE_REF } from '../engine/ruleRefs';

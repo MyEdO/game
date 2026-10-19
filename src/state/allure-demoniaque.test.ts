@@ -3,8 +3,8 @@ import type { Combatant } from '../engine/types';
 import { evalCondition, spellFlowFor } from '../engine/flowCore';
 import type { ConditionCtx } from '../engine/flowCore';
 import { chaosDomainOf } from '../engine/combatFeatures/dispatch';
-import { runPureFlowLines } from './combat/flowEval';
-import { buildActorView } from './combat/flowEval';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
+import { buildActorView } from '../noyau/combat/flowEval';
 import { findSpellById } from '../data';
 
 /**

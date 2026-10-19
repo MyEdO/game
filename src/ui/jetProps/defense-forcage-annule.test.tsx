@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../../state/store';
 import { openAttackCascade } from '../../state/combatFlow';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { OPPOSED_FORCING_CANCELLED_NOTE } from '../../state/rollFlowSpecs';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';

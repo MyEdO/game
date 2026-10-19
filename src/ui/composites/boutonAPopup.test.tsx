@@ -14,7 +14,7 @@ import { CharacterSheet } from '../CharacterSheet';
 import { useGameKeyboard } from '../clavier/useGameKeyboard';
 import { resetDismissLayers } from '../useDismissLayer';
 import { useGame } from '../../state/store';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { resetData, setDataset } from '../../data/overrides';
 import type { Combatant } from '../../engine/types';

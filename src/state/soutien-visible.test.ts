@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
-import { openPartyTest } from './rollSeam';
+import { openPartyTest } from '../noyau/rollSeam';
 import { routeTriggeredTest } from './combat/triggeredTest';
 import { findTrappingById } from '../data';
-import { testFlow, EMPTY_FLOW } from './flow';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 
 /**

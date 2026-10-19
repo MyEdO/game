@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { allBuiltinCampaigns, paquetDuJeu } from './campaign';
 import { testScenarios } from './test-scenarios';
-import { propFootTiles, propDeclaredFoot } from '../state/footprint';
-import { sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene';
+import { propFootTiles, propDeclaredFoot } from '../noyau/monde/footprint';
+import { sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
 
 /**
  * CONTRAT POSITIF de la migration « l'empreinte vient du TYPE » (#mobilier T1) : une empreinte

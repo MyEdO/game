@@ -6,7 +6,7 @@ import { propMaterial } from '../gameIso/catalog/propMaterials';
 import { roofMaterial } from '../gameIso/catalog/roofs';
 import { reliefMaterial } from '../gameIso/catalog/relief';
 import { validateScene } from '../state/validateScene';
-import { emptyScene, type Scene } from '../state/scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 /**
  * FRAÎCHEUR DES MATIÈRES (#1686 lot 3a-1) — le document des matières se mute EN PLACE

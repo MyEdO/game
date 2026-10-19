@@ -19,7 +19,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import type { LightSource } from '../../state/vision';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { InteractHalo } from '../builders/interactHalos';
 import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './GameStage3D';
 import { BancRenderer, brancherArdoise, brancherImagesPilotees, scènes, viderCaptures } from './banc-volumique';

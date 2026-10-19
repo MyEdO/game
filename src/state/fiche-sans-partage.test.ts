@@ -2,10 +2,10 @@ import { it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { ficheDEntite, sceneNpc } from './sceneNpc';
-import { memoByRef } from './sceneMemo';
+import { memoByRef } from '../noyau/monde/sceneMemo';
 import { atteignables, objetsDuCatalogue } from './partage.testkit';
 import { useGame } from './store';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from './campaignNarratif';
 
 // #2097

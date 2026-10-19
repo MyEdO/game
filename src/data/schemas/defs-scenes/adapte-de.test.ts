@@ -11,7 +11,7 @@ import { journalSchema } from './effets';
 import { projetSchema } from './projet';
 import { coDescendre, type PointDeDonnee } from '../grammaire/descente';
 import { sourceHeritee } from '../grammaire/prose';
-import { emptyScene } from '../../../state/scene';
+import { emptyScene } from '../../../noyau/monde/scene';
 import { emptyNarratif } from '../../../state/campaignNarratif';
 
 const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };

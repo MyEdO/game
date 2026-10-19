@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { OPS_DIFFEREES } from './combatEffects';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { evalCondition } from './flow';
-import type { TemporalCondition } from './scene';
+import { evalCondition } from '../noyau/monde/flow';
+import type { TemporalCondition } from '../noyau/monde/scene';
 
 /** gameTime au jour 0 (minute-de-jour = gameTime % 1440). */
 const at = (h: number, m = 0) => h * 60 + m;

@@ -75,7 +75,7 @@ describe('combineMods — Combiner les Difficultés (LDB 14 l.91-96)', () => {
  *     un « plafond Difficultés » qu'aucune entrée de la table ne justifie.
  *
  * C'est cette propriété qui rend la 4ᵉ condition de dérivation du palier (`separable`,
- * `state/rollSeam.ts`) inutile : elle est vraie par construction. Sans ce test, un futur changement
+ * `noyau/rollSeam.ts`) inutile : elle est vraie par construction. Sans ce test, un futur changement
  * de `combineMods` la rendrait re-nécessaire EN SILENCE, et le palier annoncerait une Difficulté que
  * la table ne dit pas. La garde de non-vacuité exige que le plafond MORDE sur >30 % des tirages.
  */

@@ -21,8 +21,8 @@
  * s'accordent.
  */
 import type { Get, Set } from './flowTypes';
-import type { PendingCascade } from './pendings';
-import type { BuiltCascadeStep } from './rollSeam';
+import type { PendingCascade } from '../noyau/pendings';
+import type { BuiltCascadeStep } from '../noyau/rollSeam';
 import type { RNG } from '../engine/dice';
 import type { CharKey } from '../engine/types';
 import type { PlayerText } from '../i18n/playerText';

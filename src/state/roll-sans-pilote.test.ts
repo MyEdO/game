@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { setGmSeat } from './netFlow';
-import { rollSansPilote } from './rollSeam';
+import { rollSansPilote } from '../noyau/rollSeam';
 import { makeRNG } from '../engine/dice';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Combatant } from '../engine/types';

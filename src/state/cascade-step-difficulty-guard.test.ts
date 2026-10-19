@@ -13,7 +13,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * DÉCROISSANTE : un site assaini doit ABAISSER sa baseline (cliquet à double sens).
  */
 
-const STATE = 'src/state';
+const RACINES = ['src/state', 'src/noyau'];
 
 /** Neutralise commentaires, chaînes et gabarits (contenu remplacé par des espaces, sauts conservés) —
  *  les accolades d'un `${…}` ne doivent JAMAIS compter dans l'appariement du littéral. */
@@ -81,10 +81,10 @@ const BASELINE: Record<string, number> = {};
 describe('cliquet — une étape de cascade qui LANCE dit sa Difficulté (#1112)', () => {
   it('aucun nouveau site sans Difficulté, et toute baseline assainie est ABAISSÉE', () => {
     const counts: Record<string, number[]> = {};
-    for (const { rel, text } of readCorpus([STATE], { exts: ['.ts'] })) {
+    for (const { rel, text } of readCorpus(RACINES, { exts: ['.ts'] })) {
       const found = stepsWithoutDifficulty(text);
-      // La CLÉ de la baseline est relative à `src/state/`.
-      if (found.length) counts[rel.slice(STATE.length + 1)] = found;
+      // La CLÉ de la baseline est relative à `src/`.
+      if (found.length) counts[rel.slice('src/'.length)] = found;
     }
     const over: string[] = [];
     for (const [f, l] of Object.entries(counts)) {

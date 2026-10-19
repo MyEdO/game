@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedStartingPossessions } from './possessionsFlow';
 import { createHero } from '../engine/character';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { deleteSlot } from './saves';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';

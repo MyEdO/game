@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { creditBourse } from './bourseFlow';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 

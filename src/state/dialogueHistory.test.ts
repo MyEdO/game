@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueHistory';
-import { speakerEntity, type Dialogue, type SceneEntity } from './scene';
+import { speakerEntity, type Dialogue, type SceneEntity } from '../noyau/monde/scene';
 import { placeEntity } from '../ui/editor/editorState';
 import { creatureLabel } from '../data';
 import { useGame } from './store';

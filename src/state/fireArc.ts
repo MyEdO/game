@@ -10,7 +10,7 @@
  * (3 octants), conforme à « masser les pièces d'un bord pour lâcher une bordée » (MDG 12 l.428) et au
  * « canon tourné vers sa poupe » de l'exemple de poursuite (l.410). [Alternative écartée : quadrant 90°.]
  */
-import { facingToward, rotateDir8, DIR8_ORDER, type Dir8 } from './dir8';
+import { facingToward, rotateDir8, DIR8_ORDER, type Dir8 } from '../noyau/monde/dir8';
 import type { FireArc } from '../engine/types';
 
 export type { FireArc };

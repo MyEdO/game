@@ -4,7 +4,7 @@ import { buildScene } from './mapSpec';
 import { buildEncounters } from './encounterAuthoring';
 import { crewFormationSlots } from './shipPostes';
 import { pregenParty, PREGEN } from '../data/pregens';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Verrouillage #210 résidu — `autoFormCrews` (shipPostes.ts) câblé au spawn (`combatSlice.startCombat`) :

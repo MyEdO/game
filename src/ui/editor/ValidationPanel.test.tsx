@@ -14,7 +14,7 @@ import { ValidationPanel } from './ValidationPanel';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { parseProject } from '../../state/worldMap';
 import { PLAN_DEFECT_FAMILIES } from '../../state/planDefects';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../../state/scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../../noyau/monde/scene';
 import diligenceProjet from '../../scenes/diligence/diligence-projet.json';
 
 beforeAll(() => {

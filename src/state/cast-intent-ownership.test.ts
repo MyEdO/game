@@ -32,7 +32,7 @@ import { modalOwnerOf } from './modalArbiter';
 import { GUEST_INTENTS } from './intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
-import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
+import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };

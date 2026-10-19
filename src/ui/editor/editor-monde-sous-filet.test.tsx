@@ -3,11 +3,11 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Editor } from './Editor';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { editeur } from '../../state/editeurBridge';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
-import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
-import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../../web/indexedDb';
+import { brancherBasesSimulees } from '../../web/indexedDb.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

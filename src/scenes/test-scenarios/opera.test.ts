@@ -1,8 +1,8 @@
-import { flowEffects, EMPTY_FLOW, type Flow } from '../../state/flow';
+import { flowEffects, EMPTY_FLOW, type Flow } from '../../noyau/monde/flow';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateScene } from '../../state/validateScene';
-import { isWalkable, layerTiles, type Effect } from '../../state/scene';
-import { pathTo } from '../../state/path';
+import { isWalkable, layerTiles, type Effect } from '../../noyau/monde/scene';
+import { pathTo } from '../../noyau/monde/path';
 import { useGame } from '../../state/store';
 import { applyEffects } from '../../state/combatEffects';
 import { createHero } from '../../engine/character';

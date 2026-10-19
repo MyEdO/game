@@ -4,15 +4,15 @@ import { parseQualityInstance } from '../../engine/qualities/normalize';
 import { isUnarmed } from '../../engine/items';
 import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : enregistre l'applier 'bladeTrap' + installe les hooks (breakBlade…)
-import { pushChoice } from '../rollSeam';
+import { pushChoice } from '../../noyau/rollSeam';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { resolveOpposed } from '../../engine/tests';
 import { jete } from '../../engine/tests.testkit';
 import { skillBaseValue } from '../../engine/skills';
 
 import { testScene } from '../../scenes/test-fixture';
-import type { PendingBladeTrap } from '../pendings';
+import type { PendingBladeTrap } from '../../noyau/pendings';
 import type { Weapon } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
 
@@ -68,7 +68,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
   /** Résout l'étape `triggeredTest` du Piège-lame (jet + validation) et RENVOIE l'`outcome` de l'étape
    *  d'AFFICHAGE `bladeTrapResult` empilée par la conséquence — la note « lame brisée/arrachée » du paradigme
    *  cascade (une étape propre, comme un Coup Critique, qui garde la cascade ouverte jusqu'à acquittement). */
-  function resolveTestOutcome(stepId: string): import('../recapLine').RecapLine[] {
+  function resolveTestOutcome(stepId: string): import('../../noyau/recapLine').RecapLine[] {
     useGame.getState().cascadeRoll(stepId);
     useGame.getState().cascadeNext(); // valide le Test → applier → empile l'étape `bladeTrapResult`
     const res = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'bladeTrapResult');

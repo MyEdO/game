@@ -13,7 +13,7 @@ import { createHero } from '../engine/character';
 import { findSpell, findEffectTableById, refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 

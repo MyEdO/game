@@ -16,14 +16,14 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { startCascade, registerTableStep, registerCascadeApplier } from '../state/cascade';
+import { startCascade, registerTableStep, registerCascadeApplier } from '../noyau/cascade';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
-import { freeCons } from '../state/rollSeam';
+import { freeCons } from '../noyau/rollSeam';
 import { CascadeBody } from './CascadeModal';
-import type { CascadeStep } from '../state/pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { createHero } from '../engine/character';
 import { applyAttackResult } from '../state/combatFlow';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 

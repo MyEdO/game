@@ -13,7 +13,7 @@ import {
 } from './weatherParticles';
 import { isSheltered, shelterField } from '../../builders/roofs';
 import { AMBIANCE, scenePrecip, type WeatherPrecipDef } from '../../catalog/ambiance';
-import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 
 /**
  * MÉTÉO VOLUMIQUE (#1176, P2-6) — ce que le semis doit tenir, mesuré sur sa physique PURE :

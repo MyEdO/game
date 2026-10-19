@@ -7,10 +7,10 @@ import {
   type EditorAutosaveRecord,
   type RepriseLocale,
 } from './editorAutosave';
-import { __setFabriqueIdbForTest } from '../lib/indexedDb';
-import { brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../web/indexedDb';
+import { brancherBasesSimulees, type BasesSimulees } from '../web/indexedDb.testkit';
 import { cheminLisible } from '../data/schemas/validate';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 /** La scène d’une reprise relue — l’enregistrement prouvé par le schéma de scène, donc repris. */
 const repris = async (sceneId: string) => {

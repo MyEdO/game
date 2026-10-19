@@ -11,10 +11,10 @@ import { estNavire } from '../engine/coque';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
 import { requiredTerrains } from '../engine/ops';
-import { CustomStatblock, type Scene, type SceneEntity, heightAt, tileAt } from './scene';
-import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
-import type { Pt } from './path';
-import { terrainAbsent } from './terrain';
+import { CustomStatblock, type Scene, type SceneEntity, heightAt, tileAt } from '../noyau/monde/scene';
+import { footprintTiles, propFootTiles, sizeFootprint } from '../noyau/monde/footprint';
+import type { Pt } from '../noyau/monde/path';
+import { terrainAbsent } from '../noyau/monde/terrain';
 import { randomizeChars, type PorteurDeFiche } from '../engine/statblock';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../engine/items';
@@ -51,7 +51,7 @@ export function placeCombatant(c: { pos?: { x: number; y: number; z?: number; h?
 }
 
 /** Terrain de la case, tolérant une scène absente : PAS de scène = pas de tuile, donc le terrain que le
- *  dataset déclare comme l'ABSENCE (`terrainAbsent`, `state/terrain`) — aucun porteur ne l'élit, le
+ *  dataset déclare comme l'ABSENCE (`terrainAbsent`, `noyau/monde/terrain`) — aucun porteur ne l'élit, le
  *  drapeau `offTerrain` tombe donc à VRAI, comme avec le repli d'id récité qui vivait ici (#1789). */
 function tileAt2(scene: Scene | null, x: number, y: number, z: number): string {
   return scene ? tileAt(scene, x, y, z) : terrainAbsent();

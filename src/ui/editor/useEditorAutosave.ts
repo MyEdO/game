@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { autosaveLoad, autosaveSave, autosaveDelete, type RepriseLocale } from '../../state/editorAutosave';
 
 /** Délai de débattue avant écriture (pas à chaque frappe/pas de pinceau — cf. `editorAutosave.ts`). */

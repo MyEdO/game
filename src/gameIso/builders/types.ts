@@ -11,11 +11,11 @@
  * l'EXTÉRIEUR de la carte si elle est verticale.
  */
 
-import type { CellSide, FacadeFeature, SceneEntity, WallSide } from '../../state/scene';
+import type { CellSide, FacadeFeature, SceneEntity, WallSide } from '../../noyau/monde/scene';
 export type { CellSide };
 import type { Combatant } from '../../engine/types';
-import type { Dir4, Dir8 } from '../../state/dir8';
-import type { SeatPose } from '../../state/seating';
+import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
+import type { SeatPose } from '../../noyau/monde/seating';
 
 /** Point MONDE : (x,y) en unités de GRILLE continues (coins de case à ±0.5), `h` en MÈTRES.
  *  Jamais de rotation ni d'écran ici — backend affine : `tileCenter(x, y, dims, metricToLift(h))` ;
@@ -179,7 +179,7 @@ interface BillboardPropBase extends ElBase {
  *  porte un `entId` — lui seul est désignable au pointeur — et avec lui son EMPREINTE effective au cap
  *  de l'instance (`builders/props.ts`, `empreinteDuProp`). `entId` est la seule clé dont un élément de
  *  décor a besoin : l'OFFRE d'interaction ne se recopie pas ici, elle se DÉRIVE de l'entité au moment
- *  du rendu (`estUtilisable`, `state/usable.ts`), seul endroit qui voie à la fois la scène et les
+ *  du rendu (`estUtilisable`, `noyau/monde/usable.ts`), seul endroit qui voie à la fois la scène et les
  *  drapeaux d'épuisement. */
 export type OrigineDecor =
   | { source: 'entity'; entId: string; span: { w: number; h: number } }
@@ -222,7 +222,7 @@ export function nappePorteuse(el: SceneEl): { sectionId: string; cells: readonly
  *  porte que la position LOGIQUE (`cell`) et les décisions de scène (filtres, ordre d'anneau héros). */
 export type TokenSubjectEl =
   /** PNJ/créature d'AMBIANCE — `inBattle` : rendu estompé + non interactif. `seat` : la place assise
-   *  que ce corps tient (`state/seating`), ancre métrique et cap COMPRIS — aucun `mountId`, aucun
+   *  que ce corps tient (`noyau/monde/seating`), ancre métrique et cap COMPRIS — aucun `mountId`, aucun
    *  porteur : un attablé n'est pas un cavalier. Absent = debout sur sa case. */
   | { kind: 'figurant'; ent: SceneEntity; enrolled: boolean; inBattle: boolean; seat?: SeatPose }
   /** Combattant (branche combat). `heroIndex` = ordinal d'anneau héros ; `overhang` = jeton de

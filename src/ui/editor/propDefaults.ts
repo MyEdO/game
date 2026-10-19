@@ -1,7 +1,7 @@
 import { PROPS } from '../../gameIso/catalog/decor';
-import type { SceneEntity } from '../../state/scene';
-import { EMPTY_FLOW } from '../../state/flow';
-import { ACTION_FOUILLER } from '../../state/usable';
+import type { SceneEntity } from '../../noyau/monde/scene';
+import { EMPTY_FLOW } from '../../noyau/monde/flow';
+import { ACTION_FOUILLER } from '../../noyau/monde/usable';
 import { refEstVolumique } from '../../data';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../../data/props.types';
 

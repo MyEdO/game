@@ -90,6 +90,14 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['ui', 'racine', false, 'type'], // la présentation n'importe pas l'entrée
       ['engine', 'constructor', false, 'type'], // clé du prototype
       ['constructor', 'ui', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
+      ['noyau', 'state', false, 'execution'], // transitoire de type (#2889), arc de valeur
+      ['noyau', 'state', true, null],
+      ['noyau', 'web', false, 'type'], // fermé
+      ['engine', 'noyau', false, 'type'],
+      ['scenes', 'noyau', false, null], // importe
+      ['data', 'noyau', true, null], // transitoire de type (#2884)
+      ['data', 'noyau', false, 'execution'],
+      ['web', 'state', false, 'type'], // fermé
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
@@ -168,7 +176,7 @@ function tableLint(formes: {nom: string; code: string; tsx?: boolean}[], chemin:
 }
 
 /** Les couches dont les TESTS sont sous le mur de l'ordre total. */
-const SOUS_LE_MUR = ['src/engine', 'src/state', 'src/ui', 'src/gameIso', 'src/audio', 'src/scenes', 'src/data', 'src'] as const;
+const SOUS_LE_MUR = ['src/engine', 'src/state', 'src/noyau', 'src/web', 'src/ui', 'src/gameIso', 'src/audio', 'src/scenes', 'src/data', 'src'] as const;
 
 /** Le premier fichier de PRODUCTION réel de `src/ui` (corpus, jamais un nom en dur) : le mur ne vise
  *  que les `*.test.*`, et c'est ce fichier-là qui le dit — un `files:` élargi à toute la couche se

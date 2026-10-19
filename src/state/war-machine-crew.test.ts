@@ -3,7 +3,7 @@ import { applyShipPostes } from './shipPostes';
 import { firedWeapon, firedAttackBlock } from './combatFlow';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 
 /**

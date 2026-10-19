@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene, type WallClimb } from './scene';
+import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
 import { createHero } from '../engine/character';

@@ -9,7 +9,7 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { heroFaceAUnEnnemi } from '../state/combatDeTest.testkit';
 import { openAttackCascade } from '../state/combatFlow';
 import { WardModal } from './WardModal';
@@ -28,7 +28,7 @@ import { effectiveChar } from '../engine/characteristics';
 import { cibleDuTest, clampTarget } from '../engine/tests';
 import { refLabel } from '../data';
 import { combattantDeModale } from './combattantDeModale.testkit';
-import { fleeTouche } from '../state/pendings';
+import { fleeTouche } from '../noyau/pendings';
 import type { Combatant, Difficulty } from '../engine/types';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });

@@ -8,7 +8,7 @@ import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
 import { OptionChooser } from '../OptionChooser';
 import { testValueSplit, testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
-import { ev } from '../../state/combatLog';
+import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../state/flowOutcomes';
 import { combatHealModes } from '../../engine/healing';
 import { Icon } from '../Icon';

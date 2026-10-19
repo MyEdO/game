@@ -13,8 +13,8 @@ import { Stack } from '../Layout';
  * `do` réutilise `EffectFields` (sans `test` : le jet est un nœud Flow) ; le `si` réutilise `ConditionEditor`
  * (algèbre flag/horaire/ET/OU/NON, partagé avec le `when` des triggers/dialogues).
  */
-import { Flow, FlowTest, EMPTY_FLOW } from '../../state/flow';
-import type { Effect } from '../../state/scene';
+import { Flow, FlowTest, EMPTY_FLOW } from '../../noyau/monde/flow';
+import type { Effect } from '../../noyau/monde/scene';
 import type { FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';

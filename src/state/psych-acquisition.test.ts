@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { applyEffects } from './combatFlow';
 import { carryOverState } from '../engine/persistence';
 

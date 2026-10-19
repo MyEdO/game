@@ -6,8 +6,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import type { Flow } from './flow';
-import type { Dialogue } from './scene';
+import type { Flow } from '../noyau/monde/flow';
+import type { Dialogue } from '../noyau/monde/scene';
 
 const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });

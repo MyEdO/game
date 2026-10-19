@@ -11,7 +11,7 @@ import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './spawn';
 import { mountUp } from './mount';
 import { attackPlan, previewAttack, resolveAttack } from './combatFlow';
-import { combatDistance } from './footprint';
+import { combatDistance } from '../noyau/monde/footprint';
 import { testScene } from '../scenes/test-fixture';
 
 function setup() {

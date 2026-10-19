@@ -16,7 +16,7 @@ import { useOwnsGroupDecision } from './ownership';
 import { groupDecisionSeat } from '../state/netOwnership';
 import { useModalA11y } from './Modal';
 import { GatedAction, raisonSi } from './GatedAction';
-import { speakerEntity } from '../state/scene';
+import { speakerEntity } from '../noyau/monde/scene';
 import { nomDEntite } from '../state/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 

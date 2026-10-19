@@ -11,7 +11,7 @@
 // Toute autre zone lui est fermée, même pour un type.
 
 const FEUILLES = Object.freeze(['lib', 'geometry', 'i18n']);
-const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'scenes', 'data', 'engine', 'net', 'audio', ...FEUILLES]);
+const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'noyau', 'web', 'scenes', 'data', 'engine', 'net', 'audio', ...FEUILLES]);
 
 export const COUCHES = Object.freeze({
   lib: { importe: [] },
@@ -22,17 +22,20 @@ export const COUCHES = Object.freeze({
     importe: ['engine', ...FEUILLES],
     transitoire: {
       state: { issue: '#2884', types: true },
+      noyau: { issue: '#2884', types: true },
       gameIso: { issue: '#2884', types: true },
       scenes: { issue: '#2884' },
     },
   },
+  noyau: { importe: ['engine', 'data', ...FEUILLES], transitoire: { state: { issue: '#2889', types: true } } },
   scenes: {
-    importe: ['data', 'engine', ...FEUILLES],
+    importe: ['noyau', 'data', 'engine', ...FEUILLES],
     transitoire: { state: { issue: '#2884' }, ui: { issue: '#2884', types: true } },
   },
   net: { importe: [...FEUILLES] },
-  audio: { importe: [...FEUILLES], transitoire: { state: { issue: '#2884' } } },
-  state: { importe: ['engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
+  web: { importe: [...FEUILLES] },
+  audio: { importe: ['web', ...FEUILLES], transitoire: { state: { issue: '#2884' }, noyau: { issue: '#2884' } } },
+  state: { importe: ['noyau', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
   ui: { importe: ['gameIso', ...AMONT_DE_LA_PRESENTATION] },
   gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
   racine: { importe: '*' },

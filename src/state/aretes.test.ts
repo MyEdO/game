@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edgeOf, emptyScene, type Scene, type WallSeg } from './scene';
+import { edgeOf, emptyScene, type Scene, type WallSeg } from '../noyau/monde/scene';
 import type { RoomPortal } from './roomPortals';
 import { cloisons, piece } from './pieces.fixture';
 import type { BattleState } from './store';

@@ -17,7 +17,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * compte déclaré échoue (zéro entrée fantôme), toute ligne non exemptée échoue aussi.
  */
 
-const DIRS = ['src/ui', 'src/state'];
+const DIRS = ['src/ui', 'src/state', 'src/noyau'];
 
 const CHAR_ACCESS_RX = /\.characteristics\b/;
 

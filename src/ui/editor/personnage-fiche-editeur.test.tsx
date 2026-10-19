@@ -11,7 +11,7 @@ import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Palette } from './Palette';
 import { Inspector } from './Inspector';
 import { toolLabel } from './StatusBar';
-import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { creatureLabel, profilsStandard } from '../../data';
 import type { Tool } from './editorState';
 import { emptyNarratif } from '../../state/campaignNarratif';

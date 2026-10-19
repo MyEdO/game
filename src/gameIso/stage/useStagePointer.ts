@@ -21,13 +21,13 @@
  */
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
-import { toggleDoorIn } from '../../state/scene';
-import { entityBlockedAt } from '../../state/sceneRules';
+import { toggleDoorIn } from '../../noyau/monde/scene';
+import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { ficheDEntite, sceneNpc } from '../../state/sceneNpc';
-import { chebyshev, walkNeighbors, type Pt } from '../../state/path';
+import { chebyshev, walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../state/exploreNav';
-import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../state/seating';
-import { meneurDuMonde } from '../../state/combatants';
+import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
+import { meneurDuMonde } from '../../noyau/monde/combatants';
 // `t` est déjà le nom local de la TUILE survolée dans ce module : la traduction s'y importe sous son
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
@@ -36,7 +36,7 @@ import { refuserGeste } from '../../state/refusVisible';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../state/bus';
-import { combatantAtTile } from '../../state/combatGeometry';
+import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../state/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';
 import { accordsPan, getStagePan, poserPan } from '../../state/stagePan';
@@ -50,7 +50,7 @@ import { poseFromDims } from './projection';
 import { targetUnderPointer } from './spritePicker';
 import { pointStageSousPixel, pointViewBoxSousPixel, resoudrePixel, tireLeRayon, type Verdict } from './pickResolve';
 import { armeParSurvol, entiteDuGeste, jouerArete, type VerbesArete } from './geste';
-import { actionsDe, estUtilisable } from '../../state/usable';
+import { actionsDe, estUtilisable } from '../../noyau/monde/usable';
 import { porteDOffre } from '../../state/offresUtilisables';
 import type { RoomPortal } from '../../state/roomPortals';
 import type { AreteUtilisable } from '../../state/aretes';

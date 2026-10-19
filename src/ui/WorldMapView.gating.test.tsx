@@ -19,7 +19,7 @@ import { useGame } from '../state/store';
 import { parseProject, type WorldMap } from '../state/worldMap';
 import { VB_W, VB_H } from './worldMapViewport';
 import { buildApi } from '../state/devtools';
-import { emptyScene, type Scene } from '../state/scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import loupEtSaumureProjet from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 
 beforeAll(() => {

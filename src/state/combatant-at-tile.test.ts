@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { combatantAtTile } from './combatGeometry';
+import { combatantAtTile } from '../noyau/monde/combatGeometry';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 
 /**
  * `combatantAtTile` — source UNIQUE z-aware de « qui est sous cette tuile » pour l'interaction

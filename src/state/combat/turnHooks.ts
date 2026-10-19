@@ -15,20 +15,20 @@
  * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
  */
 import { registerCombatHook } from '../combatHooks';
-import { registerCascadeApplier } from '../cascade';
-import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
-import { battleRng } from '../battleRng';
-import { ev, evLines } from '../combatLog';
+import { registerCascadeApplier } from '../../noyau/cascade';
+import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../../noyau/rollSeam';
+import { battleRng } from '../../noyau/battleRng';
+import { ev, evLines } from '../../noyau/combatLog';
 import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/conditions';
 import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId } from '../combatants';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { garanti } from '../../lib/garanti';
-import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
+import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from '../../noyau/combat/advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
-import { losClear } from '../lineOfSight';
-import { smokeOf } from '../combatGeometry';
+import { losClear } from '../../noyau/monde/lineOfSight';
+import { smokeOf } from '../../noyau/monde/combatGeometry';
 import { groupMatch } from '../../engine/groups';
 import {
   fearSourceFor, sansPeurVs, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
@@ -36,7 +36,7 @@ import {
 } from '../../engine/psychology';
 import { psychologyLabel, combatStakeRef } from '../../data';
 import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
-import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
+import { fireTriggers, hasFoeInLoS } from '../../noyau/triggeredEffects';
 import { aiDriven } from '../netOwnership';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';

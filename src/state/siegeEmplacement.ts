@@ -9,8 +9,8 @@
  *
  * Exactement le modèle d'une créature posée PAR RÉFÉRENCE : on ne stocke pas l'espèce, on la dérive.
  */
-import type { SceneEntity } from './scene';
-import type { Dir8 } from './dir8';
+import type { SceneEntity } from '../noyau/monde/scene';
+import type { Dir8 } from '../noyau/monde/dir8';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import { findTrappingById } from '../data';
 

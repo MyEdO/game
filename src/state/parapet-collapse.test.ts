@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { collapseStructure } from './combatFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
-import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from './scene';
+import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from '../noyau/monde/scene';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascadeTestKit';
 

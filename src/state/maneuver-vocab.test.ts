@@ -7,8 +7,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolveFormula, applyOps } from '../engine/ops';
-import { evalCondition, type Flow } from './flow';
-import { runPureFlowLines } from './combat/flowEval';
+import { evalCondition, type Flow } from '../noyau/monde/flow';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 

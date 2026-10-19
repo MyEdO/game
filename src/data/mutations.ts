@@ -47,7 +47,7 @@ export const idsMentales = memoParVersion('mutations', (): readonly string[] =>
 
 /** Une LIGNE d'étape d'une table de Corruption : la fourchette d100 de `mutationTables.json` projetée
  *  sur l'**id** STABLE de la mutation référencée, plus son `label` (AFFICHAGE seul — picker de lignes).
- *  Forme compatible `TableStepRow` (`state/cascade.ts`) : la DONNÉE reste la seule source des plages. */
+ *  Forme compatible `TableStepRow` (`noyau/cascade.ts`) : la DONNÉE reste la seule source des plages. */
 export interface MutationTableRow {
   min: number;
   max: number;

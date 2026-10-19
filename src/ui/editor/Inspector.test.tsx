@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
-import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { lightTones } from '../../data';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
@@ -14,7 +14,7 @@ import { MISSING_TONE } from '../../gameIso/rig/viewArt';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { diligenceCampaign } from '../../scenes/campaign';
 import { parseProject } from '../../state/worldMap';
-import { flowEffects, racinesDeFlow, type Flow } from '../../state/flow';
+import { flowEffects, racinesDeFlow, type Flow } from '../../noyau/monde/flow';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 
 beforeAll(() => {

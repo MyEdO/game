@@ -28,9 +28,9 @@
  * `domain:'structure'`). C'est pourquoi ce module tient aussi l'indexation des murs et des façades
  * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
-import { memoByRef } from '../../state/sceneMemo';
-import { aretesA } from '../../state/wallIndex';
+import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import { memoByRef } from '../../noyau/monde/sceneMemo';
+import { aretesA } from '../../noyau/monde/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta } from '../../state/buildings';
@@ -827,7 +827,7 @@ export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): St
 }
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
- *  PARTAGÉ (`state/wallIndex.ts`, même clé `x,y,side,z` qu'`edgeKey`) : `aretesA` rend la liste des
+ *  PARTAGÉ (`noyau/monde/wallIndex.ts`, même clé `x,y,side,z` qu'`edgeKey`) : `aretesA` rend la liste des
  *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
  *  (37 scénarios + 4 campagnes, 3 143 murs) : ZÉRO arête porte plus d'un segment — premier et dernier
  *  sont le même mur, le verdict est celui d'ici. */
@@ -1005,7 +1005,7 @@ const shelterOfScene = memoByRef((scene: Scene): ReadonlyMap<string, ShelterColu
  *  vue NI du dégagement : une nappe levée par le cutaway reste un toit, et il n'y pleut pas dessous.
  *  La mémoïsation est PAR RÉFÉRENCE de scène : tout plan modifié — l'éditeur qui retire une masse
  *  (`ui/editor/editorState.ts`) — recalcule son couvert. Aucun mécanisme de PARTIE n'abat de masse :
- *  `structureDown` (`state/scene.ts`) porte sur les arêtes de mur. */
+ *  `structureDown` (`noyau/monde/scene.ts`) porte sur les arêtes de mur. */
 export function shelterField(scene: Scene): ReadonlyMap<string, ShelterColumn> {
   return shelterOfScene(scene);
 }

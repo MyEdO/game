@@ -112,7 +112,7 @@ test('MORSURE — un fichier fautif est refusé, un fichier IGNORÉ par la confi
 
 test('configuration fournie : une écriture .lint- dans la fixture temporaire, supprimée après le lint', () => {
   const dossier = dossierDeFixtures()
-  const rel = 'src/state/rollSeam.ts'
+  const rel = 'src/noyau/rollSeam.ts'
   mkdirSync(dirname(join(dossier, rel)), { recursive: true })
   copyFileSync(join(RACINE, rel), join(dossier, rel))
   const collecteur = installer({ racine: dossier, ignores: new Set() })
@@ -218,7 +218,7 @@ function lintForge(params, chemins) {
 test('LIGNE DE PROD : un fichier réel de l’index est jugé sous la config du dépôt, au site de son chemin', () => {
   // `pre-commit.mjs` : `lintDeLIndex(ROOT, depot, staged)`. Le seul défaut rendu est celui ajouté au
   // texte stagé : le fichier n'est pas ignoré par la config, et son texte réel la passe.
-  const rel = 'src/state/rollSeam.ts'
+  const rel = 'src/noyau/rollSeam.ts'
   const texte = readFileSync(join(RACINE, rel), 'utf8')
   const ligne = texte.split('\n').length
   const vu = lintForge({ index: { [rel]: `${texte}${CASSE}` } }, [rel])

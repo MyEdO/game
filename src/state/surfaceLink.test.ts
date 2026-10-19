@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, surfaceLink, heightAt, type Scene, type Terrain } from './scene';
-import { gradeBetween, isWalkableGrade, verticalTiles, metricToLift, STEP_MAX_M, METRES_PER_LEVEL } from './relief';
+import { emptyScene, surfaceLink, heightAt, type Scene, type Terrain } from '../noyau/monde/scene';
+import { gradeBetween, isWalkableGrade, verticalTiles, metricToLift, STEP_MAX_M, METRES_PER_LEVEL } from '../noyau/monde/relief';
 
 /**
  * RELIEF — auto-connexion des surfaces par la HAUTEUR MÉTRIQUE (modèle unifié : plus d'escaliers ni

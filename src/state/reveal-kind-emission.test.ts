@@ -27,7 +27,7 @@ function producers(): { kind: string; site: string }[] {
   return out;
 }
 
-const UNION = () => unionKinds(readFileSync(join(ROOT, 'src/state/pendings.ts'), 'utf8'));
+const UNION = () => unionKinds(readFileSync(join(ROOT, 'src/noyau/pendings.ts'), 'utf8'));
 
 describe('garde-fou RevealEntry — un kind déclaré = un kind émis (#942 L0)', () => {
   it('chaque membre de l’union a au moins un site producteur', () => {

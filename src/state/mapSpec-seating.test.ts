@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
 import { sceneToAscii } from './sceneToAscii';
-import { labelEmplacement, type SeatAssignments } from './seating';
-import { PARTY_MAX } from './combatants';
+import { labelEmplacement, type SeatAssignments } from '../noyau/monde/seating';
+import { PARTY_MAX } from '../noyau/monde/combatants';
 import { validateScene } from './validateScene';
 
 /**

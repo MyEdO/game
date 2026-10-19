@@ -5,8 +5,8 @@ import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { spawnEnemy } from './spawn';
 import { findTrappingById } from '../data';
 import { qualityIndice } from '../engine/qualities/dispatch';
-import { seedBattleRng } from './battleRng';
-import { emptyScene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 

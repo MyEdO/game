@@ -6,10 +6,10 @@
  * z-DESCENDANTE (on voit en contrebas depuis une hauteur, jamais à travers un plancher vers le haut).
  */
 import { describe, it, expect } from 'vitest';
-import { lineOfSightCover } from './lineOfSight';
+import { lineOfSightCover } from '../noyau/monde/lineOfSight';
 import { computeVisible, type LightField } from './vision';
 import { computeStateVisible } from './visionState';
-import { Scene, SceneEntity, WallSeg, type Terrain } from './scene';
+import { Scene, SceneEntity, WallSeg, type Terrain } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 
 function scene(w: number, h: number, tiles?: Record<string, string>, walls?: WallSeg[], entities: SceneEntity[] = []): Scene {

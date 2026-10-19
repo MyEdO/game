@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { notifySlain } from './combatFlow';
 import { fireScheduledEffects } from './combatEffects';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { spawnEnemy } from './spawn';
 import { mergeCreatureProfile } from './campaignData';
 import { findCreatureById } from '../data';

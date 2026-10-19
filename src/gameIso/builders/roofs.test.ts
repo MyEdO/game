@@ -7,7 +7,7 @@ import type { Face, GP, RoofLine } from './types';
 import { WALL_H_M } from '../iso';
 import { roofMaterial } from '../catalog/roofs';
 import { MISSING_ID, MISSING_TONE } from '../catalog/missing';
-import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../state/sceneEdit';
 import { encloseRect, perimeterWallSegs } from '../../state/sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';

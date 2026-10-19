@@ -19,7 +19,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import type { Dims } from '../../geometry/iso';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './GameStage3D';
 import { BancRenderer, brancherArdoise, brancherImagesPilotees } from './banc-volumique';
 

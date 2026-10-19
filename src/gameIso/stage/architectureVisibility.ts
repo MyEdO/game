@@ -1,5 +1,5 @@
 import { depth, type Dims, type ProjectedOccluder } from '../../geometry/iso';
-import type { WallSide } from '../../state/scene';
+import type { WallSide } from '../../noyau/monde/scene';
 
 export type Cutaway = 'hidden' | 'visible';
 

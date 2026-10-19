@@ -82,7 +82,7 @@ const VERROU_LISTAGE = [
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
-const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/lib/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{
@@ -156,12 +156,12 @@ const GLOBS_GENERATEURS = [
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
-const SOURCE_DES_MINUTERIES = 'src/lib/minuteries.ts';
+const SOURCE_DES_MINUTERIES = 'src/web/minuteries.ts';
 const MINUTERIES = ['setTimeout', 'setInterval'];
 const HOTES = ['window', 'globalThis', 'self', 'global'];
 const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
-const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state et src/lib, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
+const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state, src/noyau, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
 
 const TYPES_CLAVIER = '/^key(down|up|press)$/';
 const GESTIONNAIRES_CLAVIER = '/^onkey(down|up|press)$/';
@@ -561,12 +561,13 @@ export const BLOCS_LINT = [
   },
   {
 
-    files: ['src/state/**/*.ts', 'src/state/**/*.tsx'],
+    files: ['src/state/**/*.ts', 'src/state/**/*.tsx', 'src/noyau/**/*.ts', 'src/noyau/**/*.tsx'],
     excludeFiles: [
       'src/state/flowOutcomes.ts',
       'src/state/rollFlowSpecs.ts',
       'src/state/encounterPsychFlow.ts',
       'src/state/**/*.test.ts', 'src/state/**/*.test.tsx',
+      'src/noyau/**/*.test.ts', 'src/noyau/**/*.test.tsx',
     ],
     rules: {
       'murs/canal-issue': ['error', {
@@ -610,7 +611,7 @@ export const BLOCS_LINT = [
   },
   {
     // #415, #2724
-    files: ['src/state/**', 'src/lib/**'],
+    files: ['src/state/**', 'src/noyau/**', 'src/lib/**', 'src/web/**'],
     excludeFiles: [SOURCE_DES_MINUTERIES, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
       'murs/minuteries': ['error', ...MINUTERIES.map((name) => ({ name, message: MSG_MINUTERIE }))],

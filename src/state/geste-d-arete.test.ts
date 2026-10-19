@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type WallClimb } from './scene';
+import { emptyScene, type Scene, type Terrain, type WallClimb } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from './spawn';
@@ -12,9 +12,9 @@ import { GUEST_INTENTS } from './intents';
 import { planFranchissement, phaseDeChute } from './fallMove';
 import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from './gesteDArete';
 import { climbMovementCost } from '../engine/movement';
-import { sceneMetresPerTile } from './scene';
+import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { t, type MsgKey } from '../i18n';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 
 /**
  * PORTEUR d'un geste d'arête (#700, #2190) : UNE réponse pour `climbAcross`, `fallAcross`,

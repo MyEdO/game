@@ -8,7 +8,7 @@
  */
 import type { Combatant } from '../engine/types';
 import { evalCondition } from '../engine/flowCore';
-import type { RecapLine } from './recapLine';
+import type { RecapLine } from '../noyau/recapLine';
 import type { ClotureBlock } from './campaignNarratif';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Objective } from './store';

@@ -5,12 +5,12 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { applyEffects, nePeutPasDifferer } from './combatEffects';
 import { finalizeBattle } from './combatFlow';
-import { ecrireActeur, inBattleId } from './combatants';
-import { seedBattleRng } from './battleRng';
+import { ecrireActeur, inBattleId } from '../noyau/monde/combatants';
+import { seedBattleRng } from '../noyau/battleRng';
 import { bourseOf } from './bourseFlow';
 import { ACTION_CANDIDATES } from './actionRegistry';
 import { resetRule, setRule } from '../engine/policy';
-import type { Effect } from './scene';
+import type { Effect } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 
 // #2312 : un effet de jeu joué en combat écrit le combattant ET le héros du groupe (`ecrireActeur`).

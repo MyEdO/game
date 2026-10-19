@@ -81,7 +81,7 @@ test('IGNORES — la gate lint lit tout fichier de script suivi qu’arme un mur
   const suivis = listerImage(depotDe(RACINE_DEPOT), SUIVI)
   const armes = suivis.filter(armeParUnMur)
   const scripts = armes.filter(estScript)
-  for (const temoin of ['scripts/docs/build-all.mjs', 'src/state/rollSeam.ts', 'server/src/rand.ts']) {
+  for (const temoin of ['scripts/docs/build-all.mjs', 'src/noyau/rollSeam.ts', 'server/src/rand.ts']) {
     assert.ok(scripts.includes(temoin), `les fichiers suivis armés ne comptent plus \`${temoin}\``)
   }
   const lus = fichiersLus(RACINE_DEPOT, entreeDeLaGate(armes, suivis))

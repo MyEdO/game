@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput } from './ai';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 
 // IA — versant Empoignade (LDB 14 l.161) : « Si vous commencez votre tour Empoigné, vous pouvez BRISER

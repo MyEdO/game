@@ -4,12 +4,12 @@ import { firedWeapon, resolveAttack, buildAiInput, availableAttacks } from './co
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { crewedPenalty } from '../engine/crewedWeapon';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { FireArc } from './fireArc';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 

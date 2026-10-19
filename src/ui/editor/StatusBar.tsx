@@ -4,7 +4,7 @@
  */
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { garanti } from '../../lib/garanti';
-import { terrainLabel } from '../../state/terrain';
+import { terrainLabel } from '../../noyau/monde/terrain';
 import { Icon } from '../Icon';
 import type { Layers, Pt, Tool } from './editorState';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';

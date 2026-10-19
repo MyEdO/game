@@ -9,9 +9,9 @@ import { applyOps, type GameOp, type OpsCtx } from '../engine/ops';
 import type { EchecSansJet } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import type { Get } from './flowTypes';
-import { freeCons, type Consequence } from './rollSeam';
+import { freeCons, type Consequence } from '../noyau/rollSeam';
 
 /** Applique à `hero` l'issue de l'Activité `def` dont la spec et le jet (déjà résolu, sans jet, ou `null`
  *  pour une Activité sans Test) sont donnés. Rend l'issue PURE (`TravelActivityResult`, que l'agrégation

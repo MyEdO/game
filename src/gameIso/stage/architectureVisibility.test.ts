@@ -4,12 +4,12 @@ import { occludesActor, type Dims } from '../../geometry/iso';
 import { elOccluder } from './occluders';
 import { buildRoofs, clearedSpace, massFootprintCells, massRoomZoneIds } from '../builders/roofs';
 import { effectiveArchitecture } from '../../state/sceneEdit';
-import { emptyScene, heightAt, type BuildingMass, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, heightAt, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { actorCapsuleOf } from './actorCapsule';
 import { buildWalls } from '../builders/walls';
 import { buildFloors } from '../builders/floors';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
-import { sceneZoneTiles } from '../../state/zones';
+import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { isRoomZone } from '../../state/rooms';
 import { computeStateVisible } from '../../state/visionState';
 

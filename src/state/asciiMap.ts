@@ -1,6 +1,6 @@
-import type { Terrain, WallOverlay, WallSeg } from './scene';
-import { wallOverlayOf } from './scene';
-import { terrainWalkable, terrainsAvecGlyphe } from './terrain';
+import type { Terrain, WallOverlay, WallSeg } from '../noyau/monde/scene';
+import { wallOverlayOf } from '../noyau/monde/scene';
+import { terrainWalkable, terrainsAvecGlyphe } from '../noyau/monde/terrain';
 import { FOND_ECRIT, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
 
 /**

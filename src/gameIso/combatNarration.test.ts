@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { narrateEvent, combatFeed, narrateIntent } from './combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 
 const ally = { id: 'h1', label: 'Bidule', kind: 'hero' };
 const ally2 = { id: 'h2', label: 'Grunni', kind: 'hero' };

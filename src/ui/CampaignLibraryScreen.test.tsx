@@ -19,8 +19,8 @@ import {
   messageDeRefusJoueur,
   type SavedProject,
 } from '../state/projectLibrary';
-import { __setFabriqueIdbForTest } from '../lib/indexedDb';
-import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../web/indexedDb';
+import { brancherBasesSimulees, type PanneSimulee } from '../web/indexedDb.testkit';
 import { useGame } from '../state/store';
 import { datasetArray, setDataset } from '../data/overrides';
 

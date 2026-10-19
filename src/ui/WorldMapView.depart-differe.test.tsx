@@ -13,7 +13,7 @@ import { t } from '../i18n';
 import type { WorldMap } from '../state/worldMap';
 import { dayIndex } from '../engine/clock';
 import { createHero } from '../engine/character';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 
 /** La scène de l'auberge, d'où part la route. */
 const auberge = () => ({ ...emptyScene(5, 5), id: 's-auberge', label: 'La Diligence' });

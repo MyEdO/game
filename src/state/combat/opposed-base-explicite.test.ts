@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { fireTriggers } from '../triggeredEffects';
+import { fireTriggers } from '../../noyau/triggeredEffects';
 import '../combatFlow'; // effet de bord : routeur de Test + applier triggeredTest + hook onHit
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
 import { hasCondition } from '../../engine/conditions';
@@ -13,8 +13,8 @@ import { jete } from '../../engine/tests.testkit';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { frozenOpposedBatchStep, rollFrozenOpposedAttacker, simpleTriggeredTestStep, simpleBatchTestStep, withDerivedStake } from './triggeredTest';
 import { resolveRecoverTest } from './recover';
-import { rollBatchParticipant } from '../cascade';
-import { EMPTY_FLOW, type FlowTest } from '../flow';
+import { rollBatchParticipant } from '../../noyau/cascade';
+import { EMPTY_FLOW, type FlowTest } from '../../noyau/monde/flow';
 import type { Combatant, Weapon } from '../../engine/types';
 
 /**

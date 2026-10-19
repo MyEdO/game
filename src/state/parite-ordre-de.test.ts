@@ -16,9 +16,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyAttackResult } from './combatFlow';
-import { tenuParUnHumain } from './sieges';
+import { tenuParUnHumain } from '../noyau/sieges';
 import { draineCascade } from './cascadeTestKit';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { resetDesFixes } from '../engine/fixedDie';

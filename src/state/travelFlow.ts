@@ -20,7 +20,7 @@
  * Une péripétie qui déclenche un combat/une transition INTERROMPT le voyage : `travelPlan` mémorise
  * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`resumeTravel`).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { garanti } from '../lib/garanti';
 import { bus, EVT } from './bus';
 import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
@@ -66,21 +66,21 @@ import { dayIndex } from './upkeep';
 import { seasonOfMonth, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
-import { startCascade, registerCascadeApplier, registerTableStep, registerTableStepFamily, type TableStepDef, type TableStepRow } from './cascade';
-import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
+import { startCascade, registerCascadeApplier, registerTableStep, registerTableStepFamily, type TableStepDef, type TableStepRow } from '../noyau/cascade';
+import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from '../noyau/rollSeam';
 import { t } from '../i18n';
-import type { CascadeStep, PendingCascade } from './pendings';
-import type { RecapLine } from './recapLine';
-import { toRecapLines, phaseOfKind } from './recapLine';
+import type { CascadeStep, PendingCascade } from '../noyau/pendings';
+import type { RecapLine } from '../noyau/recapLine';
+import { toRecapLines, phaseOfKind } from '../noyau/recapLine';
 import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel } from './seaVoyageFlow';
 import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
-import type { BuiltCascadeStep } from './stepBrand';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import type { Combatant } from '../engine/types';
 
 import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
 import { dataLabel, refLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
 export interface TravelRecapDay {
@@ -89,7 +89,7 @@ export interface TravelRecapDay {
   hours: number;
   /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349) : `{ text, icon?, tone?,
    *  phase? }`, rendue par le renderer partagé `ui/RecapLine.tsx` — `phase` (jour terrestre
-   *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`state/recapLine.ts`), même catalogue que
+   *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`noyau/recapLine.ts`), même catalogue que
    *  l'agenda du jour EN COURS (`ui/VoyageScreen.dayAgenda`) : le sectionnement des jours CLOS en
    *  tombe GRATUITEMENT (dette 3). */
   lines: RecapLine[];
@@ -99,7 +99,7 @@ export interface TravelRecapDay {
   /** Événements de bord RACONTÉS du jour (#371 LOT 4, mer seulement) — titre + texte verbatim +
    *  tirage d100 optionnel, rendus en `ParchmentCard` (`SeaVoyageBody`) : un événement PORTE UN
    *  RÉCIT, distinct des `lines` de routine. */
-  events?: import('./recapLine').RecapEvent[];
+  events?: import('../noyau/recapLine').RecapEvent[];
   /** MER (route COMMANDÉE) : instantané du jour pour l'écran de traversée (rose des vents + jauges +
    *  distance restante) — rendu par `SeaVoyageScreen` à la place du corps de recap terrestre. */
   sea?: import('./seaVoyageFlow').SeaRecapChrome;
@@ -116,7 +116,7 @@ export interface TravelRecapDay {
  *  d10) : le combat ne démarre qu'à l'ACQUITTEMENT du recap — d'abord comprendre ce qui arrive,
  *  ensuite se battre. Fermer la modale (bouton/Échap) DÉCLENCHE la suite : pas d'évitement. */
 export type TravelThen =
-  | { kind: 'effects'; effects: import('./scene').Effect[] }
+  | { kind: 'effects'; effects: import('../noyau/monde/scene').Effect[] }
   | { kind: 'ambush'; scene: string; entry?: string; encounter: string; noSurprise: boolean };
 
 /** Récapitulatif d'un segment de voyage — la résolution étant SYNCHRONE (l'horloge saute en
@@ -161,7 +161,7 @@ export interface TravelPlan {
   interrupted: boolean;
   /** ORDRES permanents de la traversée (couche `voyageCadence`) : cadence COMMANDÉE (routine auto-résolue,
    *  PV du jour) ou JOUR-PAR-JOUR (modale par jet). Consommé par la mer ET le fluvial. */
-  orders?: import('./voyageCadence').VoyageOrders;
+  orders?: import('../noyau/voyageCadence').VoyageOrders;
   /** Postes d'Activité de l'Étape : un héros → ≤1 Activité (EDOC 8). Initialisé depuis les rôles
    *  PERSISTANTS (`travelRole`) au départ, réutilisé chaque Étape (0 ré-assignation par jour). */
   postes?: Record<string, StagePosting>;
@@ -327,7 +327,7 @@ export function startTravel(
   get: Get, set: Set,
   routeId: string,
   mode: TravelMode,
-  opts: { classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence } = {},
+  opts: { classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean; cadence?: import('../noyau/voyageCadence').VoyageCadence } = {},
 ): void {
   const { worldMap, scene, battle, party } = get();
   if (battle || !worldMap || !scene) return;
@@ -785,7 +785,7 @@ function buildTravelDayCascade(
 
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `stagePosteBatch`/`weatherResistance`) ;
- *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `state/recapLine.ts`, le MÊME que
+ *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
  *  l'agenda du jour EN COURS `ui/VoyageScreen.dayAgenda`) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
 function stepRecapLines(step: CascadeStep): RecapLine[] {

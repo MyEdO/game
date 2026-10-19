@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { openCombatEndCascade } from './combatFlow';
-import { fireTriggers } from './triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { applyOps } from '../engine/ops';
 import { diseaseDefs } from '../engine/disease';
 import { easeDifficulty } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 /**

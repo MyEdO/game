@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isDescriptiveZone, Scene } from '../../state/scene';
-import { propFootTiles } from '../../state/footprint';
+import { emptyScene, isDescriptiveZone, Scene } from '../../noyau/monde/scene';
+import { propFootTiles } from '../../noyau/monde/footprint';
 import { entityAt } from '../../state/sceneEdit';
 import { validateScene } from '../../state/validateScene';
 import { buildProps } from '../../gameIso/builders/props';
@@ -49,9 +49,9 @@ import {
   clearEffectZoneCarve,
 } from './editorState';
 import type { Sel } from './editorState';
-import { EMPTY_FLOW, type Flow } from '../../state/flow';
-import type { Effect } from '../../state/scene';
-import { sceneZoneTiles } from '../../state/zones';
+import { EMPTY_FLOW, type Flow } from '../../noyau/monde/flow';
+import type { Effect } from '../../noyau/monde/scene';
+import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { nomDEntite } from '../../state/sceneNpc';
 
 function sceneWith(): Scene {
@@ -773,7 +773,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
 /**
  * SÉLECTION D'UN DÉCOR MULTI-CASE AU CANEVAS (#1509 L6′) — même règle qu'au picking du jeu
  * (`gameIso/stage/pickResolve.ts`) : un décor répond sur TOUTE son empreinte, lue à l'index unique
- * `state/decorIndex.ts`, et c'est SON entité (donc sa case d'ancrage) qui est désignée. Sans elle, la
+ * `noyau/monde/decorIndex.ts`, et c'est SON entité (donc sa case d'ancrage) qui est désignée. Sans elle, la
  * seconde case d'une table 2×1 restait un trou d'authoring : rien à sélectionner, rien à effacer, et
  * un clic d'outil y posait une entité DANS le meuble.
  */

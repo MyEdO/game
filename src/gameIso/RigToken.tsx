@@ -3,7 +3,7 @@ import { ambientClip } from './rig/anim/ambientClips';
 import { addPose } from './rig/poses';
 import { useRigAnim } from './useRigAnim';
 import type { EquipCtx } from './rig/parts/equipment';
-import type { Dir8 } from '../state/dir8';
+import type { Dir8 } from '../noyau/monde/dir8';
 import type { Appearance } from './rig/appearance';
 import type { RigOverlay } from './rig/bones';
 import { RIG_GROUND_PIVOT, rigGroundPose, rigGroundTiltDeg, type GroundState } from './groundPose';

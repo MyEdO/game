@@ -184,7 +184,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
 });
 
 /**
- * UNE arête, UN segment (#1624) — l'invariant que l'index d'arêtes (`state/wallIndex.ts`) SUPPOSE
+ * UNE arête, UN segment (#1624) — l'invariant que l'index d'arêtes (`noyau/monde/wallIndex.ts`) SUPPOSE
  * et que ses consommateurs consomment (`aretesA(...)[0]`, `gameIso/builders/roofs.ts`). Mesuré vrai
  * sur les 65 scènes livrées ; `setEdgeWall` (`state/sceneEdit.ts`) le tient à la POSE, ce banc le
  * tient à la PORTE — le chemin que prennent l'authoring littéral, les migrations et l'import.
@@ -220,7 +220,7 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
 /**
  * CARDINAL de la grille (#1789) — `tiles`, `height` et `crenellated` sont des tableaux PARALLÈLES
  * aplatis indexés `y·w+x` : l'un d'eux plus court que `w×h` rendrait des trous au MÊME index.
- * `tileAt` (`state/scene.ts`) ne porte plus AUCUN repli de tuile ; c'est cette porte qui le permet.
+ * `tileAt` (`noyau/monde/scene.ts`) ne porte plus AUCUN repli de tuile ; c'est cette porte qui le permet.
  */
 describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEMENT `w×h` entrées', () => {
   const pleine = (n: number, t = 'sol') => Array.from({ length: n }, () => t);

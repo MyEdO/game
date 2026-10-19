@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from './spawn';
@@ -9,7 +9,7 @@ import { phaseDeChute } from './fallMove';
 import { aretesUtilisables } from './aretes';
 import { GUEST_INTENTS } from './intents';
 import { buildEncounter } from './encounterAuthoring';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { finalizeBattle } from './combatFlow';
 import { t } from '../i18n';
 import { wallSegSchema } from '../data/schemas/defs-scenes/scene';

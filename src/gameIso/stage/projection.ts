@@ -50,7 +50,7 @@ export interface StagePose {
 }
 
 /** Point de GRILLE CONTINUE : `x`/`y` en tuiles, `lift` en NIVEAUX d'étage — la même unité que le `z`
- *  de `tileCenter`/`screenToTileAtZ`, celle que rend `metricToLift` (`state/relief.ts`). */
+ *  de `tileCenter`/`screenToTileAtZ`, celle que rend `metricToLift` (`noyau/monde/relief.ts`). */
 export interface StageWorld {
   x: number;
   y: number;

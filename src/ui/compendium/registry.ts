@@ -1905,7 +1905,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'semencesDeScene', label: 'Semences de scène', group: 'Tables',
     // UNE seule entrée (objet `semences-de-scene.json`) — ce qu'une scène NEUVE reçoit à sa création
-    // (`emptyScene`, `state/scene.ts`). Les valeurs s'ÉDITENT ici (atelier, `edit.object: 'single'`).
+    // (`emptyScene`, `noyau/monde/scene.ts`). Les valeurs s'ÉDITENT ici (atelier, `edit.object: 'single'`).
     build: () => [{
       id: 'semences-de-scene', label: 'Semences de scène',
       sections: sections({

@@ -9,12 +9,12 @@
  */
 import { useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
-import { Scene } from '../../state/scene';
-import type { Pt } from '../../state/path';
+import { Scene } from '../../noyau/monde/scene';
+import type { Pt } from '../../noyau/monde/path';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../state/exploreNav';
 import { isOutOfAction, canTakeAction, hasCondition } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
-import { combatantAtTile } from '../../state/combatGeometry';
+import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsCombatant } from '../../state/netOwnership';
 import { outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, previewResourceDelta, frenzyTarget, hasFreeWeaponAttack } from '../../state/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../state/targeting';

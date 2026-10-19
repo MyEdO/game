@@ -4,7 +4,7 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { schema as propsSchema } from './schemas/defs/props';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, polygonesDePrimitive, sommetLocal, validatePropCatalog, type PropData, type PropPrimitive } from './props.types';
-import { sceneMetresPerTile } from '../state/scene';
+import { sceneMetresPerTile } from '../noyau/monde/scene';
 
 /** Les polygones LOCAUX d'une primitive, réduits aux triplets que mesure `aretesNonAppariees` : la
  *  fermeture est TOPOLOGIQUE, elle ignore le repère — c'est l'appelant qui DIT lequel il mesure. */
@@ -192,7 +192,7 @@ describe('validatePropCatalog — invariants de données du décor', () => {
    * ABORD AMBIGU — la règle UNIQUE que le catalogue tient sur les abords, et elle porte sur ce que la
    * case désigne : un abord qui dessert DEUX SIÈGES DISTINCTS ne dit plus où l'on s'assoit. Deux places
    * qui s'effondrent dans la MÊME case de siège sont légitimes — c'est l'état de TOUT meuble à N places
-   * aux échelles grossières (10 m/case, la barge du sel et le Loup & Saumure) — et `state/seating.ts`
+   * aux échelles grossières (10 m/case, la barge du sel et le Loup & Saumure) — et `noyau/monde/seating.ts`
    * les sert l'une après l'autre (contrat `seating-abord-effondre.test.ts`). La règle précédente, qui
    * refusait tout abord RÉPÉTÉ, interdisait ces meubles-là dès qu'une scène les posait à 10 m/case.
    */

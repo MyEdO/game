@@ -6,7 +6,7 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows } from './buildParticipantRows';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
-import { resultLine, freeCons } from '../state/rollSeam';
+import { resultLine, freeCons } from '../noyau/rollSeam';
 
 /**
  * Modale « Enfoncer une porte à PLUSIEURS » (EDO Appendice 2) — flux MULTI PARALLÈLE, pendant exact

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import './roundHooks'; // effet de bord : enregistre le hook se-fatiguer
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { setRule, resetRule } from '../../engine/policy';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { hasCondition, COND, pendingPlusExtensions } from '../../engine/conditions';
 import type { ActiveEffect, Combatant } from '../../engine/types';
 

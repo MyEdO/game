@@ -39,18 +39,18 @@ import { testValue } from '../engine/skills';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { touchActors } from './combatOrParty';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { bourseOf, creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
   tableStep, displayStep,
   type BuiltCascadeStep,
-} from './rollSeam';
-import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
+} from '../noyau/rollSeam';
+import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from '../noyau/pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
-import type { BatchParticipant, CascadeRoll } from './pendings';
-import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableStepFamily, rollTableStep, type TableStepDef } from './cascade';
+import type { BatchParticipant, CascadeRoll } from '../noyau/pendings';
+import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableStepFamily, rollTableStep, type TableStepDef } from '../noyau/cascade';
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
 import {
@@ -64,15 +64,15 @@ import {
   type SequenceSide, type SequenceCombinedRules,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './sceneNpc';
-import type { Scene } from './scene';
-import { jetSurfaced } from './sieges';
+import type { Scene } from '../noyau/monde/scene';
+import { jetSurfaced } from '../noyau/sieges';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel } from '../data';
-import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
+import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from '../noyau/rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 
 /**
@@ -2388,7 +2388,7 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
  * moteur (`evaluateCombinedTest`) — aucun second tirage n'existe.
  *
  * CE QUE LA FENÊTRE MONTRE : SES DEUX cibles. La rangée porte sa seconde lecture (`second`,
- * `state/pendings.ts`) — annoncée AVANT le dé, tranchée après par le socle (`cascade.secondReadOf`,
+ * `noyau/pendings.ts`) — annoncée AVANT le dé, tranchée après par le socle (`cascade.secondReadOf`,
  * même `evaluateCombinedTest` que la clôture) et rendue sous la ligne du jet. C'est une zone du
  * contrat d'affichage, pas un montage de taverne : tout jet à deux lectures en hérite.
  *

@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { maybeOpenDefense } from './combatFlow';
-import type { SuiteDeCoup } from './pendings';
+import type { SuiteDeCoup } from '../noyau/pendings';
 
 const g = useGame.getState;
 

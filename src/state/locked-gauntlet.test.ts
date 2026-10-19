@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { applyBladeTrap } from './combatFlow';
 import type { Combatant } from '../engine/types';
-import type { BladeTrapFreeze } from './pendings';
+import type { BladeTrapFreeze } from '../noyau/pendings';
 
 const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 

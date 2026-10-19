@@ -13,7 +13,7 @@
 import { parseProject } from '../../state/worldMap';
 import { buildFloors } from '../builders/floors';
 import { buildProps } from '../builders/props';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
 /** Les scènes du projet de campagne de la Diligence, lues au document. */

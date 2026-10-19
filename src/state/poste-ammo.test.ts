@@ -5,7 +5,7 @@ import { resolveVolley } from '../engine/volley';
 import { serveChef } from './shipPostes';
 import { applyOups } from './combatFlow';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, ItemInstance, ShipPoste, Weapon } from '../engine/types';
 

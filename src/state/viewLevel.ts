@@ -13,7 +13,7 @@
  *    étage plus haut.
  * Vit dans `state` (#161) : `src/gameIso` en dépend, jamais l'inverse.
  */
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import type { GameState } from './store';
 
 let _viewZ: number | null = null;

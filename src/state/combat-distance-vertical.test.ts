@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { combatDistance, footprintChebyshev } from './footprint';
+import { combatDistance, footprintChebyshev } from '../noyau/monde/footprint';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
 

@@ -9,13 +9,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyZoneCrossings } from './combatPlacement';
-import type { BattleZone } from './zones';
+import type { BattleZone } from '../noyau/monde/zones';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition, COND, stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 const CROSS_TEST_ZONE: BattleZone = {
   // `source` = l'ENTITÉ qui a posé la zone, comme `placeZoneFromOp` la pose en production (#1262 V2

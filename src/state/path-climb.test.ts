@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type WallClimb } from './scene';
-import { pathTo, reachable, climbTraverseFor } from './path';
+import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
+import { pathTo, reachable, climbTraverseFor } from '../noyau/monde/path';
 
 /**
  * Grimpant (LDB 85 l.160-162) : `MoveEnv.traverse` rend une arête `WallSeg.climb` traversable au pas

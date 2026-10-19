@@ -2,7 +2,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`battleWater`) gate ses cibles

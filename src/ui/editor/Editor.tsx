@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
-import { Scene, emptyScene, tileAt, type CellSide } from '../../state/scene';
+import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
 import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
@@ -21,7 +21,7 @@ import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-
 import { OpenProjectModal, SaveProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte } from './ProjectModals';
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { projectSave, projectsLoad, projetDeLEntree, type EntreeListee } from '../../state/projectLibrary';
-import { downloadText } from '../../lib/fileIo';
+import { downloadText } from '../../web/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { aretesUtilisables, type AreteUtilisable, type ContexteAretes } from '../../state/aretes';
 import { cloisons, piece } from '../../state/pieces.fixture';
 import type { BattleState } from '../../state/store';

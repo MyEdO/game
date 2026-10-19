@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { pushBackTiles, displaceSmaller } from './combatPlacement';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import type { Get } from './flowTypes';
 import { mk, battle } from './pionsEtages.testkit';

@@ -30,7 +30,7 @@ function rendu() {
   const SCENES = 'src/scenes'
   /** Où vivent les parents d'interface hérités par `mapSpec.ts` (`WallSpec extends WallOverlay`) et le
    *  schéma zod d'où ces parents tirent leurs champs. */
-  const SCENE = 'src/state/scene.ts'
+  const SCENE = 'src/noyau/monde/scene.ts'
   const SCENE_SCHEMA = 'src/data/schemas/defs-scenes/scene.ts'
 
   function abandon(msg) {
@@ -103,7 +103,7 @@ function rendu() {
     return m[1]
   }
 
-  /** Schéma zod dont l'alias `nom` de `src/state/scene.ts` est inféré (`z.infer<typeof xSchema>`), ou undefined. */
+  /** Schéma zod dont l'alias `nom` de `src/noyau/monde/scene.ts` est inféré (`z.infer<typeof xSchema>`), ou undefined. */
   function schemaInfere(sfScene, nom) {
     const acces = nom.match(/^([A-Za-z0-9_$]+)\[['"]([^'"]+)['"]\]$/)
     if (acces) {
@@ -217,7 +217,7 @@ function rendu() {
   }
 
   /** Champs HÉRITÉS par `extends` : parent déclaré dans le fichier lu (interface → récursion) ou dans
-   *  `src/state/scene.ts` (alias `Pick<…>` → `champsPick`). Chaque ligne dit de QUI elle est héritée. */
+   *  `src/noyau/monde/scene.ts` (alias `Pick<…>` → `champsPick`). Chaque ligne dit de QUI elle est héritée. */
   function champsHerites(decl) {
     const rows = []
     for (const clause of decl.heritageClauses ?? []) {
@@ -381,7 +381,7 @@ function rendu() {
     if (!m) abandon(`constante \`${nom}\` illisible dans ${fichier} (renommée/supprimée ?)`)
     return Number(m[1])
   }
-  const STEP_MAX_M = constante('src/state/relief.ts', 'STEP_MAX_M')
+  const STEP_MAX_M = constante('src/noyau/monde/relief.ts', 'STEP_MAX_M')
   const CELL_WALL_HEIGHT_M = constante(MAPSPEC, 'CELL_WALL_HEIGHT_M')
 
   // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
@@ -494,16 +494,16 @@ ${tableChamps(ENC_FIELDS)}
 ## \`seatAssignments\` — attabler, à ids FIXES seulement
 
 - Les places d'un meuble viennent de son TYPE (\`PropData.seatSlots\` dans \`src/data/props.json\`) ;
-  la Scène ne déclare que l'OCCUPATION. \`src/state/seating.ts\` est l'unique couture de résolution.
+  la Scène ne déclare que l'OCCUPATION. \`src/noyau/monde/seating.ts\` est l'unique couture de résolution.
 - Un occupant du GROUPE est un **EMPLACEMENT**, pas un personnage : \`{ kind: 'party', rang }\` avec
-  \`1 ≤ rang ≤ PARTY_MAX\` (\`src/state/combatants.ts\`). Un document ne peut pas nommer un héros que
+  \`1 ≤ rang ≤ PARTY_MAX\` (\`src/noyau/monde/combatants.ts\`). Un document ne peut pas nommer un héros que
   le joueur créera plus tard ; le runtime résout \`party[rang - 1]\`. Un rang hors borne est une
   ERREUR de document ; un rang que le groupe courant n'atteint pas s'élague au chargement.
 - \`buildScene\` **refuse** un \`propId\`/\`entityId\` que \`entities\` ne nomme pas littéralement : un id
   posé par \`bind\` est généré et change dès qu'un marqueur bouge. Pour attabler un PNJ, déclare le
   meuble ET le corps dans \`entities\`.
 - La \`pos\` d'un PNJ attablé **est** la case d'abord résolue de sa place, et cet abord doit être
-  PRATICABLE. Le prédicat est unique (\`seatIsOccupiable\`, \`src/state/seating.ts\`) : ce que le geste
+  PRATICABLE. Le prédicat est unique (\`seatIsOccupiable\`, \`src/noyau/monde/seating.ts\`) : ce que le geste
   refuse, \`validateScene\` et \`buildScene\` le refusent aussi.
 - À la souris, ce champ s'authore dans l'inspecteur de l'éditeur
   (\`src/ui/editor/SeatAssignmentsField.tsx\`). Toute mutation d'entité traverse le SEAM UNIQUE
@@ -524,7 +524,7 @@ ${ORDRE}
 - **Marqueurs** : les chars de \`bind\` sont scannés PUIS nettoyés avant le parse terrain. Sur un
   terrain non-base (chemin de ronde), utilise \`markerFill\` pour ne pas laisser un trou \`'vide'\`.
 - **Verticalité** = \`relief\` (mètres). La connexité verticale reste TOUJOURS DÉRIVÉE des hauteurs,
-  par \`surfaceLink\` (\`src/state/relief.ts\`) : un dénivelé ≤ ${STEP_MAX_M} m entre voisines est une RAMPE
+  par \`surfaceLink\` (\`src/noyau/monde/relief.ts\`) : un dénivelé ≤ ${STEP_MAX_M} m entre voisines est une RAMPE
   franchissable, au-delà c'est une FALAISE. Une lettre \`cells.wall\`/\`cells.gate\` auto-pose sa zone
   rempart en z+1 sur ${CELL_WALL_HEIGHT_M} m par défaut (\`CELL_WALL_HEIGHT_M\`, \`${MAPSPEC}\`) — le z0 devient
   MASSE DE MUR, le rendu falaise + merlons suit tout seul —
@@ -558,7 +558,7 @@ ${ORDRE}
 5. **Recalage z0↔z1 par ANCRES** : les cages d'escalier (\`cells.stair\`) et l'enveloppe commune. La
    compilation ÉCHOUE si les grilles sont décalées — le recalage est vérifié par construction.
    Un mur se déclare **par COUCHE** : un pas ne voit que l'arête de la couche la plus HAUTE qu'il engage
-   (\`Math.max(z, nz)\`, \`src/state/path.ts\`, « un mur n'arrête le pas qu'à la HAUTEUR où on le franchit »).
+   (\`Math.max(z, nz)\`, \`src/noyau/monde/path.ts\`, « un mur n'arrête le pas qu'à la HAUTEUR où on le franchit »).
    Une cloison qui monte jusqu'à l'étage se pose donc dans les DEUX grilles \`walled\` : déclarée au seul
    rez, elle passe sous les pieds et devient franchissable au niveau du plancher supérieur.
 6. **Vides & hauteurs** : trémies/balcons ; la validation de trémie d'une volée couvre les surfaces

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, wallBetween, edgeOf, setDoorOpen, type Scene } from './scene';
-import { pathTo, reachable, walkComponentAt, walkNeighbors } from './path';
+import { emptyScene, wallBetween, edgeOf, setDoorOpen, type Scene } from '../noyau/monde/scene';
+import { pathTo, reachable, walkComponentAt, walkNeighbors } from '../noyau/monde/path';
 
 /**
  * Murs sur ARÊTES (cloisons fines) : ils bloquent le PASSAGE entre deux cases adjacentes sans rendre

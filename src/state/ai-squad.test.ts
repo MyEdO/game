@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput } from './ai';
 import { outnumberMod } from '../engine/combat';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 

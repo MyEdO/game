@@ -5,7 +5,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie } from '../ui/forcedDieRow';
 import type { FlowKey } from './flowVerbs';
 import type { Combatant } from '../engine/types';
-import type { ShipManeuverParticipant } from './pendings';
+import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { cascadeDeTest } from './cascadeTestKit';
 import { testDeRegle } from '../engine/reglesChiffrees';

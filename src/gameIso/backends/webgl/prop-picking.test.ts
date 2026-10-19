@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Raycaster, Vector2, Vector3, type Intersection } from 'three';
 import { describe, expect, it } from 'vitest';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import { findPropById, findPropMaterialById, props } from '../../../data';
 import { buildWorldGeometry, wholeSceneBillboardEls, worldBakeDeps, type WorldGeometry } from './sceneMeshes';
 import { worldSurfaceMaterials } from './worldMaterials';

@@ -50,7 +50,7 @@
       "quoi": "Mort sur le Reik — Compagnon, ch.10 (postes de navire) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "NADJ 4": {
-      "sites": ["src/state/scene.ts", "src/data/schemas/defs-scenes/scene.ts", "src/state/tavern-npc-a-fiche.test.ts"],
+      "sites": ["src/noyau/monde/scene.ts", "src/data/schemas/defs-scenes/scene.ts", "src/state/tavern-npc-a-fiche.test.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Nuits agitées & dures journées, ch.4 (taverne) — aucune fiche de l'Atlas ne cite ce chapitre."

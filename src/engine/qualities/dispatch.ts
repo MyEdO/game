@@ -35,7 +35,7 @@ export interface ResolvedQuality {
   /** Drapeaux/marqueurs de capacité (raccourci `data.capabilities`). */
   caps?: QualityCapabilities;
   /** Indice porté par la référence (`QualityInstance.value`) — paramètre les effets de la qualité
-   *  (`state/triggeredEffects::withArg`, template `$indice`) et son affichage (`qualityRefLabel`). */
+   *  (`noyau/triggeredEffects::withArg`, template `$indice`) et son affichage (`qualityRefLabel`). */
   indice?: number;
 }
 

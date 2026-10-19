@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { evalCondition, flowHasTest, flowEffects } from '../../state/flow';
+import { evalCondition, flowHasTest, flowEffects } from '../../noyau/monde/flow';
 import { validateScene } from '../../state/validateScene';
 import { useGame } from '../../state/store';
 import { runFlow, assignGearAt } from '../../state/combatEffects';
-import { layerTiles } from '../../state/scene';
+import { layerTiles } from '../../noyau/monde/scene';
 import { scenario } from './piege-caveau';
 const scenarioConstruit = scenario.construire();
 

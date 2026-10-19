@@ -10,7 +10,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * qui LANCE doit ÉNONCER ce qu'elle met en jeu (`CascadeStep.stake`, référence de donnée résolue par
  * `resolveStake`) : sans lui, la modale demande un jet sans dire pourquoi.
  *
- * Le discriminant est la FORME, pas un drapeau : `stepInteraction` (`state/cascade.ts`) rend `'jet'
+ * Le discriminant est la FORME, pas un drapeau : `stepInteraction` (`noyau/cascade.ts`) rend `'jet'
  * dès que `step.target != null` — `interactive` ne gouverne QUE les rangées d'une étape à
  * participants (`stepReady`, cas `batch`). Une étape mono est donc rendue et lancée par le joueur
  * qu'elle porte ou non `interactive: true`, et `result: null` y est facultatif : ces deux champs
@@ -21,16 +21,16 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * DÉCROISSANTE : un site doté ABAISSE sa ligne.
  */
 
-/** COUVERTURE des quatre scans : `src/state` (les flux) ET `src/scenes` (les Flows AUTHORÉS des
+/** COUVERTURE des quatre scans : `src/state` et `src/noyau` (les flux) ET `src/scenes` (les Flows AUTHORÉS des
  *  documents de scène — ils décrivent des jets pour de vrai, et un `testFlow` y est aussi muet
  *  qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici, la clé de baseline
- *  porte le dossier (`state/…`, `scenes/…`). */
+ *  porte le dossier (`state/…`, `noyau/…`, `scenes/…`). */
 const SRC = join(process.cwd(), 'src');
-const SCAN_ROOTS = [join(SRC, 'state'), join(SRC, 'scenes')];
+const SCAN_ROOTS = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'scenes')];
 
 /** Corpus RÉEL d'un jeu de racines : marche, lecture et mémoïsation par clé dans
  *  `scripts/guards/lib/sourceCorpus.mjs` — PARESSEUX, payé au 1ᵉʳ `it` qui le demande, jamais à la
- *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous `state/`+`scenes/`),
+ *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous `state/`+`noyau/`+`scenes/`),
  *  hors tests. */
 function corpus(roots: string[]): { file: string; src: string }[] {
   return readCorpus(roots, { exts: ['.ts'] }).map(({ abs, text }) => ({ file: abs, src: text }));
@@ -100,7 +100,7 @@ export function stepsWithoutStake(src: string): number[] {
   // (mesuré : 0 occurrence de `.stake =`). La pose différée n'est donc pas un angle mort du scan.
   const lines: number[] = [];
   const seen = new Set<number>();
-  // Les formes qui LANCENT, telles que `stepInteraction` les reconnaît (`state/cascade.ts`) :
+  // Les formes qui LANCENT, telles que `stepInteraction` les reconnaît (`noyau/cascade.ts`) :
   //  - `'jet'`   = une CIBLE en position de PROPRIÉTÉ (`target: <expr>` ou le raccourci `target,`) ;
   //    une valeur de chaîne est blanchie par `stripLiterals` → `target: 'party'` (cible d'un EFFET)
   //    ne matche pas ;
@@ -150,7 +150,7 @@ export function stepsWithoutStake(src: string): number[] {
 }
 
 /**
- * Jets DÉCRITS au seam (`RollRequest`, `state/rollSeam.ts`) sans enjeu — l'AUTRE forme qui lance :
+ * Jets DÉCRITS au seam (`RollRequest`, `noyau/rollSeam.ts`) sans enjeu — l'AUTRE forme qui lance :
  * `openRoll` construit l'étape à partir d'elle, donc un `RollRequest` muet produit une étape muette
  * que le scan d'étapes ci-dessus ne peut pas voir (le littéral d'étape est DANS le seam, générique).
  *
@@ -202,7 +202,7 @@ export function rollRequestsWithoutStake(src: string): number[] {
 const BASELINE_REQ: Record<string, number> = {
   // La PORTE elle-même : la `RollRequest` GÉNÉRIQUE d'`openPartyTest`, dont le `stake` est TRANSMIS
   // en RACCOURCI (`{ stake }`, forme que le scan ne lit pas comme une déclaration d'enjeu).
-  'state/rollSeam.ts': 1,
+  'noyau/rollSeam.ts': 1,
 };
 
 /**
@@ -315,7 +315,7 @@ const BASELINE_FLOW: Record<string, number> = {};
 const BASELINE: Record<string, number> = {
   // ÉTAPES À TABLE : le TYPE les tient (#1262 V2 L6, `TableSpec.stake` requis) — plus de baseline, plus
   // de volet de scan (cf. `stepsWithoutStake`). L'enjeu posé à la construction DESCEND ensuite à la
-  // ligne jouée, `stakeAtTableRow` (`state/cascade.ts`).
+  // ligne jouée, `stakeAtTableRow` (`noyau/cascade.ts`).
   // ÉTAPES MONO : le TYPE les tient aussi (#1262 V2 L6d, `MonoSpec.stake` requis) — plus de baseline,
   // plus de volet `actor:` (cf. `stepsWithoutStake`). Les deux derniers relais génériques (les
   // fabriques de `combat/triggeredTest.ts`) reçoivent l'enjeu DÉRIVÉ de l'entité porteuse quand la
@@ -578,22 +578,22 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
  * L'enjeu AUTHORÉ reste au CONTENU (#1262 V2 L6c). `AuthoredStake` (`{ authored: '…' }`) est la forme
  * ouverte aux DOCUMENTS de campagne par l'arbitrage user du 2026-08-12 — « l'enjeu d'un Flow authoré
  * s'AUTHORE DANS LA SCÈNE ». Ce n'est PAS une amnistie du texte au call-site : le MOTEUR (`src/state`,
- * `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
+ * `src/noyau`, `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
  * redeviendrait le champ libre que l'arbitrage Z5 a fermé — et une paraphrase de règle y rentrerait
  * par la fenêtre.
  *
- * COUVERTURE, nommée : les sources de `src/state` et `src/engine`, hors tests. L'ÉDITEUR
+ * COUVERTURE, nommée : les sources de `src/state`, `src/noyau` et `src/engine`, hors tests. L'ÉDITEUR
  * (`src/ui/editor`) en écrit, lui, par construction — c'est la plume de l'auteur ; les documents
  * (`src/scenes`, projets JSON) en portent.
  */
 describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datasets (#1262 V2 L6c)', () => {
-  const MOTEUR = [join(SRC, 'state'), join(SRC, 'engine')];
+  const MOTEUR = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'engine')];
   // La FORME du littéral d'enjeu authoré : `{ authored: … }` — `AuthoredStake` n'a que ce champ (ses
   // deux autres sont `never`), il ouvre donc toujours son accolade. Une ANNOTATION de paramètre
   // (`captureMutation(current: Scene, authored: Scene)`) ne pose aucun enjeu et suit une virgule.
   const AUTHORED = /\{\s*authored\s*:/;
 
-  it('aucun enjeu authoré à la main dans `src/state` / `src/engine`', () => {
+  it('aucun enjeu authoré à la main dans `src/state` / `src/noyau` / `src/engine`', () => {
     const fautifs: string[] = [];
     for (const { file, src } of corpus(MOTEUR)) {
       if (AUTHORED.test(strip(src))) fautifs.push(keyOf(file));

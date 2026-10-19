@@ -1,8 +1,8 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * Recette des 4 nouveaux kinds de `Condition` PARTY-LEVEL (#711, moteur `f0de1956`) : `skill`,

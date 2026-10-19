@@ -24,10 +24,10 @@ import type {
   PendingDisengage,
   PendingBattement,
   PendingDistraire,
-} from './pendings';
+} from '../noyau/pendings';
 import { garanti } from '../lib/garanti';
 import { battementRemoval } from './combatManeuvers';
-import { fleeBackstab, fleeTouche } from './pendings';
+import { fleeBackstab, fleeTouche } from '../noyau/pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
 import { estCibleType, cibleLabel } from '../engine/psychology';

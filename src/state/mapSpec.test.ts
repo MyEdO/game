@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
-import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass, type Terrain } from './scene';
-import { pathTo, reachable, walkNeighbors } from './path';
+import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass, type Terrain } from '../noyau/monde/scene';
+import { pathTo, reachable, walkNeighbors } from '../noyau/monde/path';
 import { edgeWallState } from '../ui/editor/editorState';
-import { sceneZoneTiles } from './zones';
+import { sceneZoneTiles } from '../noyau/monde/zones';
 import { scenario as zonesPieces } from '../scenes/test-scenarios/zones-pieces';
 import { buildVitrineScene, vitrineSpec } from '../scenes/vitrine-batiments';
 import { perimeterEdges } from './sceneEdit.testkit';
 import { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
-import { tousLesTerrains } from './terrain';
+import { tousLesTerrains } from '../noyau/monde/terrain';
 const zonesPiecesConstruit = zonesPieces.construire();
 
 /** GOLDEN = spécification exécutable du format `MapSpec`. Chaque bloc verrouille une section de la
@@ -612,7 +612,7 @@ describe('buildScene — encounters : marqueurs d’Avantage initial (Manœuvrab
   });
 
   it('startAdvantagePools dérive l’Avantage initial depuis la rencontre buildée (bout en bout authoring → moteur)', async () => {
-    const { startAdvantagePools } = await import('./combat/advantagePool');
+    const { startAdvantagePools } = await import('../noyau/combat/advantagePool');
     const mk = (id: string, kind: 'hero' | 'enemy') =>
       ({ id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], wounds: { current: 10, max: 10, base: 10 } }) as unknown as Parameters<typeof startAdvantagePools>[0][number];
     const hero = mk('h1', 'hero');

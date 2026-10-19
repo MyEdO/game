@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fireConditionEffects } from './triggeredEffects';
+import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import { slugId } from '../data/slug';
 import type { Combatant } from '../engine/types';

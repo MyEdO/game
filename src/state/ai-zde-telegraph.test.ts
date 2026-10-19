@@ -15,10 +15,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { runEnemyAI } from './combatFlow';
 import { spawnEnemy } from './spawn';
-import { chebyshev } from './path';
+import { chebyshev } from '../noyau/monde/path';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégraphe → nettoyage à la résolution)', () => {

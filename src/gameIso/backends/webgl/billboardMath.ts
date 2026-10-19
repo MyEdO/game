@@ -8,7 +8,7 @@
 import { BB_W, BB_H, ENT_H_M, PROP_H_M } from '../../pov/billboardCore';
 import { project, facingView, type View, type Dir8 } from '../../rig/facing';
 import { povView } from '../../pov/camera';
-import { DIR8_DELTA } from '../../../state/dir8';
+import { DIR8_DELTA } from '../../../noyau/monde/dir8';
 import { type Rot } from '../../../geometry/iso';
 import { ISO_PX_PER_M } from '../../iso';
 

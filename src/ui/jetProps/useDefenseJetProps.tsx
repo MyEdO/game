@@ -7,7 +7,7 @@ import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers,
 import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../../engine/combatFeatures/dispatch';
 import { combatSubstitute } from '../../engine/skillCombatApps';
 import { byId } from '../../data/index';
-import { composeRollLabel } from '../../state/rollSeam';
+import { composeRollLabel } from '../../noyau/rollSeam';
 import { isUnarmed } from '../../engine/items';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
@@ -17,7 +17,7 @@ import { optionValue, opposedLines } from '../breakdown';
 import { VsHeader } from '../VsHeader';
 import { DeterminationButton } from '../DeterminationButton';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
-import { ev } from '../../state/combatLog';
+import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { CodexRef } from '../compendium/CodexRef';
 

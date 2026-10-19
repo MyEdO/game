@@ -11,8 +11,8 @@ import { GameOpEditor } from './GameOpEditor';
 import { EffectList } from './EffectList';
 import { FlowEditor } from './FlowEditor';
 import type { GameOp } from '../../engine/ops';
-import type { Effect } from '../../state/scene';
-import type { Flow } from '../../state/flow';
+import type { Effect } from '../../noyau/monde/scene';
+import type { Flow } from '../../noyau/monde/flow';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 
 beforeAll(() => {

@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor, newOp } from './GameOpEditor';
 import { opSummary } from './interne/resumeDOp';
-import { terrainsElectifs, terrainAbsent, terrainHorsGrille, tousLesTerrains } from '../../state/terrain';
+import { terrainsElectifs, terrainAbsent, terrainHorsGrille, tousLesTerrains } from '../../noyau/monde/terrain';
 import type { GameOp } from '../../engine/ops';
 
 beforeAll(() => {

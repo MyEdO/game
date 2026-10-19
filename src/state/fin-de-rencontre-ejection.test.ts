@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { finalizeBattle } from './combatFlow';
 import { siegesRequis, quorumAtteint } from './netOwnership';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fireTriggers } from './triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { addCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 

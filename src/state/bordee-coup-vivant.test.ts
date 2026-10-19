@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { jouerLesTirsDeBordee } from './combatFlow';
 import { draineCascade } from './cascadeTestKit';
 import { resolveVolley } from '../engine/volley';

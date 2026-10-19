@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { touchActors, combatantClickActs } from './combatOrParty';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { useGame } from './store';
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';

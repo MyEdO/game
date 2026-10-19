@@ -6,8 +6,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { emptyScene, type Scene, type SceneEntity } from './scene';
-import { seatPoseOf, type SeatOccupant } from './seating';
+import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
 import { notifySlain, releaseSeatsOfDowned } from './combatFlow';
 import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';

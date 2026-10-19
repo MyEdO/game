@@ -1,4 +1,4 @@
-import type { TriggeredEffect } from '../../state/flow';
+import type { TriggeredEffect } from '../../noyau/monde/flow';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { effectOnSchema } from '../../data/schemas/grammaire/mecanique';
 

@@ -9,8 +9,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { capDuGroupe, poserCapDuGroupe } from '../state/combatants';
-import { emptyScene } from '../state/scene';
+import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
+import { emptyScene } from '../noyau/monde/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
 import { useGameKeyboard } from './clavier/useGameKeyboard';

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { compteDuCoup, resolveStrayRangedHit, toucheAuJetPose, toucheDuTestDeDefense, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';

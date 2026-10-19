@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
-import { emptyScene, heightAt, type Scene, type Terrain } from './scene';
+import { emptyScene, heightAt, type Scene, type Terrain } from '../noyau/monde/scene';
 import { aiApproachPlan } from './combatFlow';
 import { makeRNG } from '../engine/dice';
-import { tileKey, type Pt } from './path';
+import { tileKey, type Pt } from '../noyau/monde/path';
 
 /**
  * IA de mêlée z-aware (relief unifié) : un ennemi au SOL (h = 0 m) ne « frappe » PAS un héros perché

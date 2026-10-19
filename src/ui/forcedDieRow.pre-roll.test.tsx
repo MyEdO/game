@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie } from './forcedDieRow';
 import { RollRow } from './RollRow';

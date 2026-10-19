@@ -12,9 +12,9 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import { buildStageSteps } from './travelPostes';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
-import type { BatchParticipant } from './pendings';
+import type { BatchParticipant } from '../noyau/pendings';
 
 const cartoHero = (): Combatant =>
   ({

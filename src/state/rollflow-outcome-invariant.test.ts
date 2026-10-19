@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { FLOW_VERBS, FLOW_HANDLERS } from './rollFlowSpecs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Combatant } from '../../engine/types';
 import { useGame } from '../../state/store';
 import { runFlow } from '../../state/combatFlow';
-import { testFlow, EMPTY_FLOW } from '../../state/flow';
+import { testFlow, EMPTY_FLOW } from '../../noyau/monde/flow';
 import type { TravelPlan } from '../../state/travelFlow';
 import { RollShell } from '../RollShell';
 import { useTestJetProps } from './useTestJetProps';

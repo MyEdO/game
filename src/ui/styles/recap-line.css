@@ -1,6 +1,6 @@
 /* ══════════════════ Ligne de récap structurée (`RecapLine.tsx`, #349) ══════════════════
    Le renderer UNIQUE d'une ligne d'issue : trio de tons `ok`/`bad`/`info` (même vocabulaire que
-   `state/recapLine.ts`), et l'étiquette de phase qui regroupe les lignes d'un même temps.
+   `noyau/recapLine.ts`), et l'étiquette de phase qui regroupe les lignes d'un même temps.
    Importé APRÈS `roll-shell.css` (`styles.css`) : le ton `info` doit gagner sur le cadre d'issue
    `.rm-journal .recap-line`, de MÊME spécificité. */
 .recap-lines { display: flex; flex-direction: column; gap: 2px; margin: 0 0 6px; }

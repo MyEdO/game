@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, registerScene } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 
 /**
  * CONTRAT de la sentinelle `resetSceneRegistry()` de l'`afterEach` global (`src/test-setup.ts`) —

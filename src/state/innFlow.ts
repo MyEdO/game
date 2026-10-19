@@ -12,12 +12,12 @@
  * comme la version voyage (`travelPostes.ts`). Durée en POLICY maison (`inn-gather-info-minutes`,
  * `engine/policy.ts`) : l'horloge de campagne avance quelle que soit l'issue — « tout est horodaté ».
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { activityStakeRef } from '../data';
 import { activityById } from '../engine/activities';
 import { applyOps, type GameOp } from '../engine/ops';
-import { openPartyTest, freeCons } from './rollSeam';
-import { registerCascadeApplier } from './cascade';
+import { openPartyTest, freeCons } from '../noyau/rollSeam';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { generateTradeRumour } from './landMarketFlow';
 import { placeOfScene } from './worldMap';
 import { rule } from '../engine/policy';

@@ -7,7 +7,7 @@ import { testValueParts } from '../engine/skills';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeBargain } from '../state/flowOutcomes';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */

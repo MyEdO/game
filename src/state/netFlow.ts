@@ -27,14 +27,14 @@ import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { argsAvecVerdictLocal } from './localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
 import type { NetMessage } from '../net/protocol';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { intentEluLocalement } from './targetingModes';
 import { bus, EVT } from './bus';
-import { scheduleFlowTimer, clearTrackedTimer } from '../lib/minuteries';
+import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { t } from '../i18n';
-import { stockageWeb } from '../lib/stockageWeb';
+import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —

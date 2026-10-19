@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou « recherche de combattant EN COMBAT par id » (#279, F1 du
 // programme structurel #276). Le motif `X.combatants.find((c) => c.id === expr)` (n'importe quel
 // receveur `X` : `battle`, `get().battle`, `s.battle`, une variable locale…) réinvente
-// `inBattleId(battle, id)` (`src/state/combatants.ts`). Module ESM pur, exécutable par `node`
+// `inBattleId(battle, id)` (`src/noyau/monde/combatants.ts`). Module ESM pur, exécutable par `node`
 // nu — consommé par `src/state/in-battle-find-guard.test.ts`.
 // Même patron que `hardcode.mjs` (mécanique de détection ici, BASELINES en policy dans le test).
 // Le texte scanné est la vue CODE SEUL (`codeSeul.mjs`, #1790) : prose et données blanchies, lignes

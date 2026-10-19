@@ -3,8 +3,8 @@ import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `bleed-death`)
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
-import { ev } from '../combatLog';
+import { seedBattleRng } from '../../noyau/battleRng';
+import { ev } from '../../noyau/combatLog';
 import { addCondition, stacks, COND } from '../../engine/conditions';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';

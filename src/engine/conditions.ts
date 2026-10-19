@@ -81,7 +81,7 @@ export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MA
 /** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
  *  cherché dans un texte FRANÇAIS. SOURCE UNIQUE du scan, partagée par l'importance d'un évènement
- *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
+ *  (`noyau/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
 export function conditionIdInText(text: string): string | undefined {
   for (const id of conditionIds()) if (text.includes(conditionLabel(id))) return id;
   for (const marqueur of NARRATIVE_MARKERS) if (text.includes(marqueur.label)) return marqueur.id;
@@ -91,7 +91,7 @@ export function conditionIdInText(text: string): string | undefined {
 /** Sévérité d'un État (`etats.json` : `severity`, sinon marqueur narratif, sinon défaut 10) — PUR, clé
  *  slugifiée (tolère un libellé : 'Pétrifié' → 'petrifie'). SOURCE UNIQUE partagée par l'icône
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
- *  combat pour le bandeau/la cadence (`state/combatLog.isImportantEvent`). */
+ *  combat pour le bandeau/la cadence (`noyau/combatLog.isImportantEvent`). */
 export function conditionSeverity(name: string): number {
   return etatConnu(slugId(name))?.severity ?? 10;
 }

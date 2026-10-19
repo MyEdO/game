@@ -749,21 +749,21 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/cascade.ts",
+    fichier: "src/noyau/cascade.ts",
     motif: "désormais",
     ancre: "(`openSequence`) : les deux sont désormais fermés par le type.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/cascade.ts",
+    fichier: "src/noyau/cascade.ts",
     motif: "désormais",
     ancre: "désormais sa propre copie. La garder ici la ferait rejouer au rechargement d'une sauvegarde.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/cascade.ts",
+    fichier: "src/noyau/cascade.ts",
     motif: "désormais",
     ancre: "restante à préserver). Ne ressuscite JAMAIS le slot actif (propriété d'un AUTRE contexte désormais,",
     lot: "L7 désormais",
@@ -847,7 +847,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/flow.ts",
+    fichier: "src/noyau/monde/flow.ts",
     motif: "désormais",
     ancre: "FlowTest/TriggeredEffect), l'évaluation des Conditions et tous les helpers PURS vivent désormais en",
     lot: "L7 désormais",
@@ -868,14 +868,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/footprint.test.ts",
+    fichier: "src/noyau/monde/footprint.test.ts",
     motif: "désormais",
     ancre: "leur case du seul fait que leur corps a désormais une empreinte. Liste NOMINATIVE : un",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/footprint.ts",
+    fichier: "src/noyau/monde/footprint.ts",
     motif: "désormais",
     ancre: "désormais dérivées.",
     lot: "L7 désormais",
@@ -924,7 +924,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/lineOfSight.ts",
+    fichier: "src/noyau/monde/lineOfSight.ts",
     motif: "désormais",
     ancre: "// #805 : les cases de zone portent désormais l'étage (`z` du souffleur/centre) — la fumée d'un étage",
     lot: "L7 désormais",
@@ -973,7 +973,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/pendings.ts",
+    fichier: "src/noyau/pendings.ts",
     motif: "désormais",
     ancre: "pour enchaîner sur la pause de début de Round (la Peur est désormais marquée testée ce Round). */",
     lot: "L7 désormais",
@@ -1036,7 +1036,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/rollSeam.test.ts",
+    fichier: "src/noyau/rollSeam.test.ts",
     motif: "désormais",
     ancre: "// `cascadeAppliers['progression']` est désormais le VRAI applier de mer (#275 Décision 4 cran 2, `seaVoyageFlow.ts`)",
     lot: "L7 désormais",
@@ -1127,7 +1127,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/stepBrand.ts",
+    fichier: "src/noyau/stepBrand.ts",
     motif: "désormais",
     ancre: "la refuse désormais à la DÉCLARATION. Il ne mord PAS sur une signature qui EMPLOIE la marque",
     lot: "L7 désormais",

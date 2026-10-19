@@ -16,8 +16,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
-import { emptyScene, type Scene } from './scene';
-import { assignSeat, seatPoseOf } from './seating';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { assignSeat, seatPoseOf } from '../noyau/monde/seating';
 import { readSlot } from './saves';
 import type { Combatant } from '../engine/types';
 
@@ -175,7 +175,7 @@ describe('la couture d’occupation est UNIQUE', () => {
 
   it('un SEUL site de `src/**` réconcilie l’occupation d’une recomposition', () => {
     const appelants = readCorpus(['src'])
-      .filter(({ rel, text }) => rel !== 'src/state/seating.ts' && /releaseRecomposedRanks\(/.test(text))
+      .filter(({ rel, text }) => rel !== 'src/noyau/monde/seating.ts' && /releaseRecomposedRanks\(/.test(text))
       .map(({ rel }) => rel);
     expect(appelants).toEqual(['src/state/store.ts']);
   });

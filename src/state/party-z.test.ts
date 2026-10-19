@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 
 /**
  * Déplacement d'exploration z-aware : le groupe peut fouler une case d'une couche SUPÉRIEURE (tablier

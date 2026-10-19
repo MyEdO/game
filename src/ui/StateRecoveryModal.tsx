@@ -5,7 +5,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { opposedLines } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeStateRecovery } from '../state/flowOutcomes';
 import { remedeDeLEtat } from '../state/actionRegistry';
 import { conditionLabel } from '../data';

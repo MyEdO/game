@@ -4,7 +4,7 @@ import { recomputeLoadout, parseDamage } from './items';
 import { isMagicWeapon } from './qualities/dispatch';
 import { applyOps } from './ops';
 import { endOfRound } from './conditions';
-import { runPureFlowLines } from '../state/combat/flowEval';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import type { TriggeredEffect, Flow } from './flowCore';
 

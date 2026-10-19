@@ -11,7 +11,7 @@
  * peint le sol, pas son semis — le semis vit dans le monde volumique (`backends/webgl/groundAccents`).
  */
 import { Dims, depth, diamondCorners, tileCenter } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import { terrainGradient } from '../catalog/terrain';
 import { reliefMaterial } from '../catalog/relief';
 import { shade, ao, warm, spec } from '../shade';

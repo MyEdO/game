@@ -34,13 +34,13 @@ export function testBreakdown(
     ...(easedBy ? { easedBy } : {}),
     mods: extraMods?.length ? extraMods : undefined,
     ...cibleMesuree({ target, clamped: r.clamped }),
-    // SEUIL PUR (#1426, #2389) : le verdict de l'étape, transmis tel quel (`state/pendings.LectureDuDe`).
+    // SEUIL PUR (#1426, #2389) : le verdict de l'étape, transmis tel quel (`noyau/pendings.LectureDuDe`).
     ...(r.seuil ? { seuil: r.seuil } : {}),
     roll: r.roll,
     success: r.success ?? r.roll <= target,
     sl: r.sl ?? 0,
     // SECONDE LECTURE (Test combiné, LDB 12 l.202-208) : la zone est TRANSMISE telle que le socle l'a
-    // évaluée (`state/cascade.secondReadOf`) — ce module n'en juge rien.
+    // évaluée (`noyau/cascade.secondReadOf`) — ce module n'en juge rien.
     ...(second ? { second } : {}),
   };
 }

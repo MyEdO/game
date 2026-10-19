@@ -23,7 +23,7 @@ const SCAN_DIRS = ['src'];
 /** Importeurs AUTORISÉS de `fireTriggers`/`runCombatHooks` (chemins POSIX relatifs à la racine). */
 const WHITELIST = new Set<string>([
   'src/state/combatEvents.ts', // l'unique porte
-  'src/state/triggeredEffects.ts', // définit fireTriggers
+  'src/noyau/triggeredEffects.ts', // définit fireTriggers
   'src/state/combatHooks.ts', // définit runCombatHooks
   'src/state/combat/roundHooks.ts', // bus-owned : boucles de cycle onRoundEnd/onRoundStart
   'src/state/combat/turnHooks.ts', // bus-owned : boucles de cycle onTurnStart/onTurnEnd

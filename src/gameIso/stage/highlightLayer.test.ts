@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { useGame, type GameState, type BattleState } from '../../state/store';
 import { makePregens } from '../../data/pregens';
 import { spawnEnemy } from '../../state/spawn';

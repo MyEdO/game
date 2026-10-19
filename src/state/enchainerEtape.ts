@@ -1,5 +1,5 @@
 import type { Get } from './flowTypes';
-import { scheduleFlowTimer } from '../lib/minuteries';
+import { scheduleFlowTimer } from '../web/minuteries';
 
 /**
  * ENCHAÎNEMENT d'une étape depuis l'applier de la PRÉCÉDENTE — SOURCE UNIQUE de ce geste (`portFlow`,

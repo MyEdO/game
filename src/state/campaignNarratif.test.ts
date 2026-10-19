@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { exigerUnRefus, parseProject } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 
 // ids RÉELS de la règle globale (`src/data`) — base de preset valide + cible de collision.
 const GLOBAL_CREATURE = 'humain';

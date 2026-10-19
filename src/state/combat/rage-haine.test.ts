@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { runEnemyAI } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { isFrenzied } from '../../engine/psychology';
 import { psychDRAdjust } from '../../engine/combat';
 import { testScene } from '../../scenes/test-fixture';

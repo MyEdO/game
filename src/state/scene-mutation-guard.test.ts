@@ -6,7 +6,7 @@ import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde-fou « immutabilité de la scène du store » — `src/state/vision.ts` et
- * `src/state/sceneMemo.ts` (`memoByRef`) reposent sur l'invariant qu'aucun code de `src/**` ne
+ * `src/noyau/monde/sceneMemo.ts` (`memoByRef`) reposent sur l'invariant qu'aucun code de `src/**` ne
  * réassigne un champ/tableau d'un porteur de `Scene` EN PLACE (`scene.<champ> = …`, alias,
  * `get().scene`, `.push(`/`.splice(` mutants…) : toute mise à jour produit une NOUVELLE scène par
  * spread. Scan AST réelle (compilateur TypeScript) — TOLÉRANCE ZÉRO, aucune baseline.

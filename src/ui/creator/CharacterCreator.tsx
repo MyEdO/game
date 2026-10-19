@@ -177,7 +177,7 @@ import {
   xpTotal,
 } from './draft';
 import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAllowed } from '../../engine/creation';
-import { PARTY_MAX } from '../../state/combatants';
+import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { garanti } from '../../lib/garanti';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
