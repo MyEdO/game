@@ -1,5 +1,6 @@
 import { useGame } from '../state/store';
-import { calmeValue } from '../engine/psychology';
+import { valeurDecomposee } from '../engine/skills';
+import { refLabel } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
@@ -9,9 +10,9 @@ import { ev } from '../state/combatLog';
 import { describeApproach } from '../state/flowOutcomes';
 
 /**
- * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : « incapable de vous rapprocher … à moins de
- * réussir un Test de Calme Intermédiaire (+0) ». Test SEC qui diffère le clic d'approche — succès →
- * l'intention est relancée (approches libres ce Tour) ; échec → aucune approche ce Tour.
+ * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : Test SEC de `pendingApproach.test` qui diffère le
+ * clic d'approche — succès → l'intention est relancée (approches libres ce Tour) ; échec → aucune approche
+ * ce Tour.
  */
 export function ApproachModal() {
   const pa = useGame((s) => s.pendingApproach);
@@ -27,13 +28,15 @@ export function ApproachModal() {
   if (!c) return null;
   const r = pa.result;
   const rolled = !!r;
+  const label = refLabel('skills', pa.test.skill);
+  const { base, mods } = valeurDecomposee(c, pa.test);
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown('Calme', calmeValue(c), { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, 'intermediaire') : undefined,
-      pending: testPending('Calme', calmeValue(c), undefined, 'intermediaire'),
+      d: r ? testBreakdown(label, base, r, pa.test.difficulty, mods) : undefined,
+      pending: testPending(label, base, undefined, pa.test.difficulty, mods),
     },
     rerolled: !!pa.rerolled,
     onRoll: roll,
@@ -56,7 +59,7 @@ export function ApproachModal() {
       title={<><Icon id="flag/fear" size="sm" /> Affronter sa Peur</>}
       subtitle={
         <>
-          <strong>{c.label}</strong> ose approcher {pa.sourceName} (Test de Calme +0)
+          <strong>{c.label}</strong> ose approcher {pa.sourceName}
         </>
       }
       rows={[actorRow]}

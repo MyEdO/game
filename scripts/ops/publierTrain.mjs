@@ -20,7 +20,7 @@
 // QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux arguments validés — `commitDe` (des
 // FICHIERS, sous `--literal-pathspecs`),
 // `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
-// nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
+// nom de script), `genCode` (les cibles de code), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
 // sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
@@ -40,7 +40,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
-  conclureFusionSansChemins, depotDe, TIMEOUT_DU_DISTANT_MS, TIMEOUT_DU_HOOK_MS, TIMEOUT_READ_TREE_MS,
+  conclureFusionSansChemins, depotDe, TIMEOUT_DU_DISTANT_MS, TIMEOUT_READ_TREE_MS,
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, lireEnLot, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
@@ -60,7 +60,6 @@ import { creationMemorisee, estPidVivant } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { publicationDe } from './publicationIsolee.mjs'
 import { ligneDeLEtat, mesurerPrincipal } from './synchroniser.mjs'
-import { attendreLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -75,7 +74,7 @@ export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * s'annoncerait vert. PURE.
  *
  * RÈGLE DE TÊTE, une seule : la comparaison porte sur la TÊTE VIVANTE (`git rev-parse HEAD` au
- * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `preflight`/`docs`), et
+ * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `preflight`), et
  * une étape SANS estampille est « à faire ». Sans cela, une étape estampillée `null` restait verte
  * pour TOUTE tête, à jamais.
  * @param {{etapes?:object}} journal @param {string[]} noms ordre de `ETAPES`
@@ -476,9 +475,7 @@ function gh(args, cwd, input) {
  *  attend, adossée au `gh` du train — le seul enrobeur qui borne son spawn en TEMPS. */
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
-/** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
- *  après une fusion conclue sur les cibles pures. */
-const MODES_DES_DOCS = Object.freeze(['--mixtes', '--code'])
+
 
 
 
@@ -524,12 +521,10 @@ function numeroDeTicket(geste, numero) {
  * par un geste d'ici. Écrivains nommés de l'hôte :
  * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
- * de script), `docs` (un mode de `build-all.mjs`), `attendreReconstruction` (la reconstruction des dérivés de
- * l'arbre jusqu'à ses demandes courantes, `attendreLaReconstruction`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
+ * de script), `genCode` (les cibles de code), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
  * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
- * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
- * `estDocDerive` ; `filtresDePush`, les
+ * Données : `generators` (`GENERATORS` de `build-all.mjs`), les cibles pures des conflits de fusion ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog, publication = null, maintenant = Date.now, dormir = attendreSync }) {
@@ -555,15 +550,13 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, publi
       const { executable, args, shell } = lancementNpm(script, process.platform)
       return spawnSync(executable, args, { cwd: racine, stdio, shell })
     },
-    docs(mode) {
-      if (!MODES_DES_DOCS.includes(mode)) throw new Error(`ctx.docs : mode de build-all inconnu — ${JSON.stringify(mode)}`)
-      const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), mode], {
+    genCode() {
+      const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--code', '--perimes'], {
         cwd: racine, stdio: ['ignore', fdLog, 'pipe'], encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
       })
       if (vu.stderr) writeSync(fdLog, vu.stderr)
       return vu
     },
-    attendreReconstruction: () => attendreLaReconstruction(racine, demandesDe(racine), { echeanceMs: TIMEOUT_DU_HOOK_MS }),
     coursesCi(sha) {
       return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
     },

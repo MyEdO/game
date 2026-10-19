@@ -6,13 +6,15 @@ import type { Scene } from '../state/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../state/restFlow';
+import { libelleOuAbsence } from '../data';
 import { findLandCargoById, findLandCargoEntryById } from '../engine/landCargo';
 import { findCargoEntryById, isEchangeable } from '../engine/seaVoyage';
 import { isTradeHubEntry } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../state/innFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
-import { Tabs, type TabItem } from './Tabs';
+import { Tabs, type TabItem } from './composites/Tabs';
+import { Listbox } from './composites/GroupesDeChoix';
 import { MapCanvas, type MapMarker } from './MapCanvas';
 import { planChrome } from './PlanChrome';
 import { VB_H } from './worldMapViewport';
@@ -146,7 +148,7 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, quality: rest?.quality })}>Dormir</button>}
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
               <button type="button" className="btn btn-primary" onClick={gatherInnInfo}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>
@@ -359,13 +361,20 @@ export function CityHubScreen({
             className="city-hub-master"
             listLabel="Services du lieu"
             list={
-              <div className="city-hub-services panel flush" role="listbox" aria-label="Services du lieu">
+              <Listbox
+                className="city-hub-services panel flush"
+                label="Services du lieu"
+                count={services.length}
+                activeIndex={Math.max(0, services.findIndex((s) => s.id === sel?.id))}
+                onActivate={(i) => setSelId(services[i].id)}
+              >
                 {services.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     role="option"
                     aria-selected={sel?.id === s.id}
+                    tabIndex={sel?.id === s.id ? 0 : -1}
                     className={`city-hub-service${sel?.id === s.id ? ' active' : ''}`}
                     onClick={() => setSelId(s.id)}
                   >
@@ -373,7 +382,7 @@ export function CityHubScreen({
                     <span className="city-hub-service-label">{s.label}</span>
                   </button>
                 ))}
-              </div>
+              </Listbox>
             }
             detail={
               <div className="city-hub-detail panel">

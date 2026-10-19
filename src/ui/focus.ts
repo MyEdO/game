@@ -11,6 +11,10 @@ const FOCUSABLE = 'button, [href], input, select, textarea';
 /** SURFACE qui emprunte le focus : un dialogue ou une infobulle (rôle ARIA de sa boîte). */
 export const SURFACE = '[role="dialog"],[role="tooltip"]';
 
+/** CHAMP de formulaire : ses touches (flèches, Entrée, caractères) éditent sa valeur. Lu par le roving
+ *  des primitives (`rovingFocus`), le piège du dialogue et le lecteur du registre. */
+export const estChamp = (el: Element | null | undefined): boolean => !!el && el.matches('input, select, textarea');
+
 /** Chaîne d'ORIGINES de chaque boîte ouverte : son origine, puis celles de la surface qui la contenait.
  *  Écrite et lue par `useFocusEmprunte` seul. */
 const originesDeBoite = new WeakMap<Element, HTMLElement[]>();
@@ -24,6 +28,22 @@ const chaineDOrigines = (o: HTMLElement): HTMLElement[] => {
 /** Un contrôle ATTEIGNABLE : non `disabled`, effectivement rendu, hors d'un sous-arbre `inert`. */
 export const atteignable = (el: HTMLElement): boolean =>
   !el.hasAttribute('disabled') && el.getClientRects().length > 0 && !el.closest('[inert]');
+
+/** DERNIER contrôle focalisé dans chaque dialogue — source UNIQUE, tenue par `useModalA11y` (focusin),
+ *  lue par son sauvetage et par l'effet d'étape de `useFocusEmprunte`. */
+const derniersFocalises = new WeakMap<HTMLElement, HTMLElement | null>();
+
+/** Note le dernier contrôle focalisé du `dialogue` (`useModalA11y`). */
+export function noterDernierFocalise(dialogue: HTMLElement, el: HTMLElement | null): void {
+  derniersFocalises.set(dialogue, el);
+}
+
+/** Le dernier contrôle focalisé du `dialogue` est-il encore là : connecté, atteignable, autre que la
+ *  boîte ? Faux = le geste a DISPARU (démonté, désactivé, masqué) et le sauvetage le remplace. */
+export function dernierFocaliseVivant(dialogue: HTMLElement): boolean {
+  const d = derniersFocalises.get(dialogue);
+  return !!d && d !== dialogue && d.isConnected && atteignable(d);
+}
 
 /** Focusables VISIBLES d'un conteneur (`atteignable`) — source UNIQUE du calcul partagé par le piège
  *  Tab et tout consommateur clavier. */
@@ -57,7 +77,10 @@ export const focusSansIntention = (): boolean => sansIntention;
  *  `cible` rend `null` : la surface n'emprunte rien (ni entrée, ni retour).
  *  `etape` : l'entrée à l'étape, au-delà de l'invocateur de l'APG. Quand elle change pendant que la
  *  surface reste `actif`, le focus entre sur `cible(box)` sans passer par l'invocateur, sous la même
- *  règle : un élément vivant hors d'elle (ni sa boîte, ni son entrée) garde le focus.
+ *  règle : un élément vivant hors d'elle (ni sa boîte, ni son entrée) garde le focus. Décision
+ *  d'ingénierie (#2533) : à un changement d'étape, le geste DISPARU cède au groupe révélé (sauvetage de
+ *  `useModalA11y`, option retenue comprise) ; le geste SURVIVANT laisse la cible d'étape (`cible(box)`),
+ *  y compris quand le focus a quitté ce geste pour <body> (clic sur une zone vide).
  *  `actif` fait partie des DÉPENDANCES : une boîte qui n'existe qu'à l'ouverture (`{actif && <div
  *  ref=…>}`) n'a pas d'élément au premier rendu, et l'objet `ref` ne change jamais d'identité — sans
  *  cette dépendance l'effet sortirait à vide une fois pour toutes (#1752). */
@@ -110,7 +133,12 @@ export function useFocusEmprunte(
     if (Object.is(etapeVue.current.etape, etape)) return;
     etapeVue.current = { etape };
     const ae = document.activeElement;
+    // Focus sur un élément vivant hors de la boîte : il n'est pas volé.
     if (ae instanceof HTMLElement && ae !== document.body && ae !== entreePosee.current && !box.contains(ae)) return;
+    // Focus sur <body> et dernier geste du dialogue DISPARU : le sauvetage (`useModalA11y`) le rend au
+    // groupe révélé ; un geste survivant laisse la cible d'étape (#2533).
+    const dialogue = box.closest<HTMLElement>('[role="dialog"]') ?? box;
+    if ((!ae || ae === document.body) && !dernierFocaliseVivant(dialogue)) return;
     const t = cible(box);
     if (!t) return;
     poserFocus(t);

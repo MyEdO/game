@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { useGame } from '../store';
 import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../combatFlow';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng, battleRng } from '../battleRng';
 import { resolveRecoverTest } from './recover';
 import { makeRNG } from '../../engine/dice';
 import { opposedTest, REPLIS_DEUX_CIBLES } from '../../engine/tests';
@@ -128,20 +127,44 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
     expect([devie.roll!.base, devie.opponentRoll!.base], 'les deux nues restent posées').toEqual([60, 50]);
   });
 
-  it('les DEUX voies font le MÊME choix : l’opposant roule `intermediaire` en dur (IA et flux joueur)', () => {
-    const ia = readFileSync(new URL('../combatFlow.ts', import.meta.url), 'utf8');
-    const joueur = readFileSync(new URL('../rollFlowSpecs.ts', import.meta.url), 'utf8');
-    expect(
-      ia.includes("opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire'"),
-      'voie IA : acteur à `rt.difficulty`, entrave à `intermediaire`',
-    ).toBe(true);
-    expect(
-      joueur.includes('rollTest(p.skillValue, p.difficulty, battleRng())'),
-      'voie joueur : l’acteur honore `p.difficulty`',
-    ).toBe(true);
-    expect(
-      joueur.includes("rollTest(p.opposition.value, 'intermediaire', battleRng())"),
-      'voie joueur : l’entrave roule `intermediaire`',
-    ).toBe(true);
+  /** Donnée DÉVIANTE forgée : `empetre.recover.opposedDifficulty` posée le temps du cas. */
+  function withOpposedDifficulty<T>(difficulty: Difficulty, body: () => T): T {
+    const avant = [...etats];
+    setDataset('etats', etats.map((e) => (e.id === 'empetre' ? { ...e, recover: { ...e.recover!, opposedDifficulty: difficulty } } : e)));
+    try { return body(); } finally { setDataset('etats', avant); }
+  }
+
+  it('la Difficulté de l’entrave se lit sur l’État, et les DEUX voies la roulent', () => {
+    const rt = withOpposedDifficulty('difficile', () => {
+      const { foe } = setBattle('e');
+      return resolveRecoverTest(foe, 'empetre', useGame.getState().battle!)!;
+    });
+    expect([rt.difficulty, rt.opposition?.difficulty]).toEqual(['intermediaire', 'difficile']);
+
+    const joueur = withOpposedDifficulty('difficile', () => {
+      setBattle('e');
+      useGame.getState().battle!.combatants.find((c) => c.id === 'e')!.kind = 'hero';
+      useGame.getState().battleRecoverState('empetre');
+      useGame.getState().recoverRoll();
+      return useGame.getState().pendingStateRecovery!;
+    });
+    expect(joueur.opponentRoll!.target, 'voie joueur : entrave 40 + Difficile').toBe(20);
+
+    // Voie IA : sa résolution est instantanée ; un tirage où l'issue BASCULE avec la Difficulté de
+    // l'entrave, rejoué par l'IA sous la donnée déviante, ne libère que si l'IA l'a roulée.
+    const issue = (seed: number, entrave: Difficulty) => {
+      seedBattleRng(seed);
+      return opposedTest(30, 40, battleRng(), 'intermediaire', entrave, { attacker: 60, defender: 50 }).attackerWins;
+    };
+    const seed = Array.from({ length: 200 }, (_, i) => i + 1).find((n) => issue(n, 'difficile') && !issue(n, 'intermediaire'));
+    expect(seed, 'aucun tirage ne départage les deux Difficultés').toBeDefined();
+    const libre = withOpposedDifficulty('difficile', () => {
+      const { foe } = setBattle('e');
+      seedBattleRng(seed!);
+      runEnemyAI(useGame.getState, useGame.setState, 'e');
+      vi.runAllTimers();
+      return !foe.conditions.some((c) => c.id === 'empetre');
+    });
+    expect(libre, 'voie IA : l’entrave a roulé la Difficulté de la donnée').toBe(true);
   });
 });

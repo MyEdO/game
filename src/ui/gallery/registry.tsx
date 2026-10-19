@@ -13,7 +13,9 @@
 import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
-import { Tabs, type TabItem } from '../Tabs';
+import { Tabs, type TabItem } from '../composites/Tabs';
+import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
+import { Menu } from '../composites/Menu';
 import { ChoiceButtons, OptionChooser } from '../OptionChooser';
 import { EmbeddedShell } from '../RollShell';
 import { Modal } from '../Modal';
@@ -28,6 +30,8 @@ import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { SourceRefField } from '../SourceRefField';
 import { ProvenanceDuTexte } from '../editor/ProvenanceDuTexte';
+import { ProvenanceDeValeur } from '../editor/ProvenanceDeValeur';
+import type { ProvenanceDeValeur as Provenance } from '../../state/worldMap';
 import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
@@ -52,7 +56,7 @@ import { InitiativeStrip } from '../InitiativeStrip';
 import { PartyDock } from '../PartyDock';
 import { ObjectiveBanner } from '../ObjectiveBanner';
 import { ViewControls } from '../ViewControls';
-import { ConsoleArch, ConsoleCell, PhaseBanner } from '../CombatConsole';
+import { ConsoleArch, ConsoleCell, PhaseBanner } from '../console/CombatConsole';
 import { DrBar } from '../DrBar';
 import { Coins } from '../Coins';
 import { LifeBar } from '../LifeBar';
@@ -110,7 +114,7 @@ import { LogDrawer } from '../LogDrawer';
 import { InspectPanel } from '../InspectPanel';
 import { EquipmentPanel } from '../EquipmentPanel';
 import { MediaSelect } from '../MediaSelect';
-import { RefField, refFieldCfg } from '../compendium/RefField';
+import { RefField, refFieldCfg } from '../compendium/refField/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 
@@ -212,6 +216,50 @@ function TabsDemo() {
   return (
     <Stack>
       <Tabs tabs={tabs} active={active} onChange={setActive} label="Onglets" />
+    </Stack>
+  );
+}
+
+/** `Listbox` et `RadioGroup` : l'appelant pose ses items (`option`, `radio`) et leur roving tabindex. */
+function GroupesDeChoixDemo() {
+  const choix = ['Auberge', 'Temple', 'Marché'];
+  const [service, setService] = useState(0);
+  const [rang, setRang] = useState(0);
+  return (
+    <Stack>
+      <Listbox label="Services" count={choix.length} activeIndex={service} onActivate={setService}>
+        {choix.map((c, i) => (
+          <button key={c} type="button" className="btn small" role="option" aria-selected={i === service} tabIndex={i === service ? 0 : -1} onClick={() => setService(i)}>
+            {c}
+          </button>
+        ))}
+      </Listbox>
+      <RadioGroup label="Rang" count={3} activeIndex={rang} onActivate={setRang} orientation="horizontal">
+        {[1, 2, 3].map((n, i) => (
+          <button key={n} type="button" className="btn small" role="radio" aria-checked={i === rang} tabIndex={i === rang ? 0 : -1} onClick={() => setRang(i)}>
+            Rang {n}
+          </button>
+        ))}
+      </RadioGroup>
+    </Stack>
+  );
+}
+
+function MenuDemo() {
+  const [dernier, setDernier] = useState('—');
+  return (
+    <Stack>
+      <Menu
+        label="Fichier"
+        className="panel"
+        entrees={[
+          { cle: 'nouveau', label: 'Nouveau projet', onSelect: () => setDernier('Nouveau projet') },
+          { cle: 'ouvrir', label: 'Ouvrir…', onSelect: () => setDernier('Ouvrir…') },
+          { cle: 'sep', separateur: true },
+          { cle: 'exporter', label: 'Exporter JSON', onSelect: () => setDernier('Exporter JSON') },
+        ]}
+      />
+      <p className="hint">Dernière entrée : {dernier}</p>
     </Stack>
   );
 }
@@ -462,6 +510,22 @@ function ProvenanceDuTexteDemo() {
         <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef) ? adressee.desc ?? '' : undefined} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
         <ProvenanceDuTexte identite="adressee" sujet="de la réplique adressée" value={adressee} onChange={poser(setAdressee)} />
       </Stack>
+    </Grid>
+  );
+}
+
+function ProvenanceDeValeurDemo() {
+  // Une valeur exigée SANS provenance (refus dit), une citée au livre, une maison, une distance facultative.
+  const [vide, setVide] = useState<Provenance | undefined>(undefined);
+  const [citee, setCitee] = useState<Provenance | undefined>({ source: sourceDeSort() });
+  const [maison, setMaison] = useState<Provenance | undefined>({ maison: 'valeur d’adaptation de la campagne' });
+  const [distance, setDistance] = useState<Provenance | undefined>(undefined);
+  return (
+    <Grid min="sm" gap="lg">
+      <Stack gap="sm"><strong>Exigée, absente</strong><ProvenanceDeValeur identite="vide" sujet="du dé de péril" value={vide} onChange={setVide} /></Stack>
+      <Stack gap="sm"><strong>Citée</strong><ProvenanceDeValeur identite="citee" sujet="du dé de péril cité" value={citee} onChange={setCitee} /></Stack>
+      <Stack gap="sm"><strong>Maison</strong><ProvenanceDeValeur identite="maison" sujet="de la vitesse" value={maison} onChange={setMaison} /></Stack>
+      <Stack gap="sm"><strong>Facultative</strong><ProvenanceDeValeur identite="distance" sujet="de la distance" exigee={false} value={distance} onChange={setDistance} /></Stack>
     </Grid>
   );
 }
@@ -1347,7 +1411,7 @@ function WindRoseDemo() {
 function RollLineDemo() {
   return (
     <Stack>
-      <PendingRollLine p={testPending('Athlétisme', 45, 45, 'intermediaire')} />
+      <PendingRollLine p={testPending('Athlétisme', 45, undefined, 'intermediaire')} />
       <RollLine d={testBreakdown('Athlétisme', 45, { roll: 32, target: 45, sl: 1, success: true }, 'intermediaire')} />
       <RollLine d={testBreakdown('Corps à corps', 52, { roll: 88, target: 52, sl: -3, success: false })} />
       <TableRollLine table="Table des Critiques" roll={73} result="Bras — entaille profonde" />
@@ -1763,7 +1827,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'planche', label: 'Planche', file: 'src/ui/Planche.tsx', category: 'Écrans & layout', render: PlancheDemo },
   { id: 'screenmeta', label: 'ScreenMeta', file: 'src/ui/ScreenMeta.tsx', category: 'Écrans & layout', render: ScreenMetaDemo },
   { id: 'masterdetail', label: 'MasterDetail', file: 'src/ui/MasterDetail.tsx', category: 'Écrans & layout', render: MasterDetailDemo },
-  { id: 'tabs', label: 'Tabs', file: 'src/ui/Tabs.tsx', category: 'Écrans & layout', render: TabsDemo },
+  { id: 'tabs', label: 'Tabs', file: 'src/ui/composites/Tabs.tsx', category: 'Écrans & layout', render: TabsDemo },
+  { id: 'groupesdechoix', label: 'Listbox / RadioGroup', file: 'src/ui/composites/GroupesDeChoix.tsx', category: 'Écrans & layout', render: GroupesDeChoixDemo },
+  { id: 'menu', label: 'Menu', file: 'src/ui/composites/Menu.tsx', category: 'Écrans & layout', render: MenuDemo },
   { id: 'menucard', label: 'MenuCard', file: 'src/ui/MenuCard.tsx', category: 'Écrans & layout', render: MenuCardDemo },
   { id: 'band', label: 'Band', file: 'src/ui/Band.tsx', category: 'Écrans & layout', render: BandDemo },
   { id: 'searchfilterfield', label: 'SearchFilterField', file: 'src/ui/SearchFilterField.tsx', category: 'Écrans & layout', render: SearchFilterFieldDemo },
@@ -1789,7 +1855,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'logdrawer', label: 'LogDrawer', file: 'src/ui/LogDrawer.tsx', category: 'Combat', render: LogDrawerDemo },
   { id: 'initiativestrip', label: 'InitiativeStrip', file: 'src/ui/InitiativeStrip.tsx', category: 'Combat', render: InitiativeStripDemo },
   { id: 'partydock', label: 'PartyDock', file: 'src/ui/PartyDock.tsx', category: 'Combat', render: PartyDockDemo },
-  { id: 'combatconsole', label: 'CombatConsole', file: 'src/ui/CombatConsole.tsx', category: 'Combat', note: 'maquette statique montée des sous-composants réels du pont (ConsoleCell, PhaseBanner, ConsoleArch) sur des données d’exemple — le composant de tête n’a aucune prop et lit le store de la partie ; l’amorcer depuis la galerie, qui est un écran de l’application en cours, y injecterait un combat factice. La vignette montre la composition de BUREAU : le pont se dimensionne sur la fenêtre, sa composition compacte (≤560) s’observe en recette (scripts/recette/console-pont-formes.mjs), pas ici', render: CombatConsoleMock },
+  { id: 'combatconsole', label: 'CombatConsole', file: 'src/ui/console/CombatConsole.tsx', category: 'Combat', note: 'maquette statique montée des sous-composants réels du pont (ConsoleCell, PhaseBanner, ConsoleArch) sur des données d’exemple — le composant de tête n’a aucune prop et lit le store de la partie ; l’amorcer depuis la galerie, qui est un écran de l’application en cours, y injecterait un combat factice. La vignette montre la composition de BUREAU : le pont se dimensionne sur la fenêtre, sa composition compacte (≤560) s’observe en recette (scripts/recette/console-pont-formes.mjs), pas ici', render: CombatConsoleMock },
   { id: 'viewcontrols', label: 'ViewControls', file: 'src/ui/ViewControls.tsx', category: 'Combat', render: ViewControlsDemo },
   { id: 'objectivebanner', label: 'ObjectiveBanner', file: 'src/ui/ObjectiveBanner.tsx', category: 'Écrans & layout', render: ObjectiveBannerDemo },
   { id: 'statechips', label: 'StateChips', file: 'src/ui/StateChips.tsx', category: 'Personnages', render: StateChipsDemo },
@@ -1821,6 +1887,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
+  { id: 'provenancedevaleur', label: 'ProvenanceDeValeur', file: 'src/ui/editor/ProvenanceDeValeur.tsx', category: 'Éditeur', render: ProvenanceDeValeurDemo },
   { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
   { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
@@ -1843,7 +1910,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'errorboundary', label: 'SceneErrorBoundary', file: 'src/ui/SceneErrorBoundary.tsx', category: 'Écrans & layout', render: SceneErrorBoundaryDemo },
   { id: 'itemicon', label: 'ItemIcon', file: 'src/ui/ItemIcon.tsx', category: 'Négoce & activités', render: ItemIconDemo },
   { id: 'mediaselect', label: 'MediaSelect', file: 'src/ui/MediaSelect.tsx', category: 'Négoce & activités', render: MediaSelectDemo },
-  { id: 'reffield', label: 'RefField', file: 'src/ui/compendium/RefField.tsx', category: 'Éditeur', render: RefFieldDemo },
+  { id: 'reffield', label: 'RefField', file: 'src/ui/compendium/refField/RefField.tsx', category: 'Éditeur', render: RefFieldDemo },
   { id: 'stack-row-grid-split', label: 'Stack / Row / Grid / Split', file: 'src/ui/Layout.tsx', category: 'Écrans & layout', render: LayoutDemo },
   { id: 'ornements', label: 'Ornements', file: 'src/ui/Ornaments.tsx', category: 'Atelier du scribe', render: OrnamentsDemo },
   { id: 'notchgauge', label: 'NotchGauge', file: 'src/ui/NotchGauge.tsx', category: 'Personnages', render: NotchGaugeDemo },

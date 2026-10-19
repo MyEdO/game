@@ -7,6 +7,18 @@ import assert from 'node:assert/strict'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 import { pagesAvecAncres, renvoisDAncre, renvoisMorts } from './check-ancres.mjs'
 
+test('clone sans cibles : les rapports rendus en mémoire résolvent leurs liens et remplacent le disque', () => {
+  avecAtlasFixture({ 'une.md': '# Une\n\n[état](../implemente.generated.md#topic)\n', '/implemente.generated.md': '# Périmé\n' }, (rawDir) => {
+    const rendus = new Map([['implemente.generated.md', '# Rapport\n\n## Topic\n']])
+    assert.deepEqual(mortsDe(pagesAvecAncres(rawDir, { rendus })), [])
+    assert.equal(pagesAvecAncres(rawDir, { rendus }).get('implemente.generated.md').texte.includes('Périmé'), false)
+  })
+  avecAtlasFixture({ 'une.md': '# Une\n\n[état](../implemente.generated.md#topic)\n' }, (rawDir) => {
+    const rendus = new Map([['implemente.generated.md', '# Rapport\n\n## Topic\n']])
+    assert.deepEqual(mortsDe(pagesAvecAncres(rawDir, { rendus })), [])
+  })
+})
+
 const mortsDe = (pages) => renvoisMorts(pages).map((m) => `${m.page}:${m.ligne} ${m.ecrit}`)
 
 test('renvoisDAncre : les TROIS formes de renvoi sont vues — page courante, sœur, autre cœur', () => {

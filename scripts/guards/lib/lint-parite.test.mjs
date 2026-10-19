@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -161,7 +161,7 @@ test('options sensibles, globals readonly et directives nommées gardent leurs e
   }
 })
 
-test('les dix murs mordent dans leur portée et passent leurs témoins neutres ou exemptés', () => {
+test('les murs mordent dans leur portée et passent leurs témoins neutres ou exemptés', () => {
   const cas = [
     ['src/ui/parite-marques.ts','export const a=x as PlayerText;','murs/marques',1],
     ['src/ui/parite-neutre.ts','export const a=x as Combatant;','murs/marques',0],
@@ -175,14 +175,97 @@ test('les dix murs mordent dans leur portée et passent leurs témoins neutres o
     ['src/parite-import.ts',"import {glob} from 'node:fs';glob('.');",'murs/ordre-total-imports',0],
     ['scripts/docs/parite-locale.mjs','a.localeCompare(b);','murs/ordre-total-locale',1],
     ['src/parite-locale.test.ts','a.localeCompare(b);','murs/ordre-total-locale',0],
-    ['src/ui/parite-possession.ts',"import {ownsLocally} from '../state/netOwnership';ownsLocally();",'murs/possession',1],
-    ['src/ui/ownership.ts',"import {ownsLocally} from '../state/netOwnership';ownsLocally();",'murs/possession',0],
     ['src/state/parite-issue.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',1],
     ['src/state/rollFlowSpecs.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',0],
     ['src/engine/parite-dynamique.ts',"import('../ui/x');",'murs/purete',1],
     ['src/engine/parite-dynamique.test.ts',"import('../ui/x');",'murs/purete',0],
     ['src/data/parite-statique.ts',"import {x} from '../state/x';x();",'murs/purete-imports',1],
     ['src/data/parite-statique.test.ts',"import {x} from '../state/x';x();",'murs/purete-imports',0],
+    ['src/state/parite-type-rendu.ts',"import type {X} from '../gameIso/x'; export type A=X;",'murs/purete-imports',1],
+    ['src/state/parite-typeof-rendu.ts',"export type A=typeof import('../gameIso/x');",'murs/purete',1],
+    ['src/state/parite-index-rendu.ts',"import('../gameIso');",'murs/purete',1],
+    ['src/state/parite-gabarit-rendu.ts',"import(`../gameIso/x`);",'murs/purete',1],
+    ['src/state/parite-require-rendu.ts',"require('../gameIso/x');",'murs/purete',1],
+    ['src/state/parite-voisin-rendu.ts',"import('../gameIsoX/x');",'murs/purete',0],
+    ['src/engine/parite-require-gabarit.ts',"require(`../ui/x`);",'murs/purete',1],
+    ['src/data/parite-create-require.ts',"createRequire(import.meta.url)('../state/x');",'murs/purete',1],
+    ['src/data/parite-module-require.ts',"module.require('../state/x');",'murs/purete',1],
+    ['src/engine/parite-module-require-gabarit.ts',"module.require(`../ui/x`);",'murs/purete',1],
+    ['src/ui/hud/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
+    ['src/ui/parite-atelier-alias.tsx',"import {ConditionEditor} from '@/ui/editor/ConditionEditor';ConditionEditor();",'murs/atelier',1],
+    ['src/ui/compendium/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
+    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../editor/refsDOp';OP_LABEL.x;",'murs/atelier',1],
+    ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
+    ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
+    ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
+    ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
+    ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
+    ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],
+    ['src/state/parite-minuterie-window.ts','window.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/lib/parite-minuterie-globalthis.ts','globalThis.setInterval(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-self.ts','self.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-global.ts','global.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-destructuree.ts','const {setTimeout:poser}=window;poser(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-type.ts','export type T=ReturnType<typeof setTimeout>;','murs/minuteries',0],
+    ['src/state/parite-minuterie-tierce.ts','horloge.setTimeout(f,0);','murs/minuteries-hote',0],
+    ['src/state/parite-minuterie-import-node.ts',"import {setTimeout} from 'node:timers';setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/lib/parite-minuterie-import-timers.ts',"import {setInterval} from 'timers';setInterval(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-espace.ts',"import * as t from 'node:timers';t.setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-neutre.ts',"import {clearTimeout} from 'node:timers';clearTimeout(x);",'murs/minuteries-import',0],
+    ['src/state/parite-minuterie-appel-import.ts',"import {setTimeout} from './horloge';setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-declare.ts','declare const setTimeout:(f:()=>void,n:number)=>number;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-declare-fonction.ts','declare function setInterval(f:()=>void,n:number):number;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-parametre.ts','export function g(setTimeout:(f:()=>void,n:number)=>void){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-neutre.ts','export const poserPlusTard=(f:()=>void)=>f;','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-objet.ts','const {setTimeout}=horloge;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-appel-window-as.ts','const {setInterval}=window as Window;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-require.ts',"import timers=require('node:timers');import setTimeout=timers.setTimeout;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-objet.ts','export const g=({setTimeout}:{setTimeout:(f:()=>void,n:number)=>void})=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-defaut.ts','export const g=(setTimeout=h)=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-catch.ts','try{x();}catch(setTimeout){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-tableau.ts','const [setTimeout]=paire;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-namespace.ts','namespace setTimeout {}setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;export const t=new setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;export const t=new setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-new-window-as.ts','const {setInterval}=window as Window;export const t=new setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');return new setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-neutre.ts','export const t=new Horloge(f,0);','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-methode.ts','export const o={setTimeout(f:()=>void){return f;}};','murs/minuteries-appel',0],
+    ['src/lib/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
+    ['src/state/parite-minuterie.test.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['src/ui/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['server/src/parite-alea.ts','export const a=Math.random();','murs/alea-serveur',1],
+    ['server/src/sous/parite-alea-valeur.ts','export const f=(g)=>g(Math.random);','murs/alea-serveur',1],
+    ['server/src/parite-alea-destructure.ts','const {random}=Math; export const a=random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-global.ts','export const a=globalThis.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-self.ts','export const a=self.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-window.ts',"export const a=window['Math'].random();",'murs/alea-serveur',1],
+    ['server/src/parite-alea-alias-global.ts','const g=globalThis; export const a=g.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-chaine.ts','export const a=globalThis.self.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-chaine-double.ts','export const a=globalThis.globalThis.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-neutre.ts','export const a=Math.floor(1);','murs/alea-serveur',0],
+    ['server/src/parite-alea.test.ts','export const a=Math.random();','murs/alea-serveur',0],
+    ['server/src/parite-alea.test.tsx','export const a=Math.random();','murs/alea-serveur',0],
+    ['src/parite-alea.ts','export const a=Math.random();','murs/alea-serveur',0],
+    ['src/ui/console/CombatConsole.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-jsx-multiligne.tsx','export const A=()=><b title={raison}\n>x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-litteral.ts',"export const c={id:'x',title:'raison'};",'murs/console-sans-title',1],
+    ['src/ui/console/sous/parite-imbrique.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation.tsx',"({title:t}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-profonde.tsx',"({a:{title:t}}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-tableau.tsx',"[{title:t}]=x;",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-of.tsx',"for ({title:t} of xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-in.tsx',"for ({title:t} in xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-objet-tableau.tsx',"({a:[{title:t}]}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-tableau-tableau.tsx',"[[{title:t}]]=x;",'murs/console-sans-title',1],
+    ['src/ui/parite-hors-console.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-console.test.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-attributs-voisins.tsx','export const A=()=><b aria-label="nom" data-title="x"><use xlink:title="x"/></b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-proprietes-neutres.tsx',"const {title:t}=x; const o={title, 'title':1, ['title']:2, get title(){return 1}}; type T={title:string};",'murs/console-sans-title',0],
+    ['src/ui/console/parite-liaisons.tsx',"function f({title:t}){} for (const {title:u} of xs){} try{}catch({title:v}){}",'murs/console-sans-title',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {
@@ -190,10 +273,290 @@ test('les dix murs mordent dans leur portée et passent leurs témoins neutres o
     assert.equal(messages.length,cas[i][3],JSON.stringify(resultats[i]))
     for(const m of messages) {assert.equal(m.severity,2);assert.equal(m.line,1);assert.ok(m.column>0)}
   }
+  assert.deepEqual(resultats[cas.findIndex(([filePath])=>filePath==='src/lib/minuteries.ts')].messages.filter(m=>(m.ruleId??'').startsWith('murs/minuteries')),[])
   const unused=lintFixtures([{filePath:'src/parite-directive.ts',code:'// eslint-disable-next-line murs/marques -- sonde\nexport const a=1;'}])[0]
   assert.equal(unused.messages.length,1)
   assert.equal(unused.messages[0].severity,1)
   assert.equal(unused.messages[0].line,1)
+})
+
+test('murs/roles-composites : un rôle ARIA composite se pose dans src/ui/composites, sous toutes ses formes, partout sous src, tests compris', () => {
+  const REGLE='murs/roles-composites'
+  const cas = [
+    ['src/ui/parite-role-guillemets.tsx','export const A=()=><div role="listbox"/>;',1],
+    ['src/ui/sous/parite-role-apostrophes.tsx',"export const A=()=><div role='radiogroup'/>;",1],
+    ['src/ui/parite-role-expression.tsx',"export const A=()=><div role={'tablist'}/>;",1],
+    ['src/ui/parite-role-gabarit.tsx','export const A=()=><div role={`menu`}/>;',1],
+    ['src/ui/CareerPath.tsx',"export const A=({onSelect})=><Row role={onSelect ? 'radiogroup' : 'list'}/>;",1],
+    ['src/ui/parite-role-logique.tsx',"export const A=({o})=><div role={o && 'grid'}/>;",2],
+    ['src/ui/parite-role-as.tsx',"export const A=()=><div role={'menu' as const}/>;",2],
+    ['src/ui/parite-role-constante.tsx',"const R='listbox'; export const A=()=><div role={R}/>;",1],
+    ['src/ui/sous/parite-role-prop.tsx','export const A=({r})=><Row role={r}/>;',1],
+    ['src/ui/parite-role-gabarit-trou.tsx','export const A=({r})=><div role={`${r}`}/>;',1],
+    ['src/ui/parite-role-appel.tsx','export const A=()=><div role={roleDe()}/>;',1],
+    ['src/ui/parite-role-cond-calculee.tsx',"export const A=({o,r})=><div role={o ? r : 'list'}/>;",1],
+    ['src/ui/parite-role-cond-imbriquee.tsx',"export const A=({o,p})=><div role={o ? 'list' : p ? 'menu' : undefined}/>;",2],
+    ['src/ui/parite-role-cond-neutre.tsx',"export const A=({o,f})=><><div role={o ? 'button' : undefined}/><b role={f ? 'status' : 'alert'}/><i role={'list'}/></>;",0],
+    ['src/ui/parite-role-set-composite.ts',"export const f=(el)=>el.setAttribute('role','menu');",1],
+    ['src/ui/parite-role-set-calcule.ts',"export const f=(el,r)=>el.setAttribute('role',r);",1],
+    ['src/ui/parite-role-set-indexe.ts',"export const f=(el,r)=>el['setAttribute']('role',r);",1],
+    ['src/ui/parite-role-set-neutre.ts',"export const f=(el)=>{el.setAttribute('role','button');el.setAttribute('aria-label',x);};",0],
+    ['src/ui/parite-role-affecte.ts',"export const f=(el)=>{el.role='grid';};",1],
+    ['src/ui/parite-role-affecte-indexe.ts',"export const f=(el,r)=>{el['role']=r;};",1],
+    ['src/ui/parite-role-affecte-neutre.ts',"export const f=(o)=>{o.roles=1; const role=o.role; return role;};",0],
+    ['src/ui/parite-role-set.test.tsx',"export const f=(el)=>el.setAttribute('role','listbox');",1],
+    ['src/ui/composites/parite-role-calcule.tsx',"export const A=({r})=><div role={r}/>; export const f=(el,r)=>{el.setAttribute('role',r);el.role=r;};",0],
+    ['src/ui/parite-role-etale.tsx',"export const A=()=><div {...{role:'listbox'}}/>;",1],
+    ['src/ui/parite-role-objet.ts',"export const attrs={'role':`tablist`};",1],
+    ['src/ui/parite-role-neutre.tsx','export const A=()=><><div role="list"/><b role="option"/><b role="menuitem"/><b role="group"/><b data-role="listbox" aria-label="menu"/></>;',0],
+    ['src/ui/parite-role-propriete-neutre.ts',"export const o={kind:'menu', role:'list'}; export type T={role:'listbox'};",0],
+    ['src/ui/composites/parite-role-primitive.tsx','export const A=()=><div role="listbox"/>;',0],
+    ['src/ui/composites/sous/parite-role-objet.ts',"export const attrs={role:'menu'};",0],
+    ['src/ui/parite-role-html-chaine.tsx',"export const h='<ul role=\"listbox\"></ul>'; export const A=()=><div dangerouslySetInnerHTML={{__html:h}}/>;",1],
+    ['src/ui/parite-role-html-gabarit.tsx','export const A=({x})=><div dangerouslySetInnerHTML={{__html:`<div role="menu">${x}</div>`}}/>;',1],
+    ['src/ui/parite-role-html-texte.tsx',"export const A=()=><pre>role='grid'</pre>;",1],
+    ['src/ui/parite-role-selecteur-neutre.ts','export const SEL=\'[role="listbox"],[role="menu"]\';',0],
+    ['src/ui/composites/parite-role-html.tsx',"export const h='<ul role=\"listbox\"></ul>';",0],
+    ['src/ui/parite-role.test.tsx','export const A=()=><div role="listbox"/>;',1],
+    ['src/ui/parite-role-tablist.test.tsx','export const A=()=><div role="tablist"/>;',1],
+    ['src/ui/parite-role-tablist-html.test.tsx','export const h=`<div role="tablist">`;',1],
+    ['src/ui/parite-role-arbre.tsx','export const A=()=><><div role="tree"/><b role="treegrid"/></>;',2],
+    ['src/ui/parite-role-barre-de-menu.tsx',"export const A=()=><nav role={'menubar'}/>;",1],
+    ['src/gameIso/stage/parite-role-jeu.tsx','export const A=()=><div role="listbox"/>;',1],
+    ['src/gameIso/parite-role-jeu-constante.tsx',"const R='listbox'; export const A=()=><div role={R}/>;",1],
+    ['src/state/parite-role-jeu-set.ts',"export const f=(el)=>el.setAttribute('role','grid');",1],
+    ['src/gameIso/parite-role-jeu.test.tsx','export const A=()=><div role="tablist"/>;',1],
+    ['src/gameIso/stage/parite-role-jeu-neutre.tsx','export const A=()=><><svg role="img"/><div role="status"/><b role="button"/></>;',0],
+    ['src/ui/parite-role-assertion.test.tsx',"export const t=(html)=>html.includes('role=\"listbox\"');",0],
+    ['src/ui/parite-role-objet.test.ts',"export const attrs={role:'grid'};",1],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const [filePath,,attendu]=cas[i]
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.deepEqual(vus.map(m=>[m.severity,m.line]),Array(attendu).fill([2,1]),`${filePath}: ${JSON.stringify(resultats[i].messages)}`)
+  }
+})
+
+test('murs/stockage-web : le stockage web nommé sous src/ est refusé, quel que soit son porteur, hors instruments Vitest', () => {
+  const PROPRIETE='murs/stockage-web', GLOBAL='murs/stockage-web-global'
+  const cas = [
+    ['src/state/parite-sw-nu.ts','export const lire = (k: string) => sessionStorage.getItem(k);',GLOBAL],
+    ['src/ui/parite-sw-typeof.ts',"export const a = typeof localStorage === 'undefined';",GLOBAL],
+    ['src/ui/parite-sw-window.ts','window.localStorage.clear();',PROPRIETE],
+    ['src/audio/parite-sw-globalthis.ts','export const s = (globalThis as { sessionStorage?: Storage }).sessionStorage;',PROPRIETE],
+    ['src/net/parite-sw-self.ts','export const s = self.localStorage;',PROPRIETE],
+    ['src/lib/parite-sw-indexe.ts',"export const s = globalThis['sessionStorage'];",PROPRIETE],
+    ['src/lib/parite-sw-gabarit.ts','export const s = globalThis[`localStorage`];',PROPRIETE],
+    ['src/state/parite-sw-destructure.ts','export const { localStorage: s } = window;',PROPRIETE],
+    ['src/state/parite-sw-objet.ts','export const s = porteur.sessionStorage;',PROPRIETE],
+    ['src/state/parite-sw-neutre.ts',[
+      '// le localStorage en commentaire',
+      'export const t = "miroir localStorage";',
+      "export type G = 'localStorage' | 'sessionStorage';",
+      'export type T = { localStorage?: Storage }; export const o = { sessionStorage: 1 };',
+      'export function f(localStorage: number) { return localStorage; }',
+      'export const couture = (genre: G): Storage | null => globalThis[genre] ?? null;',
+    ].join('\n'),null],
+    ['src/state/parite-sw.test.ts','(globalThis as { localStorage?: Storage }).localStorage = fake; sessionStorage.clear();',null],
+    ['src/gameIso/parite-sw.bench.ts','localStorage.clear();',null],
+    ['scripts/parite-sw.mjs','window.localStorage.clear();',null],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const [filePath,,regle]=cas[i]
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===PROPRIETE||m.ruleId===GLOBAL)
+    assert.deepEqual(vus.map(m=>[m.ruleId,m.severity,m.line]),regle?[[regle,2,1]]:[],`${filePath}: ${JSON.stringify(resultats[i].messages)}`)
+  }
+})
+
+test('murs/clavier-global : un écouteur clavier ne se pose, sur aucun receveur, que dans src/ui/clavier ; un type calculé et une pose détournée sont refusés', () => {
+  const REGLE='murs/clavier-global'
+  const cas = [
+    ['src/ui/parite-cg-litteral.ts',"window.addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-keyup.ts',"document.addEventListener('keyup', f, true);",1],
+    ['src/state/parite-cg-keypress.ts','globalThis.addEventListener("keypress", f);',1],
+    ['src/ui/parite-cg-self.ts',"self.addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-gabarit.ts','window.addEventListener(`keydown`, f);',1],
+    ['src/ui/parite-cg-indexe.ts',"window['addEventListener']('keydown', f);",1],
+    ['src/ui/parite-cg-chaine.ts',"window.document.addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-optionnel.ts',"window?.addEventListener('keyup', f);",1],
+    ['src/ui/parite-cg-nu.ts',"addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-propriete.ts','window.onkeydown = f;',1],
+    ['src/ui/parite-cg-table.ts','const PHASES = { mouseover: false, keydown: true };\nfor (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, f, capture);',1],
+    ['src/ui/parite-cg-boucle.ts',"const SUITE = ['pointermove', 'pointerup'];\nfor (const t of SUITE) window.addEventListener(t, f);",1],
+    ['src/ui/parite-cg-foreach.ts',"const T = ['keyup'] as const;\nT.forEach((t) => window.addEventListener(t, f));",2],
+    ['src/ui/parite-cg-constante.ts','const TYPE = "keydown";\ndocument.addEventListener(TYPE, f);',2],
+    ['src/ui/parite-cg-importe.ts',"import { TYPES } from './types';\nfor (const t of TYPES) document.addEventListener(t, f);",1],
+    ['src/ui/parite-cg-parametre.ts','export function poser(type: string) { window.addEventListener(type, f); }',1],
+    ['src/ui/parite-cg-trou.ts','window.addEventListener(`key${sens}`, f);',1],
+    ['src/ui/parite-cg-pointeur.ts',"window.addEventListener('pointermove', f);\ndocument.addEventListener('visibilitychange', g);\nwindow.onblur = h;",0],
+    ['src/ui/parite-cg-local.ts',"bouton.addEventListener('keydown', f);\nboite.addEventListener(type, g);",2],
+    ['src/ui/parite-cg-alias.ts',"const w = window;\nw.addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-ternaire.ts',"export const poser = (c: boolean) => (c ? window : document).addEventListener('keydown', f);",1],
+    ['src/ui/parite-cg-owner.ts',"export const poser = (n: Node) => n.ownerDocument?.addEventListener('keyup', f);",1],
+    ['src/ui/parite-cg-body.ts',"document.body.addEventListener('keypress', f);",1],
+    ['src/ui/parite-cg-element.ts','champ.onkeydown = f;',1],
+    ['src/ui/parite-cg-call.ts',"window.addEventListener.call(window, 'keydown', f);",2],
+    ['src/ui/parite-cg-bind.ts',"const poser = document.addEventListener.bind(document);\nposer('keydown', f);",2],
+    ['src/ui/parite-cg-destructure.ts',"const { addEventListener: poser } = window;\nposer('keydown', f);",2],
+    ['src/ui/parite-cg-jsx.tsx','export const A = () => <b onKeyDown={f} />;',0],
+    ['src/ui/hud/parite-cg-primitive-copiee.ts',readFileSync(join(RACINE,'src/ui/clavier/interne/ecouterClavier.ts'),'utf8'),'>0'],
+    ['src/ui/parite-cg-commentaire.ts',"// window.addEventListener('keydown', f)\nexport const mot = 'clavier';",0],
+    ['src/ui/parite-cg-type-ecrit.ts',"export const mot = 'keydown';",1],
+    ['src/ui/hud/parite-cg-cle-gabarit.ts',"window[`addEventListener`]('keydown', f);",1],
+    ['src/ui/hud/parite-cg-cle-concat.ts',"(window as any)['add' + 'EventListener']('keydown', f);",1],
+    ['src/ui/hud/parite-cg-gestionnaire-gabarit.ts',"(document as any)[`onkeydown`] = f;",1],
+    ['src/ui/hud/parite-cg-gestionnaire-assign.ts',"Object.assign(document, { onkeydown: f });",1],
+    ['src/ui/hud/parite-cg-gestionnaire-attribut.ts',"document.body.setAttribute('onkeyup', 'x()');",1],
+    ['src/ui/clavier/parite-cg-primitive.ts',"window.addEventListener('keydown', f);\ndocument.addEventListener(type, g);",0],
+    ['src/ui/parite-cg.test.ts',"window.addEventListener('keydown', f);",0],
+    ['scripts/parite-cg.mjs',"window.addEventListener('keydown', f);",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  const ecarts=[]
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    if(cas[i][2]==='>0' ? !vus.length : vus.length!==cas[i][2]) ecarts.push(`${cas[i][0]} : ${vus.length} pour ${cas[i][2]}`)
+    for(const m of vus) assert.equal(m.severity,2)
+  }
+  assert.deepEqual(ecarts,[])
+})
+
+test('murs/echap : le code d’Échap ne s’écrit qu’à la définition exportée de `CODE_ECHAP`, sous src/state/clavier', () => {
+  const REGLE='murs/echap'
+  const cas = [
+    ['src/ui/parite-echap-onkeydown.tsx',"export const A=()=><b onKeyDown={(e)=>{ if (e.key === 'Escape') f(); }}/>;",1],
+    ['src/ui/parite-echap-code.ts','export const ferme=(e: KeyboardEvent)=>e.code !== "Escape";',1],
+    ['src/ui/parite-echap-gabarit.ts','export const c=`Escape`;',1],
+    ['src/ui/parite-echap-jsx.tsx','export const A=()=><kbd data-code="Escape"/>;',1],
+    ['src/ui/parite-echap-type.ts',"export type T='Escape';",1],
+    ['src/ui/parite-echap-redefinie.ts',"export const CODE_ECHAP='Escape';",1],
+    ['src/state/clavier/parite-echap-liaison.ts',"export const L={codes:['Escape']};",1],
+    ['src/state/clavier/parite-echap-autre-nom.ts',"export const ANNULER='Escape';",1],
+    ['src/state/clavier/parite-echap-gabarit.ts','export const CODE_ECHAP=`Escape`;',1],
+    ['src/state/clavier/parite-echap-locale.ts',"export function f(e: KeyboardEvent) { const CODE_ECHAP='Escape'; return e.code===CODE_ECHAP; }",1],
+    ['src/state/clavier/parite-echap-let.ts',"let CODE_ECHAP='Escape';\nexport const g=()=>CODE_ECHAP;",1],
+    ['src/state/clavier/parite-echap-export-let.ts',"export let CODE_ECHAP='Escape';",1],
+    ['src/state/clavier/parite-echap-non-exportee.ts',"const CODE_ECHAP='Escape';\nexport const g=()=>CODE_ECHAP;",1],
+    ['src/state/clavier/parite-echap-definition.ts',"export const CODE_ECHAP='Escape';",0],
+    ['src/ui/clavier/couches/parite-echap-neutre.ts',"import { CODE_ECHAP } from '../../../state/clavier/keybindings';\nexport const t='pursuit.preyEscaped'; export const o={Escape:1};\n// 'Escape' en commentaire\nexport const ferme=(e: KeyboardEvent)=>e.code===CODE_ECHAP;",0],
+    ['src/ui/parite-echap-keycode.ts','export const ferme=(e: KeyboardEvent)=>e.keyCode===27;',1],
+    ['src/gameIso/parite-echap-keycode-indexe.ts',"export const ferme=(e: KeyboardEvent)=>e['keyCode']===27;",1],
+    ['src/ui/hud/parite-echap-ancien-nom.ts',"export const ferme=(e: KeyboardEvent)=>e.key==='Esc';",1],
+    ['src/state/clavier/parite-echap-ancien-nom.ts','export const L={codes:[`Esc`]};',1],
+    ['src/ui/parite-echap-alias-neutre.ts',"export const t='Escalier'; export const c=(e: KeyboardEvent)=>e.code; export const k={keyCodes:1};",0],
+    ['src/ui/parite-echap.test.tsx',"fireEvent.keyDown(x,{key:'Escape'});",0],
+    ['src/ui/parite-echap-keycode.test.tsx',"fireEvent.keyDown(x,{key:'Esc',keyCode:27}); export const k=(e)=>e.keyCode;",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) assert.equal(m.severity,2)
+  }
+})
+
+test('murs/clavier-positions : le registre clavier, son lecteur et son remap ne lisent jamais `e.key` ; les couches lisent leurs touches nommées par `e.key`', () => {
+  const REGLE='murs/clavier-positions'
+  const cas = [
+    ['src/state/clavier/parite-pos-membre.ts','export const k=(e: KeyboardEvent)=>e.key;',1],
+    ['src/ui/clavier/parite-pos-indexe.ts',"export const k=(e: KeyboardEvent)=>e['key'];",1],
+    ['src/ui/clavier/parite-pos-destructure.ts','export const k=({ key }: KeyboardEvent)=>key;',1],
+    ['src/state/clavier/parite-pos-chaine.ts',"export const doc='lire e.key';",1],
+    ['src/ui/clavier/parite-pos-gabarit.ts','export const doc=`lire e.key`;',1],
+    ['src/state/clavier/parite-pos-code.ts','export const c=(e: KeyboardEvent)=>e.code;\nexport const t=\'keydown\';',0],
+    ['src/ui/parite-pos-hors.ts','export const k=(e: KeyboardEvent)=>e.key;',0],
+    ['src/ui/clavier/parite-pos-remap.ts','export const k=(e: KeyboardEvent)=>e.key;',1],
+    ['src/ui/clavier/couches/parite-pos-couche.ts',"export const k=(e: KeyboardEvent)=>e.key==='Enter'||e.key==='Tab';",0],
+    ['src/state/clavier/parite-pos.test.ts','export const k=(e: KeyboardEvent)=>e.key;',0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) assert.equal(m.severity,2)
+  }
+})
+
+test('murs/interne : la pose brute du clavier ne s’importe que sous src/ui/clavier', () => {
+  const REGLE='murs/interne'
+  const QUITTER="ecouterClavier('capture', { keydown: (e) => { if (e.code === 'KeyQ') quitter(); } });"
+  const cas = [
+    ['src/ui/hud/parite-interne-pose.ts',`import { ecouterClavier } from '../clavier/interne/ecouterClavier';\n${QUITTER}`,1],
+    ['src/gameIso/parite-interne-pose.ts',`import { ecouterClavier } from '../ui/clavier/interne/ecouterClavier';\n${QUITTER}`,1],
+    ['src/ui/parite-interne-alias.ts',`import { ecouterClavier } from '@/ui/clavier/interne/ecouterClavier';\n${QUITTER}`,1],
+    ['src/ui/parite-interne-dynamique.ts',"export const f=async()=>(await import('./clavier/interne/ecouterClavier')).ecouterClavier;",1],
+    ['src/ui/parite-interne-reexport.ts',"export { ecouterClavier } from './clavier/interne/ecouterClavier';",1],
+    ['src/ui/parite-interne.test.ts',`import { ecouterClavier } from './clavier/interne/ecouterClavier';\n${QUITTER}`,1],
+    ['src/ui/clavier/parite-interne-registre.ts',`import { ecouterClavier } from './interne/ecouterClavier';\n${QUITTER}`,0],
+    ['src/ui/clavier/couches/parite-interne-couche.ts',`import { ecouterClavier } from '../interne/ecouterClavier';\n${QUITTER}`,0],
+    ['src/ui/parite-interne-remap.tsx',"import { useRemapDeTouche } from './clavier/remapDeTouche';\nexport const f=(r: { current: HTMLElement | null })=>useRemapDeTouche(r).armer('toggle-menu');",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
+test('murs/echap-import : `CODE_ECHAP` ne s’importe que sous src/state/clavier et src/ui/clavier, tests compris', () => {
+  const REGLE='murs/echap-import'
+  const cas = [
+    ['src/ui/hud/parite-echap-import.ts',"import { CODE_ECHAP } from '../../state/clavier/keybindings';\nexport const f=(e: KeyboardEvent)=>e.code===CODE_ECHAP;",1],
+    ['src/ui/parite-echap-import-alias.ts',"import { CODE_ECHAP } from '@/state/clavier/keybindings';\nexport const c=CODE_ECHAP;",1],
+    ['src/ui/parite-echap-import-renomme.ts',"import { CODE_ECHAP as ESC } from '../state/clavier/keybindings';\nexport const c=ESC;",1],
+    ['src/ui/parite-echap-import-espace.ts',"import * as kb from '../state/clavier/keybindings';\nexport const c=kb.CODE_ECHAP;",1],
+    ['src/ui/parite-echap-import-relai.ts',"export { CODE_ECHAP } from '../state/clavier/keybindings';",1],
+    ['src/ui/parite-echap-import-relai-ui.ts',"import { CODE_ECHAP } from './clavier/couches/porteEchap';\nexport const c=CODE_ECHAP;",1],
+    ['src/state/parite-echap-import.ts',"import { CODE_ECHAP } from './clavier/keybindings';\nexport const c=CODE_ECHAP;",1],
+    ['src/ui/parite-echap-import.test.tsx',"import { CODE_ECHAP } from '../state/clavier/keybindings';\nexport const c=CODE_ECHAP;",1],
+    ['src/ui/parite-echap-import-neutre.ts',"import { KEYBINDINGS, eventMods } from '../state/clavier/keybindings';\nexport const c=[KEYBINDINGS,eventMods];",0],
+    ['src/ui/clavier/couches/parite-echap-import.ts',"import { CODE_ECHAP } from '../../../state/clavier/keybindings';\nexport const c=CODE_ECHAP;",0],
+    ['src/state/clavier/parite-echap-import.ts',"import { CODE_ECHAP } from './keybindings';\nexport const c=CODE_ECHAP;",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
+test('murs/datalist : `<datalist>` et `<input list>` sous src sont refusés hors du dossier de RefField et des instruments Vitest', () => {
+  const REGLE='murs/datalist'
+  const cas = [
+    ['src/ui/editor/codex/parite-datalist.tsx','export const A=()=><datalist id="d"><option value="x"/></datalist>;',1],
+    ['src/ui/editor/codex/parite-input-list.tsx','export const A=()=><input list="d" value="x"/>;',1],
+    ['src/ui/editor/codex/parite-input-list-expr.tsx','export const A=({id})=><input value="x" list={id}/>;',1],
+    ['src/ui/parite-datalist-chaine.ts','export const h="<datalist id=d></datalist>";',1],
+    ['src/ui/parite-datalist-gabarit.ts','export const h=`<datalist id=${d}>`;',1],
+    ['src/ui/parite-datalist-dom.ts',"export const e=document.createElement('datalist');",1],
+    ['src/ui/parite-datalist-regex.ts','export const r=/<datalist id=d>/;',1],
+    ['src/ui/parite-datalist-regex-source.ts','export const f=(e)=>{e.innerHTML=/<datalist id=d>/.source;};',1],
+    ['src/ui/hud/parite-datalist-jsx-multiligne.tsx','export const A=()=>(\n<datalist id="d"/>);',1],
+    ['src/ui/compendium/parite-voisin-de-reffield.tsx','export const A=()=><datalist id="d"/>;',1],
+    ['src/ui/compendium/refField/RefField.tsx','export const A=()=><><input list="d"/><datalist id="d"/></>;',0],
+    ['src/ui/compendium/refField/parite-proprietaire-voisin.tsx','export const A=()=><datalist id="d"/>;',0],
+    ['src/ui/editor/parite-datalist.test.tsx','export const A=()=><><input list="d"/><datalist id="d"/></>;',0],
+    ['src/ui/parite-datalist.bench.ts','export const h="<datalist>";',0],
+    ['src/state/parite-hors-ui.tsx','export const A=()=><datalist id="d"/>;',1],
+    ['src/gameIso/stage/parite-datalist-jeu.tsx','export const A=()=><><input list="d"/><datalist id="d"/></>;',2],
+    ['src/gameIso/parite-datalist-jeu.test.tsx','export const A=()=><datalist id="d"/>;',0],
+    ['src/ui/parite-datalist-neutre.tsx',[
+      '// un <datalist> cité en commentaire',
+      'export const A=({list})=><MasterDetail list={list}><select data-list="x"/><input aria-label="nom"/></MasterDetail>;',
+      'export const o={list:1, datalist:2}; export const t="datalist"; export const r=/datalist/;',
+    ].join('\n'),0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const [filePath,code,attendu]=cas[i]
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,attendu,`${filePath}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,code.includes('\n')?2:1)}
+  }
 })
 
 test('positions Unicode et erreur de parse sans code sont rendues par le vrai CLI', () => {

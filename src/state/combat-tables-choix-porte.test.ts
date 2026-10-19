@@ -6,17 +6,19 @@ import {
 import { displayStep, hostStep, tableStep } from './rollSeam';
 import { stepInteraction, tableStepPosee } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
+import { t } from '../i18n';
 import { combatStakeRef } from '../data';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { modalOwnerOf, seatOwns, ownsLocally } from './netOwnership';
+import { modalOwnerOf, seatOwns, ownsLocal } from './netOwnership';
 import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from './pendings';
 import { OPS_DIFFEREES } from './combatEffects';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
@@ -98,7 +100,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     // COOP : la fenêtre revient au siège de la victime, jamais à l'hôte qui tient l'attaquant.
     expect(modalOwnerOf(useGame.getState())).toBe(hero.id);
     expect(seatOwns(useGame.getState(), 1, hero.id)).toBe(true);
-    expect(ownsLocally(useGame.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 
   it('PIÈGE-LAME (Critique en parant) : options + charge `bladeTrap` + enjeu des deux voies, défaut « Critique »', () => {
@@ -132,7 +134,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     expect(st.bladeTrap!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
     expect(st.outcome!.length, 'ce que chaque voie coûte est écrit sous les options').toBeGreaterThan(0);
     expect(modalOwnerOf(useGame.getState()), 'COOP : le piégeur tranche SA parade').toBe(defenseur.id);
-    expect(ownsLocally(useGame.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 });
 
@@ -252,7 +254,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         fuir: {
           participants: [
             { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
-            { id: fuyard.id, kind: 'calme', interactive: true, calme: { success: false, roll: 70, target: 50, sl: -1 } },
+            { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },
       },
@@ -265,7 +267,11 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(st.fleeMove, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
     expect(st.fleeMove!.moverId).toBe(fuyard.id);
     expect(st.fleeMove!.foeId).toBe(frappeur.id);
-    expect(st.fleeMove!.broken, 'Calme raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.fleeMove!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
+      t('cs.fuiteReprise', { name: fuyard.label, foe: frappeur.label }),
+      t('cs.panic', { name: fuyard.label, broken: 2 }),
+    ]);
     expect(st.reveal).toBeUndefined();
     expect(st.options).toBeUndefined();
     expect(st.actorId, 'la reprise appartient au FUYARD').toBe(fuyard.id);

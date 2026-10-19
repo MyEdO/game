@@ -7,7 +7,7 @@ import { cascadeAppliers } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascadeTestKit';
 import { composeRollLabel } from './rollSeam';
 import { t } from '../i18n';
-import { byId, refLabel, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles, skills, etats } from '../data';
+import { byId, refLabel, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles } from '../data';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -804,20 +804,8 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
     }
   });
 
-  it('chaque fiche référencée EXISTE au catalogue (aucun renvoi mort)', () => {
-    // Le foyer d'un enjeu de voyage peut être une ENTITÉ (la Compétence jetée, l'État subi) : sa
-    // catégorie voyage avec l'id (`ruleCategory`, défaut `regles`) — le catalogue interrogé suit.
-    const FOYERS: Record<string, { id: string }[]> = { regles, skills, etats };
-    for (const e of VOYAGE_STAKES) {
-      if (!e.rule) continue;
-      const cat = e.ruleCategory ?? 'regles';
-      expect(FOYERS[cat], `catégorie de foyer inconnue : ${cat}`).toBeTruthy();
-      expect(FOYERS[cat].some((r) => r.id === e.rule), `fiche introuvable : ${cat}:${e.rule}`).toBe(true);
-    }
-  });
-
   it('aucune fiche de navigation ORPHELINE (chacune est référencée par ≥1 gabarit)', () => {
-    const referencees = new Set(VOYAGE_STAKES.map((e) => e.rule).filter(Boolean));
+    const referencees = new Set(VOYAGE_STAKES.flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])));
     const navigation = regles.filter((r) => r.id.startsWith('navigation-'));
     expect(navigation.length).toBeGreaterThan(0);
     for (const f of navigation) expect(referencees.has(f.id), `fiche orpheline : ${f.id}`).toBe(true);
@@ -826,7 +814,7 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
   it('les fiches créées portent leur SOURCE (livre + folio + ligne)', () => {
     // Périmètre STRUCTUREL : les fiches derrière les étapes FLUVIALES (`kind` river*), pas un préfixe
     // d'id — le catalogue d'enjeux sert aussi la mer, dont les fiches viennent d'un autre livre.
-    const ids = new Set(VOYAGE_STAKES.filter((s) => s.kind.startsWith('river')).map((s) => s.rule).filter(Boolean));
+    const ids = new Set(VOYAGE_STAKES.filter((s) => s.kind.startsWith('river')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');

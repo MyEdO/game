@@ -36,7 +36,6 @@ import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
 import { testValue } from '../engine/skills';
-import { effectiveChar } from '../engine/characteristics';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { touchActors } from './combatOrParty';
@@ -65,7 +64,8 @@ import {
   type SequenceSide, type SequenceCombinedRules,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
-import { actorIn, garanti } from './combatants';
+import { actorIn } from './combatants';
+import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './sceneNpc';
 import type { Scene } from './scene';
 import { jetSurfaced } from './netOwnership';
@@ -125,7 +125,7 @@ function valeurDesCoequipiers(p: TavernPayload): number {
  */
 export function tavernGameValue(hero: Combatant, game: TavernGame): number {
   if (game.skill) return testValue(hero, game.skill.id, game.characteristic, game.skill.spec);
-  if (game.characteristic) return effectiveChar(hero, game.characteristic);
+  if (game.characteristic) return testValue(hero, undefined, game.characteristic);
   return testValue(hero, 'pari'); // aucune Compétence indiquée → Pari (l.11)
 }
 

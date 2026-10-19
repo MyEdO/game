@@ -24,8 +24,10 @@
     "gate": "charge-possible",
     "intent": "portee-charge",
     "coutAction": "mouvement",
-    "rule": "charger",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "charger",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -44,8 +46,10 @@
     "gate": "mouvement-restant-fantassin",
     "intent": "portee-course",
     "coutAction": "action",
-    "rule": "course",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "course",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -65,8 +69,10 @@
     "intent": "portee-mouvement",
     "coutAction": "mouvement",
     "maison": "le déplacement dépense le Mouvement du Tour — imputation du moteur, aucun verbatim de coût cité.",
-    "rule": "mouvement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "mouvement",
+      "type": "regle"
+    },
     "keys": [
       "mouvement"
     ]
@@ -80,12 +86,14 @@
     "gate": "action-libre-hors-frenesie",
     "run": "battleAim",
     "coutAction": "action",
-    "rule": "viser",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "viser",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Accessible (+20)"
+      "note": "LDB 14, Tableau des Difficultés de Combat"
     },
     "keys": [
       "g3-viser"
@@ -102,8 +110,10 @@
     "candidates": "armes-a-distance",
     "panneau": true,
     "coutAction": "action",
-    "rule": "recharge",
-    "ruleCategory": "qualities",
+    "rule": {
+      "id": "recharge",
+      "type": "quality"
+    },
     "keys": [
       "g4-recharger",
       "reload:"
@@ -131,8 +141,10 @@
     "run": "battleTogglePushback",
     "coutAction": "aucun",
     "maison": "arme un MODE d’attaque (la prochaine attaque repousse au lieu de blesser) — le coût est celui de l’attaque.",
-    "rule": "perturbante",
-    "ruleCategory": "qualities",
+    "rule": {
+      "id": "perturbante",
+      "type": "quality"
+    },
     "keys": [
       "g6-geste-arme"
     ]
@@ -148,8 +160,10 @@
     "stance": "heldGround",
     "coutAction": "aucun",
     "maison": "la bascule ne consomme rien ; c'est le TIR effectué en posture qui dépense le Mouvement du Tour.",
-    "rule": "tir-en-mouvement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "tir-en-mouvement",
+      "type": "regle"
+    },
     "keys": [
       "g5-posture"
     ]
@@ -165,8 +179,10 @@
     "stance": "intoCrowd",
     "coutAction": "aucun",
     "maison": "la bascule ne consomme rien : elle change la Difficulté du TIR et la cible touchée, pas l'économie du Tour.",
-    "rule": "tirer-dans-le-tas",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "tirer-dans-le-tas",
+      "type": "regle"
+    },
     "keys": [
       "g5-posture-tas"
     ]
@@ -183,8 +199,10 @@
     "mode": "heal",
     "candidates": "cibles-soin",
     "coutAction": "action",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "keys": [
       "heal",
       "q-soigner"
@@ -234,8 +252,10 @@
     "gate": "action-libre-hors-frenesie-fantassin",
     "run": "battleDefendTotal",
     "coutAction": "action",
-    "rule": "sur-la-defensive",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "sur-la-defensive",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 158,
@@ -254,8 +274,10 @@
     "gate": "desengagement",
     "run": "battleDisengage",
     "coutAction": "action",
-    "rule": "desengagement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "desengagement",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -295,8 +317,10 @@
     "run": "battleFocusSpell",
     "candidates": "sorts-du-heros",
     "coutAction": "action",
-    "rule": "focalisation-etendue",
-    "ruleCategory": "regles"
+    "rule": {
+      "id": "focalisation-etendue",
+      "type": "regle"
+    }
   },
   {
     "id": "dispel",
@@ -311,8 +335,10 @@
     "candidates": "sorts-dissipables",
     "panneau": true,
     "coutAction": "action",
-    "rule": "dissipation",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "dissipation",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 237,
@@ -332,8 +358,10 @@
     "run": "battleDispelSpell",
     "candidates": "sorts-dissipables",
     "coutAction": "action",
-    "rule": "dissipation",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "dissipation",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 237,
@@ -350,8 +378,10 @@
     "run": "battleGainAdvantage",
     "candidates": "competences-avantage",
     "coutAction": "action",
-    "rule": "avantage",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "avantage",
+      "type": "regle"
+    },
     "keys": [
       "advantage-"
     ]
@@ -369,8 +399,10 @@
     ],
     "run": "battleStandUp",
     "coutAction": "mouvement",
-    "rule": "a-terre",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "a-terre",
+      "type": "etat"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 167
@@ -393,8 +425,10 @@
     ],
     "run": "battleRecoverState",
     "coutAction": "action",
-    "rule": "en-flammes",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "en-flammes",
+      "type": "etat"
+    },
     "keys": [
       "roll-fire"
     ]
@@ -413,8 +447,10 @@
     ],
     "run": "battleRecoverState",
     "coutAction": "action",
-    "rule": "empetre",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "empetre",
+      "type": "etat"
+    },
     "keys": [
       "free-entangle"
     ]
@@ -431,8 +467,10 @@
     ],
     "run": "battleBattement",
     "coutAction": "action",
-    "rule": "battement",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "battement",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 133
@@ -453,8 +491,10 @@
     ],
     "run": "battleDistraire",
     "coutAction": "mouvement",
-    "rule": "distraire",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "distraire",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 136
@@ -472,8 +512,10 @@
     "gate": "action-libre",
     "run": "battleFrenzy",
     "coutAction": "action",
-    "rule": "frenesie",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "frenesie",
+      "type": "talent"
+    },
     "keys": [
       "frenzy"
     ]
@@ -532,8 +574,10 @@
     "run": "battleResolvePsychImmune",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
-    "rule": "determination",
-    "ruleCategory": "characteristics"
+    "rule": {
+      "id": "determination",
+      "type": "characteristic"
+    }
   },
   {
     "id": "resolve-ignore-crit",
@@ -545,8 +589,10 @@
     "run": "battleResolveIgnoreCrit",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
-    "rule": "determination",
-    "ruleCategory": "characteristics"
+    "rule": {
+      "id": "determination",
+      "type": "characteristic"
+    }
   },
   {
     "id": "resolve-remove-condition",
@@ -559,8 +605,10 @@
     "candidates": "etats-retirables",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
-    "rule": "determination",
-    "ruleCategory": "characteristics"
+    "rule": {
+      "id": "determination",
+      "type": "characteristic"
+    }
   },
   {
     "id": "mount",
@@ -573,8 +621,10 @@
     "candidates": "montures-adjacentes",
     "coutAction": "mouvement",
     "maison": "enfourcher n’exige aucun Test : l’imputation au Mouvement est notre arbitrage (la guideline ne tranche que les actes à Test).",
-    "rule": "combat-monte",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "combat-monte",
+      "type": "regle"
+    },
     "keys": [
       "mount"
     ]
@@ -589,8 +639,10 @@
     "run": "battleDismount",
     "coutAction": "mouvement",
     "maison": "descendre n’exige aucun Test : l’imputation au Mouvement est notre arbitrage.",
-    "rule": "combat-monte",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "combat-monte",
+      "type": "regle"
+    },
     "keys": [
       "dismount"
     ]
@@ -653,8 +705,10 @@
     "gate": "action-libre",
     "run": "battleAidTeam",
     "coutAction": "action",
-    "rule": "commandant-d-equipe",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "commandant-d-equipe",
+      "type": "talent"
+    },
     "keys": [
       "aid-team"
     ]
@@ -683,8 +737,10 @@
     "gate": "action-libre",
     "run": "battleShipManeuver",
     "coutAction": "action",
-    "rule": "test-equipage-manoeuvre",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "test-equipage-manoeuvre",
+      "type": "regle"
+    },
     "keys": [
       "maneuver-ship"
     ]
@@ -700,8 +756,10 @@
     "armed": "battery",
     "mode": "battery",
     "coutAction": "action",
-    "rule": "test-equipage-batterie",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "test-equipage-batterie",
+      "type": "regle"
+    },
     "keys": [
       "battery"
     ]
@@ -715,8 +773,10 @@
     "gate": "navire-action",
     "run": "battleCrewTest",
     "coutAction": "action",
-    "rule": "test-equipage-rude-epreuve",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "test-equipage-rude-epreuve",
+      "type": "regle"
+    },
     "keys": [
       "crew-test-rude-epreuve"
     ]
@@ -731,8 +791,10 @@
     "run": "battleSingShanty",
     "coutAction": "gratuit",
     "maison": "tâche PARALLÈLE : le chant occupe le chanteur, pas l’Action du navire — arbitrage maison (l’acte exige pourtant un Test).",
-    "rule": "chanson-de-marin",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "chanson-de-marin",
+      "type": "talent"
+    },
     "keys": [
       "sing-shanty"
     ]
@@ -747,8 +809,10 @@
     "run": "battleShipReload",
     "coutAction": "gratuit",
     "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",
-    "rule": "recharge",
-    "ruleCategory": "qualities",
+    "rule": {
+      "id": "recharge",
+      "type": "quality"
+    },
     "keys": [
       "ship-reload"
     ]

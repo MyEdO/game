@@ -159,7 +159,7 @@ describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-diverge
       if (!get().pendingCascade) break;
       stepCascade();
     }
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     expect(day.sea!.hullDelta).toBe(-10); // ce que la journée a coûté à la coque
     // Réparation APRÈS la clôture : la surface vive suit, et la chronique du jour clos garde son delta.
     healVesselHull(get, set, get().travelPlan!.vehicle!, 10);
@@ -802,7 +802,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().suspendedCascades).toEqual([]);
     expect(get().travelPlan!.sea!.daysAtSea, 'la clôture du jour ne s’est pas jouée une fois').toBe(1);
     expect(get().travelPlan!.log, 'la clôture du jour ne s’est pas jouée une fois').toHaveLength(1);
-    const ids = get().pendingRest!.travelDay!.entries!.map((e) => e.id ?? '');
+    const ids = get().travelPlan!.log!.slice(-1)[0]!.entries!.map((e) => e.id ?? '');
     expect(ids.filter((i) => i.startsWith('sea-progression')), 'les dés résolus avant l’embuscade manquent au PV').toHaveLength(progression.participants!.length);
     expect(ids.some((i) => i.startsWith('sea-orientation')), 'le reste du jour ne s’est pas joué').toBe(true);
   });
@@ -2034,7 +2034,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
       sousLaPluie(precip, 'commande');
       runSeaDay(get, set);
       expect(get().pendingCascade?.purpose ?? null, 'aucune fenêtre de jour en cadence commandée').not.toBe('travelDay');
-      return (get().pendingRest?.travelDay?.entries ?? []).filter((e) => e.id?.startsWith('sea-orientation-')).map((e) => e.d!);
+      return (get().travelPlan?.log?.slice(-1)[0]?.entries ?? []).filter((e) => e.id?.startsWith('sea-orientation-')).map((e) => e.d!);
     };
     const seche = lignesOrientation('aucune');
     const mouille = lignesOrientation('tres-abondantes');
@@ -2741,7 +2741,7 @@ describe('journée commandée parquée sur une décision : le PV du jour est ver
     get().cascadeChoose('decision', 'a');
     get().cascadeNext();
     for (let i = 0; i < 30 && get().pendingCascade && !get().pendingRest; i++) stepCascade();
-    const entrees = get().pendingRest?.travelDay?.entries ?? [];
+    const entrees = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
     expect(entrees.length, 'la bande résolue à la reprise n’est pas au PV du jour').toBeGreaterThan(0);
   });
 });
@@ -2874,7 +2874,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     runSeaDay(get, set);
     expect(get().pendingCascade, 'traversée commandée = sans fenêtre (attendu validé en recette #1426)').toBeNull();
     expect(get().vessel!.fouling?.lastWeek, 'le Test de la semaine a eu lieu').toBe(1);
-    const pv = get().pendingRest?.travelDay?.entries ?? [];
+    const pv = get().travelPlan?.log?.slice(-1)[0]?.entries ?? [];
     expect(pv.some((e) => e.id?.startsWith('sea-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;
     const libelle = testSkillLabel({ char: 'endurance' })!;

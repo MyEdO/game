@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
-import { atteignable, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
+import { atteignable, dernierFocaliseVivant, noterDernierFocalise, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
 import { dialogueDuDessus, useDismissLayer } from './useDismissLayer';
+import { usePiegeDeDialogue } from './clavier/couches/piegeDeDialogue';
 import { subscribeDismissStack, type LayerPlan, type OnDismiss } from '../state/dismissStack';
 import { ModalSubject } from './ModalSubject';
 import { Row } from './Layout';
@@ -16,9 +17,6 @@ import type { Combatant } from '../engine/types';
  * Boîte en colonne : tête (titre, croix), bandeau `subject`, corps `.modal-body` qui défile
  * (`children`), pied `CadrePied` (`footer`, `Cadre.tsx`) qui reste. `champ`, `plein`, `voile`, `taille` et
  * `gangrene` sont des ÉTATS posés en `data-*` sur le voile (`styles/modal.css`).
- *
- * @clavier-hors-registre Tab et Échap appartiennent au DIALOGUE ouvert (`useModalA11y`, pattern
- * WAI-ARIA) : ni raccourcis d'application ni remappables (garde `ui/raccourcis-registre.test.ts`).
  */
 
 /** Options d'un GROUPE DE CHOIX de la modale (segmented `.seg`, grille `.rm-loc-grid`, sélecteur de dé
@@ -101,28 +99,42 @@ export function useModalA11y(
   // l'ordre des effets est celui des appels, et l'emprunt lit la pile (`cibleDialogue`).
   useDismissLayer({ kind, nature: 'modale', plan, boite: boxRef }, onClose ?? null, actif);
   useFocusEmprunte(boxRef, actif, cibleDialogue, etape);
-  // SAUVETAGE du focus : un contrôle focalisé que le rendu DÉMONTE (« Résilience » cède la place au
-  // groupe de choix du dé, « Lancer » au résultat…) laisse le focus sur <body> — le piège Tab est
-  // rompu et la tabulation suivante s'échappe vers l'arrière-plan. On le replace DANS la boîte, sur la
-  // cible révélée. Observateur de MUTATIONS et non effet de rendu : la transition peut venir de l'état
-  // LOCAL d'une rangée, qui ne re-rend pas cette boîte — un effet d'ici ne serait pas rejoué.
+  // SAUVETAGE du focus : le DERNIER contrôle focalisé dans la boîte, que le rendu DÉMONTE ou rend
+  // inatteignable (« Résilience » cède la place au groupe de choix du dé, « Lancer » au résultat…),
+  // laisse le focus sur <body> — le piège Tab est rompu et la tabulation suivante s'échappe vers
+  // l'arrière-plan. Après une mutation de la boîte, si le focus est sur <body> et que ce contrôle a
+  // disparu ou n'est plus atteignable (`dernierFocaliseVivant`, source unique avec l'effet d'étape),
+  // le focus revient DANS la boîte, sur la cible révélée ; un contrôle encore vivant et atteignable
+  // (un clic sur une zone vide) n'est pas sauvé.
+  // Observateur de MUTATIONS et non effet de rendu : la transition peut venir de l'état LOCAL d'une
+  // rangée, qui ne re-rend pas cette boîte — un effet d'ici ne serait pas rejoué.
+  // Lu à la tâche SUIVANTE, comme le REPLI ci-dessous : un champ qui commet au `blur` re-rend PENDANT
+  // que le focus passe au contrôle cliqué, <body> le temps de l'événement — le lire dans la mutation
+  // volerait ce focus (#2533).
   useEffect(() => {
     const box = boxRef.current;
     if (!actif || !box) return;
     const had = { current: box.contains(document.activeElement) };
-    const onFocusIn = () => { had.current = true; };
+    noterDernierFocalise(box, box.contains(document.activeElement) ? document.activeElement as HTMLElement : null);
+    const onFocusIn = (e: FocusEvent) => { had.current = true; noterDernierFocalise(box, e.target as HTMLElement); };
     box.addEventListener('focusin', onFocusIn);
-    const obs = new MutationObserver(() => {
+    let relecture: ReturnType<typeof setTimeout> | undefined;
+    const sauver = () => {
       if (!had.current || !document.body.contains(box)) return;
       if (dialogueDuDessus() !== box) return;
       const ae = document.activeElement;
       if (ae && ae !== document.body && box.contains(ae)) return;
       // Focus parti VOLONTAIREMENT sur un élément vivant hors de la boîte : on ne le rapatrie pas.
       if (ae && ae !== document.body && document.body.contains(ae)) { had.current = false; return; }
+      if (dernierFocaliseVivant(box)) return;
       poserFocus(focusTarget(box, 'rescue'));
+    };
+    const obs = new MutationObserver(() => {
+      clearTimeout(relecture);
+      relecture = setTimeout(sauver, 0);
     });
     obs.observe(box, { childList: true, subtree: true });
-    return () => { obs.disconnect(); box.removeEventListener('focusin', onFocusIn); };
+    return () => { obs.disconnect(); clearTimeout(relecture); box.removeEventListener('focusin', onFocusIn); };
   }, [boxRef, actif]);
   // REPLI quand une couche se retire (dialogue fermé, bulle, panneau) en laissant le focus sur <body> —
   // son invocateur n'existe plus : le dialogue qui DEVIENT le dessus le reprend. Évaluation
@@ -147,66 +159,7 @@ export function useModalA11y(
     });
     return () => { desabonner(); clearTimeout(relecture); };
   }, [boxRef, actif]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const box = boxRef.current;
-      if (!box || dialogueDuDessus() !== box) return;
-      // Un CONTRÔLE focalisé possède sa touche, OÙ QU'IL VIVE dans le document — `document.activeElement`
-      // est global, alors que la boîte n'est qu'un sous-arbre. Juger par CONTAINMENT (`box.contains(ae)`)
-      // était faux au socle : tout contrôle actionnable rendu en PORTAL (`createPortal(document.body)`)
-      // — popover de règle, menu, infobulle actionnable — se faisait voler sa touche par la boîte
-      // pendant qu'une modale était ouverte (recette B3a 13b/13c : Entrée sur « Ouvrir la fiche »
-      // résolvait la cascade via le repli « Tout lancer »).
-      const ae = document.activeElement;
-      const activeButton = ae instanceof HTMLButtonElement && !ae.disabled;
-      // Focus posé sur un ÉLÉMENT RÉEL hors de la boîte (portal) : il n'appartient pas à ce dialogue,
-      // la boîte ne décide pas pour lui. `body` (focus nulle part) reste à la boîte, c'est son repli.
-      const focusElsewhere = !!ae && ae !== document.body && !box.contains(ae);
-      const els = visibleFocusables(box);
-      if (e.key === 'Enter') {
-        // Bouton focalisé → activation NATIVE (cocher une option de choix, cliquer Lancer/Terminer…).
-        // Depuis un champ de saisie, Entrée SOUMET la boîte (nom de campagne → « Enregistrer », mise de
-        // taverne → « Jouer », semaine en mer → « Valider la semaine ») : un champ qui doit garder son
-        // Entrée la CONSOMME chez lui (`preventDefault` + `stopPropagation`, cf. le sélecteur de dé de
-        // `ForcedRollPicker`), il ne se déclare pas ici.
-        // Sinon (focus sur la boîte/aucun) → repli sur le bouton primaire.
-        if (activeButton || focusElsewhere) return;
-        const primary = box.querySelector<HTMLElement>(PRIMAIRE_DU_PIED);
-        if (primary && primary.getClientRects().length) { e.preventDefault(); primary.click(); }
-        return;
-      }
-      // Flèches = navigation de focus (roving) sur TOUS les contrôles visibles → options de choix, toggles
-      // segmentés (Parade/Esquive) et boutons d'action navigables au clavier seul, sans chasser le Tab.
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-        // NE PAS voler les flèches d'un champ de formulaire (select/number/texte) → édition native préservée.
-        if (ae && /^(SELECT|INPUT|TEXTAREA)$/.test(ae.tagName)) return;
-        // MÊME frontière que pour Entrée : un contrôle porté par portal navigue chez lui (un popover a
-        // ses propres flèches), la boîte ne rove pas par-dessus.
-        if (focusElsewhere) return;
-        if (!els.length) return;
-        e.preventDefault();
-        const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
-        const i = els.indexOf(document.activeElement as HTMLElement);
-        els[i < 0 ? (dir === 1 ? 0 : els.length - 1) : (i + dir + els.length) % els.length].focus();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      if (!els.length) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      const active = document.activeElement;
-      const horsDesControles = active === box || !box.contains(active);
-      if (e.shiftKey && (active === first || horsDesControles)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && (active === last || horsDesControles)) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [boxRef]);
+  usePiegeDeDialogue(boxRef);
 }
 
 /** Nom du dialogue : un `title` rendu en tête (il EST le nom accessible), ou un `label` quand le
@@ -264,7 +217,8 @@ export function Modal({
   backdropClose?: boolean;
   /** PIED : les gestes de sortie, hors du défileur (`CadrePied`). */
   footer?: ReactNode;
-  /** Étape courante du dialogue : quand elle change, le focus entre sur la cible de l'étape (`useFocusEmprunte`). */
+  /** Étape courante du dialogue : quand elle change, le focus entre sur la cible de l'étape ; si le geste
+   *  focalisé a disparu, sur le groupe révélé par le sauvetage (`useFocusEmprunte`, #2533). */
   etape?: string | number;
   children?: ReactNode;
 }) {

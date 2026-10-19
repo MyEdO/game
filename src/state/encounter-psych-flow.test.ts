@@ -260,6 +260,21 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.participants!.map((p) => p.id)).toEqual([h.id]);
   });
 
+  it('Phobie, héros Exténué ×3 : la rangée nomme l’État et le jet affronte Calme −30 (LDB 16 l.90)', () => {
+    const h = timoreux('H', 60);
+    h.talents = [];
+    h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    h.conditions = [{ id: 'extenue', value: 3 }];
+    useGame.setState({ party: [h] });
+    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
+    const rangee = () => useGame.getState().pendingCascade!.participants[0].participants![0];
+    expect(rangee().base, 'base nue : Calme 60').toBe(60);
+    expect(rangee().mods?.map((m) => [m.label, m.value]), 'l’État est nommé sur la rangée').toContainEqual(['Exténué', -30]);
+    expect(rangee().target, 'Calme 60 −30 Exténué, Intermédiaire').toBe(30);
+    useGame.getState().cascadeBatchRoll(h.id);
+    expect((rangee().result as { target?: number }).target, 'le jet affronte la cible annoncée').toBe(30);
+  });
+
   it('Phobie hors de sa Cible : aucune bande (la porte reste bornée au Groupe du Trait)', () => {
     const h = timoreux('H');
     h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
@@ -343,7 +358,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
 
 /**
  * COOP (#1262 V2 lot 3) — la bande de Psychologie de RENCONTRE ne déclarait AUCUNE possession : son
- * `modalOwnerOf` valait `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocally`),
+ * `modalOwnerOf` valait `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocal`),
  * qui jouait alors le Test de Calme du héros d'un invité (classe #1268). Le mint (`bandStep`, via
  * `makeBandFactory`) la pose : plusieurs appelés → `groupOwner`, un seul → SON porteur.
  */

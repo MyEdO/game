@@ -5,7 +5,7 @@ import { RuleDivider } from './Ornaments';
 import { MenuCard } from './MenuCard';
 import { ActiveModal } from './ActiveModal';
 import { StationSheet } from './StationSheet';
-import { AssignRow } from './AssignRow';
+import { AssignRow } from './console/AssignRow';
 import { battleScenesToStations, type Station } from '../state/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,

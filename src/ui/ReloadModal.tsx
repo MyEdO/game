@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../engine/tests';
 import { useGame, type PendingReload } from '../state/store';
 import { flowStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
@@ -49,8 +50,8 @@ export function ReloadModalView({
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown('Projectiles', base, { roll: pr.roll!, target: pr.target, sl: pr.sl, success: pr.success }, pr.difficulty, mods) : undefined,
-      pending: testPending('Projectiles', base, pr.target, pr.difficulty, mods),
+      d: rolled ? testBreakdown('Projectiles', base, { roll: pr.roll!, ...cibleMesuree(pr), sl: pr.sl, success: pr.success }, pr.difficulty, mods) : undefined,
+      pending: testPending('Projectiles', base, cibleMesuree(pr), pr.difficulty, mods),
     },
     rerolled: !!pr.rerolled,
     onRoll,

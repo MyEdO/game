@@ -129,6 +129,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
       km,
       modes: ['barge', 'pied'],
       perilDie: 0,
+      provenances: { perilDie: { maison: 'démo de commerce fluvial : les périls de voyage sont couverts par le scénario « Voyage & temps long »' } },
       inns: true, // relais d'auberges le long du fleuve : la halte de nuit propose l'auberge (et le Ragot, l.180)
     };
   }

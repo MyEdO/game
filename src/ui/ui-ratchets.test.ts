@@ -243,7 +243,9 @@ const PANEL_REDEFINE_BASELINE: Record<string, number> = {
 //    (bloc et ligne) sont neutralisés avant le scan — un `<button>` cité en JSDoc n'est pas du markup.
 //    EXEMPTÉS (fichiers-PRIMITIVES qui définissent légitimement leur propre rendu de bouton, à charge
 //    à l'appelant de les composer — jamais à réécrire un `<button>` à la main) :
-//      - OptionChooser.tsx / Tabs.tsx / RollShell.tsx : primitives canon de bouton/onglet/action de la
+//      - `composites/` : primitives des rôles ARIA composites (`Tabs`, `Menu`…), qui rendent l'item
+//        de leur groupe (#414).
+//      - OptionChooser.tsx / RollShell.tsx : primitives canon de bouton/action de la
 //        table `docs/architecture.md`, citées nommément par le ticket #373 comme patron d'exemption.
 //      - PortraitTile.tsx : primitive canon d'affichage de personnage (`.ptile*`), sa propre famille de
 //        classes.
@@ -255,7 +257,6 @@ const PANEL_REDEFINE_BASELINE: Record<string, number> = {
 //    et fichiers cibles à définir au triage du programme #371.
 const BARE_BUTTON_EXEMPT_FILES = new Set([
   'OptionChooser.tsx',
-  'Tabs.tsx',
   'RollShell.tsx',
   'PortraitTile.tsx',
   'MediaSelect.tsx',
@@ -299,7 +300,6 @@ const BARE_BUTTON_BASELINE: Record<string, number> = {
   // fichier-primitive dédié ; migration vers un patron FigTile différée (une entrée porte 2
   // options, pas 1:1 avec la carte — cf. #496).
   'creator/CharacterCreator.tsx': 1,
-  'editor/EditorToolbar.tsx': 1,
   // -5 (EffectList 1→0, FlowEditor 3→0, GameOpEditor 1→0, entrées retirées) : les trois menus
   // d'ajout de l'atelier (« + Effet » / « + Bloc » / « + Op mécanique ») composent la primitive
   // UNIQUE `AddMenu`, dont les rangées sont des `ListRow` — plus un seul `<button>` recodé.
@@ -587,7 +587,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   });
 
   it('(x) <button> nu : aucune hausse par fichier .tsx (composer .btn/.chip ou une primitive — feedback user 2026-07-12, #373)', () => {
-    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f) && !BARE_BUTTON_EXEMPT_FILES.has(rel(f)));
+    const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f) && !BARE_BUTTON_EXEMPT_FILES.has(rel(f)) && !rel(f).startsWith('composites/'));
     const { bare, opaque } = scanBareButtons(files);
     assertRatchet(bare, BARE_BUTTON_BASELINE, '<button> nu — composer .btn/.chip ou une primitive (feedback user 2026-07-12, #373)');
     assertRatchet(opaque, BARE_BUTTON_OPAQUE_BASELINE, '<button> className opaque — exposer un littéral btn/chip/seg ou passer par une primitive (feedback user 2026-07-12, #373)');
@@ -665,7 +665,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
 });
 
 /* `mediaBlock` / `baseSection` : UNE définition, partagée (`scripts/guards/lib/cssCouches.mjs`) —
-   `src/ui/CombatConsole.test.tsx` lit les mêmes tranches avec les mêmes fonctions.
+   `src/ui/console/CombatConsole.test.tsx` lit les mêmes tranches avec les mêmes fonctions.
    CE QUI SE JUGE ICI : la PRÉSENCE d'une règle de STRUCTURE dans sa tranche. Un contrat de RENDU
    (« défile », « ne recouvre pas », « reçoit son clic », « tient sur une ligne ») ne se lit dans
    AUCUNE déclaration : jsdom ne met rien en page et n'applique aucune tranche. Il se MESURE au
@@ -774,7 +774,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
       ['skin-tole', 'ExplorationDock.tsx', 'worldmap-btn'],
       ['skin-tole', 'CampaignView.tsx', 'worldmap-btn'],
       ['skin-bois', 'CampaignView.tsx', 'hud-rail'],
-      ['skin-bois', 'CombatConsole.tsx', 'cc-phase'],
+      ['skin-bois', 'console/CombatConsole.tsx', 'cc-phase'],
     ];
     for (const [peau, f, classe] of BOITES) {
       const code = readFileSync(join(UI, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');

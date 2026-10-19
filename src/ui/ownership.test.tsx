@@ -1,9 +1,9 @@
 /**
- * LA PORTE DE POSSESSION DE L'UI (#1262 L1) — `ui/ownership` remplace neuf recopies du même prédicat,
+ * LA POSSESSION VUE DE L'UI (#1262 L1) — `state/netOwnership.ownsLocal` remplace neuf recopies du même prédicat,
  * chacune précédée d'un terme de mode réseau (`net.mode === 'local' || …`, `!online || …`,
  * `online ? … : tout`). Ce test mesure les DEUX choses que la migration affirme :
  *
- *  1. le verdict, aux DEUX modes réseau (solo / coop hôte / coop invité) — la porte DÉLÈGUE au
+ *  1. le verdict, aux DEUX modes réseau (solo / coop hôte / coop invité) — la couture DÉLÈGUE au
  *     routage siège→combattant, elle ne re-décide rien ;
  *  2. que le terme retiré était MORT : en solo, `ownsLocal` rend déjà vrai pour TOUT porteur, donc
  *     `mode === 'local' || ownsLocal(…)` ne pouvait changer aucune réponse. L'équivalence est
@@ -16,8 +16,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
-import { ownsLocal, ownsLocalNet, ownsGroupDecision, useOwns, type NetView } from './ownership';
-import { intentAllowedFor } from '../state/netOwnership';
+import { ownsLocalNet, useOwns, type NetView } from './ownership';
+import { intentAllowedFor, ownsLocal, ownsGroupDecision } from '../state/netOwnership';
 
 const HEROS = [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }] as unknown as GameState['party'];
 
@@ -44,7 +44,7 @@ function Sonde({ ids }: { ids: readonly string[] }) {
 }
 const rendu = (ids: readonly string[]) => renderToStaticMarkup(<Sonde ids={ids} />);
 
-describe('#1262 L1 — la porte de possession de l’UI rend le MÊME verdict que le routage d’état', () => {
+describe('#1262 L1 — `ownsLocal` rend le MÊME verdict que le routage d’état', () => {
   it('SOLO : un seul siège tient tout — y compris un porteur inconnu et l’absence de porteur', () => {
     const s = pose(SOLO);
     expect(ownsLocal(s, 'h1')).toBe(true);
@@ -73,11 +73,11 @@ describe('#1262 L1 — la porte de possession de l’UI rend le MÊME verdict qu
       const online = s.net.mode !== 'local';
       for (const id of ['h1', 'h2']) {
         const porte = ownsLocal(s, id);
-        // forme des 5 fenêtres à rangées : `net.mode === 'local' || ownsLocally(…)`
+        // forme des 5 fenêtres à rangées : `net.mode === 'local' || ownsLocal(…)`
         expect(s.net.mode === 'local' || porte, `mode-local||owns · ${s.net.mode}/${id}`).toBe(porte);
-        // forme du repos : `!online || ownsLocally(…)`
+        // forme du repos : `!online || ownsLocal(…)`
         expect(!online || porte, `!online||owns · ${s.net.mode}/${id}`).toBe(porte);
-        // forme du butin/victoire : `online ? filtre(ownsLocally) : tout`
+        // forme du butin/victoire : `online ? filtre(ownsLocal) : tout`
         expect(online ? porte : true, `online?filtre:tout · ${s.net.mode}/${id}`).toBe(porte);
       }
     }
@@ -155,7 +155,7 @@ describe('#1262 L1 — `ownsLocalNet` : Interlude / écran de Groupe (état rés
  * Ce test la VERROUILLE : toute divergence de la route ferait diverger l'affordance de son geste (une
  * réponse armée qui ne passe pas, ou grisée alors qu'elle passerait), et rougit ici.
  *
- * SOLO à part : `ownsLocally` court-circuite à `true` pour tout (un seul siège tient tout), là où la
+ * SOLO à part : `ownsLocal` court-circuite à `true` pour tout (un seul siège tient tout), là où la
  * route ne connaît que des sièges. La comparaison n'a de sens qu'au siège qui EXISTE — `mySeat`.
  */
 describe('#1262 — décision de groupe : la porte rend le MÊME verdict qu’`intentAllowedFor`', () => {

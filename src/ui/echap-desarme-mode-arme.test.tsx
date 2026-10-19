@@ -19,11 +19,11 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { KEYBINDINGS } from '../state/keybindings';
+import { KEYBINDINGS } from '../state/clavier/keybindings';
 import { initialNet } from '../state/netFlow';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../state/spawn';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import type { BattleActionMode } from '../state/actionRegistry';
 import type { GameState } from '../state/store';
 

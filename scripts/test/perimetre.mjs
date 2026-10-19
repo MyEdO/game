@@ -18,7 +18,7 @@
 // mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
 // posées (`tracer`, `VARIANTES`). Tous signés par `versionDesMemosDeDerivation` (`perimetreDerivation.mjs`).
 import { availableParallelism, tmpdir } from 'node:os'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
@@ -34,13 +34,14 @@ import { lireArguments } from './argumentsPerimetre.mjs'
 import { prendreVerrouAsync, tenantEnUneLigne } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { ecrireJsonAtomique, lireTextePublie } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { GATES_D_AUDIT, gateDe } from '../gates/testsParGate.mjs'
+import { GATES_D_AUDIT, estTestNode, gateDe } from '../gates/testsParGate.mjs'
 import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
-import { CACHE, lireDuDisque, estTestNode, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
+import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -182,8 +183,9 @@ const fichiersVides = () => tableTotale(FAMILLES, () => [])
  * Chaque mur porte ses tests lancés SANS DURÉE (`sansDuree`), dont il n'est qu'un minorant, et sa part estimée
  * depuis la CI (`murCiMs`, ses `nCi` tests lancés de source `ci`) : le mur cumulé moins le même mur où les durées CI
  * de CE rang (au total : de tous) valent 0, les autres gardant les leurs ; jamais planchée (`texteDuMur`).
- * `murParFamille` : le mur de chaque famille seule ; `sansDureeParFamille` : ses tests lancés sans durée.
- * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, sansDuree: number, murCiMs: number, nCi: number, murParFamille: Record<string, number>, sansDureeParFamille: Record<string, number>, rangs: { rang: string, murMs: number, sansDuree: number, murCiMs: number, nCi: number, lances: number, aLaCI: number, inconnues: number }[] }}
+ * `murParFamille` : le mur de chaque famille seule ; `sansDureeParFamille` : ses tests lancés sans durée ; `causes` : les
+ * renvois à la CI par cause (`CAUSES_DE_RENVOI`).
+ * @returns {{ lances: string[], aLaCI: string[], causes: Record<string, number>, murMs: number, murBudgeteMs: number, sansDuree: number, murCiMs: number, nCi: number, murParFamille: Record<string, number>, sansDureeParFamille: Record<string, number>, rangs: { rang: string, murMs: number, sansDuree: number, murCiMs: number, nCi: number, lances: number, aLaCI: number, inconnues: number }[] }}
  */
 export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations = new Map(), signaux = new Map(), workers, surcouts, workersNode } = {}) {
   const parRang = new Map()
@@ -202,6 +204,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const avec = (t) => ({ ...cumuls, [familleDe(t)]: [...cumuls[familleDe(t)], [t, cout(t)]] })
   const lances = []
   const aLaCI = []
+  const causes = tableTotale(CAUSES_DE_RENVOI, () => 0)
   const rangs = []
   let horsBudget = 0
   for (const rang of [...parRang.keys()].sort((a, b) => a - b)) {
@@ -210,19 +213,13 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
     const ciDuRang = new Set()
     const bilan = { rang: libelleDuRang(rang), murMs: 0, sansDuree: 0, murCiMs: 0, nCi: 0, lances: 0, aLaCI: 0, inconnues: 0 }
     for (const t of tests) {
-      if (GATES_D_AUDIT.includes(gateDe(t))) {
+      const renvoi = GATES_D_AUDIT.includes(gateDe(t)) ? 'audit'
+        : rang > 0 && inconnue(t) ? 'durée inconnue'
+          : rang > 0 && (budget === 0 || mur(avec(t)) - horsBudget > budget * 1000) ? 'budget' : null
+      if (renvoi !== 'audit' && inconnue(t)) bilan.inconnues += 1
+      if (renvoi) {
         aLaCI.push(t)
-        bilan.aLaCI += 1
-        continue
-      }
-      if (inconnue(t)) bilan.inconnues += 1
-      if (rang > 0 && inconnue(t)) {
-        aLaCI.push(t)
-        bilan.aLaCI += 1
-        continue
-      }
-      if (rang > 0 && (budget === 0 || mur(avec(t)) - horsBudget > budget * 1000)) {
-        aLaCI.push(t)
+        causes[renvoi] += 1
         bilan.aLaCI += 1
         continue
       }
@@ -242,9 +239,28 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const murParFamille = tableTotale(FAMILLES, (f) => murDesFichiers({ [f]: cumuls[f] }, optionsDuMur))
   const sansDureeParFamille = tableTotale(FAMILLES, (f) => lances.filter((t) => familleDe(t) === f && inconnue(t)).length)
   const paquetsDuPlan = tableTotale(FAMILLES, (f) => paquets(f, cumuls[f].map(([t]) => t)))
-  return { lances, aLaCI, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, sansDuree: total('sansDuree'),
+  return { lances, aLaCI, causes, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, sansDuree: total('sansDuree'),
     murCiMs: partCi(cumuls, new Set(lances.filter(deLaCi))), nCi: total('nCi'), murParFamille, sansDureeParFamille, rangs,
     paquets: paquetsDuPlan, concurrencesNode: paquetsDuPlan.node.map((p) => workersNode?.(p) ?? workers?.node ?? 1) }
+}
+
+/** Les causes d'un renvoi à la CI (`planDExecution`). */
+const CAUSES_DE_RENVOI = Object.freeze(['budget', 'audit', 'durée inconnue'])
+
+/**
+ * Le BILAN du périmètre (#2651), en fichiers (l'unité `Test Files` de Vitest) : joués (`joues`, mesurés aux rapports ;
+ * sous `--liste`, le plan), retenus et suite, par famille, et les renvois à la CI par cause (`causes`). Il ne dit
+ * « suite entière » que d'une suite entièrement jouée, ou, sous `--liste`, entièrement au plan. PURE.
+ * @param {{ joues: Set<string>, retenus: Map<string, unknown>, vitest: string[], node: string[], causes: Record<string, number>, liste: boolean }} p
+ */
+function ligneDeBilan({ joues, retenus, vitest, node, causes, liste }) {
+  const compte = (suite) => [suite.filter((t) => joues.has(t)).length, suite.filter((t) => retenus.has(t)).length, suite.length]
+  const [l, r, s] = compte([...vitest, ...node])
+  const parFamille = Object.entries({ vitest, node }).map(([f, suite]) => `${f} ${compte(suite).join('/')}`).join(', ')
+  const renvois = Object.values(causes).reduce((a, b) => a + b, 0)
+  const entiere = s > 0 && l === s ? ` — suite entière ${liste ? 'au plan' : 'jouée'}` : ''
+  return `bilan : ${liste ? 'à jouer' : 'joué(s)'} ${l} / retenu(s) ${r} / suite ${s} fichier(s)${entiere} (${parFamille}) ;`
+    + ` → CI ${renvois} (${CAUSES_DE_RENVOI.map((c) => `${c} ${causes[c]}`).join(', ')})`
 }
 
 /** La famille d'un test : `vitest` ou `node`. */
@@ -524,8 +540,8 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   const journal = (texte) => console.log(`[perimetre] ${texte}`)
   journal(`base ${base} → ${tete ?? 'arbre de travail'} : ${touches.length} fichier(s) touché(s)`)
   journal(`dérivation : ${duree} ms, ${modules} modules au graphe`)
-  if (toolchain.length) journal(`toolchain touchée (${toolchain.join(', ')}) ⇒ suite entière`)
-  journal(`sélection : ${retenus.size} test(s) / ${vitest.length + node.length} — vitest ${part(vitest)}/${vitest.length}, node ${part(node)}/${node.length}`)
+  if (toolchain.length) journal(`toolchain touchée (${toolchain.join(', ')}) ⇒ toute la suite est retenue`)
+  journal(`sélection : ${retenus.size} fichier(s) retenu(s) sur ${vitest.length + node.length} — vitest ${part(vitest)}/${vitest.length}, node ${part(node)}/${node.length}`)
   journal(`rangs : ${Object.entries(paliersDe(retenus)).map(([palier, n]) => `${palier} ${n}`).join(' | ')}`)
   const texteDuSignal = (test) => {
     const s = signaux.get(test)
@@ -552,7 +568,11 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   for (const t of plan.aLaCI.filter((t) => GATES_D_AUDIT.includes(gateDe(t))))
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
-  if (options.liste) return 0
+  const bilan = (joues, liste) => journal(ligneDeBilan({ joues, retenus, vitest, node, causes: plan.causes, liste }))
+  if (options.liste) {
+    bilan(new Set(plan.lances), true)
+    return 0
+  }
   const lint = lintDesTouches(racine, touches, post)
   for (const d of lint.defauts) console.log(`  ${d.site} ${d.gravite} ${d.regle} — ${d.message}`)
   mkdirSync(cache, { recursive: true })
@@ -568,10 +588,11 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
     }),
     ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
-  const { code, reels, joues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform })
+  const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform })
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
   journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
+  bilan(fichiersJoues, false)
   const relance = ligneDeRelance({ code, lancements: joues, lint, appelLint: () => appelDuLint(racine) })
   if (relance) journal(relance)
   return code
@@ -582,11 +603,12 @@ export const raisonDuRefus = (r) => r.message ?? (r.sortie ?? '').split(/\r?\n/)
 
 /** Joue les `lancements` dans l'ordre (#2586) : node par `lancerNode`, vitest et docs par `lancer`. Une clôture non
  *  confirmée (`retenir`) ou un lancement interrompu arrête la suite sans apprendre ; sinon chaque famille apprend ses
- *  durées (`apprendre`) et son surcoût (`bilanDuLancement`). Rend le premier code non nul, le mur réel par famille et
- *  les lancements joués. */
+ *  durées (`apprendre`) et son surcoût (`bilanDuLancement`). Rend le premier code non nul, le mur réel par famille,
+ *  les lancements joués et les fichiers joués (`fichiersJoues`, ceux que leur rapport mesure). */
 export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer, platform }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
   const reels = {}
   const joues = []
+  const fichiersJoues = new Set()
   for (const { famille, sortie, args } of lancements) {
     if (sortie) rmSync(sortie, { force: true })
     const debutDuLancement = performance.now()
@@ -620,13 +642,14 @@ export async function executerLancements({ lancements, racine, node, env, signal
     if (!famille) { joues.push({ famille: 'docs', code: codeDuLancement, echecs: [], args, ...refus }); continue }
     reels[famille] = (reels[famille] ?? 0) + murMs
     const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille])
+    for (const f of Object.keys(lecture.appris)) fichiersJoues.add(f)
     joues.push({ famille, code: codeDuLancement, echecs: lecture.echecs, args, ...refus })
     if (!Object.keys(lecture.appris).length) continue
     const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille])
     journal(texte)
     if (surcout !== null) ecrireLesMesures(mesures, SURCOUTS, { [famille]: surcout })
   }
-  return { code, reels, joues }
+  return { code, reels, joues, fichiersJoues }
 }
 
 /** Les fichiers en échec `echecs` d'un rapport, `[]` s'ils ne sont pas une liste de chaînes. PURE. */
@@ -673,10 +696,30 @@ export async function entreeDuCli(argv, racine, { executer = principal } = {}) {
 
 if (import.meta.main) process.exitCode = await entreeDuCli(process.argv.slice(2), racineDe(depotDe(RACINE)) ?? RACINE)
 
+/** Le stade publié sous `marqueur` (`marqueurDeStade`), DIAGNOSTIC seul : il ne lève jamais (#2586). Absent : `lancement` ;
+ *  tenu par un tiers (`lireTextePublie`), relu sous les paliers `BACKOFFS_MS` (`attendre`) ; invalide, ou tenu au-delà :
+ *  `illisible`, avec sa `panne`. @returns {{ texte: string, panne?: Error }} */
+function stadeAtteint(marqueur, attendre) {
+  try {
+    for (let essai = 0; ; essai += 1) {
+      const publie = lireTextePublie(marqueur)
+      if (publie !== undefined) {
+        const { stade, module } = JSON.parse(publie)
+        return { texte: `stade ${stade}, module ${module ?? '—'}` }
+      }
+      if (!existsSync(marqueur)) return { texte: 'stade lancement, module —' }
+      if (essai >= BACKOFFS_MS.length) throw new Error(`tenu par un tiers au-delà de ${BACKOFFS_MS.join(' + ')} ms`)
+      attendre(BACKOFFS_MS[essai])
+    }
+  } catch (panne) {
+    return { texte: `stade illisible (marqueur ${marqueur} : ${panne.message}), module —`, panne }
+  }
+}
+
 /** La dérivation de `entree` dans un ENFANT borné (#2603) : `perimetreDerivation.mjs` sous `lancer`, `limiteMs` et
- *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stade.json`) ; le dossier
- *  temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
-export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
+ *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
+ *  dossier temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
+export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
   const temporaire = mkdtempSync(join(tmpdir(), 'perimetre-derivation-'))
   const debut = performance.now()
   let retraitPermis = true
@@ -684,19 +727,18 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
     const input = join(temporaire, 'entree.json'), output = join(temporaire, 'sortie.json'), marqueur = join(temporaire, 'stade.json')
     ecrireJsonAtomique(input, entree, { indentation: 0 })
     const vu = await lancer({ argv: ['--max-old-space-size=640', module, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
+    const bornes = `durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()
-    let stade = { stade: 'lancement', module: null }
-    try { stade = JSON.parse(readFileSync(marqueur, 'utf8')) }
-    catch (cause) { if (cause?.code !== 'ENOENT') throw new Error(`perimetre : marqueur de stade ${marqueur} illisible`, { cause }) }
     if (vu.code !== 0 || vu.expiree || vu.annulee || vu.arret?.etat !== 'mort') {
+      const { texte, panne } = stadeAtteint(marqueur, attendre)
       const erreur = vu.error ? `, erreur ${vu.error.code ?? 'ERREUR_ENFANT'} : ${vu.error.message}` : ''
-      throw new Error(`perimetre : dérivation échouée au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error })
+      throw new Error(`perimetre : dérivation échouée au ${texte}, ${bornes}, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error ?? panne })
     }
     let dto
-    try { dto = JSON.parse(readFileSync(output, 'utf8')) } catch (cause) { throw new Error(`perimetre : DTO absent ou tronqué au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`, { cause }) }
+    try { dto = JSON.parse(readFileSync(output, 'utf8')) } catch (cause) { throw new Error(`perimetre : DTO absent ou tronqué au ${stadeAtteint(marqueur, attendre).texte}, ${bornes}`, { cause }) }
     try { return depuisDTO(dto) }
-    catch (e) { throw new Error(`${e.message} au stade ${stade.stade}, module ${stade.module ?? '—'}, durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`, { cause: e }) }
+    catch (e) { throw new Error(`${e.message} au ${stadeAtteint(marqueur, attendre).texte}, ${bornes}`, { cause: e }) }
   } finally { if (retraitPermis) rmSync(temporaire, { recursive: true, force: true }) }
 }
 
@@ -704,7 +746,7 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
  *  le disque (arbre de travail) ou dans `tete`, mémos sous `dossierDesMemos`. */
 export async function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos = join(racine, CACHE), lectureSeule = false, env, signal, retenir } = {}) {
   const derive = await derivationBornee({ racine, base, tete, dossierDesMemos, lectureSeule }, { env, signal, retenir })
-  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine), derive.tete, rels) : lireDuDisque(racine)
+  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env }), derive.tete, rels) : lireDuDisque(racine)
   return { ...derive, lire }
 }
 

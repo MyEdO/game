@@ -65,7 +65,7 @@ const BASELINES: Record<string, number> = {
   'src/ui/ShantyModal.tsx': 1,
   'src/ui/ShipBatteryModal.tsx': 2,
   'src/ui/ShipManeuverModal.tsx': 1,
-  'src/ui/ShipSheet.tsx': 2,
+  'src/ui/console/ShipSheet.tsx': 2,
   'src/ui/StateRecoveryModal.tsx': 1,
   'src/ui/WardModal.tsx': 1,
   // src/gameIso (#410 — stock à résorber par #276)

@@ -19,12 +19,12 @@ import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev, evLines } from '../combatLog';
-import { effectiveChar } from '../../engine/characteristics';
 import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/conditions';
-import { rawCombatTestBase } from '../../engine/skills';
+import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId, garanti } from '../combatants';
+import { inBattleId } from '../combatants';
+import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../lineOfSight';
@@ -169,7 +169,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
   if (get().aiWouldCast(enemy.id)) return;
-  if (resolveFrenzyEntry(effectiveChar(enemy, 'force-mentale'), battleRng()).success) {
+  if (resolveFrenzyEntry(testValue(enemy, undefined, 'force-mentale'), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }

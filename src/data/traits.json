@@ -1336,7 +1336,14 @@
     },
     "capabilities": {
       "swarm": true
-    }
+    },
+    "passive": [
+      {
+        "op": "incomingAttackMod",
+        "mode": "ranged",
+        "amount": 40
+      }
+    ]
   },
   {
     "id": "parasite",

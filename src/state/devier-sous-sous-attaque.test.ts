@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from './battleRng';
 import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from './combatFlow';
 import { draineCascade } from './cascadeTestKit';
 import { spawnEnemy } from './spawn';
 import { emptyScene } from './scene';
-import { toucheAuJetPose, type AttackResult } from '../engine/combat';
+import { toucheAuJetPose, type AttackResult, type RollBreakdown } from '../engine/combat';
 import { damageArmour } from '../engine/items';
 import { addCondition, hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../engine/types';
@@ -51,23 +51,20 @@ const choix = (cle: 'devier' | 'subir') => () => cle;
 
 // ── Bordée (MDG 14 l.128) ────────────────────────────────────────────────────────────────────────
 const canon: Weapon = { label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
-const coupCritique = (): AttackResult => ({
-  hit: true, attackerRoll: 11, netSL: 4, location: 'corps', critLocation: 'corps', damage: 8, woundsLost: 1,
-  critical: true, advantageTo: null, defenderDefeated: false, log: 'Coup Critique (corps)',
-} as AttackResult);
-const coupSimple = (): AttackResult => ({
-  hit: true, attackerRoll: 30, netSL: 2, location: 'corps', damage: 9, woundsLost: 2,
-  critical: false, advantageTo: null, defenderDefeated: false, log: 'touche (corps)',
-} as AttackResult);
-/** Une bordée sur `cible` : un tir par résultat. */
-const bordee = (cible: Combatant, tirs: AttackResult[], gmSeat?: number): boolean => {
+const jetDeBordee = (roll: number, sl: number): RollBreakdown => ({ label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll, success: true, sl });
+/** Double réussi : Coup Critique (LDB 13 l.183). */
+const coupCritique = (): RollBreakdown => jetDeBordee(55, 4);
+const coupSimple = (): RollBreakdown => jetDeBordee(74, 2);
+const totalPA = (c: Combatant): number => Object.values(c.armour).reduce((n, pa) => n + (pa ?? 0), 0);
+/** Une bordée sur `cible` : un tir par jet. */
+const bordee = (cible: Combatant, tirs: RollBreakdown[], gmSeat?: number): boolean => {
   seedBattleRng(424242);
   poser([mk('hero', 'tireur', { pos: { x: 5, y: 0 } }), cible], gmSeat);
-  return jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: cible.id, actedAvant: false, tirs: tirs.map((res) => ({ tireurId: 'tireur', weapon: canon, res })) });
+  return jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: cible.id, actedAvant: false, tirs: tirs.map((jet) => ({ tireurId: 'tireur', weapon: canon, jet })) });
 };
 const brute = (p: Partial<Combatant> = {}): Combatant => mk('enemy', 'brute', { armour: { ...PA3 }, ...p });
 /** PB de la brute après une bordée drainée par `cle`. */
-const pbApres = (tirs: AttackResult[], cle: 'devier' | 'subir'): number => {
+const pbApres = (tirs: RollBreakdown[], cle: 'devier' | 'subir'): number => {
   bordee(brute(), tirs, 0);
   draineCascade(useGame.getState, 200, undefined, choix(cle));
   return enJeu('brute').wounds.current;
@@ -88,10 +85,13 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
   it('Dévier : PA −1, aucun Critique, Blessures recomptées, et le tir 2 part une fois', () => {
     const tir2 = 20 - pbApres([coupSimple()], 'subir');
     expect(tir2).toBeGreaterThan(0);
-    const recompte = (coupCritique().woundsLost ?? 0) + 1;
+    seedBattleRng(424242);
+    const coup = toucheAuJetPose(mk('hero', 'tireur'), brute(), canon, coupCritique(), 4, { rng: battleRng() });
+    expect(coup.woundsLost, '8 + DR 4 − BE 4 − PA 3').toBe(5);
+    const recompte = coup.woundsLost! + 1;
     const devie = pbApres([coupCritique(), coupSimple()], 'devier');
     const b = enJeu('brute');
-    expect(b.armour.corps, 'PA −1').toBe(2);
+    expect(b.armour, 'PA −1 à la Localisation du Critique').toEqual({ ...PA3, [coup.critLocation!]: 2 });
     expect(b.criticalWounds ?? 0, 'Critique ignoré').toBe(0);
     expect(devie, 'Blessures recomptées à PA −1, puis le tir 2 une seule fois').toBe(20 - recompte - tir2);
   });
@@ -102,7 +102,7 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
     const deux = pbApres([coupCritique(), coupSimple()], 'subir');
     const b = enJeu('brute');
     expect(b.criticalWounds ?? 0).toBe(1);
-    expect(b.armour.corps).toBe(3);
+    expect(totalPA(b)).toBe(totalPA(brute()));
     expect(deux).toBe(seul - tir2);
   });
 

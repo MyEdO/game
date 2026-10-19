@@ -2,17 +2,12 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { facilitationSchema, gameOpSchema, jetSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'tavernGames.json';
 export const famille = 'entite';
-
-const charKeySchema = z.enum([
-  'capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite',
-  'intelligence', 'force-mentale', 'sociabilite',
-]);
 
 /** Les effets de LANCER enregistrés (`registerSequenceThrow`, `src/state/sequenceCore.ts`) — ce qui
  *  indexe est le nom d'un EFFET, jamais l'identité d'une entrée de catalogue. */

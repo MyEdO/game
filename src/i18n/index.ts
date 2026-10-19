@@ -38,7 +38,7 @@ export const getLocale = (): Locale => locale;
  * des CLÉS (`MsgKey`), résolues à l'appel — c'est la forme à reprendre pour éteindre les précédentes.
  * V8c₅ n'AJOUTE aucun site à cette liste : ses cartes de module portent des CLÉS résolues à l'appel
  * (`SPEC_SOURCE_KEY` de `engine/traits/dispatch.ts`, `QUALITY_CLASS_KEY` de `qualities/craftEconomy.ts`,
- * `KEY_SECTION_KEY`/`labelKey`/`NAMED_KEY_KEY` de `state/keybindings.ts`) — la forme à reprendre.
+ * `KEY_SECTION_KEY`/`labelKey`/`NAMED_KEY_KEY` de `state/clavier/keybindings.ts`) — la forme à reprendre.
  * Appeler `setLocale` après le chargement les laisse donc en FR, SANS erreur ni avertissement.
  *
  * Ce n'est pas un bug tant que la v1 fige la locale au lancement (plan i18n évacué vers #320, Non-objectifs :
@@ -79,7 +79,13 @@ export function t(key: MsgKey, params?: Params): PlayerText {
  * traite en donnée, jamais par une heuristique ici.
  */
 export function deElide(nom: string): string {
-  return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `d’${nom}` : `de ${nom}`;
+  return `${elision('de', nom)}${nom}`;
+}
+
+/** La particule `de` ou l'article `le` devant `nom`, ÉLIDÉ ou non (« d’ » / « de », « l’ » / « le ») —
+ *  même périmètre que `deElide`, dont elle est la règle : « arrive **l’**Aubentag », « arrive **le** Wellentag ». */
+export function elision(particule: 'de' | 'le', nom: string): string {
+  return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `${particule[0]}’` : `${particule} `;
 }
 
 /** Marque du pluriel d'un compte affiché (« 1 point », « 2 points », « -2 points ») : `s` au-delà de 1 en

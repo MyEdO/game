@@ -1040,7 +1040,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   });
 
   it('(G2) la ligne de chute n’HÉRITE pas du « dé fixé » du Test amont', () => {
-    // Le d100 d'Athlétisme est POSÉ (99) ; les dés de la chute, eux, sont LANCÉS. La ligne de la chute
+    // Le d100 du Test amont est POSÉ (99) ; les dés de la chute, eux, sont LANCÉS. La ligne de la chute
     // ne doit donc pas porter la mention — elle la portait, héritée du slot amont : mensonge d'affordance.
     const ott = marinPoste('ott', 'greement');
     monteLeCombat([ott]);

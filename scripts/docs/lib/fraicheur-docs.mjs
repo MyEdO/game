@@ -69,14 +69,16 @@ function vueDeContexte(racine, outillagePrecedent, perimetre = perimetreDeMesure
 function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, reprise, portee) {
   const memoire = memoireDeVue()
   const reprendre = (carte, cle, rel, mesurer) => reprise?.vue[carte].has(cle) && !reprise.touche(rel) ? reprise.vue[carte].get(cle) : mesurer()
-  const entrees = Object.values({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) })
-  const motifs = [options.generateurs.flatMap((g) => g.targets), ...options.generateurs.map((g) => [...g.targets, ...(g.injecte ?? [])])]
+  const selection = portee ? [portee] : (options.selection ?? options.generateurs)
+  const scripts = new Set(selection.map((g) => g.script))
+  const entrees = Object.entries({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) }).filter(([s]) => scripts.has(s)).map(([, e]) => e)
+  const motifs = [options.generateurs.flatMap((g) => g.targets), ...selection.map((g) => [...g.targets, ...(g.injecte ?? [])])]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
   const cibles = new Map([...selections].map(([cle, m]) => [cle, reprise?.vue.cibles.has(cle) && !reprise.selectionTouchee(m) ? reprise.vue.cibles.get(cle) : options.ciblesSurDisque(m, racine)]))
   // #2586
   const perimetreVu = perimetre ?? perimetreDeMesure(racine)
   const ignores = perimetreVu.ignores
-  const haches = portee ? [portee.script, ...cibles.get(JSON.stringify([...portee.targets, ...(portee.injecte ?? [])]))] : [...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat()]
+  const haches = selection.flatMap((g) => [g.script, ...cibles.get(JSON.stringify([...g.targets, ...(g.injecte ?? [])]))])
   const fichiers = new Set([...OUTILS, ...haches, ...entrees.flatMap((e) => e.fichiers ?? [])])
   const hashes = new Map([...fichiers].map((rel) => [rel, reprendre('hashes', rel, rel, () => hashFichier(racine, rel, undefined, memoire))]))
   const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, reprendre('listings', rel, rel, () => listing(racine, rel, memoire))]))
@@ -86,7 +88,7 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   const sondes = new Map([...demandes].map(([cle, q]) => [cle, reprendre('sondes', cle, q.chemin, () => sonde(racine, q, undefined, memoire))]))
   const outillage = mesurerOutillage(outillagePrecedent ?? Object.values(preuve?.generateurs ?? {})[0]?.sources?.contexte?.outillage, memoire)
   const derivees = new Set(cibles.get(JSON.stringify(motifs[0])))
-  const motifsDeclares = motifs.slice(1).flat()
+  const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
   const admissions = new Map()
   const admis = (rel) => {
     let admission = admissions.get(rel)
@@ -239,7 +241,8 @@ export function preparerPreuves(racine, options) {
   const chemins = new Set(perimetre.nature === 'git'
     ? [...gitPorte.listerImage(depot, gitPorte.INDEX), ...gitPorte.listerImage(depot, gitPorte.TRAVAIL)].filter((rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares))
     : listerArbre(racine, { filtre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares), descendre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares) }))
-  for (const g of options.generateurs) {
+  const selection = options.selection ?? options.generateurs
+  for (const g of selection) {
     for (const rel of sortiesDe(racine, g, options)) chemins.add(rel)
     for (const rel of mesure[g.script]?.fichiers ?? []) chemins.add(rel)
   }
@@ -268,7 +271,7 @@ export function preparerPreuves(racine, options) {
     if (!stat || stat.isFile()) fichiers.add(rel)
     if (stat?.isDirectory()) dossiers.add(rel)
   }
-  for (const e of Object.values(mesure)) for (const rel of e.dossiers ?? []) dossiers.add(rel)
+  for (const g of selection) for (const rel of mesure[g.script]?.dossiers ?? []) dossiers.add(rel)
   const vue = nouvelleVue(racine, options, cache, mesure, undefined, perimetre)
   return {
     cache,
@@ -426,10 +429,11 @@ export function recordValide(racine, g, options, record, { sorties = true, vue }
 }
 
 export function preuveValide(racine, options, preuve = chargerPreuve(racine)) {
-  if (!preuve || options.generateurs.some((g) => !preuve.generateurs[g.script])) return { ok: false, raison: 'cache absent ou incomplet' }
+  const selection = options.selection ?? options.generateurs
+  if (!preuve || selection.some((g) => !preuve.generateurs[g.script])) return { ok: false, raison: 'cache absent ou incomplet' }
   let vue
   try { vue = nouvelleVue(racine, options, preuve) } catch (e) { return { ok: false, raison: e.message } }
-  for (const g of options.generateurs) {
+  for (const g of selection) {
     const vu = recordValide(racine, g, options, preuve.generateurs[g.script], { vue })
     if (!vu.ok) return { ...vu, script: g.script }
   }

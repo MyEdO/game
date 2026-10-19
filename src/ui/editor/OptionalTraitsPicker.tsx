@@ -7,11 +7,11 @@
  *    (l'auteur complète l'Indice/la Cible : « Armure 2 », « Haine (Sigmarites) ») ;
  *  - sorts connus (la donnée bestiaire n'en liste pas — choix d'auteur, datalist sur spells.json).
  */
-import { CreatureData, memoParVersion, traits } from '../../data';
-import { CHAR_KEYS } from '../../engine/types';
+import { CreatureData, charAbr, memoParVersion, traits } from '../../data';
+import { CHAR_KEYS, type CharKey } from '../../engine/types';
 import { traitLabels, parseTraitInstance, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
 import { isOptionalNote, type OptionalEntry } from '../../engine/statEntry';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 
 /** Traits Standard de créature (LDB 76 l.28-31) — « ajoutés à la liste Facultative de TOUTES les
  *  créatures » : dérivés de la DONNÉE (`traits.json`, drapeau `standard`), pas d'une liste en dur. */
@@ -20,12 +20,12 @@ const traitsStandard = memoParVersion('traits', () => traits.filter((t) => t.sta
 /** Aperçu lecture seule du profil du bestiaire : ligne de caractéristiques (« – » = inexistante,
  *  Schéma des Profils LDB 76) + traits fixes. */
 export function CreatureProfile({ creature }: { creature: CreatureData }) {
-  const cols = ['M', ...CHAR_KEYS, 'B'];
+  const cols: (CharKey | 'M' | 'B')[] = ['M', ...CHAR_KEYS, 'B'];
   return (
     <div className="creature-profile">
       <table>
         <thead>
-          <tr>{cols.map((k) => <th key={k}>{k}</th>)}</tr>
+          <tr>{cols.map((k) => <th key={k}>{k === 'M' || k === 'B' ? k : charAbr(k)}</th>)}</tr>
         </thead>
         <tbody>
           <tr>

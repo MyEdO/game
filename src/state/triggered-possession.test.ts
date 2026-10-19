@@ -10,7 +10,7 @@
  *    la main devant CET écran ») : le Test déclenché du héros d'un invité était roulé EN SILENCE chez
  *    l'hôte, et son « Vous pouvez… » tranché d'office par l'heuristique d'IA, Avantage dépensé compris.
  *
- * En SOLO les deux prédicats coïncident (`ownsLocally` vrai pour tous) : ces régressions y sont
+ * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) : ces régressions y sont
  * INVISIBLES — d'où le harnais à deux sièges (#1262 B7). Deux formes de « second siège » servent ici,
  * toutes deux réelles : un INVITÉ qui possède un héros (`ownership`) et le siège MJ (`gmSeat`) qui
  * conduit les ennemis (bac-à-sable — `netOwnership.seatOwns`/`jetSurfaced`).

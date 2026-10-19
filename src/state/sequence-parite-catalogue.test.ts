@@ -32,7 +32,7 @@ import { structureCollapseLog } from '../engine/structureCritical';
 import { traitArgSkeleton } from '../engine/traits/dispatch';
 import { validateCareerChange } from '../engine/advancement';
 import { talentMaxLabel } from '../engine/careerSlots';
-import { KEYBINDINGS, bindingLabel, keySectionLabel, keyLabel } from './keybindings';
+import { KEYBINDINGS, bindingLabel, keySectionLabel, keyLabel } from './clavier/keybindings';
 import type { Combatant } from '../engine/types';
 
 /** Un site migré : ce que le flux écrivait AVANT, ce que le catalogue rend APRÈS. */
@@ -299,8 +299,8 @@ const V8C1: Site[] = [
   },
   {
     site: 'merchantFlow.ts:369 — recherche active (sujet + détail par `stepDetail`)',
-    avant: `${HEROS3} — recherche active (Ragot ${31}) : une journée aux marchés porte ses fruits (Disponibilité +10 %, LDB 59 l.50).`,
-    apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk', { roll: 31 })),
+    avant: `${HEROS3} — recherche active : une journée aux marchés porte ses fruits (Disponibilité +10 %, LDB 59 l.50).`,
+    apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk')),
   },
 ];
 
@@ -400,9 +400,9 @@ const V8C2: Site[] = [
     apres: t('tf.mountCared', { mount: BETE, owner: t('tf.fragMountOwner', { name: HEROS3 }), soin: t('tf.mountHealed') }),
   },
   {
-    site: 'travelFlow.ts:795 — péripétie de la table d10 (trois champs de donnée)',
-    avant: `Péripétie de voyage (${4}) — ${'Averse'} : ${'La pluie détrempe la route.'}`,
-    apres: t('tf.perilTable', { roll: 4, label: 'Averse', text: 'La pluie détrempe la route.' }),
+    site: 'travelFlow.ts — péripétie de la table d10 (deux champs de donnée)',
+    avant: `Péripétie de voyage — ${'Averse'} : ${'La pluie détrempe la route.'}`,
+    apres: t('tf.perilTable', { label: 'Averse', text: 'La pluie détrempe la route.' }),
   },
   {
     site: 'riverVoyageFlow.ts:424 — progression du jour (branche DÉRIVE, tiret cadratin + %)',

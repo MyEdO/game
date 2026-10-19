@@ -13,13 +13,13 @@ import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetValues, type FacetSelection } from './search';
 import { CodexEntry } from './CodexEntry';
-import { CodexEdit, isEditableCategory } from './CodexEdit';
+import { CodexEdit, isEditableCategory } from '../editor/codex/CodexEdit';
 import { useAtelierMode, setAtelierMode } from './atelierMode';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { SourceBadge } from '../SourceBadge';
 import { ListRow } from '../ListRow';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { Row } from '../Layout';
 
 /** Clé de navigation d'un `CodexFocus` (identité qualifiée `category+id`) — le focus PORTE l'id. */

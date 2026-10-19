@@ -11,13 +11,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { Modal, cibleEmbarquee } from './Modal';
 import { useFocusEmprunte, visibleFocusables } from './focus';
 import { ScreenShell } from './ScreenShell';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { OptionChooser } from './OptionChooser';
 import { MedicModal } from './MedicModal';
 import { useGame } from '../state/store';
 import type { Combatant } from '../engine/types';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -81,7 +82,7 @@ describe('focus initial d’un cadre — jamais sa croix', () => {
 
 /** Frappe RÉELLE d'une touche sur l'élément focalisé (le piège écoute le document) ; rend l'événement. */
 function frapper(key: string, shiftKey = false): KeyboardEvent {
-  const e = new KeyboardEvent('keydown', { key, shiftKey, bubbles: true, cancelable: true });
+  const e = new KeyboardEvent('keydown', { key, code: key, shiftKey, bubbles: true, cancelable: true });
   act(() => { (document.activeElement ?? document.body).dispatchEvent(e); });
   return e;
 }
@@ -251,7 +252,7 @@ describe('emprunt du focus (`useFocusEmprunte`) — l’invocateur appartient à
   });
 
   const bouton = (t: string) => [...document.querySelectorAll<HTMLElement>('button')].find((b) => (b.textContent ?? '').trim() === t)!;
-  const vider = async () => { await act(async () => { await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); }); };
+  const vider = tacheSuivante;
 
   it('deux modales empilées, StrictMode : chacune rend le focus à son invocateur', async () => {
     let un = (_: boolean) => {};
@@ -394,5 +395,102 @@ describe('emprunt du focus (`useFocusEmprunte`) — l’invocateur appartient à
     expect(actif(), '2e ouverture, depuis B').toBe('Reprendre');
     act(() => ouvrir(false)); await vider();
     expect(actif(), 'la 2e ouverture venait de B').toBe('B');
+  });
+});
+
+describe('sauvetage du focus (`useModalA11y`) — le dernier contrôle disparu, jamais un focus en transition (#2533)', () => {
+  const tache = tacheSuivante;
+  const microTache = () => act(async () => { await Promise.resolve(); });
+  const focusNomme = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '').trim());
+  const champ = (l: string) => document.querySelector<HTMLInputElement>(`[aria-label="${l}"]`)!;
+  function saisir(el: HTMLInputElement, v: string) {
+    const poser = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+    act(() => { poser.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); });
+  }
+  /** Champ qui COMMET au blur (patron `NumberField commit="geste"`) : le commit re-rend la boîte. */
+  function Formulaire() {
+    const [commis, setCommis] = useState('');
+    const [brouillon, setBrouillon] = useState('');
+    return (
+      <Modal title="Form" onClose={() => {}} footer={<button className="btn btn-primary">Valider</button>}>
+        <input aria-label="page" value={brouillon} onChange={(e) => setBrouillon(e.target.value)} onBlur={() => setCommis(brouillon)} />
+        <input aria-label="note" />
+        <p>commis : {commis}</p>
+        <span className="vide">zone non focalisable</span>
+      </Modal>
+    );
+  }
+  /** Édition EN PLACE : le blur commet ET démonte le champ (il redevient texte). */
+  function EnPlace() {
+    const [edition, setEdition] = useState(true);
+    return (
+      <Modal title="Titre" onClose={() => {}} footer={<button className="btn btn-primary">Valider</button>}>
+        {edition ? <input aria-label="titre" onBlur={() => setEdition(false)} /> : <span>titre posé</span>}
+        <input aria-label="note" />
+      </Modal>
+    );
+  }
+  function Sauvetage() {
+    const [e, setE] = useState(0);
+    return (
+      <Modal title="Jet" onClose={() => {}} footer={<button className="btn">Fermer</button>}>
+        {e === 0 ? <button className="btn" onClick={() => setE(1)}>Résilience</button>
+          : <div className="rm-die-pick"><button className="btn small">d1</button><button className="btn small">d2</button></div>}
+      </Modal>
+    );
+  }
+
+  it('S1 : le bouton focalisé démonté — le focus va au groupe révélé, à la tâche suivante', async () => {
+    act(() => root.render(<Sauvetage />));
+    const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Résilience')!;
+    act(() => { b.focus(); });
+    act(() => { b.click(); });
+    await microTache();
+    await tache();
+    expect(focusNomme()).toBe('d1');
+  });
+
+  // Le blur, ses micro-tâches (le rappel du `MutationObserver`) et le focus du champ suivant tiennent dans
+  // la MÊME tâche, comme au clic d'un navigateur. Un `act` ASYNC rend la main par une tâche
+  // (`enqueueTask`, react 19.3) : il ouvrirait entre eux la tâche suivante, où le sauvetage lit le focus.
+  it('S2 : un blur qui enregistre, puis le focus passe à un autre champ — ce champ garde le focus', async () => {
+    act(() => root.render(<Formulaire />));
+    act(() => { champ('page').focus(); });
+    saisir(champ('page'), '24');
+    act(() => { champ('page').blur(); });
+    await Promise.resolve();
+    expect(focusNomme(), 'personne ne prend le focus pendant la transition').toBe('BODY');
+    act(() => { champ('note').focus(); });
+    await tache();
+    expect(focusNomme()).toBe('note');
+  });
+
+  it('S2bis : un blur qui démonte le champ, puis le focus passe à un autre champ — ce champ garde le focus', async () => {
+    act(() => root.render(<EnPlace />));
+    act(() => { champ('titre').focus(); });
+    act(() => { champ('titre').blur(); });
+    await Promise.resolve();
+    expect(focusNomme(), 'personne ne prend le focus pendant la transition').toBe('BODY');
+    act(() => { champ('note').focus(); });
+    await tache();
+    expect(focusNomme()).toBe('note');
+  });
+
+  it('S3 : un blur qui enregistre, puis un clic sur une zone non focalisable — rien n’est démonté, le focus reste sur body', async () => {
+    act(() => root.render(<Formulaire />));
+    act(() => { champ('page').focus(); });
+    saisir(champ('page'), '24');
+    await act(async () => { champ('page').blur(); });
+    await tache();
+    expect(champ('page').isConnected).toBe(true);
+    expect(focusNomme(), 'aucun primaire focalisé qu’Espace actionnerait').toBe('BODY');
+  });
+
+  it('S3bis (témoin) : un blur sans enregistrement, aucune mutation — le focus reste sur body', async () => {
+    act(() => root.render(<Formulaire />));
+    act(() => { champ('note').focus(); });
+    await act(async () => { champ('note').blur(); });
+    await tache();
+    expect(focusNomme()).toBe('BODY');
   });
 });

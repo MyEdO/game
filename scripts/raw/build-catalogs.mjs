@@ -11,7 +11,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText } from './_lib.mjs'
+import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 
@@ -97,10 +97,16 @@ export const cataloguesRendus = () => new Map([...rendre()].map(([chemin, texte]
  * au disque (`pagesDeLAtlas`), sauf les catalogues, pris à la source `catalogues` (fonction qui rend
  * chemin relatif à l'Atlas → texte), jamais au disque.
  */
-export function pagesDeLAtlasRendues(rawDir, options, catalogues = cataloguesRendus) {
+export function pagesDeLAtlasRendues(rawDir, options, catalogues = cataloguesRendus, rendus = new Map()) {
   const autres = options.classes.filter((c) => c !== 'catalogue')
   const pages = (autres.length ? pagesDeLAtlas(rawDir, { ...options, classes: autres }) : [])
+    .filter((p) => !rendus.has(p.relatif))
     .map((p) => ({ ...p, texte: readText(p.chemin) }))
+  for (const [relatif, texte] of rendus) {
+    const nom = relatif.slice(relatif.lastIndexOf('/') + 1)
+    const classe = classeDePage(nom)
+    if (options.classes.includes(classe)) pages.push({ relatif, nom, chemin: join(rawDir, relatif), coeur: relatif.includes('/') ? relatif.split('/')[0] : null, classe, texte })
+  }
   if (autres.length === options.classes.length) return pages
   for (const [relatif, texte] of catalogues()) {
     const coupe = relatif.lastIndexOf('/')

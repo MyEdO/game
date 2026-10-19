@@ -10,7 +10,7 @@ import { testScene } from '../scenes/test-fixture';
 import { makePregens } from '../data/pregens';
 import { CampaignView } from './CampaignView';
 import { t } from '../i18n';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, getStageYaw, resetStageYaw } from '../state/stageYaw';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -267,5 +267,37 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     expect(alerte(), 'le refus d’avant ne survit pas à la modale').toBeNull();
     expect(menuPrincipal(), 'sans refus, pas de « Menu principal »').toBeUndefined();
     consoleErr.mockRestore();
+  });
+});
+
+describe('CampaignView — « Réduire » le hub de voyage pendant une halte (#2533)', () => {
+  /** Hub de voyage actif ; `halte` = une nuit de halte attend (étape incrustée, hub forcé ouvert). */
+  function monterHub(halte: boolean) {
+    demonterRacines();
+    const [heros] = makePregens();
+    useGame.setState({
+      screen: 'campaign', scene: testScene(), mode: 'exploration', povActive: false, battle: null,
+      party: [heros], worldMapOpen: false, travelRecap: null, pendingCascade: null, pendingShoreLeave: null,
+      travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'pied', departAt: 0, hoursPerDay: 6, km: 60, kmDone: 24, interrupted: false },
+      pendingRest: halte
+        ? { places: { camp: true }, lieu: t('rf.lieuRoute', { from: 'A', to: 'B' }), quality: 'normale', days: 1, perHero: { [heros.id]: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never
+        : null,
+    });
+    host = monterRacine(<CampaignView />).container;
+    return [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Réduire')!;
+  }
+  afterEach(() => { useGame.setState({ travelPlan: null, pendingRest: null }); });
+
+  it('une halte attend : « Réduire » est grisé et dit pourquoi', () => {
+    const bouton = monterHub(true);
+    expect(bouton, 'le hub de voyage est monté').toBeTruthy();
+    expect(bouton.getAttribute('aria-disabled')).toBe('true');
+    expect(host.textContent).toContain(t('vs.reduireRefus'));
+  });
+
+  it('test opposé, aucune étape en attente : « Réduire » est offert', () => {
+    const bouton = monterHub(false);
+    expect(bouton.getAttribute('aria-disabled')).toBeNull();
+    expect(host.textContent).not.toContain(t('vs.reduireRefus'));
   });
 });

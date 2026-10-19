@@ -31,14 +31,15 @@ import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
-import { actorIn, ecrireActeur, garanti } from './combatants';
+import { actorIn, ecrireActeur } from './combatants';
+import { garanti } from '../lib/garanti';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './sceneNpc';
 import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 
-import type { Get, Set } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 
@@ -362,7 +363,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   return {
     consequences: freeCons([stepDetail(
       actor ? dataLabel(actor.label) : t('eff.party'),
-      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }) : t('mf.searchSansJet'),
+      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
     )]),
   };
 });
@@ -940,7 +941,7 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
         if (patch.identified) delete (effect as { identified?: boolean }).identified; // identifié = champ absent
         return { ...g, magic: g.magic || !!patch.magicKnown, effect };
       });
-      return { [key]: { ...bucket, gear } } as Partial<GameState>;
+      return { [key]: { ...bucket, gear } } as PatchDeFlux;
     });
     return;
   }

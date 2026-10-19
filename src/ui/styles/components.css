@@ -17,6 +17,7 @@
      .clamp              texte tronqué à N lignes (`--clamp`, défaut 3)
      .cart-step/.btn-step  stepper de quantité [−][centre][+] — primitive QtyStepper.tsx
      .trade-table        table de négoce (colonnes+prix+action+groupes) — primitive TradeTable.tsx
+     .menu-list/.menu-item  liste d'entrées role=menu — primitive composites/Menu.tsx
      .menu-card          carte de menu (en-tête + sections de boutons pleine largeur) — primitive MenuCard.tsx
                          (.menu-card-large = plafond écran-catalogue, prop `large`)
                          (.game-menu-overlay = menu système plein écran en jeu ; .menu-btn/.menu-toggle)
@@ -289,11 +290,19 @@ label.radio {
   color: var(--muted);
   margin-bottom: 10px;
 }
+/* Champ COMPOSÉ (`SourceRefField` : livre, page, note) : ses sous-champs s'espacent par le `gap` du
+   champ parent, sans cumuler leur marge à la sienne. */
+.ed-field > .ed-field { margin-bottom: 0; }
 .ed-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
 
 /* ── CHAMP DE PROSE (primitive `ProseField`) : un texte VERBATIM de plusieurs paragraphes se saisit dans
    une zone à sa mesure, que l'auteur agrandit encore à la verticale. */
 .prose-field { width: 100%; box-sizing: border-box; min-height: 12rem; resize: vertical; font-family: inherit; line-height: 1.45; }
+/* `[data-courte]` (texte court d'auteur, `ProseField courte`) : la zone grandit avec son contenu
+   (`field-sizing: content`), plancher de 3 lignes (`3lh` + padding et filet de la peau de champ,
+   `base.css`). Navigateur sans `field-sizing` (Firefox) : le plancher fixe la hauteur à 3 lignes, avec
+   défilement interne et poignée `resize`. */
+.prose-field[data-courte] { field-sizing: content; min-height: calc(3lh + 18px); }
 
 /* ── BADGE DE SOURCE (primitive `SourceBadge`) : « abréviation du livre p.page ». Encre et filet lus aux jetons du contexte. */
 .source-badge {
@@ -537,7 +546,37 @@ button.chip:hover {
   margin-top: 6px;
 }
 
-/* ── Tabs — primitive UNIQUE de navigation par onglets (#314) : `src/ui/Tabs.tsx`.
+/* ── Menu — primitive composite `role="menu"` (#414) : `src/ui/composites/Menu.tsx`. La colonne
+   d'entrées et ses filets ; la pose du conteneur (déroulant, ancrage) reste à l'écran hôte. */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu-list hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3px 0;
+  width: 100%;
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--bg2);
+}
+
+/* ── Tabs — primitive UNIQUE de navigation par onglets (#314) : `src/ui/composites/Tabs.tsx`.
    Présentation UNIQUE chartée « Atelier du scribe » [entériné 2026-07-14, #414] — pilules gravées
    (langage `.substep`/`.cc-pill` du kit), plus de variantes. */
 .tabs {
@@ -693,11 +732,13 @@ button.chip:hover {
   font-size: 11px;
   color: var(--muted);
 }
+/* EN LIGNE, jamais `inline-flex` : la date vit au milieu d'une phrase, et un conteneur flex rend ses
+   enfants BLOCS (sauts de ligne au texte lu, au copier-coller, au lecteur d'écran). */
 .game-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline;
+  white-space: nowrap;
 }
+.game-date > .icon { margin-right: 6px; }
 
 /* ── BANDEAU D'INTERLOCUTEUR (primitive SpeakerBanner.tsx, #371) — portrait + nom + réplique.
    `.dialogue-box` = surface + position ; en overlay de dialogue (variant `dialogue`, DialogueBox.tsx) elle

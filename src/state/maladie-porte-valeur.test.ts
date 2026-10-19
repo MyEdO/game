@@ -32,6 +32,7 @@ import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant } from '../engine/types';
 import { creditBourse } from './bourseFlow';
 import type { CascadeRoll, CascadeStep } from './pendings';
+import { fixtureText } from '../i18n/fixtureText';
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   ({
@@ -56,7 +57,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
-  useGame.getState().openRest({ places: { auberge: true } });
+  useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
   useGame.getState().restSleep();
   return useGame.getState().pendingCascade?.participants ?? [];
 }
@@ -174,7 +175,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
     useGame.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
-    useGame.getState().openRest({ places: { auberge: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
     useGame.getState().restSleep();
     const vivant = useGame.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();

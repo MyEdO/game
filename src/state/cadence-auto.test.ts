@@ -29,7 +29,7 @@ describe('aiDriven — qui l’IA pilote (Auto-combat)', () => {
 
   it('un HÉROS est piloté en Auto-combat s’il est contrôlé localement', () => {
     setCadence('auto');
-    expect(aiDriven(useGame.getState(), c('hero', 'h1'))).toBe(true); // solo : ownsLocally = vrai
+    expect(aiDriven(useGame.getState(), c('hero', 'h1'))).toBe(true); // solo : ownsLocal = vrai
   });
 
   it('un PNJ n’est jamais auto-piloté', () => {

@@ -21,6 +21,14 @@ const DEMARRAGE = { cwd: '/depot', surface: null, isInteractive: false } as neve
 type Panne = { exitCode: number; stdout: string; stderr: string }
 /** La définition que rend `suivi.mjs --outil --json`, telle quelle. */
 const OUTIL = { name: 'suivi', description: 'écrit le suivi', inputSchema: { type: 'object', properties: { epique: { type: 'integer' } } } }
+const OUTILS_CODEX = {
+  outils: ['codex_envoyer', 'codex_attendre', 'codex_etat'].map((name) => ({
+    name, description: name, inputSchema: { type: 'object', properties: {}, required: [], additionalProperties: false },
+  })),
+  prefixesDeRefus: ['[panne · non retentable]'],
+  refusTechnique: '[panne · non retentable] Réponse ou transport ops:session invalide',
+}
+const REPONSE_CODEX = { etat: 'occupe', seq: 4 }
 const LOT = [{ geste: 'cocher', ticket: 4, n: 2 }]
 
 /**
@@ -33,9 +41,12 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
   synchro: (argv: readonly string[]) => Panne = () => ({ exitCode: 0, stdout: JSON.stringify({ etat: 'a-jour', sha: 'a', texte: '' }), stderr: '' })) {
   const argvs: string[][] = []
   const synchros: string[][] = []
+  const codex: string[][] = []
   const outils: unknown[] = []
   const ordre: string[] = []
   const journal: { text: string; to?: string }[] = []
+  const status: (string | undefined)[] = []
+  const toasts: string[] = []
   const suspendues: (() => void)[] = []
   const mesures: string[][] = []
   const mesuresSuspendues: (() => void)[] = []
@@ -52,11 +63,22 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     return h(Text, { key: 'moteur' }, 'moteur') as RenderElement
   })
   on('process.run', async (_$, e) => {
+    if (e.argv[1]?.endsWith('/scripts/ops/session.mjs')) {
+      codex.push([...e.argv])
+      if (e.argv[2] === 'outils') {
+        expect(e.argv.slice(2)).toEqual(['outils', '--json'])
+        ordre.push('outils-codex')
+        return { value: { exitCode: 0, stdout: JSON.stringify(OUTILS_CODEX), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+      }
+      expect(['envoyer', 'attendre', 'etat']).toContain(e.argv[2])
+      return { value: { exitCode: 0, stdout: JSON.stringify(REPONSE_CODEX), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
     if (e.argv[1]?.endsWith('/scripts/ops/synchroniser.mjs')) {
       synchros.push([...e.argv])
       ordre.push('synchroniser')
       return { value: { ...synchro(e.argv.slice(2)), isStdoutTruncated: false, isStderrTruncated: false } }
     }
+    expect(e.argv[1]?.endsWith('/scripts/ops/suivi.mjs')).toBe(true)
     if (e.argv.includes('--mesurer')) {
       mesures.push([...e.argv])
       await new Promise<void>((finie) => { mesuresSuspendues.push(finie) })
@@ -78,7 +100,15 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     journal.push({ text: e.text, to: e.to })
     return { value: undefined } as never
   })
-  return { argvs, synchros, outils, ordre, journal, mesures, relacher: () => suspendues.shift()?.(), finirMesure: () => mesuresSuspendues.shift()?.() }
+  on('ui.status', async (_$, e) => {
+    status.push(e.text)
+    return { value: undefined } as never
+  })
+  on('ui.toast', async (_$, e) => {
+    toasts.push(e.text)
+    return { value: undefined } as never
+  })
+  return { argvs, synchros, codex, outils, ordre, journal, status, toasts, mesures, relacher: () => suspendues.shift()?.(), finirMesure: () => mesuresSuspendues.shift()?.() }
 }
 
 const textes = async (ui: { findAll: (q: { type: 'Text' }) => Promise<{ text?: string }[]> }) => (await ui.findAll({ type: 'Text' })).map((el) => el.text)
@@ -123,10 +153,35 @@ test('session.start : `synchroniser.mjs --json` AVANT le lecteur ; `a-jour` ne d
   mock.clock(on)
   const vu = monde(on, () => SANS_LIEN)
   await $.session.start(DEMARRAGE)
-  expect(vu.ordre).toEqual(['synchroniser', 'suivi', 'outil'])
-  expect(vu.outils).toEqual([OUTIL])
+  expect(vu.ordre).toEqual(['synchroniser', 'suivi', 'outil', 'outils-codex'])
+  expect(vu.outils).toEqual([OUTIL, ...OUTILS_CODEX.outils])
+  expect(vu.codex.length).toBe(1)
+  expect(vu.codex[0]?.slice(2)).toEqual(['outils', '--json'])
+  expect(vu.journal).toEqual([])
   expect(vu.synchros[0]?.slice(2)).toEqual(['--json'])
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
+})
+
+test('le registre complet sert les trois outils Codex sans ajouter de lecture du suivi ni de journal de débogage', async ($, on) => {
+  mock.clock(on)
+  const vu = monde(on, () => SANS_LIEN)
+  await $.session.start(DEMARRAGE)
+  const texte = JSON.stringify(REPONSE_CODEX)
+  for (const appel of [
+    { tool: 'mcp__harnais__codex_envoyer', sessionId: SESSION, message: 'consigne', jeton: 'secret-test', requestId: 'requete' },
+    { tool: 'mcp__harnais__codex_attendre', sessionId: SESSION, depuis: 0, timeoutMs: 20 },
+    { tool: 'mcp__harnais__codex_etat', sessionId: SESSION },
+  ]) expect((await $.tool.call(appel as never)).result).toBe(texte)
+  expect(vu.codex.map((argv) => argv.slice(2))).toEqual([
+    ['outils', '--json'],
+    ['envoyer', SESSION, '--message', 'consigne', '--request-id', 'requete', '--json'],
+    ['attendre', SESSION, '--depuis', '0', '--timeout-ms', '20', '--json'],
+    ['etat', SESSION, '--json'],
+  ])
+  expect(vu.argvs.map((argv) => argv.slice(2))).toEqual([['--session', SESSION, '--json']])
+  expect(vu.status).toEqual([texte, texte, texte])
+  expect(vu.toasts).toEqual([texte])
+  expect(vu.journal).toEqual([])
 })
 
 test('le `texte` d’un état de synchronisation nommé (code 1) entre UNE fois en contexte, tel quel (#2187, #2493)', async ($, on) => {

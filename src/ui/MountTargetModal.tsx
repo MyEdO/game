@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
-import { PortraitPicker } from './PortraitPicker';
+import { PortraitPicker } from './console/PortraitPicker';
 import { ChoiceButtons } from './OptionChooser';
 import { Icon } from './Icon';
 

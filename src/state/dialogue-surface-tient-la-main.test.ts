@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { GameState } from './store';
 import { conversationRepond, ouvrirDialogue } from './dialogue';
-import { runBindingById } from './keybindings';
+import { runBindingById } from './clavier/keybindings';
 import { withActingSeat } from './netOwnership';
 import { parseProject } from './worldMap';
 import { makeShowcaseParty } from '../data/pregens';

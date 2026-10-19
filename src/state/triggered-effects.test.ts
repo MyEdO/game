@@ -36,7 +36,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const prey = mk({ id: 'pr' });
     fireTriggers(noBattle(), spider, 'onHit', { victim: prey });
     expect(empetre(prey)?.value).toBe(1);
-    expect(empetre(prey)?.escapeStrength).toBe(spider.characteristics.force); // {charOf:'F'} résolu vs l’attaquant
+    expect(empetre(prey)?.escapeStrength).toBe(spider.characteristics.force); // {charOf:'force'} résolu vs l’attaquant
   });
 
   it('ATOUT Immobilisante : l’arme qui touche pose Empêtré — MÊME chemin que le trait', () => {

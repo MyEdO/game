@@ -12,18 +12,13 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { FallModal } from './FallModal';
 import { ShantyModal } from './ShantyModal';
-import type { Combatant } from '../engine/types';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { combattantDeModale } from './combattantDeModale.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 40 };
-const mk = (id: string): Combatant =>
-  ({ id, name: id, label: id, kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 18, max: 18 }, resilience: 2, fortune: 2,
-     species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, traits: [],
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
 
 let host: HTMLDivElement;
 let root: Root;
@@ -46,10 +41,10 @@ const diffZone = () => [...host.querySelectorAll('.rm-roll-diff')].map((e) => (e
 
 describe('Chute volontaire — la Compétence et le « +20 » sont à la LIGNE', () => {
   it('le sous-titre ne garde que la hauteur ; la ligne porte Athlétisme et sa Difficulté', () => {
-    const hero = mk('Aldo');
+    const hero = combattantDeModale('Aldo');
     useGame.setState({
       battle: null, party: [hero],
-      pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: hero.id, participants: [{ id: hero.id, interactive: true, attempt: true, result: null }] },
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 6, initiateurId: hero.id, participants: [{ id: hero.id, interactive: true, attempt: true, result: null }] },
     } as never);
     act(() => root.render(<FallModal />));
     expect(rollLabel(), 'la Compétence est le label de la ligne').toContain('Athlétisme');
@@ -66,7 +61,7 @@ describe('Chute volontaire — la Compétence et le « +20 » sont à la LIGNE',
 
 describe('Chanson de marin — la Compétence est à la LIGNE', () => {
   it('le sous-titre ne garde que le bénéficiaire ; la ligne porte Divertissement (Chant)', () => {
-    const singer = mk('Kolja');
+    const singer = combattantDeModale('Kolja');
     useGame.setState({
       battle: { combatants: [singer], over: false },
       party: [singer],

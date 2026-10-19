@@ -32,6 +32,7 @@ import { GUEST_INTENTS } from '../net/intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
 import { PENDING_BY_JET, type HostJet } from './stateFields';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -152,7 +153,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     }
     const s = state(CAST_JET, H_HOST, {
       pendingCascade: null,
-      pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: [
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: [
         { id: H_HOST, interactive: true, attempt: true, result: null },
         { id: H_GUEST, interactive: true, attempt: null, result: null },
       ] },

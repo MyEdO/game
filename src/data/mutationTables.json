@@ -2,7 +2,7 @@
   {
     "id": "physique",
     "type": "mutationTables",
-    "label": "physique",
+    "label": "Tableau de Corruption physique",
     "ranges": [
       {
         "min": 1,
@@ -107,14 +107,14 @@
     ],
     "source": {
       "book": "livre-de-base",
-      "page": 183,
-      "note": "Tableau de Corruption Physique/Mentale, LDB 19 — dernier folio Marker ancré avant les tables (182→183)."
+      "page": 184,
+      "note": "Tableau de Corruption physique, LDB 19 l.83 (page 184)."
     }
   },
   {
     "id": "mentale",
     "type": "mutationTables",
-    "label": "mentale",
+    "label": "Tableau de Corruption mentale",
     "ranges": [
       {
         "min": 1,
@@ -219,8 +219,8 @@
     ],
     "source": {
       "book": "livre-de-base",
-      "page": 183,
-      "note": "Tableau de Corruption Physique/Mentale, LDB 19 — dernier folio Marker ancré avant les tables (182→183)."
+      "page": 185,
+      "note": "Tableau de Corruption mentale, LDB 19 l.83 (page 185)."
     }
   },
   {

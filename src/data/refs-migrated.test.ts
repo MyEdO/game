@@ -405,7 +405,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     });
   });
 
-  it('scènes : FlowTest.skill / extendedTest.skill = skillId qui résout ; corruptionExposure.skill ∈ {resistance,calme}', () => {
+  it('scènes : FlowTest.skill / extendedTest.skill = skillId qui résout', () => {
     walk(areneProject, (o) => {
       if (o.kind === 'test' && isObj(o.test)) {
         const s = (o.test as Record<string, unknown>).skill;
@@ -416,7 +416,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         }
       }
       if (o.type === 'extendedTest' && o.skill != null) expect(byId('skill', (o.skill as { id: string }).id), `extendedTest → ${JSON.stringify(o.skill)}`).toBeTruthy();
-      if (o.type === 'corruptionExposure' && o.skill != null) expect(['resistance', 'calme'], JSON.stringify(o.skill)).toContain((o.skill as { id: string }).id);
     });
   });
 
@@ -611,7 +610,7 @@ function ecartIntegrite(observe: EntreeDeSite[], stock: readonly EntreeDeSite[],
       ? `${cle} — migrer la dotation en référence typée (#622).`
       : entree.famille === 'talent-sentinelle'
         ? `${cle} — poser la spécialisation ou le choix imprimé ; régime de choix à #1621.`
-        : `${cle} — déclarer l'identité observée dans scripts/guards/lib/integriteStock.mjs.`,
+        : `${cle} — corriger la donnée vers sa forme cible : scripts/guards/lib/integriteStock.mjs ne fait que décroître.`,
   } });
   expect(ecart.taille, 'Stock dupliqué : retirer les identités répétées').toBe(stock.length);
   expect(ecart.neuves, `Entrées neuves :\n${ecart.neuves.join('\n')}`).toEqual([]);

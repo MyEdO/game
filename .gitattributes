@@ -25,8 +25,6 @@
 # `main` y est en conflit. Le train la reprend par fusion locale, régénération des stocks de sites et
 # nouvelle tête (scripts/ops/etapesDuTrain.mjs, étape `file`, #2525).
 
-# docs-fiche-raw : scripts/git-hooks/merge-docs.mjs (#2203).
-docs/raw/**/*.md              merge=docs-fiche-raw
 
 # stocks : scripts/git-hooks/merge-stocks.mjs, par groupe de site (`FORMATS`,
 # scripts/guards/lib/stockDeSites.mjs) ; un fichier sans collection de sites retombe sur la 3-voies.

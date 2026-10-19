@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
-import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
+import type { NatureDInfluence, SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
@@ -32,7 +32,7 @@ import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
 import { t } from '../i18n';
-import type { Get, Set } from './flowTypes';
+import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { planClimb } from './climbMove';
 import { planFranchissement, metresRetenus, phaseDeChute, mouvementDeLaChute, mouvementDeLAllege } from './fallMove';
 import { gesteDepuis, porteurDExploration, refusDuTestDeChute, refusDeLaSuspension, REFUS_FRANCHISSEMENT } from './gesteDArete';
@@ -89,7 +89,7 @@ export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Pa
 /** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
  *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
  *  Le merge partiel de zustand préserve les actions du store. */
-function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): void {
+function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const data = { ...(save.data as Partial<GameState>) };
   // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
@@ -125,7 +125,8 @@ import { touchActors } from './combatOrParty';
 import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
-import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
+import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot, testDExposition } from './corruptionFlow';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import * as partyFlow from './partyFlow';
 import * as possessionsFlow from './possessionsFlow';
 import type { Possession } from '../engine/possession';
@@ -150,8 +151,8 @@ import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
 export type { MedicState, MedicNpc } from './medicFlow';
 import * as restFlow from './restFlow';
-import type { PendingRest, RestPlaces, RestLodging, RestFood } from './restFlow';
-export type { PendingRest, RestPlaces } from './restFlow';
+import type { PendingRest, RestLodging, RestFood } from './restFlow';
+export type { PendingRest } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
@@ -318,7 +319,7 @@ export interface BattleState {
   /** Budget de Mouvement ÉTENDU du Tour après une Course (Marche + Course + DR, LDB 15 l.41) :
    *  le reliquat non parcouru reste dépensable en segments. Null hors Course ; purgé au Tour/Round. */
   runBudget?: number | null;
-  /** Test de Calme d'APPROCHE d'une source de Peur (LDB 21 l.27) — une tentative par Tour :
+  /** Test `calme-d-approche` d'une source de Peur (LDB 21 l.27) — une tentative par Tour :
    *  'passed' = approches libres ce Tour ; 'failed' = aucune approche ce Tour. Purgé au Tour/Round. */
   fearGate?: 'passed' | 'failed' | null;
   /** COOP : les SIÈGES qui demandent la PAUSE du prochain début de Round (fenêtre Chance « agir en
@@ -731,9 +732,9 @@ export interface GameState extends RollFlowActionsMap {
   pendingDistraire: PendingDistraire | null;
   /** Manœuvre de créature en cours (Souffle/Vomi/Langue/Regard/Étreinte — modale de jet d'attaquant). */
   pendingManeuver: PendingManeuver | null;
-  /** Course en cours (modale Test d'Athlétisme → déplacement étendu). */
+  /** Course en cours (modale du Test `course` → déplacement étendu). */
   pendingRun: PendingRun | null;
-  /** Chute VOLONTAIRE en cours (LDB 15 l.82 — choix Sauter/Tenter, puis modale Test d'Athlétisme → chute). */
+  /** Chute VOLONTAIRE en cours (LDB 15 l.82 — choix Sauter/Tenter, puis modale du Test `chute` → chute). */
   pendingFall: PendingFall | null;
   /** Manœuvre navale en cours (MDG 13 : Test de Navigation du barreur → vire le cap + avance). */
   pendingShipManeuver: PendingShipManeuver | null;
@@ -743,7 +744,7 @@ export interface GameState extends RollFlowActionsMap {
   pendingCrewTest: PendingCrewTest | null;
   /** Chanson de marin en cours (Talent, MDG 09 l.32-40 : choix de la chanson + Test de Divertissement (Chant)). */
   pendingShanty: PendingShanty | null;
-  /** Approche d'une source de Peur en cours (Test de Calme +0 différant le clic — LDB 21 l.27). */
+  /** Approche d'une source de Peur en cours (Test différant le clic — LDB 21 l.27). */
   pendingApproach: PendingApproach | null;
   /** Bénédiction de Protection en cours (Test de FM +20 différant la déclaration d'attaque — LDB 41 l.142). */
   pendingWard: PendingWard | null;
@@ -1059,10 +1060,10 @@ export interface GameState extends RollFlowActionsMap {
   resolveTest: () => void;
   /** Exposition à une Influence corruptrice (LDB 19) : Lancer → Chance → Appliquer (gain selon DR).
    *  Délégués `corruption{Roll,Reroll,BonusSL,DarkPact}` : générés (RollFlowActionsMap). */
-  /** Choisit Résistance/Calme AVANT le jet d'exposition (LDB 19 l.29 : « ou … comme déterminé par le
+  /** Choisit le Test de `influences-corruptrices` AVANT le jet d'exposition (LDB 19 l.29 : « ou … comme déterminé par le
    *  MJ » — RAW indéterminé pour le trait de créature ; le joueur tranche, comme la Défense). Le SEUIL
-   *  (l.80) reste figé sur Résistance et ignore cet appel. */
-  corruptionSetSkill: (skill: 'resistance' | 'calme') => void;
+   *  (LDB 19 l.70) reste figé sur le Test de `corrompu` et ignore cet appel. */
+  corruptionSetNature: (nature: NatureDInfluence) => void;
   resolveCorruption: () => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
   remettreDocument: (doc: Omit<NonNullable<GameState['document']>, 'remise'>) => void;
@@ -1101,7 +1102,7 @@ export interface GameState extends RollFlowActionsMap {
   closeMedic: () => void;
   /** REPOS (state/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
-  openRest: (opts?: { places?: RestPlaces; quality?: 'normale' | 'pietre'; days?: number; travelHalt?: boolean }) => void;
+  openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
   restReady: (seat: number) => void;
   restSleep: () => void;
@@ -1369,7 +1370,7 @@ export interface GameState extends RollFlowActionsMap {
   maneuverCancel: () => void;
   /** Avantage dépensé par le Regard pétrifiant (variable, LDB 85 l.290) : 1..advantage → +N DR. */
   maneuverSetAvantage: (n: number) => void;
-  /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test d'Athlétisme, Chance/Résilience, appliquer (déplacement étendu). */
+  /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test `course`, Chance/Résilience, appliquer (déplacement étendu). */
   battleRun: (dest?: Pt, movement?: { path: Pt[]; cost: number }) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   battleShipManeuver: (crewId: string) => void;
@@ -1403,7 +1404,7 @@ export interface GameState extends RollFlowActionsMap {
   runCancel: () => void;
   /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
-   *  d'Athlétisme). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
+   *  `chute`). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
   fallAcross: (from: Pt, to: Pt) => void;
   /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, allège de la croisée
    *  `WallSeg.allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
@@ -1417,7 +1418,7 @@ export interface GameState extends RollFlowActionsMap {
   // fall{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   fallConfirm: () => void;
   fallCancel: () => void;
-  /** Approche d'une source de Peur (LDB 21 l.27) : Test de Calme (+0) ; succès → l'intention différée est relancée. */
+  /** Approche d'une source de Peur (LDB 21 l.27) : succès → l'intention différée est relancée. */
   // approach{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   approachConfirm: () => void;
   approachCancel: () => void;
@@ -1503,7 +1504,7 @@ export interface GameState extends RollFlowActionsMap {
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
   // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
-  disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Calme du fuyard)
+  disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Test `fuite` du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
   fleeConfirm: () => void; // Appliquer : coup dans le dos (applicateur canonique) + États Brisés + libération/Course
   disengageCancel: () => void;
@@ -1587,7 +1588,7 @@ export interface GameState extends RollFlowActionsMap {
   lastNightDay: number;
   /** Départ de voyage BLOQUÉ par la porte d'heure (maison `travel-departure-gate`, #340) : terre/fleuve
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
-  pendingDeparture: { routeId: string; mode: import('../engine/travel').TravelMode; opts: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }; dawnAt: number } | null;
+  pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** « Attendre l'aube » : joue une nuit (repos) puis efface la porte — le groupe repart au matin. */
   departWaitDawn: () => void;
   /** « Annuler » le départ nocturne bloqué par la porte. */
@@ -1734,7 +1735,7 @@ export interface CampaignVessel {
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
  *  `chooseDialogue` (cas sans Test) et `resolveTest` (reprise après un Test suspendu par `choice.flow`). */
-function applyDialogueTransition(get: () => GameState, set: (s: Partial<GameState>) => void, tr: DialogueTransition): void {
+function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): void {
   if (tr === 'close') {
     if (get().dialogue) get().advanceTime(TIME_COST.dialogue); // clôture (no-op si un Effect a déjà fermé)
     set({ dialogue: null });
@@ -1803,7 +1804,7 @@ function arriveeOccupee(battle: BattleState, mover: Combatant, to: Pt): boolean 
 /** SOLDE de l'Action/du Mouvement d'un tour à la tentative de saut (`settleFall`) — nommé pour être
  *  joué AVANT l'atterrissage, là où il ne dépend d'aucun dé (LDB 13 l.86-88). `mouvement` = cases
  *  dépensées (`mouvementDeLaChute`). */
-function soldeDeLAction(get: () => GameState, set: (s: Partial<GameState>) => void, actionSpent: boolean, mouvement: number): void {
+function soldeDeLAction(get: Get, set: Set, actionSpent: boolean, mouvement: number): void {
   const bB = get().battle;
   if (get().mode === 'battle' && bB) {
     set({ battle: { ...bB, acted: actionSpent ? true : bB.acted, action: null, movementUsed: (bB.movementUsed ?? 0) + mouvement, movedPreAction: bB.movedPreAction || !bB.acted, reachable: new Map(), preview: null } });
@@ -2093,8 +2094,8 @@ export const useGame = create<GameState>((set, get) => ({
   objectifsSoldes: [],
   chapitreDepuis: null,
   clotureConsommee: false,
-  // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (aucun n'est de
-  // `GUEST_INTENTS`, cf. `guest-surface-class.test.ts`). Chez un invité ils sont INERTES — sans cette
+  // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
+  // `net/intents.ts` `CLASSE_DES_ACTIONS`). Chez un invité ils sont INERTES — sans cette
   // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
   // L'écran, lui, reste visible : il porte son refus par `GatedAction` (patron `store.ts:1942`).
   acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
@@ -2183,7 +2184,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   net: netFlow.initialNet(),
   netHostStart: (name) => netFlow.netHostStart(get, set, name),
-  netJoin: (code, name) => netFlow.netJoin(get, set, code, name),
+  netJoin: (code, name) => netFlow.netJoin(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
   netAssign: (heroId, seat) => netFlow.netAssign(get, set, heroId, seat),
   setGmSeat: (seat) => netFlow.setGmSeat(get, set, seat),
   netAssignSlot: (slot, seat) => netFlow.netAssignSlot(get, set, slot, seat),
@@ -2502,6 +2503,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (nonDebout && rule('chute-tombant-non-debout') !== 'chute-pleine') return void refuserGeste(get, set, t('fall.refus.nonDebout', { name: nonDebout.label }));
     set({
       pendingFall: {
+        test: testDeRegle('chute', 'tenter'),
         to: plan.to, metres: plan.metres, initiateurId: mover.id,
         ...(plan.suspendu !== undefined ? { suspendu: plan.suspendu } : {}),
         ...(plan.allege !== undefined ? { allege: plan.allege } : {}),
@@ -3072,11 +3074,11 @@ export const useGame = create<GameState>((set, get) => ({
   // `determine` : Détermination (LDB 17 l.59), corps dans `FLOWS.test.caps.determine`.
 
   /** Exposition à une Influence corruptrice (LDB 19) — flux différé, cf. spec `corruption`. */
-  corruptionSetSkill: (skill) => {
+  corruptionSetNature: (nature) => {
     const pc = get().pendingCorruption;
-    // Pré-jet uniquement, et JAMAIS si la compétence est déterminée en amont (source ou seuil).
-    if (!pc || pc.roll != null || pc.skillLocked) return;
-    set({ pendingCorruption: { ...pc, skill } });
+    // Pré-jet uniquement, en EXPOSITION seulement, et JAMAIS si la source impose la nature.
+    if (!pc || pc.roll != null || pc.kind === 'seuil' || pc.natureFixee) return;
+    set({ pendingCorruption: { ...pc, ...testDExposition(nature) } });
   },
   /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL
    *  (kind 'seuil', LDB 19 l.70) : dénouement chez `corruptionFlow`, puis le slot LIBÉRÉ revient au

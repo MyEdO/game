@@ -28,23 +28,14 @@ de `GENERATORS`, `scripts/docs/build-all.mjs` — docs générés, catalogues de
 (aussi `postinstall`, hooks `post-checkout`/`post-merge`/`post-rewrite`, `buildStart` de Vite), les docs
 par `npm run docs:build`. Aucune ne se fusionne.
 
-**Fusion des docs MIXTES** (`.gitattributes`, pilote `scripts/git-hooks/merge-docs.mjs` déclaré par
-`npm run postinstall`) : `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` (prose manuscrite + champ
-`**Implémente :**` dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ
-(heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
-vrai conflit humain.
-
-Après tout commit, toute fusion ou tout rebase : les hooks `post-commit`/`post-merge`/`post-rewrite`
-choisissent les générateurs dont une source a bougé (`scripts/git-hooks/selection-des-derives.mjs`) ;
-`scripts/git-hooks/docs-rebuild.mjs` régénère les cibles de code avant de rendre la main
-(`build-all --code --sans-certifier` : leurs certificats invalidés, la passe les certifie) et DEMANDE la
-reconstruction des docs, jouée en fond par un détaché par arbre (`scripts/git-hooks/reconstruction.mjs`,
-journal `.git/hooks-git/reconstruction/<pid>.log`) une fois l'arbre libre de toute opération git ;
-`--attendre` attend sa fin. Un MIXTE réécrit reste à committer. Les dérivés et le cache de fraîcheur n'ont
-qu'UN écrivain à la fois (`scripts/docs/lib/ecrivain-derives.mjs`) : tout écrivain de cibles de code hors passe
-PRÉEMPTE la passe en cours (époque neuve sous verrou), dont toute écriture suivante est refusée, puis la passe est rejouée ; une écriture de la
-passe pendant une opération git (checkout, rebase, fusion) la préempte de même ; toute autre écriture prend le
-verrou.
+Après tout commit, toute fusion ou tout rebase : les hooks examinent l'attestation des cibles
+(`scripts/git-hooks/docs-rebuild.mjs`). Les cibles de code périmées se produisent par
+`build-all --code --perimes` ; la reconstruction documentaire se demande en fond
+(`scripts/git-hooks/reconstruction.mjs`) une fois l'arbre libre de toute opération Git.
+Les sources, sondes, listings, outils et sorties mesurés décident de la fraîcheur. Tout mode
+d'écriture mesure et certifie ; une sortie identique laisse son lecteur frais.
+Les écrivains partagent `scripts/docs/lib/ecrivain-derives.mjs` : une production de code préempte
+la passe courante, dont toute écriture suivante est refusée, puis la passe est rejouée.
 
 **Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
 l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
@@ -53,17 +44,15 @@ le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit`
 s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
 producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
 son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
-`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
-`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
-`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. La finalisation du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estMiroir`, `scripts/ops/etapesDuTrain.mjs`).
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
 chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
 et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
 ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
-de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, que les deux
-pilotes partagent. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
+de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
 mesure>`.
 
 ## Frontière orchestrateur · machinerie · data-driven
@@ -88,6 +77,29 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 - Sweep `actorIn` dans `store.ts` : `battle` y reste en portée pour le `set` final.
 
 ## Arborescence
+
+Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
+se réexporte jamais hors de `X/interne/` : la porte de `X/` expose des fonctions qu'elle écrit
+elle-même. Le mur `murs/interne` la tient (`scripts/guards/lib/interneLint.mjs`, câblé dans
+`oxlint.config.mjs`), par la place du fichier dans l'arbre, sans liste, sur les formes que son en-tête
+énumère. Hors de sa portée : le spécificateur calculé, le motif de glob joker sans segment `interne`,
+la liaison réexportée en valeur (`export const p = b`), le requireur renommé ou réaffecté
+(`createRequire as cr`, `var req = require`) et l'accès calculé (`module['require']`).
+Premier consommateur : `src/ui/editor/interne/` (résumeurs d'atelier `resumeDOp.ts`, `resumeDeCondition.ts`).
+
+Murs de lint (`murs/*`, greffon `scripts/guards/lib/mursLint.mjs`) et directives (#2724) : une directive
+`eslint-`/`oxlint-disable` ou un commentaire de configuration ne nomme un mur que s'il figure dans
+`MURS_EXEMPTABLES_AU_SITE` (même module), et à SA ligne (`-next-line`, `-line` ; ni forme bloc ni
+commentaire de configuration) ; aucune ne nomme une restriction native
+(`no-restricted-syntax|imports|properties|globals`), aucune n'est globale (sans règle nommée). Les noms
+d'une directive se lisent comme oxlint les lit (`directivesLintCiblees`, `lint.testkit.mjs`). Garde :
+`scripts/corpus/guards/directivesMurs.test.mjs`, sur tout fichier de script (`EXTENSIONS_DE_SCRIPT`)
+qu'arme un mur ; son banc confronte chaque forme à oxlint. Le test IGNORES de
+`scripts/corpus/guards/lister.test.mjs` lance la commande de la gate `npm run lint` en découverte, une fois,
+sur une copie des fichiers SUIVIS armés et de leurs fichiers d’ignore (`.gitignore`, `.eslintignore`) : chaque fichier de script suivi armé est lu
+(ni `.gitignore`, ni `.eslintignore`, ni ignore de la config, ni ignore implicite d'oxlint, tel `*-min.ts`), aucun autre dialecte
+ne l'est (`.vue`, `.svelte`, `.astro`). Les fichiers générés non suivis (`/src/**/*.generated.ts`) sortent de
+cette mesure.
 
 ```
 Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, AGENTS.md § Sources VF)
@@ -189,6 +201,10 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             données perdues ; ouverture bornée #776, une connexion par opération ; leur
                             poignée `accesBase` (magasins typés, `vider`) ; doublure
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
+                            `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
+                            `scheduleFlowTimer`, `clearTrackedTimer`), vidé au teardown de test
+                            (`clearTrackedTimers`, #405) ; seul lieu de `src/state` et `src/lib` où
+                            `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
                             (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
                             chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
@@ -196,6 +212,8 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
+                            `garanti.ts` : une valeur que son producteur garantit, absente, lève un
+                            défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -491,7 +509,8 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),
-                              useSceneHistory (undo/redo), useEditorView (caméra)
+                              useSceneHistory (undo/redo), useEditorView (caméra) ; interne/ :
+                              résumeurs d'atelier, fermés à editor/ par `murs/interne`
 src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
                             projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).
                             Ce GÉNÉRATEUR (cartes ASCII → JSON) est le propriétaire EXCLUSIF du paquet : le JSON

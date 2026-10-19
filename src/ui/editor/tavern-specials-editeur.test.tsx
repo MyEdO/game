@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
-import { CodexEdit } from '../compendium/CodexEdit';
+import { CodexEdit } from './codex/CodexEdit';
 import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { datasetArray, setDataset } from '../../data/overrides';

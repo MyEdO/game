@@ -25,7 +25,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
-import { openRest, placesOfKind } from './restFlow';
+import { openRest, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapRoute, type WorldMap } from './worldMap';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
 import { baseHoursPerDay } from './travelFlow';
@@ -60,7 +60,8 @@ import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cas
 import { checkPartyWiped } from './partyWipe';
 import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn, equipageApte, garanti } from './combatants';
+import { actorIn, equipageApte } from './combatants';
+import { garanti } from '../lib/garanti';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
@@ -1077,5 +1078,5 @@ function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string;
   // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
   // en plus du campement/de l'auberge de la halte — la belle étoile sur la berge reste possible.
   const places = { ...placesOfKind(route?.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  openRest(get, set, { places, travelHalt: true, travelDay: recapDay });
+  openRest(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
 }

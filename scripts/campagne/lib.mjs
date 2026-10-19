@@ -117,7 +117,7 @@ function validateAppearance(app) {
 }
 
 /** Valide EN PLACE les ids nichés dans les flows d'une scène : `FlowTest.skill`
- *  (et l'`attackerSkill` d'un test opposé), `corruptionExposure.skill`, `learnSpell.spell`. Ne touche
+ *  (et l'`attackerSkill` d'un test opposé), `learnSpell.spell`. Ne touche
  *  QUE les valeurs STRING (une réf déjà emboîtée `skill: {id}` reste intacte). Balayage récursif unique. */
 function validateFlowRefs(node) {
   if (Array.isArray(node)) { node.forEach(validateFlowRefs); return; }

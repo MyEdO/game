@@ -28,7 +28,7 @@ import { addEnemyMember } from '../state/sceneEdit';
 import { placeEntity } from './editor/editorState';
 import { emptyScene } from '../state/scene';
 import type { NarratifBlock } from '../state/campaignNarratif';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { DELAI_APPUI_LONG } from './useLongPress';
 import type { Combatant } from '../engine/types';

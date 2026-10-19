@@ -57,7 +57,7 @@ import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, selectedAttackOption,
   freeAttackTargetOk, auContactEligible, grappleActionEligible, firedAttackBlock,
-  displaceSmaller, fearedSourceTowards, frenzyTarget, applyZoneCrossings, noteApproachMove,
+  displaceSmaller, retenuParLaPeur, frenzyTarget, applyZoneCrossings, noteApproachMove,
   placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates,
   cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade,
   captureMoveSnapshot, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackOption,
@@ -162,7 +162,7 @@ export type TileTargetingMode = TargetingMode & Required<Pick<TargetingMode, 'ti
  *  - COOP : l'intention est locale au CLIENT (`localIntent`, hors snapshot). L'hôte qui exécute
  *    l'intent d'un invité ne peut pas la relire dans SON store — il y verrait sa propre case. Le
  *    verdict se calcule donc chez l'émetteur (`localIntent.INTENT_VERDICT_ARGS`, joint par `netFlow`).
- *  - RÉ-ENTRÉE : un geste différé par un gate (Test de Calme d'approche, Bénédiction de Protection,
+ *  - RÉ-ENTRÉE : un geste différé par un gate (Test `calme-d-approche`, Bénédiction de Protection,
  *    choix cavalier/monture) est REJOUÉ plus tard, quand l'intention a déjà été dissoute par le
  *    premier clic. Le verdict voyage donc aussi DANS le pending, et revient par ici à la relance.
  * Absent = « non renseigné » : le site d'appel local le calcule alors depuis SON store.
@@ -229,8 +229,8 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
   if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
-  // PORTÉE : les BANDES du socle (`rangeBandModifier` → `RANGE_BANDS`, LDB 62 l.198-206 — Extrême =
-  // Portée ×3). En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
+  // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
+  // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonus(effectiveChar(ship, 'force')); // paresseux : la portée navale est fixe (number) → BF jamais évalué
@@ -599,20 +599,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       return;
     }
   }
-  // Peur (LDB 21 l.27) : charger / rejoindre une source de Peur = s'en RAPPROCHER → même Test de
-  // Calme d'approche que le clic-sol (une tentative par Tour, battle.fearGate).
-  if (plan.kind === 'charge' || plan.kind === 'moveAttack') {
-    const feared = battle.fearGate === 'passed' ? null : fearedSourceTowards(battle, active, plan.dest);
-    if (feared) {
-      if (battle.fearGate === 'failed') {
-        refuserGeste(get, set, t('cs.fearNoApproach', { name: active.label, feared: feared.label }));
-        return;
-      }
-      set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, sourceName: feared.label, intent: { kind: 'entity', id, approche: opts?.approche }, result: null }, battle: { ...get().battle!, preview: null } });
-      bus.emit(EVT.SCENE_DIRTY);
-      return;
-    }
-  }
+  // Peur (LDB 21 l.27) : charger / rejoindre une source de Peur = s'en RAPPROCHER (`retenuParLaPeur`).
+  if ((plan.kind === 'charge' || plan.kind === 'moveAttack') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, approche: opts?.approche })) return;
   if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
   // Bénédiction de Protection (LDB 41 l.142) : la cible bénie impose un Test de FM Accessible (+20)
   // AVANT d'engager quoi que ce soit (charge comprise). Le jet du HÉROS est INFLUENÇABLE (Chance/

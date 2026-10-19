@@ -113,7 +113,7 @@ const STOCK: Record<string, number> = {
   'src/ui/CareerPath.tsx | aria-checked | sel': 1,
   'src/ui/CityHubScreen.tsx | aria-selected | active': 1,
   'src/ui/PartyDock.tsx | aria-expanded | on': 1,
-  'src/ui/Tabs.tsx | aria-selected | active': 1,
+  'src/ui/composites/Tabs.tsx | aria-selected | active': 1,
   'src/ui/creator/CelestialWheel.tsx | aria-checked | sel': 1,
   'src/ui/creator/CharacterCreator.tsx | aria-checked | sel': 1,
   'src/ui/creator/CharacterCreator.tsx | aria-checked | selected': 2,

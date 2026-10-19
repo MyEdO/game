@@ -446,7 +446,7 @@ export function humanizeOp(o: GameOp): string {
     case 'critTwice': return `lance deux fois ses Blessures critiques et garde le meilleur`;
     case 'damageArmour': return `voit une pièce d'armure en cuir perdre 1 PA`;
     case 'suppressPsych': return `voit tous ses Traits psychologiques apaisés`;
-    case 'castWard': return `impose −20 aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
+    case 'castWard': return `impose ${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
     case 'suffocate': return `est soumis aux règles de la Suffocation`;
     case 'arrowWard': return "détruit les projectiles organiques qui entrent dans la Zone d'Effet";
     case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave({ kind: 'trait', id: o.traitId }, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;

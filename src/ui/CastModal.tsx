@@ -8,6 +8,7 @@ import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../state/flow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { testValue } from '../engine/skills';
+import { clampTarget } from '../engine/tests';
 import { castingValue, spellTargetCount, overcastSL, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
 import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastBudget, overcastStepCost } from '../engine/overcast';
 import { availableResistance, resistanceImproves } from '../engine/menace';
@@ -171,7 +172,7 @@ export function CastModal() {
     // seam (`cleanRollOutcome`, roll ≤ cible), dont dérivent Chance et Résilience.
     row: res
       ? { combatant: caster, d: testBreakdown(castLabel, previewRolled.base, { roll: res.roll, target: res.target, sl: res.sl, success: res.roll <= res.target }, undefined, previewRolled.mods) }
-      : { combatant: caster, pending: testPending(castLabel, preview.base, preview.target, undefined, preview.mods) },
+      : { combatant: caster, pending: testPending(castLabel, preview.base, clampTarget(preview.target), undefined, preview.mods) },
     onRoll: roll,
     rerolled: !!pc.rerolled,
     onReroll: reroll,

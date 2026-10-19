@@ -133,7 +133,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(98, false, -5);
     const pc = useGame.getState().pendingCorruption;
     expect(pc?.level).toBe('mineure');
-    expect(pc?.skill).toBe('resistance');
+    expect(pc?.nature).toBe('physique');
     expect(artefact().identified).toBe(false);
   });
 

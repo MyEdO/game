@@ -21,7 +21,7 @@ import { Icon } from '../Icon';
 import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -36,7 +36,8 @@ import {
 } from './EffectList';
 import type { RacineDeCatalogue } from '../../state/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
-import { ConditionEditor, condSummary } from './ConditionEditor';
+import { ConditionEditor } from './ConditionEditor';
+import { condSummary } from './interne/resumeDeCondition';
 
 /** Normalise un Flow en liste de blocs éditables (un `seq` expose ses étapes ; sinon bloc unique). */
 function asSteps(flow: Flow): Flow[] {

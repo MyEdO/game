@@ -13,7 +13,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
@@ -40,6 +40,11 @@ export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
 
 /** `PerSL` (`src/engine/ops.ts:146`) — échelle « par +N DR » d'un payload d'op. */
 export const perSLSchema = nommerChamps(z.strictObject({ every: z.number(), amount: z.number(), onFailure: z.boolean().optional() }), { every: { label: "intervalle" }, amount: { label: "quantité" }, onFailure: { label: "en cas d’échec" } });
+
+/** PORTÉE d'attaque d'un ASSAILLANT que vise un passif du défenseur (`incomingAttackMod`,
+ *  `incomingAdvantage`, `src/engine/ops.ts`) ; `all` = mêlée ET distance. Source du type moteur. */
+export const porteeDAssautSchema = enumNomme({ melee: 'au corps à corps', ranged: 'à distance', all: 'au corps à corps et à distance' });
+export type PorteeDAssaut = z.infer<typeof porteeDAssautSchema>;
 
 /** SENS engagé par un Test (`FlowTest.sense` — Perception : vue ou ouïe) ; le libellé est celui de la
  *  phrase qui le montre au joueur (op `senseLoss` : « perd la vue »). */
@@ -121,9 +126,9 @@ const DECLARATIONS_D_OPS = {
   corruptionExposure: nommerChamps(z.strictObject({
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
-    skill: refTestDeCorruption.optional(),
+    nature: natureDInfluenceSchema.optional(),
     easeSteps: z.number().optional(),
-  }), { op: { label: "opération"  }, level: { label: "niveau"  }, skill: { label: "Compétence" }, easeSteps: { label: "crans de facilité" } }),
+  }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, easeSteps: { label: "crans de facilité" } }),
   aggravateSymptom: nommerChamps(z.strictObject({
     op: z.literal('aggravateSymptom'),
     disease: idDe('maladie'),
@@ -312,6 +317,23 @@ const DECLARATIONS_D_OPS = {
     exceptSkills: z.array(ref('skill')).optional(),
     weaponHand: z.enum(['main', 'off']).optional(),
   }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
+  incomingAttackMod: nommerChamps(z.strictObject({
+    op: z.literal('incomingAttackMod'),
+    mode: porteeDAssautSchema,
+    amount: z.number(),
+    flankRear: z.boolean().optional(),
+  }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" }, flankRear: { label: "par le flanc ou par derrière" } }),
+  castWard: nommerChamps(z.strictObject({
+    op: z.literal('castWard'),
+    radius: formulaSchema,
+    mod: z.number(),
+    perSL: nommerChamps(z.strictObject({ every: z.number(), radiusFormula: formulaSchema }), { every: { label: "intervalle" }, radiusFormula: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
+  }), { op: { label: "opération" }, radius: { label: "rayon" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, mod: { label: "modificateur" }, perSL: { label: "rayon par DR" } }),
+  incomingAdvantage: nommerChamps(z.strictObject({
+    op: z.literal('incomingAdvantage'),
+    mode: porteeDAssautSchema,
+    amount: z.number(),
+  }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" } }),
   perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
   delayed: nommerChamps(z.strictObject({
     op: z.literal('delayed'),
@@ -417,11 +439,11 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'condition',
+  'beginPsych', 'breakBlade', 'chain', 'charDRBonus', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
-  'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod', 'incomingSpellDRMod', 'interruptFocus',
+  'ignoreStatePenalties', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
   'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'statusMod', 'suppressPsych', 'teamCommander',
@@ -545,7 +567,7 @@ const compareSubjectSchema = z.union([
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
- *  `etats.json` #14 « inondation » — `{who,char:'E',factor:0.5}` — vérifié en isolation). La forme
+ *  `etats.json` #14 « inondation » — `{who,char:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
   z.number(),

@@ -25,7 +25,8 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { PorteeDAssaut } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
@@ -65,6 +66,7 @@ import {
   CHAR_LABELS,
   CharKey,
   Combatant,
+  type ModLine,
   HitLocation,
   HIT_LOCATION_LABELS,
   ItemInstance,
@@ -350,16 +352,20 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
   return n;
 }
 
-/** Somme des modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod`, par id) pour
- *  un mode d'attaque (`melee`/`ranged`) — inclut les ops `all`. Parasité : −10 en mêlée (LDB 85 l.257). */
-export function incomingAttackMod(c: Combatant, mode: 'melee' | 'ranged'): number {
-  let n = 0;
+/** Les modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod` de ses traits) pour un
+ *  mode d'attaque (`melee`/`ranged`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
+ *  (Parasité LDB 85 l.257, Nuée l.253). Circonstance : une condition de la CIBLE (`LDB 14 l.48`). */
+export function incomingAttackLines(c: Combatant, mode: 'melee' | 'ranged'): ModLine[] {
+  const out: ModLine[] = [];
   for (const t of c.traits ?? []) {
-    for (const op of findTraitById(t.id)?.passive ?? []) {
+    const trait = findTraitById(t.id);
+    let n = 0;
+    for (const op of trait?.passive ?? []) {
       if (op.op === 'incomingAttackMod' && (op.mode === mode || op.mode === 'all')) n += op.amount;
     }
+    if (n) out.push({ label: trait!.label, value: n, famille: 'circonstance', ref: { category: 'traits', id: t.id } });
   }
-  return n;
+  return out;
 }
 
 /** L'attaque du porteur compte-t-elle comme `keyword` (op passive `attackKeyword`, par id) ? Magique/
@@ -440,8 +446,8 @@ export type GameOp =
       onlyIfCondition?: string; unlessCondition?: string;
       /** Force d'évasion d'un État à Test opposé (Empêtré : « se libérer » contre cette Force, LDB 16
        *  l.66) — résolue contre le RÉFÉRENT (`ctx.caster ?? target`) À L'APPLICATION et FIGÉE sur l'entrée
-       *  de condition. Ex. `{ charOf: 'FM' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
-       *  Force d'entrave égale votre Force Mentale »), `{ charOf: 'Int' }` (Enchevêtrement des Arcanes),
+       *  de condition. Ex. `{ charOf: 'force-mentale' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
+       *  Force d'entrave égale votre Force Mentale »), `{ charOf: 'intelligence' }` (Enchevêtrement des Arcanes),
        *  ou un littéral (`60`). Absente ⇒ le flux de récupération garde son défaut (Force de la source
        *  vivante, ou Test simple). */
       escapeStrength?: Formula;
@@ -549,14 +555,14 @@ export type GameOp =
   /** EXPOSITION à une Influence corruptrice (LDB 19 l.23-75) : Test différé par MODALE
    *  (pendingCorruption) — op IMPURE résolue par la couche state via `ctx.onCorruptionExposure`
    *  (même patron que `ctx.onCorruption`) ; sans contexte (moteur pur), journalisée sans jet.
-   *  `skill` absent = nature indéterminée → le joueur choisit Résistance/Calme dans la modale.
+   *  `nature` absente = indéterminée → le joueur choisit le Test de `influences-corruptrices` dans la modale.
    *  DEUX SENS, une seule op — `easeSteps` présent = la cible est ABRITÉE : l'op pose une protection
    *  (`ActiveEffect.corruptionEase`, N crans) qui ATTÉNUE toute Influence subie tant qu'elle dure
    *  (VDM 05 — Bouclier en acier doré : « réduit de 2 crans une Influence corruptrice (une Exposition
    *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
    *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
    *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; skill?: RefDesignee; easeSteps?: number }
+  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; easeSteps?: number }
   /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
    *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
    *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
@@ -742,10 +748,9 @@ export type GameOp =
   /** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
    *  durée du Miracle » — Traits psy SUSPENDUS (portés par l'effet), restitués à l'expiration. */
   | { op: 'suppressPsych' }
-  /** N'écoutez point la Sorcière (LDB 42) : « Tous les Sorts qui ciblent quelque chose ou quelqu'un
-   *  dans les (BSoc) mètres subissent -20 aux Tests de Langue (Magick) » — aura portée par la cible
-   *  (le prêtre), rayon élargi « +BSoc m par +2 DR » via `perSL.radiusFormula`. */
-  | { op: 'castWard'; radius: Formula; perSL?: { every: number; radiusFormula: Formula } }
+  /** Aura anti-Sort portée par la cible (N'écoutez point la Sorcière, LDB 43 l.139-145) : `mod` au Test de Langue
+   *  (Magick) de tout Sort qui vise quelqu'un dans le rayon, élargi par DR via `perSL.radiusFormula`. */
+  | { op: 'castWard'; radius: Formula; mod: number; perSL?: { every: number; radiusFormula: Formula } }
   /** « Soumis aux règles de la Suffocation » (LDB 18 l.345-346 — Ombres étrangleuses,
    *  Transmutation de Chamon) : −1 PB/Round, 0 PB → Inconscient, mort après BE Rounds. */
   | { op: 'suffocate' }
@@ -778,8 +783,8 @@ export type GameOp =
    *  le collecteur passif et lu par `testValue/passiveTestMod` — n'altère PAS la Caractéristique (≠ charMod).
    *  EXÉCUTÉ via `applyOps` (≠ passif d'État) : porte aussi `movementOnly`/`weaponHand`, portée MEMBRE d'une
    *  pénalité de récupération (#193, Épaule luxée/Genou démis LDB+AA, « Tests effectués avec ce bras »/« cette
-   *  jambe ») — `weaponHand` restreint un `char:'CC'` à l'arme tenue dans CETTE main (lu par `combatValue`/
-   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'Ag'` typiquement)
+   *  jambe ») — `weaponHand` restreint un `char:'capacite-de-combat'` à l'arme tenue dans CETTE main (lu par `combatValue`/
+   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'agilite'` typiquement)
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
    *  = comportement historique (global, comme avant #193). */
@@ -839,7 +844,7 @@ export type GameOp =
   | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
       advantageCost?: number; advantageOrMovement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
-  /** Marqueur IMPUR de la branche d'ÉCHEC du Test de Calme d'interruption de Focalisation (LDB 46 l.144) :
+  /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
    *  Mineure. Résolu par la couche state (combatFlow : `applyFocusInterruption` via le hook injecté
    *  `focusInterrupt` appelé par `runCombatFlow`), qui détient get/set et le combattant. `applyOps` (moteur
@@ -994,11 +999,11 @@ export type GameOp =
    *  d'équipage » (MDG 09 l.224). Exécutée → `ActiveEffect.crewTestMod`, lu par `crewRoleValue`
    *  (engine/crewMorale) — le SEUL point de valeur des Tests d'équipage. */
   | { op: 'crewTestMod'; mod: number }
-  /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité : −10 au toucher en mêlée, LDB 85
-   *  p.340). PASSIF, lu par `incomingAttackMod` à la collecte des mods d'attaque — DISTINCT de `testMod`
-   *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : portée concernée (`all` = mêlée ET distance).
+  /** Modificateur au Test de l'ATTAQUANT qui vise le porteur (Parasité LDB 85 l.257, Nuée l.253).
+   *  PASSIF, lu par `incomingAttackLines` à la collecte des mods d'attaque — DISTINCT de `testMod`
+   *  (qui modifie les Tests du porteur LUI-MÊME). `mode` : `PorteeDAssaut`.
    *  Inerte dans `applyOps`. */
-  | { op: 'incomingAttackMod'; mode: 'melee' | 'ranged' | 'all'; amount: number;
+  | { op: 'incomingAttackMod'; mode: PorteeDAssaut; amount: number;
       /** Ne s'applique QUE si l'attaquant frappe par le flanc ou par derrière (Assourdi : « par le flanc
        *  ou par derrière gagne +10 », LDB 16 l.29) — bonus ADDITIF (« supplémentaire ») évalué par
        *  `meleeAttackerBonus` seulement quand l'appelant a établi l'angle (facing). Absent = inconditionnel. */
@@ -1006,7 +1011,7 @@ export type GameOp =
   /** L'ASSAILLANT du porteur GAGNE `amount` Avantage(s) avant son attaque (Sonné : « +1 Avantage », LDB 16
    *  l.125). PASSIF de l'État/trait du DÉFENSEUR, lu par `incomingMeleeAdvantage` au moment de l'attaque
    *  (≠ `incomingAttackMod` = bonus de TOUCHE éphémère). Inerte dans `applyOps`. */
-  | { op: 'incomingAdvantage'; mode: 'melee' | 'ranged' | 'all'; amount: number }
+  | { op: 'incomingAdvantage'; mode: PorteeDAssaut; amount: number }
   /** Modificateur au DR des SORTS qui affectent le porteur (Résistance à la Magie — trait `LDB 85 l.302`,
    *  talent `LDB 10 l.1026`). `amount` est le modificateur PAR RANG de la source qui le porte : Indice du
    *  trait (`TraitInstance.value`) ou niveau du talent (`times`) — négatif = réduction. PASSIF, lu par
@@ -1046,7 +1051,7 @@ export type GameOp =
    *  jamais « lancé »). */
   | { op: 'offTerrainMod'; terrain: string; mSet?: number; testDR?: number; suffocates?: boolean }
   /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
-   *  Chance (Chanceux), Détermination (Obstiné). `mod` = Formula (`{bonusOf:'E'}` pour Dur à cuire).
+   *  Chance (Chanceux), Détermination (Obstiné). `mod` = Formula (`{bonusOf:'endurance'}` pour Dur à cuire).
    *  Lu par heroMaxWounds/fortuneMax/resolveMax — data-driven, jamais par libellé. Destin/Résilience
    *  N'ONT PAS de maximum dérivé (un octroi passe par `gainResource`) → EXCLUS de l'union (#292). */
   | { op: 'attrMod'; attr: 'wounds' | 'fortune' | 'resolve'; mod: Formula }
@@ -1237,7 +1242,7 @@ export interface OpsCtx {
   conjureForm?: ConjureForm;
   /** Branché par le store : EXPOSITION corruptrice (op `corruptionExposure`) → Test différé par modale
    *  (pendingCorruption). Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (level: ExposureLevel, skill?: RefDesignee) => string[];
+  onCorruptionExposure?: (level: ExposureLevel, nature?: NatureDInfluence) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -2034,7 +2039,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
           lines.push(t('op.corruptionWarded', { name: target.label }));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.skill));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.nature));
         else lines.push(t('op.corruptionExposure', { name: target.label, level }));
         break;
       }
@@ -2629,9 +2634,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          castWard: { radiusMeters: radius },
+          castWard: { radiusMeters: radius, mod: o.mod },
         });
-        lines.push(t('op.castWard', { name: target.label, radius, src: nomDeSource(ctx) }));
+        lines.push(t('op.castWard', { name: target.label, radius, sign: o.mod >= 0 ? '+' : '−', n: Math.abs(o.mod), src: nomDeSource(ctx) }));
         break;
       }
       case 'arrowWard': {

@@ -12,6 +12,7 @@ import { FallModal } from './FallModal';
 import { emptyScene } from '../state/scene';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -45,6 +46,7 @@ function monter(suspendu: number | undefined, battle: Record<string, unknown> | 
     battle: battle ? { combatants: [sauteur], order: [sauteur.id], turn: 0, acted: false, over: null, ...battle } : null,
     party: [sauteur],
     pendingFall: {
+      test: testDeRegle('chute', 'tenter'),
       to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, allege: 1,
       ...(suspendu !== undefined ? { suspendu } : {}),
       participants: [{ id: sauteur.id, interactive: true, attempt: null, ...(suspendu !== undefined ? { suspendre: null } : {}), result: null }],
@@ -78,6 +80,7 @@ describe('chute volontaire — l’axe « se suspendre d’abord »', () => {
     useGame.setState({
       mode: 'exploration', scene: emptyScene(4, 4), battle: null, party: [sauteur, second],
       pendingFall: {
+        test: testDeRegle('chute', 'tenter'),
         to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, allege: 1, suspendu: 2,
         participants: [sauteur, second].map((c) => ({ id: c.id, interactive: true, attempt: null, suspendre: null, result: null })),
       },

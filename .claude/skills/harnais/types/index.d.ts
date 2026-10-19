@@ -44,9 +44,13 @@ export type HarnaisSynchro = { etat: string, texte: string, ligne?: string } & R
 /** L'atome `harnais.synchro` : le texte de l'état de synchronisation à porter UNE fois en contexte, `null` sinon. */
 export type HarnaisSynchroEnAttente = { texte: string | null }
 
+export type HarnaisOutilsCodex = { outils: HarnaisOutil[]; refusTechnique: string; prefixesDeRefus: string[] }
+export type HarnaisCodex = { outils: HarnaisOutilsCodex | null; texte: string | null }
+
 declare module 'claude-code' {
   interface PluginState {
     harnais: {
+      codex: HarnaisCodex
       suivi: HarnaisSuivi
       vigie: HarnaisVigie
       synchro: HarnaisSynchroEnAttente

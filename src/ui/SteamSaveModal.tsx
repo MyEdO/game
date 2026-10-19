@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../engine/tests';
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
 import { RollShell, type RollAction } from './RollShell';
@@ -28,8 +29,8 @@ export function SteamSaveModal() {
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
     row: rolled
-      ? { combatant: actor, d: testBreakdown('Initiative', p.skillValue, { roll: p.roll!, target: p.target, sl: p.sl, success: p.success }, p.difficulty) }
-      : { combatant: actor, pending: testPending('Initiative', p.skillValue, p.target, p.difficulty) },
+      ? { combatant: actor, d: testBreakdown('Initiative', p.skillValue, { roll: p.roll!, ...cibleMesuree(p), sl: p.sl, success: p.success }, p.difficulty) }
+      : { combatant: actor, pending: testPending('Initiative', p.skillValue, cibleMesuree(p), p.difficulty) },
     onRoll: roll,
     rerolled: !!p.rerolled,
     onReroll: reroll,

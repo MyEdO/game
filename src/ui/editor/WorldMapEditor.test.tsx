@@ -105,8 +105,8 @@ function checkbox(labelText: string): HTMLInputElement {
   if (!wrap) throw new Error(`checkbox « ${labelText} » introuvable`);
   return wrap.querySelector('input[type="checkbox"]') as HTMLInputElement;
 }
-function setValue(el: HTMLInputElement | HTMLSelectElement, value: string) {
-  const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+function setValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) {
+  const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!;
   act(() => {
     setter.call(el, value);
@@ -259,7 +259,7 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
     setValue(input('Sens'), '');
     setValue(input('Diligence — billet au départ de'), 'p1');
     expect(lastMap!.routes[0].billets?.diligence?.depuis).toBe('p1');
-    setValue(input('Diligence — raison maison du billet'), 'tarif de la compagnie');
+    setValue(fieldWrap('Raison maison du billet Diligence').querySelector('textarea')!, 'tarif de la compagnie');
     expect(lastMap!.routes[0].billets?.diligence?.maison).toBe('tarif de la compagnie');
 
     setValue(input('Diligence — Déplacement'), '9');

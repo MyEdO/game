@@ -20,7 +20,7 @@
  * (`pregens`, `data/index.ts`), qui ne lit pas ses clés. Celles-ci sont lues par `adresseLue` au PARSE
  * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
  * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,
- * `data/pregens.test.ts`), la sauvegarde du Compendium (`ui/compendium/CodexEdit.tsx`, `save`) et le
+ * `data/pregens.test.ts`), la sauvegarde du Compendium (`ui/editor/codex/CodexEdit.tsx`, `save`) et le
  * boot DEV (`main.tsx` → `data/dev-validate.ts`).
  *
  * La GRAMMAIRE (familles, tirage sous un talent d'espèce) vit dans CE module : `deFamille` et

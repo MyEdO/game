@@ -1,9 +1,9 @@
 import { useGame } from '../state/store';
 import { defenseDodgeMods } from '../state/combatFlow';
-import { flowStakeRef, type FlowStakeId } from '../data';
+import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
-import { calmeValue } from '../engine/psychology';
+import { valeurDecomposee } from '../engine/skills';
 import { groupAdvantage } from '../engine/advantagePool';
 import { retreatAdvantageCost } from '../engine/combatFeatures/dispatch';
 import { ResilienceButton } from './ResilienceButton';
@@ -14,11 +14,11 @@ import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
 import { describeDisengage, describeDisengageFlee } from '../state/flowOutcomes';
-import { fleeBackstab, fleeCalme, fleeNeedCalme, type PendingDisengage } from '../state/pendings';
+import { fleeBackstab, fleeTouche, fleeToucheDu, type PendingDisengage } from '../state/pendings';
 import { Modal } from './Modal';
 import { Stack } from './Layout';
 import { Icon } from './Icon';
-import { optionValue, opposedLines, testBreakdown } from './breakdown';
+import { optionValue, opposedLines, testBreakdown, testPending } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 
@@ -32,7 +32,7 @@ const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
  *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `disengageConfirm`.
  * - **'fuir'** : `RollShell` (flux MULTI `flee`, 2 slots) — [0] le coup dans le dos du FRAPPEUR,
- *   [1] le Test de Calme du FUYARD (présent seulement si le coup a fait des Blessures). Chaque rangée
+ *   [1] le Test du FUYARD (fiche `fuite`, présent seulement si le coup a fait des Blessures). Chaque rangée
  *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `fleeConfirm`.
  */
 export function DisengageModal() {
@@ -76,7 +76,7 @@ export function DisengageModal() {
       { stake: flowStakeRef('disengage-esquive'),
         option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: optionValue(defenseValue(mover, 'esquive'), defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('disengage-fuir'),
-        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours' } },
+        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
     return (
       /* Décision DE COMBAT, champ lisible : les adversaires au contact se lisent sous la fenêtre. */
@@ -112,26 +112,32 @@ export function DisengageModal() {
     );
   }
 
-  // ── Phase 'fuir' : DEUX rangées, une par acteur — coup dans le dos du frappeur, Test de Calme du
-  //    fuyard. Les DÉRIVATIONS d'influence viennent de la primitive PARTAGÉE `buildParticipantRows`
+  // ── Phase 'fuir' : DEUX rangées, une par acteur — coup dans le dos du frappeur, Test de la fiche
+  //    `fuite` du fuyard. Les DÉRIVATIONS d'influence viennent de la primitive PARTAGÉE `buildParticipantRows`
   //    (source unique des 6 modales multi) ; la modale ne fournit que la PRÉSENTATION de ses rangées. ──
   if (pd.phase === 'fuir') {
     const bs = fleeBackstab(pd);
-    const calmeSlot = fleeCalme(pd);
+    const toucheSlot = fleeTouche(pd);
     const res = bs?.result;
-    const calme = calmeSlot?.calme;
-    const needCalme = fleeNeedCalme(pd); // coup qui touche → Test de Calme (LDB 15 l.66)
+    const jet = toucheSlot?.jet;
+    const toucheDu = fleeToucheDu(pd); // LDB 15 l.66
     const fleeOutcome = describeDisengageFlee(pd);
 
     // Projection des slots HÉTÉROGÈNES vers la forme `ParticipantRow` attendue par la primitive : le
-    // jet de l'acteur (dé/cible/DR/réussite) — coup dans le dos = son `attackerDetail`, Calme = son jet.
+    // jet de l'acteur (dé/cible/DR/réussite) — coup dans le dos = son `attackerDetail`, Test `fuite` = son jet.
     const parts: ParticipantRow[] = [
       ...(bs ? [{ id: bs.id, interactive: bs.interactive, rerolled: bs.rerolled, result: res?.attackerDetail ?? null }] : []),
-      ...(needCalme && calmeSlot
-        ? [{ id: calmeSlot.id, interactive: calmeSlot.interactive, rerolled: calmeSlot.rerolled, result: calme ? { ...calme, target: calme.target ?? 0 } : null }]
+      ...(toucheDu && toucheSlot
+        ? [{ id: toucheSlot.id, interactive: toucheSlot.interactive, rerolled: toucheSlot.rerolled, result: jet ? { ...jet, target: jet.target ?? 0 } : null }]
         : []),
     ];
     const isBackstab = (id: string) => id === bs?.id;
+    // Le Test du fuyard (fiche `fuite`) : sa ligne AVANT le jet comme après, par les mêmes primitives.
+    const ligneDuTest = (test: NonNullable<typeof toucheSlot>['test'], r: typeof jet) => {
+      const label = refLabel('skills', test.skill);
+      const { base, mods } = valeurDecomposee(mover, test);
+      return r ? { d: testBreakdown(label, base, r, test.difficulty, mods) } : { pending: testPending(label, base, undefined, test.difficulty, mods) };
+    };
     const rows = buildParticipantRows(parts, battle.combatants, {
       onRoll: fleeRoll,
       onReroll: fleeReroll,
@@ -140,7 +146,7 @@ export function DisengageModal() {
       onForce: fleeForce,
       row: (part, actor) => (isBackstab(part.id)
         ? { combatant: actor, d: res?.attackerDetail ? { ...res.attackerDetail, label: 'Corps à corps (dans le dos)' } : undefined }
-        : { combatant: actor, d: calme ? testBreakdown('Calme', calmeValue(mover), calme, 'intermediaire') : undefined }),
+        : { combatant: actor, ...(toucheSlot ? ligneDuTest(toucheSlot.test, jet) : {}) }),
       // Issue courte sous la ligne du coup : « Touché · N Blessure(s) » / « Manqué ».
       note: (part) => (isBackstab(part.id) && res
         ? <p className="modal-log">{res.hit ? `Touché · ${res.woundsLost ?? 0} Blessure${(res.woundsLost ?? 0) > 1 ? 's' : ''}` : 'Manqué'}</p>
@@ -148,9 +154,9 @@ export function DisengageModal() {
     // Les rangées de cette coquille appartiennent au flux `flee` (≠ `disengage` de la coquille).
     }).map((r) => ({ ...r, flowKey: 'flee' as const })).map((r) => (isBackstab(String(r.key))
       ? { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le coup dans le dos</> }
-      : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test de Calme</> }));
+      : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
 
-    const rolled = !!res && (!needCalme || !!calme);
+    const rolled = !!res && (!toucheDu || !!jet);
     const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: fleeConfirm, when: 'post' }];
 
     return (
@@ -163,7 +169,7 @@ export function DisengageModal() {
         rows={rows}
         rolled={rolled}
         outcome={fleeOutcome
-          ? [recapLineOfEvent(ev(needCalme ? 'fear' : 'flee', fleeOutcome, mover.id, foe.id), battle.combatants)]
+          ? [recapLineOfEvent(ev(toucheDu ? 'fear' : 'flee', fleeOutcome, mover.id, foe.id), battle.combatants)]
           : undefined}
         actions={actions}
       />

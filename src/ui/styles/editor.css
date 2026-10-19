@@ -12,7 +12,6 @@
 }
 
 /* Boutons custom de l'éditeur : hériter la police du document (pas de reset global `button`). */
-.menu-item,
 .pal-tool,
 .pal-item,
 .terrain-swatch {
@@ -36,32 +35,8 @@
   left: 0;
   z-index: 80;
   min-width: 240px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   padding: 6px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-}
-.editor-menu hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 3px 0;
-  width: 100%;
-}
-.menu-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text);
-  padding: 7px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.menu-item:hover {
-  background: var(--bg2);
 }
 .editor-undo {
   display: flex;

@@ -5,7 +5,7 @@
  * contexte du vocabulaire est classé (famille ou `null`), et aucune famille rendue n'est vide.
  */
 import { describe, it, expect } from 'vitest';
-import { resolverChoicesFor } from './CodexEdit';
+import { resolverChoicesFor } from '../editor/codex/CodexEdit';
 import { ACTIVITIES, ACTIVITY_RESOLVERS, resolversOwnedBy, type ActivityContext, type ResolverOwner } from '../../engine/activities';
 
 const CONTEXTS: ActivityContext[] = ['interlude', 'voyage', 'mer', 'bataille', 'bataille-round', 'auberge'];

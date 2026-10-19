@@ -3,7 +3,7 @@
  * (niveau = `times` du talent) et expose des helpers typés consommés par combat.ts / combatFlow /
  * rollFlows / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
  */
-import type { Combatant, Weapon } from '../types';
+import type { Combatant, RangeBandId, Weapon } from '../types';
 import { groupMatch } from '../groups';
 import { isShieldItem } from '../items';
 import { findTalentById, findTraitById } from '../../data';
@@ -79,10 +79,10 @@ function levelSum(c: Combatant, pred: (d: CombatFeature) => boolean): number {
   return featuresOf(c).reduce((s, { def, ctx }) => s + (pred(def) ? ctx.level : 0), 0);
 }
 
-/** Pénalité de main secondaire (LDB 14 l.181 : -20), transformée par les capacités (Ambidextre → -10/0).
- *  Interprète le champ DÉCLARATIF `offHandPenalty:{perLevel,zeroAt}` : -20 +perLevel×niveau, 0 dès `zeroAt`. */
-export function offHandPenalty(c: Combatant): number {
-  let pen = -20;
+/** Pénalité de main secondaire `base` (LDB 14 l.78), transformée par les capacités (Ambidextre, LDB 10).
+ *  Interprète le champ DÉCLARATIF `offHandPenalty:{perLevel,zeroAt}` : `base` +perLevel×niveau, 0 dès `zeroAt`. */
+export function offHandPenalty(c: Combatant, base: number): number {
+  let pen = base;
   for (const { def, ctx } of featuresOf(c)) {
     if (def.offHandPenalty) {
       const { perLevel, zeroAt } = def.offHandPenalty;
@@ -90,6 +90,11 @@ export function offHandPenalty(c: Combatant): number {
     }
   }
   return pen;
+}
+
+/** Pénalité de défense après une double frappe (LDB 10 l.773), celle de la capacité qui la porte ; 0 sans. */
+export function dualStrikeDefensePenalty(c: Combatant): number {
+  return featuresOf(c).find(({ def }) => def.dualStrikeDefense !== undefined)?.def.dualStrikeDefense ?? 0;
 }
 
 /** Modes d'attaque conférés par les capacités du combattant (ex. 'dual-wield' via Maniement de deux armes). */
@@ -143,11 +148,11 @@ export function ignoresSizeRangedMods(c: Combatant): boolean {
   return featuresOf(c).some(({ def }) => def.ignoreSizeRangedMods);
 }
 
-/** Tireur embusqué (LDB 10) : ajuste le modificateur de bande de portée (Longue → 0, Extrême → ÷2). */
-export function sniperRangeAdjust(c: Combatant, mod: number): number {
+/** Tireur embusqué (LDB 10) : ajuste le modificateur `mod` de la bande de portée `band`. */
+export function sniperRangeAdjust(c: Combatant, band: RangeBandId, mod: number): number {
   if (mod >= 0 || !featuresOf(c).some(({ def }) => def.sniper)) return mod;
-  if (mod === -10) return 0; // Longue distance : aucune pénalité
-  return Math.ceil(mod / 2); // Portée extrême : moitié des pénalités (−30 → −15)
+  if (band === 'longue') return 0;
+  return Math.ceil(mod / 2);
 }
 
 /** Combat instinctif (LDB 10) : +10 × niveau à l'Initiative de combat. */

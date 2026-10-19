@@ -80,8 +80,8 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
     const creuses = ACTIVITIES.filter((a) => a.stake && !a.rule && !a.desc).map((a) => a.id);
     expect(creuses, 'enjeu renvoyant à une fiche d’Activité SANS desc verbatim — le ⓘ n’ouvrirait sur aucune règle').toEqual([]);
     // Le seul foyer DÉPORTÉ mesuré : l'Augure, dont la règle jouée est la table des Symboles.
-    expect(ACTIVITIES.filter((a) => a.rule).map((a) => `${a.id} → ${a.ruleCategory}:${a.rule}`))
-      .toEqual(['augure → regles:tableau-augure']);
+    expect(ACTIVITIES.flatMap((a) => (a.rule ? [`${a.id} → ${a.rule.type}:${a.rule.id}`] : [])))
+      .toEqual(['augure → regle:tableau-augure']);
   });
 
   it('FAIL-CLOSED : la porte refuse une Activité sans enjeu et un id inconnu', () => {

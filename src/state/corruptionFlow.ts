@@ -1,8 +1,8 @@
 /**
  * Corruption & mutations — flux store (LDB 19, moteur pur : engine/corruption).
  *
- *  - `gainCorruption` : ajoute des Points, puis applique le SEUIL (l.80) — au-delà
- *    de BFM+BE (+ niveau d'Âme pure, LDB 10), Test de Résistance Intermédiaire en MODALE
+ *  - `gainCorruption` : ajoute des Points, puis applique le SEUIL (l.70) — au-delà
+ *    de BFM+BE (+ niveau d'Âme pure, LDB 10), Test de la fiche `corrompu` en MODALE
  *    différée (pendingCorruption kind 'seuil' — Lancer/Chance/Pacte ; repli auto-résolu +
  *    révélation pour les PNJ seuls) ; échec → MUTATION (−BFM Points, d100
  *    corps/esprit par espèce, tirage sur le Tableau physique/mentale) ; puis LIMITES (l.87)
@@ -36,7 +36,7 @@ import {
 import {
   mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
-import { species, mutationBodyMaxForSpecies, combatStakeRef } from '../data';
+import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
 import { findTableEntry } from '../engine/tables';
 import { registerCascadeApplier, registerTableStepFamily, pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
@@ -45,26 +45,28 @@ import { actorIn } from './combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
 import { rollTest } from '../engine/tests';
-import { testValue } from '../engine/skills';
+import { valeurDuTest } from '../engine/skills';
 import { pushReveal } from './combatFlow';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
 import { tenuParUnHumain } from './netOwnership';
 import { followsCharacterRules } from '../engine/relations';
 import { resultLine, freeCons, tableStep, type BuiltCascadeStep } from './rollSeam';
-import { t } from '../i18n';
+import { t, deElide } from '../i18n';
 import { stepDetail } from './rollSeam';
-import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../data/schemas/grammaire/valeurs';
+import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
-/** SEULE couture entre la référence portée par l'op/l'effet et le slot `pendingCorruption`. PURE.
- *  Absente = indéterminée, le joueur tranche dans la modale (défaut affiché : Résistance,
- *  `LDB 19 l.23-75`). PRÉSENTE, elle est déjà bornée à `TESTS_DE_CORRUPTION` par les deux portes de
- *  document (`refTestDeCorruption`) : la fonction est TOTALE, elle ne rabote rien. */
-export function testDeCorruption(skill?: { id: string }): TestDeCorruption {
-  if (skill == null) return TESTS_DE_CORRUPTION[0];
-  const trouve = TESTS_DE_CORRUPTION.find((x) => x === skill.id);
-  if (!trouve) throw new Error(`testDeCorruption : « ${skill.id} » hors de TESTS_DE_CORRUPTION (LDB 19 l.23-75) — la porte de document aurait dû le refuser.`);
-  return trouve;
+/** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
+ *  construction du Test, pour tout producteur (scène, interlude, fin de combat) et le choix du joueur. */
+export function testDExposition(nature: NatureDInfluence): Pick<PendingCorruption, 'nature' | 'test'> {
+  return { nature, test: testDeRegle('influences-corruptrices', nature) };
+}
+
+/** Le pending d'un Test d'EXPOSITION (effet de scène, Activité d'interlude) : nature imposée par la
+ *  source (`natureFixee`), ou indéterminée — le joueur tranche, la modale part de `NATURES_D_INFLUENCE[0]`. */
+export function expositionPending(heroId: string, level: PendingCorruption['level'], nature: NatureDInfluence | undefined, align?: ChaosAlign): PendingCorruption {
+  return { heroId, level, ...testDExposition(nature ?? NATURES_D_INFLUENCE[0]), natureFixee: nature != null, align, menace: 'corruption' };
 }
 
 /**
@@ -101,26 +103,27 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   hero.corruption = (hero.corruption ?? 0) + n;
   lines.push(t('cor.gain', { name: hero.label, n, s: n > 1 ? 's' : '', total: hero.corruption }));
 
-  // Seuil « Corrompu » (l.80) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), Test de Résistance
-  // Intermédiaire (+0) ; succès = contenu « pour cette fois », échec = mutation.
+  // Seuil « Corrompu » (LDB 19 l.70) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), le Test de la fiche
+  // `corrompu` ; succès = contenu « pour cette fois », échec = mutation.
   if (!corruptionThresholdExceeded(hero)) return lines;
+  const test = testDeRegle('corrompu', 'contenir');
   // « Un jet = une modale » : dès qu'un siège humain TIENT le porteur (`tenuParUnHumain`, #1426 — la
   // SURFACE, pas l'affordance locale : le héros d'un AUTRE siège tient sa propre fenêtre), le Test du
   // seuil est un VRAI jet différé — modale de Corruption (kind 'seuil', cycle Lancer→Chance→Pacte),
   // résolu dans `resolveCorruptionPending` (succès = contenu ; échec = « Je te renie ! »/mutation —
   // les DEUX fenêtres partent de là).
   if (tenuParUnHumain(get(), hero.id)) {
-    lines.push(t('cor.threshold', { name: hero.label }));
-    // `menace: 'mutation'` : l'échec du Test de seuil fait MUTER (l.82) → c'est le Test qui « résiste
+    lines.push(t('cor.threshold', { name: hero.label, de: deElide(refLabel('skills', test.skill)) }));
+    // `menace: 'mutation'` : l'échec du Test de seuil fait MUTER (LDB 19 l.70) → c'est le Test qui « résiste
     // à la Mutation » du talent Résistance (Menace), LDB 10 l.1016-1020.
-    const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', skill: 'resistance', skillLocked: true, align, menace: 'mutation' };
+    const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', test, align, menace: 'mutation' };
     poseCorruptionPending(get, set, seuil);
     return lines;
   }
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
-  const tst = rollTest(testValue(hero, 'resistance'), 'intermediaire', rng);
+  const tst = rollTest(valeurDuTest(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     return lines;
@@ -288,7 +291,7 @@ function finishMutation(
   if (hero.items?.length) recomputeLoadout(hero);
   refreshWounds(hero);
   // Le dé de table (`m.roll`) est DÉJÀ affiché par la rangée `TableRollLine` (dice: m.roll, révélation
-  // ci-dessous) — pas de re-print (#295 Lot 4). Le jet de Résistance du seuil est lui aussi
+  // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).
   lines.push(resultLine(freeCons([
     t('cor.mutates', { name: hero.label, label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),

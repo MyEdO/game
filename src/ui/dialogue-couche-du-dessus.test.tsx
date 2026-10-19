@@ -14,7 +14,7 @@ import { useGame } from '../state/store';
 import { campaignStart } from '../engine/clock';
 import { dismissStackKinds } from '../state/dismissStack';
 import type { Dialogue } from '../state/scene';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { DialogueBox } from './DialogueBox';
 import { LogDrawer } from './LogDrawer';
 import { DialogueHistoryScreen } from './DialogueHistoryScreen';

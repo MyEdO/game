@@ -5,62 +5,30 @@
  * devient active), pop au démontage. L'`onDismiss` est lu au moment de l'appui (référence vivante) : l'ordre de la pile
  * ne dépend donc JAMAIS des re-rendus, seulement des ouvertures/fermetures.
  *
- * PORTE CLAVIER de la pile : ce module installe un écouteur `keydown` en CAPTURE sur `window` tant
- * qu'au moins une couche est montée, et le retire ensuite. Conséquences voulues :
+ * PORTE CLAVIER de la pile : chaque couche montée prend la porte d'Échap (`clavier/couches/porteEchap`),
+ * en CAPTURE sur `window` tant qu'au moins une couche est montée.
+ * Conséquences voulues :
  *  - la pile tranche AVANT tout écouteur local (elle est la couche du dessus par définition) ;
  *  - une surface dismissible répond à Échap quel que soit l'écran ouvert ;
  *  - pile vide = aucun écouteur, et l'échelle métier du registre reste exactement celle d'avant.
  *
- * @clavier-hors-registre l'annulation appartient à la COUCHE du dessus, pas à l'application : elle se
- * résout par la pile (`coucheDuDessus`), n'est pas remappable, et passe AVANT le registre (garde
- * `ui/raccourcis-registre.test.ts`).
- *
  * FAIT sur cette porte : elle ne consulte PAS l'état de saisie (champ focalisé). Échap dans un champ
- * de texte porté par un dialogue congédie donc ce dialogue — patron des `<dialog>` natifs. Aucun
- * consommateur sous couche n'attend aujourd'hui qu'un champ garde Échap pour lui (mesuré : les seuls
- * sites qui consomment la touche chez eux sont hors pile, cf. la baseline d'`echap-couture-unique`).
+ * de texte porté par un dialogue congédie donc ce dialogue — patron des `<dialog>` natifs. Un écouteur
+ * local sous une couche reçoit Échap après la pile, qui arrête la touche qu'elle prend.
+ * Hors `src/state/clavier` et `src/ui/clavier`, `CODE_ECHAP` ne s'importe pas (`murs/echap-import`).
  */
 import { useEffect, useRef, type RefObject } from 'react';
-import { useGame } from '../state/store';
-import { CODE_ECHAP } from '../state/keybindings';
 import {
   pushLayer, popLayer, subscribeDismissStack, resetDismissStack, dismissStackHandles, modaleDuDessus,
   type DismissHandle, type LayerNature, type LayerPlan, type OnDismiss,
 } from '../state/dismissStack';
-import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
-import { posePartagee } from '../lib/posePartagee';
-
-const onKeyDown = (e: KeyboardEvent) => {
-  // `code` (position physique) ou `key` : la manette virtuelle et les bancs de test émettent l'un ou
-  // l'autre, et une couche ouverte doit répondre aux deux.
-  if (e.code !== CODE_ECHAP && e.key !== CODE_ECHAP) return;
-  const pris = resoudreEchap(useGame.getState, { repeat: e.repeat });
-  if (pris === null) return;
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-};
-const onKeyUp = (e: KeyboardEvent) => {
-  if (e.code === CODE_ECHAP || e.key === CODE_ECHAP) echapRelachee();
-};
-
-const PORTE = posePartagee(
-  () => {
-    window.addEventListener('keydown', onKeyDown, true);
-    window.addEventListener('keyup', onKeyUp, true);
-  },
-  () => {
-    window.removeEventListener('keydown', onKeyDown, true);
-    window.removeEventListener('keyup', onKeyUp, true);
-  },
-);
+import { prendrePorteEchap, viderPorteEchap } from './clavier/couches/porteEchap';
 
 /** Remise à zéro de la pile ET de sa porte clavier (preneurs + écouteurs) — bancs de test seulement :
  *  un preneur survivant laisserait la porte branchée entre deux fichiers de test. */
 export function resetDismissLayers(): void {
   resetDismissStack();
-  PORTE.vider();
-  echapRelachee();
+  viderPorteEchap();
 }
 
 /** SURFACE d'une couche, inscrite à son ouverture : sa boîte. Registre côté DOM : la pile
@@ -148,7 +116,7 @@ export function useDismissLayer(
   couvertRef.current = onCouvert;
   useEffect(() => {
     if (!actif) return;
-    const rendrePorte = PORTE.prendre();
+    const rendrePorte = prendrePorteEchap();
     const { kind, nature, plan, boite } = declarationRef.current;
     // Bloquante (`onDismiss: null`) → elle RESTE : l'appui est consommé, la pile ne bouge pas.
     const h = pushLayer({ kind, nature, plan, onDismiss: () => (dismissRef.current ? dismissRef.current() : false) });

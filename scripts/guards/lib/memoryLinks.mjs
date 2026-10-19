@@ -50,6 +50,7 @@ import { TRAVAIL, depotDe, enfantsDirects, imageDeHead, listerImage, racineDe } 
 import { parUnitesDeCode, listerDossier } from './lister.mjs';
 import { extname, join } from 'node:path';
 import { sansBlocsDeCode } from './liensMarkdown.mjs';
+import { ast, scriptKindDe, typescript } from './dialecte.mjs';
 
 /** Dossier de la mémoire persistante, relatif à la racine du dépôt. */
 export const MEMORY_DIR = '.claude/memory';
@@ -170,6 +171,26 @@ export function fichiersHorsMemoire(root) {
     .sort(parUnitesDeCode);
 }
 
+/** Les feuilles syntaxiques d'un module de code qui ne sont pas de la prose (commentaires, littéraux de chaîne et de
+ *  gabarit, texte JSX) : un jeton dont le nom y tombe est du code, tel `[[x]]`, tableau imbriqué. Rend le prédicat
+ *  « l'unité de code `i` de `source` est du code » ; hors module de code (markdown, CSS, TOML), tout est prose.
+ *  @param {string} rel @param {string} source @returns {(i: number) => boolean} */
+function jetonsDeCode(rel, source) {
+  if (scriptKindDe(rel, { inconnu: 'refus' }) === null) return () => false;
+  const ts = typescript();
+  const K = ts.SyntaxKind;
+  const prose = new Set([K.StringLiteral, K.NoSubstitutionTemplateLiteral, K.TemplateHead, K.TemplateMiddle, K.TemplateTail, K.JsxText]);
+  const sf = ast({ rel, text: source });
+  const feuilles = [];
+  const visiter = (n) => {
+    let feuille = true;
+    n.forEachChild((enfant) => { feuille = false; visiter(enfant); });
+    if (feuille && !prose.has(n.kind)) feuilles.push([n.getStart(sf), n.end]);
+  };
+  visiter(sf);
+  return (i) => feuilles.some(([debut, fin]) => i >= debut && i < fin);
+}
+
 /**
  * Scanne le dépôt HORS `.claude/memory/`. Même forme de verdict que `scanMemoryLinks`.
  * @param {string} root
@@ -191,24 +212,27 @@ export function scanRepoMemoryLinks(root, { fichiers, vocabulaire } = {}) {
     try { texte = readFileSync(join(root, rel), 'utf8'); } catch { continue; }
     if (!texte.includes('[[') && !texte.includes(`${MEMORY_DIR}/`) && !prefixes.some((p) => texte.includes(p))) continue;
     // Les fences ne sont retirées que du markdown : dans un `.ts`, ``` vit dans une chaîne.
-    const lignes = (rel.endsWith('.md') ? sansBlocsDeCode(texte) : texte).replace(/\r\n/g, '\n').split('\n');
+    const source = (rel.endsWith('.md') ? sansBlocsDeCode(texte) : texte).replace(/\r\n/g, '\n');
+    const lignes = source.split('\n');
+    let enCode;
+    let debut = 0;
 
     lignes.forEach((ligne, i) => {
+      const enProse = (index) => !(enCode ??= jetonsDeCode(rel, source))(debut + index);
+      const signaler = (index, kind, tok) => { if (enProse(index)) problems.push({ file: rel, line: i + 1, kind, tok }); };
       for (const m of ligne.matchAll(JETON_FICHE)) {
-        if (!known.has(m[1])) problems.push({ file: rel, line: i + 1, kind: 'fiche inexistante', tok: `[[${m[1]}]]` });
+        if (!known.has(m[1])) signaler(m.index + 2, 'fiche inexistante', `[[${m[1]}]]`);
       }
       for (const m of ligne.matchAll(JETON_CHEMIN)) {
         const nom = m[1].replace(/\.md$/, '');
         // Un nom que le dépôt n'a JAMAIS connu n'est pas un lien mort : c'est une fixture de banc.
-        if (connues.has(nom) && !known.has(nom)) {
-          problems.push({ file: rel, line: i + 1, kind: 'fichier absent', tok: `${MEMORY_DIR}/${m[1]}` });
-        }
+        if (connues.has(nom) && !known.has(nom)) signaler(m.index, 'fichier absent', `${MEMORY_DIR}/${m[1]}`);
       }
-      if (!jetonMention) return;
-      // Les chemins sont déjà jugés ci-dessus : on les retire pour ne pas compter deux fois le site.
-      for (const m of ligne.replace(JETON_CHEMIN, ' ').matchAll(jetonMention)) {
-        problems.push({ file: rel, line: i + 1, kind: 'fiche inexistante', tok: m[1] });
+      // Les chemins sont déjà jugés ci-dessus : on les blanchit pour ne pas compter deux fois le site.
+      if (jetonMention) for (const m of ligne.replace(JETON_CHEMIN, (chemin) => ' '.repeat(chemin.length)).matchAll(jetonMention)) {
+        signaler(m.index, 'fiche inexistante', m[1]);
       }
+      debut += ligne.length + 1;
     });
   }
 

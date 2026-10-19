@@ -4,8 +4,8 @@
 > d'agent (répondre + auditer le code sans rouvrir les livres). Chaque règle cite `LIVRE NN l.X-Y`
 > (last-recours = la source). Abréviations : [`sources.md`](../sources.md). Index : [`00-index.md`](00-index.md).
 >
-> ⚠️ Agent-généré + vérifié (passe adversariale). Le champ **Implémente** est DÉRIVÉ du code
-> (`npm run raw:implemente`), jamais écrit à la main.
+> ⚠️ Agent-généré + vérifié (passe adversariale). Le champ **Implémente** est un lien manuscrit vers
+> le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 
@@ -165,8 +165,7 @@ Un échec ne se relance pas à volonté. Pour qu'un personnage **répète un Tes
 - aire `competences` (fiche à extraire) — Basic / Advanced / Grouped Skills, Specialisations
 - aire `combat` (fiche à extraire) — **Action** d'un tour de combat, `CRB 034`
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsrepeating-tests-refaire-un-test-echoue)
 
 ---
 
@@ -294,8 +293,7 @@ Markus a `Stealth (Urban) 39` et le `GM` juge le Test `Average (+2 SL)`. Le joue
 - [Getting Help — se faire aider sur un Test](#getting-help--se-faire-aider-sur-un-test) (`CRB 024 l.138-144`)
 - [Fortune — Spend a Fortune Point to: et Replenishing Fortune](#fortune--spend-a-fortune-point-to-et-replenishing-fortune) (`CRB 025`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsexemple-complet-de-bout-en-bout)
 
 ---
 
@@ -482,8 +480,7 @@ donné**, et un relancer produit un nouveau jet, lui-même soumis à la bande.
 - [Achieving the Impossible — I Will Not Fail!](#achieving-the-impossible--i-will-not-fail) (`CRB 025 l.28-32`)
 - [ROLL DICE — le d100 et le calcul du Success Level (SL)](#roll-dice--le-d100-et-le-calcul-du-success-level-sl) — **THROWING BONES**, lecture du d10 et du d100 (`CRB 004 l.27-35`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsautomatic-success-and-failure-01-05-et-96-100)
 
 ---
 
@@ -573,8 +570,7 @@ Dans ces deux exemples, le GM **narre** la conséquence sans recalculer explicit
 - aire `combat` (fiche à extraire) — Critical Hits, Fumbles, **Oops! Table**, Misfires, Fumble gagnant un Test opposé (`CRB 036 l.66-102`)
 - aire `traumatisme` (fiche à extraire) — Critical Wounds (page 171)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsecart-raw-l-effet-par-defaut-d-un-fumble-au-combat)
 
 ---
 
@@ -697,8 +693,7 @@ Constat, non arbitrage : la clause de `CRB 116 l.15` vise « older materials »,
 - aire `combat` (fiche à extraire) — **Momentum**, source d'Advantage en Melee (`CRB 037`)
 - aire `conversion` (fiche à extraire) — **Appendix I**, conversion 4e → 5e (`CRB 116`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsles-trois-lose-advantage-residuels-du-livre-et-la-clause-d-appendix-i-qui-les-reecrit)
 
 ---
 
@@ -787,8 +782,7 @@ Fiches à extraire.
 - aire `equipement` (fiche à extraire) — **Miscellaneous Trappings**, prix et encombrement des sources d'illumination
 - aire `competences` (fiche à extraire) — Skill **Perception (I)**
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestssilences-et-bornes-du-raw-a-ne-pas-combler-par-invention)
 
 ---
 
@@ -930,8 +924,7 @@ appartient à l'aire `conversion` (fiche à extraire) ; elle n'est pas recopiée
 - [Getting Help — se faire aider sur un Test](#getting-help--se-faire-aider-sur-un-test) (`CRB 024 l.138-144`)
 - aire `conversion` (fiche à extraire) — **DIFFICULTY TABLE** de correspondance ancienne expression → modificateur de SL (`CRB 116 l.17-31`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestssl-modifiers-origine-moment-d-application-et-marge-du-gm)
 
 ---
 
@@ -1039,8 +1032,7 @@ vivent dans les chapitres d'application : aires `intrigue`, `social`, `enquete`,
 - aires `intrigue`, `social`, `enquete`, `deplacement`, `artisanat` (fiches à extraire) — tables d'exemples de Difficulty par action (`CRB 027 l.50-58`, `CRB 028 l.44-52`, `CRB 029 l.45-55`, `CRB 030 l.15-21`, `CRB 032 l.29-35`, `CRB 031 l.9`, `CRB 031 l.58-64`)
 - aires `talents` et `religion` (fiches à extraire) — effets qui imposent ou verrouillent un degré
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsexpression-heritee-de-la-4e)
 
 ---
 
@@ -1096,8 +1088,7 @@ L'**Outcomes Table** est la grille de lecture du SL final d'un Test : elle conve
 - [EXTENDED TESTS — les Tests étendus](#extended-tests--les-tests-étendus) — total courant de SL
 - aires `intrigue`, `social`, `enquete`, `deplacement`, `artisanat`, `combat`, `traumatisme`, `maladies`, `psychologie`, `etats`, `corruption` (fiches à extraire) — tables d'outcomes spécifiques annoncées par `CRB 026 l.5-18`
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsoutcomes-table)
 
 ---
 
@@ -1163,9 +1154,7 @@ Ce que chaque exemple démontre :
 - aire `deplacement` (fiche à extraire) — poursuites (`CRB 032 l.81-87`)
 - aire `magie` (fiche à extraire) — dissipation (`CRB 070 l.149`), Touch Tests opposés (`CRB 070 l.35`, `CRB 067 l.13`)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `CRB 70` (l.35) → `REPORT_DE_COMBATTANT` — `src/engine/persistence.ts`
-- sans code : `CRB 23` (l.5), `CRB 24` (l.73, l.75-80, l.93-104, l.132-136, l.138-144), `CRB 25` (l.25, l.32) +13
+**Implémente :** [État calculé](../implemente.generated.md#5eteststest-example-opposed-tests)
 
 ---
 
@@ -1294,8 +1283,7 @@ Le chapitre de magie mobilise l'aide sur un cas précis : plusieurs spellcasters
 - aire `psychologie` (fiche à extraire) — résistance à `Fear`, elle-même un Extended Test
 - aire `maladies` (fiche à extraire) — résistance à `disease` et `poison`
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsce-qui-n-est-pas-getting-help)
 
 ---
 
@@ -1373,8 +1361,7 @@ Le mot « at least » est un **plancher, pas une valeur fixe** : un jet qui rapp
 - aire `competences` (fiche à extraire) — Skill **Art**
 - aire `combat` (fiche à extraire) — Rounds hors combat
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsextended-tests-les-tests-etendus)
 
 ---
 
@@ -1469,8 +1456,7 @@ Le chapitre GM n'ajoute aucune restriction mécanique, seulement un cadrage de d
 - aire `religion` (fiche à extraire) — **Blessing of Fortune**, *Cheat the Odds*, Wrath of the Gods
 - aire `conversion` (fiche à extraire) — **Resilience and Resolve**
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsposture-de-table)
 
 ---
 
@@ -1536,8 +1522,7 @@ Le chapitre du GM resserre encore la fréquence attendue et donne le barème d'a
 - aire `religion` (fiche à extraire) — *Called to Account*
 - aire `conversion` (fiche à extraire) — **Resilience and Resolve**
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsfate-nature-rarete-et-replenishing-fate)
 
 ---
 
@@ -1608,8 +1593,7 @@ Le chapitre du GM demande que la **différence de timing** se traduise dans la f
 - aire `magie` (fiche à extraire) — Lore of Heavens : *Fate's Fickle Fingers* (`CRB 071 l.247-253`), *Starcrossed* (`CRB 071 l.255-261`), les trois *Portents of Amul* (`CRB 071 l.263-285`)
 - aire `conversion` (fiche à extraire) — « If an effect refers to Resilience, use Fate instead. » (`CRB 116 l.36`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsemploi-du-fate-voisin-hors-cheating-death)
 
 ---
 
@@ -1657,5 +1641,4 @@ La porte d'entrée de la branche est posée en une phrase : elle autorise la dé
 - [Fate — nature, rareté et Replenishing Fate](#fate--nature-rareté-et-replenishing-fate) — nature, statut et reconstitution du Fate
 - aire `combat` (fiche à extraire) — Hit Location
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** [État calculé](../implemente.generated.md#5etestsachieving-the-impossible-i-will-not-fail)

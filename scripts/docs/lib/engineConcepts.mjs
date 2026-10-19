@@ -132,6 +132,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/shipMelee.ts', 'Combat naval au contact'],
   ['src/engine/shipNavigation.ts', 'Navigation de navire'],
   ['src/engine/ruleRefs.ts', 'Références Codex des règles (modificateurs de jet)'],
+  ['src/engine/reglesChiffrees.ts', 'Règles chiffrées : ModLine lue dans les rangées des fiches de règle'],
   ['src/engine/size.ts', 'Taille'],
   ['src/engine/skillCombatApps.ts', 'Applications de compétence en combat'],
   ['src/engine/skills.ts', 'Compétences'],

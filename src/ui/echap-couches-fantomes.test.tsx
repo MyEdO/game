@@ -20,10 +20,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { dismissStackKinds } from '../state/dismissStack';
 import { resetDismissLayers } from './useDismissLayer';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { GameMenu } from './GameMenu';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { VictoryScreen } from './VictoryScreen';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 
@@ -142,9 +143,9 @@ describe('Menu système — le focus clavier entre dans la carte (#1752)', () =>
 
   const carte = () => host.querySelector('.game-menu-overlay') as HTMLElement;
 
-  /** Le SAUVETAGE du focus passe par un `MutationObserver` : son rappel est une micro-tâche, postée
-   *  après la mutation du rendu. On la laisse s'écouler avant de lire `activeElement`. */
-  const vider = () => act(async () => {});
+  /** Le SAUVETAGE du focus (`useModalA11y`) est lu à la tâche suivante : on la laisse passer avant de
+   *  lire `activeElement`. */
+  const vider = tacheSuivante;
 
   it('à l’OUVERTURE, le focus est dans la carte — et il y revient après le retour de sous-écran', async () => {
     act(() => root.render(<Ecran />));

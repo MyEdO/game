@@ -55,7 +55,7 @@ function mount(swallow = false) {
 }
 
 const pressEnter = (from: EventTarget) =>
-  act(() => { from.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+  act(() => { from.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })); });
 
 beforeEach(() => {
   host = document.createElement('div');
@@ -165,7 +165,7 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
     );
     act(() => root.render(<Scene portee={false} />));
     act(() => root.render(<Scene portee />)); // la surface s'ouvre APRÈS la boîte : elle est au-dessus
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(surfaces, 'la couche du DESSUS se congédie').toBe(1);
     expect(escapes, 'et la boîte, dessous, reste ouverte').toBe(0);
   });
@@ -173,14 +173,14 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
   it('un contrôle porté SIMPLEMENT FOCALISÉ ne fait pas écran : Échap ferme la boîte', () => {
     const { porte } = mountWithPortal();
     porte.focus();
-    act(() => { porte.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { porte.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(escapes, 'le focus n’est pas une couche — la boîte est la surface du dessus').toBe(1);
   });
 
   it('flèches : la boîte ne rove PAS par-dessus un contrôle porté focalisé', () => {
     const { porte } = mountWithPortal();
     porte.focus();
-    act(() => { porte.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    act(() => { porte.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); });
     expect(document.activeElement, 'le roving de la boîte a volé le focus du popover').toBe(porte);
   });
 
@@ -191,7 +191,7 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
     pressEnter(document.body);
     expect(clicks).toBe(1);
     // Échap depuis la boîte ferme toujours.
-    act(() => { primary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { primary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(escapes).toBe(1);
   });
 });

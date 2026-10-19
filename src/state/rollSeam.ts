@@ -59,7 +59,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { conditionLabel, dataLabel, testSkillLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
-import { rollTest, clampTarget, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
+import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { defaultRNG, type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -113,7 +113,7 @@ type Surface = 'M' | 'V' | 'I';
  *  TOUJOURS `testValue` ICI. */
 export function effectiveTargetClamped(actor: Combatant | undefined, test: RollRequest['test'], difficulty: Difficulty, baseOverride?: number): { target: number; clamped?: number } {
   const value = baseOverride ?? (actor ? testValue(actor, test.skill, test.char, test.spec, test.sense) : 0);
-  return clampTarget(value + DIFFICULTY_MODIFIERS[difficulty]);
+  return clampTarget(cibleDuTest(value, difficulty));
 }
 
 /** Cible EFFECTIVE seule — pour les sites dont la base ne peut pas franchir les bornes. */
@@ -451,7 +451,7 @@ export interface BandSpec {
  *
  * L'arbitre (`modalArbiter`, entrée `cascade`) prend l'owner de l'étape : `'*'` si `groupOwner`, sinon
  * son `actorId`, sinon `undefined` — et `undefined` rend la fenêtre à l'HÔTE SEUL
- * (`netOwnership.ownsLocally`). Une bande doit donc TOUJOURS dire à qui elle appartient :
+ * (`netOwnership.ownsLocal`). Une bande doit donc TOUJOURS dire à qui elle appartient :
  *  - plus d'UN porteur (seul cas où plus d'un siège peut être concerné) → `groupOwner` ;
  *  - un SEUL porteur → `actorId` = ce porteur (une bande d'un seul porteur EST son porteur) ; sans
  *    lui, le siège qui possède ce porteur ne voit jamais la fenêtre où se tient sa rangée.
@@ -834,8 +834,7 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   const t = spec.test ?? {};
   const dansLaValeur = spec.dansLaValeur ?? [];
   const fusedSum = dansLaValeur.reduce((s, m) => s + m.value, 0);
-  const dv = DIFFICULTY_MODIFIERS[spec.difficulty];
-  if (typeof dv !== 'number') throw new Error(`rollLine : Difficulté inconnue « ${String(spec.difficulty)} » — la cible serait NaN.`);
+  if (typeof DIFFICULTY_MODIFIERS[spec.difficulty] !== 'number') throw new Error(`rollLine : Difficulté inconnue « ${String(spec.difficulty)} » — la cible serait NaN.`);
   // Un ACTEUR jette forcément QUELQUE CHOSE : sans valeur posée (`valeur`), sans canal de combat et
   // sans ids, `testValue` rendrait 0 et la ligne annoncerait une cible qui n'est la valeur de
   // personne — auto-échec MUET (#1657 B3-3). Le producteur nomme son Test, ou pose sa valeur.
@@ -869,7 +868,7 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   const combine = plafonne ? combineMods(surLaCible) : brut;
   const compo = plafonne ? composeDifficulty(spec.difficulty, surLaCible) : undefined;
   if (compo) assertSeparabilite(surLaCible, combine, compo.circCombined);
-  const { target, clamped } = clampTarget(value + dv + combine);
+  const { target, clamped } = clampTarget(cibleDuTest(value, spec.difficulty, combine));
   return {
     base: split.base - fusedSum,
     mods: [...split.mods, ...dansLaValeur, ...(compo ? compo.mods : surLaCible)],
@@ -1834,7 +1833,7 @@ interface HostBase {
  *    dernier producteur de `groupOwner` devait monter son étape À LA MAIN, hors de la porte (#1262 V2 L4).
  *
  * Une étape hôte dit donc TOUJOURS à qui elle appartient : `{}` ne compile pas — et `undefined`
- * rendrait la fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocally`), volant le jet des autres sièges.
+ * rendrait la fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocal`), volant le jet des autres sièges.
  */
 type HostOwner =
   | { actorId: string; groupOwner?: boolean }

@@ -14,6 +14,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { RollShell } from './RollShell';
 import { buildRollRow } from './rollRowBuild';
 import { testPending } from './breakdown';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -49,7 +50,7 @@ function backgroundButton(): HTMLButtonElement {
  * (hissé par la coquille), et la transition (`forced`) révèle le sélecteur de dé + la barre post-jet
  * — exactement le basculement du store en jeu.
  */
-function Harness({ picker }: { picker: boolean }) {
+function Harness({ picker, de = 5 }: { picker: boolean; de?: number }) {
   const [rolled, setRolled] = useState(false);
   return (
     <RollShell
@@ -69,7 +70,7 @@ function Harness({ picker }: { picker: boolean }) {
             resilience: 2,
             rollFrisson: false,
             preRollForce: () => setRolled(true),
-            forcedRoll: picker && rolled ? { roll: 5, target: 45, onSet: () => {} } : undefined,
+            forcedRoll: picker && rolled ? { roll: de, target: 45, onSet: () => {} } : undefined,
           },
         ),
         rolled,
@@ -86,8 +87,8 @@ const box = () => host.querySelector('[role="dialog"]') as HTMLElement;
 const byText = (txt: string) =>
   [...host.querySelectorAll('button')].find((b) => (b.textContent ?? '').includes(txt))!;
 
-async function render(picker: boolean) {
-  await act(async () => { root.render(<Harness picker={picker} />); });
+async function render(picker: boolean, de?: number) {
+  await act(async () => { root.render(<Harness picker={picker} de={de} />); });
 }
 
 describe('modale de jet — le focus ne tombe jamais sur <body> quand un contrôle est démonté', () => {
@@ -99,6 +100,7 @@ describe('modale de jet — le focus ne tombe jamais sur <body> quand un contrô
     expect(document.activeElement).toBe(resil);
 
     await act(async () => { resil.click(); });
+    await tacheSuivante();
 
     const group = host.querySelector('.rm-die-pick') as HTMLElement;
     expect(group, 'le groupe de choix du dé doit être révélé').not.toBeNull();
@@ -108,6 +110,19 @@ describe('modale de jet — le focus ne tombe jamais sur <body> quand un contrô
     bg.remove();
   });
 
+  it('« Résilience ×N » activé, un dé déjà RETENU dans le groupe révélé (« 01 · DR max ») : le focus va sur ce dé, pas sur « Appliquer »', async () => {
+    await render(true, 1);
+    const resil = byText('Résilience ×2');
+    act(() => { resil.focus(); });
+    await act(async () => { resil.click(); });
+    await tacheSuivante();
+
+    const group = host.querySelector('.rm-die-pick') as HTMLElement;
+    expect(group, 'le groupe de choix du dé doit être révélé').not.toBeNull();
+    expect((document.activeElement as HTMLElement).textContent, 'le dé retenu, pas le geste du pied').toContain('01');
+    expect(group.contains(document.activeElement)).toBe(true);
+  });
+
   it('« Lancer » activé (sans Résilience) : le focus reste dans la boîte, sur l’action primaire révélée', async () => {
     await render(false);
     const lancer = byText('Lancer');
@@ -115,6 +130,8 @@ describe('modale de jet — le focus ne tombe jamais sur <body> quand un contrô
     expect(document.activeElement).toBe(lancer);
 
     await act(async () => { lancer.click(); });
+    // Le sauvetage de la boîte est lu à la tâche suivante (`useModalA11y`).
+    await tacheSuivante();
 
     expect(document.activeElement).not.toBe(document.body);
     expect(box().contains(document.activeElement)).toBe(true);

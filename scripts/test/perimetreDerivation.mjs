@@ -2,11 +2,12 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, certifierLecture, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
-import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
-import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
+import { APPEL_DE_LECTURE, certifierLecture, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
+import { estDeLaSuiteVitest } from '../guards/lib/racinesDeLaSuite.mjs'
+import { estTestNode } from '../gates/testsParGate.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES } from '../git-hooks/selection-des-derives.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
@@ -37,10 +38,6 @@ const blobDe = (texte) => {
   const octets = Buffer.from(texte, 'utf8')
   return createHash('sha1').update(`blob ${octets.length}\0`).update(octets).digest('hex')
 }
-
-/** Le test est-il une suite Vitest (`RACINES_DE_LA_SUITE`) ? une suite `node --test` (`scripts/**\/*.test.mjs`) ? */
-const estTestVitest = (rel) => RACINES_DE_LA_SUITE.some(({ dir, exts }) => rel.startsWith(`${dir}/`) && exts.some((e) => rel.endsWith(e)) && estSuiteVitest(rel))
-export const estTestNode = (rel) => rel.startsWith('scripts/') && rel.endsWith('.test.mjs')
 
 /** La racine `r` couvre-t-elle `chemin` (égalité, ou ANCÊTRE : `ancetresDe`) ? */
 const couvre = (r, chemin) => chemin === r || ancetresDe(chemin).includes(r)
@@ -81,13 +78,14 @@ function setupFilesDe(texte, analyser) {
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 
 /**
- * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. `ferme` : chaque lot s'évalue par `evaluerLot` sur la
- * clôture de ses lectures (`produireDTO`). `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
- * `limiteIR` valent ceux de la production par défaut.
+ * DÉRIVATION du périmètre. PURE hormis `lire` et les mémos. Chaque lot s'évalue par `evaluerLot` sur la
+ * clôture de ses lectures. `tailleLot` (questions par lot d'évaluation), `analyser`, `evaluerLot` et
+ * `limiteIR` valent ceux de la production par défaut. `analyser` sert aussi la clôture d'imports (`clotureDImports`) ;
+ * `stade` observe aussi chaque certification (`certifierLecture`) et chaque lot (`evaluerLot`).
  * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDeDerivation> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: NonResolu[], vitest: string[], node: string[], modules: number }}
  */
-export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {}, ferme = false,
+export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos, stade = () => {},
   tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, evaluerLot = evaluerLotDuDepot, limiteIR = LIMITE_IR }) {
   stade('graphe', null)
   const base = resolve(racine).split(sep).join('/')
@@ -95,7 +93,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   const rel = (a) => a.slice(base.length + 1)
   const presents = new Set(post)
   const ensemble = new Set([...post, ...avant])
-  const vitest = post.filter(estTestVitest)
+  const vitest = post.filter(estDeLaSuiteVitest)
   const node = post.filter(estTestNode)
   const setup = setupFilesDe(lire([CONFIG_VITEST]).get(CONFIG_VITEST) ?? null, analyser)
   const textes = new Map()
@@ -109,7 +107,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const cache = new Map()
   clotureDImports([...vitest, ...node, ...setup], {
-    racine, typesEffaces: true, cache,
+    racine, typesEffaces: true, cache, analyser,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
@@ -130,7 +128,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     clotureSetup.add(rel(a))
     for (const arc of cache.get(a) ?? []) pile.push(arc.cible)
   }
-  const estTest = (f) => presents.has(f) && (estTestVitest(f) || estTestNode(f))
+  const estTest = (f) => presents.has(f) && (estDeLaSuiteVitest(f) || estTestNode(f))
 
   /** Tests qui atteignent `depart`, avec leur distance et la chaîne la plus courte (test → … → depart). */
   const remontees = new Map()
@@ -183,21 +181,9 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
 
   const lectures = new Map()
-  const lectureDe = (f) => {
-    if (lectures.has(f)) return lectures.get(f)
-    stade('lecture', f)
-    const texte = textes.get(f) ?? lire([f]).get(f) ?? null
-    if (texte === null || !estModule(f)) return lectures.set(f, null).get(f)
-    const cle = `${f}:${blobDe(texte)}`
-    let lu = memos?.lire('lectures', cle)
-    if (!lu) {
-      const [{ sourceFile }] = [...analyser([{ rel: f, text: texte }])]
-      lu = encoderLecture(lectureDeModule(f, sourceFile))
-      memos?.ecrire('lectures', cle, lu)
-    }
-    bornerIR(f, lu, limiteIR)
-    return lectures.set(f, lu).get(f)
-  }
+  /** L'IR de `f` prélue par sa vague de clôture (`clotureDesLectures`) ; `null` pour un module illisible ou un fichier
+   *  hors modules. */
+  const lectureDe = (f) => lectures.get(f) ?? null
   /** Lit d'un coup les modules `fichiers` absents des mémos : un programme d'analyse par lot. */
   const prelire = (fichiers) => {
     const aLire = []
@@ -246,25 +232,10 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
    *  les réponses de ses requêtes : une variante vaut tant que chacune de ses réponses tient. */
   const variante = (nature, f) => (memos?.lire('evaluations', `${nature}:${f}`) ?? [])
     .find(({ requetes }) => requetes.every(([r, reponse]) => reponseA(r) === reponse))
-  const evaluationDe = (evaluateurDe, nature, f) => {
-    stade(nature, f)
-    const vue = variante(nature, f)
-    if (vue) return vue.resultat
-    const evaluateur = evaluateurDe()
-    const { resultat, requetes } = evaluateur.tracer(() => evaluateur[nature](f))
-    const cle = `${nature}:${f}`
-    memos?.ecrire('evaluations', cle, [{ requetes: [...requetes].map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
-    return resultat
-  }
-  /** Lit d'un coup les modules dont l'évaluation `nature` n'a pas de variante valide, et leurs imports. */
-  const prelireManquants = (nature, fichiers) => {
-    const manquants = fichiers.filter((f) => !variante(nature, f))
-    prelire(new Set([...manquants, ...manquants.flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
-  }
   /** La lecture CERTIFIÉE (`certifierLecture`) de `f` depuis son IR (`lectureDe`), une fois par module et par
-   *  dérivation : les lots et l'évaluateur ouvert la partagent, la dérivation la relâche à sa fin. */
+   *  dérivation : les lots la partagent, la dérivation la relâche à sa fin. */
   const certifiees = new Map()
-  const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f))).get(f)
+  const certifiee = (f) => certifiees.has(f) ? certifiees.get(f) : certifiees.set(f, certifierLecture(f, lectureDe(f), stade)).get(f)
   /** Les spécificateurs qu'importe la lecture de `f`, ceux de ses `importe` puis ses étoiles : une lecture se visite une
    *  fois par dérivation, pas une fois par lot (`stade('visite', f)`). */
   const specificateursDesLectures = new Map()
@@ -307,38 +278,29 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
     return { lecturesDuLot, resolutions }
   }
   function* evaluationsEnLots(nature, fichiers) {
-    if (ferme) clotureDesLectures(fichiers.filter((f) => !variante(nature, f)))
+    clotureDesLectures(fichiers.filter((f) => !variante(nature, f)))
     for (let debut = 0; debut < fichiers.length; debut += tailleLot) {
       const lot = fichiers.slice(debut, debut + tailleLot)
-      if (ferme) {
-        const vues = new Map(lot.map((f) => [f, variante(nature, f)]))
-        const manquants = lot.filter((f) => !vues.get(f))
-        const { lecturesDuLot, resolutions } = clotureDesLectures(manquants)
-        memos?.sauver?.()
-        const resultats = new Map()
-        if (manquants.length) {
-          stade(nature, manquants.length === 1 ? manquants[0] : null)
-          const lecteursDuTour = [...lecteurs]
-          const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) })
-          for (const { f, resultat, requetes } of rendus) {
-            resultats.set(f, resultat)
-            const cle = `${nature}:${f}`
-            memos?.ecrire('evaluations', cle, [{ requetes: requetes.map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
-          }
-        }
-        memos?.sauver?.()
-        for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
-        continue
-      }
-      let evaluateur
-      const evaluateurDe = () => evaluateur ??= evaluateurDuDepot({ lecture: certifiee, cible: cibleDe,
-        peutLire: (f) => lecteurs.has(f), clesStructurelles: true, memoiserBooleens: false })
-      for (const f of lot) yield [f, evaluationDe(evaluateurDe, nature, f)]
+      const vues = new Map(lot.map((f) => [f, variante(nature, f)]))
+      const manquants = lot.filter((f) => !vues.get(f))
+      const { lecturesDuLot, resolutions } = clotureDesLectures(manquants)
       memos?.sauver?.()
+      const resultats = new Map()
+      if (manquants.length) {
+        stade(nature, manquants.length === 1 ? manquants[0] : null)
+        const lecteursDuTour = [...lecteurs]
+        const rendus = evaluerLot({ lectures: [...lecturesDuLot].map((f) => [f, certifiee(f)]), resolutions: [...resolutions.values()], lecteurs: lecteursDuTour, questions: manquants.map((f) => ({ nature, f })) }, stade)
+        for (const { f, resultat, requetes } of rendus) {
+          resultats.set(f, resultat)
+          const cle = `${nature}:${f}`
+          memos?.ecrire('evaluations', cle, [{ requetes: requetes.map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
+        }
+      }
+      memos?.sauver?.()
+      for (const f of lot) yield [f, vues.get(f)?.resultat ?? resultats.get(f)]
     }
   }
   for (let frontiere = [...lecteurs]; ;) {
-    if (!ferme) prelireManquants('relaisExportes', frontiere)
     const suivante = new Set()
     for (const [f, noms] of evaluationsEnLots('relaisExportes', frontiere)) {
       if (!noms.length) continue
@@ -355,7 +317,6 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   /** Les modules dont un site balaie la RACINE du dépôt : tout fichier touché retient les tests qui les atteignent. */
   const balaientLeDepot = new Set()
   const tries = [...lecteurs].sort()
-  if (!ferme) prelireManquants('sitesDe', tries)
   for (const [f, sites] of evaluationsEnLots('sitesDe', tries)) {
     for (const site of sites) {
       const ici = `${f}:${site.ligne}`
@@ -660,19 +621,122 @@ export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine,
     if (texte !== null && texte !== undefined) garder(rel, blobDe(texte))
   }
   stade('version', null)
-  const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
+  const memos = memosDeDerivation(dossierDesMemos, versionDesMemosDeDerivation(racine, { dossierDesMemos, lectureSeule, stade }), { lectureSeule, imagesVivantes, diagnostic: (famille, raison) => console.log(`[mémo] ${famille} : ${raison}`) })
   const lireAvant = images.base ? (rels) => lireEnLot(depot, images.base, rels) : undefined
-  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade, ferme: true })
+  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos, stade })
   stade('sauvegarde', null)
   memos.sauver()
   return enDTO(images, derive)
 }
 
-if (import.meta.main) {
-  const [entree, sortie, marqueur] = process.argv.slice(2)
-  const stade = (nom, module) => ecrireJsonAtomique(marqueur, { stade: nom, module }, { indentation: 0 })
-  try {
-    const dto = produireDTO(JSON.parse(readFileSync(entree, 'utf8')), stade)
-    ecrireJsonAtomique(sortie, dto, { indentation: 0 })
-  } catch (e) { console.error(e.stack ?? e); process.exitCode = 1 }
+/** Le PAS du marqueur de stade (ms) : la période de publication du guetteur une fois chargé (`marqueurDeStade`). */
+const PAS_DU_MARQUEUR = 100
+/** Les octets d'un stade sérialisé (`marqueurDeStade`). */
+const CAPACITE_DU_MARQUEUR = 4096
+const [SEQUENCE, LONGUEUR, ARRET, ACQUIT] = [0, 1, 2, 3]
+/** Les états de la cellule `ACQUIT` posés par le guetteur : dernier stade publié, ou guetteur mort (sa panne sur `pannes`). */
+const [ACQUITTE, EN_PANNE] = [1, 2]
+/** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. Ses
+ *  lectures, comme les écritures de `stade`, sont toutes atomiques : la séquence paire relue à l'identique prouve un texte
+ *  entier (ECMA-262, Memory Model). Un renommage refusé (`RENOMMAGE_REFUSE`) se rejoue à son pas, jamais sous les paliers
+ *  de `renommerResilient` ; toute autre levée le tue : il la poste sur `pannes` puis pose `EN_PANNE`. */
+const GUETTEUR = `
+const { workerData: { ecriture, renommage, chemin, partage, pas, pannes } } = require('node:worker_threads')
+const entete = new Int32Array(partage, 0, 4)
+const octets = new Uint8Array(partage, 16)
+const decodeur = new TextDecoder()
+const lire = () => {
+  for (;;) {
+    const sequence = Atomics.load(entete, ${SEQUENCE})
+    if (sequence % 2) continue
+    const lus = new Uint8Array(Atomics.load(entete, ${LONGUEUR}))
+    for (let i = 0; i < lus.length; i += 1) lus[i] = Atomics.load(octets, i)
+    const texte = decodeur.decode(lus)
+    if (Atomics.load(entete, ${SEQUENCE}) === sequence) return { sequence, texte }
+  }
 }
+const poser = (etat) => { Atomics.store(entete, ${ACQUIT}, etat); Atomics.notify(entete, ${ACQUIT}) }
+Promise.all([import(ecriture), import(renommage)]).then(([{ ecrireTexteAtomique }, { RENOMMAGE_REFUSE }]) => {
+  const attendre = () => Atomics.wait(entete, ${ACQUIT}, 0, pas)
+  for (let publiee = 0; ;) {
+    Atomics.wait(entete, ${ARRET}, 0, pas)
+    const arret = Atomics.load(entete, ${ARRET}) === 1
+    const { sequence, texte } = lire()
+    if (sequence !== publiee) {
+      try {
+        ecrireTexteAtomique(chemin, texte + '\\n', { attendre })
+        publiee = sequence
+      } catch (e) {
+        if (!RENOMMAGE_REFUSE.has(e?.code)) throw e
+        if (arret) attendre()
+        continue
+      }
+    }
+    if (arret) return poser(${ACQUITTE})
+  }
+}).catch((e) => {
+  pannes.postMessage(String(e?.stack ?? e))
+  poser(${EN_PANNE})
+})
+`
+
+/**
+ * Le MARQUEUR DE STADE de l'enfant de `derivationBornee` (`perimetre.mjs`), qui le relit à sa mort pour nommer le stade
+ * atteint. `stade(nom, module)` pose le stade en mémoire partagée ; le guetteur (`GUETTEUR`, un `Worker`), dès son
+ * chargement, publie sous `chemin` le dernier posé à chaque `pas` ms, thread principal bloqué compris ; `fermer` publie
+ * le dernier et attend l'acquit du guetteur au plus `delaiDArretMs` ms, sinon lève ; un guetteur mort lève sa panne.
+ * @param {string} chemin @param {{ pas?: number, delaiDArretMs?: number }} [options]
+ */
+export function marqueurDeStade(chemin, { pas = PAS_DU_MARQUEUR, delaiDArretMs = 10_000 } = {}) {
+  const partage = new SharedArrayBuffer(16 + CAPACITE_DU_MARQUEUR)
+  const entete = new Int32Array(partage, 0, 4)
+  const octets = new Uint8Array(partage, 16)
+  const encodeur = new TextEncoder()
+  const [ecriture, renommage] = ['ecritureJsonAtomique', 'renommageResilient'].map((m) => new URL(`../guards/lib/${m}.mjs`, import.meta.url).href)
+  const { port1: pannes, port2 } = new MessageChannel()
+  const guetteur = new Worker(GUETTEUR, { eval: true, workerData: { ecriture, renommage, chemin, partage, pas, pannes: port2 }, transferList: [port2] })
+  guetteur.unref()
+  pannes.unref()
+  return {
+    /** @param {string} nom @param {string | null} module */
+    stade(nom, module) {
+      const encode = encodeur.encode(JSON.stringify({ stade: nom, module }))
+      if (encode.length > CAPACITE_DU_MARQUEUR) throw new Error(`perimetre : stade ${nom} de ${encode.length} octets > ${CAPACITE_DU_MARQUEUR}`)
+      Atomics.add(entete, SEQUENCE, 1)
+      for (let i = 0; i < encode.length; i += 1) Atomics.store(octets, i, encode[i])
+      Atomics.store(entete, LONGUEUR, encode.length)
+      Atomics.add(entete, SEQUENCE, 1)
+    },
+    fermer() {
+      Atomics.store(entete, ARRET, 1)
+      Atomics.notify(entete, ARRET)
+      Atomics.wait(entete, ACQUIT, 0, delaiDArretMs)
+      const etat = Atomics.load(entete, ACQUIT)
+      void guetteur.terminate()
+      if (etat === EN_PANNE) throw new Error(`perimetre : guetteur du marqueur de stade ${chemin} mort : ${receiveMessageOnPort(pannes)?.message ?? '—'}`)
+      if (etat !== ACQUITTE) throw new Error(`perimetre : marqueur de stade ${chemin} sans acquit en ${delaiDArretMs} ms`)
+    },
+  }
+}
+
+/**
+ * L'ENFANT de `derivationBornee` : le DTO de `produire` sur l'entrée `entree` écrit sous `sortie`, stade posé sur le
+ * marqueur `chemin` (`marqueurDe`). REND son code de sortie, celui de la dérivation seule : la panne du marqueur, diagnostic
+ * pur, s'imprime sans le changer (#2586).
+ * @param {string[]} argv `[entree, sortie, chemin]` @returns {number}
+ */
+export function deriverDansLEnfant([entree, sortie, chemin], { produire = produireDTO, marqueurDe = marqueurDeStade } = {}) {
+  const marqueur = marqueurDe(chemin)
+  let code = 0
+  try {
+    ecrireJsonAtomique(sortie, produire(JSON.parse(readFileSync(entree, 'utf8')), marqueur.stade), { indentation: 0 })
+  } catch (e) {
+    console.error(e.stack ?? e)
+    code = 1
+  } finally {
+    try { marqueur.fermer() } catch (e) { console.error(e.message) }
+  }
+  return code
+}
+
+if (import.meta.main) process.exitCode = deriverDansLEnfant(process.argv.slice(2))

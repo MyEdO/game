@@ -33,16 +33,16 @@ describe('Escalade (LDB 15 l.53-57)', () => {
 
 describe('Chute volontaire (LDB 15 l.82)', () => {
   it('réussite : −1 m de chute par DR', () => {
-    const r = resolveDeliberateFall(80, 6, fixed(1)); // 01 → réussite, gros DR
+    const r = resolveDeliberateFall(80, 'accessible', 6, fixed(1)); // 01 → réussite, gros DR
     expect(r.success).toBe(true);
     expect(r.effectiveMetres).toBeLessThan(6);
   });
   it('DR suffisant → chute ramenée à 0 (aucun Dégât)', () => {
-    const r = resolveDeliberateFall(100, 2, fixed(1)); // DR ≥ 2 attendu
+    const r = resolveDeliberateFall(100, 'accessible', 2, fixed(1)); // DR ≥ 2 attendu
     expect(r.effectiveMetres).toBe(0);
   });
   it('échec : aucune réduction (on ne tombe pas de plus haut)', () => {
-    const r = resolveDeliberateFall(20, 6, fixed(99)); // échec
+    const r = resolveDeliberateFall(20, 'accessible', 6, fixed(99)); // échec
     expect(r.effectiveMetres).toBe(6);
   });
 });

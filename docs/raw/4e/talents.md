@@ -2,7 +2,7 @@
 
 > Fichier de reference genere le 2026-06-20, complete le 2026-06-20. Source: `src/data/talents.json` (177 entrees) + textes sources lus et verifies.
 > **Corrections apportees** : source `empreint-de-la-magie` = EDOC 13 p.79 (pas LDB) ; source `empreint-d-ulgu` = NADJ 15 p.88 (pas LDB) ; ajout Sang Neuf (ADE I) ; description Vice complete.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ---
 
@@ -1117,12 +1117,7 @@ Vous pouvez voir parfaitement dans les ténèbres naturelles. En présumant que 
 
 **Voir aussi :** `vision.md` — brouillard de guerre, zones éclairées, états lumineux par case ; `equipement.md` § Éclairage — rayons de Bougie (10 m) et Lanterne (20 m), étendus de +20 m / niveau par ce Talent.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.773, l.1028-1037, l.1039-1043, l.1045-1051, l.1053-1057, l.1059-1063, l.1065-1071, l.1073-1077, l.1079-1085, l.1087-1091) → `ResistButton`, `restoreFortune`, `menaceIds`, `CorruptionModal`, `lancerDeLaSecondeMain`, `resistanceImproves`, `fearImmuneVs`, `useDefenseJetProps`, `useAttackJetProps`, `CombatFeature`, +88 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/critical.ts`, +26 fichiers
-- `LDB 11` (l.176) → `ambush-vigilance`, `TraitCapabilities`, `trappeur`, `travailleur-qualifie`, `tres-fort`, `tres-resistant`, `tricheur`, `tueur`, `veloce`, `vigilance`, +5 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/talents.json`, `src/state/vision.ts`
-- `LDB 13` (l.183) → `localisation`, `FLOW_VERBS`, `OrigineCritique`, `CauseCoupCritique`, `estUnCoupCritique`, `AttackResult`, `createCombatSlice`, `testDArmeOuDeCorpsACorps`, `FLOWS`, `toucheAuJetPose`, +3 — `src/data/localisation.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, `src/state/flowVerbs.ts`, +1 fichiers
-- `EDOC 13` (l.254-256) → `chaosDomainOf`, `allure-demoniaque-nurgle`, `allure-demoniaque-slaanesh`, `allure-demoniaque-tzeentch`, `allure-demoniaque-indivisible`, `GameOp`, `OpsCtx`, `empreint-de-la-magie`, `allure-demoniaque`, `aspect-sublime` — `src/data/spells.json`, `src/data/tables.json`, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/ops.ts`
-- `NADJ 15` (l.47) → `empreint-d-ulgu` — `src/data/talents.json`
+**Implémente :** [État calculé](../implemente.generated.md#4etalentsvision-nocturne)
 
 ### Visions sacrées
 **Source :** LDB 11 p.147  

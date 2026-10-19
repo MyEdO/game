@@ -13,6 +13,7 @@ import { cheminsDeJournal, journalVide } from './publicationDonnee.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
+import { ETAPES } from './etapesDuTrain.mjs'
 
 const A = 'a'.repeat(40)
 const B = 'b'.repeat(40)
@@ -198,7 +199,7 @@ test('câblage : `tick` lit les têtes de l’origine, la CI par sha, le journal
     verdicts.set(branche, 'failure')
     const second = tick({ arbre: aval, depuis: premier.etat, lire, jobs: rougesDuTick, horloge: () => FRAICHEUR_MS })
     assert.deepEqual(lus, [main, branche, branche], 'main, verte au cache, ne se relit pas')
-    assert.equal(second.ligne, 'CI main ✓ · chantier/9 ✗ · train : preflight 1/7', 'le pid du run vit : en vol')
+    assert.equal(second.ligne, `CI main ✓ · chantier/9 ✗ · train : preflight 1/${ETAPES.length}`, 'le pid du run vit : en vol')
     assert.equal(second.transitions[0], `CI chantier/9 ROUGE (${branche.slice(0, 9)})`)
     assert.deepEqual(tick({ arbre: aval, depuis: second.etat, lire, jobs: rougesDuTick, horloge: () => FRAICHEUR_MS }).transitions.filter((t) => t.startsWith('CI')), [], 'le rouge rendu au `--depuis` ne se redit pas')
   } finally {

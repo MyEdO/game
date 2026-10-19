@@ -326,6 +326,32 @@ test('cleanup refusé après fusion : snapshot et archive conservés, nouvelle t
   assert.equal(JSON.parse(readFileSync(suivant.precedente)).publication.snapshot, p.snapshot)
 })
 
+test('#2741 retrait réussi après fusion : preuve finale et journal nettoyé', async (t) => {
+  const b = banc(t)
+  const p = b.preparer()
+  p.dependancesInstallees = true
+  mkdirSync(join(p.snapshot, 'node_modules'))
+  const lignes = []
+  let retire = false
+  const code = await publierDepuisSnapshot({
+    source: b.source, branche: p.branche, chemins: b.chemins, reprendre: true, args: [],
+    preparer: () => p, fusionDansMain: () => true,
+    retirer: () => { retire = true; return { disponible: true, valeur: { status: 0 } } },
+    ecrire: (texte) => { if (texte.includes('snapshot retiré')) assert.equal(retire, true); lignes.push(texte) },
+    lancer: async () => {
+      const j = JSON.parse(readFileSync(b.chemins.json))
+      j.publication.publie = SHA
+      j.verdict = { etat: 'vert' }
+      j.etapes.file = { detail: { fusion: 'f'.repeat(40) } }
+      writeFileSync(b.chemins.json, JSON.stringify(j))
+      return { code: 0 }
+    },
+  })
+  assert.equal(code, 0)
+  assert.ok(lignes.includes(`[publier] snapshot retiré : ${p.snapshot}\n`))
+  assert.equal(JSON.parse(readFileSync(b.chemins.json)).publication.nettoyee, true)
+})
+
 test('nouvelle tête après CI rouge : ancien snapshot archivé ; --reprendre garde sa cible', (t) => {
   const b = banc(t)
   const p = b.preparer()
@@ -394,7 +420,6 @@ test('git réel : CI rouge avec docs C, correctif D fusionné dans snapshot sous
     combienDe: () => 1, baseAuTronc: () => base,
     commitsDeLaPlage: () => [{ sha: d, message: 'fix(ops): refs #2626' }],
   }
-  ctx.attendreReconstruction = () => ({ etat: 'soldee' })
   ctx.tronc = () => ({ disponible: true, sha: base })
   const journal = JSON.parse(readFileSync(b.chemins.json))
   const preflight = ETAPES.find((e) => e.nom === 'preflight').jouer(ctx, journal)
@@ -464,7 +489,7 @@ test('preflight accepte HEAD détaché uniquement avec identité de publication 
   const etape = ETAPES.find((e) => e.nom === 'preflight')
   const ctx = {
     racine: '/nulle-part', branche: 'chantier/2626', filtresDePush: ['chantier/**'],
-    attendreReconstruction: () => ({ etat: 'soldee' }), journaliser: () => {}, generators: [],
+    journaliser: () => {}, generators: [],
     questions: { rebaseEntame: () => null, brancheDe: () => null, cheminsSales: () => [], origineDe: () => 'étranger' },
   }
   assert.match(etape.jouer(ctx, {}).raison, /HEAD DÉTACHÉ/)

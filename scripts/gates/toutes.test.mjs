@@ -7,7 +7,6 @@
 //   node --test scripts/gates/toutes.test.mjs
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
-import { registerHooks } from 'node:module'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -37,6 +36,10 @@ import {
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import { coeurs, repartitionWorkers } from '../test/partition.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
+import { prendreVerrouAsync } from '../test/verrou.mjs'
+import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { spawnBorne } from '../guards/lib/processusBorne.mjs'
+import { STATUS_DLL_INIT_FAILED } from '../guards/lib/spawnResilient.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const GATES = gatesDeCi({ cwd: RACINE })
@@ -44,122 +47,114 @@ const NOMS = GATES.map((g) => g.nom)
 const LANES = lanesDeCi(GATES)
 const gate = (nom) => ({ nom, commande: `npm run ${nom}` })
 
-test('arrêt sur signal : les verdicts indéterminés gardent le verrou et tous les PID sont traités', async () => {
-  for (const jetee of [false, true]) {
-    const pids = [], lignes = []
-    let liberations = 0
-    const code = await arreterGatesSurSignal({ signal: 'SIGINT', vivants: new Map([['a', { pid: 123, demanderArret() {} }], ['b', { pid: 456, demanderArret() {} }]]),
-      verrousTenus: new Set([{ liberer: () => { liberations++ } }]), journal: (texte) => lignes.push(texte),
-      arreter: ({ pid }) => {
-        pids.push(pid)
-        if (pid === 456) return { etat: 'demande', erreurs: [] }
-        const cause = Object.assign(new Error('inspection impossible'), { code: 'EIO' })
-        if (jetee) throw Object.assign(new Error('refus physique', { cause }), { code: 'EPERM' })
-        return { etat: 'indetermine', erreurs: [{ operation: 'taskkill', pid, code: 'EPERM', message: 'refus physique', cause }] }
-      },
-    })
-    assert.equal(code, 130)
-    assert.deepEqual(pids, [123, 456])
-    assert.equal(liberations, 0)
-    assert.match(lignes.join(''), /PID 123 EPERM — refus physique/)
-    assert.match(lignes.join(''), /EIO — inspection impossible/)
-    assert.match(lignes.join(''), /aucun verrou libéré manuellement/)
+/**
+ * Double de `lancer` : le VRAI `spawnBorne`, dont seul le superviseur est injecté (#2776). L'essai `n` joue la forme
+ * `essais[n]` (la dernière se répète) : le superviseur attend `avantControle`, puis `leve` lève sans rendre de
+ * contrôle ; sinon un `ControleSupervision` (processusBorne.d.mts) dont la `fin` native rend
+ * `{ status, arret: { pid, etat, erreurs } }` une fois le contrôle remis à `surControle`, après `pendant(demande)` ou,
+ * `expiree`, à la demande d'arrêt de l'échéance ; `demande` se résout à la première demande d'arrêt. `demandes` reçoit
+ * le PID de chaque demande d'arrêt.
+ */
+const lancement = (options, ...essais) => {
+  let essai = 0, remettre
+  const superviser = async () => {
+    const { pid, etat = 'mort', erreurs = [], status = 0, expiree = false, demandes = [], pendant, leve = false, avantControle } = essais[Math.min(essai++, essais.length - 1)]
+    await avantControle?.()
+    if (leve) throw Object.assign(new Error('superviseur lève sans contrôle'), { code: 'EAGAIN' })
+    let arreter
+    const demande = new Promise((resolve) => { arreter = resolve })
+    const remis = new Promise((resolve) => { remettre = resolve })
+    const fin = (async () => {
+      await remis
+      await (expiree ? demande : pendant?.(demande))
+      return { resultatCible: { status, signal: null }, arret: { pid, etat, erreurs } }
+    })()
+    return { hote: { stdout: null, stderr: null }, controle: { pid, pret: Promise.resolve({ pidCible: pid }),
+      demanderArret() { demandes.push(pid); arreter() }, fin, finPhysique: fin.then(() => {}) } }
+  }
+  return spawnBorne({ ...options, superviser, limiteMs: essais.some((forme) => forme.expiree) ? 0 : options.limiteMs,
+    surControle: () => remettre() })
+}
+
+test('arrêt sur signal : le signal des gates est aborté avant toute attente, le verdict de chacune est attendu, un arrêt indéterminé est nommé', async () => {
+  for (const etat of ['mort', 'indetermine']) {
+    const lignes = [], arret = new AbortController()
+    let terminer, rendu = false
+    const enCours = new Promise((ok) => { terminer = ok })
+    const verdicts = new Map([['a', { arret: { pid: 123, etat: 'mort', erreurs: [] } }]])
+    const attente = arreterGatesSurSignal({ signal: 'SIGINT', journal: (texte) => lignes.push(texte), verdicts, gatesEnCours: new Set([enCours]), arret })
+      .then((code) => { rendu = true; return code })
+    assert.equal(arret.signal.aborted, true)
+    await new Promise((ok) => setImmediate(ok))
+    assert.equal(rendu, false, 'le gestionnaire rend avant le verdict de la gate en cours')
+    verdicts.set('b', { arret: { pid: 456, etat, erreurs: [] } })
+    terminer()
+    assert.equal(await attente, 130)
+    const sortie = lignes.join('')
+    if (etat === 'mort') assert.doesNotMatch(sortie, /arrêt indéterminé/, sortie)
+    else assert.match(sortie, /\[gates\] arrêt indéterminé : b PID 456 — verrou retenu\.\n/, sortie)
   }
 })
 
 
-test('capacité de gate : arrêt indéterminé retient PID et verrou, fin confirmée libère une fois par charge', async (t) => {
+test('capacité de gate : arrêt indéterminé, expiré ou non, retient PID et verrou, fin confirmée libère une fois par charge', async (t) => {
   const { racine } = depotDeGates([
     { nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' },
     { nom: 'suivante', job: 'b', fichier: 'scripts/test/run.mjs', corps: '' },
   ])
   const dossierVerrou = mkdtempSync(join(tmpdir(), 'gates-capacite-'))
   t.after(() => { rmSync(racine, { recursive: true, force: true }); rmSync(dossierVerrou, { recursive: true, force: true }) })
-  for (const mode of ['serie', 'lanes', 'prise']) for (const indetermine of [false, true]) {
+  for (const mode of ['serie', 'lanes']) for (const forme of [{ etat: 'mort' }, { etat: 'indetermine' }, { etat: 'indetermine', expiree: true }]) {
+    const indetermine = forme.etat === 'indetermine'
     const lignes = []
     const chemin = join(dossierVerrou, 'suite.lock')
-    let observations, code
-    const diagnostic = () => JSON.stringify({ mode, indetermine, code: code ?? null,
-      lancements: observations?.lancements ?? null, prises: observations?.prises ?? null,
-      liberations: observations?.liberations ?? null, autresLiberations: observations?.autresLiberations ?? null,
-      vivants: observations?.vivants ? [...observations.vivants] : null,
-      verrousTenus: observations?.verrousTenus?.size ?? null, verrouPresent: existsSync(chemin),
-      tracesPrises: observations?.tracesPrises ?? null,
-    }) + '\n' + lignes.join('')
-    const url = new URL(`./toutes.mjs?capacite-arret=${mode}-${indetermine}`, import.meta.url).href
-    const hook = registerHooks({ load(cible, contexte, suivant) {
-      const r = suivant(cible, contexte)
-      if (cible !== url) return r
-      let source = String(r.source)
-      for (const [avant, apres] of [
-        ['const r = await spawnBorne({', 'const r = await fauxSpawn({'],
-        ['prendre = prendreVerrouAsync,', `prendre = async (options) => {
-          observations.prises++
-          let temps = 0
-          const debut = performance.now(), trace = { entree: debut, annonces: [], horloges: 0, sommeils: [] }
-          observations.tracesPrises.push(trace)
-          try {
-            const resultat = await prendreVerrouAsync({ ...options,
-              horloge: () => { trace.horloges++; return temps },
-              dormir: async (ms) => { trace.sommeils.push(ms); await new Promise(resolve => setImmediate(resolve)); temps += ms },
-              attente: options.attente && { ...options.attente,
-              annoncer: (tenant) => { trace.annonces.push({ instant: performance.now(), tenant }); options.attente.annoncer?.(tenant) },
-            } })
-            Object.assign(trace, { sortie: performance.now(), dureeMs: performance.now() - debut,
-              etat: resultat.etat, message: resultat.message ?? null, tenant: resultat.tenant ?? null, exception: null })
-            return resultat.liberer ? { ...resultat, liberer: (...args) => {
-              observations.liberations++
-              return resultat.liberer(...args)
-            } } : resultat
-          } catch (exception) {
-            Object.assign(trace, { sortie: performance.now(), dureeMs: performance.now() - debut,
-              exception: { nom: exception.name, code: exception.code ?? null, message: exception.message } })
-            throw exception
-          }
-        },`],
-        ['const vivants = new Map()', 'const vivants = observations.vivants = new Map()'],
-        ['const verrousTenus = new Set()', 'const verrousTenus = observations.verrousTenus = new Set()'],
-        ['if (verrou?.liberer) verrousTenus.add(verrou)', `if (nom === 'suivante' && ${mode === 'prise' && indetermine}) { vivants.set('premiere', { pid: 123, demanderArret() {} }); verdicts.set('premiere', { ...verdicts.get('premiere'), arret: { etat: 'indetermine' } }); verrousTenus.add(observations.autreVerrou) }\n        if (verrou?.liberer) verrousTenus.add(verrou)`],
-      ]) {
-        assert.equal(source.split(avant).length, 2, avant + '\n' + diagnostic())
-        source = source.replace(avant, apres)
-      }
-      const arretIndetermine = indetermine && mode !== 'prise'
-      source += `\nexport const observations = { lancements: 0, prises: 0, tracesPrises: [], liberations: 0, autresLiberations: 0, autreVerrou: { liberer() { observations.autresLiberations++ } } };\nasync function fauxSpawn(options) { observations.lancements++; options.surControle({ pid: 123, demanderArret() {} }); return { code: ${arretIndetermine ? 1 : 0}, expiree: ${arretIndetermine}, fichier: options.fichier, sortie: '', limiteMs: options.limiteMs, arret: { etat: '${arretIndetermine ? 'indetermine' : 'mort'}', erreurs: [] } }; }\n`
-      return { ...r, source }
-    } })
+    const observations = { lancements: 0, prises: 0, tracesPrises: [], liberations: 0 }
+    let code
+    const diagnostic = () => JSON.stringify({ mode, forme, code: code ?? null, ...observations, verrouPresent: existsSync(chemin) }) + '\n' + lignes.join('')
     try {
-      const module = await import(url)
-      observations = module.observations
-      code = await module.principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs', ...(mode === 'lanes' ? [] : ['--serie'])], journal: (texte) => lignes.push(texte),
+      code = await principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs', ...(mode === 'lanes' ? [] : ['--serie'])], journal: (texte) => lignes.push(texte),
         ecritLu: tableTotale(['premiere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
         verrou: { chemin, libelle: 'suite du banc', attente: { pasMs: 1, echeanceMs: 10 } },
+        prendre: async (options) => {
+          observations.prises++
+          let temps = 0
+          const trace = { annonces: [], horloges: 0, sommeils: [] }
+          observations.tracesPrises.push(trace)
+          const resultat = await prendreVerrouAsync({ ...options,
+            horloge: () => { trace.horloges++; return temps },
+            dormir: async (ms) => { trace.sommeils.push(ms); await new Promise(resolve => setImmediate(resolve)); temps += ms },
+            attente: options.attente && { ...options.attente,
+              annoncer: (tenant) => { trace.annonces.push({ tenant }); options.attente.annoncer?.(tenant) },
+            } })
+          return resultat.liberer ? { ...resultat, liberer: (...args) => {
+            observations.liberations++
+            return resultat.liberer(...args)
+          } } : resultat
+        },
+        lancer: (options) => {
+          observations.lancements++
+          return lancement(options, { pid: 123, ...forme })
+        },
       })
       assert.equal(code, indetermine ? 1 : 0, diagnostic())
       assert.equal(observations.lancements, indetermine ? 1 : 2, diagnostic())
       assert.equal(observations.prises, indetermine && mode === 'serie' ? 1 : 2, diagnostic())
       for (const trace of observations.tracesPrises) assert.ok(trace.horloges >= 2, diagnostic())
-      assert.deepEqual(observations.tracesPrises.map(trace => trace.sommeils), mode === 'lanes' ? [[], [1]] : observations.tracesPrises.map(() => []), diagnostic())
-      if (mode === 'lanes') assert.equal(observations.tracesPrises[1].annonces[0].tenant.pid, process.pid, diagnostic())
-      const verrouRetenu = indetermine && mode !== 'prise'
-      assert.equal(observations.liberations, verrouRetenu ? 0 : 2, diagnostic())
-      assert.equal(existsSync(chemin), verrouRetenu, diagnostic())
-      assert.equal(observations.autresLiberations, 0, diagnostic())
-      assert.deepEqual([...observations.vivants].map(([nom, { pid }]) => [nom, pid]), indetermine ? [['premiere', 123]] : [], diagnostic())
-      assert.equal(observations.verrousTenus.size, indetermine ? 1 : 0, diagnostic())
+      // En lanes, la seconde prise attend le verrou de la première au pas de 1 ms, autant de pas que dure la première.
+      const [premiere, suivante] = observations.tracesPrises
+      assert.deepEqual(premiere.sommeils, [], diagnostic())
+      if (mode === 'lanes') {
+        assert.ok(suivante.sommeils.length >= 1 && suivante.sommeils.every((ms) => ms === 1), diagnostic())
+        assert.equal(suivante.annonces[0].tenant.pid, process.pid, diagnostic())
+      } else assert.deepEqual(suivante?.sommeils ?? [], [], diagnostic())
+      assert.equal(observations.liberations, indetermine ? 0 : 2, diagnostic())
+      assert.equal(existsSync(chemin), indetermine, diagnostic())
       if (indetermine) {
+        assert.match(lignes.join(''), new RegExp(`premiere — ${forme.expiree ? 'EXPIRÉE' : 'ROUGE'} \\(exit 1\\)`), diagnostic())
         assert.match(lignes.join(''), /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/, diagnostic())
-        assert.equal((lignes.join('').match(/attente du geste lourd :/g) ?? []).length, mode === 'lanes' ? 1 : 0, diagnostic())
-        const pids = []
-        await arreterGatesSurSignal({ signal: 'SIGINT', vivants: observations.vivants, verrousTenus: observations.verrousTenus, journal: () => {},
-          arreter: ({ pid }) => { pids.push(pid); return { etat: 'indetermine', erreurs: [] } },
-        })
-        assert.deepEqual(pids, [123], diagnostic())
-        assert.equal(existsSync(chemin), verrouRetenu, diagnostic())
-        assert.equal(observations.autresLiberations, 0, diagnostic())
+        assert.equal((lignes.join('').match(/attente du geste lourd :/g) ?? []).length, mode === 'lanes' ? suivante.annonces.length : 0, diagnostic())
       }
     } finally {
-      hook.deregister()
       rmSync(chemin, { force: true })
     }
   }
@@ -172,8 +167,7 @@ test('arrêt global : une attente étrangère se réveille sans échéance et un
     { nom: 'etrangere', job: 'b', fichier: 'scripts/test/run.mjs', corps: '' },
   ])
   t.after(() => rmSync(racine, { recursive: true, force: true }))
-  for (const mode of ['attente', 'active', 'course', 'erreur', 'absent']) {
-    const url = new URL(`./toutes.mjs?arret-global=${mode}`, import.meta.url).href
+  for (const mode of ['attente', 'active', 'course', 'erreur']) {
     const lignes = [], appelant = new AbortController()
     const cause = new Error('cause acquisition')
     const erreur = new Error('acquisition échouée', { cause })
@@ -181,154 +175,260 @@ test('arrêt global : une attente étrangère se réveille sans échéance et un
     const engagement = new Promise(resolve => { engager = resolve })
     const cloture = new Promise(resolve => { terminerPrise = resolve })
     const observations = { lancements: [], prises: [], liberations: [], signaux: [], erreur }
-    const hook = registerHooks({ load(cible, contexte, suivant) {
-      const r = suivant(cible, contexte)
-      if (cible !== url) return r
-      let source = String(r.source)
-      for (const [avant, apres] of [
-        ['const r = await spawnBorne({', 'const r = await coutures.spawn({'],
-        ['const vivants = new Map()', 'const vivants = coutures.observations.vivants = new Map()'],
-        ['const verrousTenus = new Set()', 'const verrousTenus = coutures.observations.verrousTenus = new Set()'],
-      ]) {
-        assert.equal(source.split(avant).length, 2, avant)
-        source = source.replace(avant, apres)
-      }
-      return { ...r, source: source + '\nexport let coutures; export function installer(v) { coutures = v }\n' }
-    } })
-    try {
-      const module = await import(url)
-      const liberer = nom => ({ etat: 'pris', env: {}, liberer() { observations.liberations.push(nom) } })
-      module.installer({ observations, spawn: async options => {
+    const liberer = nom => ({ etat: 'pris', liberer() { observations.liberations.push(nom) } })
+    const execution = principal({ racine, machine: MACHINE_A_LANES,
+      argv: ['node', 'toutes.mjs'], signal: appelant.signal,
+      lancer: options => {
         const nom = options.site.slice(5)
         observations.lancements.push(nom)
         observations.signaux.push(options.signal)
-        options.surControle({ pid: nom === 'premiere' ? 123 : 456, demanderArret() {} })
-        if (nom === 'premiere') await engagement
-        else { engager(); await cloture }
-        const resultat = { code: nom === 'premiere' && mode !== 'absent' ? 1 : 0, expiree: false, fichier: options.fichier,
-          sortie: '', limiteMs: options.limiteMs, arret: { etat: nom === 'premiere' ? 'indetermine' : 'mort',
-            erreurs: nom === 'premiere' ? [{ operation: 'preuve', pid: 123, code: 'EIO', message: 'cause arrêt', cause }] : [] } }
-        if (mode === 'absent') delete resultat.arret
-        return resultat
-      } })
-      const execution = module.principal({ racine, machine: MACHINE_A_LANES,
-        argv: ['node', 'toutes.mjs'], signal: appelant.signal,
-        journal: texte => {
-          lignes.push(texte)
-          if (texte.includes('premiere — ROUGE')) terminerPrise()
-        },
-        ecritLu: tableTotale(['premiere', 'suivante', 'etrangere'], () => ({ ecrit: [], lit: ['src/'] })),
-        verrou: { chemin: join(racine, 'global.lock'), libelle: 'global' },
-        prendre: async options => {
-          const nom = options.commande.slice(6)
-          observations.prises.push(nom)
-          if (nom !== 'etrangere' || mode === 'active') return liberer(nom)
-          engager()
-          if (mode === 'course') { await cloture; return liberer(nom) }
-          await new Promise(resolve => {
-            options.signal.addEventListener('abort', resolve, { once: true })
-            if (options.signal.aborted) resolve()
-          })
-          if (mode === 'erreur') throw erreur
-          return { etat: 'refus', message: 'annulée' }
-        },
-      })
-      if (mode === 'erreur') {
-        await assert.rejects(execution, e => e === erreur && e.cause === cause)
-        continue
-      }
-      assert.equal(await execution, 1, lignes.join(''))
-      assert.deepEqual(observations.prises, ['premiere', 'etrangere'])
-      assert.deepEqual(observations.lancements, mode === 'active' ? ['premiere', 'etrangere'] : ['premiere'])
-      assert.deepEqual(observations.liberations, mode === 'active' || mode === 'course' ? ['etrangere'] : [])
-      assert.deepEqual([...observations.vivants].map(([nom, { pid }]) => [nom, pid]), [['premiere', 123]])
-      assert.equal(observations.verrousTenus.size, 1)
-      assert.ok(observations.signaux.every(signal => signal === appelant.signal && !signal.aborted))
-      assert.match(lignes.join(''), /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
-      if (mode !== 'active') assert.match(lignes.join(''), /etrangere — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
-      if (mode !== 'absent') {
-        assert.match(lignes.join(''), /preuve PID 123 EIO — cause arrêt/)
-        assert.match(lignes.join(''), /cause acquisition/)
-      }
-      assert.match(lignes.join(''), /premiere — ROUGE/)
-      if (mode === 'absent') {
-        assert.match(lignes.join(''), /premiere — ROUGE \(exit 0\)/)
-        assert.match(lignes.join(''), /preuve d’arrêt absente/)
-      }
-      assert.match(lignes.join(''), /——— résumé ———/)
-    } finally { hook.deregister() }
+        return nom === 'premiere'
+          ? lancement(options, { pid: 123, etat: 'indetermine', erreurs: [{ operation: 'preuve', pid: 123, code: 'EIO', message: 'cause arrêt', cause }], pendant: () => engagement })
+          : lancement(options, { pid: 456, pendant: () => { engager(); return cloture } })
+      },
+      journal: texte => {
+        lignes.push(texte)
+        if (texte.includes('premiere — ROUGE')) terminerPrise()
+      },
+      ecritLu: tableTotale(['premiere', 'suivante', 'etrangere'], () => ({ ecrit: [], lit: ['src/'] })),
+      verrou: { chemin: join(racine, 'global.lock'), libelle: 'global' },
+      prendre: async options => {
+        const nom = options.commande.slice(6)
+        observations.prises.push(nom)
+        if (nom !== 'etrangere' || mode === 'active') return liberer(nom)
+        engager()
+        if (mode === 'course') { await cloture; return liberer(nom) }
+        await new Promise(resolve => {
+          options.signal.addEventListener('abort', resolve, { once: true })
+          if (options.signal.aborted) resolve()
+        })
+        if (mode === 'erreur') throw erreur
+        return { etat: 'refus', message: 'annulée' }
+      },
+    })
+    assert.equal(await execution, 1, lignes.join(''))
+    assert.deepEqual(observations.prises, ['premiere', 'etrangere'])
+    assert.deepEqual(observations.lancements, mode === 'active' ? ['premiere', 'etrangere'] : ['premiere'])
+    assert.deepEqual(observations.liberations, mode === 'active' || mode === 'course' ? ['etrangere'] : [])
+    assert.ok(observations.signaux.every(signal => !signal.aborted))
+    appelant.abort()
+    assert.ok(observations.signaux.every(signal => signal.aborted), 'le signal d’une gate suit le signal appelant')
+    assert.match(lignes.join(''), /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
+    if (mode === 'erreur') assert.match(lignes.join(''), /erreur : Error — acquisition échouée[\s\S]*etrangere — ROUGE \(exit 1\)/)
+    else if (mode !== 'active') assert.match(lignes.join(''), /etrangere — REFUS CAPACITE_ARRET_INDETERMINE : premiere PID 123/)
+    assert.match(lignes.join(''), /preuve PID 123 EIO — cause arrêt/)
+    assert.match(lignes.join(''), /cause acquisition/)
+    assert.match(lignes.join(''), /premiere — ROUGE \(exit 1\)/)
+    assert.match(lignes.join(''), /——— résumé ———/)
   }
 })
 
-test('un refus sans enfant rend la prise inutilisée et ne déclenche aucune annulation ; une gate sans geste lourd ne prend rien', async (t) => {
+test('un refus de prise est un rouge différé sans enfant ni annulation ; une gate sans geste lourd ne prend rien', async (t) => {
   const { racine } = depotDeGates([{ nom: 'refusee', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'legere', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
   t.after(() => rmSync(racine, { recursive: true, force: true }))
-  const url = new URL('./toutes.mjs?refus-sans-enfant', import.meta.url).href
-  const hook = registerHooks({ load(cible, contexte, suivant) {
-    const r = suivant(cible, contexte)
-    if (cible !== url) return r
-    const avant = 'const r = await spawnBorne({'
-    assert.equal(String(r.source).split(avant).length, 2)
-    return { ...r, source: String(r.source).replace(avant, 'const r = await fauxSpawn({') +
-      '\nexport const lancements = []; async function fauxSpawn(o) { lancements.push(o.site); o.surControle({pid: 123, demanderArret() {} }); return {code: 0, expiree: false, fichier: o.fichier, sortie: "", limiteMs: o.limiteMs, arret: {etat: "mort", erreurs: []}} }\n' }
-  } })
-  t.after(() => hook.deregister())
-  const module = await import(url)
-  const prises = [], rendues = [], lignes = []
-  const code = await module.principal({ racine, argv: ['node', 'toutes.mjs', '--serie'],
+  const prises = [], rendues = [], lignes = [], lancements = []
+  const code = await principal({ racine, argv: ['node', 'toutes.mjs', '--serie'],
     journal: texte => lignes.push(texte),
+    lancer: o => {
+      lancements.push(o.site)
+      return lancement(o, { pid: 123 })
+    },
     ecritLu: tableTotale(['refusee', 'legere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
     prendre: async options => {
       assert.equal(options.signal.aborted, false)
       const nom = options.commande.slice(6)
       prises.push(nom)
-      return { etat: nom === 'refusee' ? 'refus' : 'pris', message: 'refus du banc',
-        env: {}, liberer() { rendues.push(nom) } }
+      return nom === 'refusee' ? { etat: 'refus', message: 'refus du banc' } : { etat: 'pris', liberer() { rendues.push(nom) } }
     },
   })
   assert.equal(code, 1)
   assert.deepEqual(prises, ['refusee', 'suivante'])
-  assert.deepEqual(rendues, ['refusee', 'suivante'])
-  assert.deepEqual(module.lancements, ['gate legere', 'gate suivante'])
+  assert.deepEqual(rendues, ['suivante'])
+  assert.deepEqual(lancements, ['gate legere', 'gate suivante'])
+  assert.match(lignes.join(''), new RegExp(`\\[gates\\] refusee — ROUGE \\(exit ${CODE_DIFFERE}\\)`))
   assert.doesNotMatch(lignes.join(''), /arrêt indéterminé|CAPACITE_ARRET_INDETERMINE/)
+})
+
+/** Échéance de `sortir` dans `jouerSousSignal` : un gestionnaire muet rougit au lieu de pendre (#2776). */
+const ECHEANCE_SORTIE_MS = 10_000
+
+/** Joue `principal` en série ; `lancer` et `journal` reçoivent `declencher`, qui appelle SON gestionnaire de SIGINT. */
+async function jouerSousSignal(racine, { argv, lancer, journal }) {
+  const avant = new Set(process.listeners('SIGINT'))
+  let signaleA = null, apresSignalMs = null
+  const declencher = () => { signaleA ??= Date.now(); for (const ecouteur of process.listeners('SIGINT')) if (!avant.has(ecouteur)) ecouteur('SIGINT') }
+  let sortir, minuterie
+  const sortie = Promise.race([
+    new Promise((resolve) => { sortir = (code) => { apresSignalMs = Date.now() - signaleA; resolve(code) } }),
+    new Promise((_, rejeter) => { minuterie = setTimeout(() => rejeter(new Error(`jouerSousSignal attendait sortir(code) du gestionnaire de SIGINT : rien en ${ECHEANCE_SORTIE_MS} ms`)), ECHEANCE_SORTIE_MS) }),
+  ]).finally(() => clearTimeout(minuterie))
+  const liberations = [], lignes = []
+  const [code, codeDeSortie] = await Promise.all([principal({ racine, machine: MACHINE_A_LANES, argv, sortir,
+    journal: (texte) => { lignes.push(texte); journal?.(texte, declencher) },
+    ecritLu: tableTotale(['premiere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
+    prendre: async (options) => {
+      const nom = options.commande.slice(6)
+      return { etat: 'pris', liberer() { liberations.push(nom) } }
+    },
+    lancer: (options) => lancer(options, declencher, () => signaleA !== null),
+  }), sortie])
+  return { code, sortie: codeDeSortie, apresSignalMs, liberations, lignes }
+}
+
+test('#1772 — le gestionnaire de signal ne vise plus une gate à l’arrêt confirmé ni ne rend deux fois son verrou', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const demandes = []
+  const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'], lancer: (options, declencher) => options.site === 'gate premiere'
+    ? lancement(options, { pid: 123, demandes })
+    : lancement(options, { pid: 456, demandes, pendant: declencher }) })
+  const diagnostic = JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + r.lignes.join('')
+  assert.equal(r.sortie, 130, diagnostic)
+  assert.deepEqual([...new Set(demandes)], [456], diagnostic)
+  assert.deepEqual(r.liberations, ['premiere', 'suivante'], diagnostic)
+})
+
+test('#1772 #2776 — le gestionnaire de signal juge l’arrêt de l’essai RENDU : indéterminé, rejeu compris, en vol ou terminé, il retient le verrou sous un seul diagnostic', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const CAS = {
+    'rejeu : essai 0 au chargement raté, essai rendu dont le superviseur lève': { essais: (demandes) => [{ pid: 10, status: STATUS_DLL_INIT_FAILED, demandes }, { leve: true, demandes }], pid: undefined, demandes: [] },
+    'superviseur qui lève dès le premier essai': { essais: (demandes) => [{ leve: true, demandes }], pid: undefined, demandes: [] },
+    'fin native indéterminée': { essais: (demandes) => [{ pid: 123, etat: 'indetermine', demandes }], pid: 123, demandes: [] },
+    'fin native indéterminée, signal en vol': { essais: (demandes, declencher) => [{ pid: 123, etat: 'indetermine', demandes, pendant: declencher }], pid: 123, demandes: [123], enVol: true },
+  }
+  for (const [nom, cas] of Object.entries(CAS)) {
+    const demandes = []
+    const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'],
+      journal: (texte, declencher) => { if (!cas.enVol && texte.includes('suivante — REFUS CAPACITE_ARRET_INDETERMINE')) declencher() },
+      lancer: (options, declencher) => lancement(options, ...cas.essais(demandes, declencher)),
+    })
+    const sortie = r.lignes.join('')
+    const diagnostic = nom + '\n' + JSON.stringify({ demandes, liberations: r.liberations }) + '\n' + sortie
+    assert.equal(r.code, 1, diagnostic)
+    assert.equal(r.sortie, 130, diagnostic)
+    const retenue = cas.pid === undefined ? 'premiere' : `premiere PID ${cas.pid}`
+    assert.match(sortie, new RegExp(`suivante — REFUS CAPACITE_ARRET_INDETERMINE : ${retenue} ;`), diagnostic)
+    assert.deepEqual(demandes, cas.demandes, diagnostic)
+    assert.deepEqual(r.liberations, [], diagnostic)
+    assert.match(sortie, new RegExp(`\\[gates\\] arrêt indéterminé : ${retenue} — verrou retenu\\.`), diagnostic)
+    assert.equal(sortie.match(/diagnostic arrêt :/g)?.length, 1, diagnostic)
+  }
+})
+
+/** Durée d'une gate des bancs de fenêtre : sans demande d'arrêt, la gate court jusqu'au bout (#2776). */
+const DUREE_GATE_MS = 8000
+
+/** `pendant` d'une gate qui court `DUREE_GATE_MS`, ou s'arrête à la demande. */
+const jusquALArret = (demande) => new Promise((resolve) => {
+  const minuterie = setTimeout(resolve, DUREE_GATE_MS)
+  demande.then(() => { clearTimeout(minuterie); resolve() })
+})
+
+test('#2776 — une gate en vol au SIGINT reçoit la demande d’arrêt en toute phase : superviseur pas encore rendu, backoff de rejeu', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const FENETRES = {
+    'superviseur pas encore rendu, arrêt prouvé': { etat: 'mort', essais: (lance, declencher) => [{ pid: 10, avantControle: async () => { lance(); declencher(); await new Promise((ok) => setTimeout(ok, 50)) }, pendant: jusquALArret }] },
+    'superviseur pas encore rendu, arrêt indéterminé': { etat: 'indetermine', essais: (lance, declencher) => [{ pid: 10, etat: 'indetermine', avantControle: async () => { lance(); declencher(); await new Promise((ok) => setTimeout(ok, 50)) }, pendant: jusquALArret }] },
+    'backoff de rejeu': { etat: 'mort', essais: (lance, declencher) => [
+      { pid: 10, status: STATUS_DLL_INIT_FAILED, avantControle: lance, pendant: () => { setTimeout(declencher, 300) } },
+      { pid: 11, avantControle: lance, pendant: jusquALArret },
+    ] },
+  }
+  for (const [nom, fenetre] of Object.entries(FENETRES)) await t.test(nom, async () => {
+    const lancements = []
+    const r = await jouerSousSignal(racine, { argv: ['node', 'toutes.mjs', '--serie'],
+      lancer: (options, declencher, signale) => lancement(options, ...fenetre.essais(() => lancements.push(signale() ? 'après signal' : 'avant signal'), declencher)),
+    })
+    const sortie = r.lignes.join('')
+    const diagnostic = nom + '\n' + JSON.stringify({ lancements, apresSignalMs: r.apresSignalMs, liberations: r.liberations }) + '\n' + sortie
+    assert.equal(r.sortie, 130, diagnostic)
+    assert.ok(r.apresSignalMs < DUREE_GATE_MS / 2, diagnostic)
+    assert.deepEqual(lancements, ['avant signal'], diagnostic)
+    if (fenetre.etat === 'mort') {
+      assert.deepEqual(r.liberations, ['premiere'], diagnostic)
+      assert.doesNotMatch(sortie, /arrêt indéterminé/, diagnostic)
+    } else {
+      assert.deepEqual(r.liberations, [], diagnostic)
+      assert.match(sortie, /\[gates\] arrêt indéterminé : premiere PID 10 — verrou retenu\./, diagnostic)
+    }
+  })
+})
+
+test('#2776 — un lanceur ou une prise qui lève pose le verdict de sa gate : nommée, et un lanceur levé retient son verrou', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', fichier: 'scripts/test/run.mjs', corps: '' }, { nom: 'suivante', fichier: 'scripts/test/run.mjs', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  for (const leve of ['lancer', 'prendre']) {
+    const lignes = [], liberations = [], lancements = []
+    const erreur = Object.assign(new Error(`${leve} cassé`), { code: 'EMFILE' })
+    const code = await principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs', '--serie'], journal: (texte) => lignes.push(texte),
+      ecritLu: tableTotale(['premiere', 'suivante'], () => ({ ecrit: [], lit: ['src/'] })),
+      prendre: async (options) => {
+        const nom = options.commande.slice(6)
+        if (leve === 'prendre' && nom === 'premiere') throw erreur
+        return { etat: 'pris', liberer() { liberations.push(nom) } }
+      },
+      lancer: async (options) => {
+        lancements.push(options.site)
+        if (leve === 'lancer' && options.site === 'gate premiere') throw erreur
+        return lancement(options, { pid: 456 })
+      },
+    })
+    const sortie = lignes.join('')
+    const diagnostic = leve + '\n' + JSON.stringify({ liberations, lancements }) + '\n' + sortie
+    assert.equal(code, 1, diagnostic)
+    assert.match(sortie, new RegExp(`erreur : EMFILE — ${leve} cassé[\\s\\S]*premiere — ROUGE \\(exit 1\\)`), diagnostic)
+    if (leve === 'lancer') {
+      assert.deepEqual(liberations, [], diagnostic)
+      assert.deepEqual(lancements, ['gate premiere'], diagnostic)
+      assert.match(sortie, /arrêt indéterminé : lancement EMFILE — lanceur levé : arrêt non prouvé/, diagnostic)
+      assert.match(sortie, /suivante — REFUS CAPACITE_ARRET_INDETERMINE : premiere ; capacité retenue/, diagnostic)
+      assert.doesNotMatch(sortie, /undefined/, diagnostic)
+    } else {
+      assert.deepEqual(liberations, ['suivante'], diagnostic)
+      assert.deepEqual(lancements, ['gate suivante'], diagnostic)
+      assert.match(sortie, /suivante — vert/, diagnostic)
+    }
+  }
+})
+
+test('#2776 — le résumé compte les rejeux du RUN : un run sans rejeu en compte 0 après un run qui en compte 1', async (t) => {
+  const { racine } = depotDeGates([{ nom: 'premiere', corps: '' }])
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const jouer = async (...essais) => {
+    const lignes = []
+    const code = await principal({ racine, machine: MACHINE_A_LANES, argv: ['node', 'toutes.mjs'], journal: (texte) => lignes.push(texte),
+      ecritLu: { premiere: { ecrit: [], lit: ['src/'] } }, lancer: (options) => lancement(options, ...essais) })
+    const sortie = lignes.join('')
+    assert.equal(code, 0, sortie)
+    return sortie
+  }
+  const avecRejeu = await jouer({ pid: 10, status: STATUS_DLL_INIT_FAILED }, { pid: 11 })
+  assert.match(avecRejeu, /\[gates\] 1 spawn\(s\) rejoué\(s\)/, avecRejeu)
+  const sansRejeu = await jouer({ pid: 12 })
+  assert.match(sansRejeu, /\[gates\] 0 spawn rejoué/, sansRejeu)
 })
 
 test('un résultat ordinaire conserve tous les diagnostics d’arrêt, même expiré', async () => {
   for (const expiree of [false, true]) {
     const { racine } = depotDeGates([{ nom: 'interrompue', corps: '' }])
     const lignes = []
-    const url = new URL(`./toutes.mjs?diagnostic-arret=${expiree}`, import.meta.url).href
-    const hook = registerHooks({
-      load(cible, contexte, suivant) {
-        const r = suivant(cible, contexte)
-        if (cible !== url) return r
-        const source = String(r.source)
-        const appel = 'const r = await spawnBorne({'
-        assert.ok(source.includes(appel))
-        return { ...r, source: source.replace(appel,
-          `const r = await (async () => (${JSON.stringify({
-            code: 1, expiree, fichier: 'diagnostic.log', sortie: '', limiteMs: 1000,
-            error: { code: 'ARRET_INDETERMINE', message: 'close absent', cause: { code: 'EIO', message: 'inspection impossible' } },
-            arret: { etat: 'indetermine', erreurs: [
-              { operation: 'taskkill', pid: 123, code: 'EPERM', message: 'refus physique' },
-              { operation: 'inspection', pid: 456, code: 'EACCES', message: 'arbre illisible' },
-            ] },
-          })}))({`) }
-      },
-    })
     try {
-      const { principal: jouer } = await import(url)
-      const code = await jouer({ racine, argv: ['node', 'toutes.mjs'], machine: MACHINE_A_LANES,
-        journal: (texte) => lignes.push(texte), ecritLu: { interrompue: { ecrit: [], lit: ['src/'] } } })
+      const code = await principal({ racine, argv: ['node', 'toutes.mjs'], machine: MACHINE_A_LANES,
+        journal: (texte) => lignes.push(texte), ecritLu: { interrompue: { ecrit: [], lit: ['src/'] } },
+        lancer: (options) => lancement(options, { pid: 123, etat: 'indetermine', expiree, erreurs: [
+          { operation: 'taskkill', pid: 123, code: 'EPERM', message: 'refus physique', cause: { code: 'EIO', message: 'inspection impossible' } },
+          { operation: 'inspection', pid: 456, code: 'EACCES', message: 'arbre illisible' },
+        ] }) })
       const sortie = lignes.join('')
       assert.equal(code, 1)
-      assert.match(sortie, /ARRET_INDETERMINE — close absent/)
-      assert.match(sortie, /EIO — inspection impossible/)
+      assert.match(sortie, /ARRET_INDETERMINE — zéro natif non confirmé/)
+      assert.match(sortie, /cause : EIO — inspection impossible/)
       assert.match(sortie, /taskkill PID 123 EPERM — refus physique/)
       assert.match(sortie, /inspection PID 456 EACCES — arbre illisible/)
       assert.match(sortie, new RegExp(`interrompue — ${expiree ? 'EXPIRÉE' : 'ROUGE'}`))
     } finally {
-      hook.deregister()
       rmSync(racine, { recursive: true, force: true })
     }
   }
@@ -1048,19 +1148,4 @@ test('sans --gates, TOUTES les gates de ci.yml sont à jouer', async () => {
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
-})
-
-test('arrêt concurrent : toutes les demandes précèdent les attentes et le verrou attend les factories en cours', async () => {
-  const demandes = []; let liberations = 0; let finirLancement
-  const controles = [1, 2].map((pid) => ({ pid, demanderArret() { demandes.push(pid) } }))
-  const lancement = new Promise((ok) => { finirLancement = ok })
-  const attente = arreterGatesSurSignal({ signal: 'SIGINT', vivants: new Map(controles.map((c) => [c.pid, c])),
-    verrousTenus: new Set([{ liberer() { liberations++ } }]), journal: () => {}, lancementsEnCours: new Set([lancement]),
-    arreter: async () => { assert.deepEqual(demandes, [1, 2]); return { etat: 'mort', erreurs: [] } },
-  })
-  await Promise.resolve()
-  assert.equal(liberations, 0)
-  finirLancement({ arret: { etat: 'indetermine', erreurs: [] } })
-  assert.equal(await attente, 130)
-  assert.equal(liberations, 0)
 })

@@ -9,6 +9,7 @@ import { toBrass, type Money } from '../engine/money';
 
 import { makePregens } from '../data/pregens';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { fixtureText } from '../i18n/fixtureText';
 
 /**
  * Navire de campagne PERSISTANT (MDG 14) : le Moral de l'équipage est recalculé une fois par SEMAINE
@@ -102,7 +103,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSleep();
     const wageLines = useGame.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);

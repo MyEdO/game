@@ -3,7 +3,7 @@
 > Référentiel autosuffisant des règles WFRP4 (RAW) sur les Compétences. Chaque règle cite
 > `LDB 09 l.X-Y` (ou supplément) en source de dernier recours. Voir [`sources.md`](../sources.md),
 > [`00-index.md`](00-index.md). Rouvrir le livre = défaut à corriger ici.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 
@@ -44,8 +44,7 @@ Augmentations** dans cette Compétence inscrites sur la Feuille de Personnage.
 
 **Sources RAW :** LDB 09 l.12-18
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.12-18) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `BargainModalView`, `useTestJetProps`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +30 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/activities.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, +20 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesmecanique-fondamentale-niveau-de-competence)
 
 **Voir aussi :** [Tests & Degrés de Réussite](tests.md) pour l'utilisation de ce niveau en test.
 
@@ -72,8 +71,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 
 **Sources RAW :** LDB 09 l.22-32
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `RecoverResolution`, `ParticipantRow`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `rollCrewRole`, +105 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencescompetences-avancees)
 
 ---
 
@@ -100,9 +98,7 @@ L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
 
 **Sources RAW :** LDB 09 l.34-46
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 8` (l.140) → `agitateur`, `agitateur-1`, `agitateur-2`, `agitateur-3`, `prisParLesAutres`, `agitateur-4`, `progression-schemas-derived` — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/engine/careerSlots.ts`
-- `LDB 9` (l.34-46, l.495) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `traders`, `trainedForRole`, `PostesRoster`, +94 — `src/data/activities.json`, `src/data/drunkenness.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/pregens.ts`, `src/data/regles.json`, +56 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencescompetences-groupees-et-specialisations)
 
 ---
 
@@ -186,8 +182,7 @@ Soin aux animaux, Voile**
 
 **Sources RAW :** LDB 09 l.65-574 (descriptions individuelles).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-574) → `mendier-ennuis`, `porteADecouvrir`, `GearAssignList`, `SOURCES_DE_SPECS`, `doc`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `skillAdvantageCap`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, +110 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +44 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencestable-des-competences-caracteristique-et-type)
 
 ---
 
@@ -520,9 +515,7 @@ comme non Groupée pour les non-formés.
 
 **Sources RAW :** LDB 09 l.246-252 ; ADE II 4 l.162, l.180, l.182 (Focalisation sur artefacts magiques).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-72, l.75-76, l.80-83, l.86-109, l.111-118, l.121-134, l.137-154, l.157-160, l.163-176, l.179-190, l.193-198, l.201-211, l.214-219, l.222-225, l.228-233, l.236-239, l.242-243, l.246-252, l.275-285) → `mendier-ennuis`, `GearAssignList`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `accidents-conduite-attelage`, `actBlockReason`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, +52 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, +26 fichiers
-- sans code : `ADE II 4` (l.162)
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesfocalisation-fm-avancee-groupee)
 
 ---
 
@@ -547,8 +540,7 @@ En combat : Tests de Guérison Intermédiaires (+0).
 
 **Sources RAW :** LDB 09 l.255-269
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `REPORT_DE_COMBATTANT`, `healDifficulty`, `rederiveAttack`, `healWoundsDelta`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesguerison-int-avancee)
 
 ---
 
@@ -567,8 +559,7 @@ autoriser Fm (Répurgateur) ou Int (universitaire face à un étudiant). Voir [R
 
 **Sources RAW :** LDB 09 l.272-294
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.272-294) → `altCharKey`, `useDefenseJetProps`, `healDifficulty`, `rederiveAttack`, `defenseSubOf`, `heal-wounds`, `heal-bleed`, `skill-advantage`, `guerison`, `intimidation`, +5 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/healing.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesintimidation-f-base)
 
 ---
 
@@ -633,10 +624,7 @@ Activité Artisanat entre aventures utilise Métier (voir [Activités](activites
 
 **Sources RAW :** LDB 09 l.349-364
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.30, l.298, l.305-308, l.310-312, l.344-346, l.349-364) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `altCharKey`, `ParticipantRow`, `skillAdvantageCap`, `specIdOf`, `rollCrewRole`, `traders`, +86 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/reglesOptionnelles.json`, +48 fichiers
-- `LDB 10` (l.650) → `deplierAjouts`, `lecture-rapide`, `linguistique`, `lire-ecrire`, `lire-sur-les-levres`, `loup-de-mer`, `machoires-d-acier`, `mage-de-guerre`, `magie-des-arcanes`, `magie-du-chaos`, +1 — `src/data/talents.json`, `src/engine/talentEffects.ts`
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesmetier-dex-avancee-groupee)
 
 ---
 
@@ -970,9 +958,7 @@ l'Intelligence. (Voir section dédiée.)
 
 **Sources RAW :** LDB 09 l.293-294 ; LDB 09 l.358 ; ADE II 2 l.728
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.293-294, l.358) → `altCharKey`, `useDefenseJetProps`, `rederiveAttack`, `test-metier-int`, `defenseSubOf`, `heal-wounds`, `heal-bleed`, `skill-advantage`, `guerison`, `intimidation`, +9 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/skills.ts`, +4 fichiers
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesregle-optionnelle-caracteristique-alternative)
 
 ---
 
@@ -988,8 +974,7 @@ l'Intelligence (Int) pour leur Compétence Langue (Magick).**
 
 **Sources RAW :** ADE II 2 l.728
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesextension-ogre-langue-magick-sur-endurance)
 
 ---
 
@@ -1062,8 +1047,7 @@ cible cherche activement à brouiller les pistes : opposé à Discrétion de la 
 > « L'hypnotisme est une Compétence Avancée utilisée par certains Saltimbanques et autres Mystiques. » — `PDT 12 l.5`
 
 **Voir aussi** : Tests opposés (`tests.md`), État *Sonné* (`etats.md`), Force Mentale / Calme (`psychologie.md`).
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `PDT 12` (l.5, l.13-18, l.22, l.26-28, l.33-44) → `hypnotisme` — `src/data/skills.json`
+**Implémente :** [État calculé](../implemente.generated.md#4ecompetencesextension-pdt-hypnotisme-int-avancee)
 
 ---
 

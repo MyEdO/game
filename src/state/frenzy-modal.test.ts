@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { isFrenzied } from '../engine/psychology';
-import { createHero } from '../engine/character';
-import { testScene } from '../scenes/test-fixture';
+import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 
 describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
   beforeEach(() => {
@@ -15,26 +14,8 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     vi.useRealTimers();
   });
 
-  function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
-    H.pos = { x: 10, y: 10 };
-    E.pos = { x: 11, y: 10 };
-    const turn = b.order.indexOf(H.id);
-    useGame.setState({ battle: { ...b, turn, acted: false }, pendingFrenzy: null });
-    return { H, E };
-  }
-
   it('battleFrenzy ouvre pendingFrenzy (héros capable, pas déjà frenzied, pas acted)', () => {
-    const { H } = setup();
+    const { H } = heroFaceAUnEnnemi();
     H.traits = [{ id: 'frenesie' }];
     useGame.getState().battleFrenzy();
     const pf = useGame.getState().pendingFrenzy;
@@ -44,13 +25,13 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
   });
 
   it('héros NON capable → battleFrenzy n’ouvre rien', () => {
-    setup(); // pas de trait/talent « Frénésie »
+    heroFaceAUnEnnemi(); // pas de trait/talent « Frénésie »
     useGame.getState().battleFrenzy();
     expect(useGame.getState().pendingFrenzy).toBeNull();
   });
 
   it('héros déjà frenzied → battleFrenzy n’ouvre rien', () => {
-    const { H } = setup();
+    const { H } = heroFaceAUnEnnemi();
     H.traits = [{ id: 'frenesie' }];
     (H.psychState ??= []).push({ type: 'frenesie' });
     useGame.getState().battleFrenzy();
@@ -58,7 +39,7 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
   });
 
   it('frenzyRoll lance le Test de FM ; frenzyForceSuccess + frenzyConfirm → frenzied + Action consommée', () => {
-    const { H } = setup();
+    const { H } = heroFaceAUnEnnemi();
     H.traits = [{ id: 'frenesie' }];
     H.resilience = 1; // Résilience pour forcer le succès
     useGame.getState().battleFrenzy();
@@ -75,7 +56,7 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
   });
 
   it('frenzyConfirm sur échec → pas frenzied mais Action consommée', () => {
-    const { H } = setup();
+    const { H } = heroFaceAUnEnnemi();
     H.traits = [{ id: 'frenesie' }];
     H.characteristics['force-mentale'] = 1; // Test de FM raté quasi sûr
     useGame.getState().seedRng(3);

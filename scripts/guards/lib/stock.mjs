@@ -1,5 +1,5 @@
-// PRIMITIVE DE CLIQUET des stocks nominatifs : l'ÉCART au stock (entrées neuves / entrées périmées)
-// et son REMÈDE, les CHAMPS que la clé n'observe pas, la COUVERTURE du balayage qui alimente le
+// PRIMITIVE DE CLIQUET des stocks nominatifs : l'ÉCART au stock (entrées neuves / entrées périmées,
+// comptes accrus / baissés) et son REMÈDE, les CHAMPS que la clé n'observe pas, la COUVERTURE du balayage qui alimente le
 // cliquet (gisements muets, entrées de stock hors corpus), les LIGNES sans échéance lisible.
 //
 // « Stock nominatif » est le terme LARGE : un stock dont chaque entrée NOMME son fichier, ce que la
@@ -26,10 +26,10 @@
 //
 // L'unité mesurée est la COLLECTION, jamais le fichier : un fichier de stock en porte parfois
 // plusieurs (`structuresStock.mjs` en porte 8), chacune se mesure pour elle-même. La CLÉ d'un écart
-// est une fonction LIBRE de l'appelant : elle seule sait ce que sa garde compare — `slotsStock`
-// embarque l'occurrence dans la sienne, `manualDocsStock` compare des chemins nus. Un stock VIDE se
-// sert comme les autres, sans court-circuit : un cliquet tenu à zéro est un cliquet, il rend ses
-// `neuves`.
+// est une fonction LIBRE de l'appelant : elle seule sait ce que sa garde compare — `manualDocsStock`
+// compare des chemins nus. Le COMPTE d'une collection à compte n'entre jamais dans la clé : il se lit
+// par l'accesseur `nombre` et se juge dans un SEUL sens (#2705). Un stock VIDE se sert comme les
+// autres, sans court-circuit : un cliquet tenu à zéro est un cliquet, il rend ses `neuves`.
 //
 // INTERDITS gravés — chacun est un trou déjà payé dans ce dépôt :
 //   - jamais le PLAFOND. Il vit dans le TEST, jamais dans la lib du stock ni ici
@@ -64,33 +64,60 @@ export const CHAMPS_DE_SITE_OBSERVE = Object.freeze(['file', 'ref']);
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Les entrées d'un itérable par clé, la PREMIÈRE de chaque clé retenue. PURE. */
+function premieresParCle(entrees, cle) {
+  const parCle = new Map();
+  for (const e of entrees) { const k = cle(e); if (!parCle.has(k)) parCle.set(k, e); }
+  return parCle;
+}
+
 /**
- * Écart d'une collection OBSERVÉE à son STOCK, dans les DEUX sens.
+ * Écart d'une collection OBSERVÉE à son STOCK, dans les DEUX sens, et le COMPTE de chaque clé tenue
+ * des deux côtés dans un SEUL (#2705).
  * @template O, S
  * @param {{ observe: Iterable<O>, stock: Iterable<S>, cle: (entree: O | S) => string,
- *   remede?: { neuve?: (cle: string, entree: O) => string, perimee?: (cle: string, entree: S) => string } }} p
- *   `remede` décore les lignes rendues (défaut : la clé nue). Les DEUX remèdes reçoivent l'entrée en
- *   second argument : une clé peut ne rien nommer (tous ses champs vides), et le remède est alors le
- *   seul endroit d'où l'entrée fautive se cite.
- * @returns {{ neuves: string[], perimees: string[], taille: number }} `taille` = clés DISTINCTES du
- *   stock — de quoi confronter un plafond, que l'appelant seul détient.
+ *   nombre?: (entree: O | S) => number, cible?: (cle: string, entree: O) => string,
+ *   remede?: { neuve?: (cle: string, entree: O) => string, perimee?: (cle: string, entree: S) => string,
+ *     baisse?: (cle: string, entree: O) => string } }} p
+ *   `remede` décore les lignes rendues (défaut : la clé nue). Les remèdes reçoivent l'entrée en second
+ *   argument : une clé peut ne rien nommer (tous ses champs vides), et le remède est alors le seul
+ *   endroit d'où l'entrée fautive se cite. `nombre` lit le compte, hors de la clé ; `cible` (exigée par
+ *   le type avec `nombre`) nomme la voie qui SOLDE une hausse. Une hausse n'a pas de remède décoré :
+ *   sa phrase est celle d'ici.
+ * @returns {{ neuves: string[], perimees: string[], accrues: string[], baisses: string[], taille: number }}
+ *   `accrues` / `baisses` = clés des deux côtés dont le compte observé est plus grand / plus petit ;
+ *   `taille` = clés DISTINCTES du stock — de quoi confronter un plafond, que l'appelant seul détient.
  */
-export function ecartsDeStock({ observe, stock, cle, remede = {} }) {
-  const vues = new Map();
-  for (const e of observe) {
-    const k = cle(e);
-    if (!vues.has(k)) vues.set(k, e);
-  }
-  const tenues = new Map();
-  for (const e of stock) { const k = cle(e); if (!tenues.has(k)) tenues.set(k, e); }
+export function ecartsDeStock({ observe, stock, cle, nombre, cible, remede = {} }) {
+  const vues = premieresParCle(observe, cle);
+  const tenues = premieresParCle(stock, cle);
   const neuves = [...vues]
     .filter(([k]) => !tenues.has(k))
     .map(([k, e]) => (remede.neuve ? remede.neuve(k, e) : k));
   const perimees = [...tenues]
     .filter(([k]) => !vues.has(k))
     .map(([k, e]) => (remede.perimee ? remede.perimee(k, e) : k));
-  return { neuves, perimees, taille: tenues.size };
+  const accrues = [];
+  const baisses = [];
+  if (nombre) {
+    for (const [k, e] of vues) {
+      const tenue = tenues.get(k);
+      if (tenue === undefined) continue;
+      const [m, t] = [nombre(e), nombre(tenue)];
+      if (estNeuveOuAccrue(e, tenue, nombre))
+        accrues.push(`${k}${SEPARATEUR_DE_REMEDE}HAUSSE ${m} > ${t} : la dette GRANDIT. ${cible(k, e)} Aucune écriture ne relève ce nombre.`);
+      else if (m != null && t != null && m < t)
+        baisses.push(`${k}${SEPARATEUR_DE_REMEDE}BAISSE ${m} < ${t} : ${remede.baisse ? remede.baisse(k, e) : 'écrire la mesure au stock.'}`);
+    }
+  }
+  return { neuves, perimees, accrues, baisses, taille: tenues.size };
 }
+
+/** Le remède d'un site NEUF sous la porte des comptes (`SOUS_LA_PORTE`, `occurrencesStock.mjs`), de la
+ *  `cible` qui le solde. PURE.
+ *  @template E @param {(cle: string, entree: E) => string} cible @returns {(cle: string, entree: E) => string} */
+export const remedeDeNaissance = (cible) => (k, e) =>
+  `${k}${SEPARATEUR_DE_REMEDE}site NEUF : la dette NAÎT. ${cible(k, e)} Aucune écriture ne l’admet.`;
 
 /** La phrase « à la naissance » d'un `quoi` de stock : les comptes par famille, dans l'ordre de `familles`.
  *  SEULE écriture de cette phrase ; `naissanceDu` est sa lecture. PURE. */
@@ -192,12 +219,12 @@ export function sitesEnEntrees(sites) {
 
 /**
  * CE QUI EST NEUF, seule définition du dépôt : une entrée mesurée sans entrée en place à clé identique
- * (`tenue` absente), ou dont le `nombre` dépasse celui de son entrée en place, les deux définis. Une
- * clé nue n'a pas de `nombre` : seule son absence du stock la rend neuve. Lue par
- * `survieDeLecheance`, `nombresAccrus` et `refusDeCroissance`. PURE.
+ * (`tenue` absente), ou dont le compte (`nombre`, défaut le champ `nombre`) dépasse celui de son entrée
+ * en place, les deux définis. Une clé nue n'a pas de compte : seule son absence du stock la rend neuve.
+ * Lue par `survieDeLecheance`, `ecartsDeStock` et `refusDeCroissance`. PURE.
  */
-export const estNeuveOuAccrue = (mesuree, tenue) =>
-  tenue === undefined || (mesuree?.nombre != null && tenue?.nombre != null && mesuree.nombre > tenue.nombre);
+export const estNeuveOuAccrue = (mesuree, tenue, nombre = (e) => e?.nombre) =>
+  tenue === undefined || (nombre(mesuree) != null && nombre(tenue) != null && nombre(mesuree) > nombre(tenue));
 
 /**
  * SURVIE d'une ÉCHÉANCE à une RÉGÉNÉRATION de stock — seule définition du dépôt (#1820), consommée par
@@ -237,9 +264,9 @@ export function survieDeLecheance(mesurees, { lot, date, ancien = [] }) {
 const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSON.stringify(entree));
 
 /**
- * VERDICT d'un volet à stock de sites : les deux sens, en phrases prêtes à afficher. Le calcul est
- * celui de `ecartsDeStock` ; ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque
- * ligne.
+ * VERDICT d'un volet à stock de sites : les deux sens, en phrases prêtes à afficher, et le `nombre`
+ * d'une entrée (occurrences d'un site, hors clé) jugé par `ecartsDeStock` : une mesure ACCRUE sort en
+ * `accrues` ET parmi les `neuves`, que lit tout appelant. Ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque ligne.
  * ANGLE MORT DIT, À LA PORTE DE PLAGE : un ÉCHANGE EN PLACE à total constant sous le MÊME fichier,
  * extension comprise — réécrire la `ref` d'une entrée existante pour couvrir un site neuf pendant qu'un
  * autre est soldé, dans le MÊME commit — rend `[]` à `croissanceDesStocks`, qui identifie toute entrée
@@ -252,39 +279,18 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
  *   `ou` nomme le fichier de stock dans le remède.
  */
 export function ecartDuVolet({ sites, stock, ou, remede = {} }) {
-  const observe = sitesEnEntrees(sites);
-  const tenues = [...stock];
   const ecart = ecartsDeStock({
-    observe,
-    stock: tenues,
+    observe: sitesEnEntrees(sites),
+    stock,
     cle: cleDeSite,
+    nombre: (e) => e.nombre,
+    cible: () => `Corriger le site (${ou}).`,
     remede: {
       neuve: remede.neuve ?? ((k) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : corriger la réf, ou déclarer une entrée dans ${ou} et la porter au message par \`CLIQUET:\`.`),
       perimee: (k, e) => `${cleOuEntree(k, e)}${SEPARATEUR_DE_REMEDE}entrée SOLDÉE : le site a disparu, retirer cette entrée de ${ou}.`,
     },
   });
-  return { ...ecart, neuves: [...ecart.neuves, ...nombresAccrus(observe, tenues, ou)] };
-}
-
-/**
- * CLIQUET du `nombre` (occurrences d'un site, hors clé) : une entrée en place dont la mesure est
- * ACCRUE (`estNeuveOuAccrue`, entrée en place présente) est une dette qui GRANDIT — une ligne de
- * remède, rendue parmi les neuves. Plus petit : la régénération recale le stock (`entreesRegenerees`
- * garde le nombre mesuré) ; plus grand, la régénération le refuse sous `DECROISSANT` et le date sous
- * `SOUS_LOT` (`stockDeSites.mjs`) ; égal ou sans nombre : rien. PURE.
- * @param {Iterable<object>} observe entrées mesurées @param {Iterable<object>} stock @param {string} [ou]
- * @returns {string[]}
- */
-export function nombresAccrus(observe, stock, ou) {
-  const tenues = new Map();
-  for (const e of stock) if (!tenues.has(cleDeSite(e))) tenues.set(cleDeSite(e), e);
-  const out = [];
-  for (const e of observe) {
-    const tenue = tenues.get(cleDeSite(e));
-    if (tenue && estNeuveOuAccrue(e, tenue))
-      out.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}nombre ${e.nombre} > ${tenue.nombre} en stock : la dette GRANDIT, corriger le site (${ou}).`);
-  }
-  return out;
+  return { ...ecart, neuves: [...ecart.neuves, ...ecart.accrues] };
 }
 
 /** Une ligne de remède de `ecartDuVolet` NOMME-t-elle cette clé ? (le remède décore la clé d'une phrase)
@@ -307,20 +313,21 @@ export const remedeNomme = (lignes, cle) => lignes.some((l) => l.includes(cle))
  * une ligne vide, puis `motif`.
  * @param {Iterable<*>} mesurees ce que la mesure porte
  * @param {Iterable<*>} stock le stock EN PLACE
- * @param {{ cle?: (entree: *) => string, nom: string, motif: string }} p `cle` défaut `cleDeSite`
- *   (un stock à clé nue fournit la sienne) ; `nom` = la collection nommée dans la phrase ; `motif` =
+ * @param {{ cle?: (entree: *) => string, nombre?: (entree: *) => number, nom: string, motif: string }} p
+ *   `cle` défaut `cleDeSite` (un stock à clé nue fournit la sienne) ; `nombre` défaut le champ `nombre`
+ *   (`estNeuveOuAccrue`) ; `nom` = la collection nommée dans la phrase ; `motif` =
  *   la dernière phrase — ce que le lecteur doit faire de l'entrée neuve.
  * @returns {string | null}
  */
-export function refusDeCroissance(mesurees, stock, { cle = cleDeSite, nom, motif }) {
+export function refusDeCroissance(mesurees, stock, { cle = cleDeSite, nombre = (e) => e?.nombre, nom, motif }) {
   const tenues = new Map();
   for (const e of stock) { const k = cle(e); if (!tenues.has(k)) tenues.set(k, e); }
   const lignes = new Map();
   for (const m of mesurees) {
     const k = cle(m);
     const tenue = tenues.get(k);
-    if (lignes.has(k) || !estNeuveOuAccrue(m, tenue)) continue;
-    lignes.set(k, tenue === undefined ? k : `${k}${SEPARATEUR_DE_REMEDE}nombre ${m.nombre} > ${tenue.nombre} en stock`);
+    if (lignes.has(k) || !estNeuveOuAccrue(m, tenue, nombre)) continue;
+    lignes.set(k, tenue === undefined ? k : `${k}${SEPARATEUR_DE_REMEDE}nombre ${nombre(m)} > ${nombre(tenue)} en stock`);
   }
   if (lignes.size === 0) return null;
   const rangees = [...lignes].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, l]) => l);
@@ -333,13 +340,16 @@ export function refusDeCroissance(mesurees, stock, { cle = cleDeSite, nom, motif
  * garde verte quoi qu'on écrive dans ces champs. Un stock VIDE n'offre aucune entrée à muter et
  * rend `[]` — mesurer la vacuité appartient à l'appelant.
  * @template {Record<string, unknown>} E
+ * L'empreinte comparée est celle de `ecartsDeStock` : la clé, et le compte `nombre` quand la collection
+ * en porte un (il sort de la clé, il ne sort pas de la comparaison).
  * @param {Iterable<E>} stock @param {(entree: E) => string} cle @param {readonly (keyof E & string)[]} champs
+ * @param {(entree: E) => number} [nombre]
  * @returns {string[]} les champs AVEUGLES, dans l'ordre demandé.
  */
-export function champsAveugles(stock, cle, champs) {
+export function champsAveugles(stock, cle, champs, nombre) {
   const entrees = [...stock];
   if (entrees.length === 0) return [];
-  const empreinte = (l) => l.map(cle).sort().join('\n');
+  const empreinte = (l) => l.map((e) => (nombre ? `${cle(e)}${SEPARATEUR_DE_CLE}${nombre(e)}` : cle(e))).sort().join('\n');
   const base = empreinte(entrees);
   return champs.filter((champ) => {
     const mutees = entrees.map((e, i) =>

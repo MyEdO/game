@@ -2,5 +2,5 @@
    Le markup/comportement et la présentation UNIQUE (#414 : la prop `variant` a été tuée, arbitrage
    utilisateur — « je ne vois pas l'intérêt d'en avoir plus que 1 ») vivent dans la primitive canonique
    `components.css` (`.tabs`/`.tab-btn`, à côté de `.chip`/`.count`). Ici : les éléments composés
-   HORS tablist par `src/ui/Tabs.tsx` (`trailing`, #414). */
+   HORS tablist par `src/ui/composites/Tabs.tsx` (`trailing`, #414). */
 .tabs-trailing { margin-left: auto; }

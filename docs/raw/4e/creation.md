@@ -1,7 +1,7 @@
 # Atlas RAW — Création de Personnage
 
 > Référentiel autosuffisant des règles WFRP4 (RAW). Chaque règle cite `LDB NN l.X` (source = dernier recours). Voir [`sources.md`](../sources.md), [`00-index.md`](00-index.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 Ce fichier couvre le **processus complet de création de Personnage** (étapes 1 à 9 du LDB 04/05) avec toutes les tables verbatim. Il renvoie à [`carrieres.md`](carrieres.md) pour le contenu des Carrières (schémas, compétences/talents par niveau), à [`competences.md`](competences.md) et [`talents.md`](talents.md) pour leurs définitions, et à [`avancement.md`](avancement.md) pour la dépense des PX bonus obtenus à la création.
 
@@ -602,8 +602,7 @@ Possessions : arme simple, haillons, respect des autres Frères Loups.
 
 **Voir aussi :** `talents.md` § Vision nocturne (Talent de départ nain) ; `carrieres.md` § Nains.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 5` (l.623-624, l.627-633) → `generateName`, `doc`, `DetailsScreen`, `NamePool` — `src/data/index.ts`, `src/data/schemas/defs/names.ts`, `src/engine/names.ts`, `src/ui/creator/CharacterCreator.tsx`
+**Implémente :** [État calculé](../implemente.generated.md#4ecreationnoms-nains-suffixes-patronymiques)
 
 ---
 

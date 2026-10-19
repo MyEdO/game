@@ -20,6 +20,7 @@ import type { PendingRoll } from './RollLine';
 import { soutienMod, partyAssisted, supportSplit } from '../engine/skills';
 import { useGame } from '../state/store';
 import type { Combatant } from '../engine/types';
+import { ligneDeRegle } from '../engine/reglesChiffrees';
 
 const mount = (node: React.ReactElement) => {
   const container = document.createElement('div');
@@ -55,7 +56,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
 
   it('ligne AVEC ref → chip CodexRef cliquable ; ligne SANS ref → span muet', () => {
     ({ container, root } = mount(shell([
-      { label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser },
+      ligneDeRegle('viser', 'viser'),
       { label: 'Avantage', value: 10, famille: 'jet' },
     ])));
     const chips = [...container.querySelectorAll('.rm-mod')];
@@ -71,7 +72,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   });
 
   it('INFOBULLE dans le corps DÉFILÉ (.modal-body) : porté sur document.body, hors du scrollport', () => {
-    ({ container, root } = mount(shell([{ label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser }])));
+    ({ container, root } = mount(shell([ligneDeRegle('viser', 'viser')])));
     const scroll = container.querySelector('.modal-body');
     expect(scroll, 'la coquille rend bien son corps défilable').not.toBeNull();
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
@@ -85,7 +86,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     expect(scroll!.contains(pop!)).toBe(false);
     expect(pop!.parentElement).toBe(document.body);
     // Et il porte bien le texte de la RÈGLE (la prose de sa fiche `regles`), pas un rappel maison.
-    const regle = regles.find((r) => r.id === RULE_REF.viser.id)!;
+    const regle = regles.find((r) => r.id === 'viser')!;
     expect(pop!.textContent).toContain(mdToText(regle.desc).slice(0, 40));
   });
 

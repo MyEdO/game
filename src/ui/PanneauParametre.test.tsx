@@ -70,7 +70,7 @@ describe('PanneauParametre — paramètre BORNÉ, ancré, annulable', () => {
     const global = vi.fn();
     document.addEventListener('keydown', global);
     monter([{ key: 'a', label: 'Vol', onSelect: choisi }], close);
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     document.removeEventListener('keydown', global);
     expect(close).toHaveBeenCalledTimes(1);
     expect(choisi, 'aucune ressource engagée : Échap n’est pas un choix').not.toHaveBeenCalled();

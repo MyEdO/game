@@ -143,7 +143,7 @@ describe('Chips de pénalité — texte EXACT et infobulle, du Combatant à l’
   it('aura anti-Sort : la chip porte le NOM du miracle, sa fiche, et son porteur en provenance', () => {
     const priest = mk();
     priest.id = 'P'; priest.label = 'Sœur Gerda'; priest.pos = { x: 10, y: 10 };
-    priest.activeEffects = [{ label: 'N’écoutez point la Sorcière', bonus: 0, duration: { scale: 'rounds', left: 5 }, castWard: { radiusMeters: 4 }, sourceSpellId: 'n-ecoutez-point-la-sorciere' } as NonNullable<Combatant['activeEffects']>[number]];
+    priest.activeEffects = [{ label: 'N’écoutez point la Sorcière', bonus: 0, duration: { scale: 'rounds', left: 5 }, castWard: { radiusMeters: 4, mod: -20 }, sourceSpellId: 'n-ecoutez-point-la-sorciere' } as NonNullable<Combatant['activeEffects']>[number]];
     const victim = mk(); victim.id = 'V'; victim.pos = { x: 11, y: 10 };
     const state = { battle: { combatants: [priest, victim] } } as unknown as GameState;
     const line = castWardLine(state, victim, { label: 'Flèchette' } as never)!;

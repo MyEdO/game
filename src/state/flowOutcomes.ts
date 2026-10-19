@@ -25,9 +25,9 @@ import type {
   PendingBattement,
   PendingDistraire,
 } from './pendings';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { battementRemoval } from './combatManeuvers';
-import { fleeBackstab, fleeCalme } from './pendings';
+import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
 import { estCibleType, cibleLabel } from '../engine/psychology';
@@ -200,7 +200,7 @@ export function describeAppraise(pa: PendingAppraise): string {
     : t('out.appraiseNone', { name: pa.actorName, item: pa.itemName });
 }
 
-/** Approche d'une source de Peur (LDB 21 l.27) : issue du Test de Calme (popin). Le fil journalise la
+/** Approche d'une source de Peur (LDB 21 l.27) : issue du Test `calme-d-approche` (popin). Le fil journalise la
  *  conséquence (gate d'approche du Tour) à part. `name` = combattant ; `sourceName` = source de Peur. */
 export function describeApproach(pa: PendingApproach): string {
   if (!pa.result) return '';
@@ -216,7 +216,7 @@ export function describeWard(pw: PendingWard, targetName: string): string {
     : t('out.wardBlocked', { target: targetName });
 }
 
-/** Course (LDB 15 l.41) : issue du Test d'Athlétisme/Chevaucher (popin). Le fil journalise le
+/** Course (LDB 15 l.41) : issue du Test `course` (popin). Le fil journalise le
  *  déplacement réel (cases parcourues) à part. */
 export function describeRun(pr: PendingRun): string {
   const r = pr.result;
@@ -290,18 +290,18 @@ export function describeDisengage(pd: PendingDisengage): string {
       : t('out.disengageFail');
 }
 
-/** Désengagement — phase 'fuir' : issue du coup dans le dos + Test de Calme, montrée INLINE (popin).
- *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`calme`) ; l'État Brisé découle du Calme raté
- *  (1 + DR négatif) — calculé ici pour la narration, appliqué par `fleeConfirm`. Jet manquant → issue
+/** Désengagement — phase 'fuir' : issue du coup dans le dos + Test `fuite`, montrée INLINE (popin).
+ *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`touche`) ; l'État Brisé (LDB 15 l.66) est
+ *  calculé ici pour la narration, appliqué par `fleeConfirm`. Jet manquant → issue
  *  indéterminée à ce stade (chaîne vide). */
 export function describeDisengageFlee(pd: PendingDisengage): string {
   const res = fleeBackstab(pd)?.result;
   if (!res) return ''; // coup dans le dos pas encore lancé
   const wounds = res.woundsLost ?? 0;
   if (!res.hit || wounds <= 0) return t('out.disengageFlee', { hit: t('out.fleeDodge') });
-  const calme = fleeCalme(pd)?.calme;
-  if (!calme) return ''; // coup qui touche : Test de Calme pas encore lancé
-  const broken = calme.success ? 0 : 1 + Math.max(0, -calme.sl);
+  const jet = fleeTouche(pd)?.jet;
+  if (!jet) return ''; // coup qui touche : Test `fuite` pas encore lancé
+  const broken = jet.success ? 0 : 1 + Math.max(0, -jet.sl);
   const hit = t('out.fleeHit', { wounds, s: wounds > 1 ? 's' : '', broken: broken ? t('out.fleeBroken', { broken, s: broken > 1 ? 's' : '' }) : '' });
   return t('out.disengageFlee', { hit });
 }

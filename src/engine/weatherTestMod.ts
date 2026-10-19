@@ -1,8 +1,7 @@
 /**
- * CANAL UNIQUE de la pénalité météo « Tests physiques » (EDOC 8 l.82, #341). SEUL module autorisé à
- * importer `weatherPhysicalTestMod` : toute autre surface qui voudrait ajouter la météo à un breakdown de
- * Test DOIT passer par ce lecteur — la garde d'import `scripts/guards/lib/weatherTestModQuarantine.mjs`
- * (test `src/engine/weather-test-mod-quarantine-guard.test.ts`) rend tout câblage par-surface INEXPRIMABLE.
+ * CANAL UNIQUE de la pénalité météo « Tests physiques » (EDOC 8 l.82, #341, #2724). Le calcul brut
+ * `weatherPhysicalTestMod` est PRIVÉ de ce module : toute surface qui ajoute la météo à un breakdown de
+ * Test passe par `weatherTestMods`.
  *
  * Frontière : les mods météo WEAPON-CONTEXTUELS (tir dégradé `weatherRangedMod`, poudre inutilisable
  * `weatherPowderUseless`) NE passent PAS par ici — ils restent dans `attackEnv` (state), car ils dépendent
@@ -11,8 +10,15 @@
  */
 import type { CharKey } from './types';
 import type { ModLine } from './combat';
-import { weatherCondition, weatherPhysicalTestMod, weatherRef, type Weather } from './travelStages';
+import { isPhysicalTestChar, weatherCondition, weatherRef, type Weather } from './travelStages';
 import { t } from '../i18n';
+
+/** Pénalité de la météo `w` à un Test basé sur la caractéristique `char` (Pluie diluvienne -10 aux
+ *  Tests physiques, l.82) — 0 si la météo n'en porte pas ou si `char` n'est pas physique. */
+function weatherPhysicalTestMod(w: Weather, char: CharKey): number {
+  const mod = weatherCondition(w).physicalTestMod;
+  return mod != null && isPhysicalTestChar(char) ? mod : 0;
+}
 
 /** Ligne(s) « Météo : … » d'un Test dont la caractéristique est `ck`, sous la météo `weather` — vide si pas
  *  de météo, pas de carac (mode social), ou carac non physique / météo sans pénalité (pluie simple). Un

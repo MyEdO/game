@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { GameMenu } from './GameMenu';
 import { campaignStart } from '../engine/clock';
 import { useGame } from '../state/store';
-import { KEYBINDINGS } from '../state/keybindings';
+import { KEYBINDINGS } from '../state/clavier/keybindings';
 import type { GameState } from '../state/store';
 
 describe('GameMenu — menu système plein écran (pause)', () => {
@@ -65,7 +65,7 @@ describe('GameMenu — menu système plein écran (pause)', () => {
     const html = renderToStaticMarkup(
       <GameMenu sceneName="La taverne" time={campaignStart()} onQuit={() => {}} initialOpen initialView="options" />,
     );
-    expect(html).toContain('tablist'); // primitive Tabs (le rôle tablist reste réservé à Tabs.tsx, cf. tab-systems guard)
+    expect(html).toContain('tablist'); // primitive Tabs (rôle réservé à `src/ui/composites/`, murs/roles-composites)
     expect(html).toContain('Clavier');
     expect(html).toContain('Audio');
     expect(html).toContain('Règles maison');

@@ -1,24 +1,15 @@
 /**
- * POSSESSION LOCALE VUE DE L'UI (#1262 L1) — PORTE UNIQUE par laquelle une fenêtre demande « ce siège
- * pilote-t-il ce combattant ? ». Elle ne DÉCIDE rien : elle DÉLÈGUE au routage siège→combattant de
- * `state/netOwnership.ownsLocally` (même table de vérité que la validation d'intent chez l'hôte —
- * afficher et agir ne peuvent pas répondre différemment).
+ * POSSESSION LOCALE VUE DE L'UI (#1262 L1) — les VUES de fenêtre (hooks, puce de spectateur, état
+ * réseau en prop) du prédicat `state/netOwnership.ownsLocal`, couture unique du routage
+ * siège→combattant (même table de vérité que la validation d'intent chez l'hôte — afficher et agir
+ * ne peuvent pas répondre différemment). Aucune ne DÉCIDE : chacune DÉLÈGUE à la couture.
  *
- * Ce qu'elle SUPPRIME : le terme `net.mode === 'local'` que chaque site recopiait devant l'appel.
- * `ownsLocally` rend déjà `true` en solo pour TOUT combattant (`netOwnership.ts`, branche
- * `mode === 'local'` ; asserté par `netOwnership.test.ts` — « SOLO : `ownsLocally` est vrai pour
- * TOUS »), donc ce court-circuit ne changeait aucune réponse : il faisait seulement lire la
- * possession comme une affaire de mode réseau, et divergeait d'un site à l'autre (`!online || …`,
- * `online ? … : tout`, `mode === 'local' || …`).
- *
- * POLICE (pas verrou) : `ownsLocally` reste exporté par `netOwnership` (6 consommateurs internes) et
- * ré-exporté par `netFlow` — l'import ne peut donc pas être MURÉ. Le mur d'import `murs/possession`
- * (`oxlint.config.mjs`) l'interdit sous `src/ui/**` HORS ce module ; elle échoue la CI, elle
- * n'empêche pas d'écrire la ligne. Mesurée par `ownership-lint.test.ts` sur la config RÉELLE.
+ * Aucun terme `net.mode === 'local'` devant l'appel : `ownsLocal` rend déjà `true` en solo pour TOUT
+ * combattant (`netOwnership.ts`, branche `mode === 'local'` ; asserté par `netOwnership.test.ts`).
  */
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
-import { ownsLocally, ownsGroupDecision, groupDecisionSeat } from '../state/netOwnership';
+import { ownsLocal, ownsGroupDecision } from '../state/netOwnership';
 import { modalOwnerOf, pickActiveModalKey, voyageHubActive } from '../state/modalArbiter';
 import { willAutoResolve } from '../state/combatAuto';
 
@@ -38,17 +29,8 @@ export function spectatorSeatOfModal(s: GameState): number | null {
   if ((key === 'cascade' || key === 'rest') && voyageHubActive(s)) return null;
   if (willAutoResolve(s)) return null;
   const ownerId = modalOwnerOf(s);
-  if (ownerId === '*' || ownerId === null || ownsLocally(s, ownerId)) return null;
+  if (ownerId === '*' || ownerId === null || ownsLocal(s, ownerId)) return null;
   return ownerId ? s.net.ownership[ownerId] ?? 0 : 0;
-}
-
-/**
- * Le siège LOCAL possède-t-il ce combattant ? SOLO : toujours vrai (un seul siège tient tout).
- * `combatantId` absent : l'hôte (contrat de `seatOwns`) — une rangée sans acteur présentable
- * (étape MONDE) passe par ce même chemin, sans garde d'appelant.
- */
-export function ownsLocal(s: GameState, combatantId: string | undefined): boolean {
-  return ownsLocally(s, combatantId);
 }
 
 /**
@@ -62,15 +44,7 @@ export function useOwns(): (combatantId: string | undefined) => boolean {
   return (id) => ownsLocal(useGame.getState(), id);
 }
 
-/**
- * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant (dialogue, interaction d'entité).
- * Le prédicat et le siège qu'il nomme vivent avec le ROUTAGE (`state/netOwnership`) : les touches
- * `dialogue-choice-N` (`state/keybindings`) les consomment aussi, et `src/state` ne peut pas lire
- * `src/ui`. La porte les ré-expose ici pour que l'UI garde UN seul point d'entrée de possession.
- */
-export { ownsGroupDecision, groupDecisionSeat };
-
-/** Vue LIVE de la décision de groupe pour une fenêtre (même abonnement que `useOwns`). */
+/** Vue LIVE de `state/netOwnership.ownsGroupDecision` pour une fenêtre (même abonnement que `useOwns`). */
 export function useOwnsGroupDecision(): boolean {
   useGame((s) => s.net);
   return ownsGroupDecision(useGame.getState());
@@ -87,5 +61,5 @@ export type NetView = Pick<GameState['net'], 'mode' | 'mySeat' | 'ownership'> & 
  * combat il n'y en a aucun : le verdict d'un HÉROS est son siège d'attribution, MJ ou pas.
  */
 export function ownsLocalNet(net: NetView, combatantId: string | undefined): boolean {
-  return ownsLocally({ net, battle: null } as unknown as GameState, combatantId);
+  return ownsLocal({ net, battle: null } as unknown as GameState, combatantId);
 }

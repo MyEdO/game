@@ -11,7 +11,7 @@ import { belierRam, hullNavalTraits } from '../engine/navalTraits';
 import { applyOps } from '../engine/ops';
 import { defaultRNG, type RNG } from '../engine/dice';
 import { propulsionDuNavire, type MilieuDeNavigation } from '../engine/shipBuild';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 
 /** Mappe une coque-`Combatant` en `CollisionShip` (vue Dégâts) : IC = `collisionIndex` (Bonus d'Endurance +
  *  Bonus de Blessures) ; M = `propulsionDuNavire` dans le `milieu` du flux ; Bélier lu dans

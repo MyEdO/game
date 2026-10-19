@@ -38,7 +38,7 @@ import {
   stageCount, forageYield, stageExposureDifficulty, weatherResistanceTest,
   isColdSeason, weatherCondition, type Weather, type Season,
 } from '../engine/travelStages';
-import { weatherTestMods } from '../engine/weatherTestMod'; // CANAL UNIQUE « Tests physiques » (#341) — jamais weatherPhysicalTestMod en direct
+import { weatherTestMods } from '../engine/weatherTestMod'; // #341
 import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
@@ -360,6 +360,8 @@ registerCascadeApplier('stageAggregate', (get, set, step) => {
 
   // EXPOSITION de fin d'Étape (l.73) : INSÈRE un jet influençable par héros exposé (sauf « Plein air » l.141).
   const suppress = agg.gates.includes('suppressExposure');
+  const jours = get().travelPlan?.recap?.days ?? [];
+  if (suppress && jours.length) jours[jours.length - 1].pleinAir = true;
   const insert = suppress ? [] : buildExposureSteps(get(), stage);
   return { consequences: freeCons(j), insert };
 });

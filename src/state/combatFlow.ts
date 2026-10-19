@@ -16,7 +16,7 @@ import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
-import { scheduleCombatTimer } from './combatTimers';
+import { scheduleCombatTimer } from '../lib/minuteries';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
@@ -41,6 +41,7 @@ import {
   woundsFromHit,
   compteDuCoup,
   apresDeviations,
+  localisationRelanceeDe,
   sansLeCoupCritiqueIgnore,
   type CompteDuCoup,
   toucheAuJetPose,
@@ -69,10 +70,12 @@ import {
   canFireWhileEngaged,
   ligneDuCoup,
   freeAttackWeapon,
-  causeDuCoupCritique,
   defaultParryWeapon,
+  advantageModLine,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
+import { traceLineOf, testTraceLabel } from '../engine/traceLine';
+import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
@@ -134,7 +137,7 @@ import { applyOps, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type Ops
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
-import { gainCorruption } from './corruptionFlow';
+import { gainCorruption, testDExposition } from './corruptionFlow';
 import { corruptionGain } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
@@ -145,17 +148,18 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { testValue, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
+import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId, garanti } from './combatants';
+import { actorIn, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
@@ -214,18 +218,20 @@ import { bearingPostes, mostArmedSide } from './shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType } from '../engine/psychology';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
 import { groupMatch } from '../engine/groups';
 import { sceneCombatModifiers } from './sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
-  weatherLightningNervous, weatherRef,
+  weatherLightningNervous, weatherRef, stageWeatherExposure,
   type Weather,
 } from '../engine/travelStages';
+import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
+import type { TravelRecapDay } from './travelFlow';
 import { weaponGroupKey } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from './path';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
-import { resolveRun, chargeReach } from '../engine/movement';
+import { resolveRun, chargeReach, testDuCavalier } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
 import { emitCombatEvent } from './combatEvents';
@@ -269,13 +275,12 @@ import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain } from './netOwnership';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
-export { collectHeroRoundEndUpkeep } from './combat/roundHooks'; // baril : enregistre les hooks de franchissement de Round (effet de bord) + ré-export pour la cascade d'upkeep
 export * from './combat/triggeredTest'; // baril : enregistre l'applier de cascade `triggeredTest` + installe le routeur de Test des triggers (effet de bord)
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
-export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
+export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, resolveActGates } from './combat/turnHooks'; // baril : enregistre les hooks de début de tour ennemi (effet de bord) + ré-export pour frenzy*.test / psych*.test + effets de bord de tour + gate d'action
 // Sauvegardes post-touche en registre `HitModifier` ordonné (state/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-export { runHitModifiers, registerHitModifier, martyrGuardOf, wardedAgainst, organicProjectile, toucheSauvee } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
+export { wardedAgainst, organicProjectile } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
 import {
   bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS,
   rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps,
@@ -288,7 +293,8 @@ import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
-import { APRES_COUP } from './pendings';
+import { APRES_COUP, type PendingApproach } from './pendings';
+import { refuserGeste } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
@@ -365,7 +371,7 @@ export function firedWeapon(attacker: Combatant, target: Combatant, weaponUid?: 
     if (present != null) w = crewedFireWeapon(w, present);
     // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) : effectif BRUT du poste — le RAW ne pose
     // ICI aucune exigence de Compétence pour compter dans l'Équipe (≠ AA 10 l.230/MDG 12 l.442 ci-dessus) — 3ᵉ courbe,
-    // jamais mêlée à celle d'AA (`warMachineFireWeapon` ne touche QUE `crewTeamPenalty`, pas la Recharge).
+    // jamais mêlée à celle d'AA (`warMachineFireWeapon` ne touche QUE `crewTeamIncomplete`, pas la Recharge).
     if (warMachineCrewRequired(w) > 0) {
       const crew = (attacker.mannedPoste.crewIds ?? [])
         .map((id) => combatants.find((c) => c.id === id))
@@ -487,7 +493,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
 /** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
-  if (res.attackerRoll > res.attackerDetail.target + 20) return null; // n'aurait pas touché même sans le −20
+  if (res.attackerRoll > res.attackerDetail.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')) return null; // n'aurait pas touché même sans la pénalité
   const allies = (target.engagedWith ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
@@ -506,7 +512,7 @@ export function crowdEligible(battle: BattleState, attacker: Combatant, target: 
  *  doivent choisir une cible ou une Action différente » (rien n'est consommé). */
 export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG = battleRng()): { allowed: boolean; lines: string[] } {
   if (!hasActiveFlag(target, 'attackWardFM')) return { allowed: true, lines: [] };
-  const t = rollTest(effectiveChar(attacker, 'force-mentale'), 'accessible', rng);
+  const t = rollTest(testValue(attacker, undefined, 'force-mentale'), 'accessible', rng);
   if (t.success) {
     return { allowed: true, lines: [tr('cs.shameOvercome', { name: attacker.label, roll: t.roll, target: t.target, foe: target.label })] };
   }
@@ -593,11 +599,32 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
 
 /** Météo du JOUR de voyage EN COURS (EDOC 8) portée par le plan de voyage — contexte de « conditions
  *  du jour » COMMUN aux Activités de l'Étape ET au combat qui s'ouvre pendant la journée (embuscade sous
- *  l'orage). `undefined` hors voyage terrestre / règle Étapes éteinte. SOURCE unique de lecture. */
+ *  l'orage). `undefined` hors voyage terrestre / règle Étapes éteinte. SOURCE unique de lecture.
+ *  Le jour EN COURS vit sur `plan.recap`, interruption comprise (l'embuscade se joue sous sa météo) ;
+ *  clos, il est le dernier de `plan.log` — `openRest` à la halte, `resumeTravel` à la reprise (#2533). */
 export function activeDayWeather(get: Get): Weather | undefined {
+  return activeTravelDay(get)?.weather?.id;
+}
+
+/** Le jour de voyage EN COURS (`activeDayWeather`), ou le dernier jour clos à la halte de nuit. */
+function activeTravelDay(get: Get): TravelRecapDay | undefined {
   const plan = get().travelPlan;
-  const w = plan?.recap?.days[plan.recap.days.length - 1]?.weather ?? get().pendingRest?.travelDay?.weather;
-  return w?.id;
+  if (!plan) return undefined;
+  return plan.recap ? plan.recap.days[plan.recap.days.length - 1] : plan.log?.[plan.log.length - 1];
+}
+
+/** « Plein air » réussi à l'Étape du jour : la nuit n'a pas d'Exposition due au mauvais temps (EDOC 08 l.141). */
+export function nuitDispenseeParPleinAir(get: Get): boolean {
+  return activeTravelDay(get)?.pleinAir === true;
+}
+
+/** Sévérité d'Exposition du lieu où le groupe passe la nuit : la météo du JOUR de voyage
+ *  (`activeDayWeather`, convertie par `stageWeatherExposure`) quand elle existe, sinon la météo
+ *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`, `RestBody`). */
+export function activeExposureSeverity(get: Get): ExposureSeverity {
+  if (nuitDispenseeParPleinAir(get)) return 'clement';
+  const w = activeDayWeather(get);
+  return w ? stageWeatherExposure(w) : weatherExposure(get().scene?.weather); // #2533 c.6071899887
 }
 
 /** Estampille la météo du JOUR sur CHAQUE combattant à l'ouverture du combat — SOURCE de
@@ -707,8 +734,7 @@ export function attackEnv(
   const sc = sceneCombatModifiers(scene, get().gameTime);
   const dayW = activeDayWeather(get);
   const env: ModLine[] = [];
-  // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade gagne +20 (cible au plus FAIBLE
-  // Avantage des deux Empoignés) ou +10 (au plus FORT) pour la toucher — mêlée comme tir.
+  // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade, mêlée comme tir.
   const gm = grappleEnvMod(attacker, target, battle.combatants);
   if (gm) env.push(gm);
   if (weapon.type === 'ranged') {
@@ -743,25 +769,25 @@ export function attackEnv(
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
     if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
-    // Tir en bougeant (LDB 14 l.70) : −10 si l'on bouge ET tire au même Round. Le Mouvement étant
-    // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse le −10 par défaut ;
+    // Tir en bougeant (LDB 14 l.70) : si l'on bouge ET tire au même Round. Le Mouvement étant
+    // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse la pénalité par défaut ;
     // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. attackConfirm)
     // — ou s'il NE PEUT PAS bouger (Mouvement effectif 0 : Empêtré/Surpris…), il est immobile d'office.
-    // L'IA/ennemi (pas d'option) : −10 seulement s'il a effectivement bougé ce Tour.
+    // L'IA/ennemi (pas d'option) : seulement s'il a effectivement bougé ce Tour.
     const mobileShot = attacker.kind === 'hero'
       ? (battle.movementUsed > 0 || (mountMovement(battle, attacker) > 0 && !opts?.heldGround))
       : battle.movementUsed > 0;
-    if (mobileShot) env.push({ label: 'Tir en bougeant', value: -10, famille: 'circonstance', ref: RULE_REF['tir-en-mouvement'] });
+    if (mobileShot) env.push(ligneDeRegle('tir-en-mouvement', 'tir-en-mouvement'));
     // Tir dans la mêlée (LDB 14 l.116) : la cible est Engagée avec un allié du tireur. Règle optionnelle
-    // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, pas de −20 NI d'artefact d'aperçu
+    // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, ni pénalité NI artefact d'aperçu
     // (`inMelee` reste false → pas de tir égaré non plus).
     const inMelee = !!rule('combat-ranged-melee-penalty') && (target.engagedWith ?? []).some((id) => {
       const ally = inBattleId(battle, id);
       return !!ally && ally.kind === attacker.kind;
     });
-    if (inMelee && !opts?.intoCrowd) env.push({ label: 'Tir dans la mêlée', value: -20, famille: 'circonstance', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }); // « Tirer dans le tas » REMPLACE ce −20 par le bonus (l.116)
-    env.push(...mountedAttackMods(battle, attacker, target, 'ranged')); // Combat monté : +20 cible plus petite que la monture (LDB 14 l.180)
-    // « Tirer dans le tas » (LDB 14 l.106) : bonus +20/+40/+60 selon la taille du groupe serré.
+    if (inMelee && !opts?.intoCrowd) env.push(ligneDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')); // « Tirer dans le tas » la REMPLACE par son bonus (l.116)
+    env.push(...mountedAttackMods(battle, attacker, target, 'ranged')); // LDB 14 l.180
+    // « Tirer dans le tas » (LDB 14 l.106) : selon la taille du groupe serré.
     const crowd = opts?.intoCrowd ? crowdEligible(battle, attacker, target) : [];
     const cm = opts?.intoCrowd ? crowdMod(crowd.length) : null;
     if (cm) env.push(cm);
@@ -772,18 +798,18 @@ export function attackEnv(
   // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
   // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
   // ET les activités — jamais recâblée par surface (#341). Seuls les mods météo WEAPON-contextuels restent (tir).
-  // Flanc/dos (LDB 14 l.62) : +20 pour attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
+  // Flanc/dos (LDB 14 l.62) : attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
   // orientation du défenseur AVANT cette attaque (il se retourne vers l'attaquant ENSUITE, applyAttackResult).
   const tFacing = get().facing?.[target.id]; // `facing` peut être absent (état épars / contexte sans orientation)
   const flankRear = !!(tFacing && isEngaged(target) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
-  if (flankRear) env.push({ label: 'Flanc/dos', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] });
-  // En contrebas (Difficultés de Combat) : l'attaquant le PLUS BAS subit −10 (la hauteur ne donne AUCUN
-  // bonus « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
-  if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push({ label: 'En contrebas de la cible', value: -10, famille: 'circonstance', ref: RULE_REF['cible-en-contrebas'] });
-  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible (2 → +20, 3+ → +40).
+  if (flankRear) env.push(ligneDeRegle('attaque-de-flanc-ou-de-dos', 'flanc-ou-dos'));
+  // En contrebas (LDB 14 l.67) : l'attaquant le PLUS BAS est pénalisé (la hauteur ne donne AUCUN bonus
+  // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
+  if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
+  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
   const onm = outnumberMod(battle.combatants.filter((c) => c.kind === attacker.kind && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1).length);
   if (onm) env.push(onm);
-  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // Combat monté : +20 cible < monture / −10 viser le cavalier (LDB 14 l.180/181)
+  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
 }
 
@@ -842,12 +868,12 @@ export function resolveAttack(
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
-    // Tir dans la mêlée (LDB 14 l.116) : si le −20 a transformé une réussite en échec, le tir dévie
+    // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
       const ally = strayShotVictim(res, attacker, target, battle, battleRng());
       if (ally) {
-        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, { rng: battleRng() }, res.attackerDetail, withhold);
+        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.strayMelee', { name: ally.label })];
         return { res: stray, weapon, victim: ally };
       }
@@ -1060,7 +1086,7 @@ export function previewCast(
 ): { label: string; base: number; target: number; mods: ModLine[] } {
   const ci = castInfo(spell);
   const target = castingValue(caster, ci.skill, ci.spec);
-  const advMod = 10 * (caster.advantage ?? 0); // l'Avantage s'applique aux Tests d'Incantation
+  const advLine = advantageModLine(caster); // Tests d'Incantation
   const penMod = castPenaltyMod(caster, ci.skill); // contrecoups actifs (Imparfaite/Colère)
   const windsLine = windsModLine(opts?.winds);
   const windsMod = opts?.winds?.mod ?? 0;
@@ -1068,7 +1094,7 @@ export function previewCast(
   const ni = opts?.focused ? 0 : spell.cn ?? 0;
   const ctx = opts?.ctx ? castContextMods(opts.ctx.s, caster, opts.ctx.target, spell, { skipWard: opts.ctx.skipWard }) : null;
   const mods: ModLine[] = [
-    ...(advMod ? [{ label: 'Avantage', value: advMod, famille: 'jet' as const, ref: RULE_REF.avantage }] : []),
+    ...(advLine ? [advLine] : []),
     ...(penMod ? [{ label: 'Contrecoup', value: penMod, famille: 'jet' as const }] : []),
     ...(ctx?.mods ?? []),
     ...(windsLine ? [windsLine] : []),
@@ -1306,12 +1332,12 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   // via l'étape `jet:'disengage'`). `pendingDisengage` reste le porteur de données/phases ; les
   // résolveurs ferment LES DEUX. La ligne d'attaque figée du foe et les portraits restent inchangés.
   const step = hostStep(get, { id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: mover.id });
-  if (step) openSequence(get, set, { title: tr('step.seDesengager'), icon: '↩', purpose: 'combat', steps: [step] });
+  if (step) openSequence(get, set, { title: tr('step.seDesengager'), icon: 'action/disengage', purpose: 'combat', steps: [step] });
 }
 
 /**
  * COMPLÉTION de la Fuite (LDB 15 l.66-68), APRÈS que le coup gratuit soit résolu : États Brisés d'un
- * Test de Calme raté, puis libération de TOUS les Engagements et budget de Course dans la direction
+ * Test de la fiche `fuite` raté, puis libération de TOUS les Engagements et budget de Course dans la direction
  * opposée à l'adversaire (« Une fois que ce coup gratuit est résolu, vous pouvez vous déplacer jusqu'à
  * la limite de votre Mouvement de Course […] dans la direction opposée à celle de votre adversaire »).
  * SOURCE UNIQUE des deux chemins : application directe (`fleeConfirm`) et reprise APRÈS une étape de
@@ -1455,7 +1481,7 @@ function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, r
 }
 
 /** Zone NOMINALE de Course (LDB 15 l.41) : Marche + Course (3M cases, avant DR) — affichée dans une
- *  autre couleur ; un clic dedans demande le Test d'Athlétisme (+20), le déplacement réel dépendant du
+ *  autre couleur ; un clic dedans demande le Test de la fiche `course`, le déplacement réel dépendant du
  *  jet. Mêmes conditions que la Course : plein Mouvement, Action libre, non Engagé, pas À Terre. */
 export function computeRunReach(get: Get): Map<string, number> {
   const { battle, scene } = get();
@@ -1502,7 +1528,7 @@ export function displayedReach(get: Get): Map<string, number> {
 /**
  * PARITÉ héros/IA sur l'approche (LDB 15 l.35-41) : si le plan de MARCHE n'amène pas l'ennemi au
  * contact, un combattant de mêlée non Engagé tente une CHARGE à portée de Course (2M × Bond/Foulée) ;
- * si même la Course ne suffit pas, il COURT (Action + Test d'Athlétisme — Chevaucher à cheval —,
+ * si même la Course ne suffit pas, il COURT (Action + Test de la fiche `course`, `testDuCavalier`,
  * résolution instantanée IA) : budget = Marche + Course + DR, et il n'attaque PAS ce tour.
  * Pure (rng injecté) — renvoie le plan retenu et le jet de Course éventuel.
  */
@@ -1511,7 +1537,7 @@ export function aiApproachPlan(
   geom: Combatant,
   action: EnemyAction,
   rng: RNG,
-): { plan: EnemyAction; ran: { roll: number; budget: number } | null } {
+): { plan: EnemyAction; ran: { roll: number; target: number; sl: number; success: boolean; test: TestNomme; budget: number } | null } {
   const enemy = input.enemy;
   const none = { plan: action, ran: null };
   if (action.kind !== 'move') return none;
@@ -1531,12 +1557,13 @@ export function aiApproachPlan(
   const inp: EnemyTurnInput = input.losMemo ? input : { ...input, losMemo: makeLosMemo(input.scene, input.smoke ?? []) };
   const charge = chooseEnemyAction({ ...inp, movement: courseBudget });
   if (charge.kind === 'move' && atContact(charge)) return { plan: charge, ran: null };
-  // Course (LDB 15 l.41) : Test d'Athlétisme/Chevaucher, budget = Marche + Course + DR ; pas d'attaque.
-  const r = resolveRun(testValue(enemy, enemy.mountId ? 'chevaucher' : 'athletisme'), M, rng);
+  // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
+  const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
+  const r = resolveRun(valeurDuTest(enemy, course), course.difficulty, M, rng);
   const runBudget = M + r.bonusCases;
   const run = runBudget > input.movement ? chooseEnemyAction({ ...inp, movement: runBudget }) : action;
   if (run.kind === 'move' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
-    return { plan: run, ran: { roll: r.roll, budget: runBudget } };
+    return { plan: run, ran: { roll: r.roll, target: r.target, sl: r.dr, success: r.success, test: course, budget: runBudget } };
   // La Course ne porte pas plus loin que le plan de Marche : marcher normalement (pas d'Action gâchée).
   return none;
 }
@@ -1569,6 +1596,24 @@ export function fearedSourceTowards(battle: BattleState, active: Combatant, dest
     if (src?.pos && !isOutOfAction(src) && chebyshev(dest, src.pos) < chebyshev(active.pos, src.pos)) return src;
   }
   return null;
+}
+
+/** Peur (LDB 21 l.27), Test `se-rapprocher` de la fiche `calme-d-approche` : SEULE porte des gestes qui
+ *  rapprochent `active` d'une source de Peur (clic-sol, charge, déplacement-attaque), vérifiée au COMMIT.
+ *  Une tentative par Tour (`battle.fearGate`). Rend `true` quand le geste est retenu : refusé, ou différé
+ *  derrière le Test (`pendingApproach`, dont `intent` est relancée après un succès). */
+export function retenuParLaPeur(get: Get, set: SetFn, active: Combatant, dest: Pt, intent: PendingApproach['intent']): boolean {
+  const battle = get().battle;
+  if (!battle || battle.fearGate === 'passed') return false;
+  const feared = fearedSourceTowards(battle, active, dest);
+  if (!feared) return false;
+  if (battle.fearGate === 'failed') return refuserGeste(get, set, tr('cs.fearNoApproach', { name: active.label, feared: feared.label }));
+  set({
+    pendingApproach: { combatantId: active.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: feared.id, sourceName: feared.label, intent, result: null },
+    battle: { ...battle, preview: null },
+  });
+  bus.emit(EVT.SCENE_DIRTY);
+  return true;
 }
 
 export type AttackPlan =
@@ -2358,10 +2403,11 @@ function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, 
  *  Localisation : LDB 63 l.30, l.32 ; LDB 18 l.53 ; LDB 63 l.78. */
 function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Combatant, cible: Combatant, n: number): CompteDuCoup {
   const { mres, spell, overcastDamageSteps } = touche;
-  const relance = touche.critLocation !== undefined;
-  const loc = touche.critLocation ?? mres.location ?? 'corps';
-  const woundsLost = mres.woundsLost ?? 0;
+  const relancee = localisationRelanceeDe({ hit: !!mres.hit, critLocation: touche.critLocation });
+  const relance = relancee !== undefined;
+  const loc = relancee ?? mres.location ?? 'corps';
   const aPleinesPA = (): number => evaluateMissile(caster, cible, spell, mres, loc, overcastDamageSteps).woundsLost ?? 0;
+  const woundsLost = relance ? aPleinesPA() : (mres.woundsLost ?? 0);
   const blessures = n === 0 && !relance ? woundsLost
     : woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n, { casse: relance }), spell, mres, loc, overcastDamageSteps).woundsLost ?? 0) - aPleinesPA());
   const compte = critiquesDuCoup(cible, { coupCritique: causeDuProjectile(touche), prise: true, current: cible.wounds.current, touche: true, relance, blessures });
@@ -2559,7 +2605,7 @@ function naissanceDuCoupDuMarin(coup: CoupDeTouche, attaquant: Combatant, marin:
   }
   const { touche } = coup;
   const critLocation = localisationRelanceeDuProjectile(touche, marin);
-  const mres = evaluateMissile(attaquant, marin, touche.spell, touche.mres, critLocation, touche.overcastDamageSteps);
+  const mres = evaluateMissile(attaquant, marin, touche.spell, touche.mres, undefined, touche.overcastDamageSteps);
   return { ...qui, mode: 'projectile', touche: { ...touche, targetId: marin.id, mres, critLocation, critiques: undefined } };
 }
 
@@ -2720,8 +2766,6 @@ function appliquerLaTouche(
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
-  // #1595 c.6247370933
-  if (relanceLaLocalisation(target, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current })) res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
   const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: suspendu, decides, sousAttaque, twice,
@@ -2769,7 +2813,7 @@ function appliquerLaTouche(
   const { relance, blessures } = compte;
   if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
-    if (relance) { res.location = lieu; res.localisationRelancee = true; }
+    if (relance) res.location = lieu;
     res.woundsLost = blessures;
     const { lancerDuTableau, infligees } = encaisserLeCoup({
       get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon,
@@ -2933,7 +2977,7 @@ function appliquerLaTouche(
     log.push(...evLines(area.lines, 'shoot', attacker.id, target.id));
   }
   // Interruption de Focalisation (LDB 46 l.144) : Dégâts subis pendant qu'on focalise
-  // → Test de Calme Difficile (−20) ou perte des DR accumulés + Imparfaite Mineure.
+  // → Test de la fiche `interruption-de-focalisation`.
   if (res.hit && res.woundsLost) log.push(...evLines(checkFocusInterruption(get, set, target), 'detail', target.id));
   if (isOutOfAction(target) && !isStructure(target)) log.push(ev('death', tr('cf.outOfAction', { name: target.label }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
   // Salve (Aux Armes p.126) : un héros qui tire une arme à Salve gardant des tirs (chambered > 0) ne
@@ -3062,12 +3106,9 @@ function maladresseDuDefenseur(get: Get, set: SetFn, target: Combatant, res: Att
 }
 
 /**
- * Interruption de Focalisation (LDB 46 l.144) : « La concentration est vitale pour focaliser. Si vous êtes
- * perturbé par quelque chose – bruits forts, Dégâts subis… –, vous devrez réussir un Test de Calme Difficile
- * (-20) ou subir une Incantation Imparfaite Mineure et perdre tous les DR accumulés jusque-là au Test étendu
- * de Focalisation. »
+ * Interruption de Focalisation (LDB 46 l.144), Test de la fiche `interruption-de-focalisation`.
  *
- * Le Test de Calme du focaliseur est ROUTÉ par l'exécuteur de Flow CADENCE-AWARE (`runCombatFlow`) : héros en
+ * Le Test du focaliseur est ROUTÉ par l'exécuteur de Flow CADENCE-AWARE (`runCombatFlow`) : héros en
  * cadence MANUELLE → étape de cascade INFLUENÇABLE (il PEUT dépenser sa Chance / sa Résilience pour garder son
  * sort) ; ennemi / cadence auto → jet inline. La branche d'ÉCHEC porte le marqueur `interruptFocus`, dont la
  * conséquence PROCÉDURALE (perte des DR + Imparfaite Mineure) s'exécute APRÈS le Test résolu, via le hook
@@ -3079,20 +3120,21 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   if (!target.focus || target.focus.dr <= 0) return [];
   // Branche d'échec : marqueur `interruptFocus` sur la cible (le focaliseur) → hook injecté. Succès = rien
   // (concentration maintenue, DR conservés). Le nœud `test` est résolu cadence-aware par `runCombatFlow`.
+  const test = testDeRegle('interruption-de-focalisation', 'maintenir');
   const flow = testFlow(
-    { skill: { id: 'calme' }, difficulty: 'difficile', label: 'Focalisation interrompue', stake: combatStakeRef('focusInterrupt') },
+    { ...test, stake: combatStakeRef('focusInterrupt') },
     EMPTY_FLOW,
     { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
-  runCombatFlow({ mode: 'combat', get, set, target, caster: target, label: 'Focalisation interrompue' }, flow);
+  runCombatFlow({ mode: 'combat', get, set, target, caster: target, label: test.label }, flow);
   return []; // le journal voyage par la cascade (manuel) ou la file différée (inline) — pas de retour inline
 }
 
 /**
- * Conséquence PROCÉDURALE d'un Test de Calme d'interruption RATÉ (op `interruptFocus`, hook `focusInterrupt`) :
+ * Conséquence PROCÉDURALE du Test `interruption-de-focalisation` RATÉ (op `interruptFocus`, hook `focusInterrupt`) :
  * le focaliseur perd tous les DR accumulés sur son Sort focalisé (couverts par son composant — LDB 46 l.111) et
  * subit une Incantation Imparfaite Mineure (LDB 46 l.144). L'Imparfaite garde son rendu propre (étape de cascade
- * `miscast` pour un héros / lignes pour un ennemi) : le Test de Calme est l'étape influençable visible,
+ * `miscast` pour un héros / lignes pour un ennemi) : le Test est l'étape influençable visible,
  * l'Imparfaite est sa conséquence en aval. Les lignes partent dans la file
  * différée (`pendingLogQueue`), drainée par l'appelant qui réécrit `battle.log`.
  */
@@ -3219,7 +3261,7 @@ function ouvrirLeRound(get: Get, set: SetFn): void {
   const gate = active ? resolveActGates(get, set, active) : { loseMovement: false, lines: [] };
   if (active) for (const line of gate.lines) battle.log.push(ev('detail', line, active.id));
   if (gate.loseMovement && movementUsed === 0 && active) movementUsed = mountMovement(battle, active);
-  set({ battle: { ...battle, turn, action: null, movementUsed, movedPreAction: false, acted, reachable: new Map() } });
+  set({ battle: { ...battle, ...etatDeTourNeuf(), turn, movementUsed, acted } });
   if (checkBattleOver(get, set)) return;
   bus.emit(EVT.SCENE_DIRTY);
   openRoundStartPsych(get, set);
@@ -3355,7 +3397,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       c.actLastNextRound = true;
       break;
     case 'actionPenalty':
-      c.nextActionPenalty = 10;
+      c.nextActionPenalty = r.mod;
       break;
     case 'loseMovement':
       c.loseNextMovement = true;
@@ -3819,17 +3861,21 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
   const attacker = actorIn(get(), pa.attackerId);
   const hand = !skipGate && attacker ? attackHandGate(attacker, pa.weaponUid) : null; // `skipGate` : gate déjà PASSÉ (reprise `handGateConfirm`) → pas de re-test
   if (attacker && hand) {
-    const base = effectiveChar(attacker, 'dexterite'); // Dextérité effective (LDB) — +20 « Accessible » via la Difficulté
-    // Cible montée par le MONTEUR : elle passe donc par `clampTarget`, comme celle que `rollTest`
-    // calculera au jet (`FLOWS.handGate`). Effet MESURÉ aux bornes seulement (Dex 85 : 105 → 99).
-    set({ pendingHandGate: {
-      attackerId: attacker.id, actorName: attacker.label, hand,
-      skillValue: base, difficulty: 'accessible', target: rollLine({ actor: attacker, difficulty: 'accessible', valeur: base }).target,
-      roll: null, sl: 0, success: false, pa, title, icon,
-    } });
+    poserLeTestDeMain(set, attacker, hand, pa, title, icon);
     return true; // la fenêtre ouverte est celle du GATE ; l'attaque s'ouvrira à sa réussite
   }
   return poserLEtapeDAttaque(get, set, pa, title, icon);
+}
+
+/** Pose le Test de Dextérité Accessible (AA 07 l.117) de la main gatée `hand` avant l'Action `pa`, sur sa
+ *  valeur de Test (`testValue`, LDB 16 l.125) ; cible montée par le MONTEUR, bornée et mesurée comme au jet
+ *  (`FLOWS.handGate`). Mint UNIQUE de `pendingHandGate` : `openAttackCascade` et la 2ᵉ frappe « des deux armes ». */
+export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: 'main' | 'off', pa: PendingAttack, title: string, icon: string): void {
+  set({ pendingHandGate: {
+    attackerId: attacker.id, actorName: attacker.label, hand,
+    skillValue: testValue(attacker, undefined, 'dexterite'), difficulty: 'accessible', ...cibleMesuree(rollLine({ actor: attacker, test: { char: 'dexterite' }, difficulty: 'accessible' })),
+    roll: null, sl: 0, success: false, pa, title, icon,
+  } });
 }
 
 /** Pose `pa` dans son slot et l'étape `attack` qui le rend, appendue à la séquence de combat ouverte ou
@@ -3854,7 +3900,7 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
 export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?: string): boolean {
   const gHand = attackHandGate(attacker, weaponUid);
   if (!gHand) return true;
-  const gt = rollSansPilote(get, attacker, effectiveChar(attacker, 'dexterite'), 'accessible', battleRng());
+  const gt = rollSansPilote(get, attacker, testValue(attacker, undefined, 'dexterite'), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
     const lache = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
@@ -3897,9 +3943,10 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
 }
 
 /**
- * Applique le PREMIER coup restant d'une bordée (MDG 14 l.128) par la couture du coup ; les suivants
- * voyagent dans sa suite (`enchainement: 'bordee'`), si bien qu'une fenêtre ouverte par un coup
- * (sauvegarde, Critique) les reprend à sa fermeture. Une cible hors de combat ne reçoit plus rien.
+ * Fait naître le coup du PREMIER tir restant sur la cible vivante (`toucheAuJetPose`), puis l'applique par
+ * la couture du coup (MDG 14 l.128) ; les suivants voyagent dans sa suite (`enchainement: 'bordee'`), si
+ * bien qu'une fenêtre ouverte par un coup (sauvegarde, Critique) les reprend à sa fermeture. Une cible
+ * hors de combat ne reçoit plus rien.
  * Rend `true` quand un coup a suspendu.
  */
 export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee): boolean {
@@ -3909,7 +3956,8 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
   const tireur = inBattleId(battle, tir.tireurId);
   const cible = inBattleId(battle, bordee.targetId);
   if (!tireur || !cible || isOutOfAction(cible)) return false;
-  return applyAttackResult(get, set, tireur, cible, tir.weapon, tir.res,
+  const res = toucheAuJetPose(tireur, cible, tir.weapon, tir.jet, tir.jet.sl, { rng: battleRng() });
+  return applyAttackResult(get, set, tireur, cible, tir.weapon, res,
     { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } }) === OPS_DIFFEREES;
 }
 
@@ -5149,7 +5197,6 @@ export function autoDeclareWitnessRows(participants: CounterParticipant[], actor
 
 /** Un geste de dé PRÉ-ARMÉ est-il en cours ? (drapeau de module, cf. `withPreRollFixedDie`). */
 let preRollFixedDiePending = false;
-export const isPreRollFixedDiePending = (): boolean => preRollFixedDiePending;
 
 /**
  * GESTE ATOMIQUE du dé pré-armé (socle des dés fixés #939 : « Fixer le dé » AVANT le jet, et Résilience
@@ -5901,6 +5948,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     ...(mres.woundsLost != null ? { woundsLost: mres.woundsLost } : {}),
     ...(mres.touche ? { touche: mres.touche } : {}),
     ...(mres.ajouts ? { ajouts: mres.ajouts } : {}),
+    ...(ch.critLocation ? { critLocation: ch.critLocation } : {}),
   };
   // Une RÉ-ENTRÉE de fenêtre de Critique porte la touche déjà passée par les sauvegardes.
   if (!ch.critiques) {
@@ -5920,7 +5968,6 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
   if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
-  const loc = mres.location ?? 'corps';
   const twice = critRollTwiceFor(caster);
   const touche: ToucheDeProjectile = { ...ch, mres };
   const suspendu: CoupSuspendu = { mode: 'projectile', touche };
@@ -5931,6 +5978,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
+  const loc = compte.lieu;
   cible.wounds.current = Math.max(0, currentBefore - compte.compte.blessures);
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
   const mReinj = reinjuryBleed(cible, loc);
@@ -5977,7 +6025,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees, ...(compte.compte.relance ? { localisationRelancee: true as const } : {}) }), { ...mres, woundsLost: compte.compte.blessures }, infligees);
+  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees }), { ...mres, location: loc, woundsLost: compte.compte.blessures }, infligees);
 }
 
 /** La Localisation relancée d'une touche de Projectile sur `cible`, décidée à sa naissance par
@@ -6005,7 +6053,6 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   let mres = touche.mres;
   // LDB 18 l.53, l.55.
   const critLocation = localisationRelanceeDuProjectile(touche, cible);
-  if (critLocation) mres = evaluateMissile(caster, cible, spell, mres, critLocation, touche.overcastDamageSteps);
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
   // cible — les Dégâts en découlent (`evaluateMissile`), le plancher de 1 Blessure reste celui du
   // RAW (LDB 13 l.155-163). Le jet figé (roll/Surincantation) n'est pas rejoué : seul le DR change.
@@ -6602,25 +6649,25 @@ export function castNearCorruption(get: Get): boolean {
 }
 
 /** Aura anti-Sort qui frappe la CIBLE d'un Sort (`ActiveEffect.castWard`, posé par l'op du même nom —
- *  `LDB 43 l.139-145`), rendue en ligne NOMMÉE : le libellé et le renvoi Codex sont ceux de l'ENTITÉ
- *  qui a posé l'aura (« N'écoutez point la Sorcière »), la provenance ceux de son PORTEUR. Sorts
- *  seulement (les Prières passent par Prière, pas Langue). Une SEULE ligne même sous plusieurs auras
- *  (elles valent toutes −20) : la première rencontrée la nomme, dans l'ordre des combattants puis de
- *  leurs effets. Hors combat (pas de géométrie), l'aura ne s'applique pas — limitation documentée.
- *  Aujourd'hui MONO-SOURCE en donnée : `n-ecoutez-point-la-sorciere` est la seule entrée porteuse de
- *  l'op `castWard` ; la ligne nomme quand même son émetteur, une 2ᵉ entrée n'exigera aucun code. */
+ *  `LDB 43 l.139-145`), rendue en ligne NOMMÉE à la valeur de son op : le libellé et le renvoi Codex
+ *  sont ceux de l'ENTITÉ qui a posé l'aura, la provenance ceux de son PORTEUR. Sorts seulement (les
+ *  Prières passent par Prière, pas Langue). Une SEULE ligne même sous plusieurs auras : la plus forte
+ *  (plus grand écart à 0), à égalité la première dans l'ordre des combattants puis de leurs effets.
+ *  Hors combat (pas de géométrie), l'aura ne s'applique pas. */
 export function castWardLine(s: GameState, target: Combatant, spell: SpellLike): ModLine | null {
   if (castInfoIsPrayer(spell)) return null;
   if (!target.pos) return null;
+  let best: ModLine | null = null;
   for (const w of s.battle?.combatants ?? []) {
     if (isOutOfAction(w) || !w.pos) continue;
     for (const e of w.activeEffects ?? []) {
       if (!e.castWard) continue;
       if (combatDistance(w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
-      return { label: e.label, value: -20, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
+      if (!best || Math.abs(e.castWard.mod) > Math.abs(best.value))
+        best = { label: e.label, value: e.castWard.mod, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
     }
   }
-  return null;
+  return best;
 }
 /**
  * Modificateurs de CONTEXTE d'un Test d'Incantation, NOMMÉS et chiffrés — SOURCE UNIQUE de la somme
@@ -6647,11 +6694,6 @@ export function castContextMods(
     ...(env ? [{ label: 'Environnement', value: env, famille: 'jet' as const, ref: dref }] : []),
   ];
   return { mods, total: ward + domain + env, ward, domain, env };
-}
-
-/** Σ de `castWardLine` — la VALEUR que le jet applique (l'affichage et le jet lisent la même aura). */
-export function castWardPenalty(s: GameState, target: Combatant, spell: SpellLike): number {
-  return castWardLine(s, target, spell)?.value ?? 0;
 }
 
 /**
@@ -6803,10 +6845,11 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
       pousseSi(monos, step);
     }
     if (decided.corruption && corr) {
+      const { test } = testDExposition('physique');
       const step = monoStep({
         id: `combatEndCorruption-${c.id}`, kind: 'combatEndCorruption', actor: c, icon: 'nav/mutation',
-        rollLabel: 'Résistance', difficulty: 'intermediaire',
-        ligne: { test: { skill: 'resistance' }, combat: { kind: 'test' } },
+        difficulty: test.difficulty,
+        ligne: { test: { skill: test.skill.id, spec: test.skill.spec }, combat: { kind: 'test' } },
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.
@@ -6881,7 +6924,7 @@ registerCombatEndBandApplier('combatEndDisease', (_get, _set, _band, row, hero, 
   return lines.length ? lines : [tr('cf.resistsInfection', { name: hero.label })];
 });
 
-/** Conséquence d'une RANGÉE de bande `combatEndCorruption` (LDB 19) : Test de Résistance RÉSOLU →
+/** Conséquence d'une RANGÉE de bande `combatEndCorruption` (LDB 19) : Test `influences-corruptrices` RÉSOLU →
  *  `corruptionGain` selon le Degré et le DR, puis `gainCorruption` (seuil/mutation via sa propre
  *  modale, mise en file quand le slot est déjà pris). */
 registerCombatEndBandApplier('combatEndCorruption', (get, set, _band, row, hero, meta) => {
@@ -7424,6 +7467,18 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   maybeRunEnemyTurn(get, set);
 }
 
+/** L'état de TOUR de la bataille remis à neuf : SOURCE UNIQUE de tout début de Tour — le Tour suivant
+ *  (`advanceTurn`), la pause de début de Round (`enterRoundStartPause`), le premier Tour du Round après les
+ *  tirs d'interruption (`ouvrirLeRound`) et le `turn` de recette (`devtools.ts`). Le site y ajoute ce qui
+ *  lui est propre (index du Tour, Mouvement/Action déjà perdus, état de Round). Une valeur neuve par appel (`reachable`). */
+export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' | 'selectedSpellId' | 'movementUsed' | 'movedPreAction' | 'acted'
+  | 'loadoutSwapped' | 'stances' | 'reachable' | 'preview' | 'runBudget' | 'fearGate' | 'moveSnapshot'> {
+  return {
+    action: null, selectedAttack: undefined, selectedSpellId: null, movementUsed: 0, movedPreAction: false, acted: false,
+    loadoutSwapped: false, stances: {}, reachable: new Map(), preview: null, runBudget: null, fearGate: null, moveSnapshot: null,
+  };
+}
+
 export function advanceTurn(get: Get, set: SetFn) {
   // Pause de début de Round (PERSONNE n'est actif, turn -1) : un advanceTurn retardataire (timer
   // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — confirmRoundStart le posera.
@@ -7491,7 +7546,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // Maniement de deux armes : le −10 défensif expire au DÉBUT du prochain Tour de son porteur. Si ce
       // porteur est order[0] (il rejoue en premier), c'est ICI (le franchissement de Round) que son Tour démarre.
       const firstNext = inBattleId(battle, battle.order[0]);
-      if (firstNext) firstNext.dualStrikeDefensePenalty = false;
+      if (firstNext) firstNext.dualStrikeDefensePenalty = undefined;
       set({ battle: { ...battle, turn: 0, round } });
       resolveRoundBoundary(get, set);
       return;
@@ -7505,7 +7560,7 @@ export function advanceTurn(get: Get, set: SetFn) {
   let acted = false;
   if (newActive) {
     newActive.defensiveStance = false;
-    newActive.dualStrikeDefensePenalty = false; // Maniement de deux armes : expire au début de son Tour (LDB 10 l.767-773)
+    newActive.dualStrikeDefensePenalty = undefined; // Maniement de deux armes : expire au début de son Tour (LDB 10 l.767-773)
     // Maladresse (Oups! 61-80) : perte du Mouvement / de l'Action ce tour-ci.
     if (newActive.loseNextMovement) { movementUsed = mountMovement(battle, newActive); newActive.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.loseMovement', { name: newActive.label }), newActive.id)); }
     if (newActive.loseNextAction) { acted = true; newActive.loseNextAction = false; battle.log.push(ev('detail', tr('cf.loseAction', { name: newActive.label }), newActive.id)); }
@@ -7517,7 +7572,7 @@ export function advanceTurn(get: Get, set: SetFn) {
     for (const line of gate.lines) battle.log.push(ev('detail', line, newActive.id));
     if (gate.loseMovement && movementUsed === 0) movementUsed = mountMovement(battle, newActive);
   }
-  set({ battle: { ...battle, turn, action: null, movementUsed, movedPreAction: false, acted, loadoutSwapped: false, stances: {}, reachable: new Map(), preview: null, runBudget: null, fearGate: null } });
+  set({ battle: { ...battle, ...etatDeTourNeuf(), turn, movementUsed, acted } });
   if (checkBattleOver(get, set)) return;
   bus.emit(EVT.SCENE_DIRTY);
   // La Psychologie ne se teste PLUS par tour (LDB 21 : Traits ciblés/Terreur au DÉBUT du Round l.14,
@@ -7608,7 +7663,7 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
   const b = get().battle;
   if (!b || b.over) return;
   for (const c of b.combatants) if (c.shotsThisTurn) c.shotsThisTurn = 0; // Salve : compteur de tirs réinitialisé à chaque Round
-  const reset = { ...b, action: null, selectedAttack: undefined, movementUsed: 0, movedPreAction: false, acted: false, crewActed: {}, loadoutSwapped: false, stances: {}, reachable: new Map(), preview: null, runBudget: null, fearGate: null };
+  const reset = { ...b, ...etatDeTourNeuf(), crewActed: {} }; // `crewActed` : par Round (`BattleState.crewActed`)
   if (get().net.mode !== 'local' && b.round > 1 && !(b.handRaisedBy?.length)) {
     set({ battle: reset, pendingRoundStart: null });
     get().confirmRoundStart();
@@ -7646,12 +7701,11 @@ function cleDeTour(battle: BattleState, id: string): string {
   return `${battle.round}:${battle.turn}:${id}`;
 }
 
-/** LDB 21 (Psychologie) l.27 : « Si la source de votre Peur se rapproche de vous, vous devez réussir un
- *  Test de Calme Intermédiaire (+0) ou gagner un État Brisé. » L'unité de la règle est LE DÉPLACEMENT :
+/** LDB 21 (Psychologie) l.27, Test de la fiche `calme-d-approche`. L'unité de la règle est LE DÉPLACEMENT :
  *  appelé une fois, APRÈS le déplacement COMPLET de `mover`, il compare la position de DÉPART
  *  (`fromPos`) à sa position d'ARRIVÉE — les cases traversées n'existent pas pour la règle. Tout
- *  combattant qui le craint (Peur active non vaincue) et dont il a fini plus près fait un Test de
- *  Calme ; la source, elle, ne jette RIEN (Test simple, aucune opposition). Les craintifs appelés par
+ *  combattant qui le craint (Peur active non vaincue) et dont il a fini plus près fait le Test
+ *  `calme-d-approche` › `source-se-rapproche` ; la source, elle, ne jette RIEN (Test simple, aucune opposition). Les craintifs appelés par
  *  CE déplacement et affrontant la MÊME entrée de règle (la Peur de cette source, à cet Indice) forment
  *  UNE BANDE influençable quand ils sont pilotés à la main ; les autres (ennemi, héros auto) restent
  *  résolus INLINE par le même Flow — patron EXACT de la Surprise (`resolveAmbush`). La conséquence PURE
@@ -7672,8 +7726,8 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // Le foyer est l'ENTRÉE de psychologie affrontée (`peur`), qui porte déjà son enjeu et sa fiche — pas
   // un gabarit de `kind` : c'est la MÊME Peur que celle des Tests de Round. Son Indice fait donc partie
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
-  const testFor = (indice: number): FlowTest => ({
-    skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Approche menaçante',
+  const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
+    ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
     stake: combatStakeRef('combatPsych', { entryId: 'peur', values: { indice } }),
   });
   const branches = {
@@ -7691,13 +7745,15 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
     // fabrique à `index` (pushStep) les distingue, sans quoi `cascadeBatchRoll` retrouverait la première.
     // La bande est MONTÉE DANS la fabrique (et non recopiée après coup) : l'id indexé fait partie de la
     // déclaration, et l'étape sort mintée du socle.
+    const ft = testFor(indice);
     pushCombatStep(set, (index) => simpleBatchTestStep(
-      craintifs, testFor(indice), branches, EMPTY_FLOW, 'intermediaire', `approach-fear-${mover.id}-${indice}-${index}`,
+      craintifs, ft, branches, EMPTY_FLOW, ft.difficulty, `approach-fear-${mover.id}-${indice}-${index}`,
     ));
   }
   for (const d of dues) {
     if (surfaceOf(get, d.c.id)) continue; // sa rangée est dans la bande
-    runCombatFlow({ mode: 'combat', get, set, target: d.c, caster: d.c, label: 'Approche menaçante' }, testFlow(testFor(d.indice), branches.onSuccess, branches.onFail));
+    const ft = testFor(d.indice);
+    runCombatFlow({ mode: 'combat', get, set, target: d.c, caster: d.c, label: ft.label }, testFlow(ft, branches.onSuccess, branches.onFail));
   }
   // Inline (mover ennemi → héros auto/ennemi craintif) : les lignes partent dans la file différée. Le héros
   // manuel suspend (cascade) et n'en pousse aucune. On les folde dans le `battle.log` que le `move` réécrit.
@@ -7826,10 +7882,8 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
   if (!t) return null;
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
-  // Paramètres du Test EN DONNÉES (psychology.json `test`) : compétence (défaut Calme) + difficulté
-  // (défaut Intermédiaire). Plus de Calme/Intermédiaire codé en dur.
-  const td = findPsychologyById(t.kind)?.test;
-  const skill = td?.skill ?? { id: 'calme' };
+  const td = psychTest(t.kind);
+  const skill = td.skill;
   // Sans Peur (Ennemi) (LDB 10 l.1051) : face à une NOUVELLE Peur/Terreur de l'ennemi spécifié, « un
   // seul Test de Calme Accessible (+20) » pour l'ignorer. Pas sur les re-tests d'une Peur déjà subie
   // (entrée psychState existante → Test étendu normal +0) ni sur les Traits ciblés.
@@ -7837,7 +7891,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
   const isNewSource = !(c.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === t.sourceId);
   const sansPeur = !!sourceFoe && isNewSource && sansPeurVs(c, sourceFoe);
   // Sans Peur force Accessible (+20) ; sinon la difficulté déclarée (défaut Intermédiaire +0).
-  const difficulty: Difficulty = sansPeur ? 'accessible' : (td?.difficulty ?? 'intermediaire');
+  const difficulty: Difficulty = sansPeur ? 'accessible' : td.difficulty;
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE
   // (`extendedDrTarget`/`extendedDrDone` de `BatchParticipant`) — SOURCE UNIQUE de la présentation
@@ -8219,7 +8273,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     const guided = battle.combatants.some(
       (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && a.pos && chebyshev(a.pos, enemy.pos!) <= 1,
     );
-    if (!guided && !rollSansPilote(get, enemy, effectiveChar(enemy, 'intelligence'), 'facile', battleRng()).success) {
+    if (!guided && !rollSansPilote(get, enemy, testValue(enemy, undefined, 'intelligence'), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupid', { name: enemy.label }), enemy.id));
       set({ battle: { ...battle } });
       return advanceTurn(get, set);
@@ -8476,11 +8530,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (!rt) return advanceTurn(get, set); // État non récupérable par Action (pas de `recover` en donnée)
       let success: boolean, netSL: number;
       if (rt.opposition) {
-        // LDB 12 l.160 : les DEUX camps portent leur nue (`RecoverOpposition` les porte ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
-        // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `rec.difficulty` (donnée), l'entrave
-        // roule `intermediaire` — MÊME choix qu'au flux joueur (`FLOWS.recover`), verrouillé par
-        // `combat/ai-recover-departage-nue.test`.
-        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire', {
+        // LDB 12 l.160 : les DEUX camps portent leur nue ET leur Difficulté (`RecoverOpposition` les porte
+        // ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
+        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, rt.opposition.difficulty, {
           attacker: rt.skillBase, defender: rt.opposition.base,
         });
         success = opp.attackerWins; netSL = opp.netSL;
@@ -8541,14 +8593,18 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
       //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.
       // PARITÉ d'approche (LDB 15 l.35-41) : Charge à portée de Course si la Marche ne suffit pas,
-      // sinon Course (Test d'Athlétisme instantané, pas d'attaque ce tour) — cf. aiApproachPlan.
+      // sinon Course (Test de `course` instantané, pas d'attaque ce tour) — cf. aiApproachPlan.
       const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());
       const mv = plan.kind === 'move' ? plan : action;
-      if (ran) battle.log.push(ev('move', tr('cf.enemyRun', { name: enemy.label, skill: enemy.mountId ? tr('cf.skillRide') : tr('cf.skillAthletics'), roll: ran.roll === 100 ? '00' : ran.roll, budget: ran.budget }), enemy.id));
       const wasEngaged = isEngaged(enemy);
       const distBefore = combatDistance(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
+      const pas = Math.max(0, (path?.length ?? 1) - 1);
+      if (ran) {
+        battle.log.push(ev('move', traceLineOf({ who: enemy.label, label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
+        battle.log.push(ev('move', tr('cs.run', { name: enemy.label, cost: pas, short: '' }), enemy.id));
+      }
       // Télégraphe de DÉPLACEMENT (parité héros) : montrer le chemin + la destination AVANT que l'ennemi
       // bouge (« où il va »), puis il glisse dessus. Le mouvement réel + la suite (attaque/fin de tour)
       // sont DIFFÉRÉS après la tenue (beatHold moveTelegraph) — mêmes effets, juste annoncés d'abord.
@@ -8576,8 +8632,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         // #527 : l'approche IA doit se TRACER comme le Mouvement joueur (BFS à pas uniforme, `pathTo` — même
         // coût que `battleClickTile`/`stepCost`) sinon un gate qui exige `movementUsed === 0` (Se cabrer,
         // LDB 85 l.314) laisse passer approche + piétinement-gratuit du même tour.
-        battle.movementUsed = (battle.movementUsed ?? 0) + Math.max(0, (path?.length ?? 1) - 1);
-        approachFearTrigger(get, set, enemy, fromPos); // LDB 21 l.27 : source de Peur qui s'approche → Test de Calme ou Brisé
+        battle.movementUsed = (battle.movementUsed ?? 0) + pas;
+        approachFearTrigger(get, set, enemy, fromPos); // LDB 21 l.27
         set({ battle: { ...battle } });
         bus.emit(EVT.SCENE_DIRTY);
         const tgt = targetOf(mv.thenTargetId);

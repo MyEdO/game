@@ -10,7 +10,10 @@
       "page": 29,
       "note": "MSRC 7 l.78-82"
     },
-    "rule": "navigation-greement"
+    "rule": {
+      "id": "navigation-greement",
+      "type": "regle"
+    }
   },
   {
     "id": "river-nav",
@@ -23,7 +26,10 @@
       "page": 29,
       "note": "MSRC 7 l.38"
     },
-    "rule": "navigation-derive"
+    "rule": {
+      "id": "navigation-derive",
+      "type": "regle"
+    }
   },
   {
     "id": "river-tack",
@@ -36,7 +42,10 @@
       "page": 29,
       "note": "MSRC 7 l.39"
     },
-    "rule": "navigation-louvoyage"
+    "rule": {
+      "id": "navigation-louvoyage",
+      "type": "regle"
+    }
   },
   {
     "id": "river-capsize",
@@ -49,7 +58,10 @@
       "page": 29,
       "note": "MSRC 7 l.40"
     },
-    "rule": "navigation-chavirage"
+    "rule": {
+      "id": "navigation-chavirage",
+      "type": "regle"
+    }
   },
   {
     "id": "river-rigging",
@@ -62,7 +74,10 @@
       "page": 29,
       "note": "MSRC 7 l.41"
     },
-    "rule": "navigation-greement"
+    "rule": {
+      "id": "navigation-greement",
+      "type": "regle"
+    }
   },
   {
     "id": "river-righting",
@@ -75,7 +90,10 @@
       "page": 29,
       "note": "MSRC 7 l.40"
     },
-    "rule": "navigation-chavirage"
+    "rule": {
+      "id": "navigation-chavirage",
+      "type": "regle"
+    }
   },
   {
     "id": "river-peril-nav",
@@ -112,7 +130,10 @@
       "page": 30,
       "note": "MSRC 7 l.101-105"
     },
-    "rule": "navigation-coque-percee"
+    "rule": {
+      "id": "navigation-coque-percee",
+      "type": "regle"
+    }
   },
   {
     "id": "river-echouage-force",
@@ -125,7 +146,10 @@
       "page": 30,
       "note": "MSRC 7 l.99"
     },
-    "rule": "navigation-echouage"
+    "rule": {
+      "id": "navigation-echouage",
+      "type": "regle"
+    }
   },
   {
     "id": "sea-overspeed",
@@ -145,7 +169,10 @@
     "label": "Salissures",
     "kind": "sea-salissures",
     "template": "Échec : la coque gagne un niveau de Salissures.",
-    "rule": "salissures-navire",
+    "rule": {
+      "id": "salissures-navire",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 105,
@@ -230,7 +257,10 @@
     "label": "Exposition",
     "kind": "exposure",
     "template": "Échec : −10 en {chars} ; 2ᵉ échec : toutes les autres ; 3ᵉ+ : 1d10 Dégâts (ignorent les PA).",
-    "rule": "exposition",
+    "rule": {
+      "id": "exposition",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 181,
@@ -255,7 +285,10 @@
     "label": "Dégagement des Débris marins",
     "kind": "sea-degagement-debris",
     "template": "Test étendu : tant que le total de {totalDR} DR n'est pas atteint, le navire reste empêtré.",
-    "rule": "degagement-debris-marins",
+    "rule": {
+      "id": "degagement-debris-marins",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 112,
@@ -268,7 +301,10 @@
     "label": "Progression du bateau",
     "kind": "progression",
     "template": "Le total de DR fixe les milles parcourus aujourd'hui.",
-    "rule": "test-equipage-progression",
+    "rule": {
+      "id": "test-equipage-progression",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -281,7 +317,10 @@
     "label": "Orientation du jour",
     "kind": "orientation",
     "template": "Le total de DR se lit à la table des Repères : du cap tenu à la dérive, qui déclenche un Changement de cap (retard, demi-tour ou quart de tour).",
-    "rule": "test-equipage-orientation",
+    "rule": {
+      "id": "test-equipage-orientation",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -294,7 +333,10 @@
     "label": "Feu du phare",
     "kind": "phare",
     "template": "Réussi : la lumière repérée donne un bonus de DR au Test d'Orientation.",
-    "rule": "test-equipage-perception",
+    "rule": {
+      "id": "test-equipage-perception",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -307,7 +349,10 @@
     "label": "Vigie avant l’abordage",
     "kind": "embuscade",
     "template": "Échoué : le navire hostile aborde par Surprise.",
-    "rule": "test-equipage-perception",
+    "rule": {
+      "id": "test-equipage-perception",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -320,7 +365,10 @@
     "label": "Purge de la vermine",
     "kind": "extermination",
     "template": "Test étendu : les DR s'accumulent jusqu'au seuil d'infestation, et chaque Test consomme 1d10 heures.",
-    "rule": "test-equipage-extermination-nuisibles",
+    "rule": {
+      "id": "test-equipage-extermination-nuisibles",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -333,7 +381,10 @@
     "label": "Entretien du soir",
     "kind": "entretien",
     "template": "Le Test subit −2 DR ; à +1 DR ou mieux, la coque récupère 1d10 Blessures.",
-    "rule": "test-equipage-entretien",
+    "rule": {
+      "id": "test-equipage-entretien",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -346,7 +397,10 @@
     "label": "Affaler les voiles",
     "kind": "affaler",
     "template": "Échoué : Coup Critique au gréement.",
-    "rule": "test-equipage-affaler",
+    "rule": {
+      "id": "test-equipage-affaler",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -359,7 +413,10 @@
     "label": "Affaler sous l’ouragan",
     "kind": "sea-ouragan-affaler",
     "template": "Le Test subit −2 DR ; échoué : Coup Critique au gréement.",
-    "rule": "test-equipage-affaler",
+    "rule": {
+      "id": "test-equipage-affaler",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -372,7 +429,10 @@
     "label": "Rude épreuve du long voyage",
     "kind": "voyage-rapide",
     "template": "Le total de DR entre dans le tirage du voyage rapide : il décide du palier subi (équipage, cargaison, coque).",
-    "rule": "test-equipage-rude-epreuve",
+    "rule": {
+      "id": "test-equipage-rude-epreuve",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 123,
@@ -385,7 +445,10 @@
     "label": "Manche de Poursuite",
     "kind": "poursuite",
     "template": "Le total de DR décide du terrain gagné ou perdu : à la Distance d'évasion le poursuivant abandonne, à zéro c'est l'abordage.",
-    "rule": "test-equipage-progression-poursuite",
+    "rule": {
+      "id": "test-equipage-progression-poursuite",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 109,
@@ -398,7 +461,10 @@
     "label": "Manche de Tourbillon",
     "kind": "tourbillon",
     "template": "La coque encaisse les Dégâts du Tourbillon à chaque manche ; les DR s'accumulent jusqu'au seuil d'évasion.",
-    "rule": "test-equipage-manoeuvre",
+    "rule": {
+      "id": "test-equipage-manoeuvre",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 110,
@@ -411,11 +477,46 @@
     "label": "Progression — Test de Navigation",
     "kind": "sea-progression-nav",
     "template": "Le DR se lit au tableau de progression : de M+2 (4 DR ou plus) à la moitié de M (−5 ou moins).",
-    "rule": "navigation-progression",
+    "rule": {
+      "id": "navigation-progression",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 104,
       "note": "MDG 13 l.66-75"
+    }
+  },
+  {
+    "id": "land-peril",
+    "type": "voyage-stakes",
+    "label": "Péripéties de la route — le dé du jour",
+    "kind": "landPeril",
+    "template": "Sur un résultat de {seuil}, un événement survient et se tire sur la table des Péripéties ; sinon, aucune péripétie ce jour-là.",
+    "rule": {
+      "id": "peripeties-de-voyage",
+      "type": "regle"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 263,
+      "note": "LDB 51 l.208"
+    }
+  },
+  {
+    "id": "land-peril-table",
+    "type": "voyage-stakes",
+    "label": "Table des péripéties",
+    "kind": "landPerilTable",
+    "template": "La péripétie du jour : l'événement tiré s'applique au groupe, et appelle parfois un Test.",
+    "rule": {
+      "id": "peripeties-de-voyage",
+      "type": "regle"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 263,
+      "note": "LDB 51 l.210-221"
     }
   },
   {
@@ -424,8 +525,10 @@
     "label": "Voyage éreintant — itinéraire de substitution",
     "kind": "landPerilSurvie",
     "template": "Réussi : un bon itinéraire de substitution est trouvé. Échec : tout le monde arrive un jour plus tard avec un État Exténué.",
-    "rule": "extenue",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "extenue",
+      "type": "etat"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 263,
@@ -438,7 +541,10 @@
     "label": "Attaqués ! — repérer l'embuscade",
     "kind": "landPerilPerception",
     "template": "Réussi : l'attaque est vue venir, personne n'est Surpris. Échec : le groupe tombe dans l'embuscade.",
-    "rule": "embuscade-surprise",
+    "rule": {
+      "id": "embuscade-surprise",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 263,
@@ -451,8 +557,10 @@
     "label": "Attelage à l'allure forcée",
     "kind": "landForcedPace",
     "template": "Échec : les animaux repassent au pas et chacun teste sa Résistance ou gagne un État Exténué — Échec Impressionnant ou pire de la bête : un État Exténué supplémentaire ; Échec Stupéfiant de la bête : 1d10 Blessures en plus (modifiées par le Bonus d'Endurance, minimum 1). Échec Stupéfiant (−6 DR) du conducteur : tirage sur les Problèmes de véhicule.",
-    "rule": "conduite-d-attelage",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "conduite-d-attelage",
+      "type": "skill"
+    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 27,
@@ -465,8 +573,10 @@
     "label": "Attelage incontrôlable — reprendre le contrôle",
     "kind": "landForcedPaceControl",
     "template": "Réussi : l'attelage est maîtrisé. Échec : Accident — 2d10 Blessures aux occupants, modifiées par le Bonus d'Endurance et les Points d'Armure (minimum 1).",
-    "rule": "conduite-d-attelage",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "conduite-d-attelage",
+      "type": "skill"
+    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 28,
@@ -479,8 +589,10 @@
     "label": "Naufrage — rejoindre la côte",
     "kind": "shipwreckSwim",
     "template": "Réussi : le nageur rejoint la côte, rescapé. Échec : emporté par les flots — il se noie.",
-    "rule": "natation",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "natation",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 181,
@@ -493,8 +605,10 @@
     "label": "Embrigadement — retrouver l'équipage",
     "kind": "embrigadementRagot",
     "template": "Réussi : la trace des embrigadés est retrouvée, reste à les libérer. Échec : l'autre navire prend la mer — 1d10 membres d'équipage de plus perdus.",
-    "rule": "ragot",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "ragot",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 133,
@@ -507,8 +621,10 @@
     "label": "Embrigadement — libérer en douce",
     "kind": "embrigadementDiscretion",
     "template": "Réussi : les compagnons sont libérés dans l'ombre. Échec : repéré — 1d10 membres d'équipage de plus perdus.",
-    "rule": "discretion",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "discretion",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 133,
@@ -521,8 +637,10 @@
     "label": "Présage divin — Prière à Manann",
     "kind": "sea-priere",
     "template": "Le présage se joue sur ce Test : {manann} d'Humeur de Manann et {moral} de Moral — un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
-    "rule": "priere",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "priere",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 132,
@@ -535,7 +653,10 @@
     "label": "Météo de l'Étape",
     "kind": "stageWeather",
     "template": "Le temps de l'Étape : il commande le Test de Résistance de traversée (Neige/Blizzard) et les postes praticables du jour.",
-    "rule": "meteo-etape",
+    "rule": {
+      "id": "meteo-etape",
+      "type": "regle"
+    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 32,
@@ -548,7 +669,10 @@
     "label": "Événement de bord",
     "kind": "seaBoardEvent",
     "template": "Ce que le d100 décide pour la journée : l'événement de bord appliqué au navire — l'Humeur de Manann en est le modificateur — puis le délai de 1d10 jours avant le prochain.",
-    "rule": "evenements-de-bord",
+    "rule": {
+      "id": "evenements-de-bord",
+      "type": "regle"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 130,

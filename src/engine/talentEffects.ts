@@ -9,7 +9,7 @@
  *  - `charMod{char,mod:5}` : « Vous gagnez un bonus permanent de +5 à votre Caractéristique X de
  *    départ (ne compte pas comme des Augmentations) » — Guerrier né, Tireur de précision, Très fort,
  *    Très résistant, Vivacité, Réflexes foudroyants, Doigts de fée, Perspicace, Imperturbable, Affable ;
- *  - `attrMod{attr:'wounds',mod:{bonusOf:'E'}}` (Dur à cuire) : « autant de Points de Blessure
+ *  - `attrMod{attr:'wounds',mod:{bonusOf:'endurance'}}` (Dur à cuire) : « autant de Points de Blessure
  *    supplémentaires que votre Bonus d'Endurance » — recalculé si le BE augmente, par acquisition ;
  *  - `attrMod{attr:'fortune',mod:1}` (Chanceux) : « maximum de Points de Chance = Points de Destin + niveaux » ;
  *  - `attrMod{attr:'resolve',mod:1}` (Obstiné) : « Ajoutez votre niveau au maximum de votre réserve » ;

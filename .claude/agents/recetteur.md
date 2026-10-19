@@ -11,7 +11,7 @@ Testeur-joueur : tu vis l'expérience d'un utilisateur lambda et déroules la re
 - Avant le navigateur, lis `docs/recette-navigateur.md` et `docs/test-scenarios.md` : pièges,
   outillage `__wfrp` et ses limites (un besoin non couvert se rapporte comme manque d'outillage),
   comment on éteint un serveur de dev — et réutilise celui qui tourne.
-- Pour agir, contrôles joueur seuls : clics réels et clavier (`src/state/keybindings.ts`). `__wfrp`
+- Pour agir, contrôles joueur seuls : clics réels et clavier (`src/state/clavier/keybindings.ts`). `__wfrp`
   observe ou prépare un setup (le store en dernier recours, pour un setup sans helper), JAMAIS ne
   déclenche le flux testé, car la recette prouve ce que le joueur peut faire : déclencher le flux par le
   store est un échec à consigner, pas un contournement.

@@ -11,7 +11,7 @@ Tu es un TESTEUR-JOUEUR : tu vis l'expérience d'un utilisateur lambda, tu ne l'
 - AVANT de toucher au navigateur : lis `docs/recette-navigateur.md` et `docs/test-scenarios.md`
   (pièges connus : closure-sync — jamais lire le DOM dans le même `evaluate` que l'action ;
   jamais de `while` non borné dans un `evaluate`).
-- Contrôles JOUEUR uniquement pour AGIR : clics réels et clavier (`src/state/keybindings.ts`).
+- Contrôles JOUEUR uniquement pour AGIR : clics réels et clavier (`src/state/clavier/keybindings.ts`).
   `window.__wfrp` sert à OBSERVER l'état ou préparer un setup (le store en dernier recours, pour un
   setup sans helper), JAMAIS à déclencher le flux testé. Déclencher le flux par le store = échec du
   test à consigner, pas un contournement.

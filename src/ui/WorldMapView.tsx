@@ -4,7 +4,8 @@ import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../state/voyageCadence';
 import { t, deElide } from '../i18n';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
-import { baseHoursPerDay, maxHoursPerDay, passagePayant } from '../state/travelFlow';
+import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../state/travelFlow';
+import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../state/riverVoyageFlow';
 import { forcePaceRefus } from '../state/seaVoyageFlow';
 import {
@@ -41,7 +42,7 @@ import { VB_W, VB_H, fitViewport, type Viewport } from './worldMapViewport';
 import { MapCanvas, type MapMarker, type MapPath } from './MapCanvas';
 import { CompassRose } from './PlanChrome';
 import { Row, Split } from './Layout';
-import { garanti } from '../state/combatants';
+import { garanti } from '../lib/garanti';
 
 /** Hash déterministe d'un id → sens de courbure stable d'une route (pas de Math.random). */
 function hashStr(s: string): number {
@@ -84,6 +85,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
+  const travelDayHours = useGame((s) => s.travelDayHours);
   const travelPlan = useGame((s) => s.travelPlan);
   const close = useGame((s) => s.closeWorldMap);
   const startTravel = useGame((s) => s.startTravel);
@@ -243,8 +245,13 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
   const effAllure: Allure | undefined = mode === 'monture' ? allure : forceGallop ? 'galop' : undefined;
   const kmh = selRoute ? travelSpeed(party, possessions, mode, selRoute.speed?.[mode], effAllure) : 0;
-  const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? 12 : base;
-  const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours) : null;
+  const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? MOUNT_MAX_HOURS : base;
+  // Le premier jour n'a que ce qu'il RESTE du budget d'aujourd'hui — même calcul que le flux.
+  const prior = hoursTravelledToday({ gameTime, travelDayHours });
+  const firstDay = travelDayBudget(mode, hours, prior);
+  // Route du jour FAITE : le départ attendra l'aube — dit AVANT le clic, même source que la porte du flux.
+  const aLAube = routeDuJourFaite(mode, hours, prior);
+  const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours, firstDay) : null;
   // Le passage payant : MÊME offre et MÊME prix qu'au débit (`travelFlow.startTravel`).
   const offre = selRoute && here && passagePayant(useGame.getState, selRoute, mode)
     ? offreDePassage(map, selRoute, mode, here.id, billetEnMain, marchandagesDeBillet)
@@ -262,7 +269,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
 
   const libelleDepart = t(mode === 'mer' && provisions && !provisions.suffisant ? 'wm.appareillerQuandMeme' : achat ? 'wm.payerEtPartir' : 'wm.partir');
   const fmtDuration = (p: NonNullable<typeof plan>) =>
-    p.days <= 1 ? t('wm.dureeHeures', { h: Math.max(1, Math.round(p.travelMinutes / 60)) }) : t('wm.dureeJours', { jours: p.days, h: hours });
+    p.days <= 1 ? t('wm.dureeHeures', { duree: clockLabel(p.travelMinutes, { exact: true }) ?? '' }) : t('wm.dureeJours', { jours: p.days, duree: clockLabel(hours * 60, { exact: true }) ?? '' });
 
   // Reprise d'un voyage interrompu.
   const resumeDest = travelPlan?.interrupted ? placeById(map, travelPlan.toPlaceId) : undefined;
@@ -487,7 +494,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       )}
 
       {/* Panneau de départ */}
-      {!travelPlan?.interrupted && selRoute && dest && here && (
+      {!travelPlan?.interrupted && !(pendingDeparture && !isGuest) && selRoute && dest && here && (
         <div className="worldmap-panel">
           <div className="wm-trip">
             <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{dest.label}</b> · {routeDistanceLabel(selRoute.km, selRoute.sea)}</span>
@@ -642,6 +649,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )
             ) : kmh > 0 ? (
               <>
+                {aLAube && <>{t('wm.departAvantAube')}{' '}</>}
                 {t('wm.allureDuree', { kmh, duree: plan ? fmtDuration(plan) : '—' })}
                 {cost && <>{t('wm.total', { places: placesPayees(passengers), s: placesPayees(passengers) > 1 ? 's' : '' })}<Coins money={cost} />{!affordable && t('wm.bourseInsuffisante')}</>}
                 {mode === 'pied' && plan && plan.days > 1 && (
@@ -678,8 +686,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 sa raison que sur une action FERMÉE (#1689 T2). */}
             <GatedAction
               id="worldmap-depart"
-              label={<><Icon id="scenario/travel" size="sm" /> {libelleDepart}</>}
-              ariaLabel={libelleDepart}
+              label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
+              ariaLabel={aLAube ? t('wm.attendreAube') : libelleDepart}
               enabled={!isGuest && (mode === 'mer'
                 ? !!vessel && seaM > 0 && !(seaOverload != null && !seaOverload.canSail)
                 : kmh > 0 && affordable)}
@@ -688,14 +696,17 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 : mode === 'mer' ? t('wm.refusCale', { pct: seaOverload?.ratioPct ?? 0 })
                 : kmh <= 0 ? t('wm.refusSurcharge')
                 : t('wm.refusBourse', { prix: cost ? formatMoney(cost) : '' })}
-              onClick={() => startTravel(selRoute.id, mode, {
-                classeId: classe || undefined,
-                hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? 12 : undefined) : undefined,
-                allure: effAllure,
-                seaPace: mode === 'mer' && !fastJoue && seaPace > 0 ? seaPace : undefined,
-                fast: fastJoue ? true : undefined,
-                cadence: (mode === 'mer' && !fastJoue) || fluvialJoue ? cadence : undefined,
-              })}
+              onClick={() => {
+                startTravel(selRoute.id, mode, {
+                  classeId: classe || undefined,
+                  hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? MOUNT_MAX_HOURS : undefined) : undefined,
+                  allure: effAllure,
+                  seaPace: mode === 'mer' && !fastJoue && seaPace > 0 ? seaPace : undefined,
+                  fast: fastJoue ? true : undefined,
+                  cadence: (mode === 'mer' && !fastJoue) || fluvialJoue ? cadence : undefined,
+                });
+                if (aLAube) departWaitDawn(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
+              }}
             />
           </Row>
         </div>
@@ -737,17 +748,19 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       )}
 
       {pendingDeparture && !isGuest && (
-        <div className="worldmap-panel" role="alertdialog" aria-label={t('wm.departDeNuit')}>
-          <p>
-            {t('wm.nuitTombee', {
+        <div className="worldmap-panel" role="alertdialog" aria-label={t(pendingDeparture.cause === 'budget' ? 'wm.departBudgetTitre' : 'wm.departDeNuit')}>
+          {pendingDeparture.cause === 'budget' ? (
+            <p>{t('wm.departBudget', { aube: formatImperial(pendingDeparture.dawnAt) })}</p>
+          ) : (
+            <p>{t('wm.nuitTombee', {
               mode: t(pendingDeparture.mode === 'monture' ? 'wm.nuitEnSelle' : pendingDeparture.mode === 'pied' ? 'wm.nuitAPied' : 'wm.nuitFleuve'),
               aube: formatImperial(pendingDeparture.dawnAt),
-            })}
-          </p>
-          <div className="bar">
-            <button className="btn btn-primary" onClick={departWaitDawn}>{t('wm.attendreAube')}</button>
-            <button className="btn" onClick={departCancel}>{t('wm.annuler')}</button>
-          </div>
+            })}</p>
+          )}
+          <Row justify="end">
+            <button type="button" className="btn" onClick={departCancel}>{t('wm.annuler')}</button>
+            <button type="button" className="btn btn-primary" onClick={departWaitDawn}>{t('wm.attendreAube')}</button>
+          </Row>
         </div>
       )}
       </aside>

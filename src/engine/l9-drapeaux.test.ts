@@ -168,7 +168,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
   it('op castWard : pose l’aura au rayon BSoc, élargie de +BSoc par +2 DR', () => {
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
-      { op: 'castWard', radius: { bonusOf: 'sociabilite' }, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
+      { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
     ], { caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 4 });
     const eff = priest.activeEffects?.find((e) => e.castWard);
     expect(eff?.castWard?.radiusMeters).toBe(4 + 2 * 4); // BSoc 4 + 2 paliers (+2 DR) × BSoc
@@ -177,7 +177,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
   it('sans DR excédentaire : rayon de base seul', () => {
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
-      { op: 'castWard', radius: { bonusOf: 'sociabilite' }, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
+      { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
     ], { caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 0 });
     expect(priest.activeEffects?.find((e) => e.castWard)?.castWard?.radiusMeters).toBe(4);
   });

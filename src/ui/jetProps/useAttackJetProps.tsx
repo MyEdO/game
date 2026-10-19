@@ -14,6 +14,7 @@ import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
 import { objetSourceDeLArme } from '../../engine/weaponLoad';
 import { attackModesFor, offHandPenalty } from '../../engine/combatFeatures/dispatch';
+import { modDeRegle } from '../../engine/reglesChiffrees';
 import { CritLocationPicker } from '../ForcedRollPicker';
 import { DeterminationButton } from '../DeterminationButton';
 import { CodexRef } from '../compendium/CodexRef';
@@ -86,9 +87,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // L'intitulé d'une attaque gratuite est celui de SON attaque (Piétinement, Morsure…), lu de son arme.
   const intitule = armeTenue ? 'Attaque' : weapon.label;
   const pickable = armeTenue ? attacker.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
-  // LDB 14 (Tableau des Difficultés de Combat, « Attaquer avec votre main secondaire ») — valeur du
-  // MOTEUR, la même que celle qui pèsera sur la cible (`attackModifiers`).
-  const offPen = offHandPenalty(attacker);
+  // LDB 14 l.78 — valeur du MOTEUR, la même que celle qui pèsera sur la cible (`attackModifiers`).
+  const offPen = offHandPenalty(attacker, modDeRegle('main-secondaire', 'main-secondaire'));
   const res = pa.result;
   const victime = victimeDuCoup(battle, target, pa);
   const issue = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), weapon, attacker) : null;
@@ -233,7 +233,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
                 onChange={(e) => setWeapon(e.target.value || null)}
               >
                 {/* La pénalité affichée est celle du MOTEUR (`offHandPenalty` : le Talent
-                    Ambidextre la réduit puis l'annule) — un « -20 » écrit ici mentirait à l'écran
+                    Ambidextre la réduit puis l'annule) — une valeur écrite ici mentirait à l'écran
                     du personnage qui ne la subit pas. Nulle ⇒ rien à annoncer. */}
                 {pickable.map((w) => (
                   <option key={w.uid} value={w.uid}>{w.label}{w.hand === 'off' && offPen ? ` (2nde ${offPen})` : ''}</option>

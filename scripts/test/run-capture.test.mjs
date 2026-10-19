@@ -9,30 +9,23 @@ import { spawn, spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 
 /** Faux dépôt : une entrée qui joue `lancerTests` du lanceur réel sur cette racine, sous un verrou
  *  propre au faux dépôt, plus un Vitest de substitution. Ce que ces cas mesurent : la CAPTURE du
  *  lanceur — il rend le code de Vitest tel quel et écrit la sortie complète, même hors d'un dépôt git. */
 function fauxDepot(sourceDuFauxVitest) {
   const base = mkdtempSync(join(tmpdir(), 'vitest-run-'))
-  writeFileSync(join(base, 'entree.mjs'), 'import { lancerTests } from ' + JSON.stringify(new URL('./run.mjs', import.meta.url).href) + '; process.exitCode = await lancerTests({ env: { ...process.env, WFRP_TEST_COEURS: process.env.WFRP_TEST_COEURS ?? "4", WFRP_TEST_MEMOIRE_MO: process.env.WFRP_TEST_MEMOIRE_MO ?? "65536" }, racine: ' + JSON.stringify(base) + ', verrou: { chemin: ' + JSON.stringify(join(base, 'geste.verrou')) + ', libelle: "fixture", attente: { echeanceMs: 0, pasMs: 1 } } })')
+  writeFileSync(join(base, 'entree.mjs'), 'import { lancerTests } from ' + JSON.stringify(new URL('./run.mjs', import.meta.url).href) + '; process.exitCode = await lancerTests({ env: { ...process.env, WFRP_TEST_COEURS: process.env.WFRP_TEST_COEURS ?? "4", WFRP_TEST_MEMOIRE_MO: process.env.WFRP_TEST_MEMOIRE_MO ?? "65536" }, racine: ' + JSON.stringify(base) + ', enumerer: () => JSON.parse(process.env.TRACE_FICHIERS ?? "[]"), verrou: { chemin: ' + JSON.stringify(join(base, 'geste.verrou')) + ', libelle: "fixture", attente: { echeanceMs: 0, pasMs: 1 } } })')
   mkdirSync(join(base, 'node_modules', 'vitest'), { recursive: true })
   writeFileSync(join(base, 'node_modules', 'vitest', 'vitest.mjs'), sourceDuFauxVitest, 'utf8')
   return base
 }
 
-/** Énumération du faux Vitest (`list --filesOnly --json=<f>`) : les fichiers de `TRACE_FICHIERS`,
- *  aucun par défaut. */
-const LISTE =
-  "import fs from 'node:fs'\n" +
-  "if (process.argv[2] === 'list') {\n" +
-  "  const json = process.argv.find((a) => a.startsWith('--json=')).slice('--json='.length)\n" +
-  "  fs.writeFileSync(json, JSON.stringify(JSON.parse(process.env.TRACE_FICHIERS ?? '[]').map((file) => ({ file }))), 'utf8')\n" +
-  '  process.exit(0)\n' +
-  '}\n'
+const FS = "import fs from 'node:fs'\n"
 
 const TRACE = (suite) =>
-  LISTE +
+  FS +
   "fs.writeFileSync(process.env.TRACE_ARGV, JSON.stringify(process.argv.slice(2)), 'utf8')\n" +
   "process.stdout.write('couleur FORCE_COLOR=' + (process.env.FORCE_COLOR ?? '(absent)') + " +
   "' NO_COLOR=' + (process.env.NO_COLOR ?? '(absent)') + '\\n')\n" +
@@ -241,7 +234,7 @@ test('régime inconnu : REFUS nommé, aucun Vitest lancé', () => {
 // par `npm test` (le partage node/jsdom) n'était couvert par aucun d'eux. `WFRP_TEST_COEURS` et
 // `WFRP_TEST_MEMOIRE_MO` forcent le seuil de partage, sinon le verdict dépendrait du runner.
 const VITEST_SPLIT =
-  LISTE +
+  FS +
   'const argv = process.argv.slice(2)\n' +
   "const cote = /vitest\\.([a-z]+)\\.config/.exec(argv[argv.indexOf('--config') + 1])[1]\n" +
   "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
@@ -265,7 +258,7 @@ test('partage node/jsdom : DEUX processus, sorties préfixées par côté, les d
         TRACE_ARGV: trace,
         WFRP_TEST_COEURS: '16',
         WFRP_TEST_MEMOIRE_MO: '65536',
-        TRACE_FICHIERS: JSON.stringify([cote.node, cote.jsdom].map((p) => p.split('\\').join('/'))),
+        TRACE_FICHIERS: JSON.stringify(['moteur.test.ts', 'ecran.test.tsx']),
       },
     })
     assert.equal(run.status, 0, `run partagé en échec : ${run.stdout}${run.stderr}`)
@@ -335,24 +328,13 @@ function lanceMono(base, env = {}, args = []) {
   })
 }
 
-const posixDe = (p) => p.split('\\').join('/')
-
-/** Faux Vitest d'une PARTIE : il rend l'`include` de la config reçue (`--config`) dans `TRACE_INCLUDE`. */
-const VITEST_PARTIE =
-  LISTE +
-  'const argv = process.argv.slice(2)\n' +
-  "const config = fs.readFileSync(argv[argv.indexOf('--config') + 1], 'utf8')\n" +
-  "fs.writeFileSync(process.env.TRACE_INCLUDE, /include: (\\[.*?\\]) \\} \\};/.exec(config)[1], 'utf8')\n" +
-  "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
-  'process.exit(0)\n'
-
 test('partie i/K : la tranche part en `include`, compte et empreinte imprimés ; les K tranches partitionnent la liste', () => {
   const noms = Array.from({ length: 9 }, (_, n) => `src/t${n}.test.ts`)
   const K = 3
   const vus = []
   const listes = new Set()
   for (let i = 1; i <= K; i += 1) {
-    const base = fauxDepot(VITEST_PARTIE)
+    const base = fauxDepot(VITEST_DE_PARTIE)
     try {
       mkdirSync(join(base, 'src'), { recursive: true })
       for (const n of noms) writeFileSync(join(base, n), "import { test } from 'vitest'\n", 'utf8')
@@ -360,7 +342,7 @@ test('partie i/K : la tranche part en `include`, compte et empreinte imprimés ;
       const run = lanceMono(base, {
         WFRP_TEST_PARTIE: `${i}/${K}`,
         TRACE_INCLUDE: trace,
-        TRACE_FICHIERS: JSON.stringify(noms.map((n) => posixDe(join(base, n)))),
+        TRACE_FICHIERS: JSON.stringify(noms),
       })
       assert.equal(run.status, 0, `partie ${i} : ${run.stdout}${run.stderr}`)
       const inclus = JSON.parse(readFileSync(trace, 'utf8'))

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { modalOwnerOf, ownsLocally, intentAllowedFor } from './netOwnership';
+import { modalOwnerOf, ownsLocal, intentAllowedFor } from './netOwnership';
 import { castingBaseValue } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 
@@ -135,7 +135,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
  * juge de #942) : la fenêtre d'incantation est ouverte par le lanceur, donc l'owner de l'étape `cast`
  * est le lanceur ; sans partage d'étape, AUCUN siège ne réunit « voir la fenêtre » ET « piloter la
  * rangée de la cible » → la cible subit sans opposer. Prédicats RÉELS : `modalOwnerOf` (visibilité,
- * `ActiveModal`), `ownsLocally` (gate de rangée, `CastModal`), `intentAllowedFor` (autorité hôte).
+ * `ActiveModal`), `ownsLocal` (gate de rangée, `CastModal`), `intentAllowedFor` (autorité hôte).
  */
 describe('Incantation opposée en COOP — la cible d’un autre siège tient sa rangée', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null, pendingCastOpposition: null, pendingCascade: null }); });
@@ -173,13 +173,13 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     useGame.setState({ net: { ...useGame.getState().net, mySeat: seat } });
     const s = useGame.getState();
     const owner = modalOwnerOf(s);
-    return owner === '*' || owner === null || ownsLocally(s, owner);
+    return owner === '*' || owner === null || ownsLocal(s, owner);
   };
   /** Le siège `seat` PILOTE-t-il la rangée de `id` ? (gate de rangée `CastModal` + autorité hôte.) */
   const tientRangee = (seat: number, id: string): boolean => {
     useGame.setState({ net: { ...useGame.getState().net, mySeat: seat } });
     const s = useGame.getState();
-    return ownsLocally(s, id) && intentAllowedFor(s, seat, 'oppositionRoll', [id]);
+    return ownsLocal(s, id) && intentAllowedFor(s, seat, 'oppositionRoll', [id]);
   };
 
   it('au moins un siège VOIT la fenêtre ET tient la rangée de la cible (sinon le Test disparaît)', async () => {

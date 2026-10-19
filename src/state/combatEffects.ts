@@ -1,6 +1,6 @@
 import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { GameState, RevealEntry } from './store';
-import type { Get, Set as SetFn } from './flowTypes';
+import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite } from './pendings';
 import { ouvrirDialogue } from './dialogue';
@@ -13,7 +13,7 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
   type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
-import { gainCorruption, corruptionTarget, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
+import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -43,7 +43,7 @@ import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoy
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { tavernNpcOffers } from './tavernFlow';
-import { openRest, placesOfKind } from './restFlow';
+import { openRest, placesOfKind, sceneLieu } from './restFlow';
 import { traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
@@ -70,7 +70,8 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId, garanti } from './combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId } from './combatants';
+import { garanti } from '../lib/garanti';
 import { addPossession, type PossessionInput } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef } from '../engine/possession';
 import { ev } from './combatLog';
@@ -1217,7 +1218,7 @@ type EffectApplyResult = void | 'suspend';
 function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: GameState[K][string]): void {
   env.set((s: GameState) => {
     const registre: GameState[K] = { ...s[champ], [cle]: valeur };
-    return { [champ]: registre } as Partial<GameState>;
+    return { [champ]: registre } as PatchDeFlux;
   });
 }
 
@@ -1884,17 +1885,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   corruptionExposure: {
     group: 'Afflictions', label: libelleEffet('corruptionExposure'), icon: 'nav/mutation',
-    make: () => ({ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: '' }),
+    make: () => ({ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: '' }),
     apply: (e, env) => {
       // Influence corruptrice (LDB 19 l.23-75) : ouvre le Test différé par modale
       // (Lancer → Chance → Appliquer) ; le gain dépendra du niveau et du DR.
       const hero = corruptionTarget(env.get(), e.heroId);
-      // `e.skill` présent = déterminé en amont (verrouillé) ; absent = nature indéterminée → le
-      // joueur choisira Résistance/Calme dans la modale (défaut affiché : Résistance).
+      // `e.nature` présente = imposée par la source ; absente = indéterminée → le joueur choisira un
+      // Test de `influences-corruptrices` dans la modale (`expositionPending`).
       // Test d'Exposition = « résister à la Corruption » → Résistance (Menace : Corruption) offerte (LDB 10).
       // La pose passe par LA PORTE du slot (#1282) : une fenêtre de Corruption déjà ouverte n'est pas
       // écrasée — l'Exposition prend rang (`corruptionQueue`).
-      if (hero) poseCorruptionPending(env.get, env.set, { heroId: hero.id, level: e.level, skill: testDeCorruption(e.skill), skillLocked: e.skill != null, align: e.align, menace: 'corruption' });
+      if (hero) poseCorruptionPending(env.get, env.set, expositionPending(hero.id, e.level, e.nature, e.align));
     },
   },
   giveSin: {
@@ -1930,7 +1931,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
       // pitance par héros, prix RAW, bilan globalisé). `lodging` non renseigné dans l'effet ⇒
       // défaut maison (arbitrage de contexte, cf. `placesOfKind`).
-      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), quality: e.quality, days: e.days ?? 1 });
+      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
     },
   },
   mealParty: {

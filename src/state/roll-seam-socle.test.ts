@@ -9,7 +9,7 @@ import { useGame } from './store';
 import { surfaceRow, bandStep, bandStepId, surfaceOf } from './rollSeam';
 import { startCascade } from './cascade';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocally, seatOwns } from './netOwnership';
+import { ownsLocal, seatOwns } from './netOwnership';
 import type { BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
 
@@ -120,7 +120,7 @@ describe('#1262 — une bande est TOUJOURS visible chez le siège de son porteur
   it('bande MONO : l’étape désigne son porteur — la fenêtre va au siège qui le possède, pas à l’hôte', () => {
     ouvreBandeChezLHote([rang('H1')]);
     expect(modalOwnerOf(useGame.getState()), 'owner = le porteur : la fenêtre part au siège qui le tient, jamais à l’hôte').toBe('H1');
-    expect(ownsLocally(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
     expect(seatOwns(useGame.getState(), 1, 'H1'), 'elle est au siège 1, qui possède le porteur').toBe(true);
   });
 

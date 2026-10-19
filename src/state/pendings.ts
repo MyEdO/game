@@ -12,8 +12,8 @@ import type { Dir8 } from './dir8';
 import type { Effect, Dialogue } from './scene';
 import type { Flow } from './flow';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
-import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
-import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
+import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
+import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
@@ -28,6 +28,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { TestNomme } from '../engine/reglesChiffrees';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -221,6 +222,8 @@ export interface PendingSteamSave {
   actorName: string;
   skillValue: number;
   target: number;
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   difficulty: Difficulty;
   /** Dégâts d'ébouillantage à appliquer sur ÉCHEC — `GameOp[]` au montant DÉJÀ roulé (min 1). */
   scaldOps: GameOp[];
@@ -243,6 +246,8 @@ export interface PendingReload {
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   target: number; // cible effective après difficulté
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   sl: number; // DR du jet
   success: boolean;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
@@ -352,6 +357,8 @@ export interface PendingAppraise {
   support?: SupportDetail;
   difficulty: Difficulty;
   target: number;
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   success: boolean;
@@ -463,6 +470,8 @@ export interface PendingHandGate {
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
   roll: number | null;
   target: number; // cible effective après difficulté
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   sl: number;
   success: boolean;
   rerolled?: boolean;
@@ -559,17 +568,18 @@ export interface PendingManeuver {
   /** Réussite forcée par Résilience (LDB 17 l.68). */
   forced?: boolean;
 }
-/** Course en attente (LDB 15 l.41) : Test d'Athlétisme (+20) ; succès → déplacement
- *  étendu (Marche + Course + DR). Lancer → Chance/Résilience → Appliquer (ouvre le déplacement étendu). */
+/** Course en attente (LDB 15 l.41) : Test de `course` ; succès → déplacement étendu (Marche + Course +
+ *  DR). Lancer → Chance/Résilience → Appliquer (ouvre le déplacement étendu). */
 export interface PendingRun {
   combatantId: string;
+  /** Test de la fiche `course`, posé à l'ouverture (`testDeRegle`). */
+  test: TestNomme;
   /** Destination demandée (clic dans la zone de Course) : à l'application, on avance le long du chemin
    *  jusqu'au dernier point que le budget du jet (Marche + Course + DR) permet. */
   dest?: Pt;
   path?: Pt[];
   cost?: number;
-  /** `target` absent sur un résultat synthétique (Résilience pré-jet) — la RollLine retombe sur la base. */
-  result: { success: boolean; roll: number; target?: number; dr: number; bonusCases: number } | null;
+  result: import('../engine/movement').IssueDeCourse | null;
   rerolled?: boolean;
 }
 /** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `fallAcross` (case de départ en
@@ -580,6 +590,8 @@ export interface PendingRun {
  *  ni déduite au site UI (#1117). `initiateurId` = qui a ouvert le geste (le meneur en exploration,
  *  l'actif en combat) : propriétaire de la fenêtre (Confirmer / Annuler). */
 export interface PendingFall extends MultiPending<TombantParticipant> {
+  /** Test de chaque tombant qui le tente : fiche `chute`, posé à l'ouverture (`testDeRegle`). */
+  test: TestNomme;
   to: Pt;
   metres: number;
   /** Hauteur de chute de qui SE SUSPEND d'abord (EDO 01 l.231), offerte par `planFranchissement`
@@ -593,14 +605,13 @@ export interface PendingFall extends MultiPending<TombantParticipant> {
 /** Un TOMBANT d'une chute volontaire (`PendingFall`) — `id` = le combattant qui tombe. `attempt` = sa
  *  DÉCLARATION (LDB 15 l.82) : `null` = non déclarée (les jets restent verrouillés tant qu'une rangée
  *  ne l'est pas), `false` = chute PLEINE sans Test (rangée résolue sans jet, comme `declared === 'pass'`),
- *  `true` = Test d'Athlétisme Accessible (+20). */
+ *  `true` = le Test de `PendingFall.test`. */
 export interface TombantParticipant extends RollParticipant {
   attempt: boolean | null;
   /** Axe HAUTEUR (EDO 01 l.231), présent quand `PendingFall.suspendu` est offert : `null` = non déclaré,
    *  `true` = se suspend d'abord (chute de `suspendu`), `false` = saute de toute la hauteur. */
   suspendre?: boolean | null;
-  /** `target` absent sur un résultat synthétique (Résilience pré-jet) — la RollLine retombe sur la base. */
-  result: { success: boolean; roll: number; target?: number; dr: number; effectiveMetres: number } | null;
+  result: import('../engine/movement').IssueDeChute | null;
   rerolled?: boolean;
 }
 /** Un contributeur au Test d'équipage de MANŒUVRE (MDG 14) : un marin à un rôle, son jet propre. PJ →
@@ -684,15 +695,17 @@ export interface PendingShanty {
   singerId: string;
   /** Chanson choisie (id `sea-shanties.json`) — null tant que le chanteur n'a pas choisi (pré-jet). */
   shantyId: string | null;
-  result: { roll: number; target: number; success: boolean; sl: number } | null;
+  result: JetPose | null;
   rerolled?: boolean;
   forced?: boolean;
 }
-/** Approche d'une source de PEUR (LDB 21 l.27 : « incapable de vous rapprocher … à moins de réussir un
- *  Test de Calme Intermédiaire (+0) ») : le clic d'approche est DIFFÉRÉ derrière ce Test sec. Succès →
- *  l'intention est relancée (approches libres ce Tour) ; échec → aucune approche ce Tour (battle.fearGate). */
+/** Approche d'une source de PEUR (LDB 21 l.27) : le clic d'approche est DIFFÉRÉ derrière ce Test sec.
+ *  Succès → l'intention est relancée (approches libres ce Tour) ; échec → aucune approche ce Tour
+ *  (battle.fearGate). */
 export interface PendingApproach {
   combatantId: string;
+  /** Test de la fiche `calme-d-approche`, posé à l'ouverture (`testDeRegle`). */
+  test: TestNomme;
   /** Source de Peur la plus proche dont le déplacement RAPPROCHE. */
   sourceId: string;
   /** Son nom, FIGÉ au geste qui ouvre le Test. */
@@ -700,9 +713,9 @@ export interface PendingApproach {
   /** Intention différée, relancée après un succès — avec le VERDICT D'ARMEMENT du geste d'origine
    *  (`courseArmee`/`approche`, spec HUD § ARBITRAGE 2026-08-19). Il est CAPTURÉ ici parce que le clic
    *  qui a ouvert ce gate a déjà dissous l'intention : le relire au store à la relance refuserait le
-   *  geste que le joueur vient de gagner (« armez la Charge » après un Test de Calme réussi). */
+   *  geste que le joueur vient de gagner (« armez la Charge » après un Test `calme-d-approche` réussi). */
   intent: { kind: 'tile'; pt: Pt; courseArmee?: boolean } | { kind: 'entity'; id: string; approche?: boolean };
-  result: { success: boolean; roll: number; target?: number; sl: number } | null;
+  result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
   rerolled?: boolean;
 }
 /** Bénédiction de Protection (LDB 41 l.142 : « Les ennemis doivent effectuer un Test de Force Mentale
@@ -718,7 +731,7 @@ export interface PendingWard {
   targetName: string;
   /** VERDICT D'ARMEMENT capturé au clic qui a ouvert ce gate (même raison que `PendingApproach`). */
   approche?: boolean;
-  result: { success: boolean; roll: number; target?: number; sl: number } | null;
+  result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
   rerolled?: boolean;
 }
 /** Focalisation en attente (LDB — Test étendu) : Lancer (resolveFocus) → Chance → Appliquer (cumule le DR). */
@@ -740,7 +753,7 @@ export interface PendingDispel {
   ni: number; // NI du sort = DR cumulé cible
   value: number; // valeur de Langue (Magick) du lanceur, Soutien « même Domaine » inclus
   support?: SupportDetail; // détail du Soutien (affichage)
-  result: { roll: number; target: number; sl: number; success: boolean } | null;
+  result: JetPose | null;
   rerolled?: boolean;
 }
 // Psychologie de COMBAT (Peur/Terreur/Traits ciblés, LDB 21) : CASCADE de Round — étapes
@@ -750,7 +763,7 @@ export interface PendingDispel {
 export interface PendingFrenzy {
   combatantId: string;
   /** `target`/`sl` absents sur un résultat synthétique (Résilience pré-jet) — la RollLine retombe sur la base. */
-  result: { success: boolean; roll: number; target?: number; sl?: number } | null;
+  result: { success: boolean; roll: number; target?: number; clamped?: number; sl?: number } | null;
   rerolled?: boolean;
 }
 /** CHARGE d'une étape d'AFFICHAGE de cascade (`CascadeStep.reveal`) : un jet SUBI / sur table /
@@ -784,31 +797,36 @@ export interface RevealEntry {
    *  Endurance + Armure), États appliqués. */
   crit?: { location: string; woundsLost: number; conditions?: { id: string; value: number }[] };
 }
-/** Exposition à une Influence corruptrice (LDB 19 l.23-75) : Test de Résistance (Influence
- *  physique) ou de Calme (spirituelle), Intermédiaire (+0) ; Points de Corruption selon le
- *  niveau et le DR (mineure 0/1 · modérée 0/1/2 · majeure 0/1/2/3). Lancer → Chance
- *  (+1 DR utile : les seuils de DR réduisent le gain) → Appliquer (gainCorruption). */
+/** Exposition à une Influence corruptrice (LDB 19 l.23-75) ou seuil « Corrompu » (LDB 19 l.70). Lancer →
+ *  Chance → Appliquer (gainCorruption). */
 export interface PendingCorruption {
   heroId: string;
   /** 'exposition' (défaut — LDB 19 l.23-75 : Test pour ne pas GAGNER de Points) ou
-   *  'seuil' (l.80 : Test de Résistance au franchissement — échec → « Je te renie ! »/mutation). */
+   *  'seuil' (LDB 19 l.70 : Test au franchissement — échec → « Je te renie ! »/mutation). */
   kind?: 'exposition' | 'seuil';
   /** Niveau d'exposition — EXPOSITION seulement (absent au seuil). */
   level?: import('../engine/corruption').ExposureLevel;
-  skill: 'resistance' | 'calme'; // skillId stable (libellé dérivé par refLabel à l'affichage)
-  /** Compétence déterminée en amont (source ou seuil) → pas de choix joueur. Absent/false = nature
-   *  indéterminée (LDB 19 l.29) → la modale propose Résistance/Calme (cf. `corruptionSetSkill`). */
-  skillLocked?: boolean;
+  /** Nature de l'Influence (`NATURES_D_INFLUENCE`) — EXPOSITION seulement : la clé du Test de
+   *  `influences-corruptrices` retenu. */
+  nature?: import('../data/schemas/grammaire/valeurs').NatureDInfluence;
+  /** Test de la fiche à cette clé (`influences-corruptrices`, ou `corrompu` au seuil), posé par son
+   *  producteur (`testDExposition`, `gainCorruption`). */
+  test: TestNomme;
+  /** EXPOSITION : nature imposée par la source → pas de choix joueur. Absent/false = indéterminée
+   *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. `corruptionSetNature`). */
+  natureFixee?: boolean;
   /** Alignement de la SOURCE (Puissance du Chaos) posé par l'éditeur de niveau → table EDOC à tirer
    *  si une mutation survient (sinon la règle globale décide). Voyage exposition → seuil → mutation. */
   align?: import('../engine/corruption').ChaosAlign;
   roll?: number;
   target?: number;
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   sl?: number;
   success?: boolean;
   rerolled?: boolean;
   /** Menace du talent « Résistance (Menace) » (LDB 10) couverte par CE Test : `corruption` (exposition,
-   *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.80 — l'échec fait MUTER). Posé à
+   *  l.23-75 — résister au GAIN de Points) ou `mutation` (seuil, l.70 — l'échec fait MUTER). Posé à
    *  l'ouverture ; offre l'auto-succès via `corruptionResist`. */
   menace?: string;
 }
@@ -1017,9 +1035,9 @@ export type EnchainementDuCoup =
   | { mode: 'aucun' }
   | { mode: 'apresCoup'; queue: QueueDuCoup };
 
-/** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
+/** Tirs d'une bordée dont le coup reste à faire naître, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
-export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; res: AttackResult }[] }
+export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; jet: RollBreakdown }[] }
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles
  *  déjà frappées, enchaînements consommés, borne BCC, mode (Taille vs Frappe Mortelle). */
@@ -1174,12 +1192,12 @@ export interface PendingMiscastStep {
   suppressReveal?: boolean;
   rerollHigh?: boolean;
 }
-/** « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test de Résistance du seuil de Corruption —
+/** « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test `corrompu` du seuil de Corruption —
  *  il choisit entre SUBIR la mutation et la REFUSER (1 Point de Résilience ; il ne perd alors aucun
  *  Point de Corruption). */
 export interface PendingRenounce {
   heroId: string;
-  /** Jet du Test de Résistance raté (affichage). */
+  /** Jet du Test `corrompu` raté (affichage). */
   testRoll: number;
   testTarget: number;
   /** Alignement de la source (cf. PendingCorruption.align) — table EDOC si la mutation est subie. */
@@ -1263,12 +1281,12 @@ export interface PendingDisengage {
   /** Esquive/Fuite disponibles ? Faux si l'Action est déjà dépensée (elles la coûtent) → seule
    *  l'option A « Sacrifier l'Avantage » reste, ce qui évite la boucle infinie d'Esquive. */
   canEsquive?: boolean;
-  phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test de Calme influençable
+  phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
   atk: TestResult | null; // Esquive : jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // Esquive : jet d'Esquive du mover
   result: 'success' | 'failure' | 'tie' | null; // 'tie' = égalité parfaite du Test opposé → statu quo
   /** « Fuir » (l.63-66) : les DEUX jets de la fuite, en slots du flux MULTI hétérogène `flee` —
-   *  le coup dans le dos du FRAPPEUR (`backstab`) puis le Test de Calme du FUYARD (`calme`). Chaque
+   *  le coup dans le dos du FRAPPEUR (`backstab`) puis le Test de la fiche `fuite` du FUYARD (`touche`). Chaque
    *  slot porte son propre cycle d'influence et son `interactive` (le contrôleur de SON acteur).
    *  `fleeConfirm` applique le tout (attaque canonique + Brisé + libération/Course). */
   fuir?: { participants: FleeSlot[] };
@@ -1283,23 +1301,25 @@ export interface FleeBackstabSlot extends RollParticipant {
   kind: 'backstab';
   result: AttackResult | null;
 }
-/** Slot « Test de Calme » du FUYARD (LDB 15 l.66) : échec → États Brisés (1 + DR négatif). */
-export interface FleeCalmeSlot extends RollParticipant {
-  kind: 'calme';
-  calme: { success: boolean; roll: number; target?: number; sl: number } | null;
+/** Slot du Test de la fiche `fuite` du FUYARD (LDB 15 l.66). */
+export interface FleeToucheSlot extends RollParticipant {
+  kind: 'touche';
+  /** Test de la fiche `fuite`, posé à l'ouverture (`testDeRegle`). */
+  test: TestNomme;
+  jet: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
 }
-export type FleeSlot = FleeBackstabSlot | FleeCalmeSlot;
+export type FleeSlot = FleeBackstabSlot | FleeToucheSlot;
 
 /** Slot du coup dans le dos de la phase 'fuir' (undefined hors de cette phase). */
 export function fleeBackstab(pd: PendingDisengage): FleeBackstabSlot | undefined {
   return pd.fuir?.participants.find((s): s is FleeBackstabSlot => s.kind === 'backstab');
 }
-/** Slot du Test de Calme du fuyard (retiré une fois le coup dans le dos résolu sans Blessure). */
-export function fleeCalme(pd: PendingDisengage): FleeCalmeSlot | undefined {
-  return pd.fuir?.participants.find((s): s is FleeCalmeSlot => s.kind === 'calme');
+/** Slot du Test `fuite` du fuyard (retiré une fois le coup dans le dos résolu sans Blessure). */
+export function fleeTouche(pd: PendingDisengage): FleeToucheSlot | undefined {
+  return pd.fuir?.participants.find((s): s is FleeToucheSlot => s.kind === 'touche');
 }
-/** Le Test de Calme est-il dû ? LDB 15 l.66 : seulement si le coup dans le dos a fait perdre des PB. */
-export function fleeNeedCalme(pd: PendingDisengage): boolean {
+/** Le Test `fuite` est-il dû ? LDB 15 l.66 : seulement si le coup dans le dos a fait perdre des PB. */
+export function fleeToucheDu(pd: PendingDisengage): boolean {
   const r = fleeBackstab(pd)?.result;
   return !!r?.hit && (r.woundsLost ?? 0) > 0;
 }
@@ -2329,7 +2349,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   /** Cascade de PEUR de FIN de Round (combat) : à sa fermeture, le store ré-appelle `resolveRoundBoundary`
    *  pour enchaîner sur la pause de début de Round (la Peur est désormais marquée testée ce Round). */
   roundBoundary?: boolean;
-  /** Cascade de FIN DE COMBAT (Tests de Résistance maladie/Corruption des héros survivants, LDB 18/19/20)
+  /** Cascade de FIN DE COMBAT (Tests de maladie et `influences-corruptrices` des héros survivants, LDB 18/19/20)
    *  ouverte AVANT l'écran de victoire : à sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback
    *  + écran de victoire/défaite) au lieu de reprendre l'IA. */
   combatEndBoundary?: boolean;
@@ -2375,6 +2395,8 @@ export interface PendingHeal {
   support?: SupportDetail;
   difficulty: Difficulty; // 'intermediaire' (+0, LDB 09 l.243)
   target: number; // cible effective (affichage)
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   roll: number | null; // null tant que pas lancé (Chance possible ensuite)
   success: boolean;
   sl: number; // DR
@@ -2401,6 +2423,8 @@ export interface PendingSurgery extends PendingBase {
   intBonus: number; // Bonus d'Intelligence du chirurgien
   difficulty: Difficulty; // 'intermediaire' (+0)
   target: number; // cible effective d'une passe (affichage) = skillValue
+  /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
+  clamped?: number;
   roll: number | null; // null tant que pas lancé (Chance possible ensuite)
   success: boolean;
   sl: number; // DR de la passe

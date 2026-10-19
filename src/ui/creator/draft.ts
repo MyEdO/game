@@ -20,7 +20,7 @@
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
-import { garanti } from '../../state/combatants';
+import { garanti } from '../../lib/garanti';
 import { Money } from '../../engine/money';
 import {
   rollSpecies,

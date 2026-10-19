@@ -190,7 +190,8 @@ const construireCarte = (): WorldMap => ({
       a: 'p-village', b: 'p-bourg',
       km: 30,
       modes: ['pied', 'diligence'],
-      perilDie: 0, // grand-route sûre : pas de tirage d10 (paramétrable par route)
+      perilDie: 0,
+      provenances: { perilDie: { maison: 'grand-route sûre du scénario de test : aucun d10 de péripétie' } },
       inns: true, // relais de diligence : la halte de nuit propose l'auberge (modale de Repos)
     },
     {

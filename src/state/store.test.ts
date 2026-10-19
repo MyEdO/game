@@ -13,7 +13,7 @@ import { bus, EVT } from './bus';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
 import { CAP_GROUPE, capDuGroupe } from './combatants';
-import { fleeBackstab, fleeCalme } from './pendings';
+import { fleeBackstab, fleeTouche } from './pendings';
 import { applyAttackResult, applyEffects, applyEffectsLoot, runFlow, computeMoveReach } from './combatFlow';
 import { mountUp } from './mount';
 import { combatValue, resolveMeleePassive } from '../engine/combat';
@@ -71,7 +71,7 @@ function reset() {
   });
 }
 
-/** Résout la cascade de fin de combat (Tests de Résistance maladie/Corruption influençables, ouverte AVANT
+/** Résout la cascade de fin de combat (Tests de maladie et `influences-corruptrices`, influençables, ouverte AVANT
  *  l'écran de victoire quand un héros survivant est conscient et a affronté des créatures corrompues /
  *  porte un marqueur de maladie). Lance chaque étape puis valide, jusqu'à `finishCombatEnd` → victoire. */
 function drainCombatEndCascade() {
@@ -142,7 +142,7 @@ describe('Boucle de jeu (store)', () => {
     useGame.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
 
     useGame.getState().battleEndTurn(); // → advanceTurn → prochain acteur = héros → checkBattleOver → cascade de fin de combat
-    drainCombatEndCascade(); // mutants Corrompus → Test de Résistance influençable AVANT victoire → on le résout
+    drainCombatEndCascade(); // mutants Corrompus → Test `influences-corruptrices` influençable AVANT victoire → on le résout
 
     const st = useGame.getState();
     expect(st.battle?.over).toBe('victory');
@@ -261,7 +261,7 @@ describe('Boucle de jeu (store)', () => {
     useGame.setState({
       battle, mode: 'battle',
       pendingAttack: { attackerId: 'h1', targetId: 'e1', location: null, result: res },
-      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'h1' }], { title: 'Attaque', icon: '⚔️', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
     });
   }
 
@@ -273,7 +273,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
-    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
+    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
     useGame.getState().attackConfirm();
     const seq = useGame.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
@@ -422,7 +422,7 @@ describe('Boucle de jeu (store)', () => {
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
-    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const after = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
@@ -438,7 +438,7 @@ describe('Boucle de jeu (store)', () => {
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
-    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const after = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
@@ -494,7 +494,7 @@ describe('Boucle de jeu (store)', () => {
         suite: { mode: 'machine', coup: {} },
       },
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: '🛡️', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();
     const st = useGame.getState();
@@ -535,7 +535,7 @@ describe('Boucle de jeu (store)', () => {
         def: { roll: 60, target: 40, success: false, sl: 0, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: '🛡️', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();
     const st = useGame.getState();
@@ -585,7 +585,7 @@ describe('Boucle de jeu (store)', () => {
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'ranged') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
-    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const hMid = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -1261,7 +1261,7 @@ describe('Boucle de jeu (store)', () => {
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
-    E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr → Test de Calme
+    E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr → Test `fuite`
     H.wounds = { current: 40, max: 40, base: 40 } as never;
     const eAdvBefore = E.advantage;
     const turn = st.battle!.order.indexOf(H.id);
@@ -1274,13 +1274,13 @@ describe('Boucle de jeu (store)', () => {
     let Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
     let Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ea.advantage).toBeGreaterThanOrEqual(eAdvBefore + 1); // +1 immédiat à l'annonce de la Fuite (l.63)
-    // Coup dans le dos ROULÉ (frappeur IA = rangée témoin) ; Test de Calme DIFFÉRÉ → fuite en attente.
+    // Coup dans le dos ROULÉ (frappeur IA = rangée témoin) ; Test `fuite` DIFFÉRÉ → fuite en attente.
     expect(st.pendingDisengage!.phase).toBe('fuir');
     expect(fleeBackstab(st.pendingDisengage!)!.result!.hit).toBe(true);
-    expect(fleeCalme(st.pendingDisengage!)!.calme).toBeNull(); // jet de Calme influençable en attente
-    expect(Ha.engagedWith).toEqual([E.id]); // toujours Engagé tant que le Calme n'est pas confirmé
+    expect(fleeTouche(st.pendingDisengage!)!.jet).toBeNull(); // jet du Test `fuite` influençable en attente
+    expect(Ha.engagedWith).toEqual([E.id]); // toujours Engagé tant que le Test `fuite` n'est pas confirmé
 
-    // Test de Calme INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
+    // Test `fuite` INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
     useGame.getState().fleeRoll(H.id);
     useGame.getState().fleeConfirm();
     st = useGame.getState();

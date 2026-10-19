@@ -5,7 +5,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
 import type { Money } from './money';
 import type { ReachId } from './items';
-import type { CodexTarget, ModProvenance } from './ruleRefs';
+import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
 import type { ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
@@ -348,10 +348,10 @@ export type WeaponRangeSpec = number | { bf: number };
  *  SÉLECTIONNÉE pour le tir. « Comme l'arme » = AUCUN modificateur (absent/null → Portée de l'arme inchangée). */
 export type AmmoRangeMod = { mult: number } | { add: number };
 
-/** Bande de portée d'un tir (table des Difficultés de Combat, LDB 14) — id STABLE, du plus proche au plus
- *  loin. SOURCE des seuils = `RANGE_BANDS` (engine/combat). Réutilisé par `Weapon.minRangeBand` (PORTÉE
- *  MINIMALE d'une machine de guerre, ADE II 8 l.251/253). Le libellé affiché se résout via `rangeBandName`. */
-export type RangeBandId = 'bout-portant' | 'courte' | 'moyenne' | 'longue' | 'extreme';
+/** Bande de portée d'un tir — id STABLE d'une rangée de la règle `portee-d-une-arme`, du plus proche au plus
+ *  loin ; plafonds et modificateurs vivent dans sa fiche (`engine/reglesChiffrees.ts`). Réutilisé par
+ *  `Weapon.minRangeBand` (PORTÉE MINIMALE d'une machine de guerre, ADE II 8 l.251/253). */
+export type RangeBandId = RangeeDe<'portee-d-une-arme'>;
 
 /** Atout/Défaut d'arme ou d'armure PORTÉ par un objet/arme au runtime. Forme STRUCTURÉE (id stable du
  *  registre + Indice éventuel) — miroir runtime de `QualityRef` de la donnée, sans l'aplatissement en
@@ -486,8 +486,8 @@ export interface Weapon {
    *  cap → restreint l'arc de tir (lu par la validation de visée via `inFireArc`). Absent = arme non montée. */
   mountSide?: FireArc;
   /** Pénalité PLATE au Test de tir bakée par le sous-effectif d'une Arme d'équipe quand le Défaut ajouté
-   *  était DÉJÀ porté (MDG 12 l.460 : −10/Défaut redoublé). Posée par `crewedFireWeapon`, ajoutée aux
-   *  modificateurs de touche par `attackModifiers` (comme Précise, mais négative). Absent = aucune. */
+   *  était DÉJÀ porté (MDG 12 l.460), lue sur la qualité `crewedTeam`. Posée par `crewedFireWeapon`, ajoutée
+   *  aux modificateurs de touche par `attackModifiers` (comme Précise, mais négative). Absent = aucune. */
   crewedTohitPenalty?: number;
   /** Gantelet verrouillé (AA folio 94) : Round où le porteur a évité de LÂCHER cette arme (anti-lâcher).
    *  Tant que `round ≤ gauntletSavedRound + 1` (période de « 1 Round min »), un SECOND lâcher forcé fait
@@ -499,10 +499,10 @@ export interface Weapon {
    *  de mêlée du Groupe `machine-de-guerre` (`warMachineResolveChar`, engine/items.ts) — absent = résolution
    *  normale par `kind` (`combatValue`). Runtime-only : aucun champ JSON correspondant (schéma figé). */
   resolveChar?: CharKey;
-  /** Pénalité PLATE au Test de tir/manœuvre d'une machine de guerre ADE II en Équipe INCOMPLÈTE (−20,
-   *  ch.08 l.233) — 3ᵉ courbe de sous-effectif, DISTINCTE de `crewedTohitPenalty` (AA, Défaut redoublé).
-   *  Bakée par `warMachineFireWeapon` (engine/warMachineCrew.ts), lue par `attackModifiers`. */
-  crewTeamPenalty?: number;
+  /** Machine de guerre ADE II tirée en Équipe INCOMPLÈTE (ch.08 l.233) — 3ᵉ courbe de sous-effectif,
+   *  DISTINCTE de `crewedTohitPenalty` (AA, Défaut redoublé). Posé par `warMachineFireWeapon`
+   *  (engine/warMachineCrew.ts) ; `attackModifiers` en lit la pénalité dans la fiche de la règle. */
+  crewTeamIncomplete?: true;
   /** Entité SOURCE de cette arme (sort, talent, trait, objet, maladie…) — ancrage de règle GÉNÉRAL,
    *  au-delà du seul cas des sorts (`sourceSpellId`). Absent = source non propagée par le déclencheur :
    *  la pastille s'affiche alors nue (cf. `chipCodex`), régime RÉSIDUEL gardé par
@@ -886,9 +886,9 @@ export interface ActiveEffect {
   /** Traits psychologiques SUSPENDUS par l'effet (Baume pour un esprit blessé, LDB 42 : « Tous les
    *  Traits Psychologiques sont retirés pour la durée ») — restitués à l'expiration (rounds OU horloge). */
   suppressedPsych?: import('./psychology').PsychTrait[];
-  /** Aura « N'écoutez point la Sorcière » (LDB 42) : tout SORT (Langue (Magick)) ciblant quelqu'un
-   *  à `radiusMeters` du porteur subit −20 au Test d'incantation. */
-  castWard?: { radiusMeters: number };
+  /** Aura anti-Sort (op `castWard`, LDB 42) : tout SORT (Langue (Magick)) ciblant quelqu'un à
+   *  `radiusMeters` du porteur subit `mod` au Test d'incantation. */
+  castWard?: { radiusMeters: number; mod: number };
   /** Le porteur SUFFOQUE (Noyade et Suffocation, LDB 18 l.346 — Ombres étrangleuses,
    *  Transmutation de Chamon) : −1 PB/Round, 0 PB → Inconscient, mort après BE Rounds. */
   suffocates?: boolean;
@@ -911,7 +911,7 @@ export interface ActiveEffect {
    *  d'Endurance et de FM, −10 Ag/I/Int », LDB 71 l.33) : le mod ne s'applique qu'aux Tests de cette
    *  carac, lu par `testValue` (engine/skills) ; EXCLU des `testMod` GLOBAUX (`effectGlobalTestMod`). */
   testModChar?: CharKey;
-  /** RESTREINT un `testModChar:'CC'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
+  /** RESTREINT un `testModChar:'capacite-de-combat'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
    *  Épaule luxée « Tests effectués avec ce bras », LDB 18/AA) : lu par `combatValue`/`defenseValue`
    *  (parade), jamais l'autre main. Absent = les deux mains (comportement historique). */
   testModHand?: 'main' | 'off';
@@ -1680,8 +1680,7 @@ export interface Combatant {
    *  Hémorragique tient — `removeCondition` purge ce marqueur dès que l'Hémorragique tombe à 0. */
   handGates?: ('main' | 'off')[];
   /** Points de Corruption (LDB 19) — dérive de l'âme vers le Chaos. Gagnés par expositions/
-   *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE, chaque gain impose un Test de
-   *  Résistance ou MUTATION. Persisté. */
+   *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE : Test `corrompu` (LDB 19 l.70). Persisté. */
   corruption?: number;
   /** Mutations subies (LDB 19, Tableaux p.184-185) — DONNÉE persistée ; les effets (caracs
    *  permanentes, Mouvement, PA naturels, mods de Tests, Traits) sont lus à la volée. */
@@ -1717,7 +1716,7 @@ export interface Combatant {
    *  LDB 20 l.25/51). SOURCE UNIQUE (op `exposeDisease`). */
   diseaseExposure?: DiseaseExposure[];
   // Maladresse (LDB 14 — Tableau des Oups !) : effets reportés au prochain Round.
-  /** Pénalité (positive) à l'Action au prochain Round (Oups! 41-60). Consommée au prochain Test d'attaque. */
+  /** Modificateur de l'Action au prochain Round, lu sur la bande des Oups ! (`OupsEntry.mod`). Consommé au prochain Test d'attaque. */
   nextActionPenalty?: number;
   /** Perd sa prochaine Action (Oups! 71-80). */
   loseNextAction?: boolean;
@@ -1816,10 +1815,11 @@ export interface Combatant {
   distractedRounds?: number;
   /** « Sur la défensive » : +20 à tous les Tests de défense jusqu'au début du prochain tour (LDB Combat l.118). */
   defensiveStance?: boolean;
-  /** Maniement de deux armes (LDB 10 l.767-773) : −10 à TOUTES ses défenses jusqu'au début de son prochain Tour. */
-  dualStrikeDefensePenalty?: boolean;
-  /** Action Viser engagée : +20 (Accessible) au PROCHAIN tir tant que la dernière action reste « viser »
-   *  (LDB table des Difficultés, `14 - _GoBack.md` l.90 ; « pas de Test exigé pour viser »). */
+  /** Maniement de deux armes (LDB 10 l.767-773) : pénalité à TOUTES ses défenses jusqu'au début de son
+   *  prochain Tour, lue sur la capacité du talent (`CombatFeature.dualStrikeDefense`). */
+  dualStrikeDefensePenalty?: number;
+  /** Action Viser engagée : la rangée `viser` s'applique au PROCHAIN tir tant que la dernière action reste
+   *  « viser » (LDB 14 l.61). */
   aiming?: boolean;
   /** Météo du JOUR sous laquelle ce combattant agit (EDOC 8 l.82, #341) : posée à l'ouverture d'un combat
    *  survenant un jour de voyage (`activeDayWeather`). SEULE source du canal « Tests physiques » (`weatherTestMods`,
@@ -1879,6 +1879,9 @@ export type Difficulty =
  *  (`schemas/grammaire/valeurs.ts`) en dérive, `CoverClass` leur répond un pour un (`engine/cover.ts`). */
 export const COUVERT_DIFFICULTES = ['intermediaire', 'complexe', 'difficile', 'tresDifficile'] as const satisfies readonly Difficulty[];
 export type CouvertDifficulty = (typeof COUVERT_DIFFICULTES)[number];
+
+/** La Difficulté d'un Test pour lequel aucune n'est indiquée (`LDB 12 l.166`). */
+export const DIFFICULTE_PAR_DEFAUT: Difficulty = 'intermediaire';
 
 export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
   tresFacile: 60,

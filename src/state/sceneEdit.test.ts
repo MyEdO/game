@@ -829,6 +829,17 @@ describe('normaliseAssises / seatOccupant — le seam unique d’assise', () => 
   });
 });
 
+describe('écritures mécaniques d’entité — privées au module, le seam est la seule porte (#2724)', () => {
+  it('`patchEntity` et `patchEntityCombat` ne se nomment pas hors de `sceneEdit.ts`', () => {
+    // @ts-expect-error TS2339
+    type Patch = (typeof import('./sceneEdit'))['patchEntity'];
+    // @ts-expect-error TS2339
+    type PatchCombat = (typeof import('./sceneEdit'))['patchEntityCombat'];
+    const mecaniques: [Patch | undefined, PatchCombat | undefined] = [undefined, undefined];
+    expect(mecaniques).toEqual([undefined, undefined]);
+  });
+});
+
 /**
  * CARDINAL de la grille au RUNTIME (#1789) — le refine du schéma garde les DOCUMENTS, `putLayer`
  * garde les POSES : une couche plus courte que `w×h` rendrait des trous au même index aplati

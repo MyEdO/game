@@ -124,7 +124,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     const kinds = await runOneSeaDay(vues);
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,
     // évince les lignes précoces comme « Forcer le rythme ».
-    const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
+    const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toMatch(/Forcer le rythme/);
     expect(kinds.indexOf('sea-epuisement')).toBeGreaterThan(kinds.indexOf('sea-force-pace'));
     const bande = vues.find((st) => st.kind === 'sea-epuisement')!;
@@ -137,7 +137,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
     get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
     const kinds = await runOneSeaDay();
-    const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
+    const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
     expect(kinds).not.toContain('sea-force-pace');
     expect(kinds).not.toContain('sea-epuisement');

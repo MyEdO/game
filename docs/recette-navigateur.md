@@ -578,11 +578,11 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Menu principal | « Nouvelle partie », « Charger une partie », « Jouer en ligne », « Options », « Compendium » ; section « Atelier » (`.menu-tools`, `MARQUEUR_MENU`) : « Éditeur de niveau », « Bibliothèque de campagnes », « Scénarios de test », « Galeries d'art », « Design system » | `src/ui/MainMenu.tsx`, clés `menu.*` de `src/i18n/messages/fr.ts` |
 | Scénarios de test | `[data-testid="scenario-launch-<id>"]` par scénario | `src/ui/TestScenariosScreen.tsx` |
 | Compendium | `.screen.codex` ; onglets `[role=tab]` de `.codex-groups` ; pastilles `button.codex-cat` (compteur en `span.count`, certaines sous un `details.fold` replié) ; recherche `input.codex-search` ; rangées `.codex-rows button.listrow` (libellé `.lr-name`, retenue = `aria-current="true"`) — `ouvrirFiche` | `src/ui/compendium/CompendiumScreen.tsx` |
-| Barre de l'éditeur | « ← Menu », « Fichier ▾ » (`aria-haspopup=menu`) ; items `.menu-item` : « Nouveau projet », « Ouvrir… », « Enregistrer… », « Importer JSON… » (un `<label>` sur un `<input type=file>`), « Exporter JSON », « Exporter ASCII (grilles carte) », « Exporter forme dépôt (dev) », « Avancé — JSON (dialogues, triggers, rencontres) » | `src/ui/editor/EditorToolbar.tsx` |
+| Barre de l'éditeur | « ← Menu », « Fichier ▾ » (`aria-haspopup=menu`) ; entrées `role=menuitem` (primitive `Menu`, flèches entre entrées ; ↓/↑ sur « Fichier ▾ » entrent dans le menu, la fermeture rend le focus au bouton) : « Nouveau projet », « Ouvrir… », « Enregistrer… », « Importer JSON… » (clique un `<input type=file>` caché), « Exporter JSON », « Exporter ASCII (grilles carte) », « Exporter forme dépôt (dev) », « Avancé — JSON (dialogues, triggers, rencontres) » | `src/ui/editor/EditorToolbar.tsx` |
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -680,7 +680,7 @@ qui rend effectivement les jetons, en conservant cette limite dans le rapport.
 ## Doctrine : piloter COMME UN JOUEUR, pas à la main
 
 Ordre de préférence STRICT pour exercer un flux :
-1. **Vrai input** : le contrôle **clavier** est développé (cf. `src/state/keybindings.ts` — navigation,
+1. **Vrai input** : le contrôle **clavier** est développé (cf. `src/state/clavier/keybindings.ts` — navigation,
    ciblage, actions ; + manette) → `browser_press_key` ; clics réels sur les éléments (`data-cid` sur
    les tokens SVG, boutons des modales). C'est le SEUL pilotage qui valide ce que le joueur vit.
 2. **`__wfrp` pour le SETUP et l'OBSERVATION** : lancer un scénario (`scenario`), placer/donner le
@@ -692,11 +692,11 @@ Ordre de préférence STRICT pour exercer un flux :
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).
 > Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `explore-*` de
-> `src/state/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
+> `src/state/clavier/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
 > Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `cursor-*`). En vue subjective
 > (`povActive`), les mêmes touches deviennent cap-relatives (bindings `pov-*`).
 > **W, A, S, D poussent vers le HAUT, la GAUCHE, le BAS et la DROITE À L'ÉCRAN** : c'est la table
-> `EXPLORE_STEP` (`src/state/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
+> `EXPLORE_STEP` (`src/state/clavier/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
 > (`src/state/combatCursor.ts`) — pas des axes de grille, d'où des pas en diagonale de grille en vue iso.
 > La case d'arrivée n'est PAS un delta de grille fixe : `stepPartyDir` → `exploreStepDest`
 > (`src/state/exploreNav.ts`) retient la voisine CONNECTÉE dont le centre est le mieux aligné avec la
@@ -704,7 +704,7 @@ Ordre de préférence STRICT pour exercer un flux :
 > la rotation caméra et de la vue. Vérifier le déplacement par la position lue (`__wfrp.state()`), jamais
 > par un delta attendu en dur.
 > ⚠ **Le `key` du volet Claude_Browser (outil `computer`, action `key`) n'émet pas `event.code`** (mesuré
-> 2026-09-04, listener `keydown` : `code === ''`) alors que TOUTE liaison de `src/state/keybindings.ts` est
+> 2026-09-04, listener `keydown` : `code === ''`) alors que TOUTE liaison de `src/state/clavier/keybindings.ts` est
 > keyée sur le `code` physique → passer par Playwright
 > (`mcp__plugin_playwright_playwright__browser_press_key`) pour tout déplacement au clavier.
 
@@ -741,7 +741,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | finir un tour, avancer de N Rounds | `finDuTour` · `avancerDeRounds(session, n)` · `__wfrp.fastForward()` |
 | donner le tour, placer un combattant | `__wfrp.turn(id)` · `place(id, {x, y})` |
 | lire le set d'armes, les armes tenues | `__wfrp.loadout(heroId)` · `battle().combatants[].armes` |
-| viser une case, un pixel, une arête | `__wfrp.tileScreenPos({x, y, z})` · `pickTileAt({x, y})` · `areteScreenPos(x, y, z, dir)` |
+| viser une case, un pixel, une arête | `__wfrp.tileScreenPos({x, y, z})` · `pickTileAt({x, y})` · `areteScreenPos(x, y, z, dir)` ; une case d'étage se vise avec son `z` (scénario `fenetre-ecuries` : la case de l'arête de chute est en `z:1`, `tileScreenPos({x, y, z: 1})`) |
 | savoir si la carte attend un geste (zone, siège, cibles) | `__wfrp.gesteCarteAttendu()` · levée nommée de `resoudreModales` (`GESTES_CARTE`) |
 | viser une arête dans l'éditeur | `__wfrp.editorAreteScreenPos(x, y, z, dir)` |
 | ouvrir une fiche du Compendium | `ouvrirFiche(session, { groupe, categorie, entree })` |
@@ -829,11 +829,11 @@ vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la desce
 | `padUp('LT'\|…)` / `padDirUp('up'\|…)` | RELÂCHE le bouton/la direction — obligatoire pour tout geste MAINTENU (marche tenue, rotation caméra) | sans lui le geste armé ne s'arrête jamais |
 | `modal()` | modale(s) `pending*` ouvertes + actions dérivées | conventions `<flux>Roll/Confirm/Cancel` uniquement (voir doctrine ci-dessous) |
 | `roll()` / `confirm()` / `cancel()` | pilotent LA modale ouverte par convention | `✗ aucune modale ouverte` / `✗ pas de flux pilotable` si hors convention |
-| `log(n=8)` | dernières lignes du journal (exploration + feed combat) | lecture seule |
+| `log(n=8)` | `{ journal, combat }` : les `n` dernières entrées du journal d'exploration (`journal`) et les `n` dernières lignes du feed de combat, `[kind] texte` (`combat`) | lecture seule |
 | `aiLog(n=50)` | diagnostic IA : action choisie + classement des candidats par tour | `(forcé)` = garde psychologie/RAW hors scoring |
 | `auto()` | diagnostic auto-cadence (mode, modale active, `willAutoResolve`, `pending*` ouverts) | pour investiguer un soft-lock, pas pour agir |
 
-**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/CombatConsole.tsx`), sans
+**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/console/CombatConsole.tsx`), sans
 défilement : un gros grimoire déborde et ses derniers sorts n'ont aucune alvéole. Pour recetter un
 sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénario court existant
 `__wfrp.scenario('dome', 11)` : quatre combattants, une sorcière, sorts `dome`,
@@ -878,15 +878,16 @@ pas la cible d'UX.
 | Helper | Usage | Limites connues |
 |---|---|---|
 | `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/state/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
-| `turn('id')` | donne le TOUR à un combattant (réinitialise Action/Mouvement) | Refus NOMMÉS (`✗`) : pas de combat, absent de l'ordre d'initiative, hors de combat, et pendant la PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »). Saute les bornes de Round — mise en place, pas simulation de partie. **Ne DÉCLENCHE PAS l'IA** (mesuré #1135) : positionne l'index de tour SEULEMENT (`battle.turn`), aucune logique de début de tour n'est invoquée — un ennemi conduit par l'IA reste immobile. Enchaîner `fastForward()` pour qu'il agisse. **Ne purge PAS l'armement de fin de tour** (`battle.endTurnArmed`, deux temps « Finir quand même ? ») : rappeler `turn()` sur le MÊME combattant au même Round après un cycle armé→confirmé peut retrouver l'empreinte d'économie de l'armement et afficher « Finir quand même ? » d'emblée — prendre un combattant vierge ou changer de Round (mesuré recette P2-A) |
+| `turn('id')` | donne le TOUR à un combattant (réinitialise Action/Mouvement, budget de Course, porte de Peur, postures) | Refus NOMMÉS (`✗`) : pas de combat, absent de l'ordre d'initiative, hors de combat, et pendant la PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »). Saute les bornes de Round — mise en place, pas simulation de partie. **Ne DÉCLENCHE PAS l'IA** (mesuré #1135) : positionne l'index de tour SEULEMENT (`battle.turn`), aucune logique de début de tour n'est invoquée — un ennemi conduit par l'IA reste immobile. Enchaîner `fastForward()` pour qu'il agisse. **Ne purge PAS l'armement de fin de tour** (`battle.endTurnArmed`, deux temps « Finir quand même ? ») : rappeler `turn()` sur le MÊME combattant au même Round après un cycle armé→confirmé peut retrouver l'empreinte d'économie de l'armement et afficher « Finir quand même ? » d'emblée — prendre un combattant vierge ou changer de Round (mesuré recette P2-A) |
 | `attaque(attaquantId, defenseurId)` | SETUP : POSE l'attaque d'un combattant PILOTÉ PAR L'IA sur un défenseur CHOISI et OUVRE la modale de Défense de ce dernier — c'est son CONTENU qu'on recette (parade du porteur d'une arme, options offertes). La fenêtre s'ouvre par la couture de la déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`), au tour de l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque d'IA | Refus NOMMÉS (`✗`), sans rien toucher : pas de combat, combattant introuvable ou hors de combat, attaquant absent de l'ordre d'initiative ou PILOTÉ PAR UN JOUEUR (son attaque passe par la modale d'attaque), Défense déjà ouverte, PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »), tour en cours d'un combattant PILOTÉ PAR L'IA dont les minuteurs sont en vol (« ✗ tour de X, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward()) ») ; puis, si la couture ne l'ouvre pas, la raison : défenseur non surfacé (piloté par l'IA), pas au contact (`place()` d'abord), incapable de se défendre (`cannotDefend`), aucune Défense opposable à l'arme. Ensuite : la répondre aux vrais boutons, ou `resoudreModales` avec un `arret` sur `jet === 'defense'` pour la laisser ouverte |
 | `attaqueGratuite(attaquantId, defenseurId, type?)` | SETUP : l'ENNEMI piloté par l'IA déclare une attaque GRATUITE de créature (`morsure`, `caudale`, `tentacules`, `cornes`, `pietinement` ; défaut = la première disponible) sur le défenseur, par la file de PRODUCTION des gratuites d'IA (`combatFlow.ts:aiCreatureFreeAttacks`) posée à cette seule unité, au tour de l'attaquant qui lui est donné AVANT : sa fermeture reprend ce tour comme après une gratuite d'IA. Le coût d'Avantage est PAYÉ (`quality(id, null, n)` pour le créditer) | Refus NOMMÉS (`✗`), sans rien toucher : ceux d'`attaque`, attaquant non ennemi, aucune gratuite disponible contre ce défenseur (trait Morsure/Attaque caudale/Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact), `type` absent des disponibles (les liste), hors de portée (distance > 1, `place()` d'abord), défenseur non surfacé ou incapable de se défendre ; si la file ÉCARTE l'unité (Avantage sous le coût), le tour est rendu et le coût nommé. Une gratuite DÉCLARÉE rend `✓` dans trois issues : modale de Défense ouverte — la file vise le PREMIER adversaire au contact, donc sur le défenseur ou sur un autre héros surfacé au contact, nommé (« … sur Tireur — modale de Défense ouverte (premier adversaire au contact, pas H) ») ; coup suspendu sur une étape (« coup suspendu sur l'étape sauvegarde », `modal()`) ; coup joué sans fenêtre sur un adversaire qui n'en ouvre pas (`log()`) — gardes de mêlée de `maybeOpenDefense` (`combatFlow.ts`, la fenêtre des attaques d'IA) : non surfacé (piloté par l'IA), hors d'Allonge, ou incapable de se défendre (`cannotDefend` : un statut porté qui déclare `gating.cannotDefend`, Surpris, Inconscient). Recetter la fenêtre du défenseur choisi : l'isoler des autres adversaires au contact |
+| Armer la Course | aucun helper : la Course se joue comme un joueur. `cliquerAction(session, 'course')` ARME l'intention (`portee-course`, `src/state/localIntent.ts`) : la case porte alors la classe `on` (`.cc-cell[data-action="course"].on`) et la zone de Course se peint ; un clic de carte (`{ surface: SURFACE_CARTE, x, y }`) sur une case AU-DELÀ de la Marche ouvre la modale de Course. Sans l'armement, une case au-delà de la Marche est refusée (bandeau), et une case dans la Marche se marche sans modale | l'armement est une BASCULE : l'intention se consomme au clic de carte et tombe en fin de tour ; un second clic sur la case Course la désarme (`combatSlice.ts`, bascule de `localIntent`). Son état se LIT à la classe `on` de la case, jamais au nombre de clics. La Course exige le Mouvement entier du Tour (`computeRunReach`, `src/state/combatFlow.ts`) : « Monter » prend ce Mouvement (`battleMount`, `src/state/combatSlice.ts`), un cavalier ne court qu'au Tour suivant sa mise en selle |
 | `place('id',{x,y})` | téléporte un combattant | **PIÈGE COMPOSITE (corrigé)** : cible une coque à postes (`postes` non vide) ou un membre de `ShipPoste.crewIds` → déplace la FORMATION ENTIÈRE (coque + tout l'équipage des postes) du même delta, MÊME sémantique que la poussée (`pushCommitTile`). Téléporter la coque SEULE désynchronisait aperçu (postes) et portée réelle (équipage resté en arrière) — 30 % du budget d'une recette perdu à débugger ce déphasage avant fix. Retourne `{msg, moved:[ids]}` en cas composite, une chaîne sinon (combattant simple inchangé). |
 | `turnShip('id','tribord'\|'babord'\|crans)` | vire le cap d'un navire (triche, sans jet) | ne déplace QUE le cap (`facing`), jamais la position — vérifier ensuite avec `aim()` |
 | `maneuver('id', side?, helmsmanId?)` | manœuvre RÉELLE (Test de Navigation, peut échouer) | contrairement à `turnShip`, PEUT rater — pas une triche. Un raté rend « ✓ Test joué : <navire> rate la manœuvre (DR n) — cap <cap> inchangé » : le `✓` dit que le Test est JOUÉ, pas réussi — lire le DR et le cap |
 | `killEnemies({withQualityLoot?})` | élimine tous les ennemis + flux de victoire NORMAL | ignore les postes `inert` non `dead` (affûts non visés, LDB — voir `isOutOfAction`) ; `withQualityLoot:true` ajoute à `pendingVictory.gear` un objet CATALOGUÉ à qualités (premier trapping de `trappings.json` avec `qualities` non vide, choisi dynamiquement — MÊME brique `gearFromEffects` que le vrai butin) — NON ajouté si la victoire n'est pas atteinte (cascade de fin de combat ouverte / combat en cours), le message le signale |
-| `dealDamage('id', n=5)` | inflige `n` Dégâts à un combattant par le VRAI pipeline (`applyOps` op `wounds` → armure de coque/PA, États, puis `checkBattleOver` : reddition/naufrage/victoire) | combat requis ; éprouve l'issue navale (coule une coque, teste un naufrage) sans jouer chaque tir |
-| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte | à conduire à la main (`cascadeRoll`/`Next`) — n'auto-résout rien, contrairement à `killEnemies` |
+| `dealDamage('id', n=5)` | inflige `n` Dégâts à un combattant par le VRAI pipeline (`applyOps` op `wounds`, BE et PA ignorés, États, puis `checkBattleOver` : reddition/naufrage/victoire) ; `n` est un nombre fini, sinon refus nommé (`✗`) | combat requis ; éprouve l'issue navale (coule une coque, teste un naufrage) sans jouer chaque tir |
+| `combatEnd({heroId?,critical?,corruption?})` | arme les conséquences de fin de combat (Infection/Corruption/Destin) puis LAISSE la cascade ouverte. `corruption` est le NIVEAU du trait `corruption` posé sur un ennemi : `'Mineure'`, `'Modérée'` (défaut, clé absente) ou `'Majeure'` ; `false` n'expose pas. `critical:false` retire l'Infection post-critique ; un `corruption` qui n'est ni un Degré ni `false` (`true`, un nombre) est refusé, nommé (`✗`) | à conduire à la main (`cascadeRoll`/`Next`) — n'auto-résout rien, contrairement à `killEnemies` |
 | `healParty()` | groupe à neuf (PB max, états/critiques/maladies purgés, morts relevés) | ne touche QUE `kind:'hero'` en combat |
 | `charge('enemyId', heroId?)` | simule une charge (déclenche `onCharged`, Frappe réactive) | héros cible = le plus proche par défaut. ⚠ **Ni `place()` ni `charge()` n'établissent l'Engagement** (`engagedWith` reste vide) : RAW, seule une VRAIE attaque de corps à corps engage (LDB 13 l.169-175). Une recette qui a besoin d'un Engagement le crée en ATTAQUANT, pas en approchant — ~20 appels perdus à chercher pourquoi l'état n'arrivait pas |
 | `quality('id', label?, advantage?)` | ajoute un Atout/Défaut à l'arme ACTIVE + Avantages | ne touche que `weapons[0]` ; `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut « Déstabilisante », Avantage inchangé |
@@ -1363,7 +1364,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un
   RACCOURCI — binding `toggle-view`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
-  d'affichage et de leurs touches est `src/state/keybindings.ts` (section `camera`), jamais ce doc.
+  d'affichage et de leurs touches est `src/state/clavier/keybindings.ts` (section `camera`), jamais ce doc.
 - **Une ref de snapshot ne se passe JAMAIS sous la forme `ref=xxx`** — deux formes selon l'outil qu'on
   tient, à vérifier au premier appel plutôt qu'à l'aveugle :
   - outil MCP qui prend un **paramètre `ref` dédié** (mesuré en recette 2026-08-16, #1335) : la valeur
@@ -1563,8 +1564,9 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   ne bouge encore ; il faut un **2e appui** pour quitter cette case et voir un coût > 0). `Entrée`/
   `NumpadEnter` commet (`commitCursor` → `pushCommitTile`) — fonctionne MÊME si le bouton « Pousser »
   garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `cursor-commit` n'a plus la
-  garde `notWhenControlFocused`, `src/state/keybindings.ts`). `Échap` annule le curseur ;
-  « Annuler dépl. » (post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
+  garde `notWhenControlFocused`, `src/state/clavier/keybindings.ts`). `Échap` annule le curseur ;
+  le geste « ANNULER » de la gouttière de Mouvement (nom accessible « Annuler le déplacement »,
+  action `undo-move` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
   commise au clavier, comme au clic (`src/state/push-keyboard-commit.test.ts`).
 
 - **Combat naval — l'arc de bordée d'une pièce montée (`weapon.mountSide`)** : `firedAttackBlock`
@@ -1713,7 +1715,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 |---|---|---|---|
 | 1 | **Un jet possédé par l'invité surface CHEZ LUI** | `ActiveModal` (`src/ui/ActiveModal.tsx`) ne monte la modale que si le siège local possède le concerné (`modalOwnerOf` + `ownsLocal`) ; `'*'` = tous | **invité** : la modale est rendue (`.modal-overlay`) — **hôte** : rien. Hors tour du concerné (défense réactive), l'hôte a la puce `.spectator-chip` |
 | 2 | **Le `pending*` NE prouve rien** | l'état voyage entier (`netSnapshot`) | `__wfrp.modal()` répond PAREIL des deux côtés — la possession se lit au DOM, jamais au pending. C'est le piège n°1 d'une recette coop |
-| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/state/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/ui/ownership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
+| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/state/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/state/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
 | 4 | **Une bande partagée : chaque siège ses rangées** | `bandStep` (`src/state/rollSeam.ts`) pose `groupOwner` dès >1 porteur → `modalOwnerOf` rend `'*'` → fenêtre chez TOUS ; chaque rangée n'est actionnable que par le siège qui possède son acteur (`useOwns`, `src/ui/ownership.ts` — `rollAllUnrolledRows` filtré par `owns`) | la MÊME fenêtre est ouverte des deux côtés ; le bouton de jet d'une rangée n'est servi qu'au siège propriétaire ; « Tout lancer » ne roule QUE les rangées du siège qui clique |
 | 5 | **La Résilience de l'invité sur SA rangée** | `seatInfluences` : un héros non piloté par l'IA n'est influençable que par SON siège (`src/state/netOwnership.ts`) ; `canFixDie` (option « Dés fixés ») en dérive | chez l'invité, Chance/Résilience/Pacte ne sont offerts QUE sur sa rangée ; la rangée d'un héros de l'hôte les porte chez l'hôte et pas chez lui |
 | 6 | **Console 0 des DEUX côtés** | — | `guard.errors()` vide pour chacune des deux sessions (un `consoleGuard` par page) |
@@ -1726,7 +1728,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 - **Les deux `__wfrp` sont ÉTRANGERS** : un helper appelé sur la page hôte ne se voit sur la page
   invitée qu'après un snapshot. Toujours nommer la session dans le script (`hote` / `invite`).
 - **Clavier neutralisé — normal, pas un bug** : les raccourcis de combat exigent
-  `controlsActive` **ET** aucune modale ouverte (`src/state/keybindings.ts`) → pendant le tour d'un
+  `controlsActive` **ET** aucune modale ouverte (`src/state/clavier/keybindings.ts`) → pendant le tour d'un
   autre siège, ou tant qu'une fenêtre (dialogue, pause de Round, cascade) est ouverte, rien ne répond.
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
@@ -1734,7 +1736,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   `src/state/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
   ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
-  (`src/state/keybindings.ts`) — le bandeau de phase de la console ne rend que le
+  (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
   « Commencer le combat » SOLO (`confirmRoundStart`) ; en recette coop, piloter par
   `store.getState().roundStartReady(<siège>)` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
@@ -1930,9 +1932,9 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   `ciblageEntiteArme`, `src/state/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
 - **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
-  (`src/ui/CombatConsole.tsx:1395`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
-  dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`), « Finir quand même » et
-  sa note « Finir quand même ? » (`:1107`, `:1404`). Son texte change : jamais un
+  (`src/ui/console/CombatConsole.tsx`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
+  dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`) quand l'Action n'est
+  pas dépensée, « Finir quand même » et sa note « Finir quand même ? » (`endNote`, `.cc-lbl`). Son texte change : jamais un
   `clickButtonByText('Fin du tour')`. `finDuTour` clique la plaque et confirme l'armement au second
   clic ; `cliquerAction(session, 'end-turn')` est le clic unitaire.
 - **Ouvrir une Défense** : `__wfrp.attaque(attaquantId, defenseurId)`, celle d'une attaque GRATUITE d'IA
@@ -1999,8 +2001,8 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   attente de ~9 s sur `.editor-toolbar` expire alors qu'il arrive. Viser ~20 s pour ce premier accès
   (les suivants sont instantanés, le chunk étant en cache) — un timeout ici se lit comme un écran
   cassé, il ne l'est pas.
-- **« Importer JSON… » est un `input[type=file]` CACHÉ derrière un `<label>`**
-  (`src/ui/editor/EditorToolbar.tsx:111-126`) : le cliquer ouvrirait le dialogue de fichier de l'OS,
+- **« Importer JSON… » est une entrée du menu Fichier qui clique un `input[type=file]` CACHÉ**
+  (`src/ui/editor/EditorToolbar.tsx:101`, `:121-135`) : la cliquer ouvrirait le dialogue de fichier de l'OS,
   qu'aucun pilote ne ferme. Le peupler par `poserFichier` (`scripts/recette/lib.mjs`), qui déclenche
   son `change` sans aucun dialogue.
 - **`browser_file_upload` de Playwright-MCP refuse tout chemin hors de la racine de la session** :

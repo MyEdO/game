@@ -23,8 +23,8 @@ function setup(weatherId: string, combatants: Combatant[]) {
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as BattleState;
   useGame.setState({
-    battle, travelPlan: null,
-    pendingRest: { travelDay: { weather: { id: weatherId } } } as never,
+    // Halte de nuit : le jour clos est le dernier de `plan.log` (`openRest`), sans `plan.recap`.
+    battle, travelPlan: { interrupted: false, log: [{ weather: { id: weatherId } }] } as never,
   });
 }
 

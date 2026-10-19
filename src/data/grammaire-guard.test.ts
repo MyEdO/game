@@ -31,7 +31,7 @@ import { ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
 import { defDe, descendre, enfantsDe } from './schemas/grammaire/descente';
 import * as valeurs from './schemas/grammaire/valeurs';
 import * as reference from './schemas/grammaire/reference';
-import { ref, specRef, pick } from './schemas/grammaire/ref';
+import { ref, specRef, pick, refTypee } from './schemas/grammaire/ref';
 import { qualityRefSchema } from './schemas/grammaire/reference';
 
 const GARDE = {
@@ -133,6 +133,7 @@ function signaturesDeLaGrammaire(
     ['ref()', ref('skill')],
     ['specRef()', specRef('skill')],
     ['pick()', pick('skill')],
+    ['refTypee()', refTypee(valeurs.typeDeFoyerSchema)],
   ];
   marcher(melanger(fabriques));
   return [...out.values()].map(({ noms, cles }) => ({ nom: [...noms].sort().join('|'), cles }));
@@ -339,7 +340,6 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .sort();
     expect(dansLaGrammaire).toEqual([
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.corruptionExposure|skill',
       // `domeWard` est une op TYPÉE (`OP_DEFS`, #1508 T3 G0) : le Trait que le dôme octroie se nomme par
       // la graphie CANONIQUE d'un octroi (`traitId`), la même que `removeTrait` — d'où la ligne ici.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.domeWard|traitId',

@@ -13,13 +13,13 @@ import { StrictMode, act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { dismissStackKinds, subscribeDismissStack } from '../state/dismissStack';
-import { KEYBINDINGS, runBindingById } from '../state/keybindings';
+import { KEYBINDINGS, runBindingById } from '../state/clavier/keybindings';
 import { seedBattleRng } from '../state/battleRng';
 import { validTargets } from '../state/targeting';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import { dialogueDuDessus, resetDismissLayers } from './useDismissLayer';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { ActiveModal } from './ActiveModal';
 import { CharacterSheet } from './CharacterSheet';
@@ -32,6 +32,7 @@ import { PovControls } from './PovControls';
 import { campaignStart } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../state/cascadeTestKit';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -64,7 +65,7 @@ afterEach(() => {
   useGame.setState(etatInitial, true);
 });
 
-const vider = async () => { await act(async () => { await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); }); };
+const vider = tacheSuivante;
 const sommet = () => { const pile = dismissStackKinds(); return pile[pile.length - 1]; };
 const actif = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.textContent ?? '').replace(/\s+/g, ' ').trim());
 const dialogue = (nom: RegExp) => [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]

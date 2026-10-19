@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { crewRoles } from '../data';
 import { crewRoleAsPoste, reposAsPoste } from '../state/poste';
-import { PostesRoster } from './PostesRoster';
+import { PostesRoster } from './console/PostesRoster';
 import type { Combatant } from '../engine/types';
 
 /** Les 9 rôles que MDG 14 NOMME, plus la ligne « Repos » (valeur réelle de `shipRole`, hors

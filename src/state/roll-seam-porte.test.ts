@@ -10,7 +10,7 @@ import { useGame } from './store';
 import { openBand, openChoice, choiceStep, bandStep, type BuiltCascadeStep, type BandOpenSpec, type BandPorteur } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { startCascade } from './cascade';
-import { ownsLocally, seatOwns } from './netOwnership';
+import { ownsLocal, seatOwns } from './netOwnership';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
@@ -69,7 +69,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     expect(step.groupOwner).toBeUndefined();
     expect(step.actorId, 'sans porteur nommé, l’arbitre rend `undefined` → fenêtre HÔTE SEUL').toBe('H1');
     expect(modalOwnerOf(useGame.getState())).toBe('H1');
-    expect(ownsLocally(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), 'H1'), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
     expect(seatOwns(useGame.getState(), 1, 'H1')).toBe(true);
   });
 
@@ -204,9 +204,9 @@ describe('#1262 — openChoice : une décision PORTÉE, jamais partagée', () =>
     expect(useGame.getState().pendingCascade, 'une décision supprimée serait pire qu’une fenêtre à l’hôte').not.toBeNull();
     const owner = modalOwnerOf(useGame.getState()) ?? undefined;
     expect(owner).toBeUndefined();
-    expect(ownsLocally(useGame.getState(), owner), 'chez l’hôte (siège 0), la fenêtre est jouable').toBe(true);
+    expect(ownsLocal(useGame.getState(), owner), 'chez l’hôte (siège 0), la fenêtre est jouable').toBe(true);
     useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 } } as never);
-    expect(ownsLocally(useGame.getState(), owner), 'chez l’invité, elle est visible en spectateur').toBe(false);
+    expect(ownsLocal(useGame.getState(), owner), 'chez l’invité, elle est visible en spectateur').toBe(false);
   });
 });
 

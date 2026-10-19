@@ -31,7 +31,7 @@
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { bus, EVT } from './bus';
-import { openRest, placesOfKind } from './restFlow';
+import { openRest } from './restFlow';
 import { dayIndex } from './upkeep';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -57,7 +57,7 @@ import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLeng
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
-import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
+import { rollTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
@@ -118,7 +118,8 @@ import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, equipageApte, garanti } from './combatants';
+import { actorIn, equipageApte } from './combatants';
+import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
@@ -1749,9 +1750,14 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     set({ pendingSeaActivities: { picks: {}, day: recapDay } });
     return;
   }
-  // Halte de nuit (machinerie de repos EXISTANTE — le recap du jour s'y lit, patron travelFlow). EN MER,
-  // on dort À BORD (hamacs, MDG 03 l.71) : couchage unique et abrité — pas de tente sur l'eau.
-  openRest(get, set, { places: get().vessel ? { bord: true } : placesOfKind('camp'), travelHalt: true, travelDay: recapDay });
+  openSeaHalt(get, set, recapDay);
+}
+
+/** Halte de nuit EN MER (machinerie de repos, patron travelFlow) : on dort À BORD (hamacs, MDG 03
+ *  l.71), couchage unique et abrité — pas de tente sur l'eau. `travelDay` = le jour qu'elle clôt. */
+export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void {
+  const vessel = garanti(get().vessel, get().travelPlan?.routeId, 'navire de campagne');
+  openRest(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
 }
 
 // ── Registre `cascadeAppliers` des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
@@ -2151,7 +2157,7 @@ function openSteamSave(get: Get, set: Set, failDamage: string, rng: RNG): void {
   set({
     pendingSteamSave: {
       actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
-      target: rollLine({ actor: eng, test: { char: 'initiative' }, difficulty: 'intermediaire', valeur: value }).target,
+      ...cibleMesuree(rollLine({ actor: eng, test: { char: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,
     } satisfies PendingSteamSave,

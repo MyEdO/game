@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initialNet, netHostStart, netJoin, netLeave } from './netFlow';
+import { applyNetSnapshot, initialNet, netHostStart, netJoin, netLeave } from './netFlow';
 import { useGame } from './store';
 import type { SocketLike } from '../net/relay';
 
@@ -50,7 +50,7 @@ describe('relais local injoignable', () => {
   });
 
   it('rejoindre expire en français après fermeture 1006, sans socket ni timer survivant', async () => {
-    const joining = netJoin(useGame.getState, useGame.setState, 'abc234', 'Anne & Bob');
+    const joining = netJoin(useGame.getState, useGame.setState, (d) => applyNetSnapshot(useGame.setState, d), 'abc234', 'Anne & Bob');
     const first = FakeSocket.instances[0];
     expect(new URL(first.url).origin).toBe('ws://localhost:8787');
     expect(new URL(first.url).pathname).toBe('/room/ABC234');

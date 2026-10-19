@@ -107,7 +107,7 @@ function countConsumers(files, key, cache) {
  *  EN JEU (`docs` : « Compendium en jeu »), pas qu'un outil d'auteur — cf. `activities.json` : déjà
  *  référencé dans `registry.ts` (table Compendium) AVANT #330, le vrai gap #330 était contextuel
  *  (non montré PENDANT le choix d'activité d'interlude), pas une absence totale de tout consommateur. */
-const AUTHORING_ONLY_PATHS = ['src/ui/editor/', 'src/ui/compendium/CodexEdit.tsx'];
+const AUTHORING_ONLY_PATHS = ['src/ui/editor/', 'src/ui/editor/codex/CodexEdit.tsx'];
 
 function isEditorOnly(fileRel) {
   return AUTHORING_ONLY_PATHS.some((d) => fileRel.startsWith(d) || fileRel.startsWith(d.split('/').join('\\')));

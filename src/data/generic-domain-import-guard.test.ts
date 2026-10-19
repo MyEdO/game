@@ -137,13 +137,14 @@ describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #
     } finally { fermetures.mockRestore(); }
   });
 
-  it('le batch des primitives conserve lectures, findings et chemins répétés dans leur ordre', () => {
+  it('le batch des primitives conserve lectures, findings et chemins répétés dans leur ordre ; une cible qui est elle-même une primitive n’est pas domaniale', () => {
     const primitives = [
       { id: 'premier', fichier: 'src/ui/BatchA.tsx' },
       { id: 'second', fichier: 'src/ui/BatchB.tsx' },
       { id: 'organisme', fichier: 'src/ui/Ignore.tsx', nature: 'organisme' },
       { id: 'alias', fichier: 'src/ui/../ui/BatchA.tsx' },
       { id: 'dernier', fichier: 'src/ui/BatchA.tsx' },
+      { id: 'composee', fichier: 'src/lib/ordre.mjs' },
     ];
     const systemes = [
       { id: 'coupe', modules: ['src/lib/coupeAuMot.mjs'] },
@@ -155,12 +156,12 @@ describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #
     try {
       const findings = scanAllPrimitives(primitives, systemes, (fichier) => {
         lectures.push(fichier);
+        if (fichier.endsWith('ordre.mjs')) return 'export const ordre = 1;';
         return fichier.endsWith('BatchB.tsx') ? "import '../lib/ordre.mjs';" : "import '../lib/coupeAuMot.mjs';";
       });
-      expect(lectures).toEqual(['src/ui/BatchA.tsx', 'src/ui/BatchB.tsx', 'src/ui/../ui/BatchA.tsx', 'src/ui/BatchA.tsx']);
+      expect(lectures).toEqual(['src/ui/BatchA.tsx', 'src/ui/BatchB.tsx', 'src/ui/../ui/BatchA.tsx', 'src/ui/BatchA.tsx', 'src/lib/ordre.mjs']);
       expect(findings).toEqual([
         { primitiveId: 'premier', fichier: 'src/ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
-        { primitiveId: 'second', fichier: 'src/ui/BatchB.tsx', target: 'src/lib/ordre.mjs', systemId: 'ordre' },
         { primitiveId: 'alias', fichier: 'src/ui/../ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
         { primitiveId: 'dernier', fichier: 'src/ui/BatchA.tsx', target: 'src/lib/coupeAuMot.mjs', systemId: 'coupe' },
       ]);

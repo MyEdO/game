@@ -1,3 +1,5 @@
+import { cibleMesuree } from '../engine/tests';
+import { valeurDecomposee } from '../engine/skills';
 import { useGame } from '../state/store';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
@@ -26,13 +28,14 @@ export function HandGateModal() {
   const actor = battle.combatants.find((c) => c.id === pg.attackerId);
   const rolled = pg.roll != null;
   const fortune = actor?.fortune ?? 0;
+  const dex = actor ? valeurDecomposee(actor, { char: 'dexterite' }) : { base: pg.skillValue, mods: [] };
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown('Dextérité', pg.skillValue, { roll: pg.roll!, target: pg.target, sl: pg.sl, success: pg.success }, pg.difficulty) : undefined,
-      pending: testPending('Dextérité', pg.skillValue, pg.target, pg.difficulty),
+      d: rolled ? testBreakdown('Dextérité', dex.base, { roll: pg.roll!, ...cibleMesuree(pg), sl: pg.sl, success: pg.success }, pg.difficulty, dex.mods) : undefined,
+      pending: testPending('Dextérité', dex.base, cibleMesuree(pg), pg.difficulty, dex.mods),
     },
     rerolled: !!pg.rerolled,
     onRoll: roll,

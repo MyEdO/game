@@ -13,7 +13,7 @@
 import type { Effect, Scene } from './scene';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
-import { garanti } from './combatants';
+import { garanti } from '../lib/garanti';
 import { normalizeScene } from './scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
@@ -114,7 +114,7 @@ export type Praticabilite =
 
 /** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
  *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
-export interface RouteBillet {
+export interface RouteBillet extends ProvenanceDeValeur {
   /** Sous par passager, par classe du véhicule, pour le trajet entier. */
   prix: Partial<Record<string, number>>;
   /** Routes suivantes couvertes, dans l'ordre du trajet, chacune partant du lieu d'arrivée de la précédente. */
@@ -123,6 +123,10 @@ export interface RouteBillet {
   depuis?: string;
   /** Le billet se marchande : Test opposé contre le PNJ `presetId` du narratif (EDO 01 l.142). */
   marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
+}
+
+/** Provenance d'une valeur d'auteur de route (`provenanceDeValeurSchema`) : `source` ou `maison`. */
+export interface ProvenanceDeValeur {
   source?: SourceRef;
   maison?: string;
 }
@@ -155,6 +159,8 @@ export interface MapRouteTrace {
   /** Seuil du d10 quotidien de péripétie RAW (LDB 51 l.208 « sur un résultat de 8 ») ; 0 = désactivé.
    *  Absent = défaut de la carte (sinon TRAVEL_DEFAULTS.perilDie). */
   perilDie?: number;
+  /** Provenance de chaque valeur d'auteur (`provenanceDeValeurSchema`) ; exigée pour `perilDie` et `speed` posés. */
+  provenances?: Partial<Record<'perilDie' | 'speed' | 'km', ProvenanceDeValeur>>;
   /** Péripéties d'auteur (en PLUS de la table d10 RAW). */
   perils?: RoutePeril[];
   /** Cible du « Attaqués ! » (péripétie 10) : scène d'embuscade + rencontre. Absent = narratif.

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import type { z } from 'zod';
 import { ScreenShell } from '../ScreenShell';
-import { Tabs, type TabItem } from '../Tabs';
+import { Tabs, type TabItem } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
@@ -17,7 +17,7 @@ import { ProseField } from '../ProseField';
 import type { DescRef } from '../../data/schemas/grammaire/valeurs';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { estDerive } from '../compendium/editFields';
-import { RefNarrativeField } from '../compendium/RefField';
+import { RefNarrativeField } from '../compendium/refField/RefField';
 import { LIBELLE_NARRATIF } from '../compendium/libellesNarratifs';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';

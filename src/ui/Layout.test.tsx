@@ -72,10 +72,10 @@ describe('#1800 — Stack/Row/Grid/Split : props de placement → attributs data
 
   it('`as` choisit la balise, et le reste (role, aria, data-testid, id) passe', () => {
     const html = renderToStaticMarkup(
-      <Stack as="ul" role="listbox" aria-label="Services" data-testid="svc" id="s1">x</Stack>,
+      <Stack as="ul" role="list" aria-label="Services" data-testid="svc" id="s1">x</Stack>,
     );
     expect(html.startsWith('<ul')).toBe(true);
-    expect(html).toContain('role="listbox"');
+    expect(html).toContain('role="list"');
     expect(html).toContain('aria-label="Services"');
     expect(html).toContain('data-testid="svc"');
     expect(html).toContain('id="s1"');

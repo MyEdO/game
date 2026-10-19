@@ -18,7 +18,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { useGame } from '../../state/store';
-import { useGameKeyboard } from '../useGameKeyboard';
+import { useGameKeyboard } from '../clavier/useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from './editeur.testkit';
@@ -709,7 +709,7 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
     expect(container.textContent).toContain('Reprendre une sauvegarde locale ?');
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
     });
 
     expect(container.textContent).not.toContain('Reprendre une sauvegarde locale ?');

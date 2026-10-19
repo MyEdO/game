@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { relacherCamera, tournerCamera } from './keybindings';
+import { relacherCamera, tournerCamera } from './clavier/keybindings';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, avancerLacet, getStageYaw, resetStageYaw, rotAtYaw } from './stageYaw';
 import { testScene } from '../scenes/test-fixture';
 

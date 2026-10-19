@@ -167,7 +167,7 @@ export function declarations(corps) {
 
 /**
  * Corps INTERNE de la tranche `@media` dont le prélude est `requete`, accolades appariées.
- * Source UNIQUE des lectures par tranche (`src/ui/ui-ratchets.test.ts`, `src/ui/CombatConsole.test.tsx`).
+ * Source UNIQUE des lectures par tranche (`src/ui/ui-ratchets.test.ts`, `src/ui/console/CombatConsole.test.tsx`).
  * Une tranche ABSENTE lève : rendre `''` laissait passer au vert tout contrat qui l'interroge.
  * @param {string} css @param {string} requete @returns {string}
  */

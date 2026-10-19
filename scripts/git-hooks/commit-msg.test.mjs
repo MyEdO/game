@@ -23,7 +23,7 @@ import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/dep
 import { MARQUE_FEINTE, commitDe, depotDe, fusionner, reussi } from '../guards/lib/gitPorte.mjs'
 import { SUJET_MAX, lectureDuMessage, refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { dateLocale } from '../guards/lib/dateLocale.mjs'
-import { MOTIF_EJECTION, MOTIF_REGENERATION, messageDuTrain } from '../ops/etapesDuTrain.mjs'
+import { MOTIF_EJECTION, MOTIF_MIROIRS, messageDuTrain } from '../ops/etapesDuTrain.mjs'
 import { refusDeVersion } from '../node-requis.mjs'
 import { jugerFichierDeMessage } from './commit-msg.mjs'
 import { journalDe } from './journal.mjs'
@@ -596,8 +596,8 @@ test('#2071 porte au commit-msg — les commits scriptés du train (`commitDe`, 
     assert.equal(b.git('checkout', '-q', '-b', 'br').status, 0)
     b.ecrire('notes/x.md', 'y\n')
     b.ecrire('src/b.ts', 'export const b = 2\n')
-    const docs = commitDe(depot, { message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros: ['7'], motif: MOTIF_REGENERATION }), chemins: ['notes/x.md', 'src/b.ts'] })
-    assert.ok(reussi(docs), JSON.stringify(docs))
+    const miroirs = commitDe(depot, { message: messageDuTrain({ portee: 'chore(config)', titre: 'miroirs de configuration', numeros: ['7'], motif: MOTIF_MIROIRS }), chemins: ['notes/x.md', 'src/b.ts'] })
+    assert.ok(reussi(miroirs), JSON.stringify(miroirs))
     assert.equal(b.git('checkout', '-q', 'main').status, 0)
     b.ecrire('src/a.ts', 'export const a = 2\n')
     assert.equal(b.git('commit', '-a', '-m', TEMOIN).status, 0)
@@ -759,6 +759,21 @@ test('commit-msg, dépôt réel : un stock nominatif qui GRANDIT dans l\'index e
       repo,
     )
     assert.doesNotMatch(avecCliquet?.reason ?? '', /STOCK NOMINATIF/, 'un CLIQUET nommé et compté doit passer')
+  } finally {
+    rmSync(depot, { recursive: true, force: true })
+  }
+})
+
+test('commit-msg, dépôt réel : un stock SOUS LA PORTE `comptes:plage` qui GRANDIT est refusé MÊME sous un `CLIQUET:` au compte exact (#2705)', () => {
+  const porteur = 'scripts/guards/lib/structuresStock.mjs'
+  const { racine: repo, depot } = depotDeChantier({ fichiers: { [porteur]: 'export const STOCK = [\n]\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, porteur), ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
+    gitDe(repo)('add', porteur)
+    const refus = decisionOf(`feat: deux sites (refs #1806)\n\nCLIQUET: ${porteur} +2 — deux sites mesurés ce jour, compte exact au message`, repo)
+    assert.equal(refus?.decision, 'deny', 'un CLIQUET n’admet aucune croissance sous la porte des comptes')
+    assert.match(refus.reason, /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT : scripts\/guards\/lib\/structuresStock\.mjs : \+2/)
+    assert.match(refus.reason, /Migrer vers la forme cible ; la porte comptes:plage refuse toute hausse, aucun `CLIQUET:` ne l'admet/)
   } finally {
     rmSync(depot, { recursive: true, force: true })
   }

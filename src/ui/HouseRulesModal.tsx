@@ -4,7 +4,7 @@ import { setHouseRule, resetHouseRule, houseRulesMutability } from '../state/hou
 import { useGame } from '../state/store';
 import { Icon } from './Icon';
 import { NumberField } from './NumberField';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { GatedAction } from './GatedAction';
 import { houseRuleTabs } from './houseRuleTabs';
 

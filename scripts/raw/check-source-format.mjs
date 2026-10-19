@@ -33,7 +33,7 @@
 // qui entre ou sort de la chaîne déplacerait tout entier (#1739, pose des folios du CRB). Un
 // chemin de DOSSIER nu ne tombe sous aucun motif de `scripts/guards/lib/stocksNominatifs.mjs`
 // (`CHEMIN_SOURCE` exige `.md`). Les deux sens sont rouges : un écart MESURÉ hors du stock
-// (ré-extraire le livre, ou déclarer par `CLIQUET:`), une entrée SANS écart mesuré (la retirer).
+// (ré-extraire le livre ; stock sous la porte des comptes), une entrée SANS écart mesuré (la retirer).
 //
 // MOBILIER DE PAGE (famille `mobilier`, #1739) : pour tout livre dont la liste de découpe porte des
 // `onglets`, un chiffre d'onglet ou un folio mêlé au flux est un ROUGE NOMMÉ, sans stock — le geste
@@ -61,7 +61,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
-import { ecartDuVolet, phraseDeNaissance } from '../guards/lib/stock.mjs'
+import { cleDeSite, ecartDuVolet, phraseDeNaissance, remedeDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
@@ -70,8 +70,19 @@ import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.m
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
+import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs'
 
-export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-format-stock.json')
+export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', PORTEURS.SOURCE_FORMAT)
+
+/** Le volet SOUS LA PORTE des comptes (`SOUS_LA_PORTE`, `scripts/guards/lib/occurrencesStock.mjs`), mesuré par
+ *  ses sites (`scanAll`) : son porteur, une entrée de stock de sites, sa clé `cleDeSite`, son compte `nombre`. */
+export const SOURCE_FORMAT = {
+  porteur: PORTEURS.SOURCE_FORMAT,
+  nom: PORTEURS.SOURCE_FORMAT,
+  site: cleDeSite,
+  cible: () => 'Corriger le site : la mise en forme du chapitre (scripts/raw/check-source-format.mjs).',
+  nombre: (e) => Number(e.nombre),
+}
 
 /** Racine des extractions. */
 export const RACINE_SOURCE = 'Source'
@@ -435,6 +446,11 @@ export function scanAll(dossiers = dossiersFR()) {
   return out
 }
 
+/** L'écart des `sites` au `stock` de ce volet (`ecartDuVolet`), un site neuf refusé comme à la porte des
+ *  comptes (`remedeDeNaissance`). PURE. */
+export const ecartDuStock = (sites, stock) =>
+  ecartDuVolet({ sites, stock, ou: PORTEURS.SOURCE_FORMAT, remede: { neuve: remedeDeNaissance(SOURCE_FORMAT.cible) } })
+
 /** Compte par DOSSIER de livre — le `file` d'un site nomme un CHAPITRE, le dossier en est le
  *  préfixe. C'est le grain du rapport : l'unité de réparation est le livre. */
 export const comptesParDossier = (sites) => {
@@ -523,7 +539,7 @@ function main() {
     for (const t of imperatifs) console.log(`  ${t.file} — ${t.ref}`)
   }
 
-  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-format-stock.json' })
+  const { neuves, perimees } = ecartDuStock(sites, stock)
   if (neuves.length) {
     console.log('RÉGRESSION — écart(s) hors du stock :')
     for (const o of neuves) console.log(`  ${o}`)

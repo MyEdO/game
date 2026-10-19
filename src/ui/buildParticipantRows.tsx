@@ -134,7 +134,7 @@ export function buildParticipantRows<P extends ParticipantRow>(
  *  (`crewRoleValue`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
  *  interdit sa valeur, il n'y a donc ni valeur 0 ni dé contre une cible (LDB 09 l.30 ; #2588 Q1). Sinon,
  *  un dé déjà JETÉ s'affiche tel qu'il est tombé, contre sa cible. Manque de bras : MDG 14 l.53. */
-export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
+export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; clamped?: number; sl: number } | null): PanelRowData {
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };
   const rv = crewRoleValue(actor, role, part.navigation, part.sense);
@@ -143,6 +143,6 @@ export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res
   if (rv.refus != null) return { combatant: actor, note: rv.refus };
   const mods = crewRoleTestMods(actor, role, part.navigation, part.sense);
   return res
-    ? { combatant: actor, d: testBreakdown(label, rv.value, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
+    ? { combatant: actor, d: testBreakdown(label, rv.value, res, difficulty, mods) }
     : { combatant: actor, pending: testPending(label, rv.value, undefined, difficulty, mods) };
 }

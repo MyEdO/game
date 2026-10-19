@@ -20,6 +20,8 @@ export interface OupsResolved {
   roll: number;
   kind: OupsKind | 'misfire';
   label: string;
+  /** Modificateur de l'Action suivante, lu sur la bande (`OupsEntry.mod`). */
+  mod?: number;
 }
 
 /** Une Maladresse = jet d100 raté ET (double (11,22,…,99,00), OU — Doigts amputés, LDB 18 l.251 — chiffre
@@ -46,7 +48,7 @@ export function rollOups(weapon: Weapon | undefined, rng: RNG = defaultRNG): Oup
     return { roll, kind: 'misfire', label: oupsMisfire().label };
   }
   const entry = findTableEntry(oupsTable(), roll);
-  return { roll, kind: entry.kind, label: entry.label };
+  return { roll, kind: entry.kind, label: entry.label, ...(entry.mod !== undefined ? { mod: entry.mod } : {}) };
 }
 
 /** LA LECTURE que la porte fera du dé demandé par la grappe (#1508 T3b-4) : un SEUIL « 1d10 ≥ Indice »

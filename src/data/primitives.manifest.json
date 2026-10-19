@@ -2,9 +2,9 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "label": "mesurerArbreProcessus/gardienDisparu/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "inspection des identités PID et création et chaîne des ancêtres validée par dates et protégée des cycles",
+    "concept": "inspection des identités PID et création, disparition d’un gardien jugée sur la vue ou, vue en échec, sur son PID daté, et chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "protection Git et supervision des hooks, publication isolée ; inspection sans autorité de clôture",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
@@ -172,7 +172,7 @@
     "css": "src/ui/styles/option-chooser.css",
     "poseurs": [
       "src/ui/CastModal.tsx",
-      "src/ui/PortraitPicker.tsx",
+      "src/ui/console/PortraitPicker.tsx",
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
@@ -241,6 +241,15 @@
     "concept": "lookup d'une table d100 par fourchette [min,max]",
     "perimetre": "toute table à fourchettes RAW",
     "verrou": "table-lookup-guard.test.ts"
+  },
+  {
+    "id": "clockLabel",
+    "type": "primitives.manifest",
+    "label": "clockLabel",
+    "fichier": "src/engine/duration.ts",
+    "concept": "libellé d'une durée d'HORLOGE en minutes de jeu : reste d'un effet (forme courte, une unité arrondie au-dessus) ou durée écoulée/estimée (`exact` : « 2 h 40 », « 1 j 6 h »)",
+    "perimetre": "échéance d'un effet (`EtatPanel`), estimation de trajet de la carte (`WorldMapView`), durée du récapitulatif de voyage (`TravelRecapModal`)",
+    "verrou": "src/engine/duration.test.ts"
   },
   {
     "id": "fourchette",
@@ -380,7 +389,7 @@
   {
     "id": "netOwnership",
     "type": "primitives.manifest",
-    "label": "ownsLocally/pilotedByHuman/aiDriven/siegesRequis",
+    "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
     "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
@@ -389,11 +398,11 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/RefNarrativeField",
-    "fichier": "src/ui/compendium/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES`",
-    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx"
+    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
+    "fichier": "src/ui/compendium/refField/RefField.tsx",
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
+    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
   },
   {
     "id": "sourceBadge",
@@ -410,7 +419,7 @@
     "label": "ProseField",
     "fichier": "src/ui/ProseField.tsx",
     "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
-    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille",
+    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille ; en zone basse (`courte`) : la raison maison d'une valeur (`ProvenanceDeValeur`)",
     "verrou": "ui-ratchets.test.ts"
   },
   {
@@ -474,9 +483,9 @@
     "label": "MediaSelect",
     "fichier": "src/ui/MediaSelect.tsx",
     "css": "src/ui/styles/media-select.css",
-    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône",
+    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône ; le popover ouvert est une couche `popover` de la pile (`useDismissLayer`), ouverture et focus par `useBoutonAPopup`",
     "perimetre": "sélecteurs d'arme/armure de la fiche, menu « Donner »",
-    "verrou": "—"
+    "verrou": "echap-pile-lifo.test.tsx — Échap referme la liste avant la modale qui la porte"
   },
   {
     "id": "genRegistry",
@@ -557,7 +566,16 @@
     "fichier": "src/data/schemas/grammaire/ref.ts",
     "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
-    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
+    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/refField/ref-field-sous-liste.test.tsx"
+  },
+  {
+    "id": "refTypee",
+    "type": "primitives.manifest",
+    "label": "refTypee/declarationDeRefTypee",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "une référence TYPÉE `{ id, type }` dont le `type` choisit l'espace d'ids où l'`id` doit résoudre (`refTypee`), et sa déclaration lue par l'éditeur et le scan (`declarationDeRefTypee`)",
+    "perimetre": "foyer de règle des enjeux, des Activités et des Tests d'équipage (`foyerDeRegleSchema`), champ polymorphe de l'éditeur (`RefField`), ouverture au Codex (`cibleCodex`), résolution du scan des structures (`espaceNomme`)",
+    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/refField/ref-field-polymorphe.test.tsx"
   },
   {
     "id": "refCouvre",
@@ -635,7 +653,7 @@
     "id": "tabs",
     "type": "primitives.manifest",
     "label": "Tabs",
-    "fichier": "src/ui/Tabs.tsx",
+    "fichier": "src/ui/composites/Tabs.tsx",
     "concept": "onglets (flat/pill/sub/dock) : role tablist, aria-selected, roving tabindex",
     "perimetre": "fiche, écran plein-champ, dock repliable, sous-onglets ; styles src/ui/styles/tabs.css",
     "verrou": "réflexe avant toute liste d’onglets recodée"
@@ -644,9 +662,9 @@
     "id": "rovingFocus",
     "type": "primitives.manifest",
     "label": "rovingKeyDown",
-    "fichier": "src/ui/rovingFocus.ts",
-    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG)",
-    "perimetre": "tablist, listbox, radiogroup",
+    "fichier": "src/ui/composites/rovingFocus.ts",
+    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG) ; la sélection suit le focus, ou le focus seul se déplace (`suivi: 'focus'`) ; la touche consommée ne se propage pas au roving générique d’une modale",
+    "perimetre": "tablist, listbox, radiogroup, menu",
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
   },
   {
@@ -778,6 +796,15 @@
     "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
+  },
+  {
+    "id": "provenanceDeValeur",
+    "type": "primitives.manifest",
+    "label": "ProvenanceDeValeur",
+    "fichier": "src/ui/editor/ProvenanceDeValeur.tsx",
+    "concept": "provenance d'une VALEUR d'auteur : sa source (SourceRefField facultative) ou sa raison maison (ProseField courte), dans un panneau creux posé à côté de la valeur ; une valeur exigée sans l'une ni l'autre porte son refus (ChipDeRefus), miroir de refuserSansProvenance au chargement",
+    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel)",
+    "verrou": "src/ui/editor/worldmap-gating-editable.test.tsx, src/ui/editor/WorldMapEditor.test.tsx"
   },
   {
     "id": "couvreField",
@@ -917,11 +944,38 @@
     "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; AUCUNE ambiance CharacterPreview exposée (la tuile porte SA matière) ; réflexe avant tout cadre dans un cadre"
   },
   {
+    "id": "groupesDeChoix",
+    "type": "primitives.manifest",
+    "label": "Listbox/RadioGroup",
+    "fichier": "src/ui/composites/GroupesDeChoix.tsx",
+    "concept": "conteneurs role listbox (items role option) et radiogroup (items role radio, variante svg) au clavier rovingKeyDown ; la listbox d'une liste qui se referme au choix ne déplace que le focus",
+    "perimetre": "tout groupe de sélection exclusive : grilles de choix, services d'un lieu, liste de MediaSelect, lignées et talents du créateur, chemin de carrière, roue céleste",
+    "verrou": "murs/roles-composites d'oxlint.config.mjs (listbox, radiogroup, tablist, menu, grid posés hors src/ui/composites refusés, banc scripts/guards/lib/lint-parite.test.mjs)"
+  },
+  {
+    "id": "menu",
+    "type": "primitives.manifest",
+    "label": "Menu",
+    "fichier": "src/ui/composites/Menu.tsx",
+    "concept": "liste role menu d'entrées menuitem et de séparateurs, flèches qui déplacent le focus ; déclencheur, ouverture et fermeture par `useBoutonAPopup`",
+    "perimetre": "menu Fichier de l'éditeur",
+    "verrou": "murs/roles-composites d'oxlint.config.mjs"
+  },
+  {
+    "id": "boutonAPopup",
+    "type": "primitives.manifest",
+    "label": "useBoutonAPopup",
+    "fichier": "src/ui/composites/boutonAPopup.ts",
+    "concept": "déclencheur et son popup (menu, liste déroulante) : flèches, Home/End et ouverture au clavier entrent dans le popup, la fermeture rend le focus au déclencheur, le focus qui sort de la racine ferme",
+    "perimetre": "menu Fichier de l'éditeur (`Menu`), `MediaSelect` (`Listbox`)",
+    "verrou": "boutonAPopup.test.tsx"
+  },
+  {
     "id": "groupedPickGrid",
     "type": "primitives.manifest",
     "label": "GroupedPickGrid",
     "fichier": "src/ui/GroupedPickGrid.tsx",
-    "concept": "grille de sélection en sections par famille ou classe, role listbox et roving tabindex",
+    "concept": "grille de sélection en sections par famille ou classe, compose Listbox",
     "perimetre": "tout picker groupé",
     "verrou": "—"
   },
@@ -1132,12 +1186,12 @@
     "id": "combatConsole",
     "type": "primitives.manifest",
     "label": "CombatConsole",
-    "fichier": "src/ui/CombatConsole.tsx",
+    "fichier": "src/ui/console/CombatConsole.tsx",
     "css": "src/ui/styles/combat-console.css",
     "nature": "organisme",
     "concept": "LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte",
     "perimetre": "HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette",
-    "verrou": "src/ui/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
+    "verrou": "src/ui/console/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
   },
   {
     "id": "combatStartSplash",
@@ -1419,9 +1473,18 @@
     "type": "primitives.manifest",
     "label": "posePartagee",
     "fichier": "src/lib/posePartagee.ts",
-    "concept": "écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
-    "perimetre": "porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`)",
+    "concept": "écouteurs posés à la PREMIÈRE prise (`poser` rend leur retrait) et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
+    "perimetre": "porte d'Échap de la pile (`src/ui/clavier/couches/porteEchap.ts`), délégation de la couche d'infobulle (`Infobulle`)",
     "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
+  },
+  {
+    "id": "ecouterClavier",
+    "type": "primitives.manifest",
+    "label": "ecouterClavier / ModeClavier",
+    "fichier": "src/ui/clavier/interne/ecouterClavier.ts",
+    "concept": "SEULE pose d'un écouteur `keydown`/`keyup`, sur quelque receveur que ce soit (un élément écoute par son `onKeyDown` JSX) ; le MODE (`registre`, `couche`, `remap`, `piege`) fixe la cible et la phase, donc la place de l'écouteur dans la propagation d'un appui ; rend le retrait. INTERNE à `src/ui/clavier/` : hors de ce dossier, un geste clavier passe par un hook qui nomme son geste (`src/ui/clavier/couches/` pour les touches NOMMÉES, lues par `e.key` ; `useRemapDeTouche` pour la POSITION d'un raccourci, lue par `e.code`) et ne prend aucun gestionnaire ; un ancrage écoute ses touches par son `onKeyDown`/`onKeyDownCapture` JSX",
+    "perimetre": "lecteur du registre (`useGameKeyboard`) ; couches à touches nommées : porte d'Échap de la pile (`prendrePorteEchap`, composée par `useDismissLayer`), piège du dialogue (`usePiegeDeDialogue`, composé par `useModalA11y`) ; remap d'un raccourci du registre, par position (`useRemapDeTouche`, composé par `KeyBindingsPanel`)",
+    "verrou": "murs `murs/clavier-global`, `murs/interne` et `murs/clavier-positions` (`oxlint.config.mjs`, banc `scripts/guards/lib/lint-parite.test.mjs`) ; echap-pile-lifo.test.tsx — la pile tranche avant le registre ; remapDeTouche.test.tsx — Échap annule le remap seul ; infobulle-epinglage-dialogue.test.tsx — ↓ épingle avant le piège du dialogue ; clavier-virtuel-couches.test.tsx — Entrée et Échap sans position répondent"
   },
   {
     "id": "gelerProfond",
@@ -1606,18 +1669,27 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance/ecartsDeStock/EcartsDeStock/ecartDuVolet/refusDeCroissance/remedeNomme/champsAveugles/couvertureDuBalayage/lignesMalQualifiees",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance ; l’écart d’une collection observée à son stock dans les deux sens, le COMPTE (accesseur `nombre`) hors de la clé et jugé dans un seul sens (hausse en phrase fixe portant la cible du site, baisse décorée), le verdict d’un volet, le refus de croissance d’un écrivain, les champs aveugles, la couverture d’un balayage et les lignes sans échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
-    "verrou": "cle-de-site-guard.test.ts, stock.test.mjs"
+    "verrou": "cle-de-site-guard.test.ts, stock.test.mjs, stock-primitive.test.ts"
+  },
+  {
+    "id": "porteDesComptes",
+    "type": "primitives.manifest",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "fichier": "scripts/guards/lib/corpusDesComptes.mts",
+    "concept": "porte des comptes : les collections à compte et le volet SOURCE_FORMAT qu'elle juge, leurs fichiers porteurs, et le verdict d'une plage dont chaque borne est mesurée dans son image par deux détecteurs constants — aucun compte ne monte, aucun site ne naît, aucun `CLIQUET:` ne l'admet",
+    "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
+    "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
   },
   {
     "id": "stockDeSites",
     "type": "primitives.manifest",
-    "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
+    "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/MOTIF_DECROISSANT/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
     "fichier": "scripts/guards/lib/stockDeSites.mjs",
-    "concept": "lecture et écriture d'un stock de sites dans ses deux formats, son ordre canonique, les entrées régénérées et leurs comptes par famille, les trois politiques de croissance, le texte régénéré et son écart au fichier en place",
+    "concept": "lecture et écriture d'un stock de sites dans ses deux formats, son ordre canonique, les entrées régénérées et leurs comptes par famille, les trois politiques de croissance et le motif de tout écrivain qui refuse la croissance, le texte régénéré et son écart au fichier en place",
     "perimetre": "tout module qui mesure un stock de sites (déclaration `regenerations`)",
     "verrou": "stockDeSites.test.mjs, lectures de canonUnique.mjs (ECRITURE_DE_STOCK_JSON)"
   },
@@ -1645,8 +1717,8 @@
     "label": "threeWay",
     "fichier": "scripts/git-hooks/three-way.mjs",
     "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilotes de fusion des docs dérivés et des stocks de sites",
-    "verrou": "merge-docs.test.mjs, merge-stocks.test.mjs"
+    "perimetre": "pilote de fusion des stocks de sites",
+    "verrou": "merge-stocks.test.mjs"
   },
   {
     "id": "litteralJs",
@@ -1698,8 +1770,17 @@
     "type": "primitives.manifest",
     "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/evaluerLotDuDepot/APPEL_DE_LECTURE/requeteDe/partiesDeRequete/encoderLecture/decoderLecture/mesureLecture/certifierLecture",
     "fichier": "scripts/guards/lib/racinesBalayees.mjs",
-    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo ; fonctions anonymes désignées par un id dans le lexique de leur module ; lecture d'un module sérialisée en IR JSON borné (encoder, mesurer, décoder) puis certifiée une fois pour son module, chaîne non vide (décodée, sans lien, gelée ; un module illisible reçoit un témoin certifié, lu nul), et évaluation d'un lot de questions sur ces lectures certifiées, par un noyau fermé neuf qui refuse par une erreur nommée toute lecture non certifiée (nulle comprise), celle d'un autre module, un module hors domaine, un module lu deux fois et tout lot hors domaine (lectures, résolutions, lecteurs, questions : tableaux nus validés entrée par entrée à leur indice, valeurs propres sans accesseur), et ne consomme que la copie qu'il a validée, sans accès au disque, à clés structurelles, au même résultat qu'une évaluation directe ; le JSON du résultat de chaque question est son canal de détachement du noyau",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo ; fonctions anonymes désignées par un id dans le lexique de leur module ; lecture d'un module sérialisée en IR JSON borné (encoder, mesurer, décoder) puis certifiée une fois pour son module, chaîne non vide (décodée, sans lien, gelée ; un module illisible reçoit un témoin certifié, lu nul), et évaluation d'un lot de questions sur ces lectures certifiées, par un noyau fermé neuf qui refuse par une erreur nommée toute lecture non certifiée (nulle comprise), celle d'un autre module, un module hors domaine, un module lu deux fois et tout lot hors domaine (lectures, résolutions, lecteurs, questions : tableaux nus validés entrée par entrée à leur indice, valeurs propres sans accesseur), et ne consomme que la copie qu'il a validée, sans accès au disque, à clés structurelles, au même résultat qu'une évaluation directe ; le JSON du résultat de chaque question est son canal de détachement du noyau ; budget de la certification et du lot (décodage, noyau, prédicat, calcul de retour) observé par la couture stade",
     "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
+    "verrou": "racinesBalayees.test.mjs"
+  },
+  {
+    "id": "clesCanoniques",
+    "type": "primitives.manifest",
+    "label": "clesCanoniques",
+    "fichier": "scripts/guards/lib/clesCanoniques.mjs",
+    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé refusée par FORME_PRIVEE_ASSOCIEE_APRES_CLE) ; toute surface refuse une valeur hors domaine JSON par CLE_DOMAINE_JSON, l'erreur native en cause ; cellules, preuves et mémos vivent avec l'instance",
+    "perimetre": "toute clé de mémo ou de dédoublonnage d'une valeur de l'évaluateur de racines balayées",
     "verrou": "racinesBalayees.test.mjs"
   },
   {
@@ -1750,9 +1831,9 @@
   {
     "id": "processusWorktrees",
     "type": "primitives.manifest",
-    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure/classerFiliation",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/lireCause/toleranceDeMesure/classerFiliation",
     "fichier": "scripts/guards/lib/processusWorktrees.mjs",
-    "concept": "mesure Windows/Linux du résident en octets (RSS Linux, WorkingSet Windows), des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`, code `MESURE_PROCESSUS_EXPIREE`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; filiation classée valide/exclue/indeterminee sur les créations UTC exactes, descendance validée et liens indéterminés explicites ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "concept": "mesure Windows/Linux du résident en octets (RSS Linux, WorkingSet Windows), des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`, code `MESURE_PROCESSUS_EXPIREE`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; filiation classée valide/exclue/indeterminee sur les créations UTC exactes, descendance validée et liens indéterminés explicites ; liens au worktree par les seuls arguments en forme de chemin ; causes de lecture codées `champ illisible : [code] message` lues par `lireCause` ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
     "perimetre": "protection des worktrees contre les processus vivants, inventaire lisible de la portée mesurée, identité du détenteur d'un verrou (PID réutilisé)",
     "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs, verrouGestesLourds.test.mjs"
   },
@@ -1880,7 +1961,7 @@
     "fichier": "src/lib/stockageWeb.ts",
     "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
+    "verrou": "src/lib/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/lib/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",
@@ -1950,9 +2031,27 @@
     "type": "primitives.manifest",
     "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
     "fichier": "scripts/guards/lib/processusBorne.mjs",
-    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
+    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe ; diagnostic d’arrêt qui imprime chaque message une seule fois",
     "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
     "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "arretNatif",
+    "type": "primitives.manifest",
+    "label": "arretIndetermine/texteDeCause",
+    "fichier": "scripts/guards/lib/arretNatif.mjs",
+    "concept": "arrêt `indetermine` d'une opération sur un PID, nommé par le code et le texte de sa cause gardée entière ; texte total d’une cause quelconque (message, marque d’objet ou primitive) qui ne lève jamais ; partagé par le superviseur natif, l'adaptateur borné et le lanceur des gates",
+    "perimetre": "tout arrêt de processus non prouvé mort",
+    "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "fileBornee",
+    "type": "primitives.manifest",
+    "label": "enFileBornee",
+    "fichier": "scripts/guards/lib/fileBornee.mjs",
+    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },
   {
     "id": "codesDeSortie",

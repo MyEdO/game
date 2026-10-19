@@ -12,7 +12,7 @@
 // Usage : node scripts/raw/reparer-ancres.mjs [--dry] [--apply]
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { pagesAvecAncres, renvoisMorts, RAWDIR } from './check-ancres.mjs'
+import { pagesAvecAncres, renvoisMorts, RAWDIR, rendusDeLAtlas } from './check-ancres.mjs'
 
 /** Les DEUX étages de pliage, dans l'ordre où on les essaie — le plus fidèle d'abord. */
 export const ETAGES = [
@@ -67,9 +67,9 @@ export function pageReecrite(texte, reparations) {
  * @param {string} [rawDir] l'Atlas sur lequel il travaille (un banc lui donne un Atlas JETABLE)
  * @returns {{ reparables: number, ambigus: number, residuels: number, pages: number }}
  */
-export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR) {
+export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR, sources) {
   const applique = argv.includes('--apply')
-  const pages = pagesAvecAncres(rawDir)
+  const pages = pagesAvecAncres(rawDir, sources)
   const tous = verdicts(pages)
   const reparables = tous.filter((v) => v.etat === 'reparable')
   const ambigus = tous.filter((v) => v.etat === 'ambigu')
@@ -97,4 +97,7 @@ export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR) {
   return bilan
 }
 
-if (import.meta.main) reparer()
+if (import.meta.main) {
+  const { cataloguesRendus } = await import('./build-catalogs.mjs')
+  reparer(process.argv.slice(2), RAWDIR, { catalogues: cataloguesRendus, rendus: await rendusDeLAtlas() })
+}

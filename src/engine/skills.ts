@@ -39,7 +39,7 @@ function altCharKey(c: Combatant, skillId: string, ck: CharKey): CharKey {
 }
 
 /** Caractéristique (CharKey STABLE) d'une compétence par son `id`. `SkillData.characteristic` EST
- *  une CharKey ('Dex'…), multilangue-safe — jamais une conversion par libellé. */
+ *  une CharKey ('dexterite'…), multilangue-safe — jamais une conversion par libellé. */
 export function skillCharKeyById(skillId: string): CharKey | undefined {
   return byId('skill', skillId)?.characteristic;
 }
@@ -91,6 +91,24 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
   // (#193, Genou démis « Tests impliquant cette jambe ») restreint aux Tests classés « déplacement ».
   const fxChar = activeCharTestMod(c, ck, { movement: isMovementSkill(skill) });
   return base + (sk?.advances ?? 0) + states + enc + traumaSkill + passive + fxChar + skillToolMod(c, skill);
+}
+
+/** Ce qu'un Test désigne : sa Compétence (`TestNomme` d'une fiche, `RefDesignee` d'une donnée) ou sa
+ *  seule Caractéristique. */
+export type TestDesigne = { readonly skill: RefDesignee } | { readonly char: CharKey };
+
+/** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
+export function valeurDuTest(c: Combatant, test: TestDesigne): number {
+  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.char);
+}
+
+/** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
+ *  (États, passifs, encombrement…), que la ligne rend en chips. */
+export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: number; mods: ModLine[] } {
+  const { base, mods } = 'skill' in test
+    ? testValueSplit(c, valeurDuTest(c, test), { skill: test.skill.id, spec: test.skill.spec })
+    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.char });
+  return { base, mods };
 }
 
 /**
@@ -263,7 +281,7 @@ export function socialPsychLabel(tester: Combatant, targetGroups: string[]): str
 }
 
 /** Un Test (compétence ou caractéristique) relève-t-il de la **Sociabilité** (LDB 21 : malus psy −20/−10) ?
- *  Vrai si la caractéristique sous-jacente est `Soc` (Charme, Marchandage, Intimidation, Commérage…). */
+ *  Vrai si la caractéristique sous-jacente est `sociabilite` (Charme, Marchandage, Intimidation, Commérage…). */
 export function isSocialTest(skill?: string, characteristic?: CharKey): boolean {
   if (characteristic) return characteristic === 'sociabilite';
   if (skill) return skillCharKeyById(skill) === 'sociabilite';

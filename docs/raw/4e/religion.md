@@ -3,7 +3,7 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/engine/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : [`sources.md`](../sources.md). Index : [`00-index.md`](00-index.md).
 >
 > Scope : règles de Foi (Bienheureux, Bénédictions, Miracles), Points de Péché, Colère des dieux,
@@ -11,7 +11,7 @@
 > **Hors-scope de ce fichier** : catalogue détaillé des bénédictions par culte (→ *catalogue séparé*),
 > texte de chaque miracle par culte (→ *catalogue séparé*), commandements culte par culte (→ ch. 26-39).  
 > **ZÉRO invention** — tout ce qui n'est pas citable est absent.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ---
 
@@ -172,8 +172,7 @@ Règles précises :
 - Le **dé des unités** du jet d100 est comparé au total de Péché. Un résultat 00 compte comme unité = 0.
 - Se cumule avec la Maladresse : une Maladresse déclenche la Colère des dieux **indépendamment** du Péché.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 40` (l.35-36) → `discreetPrayerDifficulty`, `peche`, `CastModal`, `wrath-table`, `liveTableDecl`, `giveSinSchema`, `prayerWrathTriggered`, `GameOp`, `FLOWS`, `prayer-conviction`, +42 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/magic.ts`, +11 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ereligionpeche-et-colere-divine-declenchement)
 
 ---
 
@@ -191,10 +190,7 @@ Le MJ peut aussi utiliser la table ou y piocher des résultats chaque fois qu'un
 
 **Après le jet** : réduire les Points de Péché de 1 (minimum 0). `LDB 40 l.46-50`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 40` (l.12-13, l.45-50) → `isPrayerFamily`, `discreetPrayerDifficulty`, `poolDeNonCumul`, `SinPoints`, `castInfoIsPrayer`, `castInfo`, `peche`, `LIBELLE_DE_FORME`, `CastModal`, `wrath-table`, +54 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/characteristics.ts`, +16 fichiers
-- dette : #1653
-- bloqué : 6 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.61 et l.70 (pénalité de Compétence à durée, hors magie), l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte), l.80 et l.82 (suppression temporaire de Talent) : le vocabulaire de `GameOp` ne les exprime pas encore
+**Implémente :** [État calculé](../implemente.generated.md#4ereligioncolere-des-dieux-declencheur-maladresse)
 
 ---
 

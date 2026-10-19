@@ -80,7 +80,7 @@ const lignesLues = (): string[] => [
   ...(useGame.getState().battle?.log ?? []).map((l) => l.text),
 ];
 
-const MALADRESSE: OupsResolved = { roll: 33, kind: 'actionPenalty', label: 'Vous perdez pied' };
+const MALADRESSE: OupsResolved = { roll: 33, kind: 'actionPenalty', label: 'Vous perdez pied', mod: -10 };
 const INCIDENT: OupsResolved = { roll: 44, kind: 'misfire', label: 'Incident de Tir !' };
 
 /** L'arme est-elle BRISÉE ? Elle a quitté les mains : aucun combattant ne la tient plus (`LDB 60 l.50`). */
@@ -132,7 +132,7 @@ describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de
     applyOups(useGame.getState, useGame.setState, hero, arme, MALADRESSE);
     poser(9);
     expect(brisee(arme), 'LDB 60 l.30 : « 9+ » sauve').toBeFalsy();
-    expect(hero.nextActionPenalty, 'la Maladresse, elle, s’applique bien').toBe(10);
+    expect(hero.nextActionPenalty, 'la Maladresse, elle, s’applique bien').toBe(-10); // LDB 14 l.26
     expect(lignesLues().some((l) => /Épée bâclée tient le choc — Sauvegarde 1d10 : 9 ≥ Solide \(9\+\)\./.test(l)), lignesLues().join(' | ')).toBe(true);
   });
 
@@ -368,7 +368,7 @@ describe('aucune scission par PORTEUR — un ennemi conduit par l’IA suit le M
     const total = st.de!.result!.total;
     useGame.getState().cascadeNext();
     expect(brisee(arme), `dé ${total} : l’arme casse si et seulement si le dé rate le 9+`).toBe(total < 9);
-    expect(brute.nextActionPenalty, 'la Maladresse s’applique à la reprise').toBe(10);
+    expect(brute.nextActionPenalty, 'la Maladresse s’applique à la reprise').toBe(-10); // LDB 14 l.26
   });
 });
 

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { CodexEdit } from './CodexEdit';
+import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
 
 beforeAll(() => {

@@ -27,8 +27,8 @@ import type { ModLine } from './combat';
 import { bestSkilledOption, bestForSkills, peutTenter, refusNePeutTenter, testValue, type TestSpec } from './skills';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
-import { DIFFICULTY_MODIFIERS } from './types';
-import { easeDifficulty, estJete, ECHEC_SANS_JET, type EchecSansJet } from './tests';
+import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
+import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
@@ -446,11 +446,9 @@ export interface ActivityDef extends TestSpec {
   stake?: string;
   /** FORME DÉCLARÉE du `stake` — même contrat que `night-stakes`/`flow-stakes` (garde de forme). */
   stakeForm?: StakeForm;
-  /** FOYER de la règle derrière le jet : id de l'ENTITÉ qui la porte. Absent = l'Activité elle-même
+  /** FOYER de la règle derrière le jet : l'ENTITÉ qui la porte. Absent = l'Activité elle-même
    *  (sa `desc` verbatim, catégorie Codex `activities`) — jamais une fiche `regles.json` doublon. */
-  rule?: string;
-  /** Catégorie Codex du foyer (`'regles'`, `'skills'`, `'etats'`…), exigée avec `rule`. */
-  ruleCategory?: string;
+  rule?: FoyerDeRegle;
 }
 
 /** Résolveurs qui DÉRIVENT leur compétence du héros au moment d'ouvrir le jet (`openCatalogActivity`,
@@ -590,7 +588,7 @@ export function travelActivitySpec(
   const sk = skillRefs[0];
   const used: RefDesignee = b ? { id: b.skillId!, ...(b.spec ? { spec: b.spec } : {}) } : sk;
   const value = b ? b.value : testValue(actor, sk.id, undefined, sk.spec);
-  const target = Math.max(1, Math.min(99, value + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire'] + (opts.skillMod ?? 0)));
+  const { target } = clampTarget(cibleDuTest(value, def.difficulty ?? 'intermediaire', opts.skillMod ?? 0));
   return {
     activityId: def.id, actorId: actor.id, used, value, target, skillMod: opts.skillMod ?? 0, drTarget,
     ...(b ? {} : { refus: refusNePeutTenter(actor, { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) }) }),

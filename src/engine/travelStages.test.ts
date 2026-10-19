@@ -10,10 +10,11 @@ import {
   weatherFromRoll, rollStageWeather, weatherRanges,
   stageCount, stageExposureDifficulty, forageYield,
   weatherRangedMod, weatherRangedUseless, weatherPowderUseless, weatherVisibiliteM,
-  weatherMovementWalkOnly, weatherResistanceTest, weatherPhysicalTestMod, weatherLightningNervous,
+  weatherMovementWalkOnly, weatherResistanceTest, weatherLightningNervous,
   type Season,
 } from './travelStages';
 import { activityById } from './activities';
+import { weatherTestMods } from './weatherTestMod';
 import { setRule, resetRule } from './policy';
 import { setDataset } from '../data/overrides';
 import { weather } from '../data';
@@ -241,11 +242,11 @@ describe('effets météo TERRESTRES en DONNÉE (EDOC 8 « conditions »)', () =>
     expect(weatherRangedMod('pluie-diluvienne')).toBe(-20);
     expect(weatherPowderUseless('pluie-diluvienne')).toBe(true);
     expect(weatherLightningNervous('pluie-diluvienne')).toBe(true);
-    expect(weatherPhysicalTestMod('pluie-diluvienne', 'force')).toBe(-10);
-    expect(weatherPhysicalTestMod('pluie-diluvienne', 'capacite-de-tir')).toBe(-10);
+    expect(weatherTestMods('pluie-diluvienne', 'force').map((l) => l.value)).toEqual([-10]);
+    expect(weatherTestMods('pluie-diluvienne', 'capacite-de-tir').map((l) => l.value)).toEqual([-10]);
     // I / FM / Soc ne sont PAS physiques (liste maison) → aucun malus.
-    expect(weatherPhysicalTestMod('pluie-diluvienne', 'intelligence')).toBe(0);
-    expect(weatherPhysicalTestMod('pluie-diluvienne', 'sociabilite')).toBe(0);
+    expect(weatherTestMods('pluie-diluvienne', 'intelligence').map((l) => l.value)).toEqual([]);
+    expect(weatherTestMods('pluie-diluvienne', 'sociabilite').map((l) => l.value)).toEqual([]);
   });
   it('Neige : visibilité 45 m, marche seule, Résistance Accessible ou Exténué', () => {
     expect(weatherVisibiliteM('neige')).toBe(45);
@@ -263,7 +264,7 @@ describe('effets météo TERRESTRES en DONNÉE (EDOC 8 « conditions »)', () =>
   it('Temps sec / beau : aucun effet de combat/mouvement', () => {
     expect(weatherRangedMod('sec')).toBe(0);
     expect(weatherRangedMod('beau')).toBe(0);
-    expect(weatherPhysicalTestMod('pluie', 'force')).toBe(0);
+    expect(weatherTestMods('pluie', 'force').map((l) => l.value)).toEqual([]);
   });
 });
 

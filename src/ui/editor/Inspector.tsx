@@ -51,7 +51,7 @@ const battleAnchorTargets = (): { id: string; label: string }[] =>
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { effectCtxOf } from './EffectList';
-import { RefNarrativeField } from '../compendium/RefField';
+import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
 import { actionsDe, ACTION_FOUILLER } from '../../state/usable';
@@ -64,7 +64,7 @@ import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../icons';

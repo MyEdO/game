@@ -5,7 +5,7 @@
  * un sous-écran de fait). Zéro logique métier déplacée : découpage JSX pur, coutures runtime intactes.
  */
 import { useState } from 'react';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { Icon, IconG } from '../Icon';
 import { Prose } from '../Prose';
 import { NumberField } from '../NumberField';

@@ -68,7 +68,7 @@
 }
 /* Le rig REMPLIT le visage de SA tuile. Poids 0-3-0 : `.sheet-portrait .rig-portrait` (0-2-0,
    `sheet.css`, importée APRÈS ce module) vise le rig NU de `FigTile`, et la fiche de navire monte
-   une vraie tuile dans ce même conteneur (`src/ui/ShipSheet.tsx`). */
+   une vraie tuile dans ce même conteneur (`src/ui/console/ShipSheet.tsx`). */
 .ptile .ptile-face .rig-portrait {
   display: block;
   width: 100%;

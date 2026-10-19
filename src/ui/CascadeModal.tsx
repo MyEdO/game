@@ -29,7 +29,7 @@ import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
 import { fourchette } from '../engine/tables';
-import { estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
+import { estJete, refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../state/rollSeam';
@@ -155,15 +155,15 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const fumbleProps = useFumbleJetProps(); // étape-jet de Maladresse : Tableau des Oups ! dans la MÊME fenêtre
   const testProps = useTestJetProps(); // étape-jet de Test de scène : même coquille, une seule fenêtre
   const extendedProps = useExtendedTestJetProps(); // étape-jet de Test étendu (Rounds cumulés)
-  // COOP : une rangée n'est pilotable que par le siège qui possède son acteur — porte UI UNIQUE
-  // (`ui/ownership`), lue jamais redécidée ; hook AVANT tout retour anticipé.
+  // COOP : une rangée n'est pilotable que par le siège qui possède son acteur — couture
+  // `netOwnership.ownsLocal` vue par `useOwns`, lue jamais redécidée ; hook AVANT tout retour anticipé.
   const owns = useOwns();
 
   // AUTO-FERMETURE d'une étape d'AFFICHAGE (#942 L8) : l'étape qui DÉCLARE `autoCloseMs` (gravité de
   // sa révélation) enchaîne d'elle-même passé le délai — « Continuer » reste servi et ferme avant. Le
   // minuteur est réarmé PAR ÉTAPE (clé = son id) ; il n'a rien à voir avec la Cadence de combat (une
   // cadence MANUELLE auto-ferme aussi : c'était le comportement de la révélation témoin). COOP : seul
-  // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `ui/ownership`) — deux
+  // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `netOwnership.ownsLocal`) — deux
   // sièges qui tirent `cascadeNext` avanceraient de deux crans.
   const autoStep = p ? p.participants[p.cursor] : undefined;
   // Prêt-à-valider de l'étape COURANTE, abonné : une étape hôte dépend de son slot (`stepReady`, #1765).
@@ -221,7 +221,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const l = stepLine(s);
     // Pré-jet : la seconde lecture n'a que sa CIBLE à annoncer (aucun dé n'est tombé) — c'est
     // précisément ce qui manquait au joueur, qui ne découvrait le second Test qu'en le ratant.
-    return testPending(l.label, l.base, s.target, s.difficulty, l.mods, s.easedBy, s.clamped, s.second ? { ...s.second } : undefined);
+    return testPending(l.label, l.base, s.target != null ? cibleMesuree({ target: s.target, clamped: s.clamped }) : undefined, s.difficulty, l.mods, s.easedBy, s.second ? { ...s.second } : undefined);
   };
   /** Étape qui LANCE — la ligne de jet n'existe que là (les étapes d'affichage/choix/table/batch
    *  n'ont ni cible ni libellé de ligne : elles se rendent par leur note). */
@@ -310,7 +310,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         if (!a) return [];
         const res = estJete(part.result) ? part.result : null;
         // La rangée FIGÉE garde sa seconde lecture : ce que la bande a tranché reste lisible au bilan.
-        const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
+        const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), ...(part.clamped ? { clamped: part.clamped } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
         const extendedDr = extendedDrData(part.extendedDrDone, part.extendedDrTarget, res);
         return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: refusSansJet(part) ?? partNote(part) }, extendedDr })];
       });

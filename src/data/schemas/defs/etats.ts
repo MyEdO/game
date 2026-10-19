@@ -7,7 +7,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
  */
 import { z } from 'zod';
-import { stakeFormSchema } from '../grammaire/valeurs';
+import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, gameOpSchema, jetSchema, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 
@@ -29,6 +29,7 @@ const gatingSchema = nommerChamps(z.strictObject({
 const recoverSchema = nommerChamps(z.strictObject({
   ...jetSchema.shape,
   opposedBy: z.literal('source').optional(),
+  opposedDifficulty: difficultySchema.optional(),
   /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
   enjeu: z.string(),
   /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
@@ -36,6 +37,7 @@ const recoverSchema = nommerChamps(z.strictObject({
 }), {
   ...metaDesChamps(jetSchema, { exigees: true }),
   opposedBy: { label: 'opposition' },
+  opposedDifficulty: { label: 'difficulté de l’opposant', hint: 'Absente : Intermédiaire (LDB 12 l.166)' },
   enjeu: { label: 'enjeu' },
   form: { label: 'forme' },
 });

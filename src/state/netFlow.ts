@@ -30,9 +30,9 @@ import type { NetMessage } from '../net/protocol';
 import type { Scene } from './scene';
 import { intentEluLocalement } from './targetingModes';
 import { bus, EVT } from './bus';
-import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
+import { scheduleFlowTimer, clearTrackedTimer } from '../lib/minuteries';
 
-import type { Get, Set } from './flowTypes';
+import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';
@@ -156,7 +156,7 @@ function scheduleBroadcast(get: Get): void {
  *  chaque broadcast de l'hôte l'éjecterait en pleine création et perdrait son brouillon).
  *  L'INTENTION armée (`localIntent`, spec HUD zone 4) l'est au même titre : c'est un mode d'ÉCRAN du
  *  client — un snapshot de l'hôte (arrivant toutes les ~120 ms) désarmerait la case sous le doigt. */
-export function applyNetSnapshot(set: Set, data: Record<string, unknown>): void {
+export function applyNetSnapshot(set: RemplacerLEtat, data: Record<string, unknown>): void {
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const mine = useGame.getState();
   const { game, rules } = unpackHouseRules(data);
@@ -309,7 +309,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
 
 /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur.
  *  Un token en sessionStorage (reload d'onglet) reprend le MÊME siège tant que la room vit. */
-export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Promise<string | null> {
+export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
   if (get().net.mode !== 'local') return Promise.resolve(t('coop.alreadyInSession'));
   const code = codeRaw.trim().toUpperCase();
   if (!/^[A-Z0-9]{6}$/.test(code)) return Promise.resolve(t('coop.badCode'));
@@ -348,7 +348,7 @@ export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Prom
       guest = new GuestSession({
         build: FORMAT_SAVE,
         label: name,
-        applySnapshot: (data) => applyNetSnapshot(set, data),
+        applySnapshot: appliquerSnapshot,
         onCampaign: (m) => {
           for (const s of m.scenes) registerScene(s as Scene);
         },

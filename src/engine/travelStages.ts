@@ -21,6 +21,7 @@ import { weather, weatherConditions, weatherPhysicalTestChars } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { weatherIdSchema } from '../data/schemas/defs/weather';
 import { findTableEntry } from './tables';
+import type { ExposureSeverity } from './exposure';
 
 /** Les quatre saisons du tableau de Météo (EDOC 8 l.52). */
 export type Season = 'printemps' | 'ete' | 'automne' | 'hiver';
@@ -153,14 +154,22 @@ export function stageCount(
  *    les deux manquants → Difficile (-20).
  */
 export function stageExposureDifficulty(weather: Weather, hasCloak: boolean, hasTent: boolean): Difficulty | null {
-  const modere = weather === 'pluie' || weather === 'neige';
-  const extreme = weather === 'pluie-diluvienne' || weather === 'blizzard';
-  if (!modere && !extreme) return null; // sec / beau : pas d'intempéries (l.72)
+  const severity = stageWeatherExposure(weather);
+  if (severity === 'clement') return null; // sec / beau : pas d'intempéries (l.72)
   const missing = (hasCloak ? 0 : 1) + (hasTent ? 0 : 1);
-  if (modere && missing === 0) return null; // pluie/neige normale, bien équipé → aucun Test (l.90)
+  if (severity === 'difficile' && missing === 0) return null; // pluie/neige normale, bien équipé → aucun Test (l.90)
   if (missing === 2) return 'difficile';    // -20 (absence des deux)
   if (missing === 1) return 'complexe';      // -10 (absence de l'un)
   return 'intermediaire';                    // +0 (extrême, manteau + tente)
+}
+
+/** Sévérité d'Exposition d'une météo d'Étape : la partition pluie/neige contre averse/blizzard
+ *  (EDOC 8 l.90), sur l'échelle de `weatherExposure` (LDB 18 l.328). SEULE conversion de l'alphabet
+ *  d'Étape vers l'échelle d'Exposition : `stageExposureDifficulty` et la nuit de halte la lisent. */
+export function stageWeatherExposure(weather: Weather): ExposureSeverity {
+  if (weather === 'pluie-diluvienne' || weather === 'blizzard') return 'extreme';
+  if (weather === 'pluie' || weather === 'neige') return 'difficile';
+  return 'clement';
 }
 
 /** Une saison froide expose-t-elle au rhume après Exposition (l.75) ? printemps/hiver uniquement. */
@@ -244,15 +253,8 @@ export function weatherLightningNervous(w: Weather): boolean {
 
 /** Une caractéristique est-elle « physique » au sens EDOC 8 l.82 (liste MAISON éditable) ? */
 export function isPhysicalTestChar(char: CharKey): boolean {
-  return (weatherPhysicalTestChars as string[]).includes(char);
+  return weatherPhysicalTestChars.includes(char);
 }
-/** Pénalité de la météo `w` à un Test basé sur la caractéristique `char` (Pluie diluvienne -10 aux
- *  Tests physiques, l.82) — 0 si la météo n'en porte pas ou si `char` n'est pas physique. */
-export function weatherPhysicalTestMod(w: Weather, char: CharKey): number {
-  const mod = weatherCondition(w).physicalTestMod;
-  return mod != null && isPhysicalTestChar(char) ? mod : 0;
-}
-
 /** Méthode d'Approvisionnement (LDB 09 l.565-572, option « Trouver de la nourriture et des herbes »). */
 export type ForageMethod = 'recherche' | 'chasse' | 'piegeage';
 
