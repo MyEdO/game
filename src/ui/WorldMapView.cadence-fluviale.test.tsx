@@ -11,7 +11,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
 import { useGame } from '../state/store';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { creditBourse } from '../state/bourseFlow';
 import { buildScene } from '../state/mapSpec';
 import { createHero, skillCharacteristicById } from '../engine/character';

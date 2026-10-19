@@ -178,7 +178,7 @@ const BASELINE = { totalCalls: 707, totalAdHocResets: 296 }; // +1 (#1117 L3 : `
 // sauvegarde poussée DANS cette cascade y serait détruite avec le coup). La baseline se RESSERRE sur la
 // mesure EXACTE : un cliquet qui garde du mou ne borne plus rien.
 // #1508 T3b-1 — baseline INCHANGÉE (749/300), solde NET NUL, mesuré par `runSetScan` sur l'arbre du lot
-// (`src/state/combatFlow.ts` 110 `set` · `src/state/combatLog.ts` 1) :
+// (`src/state/combatFlow.ts` 110 `set` · `src/noyau/combatLog.ts` 1) :
 //  - AJOUTÉ : le `set({ battle: { …log } })` de `combatLog.journaliser`, ÉCRITURE UNIQUE du routage
 //    « en combat → `battle.log`, sinon `state.journal` » (consommateurs : `cascade.commitStep`,
 //    `combatFlow.finishPlayerAction`, `combatFlow.castRefused`) ;
@@ -203,11 +203,11 @@ const BASELINE = { totalCalls: 707, totalAdHocResets: 296 }; // +1 (#1117 L3 : `
 // purge ; `resetFields` ne couvre que les cadres `scene`/`combatStart`.
 
 describe('garde-fou set() bruts des flows (agrégat)', () => {
-  it("le nombre total de set() littéraux détectés dans src/state/*.ts ne dépasse pas la baseline", () => {
+  it("le nombre total de set() littéraux détectés dans src/state/*.ts et src/noyau/** ne dépasse pas la baseline", () => {
     const { totalCalls } = runSetScan(ROOT);
     expect(
       totalCalls,
-      `Croissance des set() de src/state/*.ts (${BASELINE.totalCalls} → ${totalCalls}) — revoir le nouveau flux puis AJUSTER la baseline de ce test si légitime`,
+      `Croissance des set() de src/state/*.ts et src/noyau/** (${BASELINE.totalCalls} → ${totalCalls}) — revoir le nouveau flux puis AJUSTER la baseline de ce test si légitime`,
     ).toBeLessThanOrEqual(BASELINE.totalCalls);
   });
 

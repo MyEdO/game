@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { cleaveTargets, doAttack, autoCleave } from './combatFlow';
-import { occupiesTile, footprintN } from './footprint';
+import { occupiesTile, footprintN } from '../noyau/monde/footprint';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';

@@ -2,11 +2,11 @@ import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
 import { t } from '../../i18n';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Marché & équipement » : tout le cycle objets en une échoppe. Réunit le Marchand (Acheter/Vendre/

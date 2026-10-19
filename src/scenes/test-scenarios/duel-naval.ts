@@ -2,7 +2,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
-import type { Scene, SceneEntity } from '../../state/scene';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
 

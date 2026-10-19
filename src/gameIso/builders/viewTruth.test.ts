@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildFloors } from './floors';
 import { buildWalls } from './walls';
 import { buildRoofs } from './roofs';
-import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 
 /**
  * VÉRITÉ DE VUE ⟂ GÉOMÉTRIE (#808) — le contrat de perf du pas, en contrats POSITIFS.

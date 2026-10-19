@@ -3,9 +3,9 @@ import { revealClue, discreditClue, togglePin, marquerVus, estNouveauPour, affic
 import { emptyNarratif, type Indice, type NarratifBlock } from './campaignNarratif';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { readSlot, saveToSlot, deleteSlot, type SaveGame } from './saves';
 import { withActingSeat } from './netOwnership';
 import { emettreIntentInvite, interceptGuestActions, restoreGuestActions } from './netFlow';

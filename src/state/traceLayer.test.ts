@@ -8,8 +8,8 @@ import {
   panelExpandedSave,
   type TraceLayerRecord,
 } from './traceLayer';
-import { __setFabriqueIdbForTest } from '../lib/indexedDb';
-import { brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../web/indexedDb';
+import { brancherBasesSimulees, type BasesSimulees } from '../web/indexedDb.testkit';
 import { identityTransform } from './traceCalibration';
 import { FORMAT_CALQUE } from './formats.generated';
 

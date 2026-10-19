@@ -37,7 +37,7 @@ import { traits, creatures, mutations, spells, etats, maladies, SPEC_SOURCES, ty
 import { testScenarios } from '../scenes/test-scenarios';
 import { parseProject } from '../state/worldMap';
 import areneProjetJson from '../scenes/arene/arene-projet.json';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
 import { refusDArgHorsRegistre, partsDArg } from './schemas/grammaire/reference';

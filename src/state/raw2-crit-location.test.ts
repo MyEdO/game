@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { locationLabel, type Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
 import { resetRule, setRule } from '../engine/policy';

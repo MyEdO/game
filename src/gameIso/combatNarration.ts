@@ -10,12 +10,12 @@
  */
 import { conditionMeta } from './effectIcons';
 import type { IconId } from '../ui/icons';
-import type { RecapLine } from '../state/recapLine';
+import type { RecapLine } from '../noyau/recapLine';
 import type { RefusIHM } from '../state/refusVisible';
 import {
   type CombatEvent, type CombatEventKind, type ActorAim, type ActorAimKind,
   type CombatTone, toneOf, isImportantEvent,
-} from '../state/combatLog';
+} from '../noyau/combatLog';
 import { conditionIdInText } from '../engine/conditions';
 
 export interface NarratedSegment {
@@ -49,7 +49,7 @@ const KIND_ICON: Record<CombatEventKind, IconId> = {
 /** États (LDB 16) reconnus dans le texte d'un événement `condition`/`detail` → icône via la
  *  source unique `conditionMeta` (jeu de noms FERMÉ, pas du devinage de verbe libre). Le texte d'un
  *  événement est en FRANÇAIS (journal) → l'État nommé se retrouve par `conditionIdInText`
- *  (`engine/conditions`, scan UNIQUE partagé avec `state/combatLog.isImportantEvent`), puis l'`id`
+ *  (`engine/conditions`, scan UNIQUE partagé avec `noyau/combatLog.isImportantEvent`), puis l'`id`
  *  donne l'icône. Data-driven (zéro liste figée). */
 function iconOfState(text: string): IconId | null {
   const id = conditionIdInText(text);

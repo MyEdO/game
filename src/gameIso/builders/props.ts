@@ -12,18 +12,18 @@
  * Consommé par l'hôte du monde de campagne (`stage/MondeDeCampagne`, qui le sert à SES DEUX regards)
  * et par l'éditeur — mêmes décors partout.
  */
-import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, type ArchitectureRect } from '../../state/scene';
+import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, type ArchitectureRect } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../state/buildings';
 import { effectiveArchitecture } from '../../state/sceneEdit';
-import { decorAncre, decorFootGeometry } from '../../state/footprint';
+import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { buildPropVolumes } from './propVolumes';
-import { terrainOverlayProp } from '../../state/terrain';
+import { terrainOverlayProp } from '../../noyau/monde/terrain';
 import { buildingFeatures } from '../../state/buildings';
 import { facadeFeatureViz } from '../catalog/facades';
 import { WALL_H_M } from '../iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
-import type { Dir4, Dir8 } from '../../state/dir8';
+import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
 import { edgeKey, fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
 import type { FloorView } from './floors';
 import type { PropEl, OrigineDecor } from './types';

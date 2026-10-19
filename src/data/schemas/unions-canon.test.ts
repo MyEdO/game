@@ -34,7 +34,7 @@ import { dispoPctAvailabilitySchema } from './defs/disponibilite';
 import type { HarvestRarity } from '../index';
 import { wallSideSchema } from './defs-scenes/communs';
 import { weatherIdSchema } from './defs/weather';
-import type { WallSide } from '../../state/scene';
+import type { WallSide } from '../../noyau/monde/scene';
 import type { WallEdgeSide } from '../../engine/types';
 
 /** Ce fichier : ses fixtures et ses attentes SONT des recopies, c'est leur métier. */
@@ -82,7 +82,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
 
   /**
    * ARÊTE DE MUR — le canon est le SCHÉMA (`wallSideSchema`, `defs-scenes/communs.ts`) : `WallSide`
-   * (`state/scene.ts`) et `WallEdgeSide` (`engine/types.ts`) en dérivent par `z.infer` (les deux `Eq`
+   * (`noyau/monde/scene.ts`) et `WallEdgeSide` (`engine/types.ts`) en dérivent par `z.infer` (les deux `Eq`
    * ci-dessus), l'éditeur en dérive ses `<option>` (`wallSideSchema.options`, `LogicDock.tsx`).
    *
    * PÉRIMÈTRE MESURÉ (2026-08-26, scan sur 3438 fichiers) : la recopie que cette garde
@@ -128,7 +128,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * GÉNÉRIQUE de `recopieDeCanon` (≥2 membres) ce canon rapporte 14 sites dont AUCUN ne re-déclare l'alphabet.
    * La raison est structurelle — il existe TROIS vocabulaires météo distincts dans l'arbre, et les deux
    * autres chevauchent celui-ci par exactement deux noms (`pluie`, `neige`) :
-   *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`state/scene.ts:345`,
+   *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`noyau/monde/scene.ts:345`,
    *    `defs-scenes/scene.ts:510`, ses lecteurs `engine/exposure.ts:42`, `defs/ambiance.ts`,
    *    `gameIso/catalog/ambiance.ts`, `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
    *    possédée par #1585 ; une garde de CE canon qui la rougirait accuserait un innocent ;

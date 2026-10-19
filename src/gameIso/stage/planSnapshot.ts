@@ -35,7 +35,7 @@ import { stageLights, type StageLights } from './stageLights';
 import { viewPolicy } from './viewPolicy';
 import { stage3dFramingFor, viewBoxScreen } from './stage3dCamera';
 import { stageSize, type Dims } from '../../geometry/iso';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /** HEURE d'horloge passée à la décision de lumière — INERTE sous le régime de plan, et c'est le point
  *  (#1176, P3-5b) : le plan ne demande plus l'extinction du soleil à MINUIT, il la demande à la

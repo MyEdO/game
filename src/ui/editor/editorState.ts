@@ -1,8 +1,8 @@
 /** Fondation pure de l’éditeur : outils, calques, sélection et mutations de scène. */
-import { Scene, SceneEntity, SceneEffectZone, Terrain, WallSide, ZoneArea } from '../../state/scene';
-import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
-import type { Pt as ScenePt } from '../../state/path';
-import { walkFlow, type Flow } from '../../state/flow';
+import { Scene, SceneEntity, SceneEffectZone, Terrain, WallSide, ZoneArea } from '../../noyau/monde/scene';
+import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
+import type { Pt as ScenePt } from '../../noyau/monde/path';
+import { walkFlow, type Flow } from '../../noyau/monde/flow';
 import { nextEntityId } from '../../state/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findCreatureById } from '../../data';
@@ -56,8 +56,8 @@ export {
   editEntityCombat,
 } from '../../state/sceneEdit';
 export type { Rect, Pt, EffectZoneSeed } from '../../state/sceneEdit';
-import type { CellSide } from '../../state/scene';
-export type { CellSide } from '../../state/scene';
+import type { CellSide } from '../../noyau/monde/scene';
+export type { CellSide } from '../../noyau/monde/scene';
 export { planStairFlight, applyStairFlight, minFlightCells } from '../../state/stairFlight';
 export type { StairCell, StairStep, StairFlightPlan } from '../../state/stairFlight';
 

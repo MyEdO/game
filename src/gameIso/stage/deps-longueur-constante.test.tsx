@@ -8,7 +8,7 @@
  * Deux faits mesurés ici, sur l'écran MONTÉ :
  *  1. aucun avertissement React « changed size between renders » — un tel jeu de dépendances ne peut
  *     pas être remis tel quel à un hook React, qui exige une longueur CONSTANTE (le porteur est le
- *     retenteur du dépôt, `state/sceneMemo.memoByRefDeps`, qui compare longueur PUIS identité) ;
+ *     retenteur du dépôt, `noyau/monde/sceneMemo.memoByRefDeps`, qui compare longueur PUIS identité) ;
  *  2. et la rétention qu'il porte ne bouge pas d'un pouce : rien de recalculé à un rendu de plus,
  *     tout au changement de scène.
  */
@@ -19,7 +19,7 @@ import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { useGame } from '../../state/store';
-import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { worldBakeDeps } from '../backends/webgl/sceneMeshes';
 import * as roofs from '../builders/roofs';
 import { findPropById } from '../../data';

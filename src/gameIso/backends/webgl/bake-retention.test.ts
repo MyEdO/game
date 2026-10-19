@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { bakeWorldGeometry, roomZonesByElKey, worldBakeDeps, type BakedWorld } from './sceneMeshes';
-import { memoByRefDeps } from '../../../state/sceneMemo';
-import { emptyScene, sceneMetresPerTile, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene } from '../../../state/scene';
+import { memoByRefDeps } from '../../../noyau/monde/sceneMemo';
+import { emptyScene, sceneMetresPerTile, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene } from '../../../noyau/monde/scene';
 import { scenario } from '../../../scenes/test-scenarios/zones-pieces';
 import { findPropById, materials, matieresDe, props, terrains } from '../../../data';
 import { setDataset, resetData } from '../../../data/overrides';
@@ -272,7 +272,7 @@ describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', 
 });
 
 /** TOUTES les scènes LIVRÉES — un scénario du registre généré porte la sienne, une campagne les
- *  siennes (patron `state/wallIndex.test.ts › scenesLivrees`). La population est DÉRIVÉE : une scène
+ *  siennes (patron `noyau/monde/wallIndex.test.ts › scenesLivrees`). La population est DÉRIVÉE : une scène
  *  neuve entre dans le contrat sans qu'aucune liste ne soit récitée ici. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];

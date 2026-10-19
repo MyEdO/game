@@ -10,7 +10,7 @@ import { Tabs } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { Scene } from '../../state/scene';
+import { Scene } from '../../noyau/monde/scene';
 import { type WorldMap, type MapRoute, type MapRouteTrace, type Praticabilite, type RouteBillet, placeById } from '../../state/worldMap';
 import type { PresetPnj } from '../../state/campaignNarratif';
 import type { VehicleData } from '../../engine/types';

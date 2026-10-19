@@ -23,7 +23,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
-import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { sceneLightSources } from '../../state/visionState';
 import { ambientScalar, buildOpaque, computeLightField, mapLights, type LightSource } from '../../state/vision';
 import { AUCUN_CHROME, TEINTE_PLEINE, poseBoards, type Board } from './boardPose';

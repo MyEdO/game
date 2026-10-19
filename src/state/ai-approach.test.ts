@@ -5,7 +5,7 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
 import { useGame } from './store';
-import { battleRng, seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { valeurDuTest } from '../engine/skills';
 import { cibleDuTest, evaluateTest } from '../engine/tests';

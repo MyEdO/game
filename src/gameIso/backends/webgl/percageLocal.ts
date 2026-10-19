@@ -36,7 +36,7 @@
  * matériau de surface vers son matériau de profondeur.
  */
 import * as THREE from 'three';
-import { PARTY_MAX } from '../../../state/combatants';
+import { PARTY_MAX } from '../../../noyau/monde/combatants';
 
 /** Nom de l'attribut de perçabilité, cuit par sommet (`BakedWorld.percables`). */
 export const PERCABLE_ATTRIBUT = 'aPercable';

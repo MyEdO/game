@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clearedSpace, isSheltered, massCovers, massFootprintCells, shelterField } from './roofs';
 import { effectiveArchitecture } from '../../state/sceneEdit';
-import { emptyScene, type BuildingMass, type Scene } from '../../state/scene';
+import { emptyScene, type BuildingMass, type Scene } from '../../noyau/monde/scene';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 
 /**

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
+import { fireTriggers, applyTriggeredEffects } from '../noyau/triggeredEffects';
 import { hasCondition, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from './flow';
+import type { TriggeredEffect } from '../noyau/monde/flow';
 
 /**
  * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,

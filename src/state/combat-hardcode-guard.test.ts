@@ -34,7 +34,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
-const SCAN_DIRS = ['src/engine', 'src/state'];
+const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
 const EXCLUDED = (rel: string) => estFichierVitest(rel);
 
 /** Baseline gelée par fichier (recensement Lot 8, 2026-07-06 — total 12 sites sur 7 fichiers ;

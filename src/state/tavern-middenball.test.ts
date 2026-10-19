@@ -14,11 +14,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { tavernGameValue } from './tavernFlow';
 import { pnjAuProfil } from './sceneNpc';
-import type { BatchParticipant, CascadeStep } from './pendings';
+import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 const get = useGame.getState.bind(useGame);

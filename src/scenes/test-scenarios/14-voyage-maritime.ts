@@ -4,7 +4,7 @@ import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { WorldMap } from '../../state/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { rigSpeciesId } from '../../data';
 
 /**

@@ -10,10 +10,10 @@
  * `scene.effectZones` (`roomsByTile`) : `occupiedRoomIds` les réunit toutes, et
  * `roomFocusAt` rend la PREMIÈRE de cet ordre.
  */
-import { isDescriptiveZone, type Scene, type SceneEffectZone } from './scene';
-import { tileKey, type Pt } from './path';
-import { memoByRef } from './sceneMemo';
-import { sceneZoneTiles } from './zones';
+import { isDescriptiveZone, type Scene, type SceneEffectZone } from '../noyau/monde/scene';
+import { tileKey, type Pt } from '../noyau/monde/path';
+import { memoByRef } from '../noyau/monde/sceneMemo';
+import { sceneZoneTiles } from '../noyau/monde/zones';
 
 export interface RoomFocus {
   id: string;

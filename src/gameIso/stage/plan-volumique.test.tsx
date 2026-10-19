@@ -6,7 +6,7 @@ import { TopoScene } from '../TopoScene';
 import { planLights, setPlanRendererFactory, HEURE_INERTE, PLAN_PLAT, type PlanRenderer } from './planSnapshot';
 import { viewPolicy } from './viewPolicy';
 import { stageLightScalars, stageLights } from './stageLights';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import type { Station } from '../../state/stations';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 

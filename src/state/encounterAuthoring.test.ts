@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildEncounter, buildEncounters, type AuthoredEnemy } from './encounterAuthoring';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 
 describe('buildEncounter — authoring terse → entités + members canoniques', () => {
   it("un ennemi devient une entité 'personnage' + un membre qui la référence (profil porté par l'entité)", () => {

@@ -5,19 +5,19 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from '../noyau/pendings';
 import { FLOWS } from './rollFlowSpecs';
-import { toRecapLines } from './recapLine';
+import { toRecapLines } from '../noyau/recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
-import { battleRng } from './battleRng';
-import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
+import { battleRng } from '../noyau/battleRng';
+import { ev, evLines, journaliser, type CombatEventKind } from '../noyau/combatLog';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
-import { scheduleCombatTimer } from '../lib/minuteries';
-import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
+import { scheduleCombatTimer } from '../web/minuteries';
+import { facingToward, DIR8_ORDER, type Dir8 } from '../noyau/monde/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import {
@@ -80,11 +80,11 @@ import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, dise
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
-import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
+import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from '../noyau/combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './footprint';
+import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from '../noyau/monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
-import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
+import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from '../noyau/triggeredEffects';
 import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
@@ -132,7 +132,7 @@ import {
 import { type OvercastSource, overcastSourceOf, overcastDurationParts, overcastBudget, overcastAxes, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
 import { evalCondition } from '../engine/flowCore';
-import { combatConditionCtx } from './combat/flowEval';
+import { combatConditionCtx } from '../noyau/combat/flowEval';
 import { applyOps, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
@@ -158,7 +158,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -183,7 +183,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
   return !!c && (hasActiveFlag(c, 'critRollTwice') || hasCritRollTwiceTalent(c));
 }
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
-import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
+import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from '../noyau/monde/zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
@@ -204,12 +204,12 @@ import { findSpell, findSpellById } from '../data/index';
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
-import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
-import { STEP_MAX_M } from './relief';
+import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from '../noyau/monde/scene';
+import { STEP_MAX_M } from '../noyau/monde/relief';
 import { placeCombatant } from './spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
-import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './lineOfSight';
+import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from '../noyau/monde/lineOfSight';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
@@ -220,7 +220,7 @@ import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
 import { groupMatch } from '../engine/groups';
-import { sceneCombatModifiers } from './sceneRules';
+import { sceneCombatModifiers } from '../noyau/monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
   weatherLightningNervous, weatherRef, stageWeatherExposure,
@@ -229,7 +229,7 @@ import {
 import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
 import { weaponGroupKey } from '../engine/weaponGroup';
-import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from './path';
+import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from '../noyau/monde/path';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
 import { resolveRun, chargeReach, testDuCavalier } from '../engine/movement';
 import type { RNG } from '../engine/dice';
@@ -241,11 +241,11 @@ import { massBattleTrackHit } from './massBattleFlow';
 import {
   occupied, cannotStopOn, moveEnv, inRect,
   isFlankOrRear, seesInDark, smokeOf, porteeEnCases,
-} from './combatGeometry';
+} from '../noyau/monde/combatGeometry';
 import { displaceSmaller, removeEntities, applyZoneCrossings } from './combatPlacement';
-export * from './combatGeometry';
+export * from '../noyau/monde/combatGeometry';
 export * from './combatPlacement';
-import { releaseSeat, releaseUnavailableSeats } from './seating';
+import { releaseSeat, releaseUnavailableSeats } from '../noyau/monde/seating';
 // --- Résolveur d'aire des munitions/armes à effet de zone (Tir de zone / Explosion) : combatArea.ts (baril) ---
 export * from './combatArea';
 import { resolveWeaponArea, areaTargets, blastRadiusTiles, type AreaTargets } from './combatArea';
@@ -275,7 +275,7 @@ export * from './combatHooks';
 export * from './combatSetup';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
-import { jetSurfaced, tenuParUnHumain } from './sieges';
+import { jetSurfaced, tenuParUnHumain } from '../noyau/sieges';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
 export * from './combat/triggeredTest'; // baril : enregistre l'applier de cascade `triggeredTest` + installe le routeur de Test des triggers (effet de bord)
@@ -290,23 +290,23 @@ import {
   resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue,
   setManeuverPostHitHook,
 } from './combatManeuvers';
-import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type Flow, type FlowTest, type EffectTrigger } from './flow';
-import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef } from './cascade';
+import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type Flow, type FlowTest, type EffectTrigger } from '../noyau/monde/flow';
+import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef } from '../noyau/cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
-import { APRES_COUP, type PendingApproach } from './pendings';
+import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from '../noyau/pendings';
+import { APRES_COUP, type PendingApproach } from '../noyau/pendings';
 import { refuserGeste } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
   type Consequence, type TableSpec,
-} from './rollSeam';
+} from '../noyau/rollSeam';
 import { revealToStep } from './revealStep';
-import type { BuiltCascadeStep } from './stepBrand';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
+import { stepDetail, stepPrecision, stepPsych } from '../noyau/rollSeam';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -2864,14 +2864,14 @@ function appliquerLaTouche(
   // Effet DÉCLENCHÉ « à la perte de PB » authoré (Sang corrosif : 1d10 aux Engagés, BE+PA, min 1, sur
   // TOUTE Blessure subie — LDB 85 l.310 ; Démoniaque : banni à 0 PB — `if woundsCurrent<=0`). Le TYPE
   // d'attaque (`weapon.type`) voyage dans le contexte ; un effet peut s'y restreindre (`attackType`).
-  // Dispatcher générique (state/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
+  // Dispatcher générique (noyau/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
   if (res.hit && res.woundsLost) {
     emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
     if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
   // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
-  // festoie — perd Action + Mouvement) — dispatcher générique (state/triggeredEffects).
+  // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
   if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
     emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng() } });
   }
@@ -2958,7 +2958,7 @@ function appliquerLaTouche(
   }
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
-  // dispatcher générique (state/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
+  // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
   // sur PB) alimentent les Conditions Flow de gating.
   if (res.hit) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
@@ -6285,7 +6285,7 @@ export function applyCast(
     const toucheInitiale = toucheDe(target, res, rebond);
     const initiale = appliquerTouchePourCible(get, set, target, toucheInitiale);
     logLines.push(...initiale.lignes);
-    // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (state/triggeredEffects).
+    // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
     for (const t of [target, ...extraTargets]) {
       if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { startleCause: 'magic' } });
@@ -7798,7 +7798,7 @@ export function markActed(get: Get, set: SetFn): BattleState {
 type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: string };
 
 /** Combattants en Ligne de Vue de `c` (hors lui-même, debout). Mutualisé par les deux collectes. */
-function visibleFoesAndAllies(battle: BattleState, scene: import('./scene').Scene, c: Combatant): Combatant[] {
+function visibleFoesAndAllies(battle: BattleState, scene: import('../noyau/monde/scene').Scene, c: Combatant): Combatant[] {
   return battle.combatants.filter((v) => v.id !== c.id && v.pos && !isOutOfAction(v) && losClear(scene, c.pos!, v.pos, smokeOf(battle)));
 }
 

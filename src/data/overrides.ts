@@ -154,7 +154,7 @@ const ARRAYS = {
   // et l'onglet Codex « Matières » l'édite.
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
-  // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/state/terrain`
+  // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/noyau/monde/terrain`
   // et du catalogue `gameIso/catalog/terrain` — tous deux indexent le TABLEAU et revérifient son
   // contenu à chaque accès (`indexDesTerrains`), un splice étant invisible à l'identité du tableau.
   terrains,

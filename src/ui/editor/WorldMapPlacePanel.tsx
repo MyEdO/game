@@ -12,7 +12,7 @@ import { NumberField } from '../NumberField';
 import { MapCanvas } from '../MapCanvas';
 import { planChrome } from '../PlanChrome';
 import { VB_W, VB_H } from '../worldMapViewport';
-import { Scene } from '../../state/scene';
+import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../state/worldMap';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';

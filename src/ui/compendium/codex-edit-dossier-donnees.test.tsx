@@ -10,8 +10,8 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
-import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
-import { baseSimulee, brancherOuvertures, ouvertureSimulee } from '../../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../../web/indexedDb';
+import { baseSimulee, brancherOuvertures, ouvertureSimulee } from '../../web/indexedDb.testkit';
 
 type FenetreFs = { showDirectoryPicker?: () => Promise<unknown> };
 

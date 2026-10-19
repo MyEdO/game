@@ -1,8 +1,8 @@
 import { Mesh, MeshBasicMaterial, PlaneGeometry, Raycaster, Vector2, Vector3, type OrthographicCamera, type PerspectiveCamera } from 'three';
 import { describe, expect, it } from 'vitest';
 import { depth, projectOccluder, occludesActor, type Dims } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { metricToLift } from '../../noyau/monde/relief';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { makeShowcaseParty } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
 import { buildWalls } from '../builders/walls';

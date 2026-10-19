@@ -1,15 +1,15 @@
-import { type Scene, type SceneEntity, isWalkable } from './scene';
-import { entityBlockedAt } from './sceneRules';
-import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
+import { type Scene, type SceneEntity, isWalkable } from '../noyau/monde/scene';
+import { entityBlockedAt } from '../noyau/monde/sceneRules';
+import { pathTo, walkNeighbors, type MoveEnv, type Pt } from '../noyau/monde/path';
 import { portalsForParty } from './roomPortals';
-import { memeCase, placesJouables, seatSlotsOf } from './seating';
-import { estUtilisable } from './usable';
+import { memeCase, placesJouables, seatSlotsOf } from '../noyau/monde/seating';
+import { estUtilisable } from '../noyau/monde/usable';
 import { screenStepDot, type ScreenDir } from './combatCursor';
 import { type Dims } from '../geometry/iso';
-import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from './dir8';
+import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from '../noyau/monde/dir8';
 import { chebyshev } from '../engine/grid';
 import { maxJumpTiles, slowestMovement } from '../engine/movement';
-import { niMortNiATerre } from './combatants';
+import { niMortNiATerre } from '../noyau/monde/combatants';
 import type { Combatant } from '../engine/types';
 
 /** Case adjacente (8-voisins) libre et ATTEIGNABLE la plus proche d'une cible, pour le move-to-interact
@@ -58,7 +58,7 @@ export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   // On ne marche jamais SUR un personnage ni sur un décor qui OCCUPE sa case : on s'approche d'une case
   // adjacente (sinon le groupe entrerait dans le corps du PNJ, et la case d'un décor bloquant est
   // infranchissable). L'occupation ne se lit PAS au `kind` : c'est la règle unique de blocage
-  // (`state/sceneRules.entityBlockedAt` — empreinte déclarée, solidité de type, action authorée), la
+  // (`noyau/monde/sceneRules.entityBlockedAt` — empreinte déclarée, solidité de type, action authorée), la
   // même que `isWalkable`. Un décor PASSABLE (mare de sang, tas de foin : ni empreinte, ni solide, ni
   // action) reste du SOL — on marche DESSUS, comme sur la case nue.
   // L'ABORD se décide sur l'OFFRE qui EXISTE, drapeaux non comptabilisés : on s'approche d'un coffre
@@ -77,7 +77,7 @@ export type PathOpts = MoveEnv;
 
 /**
  * MOUVEMENT du GROUPE hors combat : `slowestMovement` (LDB 51 l.193) sur les membres NI MORTS NI À
- * TERRE (`niMortNiATerre`, `state/combatants.ts`). Groupe vide ou entièrement à terre → 0. PUR.
+ * TERRE (`niMortNiATerre`, `noyau/monde/combatants.ts`). Groupe vide ou entièrement à terre → 0. PUR.
  */
 export function mouvementDuGroupe(party: readonly Combatant[]): number {
   return slowestMovement(party.filter(niMortNiATerre));
@@ -102,7 +102,7 @@ export interface ExploreMovePlan {
  *  sont toutes prises, ou aucun abord libre n'est joignable.
  *
  *  L'abord ne se redérive JAMAIS ici : `slot.approach` porte déjà l'approche effective (repli sur le
- *  voisinage du siège compris) — `state/seating` en est la seule couture.
+ *  voisinage du siège compris) — `noyau/monde/seating` en est la seule couture.
  *
  *  `seatSlotsOf` et non `placesJouables` : ce plan n'est atteint que DERRIÈRE le gate d'activation
  *  d'`exploreMovePlan` (ou par un appelant qui a déjà décidé de l'assise) — il résout la géométrie,

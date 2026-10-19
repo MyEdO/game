@@ -13,7 +13,7 @@
  * à la victime absorbée. »
  */
 import { describe, it, expect } from 'vitest';
-import { fireTriggers } from './triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { areGrappling } from '../engine/grapple';
 import { clearEngagementOf } from '../engine/engagement';
 import { stacks } from '../engine/conditions';

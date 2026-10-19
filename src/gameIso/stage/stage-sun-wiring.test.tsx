@@ -18,7 +18,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { setNorthDeg } from '../../state/sceneEdit';
 import { sunJeu } from '../backends/webgl/sunJeu';
 import { AMBIENT_INTENSITY, SUN_INTENSITY } from '../backends/webgl/sceneMeshes';

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods } from '../engine/magic';
 import type { SpellLike } from '../engine/magic';
 import { setRule, resetRule } from '../engine/policy';

@@ -13,7 +13,7 @@ import { RecapLineRow } from './RecapLine';
 import { NarratedSegments } from './NarratedLine';
 import { TeamSegments } from './TeamSegments';
 import { recapLineOfEvent, recapLinesOfEvents } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 
 const combatants = [
   { id: 'h1', label: 'Gustav', kind: 'hero' },

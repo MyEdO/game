@@ -3,13 +3,13 @@ import { useOwns } from './ownership';
 import { findCrewTestTypeById, flowStakeRef } from '../data';
 import { rudeEpreuveMoraleDelta, crewTestSuccess } from '../engine/crewMorale';
 import { maneuverCrewTotal } from '../state/shipManeuver';
-import type { PendingCrewTest } from '../state/pendings';
+import type { PendingCrewTest } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
-import { resultLine, freeCons } from '../state/rollSeam';
+import { resultLine, freeCons } from '../noyau/rollSeam';
 
 /**
  * Modale du TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — JUMEAU de

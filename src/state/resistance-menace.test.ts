@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { openCombatEndCascade, applyEffects } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
 

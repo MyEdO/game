@@ -1,6 +1,6 @@
 /**
  * Schéma de `semences-de-scene.json` (#1716) — ce qu'une scène NEUVE reçoit à sa création
- * (`emptyScene`, `src/state/scene.ts`), en DONNÉE éditable au Codex plutôt qu'en littéraux de code.
+ * (`emptyScene`, `src/noyau/monde/scene.ts`), en DONNÉE éditable au Codex plutôt qu'en littéraux de code.
  * Objet RACINE unique (famille `config`), même emballage que `details.json`/`ambiance.json`.
  *
  * Les champs portent EXACTEMENT les noms qu'ils prennent sur la scène (`ambiance`, `metresPerTile`,
@@ -17,7 +17,7 @@
  * `z.string()` libre) : une semence nomme un palier RÉEL de `lightLevels.json` — une semence qui
  * nommerait un palier inexistant poserait le défaut faux sur CHAQUE scène créée ensuite. ABSENT =
  * `auto`, l'éclairage suit l'horloge via `ambiance` : la sentinelle n'est pas une VALEUR du champ,
- * c'est son absence, et `emptyScene` (`state/scene.ts`) la rend en clair sur la scène produite. Un
+ * c'est son absence, et `emptyScene` (`noyau/monde/scene.ts`) la rend en clair sur la scène produite. Un
  * champ typé `idDe(…)` ne se mêle pas d'une chaîne hors registre — une union « sentinelle | idDe »
  * n'existe nulle part au dépôt (mesuré), et elle poserait au registre des slots une valeur qui ne
  * résout pas.

@@ -29,8 +29,8 @@ import { formatMoney, spellMoney } from '../engine/money';
 import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabelTest.mjs';
 import { avisLibelleRecopie, validateScene } from '../state/validateScene';
 import { testScenarios } from './test-scenarios';
-import { emptyScene, type Scene } from '../state/scene';
-import type { Flow } from '../state/flow';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import type { Flow } from '../noyau/monde/flow';
 
 /** Le vocabulaire que la garde ne redéclare pas : il vient de SA source. */
 const VOC = { carac: CHAR_LABELS, difficultes: DIFFICULTY_LABELS, monnaie: { formater: formatMoney, epeler: spellMoney } };

@@ -2,7 +2,7 @@ import type { RaceDef } from './types';
 import type { PaletteDeclaree } from '../palette';
 import { raceAppearance, DEFAULT_RACE_ID, type RaceAppearanceData } from '../../../data';
 import { feat } from '../parts/elements';
-import { memoByRef } from '../../../state/sceneMemo';
+import { memoByRef } from '../../../noyau/monde/sceneMemo';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /**

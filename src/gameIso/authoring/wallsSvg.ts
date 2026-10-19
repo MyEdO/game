@@ -9,14 +9,14 @@
  */
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import { wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeStructureAppearance } from '../catalog/facades';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import type { Face, GP, WallEl } from '../builders/types';
-import type { WallSide } from '../../state/scene';
+import type { WallSide } from '../../noyau/monde/scene';
 import { projGP, type Pt2 } from './project';
 
 // Facteurs d'ombrage et épaisseurs ÉCRAN (px) des ornements — des formes, jamais des identités de couleur.

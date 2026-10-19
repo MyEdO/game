@@ -7,9 +7,9 @@
  * l'import. Le golden `roundBoundary.golden.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
  */
 import { registerCombatHook } from '../combatHooks';
-import { registerCascadeApplier } from '../cascade';
-import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep, type RollRequest } from '../rollSeam';
-import { battleRng } from '../battleRng';
+import { registerCascadeApplier } from '../../noyau/cascade';
+import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep, type RollRequest } from '../../noyau/rollSeam';
+import { battleRng } from '../../noyau/battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
 import { bonus, effectiveChar, refreshWounds } from '../../engine/characteristics';
@@ -17,17 +17,17 @@ import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, stacks, e
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
 import { clearPsychOf, refreshAllDefendedPsych } from '../../engine/psychology';
-import { zonesRoundTick } from '../zones';
+import { zonesRoundTick } from '../../noyau/monde/zones';
 import { purgeExpiredSummons } from '../summonFlow';
-import { fireTriggers } from '../triggeredEffects';
+import { fireTriggers } from '../../noyau/triggeredEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
-import { inBattleId } from '../combatants';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
 import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
-import { combatDistance } from '../footprint';
-import { sceneMetresPerTile } from '../scene';
+import { combatDistance } from '../../noyau/monde/footprint';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { rule } from '../../engine/policy';
 import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
 import { groupAdvantage } from '../../engine/advantagePool';
@@ -35,10 +35,10 @@ import { avantageApresPerte } from '../../engine/advantage';
 import { combatStakeRef } from '../../data';
 import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
-import type { CascadeStep } from '../pendings';
+import type { CascadeStep } from '../../noyau/pendings';
 import type { Get } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
-import { stepProlonger } from '../rollSeam';
+import { stepProlonger } from '../../noyau/rollSeam';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */

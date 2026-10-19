@@ -6,12 +6,12 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { surfaceRow, bandStep, bandStepId, surfaceOf } from './rollSeam';
-import { startCascade } from './cascade';
+import { surfaceRow, bandStep, bandStepId, surfaceOf } from '../noyau/rollSeam';
+import { startCascade } from '../noyau/cascade';
 import { modalOwnerOf } from './modalArbiter';
 import { ownsLocal } from './netOwnership';
-import { seatOwns } from './sieges';
-import type { BatchParticipant } from './pendings';
+import { seatOwns } from '../noyau/sieges';
+import type { BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>

@@ -14,7 +14,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { hasCommandTeam } from '../engine/combatFeatures/dispatch';
 import { isOutOfAction } from '../engine/conditions';
 import { rule } from '../engine/policy';
-import { chebyshev } from './path';
+import { chebyshev } from '../noyau/monde/path';
 import type { Combatant, Weapon } from '../engine/types';
 
 /** id du Défaut « Arme d'équipe » (registre de qualités) — même littéral que `engine/crewedWeapon`. */

@@ -14,11 +14,11 @@ import type { BattleState } from './store';
 import { mannedPosteWeapon } from '../engine/items';
 import { warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { exposedCrew } from '../engine/shipCritical';
-import { footprintN, footprintTiles } from './footprint';
-import { moveEnv } from './combatGeometry';
+import { footprintN, footprintTiles } from '../noyau/monde/footprint';
+import { moveEnv } from '../noyau/monde/combatGeometry';
 import { rule } from '../engine/policy';
-import { reachable, tileKey, tileFromKey } from './path';
-import { isWalkable, type Scene } from './scene';
+import { reachable, tileKey, tileFromKey } from '../noyau/monde/path';
+import { isWalkable, type Scene } from '../noyau/monde/scene';
 
 /** Le Combattant-affût qui PORTE `poste` (le poste vit sur `hull.postes`) — recherche par `uid` de la
  *  pièce (pas de dépendance à l'identité d'objet), MÊME esprit que `isPosteManned` (shipPostes.ts).

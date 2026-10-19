@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { buildFloors } from './floors';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
-import { tileAt, type Scene } from '../../state/scene';
-import { terrainMatiere, terrainSolidHeightM } from '../../state/terrain';
+import { tileAt, type Scene } from '../../noyau/monde/scene';
+import { terrainMatiere, terrainSolidHeightM } from '../../noyau/monde/terrain';
 import { matieresDe } from '../../data';
 
 /**

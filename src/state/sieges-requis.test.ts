@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { siegesRequis, quorumAtteint } from './netOwnership';
 import { useGame, type BattleState } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 

@@ -12,7 +12,7 @@ import { difficultyShownText } from '../ui/difficultyText';
 import { apercuDuGeste, previewDifficultyOf } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { selectedAttackOption } from './combatManeuvers';
-import { Scene } from './scene';
+import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import { initialNet } from './netFlow';

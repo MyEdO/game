@@ -29,7 +29,7 @@ import {
   petitePriereSchema, setTimeSchema, pursuitFoeSchema, massBattleSpecSchema, favorLevelSchema,
   crewHireSchema,
 } from './effets';
-import type { Effect, DelayedEffect, PetitePriere } from '../../../state/scene';
+import type { Effect, DelayedEffect, PetitePriere } from '../../../noyau/monde/scene';
 import type { Flow } from '../../../engine/flowCore';
 import type { PursuitFoeRef } from '../../../state/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';

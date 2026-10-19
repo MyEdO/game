@@ -369,7 +369,7 @@ describe('estMiroir', () => {
 
   test('estMiroir : un MANUSCRIT n’est pas dérivé', () => {
     assert.equal(estMiroir('docs/architecture.md'), false)
-    assert.equal(estMiroir('src/state/cascade.ts'), false)
+    assert.equal(estMiroir('src/noyau/cascade.ts'), false)
     assert.equal(estMiroir(''), false)
   })
 
@@ -382,15 +382,15 @@ describe('estMiroir', () => {
   })
 
   test('partitionSales : des MANUSCRITS seuls', () => {
-    const vu = partitionSales(['src/state/cascade.ts', 'docs/architecture.md'])
+    const vu = partitionSales(['src/noyau/cascade.ts', 'docs/architecture.md'])
     assert.deepEqual(vu.derives, [])
-    assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/architecture.md'])
+    assert.deepEqual(vu.manuscrits, ['src/noyau/cascade.ts', 'docs/architecture.md'])
   })
 
   test('partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé', () => {
-    const vu = partitionSales(['.codex/hooks.json', 'src/state/cascade.ts', '.agents/skills/a/SKILL.md', 'docs/raw/coverage.md', 'docs/architecture.md'])
+    const vu = partitionSales(['.codex/hooks.json', 'src/noyau/cascade.ts', '.agents/skills/a/SKILL.md', 'docs/raw/coverage.md', 'docs/architecture.md'])
     assert.deepEqual(vu.derives, ['.codex/hooks.json', '.agents/skills/a/SKILL.md'])
-    assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/raw/coverage.md', 'docs/architecture.md'])
+    assert.deepEqual(vu.manuscrits, ['src/noyau/cascade.ts', 'docs/raw/coverage.md', 'docs/architecture.md'])
   })
 
   test('partitionSales : rien de sale — deux tas vides (et `undefined` ne jette pas)', () => {

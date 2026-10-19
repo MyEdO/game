@@ -15,7 +15,7 @@ import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } fro
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { useGame } from './store';
 import { valeurConforme } from '../engine/policy';
-import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 
 export type PrefValue = boolean | number | string;
 export type PrefKind = 'flag' | 'mode';

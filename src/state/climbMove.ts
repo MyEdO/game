@@ -1,6 +1,6 @@
-import { Scene, Effect, WallSeg, heightAt, climbEdgeBetween } from './scene';
-import { type Flow, EMPTY_FLOW, flowFromEffects } from './flow';
-import type { Pt } from './path';
+import { Scene, Effect, WallSeg, heightAt, climbEdgeBetween } from '../noyau/monde/scene';
+import { type Flow, EMPTY_FLOW, flowFromEffects } from '../noyau/monde/flow';
+import type { Pt } from '../noyau/monde/path';
 import { surfaceClimbImpossible } from '../engine/movement';
 import { combatStakeRef } from '../data';
 

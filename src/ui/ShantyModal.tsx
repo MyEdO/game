@@ -7,7 +7,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
-import { resultLines, freeCons } from '../state/rollSeam';
+import { resultLines, freeCons } from '../noyau/rollSeam';
 
 /**
  * Modale de CHANSON DE MARIN (Talent, MDG 09 l.32-40) : le pré-jet est un MENU (OptionChooser) des

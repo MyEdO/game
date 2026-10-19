@@ -18,14 +18,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applySurprise, approachFearTrigger, resolveFreeAttacks } from './combatFlow';
-import { applyTriggeredEffects } from './triggeredEffects';
+import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition, addCondition, isOutOfAction, COND } from '../engine/conditions';
-import { surfaceOf } from './rollSeam';
+import { surfaceOf } from '../noyau/rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled } from './netOwnership';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';

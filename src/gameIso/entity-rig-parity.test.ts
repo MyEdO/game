@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { entityRigProfileFor } from './rig/enemyProfile';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 
 /** `entityRigProfileFor` = dérivation UNIQUE de l'apparence/équipement d'une entité de scène, partagée
  *  par le rendu ISO (`tokenBodyKind`) ET POV (`buildPovBillboards`). Avant, l'objet d'options était recopié

@@ -17,7 +17,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { scenario } from '../scenes/test-scenarios/13-bataille-de-masse';
 import { MassBattleView } from './MassBattleView';
 import { addCondition } from '../engine/conditions';

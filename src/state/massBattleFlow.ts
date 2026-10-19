@@ -20,8 +20,8 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Combatant, CharKey, Difficulty } from '../engine/types';
-import { battleRng } from './battleRng';
-import { ecrireActeur } from './combatants';
+import { battleRng } from '../noyau/battleRng';
+import { ecrireActeur } from '../noyau/monde/combatants';
 import { d10, d100, type RNG } from '../engine/dice';
 import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { isStructure } from '../engine/structures';
@@ -30,7 +30,7 @@ import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { dataLabel, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
-import { rollLine } from './rollSeam';
+import { rollLine } from '../noyau/rollSeam';
 import {
   activityById, activitiesFor, activityModLines, matchBattleOutcomes, battleOutcomeAmount,
   type ActivityDef, type BattleResolution, type BattleOutcome as BattleOutcomeDelta,

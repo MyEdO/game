@@ -2,7 +2,7 @@
 paths:
   - "src/ui/editor/**"
   - "src/scenes/**"
-  - "src/state/scene.ts"
+  - "src/noyau/monde/scene.ts"
   - "src/state/sceneEdit.ts"
   - "src/state/mapSpec.ts"
   - "src/data/schemas/defs-scenes/**"

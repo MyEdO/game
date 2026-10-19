@@ -14,7 +14,7 @@ import { bipedDef } from './creatures';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { hashSeed } from '../../engine/dice';
 import { RigPortrait } from '../../ui/RigPortrait';
-import type { SceneEntity } from '../../state/scene';
+import type { SceneEntity } from '../../noyau/monde/scene';
 import { schema as raceSchema } from '../../data/schemas/defs/raceAppearance';
 import raceAppearanceJson from '../../data/raceAppearance.json';
 

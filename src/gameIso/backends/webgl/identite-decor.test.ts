@@ -3,7 +3,7 @@ import { collectBillboards, wholeSceneBillboardEls } from './sceneMeshes';
 import type { BillboardPropEl } from '../../builders/types';
 import { propSvg } from '../../catalog/decor';
 import { props } from '../../../data';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 
 /**
  * IDENTITÉ DE DESSIN DU DÉCOR (#1176, P3-3). L'identité d'un billboard EST sa clé de cache de texture

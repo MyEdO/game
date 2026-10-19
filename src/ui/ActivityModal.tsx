@@ -6,7 +6,7 @@ import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, testValueSplit, opposedLines } from './breakdown';
 import { activityById, activityModLines } from '../engine/activities';
 import { describeActivity } from '../state/flowOutcomes';
-import { resultLines, freeCons } from '../state/rollSeam';
+import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 
 /**

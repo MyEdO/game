@@ -22,13 +22,13 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame, type BattleState } from './store';
 import { initialFields } from './stateFields';
 import { intentAllowedFor, withActingSeat, ROUTES } from './netOwnership';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
 import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from './modalArbiter';
 import { GUEST_INTENTS } from './intents';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 

@@ -13,8 +13,8 @@
  * la liste des combattants concernés. Réaction ciblée (à la touche, sur la victime…) : `audience: [x]`.
  */
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
-import { fireTriggers, type TriggerCtx } from './triggeredEffects';
-import type { EffectTrigger } from './flow';
+import { fireTriggers, type TriggerCtx } from '../noyau/triggeredEffects';
+import type { EffectTrigger } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 
 export interface CombatEventCtx extends CombatHookCtx {

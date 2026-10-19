@@ -3,7 +3,7 @@ import { Profiler, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import { occludesActor, type Dims } from '../../geometry/iso';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';

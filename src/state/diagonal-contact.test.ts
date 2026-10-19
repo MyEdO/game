@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { combatDistance } from './footprint';
+import { combatDistance } from '../noyau/monde/footprint';
 
 /**
  * GARDE-FOU « on peut taper en diagonale » (retour utilisateur : avant, les attaques diagonales

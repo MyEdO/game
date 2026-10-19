@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
-import { sceneMetresPerTile } from '../../state/scene';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 
 /** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi `ref` — sert à exercer

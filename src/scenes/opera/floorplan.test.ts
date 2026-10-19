@@ -7,12 +7,12 @@ import { ETAGE_ASCII } from './floorplan.ascii';
 import { walledRowsOf, zonesFromSeeds } from '../../state/asciiMap';
 import { scenarioEntities } from './furnished';
 import { scenario as operaPlan } from '../test-scenarios/opera-plan';
-import { tileAt, heightAt, isWalkable, wallBetween, type Scene } from '../../state/scene';
-import { reachable, walkComponentAt, type Pt } from '../../state/path';
+import { tileAt, heightAt, isWalkable, wallBetween, type Scene } from '../../noyau/monde/scene';
+import { reachable, walkComponentAt, type Pt } from '../../noyau/monde/path';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { unreachableDescriptiveZones, reachedFloors } from '../../state/mapQC';
 import { scenePlanDefects } from '../../state/planDefects';
-import { METRES_PER_LEVEL } from '../../state/relief';
+import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { buildWalls } from '../../gameIso/builders/walls';
 import { buildRoofs, clearedSpace } from '../../gameIso/builders/roofs';
 const operaPlanConstruit = operaPlan.construire();
@@ -483,8 +483,8 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
 
   it('BALUSTRADES : elles ne retirent QUE les cases de rive, et n’enclavent aucune case de l’étage', () => {
     // La balustrade est un décor SOLIDE (`props.json` `balustrade-loge`) : elle MURE sa case pour la
-    // marche (`isWalkable` → `entityBlockedAt`, `src/state/scene.ts:540`). Connexité lue à la SOURCE
-    // UNIQUE (`walkComponentAt`, `src/state/path.ts:175`) : 8-connexe et cross-couche, donc plus
+    // marche (`isWalkable` → `entityBlockedAt`, `src/noyau/monde/scene.ts:540`). Connexité lue à la SOURCE
+    // UNIQUE (`walkComponentAt`, `src/noyau/monde/path.ts:175`) : 8-connexe et cross-couche, donc plus
     // permissive qu'un flood 4-connexe — une case enclavée y reste une composante de plus.
     const meuble = operaPlanConstruit.scene; // la scène RÉELLE du scénario (plan + mobilier)
     const sansGardeCorps = { ...meuble, entities: meuble.entities.filter((e) => e.ref !== 'balustrade-loge') };

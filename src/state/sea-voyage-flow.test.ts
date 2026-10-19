@@ -7,7 +7,7 @@ import {
   resolvePortArrival, resolveManannPriest, resolveShoreLeave, damageVesselHull, healVesselHull,
   buildOverspeedSteps, engineerOf, type SeaVoyageState,
 } from './seaVoyageFlow';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
 import { partyBest, skillBaseValue, testValue } from '../engine/skills';
@@ -20,32 +20,32 @@ import { byId, maladies, species } from '../data';
 import { setDataset, resetData } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import { buildEncounter } from './encounterAuthoring';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { WorldMap } from './worldMap';
 import type { RNG } from '../engine/dice';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './cascade';
+import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from '../noyau/cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake, testSkillLabel } from '../data';
-import { resultLine, buildBand, rollLine } from './rollSeam';
+import { resultLine, buildBand, rollLine } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
 import { checkBattleOver } from './combatFlow';
 import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
-import type { RecapEvent } from './recapLine';
+import type { RecapEvent } from '../noyau/recapLine';
 import { SEA_HAZARDS, findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
 import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { jetStepPresentable } from '../ui/CascadeModal';
-import { WORLD_STEP_OWNER } from './pendings';
-import { seatOwns } from './sieges';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
+import { seatOwns } from '../noyau/sieges';
 import { contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET, estJete } from '../engine/tests';
@@ -1394,7 +1394,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const { modalOwnerOf } = await import('./modalArbiter');
-    const { seatOwns } = await import('./sieges');
+    const { seatOwns } = await import('../noyau/sieges');
     const owner = modalOwnerOf(get());
     expect(seatOwns(get(), 1, owner ?? undefined)).toBe(true);
     expect(seatOwns(get(), 0, owner ?? undefined)).toBe(false);
@@ -2699,7 +2699,7 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
     const etapes: CascadeStep[] = get().pendingCascade?.participants ?? [];
     expect(etapes.some((e) => e.kind === 'progression'), 'une étape de Progression a été posée sans PJ apte').toBe(false);
 
-    // Verrou : l'issue est la DÉFAITE hors combat (`state/partyWipe.ts` — prédicat identique à la
+    // Verrou : l'issue est la DÉFAITE hors combat (`noyau/partyWipe.ts` — prédicat identique à la
     // victoire de combat, constatée à la CLÔTURE de la cascade du jour), pas une interruption muette.
     draineCascade(get, 80);
     expect(get().partyWiped, 'le groupe entièrement à terre n’est pas constaté non viable').toBe(true);

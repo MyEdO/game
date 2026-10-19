@@ -13,16 +13,16 @@
  */
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
-import { flowTestGated, combatConditionCtx } from './combat/flowEval';
+import { flowTestGated, combatConditionCtx } from '../noyau/combat/flowEval';
 import { pushCombatStep } from './combatEffects';
 import { draineCascade } from './cascadeTestKit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { GameOp, OpsCtx } from '../engine/ops';
-import { EMPTY_FLOW, type Flow } from './flow';
+import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
 
 const get = useGame.getState;
 const set = useGame.setState;

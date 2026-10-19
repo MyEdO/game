@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, counterspellDeclarePhase, autoDeclareWitnessRows } from './combatFlow';
 import { intentAllowedFor } from './netOwnership';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { castingValue } from '../engine/magic';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { CounterParticipant } from './pendings';
+import type { CounterParticipant } from '../noyau/pendings';
 import type { GameState } from './store';
 
 /**

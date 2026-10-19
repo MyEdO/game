@@ -5,10 +5,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { capDuGroupe, poserCapDuGroupe } from './combatants';
-import { emptyScene, type Scene } from './scene';
-import { seatPoseOf, seatSlotsOf, type SeatOccupant } from './seating';
-import { flowFromEffects } from './flow';
+import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { seatPoseOf, seatSlotsOf, type SeatOccupant } from '../noyau/monde/seating';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { interactionHalos } from '../gameIso/builders/interactHalos';
 import type { BillboardPropEl } from '../gameIso/builders/types';
 import type { Combatant } from '../engine/types';

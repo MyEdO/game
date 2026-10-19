@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { reachable } from './path';
-import type { Scene } from './scene';
+import { reachable } from '../noyau/monde/path';
+import type { Scene } from '../noyau/monde/scene';
 
 // Scène minimale : grille w×h en 'herbe', murs ('mur', non walkable) aux clés données.
 function scene(w: number, h: number, walls: string[] = []): Scene {

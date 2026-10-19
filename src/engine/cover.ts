@@ -7,7 +7,7 @@
  * s'y abrite (`AA 10 l.23`, colonne `l.28-51`). Les deux graphies portent le même modificateur ;
  * `couvertDepuisDifficulte` est la seule couture entre elles.
  *
- * PUR : aucune dépendance à la Scène (la géométrie « qui abrite qui » vit en `state/lineOfSight.ts`).
+ * PUR : aucune dépendance à la Scène (la géométrie « qui abrite qui » vit en `noyau/monde/lineOfSight.ts`).
  */
 import { COUVERT_DIFFICULTES, DIFFICULTY_MODIFIERS, type CouvertDifficulty, type CoverClass } from './types';
 

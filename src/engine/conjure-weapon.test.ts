@@ -5,7 +5,7 @@ import { effectiveWeaponDamage } from './weaponDamage';
 import { damageString, isImprovisedTrapping, isShieldTrapping, isUnarmedTrapping } from './items';
 import { trappings } from '../data';
 import { conjureFormOptions } from './conjuredWeapons';
-import { runPureFlowLines } from '../state/combat/flowEval';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { bonus } from './characteristics';
 import type { Combatant } from './types';
 import type { TriggeredEffect } from './flowCore';

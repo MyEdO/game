@@ -1,5 +1,5 @@
 import type { TraceTransform } from './traceCalibration';
-import { accesBase } from '../lib/indexedDb';
+import { accesBase } from '../web/indexedDb';
 import { FORMAT_CALQUE } from './formats.generated';
 
 /**

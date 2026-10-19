@@ -6,17 +6,17 @@
  * Chaque fonction renvoie une NOUVELLE Scène (immuable). `editorState.ts` les RÉ-EXPORTE : les câblages
  * du canvas (couplés UI/gameIso) y restent. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
-import { memoByRef } from './sceneMemo';
+import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from '../noyau/monde/scene';
+import { memoByRef } from '../noyau/monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
-import type { Dir8 } from './dir8';
-import { EMPTY_FLOW } from './flow';
+import type { Dir8 } from '../noyau/monde/dir8';
+import { EMPTY_FLOW } from '../noyau/monde/flow';
 import { nextEntityId } from './entityId';
 import { findTrappingById, findCreatureById } from '../data';
 import { siegeEmplacementEntity } from './siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
-import { estAbsent, terrainAbsent } from './terrain';
-import { PARTY_MAX } from './combatants';
+import { estAbsent, terrainAbsent } from '../noyau/monde/terrain';
+import { PARTY_MAX } from '../noyau/monde/combatants';
 import {
   assignSeat,
   pruneSeatAssignments,
@@ -27,11 +27,11 @@ import {
   type SeatAssignmentResult,
   type SeatAssignments,
   type SeatOccupant,
-} from './seating';
-import { METRES_PER_LEVEL } from './relief';
+} from '../noyau/monde/seating';
+import { METRES_PER_LEVEL } from '../noyau/monde/relief';
 import { typeNonNomme } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './buildings';
-import { decorEnCaseEtage } from './decorIndex';
+import { decorEnCaseEtage } from '../noyau/monde/decorIndex';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -41,7 +41,7 @@ export type Pt = { x: number; y: number };
  *  qui omettaient le filtre de couche (#835 FU-3) : `hitAt`/`eraseAt`/`addEnemyMember` et la pose
  *  directe (`entity`/`emplacement`) le partagent tous.
  *
- *  Un décor répond sur TOUTE son EMPREINTE (`state/decorIndex.ts`, la même lecture que le picking du
+ *  Un décor répond sur TOUTE son EMPREINTE (`noyau/monde/decorIndex.ts`, la même lecture que le picking du
  *  jeu, `gameIso/stage/pickResolve.ts`) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
  *  seconde case d'une table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas au canevas
  *  d'authoring, et un clic y posait une entité DANS le meuble. La pose EXACTE garde la priorité —

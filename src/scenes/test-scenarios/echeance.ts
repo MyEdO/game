@@ -1,8 +1,8 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Échéance & compte à rebours » (#668) : `setObjective`/`delayedEffect` posés avec une même

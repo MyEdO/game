@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { actorBillboards, actorIdentityKey, actorPoseKey, type ActorPose } from './sceneMeshes';
 import { tokenBodyKind } from '../../tokenBodyKind';
 import { useGame, type BattleState } from '../../../state/store';
-import { emptyScene, sceneMetresPerTile } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { createHero } from '../../../engine/character';
 import { damageArmour } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';

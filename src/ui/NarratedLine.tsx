@@ -1,5 +1,5 @@
 import { narrateEvent } from '../gameIso/combatNarration';
-import type { CombatEvent } from '../state/combatLog';
+import type { CombatEvent } from '../noyau/combatLog';
 import { Icon } from './Icon';
 import { TeamSegments } from './TeamSegments';
 

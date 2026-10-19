@@ -9,13 +9,13 @@
  * Utilisé par les scènes de test (`src/scenes/**`). Le générateur de campagne (`scripts/campagne/lib.mjs`,
  * Node pur) délègue à `buildScene` (`tsx`, MÊME compilateur) — pas de mirroir JS séparé à maintenir.
  */
-import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
+import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from '../noyau/monde/scene';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import type { Flow } from './flow';
+import type { Flow } from '../noyau/monde/flow';
 import type { OptionalEntry } from '../engine/statEntry';
 import type { AuthoredShipPoste, NavalTraitRef } from '../engine/types';
 import type { SkillRef } from '../data';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../noyau/monde/dir8';
 import type { ThreatTier } from '../engine/advantagePool';
 
 /** Un ennemi authoré NOMME sa fiche (`AuMoinsUnPorteurDeFiche`, #1882) : `ref`, `statblock` ou `presetId`

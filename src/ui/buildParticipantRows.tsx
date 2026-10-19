@@ -6,7 +6,7 @@ import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
 import { refusSansJet, easeDifficulty, type EchecSansJet } from '../engine/tests';
 import type { PlayerText } from '../i18n/playerText';
-import type { ShipManeuverParticipant } from '../state/pendings';
+import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { crewRoleValue, crewRoleTestMods } from '../engine/crewMorale';
 import { testBreakdown, testPending } from './breakdown';
 

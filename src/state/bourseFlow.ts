@@ -11,7 +11,7 @@ import { bourseInstanceOf, bourseOf, ensureBourse, withBourseMoney } from '../en
 import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import type { GameState } from './store';
-import { actorIn, ecrireActeur } from './combatants';
+import { actorIn, ecrireActeur } from '../noyau/monde/combatants';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 

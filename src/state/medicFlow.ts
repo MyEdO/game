@@ -16,8 +16,8 @@
  * commencée rembourse aussi.
  */
 import { type Combatant, type Difficulty } from '../engine/types';
-import { rollLine } from './rollSeam';
-import { battleRng } from './battleRng';
+import { rollLine } from '../noyau/rollSeam';
+import { battleRng } from '../noyau/battleRng';
 import { d10 } from '../engine/dice';
 import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { applyOps } from '../engine/ops';

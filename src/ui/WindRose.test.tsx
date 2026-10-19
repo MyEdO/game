@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { WindRose } from './WindRose';
-import { DIR8_ORDER, type Dir8 } from '../state/dir8';
+import { DIR8_ORDER, type Dir8 } from '../noyau/monde/dir8';
 
 const DEG: Record<Dir8, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SO: 225, O: 270, NO: 315 };
 

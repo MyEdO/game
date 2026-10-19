@@ -6,12 +6,12 @@ import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { checkBattleOver } from './combatFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { addCondition } from '../engine/conditions';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Possession } from '../engine/possession';
 import { resetCadence, setCadence } from '../engine/cadence';
 

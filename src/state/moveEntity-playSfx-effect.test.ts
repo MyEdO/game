@@ -8,8 +8,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from './combatEffects';
-import { emptyScene } from './scene';
-import type { Effect } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
+import type { Effect } from '../noyau/monde/scene';
 import { effectSummary } from '../ui/editor/EffectList';
 
 // Reset du store APRÈS CHAQUE test (isolate:false) : rend au singleton `useGame` son état initial,

@@ -11,7 +11,7 @@ import { runAction, actionGate } from './actionRegistry';
 import { ROUTES, intentAllowedFor, withActingSeat } from './netOwnership';
 import { GUEST_INTENTS } from './intents';
 import { useGame, type BattleState } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findActionById } from '../data/index';
 import { serializeMessage, parseMessage } from '../net/protocol';

@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from './schemas/validate';
 import { semencesDeScene } from './index';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 
 const FICHIER = 'semences-de-scene.json';
 /** Le document livré, tel qu'il est sur disque (enveloppe comprise) — base de chaque mutation. */

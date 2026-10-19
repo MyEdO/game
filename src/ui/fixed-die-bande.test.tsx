@@ -19,7 +19,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { openScriptedPsych } from '../state/encounterPsychFlow';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { CascadeBody } from './CascadeModal';
 import type { Combatant } from '../engine/types';

@@ -19,7 +19,7 @@ import { specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
-import { monoStep } from './rollSeam';
+import { monoStep } from '../noyau/rollSeam';
 import {
   registerSequence, startSequence, activeSequence, sequenceCumRound, sequenceScoreOf,
   SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict,

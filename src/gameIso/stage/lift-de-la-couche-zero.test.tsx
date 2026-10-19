@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as THREE from 'three';
 import { diamondPath, tileEdge, type Dims } from '../../geometry/iso';
-import { emptyScene, hauteurDe, heightAt, liftDe, type Scene } from '../../state/scene';
-import { metricToLift } from '../../state/relief';
+import { emptyScene, hauteurDe, heightAt, liftDe, type Scene } from '../../noyau/monde/scene';
+import { metricToLift } from '../../noyau/monde/relief';
 import { aretesUtilisables, type ContexteAretes } from '../../state/aretes';
 import { piece } from '../../state/pieces.fixture';
 import type { BattleState } from '../../state/store';
@@ -20,7 +20,7 @@ import { TapPreview } from './MoveOverlays';
 
 /**
  * LE RELIEF DE LA COUCHE 0 COMPTE (#1687, lot 1b-5) — un point de grille a UNE élévation d'affichage,
- * celle du socle `state/scene.ts:liftDe`, et elle ne dépend PAS de l'index de couche. Le trait de mur
+ * celle du socle `noyau/monde/scene.ts:liftDe`, et elle ne dépend PAS de l'index de couche. Le trait de mur
  * la lit sans garde (`stage/layers.tsx:99`, `metricToLift(heightAt(…))`) ; ce banc mesure que la prise
  * d'une arête et le marqueur d'un aperçu de déplacement posent le MÊME segment sur une falaise de
  * couche 0 — là où trois recopies d'une garde `p.z ? … : 0` les laissait au plancher, un niveau

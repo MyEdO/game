@@ -4,7 +4,7 @@ import { FLOWS } from './rollFlowSpecs';
 import { amazingTestLabel } from './flowOutcomes';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { isDoubleRoll } from '../engine/tests';
-import type { PendingTest } from './pendings';
+import type { PendingTest } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 /**

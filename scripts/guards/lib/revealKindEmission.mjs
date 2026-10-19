@@ -1,5 +1,5 @@
 // Mécanique de scan du garde-fou « kind de RevealEntry ↔ site d'émission » (#942, lots L0 puis L8).
-// L'union `RevealEntry['kind']` (src/state/pendings.ts) est un CONTRAT d'affichage : chaque membre
+// L'union `RevealEntry['kind']` (src/noyau/pendings.ts) est un CONTRAT d'affichage : chaque membre
 // doit avoir au moins un site qui PRODUIT une telle entrée dans les sources (hors tests). Un membre
 // sans producteur laisse vivre son câblage UI (icône `REVEAL_ICON`, libellé de table, branche de rendu
 // de `ui/RevealBody.tsx`) pour un cas qui n'arrive jamais ; un producteur d'un kind hors union ne compile pas.
@@ -44,7 +44,7 @@ function kindsIn(frag) {
 
 /**
  * Membres de l'union `RevealEntry['kind']` déclarés par `pendings.ts`.
- * @param {string} pendingsSrc contenu de src/state/pendings.ts
+ * @param {string} pendingsSrc contenu de src/noyau/pendings.ts
  * @returns {string[]}
  */
 export function unionKinds(pendingsSrc) {

@@ -6,8 +6,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { emptyScene } from './scene';
-import { seedBattleRng } from './battleRng';
+import { emptyScene } from '../noyau/monde/scene';
+import { seedBattleRng } from '../noyau/battleRng';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import type { WorldMap } from './worldMap';

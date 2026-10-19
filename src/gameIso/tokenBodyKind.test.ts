@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { tokenBodyKind } from './tokenBodyKind';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 

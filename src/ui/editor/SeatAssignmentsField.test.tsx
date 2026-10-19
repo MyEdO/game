@@ -3,8 +3,8 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
-import { emptyScene, type Scene } from '../../state/scene';
-import { PARTY_MAX } from '../../state/combatants';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
+import { PARTY_MAX } from '../../noyau/monde/combatants';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

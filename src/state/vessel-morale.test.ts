@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resolveShoreLeaveDesertion } from './shipCrew';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';

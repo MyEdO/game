@@ -2,12 +2,12 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { applyOpposedCritical } from './combatFlow';
 import { useGame, type BattleState } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';
 import { hitLocationByShape, reverseRoll } from '../engine/combat';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 
 /**
  * #80 — LDB 18 l.53/55 : un Coup Critique re-tire la Localisation (1d100 FRAIS, jamais l'inversion de

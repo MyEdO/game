@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type WallSeg } from './scene';
-import { pathTo, walkNeighbors, reachable } from './path';
+import { emptyScene, type Scene, type Terrain, type WallSeg } from '../noyau/monde/scene';
+import { pathTo, walkNeighbors, reachable } from '../noyau/monde/path';
 
 /**
  * GRILLE 8-CONNEXE — déplacement diagonal (LDB 15 « Déplacement » l.10-16 : la grille optionnelle

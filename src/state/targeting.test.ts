@@ -9,7 +9,7 @@ import { missileDamage } from '../engine/magic';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 const combatant = (over: Partial<Combatant>): Combatant =>
   ({

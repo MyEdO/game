@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import type { ReactNode } from 'react';
 import type { ViewMode } from '../geometry/iso';
 import type { Combatant } from '../engine/types';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { isOutOfAction } from '../engine/conditions';
 import { RigToken } from './RigToken';
 import { AnimatedPlanToken } from './AnimatedPlanToken';

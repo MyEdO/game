@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Scene } from '../../src/state/scene';
+import type { Scene } from '../../src/noyau/monde/scene';
 import type { ZoneSeed } from '../../src/state/asciiMap';
 import { parseProject } from '../../src/state/worldMap';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../guards/lib/projetsLivres.mjs';

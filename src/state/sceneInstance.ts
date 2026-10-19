@@ -3,8 +3,8 @@
  * jamais muté ; ce qui change en jeu (entités retirées, portes/structures/tuiles) est un DELTA
  * capturé au départ d'une scène et réappliqué au clone frais lors du revisit.
  */
-import type { Scene } from './scene';
-import { pruneSeatAssignments, type SeatAssignments } from './seating';
+import type { Scene } from '../noyau/monde/scene';
+import { pruneSeatAssignments, type SeatAssignments } from '../noyau/monde/seating';
 
 /** Mutation runtime d'une scène (delta vs le document authored), persistée par `sceneId`. */
 export interface SceneMutation {

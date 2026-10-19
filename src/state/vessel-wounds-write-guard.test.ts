@@ -16,7 +16,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
-const SCAN_DIRS = ['src/state'];
+const SCAN_DIRS = ['src/state', 'src/noyau'];
 const FOYERS = new Set(['src/state/shipDamage.ts', 'src/state/seaVoyageFlow.ts']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || FOYERS.has(rel);
 

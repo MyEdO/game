@@ -2,7 +2,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import type { WallSpec } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /** « Étiquettes de zone » — scénario de quatre pièces intérieures liées à un corps architectural. */
 const FOOT = { x: 1, y: 1, w: 8, h: 6 };

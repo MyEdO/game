@@ -9,8 +9,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
-import { emptyScene, Scene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene, Scene } from '../noyau/monde/scene';
 import { WorldMap } from './worldMap';
 import { maxHoursPerDay } from './travelFlow';
 import { sceneLieu } from './restFlow';

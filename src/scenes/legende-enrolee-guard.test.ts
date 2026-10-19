@@ -15,7 +15,7 @@ import { parseProject } from '../state/worldMap';
 import { ficheDEntite } from '../state/sceneNpc';
 import { useGame } from '../state/store';
 import { testScenarios } from './test-scenarios';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from '../state/campaignNarratif';
 
 const EXEMPTES = new Map<string, string>([

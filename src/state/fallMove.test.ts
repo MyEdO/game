@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './scene';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import { planFranchissement, mouvementDeLAllege } from './fallMove';
-import { pathTo } from './path';
+import { pathTo } from '../noyau/monde/path';
 
 /**
  * `planFranchissement` (LDB 15 l.82 ; #700) : le geste qui QUITTE une surface par une arête. Falaise

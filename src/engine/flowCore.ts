@@ -544,13 +544,13 @@ export type Flow<E = EffectOp> =
   | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
- *  `AA 08 l.87`), substitué par `withArg` (`state/triggeredEffects`) avant exécution. Resté tel quel, le
+ *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le
  *  nœud n'est PAS offert (`resolveFlowChoice`) — jamais un coût 0. */
 export const INDICE_TEMPLATE = '$indice';
 export type IndiceTemplate = typeof INDICE_TEMPLATE;
 
 /** TEMPLATE d'instance d'un champ d'op : l'ARGUMENT de l'entité PORTEUSE (trait Maladie « (peste) » →
- *  `exposeDisease{disease: ARG_TEMPLATE}`), substitué par `withArg` (`state/triggeredEffects`) avant
+ *  `exposeDisease{disease: ARG_TEMPLATE}`), substitué par `withArg` (`noyau/triggeredEffects`) avant
  *  exécution. Même mécanisme qu'`INDICE_TEMPLATE`, pour l'arg au lieu de l'Indice. */
 export const ARG_TEMPLATE = '$arg';
 export type ArgTemplate = typeof ARG_TEMPLATE;
@@ -591,7 +591,7 @@ export type EffectTrigger =
   /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
    *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
    *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
-   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (state/triggeredEffects), qui garde
+   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
    *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
   | 'onOwnTestFailed';
 
@@ -632,7 +632,7 @@ export interface TriggeredEffect<E = EffectOp> {
    *  — la sortie rationnelle de l'IA, « plus d'ennemi en vue », est déjà l'effet auto de psychology.json). */
   optional?: boolean;
   /** ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf`
-   *  (`src/state/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage
+   *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage
    *  jusqu'à l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
   source?: EffectSource;
 }

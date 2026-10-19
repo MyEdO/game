@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildScene, type MapSpec } from '../../state/mapSpec';
-import { heightAt, type Scene } from '../../state/scene';
+import { heightAt, type Scene } from '../../noyau/monde/scene';
 import { planStairFlight, applyStairFlight, type Pt } from './editorState';
 import { Palette } from './Palette';
 

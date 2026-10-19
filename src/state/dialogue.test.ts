@@ -11,8 +11,8 @@
 import { describe, it, expect } from 'vitest';
 import { reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
 import { conditionCtx } from '../engine/flowCore';
-import type { Flow } from './flow';
-import type { Dialogue, DialogueNode } from './scene';
+import type { Flow } from '../noyau/monde/flow';
+import type { Dialogue, DialogueNode } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueHistory';
 import { campaignStart } from '../engine/clock';

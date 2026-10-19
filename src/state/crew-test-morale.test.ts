@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta } from '../engine/crewMorale';
 import { makeRNG } from '../engine/dice';
 import { shipSaboteurDR } from './shipCrew';

@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Dims } from '../../geometry/iso';
 import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';

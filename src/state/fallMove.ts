@@ -1,8 +1,8 @@
-import { Scene, WallSeg, wallIsOpen, edgeOf, heightAt, surfaceDAtterrissage } from './scene';
-import { gradeBetween } from './relief';
-import { aretesA } from './wallIndex';
-import type { Pt } from './path';
-import type { PendingFall, TombantParticipant } from './pendings';
+import { Scene, WallSeg, wallIsOpen, edgeOf, heightAt, surfaceDAtterrissage } from '../noyau/monde/scene';
+import { gradeBetween } from '../noyau/monde/relief';
+import { aretesA } from '../noyau/monde/wallIndex';
+import type { Pt } from '../noyau/monde/path';
+import type { PendingFall, TombantParticipant } from '../noyau/pendings';
 import { rule } from '../engine/policy';
 import { climbMovementCost } from '../engine/movement';
 

@@ -3,21 +3,21 @@ import { t } from '../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES } from './combatEffects';
-import { runPureFlowLines } from './combat/flowEval';
-import { openSequence } from './rollSeam';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
+import { openSequence } from '../noyau/rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
 import { SEA_PERIL_INTERRUPT } from './seaVoyageFlow';
 import type { MapRoute } from './worldMap';
-import type { PendingCascade, Suite } from './pendings';
-import { emptyScene, type Dialogue, type Effect } from './scene';
-import { cleActionJouee } from './usable';
+import type { PendingCascade, Suite } from '../noyau/pendings';
+import { emptyScene, type Dialogue, type Effect } from '../noyau/monde/scene';
+import { cleActionJouee } from '../noyau/monde/usable';
 import { ouvrirDialogue } from './dialogue';
 import { runCombatFlow, bandeTriggeredTest } from './combat/triggeredTest';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import './combatFlow'; // enregistre la clôture `reprendreFlowDeCombat`
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
-import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from './cascade';
-import { checkPartyWiped } from './partyWipe';
+import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from '../noyau/cascade';
+import { checkPartyWiped } from '../noyau/partyWipe';
 import { canFixDie } from './netOwnership';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { demandesDeDes, applyOps, cleDeDe, gelerOpsCtx,
@@ -29,7 +29,7 @@ import { SHIP_CRIT_SET } from '../data/shipCriticals';
 import { makeRNG, roll as rollDes } from '../engine/dice';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { EffectOp, Flow } from './flow';
+import type { EffectOp, Flow } from '../noyau/monde/flow';
 
 /**
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
@@ -486,7 +486,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
   it('VICTOIRE : la séquence PARQUÉE attend le dé, puis la couture universelle la reprend', () => {
     // `resumeSuspendedCascade` ne résume QUE sur slot LIBRE : la chute en vol tient le slot, et le
     // teardown de victoire ne l'écrase pas. La reprise vient ensuite, à la clôture de la cascade —
-    // c'est la même couture (state/cascade.ts), jamais un checkpoint parallèle.
+    // c'est la même couture (noyau/cascade.ts), jamais un checkpoint parallèle.
     ouvrirChute(useGame.setState, par('h2'), 4);
     suspendActiveCascade(useGame.getState, useGame.setState); // ex. une journée de voyage parquée par l'abordage
     ouvrirChute(useGame.setState, par('h1'), 4);

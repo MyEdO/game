@@ -14,7 +14,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
 import { toBrass } from '../engine/money';

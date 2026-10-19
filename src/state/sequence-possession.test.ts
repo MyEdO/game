@@ -22,12 +22,12 @@ import {
   openCombatEndCascade, openRoundStartPsych,
 } from './combatFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
-import { surfaceOf } from './rollSeam';
+import { surfaceOf } from '../noyau/rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled, pilotedByHuman } from './netOwnership';
-import { seatOwns, jetSurfaced } from './sieges';
+import { seatOwns, jetSurfaced } from '../noyau/sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { tickCombatAuto } from './combatAuto';
 import { testScene } from '../scenes/test-fixture';

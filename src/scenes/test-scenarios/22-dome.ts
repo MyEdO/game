@@ -2,7 +2,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { makeSorceress } from './_casters';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * DÔME (`LDB 47 l.410`) — la sauvegarde qu'une ZONE octroie, sous la main du joueur.

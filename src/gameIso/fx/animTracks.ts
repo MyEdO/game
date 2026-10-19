@@ -15,7 +15,7 @@
  */
 import { bus, EVT } from '../../state/bus';
 import { useGame } from '../../state/store';
-import { inBattleId } from '../../state/combatants';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { combatantRender } from '../sizeScale';
 import { enemyRigProfile, rendersFromOwnInventory } from '../rig/enemyProfile';
 import { armePrincipale, equipPorte, type EquipCtx } from '../rig/parts/equipment';

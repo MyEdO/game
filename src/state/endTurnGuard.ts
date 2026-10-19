@@ -1,6 +1,6 @@
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
-import type { PendingCleave } from './pendings';
+import type { PendingCleave } from '../noyau/pendings';
 import { canTakeAction } from '../engine/conditions';
 
 /**

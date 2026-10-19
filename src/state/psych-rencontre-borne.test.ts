@@ -17,7 +17,7 @@ import { refreshDefendedPsych, refreshAllDefendedPsych, fearSourceFor, targetCau
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneEntity } from '../noyau/monde/scene';
 
 function ent(over: Partial<SceneEntity> & Pick<SceneEntity, 'id'>): SceneEntity {
   return { kind: 'personnage', pos: { x: 1, y: 1 }, ...over } as SceneEntity;

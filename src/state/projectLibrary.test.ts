@@ -14,9 +14,9 @@ import {
   savedProjectSchema,
 } from './projectLibrary';
 import { mesurerCheminsNommes } from '../../scripts/guards/lib/cheminsNommes.mts';
-import { __setFabriqueIdbForTest } from '../lib/indexedDb';
-import { brancherBasesSimulees, brancherOuvertures } from '../lib/indexedDb.testkit';
-import { Scene, emptyScene } from './scene';
+import { __setFabriqueIdbForTest } from '../web/indexedDb';
+import { brancherBasesSimulees, brancherOuvertures } from '../web/indexedDb.testkit';
+import { Scene, emptyScene } from '../noyau/monde/scene';
 import { ProjetRefuse } from './worldMap';
 import { allAxes } from '../data';
 import { emptyNarratif } from './campaignNarratif';

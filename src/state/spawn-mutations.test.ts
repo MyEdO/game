@@ -14,7 +14,7 @@ import { resolvePresetCreature } from './campaignData';
 import { creatureToCombatant, statblockToCombatant } from './spawn';
 import { parseProject } from './worldMap';
 import type { NarratifBlock } from './campaignNarratif';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
 import { creatures, findTalentById, findTraitById } from '../data';
 import { mutationById } from '../data/mutations';

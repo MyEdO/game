@@ -31,7 +31,7 @@ import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 function rendu() {
   const OUTIL = 'build-mecanique'
   const FLOWCORE = 'src/engine/flowCore.ts'
-  const TRIGGERS = 'src/state/triggeredEffects.ts'
+  const TRIGGERS = 'src/noyau/triggeredEffects.ts'
   const TRAUMA = 'src/engine/trauma.ts'
   const CAPS = 'src/engine/capabilities.ts'
   const INDEX = 'src/data/index.ts'
@@ -430,7 +430,7 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
     out,
     path: 'docs/ajouter-une-mecanique.md',
     staleMsg:
-      'docs:mecanique — docs/ajouter-une-mecanique.md est PÉRIMÉ (diverge de src/engine/flowCore.ts, src/state/triggeredEffects.ts, src/engine/trauma.ts, src/engine/capabilities.ts, des defs, ou du script).',
+      'docs:mecanique — docs/ajouter-une-mecanique.md est PÉRIMÉ (diverge de src/engine/flowCore.ts, src/noyau/triggeredEffects.ts, src/engine/trauma.ts, src/engine/capabilities.ts, des defs, ou du script).',
     rerunMsg: '  → relancer `npm run docs:mecanique` (dérivé jamais commité, #2203).',
     okMsg: 'docs:mecanique — OK (docs/ajouter-une-mecanique.md à jour)',
     writeMsg: `docs/ajouter-une-mecanique.md — ${TRIGGERS_LIST.length} déclencheurs, ${SOURCES.kinds.length} kinds de source, ${CAPACITES.length} interfaces de capacités, ${GARDES_MESUREES.length} gardes.`,

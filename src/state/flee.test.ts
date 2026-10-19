@@ -4,10 +4,10 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { fleeReachable } from './path';
-import { emptyScene } from './scene';
+import { fleeReachable } from '../noyau/monde/path';
+import { emptyScene } from '../noyau/monde/scene';
 import { stacks, hasCondition, COND } from '../engine/conditions';
-import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
+import { fleeBackstab, fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 

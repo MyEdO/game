@@ -15,7 +15,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../../state/store';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { nudgeStageYaw, resetStageYaw, rotAtYaw } from '../../state/stageYaw';
 import type { Combatant } from '../../engine/types';
 import type { Dims, Rot } from '../../geometry/iso';

@@ -217,7 +217,7 @@ function rendu() {
     '```ts',
     "import { arena } from './_shared';",
     "import type { TestScenario } from './_shared';",
-    "import type { Scene } from '../../state/scene';",
+    "import type { Scene } from '../../noyau/monde/scene';",
     '// (+ createHero / makePregens / itemFromTrappingById selon le groupe voulu)',
     '',
     "function construireScene(): Scene {",

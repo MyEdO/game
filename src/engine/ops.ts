@@ -57,7 +57,7 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 import { rule } from './policy'; // module FEUILLE (registre des règles optionnelles) : terme `{rule}` d'une Formula
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
-// dispatché par `state/triggeredEffects` (pas ici).
+// dispatché par `noyau/triggeredEffects` (pas ici).
 import type { TriggeredEffect, FlowTest } from './flowCore';
 import {
   ActiveEffect,
@@ -580,7 +580,7 @@ export type GameOp =
    *  cette op S'EXÉCUTE (le garde-fou Empêtré/Inconscient/Surpris, MDG 16 l.11, vit dans le nœud `if`
    *  englobant de la donnée — jamais revérifié ici), la créature génère EN PLUS l'Indice PLEIN (`amount`
    *  résolu, pas le seul manquant) pour la réserve adverse, via `ctx.onOpposingAdvantage` (même patron que
-   *  `ctx.onCorruption`) — consommé kind-agnostiquement par la couche state (`state/combat/advantagePool.ts`). */
+   *  `ctx.onCorruption`) — consommé kind-agnostiquement par le noyau (`noyau/combat/advantagePool.ts`). */
   | { op: 'topUpAdvantage'; amount: Formula; feedOpposingPool?: boolean }
   /** Pénalité/blocage d'incantation temporisé (contrecoups, LDB 46/40) : −N à une
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
@@ -1343,12 +1343,12 @@ export interface OpsCtx {
   /** Gain de Corruption AVEC seuil → mutation (corruptionFlow) ; sans contexte
    *  store, l'op `corruption` incrémente simplement le compteur. */
   onCorruption?: (n: number, align?: ChaosAlign) => string[];
-  /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par la couche state (`state/combat/advantagePool.ts`
+  /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par le noyau (`noyau/combat/advantagePool.ts`
    *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
    *  `engine/advantage.gainAdvantage`. */
   onGainAdvantage?: (c: Combatant, n: number) => void;
   /** Clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) : branché par le store
-   *  (`state/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
+   *  (`noyau/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
    *  réserve du camp OPPOSÉ. Sans contexte (moteur pur/tests, hors mode groupe), la clause est inerte. */
   onOpposingAdvantage?: (n: number) => string[];
@@ -1474,7 +1474,7 @@ export function cleDeDe(rang: number, champ: string): string {
  * OUVRE : quels dés (`spec`), sous quelle clé les reverser (`cle`, cf. `cleDeDe`), ce qu'ils décident
  * (`libelle`) et dans quelle unité se lit leur total (`unite` — « m », affichage pur).
  *
- * C'est la même forme qu'une déclaration d'étape à dé nu (`state/rollSeam.DieStepSpec`) privée de ce
+ * C'est la même forme qu'une déclaration d'étape à dé nu (`noyau/rollSeam.DieStepSpec`) privée de ce
  * que seul l'applier sait (le porteur, la séquence d'accueil) : le moteur ne connaît ni sièges ni
  * fenêtres, il dit le dé.
  */
@@ -1667,7 +1667,7 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
  *
  * NIVEAU 1, et l'état des autres niveaux est MESURÉ, pas supposé : une op à dé IMBRIQUÉE (rangée de
  * `rollTable`, palier de `rollThreshold`, forme d'un échelon) n'est pas énumérée et ses dés tombent
- * sous `applyOps` (`imbrique` retire `ctx.des`) ; le walker PUR `state/combat/flowEval.runPureFlowLines`
+ * sous `applyOps` (`imbrique` retire `ctx.des`) ; le walker PUR `noyau/combat/flowEval.runPureFlowLines`
  * appelle `applyOps` hors de la porte. Ces deux chemins sont au solde `DES_HORS_PORTE_STOCK` (comptés
  * à l'`applyOps` de leurs appelants), qui les porte jusqu'à zéro (#1508). Une récursion ici ne les
  * couvrirait pas : elle annoncerait des dés que la branche non prise ne tire jamais.

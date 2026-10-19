@@ -7,7 +7,7 @@ import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { useGame } from '../../state/store';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { findCreatureById } from '../../data';
-import type { SceneEntity } from '../../state/scene';
+import type { SceneEntity } from '../../noyau/monde/scene';
 import type { ScenarioConstruit } from './_shared';
 
 /**

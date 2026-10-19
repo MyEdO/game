@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
 import { getStageYaw, resetStageYaw } from '../state/stageYaw';

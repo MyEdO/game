@@ -59,7 +59,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   });
 
   // Journal : la fenêtre de Course a MONTRÉ le dé ; le journal ne porte que la CONSÉQUENCE, la distance
-  // parcourue (Décision 1b, `state/rollSeam.ts` `Consequence`).
+  // parcourue (Décision 1b, `noyau/rollSeam.ts` `Consequence`).
   it('runConfirm journalise la seule conséquence : les cases parcourues', () => {
     useGame.getState().seedRng(2);
     const { H } = setup();

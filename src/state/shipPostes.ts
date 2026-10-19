@@ -10,10 +10,10 @@ import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../engine/items';
 import { hasWeaponGroupSkill } from '../engine/combat';
 import { exposedCrew } from '../engine/shipCritical';
 import { isOutOfAction } from '../engine/conditions';
-import { combatDistance, footprintN } from './footprint';
-import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from './dir8';
-import { isWalkable, type Scene } from './scene';
-import { findFreeTile } from './combatGeometry';
+import { combatDistance, footprintN } from '../noyau/monde/footprint';
+import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../noyau/monde/dir8';
+import { isWalkable, type Scene } from '../noyau/monde/scene';
+import { findFreeTile } from '../noyau/monde/combatGeometry';
 import type { FireArc } from './fireArc';
 import type { Combatant, ShipPoste, ShipDeck } from '../engine/types';
 

@@ -17,7 +17,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, heightAt, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, heightAt, type Scene } from '../../noyau/monde/scene';
 import { mapLights, type LightSource } from '../../state/vision';
 import { combatantLights } from '../../state/vision';
 import { lightTones, props as propsData, trappings, type LightToneDef } from '../../data';

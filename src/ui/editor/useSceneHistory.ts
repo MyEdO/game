@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * Historique d'édition (annuler/rétablir) : chaque `setScene` empile un instantané

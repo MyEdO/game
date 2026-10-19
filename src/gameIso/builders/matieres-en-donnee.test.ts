@@ -30,7 +30,7 @@ import { detenteur } from '../../detenteur.testkit';
  * PÉRIMÈTRE (les CINQ couches qui émettent — `src/ui/editor/**` depuis #1716 : la palette et le
  * redimensionnement POSENT le sol d'une scène, rien ne les tenait) : `src/gameIso/builders/**` (géométrie pure),
  * `src/gameIso/authoring/*Svg.ts` (peintres du plan et de l'éditeur), `src/gameIso/catalog/**`
- * (catalogues et façades de donnée), et `src/state/**` ENTIER — la DÉRIVATION des masses de toit y
+ * (catalogues et façades de donnée), et `src/state/**` avec `src/noyau/**` ENTIERS — la DÉRIVATION des masses de toit y
  * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
  * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
  * Hors périmètre : le rig, les backends et le stage, où `plan` n'est pas une matière de toiture mais
@@ -46,26 +46,21 @@ import { detenteur } from '../../detenteur.testkit';
  */
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url));
 
-/** Les CINQ couches ÉMETTRICES scannées. `prefixe`/`dir` composent le chemin que le rapport porte ;
- *  `recursif: false` borne la couche à la profondeur 1. */
+/** Les CINQ couches ÉMETTRICES scannées. `bases` nomme leurs dossiers depuis `src/` (le store en a deux :
+ *  `src/state` et `src/noyau`) ; `recursif: false` borne la couche à la profondeur 1. */
 const COUCHES = [
-  { prefixe: 'gameIso/', dir: 'builders', recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { prefixe: 'gameIso/', dir: 'authoring', recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
-  { prefixe: 'gameIso/', dir: 'catalog', recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { prefixe: '', dir: '.', recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
-  { prefixe: 'ui/', dir: 'editor', recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'builders', bases: ['gameIso/builders'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'authoring', bases: ['gameIso/authoring'], recursif: false, filtre: (f: string) => /Svg\.tsx?$/.test(f) },
+  { nom: 'catalog', bases: ['gameIso/catalog'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'store', bases: ['state', 'noyau'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
+  { nom: 'editor', bases: ['ui/editor'], recursif: true, filtre: (f: string) => /\.tsx?$/.test(f) },
 ] as const;
 
-/** BASE de lecture d'une couche, DÉRIVÉE de son préfixe et de son dossier — chemin POSIX depuis la
- *  racine du dépôt, la forme que `readCorpus` prend et rend. La racine du store est `src/state`,
- *  celle des trois couches de rendu `src/gameIso/<dossier>`. */
-const baseDe = (c: (typeof COUCHES)[number]) => `src/${c.prefixe}${c.dir === '.' ? 'state' : c.dir}`;
+/** Les dossiers du STORE, lus dans la table : les autres couches sont celles du rendu et de l'IU. */
+const BASES_DU_STORE: readonly string[] = COUCHES.find((c) => c.nom === 'store')!.bases;
 
-/** Le STORE seul (la couche `src/state`, sans préfixe) : les autres couches portent le leur. */
-const duStore = (rel: string) => !/^(gameIso|ui)\//.test(rel);
-
-/** Le chemin que le RAPPORT porte, depuis `src/` : le store est la seule couche sans préfixe. */
-const chemin = (rel: string) => (duStore(rel) ? `state/${rel}` : rel);
+/** Le STORE seul (`src/state`, `src/noyau`). */
+const duStore = (rel: string) => BASES_DU_STORE.some((b) => rel.startsWith(`${b}/`));
 
 /**
  * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
@@ -81,13 +76,15 @@ const LIGNE_STRUCTURELLE = new RegExp(SIGNAUX_STRUCTURELS.map((s) => s.re.source
 
 /** Tous les fichiers du périmètre : la marche de l'arbre ET la lecture viennent de la primitive de
  *  corpus (`readCorpus`, une clé par base, `*.test.*` hors corpus). Le chemin rendu est celui que le
- *  rapport porte — relatif à `src/` pour les couches de `gameIso`, à `src/state/` pour le store. */
+ *  rapport porte, relatif à `src/`. */
 function fichiersDuPerimetre(): { rel: string; code: string }[] {
   return COUCHES.flatMap((c) =>
-    readCorpus([baseDe(c)])
-      .map(({ rel, text }) => ({ f: rel.slice(baseDe(c).length + 1), text }))
-      .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
-      .map(({ f, text }) => ({ rel: `${c.prefixe}${c.dir === '.' ? '' : `${c.dir}/`}${f}`, code: text })),
+    c.bases.flatMap((b) =>
+      readCorpus([`src/${b}`])
+        .map(({ rel, text }) => ({ f: rel.slice(`src/${b}`.length + 1), text }))
+        .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
+        .map(({ f, text }) => ({ rel: `${b}/${f}`, code: text })),
+    ),
   );
 }
 
@@ -278,10 +275,10 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
 
   it('le scan couvre les CINQ couches émettrices (sanity)', () => {
     for (const c of COUCHES)
-      expect(fichiers().filter((f) => f.rel.startsWith(c.prefixe) && (c.dir === '.' || f.rel.includes(`${c.dir}/`))).length, c.dir).toBeGreaterThan(0);
-    expect(fichiers().some((f) => f.rel === 'sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
-    expect(fichiers().some((f) => f.rel === 'scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
-    expect(fichiers().some((f) => f.rel.includes('/')), 'le scan de `src/state` n’est plus récursif').toBe(true);
+      for (const b of c.bases) expect(fichiers().filter((f) => f.rel.startsWith(`${b}/`)).length, b).toBeGreaterThan(0);
+    expect(fichiers().some((f) => f.rel === 'state/sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === 'noyau/monde/scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
+    expect(fichiers().some((f) => duStore(f.rel) && f.rel.split('/').length > 2), 'le scan du store n’est plus récursif').toBe(true);
     expect(fichiers().some((f) => f.rel === 'ui/editor/Palette.tsx'), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
     expect(fichiers().some((f) => f.rel === 'ui/editor/Editor.tsx'), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
     expect(materials.length).toBeGreaterThan(5);
@@ -296,10 +293,10 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
           nus.push({ rel: f.rel, ligne: i + 1, texte: l });
       });
     }
-    expect(nus.length, 'plus aucun homonyme dans `src/state` : la neutralisation ne prouve plus rien.').toBeGreaterThan(0);
+    expect(nus.length, 'plus aucun homonyme dans le store : la neutralisation ne prouve plus rien.').toBeGreaterThan(0);
     expect(
       nus.filter((n) => !SIGNAUX_STRUCTURELS.some((s) => s.re.test(n.texte))).map((n) => `${n.rel}:${n.ligne}`),
-      `Littéral de matière dans \`src/state\` sans signal structurel — signaux connus : ${SIGNAUX_STRUCTURELS.map((s) => s.nom).join(', ')}.`,
+      `Littéral de matière dans le store sans signal structurel — signaux connus : ${SIGNAUX_STRUCTURELS.map((s) => s.nom).join(', ')}.`,
     ).toEqual([]);
     for (const s of SIGNAUX_STRUCTURELS)
       expect(nus.some((n) => s.re.test(n.texte)), `le signal « ${s.nom} » n’est plus exercé par aucun site.`).toBe(true);
@@ -350,7 +347,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(
       fautes,
       'une couche émettrice NOMME le sol de départ : il vient de `semences-de-scene.json › terrain` ' +
-        '(`DEFAULT_TERRAIN`, `state/scene.ts`), éditable au Codex — jamais d’un littéral.\n  ' +
+        '(`DEFAULT_TERRAIN`, `noyau/monde/scene.ts`), éditable au Codex — jamais d’un littéral.\n  ' +
         fautes.join('\n  '),
     ).toEqual([]);
   });
@@ -377,13 +374,13 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const fautes: string[] = [];
     for (const f of fichiers()) {
       codeHorsTerrain(f.code).split('\n').forEach((l, i) => {
-        for (const id of ids) if (citeId(id).test(l)) fautes.push(`${chemin(f.rel)}:${i + 1} — « ${id} »`);
+        for (const id of ids) if (citeId(id).test(l)) fautes.push(`${f.rel}:${i + 1} — « ${id} »`);
       });
     }
     expect(
       fautes,
       'une couche émettrice NOMME un terrain : le porteur d’un rôle se demande au dataset ' +
-        '(`terrainAbsent`/`terrainHorsGrille`, `state/terrain`), une semence vient de ' +
+        '(`terrainAbsent`/`terrainHorsGrille`, `noyau/monde/terrain`), une semence vient de ' +
         '`semences-de-scene.json` et un défaut de compilateur de `defauts-de-compilation.json` — ' +
         'jamais d’un littéral. En couche de RENDU ou d’IU, le terrain se LIT sur la tuile ou sur le ' +
         '`MaterialRef` reçu, se DÉRIVE de `terrains` / `terrainsAvecGlyphe`, ou se demande au dataset ' +

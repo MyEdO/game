@@ -1,10 +1,10 @@
 import { pregen, PREGEN } from '../../data/pregens';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { buildScene } from '../../state/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — le banc de recette des gestes qui SORTENT

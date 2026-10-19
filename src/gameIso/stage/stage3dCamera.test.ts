@@ -5,8 +5,8 @@ import { stageCamAffine, stageCamTransform, stageScreenPixel, viewBoxScale } fro
 import { VH, VW } from './useStageCamera';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
 import { tileCenter, type Dims, type Rot } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
-import { sceneMetresPerTile } from '../../state/scene';
+import { metricToLift } from '../../noyau/monde/relief';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { buildScene } from '../../state/mapSpec';
 import { spec as siegeSpec } from '../../scenes/test-scenarios/siege-enceinte';
 

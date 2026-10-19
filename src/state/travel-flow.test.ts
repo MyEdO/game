@@ -9,12 +9,12 @@
 import { refLabel, resolveStake, weather } from '../data';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
 import { PERIPETIES } from '../data/peripeties';
-import { emptyScene, Scene } from './scene';
+import { emptyScene, Scene } from '../noyau/monde/scene';
 import { buildEncounter } from './encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
@@ -24,7 +24,7 @@ import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelSta
 import { toDate } from '../engine/clock';
 import { creditBourse } from './bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
-import { cascadeAppliers, rollTableStep } from './cascade';
+import { cascadeAppliers, rollTableStep } from '../noyau/cascade';
 import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 

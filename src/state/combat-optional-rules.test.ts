@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { applyAttackResult, applyOpposedCritical, attackEnv } from './combatFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { resolveMelee } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { OPS_DIFFEREES } from './combatEffects';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';

@@ -24,7 +24,7 @@ import { maskOpposedRow } from './opposedFrozen';
  * aucun module tiers ne peut écrire la propriété. Le CAST (`as BuiltRollRow`, sous tableau/générique
  * compris) ET l'ALIAS de type qui le déguiserait (`type A = BuiltRollRow`) sont murés par le lint
  * `murs/marques`, mesurés par `state/built-brand-lint.test.ts`. Ce qui reste ouvert est dit
- * NOMMÉMENT au JSDoc du jumeau `state/stepBrand.ts` (annotation d'une valeur élargie, renommage à
+ * NOMMÉMENT au JSDoc du jumeau `noyau/stepBrand.ts` (annotation d'une valeur élargie, renommage à
  * l'import) : les mêmes limites, la même liste — aucune couverture affirmée ici qui n'y soit mesurée.
  *
  * Divergence VOULUE avec le jumeau `BuiltCascadeStep` (`declare const`, marque purement typologique) :

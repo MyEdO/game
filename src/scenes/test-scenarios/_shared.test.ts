@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { arena, renforcerCompetence } from './_shared';
 import type { Combatant } from '../../engine/types';
-import { isWalkable } from '../../state/scene';
+import { isWalkable } from '../../noyau/monde/scene';
 
 describe('arena (helper scénarios de test)', () => {
   it('produit une scène dégagée avec un point de départ héros', () => {

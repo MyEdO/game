@@ -10,11 +10,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { combatantLights } from './vision';
-import { spellEffectOps } from './flow';
+import { spellEffectOps } from '../noyau/monde/flow';
 import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { findSpellById, findTrappingById } from '../data';
-import { emptyScene, sceneMetresPerTile } from './scene';
+import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import type { Combatant } from '../engine/types';
 

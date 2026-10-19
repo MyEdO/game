@@ -32,7 +32,7 @@ const STATE_DIR = fileURLToPath(new URL('.', import.meta.url)); // src/state
 /** Toutes les occurrences `chemin:ligne` d'un motif dans le code de résolution (hors tests). */
 function scan(re: RegExp): string[] {
   const out: string[] = [];
-  for (const { rel, text: src } of readCorpus(['src/state', 'src/engine'], { exts: ['.ts'] })) {
+  for (const { rel, text: src } of readCorpus(['src/state', 'src/noyau', 'src/engine'], { exts: ['.ts'] })) {
     for (const m of src.matchAll(re)) out.push(`${rel}:${src.slice(0, m.index!).split('\n').length}`);
   }
   return out;

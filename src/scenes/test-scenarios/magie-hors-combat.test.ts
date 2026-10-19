@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './magie-hors-combat';
 import { findSpell } from '../../data';
-import { layerTiles } from '../../state/scene';
+import { layerTiles } from '../../noyau/monde/scene';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile, castInfo } from '../../engine/magic';
 const scenarioConstruit = scenario.construire();
 

@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif } from './campaignNarratif';
 
 const scene = (id: string): Scene => ({ ...emptyScene(3, 3), id, label: id });

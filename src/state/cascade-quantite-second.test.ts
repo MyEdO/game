@@ -15,11 +15,11 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { startCascade, registerCascadeApplier, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from './cascade';
-import { quantityStep, monoStep, freeCons } from './rollSeam';
+import { startCascade, registerCascadeApplier, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from '../noyau/cascade';
+import { quantityStep, monoStep, freeCons } from '../noyau/rollSeam';
 import { combatStakeRef } from '../data';
 import { evaluateCombinedTest } from '../engine/tests';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 const get = useGame.getState.bind(useGame);
 

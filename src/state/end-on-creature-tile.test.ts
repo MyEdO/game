@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene } from './scene';
-import { reachable, flyReachable } from './path';
-import { occupied, cannotStopOn } from './combatGeometry';
+import { emptyScene } from '../noyau/monde/scene';
+import { reachable, flyReachable } from '../noyau/monde/path';
+import { occupied, cannotStopOn } from '../noyau/monde/combatGeometry';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { attackPlan, computeMoveReach, computeRunReach } from './combatFlow';
-import { sizeFootprint } from './footprint';
+import { sizeFootprint } from '../noyau/monde/footprint';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 import type { SizeCategory } from '../engine/size';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 
 /**
  * INVARIANT (LDB 85 l.373-374 vs Frappe Mortelle) : on TRAVERSE la case d'une créature plus petite

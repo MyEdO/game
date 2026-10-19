@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
-import { emptyScene, Scene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene, Scene } from '../noyau/monde/scene';
 import { buildEncounter } from './encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';

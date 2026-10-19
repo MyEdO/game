@@ -17,9 +17,9 @@
  * donc toujours (aucune décision de relâche n'existe pour le désactiver).
  */
 import type { Get, Set } from './flowTypes';
-import type { BuiltCascadeStep } from './stepBrand';
-import { registerCascadeApplier } from './cascade';
-import { freeCons, monoStep, choiceStep, openChoice, type BandLigne } from './rollSeam';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { registerCascadeApplier } from '../noyau/cascade';
+import { freeCons, monoStep, choiceStep, openChoice, type BandLigne } from '../noyau/rollSeam';
 import { applyVesselCrewLoss } from './shipCrew';
 import { payFromGroup } from './bourseFlow';
 import { partyAssisted } from '../engine/skills';
@@ -27,7 +27,7 @@ import { toMoney } from '../engine/money';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { refLabel, voyageStakeRef } from '../data';
 import { t } from '../i18n';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 
 const num = (v: unknown, d = 0): number => (typeof v === 'number' ? v : d);
 const diff = (v: unknown, d: Difficulty): Difficulty => (typeof v === 'string' ? (v as Difficulty) : d);

@@ -23,7 +23,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import {
@@ -34,7 +34,7 @@ import {
 import { resolveTavernRound } from '../engine/tavernGame';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from './sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */

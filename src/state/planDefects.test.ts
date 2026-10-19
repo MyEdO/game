@@ -3,10 +3,10 @@
  * SYNTHÉTIQUES : jamais les comptes d'une scène réelle, qui bougent dès que l'auteur corrige sa carte.
  */
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEffectZone, type WallSeg } from './scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEffectZone, type WallSeg } from '../noyau/monde/scene';
 import { auditFacade, auditStairwells, auditUnsupportedFloor, auditWallDeadEndsInside, auditZoneCoverage, groundTerrains, interiorCells, outdoorCells, PLAN_DEFECT_FAMILIES, scenePlanDefects, stairFlightCells, supportedFloorCells, zoneOutsideBuildingTiles, type PlanDefectFamily } from './planDefects';
 import { perimeterWallSegs } from './sceneEdit.testkit';
-import { terrainWalkable } from './terrain';
+import { terrainWalkable } from '../noyau/monde/terrain';
 import { validateScene } from './validateScene';
 
 function makeScene(w: number, h: number, layers: { z: number; tiles: string[]; height?: number[] }[], zones: SceneEffectZone[], walls: WallSeg[] = []): Scene {

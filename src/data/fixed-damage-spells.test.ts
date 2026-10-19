@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { findSpellById } from '../data';
-import type { Flow } from '../state/flow';
+import type { Flow } from '../noyau/monde/flow';
 import type { GameOp } from '../engine/ops';
 
 /** Toutes les ops EffectOp d'un Flow de sort (parcourt seq/do/if/test). */

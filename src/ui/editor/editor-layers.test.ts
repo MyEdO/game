@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, surfaceLink } from '../../state/scene';
-import { pathTo } from '../../state/path';
+import { emptyScene, surfaceLink } from '../../noyau/monde/scene';
+import { pathTo } from '../../noyau/monde/path';
 import { addLayer, fillTerrainRect, paintHeight } from './editorState';
 
 /**

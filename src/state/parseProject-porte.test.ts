@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject, ProjetRefuse } from './worldMap';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from './campaignNarratif';
 
 const SCENES_DIR = join(__dirname, '../scenes');

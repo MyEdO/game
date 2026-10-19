@@ -21,12 +21,12 @@
  *    depuis le nord dans le sens horaire (90 = est, 180 = sud, 270 = ouest).
  *
  * REPÈRE — `worldTris.ts` : X = est, Y = haut, Z = sud. Le nord IMPLICITE d'une scène est donc `−z`
- * (c'est la forme canonique de `WallSeg.side:'N'`, `state/scene.ts` : l'arête entre (x,y) et (x,y−1)).
+ * (c'est la forme canonique de `WallSeg.side:'N'`, `noyau/monde/scene.ts` : l'arête entre (x,y) et (x,y−1)).
  * `northDeg` est la rotation HORAIRE, vue du dessus, du nord réel par rapport à ce `−z` : elle s'ajoute
  * au relèvement du soleil. `northDeg = 0` = le nord implicite d'aujourd'hui.
  */
 import { dawnMinute, MINUTES_PER_DAY } from '../../../engine/clock';
-import { isIndoor, type Scene } from '../../../state/scene';
+import { isIndoor, type Scene } from '../../../noyau/monde/scene';
 import { SUN_ELEVATION_DEG } from './sceneMeshes';
 
 /** Minute de jour de MIDI solaire — le sommet de l'arche. */

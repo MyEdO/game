@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { castSpell, openCastCascade } from './combatFlow';
 import { tickCombatAuto } from './combatAuto';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

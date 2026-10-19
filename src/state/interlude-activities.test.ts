@@ -12,7 +12,7 @@ import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { findTrappingById, findEffectTableById } from '../data';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { PendingActivity } from './interludeFlow';
 import { openRitualFocus } from './interludeFlow';
 import { evaluateTest } from '../engine/tests';

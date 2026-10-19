@@ -8,7 +8,7 @@
  * UNE multiplication (`gpToWorld`, `gameIso/backends/webgl/worldTris.ts`).
  * Un CONCEPT du décor = UNE couture, nommée — quatre en tout, et pas deux pour le même concept :
  *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`gameIso/builders/propVolumes.ts`) ;
- *  - l'ANCRE d'une place assise → `placesPartielles` (`state/seating.ts`) ;
+ *  - l'ANCRE d'une place assise → `placesPartielles` (`noyau/monde/seating.ts`) ;
  *  - le FOYER d'une lampe (le centre de la primitive `emet`) → `foyerDe` (`state/vision.ts`) ;
  *  - le RAYON d'une source de lumière → `rayonEnCases` (`state/vision.ts`).
  * La LISTE COMPLÈTE des sites qui traduisent entre mètres et cases — décor compris, et jusqu'aux
@@ -22,15 +22,15 @@
  * feature de façade, le milieu de l'empreinte pour un ornement de faîte. L'orientation vient du cap
  * déclaré (`SceneEntity.facing` pour un décor posé).
  *
- * PLACES ASSISES : `state/seating.ts` ancre les `seatSlots` d'un meuble sur `decorAncre`
- * (`state/footprint.ts`), le CENTRE de son empreinte effective — la même ancre que celle sur
+ * PLACES ASSISES : `noyau/monde/seating.ts` ancre les `seatSlots` d'un meuble sur `decorAncre`
+ * (`noyau/monde/footprint.ts`), le CENTRE de son empreinte effective — la même ancre que celle sur
  * laquelle le builder pose sa recette, et que le foyer de la lampe qu'il porte. Un meuble à places
  * couvre donc autant de cases que son corps : la chaise DESSINÉE et la place où le corps s'assoit
  * tiennent au même point, quelle que soit l'étendue de l'empreinte.
  *
  * L'EMPREINTE TOURNE AVEC LE CAP (#1509) : les cases d'un décor à recette sont celles de son CORPS
  * tourné, sièges exclus (`empreinteDeriveeDuProp` ci-dessous, servie à tous les consommateurs par
- * `empreinteDuProp` puis `state/footprint.ts` `propFootTiles`). Une table 2×1 au cap E occupe 1×2.
+ * `empreinteDuProp` puis `noyau/monde/footprint.ts` `propFootTiles`). Une table 2×1 au cap E occupe 1×2.
  * Un BILLBOARD, qui n'a pas de corps, garde son empreinte DÉCLARÉE (`foot`).
  *
  * CAP D'IDENTITÉ = `S` (`CAP_IDENTITE_PROP`) — contrat de DONNÉE, à connaître pour authorer : une
@@ -42,8 +42,8 @@
  * le repère est dans la donnée, pas dans la tête de l'auteur. Matérialisé par
  * `builders/propVolumes.test.ts`.
  */
-// eslint-disable-next-line murs/purete-imports -- #1506 : `DIR8_ORDER`/`estCardinal` sont des VALEURS du module FEUILLE `state/dir8` (zéro import, donc aucune contamination de graphe #421) — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
-import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../state/dir8';
+// eslint-disable-next-line murs/purete-imports -- #1506 : `DIR8_ORDER`/`estCardinal` sont des VALEURS du module FEUILLE `noyau/monde/dir8` (zéro import, donc aucune contamination de graphe #421) — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
+import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../noyau/monde/dir8';
 import type { PropMaterialData } from './materials.types';
 
 /**
@@ -75,7 +75,7 @@ export const CAP_IDENTITE_PROP = 'S' as const satisfies Dir4;
 /**
  * CRANS de 45° horaires que le cap d'une instance fait subir à une recette, comptés DEPUIS le cap
  * d'identité. Source UNIQUE de ce décompte : la rotation de géométrie (`rotatePropLocal`) et celle du
- * cap d'un corps assis (`state/seating.ts`, `rotateDir8(slot.facing, crans)`) tournent du MÊME
+ * cap d'un corps assis (`noyau/monde/seating.ts`, `rotateDir8(slot.facing, crans)`) tournent du MÊME
  * nombre de crans — deux décomptes divergeraient au premier changement de repère. PURE.
  */
 export const cransDepuisCapIdentite = (facing: Dir8): number =>
@@ -343,7 +343,7 @@ export function aretesNonAppariees(polys: readonly (readonly Sommet3[])[]): { ar
  *  ne tourne pas. Un id cardinal (`place-nord`) mentait dès que le repère bougeait. Il reste keyé sous
  *  son meuble dans `Scene.seatAssignments` (`propId → slotId`) : deux meubles peuvent porter `place-1`.
  *  UNITÉS — `anchor` est MÉTRIQUE (`PropPoint3`, la RÈGLE D'UNITÉ en tête) : elle est collée à la
- *  géométrie de la recette et subit la MÊME transformation qu'elle (`state/seating.ts` la tourne au cap
+ *  géométrie de la recette et subit la MÊME transformation qu'elle (`noyau/monde/seating.ts` la tourne au cap
  *  puis la divise par le `metresPerTile` de la scène). `approach`, lui, est un offset de CASE voisine —
  *  un pas de grille, pas une longueur : il ne se divise par rien. */
 export interface PropSeatSlot { id: string; anchor: PropPoint3; facing: Dir8; approach: { x: number; y: number } }
@@ -423,7 +423,7 @@ const SANS_PLACES: readonly PropSeatSlot[] = [];
 /** Cache d'empreintes dérivées, de niveau CATALOGUE (au plus une recette × 4 caps par échelle jouée),
  *  jamais de niveau scène : l'empreinte d'un TYPE ne dépend d'aucune instance.
  *  Clé COMPOSÉE des DEUX données dont le résultat dépend, chacune par IDENTITÉ de référence (patron
- *  `state/sceneMemo.ts`) : la RECETTE (le corps mesuré) ET les PLACES (ce qui en est exclu,
+ *  `noyau/monde/sceneMemo.ts`) : la RECETTE (le corps mesuré) ET les PLACES (ce qui en est exclu,
  *  `placeAssiseDe`). Ni l'une ni l'autre seule ne suffit — deux `PropData` peuvent partager la même
  *  recette et différer par leurs places, et rendre alors des empreintes différentes (table ronde :
  *  1×1 avec ses quatre places, 2×2 sans elles). Un cache par id du prop serait pire encore : il
@@ -487,7 +487,7 @@ export function empreinteDuProp(prop: PropData | undefined, facing: Dir8 | undef
 /**
  * OFFSET de l'ANCRE dans son empreinte : du coin NO (`SceneEntity.pos`) vers le CENTRE du bloc, en
  * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/state` sans cycle, et qu'il
- * n'en existe qu'UNE : `state/footprint.ts` (`decorFootGeometry`, puis `decorAncre` qui la sert au
+ * n'en existe qu'UNE : `noyau/monde/footprint.ts` (`decorFootGeometry`, puis `decorAncre` qui la sert au
  * monde) la LIT, elle ne la refait pas. 1×1 ⇒ (0,0). PURE.
  */
 export function offsetAncre(foot?: { w: number; h: number }): { x: number; y: number } {
@@ -505,7 +505,7 @@ export interface PlaceLocale {
 }
 
 /** La case ENTIÈRE qui porte un point du plan — définition UNIQUE du passage point → case pour les
- *  places (`state/seating.ts` l'importe au lieu d'en garder une copie). L'arrondi ne départage un
+ *  places (`noyau/monde/seating.ts` l'importe au lieu d'en garder une copie). L'arrondi ne départage un
  *  demi-entier que pour un point posé EXACTEMENT sur la couture de deux cases ; c'est pourquoi
  *  `placesLocalesDuProp` applique l'abord depuis la CASE du siège, jamais depuis l'ancre
  *  fractionnaire du meuble, où l'empreinte paire y tomberait à chaque fois. */
@@ -513,7 +513,7 @@ export const caseDe = (x: number, y: number): { x: number; y: number } => ({ x: 
 
 /**
  * LES PLACES D'UN DÉCOR, dans le repère de son instance — la règle d'ancrage d'une place, en UN lieu,
- * lue par la résolution d'assise (`state/seating.ts`) comme par le validateur de catalogue ci-dessous.
+ * lue par la résolution d'assise (`noyau/monde/seating.ts`) comme par le validateur de catalogue ci-dessous.
  * Tenue en double, elle divergeait : le validateur jugeait l'abord depuis le COIN NO pendant que le
  * runtime le posait depuis l'ANCRE — une approche refusée au catalogue tombait hors du meuble, et une
  * approche admise tombait dessus.
@@ -594,7 +594,7 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     if (prop.volume && prop.volume.capIdentite !== CAP_IDENTITE_PROP)
       errors.push(`${prop.id}: recette au repère « ${prop.volume.capIdentite} » (seul ${CAP_IDENTITE_PROP} est implémenté)`);
     // COUVERT D'UN DÉCOR OPAQUE — un décor qui coupe la Ligne de Vue est lu par `tileBlocksSight`
-    // (`state/lineOfSight.ts:tileBlocksSight`), qui rend « bloqué » ou force « totale » au contact AVANT que la
+    // (`noyau/monde/lineOfSight.ts:tileBlocksSight`), qui rend « bloqué » ou force « totale » au contact AVANT que la
     // classe de `cover` ne soit lue : toute autre classe déclarée sous `opaque` est une règle que le
     // moteur n'applique jamais. Le catalogue ne peut donc pas la porter.
     if (prop.opaque && prop.cover !== 'totale')
@@ -631,7 +631,7 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
       // s'assoit : c'est l'anomalie. Deux places qui S'EFFONDRENT dans la MÊME case de siège n'en sont
       // pas une : à une échelle grossière (la barge du sel et le Loup & Saumure sont à 10 m/case), tout
       // meuble à N places tient sur une case, et ses places n'y sont plus distinguables SPATIALEMENT.
-      // Elles restent occupables une à une — `state/seating.ts` (`placesResolues`, 2ᵉ passe) réserve les
+      // Elles restent occupables une à une — `noyau/monde/seating.ts` (`placesResolues`, 2ᵉ passe) réserve les
       // abords sur la SCÈNE et replie la seconde sur une voisine atteignable du siège.
       const parLeMemeAbord = approaches.get(key);
       if (parLeMemeAbord !== undefined && parLeMemeAbord !== siegeKey)

@@ -8,7 +8,7 @@
  * (origine à l'ancre, `hM` au-dessus du pied, cf. la RÈGLE D'UNITÉ de `data/props.types.ts`). Le monde,
  * lui, est en CASES : ce builder est la PREMIÈRE des deux coutures qui traduisent, par DIVISION du plan
  * par le `metresPerTile` de la scène (`mpt`) — la seconde est la résolution d'assise
- * (`state/seating.ts`). La hauteur, elle, est métrique des deux côtés : rien à diviser.
+ * (`noyau/monde/seating.ts`). La hauteur, elle, est métrique des deux côtés : rien à diviser.
  * Le cap (défaut `S` chez l'appelant) fait tourner la recette UNE fois autour de l'origine locale ;
  * `baseHeightM` s'ajoute UNE fois à chaque hauteur.
  *
@@ -23,7 +23,7 @@
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
 import { polygonesDePrimitive, rotatePropLocal, type PropData } from '../../data/props.types';
-import type { Dir4 } from '../../state/dir8';
+import type { Dir4 } from '../../noyau/monde/dir8';
 import type { Face, GP } from './types';
 
 /** ANCRAGE d'une recette dans le monde : le point (fractionnaire, en cases) où son origine locale se

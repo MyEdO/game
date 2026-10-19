@@ -17,7 +17,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { GUEST_INTENTS } from './intents';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 

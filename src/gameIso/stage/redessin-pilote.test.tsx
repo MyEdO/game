@@ -18,7 +18,7 @@ import { act, useState, type MutableRefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Dims } from '../../geometry/iso';
 import type { PropEl, TokenEl } from '../builders/types';
 import type { KeepEl, TintAt } from '../backends/webgl/sceneMeshes';

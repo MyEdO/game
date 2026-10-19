@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import { COND, hasCondition } from '../engine/conditions';

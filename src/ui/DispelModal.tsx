@@ -5,8 +5,8 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, testValueSplit } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { Icon } from './Icon';
-import { ev } from '../state/combatLog';
-import { resultLine, freeCons } from '../state/rollSeam';
+import { ev } from '../noyau/combatLog';
+import { resultLine, freeCons } from '../noyau/rollSeam';
 
 /**
  * Modale de Dissipation permanente (LDB 46 l.158-162 : Test étendu de Langue (Magick) → NI). « Lancer »

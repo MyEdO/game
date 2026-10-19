@@ -4,7 +4,7 @@ import { resolveCritique } from '../engine/critical';
 import { inDeathCondition } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import { cannotWieldTwoHanded } from '../engine/trauma';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import { recomputeLoadout } from '../engine/items';
 import type { RNG } from '../engine/dice';

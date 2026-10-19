@@ -14,7 +14,7 @@
  * les deux imposerait une union `sea|land` et des branches partout → on garde deux flux fins sur le même socle
  * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { placeOfScene } from './worldMap';
 import { dayIndex } from './upkeep';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
@@ -23,11 +23,11 @@ import { bargainPct } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
 import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import { registerCascadeApplier } from './cascade';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { chainStep } from './enchainerEtape';
-import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
+import { openPartyTest, openWorldTest, freeCons } from '../noyau/rollSeam';
 import { t } from '../i18n';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';

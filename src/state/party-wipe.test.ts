@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { checkPartyWiped } from './partyWipe';
-import { emptyScene } from './scene';
-import { seedBattleRng } from './battleRng';
+import { checkPartyWiped } from '../noyau/partyWipe';
+import { emptyScene } from '../noyau/monde/scene';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>

@@ -90,13 +90,18 @@ valeur et type séparés), recoupée par une lecture indépendante et par un jug
 | `lib`, `geometry`, `i18n` | feuilles | rien d'autre sous `src/` | oui |
 | `engine` | règles WFRP pures | `data`, feuilles | oui |
 | `data` | base app-owned et son chargement | `engine`, feuilles | oui |
-| `noyau` (neuf) | orchestration pure : (état, intention) → (état, journal, événements) ; état de combat typé ; registres fermés | `engine`, `data`, feuilles pures | oui |
+| `noyau` (neuf) | orchestration pure : (état, intention) → (état, journal, événements) ; état de combat typé ; registres fermés ; le modèle du monde sous `noyau/monde/` | `engine`, `data`, feuilles | oui |
 | `scenes` | contenu de campagne | `data`, `engine`, `noyau`, feuilles | oui |
-| `net`, `audio` | services de l'hôte web | feuilles | non |
+| `web` (neuf) | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`audio` : et `web`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélecteurs, persistance | tout ce qui précède | non |
 | `ui` + `gameIso` | hôte web, une zone de présentation à deux dossiers | tout ce qui précède | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
-| `hotes/godot` (neuf, hors `src/`) | hôte Godot : projet et pont TypeScript | `src/noyau` par son entrée | — |
+| `hotes/godot` (neuf, hors `src/`) | hôte Godot : projet et pont TypeScript | `src/noyau/index.ts` seul | — |
+
+`noyau/monde/` (le schéma de scène et son modèle exécutable, la géométrie des pions, le chemin, la
+ligne de vue, les zones) est un dossier de lecture, pas une zone : `COUCHES` ne le distingue pas du
+reste du noyau.
 
 Une zone qui survit à la bascule n'importe rien d'une zone qui n'y survit pas, même en type : seule
 `state` lit `ui` en type seul, et la présentation n'importe pas la racine de `src/`. Les arcs de type
@@ -117,13 +122,21 @@ d'aujourd'hui contraires à cette règle sont des arêtes transitoires (§3.2).
   classe de ligne. À l'ouverture, sept arêtes, toutes retirées par la vague 5 (#2884) :
   `scenes → state`, `audio → state` et `data → scenes` (le chargement des projets de campagne par
   `import.meta.glob`, `src/data/dev-validate.ts:17`), et quatre arêtes de type seul
-  (`engine → gameIso`, `data → state`, `data → gameIso`, `scenes → ui`). Seule dérogation au site :
-  l'arc de valeur `src/data/props.types.ts:45` vers `state/dir8`, dont #2864 (lot 2d) a la charge.
+  (`engine → gameIso`, `data → state`, `data → gameIso`, `scenes → ui`). La vague 2 en ajoute
+  trois : `noyau → state` en type seul (les types du store, de `flowTypes`, de `stateFields` et de
+  trois flux), retirée par la vague 4 (#2889) avec le dernier flux migré ; `audio → noyau`
+  (`audio/music.ts` lit le schéma de scène) et `data → noyau` en type seul, retirées par la vague 5.
+  Seule dérogation au site : l'arc de valeur de `src/data/props.types.ts` vers `noyau/monde/dir8`,
+  dont #2864 (lot 2d) a la charge.
 - **Un ensemble de zones fermé.** Une règle neuve `murs/zone`, lue sur le nom du fichier (patron de
   `scripts/guards/lib/interneLint.mjs`), refuse un fichier de `src/` dont la zone n'est pas dans
   `COUCHES` : créer `src/foo/` demande d'écrire sa ligne.
-- **Une entrée unique pour le noyau.** `src/noyau/index.ts` est sa seule surface ; tout le reste vit
-  sous `src/noyau/interne/`, tenu par `murs/interne` (son glob s'étend à `hotes/**` en vague 6).
+- **Une entrée unique pour les hôtes externes.** `src/noyau/index.ts` naît avec la première fonction
+  qu'un hôte externe appelle (l'attaque, vague 3) et reste la seule surface qu'un fichier de
+  `hotes/**` importe : un mur lexical, sans liste, écrit à la vague 6, refuse hors de `src/` tout arc
+  vers `src/noyau/**` autre que cette entrée. Les zones de `src/` importent les modules du noyau selon
+  `COUCHES`, sans porte : une porte réexposerait quelque 400 symboles à 258 importeurs, tous dans des
+  zones qui ne survivent pas à la bascule sauf `scenes`. Il n'y a pas de `noyau/interne/`.
 - **Des registres fermés.** Dans le noyau, un registre est une table statique typée par une union
   fermée (une entrée manquante ne compile pas), jamais un `registerX()` appelé à l'import.
 - **L'état de combat appartient au noyau.** Son type sort de `store.ts` ; `GameState` le compose. Le
@@ -147,8 +160,9 @@ d'aujourd'hui contraires à cette règle sont des arêtes transitoires (§3.2).
 - **H3. La migration de l'orchestration se fait flux par flux**, chaque flux migré entièrement dans sa
   vague : le jeu passe par la fonction du noyau et la copie de `src/state` est supprimée dans la même
   PR, jamais deux implémentations d'une même règle.
-- **H4. Le noyau n'importe de `lib` que ses modules purs.** Les services web de `lib`
-  (`indexedDb.ts`, `stockageWeb.ts`, `minuteries.ts`) en sont séparés par leur place, à la vague 2.
+- **H4. `lib` est une feuille pure.** Les services d'exécution du navigateur (`minuteries.ts`,
+  `indexedDb.ts`, `stockageWeb.ts`, `fileIo.ts`, et `fsPersist.ts` de `data`) forment la zone `web`
+  depuis la vague 2 ; le noyau ne la lit pas.
 
 ### 3.4 Question reportée
 
@@ -172,27 +186,42 @@ que les vagues 2 et 3 découvrent (1.6) ; exploration par sous-agent en lecture 
    `rollSeam.ts`) ni fichier de la PR #2797. Preuve : lint vert, banc de `murs/zone` sous mutation
    (une zone non déclarée et un sens interdit rougissent), test de contrat positif sur `COUCHES`,
    typecheck complet, suite.
-2. **Vague 2, frontière des événements.** Ouvre `src/noyau/` : `fireTriggers` et la cascade appelables
-   sans `Get`/`Set` (question 2 de #2817), registres fermés, `combatEffects → audio` remplacé par un
-   événement que l'hôte joue. Paragraphe de design jugé avant le premier codeur. Prérequis de la
-   vague 3, car l'application d'une attaque passe par ces deux mécanismes.
+2. **Vague 2, la place du noyau** (#2888), en trois lots. Le lot 2a coupe les arcs de valeur qui
+   faisaient entrer un fichier d'hôte dans la fermeture d'import de `fireTriggers` et de la cascade.
+   Le lot 2b ouvre `src/noyau/` (orchestration) et `src/noyau/monde/` (modèle du monde) avec les
+   modules dont la fermeture en valeur n'atteint aucun fichier d'hôte, ouvre la zone `web`, et fait
+   refuser par `murs/purete-imports` tout arc de valeur `noyau → state`. Le lot 2c remplace
+   `combatEffects → audio` par un événement que l'hôte joue. La vague ne rend pas `fireTriggers` ni la
+   cascade exécutables sans hôte : leur comportement est complété à l'exécution par des crochets et
+   registres posés depuis `src/state`, inventoriés au corps des tickets de la vague 3 (#2817, l'attaque)
+   et de la vague 4 (#2889, les flux restants), qui les ferment flux par flux (H3).
 3. **Vague 3, attaque** = #2817, rattaché ici. Résolution et application d'une attaque (tous les gestes
    du tableau de #2817), défense automatique, registres de combat (`registerCloture`,
-   `registerCombatHook`, `registerHitModifier`). Elle absorbe les items de la vague 3 de #2724 dont
+   `registerCombatHook`, `registerHitModifier`, les appliers de cascade du combat). Les crochets que le
+   combat pose sur le noyau deviennent des paramètres ; les dés (`battleRng`), la cadence et la
+   configuration des règles maison deviennent des entrées fournies par l'hôte, pour qu'un hôte montre
+   ses propres dés. C'est une déduction d'ingénierie, tirée de la question de Clément du 2026-10-19 :
+   « Si je veux automatiser foundry je pourrais presque le brancher dessus ? ». `src/noyau/index.ts`
+   naît ici.
+   Elle absorbe les items de la vague 3 de #2724 dont
    les sites sont dans le code qu'elle déplace (dont #2763 et `targeting-holder-vs-mode`), nommés au
    paragraphe de design ; les autres (couture `rollSeam`, `SeamRng`, `setScan`, `sceneMutation`…)
    restent à #2724.
-4. **Vague 4, autres flux.** Sorts, tests simples, manœuvres, entretien de fin de round, voyage. Une
-   sous-issue par famille, ouverte quand la précédente fusionne.
-5. **Vague 5, contenu hors du store** (#2884). Le schéma de scène (`src/state/scene.ts`) et les 13 modules que
-   `src/scenes` importe vont à la zone qui survit (`data` pour le schéma, `noyau` pour les opérations) ;
+4. **Vague 4, autres flux** (#2889). Sorts, tests simples, manœuvres, entretien de fin de round,
+   voyage, avec leurs crochets et registres. Une sous-issue de #2889 par famille, ouverte quand la
+   précédente fusionne. Le dernier flux migré retire l'arête de type `noyau → state`.
+5. **Vague 5, contenu hors du store** (#2884). Le schéma de scène est au noyau depuis la vague 2
+   (`src/noyau/monde/scene.ts`) ; la vague en extrait vers `data` les types du schéma que `data` et
+   `engine` lisent, et les modules que `src/scenes` importe encore dans `state` vont au noyau ;
    les types que `data` et `engine` lisent dans `state` et `gameIso` (`src/data/index.ts:9,20,23`,
    `materials.types.ts:14-16`, `terrains.types.ts:13`, `schemas/defs-scenes/effets.ts:26`,
    `registres-narratifs.ts:16`, `sortsFusionnes.ts:1`, `src/engine/types.ts:1855`,
-   `src/scenes/test-scenarios/_shared.ts:6`) sont rapatriés ; `scenes → state` et `audio → state`
-   sortent de la table. Après la fusion de #2797, qui touche `src/state/scene.ts`.
+   `src/scenes/test-scenarios/_shared.ts:6`) sont rapatriés ; `scenes → state`, `audio → state`, `audio → noyau` et `data → noyau`
+   sortent de la table. Après la fusion de #2797 (Taverne), qui touche le schéma de scène.
 6. **Vague 6, hôte Godot dans le dépôt.** `hotes/godot/` reprend le projet et le pont de `poc/godot`,
-   sous CI (typecheck et tests du pont) ; le pont n'importe que `src/noyau` ; ses sept copies de
+   sous CI (typecheck et tests du pont) ; le pont n'importe que `src/noyau/index.ts`, ce que tient
+   un mur lexical neuf (hors de `src/`, tout arc vers `src/noyau/**` autre que l'entrée est refusé) ;
+   ses sept copies de
    `src/state` sont supprimées, et ce qu'il prend à `rollSeam` et `ui/difficultyText` passe par le
    noyau (coordination avec #2724 et #2778). La suite (écrans un par un) appartient à #2794.
 7. **Vague 7, solde.** `src/state` ne contient plus de règle ; `COUCHES` égale la cible ; compte final
@@ -217,7 +246,7 @@ que les vagues 2 et 3 découvrent (1.6) ; exploration par sous-agent en lecture 
 ## 6. Hors périmètre
 
 - La réécriture des écrans dans Godot, la coquille commune des jets, l'art 3D (#2794).
-- Le découpage en paquets npm (`workspaces`, `exports`) : les murs de lint et `interne/` tiennent la
-  même frontière sans déplacer 3 000 fichiers ni réécrire les chemins des gardes. À réévaluer si un
-  mur se révèle contournable.
+- Le découpage en paquets npm (`workspaces`, `exports`) : `COUCHES` et le mur lexical des hôtes
+  externes tiennent la même frontière sans déplacer 3 000 fichiers ni réécrire les chemins des
+  gardes. À réévaluer si un mur se révèle contournable.
 - Les erreurs de `noUncheckedIndexedAccess` et `exactOptionalPropertyTypes` (#300).

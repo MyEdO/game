@@ -10,7 +10,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resolveOpposed } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { activeSequence, sequenceAbandonOf } from './sequenceCore';

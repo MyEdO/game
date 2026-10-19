@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
-import { cascadeAppliers } from './cascade';
-import { seedBattleRng } from './battleRng';
+import { cascadeAppliers } from '../noyau/cascade';
+import { seedBattleRng } from '../noyau/battleRng';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { applyCriticalToTarget } from './combatFlow';
 import { makePregens } from '../data/pregens';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { resolveStake, voyageStakeRef } from '../data';
-import { monoStep, type BuiltCascadeStep } from './rollSeam';
+import { monoStep, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { rollShipCritical, applyCrewHit } from '../engine/shipCritical';
 import { RIVER_CRIT_SET, SHIP_CRIT_SET } from '../data/shipCriticals';
@@ -17,7 +17,7 @@ import { stacks } from '../engine/conditions';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { WorldMap } from './worldMap';
 
 /**

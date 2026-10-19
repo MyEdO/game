@@ -5,7 +5,7 @@ import { CursorOverlay } from './MoveOverlays';
 import { AreteOverlay } from './AreteOverlay';
 import { projeterAretes } from './aretesProjetees';
 import { aretesUtilisables } from '../../state/aretes';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { cloisons, piece } from '../../state/pieces.fixture';
 import { poseFromDims, screenToTileAtLift, worldToScreen } from './projection';
 import { LEVEL_H, screenToTileAtZ, tileCenter, type Dims, type Rot } from '../../geometry/iso';

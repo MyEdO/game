@@ -1,7 +1,7 @@
 /**
  * ARÊTES UTILISABLES — dériveur UNIQUE de ce qu'une ARÊTE de scène offre au joueur (#1687, lot 1b-1).
  *
- * Jumeau de `state/usable.ts` (lot 2) pour les arêtes : là où `actionsDe` dérive les actions d'une
+ * Jumeau de `noyau/monde/usable.ts` (lot 2) pour les arêtes : là où `actionsDe` dérive les actions d'une
  * ENTITÉ, `aretesUtilisables` dérive les gestes portés par les arêtes — franchir une porte, grimper,
  * sauter en bas, frapper une fortification. Une capacité N+1 = une fonction interne et une ligne de
  * `PRIORITE_ARETES`.
@@ -33,12 +33,12 @@
  * réponse que la navigation d'exploration (`exploreNav.ts`) ; aucun contrôleur, aucun accès.
  */
 import { t } from '../i18n';
-import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSide } from './scene';
-import { cleArete } from './wallIndex';
+import { heightAt, edgeOf, porteMasquee, structureIsDown, type Scene, type WallSide } from '../noyau/monde/scene';
+import { cleArete } from '../noyau/monde/wallIndex';
 import { planFranchissement, type PlanFranchissement } from './fallMove';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { portalsForParty, type RoomPortal } from './roomPortals';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 import type { BattleState } from './store';
 
 /** Ce qu'une arête OFFRE. Identité STABLE (le libellé est de l'affichage). */

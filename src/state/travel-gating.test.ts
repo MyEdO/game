@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { beginShipwreck } from './shipwreck';
 import { makePregens } from '../data/pregens';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { campaignStart } from '../engine/clock';
 import type { TravelPlan } from './travelFlow';
 import type { WorldMap } from './worldMap';

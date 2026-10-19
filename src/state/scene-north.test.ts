@@ -12,7 +12,7 @@
  * authorée SURVIT au round-trip et qu'une scène qui ne le porte pas se sauve et se relit.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { setNorthDeg } from './sceneEdit';
 import { exportSave, importSave, snapshotSave } from './saves';
 import { FORMAT_SAVE } from './formats.generated';

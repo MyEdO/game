@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { castSpell, routeCounterspell, counterspellCandidates } from './combatFlow';
 import { intentAllowedFor, influencesLocally, canFixDie } from './netOwnership';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setDesFixes } from '../engine/fixedDie';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

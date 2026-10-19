@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { scenario } from './duel-naval';
 import { targetArc, headingToBear } from '../../state/fireArc';
 import { bearingPostes, mostArmedSide } from '../../state/shipBattery';
 import { maneuverShip, shipManeuverParams } from '../../state/shipManeuver';
 import { refusPersonneNePeutTenter } from '../../engine/skills';
-import { facingToward, DIR8_ORDER } from '../../state/dir8';
-import { isMerScene, sceneMetresPerTile } from '../../state/scene';
-import { chebyshev } from '../../state/path';
+import { facingToward, DIR8_ORDER } from '../../noyau/monde/dir8';
+import { isMerScene, sceneMetresPerTile } from '../../noyau/monde/scene';
+import { chebyshev } from '../../noyau/monde/path';
 import { runEnemyAI, checkBattleOver } from '../../state/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { fr } from '../../i18n/messages/fr';

@@ -7,13 +7,13 @@
  * PUR : les portées/cibles (dérivées du store) arrivent EN DONNÉES (`HighlightsView`), le builder ne
  * fait que les mapper en cases + hauteur MÉTRIQUE (le lift d'étage est projeté par le backend).
  */
-import { hauteurDe, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { hauteurDe, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { isOutOfAction } from '../../engine/conditions';
 import { isRider } from '../../state/mount';
-import { footprintN } from '../../state/footprint';
+import { footprintN } from '../../noyau/monde/footprint';
 import { rangeBandModifier } from '../../engine/combat';
 import type { BattleState } from '../../state/store';
-import type { Pt } from '../../state/path';
+import type { Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
 
 /** Élément sémantique de surbrillance : case + hauteur métrique + nature. Les clés reprennent les clés

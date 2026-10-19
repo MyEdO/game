@@ -1,28 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from './rollSeam';
+import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from '../noyau/rollSeam';
 import { t } from '../i18n';
-import { actorIn } from './combatants';
-import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, registerTableStep, startCascade, pushStep, registerCascadeApplier, suspendActiveCascade, poserCurseurCascade, stepReady } from './cascade';
+import { actorIn } from '../noyau/monde/combatants';
+import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, registerTableStep, startCascade, pushStep, registerCascadeApplier, suspendActiveCascade, poserCurseurCascade, stepReady } from '../noyau/cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { makePregens } from '../data/pregens';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { campaignStart } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { weather } from '../data';
 import { weatherFromRoll, type Season } from '../engine/travelStages';
 import { buildAuthorPerilSteps } from './authorPerils';
 import { DE_NON_NOMME } from './etalLot';
 import type { MapRoute } from './worldMap';
 import { canFixDie } from './netOwnership';
-import { WORLD_STEP_OWNER } from './pendings';
-import { seatOwns } from './sieges';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
+import { seatOwns } from '../noyau/sieges';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { landSellCargo, openLandMarket } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -869,7 +869,7 @@ function litteralApres(src: string, depuis: number): string | undefined {
 
 /** Les sites `fichier:ligne` qui publient un `pendingCascade` LITTÉRAL portant son propre `cursor:`. */
 function sitesCurseurALaMain(): string[] {
-  const pilote = 'src/state/cascade.ts';
+  const pilote = 'src/noyau/cascade.ts';
   const fautifs: string[] = [];
   for (const { rel, text } of readCorpus(['src'])) {
     if (rel === pilote) continue;
@@ -917,7 +917,7 @@ describe('#1426 — les portes du curseur', () => {
 
   /**
    * PÉRIMÈTRE : TOUT `src/**\/*.ts(x)` — récursif, tests exclus, et le PILOTE lui-même
-   * (`state/cascade.ts`) exclu puisque la porte y vit. Le scan lit le LITTÉRAL entier qui suit
+   * (`noyau/cascade.ts`) exclu puisque la porte y vit. Le scan lit le LITTÉRAL entier qui suit
    * `pendingCascade:` (accolades équilibrées), pas la ligne : un `cursor:` posé une ligne plus bas que
    * le `pendingCascade: {` passait sous un scan ligne à ligne, et c'est la forme qu'un auteur écrit
    * naturellement dès que l'objet dépasse la marge.

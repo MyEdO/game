@@ -17,7 +17,7 @@ import { useGame, type BattleState } from './store';
 import { initialFields } from './stateFields';
 import { intentAllowedFor, withActingSeat, seatInfluences } from './netOwnership';
 import { GUEST_INTENTS } from './intents';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
 import { cascadeDeTest } from './cascadeTestKit';

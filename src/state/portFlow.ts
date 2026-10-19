@@ -11,8 +11,8 @@
  * prix de ±`bargainPct` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
  * à l'achat, `sellChance.sellerDR` à la vente) s'ajoutent au DR de LEUR camp.
  *
- * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`state/rollSeam.ts` `openRoll` +
- * `state/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
+ * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
+ * `noyau/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
  * porteur `WORLD_STEP_OWNER`), Marchandage opposé (hero-test pour le héros, le marchand roule via
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
  * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
@@ -22,7 +22,7 @@
  * vente, jamais un jet interne silencieux. Seul le BRADAGE (`portDumpCargo`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { placeOfScene } from './worldMap';
@@ -43,11 +43,11 @@ import {
 } from '../engine/seaVoyage';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
-import { registerCascadeApplier } from './cascade';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { chainStep } from './enchainerEtape';
-import type { CascadeStep, CascadeRoll } from './pendings';
-import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
-import { actorIn } from './combatants';
+import type { CascadeStep, CascadeRoll } from '../noyau/pendings';
+import { openPartyTest, openWorldTest, freeCons } from '../noyau/rollSeam';
+import { actorIn } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';

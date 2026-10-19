@@ -16,8 +16,8 @@
  * calque `nightBands`) : une rangée dont l'id est DÉJÀ pris ouvre une bande de PLUS — c'est lui qui
  * tient les étapes LEGACY d'une sauvegarde, qui ne portent aucun discriminant d'entrée.
  */
-import type { CascadeStep, CascadeStepMeta, BatchParticipant } from './pendings';
-import { bandRowOfStep, bandCommonMeta, makeBandFactory, type BuiltCascadeStep } from './rollSeam';
+import type { CascadeStep, CascadeStepMeta, BatchParticipant } from '../noyau/pendings';
+import { bandRowOfStep, bandCommonMeta, makeBandFactory, type BuiltCascadeStep } from '../noyau/rollSeam';
 
 /** Les `kind` d'étape que cette fabrique regroupe — ceux dont l'applier exige des RANGÉES. */
 const COMBAT_END_KINDS = new Set(['combatEndDisease', 'combatEndCorruption']);

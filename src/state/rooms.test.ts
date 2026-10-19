@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { roomTilesById, occupiedRoomIds, roomFocusAt, roomsByTile } from './rooms';
 import { sceneEffectZoneSchema } from '../data/schemas/defs-scenes/scene';
 

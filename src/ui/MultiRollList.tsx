@@ -6,7 +6,7 @@ import { Icon } from './Icon';
 import { Band } from './Band';
 import { Stack } from './Layout';
 import type { NightEntry } from '../state/restFlow';
-import { resultLine, freeCons } from '../state/rollSeam';
+import { resultLine, freeCons } from '../noyau/rollSeam';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 
 /**

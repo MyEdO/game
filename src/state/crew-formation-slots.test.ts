@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { crewFormationSlots, assignCrewFormation } from './shipPostes';
 import type { ShipPoste } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * #210 Lot 3 — cases de FORMATION autour de l'empreinte d'un poste terrestre CREWÉ (bélier, batterie de

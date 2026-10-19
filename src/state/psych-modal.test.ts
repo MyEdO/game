@@ -6,7 +6,7 @@ import { jete } from '../engine/tests.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { BatchParticipant, CascadeStep } from './pendings';
+import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import { addCondition, COND } from '../engine/conditions';
 import { modalOwnerOf } from './modalArbiter';
 

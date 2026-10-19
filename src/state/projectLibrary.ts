@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { parseProject, exigerUnRefus, refusDeForme, ProjetRefuse, PROJET_AUTRE_FORMAT, type ProjectDoc } from './worldMap';
 import { validateDocument, rapportDeFautes } from '../data/schemas/validate';
 import type { GameState } from './store';
-import { accesBase, idbDisponible } from '../lib/indexedDb';
-import { stockageWeb } from '../lib/stockageWeb';
+import { accesBase, idbDisponible } from '../web/indexedDb';
+import { stockageWeb } from '../web/stockageWeb';
 import { nommerChamps } from '../data/schemas/grammaire/meta';
 
 /** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
@@ -214,7 +214,7 @@ const STORE = 'projects';
 /** Bibliothèque persistée : source de vérité IndexedDB (base `wfrp4-library`) + un MIROIR localStorage
  *  tenu à jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary`
  *  réconcilie les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un
- *  flag one-shot), qui absorbe aussi bien la recréation de la base (`lib/indexedDb.ts`) que la reprise d'une écriture IndexedDB
+ *  flag one-shot), qui absorbe aussi bien la recréation de la base (`web/indexedDb.ts`) que la reprise d'une écriture IndexedDB
  *  précédemment en échec (#776). */
 const bibliotheque = accesBase({ nom: 'wfrp4-library', magasins: { [STORE]: { keyPath: 'id' } } });
 const projets = bibliotheque.magasin<unknown, string>(STORE);

@@ -7,12 +7,12 @@
  * « ÉDITER les effects CHANGE la résolution » (recréable depuis le Codex).
  */
 import { describe, it, expect } from 'vitest';
-import { applyTriggeredEffects } from './triggeredEffects';
+import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import { maneuvers, findManeuverById } from '../data';
 import { setDataset } from '../data/overrides';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from './flow';
+import type { TriggeredEffect } from '../noyau/monde/flow';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'C', kind: 'enemy',

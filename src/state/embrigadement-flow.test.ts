@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { resolvePortArrival } from './seaVoyageFlow';
-import { advanceCascade, setCascadeChoice } from './cascade';
+import { advanceCascade, setCascadeChoice } from '../noyau/cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { RNG } from '../engine/dice';
 import { skillBaseValue, testValue, soutienDetail } from '../engine/skills';
 import { skillCharacteristicById } from '../engine/character';

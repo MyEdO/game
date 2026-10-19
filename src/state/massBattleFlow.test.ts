@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { bonus, effectiveChar } from '../engine/characteristics';

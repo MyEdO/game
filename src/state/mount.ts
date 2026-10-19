@@ -14,14 +14,14 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
-import { Scene, isWalkable } from './scene';
-import { occupiesTile, footprintN, combatDistance } from './footprint';
+import { Scene, isWalkable } from '../noyau/monde/scene';
+import { occupiesTile, footprintN, combatDistance } from '../noyau/monde/footprint';
 import { isSkittishMount } from '../engine/traits/dispatch';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import { structureImmune } from '../engine/structures';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 import type { BattleState } from './store';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 

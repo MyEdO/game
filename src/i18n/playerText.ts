@@ -3,13 +3,13 @@
  * déclare aucune valeur d'exécution, donc tout import s'efface à la compilation. C'est ce qui lui
  * permet d'être partagé par les TROIS minteurs sans cycle : `i18n/index.ts` (`t()`), `data/index.ts`
  * (les libellés de la donnée, via `dataLabel`) et les fabriques de forme du seam de jet
- * (`state/rollSeam.ts` : `composeRollLabel`).
+ * (`noyau/rollSeam.ts` : `composeRollLabel`).
  *
  * Il vit sous `src/i18n/` et non `src/state/` : le texte joueur est la matière de ce seam (déjà PUR,
  * sans React/DOM, déjà importé par `engine`/`data`/`state`/`ui` sans cycle), alors qu'un module de
  * `src/state` serait importé par `data` et `engine` à contresens de leur dépendance.
  *
- * MARQUE PUREMENT TYPOLOGIQUE (`declare const` — cf. le jumeau `state/stepBrand.ts`) : aucune valeur
+ * MARQUE PUREMENT TYPOLOGIQUE (`declare const` — cf. le jumeau `noyau/stepBrand.ts`) : aucune valeur
  * à l'exécution, `JSON.stringify` d'un `PlayerText` rend la chaîne inchangée, et il reste assignable
  * VERS `string` (tout consommateur d'affichage continue de compiler). L'asymétrie est le murage :
  * `string` n'est PAS assignable vers `PlayerText`, donc un littéral posé sur un champ marqué ne
@@ -20,7 +20,7 @@
  * (`x as PlayerText`, `<PlayerText>x`, sous tableau/`readonly`/générique, et l'ALIAS de type). Restent
  * hors portée : l'ANNOTATION d'une valeur déjà élargie, le RENOMMAGE à l'import, l'alias GÉNÉRIQUE ou
  * calculé. Tous les minteurs sont sous ce lint (#1709 C3c-3b, #1988), chacun par exemption AU SITE avec
- * sa raison : `t()` (`i18n/index.ts`), `composeRollLabel` (`state/rollSeam.ts`), les deux casts du
+ * sa raison : `t()` (`i18n/index.ts`), `composeRollLabel` (`noyau/rollSeam.ts`), les deux casts du
  * minteur (b) — `data/index.ts` (`dataLabel`) et `data/mutations.ts` (`mutationTablePlayerLabel`) — et la
  * fabrique de fixture `i18n/fixtureText.ts`.
  *

@@ -8,7 +8,7 @@ import { rollStock, type CatalogItem } from '../../engine/disponibilite';
 import { trappings } from '../../data';
 import { MERCHANTS } from './index';
 import { useGame } from '../store';
-import { emptyScene } from '../scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { setRule, resetRule } from '../../engine/policy';
 import type { Combatant } from '../../engine/types';
 

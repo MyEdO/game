@@ -4,14 +4,14 @@
  * ET par `validateScene` (donc par l'éditeur de scène) — une seule implémentation, un seul verdict,
  * un seul texte de message.
  */
-import { heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './scene';
+import { heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from '../noyau/monde/scene';
 import { defautDeSuspension, type DefautDeSuspension } from './fallMove';
-import { sceneZoneTiles } from './zones';
+import { sceneZoneTiles } from '../noyau/monde/zones';
 import { isRoomZone, roomTiles } from './rooms';
-import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from './terrain';
-import { gradeBetween, METRES_PER_LEVEL } from './relief';
-import { memoByRef, memoByRefDeps } from './sceneMemo';
-import type { CellSide } from './scene';
+import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from '../noyau/monde/terrain';
+import { gradeBetween, METRES_PER_LEVEL } from '../noyau/monde/relief';
+import { memoByRef, memoByRefDeps } from '../noyau/monde/sceneMemo';
+import type { CellSide } from '../noyau/monde/scene';
 
 /** Terrains BÂTIS : ceux dont l'entrée porte `built` (`TerrainDef.built`) — surface construite qui PORTE
  *  l'étage posé dessus (plancher, dallage, pavage, bloc de maçonnerie). LU au dataset à l'appel : une
@@ -779,7 +779,7 @@ function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
  *  cf. `memoByRef`), dépendance = le TÉMOIN du dataset des terrains. Les audits lisent `groundTerrains()`
  *  À L'APPEL pour qu'une entrée retouchée à l'atelier change le verdict sans rechargement : le témoin est
  *  une COPIE du tableau (le binding de `data/index` est muté EN PLACE par `setDataset`, son identité ne
- *  bouge jamais), comparée entrée par entrée — le même témoin que `indexDesTerrains` (`state/terrain`).
+ *  bouge jamais), comparée entrée par entrée — le même témoin que `indexDesTerrains` (`noyau/monde/terrain`).
  *  Le tableau rendu est PARTAGÉ entre appels : ses consommateurs le lisent, ils ne le mutent pas. */
 const planDefectsMemo = memoByRefDeps<Scene, PlanDefect[]>();
 

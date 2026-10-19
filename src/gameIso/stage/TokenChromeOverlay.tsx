@@ -29,7 +29,7 @@ import type { JSX } from 'react';
  */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { tileCenter, type Dims } from '../../geometry/iso';
-import type { Dir8 } from '../../state/dir8';
+import type { Dir8 } from '../../noyau/monde/dir8';
 import { useGame } from '../../state/store';
 import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { ISO_PX_PER_M } from '../iso';

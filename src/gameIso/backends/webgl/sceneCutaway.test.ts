@@ -17,14 +17,14 @@ import {
   type BakedWorld,
   type KeepEl,
 } from './sceneMeshes';
-import { memoByRefDeps } from '../../../state/sceneMemo';
+import { memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { facesGeometry } from './worldTris';
 import { faceDepthOf } from './faceRelief';
 import { mountGroundAccentLots, reposeGroundAccents, sceneGroundAccents } from './groundAccents';
 import type { SceneEl } from '../../builders/types';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
-import { sceneMetresPerTile, type Scene } from '../../../state/scene';
+import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 const areneConstruit = arene.construire();
 
 const scene = areneConstruit.scene;

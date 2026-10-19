@@ -22,9 +22,9 @@ import { useGame, type BattleState } from '../state/store';
 import { applyCast } from '../state/combatFlow';
 import { runCombatHooks } from '../state/combatHooks';
 import '../state/combat/roundHooks'; // effet de bord : enregistre le hook `tick-durations` (order 15.5)
-import { effectSourcesOf } from '../state/triggeredEffects';
-import { seedBattleRng } from '../state/battleRng';
-import { emptyScene } from '../state/scene';
+import { effectSourcesOf } from '../noyau/triggeredEffects';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 import { evaluateMissile, type CastResult } from './magic';
 import { findSpellById } from '../data';
 import { overcastDurationParts, overcastSourceOf } from './overcast';

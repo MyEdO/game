@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { useGame } from './store';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from './flow';
+import type { TriggeredEffect } from '../noyau/monde/flow';
 
 /**
  * Résolveur d'aire UNIQUE (Tir de zone / Explosion) — tests déterministes (RNG seedé). On monte un `battle`

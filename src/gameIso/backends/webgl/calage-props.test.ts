@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import { buildWorldGeometry, type WorldGeometry } from './sceneMeshes';
 import { worldSurfaceMaterials } from './worldMaterials';
 import {

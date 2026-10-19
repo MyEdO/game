@@ -3,7 +3,7 @@ import { Profiler, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGame, type BattleState } from '../../state/store';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
 import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';

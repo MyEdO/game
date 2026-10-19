@@ -9,13 +9,13 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById, TAVERN_GAMES, TAVERN_FAST_RULE } from '../engine/tavernGame';
 import { setRule, resetRule } from '../engine/policy';
 import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from './sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */

@@ -7,7 +7,7 @@ import { fr } from '../i18n/messages/fr';
 /**
  * CLIQUET LEXICAL du LIBELLÉ D'ACTION d'un jet (#1078 LOT C1) — « un signe, un sens »
  * (`docs/charte-ui.md`, section « Contrat d'affichage d'un jet ») : dans le libellé d'étape composé
- * par `composeRollLabel` (`src/state/rollSeam.ts`), la PARENTHÈSE est le détail DÉRIVÉ par le moteur
+ * par `composeRollLabel` (`src/noyau/rollSeam.ts`), la PARENTHÈSE est le détail DÉRIVÉ par le moteur
  * (la compétence) et le TIRET LONG le séparateur acteur/action. Un libellé d'action qui porte
  * lui-même l'un de ces deux signes rend la même ligne ambiguë : « Ilsa — Mal de mer — mauvais temps
  * (Résistance) », « Ilsa — Tonneau d'eau (boire) (Résistance) ».
@@ -158,7 +158,7 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
   const situationSites = (): string[] => {
     const out: string[] = [];
-    for (const { rel, text } of readCorpus(['src/state'])) {
+    for (const { rel, text } of readCorpus(['src/state', 'src/noyau'])) {
       for (const h of scanRollLabels(text)) out.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     return out;
@@ -246,7 +246,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
   // PÉRIMÈTRE ÉTENDU (#1117) : le FABRICANT de rangées-participants vit dans `src/ui`
   // (`buildParticipantRows`) et dérivait son libellé d'un `part.label` CALCULÉ — il échappait donc au
   // scan des littéraux de `src/state`. Le trou est celui-là : on scanne les deux couches.
-  const files = () => readCorpus(['src/state', 'src/ui']);
+  const files = () => readCorpus(['src/state', 'src/noyau', 'src/ui']);
 
   it('aucun libellé de ligne LITTÉRAL qui ne soit une Compétence/Caractéristique du catalogue', () => {
     const bad: string[] = [];
@@ -282,7 +282,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
 
 /**
  * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/charte-ui.md`, « Contrat
- * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/state/rollSeam.ts`). Une
+ * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/noyau/rollSeam.ts`). Une
  * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
  * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `river-nav`, #1111).
  *

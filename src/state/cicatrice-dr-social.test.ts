@@ -7,12 +7,12 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testValue } from '../engine/skills';
 import { skillDRBonus } from '../engine/ops';
 import { traumaById } from '../engine/trauma';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { EMPTY_FLOW } from './flow';
+import { EMPTY_FLOW } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 
 /** Sociabilité 30 + 5 avances d'Intimidation = valeur de Test 35. */

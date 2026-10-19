@@ -24,7 +24,7 @@ import { WorldMapEditor } from './WorldMapEditor';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import { EFFECT_LABEL } from './EffectList';
 import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../state/worldMap';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { lieuxServices, navalPorts } from '../../data';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';

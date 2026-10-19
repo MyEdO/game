@@ -7,7 +7,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeBattement } from '../state/flowOutcomes';
 import { Icon } from './Icon';
 import { VsHeader } from './VsHeader';

@@ -13,10 +13,10 @@ import type { SkillRef } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
 
-/** `Pt` (`state/path.ts`) — case, `z` = couche d'empilement (absent = base). */
+/** `Pt` (`noyau/monde/path.ts`) — case, `z` = couche d'empilement (absent = base). */
 export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } });
 /** CANON de l'arête de mur — arête cardinale N/E, diagonales `\` (NO→SE) et `/` (NE→SO). Source
- *  UNIQUE de l'union : `state/scene.ts` (`WallSide`) et `engine/types.ts` (`WallEdgeSide`) en
+ *  UNIQUE de l'union : `noyau/monde/scene.ts` (`WallSide`) et `engine/types.ts` (`WallEdgeSide`) en
  *  DÉRIVENT, l'éditeur en dérive ses options (`wallSideSchema.options`). Garde : `unions-canon.test.ts`. */
 export const wallSideSchema = z.enum(['N', 'E', '\\', '/']);
 export type WallSide = z.infer<typeof wallSideSchema>;

@@ -3,7 +3,7 @@ import { scanMarcheursDeFlow, marcheurLabel } from '../scripts/guards/lib/marche
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * CLIQUET des marcheurs de Flow sous `src/state` (#1874, ticket § Lot B : « posé avec C0 à 4, cible 1 »).
+ * CLIQUET des marcheurs de Flow sous `src/state` et `src/noyau` (#1874, ticket § Lot B : « posé avec C0 à 4, cible 1 »).
  * Empreinte, critère et angles morts : en tête de `scripts/guards/lib/marcheursDeFlow.mjs`.
  *
  * Le PLAFOND vit ICI, jamais dans la lib (`scripts/guards/lib/stock.mjs`, INTERDITS). Il se tient à
@@ -13,10 +13,10 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 const PLAFOND = 4;
 
 const marcheursReels = (): string[] =>
-  scanMarcheursDeFlow(readCorpus(['src/state']).map(({ rel, text }) => ({ rel, text }))).map(marcheurLabel);
+  scanMarcheursDeFlow(readCorpus(['src/state', 'src/noyau']).map(({ rel, text }) => ({ rel, text }))).map(marcheurLabel);
 
 describe('cliquet `marcheursDeFlow` — un seul marcheur de Flow à terme (#1874)', () => {
-  it(`au plus ${PLAFOND} marcheurs sous \`src/state\`, et le plafond suit la baisse`, { timeout: 60_000 }, () => {
+  it(`au plus ${PLAFOND} marcheurs sous \`src/state\` et \`src/noyau\`, et le plafond suit la baisse`, { timeout: 60_000 }, () => {
     const vus = marcheursReels();
     expect(
       vus.length,
@@ -63,7 +63,7 @@ describe('cliquet `marcheursDeFlow` — l’empreinte sépare le MARCHEUR du PR�
   });
 
   it('un 5ᵉ marcheur fait ROUGIR le cliquet', () => {
-    const corpus = readCorpus(['src/state']).map(({ rel, text }) => ({ rel, text }));
+    const corpus = readCorpus(['src/state', 'src/noyau']).map(({ rel, text }) => ({ rel, text }));
     const cinquieme = {
       rel: 'src/state/cinquieme.ts',
       text: "export function cinquieme(f: Flow): void { switch (f.kind) { case 'seq': f.steps.forEach(cinquieme); break; } }",

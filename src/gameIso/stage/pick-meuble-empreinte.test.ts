@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../state/scene';
-import { propFootTiles } from '../../state/footprint';
-import type { Dir4 } from '../../state/dir8';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
+import { propFootTiles } from '../../noyau/monde/footprint';
+import type { Dir4 } from '../../noyau/monde/dir8';
 import type { Dims } from '../../geometry/iso';
 import { poseFromDims, worldToScreen } from './projection';
 import { resoudrePixel, type CadreDePick, type EtatDePick, type Verdict } from './pickResolve';
@@ -10,7 +10,7 @@ import { resoudrePixel, type CadreDePick, type EtatDePick, type Verdict } from '
  * UN MEUBLE EST CLIQUABLE SUR TOUTE SON EMPREINTE (#1509 L6′).
  *
  * La chaîne de picking (`resoudrePixel`) demande « cette case porte-t-elle un meuble ? » à l'index
- * case → décor (`state/decorIndex.ts`), bâti sur la couture unique `propFootTiles` : un décor qui
+ * case → décor (`noyau/monde/decorIndex.ts`), bâti sur la couture unique `propFootTiles` : un décor qui
  * couvre deux cases répond donc sur les DEUX, et le verdict rend sa case d'ANCRAGE — la même que la
  * voie `decor` du rayon, celle d'où l'interaction d'exploration le reprend.
  *

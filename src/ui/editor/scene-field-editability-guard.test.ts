@@ -63,7 +63,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
       expect(erreur.name).toBe('AggregateError');
       const erreurs = Reflect.get(erreur, 'errors');
       expect(erreurs).toHaveLength(2);
-      expect(erreurs[0].message).toBe('src/state/scene.ts absent du programme');
+      expect(erreurs[0].message).toBe('src/noyau/monde/scene.ts absent du programme');
       expect(erreurs[1]).toBe(fermeture);
       expect(Reflect.get(erreur, 'cause')).toBe(erreurs[0]);
       expect(close).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     const session = virtualProgram({});
     const close = vi.spyOn(API.prototype, 'close');
     try {
-      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session)).toThrow('src/state/scene.ts absent du programme');
+      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session)).toThrow('src/noyau/monde/scene.ts absent du programme');
       expect(close).not.toHaveBeenCalled();
     } finally { close.mockRestore(); session.dispose(); }
   });
@@ -111,11 +111,11 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
 
   it('NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme', () => {
     const program = virtualProgram({
-      'src/state/scene.ts': `export interface SceneEffectZone { id: string; tiles: number[] }
+      'src/noyau/monde/scene.ts': `export interface SceneEffectZone { id: string; tiles: number[] }
 export interface Scene { id: string; effectZones: SceneEffectZone[]; layers: SceneEffectZone[] }\n`,
       // (a) annotation de collection, (b) type de retour annoté, (c) `push` dans un tableau annoté,
       // (d) `map` imbriqué — les quatre formes réelles du dépôt.
-      'src/ui/Zonage.ts': `import type { Scene, SceneEffectZone } from '../state/scene';
+      'src/ui/Zonage.ts': `import type { Scene, SceneEffectZone } from '../noyau/monde/scene';
 declare const blocs: { key: string; cells: number[]; sous: { key: string; cells: number[] }[] }[];
 declare function setScene(s: Scene): void;
 
@@ -206,7 +206,7 @@ export const moneySchema = forme({ gold: 0 });\n`,
 import { conditionSchema } from '../grammaire/mecanique';
 declare function forme<T>(shape: T): { readonly sortie: T };
 export const sceneSchema = forme({ id: '', cost: moneySchema.sortie, when: conditionSchema.sortie });\n`,
-      'src/state/scene.ts': `import type { sceneSchema } from '../data/schemas/defs-scenes/scene';
+      'src/noyau/monde/scene.ts': `import type { sceneSchema } from '../../data/schemas/defs-scenes/scene';
 export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
     try {
@@ -228,7 +228,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
     // `PropertyAssignment` du shape. Le porteur se nomme du `export const xSchema` englobant.
     const program = virtualProgram({
       'src/engine/vocabulaire.ts': `export interface Vocabulaire { mot: string }\n`,
-      'src/state/scene.ts': `import type { Vocabulaire } from '../engine/vocabulaire';
+      'src/noyau/monde/scene.ts': `import type { Vocabulaire } from '../../engine/vocabulaire';
 declare function forme<T>(shape: T): { readonly sortie: T };
 export const murSchema = forme({
   x: 0,
@@ -248,7 +248,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
     // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 239 → 236 (mutation mesurée).
     // Les 3 champs perdus sont nommés ici : ce sont les seuls du périmètre déclarés hors du document.
-    const DOC = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
+    const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
     const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT);
@@ -267,7 +267,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   /**
-   * RECENSEMENT des types exportés par `state/scene.ts`, confronté à ce que `docs/architecture.md`
+   * RECENSEMENT des types exportés par `noyau/monde/scene.ts`, confronté à ce que `docs/architecture.md`
    * AFFIRME. Le mode de panne fermé ici est celui qu'a trouvé l'audit de fermeture L1a (#1466) : le doc
    * a continué d'annoncer « les 32 autres types restent MANUSCRITS » après la bascule de 22 d'entre eux
    * en `z.infer` (ba123074e) — une référence vivante qui ment, qu'aucun rouge ne signalait. Le doc est
@@ -275,7 +275,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
    * la mesure AST : un type qui bascule sans que le doc suive est rouge, et l'inverse aussi.
    */
   const censusScene = () => {
-    const sf = ast({ rel: 'scene.ts', text: fs.readFileSync(path.resolve(ROOT, 'src/state/scene.ts'), 'utf8') })!;
+    const sf = ast({ rel: 'scene.ts', text: fs.readFileSync(path.resolve(ROOT, 'src/noyau/monde/scene.ts'), 'utf8') })!;
     const exporte = (st: ts.Statement) =>
       ('modifierFlags' in st) && typeof st.modifierFlags === 'number' && !!(st.modifierFlags & ts.ModifierFlags.Export);
     const estInfer = (t: ts.TypeNode) =>
@@ -294,9 +294,9 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     return out;
   };
 
-  it('`docs/architecture.md` DIT la vérité sur les types de `state/scene.ts` (total, `z.infer`, manuscrits NOMMÉS)', () => {
+  it('`docs/architecture.md` DIT la vérité sur les types de `noyau/monde/scene.ts` (total, `z.infer`, manuscrits NOMMÉS)', () => {
     const doc = fs.readFileSync(path.resolve(ROOT, 'docs/architecture.md'), 'utf8');
-    const bloc = /\n {2}scene\.ts {2}([\s\S]*?)\n {2}worldMap\.ts/.exec(doc)?.[1];
+    const bloc = /\n {2}monde\/scene\.ts {2}([\s\S]*?)\n {2}\S/.exec(doc)?.[1];
     expect(bloc, 'bloc `scene.ts` introuvable dans docs/architecture.md').toBeTruthy();
     const plat = bloc!.replace(/\s+/g, ' ');
     const nombre = (re: RegExp, quoi: string) => {
@@ -319,12 +319,12 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('le SEAM manuscrit/schéma ne diverge QU’EN optionalité, sur les 6 champs que la note de `scene.ts` nomme', () => {
-    const SCENE = 'src/state/scene.ts';
+    const SCENE = 'src/noyau/monde/scene.ts';
     const brut = fs.readFileSync(path.resolve(ROOT, SCENE), 'utf8');
     const program = programAvec({
       [SCENE]:
         `${brut}\nexport type __SondeManuscrit = Scene;\n` +
-        `export type __SondeSchema = import('zod').z.infer<typeof import('../data/schemas/defs-scenes/scene').sceneSchema>;\n`,
+        `export type __SondeSchema = import('zod').z.infer<typeof import('../../data/schemas/defs-scenes/scene').sceneSchema>;\n`,
     });
     try {
       const checker = program.checker;
@@ -362,17 +362,17 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   // Le programme du DOCUMENT — ses deux fichiers en racines, la fermeture d'imports étant tirée par
   // TypeScript —, un module servi MODIFIÉ EN MÉMOIRE : aucune écriture disque, et la mesure porte sur
   // les vraies déclarations, pas sur une réplique.
-  const DOCUMENT = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
+  const DOCUMENT = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({
-      'src/state/scene.ts': `export interface Scene {
+      'src/noyau/monde/scene.ts': `export interface Scene {
   id: string;
   champFraisSansControle?: string;
 }\n`,
-      'src/ui/Editeur.ts': `import type { Scene } from '../state/scene';
+      'src/ui/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
     try {
@@ -385,13 +385,13 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
 
   it('NON VACANTE (b) : un champ dont le seul « écrivain » est un HOMONYME d’un autre type reste orphelin', () => {
     const program = virtualProgram({
-      'src/state/scene.ts': `export interface Scene {
+      'src/noyau/monde/scene.ts': `export interface Scene {
   id: string;
   flags: Record<string, boolean>;
 }\n`,
       // Deux littéraux de forme IDENTIQUE, dans le même dossier d'éditeur : seul celui dont le type
       // porteur est `Scene` écrit la scène. L'autre remplit le contexte d'évaluation d'un `when`.
-      'src/ui/Editeur.ts': `import type { Scene } from '../state/scene';
+      'src/ui/Editeur.ts': `import type { Scene } from '../noyau/monde/scene';
 interface ContexteDeCondition { flags: Record<string, boolean>; gameTime: number }
 declare function evalCondition(ctx: ContexteDeCondition): boolean;
 
@@ -410,9 +410,9 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
 
   it('le crédit suit les MAPPINGS du chemin d’édition réel (`Partial<T>`, patch passé en argument)', () => {
     const program = virtualProgram({
-      'src/state/scene.ts': `export interface WallSeg { x: number; window?: boolean }
+      'src/noyau/monde/scene.ts': `export interface WallSeg { x: number; window?: boolean }
 export interface Scene { walls: WallSeg[] }\n`,
-      'src/ui/Inspecteur.ts': `import type { Scene, WallSeg } from '../state/scene';
+      'src/ui/Inspecteur.ts': `import type { Scene, WallSeg } from '../noyau/monde/scene';
 declare function patchWall(s: Scene, i: number, patch: Partial<WallSeg>): Scene;
 declare function setScene(s: Scene): void;
 export const cocherFenetre = (s: Scene, i: number, v: boolean) => setScene(patchWall(s, i, { window: v }));
@@ -430,8 +430,8 @@ export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.wa
   // composant ne l'appelle — le travail s'arrête à la porte de l'interface, et seul un APPELANT
   // distingue ce cas d'un vrai chemin d'édition.
   const PONT = {
-    'src/state/scene.ts': `export interface Scene { id: string; flags: Record<string, boolean>; notes: string }\n`,
-    'src/state/sceneEdit.ts': `import type { Scene } from './scene';
+    'src/noyau/monde/scene.ts': `export interface Scene { id: string; flags: Record<string, boolean>; notes: string }\n`,
+    'src/state/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
 }
@@ -446,7 +446,7 @@ export function setNotes(s: Scene, v: string): Scene {
       ...PONT,
       // L'inspecteur appelle `setNotes` et n'appelle jamais `setSceneFlags` — exactement l'état du
       // dépôt au 2026-07-26. Le ré-export n'est PAS un appelant.
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../state/scene';
+      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
 import { setNotes } from './editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
@@ -467,11 +467,11 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       ...PONT,
       // Même NOM, autre module (hors chemin de l'auteur) : la fermeture d'appels résout un SYMBOLE,
       // pas un nom — l'appel ci-dessous ne rend pas `sceneEdit.setSceneFlags` atteignable.
-      'src/state/runtimeFlags.ts': `import type { Scene } from './scene';
+      'src/state/runtimeFlags.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: patch };
 }\n`,
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../state/scene';
+      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
 import { setNotes } from './editorState';
 import { setSceneFlags } from '../../state/runtimeFlags';
 declare function setScene(s: Scene): void;
@@ -489,14 +489,14 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     const program = virtualProgram({
       ...PONT,
       // Chaîne `Inspecteur → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
-      'src/state/sceneEdit.ts': `import type { Scene } from './scene';
+      'src/state/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
 }
 export function setNotes(s: Scene, v: string): Scene {
   return setSceneFlags({ ...s, notes: v }, { touche: true });
 }\n`,
-      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../state/scene';
+      'src/ui/editor/Inspecteur.ts': `import type { Scene } from '../../noyau/monde/scene';
 import { setNotes } from './editorState';
 declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));

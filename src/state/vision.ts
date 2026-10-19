@@ -12,17 +12,17 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
-import { wallOnSight } from './lineOfSight';
-import { terrainOpaque, terrainSolidHeightM } from './terrain';
-import { METRES_PER_LEVEL } from './relief';
-import { sceneIsDark } from './sceneRules';
-import { propFootTiles, decorAncre } from './footprint';
-import { Pt, chebyshev } from './path';
+import { Scene, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from '../noyau/monde/scene';
+import { wallOnSight } from '../noyau/monde/lineOfSight';
+import { terrainOpaque, terrainSolidHeightM } from '../noyau/monde/terrain';
+import { METRES_PER_LEVEL } from '../noyau/monde/relief';
+import { sceneIsDark } from '../noyau/monde/sceneRules';
+import { propFootTiles, decorAncre } from '../noyau/monde/footprint';
+import { Pt, chebyshev } from '../noyau/monde/path';
 import { findLightLevelById, findTraitById, findPropById, findTrappingById } from '../data';
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../data/props.types';
-import type { Dir8 } from './dir8';
-import { memoByRef } from './sceneMemo';
+import type { Dir8 } from '../noyau/monde/dir8';
+import { memoByRef } from '../noyau/monde/sceneMemo';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -214,7 +214,7 @@ export function mapLights(scene: Scene): LightSource[] {
  * primitive, exprimé RELATIVEMENT à `pos` comme le veut `LightSource.foyer`.
  *
  * Il se compose EXACTEMENT comme la géométrie, et depuis les MÊMES deux sources qu'elle :
- *  - l'ANCRE du décor (`decorAncre`, `state/footprint.ts`) — le centre de son empreinte EFFECTIVE
+ *  - l'ANCRE du décor (`decorAncre`, `noyau/monde/footprint.ts`) — le centre de son empreinte EFFECTIVE
  *    (`empreinteDuProp`, corps tourné depuis #1509), que
  *    `gameIso/builders/props.ts` lit pour poser la recette ; une empreinte 2×2 la décale d'une
  *    demi-case sur chaque axe, et une lampe calée sur `pos` seul s'en détacherait de 1,414 m ;

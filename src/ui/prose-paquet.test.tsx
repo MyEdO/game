@@ -11,7 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { runFlow } from '../state/combatEffects';
 import { createHero } from '../engine/character';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { Prose } from './Prose';
 import { DocumentModal } from './DocumentModal';

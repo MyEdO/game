@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
 import { createHero } from '../engine/character';
-import type { Flow } from './flow';
+import type { Flow } from '../noyau/monde/flow';
 
 const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
 

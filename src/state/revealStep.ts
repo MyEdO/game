@@ -4,9 +4,9 @@
  * d'auto-fermeture par gravité, charge riche portée telle quelle). À part de `combatEffects` pour
  * rester importable par les modules FEUILLE, hors du cycle store↔flux.
  */
-import type { CascadeTableDone, RevealEntry } from './pendings';
-import type { BuiltCascadeStep } from './stepBrand';
-import { toRecapLines } from './recapLine';
+import type { CascadeTableDone, RevealEntry } from '../noyau/pendings';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { toRecapLines } from '../noyau/recapLine';
 import type { IconId } from '../ui/icons';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */

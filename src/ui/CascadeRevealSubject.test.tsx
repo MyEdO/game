@@ -3,7 +3,7 @@
  * ÉTAPE DE RÉVÉLATION MONTÉE (#942 L8) — la fenêtre de cascade (`CascadeBody`, patron `createRoot`/
  * `act` du repo) sur une étape d'affichage à charge riche :
  *  - le CONCERNÉ (`RevealEntry.subjectId`) porte son portrait dans la fenêtre — contrat de
- *    `RevealEntry.subjectId` (state/pendings.ts) : « on sait toujours à qui ça s'applique » ;
+ *    `RevealEntry.subjectId` (noyau/pendings.ts) : « on sait toujours à qui ça s'applique » ;
  *  - la BARRE DE TEMPS de l'auto-fermeture est réservée au GRAVE (arbitrage 2026-06-11) : le mineur
  *    s'auto-ferme aussi, mais sans cérémonie.
  */
@@ -14,7 +14,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
-import type { RevealEntry } from '../state/pendings';
+import type { RevealEntry } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {

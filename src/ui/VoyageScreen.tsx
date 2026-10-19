@@ -4,8 +4,8 @@ import type { CampaignVessel, PendingRest } from '../state/store';
 import type { TravelPlan, TravelRecapDay } from '../state/travelFlow';
 import { activeDayWeather } from '../state/combatFlow';
 import { t } from '../i18n';
-import type { PendingCascade } from '../state/pendings';
-import { DAY_PHASE_CATALOG } from '../state/recapLine';
+import type { PendingCascade } from '../noyau/pendings';
+import { DAY_PHASE_CATALOG } from '../noyau/recapLine';
 import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { placeById } from '../state/worldMap';
@@ -94,7 +94,7 @@ export interface DayAgendaItem {
 }
 
 /** Catalogue des PHASES reconnues d'une cascade de jour (`purpose:'travelDay'`) — SOURCE UNIQUE
- *  `state/recapLine.DAY_PHASE_CATALOG` (#349), partagée avec le sectionnement des jours CLOS
+ *  `noyau/recapLine.DAY_PHASE_CATALOG` (#349), partagée avec le sectionnement des jours CLOS
  *  (`RecapLine.phase`, `ui/RecapLine.RecapLineSections`). Ne PAS redéfinir localement. */
 
 /** AGENDA DE PHASES du jour EN COURS (arbitrage user verbatim : « qu'on mette des sous-catégories …

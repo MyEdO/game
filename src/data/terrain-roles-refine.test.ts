@@ -9,7 +9,7 @@
  *
  * Deux rôles que le moteur ADRESSE au lieu de réciter un id : `absence` (la non-tuile — ce qu'une
  * couche porte là où rien n'est bâti) et `bordDuMonde` (ce que la grille rend au-delà de ses bornes).
- * Le seam (`state/terrain`) en DÉRIVE `terrainAbsent()` / `terrainHorsGrille()` : un dataset à zéro
+ * Le seam (`noyau/monde/terrain`) en DÉRIVE `terrainAbsent()` / `terrainHorsGrille()` : un dataset à zéro
  * porteur laisserait ces fonctions sans réponse, un dataset à deux porteurs les rendrait dépendantes
  * de l'ORDRE d'écriture. Ce que ce fichier tient : le refus MORD au PARSE, et il NOMME le rôle, le
  * compte mesuré et les porteurs.

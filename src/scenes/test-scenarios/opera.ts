@@ -1,9 +1,9 @@
 import { makePregens } from '../../data/pregens';
-import type { Scene, SceneEntity, CustomStatblock } from '../../state/scene';
+import type { Scene, SceneEntity, CustomStatblock } from '../../noyau/monde/scene';
 import type { MapSpec } from '../../state/mapSpec';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
-import { flowFromEffects, testFlow, type Flow } from '../../state/flow';
+import { flowFromEffects, testFlow, type Flow } from '../../noyau/monde/flow';
 
 // Profil des deux étudiants saboteurs : de jeunes civils paniqués, vifs mais fragiles (pas de combattants).
 const ETUDIANT: CustomStatblock = { type: 'statblock',

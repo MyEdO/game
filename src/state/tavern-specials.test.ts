@@ -5,10 +5,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { TavernPayload } from './tavernFlow';
 import { avanceEtapeCascade } from './cascadeTestKit';
 

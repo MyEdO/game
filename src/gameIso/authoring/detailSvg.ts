@@ -33,7 +33,7 @@ import type { DetailRecipe } from '../detail/types';
 import { shade, ao, spec } from '../shade';
 import { isSquareView, type Dims } from '../../geometry/iso';
 import { ISO_PX_PER_M } from '../iso';
-import { tousLesTerrains, terrainEntree } from '../../state/terrain';
+import { tousLesTerrains, terrainEntree } from '../../noyau/monde/terrain';
 import { terrainGradientId, terrainStopsOrdonnes } from '../catalog/terrain';
 import { structureAppearances, matieresDe } from '../../data';
 import { projGP, type Pt2 } from './project';

@@ -2,12 +2,12 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
+import { startCascade } from '../noyau/cascade';
+import { freeCons } from '../noyau/rollSeam';
 import { spyApplier } from './cascadeTestKit';
 import { tickCombatAuto } from './combatAuto';
 
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
 
 /**

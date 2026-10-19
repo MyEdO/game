@@ -10,7 +10,7 @@ import { Dims, diamondPath } from '../../geometry/iso';
 import { TargetReticle } from '../TargetReticle';
 import { movePreviewEls } from './movePreview';
 import { ENEMY_CUE_TINT, THREAT_TINT } from '../highlightTints';
-import type { Pt } from '../../state/path';
+import type { Pt } from '../../noyau/monde/path';
 
 export function EnemyMoveTelegraph({ actorMove, dims, footN, lift }: { actorMove: { path: Pt[] } | null; dims: Dims; footN: number; lift: (p: Pt) => number }) {
   if (!actorMove || actorMove.path.length === 0) return null;

@@ -11,7 +11,7 @@
  * Cadence : appelé par `runDailyUpkeep` (source unique anti-double-comptage des franchissements de
  * jour) — jamais depuis un flux, jamais deux fois pour la même journée.
  */
-import { fireTriggers, effectSourcesOf } from './triggeredEffects';
+import { fireTriggers, effectSourcesOf } from '../noyau/triggeredEffects';
 import type { EffectTrigger } from '../engine/flowCore';
 import type { RNG } from '../engine/dice';
 import type { Get, Set as SetFn } from './flowTypes';

@@ -25,7 +25,7 @@ import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves } from '../engine/menace';
 import { hasActiveFlag, consumeActiveFlag, freeRerollOf } from '../engine/activeFlags';
 import { touchActors } from './combatOrParty';
-import { surfaceOf } from './rollSeam';
+import { surfaceOf } from '../noyau/rollSeam';
 import { gainCorruption } from './corruptionFlow';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';

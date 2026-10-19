@@ -6,9 +6,9 @@ import {
   wallIsOpen,
   type Scene,
   type WallSeg,
-} from './scene';
-import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
-import { memoByRef } from './sceneMemo';
+} from '../noyau/monde/scene';
+import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from '../noyau/monde/path';
+import { memoByRef } from '../noyau/monde/sceneMemo';
 import { occupiedRoomIds, roomsByTile } from './rooms';
 import { parUnitesDeCode } from '../lib/ordre.mjs';
 

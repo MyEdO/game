@@ -13,7 +13,7 @@
 import { ruleOverrides, loadRuleOverrides, setRule, resetRule, type RuleValue } from '../engine/policy';
 import { useGame } from './store';
 import { t } from '../i18n';
-import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 
 /** Clé du magasin des règles maison dans le `localStorage`. */
 export const HOUSE_RULES_STORAGE_KEY = 'wfrp4.house-rules';

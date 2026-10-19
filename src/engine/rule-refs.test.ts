@@ -307,7 +307,7 @@ describe('Famille — chaque ModLine ÉMISE dit si elle DÉTERMINE la Difficult�
 });
 
 /** Stock DÉCROISSANT des magnitudes littérales à côté d'un renvoi : la Cible dissimulée, que la scène
- *  pose par météo (`state/sceneRules.ts`), rejoint sa fiche avec le vocabulaire météo unique (#1173, lot
+ *  pose par météo (`noyau/monde/sceneRules.ts`), rejoint sa fiche avec le vocabulaire météo unique (#1173, lot
  *  « Météo » du plan de #2778). */
 const STOCK_LITTERALES: string[] = ['src/state/combatFlow.ts · sc.concealedLabel'];
 

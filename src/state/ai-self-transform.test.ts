@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 
 const MELEE: Weapon = { label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };

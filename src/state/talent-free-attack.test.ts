@@ -15,7 +15,7 @@ import type { AttackResult } from '../engine/combat';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { setRule, resetRule } from '../engine/policy';
 import { applySummon } from './summonFlow';
-import { campGain } from './combat/advantagePool';
+import { campGain } from '../noyau/combat/advantagePool';
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { maybeOpenDefense } from './combatFlow';
-import { battleRng, seedBattleRng } from './battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';

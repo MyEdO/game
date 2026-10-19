@@ -2,12 +2,12 @@ import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { GameState, RevealEntry } from './store';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
-import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite } from './pendings';
+import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite } from '../noyau/pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { d10, d100, defaultRNG, roll as rollDice } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
@@ -51,35 +51,35 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney } from '../engine/money';
 import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
-import { Effect, groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './scene';
+import { Effect, groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from '../noyau/monde/scene';
 import { triggersEnJeu } from './decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './spawn';
 import { refuserGeste } from './refusVisible';
-import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from './flow';
-import { inRect, combatantsWithinRadius } from './combatGeometry';
+import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../noyau/monde/flow';
+import { inRect, combatantsWithinRadius } from '../noyau/monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { playSfx } from '../audio/engine';
-import { combatDistance } from './footprint';
+import { combatDistance } from '../noyau/monde/footprint';
 import { registerCascadeApplier, setSuiteApresCommit, pushStep, idDeLaDernierePoussee,
-  etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+  etapesDeLaFenetre, annoterEtapeDeLaFenetre } from '../noyau/cascade';
 import { exposureWaveBand } from './nightBands';
-import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openSequence, pousseSi, pushDie, type BuiltCascadeStep } from './rollSeam';
+import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openSequence, pousseSi, pushDie, type BuiltCascadeStep } from '../noyau/rollSeam';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId } from './combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { addPossession, type PossessionInput } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef } from '../engine/possession';
-import { ev } from './combatLog';
+import { ev } from '../noyau/combatLog';
 import { t } from '../i18n';
-import { stepPrecision, stepDetail } from './rollSeam';
+import { stepPrecision, stepDetail } from '../noyau/rollSeam';
 import { dataLabel, type WaterExposureMode } from '../data';
-import { actionsAuthorees, type Drapeaux } from './usable';
-import type { SceneEntity } from './scene';
-import { campAdvantageHooks } from './combat/advantagePool';
+import { actionsAuthorees, type Drapeaux } from '../noyau/monde/usable';
+import type { SceneEntity } from '../noyau/monde/scene';
+import { campAdvantageHooks } from '../noyau/combat/advantagePool';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -91,7 +91,7 @@ import { campAdvantageHooks } from './combat/advantagePool';
 /**
  * SÉQUENCE D'ACCUEIL d'une révélation (#942 L8) — évaluée sur l'état qui reçoit l'étape :
  *  - `own` : la révélation ouvre SA séquence, quoi qu'il y ait en vol. La séquence en vol d'un AUTRE
- *    `purpose` est alors PARQUÉE par la doctrine du slot (`pushStep`/`startCascade`, state/cascade.ts)
+ *    `purpose` est alors PARQUÉE par la doctrine du slot (`pushStep`/`startCascade`, noyau/cascade.ts)
  *    et reprend à la clôture — c'est ce que réclame la carte d'ENTRÉE DE ZONE, qui doit passer AVANT
  *    les Tests de Psychologie de rencontre déclenchés au même instant ;
  *  - une séquence EN VOL : la SIENNE — la révélation REJOINT l'hôte au lieu de le suspendre. C'est le
@@ -126,7 +126,7 @@ export function pushReveal(
  *  les lignes poussées par un hook profond — `onGainCondition` ennemi/auto — seraient sinon clobberées).
  *  Clôt la file (set) et RENVOIE les événements pour que l'appelant les FOLDE dans le MÊME `log` réécrit
  *  (bon ordre, zéro double `set` sur `battle`). File vide → no-op (tableau vide, pas de `set`). */
-export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').CombatEvent[] {
+export function drainPendingLog(get: Get, set: SetFn): import('../noyau/combatLog').CombatEvent[] {
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
@@ -135,7 +135,7 @@ export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').Com
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la
  *  porte `rollSeam`, ou `revealToStep`) : le cas `purpose:'combat'` de la primitive générique
- *  `pushStep` (state/cascade.ts). La variante FABRIQUE (`index` = position d'append) est celle de
+ *  `pushStep` (noyau/cascade.ts). La variante FABRIQUE (`index` = position d'append) est celle de
  *  `pushStep` : un `kind` poussé PLUSIEURS fois dans la même séquence (relance d'Imparfaite, #942 L6)
  *  y prend un id unique. La fabrique peut rendre `undefined` — comme celle de `pushStep` : un
  *  constructeur de la porte qui REFUSE sa déclaration n'a aucune étape à donner, et l'index d'append

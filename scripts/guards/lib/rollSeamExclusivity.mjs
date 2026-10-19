@@ -1,7 +1,7 @@
 import { ast, analyserCorpus, avecAnalyse } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme
 // #276). La porte déclarative
-// (`openRoll`, `src/state/rollSeam.ts`) + `TestOutcome.seal(...)` (`src/engine/testOutcome.ts`) sont
+// (`openRoll`, `src/noyau/rollSeam.ts`) + `TestOutcome.seal(...)` (`src/engine/testOutcome.ts`) sont
 // le SEUL chemin scellé pour produire une issue de Test ; un `rollTest(`/`d100(` inline ou un
 // `TestOutcome.seal(` hors whitelist forge un jet SANS passer par la policy de surfaçage (M/V/I,
 // Décision 3) — exactement le trou que ce garde ferme. Module ESM pur, exécutable par `node` nu —

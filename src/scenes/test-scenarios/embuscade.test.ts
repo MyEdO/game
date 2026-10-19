@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './embuscade';
-import { layerTiles } from '../../state/scene';
+import { layerTiles } from '../../noyau/monde/scene';
 import { findTrappingById } from '../../data/index';
 import { weaponFromTrait } from '../../engine/creatureEquip';
 const scenarioConstruit = scenario.construire();

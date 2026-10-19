@@ -9,11 +9,11 @@ import type { RNG } from '../engine/dice';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { useGame } from './store';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import {
   zoneAreaTiles, sceneZonesToBattle, decayZones, crossZones, zonesRoundTick, barrierTilesFor, type BattleZone,
-} from './zones';
-import { occupied } from './combatGeometry';
+} from '../noyau/monde/zones';
+import { occupied } from '../noyau/monde/combatGeometry';
 import type { BattleState } from './store';
 
 const rng: RNG = { int: () => 5 } as RNG;

@@ -2,7 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildOperaFloorplan } from '../opera/floorplan';
 import { scenarioEntities } from '../opera/furnished';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * OPÉRA — PLAN MEUBLÉ. La géométrie fidèle du Théâtre Staatsoper (`opera/floorplan.ts`, plan NADJ 08

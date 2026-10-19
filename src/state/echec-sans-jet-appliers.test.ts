@@ -9,10 +9,10 @@ import { buildStageSteps } from './travelPostes';
 import { buildSeaGenericStep, seaActivityRefus } from './seaActivities';
 import { bourseOf, creditBourse } from './bourseFlow';
 import { toBrass } from '../engine/money';
-import { cascadeAppliers, startCascade, setOwnTestFailedEmitter } from './cascade';
+import { cascadeAppliers, startCascade, setOwnTestFailedEmitter } from '../noyau/cascade';
 import { spyApplier } from './cascadeTestKit';
-import { fireOwnTestFailed } from './triggeredEffects';
-import { battleRng } from './battleRng';
+import { fireOwnTestFailed } from '../noyau/triggeredEffects';
+import { battleRng } from '../noyau/battleRng';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
@@ -23,10 +23,10 @@ import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { combatStakeRef } from '../data';
 import { t } from '../i18n';
-import { bandStep, monoStep, resultLine, rollStep } from './rollSeam';
+import { bandStep, monoStep, resultLine, rollStep } from '../noyau/rollSeam';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { PlayerText } from '../i18n/playerText';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>

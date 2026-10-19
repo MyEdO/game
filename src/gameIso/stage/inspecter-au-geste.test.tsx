@@ -3,7 +3,7 @@ import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tileCenter, type Dims } from '../../geometry/iso';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame, type BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
 import { makePregens } from '../../data/pregens';

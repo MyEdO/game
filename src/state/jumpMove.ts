@@ -1,6 +1,6 @@
-import { Scene, Effect, heightAt, surfaceDAtterrissage } from './scene';
-import { type Flow, EMPTY_FLOW, flowFromEffects, testFlow } from './flow';
-import type { Pt } from './path';
+import { Scene, Effect, heightAt, surfaceDAtterrissage } from '../noyau/monde/scene';
+import { type Flow, EMPTY_FLOW, flowFromEffects, testFlow } from '../noyau/monde/flow';
+import type { Pt } from '../noyau/monde/path';
 import { jumpNeedsTest } from '../engine/movement';
 import { combatStakeRef } from '../data';
 import { chebyshev } from '../engine/grid';

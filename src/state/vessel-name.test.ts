@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { findVehicleById } from '../data';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from './scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../noyau/monde/scene';
 import type { CampaignVessel } from './store';
 
 // #230 — le nom d'INSTANCE du navire de campagne (affichage) se propage aux coques spawnées.

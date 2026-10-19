@@ -27,7 +27,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `sceneSchema` (`data/schemas/defs-scenes/scene.ts`) : toute `PropertyAssignment` d'un shape
 // atteint en fait partie, y compris celles d'un schéma FEUILLE d'un autre module (`communs.ts` :
 // `ptSchema` ; `grammaire/valeurs.ts` : `moneyPartialSchema`) que le document compose. S'y ajoutent les `PropertySignature` des
-// types encore MANUSCRITS (`src/state/scene.ts`). Une frontière posée sur le MODULE perdait ces
+// types encore MANUSCRITS (`src/noyau/monde/scene.ts`). Une frontière posée sur le MODULE perdait ces
 // feuilles dès qu'un corps manuscrit passait en `z.infer` (mesuré : `DialogueChoice.cost.{gold,
 // silver,brass}` déclarés par `grammaire/valeurs.ts:moneyPartialSchema`).
 // La marche S'ARRÊTE aux nœuds-frontière, désignés eux aussi par IDENTITÉ (module + nom du
@@ -95,7 +95,7 @@ const isAuthorPath = (rel) => AUTHOR_PATH.some((re) => re.test(rel));
 const isPipelinePath = (rel) => PIPELINE_PATH.some((re) => re.test(rel));
 const isTestFile = (rel) => estFichierVitest(rel);
 
-const SCENE_FILE = 'src/state/scene.ts';
+const SCENE_FILE = 'src/noyau/monde/scene.ts';
 
 /** Racine de la marche d'IDENTITÉ : le schéma du document. */
 const SCHEMA_FILE = 'src/data/schemas/defs-scenes/scene.ts';
@@ -178,7 +178,7 @@ const isCustomSchema = (init) =>
 /**
  * ENSEMBLE D'IDENTITÉS du document : les `PropertyAssignment` des shapes atteints depuis
  * `sceneSchema`, frontières exclues (cf. FRONTIÈRE en tête). Vide si le module de schémas n'est pas
- * dans le programme — les programmes VIRTUELS des preuves ne déclarent que `src/state/scene.ts`.
+ * dans le programme — les programmes VIRTUELS des preuves ne déclarent que `src/noyau/monde/scene.ts`.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
 export function documentDeclarations(program, root) {
@@ -229,7 +229,7 @@ export function sceneScope(program, root) {
   if (!sceneSym) throw new Error('type `Scene` introuvable');
 
   // Périmètre par IDENTITÉ : les shapes atteints depuis `sceneSchema`, plus les corps encore
-  // MANUSCRITS de `src/state/scene.ts`.
+  // MANUSCRITS de `src/noyau/monde/scene.ts`.
   const docNodes = documentDeclarations(program, root);
   const sceneFile = norm(path.resolve(root, SCENE_FILE));
   const declaredInScene = (decl) =>

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { captureMutation, applyMutation, type SceneMutation } from './sceneInstance';
-import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from './scene';
+import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { removeEntity } from './combatPlacement';
 import { readSlot, saveToSlot, deleteSlot, type SaveGame } from './saves';

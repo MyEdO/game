@@ -28,15 +28,15 @@
  * l'effectif minimal → Manque de bras (MDG 14 l.55). En combat, l'équipage est réel
  * (`battle.combatants`) et le Manque de bras s'applique aussi (`shipCrew.ts`).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { nomDuNavire } from './carriers';
 import { bus, EVT } from './bus';
 import { openRest } from './restFlow';
 import { dayIndex } from './upkeep';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines, type RecapEvent } from './recapLine';
-import type { BatchParticipant } from './pendings';
+import { toRecapLines, type RecapEvent } from '../noyau/recapLine';
+import type { BatchParticipant } from '../noyau/pendings';
 import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
 import { buildAuthorPerilSteps, registerPerilInterrupt, applyPerilEffectsNow } from './authorPerils';
 
@@ -45,7 +45,7 @@ import { buildAuthorPerilSteps, registerPerilInterrupt, applyPerilEffectsNow } f
  *  interrupteur sur-le-champ (`resumeTravel` rejoue la traversée). Exporté pour être NOMMÉ par les
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './encounterAuthoring';
 import { registerScene } from './store';
@@ -92,7 +92,7 @@ import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullN
 import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
-import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
+import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from '../noyau/voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -103,12 +103,12 @@ import { drainPendingLog } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '../engine/disease';
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
-import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
+import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from '../noyau/pendings';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
-import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from './rollSeam';
-import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
-import { checkPartyWiped } from './partyWipe';
+import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from '../noyau/rollSeam';
+import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from '../noyau/cascade';
+import { checkPartyWiped } from '../noyau/partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
 import { dataLabel } from '../data';
@@ -117,8 +117,8 @@ import { dataLabel } from '../data';
 import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
-import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, equipageApte } from './combatants';
+import { stepPrecision, idDansLaSequence } from '../noyau/rollSeam';
+import { actorIn, equipageApte } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -146,7 +146,7 @@ export type SeaCrisis =
 
 /** État NAVAL d'un TravelPlan (route `sea`) — persiste dans la save avec le plan. Un jour de voyage
  *  (`runSeaDay`) est UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3), sans FSM
- *  `step` persistée : le point de reprise EST `pendingCascade`/`suspendedCascades` (state/cascade.ts). */
+ *  `step` persistée : le point de reprise EST `pendingCascade`/`suspendedCascades` (noyau/cascade.ts). */
 export interface SeaVoyageState {
   /** Cap dominant du trajet (fixe le vent relatif, MDG 13 l.262-270) — d'auteur (`MapRoute.seaHeading`), requis (#416). */
   heading: WindDirection;
@@ -1199,7 +1199,7 @@ registerCascadeApplier(SEA_BOARD_EVENT_KIND, (get, set, step) => {
  * UN JOUR = périls d'auteur (inline) → événement de bord (inline, peut surfacer) → la CASCADE du jour
  * (`buildSeaDayCascade`, purpose `travelDay`) → `continueSeaDayAfterCascade` à sa clôture (dénouement
  * du jour + halte/arrivée). La cascade EST le point de reprise (`pendingCascade`/`suspendedCascades`,
- * state/cascade.ts).
+ * noyau/cascade.ts).
  */
 export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;

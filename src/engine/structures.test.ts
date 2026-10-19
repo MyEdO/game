@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { findStructureById, structures } from '../data';
-import { footprintN } from '../state/footprint';
+import { footprintN } from '../noyau/monde/footprint';
 import { peurTerreurFromSize } from './psychology';
 import { SIZE_RANGED_MOD, effectiveSize, sizeDamageMultiplier, forceOpposedOutcome } from './size';
 import { woundsFromHit } from './woundsCalc';
@@ -170,7 +170,7 @@ describe('La Taille d’une Structure ne compte QUE son Bonus d’Endurance (AA 
     const porte = struct('porte');
     expect(mur.size).toBeUndefined();
     expect(SIZE_RANGED_MOD[effectiveSize(mur.size)]).toBe(SIZE_RANGED_MOD.moyenne); // mod à-toucher au Tir
-    expect(footprintN(mur)).toBe(1); // empreinte de grille (`state/footprint.ts` : l'empreinte est DÉCOUPLÉE)
+    expect(footprintN(mur)).toBe(1); // empreinte de grille (`noyau/monde/footprint.ts` : l'empreinte est DÉCOUPLÉE)
     expect(footprintN(porte)).toBe(1);
     expect(sizeDamageMultiplier('monstrueuse', mur.size)).toBe(3); // écart contre Moyenne, pas contre Énorme (×1)
     expect(forceOpposedOutcome('moyenne', mur.size)).toBe('normal'); // jamais `needCrit`

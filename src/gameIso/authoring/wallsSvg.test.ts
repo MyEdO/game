@@ -5,7 +5,7 @@ import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
 import { structureAppearance } from '../catalog/structures';
 import { shade, SIDE_N } from '../shade';
-import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../noyau/monde/scene';
 
 /**
  * Backend écran-affine des murs : projette les éléments `wall` du pivot via la projection partagée.

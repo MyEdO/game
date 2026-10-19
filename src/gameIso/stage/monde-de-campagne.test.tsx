@@ -7,7 +7,7 @@ import { BancRenderer, brancherArdoise } from './banc-volumique';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import type { KeepEl } from '../backends/webgl/sceneMeshes';
 import { useGame } from '../../state/store';
-import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { props } from '../../data';
 import type { Combatant } from '../../engine/types';
 import * as propsBuilder from '../builders/props';
@@ -17,7 +17,7 @@ import { buildRoofs } from '../builders/roofs';
 import { estPropVolumique } from '../builders/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { capsuleCenter, tileCenter, LEVEL_H, type Dims } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 import { actorCapsuleOf } from './actorCapsule';
 import { VW, VH } from './useStageCamera';
 

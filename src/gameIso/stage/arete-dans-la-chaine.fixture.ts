@@ -5,7 +5,7 @@
  * seuil REND) et le banc (`arete-dans-la-chaine.bench.ts`, ce que le balayage COÛTE). Un montage
  * recopié des deux côtés dériverait, et le banc cesserait de mesurer ce que le contrat prouve.
  */
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { portalsForParty } from '../../state/roomPortals';
 import { piece } from '../../state/pieces.fixture';
 import { aretesUtilisables } from '../../state/aretes';

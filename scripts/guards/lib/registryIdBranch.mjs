@@ -37,7 +37,7 @@ const ts = tsModule;
  *  payé un routage d'art d'arme par id) ; `scripts` porte les compilateurs d'authoring, qui écrivent
  *  de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
 
-export const SCAN_DIRS = ['src/ui', 'src/engine', 'src/state', 'src/gameIso', 'src/data', 'scripts'];
+export const SCAN_DIRS = ['src/ui', 'src/engine', 'src/state', 'src/noyau', 'src/gameIso', 'src/data', 'src/web', 'scripts'];
 
 /** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
 export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];

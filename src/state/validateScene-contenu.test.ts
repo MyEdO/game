@@ -6,9 +6,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
-import { emptyScene, type Scene, type WallSeg } from './scene';
+import { emptyScene, type Scene, type WallSeg } from '../noyau/monde/scene';
 import { RefIrresoluble, spawnEnemy } from './spawn';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { creatures, siegeEngines, spells, vehicles } from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import type { MapPlace, WorldMap } from './worldMap';

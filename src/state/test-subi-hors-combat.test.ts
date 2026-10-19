@@ -21,13 +21,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { routeTriggeredTest } from './combat/triggeredTest';
 import { runFlow, openSkillTest, messageCibleHorsScene } from './combatEffects';
-import { EMPTY_FLOW, flowFromEffects, type Flow } from './flow';
+import { EMPTY_FLOW, flowFromEffects, type Flow } from '../noyau/monde/flow';
 import { decorHorsCombat, noeudsDeTest, rendreMalade, nuitDuMalade, type NoeudTest } from './noeudsDeTest.testkit';
 import { validateScene } from './validateScene';
-import { emptyScene, type Effect, type Scene } from './scene';
+import { emptyScene, type Effect, type Scene } from '../noyau/monde/scene';
 import type { Combatant, EffectSource } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';

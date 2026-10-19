@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { testValue } from '../engine/skills';
 import { describeBargain } from './flowOutcomes';
 import type { Combatant, SkillInstance } from '../engine/types';

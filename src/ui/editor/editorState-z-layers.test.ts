@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, Scene } from '../../state/scene';
+import { emptyScene, Scene } from '../../noyau/monde/scene';
 import {
   hitAt,
   resizeSel,

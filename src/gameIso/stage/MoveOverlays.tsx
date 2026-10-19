@@ -5,9 +5,9 @@
  * lift métrique) que les autres surbrillances.
  */
 import { Dims, diamondPath } from '../../geometry/iso';
-import { footprintN, footprintTiles } from '../../state/footprint';
+import { footprintN, footprintTiles } from '../../noyau/monde/footprint';
 import { mountOf, movementRemaining } from '../../state/mount';
-import { inBattleId } from '../../state/combatants';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { previewResourceDelta } from '../../state/combatFlow';
 import { movePreviewEls } from './movePreview';
 import { GOLD_TINT } from '../highlightTints';
@@ -15,7 +15,7 @@ import type { Combatant } from '../../engine/types';
 import type { DifficultyShown } from '../../engine/combat';
 import { difficultyShownText } from '../../ui/difficultyText';
 import type { BattleState } from '../../state/store';
-import type { Pt } from '../../state/path';
+import type { Pt } from '../../noyau/monde/path';
 
 /** Ce que le geste APERÇU fait du Mouvement du Tour, « avant → après » — le coût vient de la SOURCE
  *  UNIQUE (`previewResourceDelta`, celle des jauges de l'arche) et le solde de `movementRemaining` :
@@ -85,7 +85,7 @@ export function TapPreview({ battle, activeC, dims, liftOf, myTurn, difficulty }
   battle: BattleState;
   activeC: Combatant | undefined;
   dims: Dims;
-  /** Élévation d'affichage d'un point (socle `state/scene.ts:liftDe`, fermé sur la scène par l'hôte) —
+  /** Élévation d'affichage d'un point (socle `noyau/monde/scene.ts:liftDe`, fermé sur la scène par l'hôte) —
    *  la MÊME fonction que le peintre des seuils et la projection des arêtes reçoivent. */
   liftOf: (p: Pt) => number;
   myTurn: boolean;

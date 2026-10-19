@@ -13,9 +13,9 @@
  * Le M (Mouvement) et le Man du navire vivent dans `vehicles.json` (facette `ship`), PAS sur le Combattant-coque
  * (`vehicleCombatant` met `movement:0`) → on les relit via `creatureId` (`shipManeuverParams`).
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
-import { rollLine } from './rollSeam';
+import { rollLine } from '../noyau/rollSeam';
 import { testValue, partyBest, peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
 import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestDR, hullNavalTraits } from '../engine/navalTraits';
@@ -23,7 +23,7 @@ import { cargoOverload } from '../engine/seaVoyage';
 import { exposedCrew } from '../engine/shipCritical';
 import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
 import { placementPenalty } from './shipPostes';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { findCrewRoleById } from '../data';
@@ -36,7 +36,7 @@ import type { PairedSense } from '../engine/ops';
 import type { Get } from './flowTypes';
 import type { PlayerText } from '../i18n/playerText';
 
-import type { CrewRoleRoll } from './pendings'; // défini côté pendings (neutre) — cf. quarantaine #328
+import type { CrewRoleRoll } from '../noyau/pendings'; // défini côté pendings (neutre) — cf. quarantaine #328
 export type { CrewRoleRoll };
 
 /** Jet d'UN contributeur à son rôle : Test de la compétence du rôle (MDG 14). PUR (RNG injecté). Rend la LIGNE

@@ -9,7 +9,7 @@ import { createHero } from '../engine/character';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { identitesDe, identitesResolues, nommer } from './identites';
 import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { runFlow } from './combatEffects';
 

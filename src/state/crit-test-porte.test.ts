@@ -3,18 +3,18 @@ import { useGame, type BattleState } from './store';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
 import { resolveCritique } from '../engine/critical';
-import { runPureFlowLines } from './combat/flowEval';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { testValue } from '../engine/skills';
 import { addCondition } from '../engine/conditions';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import type { Flow } from '../engine/flowCore';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import { resolveStake } from '../data';
 import { stacks } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Trauma } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * #1657 B3-1 — LE TEST D'UNE BLESSURE CRITIQUE PASSE PAR LA PORTE.

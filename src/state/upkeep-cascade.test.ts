@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { contractDisease } from '../engine/disease';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { beginShipwreck } from './shipwreck';
 import { buildNightCascade, deferredUpkeepSteps, type PendingRest } from './restFlow';
 import { runDailyUpkeep, dayIndex, type DeferredUpkeepTest } from './upkeep';
 import { bestActivitySkill } from './interludeFlow';
 import { inexplique, soutienDe, jetDe } from './cascadeTestKit';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { rule } from '../engine/policy';

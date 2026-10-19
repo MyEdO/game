@@ -3,10 +3,10 @@ import { useGame } from '../store';
 import { runCombatFlow } from './triggeredTest';
 import { openCastCascade } from '../combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur + le hook onGainCondition
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 
 import { testScene } from '../../scenes/test-fixture';
-import type { Flow } from '../flow';
+import type { Flow } from '../../noyau/monde/flow';
 import type { Combatant } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
 

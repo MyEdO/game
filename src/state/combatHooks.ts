@@ -18,7 +18,7 @@ import type { BattleState } from './store';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { rule } from '../engine/policy';
-import type { EffectTrigger } from './flow';
+import type { EffectTrigger } from '../noyau/monde/flow';
 
 /** Le moment du cycle de vie = un `EffectTrigger` (taxonomie UNIQUE, partagée avec les triggers de
  *  DONNÉES — plus de `CombatPhase` séparé). Les hooks portés ici sont le rôle MACHINERIE de l'arène

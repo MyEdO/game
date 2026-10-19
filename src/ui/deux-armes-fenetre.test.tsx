@@ -11,7 +11,7 @@ import { useGame, type BattleState } from '../state/store';
 import { initialFields } from '../state/stateFields';
 import { openAttackCascade } from '../state/combatFlow';
 import { pickActiveModalKey } from '../state/modalArbiter';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ActiveModal } from './ActiveModal';
 import type { Combatant, Weapon } from '../engine/types';

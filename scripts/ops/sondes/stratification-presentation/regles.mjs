@@ -117,7 +117,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(path|path-[a-z-]+|dir8|sceneMemo|relief|wallIndex|decorIndex|bus|visibility|viewLevel|entreeEnScene)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
     raison: 'Pathfinding sur grille, orientation 8 directions, mémoïsation de scène, relief, index spatiaux, bus d\'évènements ; politique de visibilité et étage affiché consommés par les seuls rendus ; rendez-vous de fin de cuisson du monde.',
-    preuve: 'src/state/path.ts:1-5 ; src/state/visibility.ts:2 (importeurs : gameIso/backends, gameIso/catalog seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
+    preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/visibility.ts:2 (importeurs : gameIso/backends, gameIso/catalog seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(poste|advancement|stations)(\.test)?\.ts$`),
@@ -135,7 +135,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/`),
     categorie: 'orchestration-regles',
     raison: 'défaut dossier : store, combatFlow, rollFlowFactory/Specs, rollSeam, upkeep, flux de voyage/mer/auberge/port, IA, sorts, spawn, scène (schéma) et leurs tests de règles ; dériveurs d\'actions offertes (usable, aretes, gesteDArete) lus par l\'exécuteur.',
-    preuve: 'src/state/store.ts (45 refs engine) ; src/state/combatFlow.ts (88) ; src/state/rollFlowSpecs.ts (23) ; src/state/usable.ts:2 (importé par store.ts, combatSlice.ts, sceneRules.ts) ; src/state/gesteDArete.ts:2-4 (« Lu par l\'ACTION … et par l\'AFFICHAGE »)',
+    preuve: 'src/state/store.ts (45 refs engine) ; src/state/combatFlow.ts (88) ; src/state/rollFlowSpecs.ts (23) ; src/noyau/monde/usable.ts:2 (importé par store.ts, combatSlice.ts, sceneRules.ts) ; src/state/gesteDArete.ts:2-4 (« Lu par l\'ACTION … et par l\'AFFICHAGE »)',
   },
   {
     motif: new RegExp(String.raw`^src/ui/(icons|backdrops)/|^src/ui/(Ornaments|WaxSeal|GlobalSvgDefs)[.-]`),

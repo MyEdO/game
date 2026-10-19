@@ -3,10 +3,10 @@ import { applyShipPostes } from './shipPostes';
 import { availableAttacks } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from './store';
 
 /**

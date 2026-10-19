@@ -3,7 +3,7 @@ import { useGame } from '../store';
 import { runEnemyAI } from '../combatFlow';
 import { setGmSeat } from '../netFlow';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
 import { humanControlled, aiDriven } from '../netOwnership';

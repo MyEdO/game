@@ -196,13 +196,18 @@ scripts/hooks/               Répartiteur des hooks d'appel d'outil (`repartiteu
                             `registre.mjs` par événement. `regles-projection-guard.mjs` projette les
                             `.claude/rules/*.md` à `paths:` sur les lectures lean-ctx et `ctx_patch` (#2683),
                             `regles-projection-oubli.mjs` en efface l'état au SessionStart d'une compaction
-src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
+src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de toutes les zones : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).
                             `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
                             de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
                             son chemin relatif, extension comprise.
+                            `garanti.ts` : une valeur que son producteur garantit, absente, lève un
+                            défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
+src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
+                            `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
+                            `audio` et la présentation l'importent, ni `noyau` ni `data`.
                             `indexedDb.ts` : bases IndexedDB DÉCLARÉES `{ nom, magasins: { [nom]:
                             { keyPath } } }`, ouvertes SANS version (#2404) : une base neuve reçoit ses
                             magasins de la déclaration, une base existante qui s'en écarte (magasin
@@ -212,7 +217,7 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
                             `scheduleFlowTimer`, `clearTrackedTimer`), vidé au teardown de test
-                            (`clearTrackedTimers`, #405) ; seul lieu de `src/state` et `src/lib` où
+                            (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
                             (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
@@ -221,13 +226,13 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
-                            `garanti.ts` : une valeur que son producteur garantit, absente, lève un
-                            défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
+                            `fsPersist.ts` : persistance des datasets édités au Codex (File System
+                            Access API et IndexedDB), importée par `ui/editor/codex/CodexEdit.tsx`.
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
                             isométrique (Dims, tileCenter, rotTile…) — `gameIso/iso.ts` la ré-importe pour
-                            ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via state/relief).
+                            ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
 src/engine/                 Règles WFRP4, PUR + testé :
@@ -283,8 +288,21 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 partyCoverage/dominantAxes depuis `data/axes.json` (`derivation` en ids de
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
-src/state/
-  scene.ts                  SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
+src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'import EN VALEUR de chaque
+                            module n'atteint que `engine`, `data` et les feuilles ; `state` ne s'y lit
+                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `triggeredEffects.ts`,
+                            `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
+                            `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
+                            `battleRng.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`.
+  pendings.ts                 types Pending* (ré-exportés par store.ts)
+  combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
+                              lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
+                              réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
+  monde/                    MODÈLE DU MONDE, dossier de lecture (aucune zone de `COUCHES` ne le tient) :
+                            `flow.ts`, `sceneRules.ts`, `sceneMemo.ts`, `relief.ts`, `terrain/`,
+                            `wallIndex.ts`, `decorIndex.ts`, `footprint.ts`, `path.ts`, `lineOfSight.ts`,
+                            `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`.
+  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
                             dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
                             (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
@@ -303,7 +321,16 @@ src/state/
                             Comptes
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
-                            au foyer des caps (`state/dir8.ts`)
+                            au foyer des caps (`noyau/monde/dir8.ts`)
+  monde/dir8.ts               Dir8 (8 caps grille) + géométrie associée : rotateDir8, DIR8_DELTA,
+                              facingToward (#161 : ex-`gameIso/rig/facing.ts` — la géométrie de cap grille
+                              n'est pas du rendu, `gameIso` la ré-importe pour l'orientation écran)
+  monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
+                              (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
+                              avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
+                              `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
+                              `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
+src/state/
   worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet
                             (`ProjectDoc`, porte `parseProject` : `projetSchema` SEUL contrôle de forme, aucun
                             numéro de version, toute autre forme REFUSÉE — #2404 ; `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
@@ -336,7 +363,7 @@ src/state/
                               CONVENTION « baril » : les clusters FEUILLES extraits sont des modules
                               séparés que combatFlow ré-exporte (`export * from './combatX'`) pour ne
                               pas casser les importeurs — un module feuille n'importe RIEN de combatFlow
-                              (tout passe par get().xxx / modules feuilles). Déjà sortis : combatGeometry.ts
+                              (tout passe par get().xxx / modules feuilles). Déjà sortis : noyau/monde/combatGeometry.ts
                               (géométrie pure), combatPlacement.ts (gestes de placement qui écrivent
                               la bataille) et combatEffects.ts (effets de scène/campagne : applyEffects,
                               butin attribuable, checkTriggers, pushReveal). NE PAS extraire le preview
@@ -358,7 +385,6 @@ src/state/
                               (attaque LDB 13 l.142, Projectile magique LDB 46 l.156) : choisir le dé la
                               re-dérive — il n'y a PAS de « coup ciblé » libre pour un Projectile (RAW).
   corruptionFlow.ts           gainCorruption (seuil → mutation → damnation, révélation 🧬) + cibles
-  pendings.ts                 types Pending* (ré-exportés par store.ts)
   partyFlow.ts                équipement, avancement PX, consommables de fiche, butin
   merchantFlow.ts             marchand : réassort, panier, achat/vente/réparation, Marchandage, Évaluation
   travelFlow.ts               voyage jour par jour (temps, fatigue, péripéties d10+auteur, interruption/reprise)
@@ -366,18 +392,12 @@ src/state/
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge
                               (castPenalties/ActiveEffect.untilTime) — anti-double-comptage lastUpkeepDay
-  spawn.ts / path.ts / bus.ts
-  dir8.ts                     Dir8 (8 caps grille) + géométrie associée : rotateDir8, DIR8_DELTA,
-                              facingToward (#161 : ex-`gameIso/rig/facing.ts` — la géométrie de cap grille
-                              n'est pas du rendu, `gameIso` la ré-importe pour l'orientation écran)
+  spawn.ts / bus.ts
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)
   stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
-  combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
-                              lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
-                              réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
   saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
                               JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
                               une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
@@ -397,11 +417,6 @@ src/state/
                               roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
                               par `ui/PartyScreen`) ; un export d'un autre format est refusé. Le
                               roster ne voyage PAS dans la save de partie
-  seating.ts                  ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
-                              (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
-                              avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
-                              `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
-                              `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
@@ -477,7 +492,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
   detail/                   détail de surface en DONNÉE (`DetailRecipe`, `expandRecipe` → primitives UV
                             seedées) — même recette cuite par le monde et posée en pattern par le SVG
   iso.ts                    dérivés MÉTRIQUES de la projection (WALL_H_M, isoPxToM — besoin du monde,
-                            via state/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
+                            via noyau/monde/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
                             screenToTile, stageSize…) vit dans `src/geometry/iso.ts` (#161)
   sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (dégradés fixes) — PLUS de sprite créature
   rig/                      gabarits corporels (bipède + quadrupède/ailé/serpentin/…) — rend TOUT le bestiaire
@@ -606,7 +621,7 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/voyageCadence.ts` (`traverseeCommandee`)
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
   est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
   (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
   `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres

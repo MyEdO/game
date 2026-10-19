@@ -158,8 +158,8 @@ const BASELINE: string[] = [
   // à viser à ce jour) — les deux lignes s'ôtent d'ici le jour où elle existe.
   'state/sequenceCore.ts | [...ops] | { caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
   'state/sequenceCore.ts | [...decl.attrition] | { caster: c }', // ops d'attrition d'intervalle
-  'state/zones.ts | z.onCross | { caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
-  'state/zones.ts | z.perRound | { caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet
+  'noyau/monde/zones.ts | z.onCross | { caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
+  'noyau/monde/zones.ts | z.perRound | { caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet
 ];
 
 describe('ancrage de règle des ActiveEffect posés', () => {

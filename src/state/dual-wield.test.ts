@@ -5,9 +5,9 @@ import { resolveDualSecond, applyAttackResult } from './combatFlow';
 import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/combat';
 import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 
 const W = (uid: string, hand: 'main' | 'off'): Weapon =>

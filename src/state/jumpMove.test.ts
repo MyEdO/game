@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type Effect } from './scene';
-import { flowEffects, type Flow } from './flow';
+import { emptyScene, type Scene, type Terrain, type Effect } from '../noyau/monde/scene';
+import { flowEffects, type Flow } from '../noyau/monde/flow';
 import { planJump } from './jumpMove';
 import { testDeRegle } from '../engine/reglesChiffrees';
 

@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from '../../state/ai';
 import { creatureToCombatant } from '../../state/spawn';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { findCreatureById } from '../../data';
 import { scenario } from './17-metamorphose-ulric';
 import type { Combatant } from '../../engine/types';

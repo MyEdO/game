@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { actorBillboards, actorPoseKey, actorRenderSignature, type ActorPose } from './sceneMeshes';
-import { emptyScene, sceneMetresPerTile } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
 
 const scene = emptyScene(6, 6);

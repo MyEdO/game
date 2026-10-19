@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { valeursDe } from '../data/schemas/grammaire/meta';
 import { effectTriggerSchema } from '../data/schemas/grammaire/mecanique';
-import type { EffectTrigger } from './flow';
+import type { EffectTrigger } from '../noyau/monde/flow';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
@@ -28,7 +28,7 @@ const BUS_OWNED = ['src/state/combat/roundHooks.ts', 'src/state/combat/turnHooks
 //  - `fireClockTriggers` (clockHooks, bus-owned) : sa boucle par porteur EST la machinerie du cycle
 //    CALENDAIRE, mais elle reçoit son déclencheur en PARAMÈTRE — le site qui le NOMME est sa cadence
 //    unique `runDailyUpkeep` (upkeep.ts), anti-double-comptage des franchissements de jour.
-const DEDICATED_EMITTERS = ['src/state/triggeredEffects.ts', 'src/state/upkeep.ts'];
+const DEDICATED_EMITTERS = ['src/noyau/triggeredEffects.ts', 'src/state/upkeep.ts'];
 
 
 function tsFiles(): { rel: string; src: string }[] {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { props } from '../../data';
 import { empreinteDeriveeDuProp, type PropData } from '../../data/props.types';
-import { DIR4_ORDER } from '../../state/dir8';
-import { propFootTiles } from '../../state/footprint';
-import { emptyScene, isWalkable, sceneMetresPerTile } from '../../state/scene';
+import { DIR4_ORDER } from '../../noyau/monde/dir8';
+import { propFootTiles } from '../../noyau/monde/footprint';
+import { emptyScene, isWalkable, sceneMetresPerTile } from '../../noyau/monde/scene';
 
 /**
  * DÉGÉNÉRESCENCES DE L'EMPREINTE DÉRIVÉE (#1509, « Design jugé » point 2) : les deux pannes qu'un

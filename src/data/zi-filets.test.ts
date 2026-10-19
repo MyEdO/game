@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { fireTriggers } from '../state/triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { useGame } from '../state/store';
-import { seedBattleRng, battleRng } from '../state/battleRng';
-import { emptyScene } from '../state/scene';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 import { resolveRecoverTest } from '../state/combat/recover';
 import { weaponFromTrait } from '../engine/creatureEquip';
 import { findTrappingById, findQualityById } from './index';

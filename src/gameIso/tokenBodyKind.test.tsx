@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { tokenBodyKind } from './tokenBodyKind';
 import { resolveRender } from './rig/bodyPlan';
 import type { Combatant } from '../engine/types';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 
 const hero = { id: 'h1', kind: 'hero', species: 'humains-reiklander', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 

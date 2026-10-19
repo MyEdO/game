@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, resetSceneRegistry } from './store';
 import { presetPnjById, trappingById } from './campaignData';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import type { WorldMap } from './worldMap';
 import { makePregens } from '../data/pregens';

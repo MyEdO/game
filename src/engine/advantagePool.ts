@@ -1,7 +1,7 @@
 /**
  * Avantage de GROUPE (AA 11 l.3-67, Annexe I) : SOCLE PUR de la variante où l'Avantage
  * n'est plus accumulé par combattant mais dans DEUX réserves de camp (alliés / adversaires). Ce module
- * ne dépend que de `types` + `policy` (aucun store/UI) — la couche state (`state/combat/advantagePool`)
+ * ne dépend que de `types` + `policy` (aucun store/UI) — le noyau (`noyau/combat/advantagePool`)
  * l'orchestre sur la `BattleState` (réserve = source de vérité, `Combatant.advantage` = projection).
  *
  * AA 11 l.11-13 : « Les Avantages […] sont acquis et stockés dans la réserve d'Avantages des alliés

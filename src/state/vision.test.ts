@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, combatantLights, darkSightTiles, mapLights, rayonEnCases, type LightField } from './vision';
-import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from './scene';
-import { couvertDArete, losClear } from './lineOfSight';
-import { pathTo } from './path';
+import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from '../noyau/monde/scene';
+import { couvertDArete, losClear } from '../noyau/monde/lineOfSight';
+import { pathTo } from '../noyau/monde/path';
 import { findLightLevelById, structures } from '../data';
 import { couvertDepuisDifficulte, cranDeCouvertEnMoins } from '../engine/cover';
-import { METRES_PER_LEVEL } from './relief';
+import { METRES_PER_LEVEL } from '../noyau/monde/relief';
 import { computeStateVisible } from './visionState';
 import { parseWalledAscii } from './asciiMap';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
@@ -401,7 +401,7 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
       .toEqual(POSTES.map(([x, y, z, attendue]) => `${x},${y},${z} → ${attendue}`));
   });
 
-  /** Attentes DÉRIVÉES du prédicat d'opacité d'arête (`areteOcculte`, `state/scene.ts`). */
+  /** Attentes DÉRIVÉES du prédicat d'opacité d'arête (`areteOcculte`, `noyau/monde/scene.ts`). */
   it('la refend pleine coupe ; la porte, la croisée et le clayonnage laissent voir', () => {
     const carte = carteTemoin();
     expect(vueAu(carte, 4, 1, 0).has('5,1,0'), 'à travers la refend PLEINE').toBe(false);

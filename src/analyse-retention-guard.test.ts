@@ -295,7 +295,7 @@ export function f() {
     const r = liaisons({
       'scripts/guards/lib/perimetre.mjs': PERIMETRE,
       'src/memo.ts': `import ts from 'typescript';
-import { memoByRef } from './state/sceneMemo';
+import { memoByRef } from './noyau/monde/sceneMemo';
 export const arbre = memoByRef((f) => ts.createSourceFile(f.rel, f.text, 99, true));
 `,
       'src/iife.ts': `import { repoProgram } from './tsProgram.mjs';
@@ -342,7 +342,7 @@ let Q; it('x', () => { Q ??= programmeDuPerimetre('.'); });
     expect(
       liaisons({
         'scripts/guards/lib/perimetre.mjs': PERIMETRE,
-        'src/memo.ts': `import { memoByRef } from './state/sceneMemo';
+        'src/memo.ts': `import { memoByRef } from './noyau/monde/sceneMemo';
 export const longueur = memoByRef((f) => f.text.length);
 `,
         'src/iife.ts': `import { repoProgram } from './tsProgram.mjs';
@@ -384,7 +384,7 @@ export const scenes = () => readCorpus(['src/scenes'], { exts: ['.json'] });
       'src/derives.test.ts': `import { describe, it } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { scenes } from '../scripts/guards/lib/lecteur.mjs';
-import { memoByRef } from './state/sceneMemo';
+import { memoByRef } from './noyau/monde/sceneMemo';
 const CORPUS = readCorpus(['src']);
 const TEXTES = CORPUS.map((f) => f.text);
 const CSS = readCorpus(['src'], { exts: ['.css'] }).map(({ text }) => text).join('\\n');

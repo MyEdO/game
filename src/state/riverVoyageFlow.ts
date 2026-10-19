@@ -22,7 +22,7 @@
  * propre à la descente (`river-exposition`) ; tables hydriques : `engine/waterExposure.ts`.
  */
 import type { PlayerText } from '../i18n/playerText';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
 import { openRest, placesOfKind, routeLieu } from './restFlow';
@@ -30,7 +30,7 @@ import { placeById, type MapRoute, type WorldMap } from './worldMap';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines } from './recapLine';
+import { toRecapLines } from '../noyau/recapLine';
 import { travelSpeed, type TravelMode } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { propulsionDuNavire, type PropulsionDuNavire } from '../engine/shipBuild';
@@ -56,14 +56,14 @@ import {
   type RiverWindForceId, type RiverWindDirId,
 } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cascade';
-import { checkPartyWiped } from './partyWipe';
-import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
-import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn, equipageApte } from './combatants';
+import { startCascade, registerCascadeApplier, runCascadeImmediate } from '../noyau/cascade';
+import { checkPartyWiped } from '../noyau/partyWipe';
+import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from '../noyau/rollSeam';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { actorIn, equipageApte } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
-import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
-import type { CascadeStep, CascadeStepMeta } from './pendings';
+import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from '../noyau/voyageCadence';
+import type { CascadeStep, CascadeStepMeta } from '../noyau/pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
@@ -71,7 +71,7 @@ import { shipLocationLabel, rollShipCritical, applyCrewHit, exposedCrew } from '
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
-import { stepDetail, stepPrecision } from './rollSeam';
+import { stepDetail, stepPrecision } from '../noyau/rollSeam';
 
 /** SPÉCIALISATIONS de Métier lues par la réparation de bateau (l.107-117) — ids STABLES de
  *  `skills.json`, JAMAIS des libellés : `testValue` compare `s.spec === spec` à l'ID que porte
@@ -676,7 +676,7 @@ registerCascadeApplier('riverRighting', (get, set, step) => {
       ...(suivant ? { insert: [suivant] } : {}),
     };
   }
-  const j: import('./rollSeam').FreeConsLine[] = [];
+  const j: import('../noyau/rollSeam').FreeConsLine[] = [];
   sinkBoat(get, set, (l) => j.push(...l), t('rv.sinkNotRighted', { be }));
   return { consequences: freeCons(j) };
 });
@@ -685,7 +685,7 @@ registerCascadeApplier('riverRighting', (get, set, step) => {
 registerCascadeApplier('riverRigging', (get, set, step) => {
   if (!step.result) return;
   if (step.result.success) return { consequences: freeCons([{ text: t('rv.riggingHolds'), tone: 'ok' }]) };
-  const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.riggingCrit'), tone: 'bad' }];
+  const j: import('../noyau/rollSeam').FreeConsLine[] = [{ text: t('rv.riggingCrit'), tone: 'bad' }];
   const insert = applyBoatCritical(get, set, get().travelPlan!, get().travelPlan!.river!, get().travelPlan!.vehicle!, 'greement', (l) => j.push(...l), battleRng(), step.id);
   set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, outOfControl: true } } });
   patchDay(get, set, { forceDrift: true });
@@ -797,7 +797,7 @@ registerCascadeApplier('riverHoleRepair', (get, set, step, hero) => {
     set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, holed: false } } });
     return { consequences: freeCons([{ text: t('rv.holeRepairOk', { name, n: healed }), tone: 'ok' }]) };
   }
-  const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.holeRepairKo', { name }), tone: 'bad' }];
+  const j: import('../noyau/rollSeam').FreeConsLine[] = [{ text: t('rv.holeRepairKo', { name }), tone: 'bad' }];
   sinkBoat(get, set, (l) => j.push(...l), t('rv.sinkLeak'));
   return { consequences: freeCons(j) };
 });
@@ -809,7 +809,7 @@ registerCascadeApplier('riverPerilDetect', (get, set, step) => {
   const peril = findRiverPeril(String(step.meta?.perilId ?? ''));
   if (!step.result || !peril?.onHit) return;
   if (step.result.success) return { consequences: freeCons([{ text: t('rv.perilAvoided', { peril: peril.label }), tone: 'ok' }]) };
-  const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.perilImpact', { peril: peril.label }), tone: 'bad' }];
+  const j: import('../noyau/rollSeam').FreeConsLine[] = [{ text: t('rv.perilImpact', { peril: peril.label }), tone: 'bad' }];
   const rng = battleRng();
   const impact = resolveRiverImpact(peril.onHit, rng);
   const plan = get().travelPlan!;
@@ -1010,7 +1010,7 @@ function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string }
 /** ÉCHOUAGE (#270) : Dégâts fixes appliqués immédiatement (non-jetés) ; le renflouage (Test de Force)
  *  devient une étape-jet INFLUENÇABLE (`riverEchouageForce`) quand le jet de l'acteur se surface —
  *  sinon délègue à `applyEchouage` (chemin IA/synchrone inchangé). */
-function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./rollSeam').FreeConsLine[]): BuiltCascadeStep[] {
+function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('../noyau/rollSeam').FreeConsLine[]): BuiltCascadeStep[] {
   const force = partyAssisted(get().party, undefined, 'force');
   if (!force || !surfaceOf(get, force.actor.id)) {
     applyEchouage(get, set, (l) => j.push(...l));

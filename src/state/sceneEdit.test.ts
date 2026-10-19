@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { crenellatedAt, DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, DEFAULT_TERRAIN, emptyScene, tileAt, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene, type Terrain } from './scene';
+import { crenellatedAt, DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, DEFAULT_TERRAIN, emptyScene, tileAt, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene, type Terrain } from '../noyau/monde/scene';
 import { semencesDeScene } from '../data';
-import { METRES_PER_LEVEL } from './relief';
+import { METRES_PER_LEVEL } from '../noyau/monde/relief';
 import {
   addArchitectureBody,
   bodyFootCells,
@@ -24,9 +24,9 @@ import {
   seatOccupant,
   toitureEffective,
 } from './sceneEdit';
-import { PARTY_MAX } from './combatants';
+import { PARTY_MAX } from '../noyau/monde/combatants';
 import { validateScene } from './validateScene';
-import { estAbsent, terrainAbsent } from './terrain';
+import { estAbsent, terrainAbsent } from '../noyau/monde/terrain';
 import { perimeterWallSegs } from './sceneEdit.testkit';
 import { stairFlightCells } from './planDefects';
 import { parseProject } from './worldMap';
@@ -843,7 +843,7 @@ describe('écritures mécaniques d’entité — privées au module, le seam est
 /**
  * CARDINAL de la grille au RUNTIME (#1789) — le refine du schéma garde les DOCUMENTS, `putLayer`
  * garde les POSES : une couche plus courte que `w×h` rendrait des trous au même index aplati
- * `y·w+x`, et `tileAt` (`state/scene.ts`) n'a plus AUCUN repli de tuile pour les masquer.
+ * `y·w+x`, et `tileAt` (`noyau/monde/scene.ts`) n'a plus AUCUN repli de tuile pour les masquer.
  */
 describe('putLayer — une couche posée porte EXACTEMENT `w×h` entrées', () => {
   const grille = () => emptyScene(4, 4);

@@ -13,7 +13,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { campaignStart } from '../engine/clock';
 import { dismissStackKinds } from '../state/dismissStack';
-import type { Dialogue } from '../state/scene';
+import type { Dialogue } from '../noyau/monde/scene';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { DialogueBox } from './DialogueBox';
 import { LogDrawer } from './LogDrawer';

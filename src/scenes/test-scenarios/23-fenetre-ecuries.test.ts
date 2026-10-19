@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, heightAt, isWalkable, porteMasquee, startOf, type WallSeg } from '../../state/scene';
+import { emptyScene, heightAt, isWalkable, porteMasquee, startOf, type WallSeg } from '../../noyau/monde/scene';
 import { validateScene } from '../../state/validateScene';
 import { planFranchissement } from '../../state/fallMove';
 import { scenePlanDefects } from '../../state/planDefects';

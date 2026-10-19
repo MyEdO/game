@@ -10,7 +10,7 @@ import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs
  * — jusqu'à ce qu'un document authoré le pose.
  *
  * Le contrat tenu ici est une ÉGALITÉ D'ENSEMBLE, mesurée des DEUX côtés du pont :
- * — côté TYPE : les membres de l'union manuscrite `Effect` (`src/state/scene.ts`), lus à l'AST —
+ * — côté TYPE : les membres de l'union manuscrite `Effect` (`src/noyau/monde/scene.ts`), lus à l'AST —
  *   composition mince de `z.infer<typeof xSchema>` + 3 corps manuscrits (`DelayedEffect`,
  *   `PetitePriere`, `EffectOp`). Le discriminant d'un membre `z.infer` est relu à l'AST du schéma
  *   NOMMÉ (`effets.ts`), celui d'un corps manuscrit à l'AST de sa déclaration — jamais une liste
@@ -39,7 +39,7 @@ import * as ts from 'typescript/unstable/ast';
 import { effectSchema } from './effets';
 import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
-const SCENE = fileURLToPath(new URL('../../../state/scene.ts', import.meta.url));
+const SCENE = fileURLToPath(new URL('../../../noyau/monde/scene.ts', import.meta.url));
 const EFFETS = fileURLToPath(new URL('./effets.ts', import.meta.url));
 const MECANIQUE = fileURLToPath(new URL('../grammaire/mecanique.ts', import.meta.url));
 /** Modules où vit un schéma composé par un membre `z.infer<…>` de l'union `Effect`. */
@@ -208,11 +208,11 @@ describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == c
 
   it('un membre dont le SCHÉMA n’est plus résolu sort NOMMÉ, jamais en silence (preuve de câblage)', () => {
     const brut = readFileSync(SCENE, 'utf8');
-    // La sonde vise un membre de l'UNION `Effect` : `state/scene.ts` compose aussi les FORMES de la
+    // La sonde vise un membre de l'UNION `Effect` : `noyau/monde/scene.ts` compose aussi les FORMES de la
     // scène en `z.infer` (`defs-scenes/scene.ts`), qui ne sont pas des effets et que ce verrou ne
     // mesure pas. Le premier `z.infer` du fichier n'est donc pas forcément un membre d'`Effect`.
     const bloc = /export type Effect =[\s\S]*?;\n/.exec(brut);
-    expect(bloc, 'union `Effect` introuvable dans `state/scene.ts` : la sonde ne mesure plus rien.').not.toBeNull();
+    expect(bloc, 'union `Effect` introuvable dans `noyau/monde/scene.ts` : la sonde ne mesure plus rien.').not.toBeNull();
     const premier = /z\.infer<typeof (\w+)>/.exec(bloc![0]);
     expect(premier, 'aucun membre `z.infer<typeof …>` dans `Effect` : la sonde ne mesure plus rien.').not.toBeNull();
 

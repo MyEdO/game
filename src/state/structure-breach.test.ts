@@ -9,8 +9,8 @@ import {
   setDoorOpen,
   type Scene,
   type WallSeg,
-} from './scene';
-import { reachable } from './path';
+} from '../noyau/monde/scene';
+import { reachable } from '../noyau/monde/path';
 import { computeVisible, computeLightField } from './vision';
 import { findStructureById } from '../data';
 

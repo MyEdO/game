@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { checkTriggers } from './combatEffects';
-import { flowFromEffects } from './flow';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type Trigger } from './scene';
+import { flowFromEffects } from '../noyau/monde/flow';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type Trigger } from '../noyau/monde/scene';
 
 /** Intégration : `temporalCondition` doit gater le trigger dans `checkTriggers` — il ne se déclenche
  *  qu'en étant DANS la zone ET DANS la fenêtre horaire. On observe un effet `journal` (évite la

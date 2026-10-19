@@ -10,7 +10,7 @@ import { useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { getStagePan, poserPan } from '../../state/stagePan';
 import { useGame } from '../../state/store';
 import { VH, VW } from './useStageCamera';

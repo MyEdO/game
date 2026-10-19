@@ -4,7 +4,7 @@
  *
  * Deux producteurs, un seul consommateur : le registre des actions de COMBAT (`registreOffres`,
  * `Offre` avec son `ActionDef` et ses arguments de dispatch) et le dériveur d'EXPLORATION
- * (`state/usable.actionsDe` + `store.jouerAction`, via `offresUtilisables`) projettent tous deux
+ * (`noyau/monde/usable.actionsDe` + `store.jouerAction`, via `offresUtilisables`) projettent tous deux
  * ici ; `gameIso/stage/PastilleEntite` et le panneau borné n'en lisent rien d'autre. Un producteur
  * N+1 ne touche ni la pastille ni le panneau — il rend cette forme.
  *

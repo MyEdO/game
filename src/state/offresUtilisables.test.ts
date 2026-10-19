@@ -7,7 +7,7 @@
  */
 import { tableTotale } from '../lib/tableTotale';
 import { describe, expect, it, vi } from 'vitest';
-import { emptyScene, type Scene, type SceneEntity } from './scene';
+import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { offresUtilisables, porteDOffre } from './offresUtilisables';
 import { useGame, type GameState } from './store';
 

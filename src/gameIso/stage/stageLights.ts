@@ -38,7 +38,7 @@
  * PLANCHE partage : la planche QC change avec.
  */
 import * as THREE from 'three';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import { ambientScalar } from '../../state/vision';
 import { ambianceLuminance, weatherLightScalars, type WeatherLight } from '../catalog/ambiance';
 import {

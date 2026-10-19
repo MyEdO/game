@@ -167,7 +167,7 @@ export function recordsDeLibelles(fichiers: readonly Fichier[], vocabulaires: re
 }
 
 const sourcesDuDepot = (): Fichier[] =>
-  readCorpus(['src/ui', 'src/engine', 'src/state', 'src/data']).map(({ rel, text }) => ({ chemin: rel, source: text }));
+  readCorpus(['src/ui', 'src/engine', 'src/state', 'src/noyau', 'src/data', 'src/web']).map(({ rel, text }) => ({ chemin: rel, source: text }));
 
 /**
  * STOCK NOMINATIF GELÉ, par `fichier:symbole` — les Records de libellés de valeurs qui vivaient déjà

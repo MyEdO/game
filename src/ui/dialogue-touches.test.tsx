@@ -20,7 +20,7 @@ import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { hotbar } from '../state/hotbarBridge';
 import { campaignStart } from '../engine/clock';
-import type { Dialogue, DialogueNode } from '../state/scene';
+import type { Dialogue, DialogueNode } from '../noyau/monde/scene';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 function Harness() {

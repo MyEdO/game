@@ -45,13 +45,13 @@ import { findVehicleById, activityStakeRef, refLabel, dataLabel } from '../data'
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { TravelRecapDay } from './travelFlow';
-import { toRecapLines } from './recapLine';
+import { toRecapLines } from '../noyau/recapLine';
 import type { Get, Set } from './flowTypes';
-import type { BuiltCascadeStep } from './stepBrand';
-import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
-import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from '../noyau/rollSeam';
+import { registerCascadeApplier, registerExtendedTestOutcome } from '../noyau/cascade';
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */

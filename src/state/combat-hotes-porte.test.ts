@@ -6,16 +6,16 @@ import {
   openCastOpposition, shareCastStep, applyStructureCriticalToTarget, applyMiscast, resolveDeviation,
   previewCritEntry,
 } from './combatFlow';
-import { stakeAtTableRow } from './cascade';
+import { stakeAtTableRow } from '../noyau/cascade';
 import { combatStakeRef } from '../data';
 import { ownsLocal } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './sieges';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seatOwns } from '../noyau/sieges';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { resolveCritique } from '../engine/critical';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * LES HÔTES DE JET DE COMBAT PAR LA PORTE (#1262 V1 lot 5a) — Désengagement, Défense (×3),

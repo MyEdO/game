@@ -3,7 +3,7 @@ import { Profiler, StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { useGame } from '../../state/store';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { hasSpritePicker, targetUnderPointer } from './spritePicker';

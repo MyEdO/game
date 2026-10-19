@@ -15,12 +15,12 @@
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import { CELL, projectStep, stepOf, tileCenter, type Dims, type ProjKind } from '../../geometry/iso';
-import { DIR8_DELTA, type Dir8 } from '../../state/dir8';
+import { DIR8_DELTA, type Dir8 } from '../../noyau/monde/dir8';
 import { wedgePath } from '../topoMarkers';
-import { inBattleId } from '../../state/combatants';
-import { footprintN } from '../../state/footprint';
+import { inBattleId } from '../../noyau/monde/combatants';
+import { footprintN } from '../../noyau/monde/footprint';
 import { mountOf } from '../../state/mount';
-import type { Pt } from '../../state/path';
+import type { Pt } from '../../noyau/monde/path';
 import type { BattleState } from '../../state/store';
 import { combatantTokenScale } from '../sizeScale';
 import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';

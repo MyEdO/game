@@ -4,8 +4,8 @@ import { stage3dFramingFor, viewBoxScreen } from './stage3dCamera';
 import { viewBoxMeetScale, viewBoxScreenPixel } from './stageCam';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
 import { stageSize, tileCenter, type Dims, type Rot } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
-import { sceneMetresPerTile } from '../../state/scene';
+import { metricToLift } from '../../noyau/monde/relief';
+import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { scenario } from '../../scenes/test-scenarios/zones-pieces';
 const scenarioConstruit = scenario.construire();
 

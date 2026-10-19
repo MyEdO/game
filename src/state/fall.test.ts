@@ -4,9 +4,9 @@ import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffect
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { hasCondition } from '../engine/conditions';
-import { emptyScene, isWalkable, type Effect, type Scene, type Terrain } from './scene';
+import { emptyScene, isWalkable, type Effect, type Scene, type Terrain } from '../noyau/monde/scene';
 import { validateScene } from './validateScene';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { draineCascade } from './cascadeTestKit';
 import { t } from '../i18n';
 

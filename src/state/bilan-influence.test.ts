@@ -1,12 +1,12 @@
 import { resolveStake } from '../data';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { contractDisease, contagiousDiseases } from '../engine/disease';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep, CascadeRoll } from './pendings';
+import type { CascadeStep, CascadeRoll } from '../noyau/pendings';
 import { fixtureText } from '../i18n/fixtureText';
 
 /**

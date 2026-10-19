@@ -10,9 +10,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 

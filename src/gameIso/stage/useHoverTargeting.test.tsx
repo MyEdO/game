@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
 import { useGame } from '../../state/store';
-import { startCascade } from '../../state/cascade';
+import { startCascade } from '../../noyau/cascade';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useHoverTargeting, type HoverAim } from './useHoverTargeting';
 import { AimOverlay } from './AimOverlay';

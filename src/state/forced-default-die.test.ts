@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 

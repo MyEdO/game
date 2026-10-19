@@ -2,7 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * GRIMPANT (LDB 85 l.160-162, #504) : une créature porteuse escalade une arête `WallSeg.climb` en

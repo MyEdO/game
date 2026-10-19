@@ -9,8 +9,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
-import { emptyScene, type Scene } from './scene';
-import { chebyshev } from './path';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { chebyshev } from '../noyau/monde/path';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 

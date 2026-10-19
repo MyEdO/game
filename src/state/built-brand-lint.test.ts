@@ -26,7 +26,7 @@ async function messagesDeVerrou(code: string): Promise<string[]> {
   return selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')).map((m) => `${m.line}:${m.column}`);
 }
 
-const ENTETE = "import type { BuiltCascadeStep } from './stepBrand';\ndeclare const o: unknown;\n";
+const ENTETE = "import type { BuiltCascadeStep } from '../noyau/stepBrand';\ndeclare const o: unknown;\n";
 
 describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   it('`x as BuiltCascadeStep` — la forme directe', async () => {
@@ -51,7 +51,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   });
 
   it('LIMITE ASSUMÉE : annoter une valeur déjà élargie passe — aucun nœud de cast à interdire', async () => {
-    const code = "import type { BuiltCascadeStep } from './stepBrand';\ndeclare const brut: any;\nexport const f: BuiltCascadeStep = brut;\n";
+    const code = "import type { BuiltCascadeStep } from '../noyau/stepBrand';\ndeclare const brut: any;\nexport const f: BuiltCascadeStep = brut;\n";
     expect(await messagesDeVerrou(code), 'documentée au JSDoc de `stepBrand.ts` — jamais un oubli').toHaveLength(0);
   });
 
@@ -75,7 +75,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   it('l’alias sous un TABLEAU (`type B = readonly BuiltCascadeStep[]`) est refusé aussi', async () => {
     const code = [
-      "import type { BuiltCascadeStep } from './stepBrand';",
+      "import type { BuiltCascadeStep } from '../noyau/stepBrand';",
       'declare const o: unknown;',
       'type AliasTab = readonly BuiltCascadeStep[];',
       'export const j = o as AliasTab;',
@@ -90,7 +90,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   it('un type de CALLBACK qui EXIGE des étapes mintées passe : employer la marque n’est pas la déguiser', async () => {
     const code = [
-      "import type { BuiltCascadeStep } from './stepBrand';",
+      "import type { BuiltCascadeStep } from '../noyau/stepBrand';",
       'type Applier = (rowInserts: readonly BuiltCascadeStep[]) => BuiltCascadeStep[];',
       'export const l: Applier = (r) => [...r];',
     ].join('\n');
@@ -108,7 +108,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   /** Les MINTEURS sont SOUS la règle : chaque cast légitime porte son exemption AU SITE, aucune au fichier. */
   it.each([
-    ['src/state/rollSeam.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
+    ['src/noyau/rollSeam.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
     ['src/state/revealStep.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
     ['src/ui/rollRowBuild.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltRollRow;'],
     ['src/i18n/index.ts', "export const forge = 'sonde' as PlayerText;"],
@@ -362,7 +362,7 @@ describe('#1262 V4 M2 — le murage du CHOIX DE GROUPE est TUEUR', () => {
  * sont rejouées ici sur la config RÉELLE : sans elles, ajouter un nom au sélecteur serait une
  * déclaration, pas un murage.
  *
- * Chaque minteur est SOUS la règle avec son exemption AU SITE : `i18n/index.ts` et `state/rollSeam.ts`
+ * Chaque minteur est SOUS la règle avec son exemption AU SITE : `i18n/index.ts` et `noyau/rollSeam.ts`
  * sont mesurés par le volet des minteurs du verrou de forge (#1988), `i18n/fixtureText.ts` par les deux
  * volets du bas — un second cast y échoue.
  */
@@ -505,13 +505,13 @@ describe('#1318 V8a₀ T1/T2 — le lint mure les CONTENEURS qui blanchissent le
   });
 
   it('T2 : `x as CascadeStep` est REFUSÉ dans un fichier de flux', async () => {
-    const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const a = o as CascadeStep;\n";
+    const code = "import type { CascadeStep } from '../noyau/pendings';\ndeclare const o: unknown;\nexport const a = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.ts' });
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(1);
   });
 
   it('T2 : le même cast dans un fichier de TEST passe — le stock y est GELÉ au cliquet, pas muré', async () => {
-    const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const b = o as CascadeStep;\n";
+    const code = "import type { CascadeStep } from '../noyau/pendings';\ndeclare const o: unknown;\nexport const b = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.test.ts' });
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
   });

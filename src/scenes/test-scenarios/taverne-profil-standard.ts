@@ -1,9 +1,9 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { findSpeciesById } from '../../data';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Taverne — un PNJ à profil standard » (#1882) : un habitué de la salle, typé par le profil standard de

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
 import { ficheDEntite } from './sceneNpc';
-import { memoByRef } from './sceneMemo';
+import { memoByRef } from '../noyau/monde/sceneMemo';
 import { consumeAmmo } from '../engine/items';
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneEntity } from '../noyau/monde/scene';
 
 // #2097 — `consumeAmmo` écrit le stock `poste.ammo` hydraté au spawn (`hydratePoste`).
 const geler = memoByRef((s: Scene) => s);

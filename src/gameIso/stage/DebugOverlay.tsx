@@ -6,9 +6,9 @@ import type { JSX } from 'react';
  * teinte par couche (z1 cyan / z2 violet). Pastilles de rôle de structure sur les arêtes (porte jaune /
  * courtine rouge). Purement additif : n'altère NI le rendu NI le tri.
  */
-import { Scene, type WallSeg } from '../../state/scene';
+import { Scene, type WallSeg } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
-import { estAbsent } from '../../state/terrain';
+import { estAbsent } from '../../noyau/monde/terrain';
 import { wallEnds } from '../builders/walls';
 import { Dims, tileCenter, diamondPath } from '../../geometry/iso';
 

@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
-import { monoStep } from './rollSeam';
+import { monoStep } from '../noyau/rollSeam';
 import { hasCondition, COND } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import {

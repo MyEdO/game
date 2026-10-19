@@ -6,19 +6,19 @@
 import type { BattleState } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, EffectSource } from '../engine/types';
-import { Scene, isWalkable } from './scene';
-import { Pt, tileKey } from './path';
-import { footprintTiles, footprintN, occupiesTile } from './footprint';
-import { actorIn } from './combatants';
+import { Scene, isWalkable } from '../noyau/monde/scene';
+import { Pt, tileKey } from '../noyau/monde/path';
+import { footprintTiles, footprintN, occupiesTile } from '../noyau/monde/footprint';
+import { actorIn } from '../noyau/monde/combatants';
 import { sizeGap } from '../engine/size';
 import { isOutOfAction } from '../engine/conditions';
-import { crossZones, zoneCovers } from './zones';
-import { battleRng } from './battleRng';
-import { ev } from './combatLog';
+import { crossZones, zoneCovers } from '../noyau/monde/zones';
+import { battleRng } from '../noyau/battleRng';
+import { ev } from '../noyau/combatLog';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
-import { pruneSeatAssignments } from './seating';
-import { occupied, premiereCaseEnAnneaux } from './combatGeometry';
+import { pruneSeatAssignments } from '../noyau/monde/seating';
+import { occupied, premiereCaseEnAnneaux } from '../noyau/monde/combatGeometry';
 // Type-only (effacé à la compilation) : la FORME du Flow gaté posé pour une zone `crossTest` — ce
 // module reste BAS NIVEAU (aucun import de `combat/triggeredTest`/`combatEffects`, qui remonteraient
 // vers lui → cycle) ; la résolution cadence-aware est déléguée au hook `setZoneCrossTestHook`

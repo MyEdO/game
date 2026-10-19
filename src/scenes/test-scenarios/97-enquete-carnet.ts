@@ -1,9 +1,9 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * Recette du carnet d'enquête (#670, mécanique MAISON — aucune règle RAW) : une affaire, deux

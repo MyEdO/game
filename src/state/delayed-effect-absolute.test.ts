@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects, fireScheduledEffects } from './combatEffects';
-import { flowFromEffects } from './flow';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
 import { bus, EVT } from './bus';
-import type { Effect } from './scene';
+import type { Effect } from '../noyau/monde/scene';
 
 /**
  * #668 — extension de `delayedEffect`/`setObjective` au JOUR/DATE ABSOLU (`ScheduleSpec`,

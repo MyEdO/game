@@ -34,7 +34,7 @@ const RECOPIE = /metresPerTile\s*\?\?\s*2/;
  */
 const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   // ── LA LECTURE canonique de l'échelle (le seul endroit où le défaut RAW est écrit)
-  { fichier: 'state/scene.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
+  { fichier: 'noyau/monde/scene.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
 
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
   { fichier: 'gameIso/builders/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
@@ -44,12 +44,12 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'data/props.types.ts', texte: 'const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));', role: 'EMPRISE du corps tourné d’un décor → cases de son empreinte (#1509, arrondi haut, plancher 1)' },
 
   // ── LES PORTÉES de règle chiffrées en mètres
-  { fichier: 'state/combatGeometry.ts', texte: 'export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1, Math.ceil(metres / mpt));', role: 'PORTÉE d’une aura/d’un effet d’aire → cases (arrondi haut, plancher 1)' },
+  { fichier: 'noyau/monde/combatGeometry.ts', texte: 'export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1, Math.ceil(metres / mpt));', role: 'PORTÉE d’une aura/d’un effet d’aire → cases (arrondi haut, plancher 1)' },
   { fichier: 'state/combatFlow.ts', texte: "Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));", role: 'GABARIT d’un sort de zone → cases (arrondi bas, plancher 0)' },
   { fichier: 'state/combatFlow.ts', texte: 'const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene)));', role: 'recul de 2 m d’une règle RAW → cases' },
   { fichier: 'engine/movement.ts', texte: 'return Math.ceil((2 * Math.max(0, metres)) / metresPerTile);', role: 'coût d’ESCALADE (mètres de dénivelé) → budget de Marche en cases' },
   { fichier: 'engine/scatter.ts', texte: 'const distTiles = Math.max(0, Math.round(distM / metresPerTile));', role: 'DISPERSION d’un tir (mètres) → cases' },
-  { fichier: 'state/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },
+  { fichier: 'noyau/monde/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },
 
   // ── LE MONDE NAVAL (portées de coque, en mètres au RAW)
   { fichier: 'state/combatSlice.ts', texte: 'const gap = Math.max(1, Math.round(75 / mpt));', role: 'ÉCART de départ d’un combat naval (75 m, MDG 12 l.401) → cases' },
@@ -96,6 +96,6 @@ describe('échelle de la scène — les sites de traduction mètres ⇄ cases so
 
   it('plus AUCUNE recopie du défaut (`metresPerTile ?? 2`) hors de sa lecture canonique', () => {
     const recopies = mesures().filter((s) => RECOPIE.test(s.texte));
-    expect(recopies.map((s) => s.fichier)).toEqual(['state/scene.ts']);
+    expect(recopies.map((s) => s.fichier)).toEqual(['noyau/monde/scene.ts']);
   });
 });

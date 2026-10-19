@@ -5,7 +5,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
-import { resultLines, freeCons } from '../state/rollSeam';
+import { resultLines, freeCons } from '../noyau/rollSeam';
 
 /**
  * Test de Dextérité (+20) PAR ACTION de « Main ensanglantée » (Aux Armes bras 46-50, l.2569) : interposé

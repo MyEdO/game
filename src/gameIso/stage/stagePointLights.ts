@@ -48,7 +48,7 @@
  */
 import * as THREE from 'three';
 import { findLightLevelById, findLightToneById, DEFAULT_LIGHT_TONE_ID, type LightToneDef } from '../../data';
-import { heightAt, type Scene } from '../../state/scene';
+import { heightAt, type Scene } from '../../noyau/monde/scene';
 import type { LightSource } from '../../state/vision';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { LIGHT_COLOR } from '../backends/webgl/sceneMeshes';

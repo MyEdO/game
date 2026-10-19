@@ -8,7 +8,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testValueSplit, testBreakdown, testPending } from './breakdown';
 import { APPRAISE_SKILL } from '../state/merchantFlow';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../state/flowOutcomes';
 
 /** Enjeu servi par chaque mode d'Évaluation. */

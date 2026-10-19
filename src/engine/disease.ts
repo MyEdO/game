@@ -293,7 +293,7 @@ function snapshotInfectionResidual(c: Combatant, dz: Disease): void {
 }
 /** Instances de symptôme ACTIVES et NON suspendues du porteur (maladies en phase `active`, hors
  *  `suppressSymptom`) — ACCESSEUR CANONIQUE unique. Base commune de `diseasePassiveOps` (canal passif)
- *  et des `effects` DÉCLENCHÉS des symptômes (source du dispatcher, `state/triggeredEffects`). */
+ *  et des `effects` DÉCLENCHÉS des symptômes (source du dispatcher, `noyau/triggeredEffects`). */
 export function activeSymptoms(c: Combatant): DiseaseSymptom[] {
   return (c.diseases ?? [])
     .filter((d) => d.phase === 'active')

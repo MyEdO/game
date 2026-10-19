@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from './flow';
-import { rollStep } from './rollSeam';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
+import { rollStep } from '../noyau/rollSeam';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ModLine } from '../engine/types';
 import { clampTarget } from '../engine/tests';
 import { testStatePenalty } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { RULE_REF } from '../engine/ruleRefs';
 import { psychologies } from '../data';
 import { codexLookupById } from '../ui/compendium/registry';

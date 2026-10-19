@@ -23,7 +23,7 @@ import { currentTargetingMode } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
 import type { SeaWind } from '../engine/domainAttributes';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
  *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */

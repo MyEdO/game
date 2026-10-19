@@ -23,7 +23,7 @@ import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
 import { armePrincipale } from '../../rig/parts/equipment';
 import { VIEWS, type View } from '../../rig/facing';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import type { BattleState } from '../../../state/store';
 import type { Combatant, Weapon } from '../../../engine/types';
 import { BB_W, BB_H } from '../../pov/billboardCore';

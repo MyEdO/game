@@ -16,16 +16,16 @@
  *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
  *      surcharge runtime → toutes les règles reviennent à leur défaut RAW (sinon une règle maison
  *      posée par un test — `cleave`, `combat-optional-rules`… — fuit dans un test pur ultérieur).
- *    - le REGISTRE DES CONSÉQUENCES DE CASCADE (`state/cascade`) : peuplé à l'import par les modules de
+ *    - le REGISTRE DES CONSÉQUENCES DE CASCADE (`noyau/cascade`) : peuplé à l'import par les modules de
  *      domaine (restFlow/combatFlow/travelFlow — TOUJOURS importés ici via le store), mais aussi PAR
  *      LES TESTS (`cascade.test` enregistre un faux `shelter`, `cadence-rapide` un faux `tally`…). On
  *      capture le registre RÉEL avant chaque test et on le restaure après (retrait des kinds ajoutés,
  *      restauration des kinds écrasés) — sinon un faux applier écrase le vrai et fuit (ex. `shelter`
  *      écrasé → `rest-flow` n'insère plus l'Exposition).
- *    - le RNG DE COMBAT (`state/battleRng`) : semé par `seedBattleRng`/`store.seedRng`, il garde sinon
+ *    - le RNG DE COMBAT (`noyau/battleRng`) : semé par `seedBattleRng`/`store.seedRng`, il garde sinon
  *      la POSITION de flux laissée par le fichier précédent (cf. le bloc `seedBattleRng` ci-dessous).
  *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
- *      `onOwnTestFailed` (`state/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
+ *      `onOwnTestFailed` (`noyau/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
  *      du `beforeEach` ci-dessous.
  *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `state/store`) : peuplé par `registerScene`/`loadProject`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
@@ -44,7 +44,7 @@
  *      sommet reproduit le rouge à l'identique, et le TEMPS n'y change rien (la fermeture est synchrone).
  *      Les bancs de la couture gardent en plus leur propre `resetDismissLayers` en `beforeEach` — ils
  *      posent leur décor de pile, ils ne dépendent pas de ce filet.
- *    - les STOCKAGES WEB (`lib/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
+ *    - les STOCKAGES WEB (`web/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
  *      `__resetLibraryForTest`) : jsdom garde `localStorage`/`sessionStorage` d'un fichier à l'autre du
  *      worker, et la bibliothèque tient un cache de module. Un fichier qui laisse un projet, un roster ou
  *      un miroir de bibliothèque le lègue à `initLibrary`/`rosterLoad` du fichier suivant : un banc
@@ -61,7 +61,7 @@
  *
  * 2. FILET D'ISOLATION DES TIMERS. Le combat planifie l'IA et l'enchaînement des tours via de VRAIS
  *    `setTimeout` (`combatFlow.ts`/`combatDirector.ts`/`combatAuto.ts`, via `scheduleCombatTimer` de
- *    `lib/minuteries.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
+ *    `web/minuteries.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
  *    échéance. Un test qui arme `vi.useFakeTimers()` sans le restaurer laisse des timers fantômes :
  *    `vi.useRealTimers()` DÉSINSTALLE l'horloge factice et JETTE ses timers en attente (en mode réel,
  *    c'est un no-op → ZÉRO risque). Mais un test SYNCHRONE qui déclenche un beat de combat AVANT de
@@ -97,14 +97,14 @@ import { useGame, resetSceneRegistry, scenesDuRegistre, type GameState } from '.
 import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
-import { cascadeAppliers } from './state/cascade';
-import { clearTrackedTimers } from './lib/minuteries';
-import { resetOwnTestFailedGuard } from './state/triggeredEffects';
+import { cascadeAppliers } from './noyau/cascade';
+import { clearTrackedTimers } from './web/minuteries';
+import { resetOwnTestFailedGuard } from './noyau/triggeredEffects';
 import { resetDesFixes } from './engine/fixedDie';
-import { seedBattleRng } from './state/battleRng';
+import { seedBattleRng } from './noyau/battleRng';
 import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
-import { stockageWeb } from './lib/stockageWeb';
+import { stockageWeb } from './web/stockageWeb';
 import { __resetLibraryForTest } from './state/projectLibrary';
 import { takeObsoleteNotice } from './state/saves';
 import { __resetTraceLayerForTest } from './state/traceLayer';
@@ -438,7 +438,7 @@ beforeEach(() => {
   // fenêtre de pose de dé s'y ouvre, l'attaque suspend, les Blessures n'arrivent jamais). Remis à zéro
   // au même titre que le registre des règles optionnelles : l'ordre d'exécution ne décide de rien.
   resetDesFixes();
-  // RNG DE COMBAT (`state/battleRng`) : singleton de module lui aussi, SEMÉ par tout fichier qui appelle
+  // RNG DE COMBAT (`noyau/battleRng`) : singleton de module lui aussi, SEMÉ par tout fichier qui appelle
   // `seedBattleRng`/`store.seedRng`. Sans remise à zéro, un fichier qui a semé une graine fixe lègue au
   // suivant un flux à position ARBITRAIRE : les tests qui ne sèment pas (et lisent un dé « au hasard »)
   // deviennent dépendants de l'ordre des fichiers du worker — flake d'ordonnancement, comme les timers

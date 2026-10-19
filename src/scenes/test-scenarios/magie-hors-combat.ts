@@ -4,7 +4,7 @@ import { findSkill } from '../../data';
 import { slugId } from '../../data/slug';
 import type { TestScenario } from './_shared';
 import { t } from '../../i18n';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 import type { Combatant, CharKey } from '../../engine/types';
 import { refCouvre } from '../../data/schemas/grammaire/ref';
 

@@ -24,11 +24,11 @@
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
 import { Combatant, Weapon } from '../engine/types';
-import { Scene, sceneMetresPerTile, heightAt } from './scene';
-import { reachable, flyReachable, manhattan, chebyshev, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
-import { footprintChebyshev, footprintN, combatDistance } from './footprint';
-import { verticalTiles } from './relief';
-import { makeLosMemo, type LosMemo } from './lineOfSight';
+import { Scene, sceneMetresPerTile, heightAt } from '../noyau/monde/scene';
+import { reachable, flyReachable, manhattan, chebyshev, Pt, tileKey, tileFromKey, type TraverseCapability } from '../noyau/monde/path';
+import { footprintChebyshev, footprintN, combatDistance } from '../noyau/monde/footprint';
+import { verticalTiles } from '../noyau/monde/relief';
+import { makeLosMemo, type LosMemo } from '../noyau/monde/lineOfSight';
 import { COVER_ORDER } from '../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../engine/combat';
 import { effectiveWeaponRange } from '../engine/weaponDamage';
@@ -47,8 +47,8 @@ import type { SpellData } from '../data';
 import { hasCondition, canTakeAction, isActionLocked, restrictingConditions, COND } from '../engine/conditions';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isEngaged, meleeReachTiles } from '../engine/engagement';
-import { isFlankOrRear } from './combatGeometry';
-import { facingToward, type Dir8 } from './dir8';
+import { isFlankOrRear } from '../noyau/monde/combatGeometry';
+import { facingToward, type Dir8 } from '../noyau/monde/dir8';
 import { groupMatch } from '../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid } from '../engine/traits/dispatch';
 import { creatureAttacks } from '../engine/creatureAttacks';

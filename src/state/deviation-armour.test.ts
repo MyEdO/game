@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { tenuParUnHumain } from './sieges';
+import { tenuParUnHumain } from '../noyau/sieges';
 import { applyAttackResult, resolveDeviation } from './combatFlow';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';
 import { deviatableArmourAt, damageArmour, impenetrableAt } from '../engine/items';
 import { attachMutation, nonDeviatableMutationAP } from '../engine/corruption';
 import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { draineCascade } from './cascadeTestKit';
-import { stepInteraction } from './cascade';
+import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from './combatEffects';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)

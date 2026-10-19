@@ -5,11 +5,11 @@ import type { JSX } from 'react';
  * le télégraphe de déplacement ENNEMI (teinté).
  */
 import { Dims, tileCenter, diamondPath } from '../../geometry/iso';
-import { footprintTiles } from '../../state/footprint';
-import type { Pt } from '../../state/path';
+import { footprintTiles } from '../../noyau/monde/footprint';
+import type { Pt } from '../../noyau/monde/path';
 import { GOLD_TINT } from '../highlightTints';
 
-// `lift` = élévation-écran d'un point (socle `state/scene.ts:liftDe` fermé sur la scène, hauteur
+// `lift` = élévation-écran d'un point (socle `noyau/monde/scene.ts:liftDe` fermé sur la scène, hauteur
 // MÉTRIQUE de la case, couche 0 comprise) ; défaut `() => 0` pour un appelant qui n'a pas de scène.
 // Chemin et destination se posent ainsi au même niveau que le trait de mur (rempart, falaise).
 // `label` accepte PLUSIEURS lignes : le badge dit le geste (« Aller (2) ») puis ce qu'il fait de la

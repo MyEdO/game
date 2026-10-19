@@ -15,7 +15,7 @@ import { DialogueBox } from './DialogueBox';
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { campaignStart } from '../engine/clock';
-import type { Dialogue, Scene, SceneEntity } from '../state/scene';
+import type { Dialogue, Scene, SceneEntity } from '../noyau/monde/scene';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

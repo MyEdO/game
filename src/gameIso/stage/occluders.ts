@@ -5,7 +5,7 @@
  * des couches de projection : aucun peintre ici, seulement la géométrie.
  */
 import { projectOccluder, type Dims, type OccluderPanel } from '../../geometry/iso';
-import { metricToLift } from '../../state/relief';
+import { metricToLift } from '../../noyau/monde/relief';
 
 export function panelOf(faces: readonly { poly: readonly { x: number; y: number; h: number }[] }[]): OccluderPanel {
   return {

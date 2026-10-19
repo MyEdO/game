@@ -15,16 +15,16 @@
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
 import { isConsumable, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
-import { type Flow, evalCondition, resolveTestDifficulty, type ConditionCtx } from './flow';
+import { type Flow, evalCondition, resolveTestDifficulty, type ConditionCtx } from '../noyau/monde/flow';
 import { condCtx } from './bourseFlow';
-import { buildActorView, flowTestGated } from './combat/flowEval';
+import { buildActorView, flowTestGated } from '../noyau/combat/flowEval';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
 import { markActed } from './combatFlow';
 import { openSkillTest, runFlow, applyLeafOps, drainPendingLog, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
-import { battleRng } from './battleRng';
-import { ev } from './combatLog';
+import { battleRng } from '../noyau/battleRng';
+import { ev } from '../noyau/combatLog';
 import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';

@@ -45,7 +45,7 @@ import { CharFrame } from '../CharFrame';
 import { GearAssignList } from '../GearAssignList';
 import { RewardRecap } from '../RewardRecap';
 import { SceneErrorBoundary } from '../SceneErrorBoundary';
-import type { LootGear } from '../../state/pendings';
+import type { LootGear } from '../../noyau/pendings';
 import { SpectatorChip } from '../SpectatorChip';
 import { RigPortrait } from '../RigPortrait';
 import { FxChip } from '../FxChip';

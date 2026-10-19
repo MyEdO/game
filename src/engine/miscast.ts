@@ -304,7 +304,7 @@ export interface MiscastTableDef {
 const data = miscastJson as unknown as MiscastTableDef[];
 
 /** Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE +
- *  libellé. Forme de `TableStepRow` (state/cascade) — les rangées entrent au registre d'étapes PAR
+ *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent au registre d'étapes PAR
  *  RÉFÉRENCE, sans duplication de fourchettes ni de libellés. */
 export interface MiscastTableRow {
   id: string;

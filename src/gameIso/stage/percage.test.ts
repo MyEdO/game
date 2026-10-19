@@ -9,7 +9,7 @@ import { elOccluder } from './occluders';
 import { buildRoofs, massFootprintCells } from '../builders/roofs';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { chebyshev } from '../../engine/grid';
-import { heightAt } from '../../state/scene';
+import { heightAt } from '../../noyau/monde/scene';
 import { actorCapsuleOf } from './actorCapsule';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import type { Lid } from './architectureVisibility';

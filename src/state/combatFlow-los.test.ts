@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { resolveAttack, strayShotVictim } from './combatFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
-import { Scene } from './scene';
+import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { ModLine, RollBreakdown } from '../engine/combat';
 import type { GameState } from './store';

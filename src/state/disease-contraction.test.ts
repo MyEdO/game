@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { openCombatEndCascade, applyEffects } from './combatFlow';
 import { contractDisease } from '../engine/disease';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { spawnEnemy } from './spawn';
 import type { Combatant } from '../engine/types';

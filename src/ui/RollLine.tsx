@@ -9,7 +9,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { codexLookupById } from './compendium/registry';
 import { RULE_REF, type ModProvenance } from '../engine/ruleRefs';
 import type { StakeRef } from '../data';
-import { actorIn } from '../state/combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { useGame, type GameState } from '../state/store';
 import { t } from '../i18n';
 

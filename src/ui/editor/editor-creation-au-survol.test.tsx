@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Editor } from './Editor';
-import { emptyScene, type Scene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { tileCenter, type Dims } from '../../geometry/iso';
 
 beforeAll(() => {

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import { draineCascade } from './cascadeTestKit';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { makePregens } from '../data/pregens';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { rollShipCritical } from '../engine/shipCritical';
 import { SHIP_CRIT_SET } from '../data/shipCriticals';
@@ -14,7 +14,7 @@ import { hasCondition } from '../engine/conditions';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * #1657 B3-2b-c — LA COQUE SUIT LE COUP JUSQU'À LA CHUTE.

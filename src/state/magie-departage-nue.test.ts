@@ -17,7 +17,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascadeTestKit';
-import type { CascadeStep, CascadeTestStep } from './pendings';
+import type { CascadeStep, CascadeTestStep } from '../noyau/pendings';
 
 const mk = (id: string, kind: Combatant['kind'] = 'hero', over: Partial<Combatant> = {}): Combatant => ({
   id, name: id, label: id, kind,

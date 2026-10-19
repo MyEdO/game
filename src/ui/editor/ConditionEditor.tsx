@@ -6,9 +6,9 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import type { Condition, ActorRef, ActorField, CompareOp, PartySelector } from '../../state/flow';
+import type { Condition, ActorRef, ActorField, CompareOp, PartySelector } from '../../noyau/monde/flow';
 import type { NarratifBlock } from '../../state/campaignNarratif';
-import type { TemporalCondition } from '../../state/scene';
+import type { TemporalCondition } from '../../noyau/monde/scene';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';

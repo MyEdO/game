@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type WallSeg } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
 import { buildProps, capDuFaite } from './props';
 import { buildWalls } from './walls';
 import { buildPropVolumes } from './propVolumes';
@@ -7,7 +7,7 @@ import { findPropById, props } from '../../data';
 import { capVolumique } from '../../data/props.types';
 import { missingPropSvg, propSvg } from '../catalog/decor';
 import { estPropVolumique, type BillboardPropEl, type PropEl, type VolumePropEl } from './types';
-import type { Dir8 } from '../../state/dir8';
+import type { Dir8 } from '../../noyau/monde/dir8';
 import { buildRoofs, fieldHeightAt, nappeKey, resolveNappes, ROOF_SLOPE_M } from './roofs';
 
 /** Le décor BILLBOARD d'une sortie de builder : un décor VOLUMIQUE n'a ni empreinte de billboard, ni
@@ -137,7 +137,7 @@ describe('buildProps — éléments prop du pivot', () => {
     expect(p2.foot).toEqual({ offX: 0.5, offY: 0.5, scale: 2 }); // décalage vers le centre + côté max
     expect(p2.span).toEqual({ w: 2, h: 2 });
     // L'élément de rendu porte l'IDENTITÉ de l'entité, et rien de son offre : c'est `actionsDe` qui
-    // dit ce qu'elle offre, au moment du rendu, drapeaux en main (`estUtilisable`, `state/usable.ts`).
+    // dit ce qu'elle offre, au moment du rendu, drapeaux en main (`estUtilisable`, `noyau/monde/usable.ts`).
     expect(p2.entId).toBe('p2');
     expect(Object.keys(p2)).not.toContain('interact');
   });

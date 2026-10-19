@@ -15,9 +15,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { Inspector } from './Inspector';
 import { LogicDock, type LogicTab } from './LogicDock';
 import type { Sel } from './editorState';
-import { emptyScene, type Scene, type SceneEntity, type Effect } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity, type Effect } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
-import type { Flow } from '../../state/flow';
+import type { Flow } from '../../noyau/monde/flow';
 import type { GameOp } from '../../engine/ops';
 
 beforeAll(() => {

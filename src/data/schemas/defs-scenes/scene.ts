@@ -1,9 +1,9 @@
 import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /**
- * Schémas zod des formes d'une SCÈNE (`src/state/scene.ts`) — racine de documents `src/scenes`.
+ * Schémas zod des formes d'une SCÈNE (`src/noyau/monde/scene.ts`) — racine de documents `src/scenes`.
  *
  * ORDRE DU SEAM : ces schémas voient la scène telle qu'elle arrive du JSON, AVANT `normalizeScene`
- * (`src/state/scene.ts`, appelée en fin de `parseProject`). Les collections que `normalizeScene`
+ * (`src/noyau/monde/scene.ts`, appelée en fin de `parseProject`). Les collections que `normalizeScene`
  * comble (`layers`/`entities`/`dialogues`/`triggers`/`encounters`/`flags`) sont donc OPTIONNELLES
  * ici, alors que le type manuscrit les déclare requises : un document ancien n'en porte pas.
  *
@@ -35,7 +35,7 @@ import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
 import type { OptionalEntry } from '../../../engine/statEntry';
 
-/** `Dir8` (`state/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
+/** `Dir8` (`noyau/monde/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
 export { dir8Schema };
 /** Rectangle de zone/déclencheur — `z` = étage (défaut 0). */
@@ -50,7 +50,7 @@ export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
 export const navalTraitRefSchema = refIndiceSchema;
 /** `OptionalEntry` (`engine/statEntry.ts`) — `TraitInstance` OU note composée. T3-b. */
 export const optionalEntrySchema = z.custom<OptionalEntry>();
-/** `SeatOccupant` (`state/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
+/** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
   nommerChamps(z.strictObject({ kind: z.literal('entity'), entityId: z.string() }), { kind: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } }),
@@ -150,10 +150,10 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
   tavernGame: nommerChamps(z.strictObject({ gameId: idDe('tavernGame'), stakeBrass: z.number().optional() }), { gameId: { label: "jeu" , texte: { regime: "technique"} }, stakeBrass: { label: "mise en cuivre" } }).optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
-   *  places que le TYPE porte (`seatSlots` → `placesJouables`, `state/seating.ts` — la seule capacité
+   *  places que le TYPE porte (`seatSlots` → `placesJouables`, `noyau/monde/seating.ts` — la seule capacité
    *  qui vive sur le TYPE, donc la seule qu'un opt-in d'instance ait à ouvrir), `actions` porte les
    *  gestes AUTHORÉS. Les autres capacités (dialogue, marchand, jeu de taverne) vivent DÉJÀ sur
-   *  l'instance et se dérivent sans lui (`actionsDe`, `state/usable.ts`). */
+   *  l'instance et se dérivent sans lui (`actionsDe`, `noyau/monde/usable.ts`). */
   usable: nommerChamps(z
     .strictObject({
       assise: z.literal(true).optional(),
@@ -183,7 +183,7 @@ const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
 
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
-/** `SceneEntity` (`state/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
+/** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
  *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
  *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
  *  porte ses invariants CROSS-CHAMP : le type NOMMÉ (`PORTEURS_DU_TYPE`), et pour un décor le cap d'un
@@ -691,7 +691,7 @@ export const wallSecretSchema = nommerChamps(z.strictObject({
 }), { difficulty: { label: "difficulté"  }, face: { label: "face"  } });
 
 /** Ce qu'une cloison OBLIQUE (`\\`, `/`) ne porte jamais : elle est purement visuelle — déplacement,
- *  vision et grimpe ne résolvent que les arêtes cardinales (`edgeOf`, `state/scene.ts`). `window`,
+ *  vision et grimpe ne résolvent que les arêtes cardinales (`edgeOf`, `noyau/monde/scene.ts`). `window`,
  *  `shuttered` et `appearance` y restent admis : ils ne sont que du rendu. */
 const MUET_SUR_OBLIQUE = ['door', 'secret', 'crossable', 'allege', 'suspendu', 'climb', 'structure'] as const;
 
@@ -727,7 +727,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
    *  Offerte par `state/fallMove.ts` seulement sous la hauteur géométrique du saut. */
   suspendu: z.number().positive().optional(),
   /** Porte SECRÈTE — `EDO 08 l.404`. Exige `door` ET `closed`. Masquée tant que non révélée
-   *  (`porteEnJeu`, `setDoorRevealed`, `state/scene.ts`). */
+   *  (`porteEnJeu`, `setDoorRevealed`, `noyau/monde/scene.ts`). */
   secret: wallSecretSchema.optional(),
   /** ESCALADABLE (`LDB 15 l.53-57`) : l'arête sépare deux surfaces de hauteurs différentes (une FALAISE au
    *  sens `surfaceLink` — infranchissable à pied) qu'un Personnage peut GRIMPER.
@@ -751,7 +751,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
 }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté"  }, z: { label: "étage" }, door: { label: "porte" }, closed: { label: "fermé" }, structure: { label: "structure" , texte: { regime: "technique"} }, appearance: { label: "apparence" , texte: { regime: "technique"} }, window: { label: "créneau horaire" }, shuttered: { label: "volets fermés" }, crossable: { label: "franchissable" }, allege: { label: "hauteur de l’allège" }, suspendu: { label: "suspendu" }, secret: { label: "secret" }, climb: { label: "escalade" } });
 
 /**
- * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`state/wallIndex.ts`) est la
+ * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`noyau/monde/wallIndex.ts`) est la
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
  * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
@@ -780,7 +780,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
 // ── La scène ────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * `Scene` (`state/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
+ * `Scene` (`noyau/monde/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
  * `triggers`/`encounters`/`flags`, requises sur le type manuscrit, sont OPTIONNELLES ici : le
  * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
  * `parseSceneDeProjet`).
@@ -802,7 +802,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   /** Classification écologique lue par les attributs de Domaine (`LDB 48 l.690`). */
   environment: z.enum(['rural', 'urbain', 'sauvage']).optional(),
   /** Météo (`LDB 14 l.68-82`) — l'ABSENCE est une VALEUR : temps non spécifié, aucun modificateur de
-   *  combat et aucune ambiance de météo. Lue SANS REPLI par `state/sceneRules.ts`
+   *  combat et aucune ambiance de météo. Lue SANS REPLI par `noyau/monde/sceneRules.ts`
    *  (`sceneCombatModifiers`) et par `gameIso/catalog/ambiance.ts`. */
   weather: sceneWeatherSchema.optional(),
   /** Id d'un `lightLevels`, ou `'auto'`/absent = suit l'horloge via `ambiance`. */
@@ -838,7 +838,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   /** Cloisons sur arête — au plus UNE par clé `x,y,side,z` (`cleDArete`). */
   walls: listeCle(wallSegSchema, cleDArete).optional(),
   entities: listeCle(sceneEntitySchema, 'id').optional(),
-  /** `SeatAssignments` (`state/seating.ts:65`) — `propId → slotId → occupant` (rang du groupe ou entité). */
+  /** `SeatAssignments` (`noyau/monde/seating.ts:65`) — `propId → slotId → occupant` (rang du groupe ou entité). */
   seatAssignments: z.record(z.string(), z.record(z.string(), seatOccupantSchema)).optional(),
   architecture: listeCle(architectureBodySchema, 'id').optional(),
   dialogues: dialoguesSchema.optional(),
@@ -855,7 +855,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`
   // et `crenellated`) ; un tableau plus court rendrait des trous que les lectures devraient replier,
   // et le repli masquerait le document malformé. C'est ce qui permet à `tileAt` de n'avoir AUCUN
-  // repli de tuile (`state/scene.ts`) et à `heightAt` de ne replier que l'absence du tableau ENTIER.
+  // repli de tuile (`noyau/monde/scene.ts`) et à `heightAt` de ne replier que l'absence du tableau ENTIER.
   const attendu = scene.dimensions.w * scene.dimensions.h;
   (scene.layers ?? []).forEach((l, i) => {
     const paralleles: [string, number | undefined][] = [['tiles', l.tiles.length], ['height', l.height?.length], ['crenellated', l.crenellated?.length]];

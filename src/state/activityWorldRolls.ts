@@ -11,14 +11,14 @@
  * il est donc fixable sous « Dés fixés » et tracé au journal qu'il tombe ou non (doctrine utilisateur
  * 2026-09-04 : « tous les jets passent par le même point d'entrée »).
  */
-import type { BuiltCascadeStep } from './stepBrand';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import type { Combatant } from '../engine/types';
 import { activityById, activityConditionCtx, type ActivityDef } from '../engine/activities';
 import { evalCondition } from '../engine/flowCore';
 import { applyOps, formulaExpectation } from '../engine/ops';
-import { battleRng } from './battleRng';
-import { worldStep, freeCons } from './rollSeam';
-import { registerCascadeApplier } from './cascade';
+import { battleRng } from '../noyau/battleRng';
+import { worldStep, freeCons } from '../noyau/rollSeam';
+import { registerCascadeApplier } from '../noyau/cascade';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 

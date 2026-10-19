@@ -8,19 +8,19 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../state/planDefects';
-import { memoByRef } from '../../state/sceneMemo';
-import { estAbsent } from '../../state/terrain';
+import { memoByRef } from '../../noyau/monde/sceneMemo';
+import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { structureAppearance, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeWallFeatureAppearance } from '../catalog/facades';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { METRES_PER_LEVEL, gradeBetween } from '../../state/relief';
-import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
+import { METRES_PER_LEVEL, gradeBetween } from '../../noyau/monde/relief';
+import { DIR4_ORDER, type Dir4 } from '../../noyau/monde/dir8';
 import type { Face, GP, WallEl } from './types';
 import type { FloorView } from './floors';
 import {
@@ -570,7 +570,7 @@ function roofSeamGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
 }
 
 /** Une porte secrète MASQUÉE se rend, en JEU, comme un MUR de son arête (`porteMasquee`,
- *  `state/scene.ts`) : son `appearance` authorée est CONSERVÉE (déguisement), sa `structure` aussi si
+ *  `noyau/monde/scene.ts`) : son `appearance` authorée est CONSERVÉE (déguisement), sa `structure` aussi si
  *  c'est une structure de MUR (`isWallEdgeStructure`), écartée si c'est une structure de PORTE. */
 function murNu(w: WallSeg): WallSeg {
   const structure = w.structure ? findStructureById(w.structure) : undefined;

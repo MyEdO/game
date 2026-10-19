@@ -4,7 +4,7 @@ import { structureAppearances } from '../../../data';
 import { MISSING_ID, MISSING_TONE } from '../missing';
 import { buildWalls } from '../../builders/walls';
 import { wallSvg } from '../../authoring/wallsSvg';
-import { emptyScene, type Scene, type WallSeg } from '../../../state/scene';
+import { emptyScene, type Scene, type WallSeg } from '../../../noyau/monde/scene';
 import type { Dims } from '../../../geometry/iso';
 
 const DIMS: Dims = { w: 6, h: 6 }; // iso (view non défini)

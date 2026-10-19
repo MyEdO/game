@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../store';
-import { emptyScene } from '../scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { trappings, trappingsInstanciables, findTrappingById } from '../../data';
 import { dansLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';

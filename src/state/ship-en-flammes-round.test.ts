@@ -4,7 +4,7 @@ import { createHero } from '../engine/character';
 import { addCondition } from '../engine/conditions';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 
 // MDG 13 l.588 ; LDB 16 l.84 ; #1595 c.6242576877

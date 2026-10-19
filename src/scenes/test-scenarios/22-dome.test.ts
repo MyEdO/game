@@ -4,7 +4,7 @@ import { scenario } from './22-dome';
 import { applyAttackResult, runEnemyAI, applyCast } from '../../state/combatFlow';
 import { findSpellById } from '../../data';
 import type { CastResult } from '../../engine/magic';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { draineEtLit } from '../../state/cascadeTestKit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';

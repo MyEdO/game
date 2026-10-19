@@ -1,11 +1,11 @@
 import { flowStakeRef } from '../data';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
-import { EMPTY_FLOW, flowFromEffects, testFlow, type Flow } from './flow';
+import { EMPTY_FLOW, flowFromEffects, testFlow, type Flow } from '../noyau/monde/flow';
 import {
   casesDeFace, porteMasquee, porteTentee, sceneMetresPerTile, secretAuteur,
   type Effect, type FaceDArete, type Scene, type Trigger, type WallSeg,
-} from './scene';
+} from '../noyau/monde/scene';
 import { rayonEnCases } from './vision';
 import type { RoomFocus } from './rooms';
 

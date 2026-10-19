@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
-import type { Effect } from './scene';
+import type { Effect } from '../noyau/monde/scene';
 import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 

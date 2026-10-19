@@ -9,7 +9,7 @@
  * (pas de groupe, pas de registre `_registry.generated.ts`, aucune entrée au menu des scénarios).
  */
 import { buildScene, type MapSpec } from '../state/mapSpec';
-import { doorKey, structureDownKey, type Scene } from '../state/scene';
+import { doorKey, structureDownKey, type Scene } from '../noyau/monde/scene';
 
 function vitrinePerimeterWalls(
   foot: { x: number; y: number; w: number; h: number },

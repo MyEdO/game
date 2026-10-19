@@ -9,16 +9,16 @@ import type { JSX } from 'react';
  * référence de l'objet scène, qu'un hôte reforge à chaque tick (le store en jeu) et qui repayerait une
  * cuisson complète par rendu. La boîte entre dans la clé parce qu'une image cuite pour une autre boîte
  * n'est plus le plan : la CSS l'étirerait, et le `meet` du SVG posé dessus cesserait d'être le sien.
- * Patron canonique du dépôt (`state/sceneMemo.ts`), un slot par INSTANCE de plan.
+ * Patron canonique du dépôt (`noyau/monde/sceneMemo.ts`), un slot par INSTANCE de plan.
  *
  * ÉCHEC : `onMatière(false)` remonte l'absence de matière à l'hôte, qui rend alors ses sols en SVG —
  * sans quoi un contexte GL refusé laisserait des murs flottant sur un fond transparent.
  */
 import { useEffect, useRef, useState } from 'react';
 import { worldBakeDeps } from '../backends/webgl/sceneMeshes';
-import { memoByRefDeps } from '../../state/sceneMemo';
+import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
 import { planPixels, renderPlanSnapshot } from './planSnapshot';
-import { sceneMetresPerTile, type Scene } from '../../state/scene';
+import { sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Dims } from '../../geometry/iso';
 
 const instantanéRetenu = memoByRefDeps<object, number>();

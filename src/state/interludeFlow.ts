@@ -12,13 +12,13 @@
  * passe par le flux de repos standard (récupération, convalescence, horloge — weeks × 7 jours).
  */
 import type { GameState } from './store';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
-import { registerCascadeApplier, registerTableStep, startCascade } from './cascade';
-import { freeCons, rollLine } from './rollSeam';
-import type { CascadeStep, CascadeTableDecl } from './pendings';
+import { registerCascadeApplier, registerTableStep, startCascade } from '../noyau/cascade';
+import { freeCons, rollLine } from '../noyau/rollSeam';
+import type { CascadeStep, CascadeTableDecl } from '../noyau/pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
 import { partyMoneyTotal, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
 import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
@@ -41,7 +41,7 @@ import { combatValue } from '../engine/combat';
 import { spellCost, ritualReduction } from '../engine/grimoire';
 import { focusSkillFor, castingValue, consumeMalepierre } from '../engine/magic';
 import { gainCorruption, poseCorruptionPending, expositionPending } from './corruptionFlow';
-import { fireOwnTestFailed } from './triggeredEffects';
+import { fireOwnTestFailed } from '../noyau/triggeredEffects';
 import { applyMiscast } from './combatFlow';
 import { buySpell as partyBuySpell, depenserPx } from './partyFlow';
 import { testValue, type SupportDetail } from '../engine/skills';
@@ -65,7 +65,7 @@ import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi 
 import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 

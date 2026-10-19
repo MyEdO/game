@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../state/bourseFlow';
 import { placeServices, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../state/worldMap';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../state/restFlow';

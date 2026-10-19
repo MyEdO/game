@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { applyAttackResult } from './combatFlow';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';
 import { resolveMeleePassive, type AttackResult } from '../engine/combat';
 import { isOutOfAction } from '../engine/conditions';

@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { emitCombatEvent } from './combatEvents';
 import { createHero } from '../engine/character';
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
@@ -54,7 +54,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   beforeEach(() => {
     vi.useFakeTimers(); vi.clearAllTimers();
     useGame.setState({ battle: null, pendingAttack: null, pendingCascade: null });
-    useGame.getState().seedRng(7); // `battleRng` est ensemencé à l'horloge à l'import (`state/battleRng.ts`)
+    useGame.getState().seedRng(7); // `battleRng` est ensemencé à l'horloge à l'import (`noyau/battleRng.ts`)
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 

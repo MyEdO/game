@@ -5,7 +5,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « héros DEBOUT » (#1362, lot L1a) — ABSOLU : ni stock, ni baseline, ni liste blanche.
- * `estDebout` (`src/state/combatants.ts`) = `!isOutOfAction(h) && h.wounds.current > 0` est la
+ * `estDebout` (`src/noyau/monde/combatants.ts`) = `!isOutOfAction(h) && h.wounds.current > 0` est la
  * définition CANONIQUE dont dérive l'élection du meneur (`meneurDuMonde`). Une recopie du prédicat
  * est une SECONDE définition : c'est elle qui faisait pivoter le regard d'un héros que le plateau ne
  * dessinait pas, grimper un troisième, et qui — recopiée sur `dead` seul — faisait mener un
@@ -31,8 +31,8 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * une garde dessus serait un stock, pas un invariant.
  */
 
-const SCAN_DIRS = ['src/state', 'src/ui', 'src/gameIso', 'src/engine', 'src/scenes', 'src/net', 'src/data'];
-const FOYER = 'src/state/combatants.ts';
+const SCAN_DIRS = ['src/state', 'src/noyau', 'src/ui', 'src/gameIso', 'src/engine', 'src/scenes', 'src/net', 'src/data', 'src/web'];
+const FOYER = 'src/noyau/monde/combatants.ts';
 
 /** Les NEUF graphies du même prédicat — une garde par graphie n'en voyait que deux. */
 const GRAPHIES: Record<string, string> = {
@@ -68,14 +68,14 @@ function findingsParFichier(): Record<string, { line: number; detail: string }[]
 }
 
 describe('garde-fou « estDebout » — prédicat du héros debout (ABSOLU, #1362)', () => {
-  it('aucune recopie du prédicat hors de `src/state/combatants.ts`', () => {
+  it('aucune recopie du prédicat hors de `src/noyau/monde/combatants.ts`', () => {
     const offenders = Object.entries(findingsParFichier()).flatMap(([rel, f]) =>
       f.map((x) => `${rel}:${x.line} — ${x.detail}`),
     );
     expect(
       offenders,
       'Prédicat DEBOUT recopié — appeler `estDebout` / `meneurDuMonde` / `meneurDeboutDuMonde` ' +
-        `(src/state/combatants.ts) :\n${offenders.join('\n')}`,
+        `(src/noyau/monde/combatants.ts) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 

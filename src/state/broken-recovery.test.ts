@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { fireConditionEffects } from './triggeredEffects';
-import { seedBattleRng, battleRng } from './battleRng';
+import { fireConditionEffects } from '../noyau/triggeredEffects';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 

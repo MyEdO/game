@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyMiscast } from './combatFlow';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { createHero } from '../engine/character';
-import { stepInteraction, tableStepDef } from './cascade';
+import { stepInteraction, tableStepDef } from '../noyau/cascade';
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { canFixDie } from './netOwnership';
 import {
@@ -17,7 +17,7 @@ import { corruptionThresholdExceeded } from '../engine/corruption';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * INCANTATION IMPARFAITE / COLÈRE DES DIEUX en étape à TABLE (#942 L6) — le d100 des Tableaux

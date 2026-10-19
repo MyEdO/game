@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildSeaPlan, applySteamBreakdown, resolveSteamSave } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { WorldMap } from './worldMap';
-import type { PendingSteamSave } from './pendings';
+import type { PendingSteamSave } from '../noyau/pendings';
 
 /**
  * PANNE DE VAPEUR (MDG 12 l.313-352) résolue au voyage (#184) : la table Panne de Vapeur ne se narre

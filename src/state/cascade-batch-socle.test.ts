@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
-import { startCascade } from './cascade';
+import { startCascade } from '../noyau/cascade';
 import { spyApplier } from './cascadeTestKit';
 import { FLOW_VERBS } from './flowVerbs';
 import { frozenOpposedBatchStep } from './combat/triggeredTest';
-import type { CascadeStep, BatchParticipant } from './pendings';
+import type { CascadeStep, BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
-import { EMPTY_FLOW, type FlowTest } from './flow';
+import { EMPTY_FLOW, type FlowTest } from '../noyau/monde/flow';
 import './travelPostes'; // enregistre l'applier de BANDE de voyage `weatherResistance` (EDOC 8 l.86/127)
 
 /**

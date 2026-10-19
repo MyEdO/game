@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { pushAway } from './path';
-import type { Scene } from './scene';
+import { pushAway } from '../noyau/monde/path';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Jalon 2.6 — géométrie des déplacements forcés : Poussée (LDB 47 l.479 « repoussées de BFM

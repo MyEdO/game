@@ -13,18 +13,18 @@
  * Module FEUILLE et PUR : aucun React, aucun accès au rendu, aucune lecture de store — la scène, le
  * verdict, la case et les VERBES lui sont TENDUS.
  */
-import { entitesEnCaseEtage } from '../../state/decorIndex';
-import { estUtilisable } from '../../state/usable';
+import { entitesEnCaseEtage } from '../../noyau/monde/decorIndex';
+import { estUtilisable } from '../../noyau/monde/usable';
 import { caseOpposee, type AreteUtilisable, type CapaciteArete } from '../../state/aretes';
 import type { RoomPortal } from '../../state/roomPortals';
-import type { Pt } from '../../state/path';
-import type { Scene, SceneEntity } from '../../state/scene';
+import type { Pt } from '../../noyau/monde/path';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { Verdict } from './pickResolve';
 
 /** L'entité que le geste traite sous ce verdict. Le RAYON prime : quand il a nommé une entité, c'est
  *  celle-là qu'on VOIT sous le pixel, même si une autre partage sa case. Sinon la question est la
- *  CASE, et elle se lit à l'index d'ancrage (`state/decorIndex.ts:entitesEnCaseEtage`, O(1) par
- *  mouvement de souris) : l'UTILISABLE d'abord (`state/usable.ts:estUtilisable`, dériveur unique de
+ *  CASE, et elle se lit à l'index d'ancrage (`noyau/monde/decorIndex.ts:entitesEnCaseEtage`, O(1) par
+ *  mouvement de souris) : l'UTILISABLE d'abord (`noyau/monde/usable.ts:estUtilisable`, dériveur unique de
  *  l'offre) — c'est elle que l'affordance annonce —, la première du document à défaut. */
 export const entiteDuGeste = (sc: Scene, v: Verdict, t: Pt): SceneEntity | undefined => {
   if (v.nature === 'entite') return sc.entities.find((e) => e.id === v.entId);

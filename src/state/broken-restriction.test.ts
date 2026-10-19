@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { computeMoveReach } from './combatFlow';
 import { chooseEnemyAction } from './ai';
 import { hasCondition } from '../engine/conditions';
-import { chebyshev } from './path';
+import { chebyshev } from '../noyau/monde/path';
 import type { Combatant } from '../engine/types';
 
 const scene = () =>

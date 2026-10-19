@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { props } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { empreinteDuProp, validatePropCatalog, type PropData } from '../../data/props.types';
-import { decorEnCase, decorEnCaseEtage } from '../../state/decorIndex';
-import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
-import { propFootTiles } from '../../state/footprint';
-import { losClear, tileBlocksSight } from '../../state/lineOfSight';
-import { emptyScene, isWalkable, sceneMetresPerTile, type Scene } from '../../state/scene';
+import { decorEnCase, decorEnCaseEtage } from '../../noyau/monde/decorIndex';
+import { DIR4_ORDER, type Dir4 } from '../../noyau/monde/dir8';
+import { propFootTiles } from '../../noyau/monde/footprint';
+import { losClear, tileBlocksSight } from '../../noyau/monde/lineOfSight';
+import { emptyScene, isWalkable, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { entityAt } from '../../state/sceneEdit';
-import { seatSlotsOf } from '../../state/seating';
+import { seatSlotsOf } from '../../noyau/monde/seating';
 import { validateScene } from '../../state/validateScene';
 import { buildOpaque } from '../../state/vision';
 import { interactionHalos } from '../builders/interactHalos';
@@ -19,16 +19,16 @@ import { buildProps } from '../builders/props';
  * places, qu'aucun module ne connaît par son id, entre au catalogue par la seule donnée (`setDataset`).
  * Aux quatre caps, elle traverse ces coutures, et chacune la lit par sa donnée, jamais par son id :
  * - catalogue : `validatePropCatalog` (`data/props.types.ts`) ;
- * - empreinte : `empreinteDuProp` (`data/props.types.ts`), `propFootTiles` (`state/footprint.ts`) ;
- * - occupation : `isWalkable` (`state/scene.ts`) ;
- * - index case → décor : `decorEnCase`, `decorEnCaseEtage` (`state/decorIndex.ts`) ;
+ * - empreinte : `empreinteDuProp` (`data/props.types.ts`), `propFootTiles` (`noyau/monde/footprint.ts`) ;
+ * - occupation : `isWalkable` (`noyau/monde/scene.ts`) ;
+ * - index case → décor : `decorEnCase`, `decorEnCaseEtage` (`noyau/monde/decorIndex.ts`) ;
  * - picking du jeu : `decorEnCaseEtage`, que lit `meubleDessine` (`gameIso/stage/pickResolve.ts`) ;
  * - clic d'éditeur : `entityAt` (`state/sceneEdit.ts`) ;
- * - Ligne de Vue : `tileBlocksSight`, `losClear` (`state/lineOfSight.ts`) ;
+ * - Ligne de Vue : `tileBlocksSight`, `losClear` (`noyau/monde/lineOfSight.ts`) ;
  * - opacité en vision : `buildOpaque` (`state/vision.ts`) ;
  * - rendu d'entité : `buildProps` (`gameIso/builders/props.ts`) ;
  * - halo d'interaction : `interactionHalos` (`gameIso/builders/interactHalos.ts`) ;
- * - places assises : `seatSlotsOf` (`state/seating.ts`) ;
+ * - places assises : `seatSlotsOf` (`noyau/monde/seating.ts`) ;
  * - validateur de scène : `validateScene` (`state/validateScene.ts`).
  * Une SCÈNE authorée qui pose un meuble neuf exige son id au registre généré
  * (`src/data/schemas/_ids.generated.ts`, `npm run gen`) : ce test pose le catalogue par `setDataset`

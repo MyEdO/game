@@ -16,7 +16,7 @@ import { useGame, type BattleState } from '../state/store';
 import { conditionLabel, findActionById } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { actionGate } from '../state/actionRegistry';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { CombatConsole } from './console/CombatConsole';
 import type { Combatant } from '../engine/types';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { rollLine, rollStep, withDifficulty, type RollLineSpec } from './rollSeam';
+import { rollLine, rollStep, withDifficulty, type RollLineSpec } from '../noyau/rollSeam';
 import { testValue, skillBaseValue, partyAssisted, soutienMod, testValueSplit } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { clampTarget } from '../engine/tests';

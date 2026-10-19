@@ -22,7 +22,7 @@ import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme #276).
- * La porte `openRoll` (`src/state/rollSeam.ts`) +
+ * La porte `openRoll` (`src/noyau/rollSeam.ts`) +
  * `TestOutcome.seal` (`src/engine/testOutcome.ts`) sont le SEUL chemin scellé pour produire une issue
  * de Test — un `rollTest(`/`d100(`/`TestOutcome.seal(` inline hors whitelist forge un jet SANS passer
  * par la policy de surfaçage M/V/I (Décision 3). Un `rollTest` réintroduit dans un flow est rouge ICI
@@ -62,7 +62,7 @@ describe('contexte d’import des parcours manuels', () => {
     'function masque(d100, dice) { d100(); dice.d100(); }',
   ].join('\n');
   const rng = [
-    "import { battleRng } from './battleRng';",
+    "import { battleRng } from '../noyau/battleRng';",
     "import { resolveMelee, resolveMelee as alias } from '../engine/combat';",
     "import * as combat from '../engine/combat';",
     'battleRng();', 'resolveMelee();', 'alias();', 'combat.resolveMelee();',
@@ -134,7 +134,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
       offenders,
-      `Nouveau jet forgé hors seam — router par openRoll (src/state/rollSeam.ts) ou justifier l'entrée dans la whitelist (roll-seam-exclusivity-guard.test.ts) :\n${offenders.join('\n')}`,
+      `Nouveau jet forgé hors seam — router par openRoll (src/noyau/rollSeam.ts) ou justifier l'entrée dans la whitelist (roll-seam-exclusivity-guard.test.ts) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -161,8 +161,8 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   });
 
   it('le noyau du seam (rollSeam.ts, hors scan) porte bien TestOutcome.seal( — sinon le foyer a bougé', () => {
-    const src = readFileSync(join(ROOT, 'src/state/rollSeam.ts'), 'utf8');
-    expect(scanRollSeamExclusivity('src/state/rollSeam.ts', src).length).toBeGreaterThan(0);
+    const src = readFileSync(join(ROOT, 'src/noyau/rollSeam.ts'), 'utf8');
+    expect(scanRollSeamExclusivity('src/noyau/rollSeam.ts', src).length).toBeGreaterThan(0);
   });
 
   it('lignes EXACTES : un JSDoc de 10 lignes avant le site ne décale pas la ligne rapportée', () => {
@@ -389,7 +389,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('le scanner détecte un resolveXxx(…, battleRng()) SYNTHÉTIQUE', () => {
     const regressed = [
       "import { resolveMelee } from '../engine/combat';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       "const res = resolveMelee(attacker, defender, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', regressed, contexte()).length).toBe(1);
@@ -398,7 +398,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('le scanner MORD le rng HOISTÉ (battleRng() et resolveXxx( sur des lignes séparées, #370)', () => {
     const hoisted = [
       "import { resolveMelee } from '../engine/combat';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       "const rng = battleRng();",
       "const res = resolveMelee(attacker, defender, rng);",
     ].join('\n');
@@ -408,7 +408,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('zéro faux positif : une primitive roll*/valeur (testValue/effectiveChar) voisine d’un battleRng() sur une AUTRE ligne ne matche pas', () => {
     const clean = [
       "import { rollTavernTest } from '../engine/tavernGame';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       "const v = testValue(hero, 'pari');",
       "const opponentTR = rollTavernTest(opponentValue, battleRng());",
     ].join('\n');
@@ -418,7 +418,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('zéro faux positif : un résolveur moteur PUR (resolveOpposed, aucun paramètre RNG) coexistant avec battleRng() ne matche pas (#912)', () => {
     const clean = [
       "import { resolveOpposed } from '../engine/tests';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       'const rng = battleRng();',
       "const res = resolveOpposed(attackerTR, defenderTR);",
     ].join('\n');
@@ -428,7 +428,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('vrai positif préservé : un résolveur moteur RNG-capable réel (resolveCasting) reste détecté (#912)', () => {
     const regressed = [
       "import { resolveCasting } from '../engine/magic';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       "const res = resolveCasting(caster, spell, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', regressed, contexte()).length).toBe(1);
@@ -437,13 +437,13 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('un import RENOMMÉ et un appel par NAMESPACE d’un résolveur à RNG comptent, sous le nom exporté', () => {
     const renomme = [
       "import { resolveMelee as melee } from '../engine/combat';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       'const res = melee(attacker, defender, battleRng());',
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', renomme, contexte()).map((f) => f.name)).toEqual(['resolveMelee']);
     const espace = [
       "import * as combat from '../engine/combat';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       'const res = combat.resolveMelee(attacker, defender, battleRng());',
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', espace, contexte()).map((f) => f.name)).toEqual(['resolveMelee']);
@@ -457,7 +457,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', local, contexte())).toEqual([]);
     const homonyme = [
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       'const resolveMelee = (a, b, rng) => a;',
       'const res = resolveMelee(attacker, defender, battleRng());',
     ].join('\n');
@@ -470,7 +470,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('un appel écrit en CHAÎNE n’est pas un appel — et le voisin en CODE en est un', () => {
     const donnee = [
       "import { resolveCasting } from '../engine/magic';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       'const rng = battleRng();',
       "const gabarit = 'resolveCasting(caster, spell, rng)';",
     ].join('\n');
@@ -484,7 +484,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('le blanchiment PRÉSERVE les lignes : le numéro rapporté est celui de la source (#1788)', () => {
     const regressed = [
       "import { resolveCasting } from '../engine/magic';",
-      "import { battleRng } from './battleRng';",
+      "import { battleRng } from '../noyau/battleRng';",
       '/* un bloc',
       ' * de prose',
       ' */',
@@ -506,7 +506,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
  * de plus, ou une entrée devenue vide sont rouges.
  */
 const SEAM_CORE = new Set([
-  'src/state/rollSeam.ts', 'src/state/rollFlowFactory.ts', 'src/state/cascade.ts',
+  'src/noyau/rollSeam.ts', 'src/state/rollFlowFactory.ts', 'src/noyau/cascade.ts',
   'src/state/rollFlowSpecs.ts', 'src/state/combat/triggeredTest.ts',
 ]);
 
@@ -658,7 +658,7 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
 
   const mesure = (table: Readonly<Record<string, readonly string[]>>) => {
     const m = new Map<string, number>();
-    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src/state', 'src/ui').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src/state', 'src/noyau', 'src/ui').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
       const n = scanEngineDelegatedRoll(rel, text, table, sourceFile!, checker).length;
       if (n > 0) m.set(rel, n);
     }
@@ -815,7 +815,7 @@ const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + 
 
 describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans les flux (#1153)', () => {
   const LIGNE_RX = /DIFFICULTY_MODIFIERS\s*[.[]|Math\.min\(99/g;
-  const HORS_CLIQUET = ['src/engine/', 'src/state/rollSeam.ts', 'src/ui/breakdown.ts', 'src/ui/RollLine.tsx'];
+  const HORS_CLIQUET = ['src/engine/', 'src/noyau/rollSeam.ts', 'src/ui/breakdown.ts', 'src/ui/RollLine.tsx'];
 
   it('aucun NOUVEAU site ne recalcule une cible à la main (le stock ne peut que décroître)', () => {
     const mesure: Record<string, number> = {};
@@ -863,8 +863,8 @@ describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans l
  *
  * PÉRIMÈTRE — HORS COMBAT, mais par un geste DIFFÉRENT du premier cliquet : celui-là BASELINE les
  * fichiers de combat dans son stock, celui-ci les EXCLUT du scan (`HORS_PERIMETRE_COMBAT`), et sur un
- * SUR-ENSEMBLE (il ajoute `src/state/combat/`, `combatManeuvers`, `targetingModes`, `rollFlowFactory`,
- * `rollFlowSpecs`). Raison : l'arène a son arithmétique propre (`baseTestMods`, Avantage, allonge) et
+ * SUR-ENSEMBLE (il ajoute `src/state/combat/` et `src/noyau/combat/`, `combatManeuvers`, `targetingModes`,
+ * `rollFlowFactory`, `rollFlowSpecs`). Raison : l'arène a son arithmétique propre (`baseTestMods`, Avantage, allonge) et
  * son lot dédié — un stock chiffré sur un chantier en cours mesurerait le voisin, pas la dette.
  *
  * COUVERTURE DÉCLARÉE (ce que le scanner compte, dette ou pas — le stock est un COMPTE, pas un
@@ -876,7 +876,7 @@ describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans l
  * (`const st = {...}; st.target = …`) échappe au scanner.
  */
 const HORS_PERIMETRE_COMBAT = [
-  'src/state/combat/', 'src/state/combatFlow.ts', 'src/state/combatSlice.ts', 'src/state/combatEffects.ts',
+  'src/state/combat/', 'src/noyau/combat/', 'src/state/combatFlow.ts', 'src/state/combatSlice.ts', 'src/state/combatEffects.ts',
   'src/state/combatManeuvers.ts', 'src/state/encounterPsychFlow.ts', 'src/state/shipManeuver.ts',
   'src/state/targetingModes.ts', 'src/state/rollFlowSpecs.ts', 'src/state/rollFlowFactory.ts',
 ];
@@ -884,7 +884,7 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   // TYPES (aucun montage) — `kind` + `target` en position de DÉCLARATION
   'src/data/schemas/defs/spells.ts': 1,
   'src/data/schemas/defs-scenes/effets.ts': 2, // schémas `inflictPsychology` et `exposureNight`
-  'src/state/pendings.ts': 1, // PendingExtendedTest
+  'src/noyau/pendings.ts': 1, // PendingExtendedTest
   'src/state/upkeep.ts': 1, // DeferredUpkeepTest
   'src/state/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
   'src/state/store.ts': 1, // signature de `startExtendedTest`
@@ -986,7 +986,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
   it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', () => {
     const mesure: Record<string, number> = {};
     for (const { rel, text } of prodFiles('src')) {
-      if (rel === 'src/state/rollSeam.ts') continue; // le monteur lui-même
+      if (rel === 'src/noyau/rollSeam.ts') continue; // le monteur lui-même
       if (HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))) continue; // frontière déclarée, lot dédié
       const n = etapesALaMain(text, rel);
       if (n > 0) mesure[rel] = n;

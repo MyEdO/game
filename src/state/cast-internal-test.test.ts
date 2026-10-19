@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur de Test
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';

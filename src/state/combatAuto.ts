@@ -17,14 +17,14 @@
  */
 import type { Get, Set } from './flowTypes';
 import { useGame, type GameState } from './store';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, type AutoPolicy } from './modalArbiter';
-import { stepInteraction } from './cascade';
+import { stepInteraction } from '../noyau/cascade';
 import { influencesLocally } from './netOwnership';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
-import { scheduleCombatTimer } from '../lib/minuteries';
+import { scheduleCombatTimer } from '../web/minuteries';
 import { fateSaveOptions } from '../engine/fortune';
 
 /**

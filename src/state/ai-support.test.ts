@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
 import { opValue } from './aiSpellValue';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { findSpellById, type SpellData } from '../data';
 import { isDispellableSpell } from '../engine/magic';
 import type { Combatant, Weapon } from '../engine/types';

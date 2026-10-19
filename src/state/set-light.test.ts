@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatEffects';
-import type { Effect } from './scene';
+import type { Effect } from '../noyau/monde/scene';
 
 /**
  * Effet `setLight` (Lot L — mise en scène) : « les lumières baissent, le rideau se lève ». Pose un

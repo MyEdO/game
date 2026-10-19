@@ -13,7 +13,7 @@
  */
 import type { DetailRecipe } from '../gameIso/detail/types';
 import type { MaterialRef } from '../gameIso/builders/types';
-import type { Grade } from '../state/relief';
+import type { Grade } from '../noyau/monde/relief';
 
 /**
  * PARTIES de relief — le vocabulaire des `MaterialRef.part` que le builder de sols ÉMET pour une face

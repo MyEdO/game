@@ -12,8 +12,8 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { actorBillboards, actorIdentityKey, actorPoseKey, collectBillboards, type ActorPose, type BillboardSubject } from './sceneMeshes';
-import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../state/scene';
-import type { SeatPose } from '../../../state/seating';
+import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../noyau/monde/scene';
+import type { SeatPose } from '../../../noyau/monde/seating';
 import type { TokenEl } from '../../builders/types';
 import { createHero } from '../../../engine/character';
 import { itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';

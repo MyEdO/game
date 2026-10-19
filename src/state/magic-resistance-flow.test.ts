@@ -13,8 +13,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { applyCast } from './combatFlow';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { seedBattleRng } from './battleRng';
-import { emptyScene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 /** Pions de l'État `id` portés par `c` (0 si absent) — lecture directe de l'instance. */
 const pions = (c: Combatant, id: string): number => c.conditions.find((x) => x.id === id)?.value ?? 0;
 import type { Combatant } from '../engine/types';

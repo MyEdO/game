@@ -10,12 +10,12 @@
  */
 import type { GameState, BattleState } from './store';
 import type { Combatant } from '../engine/types';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 import type { MsgKey } from '../i18n';
 import type { CapaciteArete } from './aretes';
 import { mouvementDeLaChute, type RefusFranchissement } from './fallMove';
-import { sceneMetresPerTile, type Scene } from './scene';
-import { inBattleId, meneurDeboutDuMonde } from './combatants';
+import { sceneMetresPerTile, type Scene } from '../noyau/monde/scene';
+import { inBattleId, meneurDeboutDuMonde } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { mobileDuTour, type RefusDuTour } from './combatFlow';
 import { isMount, isRider, movementRemaining } from './mount';

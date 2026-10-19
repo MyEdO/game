@@ -3,22 +3,22 @@ import { useGame } from './store';
 import {
   applyOpposedCritical, applyAttackResult, applyMiscast, applyBladeTrap, startDisengage, STRUCTURE_CRIT_TABLE,
 } from './combatFlow';
-import { displayStep, hostStep, tableStep } from './rollSeam';
-import { stepInteraction, tableStepPosee } from './cascade';
+import { displayStep, hostStep, tableStep } from '../noyau/rollSeam';
+import { stepInteraction, tableStepPosee } from '../noyau/cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
 import { combatStakeRef } from '../data';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { ownsLocal } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { OPS_DIFFEREES } from './combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
 

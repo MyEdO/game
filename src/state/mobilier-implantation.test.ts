@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isWalkable, sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
-import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from './seating';
-import { decorAncre } from './footprint';
+import { emptyScene, isWalkable, sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from '../noyau/monde/seating';
+import { decorAncre } from '../noyau/monde/footprint';
 import { findPropById } from '../data';
 import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../data/props.types';
 import { buildPropVolumes } from '../gameIso/builders/propVolumes';

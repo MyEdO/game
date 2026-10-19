@@ -7,16 +7,16 @@
  * et NÉGATIF (autre étage, même (x,y) → inerte).
  */
 import { describe, it, expect } from 'vitest';
-import { entityBlockedAt } from './sceneRules';
-import { combatDistance } from './footprint';
-import { combatantsWithinRadius, combatantAtTile, occupied } from './combatGeometry';
-import { zoneCovers, crossZones, zonesRoundTick, sceneZonesToBattle, type BattleZone } from './zones';
-import { applyTriggeredEffects } from './triggeredEffects';
+import { entityBlockedAt } from '../noyau/monde/sceneRules';
+import { combatDistance } from '../noyau/monde/footprint';
+import { combatantsWithinRadius, combatantAtTile, occupied } from '../noyau/monde/combatGeometry';
+import { zoneCovers, crossZones, zonesRoundTick, sceneZonesToBattle, type BattleZone } from '../noyau/monde/zones';
+import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import './combatFlow'; // effet de bord : installe le routeur de Test consommé par `applyTriggeredEffects`
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { Scene, SceneEntity, SceneEffectZone } from './scene';
-import type { Pt } from './path';
+import type { Scene, SceneEntity, SceneEffectZone } from '../noyau/monde/scene';
+import type { Pt } from '../noyau/monde/path';
 
 const mk = (id: string, x: number, y: number, z = 0, h = 0): Combatant =>
   ({

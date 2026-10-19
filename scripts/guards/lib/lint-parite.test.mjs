@@ -234,7 +234,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/state/parite-minuterie-new-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');return new setTimeout(f,0);}",'murs/minuteries-appel',1],
     ['src/state/parite-minuterie-new-neutre.ts','export const t=new Horloge(f,0);','murs/minuteries-appel',0],
     ['src/state/parite-minuterie-appel-methode.ts','export const o={setTimeout(f:()=>void){return f;}};','murs/minuteries-appel',0],
-    ['src/lib/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
+    ['src/web/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
     ['src/state/parite-minuterie.test.ts','setTimeout(f,0);','murs/minuteries',0],
     ['src/ui/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',0],
     ['server/src/parite-alea.ts','export const a=Math.random();','murs/alea-serveur',1],
@@ -273,7 +273,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     assert.equal(messages.length,cas[i][3],JSON.stringify(resultats[i]))
     for(const m of messages) {assert.equal(m.severity,2);assert.equal(m.line,1);assert.ok(m.column>0)}
   }
-  assert.deepEqual(resultats[cas.findIndex(([filePath])=>filePath==='src/lib/minuteries.ts')].messages.filter(m=>(m.ruleId??'').startsWith('murs/minuteries')),[])
+  assert.deepEqual(resultats[cas.findIndex(([filePath])=>filePath==='src/web/minuteries.ts')].messages.filter(m=>(m.ruleId??'').startsWith('murs/minuteries')),[])
   const unused=lintFixtures([{filePath:'src/parite-directive.ts',code:'// eslint-disable-next-line murs/marques -- sonde\nexport const a=1;'}])[0]
   assert.equal(unused.messages.length,1)
   assert.equal(unused.messages[0].severity,1)

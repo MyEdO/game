@@ -1,5 +1,5 @@
 // Mécanique de scan du garde-fou « héros DEBOUT » (#1362, lot L1a). La définition CANONIQUE est
-// `estDebout` (`src/state/combatants.ts`) = `!isOutOfAction(h) && h.wounds.current > 0`, dont dérive
+// `estDebout` (`src/noyau/monde/combatants.ts`) = `!isOutOfAction(h) && h.wounds.current > 0`, dont dérive
 // l'élection du meneur (`meneurDuMonde`). Recopiée ailleurs, elle refait une seconde définition : le
 // jeton dessiné, le regard qui pivote, la lampe portée et le grimpeur cessent de désigner le même
 // héros — et une recopie qui oublie l'Inconscient le fait mener.

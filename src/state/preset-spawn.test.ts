@@ -8,7 +8,7 @@ import { creatureToCombatant } from './spawn';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 import { parseProject } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { findCreatureById, type CreatureData } from '../data';
 import type { Combatant } from '../engine/types';
 

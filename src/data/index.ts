@@ -20,7 +20,7 @@ import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from '../state/merchants/types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
-import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../state/scene';
+import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../noyau/monde/scene';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { tableTotale } from '../lib/tableTotale';
@@ -454,7 +454,7 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   spells: (id) => !!findSpellById(id),
   // Familles à TABLE (#1117 L2 vague 4b) : la LIGNE tirée est déjà une entrée Codex éditable — son
   // foyer est SA fiche, jamais une fiche de règle doublon (amendement A). La catégorie voyage avec
-  // l'id, versée par la re-pose post-tirage (`stakeAtTableRow`, `state/cascade.ts`).
+  // l'id, versée par la re-pose post-tirage (`stakeAtTableRow`, `noyau/cascade.ts`).
   criticalsTete: (id) => critiqueEntries('criticals-ldb-tete').some((r) => r.id === id),
   criticalsBras: (id) => critiqueEntries('criticals-ldb-bras').some((r) => r.id === id),
   criticalsCorps: (id) => critiqueEntries('criticals-ldb-corps').some((r) => r.id === id),
@@ -1036,7 +1036,7 @@ export interface TestMatch {
   /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
    *  « ne fonctionne pas avec Langue (Magick) » : `{ skill:{id:'langue'}, exceptSpec:'magick' }`. */
   exceptSpec?: string;
-  when?: import('../state/flow').Condition;
+  when?: import('../noyau/monde/flow').Condition;
   manual?: boolean;
 }
 /** Champ « Tests » d'un Talent (LDB 10 : +1 DR/niveau sur un Test lié RÉUSSI). `raw` = la ligne du livre
@@ -1092,9 +1092,9 @@ export interface TalentData {
    *  porter la `desc`. */
   alsoIn?: SecondaryRef[];
   /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Talents « effet sur événement » (Assaut
-   *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `state/triggeredEffects` exactement comme
+   *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `noyau/triggeredEffects` exactement comme
    *  les traits. Type-only (le moteur reste pur). Édité au Codex par `TriggeredEffectsField`. */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `GameOp[]` — MÊME vocabulaire que les
    *  sorts/traits, lus par le collecteur passif (`talentPassiveMods` → `passiveMods`, kind `intrinseque`,
    *  répété par niveau). Édité au Codex par `GameOpEditor`. L'octroi d'attaque gratuite (Frénésie) vit ici :
@@ -1462,7 +1462,7 @@ export interface StatusData {
   passive?: import('../engine/ops').GameOp[];
   /** Effets DÉCLENCHÉS (dégâts par round → `onRoundEnd` ; sortie de Frénésie → `onTurnStart`…) en
    *  `TriggeredEffect[]`, diffusés par `fireStatusEffects` — le même cœur `applyTriggeredEffects`. */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
    *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
    *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
@@ -1625,7 +1625,7 @@ export interface DetailsData {
   };
 }
 /**
- * SEMENCES d'une scène NEUVE (#1716) — ce que `emptyScene` (`state/scene.ts`) pose à la création.
+ * SEMENCES d'une scène NEUVE (#1716) — ce que `emptyScene` (`noyau/monde/scene.ts`) pose à la création.
  * Chaque champ porte le TYPE du champ de scène qu'il alimente : une semence n'est pas un vocabulaire
  * parallèle, c'est la valeur de départ du champ homonyme. `terrain` est le seul sans homonyme —
  * c'est le sol dont la couche 0 est remplie.
@@ -1701,7 +1701,7 @@ export interface ManeuverDef {
   damage?: import('../engine/types').WeaponDamageSpec;
   /** Effets AUTHORÉS (Dégâts `wounds` + États) appliqués quand la manœuvre touche (`onHit`) — MÊME
    *  vocabulaire que les sorts (Flow d'ops), exécutés par `applyTriggeredEffects`. */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Folio du Trait PROJETANT — la manœuvre ne porte AUCUNE prose (#1226) : sa description est celle du
    *  trait, résolue à l'affichage par `traitProjectingManeuver`. */
   source?: SourceRef;
@@ -1807,7 +1807,7 @@ export interface TraitCapabilities {
   stride?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « réussit automatiquement tous ses Tests d'Escalade » — le geste
    *  d'escalade (échelle/arête `WallSeg.climb`) se résout SANS jet (pas un jet silencieux : aucun jet).
-   *  Lu par `state/climbMove` (`planClimb`) et `state/path` (pathing/IA, `MoveEnv.traverse`). */
+   *  Lu par `state/climbMove` (`planClimb`) et `noyau/monde/path` (pathing/IA, `MoveEnv.traverse`). */
   autoClimb?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
    *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
@@ -1861,9 +1861,9 @@ export interface TraitData {
    *  ET 134). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
   alsoIn?: SecondaryRef[];
   /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Traits « effet sur événement » (Toile,
-   *  Sang corrosif, Régénération…) appliqués par `state/triggeredEffects`, jamais par un handler en dur.
+   *  Sang corrosif, Régénération…) appliqués par `noyau/triggeredEffects`, jamais par un handler en dur.
    *  Type-only (le moteur reste pur : la donnée référence le Flow sans en dépendre à l'exécution). */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `RefDesignee[]` vers le dataset
    *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
    *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
@@ -1963,7 +1963,7 @@ export interface QualityData {
   /** Emplacement SECONDAIRE (#563) — même Qualité réimprimée/à cheval ailleurs (ex. Tir de zone :
    *  AA 89 + MDG 102). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
   alsoIn?: SecondaryRef[];
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Modificateurs PASSIFS continus (objet Laid : −10 aux Tests de Soc ; PASSIFS d'arme : weaponRollMod/
    *  weaponDamageMod/armourPierce/critOnRoll) en `GameOp[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
    *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
@@ -2004,7 +2004,7 @@ export interface SymptomData {
    *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
    *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
    *  `effectSourcesOf` (les symptômes ACTIFS deviennent une source, comme les États). */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Cycle de PHASE ACTIVE. `test` = le nœud `test` du Flow (`engine/flowCore.ts`) : le jet ET sa
    *  conséquence (branche `fail`). `ops` = la conséquence CERTAINE d'un cycle sans jet (éclatement du
    *  Vers du Reik, d'issue invariante — MSRC 16 l.142) : l'un OU l'autre, jamais les deux.
@@ -2062,7 +2062,7 @@ export interface DomainData {
   tables?: Record<string, string>;
   /** Effets DÉCLENCHÉS « à la touche » sur une cible d'un Sort du Domaine (Feu → En flammes…) — MÊMES
    *  `TriggeredEffect` éditables que Traits/Atouts, gatés par les Conditions Flow `relation`/`has`. */
-  effects?: import('../state/flow').TriggeredEffect[];
+  effects?: import('../noyau/monde/flow').TriggeredEffect[];
   /** Mitigation des Projectiles : ignore les PA d'une matière (`metal`/`nonMagic`) ; `bonusFromBypass`
    *  les ajoute aussi aux Dégâts (Métal). */
   missile?: { bypass: 'metal' | 'nonMagic'; bonusFromBypass?: boolean };
@@ -2222,7 +2222,7 @@ export interface SpellData {
    * effets. Import TYPE seul (effacé à la compilation) → la couche data NE dépend PAS d'une valeur
    * de `state` (pureté préservée). Absent = aucun effet mécanique (narratif).
    */
-  effects?: import('../state/flow').Flow;
+  effects?: import('../noyau/monde/flow').Flow;
   source: SourceRef;
   /** Emplacement SECONDAIRE (#563) — même Sort à cheval prose⇄stat-bloc ailleurs (ex. Maître de la
    *  bête : prose LDB 246, stat-bloc NI/Portée/Cible/Durée LDB 245). Accessors `allLocations`/
@@ -2529,7 +2529,7 @@ export const materials = materialsJson as MaterialEntry[];
 
 /** LES terrains du monde (#1690) — règle (franchissabilité, raccord, opacité, bâti) ET rendu (teinte,
  *  rampe, recette, décor posé, bloc plein) dans UNE entrée. Binding muté EN PLACE par `setDataset`
- *  (`data/overrides.ts`) : la façade `src/state/terrain` et le catalogue de rendu le lisent VIVANT. */
+ *  (`data/overrides.ts`) : la façade `src/noyau/monde/terrain` et le catalogue de rendu le lisent VIVANT. */
 export const terrains = terrainsJson as unknown as TerrainDef[];
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
@@ -2914,7 +2914,7 @@ export const weatherPhysicalTestChars = weatherData.physicalTestChars;
  *  Codex (`ventsTourbillonnants`, `ui/compendium/registry.ts`). */
 export const windsOfMagicTable = (ventsTourbillonnantsJson as { entries: { id: string; min: number; max: number; mod: number; label: string }[] }).entries;
 export const details = detailsJson as DetailsData;
-/** Semences d'une scène NEUVE (#1716) — lues par `emptyScene` (`state/scene.ts`), éditables au Codex. */
+/** Semences d'une scène NEUVE (#1716) — lues par `emptyScene` (`noyau/monde/scene.ts`), éditables au Codex. */
 export const semencesDeScene = semencesDeSceneJson as SemencesDeSceneData;
 /** Défauts du COMPILATEUR de scène (#1716) — lus par `mapSpec.ts`/`buildBoardingScene`, éditables au Codex. */
 export const defautsDeCompilation = defautsDeCompilationJson as DefautsDeCompilationData;

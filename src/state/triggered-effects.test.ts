@@ -4,19 +4,19 @@
  * réutilisant l'exécuteur des sorts (`runPureFlowLines`), sans handler en dur par trait/atout.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
+import { fireTriggers, applyTriggeredEffects } from '../noyau/triggeredEffects';
 import './combatFlow'; // effet de bord : installe le routeur de Test + l'applier triggeredTest
-import { runPureFlowLines } from './combat/flowEval';
+import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { evalCondition } from './flow';
+import { evalCondition } from '../noyau/monde/flow';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Flow } from './flow';
+import type { Flow } from '../noyau/monde/flow';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'C', kind: 'enemy',
@@ -321,7 +321,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
 });
 
 // ── Trigger `onOwnTestFailed` (MSRC 16 — Crampes abdominales) + symptômes comme SOURCE du dispatcher ──
-import { fireOwnTestFailed, effectSourcesOf } from './triggeredEffects';
+import { fireOwnTestFailed, effectSourcesOf } from '../noyau/triggeredEffects';
 
 const withCrampes = (over: Partial<Combatant> = {}): Combatant => mk({
   id: 'cr', kind: 'hero',

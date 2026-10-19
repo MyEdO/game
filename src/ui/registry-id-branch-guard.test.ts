@@ -202,7 +202,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/state/aiSpellValue.ts': 2,
   'src/state/combatEffects.ts': 3,
   'src/state/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
-  'src/state/combatGeometry.ts': 1,
+  'src/noyau/monde/combatGeometry.ts': 1,
   'src/state/combatManeuvers.ts': 4,
   'src/state/combatSlice.ts': 1,
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`

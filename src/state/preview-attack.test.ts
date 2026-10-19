@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { FLOWS } from './rollFlowSpecs';
 import { ARME_INTROUVABLE } from './mount';
 import { attackWeaponOf } from './combatFlow';
-import type { PendingAttack } from './pendings';
+import type { PendingAttack } from '../noyau/pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { useGame } from './store';
 import { previewAttack, previewDefense, defenseDodgeMods, resolveAttack, eligibleAttackTargetIds, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
@@ -12,10 +12,10 @@ import { setRule, resetRule } from '../engine/policy';
 import { volatileCharLines } from '../engine/characteristics';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
 import { inexplique } from './cascadeTestKit';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * LOT 3 (R4) — `previewAttack` rejoue le MÊME env + modificateurs que la résolution, sans tirer le dé :

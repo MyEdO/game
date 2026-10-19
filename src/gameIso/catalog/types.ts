@@ -1,6 +1,6 @@
 import type { Dims } from '../../geometry/iso';
-import type { FacadeFeature } from '../../state/scene';
-import type { Dir4, Dir8 } from '../../state/dir8';
+import type { FacadeFeature } from '../../noyau/monde/scene';
+import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
 import type { ViewArt } from '../rig/viewArt';
 
 export type ParamField =

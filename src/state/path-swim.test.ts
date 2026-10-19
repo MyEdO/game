@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { reachable, pathTo } from './path';
+import { reachable, pathTo } from '../noyau/monde/path';
 import { moveEnv } from './combatFlow';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 

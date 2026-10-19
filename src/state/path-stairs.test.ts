@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './scene';
-import { pathTo, reachable, walkNeighbors, tileKey, tileFromKey } from './path';
+import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
+import { pathTo, reachable, walkNeighbors, tileKey, tileFromKey } from '../noyau/monde/path';
 
 /**
  * Pathfinding VERTICAL auto-dérivé du RELIEF (plus d'escaliers explicites) : la traversée d'une couche

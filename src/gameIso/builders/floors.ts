@@ -5,9 +5,9 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, heightAt, isWalkable } from '../../state/scene';
-import { gradeBetween } from '../../state/relief';
-import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../../state/terrain';
+import { Scene, tileAt, heightAt, isWalkable } from '../../noyau/monde/scene';
+import { gradeBetween } from '../../noyau/monde/relief';
+import { estAbsent, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../../noyau/monde/terrain';
 import type { PartRelief } from '../../data/materials.types';
 import type { CellSide, Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';

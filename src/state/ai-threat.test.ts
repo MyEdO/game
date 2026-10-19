@@ -12,11 +12,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
-import { emptyScene } from './scene';
-import { chebyshev } from './path';
+import { emptyScene } from '../noyau/monde/scene';
+import { chebyshev } from '../noyau/monde/path';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../noyau/monde/dir8';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };

@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { aiApproachPlan, applyEffects, approachFearTrigger, checkFocusInterruption, computeRunReach, displayedReach, openCombatEndCascade } from './combatFlow';
 import { buildApi } from './devtools';
 import { mountUp } from './mount';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { gainCorruption } from './corruptionFlow';
-import { fleeTouche } from './pendings';
+import { fleeTouche } from '../noyau/pendings';
 import { planJump } from './jumpMove';
 import { testValue } from '../engine/skills';
 import { clampTarget, rollTest } from '../engine/tests';
@@ -21,7 +21,7 @@ import { refLabel, regles } from '../data';
 import { setDataset } from '../data/overrides';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu } from './ficheDeTest.testkit';
-import type { Flow } from './flow';
+import type { Flow } from '../noyau/monde/flow';
 import { draineCascade } from './cascadeTestKit';
 
 /**

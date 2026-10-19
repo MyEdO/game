@@ -14,7 +14,7 @@ import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import { serializeDataset } from '../../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
 import { enfantsDe } from '../../../data/schemas/grammaire/descente';
-import * as fs from '../../../data/fsPersist';
+import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../compendium/editFields';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from '../../compendium/registry';
@@ -48,7 +48,7 @@ import { apparenceSuivante } from '../../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from '../../compendium/CreaturePreview';
 import { porteurDApercu } from '../../compendium/apercuPorteur';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import { type Flow, EMPTY_FLOW, type TriggeredEffect, type EffectTrigger } from '../../../state/flow';
+import { type Flow, EMPTY_FLOW, type TriggeredEffect, type EffectTrigger } from '../../../noyau/monde/flow';
 import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
@@ -980,7 +980,7 @@ function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onCha
 /** Éditeur des EFFETS DÉCLENCHÉS (`TriggeredEffect[]`) — porté indifféremment par un Trait OU un Atout
  *  d'arme. MÊME logique authorée que les sorts : une LISTE d'effets, chacun = un DÉCLENCHEUR (sur
  *  événement) + une CIBLE + un `Flow` d'ops éditable (réutilise `FlowEditor`/`GameOpEditor`). Écrit le
- *  record `traits.json`/`qualities.json` au save → `state/triggeredEffects` les applique en jeu. */
+ *  record `traits.json`/`qualities.json` au save → `noyau/triggeredEffects` les applique en jeu. */
 function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; label?: string }) {
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));

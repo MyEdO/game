@@ -28,7 +28,7 @@ function directivesRefusees(code, fichier, vocabulaire = MURS_EXEMPTABLES_AU_SIT
 // il y ajoute les non-suivis du disque.
 test('DIRECTIVES DES MURS — sous un mur, une directive ne nomme qu’un mur du vocabulaire, à sa ligne, jamais une restriction native ni rien', () => {
   const corpus = fichiersSousUnMur(RACINE_DEPOT).filter((rel) => EXTENSIONS_DE_SCRIPT.some((ext) => rel.endsWith(ext)))
-  for (const temoin of ['src/state/rollSeam.ts', 'scripts/docs/build-all.mjs', 'server/src/rand.ts']) {
+  for (const temoin of ['src/noyau/rollSeam.ts', 'scripts/docs/build-all.mjs', 'server/src/rand.ts']) {
     assert.ok(corpus.includes(temoin), `la marche des murs ne voit plus \`${temoin}\``)
   }
   const refus = corpus.flatMap((rel) => {

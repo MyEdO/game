@@ -3,8 +3,8 @@ import { useGame } from './store';
 import { checkBattleOver } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { structureIsDown, structureDownKey } from './scene';
-import type { Scene } from './scene';
+import { structureIsDown, structureDownKey } from '../noyau/monde/scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * OBJECTIF de victoire authorable (#197) — `checkBattleOver` ne se rabat plus systématiquement sur

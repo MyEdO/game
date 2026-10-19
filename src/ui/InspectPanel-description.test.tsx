@@ -26,13 +26,13 @@ import { CampaignView } from './CampaignView';
 import { Inspector } from './editor/Inspector';
 import { addEnemyMember } from '../state/sceneEdit';
 import { placeEntity } from './editor/editorState';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { DELAI_APPUI_LONG } from './useLongPress';
 import type { Combatant } from '../engine/types';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

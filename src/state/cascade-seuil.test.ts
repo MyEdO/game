@@ -12,11 +12,11 @@
  *    fenêtre qui jette le dé, et la rangée peut MONTRER contre quoi il est tombé.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { lireEnSeuil, stepInteraction, stepReady, startCascade, registerCascadeApplier } from './cascade';
-import { dieStep, freeCons } from './rollSeam';
+import { lireEnSeuil, stepInteraction, stepReady, startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { dieStep, freeCons } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame, type BattleState } from './store';
-import type { SeuilDeSauvegarde } from './pendings';
+import type { SeuilDeSauvegarde } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 const PROTECTION: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: false };

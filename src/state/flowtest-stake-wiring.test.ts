@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from './flow';
+import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import { combatStakeRef, resolveStake, findSpellById } from '../data';
 import { routeTriggeredTest } from './combat/triggeredTest';
 import { planClimb } from './climbMove';
-import { emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 
 /**

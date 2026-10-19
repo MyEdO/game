@@ -22,9 +22,9 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useGame } from '../../state/store';
-import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../state/scene';
+import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { computeStateVisibleAndLight, sceneLightSources } from '../../state/visionState';
-import { capDuGroupe, meneurDuMonde } from '../../state/combatants';
+import { capDuGroupe, meneurDuMonde } from '../../noyau/monde/combatants';
 import { placingZoneOf } from '../../state/combatFlow';
 import { controlsActive, controlsCombatant } from '../../state/netOwnership';
 import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../state/gesteDArete';
@@ -40,7 +40,7 @@ import { buildRoofs, clearedSpace } from '../builders/roofs';
 import { buildProps } from '../builders/props';
 import { nappePorteuse } from '../builders/types';
 import { buildTokens, partyTokenOf } from '../builders/tokens';
-import { RANG_MENEUR, seatPoseOf } from '../../state/seating';
+import { RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { seatedEyeH } from '../pov/camera';
 import { elOccluder } from './occluders';
 import { tireurSurvole, type HighlightOpts } from './highlightLayer';
@@ -65,8 +65,8 @@ import { useStagePointer } from './useStagePointer';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { aretesUtilisables } from '../../state/aretes';
 import { roomFocusAt } from '../../state/rooms';
-import type { Pt } from '../../state/path';
-import { inBattleId } from '../../state/combatants';
+import type { Pt } from '../../noyau/monde/path';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { useHoverTargeting } from './useHoverTargeting';
 import { SceneErrorBoundary } from '../../ui/SceneErrorBoundary';
 import { SurcoucheIso } from '../SurcoucheIso';
@@ -190,7 +190,7 @@ function CorpsDuMonde() {
   // ils ne lisent que le `viewZ` reçu ; la MASSE du monde, cuite en bloc, le reçoit par `keepEl`.
   const planVue = politique.etageIsole;
   const layerZ = planVue ? activeZ : viewZ;
-  /** ÉLÉVATION d'affichage d'un point de grille — le SOCLE `state/scene.ts:liftDe` fermé sur la scène,
+  /** ÉLÉVATION d'affichage d'un point de grille — le SOCLE `noyau/monde/scene.ts:liftDe` fermé sur la scène,
    *  servi au peintre des seuils comme à la projection des arêtes, au jeton (qui monte avec son sol) et
    *  aux surlignages de case : tous posent le même segment que le trait de mur (`stage/layers.tsx:99`). */
   const liftOf = useCallback((p: Pt) => (scene ? liftDe(scene, p) : 0), [scene]);

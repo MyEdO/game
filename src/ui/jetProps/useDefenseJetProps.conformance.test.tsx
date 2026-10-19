@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame, type BattleState } from '../../state/store';
 import { openAttackCascade, aiCreatureFreeAttacks } from '../../state/combatFlow';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { RollShell } from '../RollShell';

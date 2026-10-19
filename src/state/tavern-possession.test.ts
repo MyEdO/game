@@ -8,9 +8,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
 
 const g = useGame.getState;

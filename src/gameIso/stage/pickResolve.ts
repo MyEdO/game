@@ -14,13 +14,13 @@
  * `PickResult`. Le `never` du défaut fait refuser par le compilateur une nature qu'aucune branche ne
  * nomme, là où une égalité sur `kind` la laisserait tomber en silence dans le repli de sol.
  */
-import { isWalkable, liftDe, type Scene } from '../../state/scene';
-import { metricToLift } from '../../state/relief';
-import { memoByRef } from '../../state/sceneMemo';
-import { decorEnCaseEtage } from '../../state/decorIndex';
+import { isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
+import { metricToLift } from '../../noyau/monde/relief';
+import { memoByRef } from '../../noyau/monde/sceneMemo';
+import { decorEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { resolveCursorZ } from '../../state/combatCursor';
-import { walkNeighbors, type Pt } from '../../state/path';
-import { inBattleId } from '../../state/combatants';
+import { walkNeighbors, type Pt } from '../../noyau/monde/path';
+import { inBattleId } from '../../noyau/monde/combatants';
 import { sceneAUnPropVolumique } from '../builders/props';
 import { hasSpritePicker } from './spritePicker';
 import { distanceAuSegment, type AreteProjetee } from './aretesProjetees';
@@ -48,7 +48,7 @@ export type PickVia = 'arete' | 'sprite' | 'decor' | 'meuble' | 'pas-etage' | 's
  *  par un étage de SURFACE (meuble dessiné, pas inter-étages, case marchable, sol cross-couche) ne
  *  nomme RIEN d'autre : ces étages inversent une géométrie, ils ne devinent aucune identité. La lecture
  *  PAR POSITION — « quelles entités sont ancrées sur cette case ? » — est assumée, unique et vit
- *  ailleurs : l'index case → entités de `state/decorIndex.ts` (`entitesEnCaseEtage`), que les lecteurs
+ *  ailleurs : l'index case → entités de `noyau/monde/decorIndex.ts` (`entitesEnCaseEtage`), que les lecteurs
  *  composent quand la case, et non le pixel, est la question.
  *
  *  L'UNION est DISCRIMINÉE par `nature` : `'entite'` sans `entId` ne compile pas, et un lecteur qui
@@ -169,7 +169,7 @@ export interface CadreDePick {
  *  plateau FIN que le rayon ne touche pas retombe sur la boucle CROSS-COUCHE, qui rend une case de
  *  l'ÉTAGE DU DESSUS — et envoie le groupe à l'autre bout du bâti.
  *
- *  L'OCCUPATION se lit à l'index case → décor (`state/decorIndex.ts`, bâti sur `propFootTiles`) : un
+ *  L'OCCUPATION se lit à l'index case → décor (`noyau/monde/decorIndex.ts`, bâti sur `propFootTiles`) : un
  *  meuble répond sur TOUTES les cases de son empreinte, donc les deux d'une table 2×1. Le verdict,
  *  lui, rend la case d'ANCRAGE du meuble — la même que la voie `decor` du rayon (`caseVisee`), d'où
  *  l'interaction d'exploration le reprend comme n'importe quel décor. */
@@ -192,7 +192,7 @@ export function meubleDessine(scene: Scene, cadre: CadreDePick, g: PointStage, z
  *  franchissement vertical (marches, rampe, tablier) se CLIQUE donc comme il se pousse au clavier.
  *  Hors de ce voisinage l'étage ACTIF garde la priorité : une case d'un étage qu'AUCUN pas ne rejoint
  *  reste une silhouette translucide posée au-dessus du sol qu'on foule, et ne lui vole jamais le clic.
- *  Le LIFT de chaque candidat est sa HAUTEUR MÉTRIQUE rendue (`state/scene.ts:liftDe`), PAS son index
+ *  Le LIFT de chaque candidat est sa HAUTEUR MÉTRIQUE rendue (`noyau/monde/scene.ts:liftDe`), PAS son index
  *  de couche — même correction qu'au curseur clavier (`screenStepDot`, `combatCursor.ts`). */
 export function pasInterEtages(scene: Scene, cadre: CadreDePick, partyPos: Pt, g: PointStage): Pt | null {
   for (const n of walkNeighbors(scene, partyPos)) {
@@ -205,7 +205,7 @@ export function pasInterEtages(scene: Scene, cadre: CadreDePick, partyPos: Pt, g
 }
 
 /** Case MARCHABLE de la couche `z` réellement DESSINÉE sous le pixel. Chaque case est projetée à son
- *  LIFT MÉTRIQUE (`state/scene.ts:liftDe`), JAMAIS au seul index de couche : une marche d'escalier est
+ *  LIFT MÉTRIQUE (`noyau/monde/scene.ts:liftDe`), JAMAIS au seul index de couche : une marche d'escalier est
  *  dessinée soulevée, et l'inverser à plat rend la case voisine 1 à 3 pas plus loin — un escalier
  *  entier devient injouable à la souris, donc l'étage qu'il dessert inatteignable. Le lift le plus
  *  HAUT gagne : c'est lui qu'on voit, et une case cachée DERRIÈRE une marche n'a pas à être cliquable.

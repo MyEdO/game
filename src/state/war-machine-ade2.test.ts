@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { firedAttackBlock } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
-import { fireTriggers } from './triggeredEffects';
+import { fireTriggers } from '../noyau/triggeredEffects';
 import { itemFromTrappingById, mannedPosteWeapon } from '../engine/items';
 import { useGame } from './store';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { BattleState, GameState } from './store';
 

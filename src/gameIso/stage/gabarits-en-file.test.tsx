@@ -24,7 +24,7 @@ import { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { sceneMetresPerTile, type Scene } from '../../state/scene';
+import { sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { buildVitrineScene } from '../../scenes/vitrine-batiments';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { bakeWorldGeometry } from '../backends/webgl/sceneMeshes';

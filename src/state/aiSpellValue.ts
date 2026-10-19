@@ -21,7 +21,7 @@ import { formulaExpectation, slBonus, applyOps, type GameOp } from '../engine/op
 import type { RNG } from '../engine/dice';
 import type { SizeCategory } from '../engine/size';
 import { groupMatch } from '../engine/groups';
-import { spellOps } from './flow';
+import { spellOps } from '../noyau/monde/flow';
 import { type SpellData, findConditionById } from '../data';
 import { RefIrresoluble, spawnEnemy } from './spawn';
 

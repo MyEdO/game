@@ -5,8 +5,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
-import { emptyScene, type Scene } from './scene';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { buildEncounter } from './encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart, toDate } from '../engine/clock';
@@ -16,7 +16,7 @@ import { resetCadence } from '../engine/cadence';
 import { seasonOfMonth } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from './combatFlow';
-import { tableStepDef } from './cascade';
+import { tableStepDef } from '../noyau/cascade';
 import { voyageDayCards } from '../ui/VoyageScreen';
 import { draineCascade } from './cascadeTestKit';
 import { creditBourse } from './bourseFlow';

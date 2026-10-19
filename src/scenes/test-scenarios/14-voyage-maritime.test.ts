@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
-import { seedBattleRng } from '../../state/battleRng';
+import { seedBattleRng } from '../../noyau/battleRng';
 import { partyMoneyTotal } from '../../state/bourseFlow';
 import { findSpell } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';

@@ -5,7 +5,7 @@
  * en CASES, `h`/`heightM` en MÈTRES. Le monde multipliant `x`/`y` par le `metresPerTile` de la scène
  * à la cuisson (`gpToWorld`), un tonneau de 0,75 m de large mesurait 3,74 m sur une scène MER
  * (`metresPerTile: 10`). La recette devient donc MÉTRIQUE sur ses trois axes, et ce sont ses LECTEURS
- * qui divisent par l'échelle de la scène (`builders/propVolumes.ts`, `state/seating.ts`).
+ * qui divisent par l'échelle de la scène (`builders/propVolumes.ts`, `noyau/monde/seating.ts`).
  *
  * FACTEUR DE MIGRATION : ×2, global. Les 22 recettes ont été authorées pour la seule échelle qui
  * existait alors, celle du défaut du monde — 2 m/case (`LDB 15 l.12` : « chaque case représentant une

@@ -15,21 +15,21 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
-import { Scene } from './scene';
-import type { CascadeStep, BatchParticipant } from './pendings';
+import { Scene } from '../noyau/monde/scene';
+import type { CascadeStep, BatchParticipant } from '../noyau/pendings';
 import { ficheDEntite } from './sceneNpc';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
-import { registerCascadeApplier, startCascade } from './cascade';
+import { registerCascadeApplier, startCascade } from '../noyau/cascade';
 import { describeEncounterPsych } from './flowOutcomes';
-import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
-import { actorIn } from './combatants';
+import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from '../noyau/rollSeam';
+import { actorIn } from '../noyau/monde/combatants';
 import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
+import { stepDetail, stepPrecision, stepPsych } from '../noyau/rollSeam';
 
 /** Forme d'un Test de Psychologie de rencontre résolu — conservée pour `describeEncounterPsych`
  *  (l'applier en construit une à partir de l'étape de cascade). */

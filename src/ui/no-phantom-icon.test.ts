@@ -20,7 +20,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // racine du projet (src/ui/ → ../../)
-const SCAN_DIRS = ['src/state', 'src/scenes'];
+const SCAN_DIRS = ['src/state', 'src/noyau', 'src/scenes'];
 
 /** `*.test.*` exclus : les tests portent parfois des ids de fixture forgés (pas rendus à
  *  l'utilisateur, pas des affordances réelles). */

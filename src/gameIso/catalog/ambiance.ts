@@ -7,7 +7,7 @@ import { ambiance } from '../../data';
 import { ao, luminanceHex, spec } from '../shade';
 import type { Dims } from '../../geometry/iso';
 import type { Visibility } from '../../state/visibility';
-import { isIndoor, type Scene } from '../../state/scene';
+import { isIndoor, type Scene } from '../../noyau/monde/scene';
 
 /** Halo radial (voile chaud / vignette) : centre + rayon en %, couleur et alpha au bord utile. */
 export interface RadialVeilDef { cx: string; cy: string; r: string; color: string; alpha: number; innerOff?: string }
@@ -17,7 +17,7 @@ export interface RadialVeilDef { cx: string; cy: string; r: string; color: strin
  *  sont ici, en donnée : le MOTEUR est N+1-par-donnée — un `WeatherPrecipDef` forgé, absent du dépôt,
  *  tombe sans une ligne de code (mesuré, `weatherParticles.test.ts`) et aucun consommateur ne connaît
  *  le nom d'un type. Le VOCABULAIRE des types, lui, est une énumération à TROIS sites — `WeatherFxId`
- *  ci-dessous, `Scene['weather']` (`state/scene.ts`) et l'objet strict du schéma
+ *  ci-dessous, `Scene['weather']` (`noyau/monde/scene.ts`) et l'objet strict du schéma
  *  (`data/schemas/defs/ambiance.ts`) : nommer un type de plus édite ces trois-là. */
 export interface WeatherPrecipDef {
   /** Particules par m² de sol : le BUDGET d'instances de la scène en découle. */
@@ -170,7 +170,7 @@ export const AMBIANCE: AmbianceDef = ambiance;
 /** PORTE UNIQUE de la météo à l'écran (#1176 P2-6) : la scène a-t-elle une météo à MONTRER, et
  *  laquelle ? Une scène d'INTÉRIEUR n'en montre aucune. C'est le semis de particules du monde
  *  volumique (`backends/webgl/weatherParticles.ts`) qui la lit. Le verdict d'intérieur lui-même vient
- *  de `isIndoor` (`state/scene.ts`), la porte de toutes les vues.
+ *  de `isIndoor` (`noyau/monde/scene.ts`), la porte de toutes les vues.
  *  C'est le REGISTRE qui décide de ce qui se montre : un id sans entrée au catalogue — `clair`
  *  compris — ne montre rien. */
 export function sceneWeatherFx(scene: Pick<Scene, 'weather' | 'ambiance'>): WeatherFxDef | null {

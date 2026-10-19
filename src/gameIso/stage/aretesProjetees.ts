@@ -12,10 +12,10 @@
  * projection (`dims`, `lift`) — le patron de `pickResolve.sceneLifts`, jamais un cache à invalider.
  */
 import { tileEdge, type Dims, type EdgeSide } from '../../geometry/iso';
-import { memoByRefDeps } from '../../state/sceneMemo';
+import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
 import type { AreteUtilisable } from '../../state/aretes';
-import type { WallSide } from '../../state/scene';
-import type { Pt } from '../../state/path';
+import type { WallSide } from '../../noyau/monde/scene';
+import type { Pt } from '../../noyau/monde/path';
 
 /** Point du repère de PROJECTION du stage (celui où `tileCenter`/`tileEdge` dessinent). */
 export interface PointEcran {

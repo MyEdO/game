@@ -33,9 +33,9 @@
 
 /** Le seam lui-même — exclusion de principe, sans compte. @type {Set<string>} */
 export const ROLL_SEAM_CORE = new Set([
-  'src/state/rollSeam.ts',
+  'src/noyau/rollSeam.ts',
   'src/state/rollFlowFactory.ts',
-  'src/state/cascade.ts',
+  'src/noyau/cascade.ts',
   'src/state/rollFlowSpecs.ts',
   'src/state/combat/triggeredTest.ts',
 ]);
@@ -55,7 +55,7 @@ export const ROLL_SEAM_PHASE2_STOCK = new Map([
   ['src/state/shipManeuver.ts', 2],
   ['src/state/travelFlow.ts', 3], // 6→3 au câblage allure forcée (#673 L3) : les 3 rollTest inline (conducteur + 2 Résistance des bêtes) ont MIGRÉ vers les résolveurs purs de vehicle.ts (forcedPaceCheck/forcedPaceBeastCheck), comptés au stock (D)
   ['src/state/travelPostes.ts', 1],
-  ['src/state/triggeredEffects.ts', 1],
+  ['src/noyau/triggeredEffects.ts', 1],
   // `src/state/upkeep.ts` : 2 → 0 (#1657 B3-3) — les 2 `rollTest` du Dessoûlage (LDB 09 l.485) meurent
   // avec le chemin eager de l'entretien : `runDailyUpkeep` EXIGE désormais sa porte (`onDeferTest`
   // requis au type), et les deux Tests partent en étapes influençables comme leurs voisins.
@@ -197,7 +197,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/state/activityIssue.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2 — l’issue UNIQUE d’une Activité, terre et mer (`onSuccess`, Exténué de `failExtenue`). B -> #1508 T2.' }],
   ['src/state/activityWorldRolls.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1 — celui de l\'APPLIER des issues (`registerCascadeApplier(ACTIVITY_WORLD_ROLL_KIND)`), qui applique `wr.ops` une fois le seuil tombé. Le dé de MONDE lui-même passe par la porte (`worldStep`, évaluation `seuil`) et sa CIBLE se LIT sans rng (`formulaExpectation`) : AUCUN dé ne se tire ici aujourd\'hui — la seule issue authorée est `statusMod` (`activities.json › mendier.worldRolls`), sans magnitude. L\'entrée reste au stock parce que le détecteur compte `applyOps` comme SURFACE de dé, pas parce qu\'un dé y roule. B (magnitudes d\'`applyOps`) -> #1508 T2.' }],
   ['src/state/aiSpellValue.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1. B (`applyOps` en ÉVALUATION d\'IA) -> #1508 T2.' }],
-  ['src/state/combat/flowEval.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1 — le walker PUR `runPureFlowLines` (ops.ts:1647). B -> #1508 T2.' }],
+  ['src/noyau/combat/flowEval.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1 — le walker PUR `runPureFlowLines` (ops.ts:1647). B -> #1508 T2.' }],
   ['src/state/combat/roundHooks.ts', { n: 3, kind: 'dette', why: 'mesuré : bleedDeathRoll×1, rollTest×1, rollWindsOfMagic×1. B + Hémorragie mortelle roulée en fin de ronde -> #1508 T2/T3.' }],
   ['src/state/combat/turnHooks.ts', { n: 6, kind: 'dette', why: 'mesuré : resolveCalmeSimple×2, resolvePeurTest×2, resolveFrenzyEntry×1, resolveTerreurTest×1. psychologie de début de tour roulée en direct -> #1508 T3.' }],
   ['src/state/combatEffects.ts', { n: 22, kind: 'dette', why: 'mesuré : applyOps×6, resolveFormula×6, rng.int×2, applyFaimTest×1, applyManannFactor×1, applySoifTest×1, d10×1, d100×1, drawWaterDisease×1, roll×1, traumaOnImpossibleAmbition×1. #1508 T2 : `applyFall×1` a QUITTÉ le compte (la chute ne tire plus son 1d10 — il lui arrive de la porte, `ouvrirChute`/`OpsCtx.des`), et l\'`applyOps` de l\'applier `opsDe` (celui qui applique la feuille APRÈS les dés) l\'a remplacé. 23 -> 22 (#2888) : l\'`applyOps` du walker `runPureFlowLines` est compté à `combat/flowEval.ts`. B (magnitudes d\'`applyOps`/`resolveFormula`), C (magnitudes d\'applier) -> #1508 T2/T5.' }],
@@ -232,9 +232,9 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/state/tavernFlow.ts', { n: 8, kind: 'dette', why: 'mesuré : rng.int×4, applyOps×3, rollTavernTest×1. B, F (désignation `rng.int`) -> #1508 T2/T6.' }],
   ['src/state/travelFlow.ts', { n: 9, kind: 'dette', why: '11 -> 9 (#2533 : les deux d10 des péripéties, seuil et table LDB 51 l.208-221, sont des étapes à TABLE de monde, posables). mesuré : d100×2, applyOps×1, declareDisease×1, forcedMarchTest×1, forcedPaceBeastCheck×1, forcedPaceCheck×1, resolveMountedDay×1, rollTest×1. C (magnitudes de route) -> #1508 T5.' }],
   ['src/state/travelPostes.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, applyExposureFailure×1, d100×1. B, C (Exposition des postes) -> #1508 T2/T5.' }],
-  ['src/state/triggeredEffects.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3.' }],
+  ['src/noyau/triggeredEffects.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3.' }],
   ['src/state/upkeep.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2.' }],
-  ['src/state/zones.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, resolveFormula×2. B (magnitudes d\'`applyOps`/`resolveFormula` de zone) -> #1508 T2.' }],
+  ['src/noyau/monde/zones.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, resolveFormula×2. B (magnitudes d\'`applyOps`/`resolveFormula` de zone) -> #1508 T2.' }],
   ['src/ui/creator/CharacterCreator.tsx', { n: 2, kind: 'dette', why: 'mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6.' }],
   ['src/ui/creator/draft.ts', { n: 15, kind: 'dette', why: 'mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6.' }],
 ]);
@@ -247,12 +247,12 @@ export const DES_HORS_PORTE_STOCK = new Map([
  * @type {{ name: string, file: string, exported: boolean, role: string }[]}
  */
 export const SEAM_CALLERS = [
-  { name: 'openRoll', file: 'src/state/rollSeam.ts', exported: true, role: 'LA porte déclarative : le call-site DÉCRIT un `RollRequest`, la porte résout la policy de surfaçage M/V/I.' },
-  { name: 'openPartyTest', file: 'src/state/rollSeam.ts', exported: true, role: 'Porte du jet de GROUPE (meilleur / assisté) — même policy, acteur choisi dans le groupe.' },
-  { name: 'openWorldTest', file: 'src/state/rollSeam.ts', exported: true, role: 'Porte du jet de MONDE (aucun acteur porteur) — propriétaire = le siège MJ via `worldOwner`.' },
+  { name: 'openRoll', file: 'src/noyau/rollSeam.ts', exported: true, role: 'LA porte déclarative : le call-site DÉCRIT un `RollRequest`, la porte résout la policy de surfaçage M/V/I.' },
+  { name: 'openPartyTest', file: 'src/noyau/rollSeam.ts', exported: true, role: 'Porte du jet de GROUPE (meilleur / assisté) — même policy, acteur choisi dans le groupe.' },
+  { name: 'openWorldTest', file: 'src/noyau/rollSeam.ts', exported: true, role: 'Porte du jet de MONDE (aucun acteur porteur) — propriétaire = le siège MJ via `worldOwner`.' },
   { name: 'makeRollFlow', file: 'src/state/rollFlowFactory.ts', exported: true, role: 'La FABRIQUE de flux de jet : une spec (`resolve`/`reresolve`/`rollActor`…) devient un flux à modale.' },
   { name: 'FLOWS', file: 'src/state/rollFlowSpecs.ts', exported: true, role: 'Le CATALOGUE des specs de flux montées par `makeRollFlow` — position (S) du garde d\'exclusivité.' },
   { name: 'openSkillTest', file: 'src/state/combatEffects.ts', exported: true, role: 'Ouvre le `pendingTest` d\'un nœud `test` de Flow AUTHORÉ (donnée : sorts, effets déclenchés, consommables).' },
-  { name: 'rollTableStep', file: 'src/state/cascade.ts', exported: true, role: 'Étape de cascade « à table » : le dé est lu en table (d100 → fourchette), surfacé comme une étape.' },
+  { name: 'rollTableStep', file: 'src/noyau/cascade.ts', exported: true, role: 'Étape de cascade « à table » : le dé est lu en table (d100 → fourchette), surfacé comme une étape.' },
   { name: 'openCrewTestPending', file: 'src/state/combatSlice.ts', exported: false, role: '3ᵉ famille NAVALE (Test d\'équipage : manœuvre, batterie, type libre) — MODULE-LOCALE, 3 call-sites internes ; sa localité est exactement ce qui l\'a tenue hors registre jusqu\'ici (-> #1067).' },
 ];

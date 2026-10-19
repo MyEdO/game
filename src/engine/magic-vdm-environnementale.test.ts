@@ -98,7 +98,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
 
   // Câblage donnée → lecture publique : aucun index précalculé ne doit rester périmé après une
   // édition Compendium (`setObjectDataset`, `data/overrides.ts`) — même patron que
-  // `state/footprint.test.ts::câblage donnée → géométrie`.
+  // `noyau/monde/footprint.test.ts::câblage donnée → géométrie`.
   describe('câblage donnée → lecture directe (sans rechargement de module)', () => {
     const seed = structuredClone(datasetObject('arcanePhenomena'));
     afterEach(() => setObjectDataset('arcanePhenomena', structuredClone(seed)));

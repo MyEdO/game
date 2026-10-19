@@ -14,9 +14,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { startCascade, registerCascadeApplier } from '../state/cascade';
-import { dieStep } from '../state/rollSeam';
-import type { SeuilDeSauvegarde } from '../state/pendings';
+import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { dieStep } from '../noyau/rollSeam';
+import type { SeuilDeSauvegarde } from '../noyau/pendings';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { CascadeBody } from './CascadeModal';
 

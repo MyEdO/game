@@ -24,7 +24,7 @@ import { regles, findQualityById, findActionById, findConditionById, findVehicle
 import { ActiveModal } from '../ActiveModal';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../state/actionRegistry';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { mdToText } from '../Prose';
 import { CombatConsole } from './CombatConsole';
 import { TARGETING_MODES } from '../../state/targetingModes';

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { attackEnv } from './combatFlow';
 import type { Get } from './flowTypes';
 import type { Combatant, Weapon, ShipPoste } from '../engine/types';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * #248 — COUVERT DE PONT au calcul de touche. Un défenseur SERVANT un poste couvert (MSRC f.66 l.111,

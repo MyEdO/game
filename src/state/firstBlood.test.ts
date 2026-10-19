@@ -5,7 +5,7 @@ import { applyAttackResult, checkBattleOver, firedAttackBlock, resolveAttack, do
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { Weapon } from '../engine/types';
 
 /**

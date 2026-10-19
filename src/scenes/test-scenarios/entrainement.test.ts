@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './entrainement';
-import { layerTiles } from '../../state/scene';
+import { layerTiles } from '../../noyau/monde/scene';
 const scenarioConstruit = scenario.construire();
 
 /**

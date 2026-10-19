@@ -2,7 +2,7 @@ import { makeShowcaseParty, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 // Équipage de la barge amie = 2 héros du groupe (comme la vitrine navale). Les Critiques de coque MSRC 7
 // visent une PRÉSENCE NOMMÉE, pas « tout le monde » : Gréement (l.78) frappe `{stations:['pont']}`,

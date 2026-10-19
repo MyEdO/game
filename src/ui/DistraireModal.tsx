@@ -5,7 +5,7 @@ import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { testBreakdown } from './breakdown';
 import { describeDistraire } from '../state/flowOutcomes';
 import { opposedResponded } from './opposedFrozen';

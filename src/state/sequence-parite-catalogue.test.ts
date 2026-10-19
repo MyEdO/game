@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { t } from '../i18n';
-import { stepDetail, stepFraction, stepPrecision } from './rollSeam';
+import { stepDetail, stepFraction, stepPrecision } from '../noyau/rollSeam';
 import { dataLabel } from '../data';
 import { riverForceLabel } from '../engine/riverNavigation';
 import { locationLabel } from '../engine/types';

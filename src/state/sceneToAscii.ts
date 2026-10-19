@@ -19,10 +19,10 @@
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
 import { tableTotale } from '../lib/tableTotale';
-import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from './scene';
-import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
-import { sceneZoneTiles } from './zones';
-import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
+import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from '../noyau/monde/scene';
+import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from '../noyau/monde/scene';
+import { sceneZoneTiles } from '../noyau/monde/zones';
+import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from '../noyau/monde/terrain';
 import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
 
 /** Alphabet BRUT de l'allocateur, moins les mots de la grammaire du plan (`carte-ascii.ts`). Les
@@ -79,7 +79,7 @@ const SEP_CLE = '\u001f';
 const wallCatKey = (door: boolean, window: boolean, overlay: WallOverlay) =>
   [door ? 1 : 0, window ? 1 : 0, ...WALL_OVERLAY_KEYS.map((k) => overlay[k] ?? '')].join(SEP_CLE);
 /** Clés d'un `WallSeg` que le format walled ne REPRÉSENTE pas → libellé de l'avertissement d'export.
- *  N+1 clé = UNE ligne ici (patron `WALL_OVERLAY_KEYS`, `state/scene.ts`). */
+ *  N+1 clé = UNE ligne ici (patron `WALL_OVERLAY_KEYS`, `noyau/monde/scene.ts`). */
 const CLES_HORS_ASCII = {
   climb: 'arête(s) escaladable(s)',
   closed: 'porte(s) FERMÉE(S) par défaut',

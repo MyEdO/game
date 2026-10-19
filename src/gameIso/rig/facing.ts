@@ -1,5 +1,5 @@
 import { rotTile, type Dims, type Rot } from '../../geometry/iso';
-import { DIR8_DELTA, type Dir8 } from '../../state/dir8';
+import { DIR8_DELTA, type Dir8 } from '../../noyau/monde/dir8';
 export type { Dir8 };
 
 /** Les vues d'un art orienté, dans l'ordre CANONIQUE (face, profil, dos) : SOURCE UNIQUE, dont dérivent

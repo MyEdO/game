@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
+import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { RING_A_PX } from './dynamicMarks';
 import { HALO_RX_PX, haloRadiusK, interactionHalos, NO_INTERACTION_HALOS, type HaloRegime } from './interactHalos';
-import { cleActionJouee } from '../../state/usable';
+import { cleActionJouee } from '../../noyau/monde/usable';
 import type { BillboardPropEl, TokenEl } from './types';
 
 /**

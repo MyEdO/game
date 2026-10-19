@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { openSequence, displayStep, monoStep } from './rollSeam';
-import { registerCascadeApplier, startCascade, advanceCascade, resumeSuspendedCascade } from './cascade';
-import { seedBattleRng } from './battleRng';
+import { openSequence, displayStep, monoStep } from '../noyau/rollSeam';
+import { registerCascadeApplier, startCascade, advanceCascade, resumeSuspendedCascade } from '../noyau/cascade';
+import { seedBattleRng } from '../noyau/battleRng';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { makePregens } from '../data/pregens';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
-import type { BuiltCascadeStep } from './rollSeam';
+import type { BuiltCascadeStep } from '../noyau/rollSeam';
 
 /**
  * LE CONTRAT DU SOCLE DE SÉQUENCE (#1479), sur ses DEUX bords :

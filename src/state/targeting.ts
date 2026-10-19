@@ -7,13 +7,13 @@
  */
 import { Combatant } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
-import { combatDistance } from './footprint';
+import { combatDistance } from '../noyau/monde/footprint';
 import type { GameState } from './store';
 import { currentTargetingMode, type HoverTargeting, type TilePreview } from './targetingModes';
 import { controlsCombatant } from './netOwnership';
-import { inBattleId } from './combatants';
+import { inBattleId } from '../noyau/monde/combatants';
 import { canPreemptRanged } from '../engine/combatFeatures/dispatch';
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 
 // Réexports de compatibilité : le TYPE d'affordance et la dérivation du côté visé d'un sort vivent
 // dans le registre de modes ; les importeurs historiques (IsoStage, tests) restent valides.

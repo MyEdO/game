@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { TopoScene } from '../gameIso/TopoScene';
 import type { Station } from '../state/stations';
-import type { Scene } from '../state/scene';
+import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Bande de sélection RTS GÉNÉRIQUE : une puce par Station de l'ensemble (point « servi » + label + effectif).

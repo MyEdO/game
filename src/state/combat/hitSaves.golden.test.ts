@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { applyAttackResult } from '../combatFlow';
-import { seedBattleRng, battleRng } from '../battleRng';
+import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { draineEtLit } from '../cascadeTestKit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
-import { emptyScene } from '../scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { OPS_DIFFEREES } from '../combatEffects';
 
 /**

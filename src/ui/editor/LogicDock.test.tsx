@@ -1,7 +1,7 @@
-import { flowFromEffects } from '../../state/flow';
+import { flowFromEffects } from '../../noyau/monde/flow';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { emptyScene } from '../../state/scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { LogicDock } from './LogicDock';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';

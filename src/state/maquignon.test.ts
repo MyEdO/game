@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { toBrass } from '../engine/money';

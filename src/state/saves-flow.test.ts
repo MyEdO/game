@@ -14,7 +14,7 @@ import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, pa
 import { FORMAT_SAVE } from './formats.generated';
 import { rule, setRule, loadRuleOverrides } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef } from '../data/index';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers } from '../noyau/cascade';
 import './combatFlow'; // baril : enregistre les appliers de cascade (`triggeredBatchTest`), effet de bord
 import { talentSlots, slotCovers } from '../engine/careerSlots';
 import { createHero } from '../engine/character';
@@ -25,15 +25,15 @@ import { resolveCritique } from '../engine/critical';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import type { Combatant, Trauma } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene } from './scene';
-import { pruneSeatAssignments } from './seating';
-import { capDuGroupe, poserCapDuGroupe } from './combatants';
-import type { Dir8 } from './dir8';
-import { entityBlockedAt } from './sceneRules';
+import { emptyScene } from '../noyau/monde/scene';
+import { pruneSeatAssignments } from '../noyau/monde/seating';
+import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
+import type { Dir8 } from '../noyau/monde/dir8';
+import { entityBlockedAt } from '../noyau/monde/sceneRules';
 import { phaseDeChute } from './fallMove';
-import type { PendingFall } from './pendings';
+import type { PendingFall } from '../noyau/pendings';
 import { findPropById, findSpellById } from '../data/index';
-import { spellEffectOps } from './flow';
+import { spellEffectOps } from '../noyau/monde/flow';
 import { applyOps } from '../engine/ops';
 
 /** Porteur minimal : `stampCriticalEscalation` ne lit que ses séquelles. */

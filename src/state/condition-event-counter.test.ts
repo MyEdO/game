@@ -3,7 +3,7 @@
  *
  * `ev('condition', …)` est le site où un événement de journal est déclaré « État » SANS porter d'id
  * d'État : c'est ce qui oblige l'affichage à retrouver l'État en SCANNANT le texte français
- * (`conditionIdInText`, `engine/conditions`, consommé par `state/combatLog` + `gameIso/combatNarration`). Le stock ci-dessous est
+ * (`conditionIdInText`, `engine/conditions`, consommé par `noyau/combatLog` + `gameIso/combatNarration`). Le stock ci-dessous est
  * NOMINATIF et DÉCROISSANT, cible ZÉRO : à zéro, le scan par libellé meurt et `ev()` peut être muré
  * (l'union `CombatEvent` devient discriminée, `condition` exigeant son `stateId`).
  *

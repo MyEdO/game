@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
-import { cascadeAppliers } from './cascade';
-import { resultLine } from './rollSeam';
-import type { CascadeStep } from './pendings';
+import { cascadeAppliers } from '../noyau/cascade';
+import { resultLine } from '../noyau/rollSeam';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 
 /**

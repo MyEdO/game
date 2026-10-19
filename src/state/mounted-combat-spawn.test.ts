@@ -5,7 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { buildEncounter } from './encounterAuthoring';
 import { validateScene } from './validateScene';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { Possession } from '../engine/possession';
 
 /**

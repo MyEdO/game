@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene } from './scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { vesselFreeEnc, vesselMaxLoadEnc } from './portFlow';
 import { seaActivityBlocked } from './seaActivities';
@@ -12,7 +12,7 @@ import { partyMoneyTotal, bourseOf, creditBourse, debitBourse } from './bourseFl
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascadeTestKit';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /** Remet la Bourse d'un héros à un montant EXACT (test) — vide puis crédite (SOCLE POSSESSIONS #531). */
 function fund(id: string, m: { gold: number; silver: number; brass: number }): void {

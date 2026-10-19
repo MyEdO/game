@@ -24,8 +24,8 @@
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
-import type { RecapTone } from './recapLine';
-import { battleRng } from './battleRng';
+import type { RecapTone } from '../noyau/recapLine';
+import { battleRng } from '../noyau/battleRng';
 import { partyAssisted, peutTenter, testValue } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
@@ -40,10 +40,10 @@ import type { DeferredUpkeepTest } from './upkeep';
 import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
-import { registerCascadeApplier, startCascade, runCascadeImmediate } from './cascade';
+import { registerCascadeApplier, startCascade, runCascadeImmediate } from '../noyau/cascade';
 import { nightBands, registerNightBandApplier, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand, EXPOSURE_BAND_KINDS } from './nightBands';
-import { freeCons, monoStep, choiceStep, pousseSi, type BuiltCascadeStep } from './rollSeam';
-import type { CascadeStepMeta } from './pendings';
+import { freeCons, monoStep, choiceStep, pousseSi, type BuiltCascadeStep } from '../noyau/rollSeam';
+import type { CascadeStepMeta } from '../noyau/pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
@@ -95,7 +95,7 @@ export function routeLieu(worldMap: WorldMap, plan: { fromPlaceId: string; toPla
 /** Entrée du PROCÈS-VERBAL (bilan multi-jets, réutilisable : jour de mer #232, chronique de voyage…).
  *  Une ligne = un jet de ROUTINE déjà résolu (témoin), rendu en LECTURE SEULE par `MultiRollList` — la
  *  nuit de repos (#347) n'en tisse plus : chaque jet de nuit est une ÉTAPE de cascade influençable
- *  (`state/cascade.ts`), pas une ligne de PV recalculée après coup. */
+ *  (`noyau/cascade.ts`), pas une ligne de PV recalculée après coup. */
 export interface NightEntry {
   id?: string;
   actorId?: string;
@@ -108,7 +108,7 @@ export interface NightEntry {
   /** RUBRIQUE de la ligne : les lignes consécutives d'une MÊME rubrique (les contributeurs d'un même
    *  Test d'équipage) se rendent sous UNE bande titrée (`Band`) au lieu de répéter l'en-tête. */
   group?: string;
-  /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `state/recapLine.ts` (même trio que `RecapLine.tone`). */
+  /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `noyau/recapLine.ts` (même trio que `RecapLine.tone`). */
   tone?: RecapTone;
   /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `restParty`, clôture d'interlude) —
    *  décoratif hors de ces deux chemins. */
@@ -147,7 +147,7 @@ import { dataLabel } from '../data';
 import { t } from '../i18n';
 import { placeById, type WorldMap } from './worldMap';
 import { garanti } from '../lib/garanti';
-import { stepPrecision } from './rollSeam';
+import { stepPrecision } from '../noyau/rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */

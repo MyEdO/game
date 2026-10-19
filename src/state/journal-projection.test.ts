@@ -4,10 +4,10 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { deElide } from '../i18n';
-import { startCascade, runCascadeImmediate } from './cascade';
+import { startCascade, runCascadeImmediate } from '../noyau/cascade';
 import { spyApplier } from './cascadeTestKit';
 import { FLOWS } from './rollFlowSpecs';
-import type { CascadeStep, PendingReload, PendingTest } from './pendings';
+import type { CascadeStep, PendingReload, PendingTest } from '../noyau/pendings';
 
 /**
  * #1262 V3 Lj — LE JOURNAL EST UNE PROJECTION.

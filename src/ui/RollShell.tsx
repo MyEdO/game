@@ -12,7 +12,7 @@ import { FLOW_VERBS } from '../state/rollFlowSpecs';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';
-import type { RecapLine } from '../state/recapLine';
+import type { RecapLine } from '../noyau/recapLine';
 import { StakeNote, StakeRule, hasStakeRule, stakeRuleOf } from './StakeNote';
 import type { StakeRef } from '../data';
 import type { BuiltRollRow } from './rollRowBuild';

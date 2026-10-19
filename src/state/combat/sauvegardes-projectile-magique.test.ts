@@ -11,9 +11,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { applyCast } from '../combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
-import { seedBattleRng, battleRng } from '../battleRng';
+import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { draineEtLit } from '../cascadeTestKit';
-import { emptyScene } from '../scene';
+import { emptyScene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };

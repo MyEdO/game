@@ -13,11 +13,11 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from '../state/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { CascadeBody } from './CascadeModal';
 import { frozenOpposedBatchStep } from '../state/combat/triggeredTest';
 import { findQualityById } from '../data';
-import { EMPTY_FLOW } from '../state/flow';
+import { EMPTY_FLOW } from '../noyau/monde/flow';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../state/cascadeTestKit';
 

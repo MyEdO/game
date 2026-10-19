@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { inexplique } from './cascadeTestKit';
-import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from './rollSeam';
+import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from '../noyau/rollSeam';
 import { openCombatEndCascade, openContractionCascade, openAttackCascade } from './combatFlow';
 import { resolveActGates } from './combat/turnHooks';
 import { forceCrewRole } from './shipManeuver';
@@ -623,7 +623,7 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
    *  COMMENTAIRE reste légitime (il explique ce que l'affichage en fera) : le scan neutralise donc
    *  les commentaires avant de chercher, et cherche accents ET casse confondus. */
   it('le mot ne se MANIPULE ni dans `src/engine`, ni dans `src/state` — il est de l’affichage', () => {
-    const fichiers = readCorpus(['src/engine', 'src/state']);
+    const fichiers = readCorpus(['src/engine', 'src/state', 'src/noyau']);
     expect(fichiers.length, 'le scan doit VOIR des fichiers — un scan cassé serait vert à vide').toBeGreaterThan(50);
     const sansCommentaires = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     // Les LITTÉRAUX de chaîne du code restant (simples, doubles, gabarits) — c'est là que le mot
@@ -638,7 +638,7 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
   });
 
   it('`difficultyCombined` est DÉRIVÉ : absent de la déclaration d’entrée et de toute donnée', () => {
-    const seam = readFileSync(resolve(__dirname, 'rollSeam.ts'), 'utf8');
+    const seam = readFileSync(resolve(__dirname, '../noyau/rollSeam.ts'), 'utf8');
     const decl = seam.slice(seam.indexOf('interface RollLineBase'), seam.indexOf('export type RollLineSpec'));
     expect(decl.length, 'le découpage doit VOIR la déclaration d’entrée').toBeGreaterThan(200);
     expect(decl).not.toContain('difficultyCombined');

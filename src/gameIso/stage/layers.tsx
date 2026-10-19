@@ -15,16 +15,16 @@
  * Fonctions PURES.
  */
 import { depth, projectOccluder, tileEdge, type Dims, type EdgeSide } from '../../geometry/iso';
-import { liftDe, tileAt } from '../../state/scene';
-import { terrainSolidHeightM } from '../../state/terrain';
-import { memoByRefDeps } from '../../state/sceneMemo';
+import { liftDe, tileAt } from '../../noyau/monde/scene';
+import { terrainSolidHeightM } from '../../noyau/monde/terrain';
+import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
 import { panelOf } from './occluders';
 import { wallSvg, wallAccentsSvg, wallDepth, solidEdgeTopSvg } from '../authoring/wallsSvg';
 import type { DetailOpts } from '../authoring/detailSvg';
 import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { sortByDepth, type StageObj } from './objs';
-import type { Scene } from '../../state/scene';
+import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * PROJECTION MÉMOÏSÉE PAR ÉLÉMENT (#808) : identité d'élément inchangée ET mêmes paramètres de

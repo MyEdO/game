@@ -7,13 +7,13 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { openBand, openChoice, choiceStep, bandStep, type BuiltCascadeStep, type BandOpenSpec, type BandPorteur } from './rollSeam';
+import { openBand, openChoice, choiceStep, bandStep, type BuiltCascadeStep, type BandOpenSpec, type BandPorteur } from '../noyau/rollSeam';
 import { modalOwnerOf } from './modalArbiter';
-import { startCascade } from './cascade';
+import { startCascade } from '../noyau/cascade';
 import { ownsLocal } from './netOwnership';
-import { seatOwns } from './sieges';
+import { seatOwns } from '../noyau/sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>

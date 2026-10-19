@@ -4,7 +4,7 @@
  * éteint cache l'élément ET bloque son clic : ce couplage est le contrat, il se vérifie ici.
  */
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type SceneEffectZone } from '../../state/scene';
+import { emptyScene, type SceneEffectZone } from '../../noyau/monde/scene';
 import { DEFAULT_LAYERS, hitAt } from './editorState';
 import { effectiveLayers, layerChoicesFrom } from './editorLayers';
 

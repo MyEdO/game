@@ -4,7 +4,7 @@ import { RollShell } from '../RollShell';
 import { buildRollRow } from '../rollRowBuild';
 import { testBreakdown, testPending } from '../breakdown';
 import { Icon } from '../Icon';
-import { resultLines, freeCons } from '../../state/rollSeam';
+import { resultLines, freeCons } from '../../noyau/rollSeam';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test ÉTENDU (LDB 12 l.170-186).

@@ -6,7 +6,7 @@
  * consommateur de cases. Le laisser en donnée en ferait un CHAMP MORT que le prochain auteur
  * croirait porteur — et qui mentirait au premier cap E/O (le `foot` ne tourne pas, l'empreinte si).
  * `foot` redevient donc ce que le design #1509 point 6 tranche : la vérité d'un BILLBOARD seulement,
- * et son tri-état (absent / présent) y garde tout son sens (`state/sceneRules.ts`, porte de blocage).
+ * et son tri-état (absent / présent) y garde tout son sens (`noyau/monde/sceneRules.ts`, porte de blocage).
  *
  * Le refine `affinerEntree` (`src/data/schemas/defs/props.ts`) refuse désormais la co-présence à
  * l'entrée : ce script est ce qui rend le catalogue conforme à cette porte.

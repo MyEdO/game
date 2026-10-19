@@ -17,7 +17,7 @@
  */
 import type { GameState } from './store';
 import { activeCombatant, useGame } from './store';
-import { actorIn } from './combatants';
+import { actorIn } from '../noyau/monde/combatants';
 import { nomDEntite } from './sceneNpc';
 import { presetPnjById } from './campaignData';
 import { controlsActive } from './netOwnership';

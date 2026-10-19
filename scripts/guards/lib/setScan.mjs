@@ -1,5 +1,5 @@
 // Mécanique de la lentille « set() bruts des flows » (#321 lentille 3) : recense chaque
-// `set({...})`/`set((s) => ({...}))` posé dans `src/state/*.ts` (hors `store.ts` — actions
+// `set({...})`/`set((s) => ({...}))` posé dans `src/state/*.ts` et `src/noyau/**` (hors `store.ts` — actions
 // canoniques — et `stateFields.ts`, SOURCE du manifeste). Module ESM pur — consommé par le CLI
 // (`scripts/data/set-scan.mjs`) ET par la garde (`src/state/set-scan-guard.test.ts`).
 //
@@ -7,7 +7,7 @@
 // pour un refactor : les clés imbriquées profondes ne sont pas déroulées, seul le NIVEAU 1 de
 // l'objet passé à `set(` est lu.
 import { readFileSync } from 'node:fs';
-import { listerDossier } from './lister.mjs';
+import { listerArbre, listerDossier } from './lister.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 import { join, relative } from 'node:path';
 
@@ -82,16 +82,20 @@ export function scanFile(path) {
   return results;
 }
 
-/** Scan complet de `src/state/*.ts` (hors `store.ts`/`stateFields.ts`/tests) — compte par fichier
+/** Scan complet de `src/state/*.ts` (hors `store.ts`/`stateFields.ts`/tests) et de `src/noyau/**` — compte par fichier
  *  + classification « reset ad hoc de champ STATE_FIELDS hors `resetFields(...)` ».
  * @param {string} root racine du dépôt
  * @returns {{ totalCalls: number, totalAdHocResets: number, files: Array<{ file: string, setCalls: number, adHocPendingResets: number, adHocLines: number[] }> }} */
 export function runSetScan(root) {
   const stateDir = join(root, 'src/state');
+  const noyauDir = join(root, 'src/noyau');
   const pendingKeys = stateFieldKeys(stateDir);
-  const files = listerDossier(stateDir)
-    .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && f !== 'store.ts' && f !== 'stateFields.ts')
-    .map((f) => join(stateDir, f));
+  const files = [
+    ...listerDossier(stateDir)
+      .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && f !== 'store.ts' && f !== 'stateFields.ts')
+      .map((f) => join(stateDir, f)),
+    ...listerArbre(noyauDir, { filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) }).map((f) => join(noyauDir, f)),
+  ];
 
   const report = [];
   let totalCalls = 0;

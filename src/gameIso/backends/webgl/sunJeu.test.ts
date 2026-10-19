@@ -10,7 +10,7 @@
  * Le soleil de planche, lui, ne bouge pas d'un iota : c'est le dernier test du fichier.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, type Scene } from '../../../state/scene';
+import { emptyScene, type Scene } from '../../../noyau/monde/scene';
 import { SUN_AZIMUTH, SUN_ELEVATION_DEG, sunRig } from './sceneMeshes';
 import { SUN_JEU_MAX_ELEVATION_DEG, sceneSun, sunElevationOf, sunJeu } from './sunJeu';
 import * as THREE from 'three';

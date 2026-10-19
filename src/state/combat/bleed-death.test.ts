@@ -4,8 +4,8 @@ import '../combatFlow'; // effet de bord : enregistre les hooks de fin de Round 
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { resolveRoundBoundary } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { seedBattleRng } from '../battleRng';
-import { ev } from '../combatLog';
+import { seedBattleRng } from '../../noyau/battleRng';
+import { ev } from '../../noyau/combatLog';
 import { addCondition, stacks, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';

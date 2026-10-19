@@ -117,7 +117,7 @@ describe('cliquet composeur — canal journal: déprécié des CascadeApplier (#
  * lui-même échappe au motif par construction : c'est le volet « canal » (lint AST) plus bas qui tient
  * la porte d'entrée, pas ce compteur.
  */
-const CONTENT_DIRS = ['src/state', 'src/engine'];
+const CONTENT_DIRS = ['src/state', 'src/noyau', 'src/engine'];
 
 /** Baseline par fichier — voir doc ci-dessus. VIDE : aucun fichier de CODE ne re-printe un jet. Le jet
  *  rendu passe par le dériveur (`traceLineOf`, forme OPPOSÉE `casc.opposedTrace` — #1262 V3 Lj, #1294) ;
@@ -265,7 +265,7 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
     // les candidats sont lintés (linter tout `src/state` coûte ~8 s à chaque run pour le même verdict).
     // La population EST le corpus réel de `src/state`, tests compris, lu par `readCorpus` — mémoïsé par
     // clé, donc partagé avec les autres gardes du même worker.
-    const candidats = readCorpus(['src/state'], { tests: true })
+    const candidats = readCorpus(['src/state', 'src/noyau'], { tests: true })
       .filter(({ text }) => text.includes('flowOutcomes'))
       .map(({ abs }) => abs);
     const res = await eslint.lintFiles(candidats);
@@ -288,7 +288,7 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
     expect(await violationsCanal("import { describeReload } from '../flowOutcomes';"), 'chemin remontant').toBe(1);
     expect(await violationsCanal("import { describeReload } from '@/state/flowOutcomes';"), 'alias').toBe(1);
     expect(await violationsCanal("export { describeReload } from './flowOutcomes';"), 're-export').toBe(1);
-    expect(await violationsCanal("import { ev } from './combatLog';\nexport const w = ev;"), 'un autre import ne mord pas').toBe(0);
+    expect(await violationsCanal("import { ev } from '../noyau/combatLog';\nexport const w = ev;"), 'un autre import ne mord pas').toBe(0);
   });
 
   it('LIMITES ASSUMÉES, mesurées : import dynamique, `require`, et recopie par CLÉ i18n passent', async () => {

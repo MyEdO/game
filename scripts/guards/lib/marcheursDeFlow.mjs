@@ -4,7 +4,7 @@ import { analyserCorpus } from './dialecte.mjs';
 //
 // EMPREINTE d'un MARCHEUR : un `switch (<x>.kind)` dont la clause `case 'seq'` DESCEND la séquence
 // (pile ou récursion) au lieu de RENDRE un verdict. Un marcheur exécute ses nœuds ; un prédicat
-// (`flowHasChoiceSeulement`, `state/triggeredEffects.ts`) les lit et rend — sa clause `seq` commence par
+// (`flowHasChoiceSeulement`, `noyau/triggeredEffects.ts`) les lit et rend — sa clause `seq` commence par
 // `return`. Le site rendu est la déclaration de NIVEAU MODULE qui porte le `switch` : `runPureFlowLines`
 // marche par une fermeture `walk` interne, c'est lui le marcheur.
 //

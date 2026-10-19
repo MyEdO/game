@@ -12,8 +12,8 @@ import { allBuiltinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from 
 import { applyEffects, EFFECT_HANDLERS } from './combatEffects';
 import { combatHooksOf } from './combatHooks';
 import './combat/roundHooks';
-import { memoByRef } from './sceneMemo';
-import { emptyScene, type Scene } from './scene';
+import { memoByRef } from '../noyau/monde/sceneMemo';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { useGame, scenesDuRegistre } from './store';
 import { atteignables, partagesDeLEtat } from './partage.testkit';
 import { gelerProfond } from '../lib/gelerProfond';

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { activityById, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import { buildSeaGenericStep } from './seaActivities';
-import { composeRollLabel, effectiveTarget, type RollRequest } from './rollSeam';
+import { composeRollLabel, effectiveTarget, type RollRequest } from '../noyau/rollSeam';
 import { testValue } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { Combatant } from '../engine/types';

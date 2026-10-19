@@ -25,27 +25,27 @@
  * s'ajoutent à `SequenceParams` avec le système qui les exerce — le socle ne porte que du vocabulaire vivant.
  */
 import type { Get, Set } from './flowTypes';
-import { openSequence } from './rollSeam';
+import { openSequence } from '../noyau/rollSeam';
 import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
   type SequenceDef, type SequenceParams, type SequenceState, type MancheClose, type SequenceFamilies, type EtatDeSequence,
 } from './sequenceContract';
-import { runCascadeImmediate, stepInteraction, stepReady } from './cascade';
+import { runCascadeImmediate, stepInteraction, stepReady } from '../noyau/cascade';
 import { estJete, extendedTestStep } from '../engine/tests';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { applyOps, type GameOp } from '../engine/ops';
-import { campAdvantageHooks } from './combat/advantagePool';
+import { campAdvantageHooks } from '../noyau/combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep, PendingCascade } from './pendings';
+import type { CascadeStep, PendingCascade } from '../noyau/pendings';
 import type {
   SequenceAbandon, SequenceBoard, SequenceRoundActors, SequenceTableRow,
   SequencePotRow, SequencePotTurn, SequencePotOutcome,
   SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome,
 } from './sequenceContract';
-import { actorIn } from './combatants';
-import { battleRng } from './battleRng';
+import { actorIn } from '../noyau/monde/combatants';
+import { battleRng } from '../noyau/battleRng';
 import { t } from '../i18n';
 
 /** LE CONTRAT, ré-exporté par son implémentation : un système n'a qu'une porte d'entrée à importer.
@@ -80,7 +80,7 @@ export function sequenceDefOf(id: string): SequenceDef<never> | undefined {
  * comptent leur DR le plus BAS, les poursuivants le plus HAUT. Middenball (NADJ 16 l.119) : la SOMME
  * de l'équipe. La formule est NOMMÉE en donnée (`params.score`), jamais un `if` par jeu.
  *
- * REGISTRE OUVERT, patron `registerCascadeApplier` (`state/cascade.ts`) : la table naît VIDE et se
+ * REGISTRE OUVERT, patron `registerCascadeApplier` (`noyau/cascade.ts`) : la table naît VIDE et se
  * peuple par sa porte d'enregistrement — ce qu'on y lit est le nom d'une FORMULE (un rôle), jamais
  * l'identité d'une entrée de catalogue (garde `registry-id-branch`, doctrine #842). */
 export type SequenceScore = (values: readonly number[]) => number;

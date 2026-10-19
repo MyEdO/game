@@ -67,8 +67,8 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
-import { hauteurDe, type LectureDArete, type Scene } from '../../state/scene';
-import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../state/dir8';
+import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/scene';
+import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../noyau/monde/dir8';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
 import { pxPerM } from '../backends/webgl/worldTris';
@@ -110,7 +110,7 @@ import {
   type BakedWorld,
   type BillboardSubject,
 } from '../backends/webgl/sceneMeshes';
-import { memoByRefDeps } from '../../state/sceneMemo';
+import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
 import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { signalerEntreeEnScene, entreeEnScene } from '../../state/entreeEnScene';
 import {
@@ -457,7 +457,7 @@ export interface StageWalkAnim {
 const AUCUN_GLISSEMENT: GlideAt = () => null;
 
 /** RÉTENTIONS PAR CONTENU des passes lourdes de cet écran (#1176) — le patron canonique du
- *  dépôt (`state/sceneMemo.ts`), un slot par INSTANCE de stage (la clé est un jeton de composant) et
+ *  dépôt (`noyau/monde/sceneMemo.ts`), un slot par INSTANCE de stage (la clé est un jeton de composant) et
  *  par passe. Les deps sont les READ-SETS exportés par le module qui fait le travail, jamais une liste
  *  devinée ici : `worldBakeDeps` pour la cuisson et les accents, `sceneHeightDeps` pour les
  *  billboards. */

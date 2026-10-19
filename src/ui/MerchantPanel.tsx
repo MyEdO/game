@@ -19,7 +19,7 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal } from '../state/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import type { SceneEntity } from '../state/scene';
+import type { SceneEntity } from '../noyau/monde/scene';
 import { MERCHANTS } from '../state/merchants';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';

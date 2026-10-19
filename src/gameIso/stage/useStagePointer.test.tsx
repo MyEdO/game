@@ -6,14 +6,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
-import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../state/scene';
+import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../noyau/monde/scene';
 import { piece } from '../../state/pieces.fixture';
-import { metricToLift } from '../../state/relief';
-import { walkNeighbors, type Pt } from '../../state/path';
+import { metricToLift } from '../../noyau/monde/relief';
+import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
 import { resolveCursorZ } from '../../state/combatCursor';
-import { placesJouables, seatPoseOf, seatSlotsOf } from '../../state/seating';
-import { cleActionJouee, estUtilisable } from '../../state/usable';
+import { placesJouables, seatPoseOf, seatSlotsOf } from '../../noyau/monde/seating';
+import { cleActionJouee, estUtilisable } from '../../noyau/monde/usable';
 import { interactionHalos } from '../builders/interactHalos';
 import type { BillboardPropEl } from '../builders/types';
 import { exploreMovePlan, exploreSeatPlan } from '../../state/exploreNav';
@@ -1242,7 +1242,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   /**
    * DEUX ENTITÉS SUR UNE MÊME CASE, dont la SECONDE seule est interactive (#1687). Le rayon ne nomme
    * rien (plateau fin) : la question est alors la CASE, et elle se lit à l'index d'ancrage
-   * (`state/decorIndex.ts:entitesEnCaseEtage`). L'affordance et le clic lisent la MÊME entité — une
+   * (`noyau/monde/decorIndex.ts:entitesEnCaseEtage`). L'affordance et le clic lisent la MÊME entité — une
    * main au survol suivie d'un clic qui sert l'autre entité serait un mensonge d'interface.
    */
   const sceneDeuxDecors = () => {

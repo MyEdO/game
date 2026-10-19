@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LogDrawer } from './LogDrawer';
 import { iconSvg } from './Icon';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 
 const COMBATANTS = [
   { id: 'h1', label: 'Gunnar', kind: 'hero' },

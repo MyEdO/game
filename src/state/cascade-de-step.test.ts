@@ -5,11 +5,11 @@ import { makeRNG, roll as rollDes, type DiceSpec } from '../engine/dice';
 import {
   startCascade, runCascadeImmediate, stepInteraction, stepReady, roulerDe, lireEnTable, plageNaturelle,
   specDeEtape, tableSpec, registerTableStep, rollTableStep, tableStepNaturalRange,
-} from './cascade';
-import { dieStep, pushDie } from './rollSeam';
+} from '../noyau/cascade';
+import { dieStep, pushDie } from '../noyau/rollSeam';
 import { spyApplier } from './cascadeTestKit';
-import { WORLD_STEP_OWNER } from './pendings';
-import type { CascadeStep } from './pendings';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
+import type { CascadeStep } from '../noyau/pendings';
 
 /**
  * ÉTAPE À DÉ NU (#1508) — un tirage dont le TOTAL est la conséquence (hauteur d'une chute, unités

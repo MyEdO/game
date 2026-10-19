@@ -20,9 +20,9 @@
  * au joueur (témoin `takeObsoleteNotice`, rendu par `ui/SaveLoadModal`). Aucune migration.
  */
 import type { RuleValue } from '../engine/policy';
-import type { Scene } from './scene';
+import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
-import { stockageWeb } from '../lib/stockageWeb';
+import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';
 
 export interface SaveMeta {

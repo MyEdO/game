@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
 import { runFlow } from './combatEffects';
-import type { Flow } from './flow';
-import { emptyScene, type Scene } from './scene';
+import type { Flow } from '../noyau/monde/flow';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 
 const narratif: NarratifBlock = {

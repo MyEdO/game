@@ -45,12 +45,12 @@ import type {
   CellSide,
   WallOverlay,
   WallSeg,
-} from './scene';
-import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './scene';
+} from '../noyau/monde/scene';
+import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from '../noyau/monde/scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
-// que `DEFAULT_TERRAIN = semencesDeScene.terrain` (`state/scene.ts`).
+// que `DEFAULT_TERRAIN = semencesDeScene.terrain` (`noyau/monde/scene.ts`).
 import { defautsDeCompilation } from '../data';
 // PLAGE de pente : la source UNIQUE est le schéma de scène, qui en borne DÉJÀ le parse
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
@@ -60,16 +60,16 @@ import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
 import { groundTerrains } from './planDefects';
-import { estAbsent, terrainAbsent } from './terrain';
+import { estAbsent, terrainAbsent } from '../noyau/monde/terrain';
 import { planStairFlight, applyStairFlight } from './stairFlight';
-import type { Flow } from './flow';
+import type { Flow } from '../noyau/monde/flow';
 import type { FireArc } from '../engine/types';
 import type { ThreatTier } from '../engine/advantagePool';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../noyau/monde/dir8';
 import { parseAsciiRows, parseWalledAscii, scanMarkers, walledRowsOf } from './asciiMap';
 import { buildEncounter, type AuthoredEnemy } from './encounterAuthoring';
 import { chebyshev } from '../engine/grid';
-import { seatAssignmentDefects, type SeatAssignments } from './seating';
+import { seatAssignmentDefects, type SeatAssignments } from '../noyau/monde/seating';
 import {
   type Pt,
   canonEdge,
@@ -872,7 +872,7 @@ export function buildScene(spec: MapSpec): Scene {
 
   // 6bis. assise authorée — APRÈS `entities`+`heroStart`+`bind` (les corps doivent être posés), et à
   //       ids FIXES seulement : un id que seul `bind` a fabriqué change au moindre déplacement de
-  //       marqueur. Puis le validateur strict COMMUN du document (`state/seating`), fail-fast.
+  //       marqueur. Puis le validateur strict COMMUN du document (`noyau/monde/seating`), fail-fast.
   if (spec.seatAssignments) {
     const fixes = new Set((spec.entities ?? []).map((e) => e.id));
     const exigeFixe = (id: string, quoi: string) => {

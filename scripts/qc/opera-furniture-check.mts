@@ -6,9 +6,9 @@
  */
 import { buildOperaFloorplan, parterreSeatCells } from '../../src/scenes/opera/floorplan';
 import { scenarioEntities } from '../../src/scenes/opera/furnished';
-import { sceneMetresPerTile, tileAt } from '../../src/state/scene';
-import { propFootTiles } from '../../src/state/footprint';
-import { terrainWalkable } from '../../src/state/terrain';
+import { sceneMetresPerTile, tileAt } from '../../src/noyau/monde/scene';
+import { propFootTiles } from '../../src/noyau/monde/footprint';
+import { terrainWalkable } from '../../src/noyau/monde/terrain';
 
 const scene = buildOperaFloorplan();
 const W = scene.dimensions.w, H = scene.dimensions.h;

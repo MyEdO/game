@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { checkBattleOver } from './combatFlow';
 import { removeEntities } from './combatPlacement';
-import { seatPoseOf, seatSlotsOf } from './seating';
+import { seatPoseOf, seatSlotsOf } from '../noyau/monde/seating';
 import { createHero } from '../engine/character';
 import { inanimateCombatant } from '../engine/inanimate';
 import { testScene } from '../scenes/test-fixture';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from './scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { enemyRigProfile, entityRigProfile } from '../gameIso/rig/enemyProfile';
 import { hashSeed } from '../engine/dice';
 

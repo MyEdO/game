@@ -4,13 +4,13 @@
  * le MÊME curseur, qui pilote le réticule existant (`hoverTargeting`/`movePreviewAt`) et commet via les
  * actions existantes `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
  */
-import type { Pt } from './path';
+import type { Pt } from '../noyau/monde/path';
 import type { Get } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
-import { isWalkable, liftDe, tileAt, type Scene } from './scene';
-import { estAbsent } from './terrain';
-import { combatantAtTile } from './combatGeometry';
+import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
+import { estAbsent } from '../noyau/monde/terrain';
+import { combatantAtTile } from '../noyau/monde/combatGeometry';
 import { combatantClickActs } from './combatOrParty';
 import type { TargetingMode } from './targetingModes';
 

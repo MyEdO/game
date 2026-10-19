@@ -6,7 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MerchantPanel } from './MerchantPanel';
 import { useGame } from '../state/store';
 import { placeEntity } from './editor/editorState';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { creatureLabel } from '../data';
 import { MERCHANTS } from '../state/merchants';
 

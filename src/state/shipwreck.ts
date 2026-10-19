@@ -7,7 +7,7 @@
  * Test de Natation (LDB 09 l.372 : « votre capacité à nager dans l'eau sans vous noyer… dans des courants
  * difficiles… un Test sera nécessaire »), une ÉTAPE par héros — influençable (Chance/Pacte/Résilience) si CE
  * héros est piloté par un humain, sinon PRÉ-ROULÉE à l'ouverture (même formule) et donnée à lire — mêlant les
- * deux dans une même cascade, cf. `state/cascade.ts`. Aucun héros humain à bord (IA/rafale/cadence auto) →
+ * deux dans une même cascade, cf. `noyau/cascade.ts`. Aucun héros humain à bord (IA/rafale/cadence auto) →
  * résolution inline visible (patron `corruptionFlow`). Difficulté d'un naufrage en pleine mer : ancrage RAW
  * le plus proche = la noyade du Tourbillon (MDG 13 l.522 : « Natation Complexe (–10) sous peine de commencer
  * à se noyer ») → défaut MAISON `sea-shipwreck-swim` (#244, éditable). Échec = noyade (LDB 18 l.344, sans
@@ -16,28 +16,28 @@
  * carte le sait) ; le navire et sa cargaison sont perdus ; si personne ne survit, `checkPartyWiped` présente
  * la défaite.
  */
-import { battleRng } from './battleRng';
+import { battleRng } from '../noyau/battleRng';
 import { nomDuNavire } from './carriers';
 import { garanti } from '../lib/garanti';
-import { checkPartyWiped } from './partyWipe';
+import { checkPartyWiped } from '../noyau/partyWipe';
 import { placeById, placeOfScene, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';
 import { testValue } from '../engine/skills';
 import { isOutOfAction } from '../engine/conditions';
 import { rule } from '../engine/policy';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { startCascade, registerCascadeApplier } from './cascade';
-import { freeCons, rollSansPilote, rollStep } from './rollSeam';
+import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { freeCons, rollSansPilote, rollStep } from '../noyau/rollSeam';
 import { humanControlled } from './netOwnership';
 import { possessionLabel } from '../engine/possession';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Get, Set } from './flowTypes';
 import { voyageStakeRef } from '../data';
 import { traceLineOf } from '../engine/traceLine';
 import { dataLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
-import { stepDetail } from './rollSeam';
+import { stepDetail } from '../noyau/rollSeam';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
  *  la policy `sea-shipwreck-swim`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade). */

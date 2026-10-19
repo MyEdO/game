@@ -8,7 +8,7 @@ import type { TravelRecapDay } from '../state/travelFlow';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../state/modalArbiter';
-import type { PendingCascade, CascadeStep } from '../state/pendings';
+import type { PendingCascade, CascadeStep } from '../noyau/pendings';
 import type { PendingRest } from '../state/store';
 import { cascadeDeTest } from '../state/cascadeTestKit';
 

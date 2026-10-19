@@ -16,7 +16,7 @@ import { locateGrid } from './locate';
 import { codedSites } from './sites';
 import { zonesFromSeeds, type ZoneSeed } from '../../src/state/asciiMap';
 import { findMap, findMaps, type MapSource } from './registry';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, emptyScene, type Scene, type SceneEffectZone, type WallSeg } from '../../src/state/scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, emptyScene, type Scene, type SceneEffectZone, type WallSeg } from '../../src/noyau/monde/scene';
 import { documentDeProjet, type ProjectIdentite } from '../../src/state/worldMap';
 import { emptyNarratif } from '../../src/state/campaignNarratif';
 

@@ -5,14 +5,14 @@ import { caseDe, capVolumique, empreinteDuProp, offsetAncre, placesLocalesDuProp
 import { buildProps } from '../gameIso/builders/props';
 import { buildPropVolumes } from '../gameIso/builders/propVolumes';
 import { estPropVolumique } from '../gameIso/builders/types';
-import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
-import { seatSlotsOf } from './seating';
-import type { Dir4 } from './dir8';
+import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import { seatSlotsOf } from '../noyau/monde/seating';
+import type { Dir4 } from '../noyau/monde/dir8';
 
 /**
  * L'ANCRE D'UNE PLACE EST CELLE DU DÉCOR (#1509 L5′).
  *
- * Une place assise se pose sur `decorAncre` (`state/footprint.ts`) — le centre de l'empreinte
+ * Une place assise se pose sur `decorAncre` (`noyau/monde/footprint.ts`) — le centre de l'empreinte
  * effective du meuble — exactement comme la géométrie de sa recette (`gameIso/builders/props.ts`) et
  * comme le foyer de la lampe qu'il porte (`state/vision.ts`). Ce fichier tient les deux faces de
  * cette affirmation, sur des scènes CONSTRUITES pour ce contrat (#1709 — aucune carte de campagne

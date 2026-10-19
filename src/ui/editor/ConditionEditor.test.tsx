@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConditionEditor, WhenEditor, recast } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
-import type { Condition } from '../../state/flow';
+import type { Condition } from '../../noyau/monde/flow';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';

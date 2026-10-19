@@ -6,8 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from './worldMap';
 import { validateScene } from './validateScene';
-import { emptyScene, type Scene } from './scene';
-import { flowFromEffects } from './flow';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { lireBlocsAvances } from '../ui/editor/Editor';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { emptyNarratif } from './campaignNarratif';

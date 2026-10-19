@@ -9,7 +9,7 @@ import { houseRuleTabs, OWN_TAB_MIN } from '../ui/houseRuleTabs';
 import { evaluateMissile, applyFullPower, overcastSL, castAfterCrit, defaultCritChoice, type CastResult } from './magic';
 import { hasInstinctiveDiction } from './combatFeatures/dispatch';
 import { isDispellableCast } from '../state/combatFlow';
-import type { PendingCast } from '../state/pendings';
+import type { PendingCast } from '../noyau/pendings';
 import type { Combatant } from './types';
 
 const RULE = 'magic-vdm-incantation';

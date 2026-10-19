@@ -1,4 +1,4 @@
-import type { FacadeFeature } from '../../../state/scene';
+import type { FacadeFeature } from '../../../noyau/monde/scene';
 import { structureAppearance, type StructureAppearanceDef } from '../structures';
 import type { FacadeAppearanceDef, FacadeFeatureViz } from '../types';
 import { facade as aubergeRelaisImperiale } from './defs/auberge-relais-imperiale';

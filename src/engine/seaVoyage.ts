@@ -268,7 +268,7 @@ export function rollMerchantSkill(cosmopolite: boolean, rng: RNG = defaultRNG): 
 }
 
 /** Jet du marchand NPC pour un Marchandage opposé (Intermédiaire, RAW) — le héros roule via la porte
- *  du seam de jet (`state/rollSeam.ts`, `openRoll`), le marchand roule ICI (moteur PUR, reçoit `rng`,
+ *  du seam de jet (`noyau/rollSeam.ts`, `openRoll`), le marchand roule ICI (moteur PUR, reçoit `rng`,
  *  ne décide jamais du surfaçage — whitelist `src/engine/**` du garde #274). `merchantValue` est la
  *  valeur NUE du marchand (archétype tiré par `rollMerchantSkill`, aucun modificateur) : elle se pose
  *  telle quelle en grandeur de départage à DR égal (LDB 12 l.160). */

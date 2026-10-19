@@ -15,7 +15,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame, resetSceneRegistry } from '../state/store';
 import { applyEffects } from '../state/combatFlow';
 import { beginShipwreck } from '../state/shipwreck';
-import { emptyScene, type Scene } from '../state/scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { campagneDeLEntree, __resetLibraryForTest, type SavedProject } from '../state/projectLibrary';
 import { buildApi } from '../state/devtools';

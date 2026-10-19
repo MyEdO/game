@@ -9,7 +9,7 @@ import { initialFields } from './stateFields';
 import { openAttackCascade } from './combatFlow';
 import { targetingHolder } from './targetingHolder';
 import { pickActiveModalKey } from './modalArbiter';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { chebyshev } from '../engine/grid';

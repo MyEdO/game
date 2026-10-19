@@ -1,13 +1,13 @@
 import { useGame } from '../state/store';
 import { flowStakeRef, type FlowStakeId } from '../data';
-import type { PendingAuContact } from '../state/pendings';
+import type { PendingAuContact } from '../noyau/pendings';
 import { baseTestModLines, combatValue, weaponSkillId } from '../engine/combat';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { Icon } from './Icon';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../state/combatLog';
+import { ev } from '../noyau/combatLog';
 import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';

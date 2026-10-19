@@ -5,9 +5,9 @@
  * suite ou kit au sens d'`estSuiteVitest`/`estKitDeTest` (`scripts/guards/lib/fichierVitest.mjs`) —
  * module de test, pas de périmètre runtime.
  */
-import { registerCascadeApplier, type CascadeApplier } from './cascade';
+import { registerCascadeApplier, type CascadeApplier } from '../noyau/cascade';
 import type { GameState } from './store';
-import type { BatchParticipant, CascadeStep, PendingCascade } from './pendings';
+import type { BatchParticipant, CascadeStep, PendingCascade } from '../noyau/pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';

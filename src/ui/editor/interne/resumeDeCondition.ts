@@ -2,9 +2,9 @@
  * Résumeur d'ATELIER de l'algèbre de `Condition` (`condSummary`), réservé à `src/ui/editor/`
  * (#495, #2724).
  */
-import type { Condition, CompareSubject, PartySelector } from '../../../state/flow';
+import type { Condition, CompareSubject, PartySelector } from '../../../noyau/monde/flow';
 import type { NarratifBlock } from '../../../state/campaignNarratif';
-import type { TemporalCondition } from '../../../state/scene';
+import type { TemporalCondition } from '../../../noyau/monde/scene';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../../data/schemas/defs/maneuvers';

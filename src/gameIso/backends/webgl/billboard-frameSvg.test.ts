@@ -13,7 +13,7 @@ import { actorBillboards, collectBillboards, rigGroundTilt, type ActorPose } fro
 import { BB_H, BB_W } from '../../pov/billboardCore';
 import { subjectQuad } from './billboardMath';
 import { RIG_GROUND_PIVOT, rigGroundTiltDeg } from '../../groundPose';
-import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../noyau/monde/scene';
 import { combatantRender } from '../../sizeScale';
 import { atlasFrames } from '../../stage/boardPose';
 import {

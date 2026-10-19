@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Scene } from '../../state/scene';
+import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { effectCtxOf } from './EffectList';
 import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../state/worldMap';

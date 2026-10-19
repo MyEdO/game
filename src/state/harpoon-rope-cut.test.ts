@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
-import type { PendingAttack } from './pendings';
+import type { PendingAttack } from '../noyau/pendings';
 import { firedWeapon, weaponContextOf } from './combatFlow';
 import * as capabilities from '../engine/capabilities';
 

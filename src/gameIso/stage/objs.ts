@@ -5,7 +5,7 @@ import type { JSX } from 'react';
  * surbrillances) sont PRÉ-TRIÉES une fois par leurs memos ; à la frame, seuls les éléments DYNAMIQUES
  * (tokens qui marchent, halos/tethers/aperçus) s'insèrent par DICHOTOMIE — plus de retri global.
  */
-import type { CellSide } from '../../state/scene';
+import type { CellSide } from '../../noyau/monde/scene';
 import type { ScreenBounds } from '../../geometry/iso';
 
 /** Un objet du tri de profondeur.

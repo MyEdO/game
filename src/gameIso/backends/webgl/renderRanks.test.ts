@@ -12,7 +12,7 @@ import { buildDynamicMarkMesh, buildSilhouetteTwin } from './dynamicMarkMeshes';
 import { buildHaloMesh } from './interactHaloMeshes';
 import { buildPrecipMesh, makeWeatherField, type PrecipArea } from './weatherParticles';
 import { buildBrumeSheets, retainBrumeSheets } from './weatherSheets';
-import { emptyScene, sceneMetresPerTile } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { WeatherBrumeDef, WeatherPrecipDef } from '../../catalog/ambiance';
 
 const AIRE: PrecipArea = { x0: 0, x1: 10, z0: 0, z1: 10, groundM: 0, topM: 9 };

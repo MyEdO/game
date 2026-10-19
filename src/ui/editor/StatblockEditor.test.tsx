@@ -4,7 +4,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { StatblockEditor } from './StatblockEditor';
-import type { CustomStatblock } from '../../state/scene';
+import type { CustomStatblock } from '../../noyau/monde/scene';
 import { charAbr, creatures } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 

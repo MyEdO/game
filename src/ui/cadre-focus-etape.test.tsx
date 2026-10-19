@@ -16,7 +16,7 @@ import { EmbeddedShell } from './RollShell';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
 import { useGame } from '../state/store';
-import { startCascade } from '../state/cascade';
+import { startCascade } from '../noyau/cascade';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { tacheSuivante } from './focus.testkit';

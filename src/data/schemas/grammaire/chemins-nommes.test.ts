@@ -5,7 +5,7 @@ import { cheminLisible, DEFS_DE_DOCUMENT, lieuDe, validateDocument } from '../va
 import { sceneSchema, restPlacesSchema } from '../defs-scenes/scene';
 import { proseNommee, declarationProseNommee } from './prose';
 import { mesurerCheminsNommes } from '../../../../scripts/guards/lib/cheminsNommes.mts';
-import { emptyScene } from '../../../state/scene';
+import { emptyScene } from '../../../noyau/monde/scene';
 import { emptyNarratif } from '../../../state/campaignNarratif';
 import { parseProject, ProjetRefuse } from '../../../state/worldMap';
 import { validateScene } from '../../../state/validateScene';

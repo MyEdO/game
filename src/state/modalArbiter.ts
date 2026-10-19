@@ -15,9 +15,9 @@
  * `pickActiveModalKey` et `modalOwnerOf` sont DÉRIVÉS du registre — rien d'autre à toucher.
  */
 import type { GameState } from './store';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER } from '../noyau/pendings';
 import type { PendingKey } from './stateFields';
-import { sansCorps } from './slotsDeJet';
+import { sansCorps } from '../noyau/slotsDeJet';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
 export type ArbiterState = Partial<GameState>;

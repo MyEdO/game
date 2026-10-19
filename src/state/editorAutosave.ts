@@ -1,5 +1,5 @@
-import type { Scene } from './scene';
-import { accesBase } from '../lib/indexedDb';
+import type { Scene } from '../noyau/monde/scene';
+import { accesBase } from '../web/indexedDb';
 import { parseSceneDeProjet, exigerUnRefus, type ProjetRefuse } from './worldMap';
 
 /**
@@ -9,7 +9,7 @@ import { parseSceneDeProjet, exigerUnRefus, type ProjetRefuse } from './worldMap
  * INDÉPENDANT du « Fichier → Enregistrer » explicite (`projectLibrary.ts`, qui persiste un
  * `SavedProject` PUBLIÉ/nommé) et du calque de référence (`traceLayer.ts`, une aide d'authoring qui
  * n'entre dans AUCUN export) : magasin dédié, keyé par SEUL id de scène (une scène = sa dernière
- * frappe, jamais tout le projet multi-scènes). Plomberie IndexedDB : `lib/indexedDb.ts`.
+ * frappe, jamais tout le projet multi-scènes). Plomberie IndexedDB : `web/indexedDb.ts`.
  */
 export interface EditorAutosaveRecord {
   sceneId: string;

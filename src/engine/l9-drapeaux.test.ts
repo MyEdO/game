@@ -6,7 +6,7 @@ import { applyOps } from './ops';
 import { addCondition, hasCondition, combatTestPenalty, testStatePenalty, endOfRound } from './conditions';
 import { resolveCritique } from './critical';
 import { findSpell } from '../data';
-import { spellOps } from '../state/flow';
+import { spellOps } from '../noyau/monde/flow';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');

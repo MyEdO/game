@@ -5,7 +5,7 @@
  * (`src/gameIso/catalog/decor/defs/<id>.ts`) et chaque def d'ART a son entrée. Le sens donnée→art
  * était seul gardé ; une def d'art SANS donnée passait donc en silence, et le monde la traitait
  * comme « passable, transparente, sans couvert » par simple ABSENCE (`PropData` non trouvé,
- * `state/sceneRules.ts`, `state/lineOfSight.ts`) — un défaut muet, jamais une déclaration.
+ * `noyau/monde/sceneRules.ts`, `noyau/monde/lineOfSight.ts`) — un défaut muet, jamais une déclaration.
  *
  * Le `label`, lui, est le MIROIR d'un porteur à l'autre : la donnée le porte parce que l'enveloppe de
  * document l'exige, l'art parce que le catalogue gameIso dessine la vignette. Deux porteurs, une

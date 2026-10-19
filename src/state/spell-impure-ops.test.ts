@@ -13,7 +13,7 @@ import { useGame } from './store';
 import { applyCast } from './combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
 import { findSpell, findCreatureById } from '../data';
-import { spellEffectOps } from './flow';
+import { spellEffectOps } from '../noyau/monde/flow';
 import { effectiveChar } from '../engine/characteristics';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';

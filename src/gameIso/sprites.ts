@@ -7,9 +7,9 @@ import type { Rot } from '../geometry/iso';
 import { propSvg } from './catalog/decor';
 import { MISSING_GRADIENT, terrainGradientId, terrainStopsOrdonnes } from './catalog/terrain';
 import { MISSING_TONE, MISSING_TONE_DARK } from './catalog/missing';
-import type { Dir8 } from '../state/dir8';
-import type { EntityKind } from '../state/scene';
-import { tousLesTerrains, type TerrainDef } from '../state/terrain';
+import type { Dir8 } from '../noyau/monde/dir8';
+import type { EntityKind } from '../noyau/monde/scene';
+import { tousLesTerrains, type TerrainDef } from '../noyau/monde/terrain';
 import { memoParVersion } from '../data/versionDataset';
 import { rigFxGradients } from './rig/fxGradients';
 
@@ -71,7 +71,7 @@ const degradeAlarme =
  * viennent d'un dataset ÉDITABLE au Codex (`terrains.json`, #1690) — assemblées une fois à
  * l'import, une édition des `stops` ne repeindrait ni la vue plan ni l'éditeur sans rechargement.
  *
- * Mémoïsée par la VERSION du dataset, patron d'`indexDesTerrains` (`state/terrain/index.ts`) :
+ * Mémoïsée par la VERSION du dataset, patron d'`indexDesTerrains` (`noyau/monde/terrain/index.ts`) :
  * `setDataset` splice le tableau EN PLACE (son identité ne change jamais) et VERSIONNE son écriture
  * (`memoParVersion`, `data/versionDataset.ts`, #1692) — c'est cette version qui dit qu'une rampe a
  * bougé. Les dégradés RIG/FX sont des littéraux : ils ne se re-lisent pas.

@@ -1,4 +1,4 @@
-import { DIR8_ORDER, type Dir8 } from '../state/dir8';
+import { DIR8_ORDER, type Dir8 } from '../noyau/monde/dir8';
 import { windForces, windForceLabel, type SeaWindForceId } from '../engine/seaWeather';
 
 /**

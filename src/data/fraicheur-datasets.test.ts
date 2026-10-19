@@ -20,7 +20,7 @@ import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type Mut
 import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
-import { tableStepDef, tableStepIds } from '../state/cascade';
+import { tableStepDef, tableStepIds } from '../noyau/cascade';
 import { stageWeatherRows } from '../state/travelFlow';
 // La FAMILLE des Tableaux de Corruption s'enregistre au chargement de son module : on l'importe par
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
@@ -44,7 +44,7 @@ import type { RNG } from '../engine/dice';
 import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
-import { emptyScene, sceneMetresPerTile } from '../state/scene';
+import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { worldBakeDeps } from '../gameIso/backends/webgl/sceneMeshes';
 
 const TRAITS_LIVRES = [...traits];
@@ -153,7 +153,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     setDataset('etats', etats.map((e) => (e.id === 'sonne' ? { ...e, label: 'Assommé' } : e)));
     expect(conditionIdInText('Grim est Assommé')).toBe('sonne');
     expect(conditionIdInText('Grim est Sonné')).toBeUndefined();
-    // Ce que le journal en fait (`state/combatLog.isImportantEvent`) : la sévérité se lit sur l’ID rendu,
+    // Ce que le journal en fait (`noyau/combatLog.isImportantEvent`) : la sévérité se lit sur l’ID rendu,
     // 80 pour `sonne` — le libellé n’a servi qu’à le reconnaître dans un texte français.
     expect(conditionSeverity(conditionIdInText('Grim est Assommé')!)).toBe(80);
   });

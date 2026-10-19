@@ -15,16 +15,16 @@ import { restPlacesHere, lodgingOptions } from './restFlow';
 import { resolveStake } from '../data';
 import { contractDisease, tickDisease, diseaseDefs } from '../engine/disease';
 import { spellOps } from '../engine/flowCore';
-import { battleRng as battleRngFor } from './battleRng';
-import { seedBattleRng } from './battleRng';
-import { emptyScene } from './scene';
+import { battleRng as battleRngFor } from '../noyau/battleRng';
+import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from '../noyau/monde/scene';
 import { toBrass, type Money } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { stacks, addCondition } from '../engine/conditions';
 
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { cascadeDeTest } from './cascadeTestKit';
 

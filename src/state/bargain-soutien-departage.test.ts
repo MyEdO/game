@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng, battleRng } from './battleRng';
+import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { creditBourse } from './bourseFlow';
-import { cascadeAppliers } from './cascade';
-import { resultLine } from './rollSeam';
-import { emptyScene } from './scene';
+import { cascadeAppliers } from '../noyau/cascade';
+import { resultLine } from '../noyau/rollSeam';
+import { emptyScene } from '../noyau/monde/scene';
 import { rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
 import { rollMerchantSkill as rollLandMerchantSkill } from '../engine/landCargo';
 import { landBuyCargo, landSellCargo } from './landMarketFlow';
@@ -17,7 +17,7 @@ import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { testValue } from '../engine/skills';
 import type { Possession } from '../engine/possession';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 
 /**

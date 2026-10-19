@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { barrierTilesFor, zonesRoundTick, type BattleZone } from './zones';
+import { barrierTilesFor, zonesRoundTick, type BattleZone } from '../noyau/monde/zones';
 import { isProfane } from '../engine/corruption';
 import { hasCondition, stacks, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';

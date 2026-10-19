@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { advanceTurn } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { seedBattleRng, battleRng } from '../battleRng';
+import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { addCondition, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 

@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene } from '../state/scene';
+import { emptyScene } from '../noyau/monde/scene';
 import { RunModal } from './RunModal';
 import { ApproachModal } from './ApproachModal';
 import { WardModal } from './WardModal';
@@ -22,7 +22,7 @@ import { cibleBrute, cibleDuTest, clampTarget, forcedTR } from '../engine/tests'
 import { combattantDeModale } from './combattantDeModale.testkit';
 import { poserFicheDeTest, restaurerFiche } from '../state/ficheDeTest.testkit';
 import type { Combatant } from '../engine/types';
-import type { PendingBargain } from '../state/pendings';
+import type { PendingBargain } from '../noyau/pendings';
 
 /**
  * Le bornage d'une cible se MESURE là où naît le `TestResult` (`evaluateTest`, `forcedTR`,

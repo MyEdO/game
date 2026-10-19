@@ -64,7 +64,7 @@ export function fluxDerive(graine: number, ...segments: readonly (string | numbe
  * 2026-09-04 : « L'outil peut etre utilisé comme Foundry […] Donc tous les jets de dés sont exposables
  * si on configure le jeu pour » et « Vu que tous les jets passé par le même point d'entrée, il est
  * inutile de se demander si le jeu est configuré pour ». Un site n'a donc AUCUNE question à se poser :
- * il envoie son dé à la porte (`state/rollSeam` — `openWorldTest`, `worldStep`, `tableStep`,
+ * il envoie son dé à la porte (`noyau/rollSeam` — `openWorldTest`, `worldStep`, `tableStep`,
  * `dieStep`), et c'est elle SEULE qui sait si ce dé s'affiche, se lance ou se fixe (siège qui tient le
  * monde, option « Dés fixés »).
  *
