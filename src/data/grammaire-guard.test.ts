@@ -31,7 +31,7 @@ import { ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
 import { defDe, descendre, enfantsDe } from './schemas/grammaire/descente';
 import * as valeurs from './schemas/grammaire/valeurs';
 import * as reference from './schemas/grammaire/reference';
-import { ref, specRef, pick } from './schemas/grammaire/ref';
+import { ref, specRef, pick, refTypee } from './schemas/grammaire/ref';
 import { qualityRefSchema } from './schemas/grammaire/reference';
 
 const GARDE = {
@@ -133,6 +133,7 @@ function signaturesDeLaGrammaire(
     ['ref()', ref('skill')],
     ['specRef()', specRef('skill')],
     ['pick()', pick('skill')],
+    ['refTypee()', refTypee(valeurs.typeDeFoyerSchema)],
   ];
   marcher(melanger(fabriques));
   return [...out.values()].map(({ noms, cles }) => ({ nom: [...noms].sort().join('|'), cles }));

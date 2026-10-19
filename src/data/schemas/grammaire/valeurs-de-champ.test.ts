@@ -152,6 +152,8 @@ const NOMMES = [
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
+  'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
 ].sort();
 
 /**

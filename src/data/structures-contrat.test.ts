@@ -44,6 +44,7 @@ import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/d
 import { CONTENU_A_SOURCER, SANS_LIVRE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
+import { TYPES, espaceDe, type TypeEntite } from './schemas/grammaire/ref';
 
 /**
  * Clés que `document()` pose sur TOUT document, sans qu'aucun def ne les demande — DÉRIVÉES de
@@ -643,6 +644,17 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
 
   it('une ENTRÉE DE RACINE n’est jamais orpheline (les 90 faux orphelins de `props.json` sont morts)', () => {
     expect(scan.orphelines.filter((o) => o.champ === '(racine)')).toEqual([]);
+  });
+
+  it('une référence TYPÉE `{id,type}` résout vers le SEUL espace que son type nomme — jamais ambiguë (#2820)', () => {
+    const typees = scan.formes.filter((f) => f.concept === 'reference' && f.signature === 'id,type');
+    expect(typees.length, 'aucune référence typée mesurée : le contrat ne dirait rien').toBeGreaterThan(0);
+    const espaces = new Set((Object.keys(TYPES) as TypeEntite[]).map(espaceDe));
+    const hors = typees.flatMap((f) => f.cibles.filter((c) => !espaces.has(c)).map((c) => `${f.dataset} › ${f.champ} → ${c}`));
+    expect(hors, 'une référence typée résout hors de l’espace de son type').toEqual([]);
+    const sites = new Set(typees.map((f) => `${f.dataset}|${f.champ}`));
+    const ambigues = scan.ambigues.filter((a) => a.cle === 'id' && sites.has(`${a.dataset}|${a.champ}`)).map((a) => `${a.dataset} › ${a.champ} : ${a.valeur}`);
+    expect(ambigues, 'un id de référence typée compté AMBIGU : son type nomme pourtant son espace').toEqual([]);
   });
 
   it('la clé d’identité d’un document n’est pas comptée comme une référence à lui-même', () => {

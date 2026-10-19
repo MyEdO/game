@@ -3922,7 +3922,7 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
   it('tous les États de remède portés : les cases sortent dans l’ordre de la donnée', () => {
     const h = hero('h1', 'Gunnar');
     // Le porteur a TOUS les États que le registre sait soigner : les cases naissent donc toutes.
-    h.conditions = REMEDES.map((a) => ({ id: a.rule!, value: 1 })) as ConditionInstance[];
+    h.conditions = REMEDES.map((a) => ({ id: a.rule!.id, value: 1 })) as ConditionInstance[];
     monter(h, { foes: [foe('e1', 9, 9)] });
     const attendus = REMEDES.map((a) => a.id);
     expect(attendus.length, 'aucun remède au registre : la sonde ne mesurerait rien').toBeGreaterThan(0);

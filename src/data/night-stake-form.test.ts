@@ -14,12 +14,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, etats, regles } from './index';
+import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, etats } from './index';
 import { ACTIVITIES } from '../engine/activities';
 import { STAKE_FORMS, type StakeForm } from '../engine/types';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
-const RULE_IDS = new Set(regles.map((r) => r.id));
 
 /** Lignes du fichier de CHAPITRE cité par une note (`LDB 18 l.342` → `18 - Traumatisme.md`). */
 const chapterCache = new Map<string, string[]>();
@@ -56,8 +55,8 @@ describe('night-stakes — la FORME de chaque enjeu est déclarée et tenue (#11
   });
 
   it('tout `stake` déclaré DESCRIPTEUR porte sa fiche (le verbatim reste à un clic)', () => {
-    const sans = NIGHT_STAKES.filter((e) => e.form === 'descripteur' && (!e.rule || !RULE_IDS.has(e.rule))).map((e) => e.id);
-    expect(sans, 'descripteur sans renvoi vers une fiche existante').toEqual([]);
+    const sans = NIGHT_STAKES.filter((e) => e.form === 'descripteur' && !e.rule).map((e) => e.id);
+    expect(sans, 'descripteur sans renvoi vers sa fiche').toEqual([]);
   });
 
   it('toute entrée est couverte par l’un des deux régimes (aucune zone grise)', () => {
@@ -102,7 +101,7 @@ describe('flow-stakes — la FORME de chaque enjeu de modale mono est déclarée
 
   it('tout `template` déclaré DESCRIPTEUR porte SA porte (le verbatim reste à un clic)', () => {
     const sans = FLOW_STAKES
-      .filter((e) => e.form === 'descripteur' && !e.entryCategory && !(e.rule && e.ruleCategory))
+      .filter((e) => e.form === 'descripteur' && !e.entryCategory && !e.rule)
       .map((e) => e.id);
     expect(sans, 'descripteur sans foyer ni catégorie d’entrée').toEqual([]);
   });
@@ -161,17 +160,13 @@ describe('activities — la FORME de chaque enjeu d’Activité est déclarée e
     expect(defauts, 'le déclarer `descripteur` ou le rendre contigu').toEqual([]);
   });
 
-  it('le stock DESCRIPTEUR est celui mesuré, et chaque descripteur porte SA porte', () => {
+  it('le stock DESCRIPTEUR est celui mesuré', () => {
     const descripteurs = avecEnjeu.filter((a) => a.stakeForm === 'descripteur');
     // 46 → 47 (#1612, 2026-09-06) : l'enjeu de Mendier est un DESCRIPTEUR — il résume trois bandes de
     // DR, le dé de monde qui suit et la clause d'« Argent à gaspiller », ce qu'aucun bloc contigu du
     // livre n'imprime d'un tenant.
     expect(descripteurs.length).toBe(47);
     expect(avecEnjeu.filter((a) => a.stakeForm === 'verbatim').length).toBe(0);
-    // Porte = le foyer déclaré, ou l'Activité elle-même (qui doit alors porter sa `desc` verbatim —
-    // vérifié nominativement par `activity-stake-ratchet`).
-    const sansPorte = descripteurs.filter((a) => a.rule && !a.ruleCategory).map((a) => a.id);
-    expect(sansPorte, 'foyer déclaré sans catégorie Codex').toEqual([]);
   });
 
   it('FAIL-CLOSED : le même `contigu` reconnaît un passage réel d’activité et rejette un assemblage', () => {

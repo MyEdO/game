@@ -75,11 +75,20 @@ function jugerDansTsx(racine, plages) {
   return JSON.parse(vu.stdout.trimEnd().split('\n').at(-1))
 }
 
-test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:`', { timeout: 300_000 }, () => {
+/** `texte` où `avant`, présent, devient `apres`. */
+const remplacer = (avant, apres) => (texte) => {
+  assert.ok(texte.includes(avant), `motif absent : ${avant}`)
+  return texte.replace(avant, apres)
+}
+
+/** `texte` suivi de `ajout`. */
+const ajouter = (ajout) => (texte) => `${texte}${ajout}`
+
+test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src qui lit sa sortie, changés ensemble, se lient', { timeout: 600_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
-    const suivis = listerImage(reel, 'HEAD', 'src', 'Source')
+    const suivis = listerImage(reel, 'HEAD', 'src', 'Source', 'scripts', 'package.json', 'tsconfig.json')
     for (const rel of suivis) {
       mkdirSync(dirname(join(dossier, rel)), { recursive: true })
       writeFileSync(join(dossier, rel), readFileSync(join(RACINE, rel)))
@@ -97,16 +106,27 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
       'src/data/schemas/defs/creatures.ts': (t) => t.replace('skills: z.array(competenceChiffreeAEmplacementSchema),', 'skills: z.array(z.any()),').replace("spells: refs('spell'),", 'spells: z.array(z.string()),'),
       'src/data/spells.json': ajouterOp((o) => o.op === 'freeReroll'),
     }, 'schéma et op\n\nCLIQUET: scripts/guards/lib/structuresStock.mjs +1 — op de plus, déclarée au message')
+    // Le générateur de la tête importe du src que la base n'a pas, et le src de la tête lit une sortie que le
+    // générateur de la base ne produit pas : seule la génération de CHAQUE image par son propre code lie une paire.
+    const croisee = commiter({
+      'src/data/schemas/grammaire/cle-d-espace.ts': ajouter('\nexport const MARQUE_DE_LA_TETE = 2705;\n'),
+      'scripts/gen-espaces.mts': (t) => [
+        remplacer("= {};\\n';", "= {};\\nexport const MARQUE_DE_LA_TETE = ' + MARQUE_DE_LA_TETE + ';\\n';"),
+        remplacer('= IDS;\\n\\n` +', '= IDS;\\n\\n` +\n    `export const MARQUE_DE_LA_TETE = ${MARQUE_DE_LA_TETE};\\n\\n` +'),
+      ].reduce((texte, f) => f(texte), `import { MARQUE_DE_LA_TETE } from '../src/data/schemas/grammaire/cle-d-espace';\n${t}`),
+      'src/data/schemas/grammaire/ref.ts': ajouter("\nimport { MARQUE_DE_LA_TETE } from '../_ids.generated';\nexport const MARQUE_LUE = MARQUE_DE_LA_TETE;\n"),
+    }, 'générateur et src croisés')
 
-    const [passe, refus] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache]])
+    const [passe, refus, liee] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache], [lache, croisee]])
     assert.equal(passe.ok, true, passe.texte)
+    assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)
     const lignes = refus.texte.split('\n').filter((l) => l.startsWith('  ['))
-    assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), [
-      '  [détecteur de la tête] STRUCTURES_OPS : freeReroll | op | spells.json',
-      '  [détecteur de la tête] SLOTS_SANS_DECLARATION : creatures.json | skills',
-      '  [détecteur de la tête] SLOTS_SANS_DECLARATION : creatures.json | spells',
-    ], refus.texte)
+    const attendues = ['STRUCTURES_OPS : freeReroll | op | spells.json', 'SLOTS_SANS_DECLARATION : creatures.json | skills', 'SLOTS_SANS_DECLARATION : creatures.json | spells']
+    const deLaBase = `détecteur de la base (${typee.slice(0, 9)})`
+    assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), ['détecteur de la tête', deLaBase].flatMap((d) => attendues.map((a) => `  [${d}] ${a}`)), refus.texte)
+    assert.equal(liee.ok, true, liee.texte)
+    assert.doesNotMatch(liee.texte, /paire sautée/, liee.texte)
     assert.match(refus.texte, /STRUCTURES_OPS : freeReroll \| op \| spells\.json — HAUSSE \d+ > \d+ : la dette GRANDIT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| skills — site NEUF : la dette NAÎT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| spells — site NEUF : la dette NAÎT\./)

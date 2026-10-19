@@ -30,7 +30,8 @@ import { effectiveEntry } from '../../engine/variants';
 import { facesDuDe, fourchette } from '../../engine/tables';
 import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
-import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
+import { memoParVersion } from '../../data/versionDataset';
+import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import { replier } from '../../lib/ordre.mjs';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 
@@ -55,7 +56,7 @@ export interface ReverseGroup {
 
 /** Accès à une projection RE-CALCULÉE après une écriture au seam des datasets : `memoParVersion` sur
  *  toutes les clés, miroir de `makeCategory` (registry.ts). */
-const versionCached = <T,>(build: () => T): (() => T) => memoParVersion(CLES_VERSIONNEES, build);
+const versionCached = <T,>(build: () => T): (() => T) => memoParVersion(CLES_DE_DATASET, build);
 
 // ── Construction du graphe inverse ─────────────────────────────────────────────
 // Clé = `${targetCategory}:${targetId}` → liste BRUTE de référants (dédupliquée à la lecture). Titres

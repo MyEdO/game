@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { sourceRefSchema } from '../grammaire/valeurs';
+import { foyerDeRegleSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'crew-test-types.json';
@@ -19,7 +19,7 @@ const doc = document(
       roles: z.array(z.string()),
       essential: z.string(),
       /** MDG 14. */
-      rule: z.string().optional(),
+      rule: foyerDeRegleSchema.optional(),
       /** MDG 14 l.110. */
       moraleOnNegativeDR: z.boolean().optional(),
       /** MSRC 12 l.66/140. */

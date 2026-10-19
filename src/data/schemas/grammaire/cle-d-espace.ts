@@ -39,6 +39,20 @@ export function suiteAvecPas(suite: string, pas: PasDeSuite): string {
   return 'cle' in pas ? `${suite}[${pas.cle}]` : `${suite}[]`;
 }
 
+/** Un pas de suite RÉSOLU contre son schéma, lisible sans lui : un `champ`, ou l'élément d'une liste
+ *  dont le champ `par` (le nom de la clé de la marque) vaut `cle`. */
+export type PasResolu = { readonly champ: string } | { readonly cle: string; readonly par: string };
+
+/** La valeur au bout de `chemin` dans `racine` ; `undefined` dès qu'un pas ne mène nulle part. */
+export function suivreLeChemin(racine: unknown, chemin: readonly PasResolu[]): unknown {
+  let v = racine;
+  for (const pas of chemin) {
+    if ('champ' in pas) v = v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>)[pas.champ] : undefined;
+    else v = Array.isArray(v) ? v.find((el: unknown) => el !== null && typeof el === 'object' && (el as Record<string, unknown>)[pas.par] === pas.cle) : undefined;
+  }
+  return v;
+}
+
 /** Lecture d'une suite nichée en pas — l'inverse de `suiteAvecPas`, `[]` y redevient `rang`. */
 export function pasDeLaSuite(suite: string): PasDeSuite[] {
   const pas: PasDeSuite[] = [];

@@ -2357,8 +2357,10 @@
     ],
     "stake": "+4 DR ou plus : deux tirages sur le Tableau des Symboles. 0 à +3 : un. −2/−3 : un tirage, symbole inversé. −4/−5 : deux, inversés. −6 ou pire : trois, inversés.",
     "stakeForm": "descripteur",
-    "rule": "tableau-augure",
-    "ruleCategory": "regles"
+    "rule": {
+      "id": "tableau-augure",
+      "type": "regle"
+    }
   },
   {
     "id": "ecrire-des-parchemins",

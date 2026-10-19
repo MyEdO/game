@@ -66,7 +66,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     expect(findConditionById(etat)!.lockedUntil, 'la fixture a gagné un verrou').toBeUndefined();
     H.conditions = [{ id: etat, value: 1 }] as ConditionInstance[];
     useGame.setState({ battle: { ...useGame.getState().battle! } });
-    const def = { id: 'remede-fixture', rule: etat, ruleCategory: 'etats' } as ActionDef;
+    const def = { id: 'remede-fixture', rule: { id: etat, type: 'etat' } } as ActionDef;
     expect(ACTION_GATES['etat-porte'](ctxDe(def)).ok, 'l’État est porté').toBe(true);
     expect(ACTION_GATES['remede-atteignable'](ctxDe(def)).ok, 'aucun verrou : le geste est atteignable').toBe(true);
     const parTest = ACTION_GATES['etat-recuperable-par-test'](ctxDe(def));

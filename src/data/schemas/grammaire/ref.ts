@@ -1,4 +1,4 @@
-import { nommerChamps, metasExtra } from './meta';
+import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps } from './meta';
 /**
  * FABRIQUE DE RÉFÉRENCE (#1466) — la seule façon de désigner une entité par son id.
  *
@@ -33,7 +33,8 @@ export interface DeclarationDeType {
  * Carrière et Trait NAVAL au L-gram-2 #1463) + la TABLE, cible de `pick({ table })`, + la MATIÈRE du
  * monde (#1686), premier type dont l'espace est DISCRIMINÉ (`idDe('material', 'prop')`), + le
  * TERRAIN et le DÉCOR (#1690 : `layer.tiles` résout un terrain, `terrains › overlayProp` un décor),
- * + l'ESPÈCE (#1520 : `pregens.json › species`).
+ * + l'ESPÈCE (#1520 : `pregens.json › species`), + la RÈGLE de jeu, la QUALITÉ, la CARACTÉRISTIQUE et la
+ * PANNE de navire à vapeur (#2820 : le FOYER d'un enjeu, `refTypee`, désigne aussi ces espaces).
  * Un type s'ajoute avec le lot qui le migre, jamais « au cas où ».
  */
 export const TYPES = {
@@ -72,6 +73,10 @@ export const TYPES = {
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
   // PSYCHOLOGIE (#1595) : `traits.json › capabilities.psychType` résout AU PARSE.
   psychology: { espace: 'psychology.json', catalogue: 'psychologies' },
+  regle: { espace: 'regles.json', catalogue: 'règles' },
+  quality: { espace: 'qualities.json', catalogue: 'qualités' },
+  characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
+  steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -484,12 +489,58 @@ export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousL
   return opts?.min === undefined ? liste : liste.min(opts.min);
 }
 
+/** Méta du champ `id` de toute référence construite ici. */
+const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } } as const;
+
+/** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
+ *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
+function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>) {
+  return nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+}
+
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
-  return nommerChamps(z.strictObject({ id: idDe(type), ...((extra ?? {}) as Record<string, z.ZodType>) }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, ...metasExtra(extra) });
+  return objetDeRef(type, (extra ?? {}) as Record<string, z.ZodType>, metasExtra(extra));
+}
+
+/** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */
+export interface RefTypee<T extends TypeEntite = TypeEntite> {
+  readonly id: string;
+  readonly type: T;
+}
+
+/** Ce qu'un nœud `refTypee` déclare : les types qu'il admet, dans l'ordre du vocabulaire, et le nom
+ *  d'auteur de chacun (`valeursDe` du vocabulaire). */
+export interface DeclarationDeRefTypee {
+  readonly types: readonly TypeEntite[];
+  readonly libelles: Readonly<Record<string, string>>;
+}
+
+/** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
+ *  (`declarationDeRefTypee`), patron `FEUILLES_D_ID`. */
+const REFS_TYPEES = new WeakMap<object, DeclarationDeRefTypee>();
+
+/** La déclaration d'un nœud construit par `refTypee`, `undefined` si le nœud n'en est pas un. */
+export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | undefined =>
+  typeof noeud === 'object' && noeud !== null ? REFS_TYPEES.get(noeud) : undefined;
+
+/**
+ * Référence POLYMORPHE `{ id, type }` : `type` NOMME l'espace où l'id résout, parmi les valeurs du
+ * vocabulaire `types` (un `enumNomme` dont chaque clé est un `TypeEntite`). UNION DISCRIMINÉE fermée
+ * des `{ id: idDe(t), type: t }` — chaque branche est l'objet de `ref` —, patron `sceneEntitySchema`
+ * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
+ * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
+ */
+export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
+  const admis = types.options as readonly T[];
+  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
+  const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
+  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
+  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
+  return noeud;
 }
 
 /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
@@ -623,7 +674,7 @@ function noeudASpecialisation<T extends TypeEntite>(
         if (r !== motif) continue;
         ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, true) });
       }
-    }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, spec: { label: "spécialisation", texte: { regime: 'designation' } }, choix: { label: "choix", texte: { regime: 'designation' } }, ...metasExtra(extra) });
+    }), { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' } }, choix: { label: "choix", texte: { regime: 'designation' } }, ...metasExtra(extra) });
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * Une règle optionnelle basculée est une donnée ÉDITABLE qui change : elle passe par le MÊME témoin
- * que les datasets (`data/versionDataset.ts`, clé `regles`) — toute vue dérivée (`memoParVersion`,
+ * que les datasets (`data/versionDataset.ts`, clé `reglesOptionnelles`) — toute vue dérivée (`memoParVersion`,
  * fiches du Codex, identités de dessin) la voit, et les abonnés (`abonnerAuxDatasets`) sont notifiés.
  */
 import { afterEach, describe, expect, it } from 'vitest';
