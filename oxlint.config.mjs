@@ -608,7 +608,7 @@ export const BLOCS_LINT = [
     files: ['server/src/**'],
     excludeFiles: ['server/src/**/*.test.*'],
     rules: {
-      'no-restricted-properties': ['error', ...[
+      'murs/alea-serveur': ['error', ...[
         { object: 'Math', property: 'random' },
         { property: 'Math' },
       ].map((cible) => ({

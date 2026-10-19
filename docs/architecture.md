@@ -87,6 +87,20 @@ la liaison réexportée en valeur (`export const p = b`), le requireur renommé 
 (`createRequire as cr`, `var req = require`) et l'accès calculé (`module['require']`).
 Premier consommateur : `src/ui/editor/interne/` (résumeurs d'atelier `resumeDOp.ts`, `resumeDeCondition.ts`).
 
+Murs de lint (`murs/*`, greffon `scripts/guards/lib/mursLint.mjs`) et directives (#2724) : une directive
+`eslint-`/`oxlint-disable` ou un commentaire de configuration ne nomme un mur que s'il figure dans
+`MURS_EXEMPTABLES_AU_SITE` (même module), et à SA ligne (`-next-line`, `-line` ; ni forme bloc ni
+commentaire de configuration) ; aucune ne nomme une restriction native
+(`no-restricted-syntax|imports|properties|globals`), aucune n'est globale (sans règle nommée). Les noms
+d'une directive se lisent comme oxlint les lit (`directivesLintCiblees`, `lint.testkit.mjs`). Garde :
+`scripts/corpus/guards/directivesMurs.test.mjs`, sur tout fichier de script (`EXTENSIONS_DE_SCRIPT`)
+qu'arme un mur ; son banc confronte chaque forme à oxlint. Le test IGNORES de
+`scripts/corpus/guards/lister.test.mjs` lance la commande de la gate `npm run lint` en découverte, une fois,
+sur une copie des fichiers SUIVIS armés et de leurs fichiers d’ignore (`.gitignore`, `.eslintignore`) : chaque fichier de script suivi armé est lu
+(ni `.gitignore`, ni `.eslintignore`, ni ignore de la config, ni ignore implicite d'oxlint, tel `*-min.ts`), aucun autre dialecte
+ne l'est (`.vue`, `.svelte`, `.astro`). Les fichiers générés non suivis (`/src/**/*.generated.ts`) sortent de
+cette mesure.
+
 ```
 Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, AGENTS.md § Sources VF)
 src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans le Compendium) + index.ts (accès typé), pregens.ts
