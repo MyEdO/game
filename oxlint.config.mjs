@@ -196,47 +196,6 @@ const VERROU_POSITIONS = [
   'TemplateElement[value.cooked=/\\be\\.key\\b/]',
 ].map((selector) => ({ selector, message: MSG_POSITIONS }));
 
-const msgPurete = (amont, aval, suite, types) =>
-  `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} ${types ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION'} — ${suite}`;
-
-const pureteImports = (amont, avals) => ({
-  patterns: avals.map(([aval, suite, { types = false } = {}]) => ({
-    group: [`**/${aval}`, `**/${aval}/**`],
-    allowTypeImports: !types,
-    message: msgPurete(amont, aval, suite, types),
-  })),
-});
-
-const pureteSyntaxe = (amont, avals) => avals.flatMap(([aval, suite, { types = false } = {}]) => {
-  const vers = `/(^|\\/)${aval}(\\/|$)/`;
-  return [
-    `ImportExpression[source.value=${vers}]`,
-    `ImportExpression[source.expressions.length=0][source.quasis.0.value.cooked=${vers}]`,
-    `CallExpression[callee.name="require"][arguments.0.value=${vers}]`,
-    `CallExpression[callee.name="require"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
-    `CallExpression[callee.callee.name="createRequire"][arguments.0.value=${vers}]`,
-    `CallExpression[callee.callee.name="createRequire"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
-    `CallExpression[callee.object.name="module"][callee.property.name="require"][arguments.0.value=${vers}]`,
-    `CallExpression[callee.object.name="module"][callee.property.name="require"][arguments.0.expressions.length=0][arguments.0.quasis.0.value.cooked=${vers}]`,
-    ...(types ? [`TSImportType[source.value=${vers}]`] : []),
-  ].map((selector) => ({ selector, message: msgPurete(amont, aval, suite, types) }));
-});
-
-const AVALS_ENGINE = [
-  ['state', 'extraire le type/la logique partagée vers une couche neutre — `engine/flowCore` a été extrait pour cela (#8), la couche `state` ne fait qu’instancier la feuille générique.'],
-  ['ui', 'extraire le type/la logique partagée vers une couche neutre, ou n’importer que le TYPE (`import type`).'],
-  ['gameIso', 'extraire le type/la logique partagée vers une couche neutre, ou n’importer que le TYPE (`import type`).'],
-];
-const AVALS_DATA = [
-  ['ui', 'la base APP-OWNED est en amont de l’affichage — incident #421 : `pregens.ts` important `ui/creator` tirait tout ce graphe dans celui de `data`. Reconstruire sur les primitives `engine` (`createHero`, `rollInitialWealth`…), ou n’importer que le TYPE (`import type`).'],
-  ['state', 'la donnée est en amont du store/flux — extraire le type/la logique partagée vers une couche neutre, ou n’importer que le TYPE (`import type`).'],
-  ['gameIso', 'la donnée est SERVIE au rendu, elle ne l’importe pas — extraire la forme partagée vers une couche neutre, ou n’importer que le TYPE (`import type`).'],
-];
-const AVALS_STATE = [
-  ['ui', 'le store/flux est en amont de l’affichage — extraire le type/la logique partagée, ou n’importer que le TYPE (`import type`).'],
-  ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.', { types: true }],
-];
-
 // #2278, #2280
 const GLOBS_DE_MOD = ['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/**/*.ts`, `.claude/skills/*/${d}/**/*.mts`]);
 const DOSSIERS_DE_MOD = ['.claude/skills/', '.claude/skills/*/', ...['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/`, `.claude/skills/*/${d}/**/`])];
@@ -639,31 +598,15 @@ export const BLOCS_LINT = [
     rules: REGLES_LOCALE,
   },
   {
-
-    files: ['src/engine/**/*.ts', 'src/engine/**/*.tsx'],
-    excludeFiles: ['src/engine/**/*.test.ts', 'src/engine/**/*.test.tsx'],
-    rules: {
-      'murs/purete-imports': ['error', pureteImports('engine', AVALS_ENGINE)],
-      'murs/purete': ['error', ...pureteSyntaxe('engine', AVALS_ENGINE)],
-    },
+    // #2882
+    files: ['src/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/purete-imports': 'error' },
   },
   {
-
-    files: ['src/state/**/*.ts', 'src/state/**/*.tsx'],
-    excludeFiles: ['src/state/**/*.test.ts', 'src/state/**/*.test.tsx'],
-    rules: {
-      'murs/purete-imports': ['error', pureteImports('state', AVALS_STATE)],
-      'murs/purete': ['error', ...pureteSyntaxe('state', AVALS_STATE)],
-    },
-  },
-  {
-
-    files: ['src/data/**/*.ts', 'src/data/**/*.tsx'],
-    excludeFiles: ['src/data/**/*.test.ts', 'src/data/**/*.test.tsx'],
-    rules: {
-      'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
-      'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
-    },
+    // #2882
+    files: ['src/**'],
+    rules: { 'murs/zone': 'error' },
   },
   {
     // #415, #2724

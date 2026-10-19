@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { runAction, actionGate } from './actionRegistry';
 import { ROUTES, intentAllowedFor, withActingSeat } from './netOwnership';
-import { GUEST_INTENTS } from '../net/intents';
+import { GUEST_INTENTS } from './intents';
 import { useGame, type BattleState } from './store';
 import { emptyScene } from './scene';
 import { createHero } from '../engine/character';

@@ -9,7 +9,7 @@ import { useGame, type GameState } from './store';
 import { emptyScene, type Scene } from './scene';
 import { assignSeat, seatPoseOf, type SeatOccupant } from './seating';
 import { intentAllowedFor, ROUTES } from './netOwnership';
-import { GUEST_INTENTS } from '../net/intents';
+import { GUEST_INTENTS } from './intents';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 import type { Combatant } from '../engine/types';
 
