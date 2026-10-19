@@ -1,25 +1,32 @@
 import { mesurerProcessusWorktrees, classerFiliation, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
+import { estPidVivantDepuis } from './pid.mjs'
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
 
-export function mesurerArbreProcessus({ mesurer = mesurerProcessusWorktrees } = {}) {
-  for (let tentative = 0; tentative < 2; tentative++) {
+/** La vue des processus de la machine et leurs identités ; une mesure expirée se retente une fois, et sa seconde échéance
+ *  lève un refus transitoire ; une mesure qui lève, un refus de panne (#2741). */
+export function mesurerArbreProcessus() {
+  for (let tentative = 0; ; tentative++) {
     let vue
-    try { vue = mesurer({ identites: true, timeout: DELAI_MESURE_PROCESSUS_MS }) }
+    try { vue = mesurerProcessusWorktrees({ identites: true, timeout: DELAI_MESURE_PROCESSUS_MS }) }
     catch (cause) {
-      const categorie = cause.categorie ?? 'panne'
-      throw Object.assign(new Error(prefixeDeRefus(categorie) + ' ' + cause.message, { cause }), { code: cause.code ?? 'MESURE_PROCESSUS_IMPOSSIBLE', categorie })
+      throw Object.assign(new Error(prefixeDeRefus('panne') + ' ' + cause.message, { cause }), { code: cause.code ?? 'MESURE_PROCESSUS_IMPOSSIBLE', categorie: 'panne' })
     }
-    if (vue.code === 'MESURE_PROCESSUS_EXPIREE' && tentative === 0) continue
-    if (vue.indeterminee || vue.erreurs?.length) {
-      const categorie = vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne'
-      throw Object.assign(new Error(prefixeDeRefus(categorie) + ' ' + (vue.indeterminee ?? vue.erreurs.join('; '))), { code: vue.code ?? 'MESURE_PROCESSUS_IMPOSSIBLE', categorie })
-    }
-    return vue.processus
+    if (!vue.indeterminee) return vue.processus
+    if (tentative > 0) throw Object.assign(new Error(prefixeDeRefus('transitoire') + ' ' + vue.indeterminee), { code: vue.code, categorie: 'transitoire' })
   }
 }
 
-export function identitePresente(identite, vue) {
+function identitePresente(identite, vue) {
   return Boolean(identite?.creation && vue.some((p) => p.pid === identite.pid && p.creation === identite.creation && p.etat !== 'Z'))
+}
+
+/** L'identité capturée `gardien` (`pid`, `creation`) a-t-elle disparu ? Jugée dans la `vue` mesurée, sinon (`null`, mesure
+ *  en échec) par son pid et sa création mesurée : seule une mort ou une réutilisation PROUVÉE rend `true` (#2586, #2626). */
+export function gardienDisparu(gardien, vue) {
+  if (vue) return !identitePresente(gardien, vue)
+  try { return !estPidVivantDepuis(gardien.pid, Date.parse(gardien.creation), IDENTITE_MESUREE) }
+  catch { return false }
 }
 
 export function filiationValide(parent, enfant) {

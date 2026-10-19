@@ -6,23 +6,23 @@ import { fileURLToPath } from 'node:url'
 import { StringDecoder } from 'node:string_decoder'
 import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
-import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
-import { arretIndetermine, finNative } from './arretNatif.mjs'
+import { ancetresValidesDe, gardienDisparu, mesurerArbreProcessus } from './arbreProcessus.mjs'
+import { arretIndetermine, texteDeCause } from './arretNatif.mjs'
 import { ecrireJsonAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { LANCEMENTS_SUPERVISES, relancerApresNettoyage } from './controleEcritures.mjs'
 import { citerArgv } from './lancerDetache.mjs'
-import { estPidVivant, estPidVivantDepuis } from './pid.mjs'
-import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const { tableTotale } = await import('../../../src/lib/tableTotale.ts')
 
 const DELAI_IPC = 15000
 /** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
-export const MESURES_INDETERMINEES_MAX = 20
+const MESURES_INDETERMINEES_MAX = 20
 const erreur = (code, message) => Object.assign(new Error(message), { code })
 const erreurMesure = (cause, message = cause.message) => Object.assign(new Error(message, { cause }), {
   code: 'EMESURE', codeMesure: cause.code, categorie: cause.categorie,
 })
-const publierErreur = (cause, code = 'ECONTROLE') => ({ code: cause.code ?? code, message: cause.message,
-  ...(cause.code === 'EMESURE' ? { codeMesure: cause.codeMesure, categorie: cause.categorie, cause: { code: cause.cause?.code, categorie: cause.cause?.categorie, message: cause.cause?.message } } : {}),
+const publierErreur = (cause) => ({ code: cause?.code ?? 'ECONTROLE', message: texteDeCause(cause),
+  ...(cause?.code === 'EMESURE' ? { codeMesure: cause.codeMesure, categorie: cause.categorie, cause: { code: cause.cause?.code, categorie: cause.cause?.categorie, message: cause.cause?.message } } : {}),
 })
 function promesse() {
   let resoudre
@@ -32,6 +32,19 @@ function promesse() {
 }
 const pauseSynchrone = new Int32Array(new SharedArrayBuffer(4))
 const raisonAnnulation = (signal) => signal.reason instanceof Error && typeof signal.reason.code === 'string' ? signal.reason : erreur('ABORT_ERR', 'lancement annulé')
+const SIGNAUX_DU_PROCESSUS = ['SIGINT', 'SIGTERM', 'SIGHUP']
+const interruptionsActives = new Set()
+const relaisDeSignal = tableTotale(SIGNAUX_DU_PROCESSUS, (nom) => () => { for (const interrompre of interruptionsActives) interrompre(nom) })
+
+/** Abonne `interrompre(nom)` aux signaux du processus par UN écouteur par signal, partagé par tous les lancements
+ *  en cours ; REND le désabonnement (#2586). */
+function ecouterSignauxDuProcessus(interrompre) {
+  if (!interruptionsActives.size) for (const nom of SIGNAUX_DU_PROCESSUS) process.on(nom, relaisDeSignal[nom])
+  interruptionsActives.add(interrompre)
+  return () => {
+    if (interruptionsActives.delete(interrompre) && !interruptionsActives.size) for (const nom of SIGNAUX_DU_PROCESSUS) process.off(nom, relaisDeSignal[nom])
+  }
+}
 
 function interpreteurHote() {
   if (process.platform === 'win32') {
@@ -56,8 +69,8 @@ function resultatValide(vu) {
  * Lance `commande` sous l'hôte natif de supervision (Job Windows, subreaper Linux) et rend `{ hote, controle }` dès
  * l'hôte lancé. `controle` : `pret`, `fin` (`{ resultatCible, arret }`), `finPhysique`, `mesurerDomaine`,
  * `attribuer`, `demanderArret`, `estFermeture` ; sous Linux, `mesurerDomaine` et `attribuer` lèvent `ENONSUPPORTE` et
- * arrêtent le lancement (#2586 c.6244746949). `surveillerGit` : les gardiens (parent, ancêtres git) jugés par
- * `mesurer`, puis par `estVivant` et `identite` quand la mesure échoue (#2586, #2626). Un refus porte `hoteLance` :
+ * arrêtent le lancement (#2586 c.6244746949). `surveillerGit` : les gardiens (parent, ancêtres git) jugés par la
+ * vue native du processus, puis par leur identité de création quand la mesure échoue (#2586, #2626). Un refus porte `hoteLance` :
  * `true` dès l'hôte créé par `spawn`, `false` avant (#2586).
  * @param {string} commande @param {string[]} [args] @param {Record<string, any>} [options]
  */
@@ -73,14 +86,14 @@ export async function lancerProcessusSupervise(commande, args = [], options = {}
 /** Corps de `lancerProcessusSupervise` : `lancement.hote` reçoit l'hôte au `spawn` (#2586). */
 async function lancerSousHote(commande, args, options, lancement) {
   const { cwd = process.cwd(), env, shell = false, stdio = ['pipe', 'pipe', 'pipe'], timeout, signal,
-    surveillerGit = false, mesurer = mesurerArbreProcessus, estVivant = estPidVivant, identite = IDENTITE_MESUREE, delaiArretMs = 2000 } = options
+    surveillerGit = false, delaiArretMs = 2000 } = options
   if (!Number.isFinite(delaiArretMs) || delaiArretMs <= 0 || delaiArretMs > 2147483647) throw erreur('BORNE_INVALIDE', 'delaiArretMs invalide')
   const delaiNatif = Math.ceil(delaiArretMs)
   if (timeout !== undefined && (!Number.isFinite(timeout) || timeout < 0 || timeout > 2147483647)) throw erreur('BORNE_INVALIDE', 'timeout invalide')
   if (signal?.aborted) throw raisonAnnulation(signal)
   let vueInitiale = []
   if (surveillerGit) {
-    try { vueInitiale = mesurer() } catch (e) { throw erreurMesure(e) }
+    try { vueInitiale = mesurerArbreProcessus() } catch (e) { throw erreurMesure(e) }
   }
   const interpreteur = interpreteurHote()
   const ancetres = ancetresValidesDe(process.pid, vueInitiale)
@@ -104,7 +117,7 @@ async function lancerSousHote(commande, args, options, lancement) {
   const pret = promesse(); const finCanal = promesse(); const finHote = promesse(); const defautCloture = promesse(); const decision = promesse()
   pret.attente.catch(() => {})
   const sockets = new Set()
-  const signaux = []
+  const detachements = []
   const fermetures = new WeakSet()
   const enCloture = () => clos || clotureDemandee || existsSync(join(dossier, 'cloture.json'))
   const expiration = (operation, message) => Object.assign(erreur('ETIMEDOUT', message), { origine: 'controle-natif', operation, expiree: true })
@@ -133,7 +146,7 @@ async function lancerSousHote(commande, args, options, lancement) {
   const demanderArret = (cause) => {
     if (clos) return
     clotureDemandee = true
-    if (cause && !interruption) interruption = typeof cause === 'string' ? erreur('EINTR', cause) : cause
+    if (cause && !interruption) interruption = cause instanceof Error ? cause : erreur('EINTR', texteDeCause(cause))
     try {
       const echeance = cloture()
       if (!attenteCloture) attenteCloture = setTimeout(() => {
@@ -269,11 +282,7 @@ async function lancerSousHote(commande, args, options, lancement) {
     if (timeout !== undefined && timeout > 0) borne = setTimeout(() => faute(`échéance ${timeout} ms`, 'ETIMEDOUT'), timeout)
     const annuler = () => demanderArret(raisonAnnulation(signal))
     signal?.addEventListener('abort', annuler, { once: true })
-    signaux.push([signal, 'abort', annuler])
-    for (const nom of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-      const handler = () => faute(nom, 'EINTR')
-      process.on(nom, handler); signaux.push([process, nom, handler])
-    }
+    detachements.push(() => signal?.removeEventListener('abort', annuler), ecouterSignauxDuProcessus((nom) => faute(nom, 'EINTR')))
     await new Promise((ok, non) => {
       serveur.once('error', non)
       serveur.listen(adresse, () => { serveur.off('error', non); ok() })
@@ -295,21 +304,12 @@ async function lancerSousHote(commande, args, options, lancement) {
     fermetureEcoutee = true
     hote.on('error', (e) => { erreurHote = e; faute(e.message, e.code ?? 'EHOTE') })
     connexion = setTimeout(() => faute('échéance de connexion du worker'), DELAI_IPC)
-    const mortProuvee = ({ pid, creation }) => {
-      try { return !estPidVivantDepuis(pid, Date.parse(creation), identite, { estVivant }) }
-      catch { return false }
-    }
     let echecs = 0
     if (surveillerGit) intervalle = setInterval(() => {
-      let vue
-      try { vue = mesurer() } catch (e) {
-        echecs += 1
-        if (gardiens.some(mortProuvee)) faute('parent disparu', 'EPARENT')
-        else if (echecs >= MESURES_INDETERMINEES_MAX) demanderArret(erreurMesure(e, `${echecs} mesures consécutives indéterminées : ${e.message}`))
-        return
-      }
-      echecs = 0
-      if (gardiens.some((p) => !identitePresente(p, vue))) faute('parent disparu', 'EPARENT')
+      let vue = null; let echec
+      try { vue = mesurerArbreProcessus(); echecs = 0 } catch (e) { echec = e; echecs += 1 }
+      if (gardiens.some((gardien) => gardienDisparu(gardien, vue))) faute('parent disparu', 'EPARENT')
+      else if (echecs >= MESURES_INDETERMINEES_MAX) demanderArret(erreurMesure(echec, `${echecs} mesures consécutives indéterminées : ${echec.message}`))
     }, 250)
     const complet = Promise.all([finHote.attente, finCanal.attente])
     controle.finPhysique = (async () => {
@@ -317,10 +317,7 @@ async function lancerSousHote(commande, args, options, lancement) {
       await decision.attente
       clos = true
       clearInterval(intervalle); clearTimeout(borne); clearTimeout(connexion); clearTimeout(attenteCloture)
-      for (const [emetteur, nom, handler] of signaux) {
-        if (emetteur === process) emetteur.off(nom, handler)
-        else emetteur?.removeEventListener(nom, handler)
-      }
+      for (const detacher of detachements.splice(0)) detacher()
       for (const socket of sockets) socket.destroy()
       if (serveur.listening) await new Promise((ok) => serveur.close(ok))
       try { transaction.finaliser(resultatPublie?.resultatCible.status ?? null) }
@@ -330,12 +327,11 @@ async function lancerSousHote(commande, args, options, lancement) {
     })()
     controle.finPhysique.catch(() => {})
     controle.fin = (async () => {
-      let arret
       let completDansBorne = false
       try {
         const terminaison = await Promise.race([complet.then(([ferme]) => ({ ferme })), defautCloture.attente.then((cause) => ({ cause }))])
         if (terminaison.cause) {
-          arret = arretIndetermine({ operation: 'cloture', pid, cause: terminaison.cause })
+          const arret = arretIndetermine({ operation: 'cloture', pid, cause: terminaison.cause })
           let certificat
           try { certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8')) } catch {}
           if (certificat?.version === 1 && certificat.generation === generation) Object.assign(arret, { echeance: certificat.echeance, methode: certificat.methode, zeroNatif: certificat.zero === true })
@@ -350,22 +346,19 @@ async function lancerSousHote(commande, args, options, lancement) {
         if (ferme.status !== 0) interruption ??= erreur('EHOTE', 'hôte sorti sans nettoyage confirmé : ' + (ferme.status ?? ferme.signal))
         let certificat; let fermeture
         try {
-          certificat = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8'))
+          const lu = JSON.parse(readFileSync(join(dossier, 'certificat.json'), 'utf8'))
           fermeture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
-          if (fermeture.version !== 1 || fermeture.generation !== generation || !Number.isSafeInteger(fermeture.echeance) || certificat.version !== 1 || certificat.generation !== generation ||
-            !['job-windows', 'subreaper-linux'].includes(certificat.methode) || certificat.echeance !== fermeture.echeance || typeof certificat.zero !== 'boolean' || !Array.isArray(certificat.erreurs)) throw erreur('ECONTROLE', 'certificat natif incohérent')
+          if (fermeture.version !== 1 || fermeture.generation !== generation || !Number.isSafeInteger(fermeture.echeance) || lu.version !== 1 || lu.generation !== generation ||
+            !['job-windows', 'subreaper-linux'].includes(lu.methode) || lu.echeance !== fermeture.echeance || typeof lu.zero !== 'boolean' || !Array.isArray(lu.erreurs)) throw erreur('ECONTROLE', 'certificat natif incohérent')
+          certificat = lu
         } catch (e) { interruption ??= erreur('ECONTROLE', 'certificat natif absent ou invalide : ' + e.message) }
-        const mort = !clotureDefaillante && ferme.status === 0 && certificat?.zero === true && certificat.erreurs.length === 0 && certificat.echeance === fermeture?.echeance && !['ECONTROLE', 'ERESULTAT'].includes(interruption?.code)
-        const indetermine = !mort && (interruption ? arretIndetermine({ operation: 'cloture', pid, cause: interruption }) : arretIndetermine({ operation: 'cloture', pid, message: 'zéro natif non confirmé' }))
-        arret = { pid, etat: mort ? 'mort' : 'indetermine', echeance: fermeture?.echeance, methode: certificat?.methode,
-          erreurs: mort ? [] : [...indetermine.erreurs, ...(certificat?.erreurs ?? [])] }
+        const mort = !clotureDefaillante && ferme.status === 0 && certificat?.zero === true && certificat.erreurs.length === 0 && !['ECONTROLE', 'ERESULTAT'].includes(interruption?.code)
+        const arret = { pid, etat: mort ? 'mort' : 'indetermine', echeance: fermeture?.echeance, methode: certificat?.methode,
+          erreurs: mort ? [] : [...(interruption ? [interruption] : []), ...(certificat?.erreurs ?? [])].flatMap((cause) => arretIndetermine({ operation: 'cloture', pid, cause }).erreurs) }
         let resultatCible = resultat ?? { status: null, signal: null }
         if (interruption) resultatCible = { ...resultatCible, error: publierErreur(interruption) }
         resultatCible = { ...resultatCible, status: transaction.finaliser(resultatCible.status) }
         resultatPublie = { resultatCible, arret }
-        return resultatPublie
-      } catch (e) {
-        resultatPublie = { resultatCible: { status: null, signal: null, error: publierErreur(e) }, arret: arret ?? arretIndetermine({ operation: 'cloture', pid, cause: e }) }
         return resultatPublie
       } finally {
         if (pid === null) pret.rejeter(interruption ?? erreur('ERESULTAT', 'cible absente'))
@@ -380,10 +373,7 @@ async function lancerSousHote(commande, args, options, lancement) {
       if (fermetureEcoutee) await finHote.attente
     }
     clearInterval(intervalle); clearTimeout(borne); clearTimeout(connexion); clearTimeout(attenteCloture)
-    for (const [emetteur, nom, handler] of signaux) {
-      if (emetteur === process) emetteur.off(nom, handler)
-      else emetteur?.removeEventListener(nom, handler)
-    }
+    for (const detacher of detachements.splice(0)) detacher()
     for (const socket of sockets) socket.destroy()
     if (serveur?.listening) await new Promise((ok) => serveur.close(ok))
     relancerApresNettoyage(e, () => {
@@ -395,20 +385,19 @@ async function lancerSousHote(commande, args, options, lancement) {
 lancerProcessusSupervise.optionsEffectives = LANCEMENTS_SUPERVISES.projeter
 
 /**
- * `superviser` (défaut `lancerProcessusSupervise`), sorties drainées : rend `{ status, signal, error?, stdout, stderr,
- * arret }` de l'unique `fin` native, et `{ status: null, signal: null, error }` sans `arret` sur un lancement refusé
- * (#2586).
+ * `lancerProcessusSupervise`, sorties drainées et stdin fermé vide hors `heriter` : rend `{ status, signal, error?, stdout, stderr, arret }` de l'unique
+ * `fin` native, et `{ status: null, signal: null, error }` sans `arret` sur un lancement refusé (#2586).
  */
-export async function superviserProcessus({ commande, args = [], entree, heriter = false, stdio, superviser = lancerProcessusSupervise, ...options }) {
+export async function superviserProcessus({ commande, args = [], heriter = false, stdio, ...options }) {
   let stdout = ''; let stderr = ''
   const sortie = new StringDecoder('utf8')
   const erreurs = new StringDecoder('utf8')
   try {
-    const { hote, controle } = await superviser(commande, args, { ...options, stdio: stdio ?? (heriter ? 'inherit' : ['pipe', 'pipe', 'pipe']) })
+    const { hote, controle } = await lancerProcessusSupervise(commande, args, { ...options, stdio: stdio ?? (heriter ? 'inherit' : ['pipe', 'pipe', 'pipe']) })
     hote.stdout?.on('data', (b) => { stdout += sortie.write(b) })
     hote.stderr?.on('data', (b) => { stderr += erreurs.write(b) })
-    if (!heriter) { hote.stdin?.on('error', () => {}); hote.stdin?.end(entree) }
-    const { resultatCible, arret } = await finNative(controle)
+    if (!heriter) { hote.stdin?.on('error', () => {}); hote.stdin?.end() }
+    const { resultatCible, arret } = await controle.fin
     stdout += sortie.end(); stderr += erreurs.end()
     return { ...resultatCible, stdout, stderr, arret }
   } catch (e) { return { status: null, signal: null, stdout, stderr, error: publierErreur(e) } }

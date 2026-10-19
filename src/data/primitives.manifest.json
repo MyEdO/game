@@ -2,9 +2,9 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "label": "mesurerArbreProcessus/gardienDisparu/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "inspection des identités PID et création et chaîne des ancêtres validée par dates et protégée des cycles",
+    "concept": "inspection des identités PID et création, disparition d’un gardien jugée sur la vue ou, vue en échec, sur son PID daté, et chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "protection Git et supervision des hooks, publication isolée ; inspection sans autorité de clôture",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
@@ -1966,10 +1966,19 @@
   {
     "id": "processusBorne",
     "type": "primitives.manifest",
-    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret/arretIndetermine",
+    "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
     "fichier": "scripts/guards/lib/processusBorne.mjs",
-    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
+    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe ; diagnostic d’arrêt qui imprime chaque message une seule fois",
     "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
+    "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "arretNatif",
+    "type": "primitives.manifest",
+    "label": "arretIndetermine/texteDeCause",
+    "fichier": "scripts/guards/lib/arretNatif.mjs",
+    "concept": "arrêt `indetermine` d'une opération sur un PID, nommé par le code et le texte de sa cause gardée entière ; texte total d’une cause quelconque (message, marque d’objet ou primitive) qui ne lève jamais ; partagé par le superviseur natif, l'adaptateur borné et le lanceur des gates",
+    "perimetre": "tout arrêt de processus non prouvé mort",
     "verrou": "processusBorne.test.mjs"
   },
   {

@@ -38,7 +38,8 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawnSync } from 'node:child_process'
-import { arretIndetermine, spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
+import { arretIndetermine } from '../guards/lib/arretNatif.mjs'
+import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -125,6 +126,7 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+      'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
       'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
@@ -802,9 +804,9 @@ const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
 
 const arretNonConfirme = (arret) => arret?.etat !== 'mort'
 
-/** `nom PID pid` de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
+/** `nom`, suivi de `PID pid` quand il est connu, de chaque verdict de `verdicts` dont l'arrêt n'est pas prouvé `mort`. */
 const indetermineesDe = (verdicts) =>
-  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => `${nom} PID ${verdict.arret?.pid}`)
+  [...verdicts].filter(([, verdict]) => arretNonConfirme(verdict.arret)).map(([nom, verdict]) => verdict.arret?.pid == null ? nom : `${nom} PID ${verdict.arret.pid}`)
 
 /**
  * Gestionnaire de SIGINT/SIGTERM : aborte `arret`, le signal que reçoit le lanceur de chaque gate, attend que chaque
