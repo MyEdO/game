@@ -8,7 +8,7 @@
  *
  * Ce qui reste HORS de ce registre PAR NATURE (ce ne sont pas des raccourcis d'application : la touche
  * appartient au CONTRÔLE ou à la COUCHE qui a le focus, et n'est donc pas remappable) :
- *  • le roving tabindex des listes/onglets/radiogroupes (`ui/rovingFocus.ts`) ;
+ *  • le roving tabindex des listes/onglets/radiogroupes (`ui/composites/rovingFocus.ts`) ;
  *  • le focus-trap des modales (`ui/Modal.tsx`) et la pile d'annulation des couches (`ui/useDismissLayer.ts`) ;
  *  • l'Entrée qui valide un champ de renommage (`ui/editor/Inspector.tsx`) ;
  *  • le geste secondaire de l'alvéole FOCALISÉE (`ui/console/CombatConsole.tsx`, `ContextMenu`/Shift+F10),
@@ -17,25 +17,29 @@
  *    jumelé au clic droit et à l'appui long ;
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
-import type { GameState } from './store';
-import { useGame, activeCombatant } from './store';
-import { controlsActive } from './netOwnership';
-import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from './dialogue';
-import { modaleDuDessus } from './dismissStack';
-import { modalHolds } from './modalArbiter';
-import { modalBlocksMapHover } from './mapHover';
-import { hotbar } from './hotbarBridge';
-import { editeur } from './editeurBridge';
-import { TOUCHES_IMPRIMEES } from './dispositionConsole';
-import { runAction, currentInterludeAction, actionGate } from './actionRegistry';
-import { validTargets, preemptShooterIds } from './targeting';
-import type { ScreenDir } from './combatCursor';
-import { combatantAtTile } from './combatGeometry';
-import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from './stageYaw';
-import { arreterMarche, demarrerMarche } from './stageWalk';
-import { clearTrackedTimer, scheduleFlowTimer } from '../lib/minuteries';
-import { t, type MsgKey } from '../i18n';
-import { roomFocusAt } from './rooms';
+import type { GameState } from '../store';
+import { useGame, activeCombatant } from '../store';
+import { controlsActive } from '../netOwnership';
+import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../dialogue';
+import { modaleDuDessus } from '../dismissStack';
+import { modalHolds } from '../modalArbiter';
+import { modalBlocksMapHover } from '../mapHover';
+import { hotbar } from '../hotbarBridge';
+import { editeur } from '../editeurBridge';
+import { TOUCHES_IMPRIMEES } from '../dispositionConsole';
+import { runAction, currentInterludeAction, actionGate } from '../actionRegistry';
+import { validTargets, preemptShooterIds } from '../targeting';
+import type { ScreenDir } from '../combatCursor';
+import { combatantAtTile } from '../combatGeometry';
+import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
+import { arreterMarche, demarrerMarche } from '../stageWalk';
+import { clearTrackedTimer, scheduleFlowTimer } from '../../lib/minuteries';
+import { t, type MsgKey } from '../../i18n';
+import { roomFocusAt } from '../rooms';
+
+/** Code physique de la touche d'ANNULATION — le registre en est la source, `resoudreEchap` et la
+ *  pile de couches s'y réfèrent ; seule écriture du littéral sous `src/` (mur `murs/echap`). */
+export const CODE_ECHAP = 'Escape';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
  *  Purement présentationnel (le `when` de chaque binding reste l'unique arbitre d'exécution). */
@@ -139,7 +143,7 @@ export interface KeyBinding {
   /** La touche appartient au CONTRÔLE focalisé (bouton/lien) quand c'est la touche de SON geste :
    *  son ACTIVATION (Espace/Entrée), ou sa navigation quand il est l'item d'un conteneur à roving
    *  tabindex (flèches d'une liste, d'un menu, d'onglets). Le partage est tranché par le hook
-   *  (`ui/useGameKeyboard.ts`), une seule fois pour tout le registre. */
+   *  (`ui/clavier/useGameKeyboard.ts`), une seule fois pour tout le registre. */
   notWhenControlFocused?: boolean;
   /** Le raccourci APPARTIENT à la couche de la CONVERSATION (`COUCHE_CONVERSATION`). Sous une modale
    *  de la pile, SEULS les raccourcis qu'elle déclare répondent — les autres se taisent, même si leur
@@ -381,12 +385,12 @@ export const KEYBINDINGS: KeyBinding[] = [
   // INTENTION armée depuis l'interface (spec HUD zone 4) : Échap la dissout AVANT tout autre usage de
   // la touche — c'est l'annulation la plus récente, celle que le joueur vient d'ouvrir.
   {
-    id: 'intent-cancel', codes: ['Escape'], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['cursor-cancel', 'clear-preview', 'toggle-menu', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'intent-cancel', codes: [CODE_ECHAP], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['cursor-cancel', 'clear-preview', 'toggle-menu', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.localIntent,
     run: (g) => g().battleArmIntent(null),
   },
   {
-    id: 'cursor-cancel', codes: ['Escape'], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
     run: (g) => { if (g().preemptAiming) g().armPreempt(null); g().clearCursor(); const s = g(); if (s.battle?.preview) useGame.setState({ battle: { ...s.battle, preview: null } }); },
   },
@@ -397,7 +401,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => cur(s), run: (g) => runAction('end-turn', g),
   },
   {
-    id: 'clear-preview', codes: ['Escape'], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
     run: (g) => { const s = g(); if (s.battle?.preview) useGame.setState({ battle: { ...s.battle, preview: null } }); },
   },
@@ -464,7 +468,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // y sont atteignables : une sortie qui COMMET (renoncer à un enchaînement, se poser sur sa case)
   // se clique, la touche d'annulation ne la déclenche pas.
   {
-    id: 'interlude-exit', codes: ['Escape'], labelKey: 'key.interludeExit', section: 'combat',
+    id: 'interlude-exit', codes: [CODE_ECHAP], labelKey: 'key.interludeExit', section: 'combat',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'toggle-menu', 'action-disarm', 'editeur-echap'],
     when: (s) => inBattle(s) && controlsActive(s) && !!currentInterludeAction(() => s)?.exitSafe,
     run: (g) => { const def = currentInterludeAction(g); if (def) runAction(def.id, g); },
@@ -474,13 +478,13 @@ export const KEYBINDINGS: KeyBinding[] = [
   // resté armé. La touche prend ici le désarmement CANONIQUE du store (`battleSelectAction(null)`,
   // celui-là même qu'exécute `battery-cancel` par le registre) — jamais un `set` recopié.
   {
-    id: 'action-disarm', codes: ['Escape'], labelKey: 'key.actionDisarm', section: 'combat',
+    id: 'action-disarm', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'toggle-menu', 'editeur-echap'],
     when: (s) => cur(s) && armeSansInterlude(s),
     run: (g) => g().battleSelectAction(null),
   },
   {
-    id: 'toggle-menu', codes: ['Escape'], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'toggle-menu', codes: [CODE_ECHAP], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     // Un interlude de ciblage OCCUPE Échap, même quand sa sortie n'est pas atteignable à la touche
     // (`exitSafe: false`) : la touche ne doit pas ouvrir le menu par-dessus un ciblage en cours.
     // MAIS il ne l'occupe QU'AU SIÈGE QUI LE TIENT : `interlude-exit` exige `controlsActive`, donc
@@ -525,16 +529,12 @@ export const KEYBINDINGS: KeyBinding[] = [
   // UNE seule entrée d'annulation pour l'éditeur : c'est le PONT qui arbitre, par la PRÉSENCE de sa
   // commande — le menu fichier ne publie `fermerMenuFichier` que tant qu'il est ouvert.
   {
-    id: 'editeur-echap', codes: ['Escape'], labelKey: 'key.editeurEchap', section: 'editeur',
+    id: 'editeur-echap', codes: [CODE_ECHAP], labelKey: 'key.editeurEchap', section: 'editeur',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'toggle-menu'],
     when: enEditeur,
     run: () => { if (editeur.fermerMenuFichier) editeur.fermerMenuFichier(); else editeur.deselectionner?.(); },
   },
 ];
-
-/** Code physique de la touche d'ANNULATION — le registre en est la source, `resoudreEchap` et la
- *  pile de couches s'y réfèrent (aucun autre module ne réécrit ce littéral). */
-export const CODE_ECHAP = 'Escape';
 
 /** Une touche remappée s'écrit `ctrl+alt+shift+Code` (modificateurs dans l'ordre canonique, code en
  *  dernier) — forme UNIQUE de `keyOverrides`, lisible par `effectiveCodes`/`effectiveMods`. */
@@ -573,7 +573,7 @@ export function effectiveMods(b: KeyBinding, overrides: Record<string, string>):
 
 /**
  * CE RACCOURCI RÉPOND-IL, dans cet état ? Porte UNIQUE des DEUX dispatchers (clavier
- * `ui/useGameKeyboard`, manette `ui/useGamepad` via `runBindingById`) — une loi énoncée au registre
+ * `ui/clavier/useGameKeyboard`, manette `ui/useGamepad` via `runBindingById`) — une loi énoncée au registre
  * qu'une seule des deux portes appliquerait ne serait pas une loi.
  *
  * Deux étages, dans cet ordre : la COUCHE (sous la modale du dessus sur l'écran de CE siège,

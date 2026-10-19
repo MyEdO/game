@@ -3,10 +3,12 @@
  * annuler/rétablir, SÉLECTEUR DE SCÈNE du projet (+ nouvelle / dupliquer / retirer — remplace
  * la liste de l'ancien onglet « Scène »), carte du monde et ▶ Tester.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { Scene } from '../../state/scene';
 import { publierEditeur } from '../../state/editeurBridge';
 import { Icon } from '../Icon';
+import { ENTREE_DE_MENU, Menu, type EntreeDeMenu } from '../composites/Menu';
+import { useBoutonAPopup } from '../composites/boutonAPopup';
 
 export function EditorToolbar({
   onBack,
@@ -66,34 +68,35 @@ export function EditorToolbar({
   onNarratif: () => void;
   onTest: () => void;
 }) {
-  const [fileOpen, setFileOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  // Fermeture du menu au clic extérieur. Échap passe par le REGISTRE (`editeur-echap`) : la commande
-  // n'est publiée au pont QUE tant que le menu est ouvert — sa PRÉSENCE est ce qui donne la touche au
-  // menu plutôt qu'à la désélection.
+  const fichier = useBoutonAPopup<HTMLDivElement>({ popup: 'menu', items: ENTREE_DE_MENU });
+  const { ouvert: fileOpen, fermer } = fichier;
+  // Échap passe par le REGISTRE (`editeur-echap`) : la commande n'est publiée au pont QUE tant que le
+  // menu est ouvert — sa PRÉSENCE est ce qui donne la touche au menu plutôt qu'à la désélection.
   useEffect(() => {
     if (!fileOpen) return;
-    const onDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setFileOpen(false);
-    };
-    document.addEventListener('pointerdown', onDown);
-    const retirer = publierEditeur({ fermerMenuFichier: () => setFileOpen(false) });
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      retirer();
-    };
-  }, [fileOpen]);
-  const item = (label: ReactNode, fn: () => void) => (
-    <button
-      className="menu-item"
-      onClick={() => {
-        setFileOpen(false);
-        fn();
-      }}
-    >
-      {label}
-    </button>
-  );
+    return publierEditeur({ fermerMenuFichier: fermer });
+  }, [fileOpen, fermer]);
+  const importRef = useRef<HTMLInputElement>(null);
+  const item = (cle: string, label: ReactNode, fn: () => void): EntreeDeMenu => ({
+    cle,
+    label,
+    onSelect: () => {
+      fermer();
+      fn();
+    },
+  });
+  const entrees: EntreeDeMenu[] = [
+    item('nouveau', <><Icon id="file/new" size="sm" /> Nouveau projet</>, onNew),
+    item('ouvrir', <><Icon id="file/open" size="sm" /> Ouvrir…</>, onOpen),
+    item('enregistrer', <><Icon id="file/save" size="sm" /> Enregistrer…</>, onSave),
+    { cle: 'sep-fichier', separateur: true },
+    item('importer', <><Icon id="file/import" size="sm" /> Importer JSON…</>, () => importRef.current?.click()),
+    item('exporter', <><Icon id="file/export" size="sm" /> Exporter JSON</>, onExport),
+    item('exporter-ascii', <><Icon id="file/export" size="sm" /> Exporter ASCII (grilles carte)</>, onExportAscii),
+    ...(onExportDepot ? [item('exporter-depot', <><Icon id="file/export" size="sm" /> Exporter forme dépôt (dev)</>, onExportDepot)] : []),
+    { cle: 'sep-avance', separateur: true },
+    item('avance', <><Icon id="ui/settings" size="sm" /> Avancé — JSON (dialogues, triggers, rencontres)</>, onAdvanced),
+  ];
 
   return (
     <header className="bar editor-bar">
@@ -102,39 +105,23 @@ export function EditorToolbar({
       </button>
       <h2 title={projectName}>Éditeur</h2>
 
-      <div className="editor-file" ref={menuRef}>
-        <button className="btn small" onClick={() => setFileOpen(!fileOpen)} aria-haspopup="menu" aria-expanded={fileOpen}>
+      <div className="editor-file" {...fichier.racine}>
+        <button {...fichier.declencheur} className="btn small">
           Fichier ▾
         </button>
-        {fileOpen && (
-          <div className="editor-menu panel" role="menu">
-            {item(<><Icon id="file/new" size="sm" /> Nouveau projet</>, onNew)}
-            {item(<><Icon id="file/open" size="sm" /> Ouvrir…</>, onOpen)}
-            {item(<><Icon id="file/save" size="sm" /> Enregistrer…</>, onSave)}
-            <hr />
-            <label className="menu-item">
-              <Icon id="file/import" size="sm" /> Importer JSON…
-              <input
-                type="file"
-                accept="application/json"
-                hidden
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = '';
-                  if (f) {
-                    setFileOpen(false);
-                    onImport(f);
-                  }
-                }}
-              />
-            </label>
-            {item(<><Icon id="file/export" size="sm" /> Exporter JSON</>, onExport)}
-            {item(<><Icon id="file/export" size="sm" /> Exporter ASCII (grilles carte)</>, onExportAscii)}
-            {onExportDepot && item(<><Icon id="file/export" size="sm" /> Exporter forme dépôt (dev)</>, onExportDepot)}
-            <hr />
-            {item(<><Icon id="ui/settings" size="sm" /> Avancé — JSON (dialogues, triggers, rencontres)</>, onAdvanced)}
-          </div>
-        )}
+        {fileOpen && <Menu entrees={entrees} label="Fichier" className="editor-menu panel" />}
+        <input
+          ref={importRef}
+          type="file"
+          accept="application/json"
+          aria-label="Importer JSON"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) onImport(f);
+          }}
+        />
       </div>
 
       <div className="editor-undo">

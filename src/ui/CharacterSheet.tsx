@@ -4,7 +4,7 @@ import { appraiseRefus } from '../state/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';

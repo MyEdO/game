@@ -85,7 +85,7 @@ describe('CompendiumScreen — toggle des clusters repliables (#399)', () => {
  * bâtie `width: fit-content` + `overflow: hidden` pour peu d'options SUR UNE LIGNE (Parade/Esquive…),
  * jamais pensée pour une navigation à 7 entrées. Mesuré en recette à 360px : 3 des 7 groupes
  * (Magie/Monde/Tables) inatteignables, aucune affordance. Ce sont des onglets de NAVIGATION —
- * `<Tabs>` (`src/ui/Tabs.tsx`) est la primitive faite pour ça : `.tabs` s'enroule déjà
+ * `<Tabs>` (`src/ui/composites/Tabs.tsx`) est la primitive faite pour ça : `.tabs` s'enroule déjà
  * (`flex-wrap: wrap`, `components.css`), role=tablist/tab + roving tabindex inclus gratuitement.
  * jsdom ne calcule pas de layout réel (pas de `scrollWidth`/`overflow` fiables) — la preuve de
  * non-troncature à 360px reste la recette navigateur ; ici on verrouille la STRUCTURE accessible.

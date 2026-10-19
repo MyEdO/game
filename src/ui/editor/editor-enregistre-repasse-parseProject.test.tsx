@@ -267,6 +267,7 @@ async function importePuisEnregistre(docJson: string): Promise<SavedProject[]> {
     Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(label))!;
 
   await act(async () => { byText('Fichier').click(); });
+  await act(async () => { byText('Importer JSON…').click(); });
   const input = container.querySelector('input[type="file"]') as HTMLInputElement;
   const fichier = { name: 'projet.json', text: async () => docJson } as unknown as File;
   Object.defineProperty(input, 'files', { value: [fichier], configurable: true });

@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { useDismissLayer } from './useDismissLayer';
+import { Listbox, OPTION_ACTIVE } from './composites/GroupesDeChoix';
+import { useBoutonAPopup } from './composites/boutonAPopup';
 
 /**
  * Sélecteur « visuel » PARTAGÉ — déclencheur + popover de rangées `média + texte`, là où un `<select>`
@@ -7,8 +10,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
  * motif (l'ancien markup ad-hoc `give-*` est dissous ici).
  *
  * Options rendues EAGER dans le DOM (repliées par CSS quand fermé) — le métier reste chez l'appelant,
- * ce composant ne fait que rendre et propager `onSelect`. Combobox accessible : ouverture clic/Enter/
- * Espace, fermeture Échap + clic-extérieur.
+ * ce composant ne fait que rendre et propager `onSelect`. Combobox accessible : ouverture, entrée du
+ * focus et fermeture par `useBoutonAPopup`, flèches entre les options (`Listbox`), Échap par la couche
+ * `popover` de la pile (`useDismissLayer`).
  */
 export interface MediaOption {
   key: string;
@@ -39,38 +43,30 @@ export interface MediaSelectProps {
 export function MediaSelect({
   options, value, onSelect, placeholder, trigger, triggerClassName, align = 'left', title, className,
 }: MediaSelectProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
+  const { ouvert, fermer, racine, declencheur } = useBoutonAPopup<HTMLDivElement>({ popup: 'listbox', items: OPTION_ACTIVE });
+  useDismissLayer({ kind: 'media-select', nature: 'popover', plan: 'application', boite: racine.ref }, fermer, ouvert);
 
   const selected = value != null ? options.find((o) => o.key === value) : undefined;
-  const pick = (key: string) => { setOpen(false); onSelect(key); };
+  const actives = options.filter((o) => !o.disabled);
+  // Roving : une seule option dans l'ordre de tabulation, la sélectionnée, sinon la première active.
+  const arret = (actives.find((o) => o.key === value) ?? actives[0])?.key;
+  const pick = (key: string) => { fermer(); onSelect(key); };
 
   return (
-    <div ref={rootRef} className={`media-select align-${align}${className ? ' ' + className : ''}`}>
+    <div {...racine} className={`media-select align-${align}${className ? ' ' + className : ''}`}>
       <button
+        {...declencheur}
         type="button"
         className={triggerClassName ?? 'ms-trigger'}
         title={title}
         role="combobox"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
       >
         {trigger ?? (selected
           ? <><span className="ms-media">{selected.media}</span><span className="ms-label">{selected.label}</span></>
           : <span className="ms-label ms-placeholder">{placeholder}</span>)}
         {!trigger && <span className="ms-caret" aria-hidden>▾</span>}
       </button>
-      <ul className="ms-list" role="listbox">
+      <Listbox as="ul" className="ms-list" suivi="focus">
         {options.map((o) => (
           <li
             key={o.key}
@@ -78,7 +74,7 @@ export function MediaSelect({
             aria-selected={o.key === value}
             aria-disabled={o.disabled}
             className="ms-opt"
-            tabIndex={o.disabled ? -1 : 0}
+            tabIndex={o.key === arret ? 0 : -1}
             onClick={() => { if (!o.disabled) pick(o.key); }}
             onKeyDown={(e) => { if (!o.disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(o.key); } }}
           >
@@ -87,7 +83,7 @@ export function MediaSelect({
             {o.sub != null && <span className="ms-sub">{o.sub}</span>}
           </li>
         ))}
-      </ul>
+      </Listbox>
     </div>
   );
 }

@@ -12,21 +12,24 @@ import type { JSX } from 'react';
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset) ;
  *  - `polymorphe` : référence typée `{ id, type }` (`refTypee`) — le `<select>` du type, puis le mode
  *                 `single` sur le dataset de l'espace de ce type (`cfgDuType`).
- * On stocke partout l'`id` — multilangue-safe (cf.
+ * `SaisieSuggeree` est le contrôle `<input list>` + `<datalist>` de `freeText` et `vocab`, exporté pour une
+ * saisie libre que l'appelant compose (chaîne « Arme (Épée) +7 », libellé de dataset) : la saisie s'émet
+ * telle quelle. On stocke partout l'`id` — multilangue-safe (cf.
  * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
-import { datasetArray, type DatasetKey } from '../../data/overrides';
-import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
-import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../data/schemas/grammaire/ref';
-import { slugId } from '../../data/slug';
-import { REFERENCES_NARRATIVES, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { entreesNarratives, type CleDeReferenceNarrative } from './libellesNarratifs';
-import type { NarratifBlock } from '../../state/campaignNarratif';
-import { NumberField } from '../NumberField';
-import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../data/schemas/exposition-derivee';
-import { categoryByKey } from './registry';
-import { videDuNoeud } from './editFields';
+import { datasetArray, type DatasetKey } from '../../../data/overrides';
+import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
+import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import { slugId } from '../../../data/slug';
+import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
+import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
+import type { NarratifBlock } from '../../../state/campaignNarratif';
+import { NumberField } from '../../NumberField';
+import { useVersionDesDatasets } from '../../useVersionDesDatasets';
+import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../../data/schemas/exposition-derivee';
+import { categoryByKey } from '../registry';
+import { videDuNoeud } from '../editFields';
 
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
@@ -215,15 +218,16 @@ export function refusDuNoeud(noeud: unknown): ((entree: { readonly id: string })
 type Entree = { id: string; e: Record<string, unknown> };
 
 /** L'univers du champ : `entreesEnTete`, puis les entrées de la source (dataset `ds`, ou entrées
- *  fournies) dont elles ne prennent pas l'id. */
+ *  fournies) dont elles ne prennent pas l'id ; recalculé à chaque écriture au seam (`useVersionDesDatasets`). */
 function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
+  const version = useVersionDesDatasets();
   return useMemo(() => {
     const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
     const pris = new Set(enTete.map((x) => x.id));
     const entrees = (typeof source === 'string' ? datasetArray(source) : source) as Record<string, unknown>[];
     const deLaSource = entrees.map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
     return [...enTete, ...deLaSource];
-  }, [source, entreesEnTete]);
+  }, [source, entreesEnTete, version]);
 }
 
 /** Options de l'univers (valeur stockée + libellé) : les entrées que la sous-liste de la feuille du
@@ -340,7 +344,6 @@ function FreeRefField(
   const options = useOptions(cfg, champ.noeud, univers);
   const juger = useMemo(() => refusDuNoeud(champ.noeud), [champ.noeud]);
   const cur = typeof value === 'string' ? value : '';
-  const dlId = useId();
   const idRefus = useId();
   const libelleDe = (id: string) => entryLabel(univers.find((x) => x.id === id)?.e ?? { id });
   const [texte, setTexte] = useState(() => libelleDe(cur));
@@ -356,12 +359,11 @@ function FreeRefField(
   return (
     <div className="ed-field" title={champ.title}>
       <span>{label}{indiceDe([nomDistinct(label, libelleDeDataset(cfg.ds)), 'saisie libre'].filter(Boolean).join(', ou '))}</span>
-      <input
-        list={dlId} value={texte}
-        aria-label={ariaLabel} aria-invalid={invalide || refus !== null || undefined}
-        aria-describedby={[describedBy, refus === null ? undefined : idRefus].filter(Boolean).join(' ') || undefined}
-        onChange={(e) => {
-          const brut = e.target.value;
+      <SaisieSuggeree
+        suggestions={options.map((o) => o.label)} value={texte}
+        ariaLabel={ariaLabel} invalide={invalide || refus !== null}
+        describedBy={[describedBy, refus === null ? undefined : idRefus].filter(Boolean).join(' ') || undefined}
+        onChange={(brut) => {
           const v = brut.trim();
           const entree = v ? resoudre(v) : undefined;
           const r = entree && juger ? juger({ ...entree.e, id: entree.id }) : null;
@@ -373,10 +375,24 @@ function FreeRefField(
           onChange(emise);
         }}
       />
-      <datalist id={dlId}>{options.map((o) => <option key={o.v} value={o.label} />)}</datalist>
       {refus !== null && <span id={idRefus} className="hint" role="status">{refus}</span>}
     </div>
   );
+}
+
+/** Valeurs DISTINCTES et non vides du champ `champ` des entrées du dataset `ds`, dans l'ordre du
+ *  dataset : suggestions d'une saisie libre (`SaisieSuggeree`). */
+function valeursDistinctes(ds: DatasetKey, champ: string): string[] {
+  return [...new Set((datasetArray(ds) as Record<string, unknown>[]).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
+}
+
+/** `valeursDistinctes` de `ds` (absent : aucune suggestion), recalculées à chaque écriture au seam
+ *  (`useVersionDesDatasets`). */
+export function useValeursDistinctes(ds: DatasetKey, champ: string): string[];
+export function useValeursDistinctes(ds: DatasetKey | undefined, champ: string): string[] | undefined;
+export function useValeursDistinctes(ds: DatasetKey | undefined, champ: string): string[] | undefined {
+  const version = useVersionDesDatasets();
+  return useMemo(() => (ds ? valeursDistinctes(ds, champ) : undefined), [ds, champ, version]);
 }
 
 /** Mode `vocab` : `<input list>` + `<datalist>` des valeurs distinctes d'un champ `'<ds>.<champ>'`. */
@@ -385,19 +401,49 @@ function VocabField(
   Accessibilite & { label?: string; title?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; noeud?: unknown },
 ) {
   const [ds, field] = vocabFrom.split('.') as [DatasetKey, string];
-  const dlId = `dl-vocab-${ds}-${field}`;
-  const values = useMemo(
-    () => [...new Set((datasetArray(ds) as Record<string, unknown>[]).map((e) => e[field]).filter(Boolean) as string[])].sort(),
-    [ds, field],
-  );
+  const distinctes = useValeursDistinctes(ds, field);
+  const values = useMemo(() => [...distinctes].sort(), [distinctes]);
   return (
     <div className="ed-field" title={title}>
       <span>{label}{indiceDe('valeurs déjà saisies, ou saisie libre')}</span>
-      <input list={dlId} value={(value as string) ?? ''}
-        aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
-        onChange={(e) => onChange(e.target.value === '' && nullable ? videDuNoeud(noeud) : e.target.value)} />
-      <datalist id={dlId}>{values.map((v) => <option key={v} value={v} />)}</datalist>
+      <SaisieSuggeree suggestions={values} value={(value as string) ?? ''}
+        ariaLabel={ariaLabel} invalide={invalide} describedBy={describedBy}
+        onChange={(v) => onChange(v === '' && nullable ? videDuNoeud(noeud) : v)} />
     </div>
+  );
+}
+
+/** Suggestions PARTAGÉES par les saisies d'un même champ (une rangée par valeur d'une liste) : UNE
+ *  `<datalist>`, que l'appelant rend une fois (`datalist`) et que chaque `SaisieSuggeree` désigne. */
+export interface SuggestionsPartagees { readonly id: string }
+export function useSuggestionsPartagees(suggestions: readonly string[] | undefined): { partagees?: SuggestionsPartagees; datalist: JSX.Element | null } {
+  const id = useId();
+  const partagees = useMemo(() => ({ id }), [id]);
+  return suggestions ? { partagees, datalist: <ListeDeSuggestions id={id} suggestions={suggestions} /> } : { datalist: null };
+}
+
+function ListeDeSuggestions({ id, suggestions }: { id: string; suggestions: readonly string[] }) {
+  return <datalist id={id}>{suggestions.map((s, i) => <option key={i} value={s} />)}</datalist>;
+}
+
+/** Saisie LIBRE à suggestions : `<input list>` + sa `<datalist>` (une par instance, `useId`), une option
+ *  par suggestion, ou la datalist PARTAGÉE d'un champ (`useSuggestionsPartagees`) ; `suggestions`
+ *  absentes, un `<input>` nu. La saisie brute s'émet telle quelle. */
+export function SaisieSuggeree(
+  { suggestions, value, onChange, ariaLabel, invalide, describedBy }:
+  Accessibilite & { suggestions?: readonly string[] | SuggestionsPartagees; value: string; onChange: (v: string) => void },
+) {
+  const dlId = useId();
+  const propres = Array.isArray(suggestions) ? suggestions as readonly string[] : undefined;
+  const liste = propres ? dlId : (suggestions as SuggestionsPartagees | undefined)?.id;
+  return (
+    <>
+      <input
+        list={liste} value={value}
+        aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
+        onChange={(e) => onChange(e.target.value)} />
+      {propres && <ListeDeSuggestions id={dlId} suggestions={propres} />}
+    </>
   );
 }
 

@@ -18,7 +18,7 @@ import { Icon } from './Icon';
 import { NotchGauge } from './NotchGauge';
 import { moraleTone, ShipCrewWages } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { TradeTable, type TradeGroup } from './TradeTable';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { ManannBody } from './ManannPriestModal';

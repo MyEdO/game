@@ -3,7 +3,7 @@
  *
  * Trois fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des deux surfaces
  * qui servent une réponse — la fenêtre (`ui/DialogueBox`) et les touches `dialogue-choice-N`
- * (`state/keybindings`) :
+ * (`state/clavier/keybindings`) :
  *  · `ouvrirDialogue` — la SEULE fabrique d'un état de conversation : tout ouvreur y passe, et la
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
  *  · `reponsesDuNoeud` — la liste VISIBLE des réponses : filtre `when`, rang d'affichage 1..n,

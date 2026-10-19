@@ -26,7 +26,7 @@ import { DialogueDetail } from './DialogueDetail';
 import { CouvreField } from './CouvreField';
 import { ValidationPanel } from './ValidationPanel';
 import { Icon } from '../Icon';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';

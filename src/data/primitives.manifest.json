@@ -389,11 +389,11 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/RefNarrativeField",
-    "fichier": "src/ui/compendium/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES`",
-    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx"
+    "label": "RefField/refusDuNoeud/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
+    "fichier": "src/ui/compendium/refField/RefField.tsx",
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
+    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, saisie-suggeree.test.tsx"
   },
   {
     "id": "sourceBadge",
@@ -474,9 +474,9 @@
     "label": "MediaSelect",
     "fichier": "src/ui/MediaSelect.tsx",
     "css": "src/ui/styles/media-select.css",
-    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône",
+    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône ; le popover ouvert est une couche `popover` de la pile (`useDismissLayer`), ouverture et focus par `useBoutonAPopup`",
     "perimetre": "sélecteurs d'arme/armure de la fiche, menu « Donner »",
-    "verrou": "—"
+    "verrou": "echap-pile-lifo.test.tsx — Échap referme la liste avant la modale qui la porte"
   },
   {
     "id": "genRegistry",
@@ -557,7 +557,7 @@
     "fichier": "src/data/schemas/grammaire/ref.ts",
     "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
-    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
+    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/refField/ref-field-sous-liste.test.tsx"
   },
   {
     "id": "refTypee",
@@ -566,7 +566,7 @@
     "fichier": "src/data/schemas/grammaire/ref.ts",
     "concept": "une référence TYPÉE `{ id, type }` dont le `type` choisit l'espace d'ids où l'`id` doit résoudre (`refTypee`), et sa déclaration lue par l'éditeur et le scan (`declarationDeRefTypee`)",
     "perimetre": "foyer de règle des enjeux, des Activités et des Tests d'équipage (`foyerDeRegleSchema`), champ polymorphe de l'éditeur (`RefField`), ouverture au Codex (`cibleCodex`), résolution du scan des structures (`espaceNomme`)",
-    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/ref-field-polymorphe.test.tsx"
+    "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/refField/ref-field-polymorphe.test.tsx"
   },
   {
     "id": "refCouvre",
@@ -644,7 +644,7 @@
     "id": "tabs",
     "type": "primitives.manifest",
     "label": "Tabs",
-    "fichier": "src/ui/Tabs.tsx",
+    "fichier": "src/ui/composites/Tabs.tsx",
     "concept": "onglets (flat/pill/sub/dock) : role tablist, aria-selected, roving tabindex",
     "perimetre": "fiche, écran plein-champ, dock repliable, sous-onglets ; styles src/ui/styles/tabs.css",
     "verrou": "réflexe avant toute liste d’onglets recodée"
@@ -653,9 +653,9 @@
     "id": "rovingFocus",
     "type": "primitives.manifest",
     "label": "rovingKeyDown",
-    "fichier": "src/ui/rovingFocus.ts",
-    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG)",
-    "perimetre": "tablist, listbox, radiogroup",
+    "fichier": "src/ui/composites/rovingFocus.ts",
+    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG) ; la sélection suit le focus, ou le focus seul se déplace (`suivi: 'focus'`) ; la touche consommée ne se propage pas au roving générique d’une modale",
+    "perimetre": "tablist, listbox, radiogroup, menu",
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
   },
   {
@@ -926,11 +926,38 @@
     "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; AUCUNE ambiance CharacterPreview exposée (la tuile porte SA matière) ; réflexe avant tout cadre dans un cadre"
   },
   {
+    "id": "groupesDeChoix",
+    "type": "primitives.manifest",
+    "label": "Listbox/RadioGroup",
+    "fichier": "src/ui/composites/GroupesDeChoix.tsx",
+    "concept": "conteneurs role listbox (items role option) et radiogroup (items role radio, variante svg) au clavier rovingKeyDown ; la listbox d'une liste qui se referme au choix ne déplace que le focus",
+    "perimetre": "tout groupe de sélection exclusive : grilles de choix, services d'un lieu, liste de MediaSelect, lignées et talents du créateur, chemin de carrière, roue céleste",
+    "verrou": "murs/roles-composites d'oxlint.config.mjs (listbox, radiogroup, tablist, menu, grid posés hors src/ui/composites refusés, banc scripts/guards/lib/lint-parite.test.mjs)"
+  },
+  {
+    "id": "menu",
+    "type": "primitives.manifest",
+    "label": "Menu",
+    "fichier": "src/ui/composites/Menu.tsx",
+    "concept": "liste role menu d'entrées menuitem et de séparateurs, flèches qui déplacent le focus ; déclencheur, ouverture et fermeture par `useBoutonAPopup`",
+    "perimetre": "menu Fichier de l'éditeur",
+    "verrou": "murs/roles-composites d'oxlint.config.mjs"
+  },
+  {
+    "id": "boutonAPopup",
+    "type": "primitives.manifest",
+    "label": "useBoutonAPopup",
+    "fichier": "src/ui/composites/boutonAPopup.ts",
+    "concept": "déclencheur et son popup (menu, liste déroulante) : flèches, Home/End et ouverture au clavier entrent dans le popup, la fermeture rend le focus au déclencheur, le focus qui sort de la racine ferme",
+    "perimetre": "menu Fichier de l'éditeur (`Menu`), `MediaSelect` (`Listbox`)",
+    "verrou": "boutonAPopup.test.tsx"
+  },
+  {
     "id": "groupedPickGrid",
     "type": "primitives.manifest",
     "label": "GroupedPickGrid",
     "fichier": "src/ui/GroupedPickGrid.tsx",
-    "concept": "grille de sélection en sections par famille ou classe, role listbox et roving tabindex",
+    "concept": "grille de sélection en sections par famille ou classe, compose Listbox",
     "perimetre": "tout picker groupé",
     "verrou": "—"
   },
@@ -1428,9 +1455,18 @@
     "type": "primitives.manifest",
     "label": "posePartagee",
     "fichier": "src/lib/posePartagee.ts",
-    "concept": "écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
-    "perimetre": "porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`)",
+    "concept": "écouteurs posés à la PREMIÈRE prise (`poser` rend leur retrait) et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
+    "perimetre": "porte d'Échap de la pile (`src/ui/clavier/couches/porteEchap.ts`), délégation de la couche d'infobulle (`Infobulle`)",
     "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
+  },
+  {
+    "id": "ecouterClavier",
+    "type": "primitives.manifest",
+    "label": "ecouterClavier / ModeClavier",
+    "fichier": "src/ui/clavier/interne/ecouterClavier.ts",
+    "concept": "SEULE pose d'un écouteur `keydown`/`keyup`, sur quelque receveur que ce soit (un élément écoute par son `onKeyDown` JSX) ; le MODE (`registre`, `couche`, `remap`, `piege`) fixe la cible et la phase, donc la place de l'écouteur dans la propagation d'un appui ; rend le retrait. INTERNE à `src/ui/clavier/` : hors de ce dossier, un geste clavier passe par un hook qui nomme son geste (`src/ui/clavier/couches/` pour les touches NOMMÉES, lues par `e.key` ; `useRemapDeTouche` pour la POSITION d'un raccourci, lue par `e.code`) et ne prend aucun gestionnaire ; un ancrage écoute ses touches par son `onKeyDown`/`onKeyDownCapture` JSX",
+    "perimetre": "lecteur du registre (`useGameKeyboard`) ; couches à touches nommées : porte d'Échap de la pile (`prendrePorteEchap`, composée par `useDismissLayer`), piège du dialogue (`usePiegeDeDialogue`, composé par `useModalA11y`) ; remap d'un raccourci du registre, par position (`useRemapDeTouche`, composé par `KeyBindingsPanel`)",
+    "verrou": "murs `murs/clavier-global`, `murs/interne` et `murs/clavier-positions` (`oxlint.config.mjs`, banc `scripts/guards/lib/lint-parite.test.mjs`) ; echap-pile-lifo.test.tsx — la pile tranche avant le registre ; remapDeTouche.test.tsx — Échap annule le remap seul ; infobulle-epinglage-dialogue.test.tsx — ↓ épingle avant le piège du dialogue ; clavier-virtuel-couches.test.tsx — Entrée et Échap sans position répondent"
   },
   {
     "id": "gelerProfond",

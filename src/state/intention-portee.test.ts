@@ -25,7 +25,7 @@ import { intentReach, armedIntentPortee } from './localIntent';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
 import type { HighlightsView } from '../gameIso/builders/highlights';
 import { runAction } from './actionRegistry';
-import { runBindingById } from './keybindings';
+import { runBindingById } from './clavier/keybindings';
 import { applyNetSnapshot, netSnapshot } from './netFlow';
 import { GUEST_INTENTS } from '../net/intents';
 import { chargeReach } from '../engine/movement';

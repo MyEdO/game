@@ -17,7 +17,7 @@ import { Icon } from './Icon';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
 import { moraleTone, crewRoleLabel } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { CargoTransferPanel } from './CargoTransferPanel';
 import { ShipPreview } from './ShipPreview';
 import { Split } from './Layout';

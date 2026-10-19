@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useGame } from '../state/store';
 import {
-  KEYBINDINGS, bindingLabel, keySectionLabel, effectiveCodes, effectiveMods, surchargeDe, eventMods, comboLabel, formatCombo,
+  KEYBINDINGS, bindingLabel, keySectionLabel, effectiveCodes, effectiveMods, surchargeDe, comboLabel, formatCombo,
   type KeyBindingSection,
-} from '../state/keybindings';
+} from '../state/clavier/keybindings';
 import { Icon } from './Icon';
+import { useRemapDeTouche } from './clavier/remapDeTouche';
 import { Row } from './Layout';
 
 /**
@@ -19,35 +20,14 @@ import { Row } from './Layout';
  * sur Q/E : `exploringPov` et `screen === 'campaign'` ne se recouvrent jamais en jeu), mais un joueur qui
  * REMAPPE à la main peut créer un VRAI conflit (même touche, même contexte) — le badge est donc
  * informatif dans TOUS les cas, la garde `when` de chaque binding restant l'arbitre d'exécution.
- *
- * @clavier-hors-registre la CAPTURE de remap n'est pas un raccourci : elle lit la touche BRUTE pour
- * l'écrire dans le registre, et doit donc passer avant lui (garde `ui/raccourcis-registre.test.ts`).
  */
 const SECTION_ORDER: KeyBindingSection[] = ['systeme', 'pov', 'camera', 'combat', 'curseur', 'hotbar', 'exploration', 'dialogue', 'editeur'];
 
-/** Codes qui ne sont QUE des modificateurs : tenus seuls, ils ne désignent aucune touche — la capture attend la touche qualifiée. */
-const CODES_MODIFICATEUR = /^(Control|Alt|Shift|Meta)(Left|Right)$/;
-
 export function KeyBindingsPanel() {
   const keyOverrides = useGame((s) => s.keyOverrides);
-  const setKeyBinding = useGame((s) => s.setKeyBinding);
   const resetKeyBindings = useGame((s) => s.resetKeyBindings);
-  const [rebinding, setRebinding] = useState<string | null>(null);
-
-  // Capture de la prochaine touche pour le raccourci en cours de remap. EN CAPTURE + stop immédiat :
-  // passe AVANT le hook de jeu (useGameKeyboard) pour ne pas déclencher un raccourci pendant la saisie.
-  useEffect(() => {
-    if (!rebinding) return;
-    const onKey = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (CODES_MODIFICATEUR.test(e.code)) return; // Ctrl/Alt/Maj seuls : on attend la touche qu'ils qualifient
-      if (e.code !== 'Escape') setKeyBinding(rebinding, formatCombo(e.code, eventMods(e))); // Échap = annule la capture sans changer
-      setRebinding(null);
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [rebinding, setKeyBinding]);
+  const panneau = useRef<HTMLDivElement>(null);
+  const remap = useRemapDeTouche(panneau);
 
   // Touches PARTAGÉES : code effectif → labels des autres raccourcis sur la même touche.
   const sharedBy = useMemo(() => {
@@ -75,7 +55,7 @@ export function KeyBindingsPanel() {
   }, []);
 
   return (
-    <div className="opt-panel">
+    <div className="opt-panel" ref={panneau}>
       <div className="opt-keys">
         {SECTION_ORDER.filter((sec) => bySection.has(sec)).map((sec) => (
           <div className="opt-key-section" key={sec}>
@@ -97,11 +77,11 @@ export function KeyBindingsPanel() {
                   <button
                     type="button"
                     className="btn small"
-                    aria-pressed={rebinding === b.id}
-                    onClick={() => setRebinding(b.id)}
+                    aria-pressed={remap.enCours === b.id}
+                    onClick={() => remap.armer(b.id)}
                     title={remapped ? 'Touche personnalisée — clic pour réassigner' : 'Clic pour réassigner'}
                   >
-                    {rebinding === b.id ? 'Appuyez sur une touche…' : comboLabel(code, effectiveMods(b, keyOverrides))}
+                    {remap.enCours === b.id ? 'Appuyez sur une touche…' : comboLabel(code, effectiveMods(b, keyOverrides))}
                   </button>
                 </div>
               );

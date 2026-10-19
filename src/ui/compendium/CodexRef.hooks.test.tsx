@@ -102,7 +102,7 @@ describe('CodexRef — Échap ferme l’infobulle AFFICHÉE, pas seulement l’�
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
     expect(pop(), 'le survol affiche l’infobulle').toBeTruthy();
     sommetEstLInfobulle('l’infobulle affichée au survol doit être la couche que l’appui adresse');
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); });
     expect(pop(), 'Échap la ferme — elle ne peut plus recouvrir le CTA').toBeNull();
     expect(dismissStackKinds(), 'fermée, elle n’est plus une couche').toEqual([]);
   });
@@ -110,7 +110,7 @@ describe('CodexRef — Échap ferme l’infobulle AFFICHÉE, pas seulement l’�
   it('sans infobulle affichée, Échap ne fait rien ici (la modale garde sa couche)', () => {
     ({ container, root } = mount(chip));
     expect(pop()).toBeNull();
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); });
     expect(pop()).toBeNull();
   });
 });
@@ -144,7 +144,7 @@ describe('CodexRef — bascule `tooltipOnly` en TOGGLETIP : la bulle est ANNONC�
     ];
     const fermetures: [string, () => void][] = [
       ['Entrée', () => touche(declencheur, 'Enter')],
-      ['Échap', () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); })],
+      ['Échap', () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); })],
       ['clic ailleurs', () => act(() => { document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); })],
     ];
     for (const [i, [geste, ouvrir]] of ouvertures.entries()) {
@@ -189,12 +189,12 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
     act(() => { inner.focus(); });
     expect(document.querySelector('.infobulle'), 'le focus du joueur ouvre la bulle').toBeTruthy();
-    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); });
     expect(document.querySelector('.infobulle'), 'l’infobulle est épinglée').toBeTruthy();
     expect(document.activeElement, 'le focus est ENTRÉ dans l’infobulle, sur sa porte')
       .toBe(document.querySelector('.infobulle button'));
     sommetEstLInfobulle('l’infobulle épinglée doit être la couche que l’appui adresse');
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); });
     expect(document.activeElement, 'le focus REVIENT au contrôle, jamais dans le vide').toBe(inner);
     expect(document.querySelector('.infobulle'), 'le retour du focus ne rouvre pas la bulle').toBeNull();
     expect(dismissStackKinds(), 'refermé, il n’est plus une couche').toEqual([]);
@@ -204,10 +204,10 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     ({ container, root } = mount(chip));
     const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
     act(() => { inner.focus(); });
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' })); });
     expect(document.querySelector('.infobulle'), 'Échap ferme la boîte').toBeNull();
     expect(document.activeElement, 'le focus reste sur le contrôle').toBe(inner);
-    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); });
     expect(document.querySelector('.infobulle'), '↓ rouvre et épingle la boîte').toBeTruthy();
     expect(document.activeElement, '↓ : le focus ENTRE dans la boîte, sur sa porte')
       .toBe(document.querySelector('.infobulle button'));
@@ -223,7 +223,7 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
     const autre = container.querySelector('#autre') as HTMLButtonElement;
     act(() => { inner.focus(); });
-    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); });
     expect(document.activeElement, 'épinglé : le focus est sur la porte').toBe(document.querySelector('.infobulle button'));
     // Un clic réel : `mousedown` (qui désépingle) puis, action par défaut, le focus du contrôle cliqué.
     act(() => {

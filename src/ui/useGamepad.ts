@@ -8,8 +8,8 @@
  */
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { runBindingById, runBindingUpById } from '../state/keybindings';
-import { resoudreEchap } from '../state/resoudreEchap';
+import { runBindingById, runBindingUpById } from '../state/clavier/keybindings';
+import { resoudreEchap } from '../state/clavier/resoudreEchap';
 import { visibleFocusables } from './focus';
 import { dialogueDuDessus, surfaceFocalisee } from './useDismissLayer';
 

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { useGame } from '../state/store';
-import { KEYBINDINGS, bindingParId, elireBinding, eventMods, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
-import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
-import { SURFACE } from './focus';
+import { useGame } from '../../state/store';
+import { KEYBINDINGS, bindingParId, elireBinding, eventMods, runBindingUpById, CODE_ECHAP } from '../../state/clavier/keybindings';
+import { resoudreEchap, echapRelachee } from '../../state/clavier/resoudreEchap';
+import { SURFACE, estChamp } from '../focus';
+import { ecouterClavier } from './interne/ecouterClavier';
 
 /** Touches de NAVIGATION : elles ne sont à personne par défaut — un bouton focalisé ne les possède
- *  que s'il est un item d'un conteneur à roving tabindex (`ui/rovingFocus.ts`). */
+ *  que s'il est un item d'un conteneur à roving tabindex (`ui/composites/rovingFocus.ts`). */
 const CODE_NAVIGATION = /^Arrow(Up|Down|Left|Right)$/;
 /** Conteneurs qui pilotent leurs items aux flèches (roving tabindex) : là, la flèche appartient au
  *  contrôle focalisé, jamais au raccourci d'application. */
@@ -23,7 +24,7 @@ const CODE_ACTIVATION = /^(Enter|NumpadEnter|Space)$/;
  * EXACTEMENT ceux qu'il déclare (`mods`) — un raccourci sans `mods` se tait donc sous Alt ou Ctrl,
  * et laisse la combinaison au système ou au raccourci qui la déclare.
  *
- * La MODALE DU DESSUS ne se tranche PAS ici : elle vit dans `bindingApplies` (`state/keybindings`),
+ * La MODALE DU DESSUS ne se tranche PAS ici : elle vit dans `bindingApplies` (`state/clavier/keybindings`),
  * la porte que le clavier ET la manette empruntent — sous une modale de la pile, seules répondent
  * les touches qu'elle déclare (`coucheDialogue` pour la conversation), Échap excepté. C'est une
  * PROPRIÉTÉ déclarée au registre, jamais une liste d'ids : aucun dispatcher ne connaît un raccourci
@@ -51,7 +52,7 @@ export function useGameKeyboard() {
       const tag = ae?.tagName ?? '';
       const controle = /^(BUTTON|A)$/.test(tag);
       return {
-        saisie: /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || !!ae?.isContentEditable,
+        saisie: estChamp(ae) || !!ae?.isContentEditable,
         controlFocused: controle && (!CODE_NAVIGATION.test(e.code) || !!ae?.closest(CONTENEUR_ROVING)),
         activationDeSurface: controle && CODE_ACTIVATION.test(e.code) && !!ae?.closest(SURFACE),
       };
@@ -109,13 +110,11 @@ export function useGameKeyboard() {
       for (const b of KEYBINDINGS) b.runUp?.(useGame.getState);
     };
     const onVisibilite = () => { if (document.hidden) relacherTout(); };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKeyUp);
+    const rendreClavier = ecouterClavier('registre', { keydown: onKey, keyup: onKeyUp });
     window.addEventListener('blur', relacherTout);
     document.addEventListener('visibilitychange', onVisibilite);
     return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKeyUp);
+      rendreClavier();
       window.removeEventListener('blur', relacherTout);
       document.removeEventListener('visibilitychange', onVisibilite);
     };

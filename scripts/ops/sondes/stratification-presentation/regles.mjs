@@ -24,10 +24,10 @@ export const CATEGORIES = Object.freeze([
 /** @type {ReadonlyArray<Readonly<Regle>>} */
 export const REGLES = Object.freeze([
   {
-    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/state/(frontiere-state-gameiso|netownership-import-isole|rollflow-no-drift|pilote-cascade)\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|console-no-title-only|editor/no-datalist|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee|state/(combat-event-emission-coverage|condition-event-counter|guest-surface-class)|ui/(echap-couture-unique|raccourcis-registre))\.test\.ts$`),
+    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/state/(frontiere-state-gameiso|netownership-import-isole|rollflow-no-drift|pilote-cascade)\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee|state/(combat-event-emission-coverage|condition-event-counter|guest-surface-class))\.test\.ts$`),
     categorie: 'outillage',
     raison: 'Gardes de dépôt (garde structurelle, cliquet à stock, lint de source) : outillage de développement dans les trois zones, quel que soit le code gardé.',
-    preuve: 'src/state/frontiere-state-gameiso.test.ts:2 (« garde STRUCTURELLE ») ; src/state/pilote-cascade.test.ts:2 (« garde de cliquet ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts ; src/ui/echap-couture-unique.test.ts:2 (« GARDE DÉCROISSANTE ») ; src/state/guest-surface-class.test.ts:2 (« GARDE DE CLASSE »)',
+    preuve: 'src/state/frontiere-state-gameiso.test.ts:2 (« garde STRUCTURELLE ») ; src/state/pilote-cascade.test.ts:2 (« garde de cliquet ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts ; src/state/guest-surface-class.test.ts:2 (« GARDE DE CLASSE »)',
   },
   {
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
@@ -90,10 +90,10 @@ export const REGLES = Object.freeze([
     preuve: 'src/gameIso/authoring/project.ts:2 ; src/gameIso/authoring/wallsSvg.ts:2',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(keybindings|keybindingsPrefs|round-start-keybind|dismissStack|resoudreEchap)(\.|-)|^src/ui/(useDismissLayer|useGameKeyboard|useGamepad)[.-]|^src/ui/(echap-|dialogue-touches|wrap-keyboard-vs-cursor|marche-tenue-clavier|raccourcis-)`),
+    motif: new RegExp(String.raw`^src/state/clavier/|^src/state/(keybindingsPrefs|round-start-keybind|dismissStack)(\.|-)|^src/ui/clavier/|^src/ui/(useDismissLayer|useGamepad)[.-]|^src/ui/(echap-|dialogue-touches|wrap-keyboard-vs-cursor|marche-tenue-clavier|raccourcis-)`),
     categorie: 'interface-wfrp',
-    raison: 'Saisie clavier/manette et pile d\'Échap : la table d\'actions et l\'échelle d\'Échap (intent-cancel → toggle-menu) sont propres à WFRP, même classe que l\'état d\'affichage/saisie propre à WFRP (modalArbiter, hotbarBridge, combatCursor) ; les deux côtés (state, ui) forment une seule classe. Les gardes echap-couture-unique et raccourcis-registre sont prises avant, par la règle des gardes.',
-    preuve: 'src/state/keybindings.ts:308-409 ; src/state/resoudreEchap.ts:1-11 (pile puis « ÉCHELLE MÉTIER du registre ») ; src/ui/useGamepad.ts:1-4 (dispatche runBindingById) ; src/ui/useDismissLayer.ts imports ../state/resoudreEchap',
+    raison: 'Saisie clavier/manette et pile d\'Échap : la table d\'actions et l\'échelle d\'Échap (intent-cancel → toggle-menu) sont propres à WFRP, même classe que l\'état d\'affichage/saisie propre à WFRP (modalArbiter, hotbarBridge, combatCursor) ; les deux côtés (state, ui) forment une seule classe.',
+    preuve: 'src/state/clavier/keybindings.ts:308-409 ; src/state/clavier/resoudreEchap.ts:1-11 (pile puis « ÉCHELLE MÉTIER du registre ») ; src/ui/useGamepad.ts:1-4 (dispatche runBindingById) ; src/ui/useDismissLayer.ts imports ../state/clavier/resoudreEchap',
   },
   {
     motif: new RegExp(String.raw`^src/state/(vision|visionState)(\.|-)`),
@@ -196,10 +196,16 @@ export const REGLES = Object.freeze([
     preuve: 'src/ui/gallery/registry.tsx:1-3 ; src/ui/editor/Editor.tsx ; src/ui/compendium/CompendiumScreen.tsx',
   },
   {
-    motif: new RegExp(String.raw`^src/ui/(Icon|SceneBackdrop|Layout|Tabs|TabbedEntry|BoiteAncree|Infobulle|QtyStepper|NumberField|PlageField|ListRow|MediaSelect|NotchGauge|LifeBar|PlaqueRow|MasterDetail|SearchFilterField|MapCanvas|rovingFocus|focus|useLongPress|pointerCaps|useRamenerEnVue|worldMapViewport|persistedAtom|useClesDeRangees)[.-]|^src/ui/(MapCanvas-pinch-race|MasterDetail-hauteur|MasterDetail-scroll-edge)`),
+    motif: new RegExp(String.raw`^src/ui/composites/`),
+    categorie: 'moteur-generique',
+    raison: 'Groupes ARIA composites à roving tabindex (listbox, radiogroup, menu, onglets) et bouton à popup : widgets sans notion WFRP, que ItemList/OptionButton/PopupMenu/MenuButton/TabBar du moteur fournissent (aucun import engine/data).',
+    preuve: 'src/ui/composites/rovingFocus.ts:1-17 ; src/ui/composites/GroupesDeChoix.tsx:1-2 ; src/ui/composites/Menu.tsx:1-2 ; src/ui/composites/Tabs.tsx:1-2 ; src/ui/composites/boutonAPopup.ts:1-2',
+  },
+  {
+    motif: new RegExp(String.raw`^src/ui/(Icon|SceneBackdrop|Layout|TabbedEntry|BoiteAncree|Infobulle|QtyStepper|NumberField|PlageField|ListRow|MediaSelect|NotchGauge|LifeBar|PlaqueRow|MasterDetail|SearchFilterField|MapCanvas|focus|useLongPress|pointerCaps|useRamenerEnVue|worldMapViewport|persistedAtom|useClesDeRangees)[.-]|^src/ui/(MapCanvas-pinch-race|MasterDetail-hauteur|MasterDetail-scroll-edge)`),
     categorie: 'moteur-generique',
     raison: 'Widget/mécanisme sans notion WFRP, que Control/Container/Tooltip/Popup/SpinBox/Camera2D/InputMap du moteur fournissent (aucun import engine/data). Icon et SceneBackdrop : rendu d\'un fragment d\'image par id avec repli (TextureRect).',
-    preuve: 'src/ui/Layout.tsx:1-4 (Stack/Row/Grid/Split) ; src/ui/MapCanvas.tsx:1-6 (pan/zoom/pinch) ; src/ui/BoiteAncree.tsx:1-5 ; src/ui/rovingFocus.ts:1-5 ; src/ui/Icon.tsx:4-7 ; src/ui/SceneBackdrop.tsx:4-8',
+    preuve: 'src/ui/Layout.tsx:1-4 (Stack/Row/Grid/Split) ; src/ui/MapCanvas.tsx:1-6 (pan/zoom/pinch) ; src/ui/BoiteAncree.tsx:1-5 ; src/ui/Icon.tsx:4-7 ; src/ui/SceneBackdrop.tsx:4-8',
   },
   {
     motif: new RegExp(String.raw`^src/ui/styles/(.*)\.css$`),

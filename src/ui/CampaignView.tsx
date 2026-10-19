@@ -368,7 +368,7 @@ export function CampaignView() {
               ni dans la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le
               rail ne se rend plus (la planche ne le veut qu'en tactique). La caméra n'y a plus de plaque :
               elle se pilote au GESTE (glisser, molette, pincer) et au CLAVIER (registre
-              `state/keybindings`, remappable à l'écran Options). Aux tranches étroites le rail se dissout
+              `state/clavier/keybindings`, remappable à l'écran Options). Aux tranches étroites le rail se dissout
               (`display: contents`) et chaque surface reprend son ancrage mobile propre. */}
           {mode === 'battle' && (
             <Stack className="hud-rail skin-bois" gap="md" pad="md">

@@ -177,7 +177,7 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
  *  marquée sur ses champs (`marqueurDeLEntree`), la discriminée sur son id —, lu par le sélecteur qui
- *  résout une saisie hors du registre (`ui/compendium/RefField.tsx`). */
+ *  résout une saisie hors du registre (`ui/compendium/refField/RefField.tsx`). */
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)

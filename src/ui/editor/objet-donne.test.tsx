@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EffectFields, effectSummary, type Ctx } from './EffectList';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { trappings, type TrappingData } from '../../data';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';

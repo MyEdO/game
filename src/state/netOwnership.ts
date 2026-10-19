@@ -199,7 +199,7 @@ export function ownsLocal(state: GameState, combatantId: string | undefined): bo
  *
  * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
  * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-choice-N`
- * (`state/keybindings`) — `src/state` ne peut pas lire `src/ui`.
+ * (`state/clavier/keybindings`) — `src/state` ne peut pas lire `src/ui`.
  *
  * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
  * une dépendance déclarée — si la route du dialogue divergeait, l'affordance suivrait le sentinel, pas

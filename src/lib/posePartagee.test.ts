@@ -4,7 +4,7 @@ import { posePartagee } from './posePartagee';
 describe('posePartagee — posée à la première prise, retirée à la dernière remise', () => {
   const journal = () => {
     const faits: string[] = [];
-    return { faits, pose: posePartagee(() => faits.push('pose'), () => faits.push('retrait')) };
+    return { faits, pose: posePartagee(() => { faits.push('pose'); return () => { faits.push('retrait'); }; }) };
   };
 
   it('trois preneurs : une pose, un retrait, à la dernière remise seulement', () => {

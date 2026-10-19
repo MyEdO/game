@@ -11,6 +11,10 @@ const FOCUSABLE = 'button, [href], input, select, textarea';
 /** SURFACE qui emprunte le focus : un dialogue ou une infobulle (rôle ARIA de sa boîte). */
 export const SURFACE = '[role="dialog"],[role="tooltip"]';
 
+/** CHAMP de formulaire : ses touches (flèches, Entrée, caractères) éditent sa valeur. Lu par le roving
+ *  des primitives (`rovingFocus`), le piège du dialogue et le lecteur du registre. */
+export const estChamp = (el: Element | null | undefined): boolean => !!el && el.matches('input, select, textarea');
+
 /** Chaîne d'ORIGINES de chaque boîte ouverte : son origine, puis celles de la surface qui la contenait.
  *  Écrite et lue par `useFocusEmprunte` seul. */
 const originesDeBoite = new WeakMap<Element, HTMLElement[]>();

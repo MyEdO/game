@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { computeRunReach, displayedReach } from './combatFlow';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
-import { runBindingById } from './keybindings';
+import { runBindingById } from './clavier/keybindings';
 import { runAction } from './actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

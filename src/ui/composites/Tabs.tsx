@@ -44,7 +44,6 @@ export function Tabs<K extends string>({
     count: tabs.length,
     activeIndex: activeIdx,
     onActivate: (idx) => onChange(tabs[idx].key),
-    stopPropagation: true, // n'affronte pas le roving générique de useModalA11y quand Tabs vit dans une modale
   });
   return (
     <div

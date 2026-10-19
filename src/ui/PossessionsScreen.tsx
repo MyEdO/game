@@ -28,7 +28,7 @@ import { placeOfScene } from '../state/worldMap';
 import { bulkCarriers, type CarrierStateSlice } from '../state/carriers';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
-import { Tabs, type TabItem } from './Tabs';
+import { Tabs, type TabItem } from './composites/Tabs';
 import { PlaqueRow } from './PlaqueRow';
 import { DetailFrame } from './DetailFrame';
 import { GatedAction } from './GatedAction';

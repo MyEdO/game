@@ -1,6 +1,6 @@
-import { useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { FigTile } from './FigTile';
-import { rovingKeyDown } from './rovingFocus';
+import { Listbox } from './composites/GroupesDeChoix';
 
 export interface PickGridItem {
   id: string;
@@ -16,8 +16,7 @@ export interface PickGridSection {
 
 /**
  * GroupedPickGrid — grille de sélection en SECTIONS par famille/classe (en-têtes small-caps +
- * rangées de `FigTile`), motif du kit ratifié « Atelier du scribe » (#412). A11y `listbox`/`option`
- * avec roving tabindex (`rovingKeyDown`, MÊME primitive que `Tabs`/`CelestialWheel`/`SpeciesRaceScreen`).
+ * rangées de `FigTile`), motif du kit ratifié « Atelier du scribe » (#412). Compose `Listbox`.
  */
 export function GroupedPickGrid({ sections, selectedId, sealedId, onSelect, label }: {
   sections: PickGridSection[];
@@ -30,16 +29,6 @@ export function GroupedPickGrid({ sections, selectedId, sealedId, onSelect, labe
 }) {
   const flat = sections.flatMap((s) => s.items);
   const activeIdx = Math.max(0, flat.findIndex((it) => it.id === selectedId));
-  const ref = useRef<HTMLDivElement>(null);
-  const onKeyDown = rovingKeyDown<HTMLDivElement>({
-    containerRef: ref,
-    selector: '[role="option"]',
-    count: flat.length,
-    activeIndex: activeIdx,
-    onActivate: (idx) => onSelect(flat[idx].id),
-    orientation: 'grid',
-  });
-
   let cursor = 0;
   const nodes: ReactNode[] = [];
   for (const section of sections) {
@@ -68,8 +57,8 @@ export function GroupedPickGrid({ sections, selectedId, sealedId, onSelect, labe
   }
 
   return (
-    <div ref={ref} role="listbox" aria-label={label} className="gpg-grid" onKeyDown={onKeyDown}>
+    <Listbox label={label} className="gpg-grid" count={flat.length} activeIndex={activeIdx} onActivate={(idx) => onSelect(flat[idx].id)}>
       {nodes}
-    </div>
+    </Listbox>
   );
 }

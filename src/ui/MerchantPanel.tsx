@@ -29,7 +29,7 @@ import { TeamPortrait } from './TeamPortrait';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { ScreenShell } from './ScreenShell';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';

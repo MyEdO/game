@@ -19,7 +19,7 @@ import { HealModal } from './HealModal';
 import { MedicModal } from './MedicModal';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import { resetDismissLayers } from './useDismissLayer';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -11,7 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { Modal, cibleEmbarquee } from './Modal';
 import { useFocusEmprunte, visibleFocusables } from './focus';
 import { ScreenShell } from './ScreenShell';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { OptionChooser } from './OptionChooser';
 import { MedicModal } from './MedicModal';
 import { useGame } from '../state/store';
@@ -81,7 +81,7 @@ describe('focus initial d’un cadre — jamais sa croix', () => {
 
 /** Frappe RÉELLE d'une touche sur l'élément focalisé (le piège écoute le document) ; rend l'événement. */
 function frapper(key: string, shiftKey = false): KeyboardEvent {
-  const e = new KeyboardEvent('keydown', { key, shiftKey, bubbles: true, cancelable: true });
+  const e = new KeyboardEvent('keydown', { key, code: key, shiftKey, bubbles: true, cancelable: true });
   act(() => { (document.activeElement ?? document.body).dispatchEvent(e); });
   return e;
 }

@@ -9,7 +9,7 @@ import { damageString, parseDamage, REACH_IDS } from '../../engine/items';
 import { parseQualityInstance } from '../../engine/qualities/normalize';
 import { qualityRefLabel } from '../../data';
 import { NumberField } from '../NumberField';
-import { RefField, REF_FIELD } from '../compendium/RefField';
+import { RefField, REF_FIELD } from '../compendium/refField/RefField';
 
 /** Valeurs sélectionnables de l'Allonge = le vocabulaire FERMÉ `ReachValue` lui-même (les sept
  *  longueurs de l'axe, LDB 62 l.156-164, puis « Variable », l.31) : la `<option>` et la valeur

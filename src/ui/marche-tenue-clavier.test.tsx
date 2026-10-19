@@ -13,7 +13,7 @@ import { capDuGroupe, poserCapDuGroupe } from '../state/combatants';
 import { emptyScene } from '../state/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 function Harness() {
   useGameKeyboard();

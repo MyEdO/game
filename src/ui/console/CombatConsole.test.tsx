@@ -100,7 +100,7 @@ function survol(dataCell: string) {
   if (!enveloppe) throw new Error(`alvéole « ${dataCell} » sans foyer de règle (aucun CodexRef)`);
   // Une infobulle déjà ouverte (survol précédent) vit dans le MÊME portal : Échap la referme — sans quoi on
   // relirait le voisin (mesuré : « Charge » lu à la place de « Recharge »).
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
   // Le pointeur arrive d'AILLEURS : une infobulle congédiée ne se rouvre qu'à une entrée neuve (`Infobulle.tsx`).
   act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
   act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
@@ -124,7 +124,7 @@ function survol(dataCell: string) {
 function refusAuSurvol(el: Element): string | null {
   const enveloppe = el.closest('.codex-ref');
   if (!enveloppe) return null;
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
   act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
   act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
   return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
@@ -135,7 +135,7 @@ function refusAuSurvol(el: Element): string | null {
  *  `<button disabled>` ne prendrait PAS le focus, et un `focusin` fabriqué masquerait exactement ce
  *  défaut. Le contrôle doit devenir l'élément actif, sinon la sonde échoue ici. */
 function refusAuFocus(el: HTMLElement): string | null {
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
   act(() => { el.focus(); });
   expect(document.activeElement, 'le contrôle refusé n’a pas pris le focus (`disabled` ?)').toBe(el);
   return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
@@ -143,7 +143,7 @@ function refusAuFocus(el: HTMLElement): string | null {
 
 /** TAP au doigt : ni survol ni focus préalable — le clic sur un contrôle REFUSÉ montre sa raison. */
 function refusAuTap(el: HTMLElement): string | null {
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
   act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
 }
@@ -2629,7 +2629,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     act(() => { (host.querySelector('[data-action="dispel"]') as HTMLButtonElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     act(() => { useGame.getState().battleClickEntity('e1'); });
     expect(panneau()).toBeTruthy();
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
     expect(useGame.getState().pendingDispel).toBeNull();
     expect(useGame.getState().battle!.action, 'le mode reste armé : on vise un autre porteur').toBe('dispel');
@@ -2656,7 +2656,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     monter(h, { foes: [e] });
     const cell = () => host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
     const survole = () => {
-      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
       act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
       act(() => { cell().closest('.codex-ref')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
       return document.body.querySelector('.infobulle[role="tooltip"]');
@@ -2760,7 +2760,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     monter(h);
     ouvrir();
     expect(panneau()).toBeTruthy();
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
     expect(selectedAmmo(acteur(), w)?.uid).toBe('i-c');
     expect(weaponLoaded(acteur(), w), 'aucune décharge : rien n’a été commis').toBe(true);
@@ -3065,7 +3065,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     monter(bretteur());
     act(() => { caseRecharger().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(panneau()).toBeTruthy();
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
     expect(useGame.getState().pendingReload).toBeNull();
   });
@@ -3334,7 +3334,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   }
 
   afterEach(() => {
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     useGame.setState({ battle: null, pendingFocus: null });
   });
 
@@ -3479,7 +3479,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       act(() => { cellule.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
       expect(useGame.getState().pendingFocus, 'à plusieurs gestes, rien n’est engagé avant le choix').toBeNull();
       expect(candidats().length, 'un candidat par geste offert').toBe(2);
-      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
       expect(panneau(), 'Échap referme sans rien engager').toBeNull();
       expect(useGame.getState().pendingFocus).toBeNull();
     } finally {

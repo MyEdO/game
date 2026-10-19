@@ -8,7 +8,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefField } from './RefField';
-import { datasetArray } from '../../data/overrides';
+import { datasetArray } from '../../../data/overrides';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

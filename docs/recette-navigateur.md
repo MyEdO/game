@@ -578,7 +578,7 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Menu principal | « Nouvelle partie », « Charger une partie », « Jouer en ligne », « Options », « Compendium » ; section « Atelier » (`.menu-tools`, `MARQUEUR_MENU`) : « Éditeur de niveau », « Bibliothèque de campagnes », « Scénarios de test », « Galeries d'art », « Design system » | `src/ui/MainMenu.tsx`, clés `menu.*` de `src/i18n/messages/fr.ts` |
 | Scénarios de test | `[data-testid="scenario-launch-<id>"]` par scénario | `src/ui/TestScenariosScreen.tsx` |
 | Compendium | `.screen.codex` ; onglets `[role=tab]` de `.codex-groups` ; pastilles `button.codex-cat` (compteur en `span.count`, certaines sous un `details.fold` replié) ; recherche `input.codex-search` ; rangées `.codex-rows button.listrow` (libellé `.lr-name`, retenue = `aria-current="true"`) — `ouvrirFiche` | `src/ui/compendium/CompendiumScreen.tsx` |
-| Barre de l'éditeur | « ← Menu », « Fichier ▾ » (`aria-haspopup=menu`) ; items `.menu-item` : « Nouveau projet », « Ouvrir… », « Enregistrer… », « Importer JSON… » (un `<label>` sur un `<input type=file>`), « Exporter JSON », « Exporter ASCII (grilles carte) », « Exporter forme dépôt (dev) », « Avancé — JSON (dialogues, triggers, rencontres) » | `src/ui/editor/EditorToolbar.tsx` |
+| Barre de l'éditeur | « ← Menu », « Fichier ▾ » (`aria-haspopup=menu`) ; entrées `role=menuitem` (primitive `Menu`, flèches entre entrées ; ↓/↑ sur « Fichier ▾ » entrent dans le menu, la fermeture rend le focus au bouton) : « Nouveau projet », « Ouvrir… », « Enregistrer… », « Importer JSON… » (clique un `<input type=file>` caché), « Exporter JSON », « Exporter ASCII (grilles carte) », « Exporter forme dépôt (dev) », « Avancé — JSON (dialogues, triggers, rencontres) » | `src/ui/editor/EditorToolbar.tsx` |
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
@@ -680,7 +680,7 @@ qui rend effectivement les jetons, en conservant cette limite dans le rapport.
 ## Doctrine : piloter COMME UN JOUEUR, pas à la main
 
 Ordre de préférence STRICT pour exercer un flux :
-1. **Vrai input** : le contrôle **clavier** est développé (cf. `src/state/keybindings.ts` — navigation,
+1. **Vrai input** : le contrôle **clavier** est développé (cf. `src/state/clavier/keybindings.ts` — navigation,
    ciblage, actions ; + manette) → `browser_press_key` ; clics réels sur les éléments (`data-cid` sur
    les tokens SVG, boutons des modales). C'est le SEUL pilotage qui valide ce que le joueur vit.
 2. **`__wfrp` pour le SETUP et l'OBSERVATION** : lancer un scénario (`scenario`), placer/donner le
@@ -692,11 +692,11 @@ Ordre de préférence STRICT pour exercer un flux :
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).
 > Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `explore-*` de
-> `src/state/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
+> `src/state/clavier/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
 > Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `cursor-*`). En vue subjective
 > (`povActive`), les mêmes touches deviennent cap-relatives (bindings `pov-*`).
 > **W, A, S, D poussent vers le HAUT, la GAUCHE, le BAS et la DROITE À L'ÉCRAN** : c'est la table
-> `EXPLORE_STEP` (`src/state/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
+> `EXPLORE_STEP` (`src/state/clavier/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
 > (`src/state/combatCursor.ts`) — pas des axes de grille, d'où des pas en diagonale de grille en vue iso.
 > La case d'arrivée n'est PAS un delta de grille fixe : `stepPartyDir` → `exploreStepDest`
 > (`src/state/exploreNav.ts`) retient la voisine CONNECTÉE dont le centre est le mieux aligné avec la
@@ -704,7 +704,7 @@ Ordre de préférence STRICT pour exercer un flux :
 > la rotation caméra et de la vue. Vérifier le déplacement par la position lue (`__wfrp.state()`), jamais
 > par un delta attendu en dur.
 > ⚠ **Le `key` du volet Claude_Browser (outil `computer`, action `key`) n'émet pas `event.code`** (mesuré
-> 2026-09-04, listener `keydown` : `code === ''`) alors que TOUTE liaison de `src/state/keybindings.ts` est
+> 2026-09-04, listener `keydown` : `code === ''`) alors que TOUTE liaison de `src/state/clavier/keybindings.ts` est
 > keyée sur le `code` physique → passer par Playwright
 > (`mcp__plugin_playwright_playwright__browser_press_key`) pour tout déplacement au clavier.
 
@@ -1364,7 +1364,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un
   RACCOURCI — binding `toggle-view`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
-  d'affichage et de leurs touches est `src/state/keybindings.ts` (section `camera`), jamais ce doc.
+  d'affichage et de leurs touches est `src/state/clavier/keybindings.ts` (section `camera`), jamais ce doc.
 - **Une ref de snapshot ne se passe JAMAIS sous la forme `ref=xxx`** — deux formes selon l'outil qu'on
   tient, à vérifier au premier appel plutôt qu'à l'aveugle :
   - outil MCP qui prend un **paramètre `ref` dédié** (mesuré en recette 2026-08-16, #1335) : la valeur
@@ -1564,7 +1564,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   ne bouge encore ; il faut un **2e appui** pour quitter cette case et voir un coût > 0). `Entrée`/
   `NumpadEnter` commet (`commitCursor` → `pushCommitTile`) — fonctionne MÊME si le bouton « Pousser »
   garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `cursor-commit` n'a plus la
-  garde `notWhenControlFocused`, `src/state/keybindings.ts`). `Échap` annule le curseur ;
+  garde `notWhenControlFocused`, `src/state/clavier/keybindings.ts`). `Échap` annule le curseur ;
   le geste « ANNULER » de la gouttière de Mouvement (nom accessible « Annuler le déplacement »,
   action `undo-move` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
   commise au clavier, comme au clic (`src/state/push-keyboard-commit.test.ts`).
@@ -1728,7 +1728,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 - **Les deux `__wfrp` sont ÉTRANGERS** : un helper appelé sur la page hôte ne se voit sur la page
   invitée qu'après un snapshot. Toujours nommer la session dans le script (`hote` / `invite`).
 - **Clavier neutralisé — normal, pas un bug** : les raccourcis de combat exigent
-  `controlsActive` **ET** aucune modale ouverte (`src/state/keybindings.ts`) → pendant le tour d'un
+  `controlsActive` **ET** aucune modale ouverte (`src/state/clavier/keybindings.ts`) → pendant le tour d'un
   autre siège, ou tant qu'une fenêtre (dialogue, pause de Round, cascade) est ouverte, rien ne répond.
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
@@ -1736,7 +1736,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   `src/state/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
   ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
-  (`src/state/keybindings.ts`) — le bandeau de phase de la console ne rend que le
+  (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
   « Commencer le combat » SOLO (`confirmRoundStart`) ; en recette coop, piloter par
   `store.getState().roundStartReady(<siège>)` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
@@ -2001,8 +2001,8 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   attente de ~9 s sur `.editor-toolbar` expire alors qu'il arrive. Viser ~20 s pour ce premier accès
   (les suivants sont instantanés, le chunk étant en cache) — un timeout ici se lit comme un écran
   cassé, il ne l'est pas.
-- **« Importer JSON… » est un `input[type=file]` CACHÉ derrière un `<label>`**
-  (`src/ui/editor/EditorToolbar.tsx:111-126`) : le cliquer ouvrirait le dialogue de fichier de l'OS,
+- **« Importer JSON… » est une entrée du menu Fichier qui clique un `input[type=file]` CACHÉ**
+  (`src/ui/editor/EditorToolbar.tsx:101`, `:121-135`) : la cliquer ouvrirait le dialogue de fichier de l'OS,
   qu'aucun pilote ne ferme. Le peupler par `poserFichier` (`scripts/recette/lib.mjs`), qui déclenche
   son `change` sans aucun dialogue.
 - **`browser_file_upload` de Playwright-MCP refuse tout chemin hors de la racine de la session** :

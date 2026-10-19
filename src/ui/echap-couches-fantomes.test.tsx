@@ -20,7 +20,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { dismissStackKinds } from '../state/dismissStack';
 import { resetDismissLayers } from './useDismissLayer';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { GameMenu } from './GameMenu';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { VictoryScreen } from './VictoryScreen';

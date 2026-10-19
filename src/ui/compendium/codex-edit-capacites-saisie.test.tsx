@@ -19,7 +19,7 @@ import { metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { admetUneListe, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from './editFields';
 import { declarationDeFeuilleDId, estFeuilleDId, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { ouverts } from '../../data/schemas/grammaire/descente';
-import { libelleDeDataset } from './RefField';
+import { libelleDeDataset } from './refField/RefField';
 import { serializeDataset } from '../../data/serialize';
 import { capacitesDe, PORTEURS_DE_CAPACITES } from './porteursDeCapacites.testkit';
 

@@ -38,9 +38,6 @@ export const DELAI_APPUI_LONG = 450;
  *  clavier ultérieure n'est pas avalée. */
 export const FENETRE_AVALEMENT = 700;
 
-/** Les trois événements de FENÊTRE qui composent la suite d'un appui armé. */
-const SUITE = ['pointermove', 'pointerup', 'pointercancel'] as const;
-
 /** L'appui tel que la primitive le lit : position, bouton, et l'élément à qui demander la CAPTURE.
  *  Type STRUCTUREL (jamais `React.PointerEvent`) — la primitive ne dépend d'aucun typage de React. */
 export interface AppuiPointeur {
@@ -74,8 +71,9 @@ export function useLongPress(action: (() => void) | undefined, delai = DELAI_APP
   const relache = useRef(0);
   /** Capture de pointeur EN COURS, à rendre à l'annulation. */
   const capture = useRef<{ cible: NonNullable<AppuiPointeur['currentTarget']>; id: number } | null>(null);
-  /** Écouteur de fenêtre POSÉ (donc à retirer) : sa présence EST l'état « appui armé ». */
-  const suite = useRef<((e: Event) => void) | null>(null);
+  /** Fin des écouteurs de FENÊTRE qui composent la suite d'un appui armé : sa présence EST l'état
+   *  « appui armé ». */
+  const suite = useRef<AbortController | null>(null);
   const geste = useRef(action);
   geste.current = action;
 
@@ -85,9 +83,9 @@ export function useLongPress(action: (() => void) | undefined, delai = DELAI_APP
     if (minuteur.current) clearTimeout(minuteur.current);
     minuteur.current = null;
     depart.current = null;
-    const ecoute = suite.current;
+    const fin = suite.current;
     suite.current = null;
-    if (ecoute) for (const type of SUITE) window.removeEventListener(type, ecoute);
+    fin?.abort();
     const prise = capture.current;
     capture.current = null;
     // Le navigateur rend la capture de lui-même dans plusieurs cas (élément retiré, `pointercancel`).
@@ -138,8 +136,10 @@ export function useLongPress(action: (() => void) | undefined, delai = DELAI_APP
           capture.current = null;
         }
       }
-      suite.current = surLaSuite;
-      for (const type of SUITE) window.addEventListener(type, surLaSuite);
+      const { signal } = (suite.current = new AbortController());
+      window.addEventListener('pointermove', surLaSuite, { signal });
+      window.addEventListener('pointerup', surLaSuite, { signal });
+      window.addEventListener('pointercancel', surLaSuite, { signal });
       minuteur.current = setTimeout(() => {
         minuteur.current = null;
         declenche.current = Date.now();

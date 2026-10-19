@@ -26,7 +26,7 @@ import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
 import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from './modalArbiter';
 import { GUEST_INTENTS } from '../net/intents';
 import { ACTIONS } from '../data/index';
-import { KEYBINDINGS } from './keybindings';
+import { KEYBINDINGS } from './clavier/keybindings';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -355,7 +355,7 @@ function verbesRelayesParLeRegistre(): Set<string> {
 
 describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclare son site interne)', () => {
   const emis = (name: string, sources: string[]) => sources.some((src) => src.includes(name));
-  const CLAVIER_SRC = readFileSync(join(process.cwd(), 'src', 'state', 'keybindings.ts'), 'utf8');
+  const CLAVIER_SRC = readFileSync(join(process.cwd(), 'src', 'state', 'clavier', 'keybindings.ts'), 'utf8');
   /** Les trois chemins d'émission (voir l'en-tête d'`EMISSION`). */
   const emisParUneSurface = (n: string, sources: string[], relais: Set<string>) =>
     emis(n, sources) || relais.has(n) || CLAVIER_SRC.includes(n);

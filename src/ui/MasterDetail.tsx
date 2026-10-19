@@ -65,7 +65,7 @@ function isActionableTarget(target: EventTarget | null): boolean {
  * évaluées puis écartées ») : le rejet portait sur le HOOK D'ÉTAT PARTAGÉ (marchand ⇄ carte
  * divergent après sélection) — il reste écarté. Cette primitive est un GABARIT DE LAYOUT pur :
  * aucun état de sélection dedans, l'appelant possède `list`/`detail` (boutons a11y natifs ou
- * `role="listbox"`/`role="option"` posés par l'appelant selon son besoin).
+ * `Listbox` de `composites/`, selon son besoin).
  *
  * En mode EMPILÉ (liste puis détail l'un sous l'autre), une liste longue peut placer le détail
  * loin sous le pli : une sélection change bien le détail mais ne se VOIT pas (recette #343). On

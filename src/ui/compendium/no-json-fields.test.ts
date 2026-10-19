@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
 import { inferFields } from './editFields';
-import { refFieldCfg } from './RefField';
+import { refFieldCfg } from './refField/RefField';
 import { isEditableCategory, editableEntries, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 
 describe('Codex — aucun champ éditable n’infère kind:json (E3b)', () => {

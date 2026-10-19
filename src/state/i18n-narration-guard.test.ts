@@ -100,7 +100,7 @@ const MIGRATED = new Set([
   'src/engine/advancement.ts', // #1318 V8c₅ : `adv.*` (les `reason` de refus, invisibles aux 7 formes)
   'src/engine/careerSlots.ts', // #1318 V8c₅ : `slot.*` (idem, + le Maxi de Talent)
   'src/state/combat/roundHooks.ts', // #1318 V8c₅ : `turn.exhausted`
-  'src/state/keybindings.ts', // #1318 V8c₅ : `key.*` (le registre porte des CLÉS, `bindingLabel`)
+  'src/state/clavier/keybindings.ts', // #1318 V8c₅ : `key.*` (le registre porte des CLÉS, `bindingLabel`)
   'src/state/mount.ts', // #1318 V8c₅ : `mount.*`
   'src/state/rollFlowFactory.ts', // #1318 V8c₅ : `roll.*`
   'src/state/shipManeuver.ts', // #1318 V8c₅ : `shipManv.*`
