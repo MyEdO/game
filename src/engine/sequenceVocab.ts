@@ -233,19 +233,19 @@ export interface SequenceCombinedRules {
   /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
   failEvery?: number;
-  /** Tous les combien de MARQUES effacées les `ops` se paient (`l.97` : « pour chaque 2 chouettes que
+  /** Tous les combien de MARQUES effacées les `ops` se paient (`l.90` : « pour chaque 2 chouettes que
    *  vous effacez »). */
   eraseEvery?: number;
   /** Ce que coûte l'échéance (échecs cumulés, ou marques effacées) — appliqué au porteur. */
   ops?: readonly GameOp[];
-  /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.97`). */
+  /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.90`). */
   markLoser?: boolean;
   /** État dont l'apparition ARRÊTE la partie avant terme — id d'`etats.json`, DÉCLARÉ (le code ne
    *  nomme aucun État). Cerevis l.88 : « peuvent envoyer même les buveurs les plus chevronnés rouler
    *  sous la table ». */
   stopCondition?: string;
   /** TOURS de la partie. ARBITRAGE MAISON ÉDITABLE : la source ne dit PAS quand la partie s'arrête
-   *  (`l.97` s'achève sur le Tableau Ivre) — ce nombre est de la donnée, jamais du RAW. */
+   *  (`l.90` s'achève sur le Tableau Ivre) — ce nombre est de la donnée, jamais du RAW. */
   tours?: number;
 }
 

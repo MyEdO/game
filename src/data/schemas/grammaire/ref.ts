@@ -71,6 +71,8 @@ export const TYPES = {
   axe: { espace: 'axes.json', catalogue: 'axes' },
   weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
   maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
+  // JEU DE TAVERNE (#1921) : `SceneEntity.tavernGame.gameId` résout AU PARSE.
+  tavernGame: { espace: 'tavernGames.json', catalogue: 'jeux de taverne' },
   // PSYCHOLOGIE (#1595) : `traits.json › capabilities.psychType` résout AU PARSE.
   psychology: { espace: 'psychology.json', catalogue: 'psychologies' },
   regle: { espace: 'regles.json', catalogue: 'règles' },
@@ -616,7 +618,7 @@ export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
 /**
  * RÉGIME d'une référence à spécialisation — ce que le PORTEUR admet :
  *  - `specOuChoix` : exactement un de `spec` / `choix` (`specRef`, option d'un `pick`) ;
- *  - `specSeule` : `{ id }` ou `{ id, spec }` — un porteur qui DÉSIGNE ; `choix` refusé (défaut de
+ *  - `specSeule` : `{ id }` ou `{ id, spec }` — un porteur qui DÉSIGNE ; `choix` non déclaré (défaut de
  *    `refOuSpec`) ;
  *  - `specOuChoixFacultatifs` : `{ id }`, `{ id, spec }` ou `{ id, choix }` — un porteur d'EMPLACEMENT.
  */
@@ -635,12 +637,24 @@ function noeudASpecialisation<T extends TypeEntite>(
   const catalogue = TYPES[type].catalogue;
   const unRegime = (id: unknown): string =>
     `« ${String(id)} » : une spécialisation se désigne par « spec » OU par « choix », exactement un des deux (catalogue des ${catalogue}).`;
+  const admetChoix = regime !== 'specSeule';
+  const choixRefuse = (input: unknown, cles: readonly PropertyKey[]): string => {
+    const autres = cles.filter((k) => k !== 'choix').map((k) => `« ${String(k)} »`);
+    return `« ${String((input as { id?: unknown } | null)?.id)} » : ce champ DÉSIGNE une spécialisation — « choix » (emplacement non désigné) n'y est pas admis, seul « spec » l'est (catalogue des ${catalogue}, ${espace}).`
+      + (autres.length ? ` Clés non reconnues aussi : ${autres.join(', ')}.` : '');
+  };
+  const champs = {
+    id: idDe(type),
+    spec: z.string().min(1).optional(),
+    choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional(),
+    ...((extra ?? {}) as Record<string, z.ZodType>),
+  };
+  const { choix: _choix, ...designe } = champs;
+  const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
+  const { choix: _metaChoix, ...metasDesignees } = metas;
   return nommerChamps(z
-    .strictObject({
-      id: idDe(type),
-      spec: z.string().min(1).optional(),
-      choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional(),
-      ...((extra ?? {}) as Record<string, z.ZodType>),
+    .strictObject(admetChoix ? champs : (designe as typeof champs), {
+      error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
     })
     .superRefine((v, ctx) => {
       const aSpec = v.spec != null;
@@ -650,16 +664,8 @@ function noeudASpecialisation<T extends TypeEntite>(
         ctx.addIssue({ code: 'custom', message: unRegime(v.id) });
         return;
       }
-      if (aChoix && regime === 'specSeule') {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['choix'],
-          message: `« ${String(v.id)} » : ce champ DÉSIGNE une spécialisation — « choix » (emplacement non désigné) n'y est pas admis, seul « spec » l'est (catalogue des ${catalogue}, ${espace}).`,
-        });
-        return;
-      }
       if (!estSpecialisable(type, String(v.id))) {
-        ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, String(v.id), '', 'nonSpecialisable', true) });
+        ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, String(v.id), '', 'nonSpecialisable', admetChoix) });
         return;
       }
       if (aSpec && aChoix) {
@@ -672,9 +678,9 @@ function noeudASpecialisation<T extends TypeEntite>(
       const motif = refus.some(([, r]) => r === 'sentinelle') ? 'sentinelle' : 'horsCatalogue';
       for (const [c, r] of refus) {
         if (r !== motif) continue;
-        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, true) });
+        ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
       }
-    }), { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' } }, choix: { label: "choix", texte: { regime: 'designation' } }, ...metasExtra(extra) });
+    }), admetChoix ? metas : (metasDesignees as typeof metas));
 }
 
 /**

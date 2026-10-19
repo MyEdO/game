@@ -972,7 +972,7 @@ function defenseTestChar(mode: DefenseMode): CharKey | null {
  *  (`baseTestModLines`, ci-dessous) et par tout Test HORS arène que la règle dit « approprié »
  *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
  *  Réutiliser ; ne jamais recalculer la valeur au site. Famille : celle de la rangée (`LDB 14 l.48`). */
-export function advantageModLine(c: Combatant): ModLine | null {
+export function advantageModLine(c: Pick<Combatant, 'advantage'>): ModLine | null {
   const points = c.advantage ?? 0;
   return points ? ligneDeRegle('avantage', 'par-point', { ajuste: (parPoint) => parPoint * points }) : null;
 }

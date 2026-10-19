@@ -53,7 +53,7 @@
     "desc": "chaque joueur ajoute une mise égale au pot. Le premier joueur choisit alors un nombre cible compris entre 7 et 15. Le jeu se déroule dans le sens des aiguilles d'une montre, en commençant par le premier joueur. Les joueurs effectuent chacun un jet à tour de rôle. À votre tour, lancez 2d10 et totalisez le résultat affiché sur les deux dés pour obtenir un nombre entre 2 et 20. Si ce total correspond au nombre cible, ou est égal à 20, vous remportez la manche, en empochant la totalité du pot. Un résultat compris entre 16 et 19 vous permet de récupérer une mise dans le pot. Si un résultat entre 7 et 15 est obtenu, et que ce n'est pas le nombre cible, alors le nombre obtenu devient le nouveau nombre cible pour le joueur suivant. Un résultat compris entre 3 et 6 vous oblige à ajouter une autre mise au pot, ou à abandonner la manche. Enfin, un résultat de 2 vous contraint à quitter la manche. La manche continue jusqu'à ce que le pot soit vide, ou jusqu'à ce qu'il n'y ait plus qu'un seul joueur en jeu, qui empoche alors toutes les mises restant dans le pot. Une partie complète dure généralement autant de manches qu'il y a de joueurs, ce qui donne à chaque joueur la possibilité de lancer les dés en premier.",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
-      "page": 93
+      "page": 91
     }
   },
   {
@@ -97,6 +97,7 @@
       }
     ],
     "scoreUnit": "pièces prises",
+    "scoreUnitSingular": "pièce prise",
     "desc": "à chaque tour, faites un Test d'**Intelligence** ou de **Savoir (Art de la Guerre) Intermédiaire (+0)** ; ajoutez ensuite votre Bonus d'Intelligence au nombre de DR. Le total obtenu par le joueur elfe indique combien de pièces naines sont prises ce tour. Le total obtenu par le joueur nain est divisé par quatre (arrondi au supérieur) pour indiquer combien de pièces elfes sont prises ce tour. Si vous obtenez un Critique, vous remportez automatiquement la partie, pour peu qu'une des conditions suivantes soit remplie : vous êtes le joueur nain et le nombre obtenu sur le dé des unités est égal ou inférieur au nombre de pièces elfes que vous avez prises ; vous êtes le joueur elfe et le nombre obtenu sur le dé des unités, multiplié par quatre (c'est-à-dire qu'un jet réussi de 33 compterait pour 12, puisque 4 × 3 = 12) est égal ou inférieur au nombre de pièces naines que vous avez prises. Sinon, le premier camp à prendre plus de la moitié des pièces de son adversaire l'emporte. Si les deux équipes atteignent la condition gagnante dans le même tour, la partie se solde par un match nul.",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
@@ -111,6 +112,7 @@
     "mode": "extended",
     "target": 10,
     "drBonus": "force",
+    "avantage": true,
     "roundOps": {
       "winner": [
         {
@@ -132,7 +134,7 @@
     "desc": "faites un Test opposé étendu de **Force Intermédiaire (+0)** ; à chaque tour, ajoutez votre Bonus de Force au nombre de DR que vous avez obtenus. Le gagnant de chaque tour gagne +1 Avantage, pouvant être utilisé dans le cadre de cette partie de bras de fer, en suivant les règles normales. Le premier Personnage qui atteint au moins 10 DR est le vainqueur. Pour chaque Bonus d'Endurance tours qui passent sans que personne n'ait gagné, vous gagnez + 1 État *Exténué* (que vous pourrez récupérer après 5 minutes de repos).",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
-      "page": 93
+      "page": 92
     }
   },
   {
@@ -199,6 +201,7 @@
       "manches": 1
     },
     "scoreUnit": "quilles",
+    "scoreUnitSingular": "quille",
     "desc": "vous avez droit à trois coups pour abattre les 16 quilles. Pour chaque coup, faites un Test de **Capacité de Tir Très facile (+60)** et ajoutez votre Bonus de Capacité de Tir au nombre de DR obtenus. Le total est le nombre de quilles que vous abattez. Si vous obtenez un Critique, vous renversez toutes les quilles. La difficulté des Tests qui suivent le premier dépend du nombre de quilles à abattre, comme suit :",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
@@ -238,14 +241,7 @@
     },
     "characteristic": "initiative",
     "mode": "opposed",
-    "options": [
-      {
-        "skill": {
-          "id": "pari"
-        },
-        "difficulty": "accessible"
-      }
-    ],
+    "difficulty": "accessible",
     "combined": {
       "second": {
         "char": "initiative"
@@ -262,10 +258,11 @@
       ]
     },
     "scoreUnit": "chouettes",
+    "scoreUnitSingular": "chouette",
     "desc": "à chaque tour de Cerevis, chaque joueur effectue un Test combiné d'**Initiative** et de **Pari Accessible (+20)**. Le joueur qui a obtenu le moins de DR à son Test de **Pari** perd le tour, et doit marquer une chouette. En cas d'échec du Test d'Initiative, le joueur utilise accidentellement le nom correct d'une des cartes et doit prendre une grosse gorgée. Pour chaque 3 Tests d'Initiative auxquels vous échouez et pour chaque 2 chouettes que vous effacez, faites un Test de **Résistance à l'alcool Intermédiaire (+0)**. Les résultats de ce Test et son impact se trouvent sur le Tableau Ivre dans le Livre de Règles page 129.",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
-      "page": 94
+      "page": 93
     }
   },
   {
@@ -293,6 +290,7 @@
       "manchesBorne": 60
     },
     "scoreUnit": "points",
+    "scoreUnitSingular": "point",
     "desc": "jetez une pièce de monnaie pour déterminer qui joue en premier. À votre tour, lancez 3 fléchettes. Pour chaque fléchette, faites un Test de **Projectile (Lancer) Intermédiaire (+0)**. Si vous réussissez, vous marquez un nombre de points égal à votre dé d'unités ou de dizaines, ou à dix fois la valeur obtenue sur votre dé d'unités ou de dizaines, selon votre choix : ainsi, un jet réussi de 26 peut vous donner 2, 6, 20 ou 60 points. En cas d'échec, vous marquez un nombre de points égal à votre dé des unités : ainsi, un jet raté de 73 vous donne 3 points. En cas de Critique, marquez autant de points que vous le souhaitez, entre 1 et 100 points. En cas d'Échec critique, vous ratez complètement la cible. Le but est de marquer un total d'exactement 501 points. Si vous marquez plus, votre tour est terminé, et les points marqués par votre dernière fléchette sont ignorés.",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
@@ -307,6 +305,7 @@
       "id": "pari"
     },
     "mode": "opposed",
+    "difficulty": "accessible",
     "tieBreak": "units-lowest",
     "desc": "pour jouer, chaque joueur effectue un Test opposé de **Pari Accessible (+20)**. En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le plus bas gagne.",
     "source": {
@@ -411,6 +410,7 @@
       "count": 2,
       "rounds": 3
     },
+    "avantage": true,
     "roundOps": {
       "winner": [
         {
@@ -481,7 +481,20 @@
       "manches": 1
     },
     "scoreUnit": "points",
+    "scoreUnitSingular": "point",
     "desc": "avant de lancer un anneau, choisissez une cible et tentez un Test de **Projectile (Lancer)** avec la difficulté appropriée. En cas de succès, remportez les points indiqués. Un Critique vous permet à la place d'encercler la cible suivante sur la table, ce qui vous fait gagner plus de points. Le joueur qui a obtenu le plus de points après cinq lancers remporte la partie.",
+    "specials": [
+      {
+        "effet": "cran",
+        "hasTalent": "tireur-d-elite",
+        "steps": 1,
+        "source": {
+          "book": "nuits-agitees-et-dures-journees",
+          "page": 93,
+          "note": "NADJ 16 l.82"
+        }
+      }
+    ],
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 93
@@ -493,14 +506,9 @@
     "label": "Les moulins",
     "characteristic": "intelligence",
     "mode": "extended",
+    "difficulty": "facile",
     "target": 9,
     "drBonus": "intelligence",
-    "options": [
-      {
-        "char": "intelligence",
-        "difficulty": "facile"
-      }
-    ],
     "desc": "faites un Test opposé étendu d'**Intelligence Facile (+40)** ; à chaque tour, ajoutez votre Bonus d'Intelligence à votre nombre de DR. Le premier Personnage qui atteint au moins 9 DR est le vainqueur. Si les deux équipes obtiennent 9 DR lors du même tour, la partie se solde par un match nul.",
     "source": {
       "book": "nuits-agitees-et-dures-journees",
@@ -513,13 +521,8 @@
     "label": "Les pierres",
     "characteristic": "intelligence",
     "mode": "extended",
+    "difficulty": "accessible",
     "target": 10,
-    "options": [
-      {
-        "char": "intelligence",
-        "difficulty": "accessible"
-      }
-    ],
     "phases": {
       "count": 1,
       "rounds": 10

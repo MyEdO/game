@@ -55,3 +55,9 @@
   background: radial-gradient(ellipse at 50% 70%, var(--panel) 0%, var(--bg) 80%);
   border-radius: 4px;
 }
+
+/* CHAMPS d'une rangée de tableau (`GenericArrayField`) ou d'un sous-objet (`ObjectField`), en `Grid` :
+   un champ COMPOSITE (`div.ed-field` : source, sous-objet, sous-tableau) prend toute la largeur, et
+   deux rangées d'un même tableau se séparent. */
+.codex-edit-form .ed-champs > div.ed-field { grid-column: 1 / -1; }
+.codex-edit-form .ed-subform > .ed-champs + .ed-champs { margin-top: var(--sp-lg); }

@@ -49,7 +49,7 @@ import type { Get, Set as SetFn } from '../flowTypes';
 export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');
   // Mode « Avantage de groupe » : un octroi d'Avantage par OP au début du tour (Redoutable, ZI : complète
-  // jusqu'à l'Indice — op `gainAdvantage`) écrit sur la projection ; on relève la réserve du camp (adverse
+  // jusqu'à l'Indice — op `topUpAdvantage`) écrit sur la projection ; on relève la réserve du camp (adverse
   // pour une créature) en conséquence. No-op hors mode groupe.
   if (c) reconcileAdvantageToPool(get, c);
 }
@@ -62,7 +62,7 @@ export function fireTurnEndTriggers(get: Get, set: SetFn, c: Combatant | undefin
 
 /** Point UNIQUE de déclenchement des effets de bord de tour (début/fin) — kind agnostique, journalisé
  *  en `detail`, no-op hors d'action. Inerte tant qu'aucune donnée ne porte l'effet correspondant.
- *  `onTurnStart` seul fournit `onOpposingAdvantage` (Redoutable AA, `MDG 16 l.13`) : l'op `gainAdvantage`
+ *  `onTurnStart` seul fournit `onOpposingAdvantage` (Redoutable AA, `MDG 16 l.13`) : l'op `topUpAdvantage`
  *  du porteur y appelle `creditOpposingAdvantage`, self-gardée `groupAdvantage()`. */
 function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, trigger: 'onTurnStart' | 'onTurnEnd'): void {
   if (!c || isOutOfAction(c)) return;

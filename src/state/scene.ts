@@ -156,7 +156,7 @@ export interface SceneEntity {
    *  `EDO 01 l.202` en donne le second exemple (Phillipe Descartes, « quelle que soit la mise, mais
    *  considère comme une perte de temps de jouer pour moins de 2/- »).
    *
-   *  `gameId` = id d'une entrée de `tavernGames.json`. `stakeBrass` = mise de DÉPART en sous de
+   *  `gameId` = id d'une entrée de `tavernGames.json`, résolu au parse (`idDe('tavernGame')`). `stakeBrass` = mise de DÉPART en sous de
    *  cuivre (la modale reste libre de la changer — l'auteur pose le défaut, pas une contrainte) ;
    *  absente, la table s'accorde sans mise. */
   tavernGame?: { gameId: string; stakeBrass?: number };

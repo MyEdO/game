@@ -133,7 +133,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(bagarre.target, 'la Difficulté (+20) entre dans la cible').toBe(bagarre.base! + 20);
   });
 
-  it('SOMME par équipe, BUT au-delà de 25, +1 Avantage au camp qui l’emporte (l.121)', () => {
+  it('SOMME par équipe, BUT au-delà de 25, +1 Avantage au camp qui l’emporte (l.119)', () => {
     const party = equipe(2);
     get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     choisir(0);
@@ -148,10 +148,41 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
   });
 
   /**
-   * L'AVANTAGE AGIT (l.121 : « en utilisant les règles habituelles relatives à l'Avantage » ; LDB 14
+   * L'AVANTAGE AGIT (l.119 : « en utilisant les règles habituelles relatives à l'Avantage » ; LDB 14
    * l.30 : « +10 à un Test de Combat ou de Psychologie approprié »). Il ne suffit pas de le COMPTER
    * sur la fiche : il doit entrer dans la CIBLE du tour suivant — et seulement pour un Test de Combat.
    */
+  it('deux tours gagnés d’affilée : Avantage 2, pour le héros comme pour les figurants de son camp (LDB 14 l.204-209)', () => {
+    const party = equipe(1);
+    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    choisir(0);
+    poseTour(3, 3, 1);
+    choisir(0);
+    poseTour(3, 3, 1);
+    expect(get().party[0].advantage).toBe(2);
+    const camps = () => (get().sequence!.payload as { advantage?: { player: number; opponent: number } }).advantage;
+    expect(camps(), 'les figurants suivent la même suite').toEqual({ player: 2, opponent: 0 });
+    choisir(0);
+    poseTour(1, 1, 1); // 11 contre 11 : égalité, chaque camp perd 1 (LDB 14 l.219)
+    expect(get().party[0].advantage).toBe(1);
+    expect(camps()).toEqual({ player: 1, opponent: 0 });
+    choisir(0);
+    poseTour(1, 1, 3); // tour perdu : tout part
+    expect(get().party[0].advantage).toBe(0);
+    expect(camps()).toEqual({ player: 0, opponent: 1 });
+  });
+
+  it('le camp qui PERD le tour : ses héros perdent leur Avantage (LDB 14 l.219, l.119 « règles habituelles »)', () => {
+    const party = equipe(2);
+    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    choisir(0);
+    poseTour(3, 3, 1);
+    for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage).toBe(1);
+    choisir(0);
+    poseTour(1, 1, 3); // le camp d'en face l'emporte
+    for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage, 'tour perdu').toBe(0);
+  });
+
   it('l’Avantage gagné entre dans la CIBLE du tour suivant — en Bagarre (Test de Combat) seulement', () => {
     const party = equipe(2);
     get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
@@ -180,7 +211,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(rowT2.mods?.some((m) => m.label === 'Avantage')).toBeFalsy();
   });
 
-  /** SYMÉTRIE (l.121) : l'Avantage est gagné par une ÉQUIPE. Les figurants n'ont pas de fiche — leur
+  /** SYMÉTRIE (l.119) : l'Avantage est gagné par une ÉQUIPE. Les figurants n'ont pas de fiche — leur
    *  camp le porte, sans quoi une équipe sans héros ne pourrait jamais rien gagner. */
   it('l’Avantage d’un camp s’applique AUSSI à ses figurants — les deux camps, symétriquement', () => {
     const party = equipe(1);
@@ -216,7 +247,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(tavernGameValue(pnjAuProfil('nain', 'n')!, jeu)).not.toBe(tavernGameValue(pnjAuProfil('humain', 'h')!, jeu));
   });
 
-  /** LA CONJONCTION du but (l.121) : « L'équipe qui obtient le total le plus élevé […] marquera un but
+  /** LA CONJONCTION du but (l.119) : « L'équipe qui obtient le total le plus élevé […] marquera un but
    *  si son total est de +25 ou plus » — les DEUX conditions, sur le MÊME camp. Deux équipes au-dessus
    *  de 25 : seule celle qui l'emporte marque. */
   it('les DEUX camps au-dessus de 25 : SEUL le vainqueur marque', () => {
@@ -256,6 +287,22 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(res.playerSL, 'le score final EST le compte de buts').toBe(6);
     expect(res.opponentSL).toBe(0);
     expect(res.rounds).toBe(6);
+    expect(res.detail, 'des buts et des tours, accordés').toBe('6 buts contre 0 en 6 tours.');
+  });
+
+  it('le dénouement accorde ses unités au compte : 1 but', () => {
+    const party = equipe(2);
+    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    choisir(0);
+    poseTour(3, 3, 1);
+    // Cinq tours nuls (11 contre 11) : la partie se dénoue au sixième.
+    choisir(0); poseTour(1, 1, 1);
+    choisir(0); poseTour(1, 1, 1);
+    choisir(0); poseTour(1, 1, 1);
+    choisir(0); poseTour(1, 1, 1);
+    choisir(0); poseTour(1, 1, 1);
+    expect(get().sequence).toBeNull();
+    expect(get().tavernGames!.result!.detail).toBe('1 but contre 0 en 6 tours.');
   });
 
   it('GRAINE RÉELLE (aucun DR posé) : une partie entière se déroule, six tours, un vainqueur nommé', () => {

@@ -87,3 +87,9 @@ export function deElide(nom: string): string {
 export function elision(particule: 'de' | 'le', nom: string): string {
   return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `${particule[0]}’` : `${particule} `;
 }
+
+/** Marque du pluriel d'un compte affiché (« 1 point », « 2 points », « -2 points ») : `s` au-delà de 1 en
+ *  valeur absolue, rien sinon. */
+export function pluriel(n: number): string {
+  return Math.abs(n) > 1 ? 's' : '';
+}

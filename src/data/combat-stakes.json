@@ -159,7 +159,7 @@
     "type": "combat-stakes",
     "label": "Partie de jeu de taverne",
     "kind": "tavernGame",
-    "template": "{jeu} contre {adversaire} : la manche se gagne au plus grand nombre de DR. Mise engagée : {mise}.",
+    "template": "{jeu} contre {adversaire}. Mise engagée : {mise}.",
     "form": "descripteur",
     "rule": {
       "id": "pari",

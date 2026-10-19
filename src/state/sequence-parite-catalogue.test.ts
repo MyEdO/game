@@ -713,16 +713,6 @@ const V8C5: Site[] = [
     apres: structureCollapseLog('La palissade'),
   },
   {
-    site: 'tavernGame.ts:248 — manche `opposed` perdue (l’issue est une clé, le jeu vient de la donnée)',
-    avant: `${'Bras de fer'} : ${2} DR contre ${4} → ${'perdu'}.`,
-    apres: t('tavern.opposedLog', { jeu: 'Bras de fer', mien: 2, sien: 4, issue: t('tavern.issueLost') }),
-  },
-  {
-    site: 'tavernGame.ts:253 — partie `extended` (pluriel de manches porté par la valeur)',
-    avant: `${'Bras de fer'} : ${7} DR cumulés contre ${5} en ${3} manche${'s'}.`,
-    apres: t('tavern.extendedLog', { jeu: 'Bras de fer', mien: 7, sien: 5, rounds: 3, s: 's' }),
-  },
-  {
     site: 'traits/dispatch.ts:136 — squelette d’argument d’un Trait (fonction de PRODUCTION)',
     avant: '(Indice) (Type de dégâts) (Portée)',
     apres: traitArgSkeleton({ indice: { label: 'Indice' }, specsSource: 'damageTypes', range: true })!,
@@ -847,8 +837,8 @@ describe('#1318 V8b/V8b₂/V8c₀/V8c₁/V8c₂ — la migration au catalogue es
     expect(V8C2.length, 'échantillons des cinq fichiers passés MIGRÉS par V8c₂ (effets / store / voyage terrestre / fluvial / maladies)').toBe(22);
     expect(V8C3.length, 'échantillons des fichiers passés MIGRÉS par V8c₃ (mer / guérison / repos / nuit / équipage / séquelles)').toBe(18);
     expect(V8C4.length, 'échantillons des QUATORZE fichiers de la longue traîne passés MIGRÉS par V8c₄').toBe(19);
-    expect(V8C5.length, 'échantillons de la TRANCHE FINALE (18 fichiers gelés + advancement/careerSlots)').toBe(29);
-    expect(TOUS.length).toBe(132);
+    expect(V8C5.length, 'échantillons de la TRANCHE FINALE (18 fichiers gelés + advancement/careerSlots)').toBe(27);
+    expect(TOUS.length).toBe(130);
   });
 
   it('MUTATION : l’oracle est SENSIBLE — un tiret cadratin changé en tiret court diverge', () => {

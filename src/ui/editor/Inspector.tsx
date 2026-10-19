@@ -39,6 +39,7 @@ import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleBy
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
+import { idsDe } from '../../data/schemas/grammaire/ref';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
@@ -1459,6 +1460,7 @@ function EntityPanel({
   removeSel: () => void;
 }) {
   useVersionDesDatasets();
+  const jeuOrphelin = !!ent.tavernGame && !idsDe('tavernGame').has(ent.tavernGame.gameId);
   return (
     <>
       <div className="ent-preview">
@@ -1537,9 +1539,11 @@ function EntityPanel({
               Joueur de taverne (jeu proposé)
               <select
                 value={ent.tavernGame?.gameId ?? ''}
+                aria-invalid={jeuOrphelin || undefined}
                 onChange={(e) => updateSel({ tavernGame: e.target.value ? { ...ent.tavernGame, gameId: e.target.value } : undefined })}
               >
                 <option value="">— aucun —</option>
+                {jeuOrphelin && <option value={ent.tavernGame!.gameId}>{ent.tavernGame!.gameId} (introuvable)</option>}
                 {TAVERN_GAMES.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.label}

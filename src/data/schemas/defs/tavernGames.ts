@@ -2,8 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, difficultySchema, plageSchema } from '../grammaire/valeurs';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { charKeySchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { facilitationSchema, gameOpSchema, jetSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'tavernGames.json';
@@ -16,12 +16,55 @@ const throwEffectSchema = z.enum([
   'chiffres-du-de', 'gain-au-choix', 'aucun-gain', 'termine-le-passage',
 ]);
 
+/** Le paramètre que chaque effet de Spécial exige — et lui seul. */
+const PARAMETRE_DE_L_EFFET = { cran: 'steps', difficulte: 'difficulty' } as const;
+
+/** Les effets d'un Spécial, et leurs libellés. */
+const EFFETS_DE_SPECIAL = { cran: 'Décalage de Difficulté (crans)', difficulte: 'Difficulté imposée' } as const;
+
+/** Les libellés des champs d'un Spécial — ceux de l'éditeur ET des refus du schéma. */
+const META_DE_SPECIAL = {
+  effet: { label: 'Effet' },
+  hasTalent: { label: 'Talent' },
+  steps: { label: 'Crans (plus facile si positif)' },
+  difficulty: { label: 'Difficulté imposée' },
+  source: { label: 'Source' },
+} as const;
+
+/** NADJ 16 l.82 ; le Talent et les crans sont ceux de la facilitation d'un jet (`facilitationSchema`),
+ *  la Difficulté posée celle du jet (`jetSchema`). */
+const specialSchema = nommerChamps(z.strictObject({
+  effet: enumNomme(EFFETS_DE_SPECIAL),
+  ...facilitationSchema.pick({ hasTalent: true, steps: true }).shape,
+  ...jetSchema.pick({ difficulty: true }).shape,
+  source: sourceRefSchema,
+}).superRefine((v, ctx) => {
+  const champ = (cle: keyof typeof META_DE_SPECIAL) => META_DE_SPECIAL[cle].label;
+  const effet = (e: keyof typeof EFFETS_DE_SPECIAL) => EFFETS_DE_SPECIAL[e];
+  if (v.hasTalent === undefined) ctx.addIssue({ code: 'custom', path: ['hasTalent'], message: `Spécial : « ${champ('hasTalent')} » est requis.` });
+  if (v.effet === 'cran' && v.steps === 0) ctx.addIssue({ code: 'custom', path: ['steps'], message: `Spécial « ${effet('cran')} » : « ${champ('steps')} » à 0 ne décale rien.` });
+  for (const [e, cle] of Object.entries(PARAMETRE_DE_L_EFFET) as [keyof typeof EFFETS_DE_SPECIAL, keyof typeof META_DE_SPECIAL][]) {
+    const pose = v[cle] !== undefined;
+    if (e === v.effet && !pose) {
+      ctx.addIssue({ code: 'custom', path: [cle], message: `Spécial « ${effet(v.effet)} » : « ${champ(cle)} » est requis.` });
+    }
+    if (e !== v.effet && pose) {
+      ctx.addIssue({ code: 'custom', path: [cle], message: `Spécial « ${effet(v.effet)} » : « ${champ(cle)} » appartient à l’effet « ${effet(e)} ».` });
+    }
+  }
+}), META_DE_SPECIAL);
+
+/** Le jeu se résout-il par un TEST ? — seule capacité qu'un Spécial exige (NADJ 16 l.82). */
+function joueUnTest(jeu: { mode?: string }): boolean {
+  return jeu.mode !== undefined;
+}
+
 const doc = document(
   'tavernGames',
   famille,
   {
-    skill: refOuSpec('skill').optional(),
-    characteristic: charKeySchema.optional(),
+    /** NADJ 16 l.90, l.105, l.125, l.145 */
+    ...jetSchema.shape,
     /** NADJ 16 l.11 */
     fastSkill: nommerChamps(z.strictObject({
       skill: refOuSpec('skill').optional(),
@@ -37,13 +80,16 @@ const doc = document(
     mode: z.enum(['opposed', 'extended']).optional(),
     target: z.number().optional(),
     drCap: z.number().optional(),
-    /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.107,
+    /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,
      *  `nul` Boules l.57) — consommé par `src/state/sequenceCore.ts` (`resolveSequenceTie`). */
     tieBreak: z.enum(['units-lowest', 'nul']).optional(),
     /** Bonus de Caractéristique ajouté au DR de chaque manche (Bras de fer l.34 : Force) — consommé
      *  par `SequenceParams.drBonus` (`src/state/sequenceCore.ts`). */
     drBonus: charKeySchema.optional(),
-    /** Effets PAR MANCHE en `GameOp[]` (Bras de fer l.34-35 : +1 Avantage au vainqueur du tour,
+    /** L'Avantage est en jeu, aux règles habituelles (NADJ 16 l.34, l.119) — `options[].combatTest` dit
+     *  quel Test d'un jeu à options admet le +10 (LDB 14 l.215). */
+    avantage: z.boolean().optional(),
+    /** Effets PAR MANCHE en `GameOp[]` (Bras de fer l.34 : +1 Avantage au vainqueur du tour,
      *  +1 Exténué tous les (Bonus d'Endurance) tours) — `SequenceParams.rounds`. */
     roundOps: nommerChamps(z.strictObject({
       winner: z.array(gameOpSchema).optional(),
@@ -58,9 +104,9 @@ const doc = document(
      *  complète de figurants (`src/state/tavernFlow.ts`). */
     team: nommerChamps(z.strictObject({ size: z.number() }), { size: { label: 'Taille' } }).optional(),
     /** FORME d'un tour (capacité DÉCLARÉE, jamais déduite d'un effectif) : `team` = tous testent et on
-     *  somme par équipe (Middenball l.121) ; `thrower` = un tour, un lanceur (Torchon l.111). */
+     *  somme par équipe (Middenball l.119) ; `thrower` = un tour, un lanceur (Torchon l.111). */
     roundShape: z.enum(['team', 'thrower', 'pot', 'volley']).optional(),
-    /** Options de Test d'une manche (Middenball l.121 : Bagarre (+20) OU Athlétisme (+0)) — le choix
+    /** Options de Test d'une manche (Middenball l.119 : Bagarre (+20) OU Athlétisme (+0)) — le choix
      *  va au joueur ; la 1ʳᵉ option est celle que suivent les porteurs sans siège et les figurants. */
     options: z.array(nommerChamps(z.strictObject({
       skill: refOuSpec('skill').optional(),
@@ -73,12 +119,12 @@ const doc = document(
       char: { label: 'Caractéristique' },
       difficulty: { label: 'Difficulté' },
       combatTest: { label: 'Test de combat' },
-    })).optional(),
-    /** Formule de score d'un CAMP (`registerSequenceScore` : `sum` pour une équipe, l.121). */
+    })).min(2).optional(),
+    /** Formule de score d'un CAMP (`registerSequenceScore` : `sum` pour une équipe, l.119). */
     campScore: z.enum(['min', 'max', 'sum', 'first']).optional(),
-    /** Seuil d'un acquis de manche (Middenball l.121 : but à 25 DR d'équipe). */
+    /** Seuil d'un acquis de manche (Middenball l.119 : but à 25 DR d'équipe). */
     scoreThreshold: z.number().optional(),
-    /** Mi-temps (Middenball l.121 : deux mi-temps de trois tours). */
+    /** Mi-temps (Middenball l.119 : deux mi-temps de trois tours). */
     phases: nommerChamps(z.strictObject({ count: z.number(), rounds: z.number() }), { count: { label: 'Nombre' }, rounds: { label: 'Rounds' } }).optional(),
     /** Effectif du cercle qui esquive (Torchon l.109-111 : 11 danseurs, cible tirée au sort). */
     dancers: z.number().optional(),
@@ -86,7 +132,7 @@ const doc = document(
     table: z.array(nommerChamps(z.strictObject({
       ...plageSchema.shape, points: z.number(), label: z.string(),
     }), { ...metaDesChamps(plageSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
-    /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.65, Fléchettes l.83, Boules l.57.
+    /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.70, Fléchettes l.97, Boules l.57.
      *  `gain`/`critique`/`maladresse`/`depassement` nomment un effet de lancer ENREGISTRÉ
      *  (`registerSequenceThrow`, `src/state/sequenceCore.ts`), jamais un id de jeu. */
     volley: nommerChamps(z.strictObject({
@@ -131,7 +177,7 @@ const doc = document(
       ordre: { label: 'Ordre' },
       manchesBorne: { label: 'Limite de manches' },
     }).optional(),
-    /** NADJ 16 l.97 */
+    /** NADJ 16 l.90 */
     combined: nommerChamps(z.strictObject({
       second: nommerChamps(z.strictObject({
         skill: refOuSpec('skill').optional(),
@@ -191,7 +237,9 @@ const doc = document(
     }).optional(),
     /** Unité de ce que le jeu compte, au pluriel (affichage : « quilles », « points »…). */
     scoreUnit: z.string().optional(),
-    /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.27-28 : chaque camp convertit son total en
+    /** La même unité au singulier (« quille », « point »…), accordée au compte du dénouement. */
+    scoreUnitSingular: z.string().optional(),
+    /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.25-28 : chaque camp convertit son total en
      *  prises sur l'adversaire (`div`), et sa victoire au Critique se lit au dé des unités (`mult`). */
     sides: z.array(nommerChamps(z.strictObject({
       id: z.string(),
@@ -206,6 +254,8 @@ const doc = document(
       div: { label: 'Diviseur' },
       mult: { label: 'Multiplicateur' },
     })).optional(),
+    /** NADJ 16 l.82 */
+    specials: z.array(specialSchema).optional(),
     /** MISE / POT / ABANDON / ÉLIMINATION (Al-zahr l.17) — famille (5) du socle de séquence,
      *  consommée par `SequenceParams.pot` (`src/state/sequenceCore.ts`). `potEffectId` est le nom d'un
      *  effet de pot ENREGISTRÉ (`registerSequencePotEffect`), jamais un id de jeu — la clé nomme donc
@@ -237,6 +287,8 @@ const doc = document(
     }).optional(),
   },
   {
+    ...metaDesChamps(jetSchema, { exigees: true }),
+    difficulty: { label: 'Difficulté du Test', hint: 'Difficulté des Tests du jeu ; absente : Intermédiaire (LDB 12 l.166)' },
     skill: {
       label: 'Compétence testée',
       hint: 'Compétence testée (+ spécialisation si le jeu en exige une), prise au catalogue ; absente, le jeu joue sa Caractéristique, et à défaut Pari (NADJ 16 l.11)',
@@ -257,6 +309,7 @@ const doc = document(
       hint: 'Règle appliquée à une égalité de DR : dé des unités le plus bas, ou égalité maintenue (nul)',
     },
     drBonus: { label: 'Bonus de Caractéristique', hint: 'Bonus de la Caractéristique ajouté au DR de chaque manche' },
+    avantage: { label: 'Avantage en jeu', hint: 'L’Avantage se gagne et se perd par manche, aux règles habituelles' },
     roundOps: { label: 'Effets par manche', hint: 'Effets mécaniques appliqués au vainqueur de la manche, et par usure' },
     team: { label: 'Effectif d’équipe', hint: 'Effectif requis par camp, complété de figurants si incomplet' },
     roundShape: { label: 'Forme du tour', hint: 'Structure d’un tour : équipe, lanceur unique, mise ou volée' },
@@ -276,14 +329,32 @@ const doc = document(
     combined: { label: 'Test combiné', hint: 'Un seul jet lu deux fois : conséquence principale et secondaire' },
     throwerPenalty: { label: 'Sanction du lanceur', hint: 'Test et coût imposés au lanceur qui manque son lancer' },
     scoreUnit: { label: 'Unité de score', hint: 'Nom au pluriel de ce que le jeu compte (quilles, points…)' },
+    scoreUnitSingular: { label: 'Unité de score (singulier)', hint: 'La même unité au singulier (quille, point…)' },
     sides: { label: 'Camps asymétriques', hint: 'Conversion du score de chaque camp en prises sur l’adversaire' },
+    specials: {
+      label: 'Spéciaux',
+      hint: 'Effets d’un Talent sur la Difficulté des Tests du jeu, pour le seul joueur qui le possède',
+    },
     pot: { label: 'Mise et pot', hint: 'Mise, pot, et abandon/élimination d’une partie à mise' },
   },
   {
     codex: { keys: ['tavernGames'] },
     edit: { dataset: 'tavernGames' },
   },
-  { exiges: ['desc', 'source'] },
+  {
+    exiges: ['desc', 'source'],
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const jeu = v as { mode?: string; specials?: unknown[] };
+        if (jeu.specials?.length && !joueUnTest(jeu)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['specials'],
+            message: 'Un Spécial modifie un Test : le jeu doit se résoudre par un Test.',
+          });
+        }
+      }),
+  },
 );
 
 export const schema = doc.schema;

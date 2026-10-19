@@ -13,8 +13,9 @@ import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
 import { hasCondition, COND } from '../engine/conditions';
+import { setRule, resetRule } from '../engine/policy';
 import {
-  registerSequence, startSequence, sequenceTableRow, sequencePhaseOf,
+  registerSequence, startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps,
   type SequenceParams, type SequenceRound, type SequenceVerdict,
 } from './sequenceCore';
 
@@ -125,9 +126,58 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
       },
       payload: { lices: [], passes: [] },
     });
-    // `gainAdvantage` pose un PLANCHER (l'Avantage ne se cumule pas au-delà de ce qu'il octroie) :
-    // ce qui est mesuré est qu'il a été DÉCLENCHÉ par le socle, une fois par manche gagnée.
-    expect(useGame.getState().party[0].advantage).toBeGreaterThanOrEqual(1);
+    // NADJ 16 l.34, LDB 14 l.204-209 : `gainAdvantage` est ADDITIF — trois passes gagnées, trois Avantages.
+    expect(useGame.getState().party[0].advantage).toBe(3);
+  });
+
+  it('en combat sous « Avantage de groupe », le gain de manche passe par la réserve du camp (AA 11 l.11-13)', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    try {
+      const h = useGame.getState().party[0];
+      const battle = { combatants: [h], advantagePools: { allies: 0, foes: 0 }, log: [] };
+      const get = (() => ({ battle, party: [h] })) as never;
+      const seq = { def: JOUTE, round: 1, cum: {}, params: { rounds: { winner: [{ op: 'gainAdvantage', amount: 2 }] } }, payload: { lices: [], passes: [] } } as never;
+      sequenceRoundOps(get, seq, 1, { winners: [h.id] });
+      expect(battle.advantagePools).toEqual({ allies: 2, foes: 0 });
+      expect(h.advantage, 'projection de la réserve').toBe(2);
+    } finally { resetRule('combat-aa-avantage-groupe'); }
+  });
+
+  it('LDB 14 l.219 : sous une séquence qui admet l’Avantage, le perdant de la manche le perd tout', () => {
+    const h = useGame.getState().party[0];
+    h.advantage = 2;
+    const get = (() => ({ battle: null, party: [h] })) as never;
+    const seq = (avantage: boolean) => ({ def: JOUTE, round: 1, cum: {}, params: avantage ? { avantage } : {}, payload: { lices: [], passes: [] } }) as never;
+    sequenceRoundOps(get, seq(false), 1, { losers: [h.id] });
+    expect(h.advantage, 'une séquence sans Avantage ne le touche pas').toBe(2);
+    sequenceRoundOps(get, seq(true), 1, { losers: [h.id] });
+    expect(h.advantage).toBe(0);
+  });
+
+  it('sous « Avantage de groupe », la manche perdue ne touche pas la réserve du camp (AA 11 l.42-44)', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    try {
+      const h = useGame.getState().party[0];
+      h.advantage = 3;
+      const battle = { combatants: [h], advantagePools: { allies: 3, foes: 1 }, log: [] };
+      const get = (() => ({ battle, party: [h] })) as never;
+      const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
+      sequenceRoundOps(get, seq, 1, { losers: [h.id], all: [h.id] });
+      expect(battle.advantagePools).toEqual({ allies: 3, foes: 1 });
+      expect(h.advantage).toBe(3);
+    } finally { resetRule('combat-aa-avantage-groupe'); }
+  });
+
+  it('LDB 14 l.219 : le participant qui ne gagne pas la manche sans la perdre perd 1 Avantage, plancher 0', () => {
+    const h = useGame.getState().party[0];
+    h.advantage = 2;
+    const get = (() => ({ battle: null, party: [h] })) as never;
+    const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { all: [h.id] });
+    expect(h.advantage).toBe(1);
+    h.advantage = 0;
+    sequenceRoundOps(get, seq, 2, { all: [h.id] });
+    expect(h.advantage).toBe(0);
   });
 
   it('l’ATTRITION d’intervalle ne tombe qu’aux manches multiples de l’intervalle déclaré', () => {

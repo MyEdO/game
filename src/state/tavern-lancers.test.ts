@@ -5,12 +5,12 @@
  * Verbatim des règles en cause (`Source/…/16 - JEUX DE TAVERNE.md`) :
  *  · l.42 « vous avez droit à trois coups pour abattre les 16 quilles […] Le total est le nombre de
  *    quilles que vous abattez. Si vous obtenez un Critique, vous renversez toutes les quilles. » ;
- *  · l.65 « Un Critique vous permet à la place d'encercler la cible suivante sur la table, ce qui
+ *  · l.70 « Un Critique vous permet à la place d'encercler la cible suivante sur la table, ce qui
  *    vous fait gagner plus de points. » ;
- *  · l.83 « Le but est de marquer un total d'exactement 501 points. Si vous marquez plus, votre tour
+ *  · l.97 « Le but est de marquer un total d'exactement 501 points. Si vous marquez plus, votre tour
  *    est terminé, et les points marqués par votre dernière fléchette sont ignorés. » ;
  *  · l.57 « le joueur à qui appartient la boule qui a le plus de DR gagne » ;
- *  · l.27-28 « Si vous obtenez un Critique, vous remportez automatiquement la partie, pour peu qu'une
+ *  · l.25-28 « Si vous obtenez un Critique, vous remportez automatiquement la partie, pour peu qu'une
  *    des conditions suivantes soit remplie : vous êtes le joueur nain et le nombre obtenu sur le dé
  *    des unités est égal ou inférieur au nombre de pièces elfes que vous avez prises […]. Sinon, le
  *    premier camp à prendre plus de la moitié des pièces de son adversaire l'emporte. Si les deux
@@ -86,7 +86,7 @@ function trancher(kind: string, cle: string): void {
   get().cascadeNext();
 }
 
-/** SAISIT le nombre de l'étape « quantité » ouverte (gain libre, l.83), et le commit. */
+/** SAISIT le nombre de l'étape « quantité » ouverte (gain libre, l.97), et le commit. */
 function saisir(kind: string, n: number): void {
   const cur = courant();
   expect(cur?.kind, `la saisie « ${kind} » est ouverte`).toBe(kind);
@@ -139,13 +139,13 @@ describe('Famille (7) — les effets de lancer ENREGISTRÉS', () => {
     const vise = { throws: 5, gain: 'points-de-la-ligne', rows };
     expect(resolveSequenceThrow(vise, tour({ row: rows[0], rowIndex: 0, rows })).gain).toBe(10);
     expect(resolveSequenceThrow(vise, tour({ success: false, row: rows[0], rowIndex: 0, rows })).gain).toBe(0);
-    // « encercler la cible SUIVANTE sur la table » (l.65) — et la dernière ligne rend la sienne.
+    // « encercler la cible SUIVANTE sur la table » (l.70) — et la dernière ligne rend la sienne.
     const suivante = { throws: 5, gain: 'points-de-la-ligne', critique: 'points-de-la-ligne-suivante', rows };
     expect(resolveSequenceThrow(suivante, tour({ critique: true, row: rows[0], rowIndex: 0, rows })).gain).toBe(20);
     expect(resolveSequenceThrow(suivante, tour({ critique: true, row: rows[1], rowIndex: 1, rows })).gain).toBe(20);
   });
 
-  it('`chiffres-du-de` : la réussite OFFRE les quatre lectures, l’échec ne rend que les unités (l.83)', () => {
+  it('`chiffres-du-de` : la réussite OFFRE les quatre lectures, l’échec ne rend que les unités (l.97)', () => {
     const v: SequenceVolleyRules = { throws: 3, gain: 'chiffres-du-de' };
     // « un jet réussi de 26 peut vous donner 2, 6, 20 ou 60 points »
     expect(resolveSequenceThrow(v, tour({ roll: 26 })).choix).toEqual([2, 6, 20, 60]);
@@ -153,7 +153,7 @@ describe('Famille (7) — les effets de lancer ENREGISTRÉS', () => {
     expect(resolveSequenceThrow(v, tour({ roll: 73, success: false })).gain).toBe(3);
   });
 
-  it('`gain-au-choix` rend la PLAGE déclarée (jamais 100 valeurs), `aucun-gain` ne rend rien (l.83)', () => {
+  it('`gain-au-choix` rend la PLAGE déclarée (jamais 100 valeurs), `aucun-gain` ne rend rien (l.97)', () => {
     const v: SequenceVolleyRules = { throws: 3, gain: 'chiffres-du-de', critique: 'gain-au-choix', libre: { min: 1, max: 100 }, maladresse: 'aucun-gain' };
     const offre = resolveSequenceThrow(v, tour({ critique: true }));
     // « autant de points que vous le souhaitez, entre 1 et 100 » : une PLAGE, servie en saisie —
@@ -200,6 +200,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
     poseLancer(5, 20); // réussite à +60, DR posé bien au-delà des 16 quilles
     const res = get().tavernGames!.result!;
     expect(res.playerSL, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
+    expect(res.detail.startsWith('16 quilles contre'), res.detail).toBe(true);
     expect(get().sequence, 'la partie est close : plus rien à abattre des deux côtés').toBeNull();
   });
 
@@ -211,9 +212,9 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
   });
 });
 
-/* ── L'ARÈNE (l.65) ─────────────────────────────────────────────────────────────────────────────*/
+/* ── L'ARÈNE (l.70) ─────────────────────────────────────────────────────────────────────────────*/
 
-describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (l.65)', () => {
+describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (l.70)', () => {
   it('la table des cibles est en donnée : sept lignes, du nez à la gorge', () => {
     expect(ARENE.volley!.throws, '« après cinq lancers »').toBe(5);
     expect(ARENE.volley!.pick, '« avant de lancer un anneau, choisissez une cible »').toBe('choix');
@@ -245,15 +246,15 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
   });
 });
 
-/* ── LES FLÉCHETTES (l.83) ──────────────────────────────────────────────────────────────────────*/
+/* ── LES FLÉCHETTES (l.97) ──────────────────────────────────────────────────────────────────────*/
 
-describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE TOUR (l.83)', () => {
+describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE TOUR (l.97)', () => {
   /** Amène la partie à `points` marqués pour le challenger, sa première fléchette en main. */
   function aDeuxDoigts(points: number): Combatant {
     const a = seul();
     get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
-    // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.83), on le fixe pour mesurer.
+    // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.97), on le fixe pour mesurer.
     const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
     useGame.setState({
       sequence: {
@@ -268,7 +269,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     return a;
   }
 
-  /** « jetez une pièce de monnaie pour déterminer qui joue en premier » (l.83) : l'ordre est TIRÉ, pas
+  /** « jetez une pièce de monnaie pour déterminer qui joue en premier » (l.97) : l'ordre est TIRÉ, pas
    *  posé. Le témoin est l'existence des DEUX ordres sur un balayage de graines — un ordre figé
    *  (challenger toujours premier) n'en produirait qu'un. */
   it('l’ORDRE de passage est TIRÉ AU SORT : les deux ordres sortent sur un balayage de graines', () => {
@@ -308,7 +309,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     expect(get().journal.some((l) => l.includes('son tour est terminé'))).toBe(true);
   });
 
-  it('marquer EXACTEMENT 501 remporte la partie — le gain libre se SAISIT (l.83)', () => {
+  it('marquer EXACTEMENT 501 remporte la partie — le gain libre se SAISIT (l.97)', () => {
     aDeuxDoigts(500);
     poseLancer(11, 2); // Critique : le gain est libre (1..100)
     // Le gain libre n'est plus 100 boutons : c'est la 6ᵉ interaction de la coquille (saisie bornée).
@@ -387,9 +388,9 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
   });
 });
 
-/* ── L'ALVATAFL (l.27-28) ───────────────────────────────────────────────────────────────────────*/
+/* ── L'ALVATAFL (l.25-28) ───────────────────────────────────────────────────────────────────────*/
 
-describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l.27-28)', () => {
+describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l.25-28)', () => {
   /** Partie en cours, le challenger menant le camp `side`, avec les prises déjà faites. */
   function partie(side: string, cum: Record<string, number>, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
     return {
@@ -419,6 +420,17 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
       ['elfe', 12, 1, 4], // « le nombre obtenu sur le dé des unités, multiplié par quatre »
     ]);
     expect(ALVATAFL.drBonus, '« ajoutez ensuite votre Bonus d’Intelligence au nombre de DR »').toBe('intelligence');
+  });
+
+  it('le dénouement accorde l’unité au compte : 1 pièce prise', () => {
+    const a = seul();
+    const bonusInt = bonus(effectiveChar(a, 'intelligence'));
+    useGame.setState({ tavernGames: null, sequence: partie('nain', {}, a.id) });
+    // Critique sur 11 : dé des unités 1 ≤ 1 prise, la partie est emportée sur une seule pièce.
+    closeSequenceRound(get, useGame.setState, manche(a.id, { roll: 11, sl: 1 - bonusInt }, { roll: 41, sl: 0 }));
+    const res = get().tavernGames!.result!;
+    expect(res.playerSL).toBe(1);
+    expect(res.detail.startsWith('1 pièce prise contre'), res.detail).toBe(true);
   });
 
   it('le CRITIQUE emporte la partie quand la condition du camp est remplie — et PAS quand elle ne l’est pas', () => {

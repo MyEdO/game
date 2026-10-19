@@ -104,10 +104,6 @@ export const FOLIO_RATCHET = new Set([
   // spells.json
   'spells.json:bon-baiser-d-la-fosse-noire', // p.10 -> 15
   'spells.json:nuee-d-escampette', // p.10 -> 15
-  // tavernGames.json
-  'tavernGames.json:al-zahr', // p.93 -> 91
-  'tavernGames.json:bras-de-fer', // p.93 -> 92
-  'tavernGames.json:cerevis', // p.94 -> 93
   // traits.json
   'traits.json:capricieux', // p.89 -> 90
   'traits.json:engloutir', // p.89 -> 90

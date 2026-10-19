@@ -492,7 +492,7 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
     const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
-    expect(ouverte).toContain('Règles de vente › offre selon la richesse 5 › maximum');
+    expect(ouverte).toContain('Règles de vente › offre selon la richesse 5 › Maximum');
     expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.

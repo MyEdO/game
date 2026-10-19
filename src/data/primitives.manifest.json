@@ -398,11 +398,11 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
+    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
     "fichier": "src/ui/compendium/refField/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
-    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, saisie-suggeree.test.tsx"
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
+    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
   },
   {
     "id": "sourceBadge",

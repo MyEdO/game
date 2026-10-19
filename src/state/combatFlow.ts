@@ -78,9 +78,9 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
-import { gainAdvantage } from '../engine/advantage';
+import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
-import { campGain, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
+import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -4901,7 +4901,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined,
+    onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, ...campAdvantageHooks(get),
   };
   lines.push(...applyOps(caster, m.ops, opsCtx));
   // Sorcellerie : 1 Point de Corruption PAR JET de table (LDB 49 l.5, verbatim en tête de
@@ -6010,7 +6010,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
       ...(ch.sourceSpell ? { sourceSpell: ch.sourceSpell } : {}), sourceSpellId: spell.id,
       ...(ch.conjureForm ? { conjureForm: ch.conjureForm } : {}),
-      onCorruption: followsCharacterRules(cible) ? (n, align) => gainCorruption(get, set, cible, n, align) : undefined, // #143 : personnage, pas un proxy `kind`
+      onCorruption: followsCharacterRules(cible) ? (n, align) => gainCorruption(get, set, cible, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
     }));
   }
   // Vol de vie (LDB 48 — Mort : Caresse de Laniph, Vol de vie) : op `lifeSteal` du Flow (on:'caster')
@@ -6359,7 +6359,7 @@ export function applyCast(
             ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
             ...(sourceSpell ? { sourceSpell } : {}), sourceSpellId,
             ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
-            onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, // #143 : personnage, pas un proxy `kind`
+            onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
           }),
         );
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
@@ -6484,7 +6484,7 @@ export function applyCast(
         ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
         ...(sourceSpell ? { sourceSpell } : {}), sourceSpellId,
         ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
-        onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, // #143 : personnage, pas un proxy `kind`
+        onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
       }));
     }
   }
@@ -7614,7 +7614,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   //     Surnombre). Engagé périmé (LDB 13 l.171).
   if (groupAdvantage()) roundEndAdvantageTransfer(battle);
   for (const c of battle.combatants) {
-    if (!groupAdvantage() && !isOutOfAction(c) && c.advantage > 0 && !c.gainedAdvThisRound) c.advantage -= 1;
+    if (!groupAdvantage() && !isOutOfAction(c) && c.advantage > 0 && !c.gainedAdvThisRound) c.advantage = avantageApresPerte(c.advantage, 1);
     c.gainedAdvThisRound = false;
     c.usedShieldReactionRound = false; // Porte-Bouclier (variante AA 13 l.84) : « une fois par Round »
     c.ripostesThisRound = undefined; // LDB 10 l.1037

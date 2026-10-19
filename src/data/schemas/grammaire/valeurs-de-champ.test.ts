@@ -109,6 +109,12 @@ const NOMMES = [
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
   'prop|roof|relief',
+  // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
+  'cran|difficulte',
+  // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
+  // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
+  'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
+  'intermediaire|complexe|difficile|tresDifficile',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',
@@ -225,7 +231,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'inferieur|superieur',
   'interieur|exterieur',
   'interior|exterior',
-  'intermediaire|complexe|difficile|tresDifficile',
   'jamais|toujours|si-ecart',
   'jet|forceSuccess',
   'ladder|surface',
@@ -275,7 +280,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'terrestre|fluvial|maritime',
   'tete|brasG|brasD|corps|jambeG|jambeD',
   'trait|amelioration',
-  'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'units-lowest|nul',
   'valide|renonce',
   'veillee|parchemin',

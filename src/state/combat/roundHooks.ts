@@ -31,6 +31,7 @@ import { sceneMetresPerTile } from '../scene';
 import { rule } from '../../engine/policy';
 import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
 import { groupAdvantage } from '../../engine/advantagePool';
+import { avantageApresPerte } from '../../engine/advantage';
 import { combatStakeRef } from '../../data';
 import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
@@ -182,27 +183,10 @@ registerCombatHook({
         return !!e && e.kind !== c.kind && !isOutOfAction(e);
       }).length;
       // LDB 10 l.765
-      if (foes >= 2 + outnumberCountBonus(c)) { c.advantage = Math.max(0, c.advantage - 1); sink(t('turn.outnumbered', { name: c.label, foes }), c); }
+      if (foes >= 2 + outnumberCountBonus(c)) { c.advantage = avantageApresPerte(c.advantage, 1); sink(t('turn.outnumbered', { name: c.label, foes }), c); }
     }
   },
 });
-// Mâchoires d'acier (LDB 10) : un effet
-// DÉCLENCHÉ `onGainCondition` data-driven (talents.json) — « chaque fois que vous gagnez un État Sonné »,
-// résolu cadence-aware par la brique `combat/triggeredTest` (héros manuel → cascade influençable ;
-// ennemi/auto → jet inline).
-
-// Détermination (LDB 17 l.59/60) MIGRÉE sur le système de Durée UNIFIÉ : l'immunité psychologique (2
-// Rounds) et l'ignorance des modifs de Critique (1 Round) sont portées par des `ActiveEffect`
-// (`psychImmune`/`ignoreCritMods`) à `duration` Rounds, décrémentés/expirés par `tickDurations` (hook
-// `end-of-round`) — plus de compteur/flag round-scopé ni de hook de décompte dédié.
-
-// Récupération du Brisé (LDB 16 l.54-58 ; Cœur vaillant LDB 10) MIGRÉE en DONNÉES (etats.json `brise.effects`,
-// 2 effets `onRoundEnd`) : (A) « caché hors de vue de tout ennemi » → retire 1 Brisé SANS Test (Condition
-// `hiddenFromFoes`) ; (B) Test de Calme gaté « pas Engagé OU Cœur vaillant, ET pions restants », difficulté par
-// circonstances (`difficultyBy` : caché → Accessible, ennemi à ≤3 → Très difficile), succès retire 1 + DR, vidé
-// → Exténué (l.80). Dispatché par le DISPATCHER UNIQUE (hook `end-of-round`) : ennemi/auto inline, héros manuel
-// → étape de cascade collectée par `collectRoundEndTestSteps`. La géométrie d'arène est calculée par
-// `recoveryGeometry` (triggeredEffects).
 
 /** Aux Armes (AA 07 l.5) : un combattant à 0 PB porteur de l'État Hémorragique (et pas déjà Inconscient / hors
  *  d'action) doit tester sa Résistance chaque Round sous peine de tomber Inconscient. Prédicat PARTAGÉ par le

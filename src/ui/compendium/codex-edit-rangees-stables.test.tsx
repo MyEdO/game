@@ -73,7 +73,7 @@ const NOTE_DE_RANGEE = '[aria-label^="Note de la source de la rangée"]';
 
 /** Rangées SOURCÉES d'un tableau générique (`windModifiers`) : celles qui portent leur bouton de retrait. */
 const rangeesSourcees = (): HTMLElement[] => {
-  const rangees = [...container.querySelectorAll<HTMLElement>('.ed-subfield')]
+  const rangees = [...container.querySelectorAll<HTMLElement>('.ed-champs')]
     .filter((e) => [...e.children].some((b) => b.textContent?.includes('Retirer la rangée')) && e.querySelector(PAGE_DE_RANGEE));
   expect(rangees.length, 'aucune rangée sourcée montée').toBeGreaterThan(0);
   return rangees;

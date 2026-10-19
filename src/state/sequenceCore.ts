@@ -17,7 +17,7 @@
  *  - la FORMULE DE SCORE par camp (`registerSequenceScore`, paramétrée par la donnée : `min` pour les
  *    poursuivis, `max` pour les poursuivants, `sum` pour une équipe) ;
  *  - le DÉPARTAGE D'ÉGALITÉ (`registerSequenceTieBreak`, paramétré par la donnée : Dominos NADJ 16
- *    l.107, Boules l.57) — jamais un branchement par id de jeu ;
+ *    l.105, Boules l.57) — jamais un branchement par id de jeu ;
  *  - la BORNE ANTI-BOUCLE (`SEQUENCE_MAX_ROUNDS`) : une séquence qui ne conclut pas S'ARRÊTE.
  *
  * DEUX PRIMITIVES RESTENT CHEZ ELLES tant qu'aucune manche ne les joue : la table par fourchette
@@ -30,14 +30,17 @@ import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
   type SequenceDef, type SequenceParams, type SequenceState, type MancheClose, type SequenceFamilies, type EtatDeSequence,
 } from './sequenceContract';
-import { runCascadeImmediate } from './cascade';
-import { extendedTestStep } from '../engine/tests';
+import { runCascadeImmediate, stepInteraction, stepReady } from './cascade';
+import { estJete, extendedTestStep } from '../engine/tests';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { applyOps } from '../engine/ops';
+import { applyOps, type GameOp } from '../engine/ops';
+import { campAdvantageHooks } from './combat/advantagePool';
+import { groupAdvantage } from '../engine/advantagePool';
 import type { Combatant } from '../engine/types';
+import type { CascadeStep, PendingCascade } from './pendings';
 import type {
-  SequenceBoard, SequenceRoundActors, SequenceTableRow,
+  SequenceAbandon, SequenceBoard, SequenceRoundActors, SequenceTableRow,
   SequencePotRow, SequencePotTurn, SequencePotOutcome,
   SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome,
 } from './sequenceContract';
@@ -53,7 +56,7 @@ export {
 export type {
   SequenceDef, SequenceParams, SequenceState, SequenceRound, SequenceVerdict, SequenceCloseCtx, MancheClose,
   SequenceFamilies, EtatDeSequence, EtatDeFamille,
-  SequenceTableRow, SequenceBoard, SequenceRoundActors,
+  SequenceTableRow, SequenceBoard, SequenceRoundActors, SequenceAbandon,
   SequencePotRow, SequencePotTurn, SequencePotOutcome,
   SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome, SequenceSide,
   SequenceCombinedRules,
@@ -112,10 +115,15 @@ export interface SequenceTieSide {
 export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'tie';
 
 const sequenceTieBreaks: Record<string, SequenceTieBreak> = {};
+/** Ce que le départage a LU de chaque camp, dit au joueur (résultat, journal). */
+const recitsDeDepartage: Record<string, (a: SequenceTieSide, b: SequenceTieSide) => string> = {};
 
-/** Enregistre (ou remplace) un départage d'égalité, sous le nom que la donnée emploiera. */
-export function registerSequenceTieBreak(departage: string, fn: SequenceTieBreak): void {
+/** Enregistre (ou remplace) un départage d'égalité, sous le nom que la donnée emploiera, et le récit
+ *  de ce qu'il a lu quand il en tient un. */
+export function registerSequenceTieBreak(departage: string, fn: SequenceTieBreak, recit?: (a: SequenceTieSide, b: SequenceTieSide) => string): void {
   sequenceTieBreaks[departage] = fn;
+  if (recit) recitsDeDepartage[departage] = recit;
+  else delete recitsDeDepartage[departage];
 }
 
 /** L'égalité reste une égalité. */
@@ -126,7 +134,13 @@ registerSequenceTieBreak('units-lowest', (a, b) => {
   const ua = a.roll % 10;
   const ub = b.roll % 10;
   return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
-});
+}, (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }));
+
+/** Le récit du départage DÉCLARÉ (ce qu'il a lu de chaque camp) — `undefined` s'il n'en tient pas. */
+export function recitDuDepartage(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): string | undefined {
+  const recit = departage ? recitsDeDepartage[departage] : undefined;
+  return recit ? recit(a, b) : undefined;
+}
 
 /** Départage une égalité selon le nom DÉCLARÉ. Aucun (ou inconnu) : l'égalité reste. */
 export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'tie' {
@@ -343,6 +357,9 @@ export function sequenceAttritionEvery(params: SequenceParams, actor: Combatant 
   return actor ? bonus(effectiveChar(actor, every.charBonus)) : 0;
 }
 
+export const PERTE_DU_TOUR: readonly GameOp[] = [{ op: 'spendAdvantage' }]; // LDB 14 l.219 ; AA 11 l.42-44
+export const DECROISSANCE_DU_TOUR: readonly GameOp[] = [{ op: 'spendAdvantage', amount: 1 }]; // LDB 14 l.219 ; AA 11 l.44
+
 /**
  * Applique les ops DÉCLARÉES d'une manche : `winner` aux vainqueurs de la manche, `attrition` à tous
  * les porteurs dont l'intervalle échoit à cette manche. Les porteurs sont NOMMÉS PAR ID (résolus ici,
@@ -353,7 +370,8 @@ export function sequenceAttritionEvery(params: SequenceParams, actor: Combatant 
  * sans que personne n'ait gagné », NADJ 16 l.34) — la manche qui donne un vainqueur n'est pas de
  * celles-là. C'est un invariant de la FAMILLE, tenu ICI : aucun client n'a à s'en souvenir. Les ops de
  * `winner`, elles, tombent aussi sur la manche conclusive (le vainqueur du tour reste le vainqueur du
- * tour, l.34).
+ * tour, l.34). Sous `SequenceParams.avantage`, hors Avantage de groupe : `PERTE_DU_TOUR` aux perdants,
+ * `DECROISSANCE_DU_TOUR` aux autres non-vainqueurs. LDB 14 l.219 ; AA 11 l.42-44.
  */
 export function sequenceRoundOps<P>(
   get: Get,
@@ -362,15 +380,20 @@ export function sequenceRoundOps<P>(
   targets: SequenceRoundActors,
   conclut = false,
 ): string[] {
-  const decl = seq.params.rounds;
-  if (!decl) return [];
+  const decl = seq.params.rounds ?? {};
   const porteur = (id: string): Combatant | undefined => actorIn(get(), id);
   const lines: string[] = [];
-  if (decl.winner?.length) {
-    for (const id of targets.winners ?? []) {
+  const appliquer = (ops: readonly GameOp[] | undefined, ids: readonly string[] | undefined): void => {
+    if (!ops?.length) return;
+    for (const id of ids ?? []) {
       const c = porteur(id);
-      if (c) lines.push(...applyOps(c, [...decl.winner], { caster: c }));
+      if (c) lines.push(...applyOps(c, [...ops], { caster: c, ...campAdvantageHooks(get) }));
     }
+  };
+  appliquer(decl.winner, targets.winners);
+  if (seq.params.avantage && !groupAdvantage()) {
+    appliquer(PERTE_DU_TOUR, targets.losers);
+    appliquer(DECROISSANCE_DU_TOUR, (targets.all ?? []).filter((id) => !targets.winners?.includes(id) && !targets.losers?.includes(id)));
   }
   if (decl.attrition?.length && !conclut) {
     for (const id of targets.all ?? []) {
@@ -519,6 +542,13 @@ export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void 
   if (!seq) return;
   const def = sequenceDefOf(seq.def);
   if (!def) { clearSequence(set); return; }
+  // Manche ABANDONNÉE avant tout jet (LDB 12 l.176) : elle n'est pas jouée — aucun réducteur, et le
+  // dénouement compte les manches jouées, celle-ci exclue.
+  if (seq.abandon !== undefined && !done.participants.some(jetPose)) {
+    clearSequence(set);
+    def.settle?.(get, set, { ...seq, round: seq.round - 1 } as never, seq.abandon);
+    return;
+  }
   const verdict = def.close({ get, seq: seq as never, done, rng: battleRng() });
   const apres = {
     ...seq,
@@ -533,22 +563,82 @@ export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void 
     ? sequenceRoundOps(get, apres as SequenceState, apres.round, verdict.roundActors, verdict.go === 'end' || borne)
     : [];
   for (const l of [...(verdict.log ?? []), ...effets]) get().log(l);
-  if (verdict.go === 'continue' && !borne) {
+  // Fin de la séquence : son issue, sinon l'abandon demandé (`SequenceState.abandon`), sinon la borne.
+  const outcome = verdict.go === 'end' ? verdict.outcome : seq.abandon ?? (borne ? SEQUENCE_BORNE : undefined);
+  if (outcome === undefined) {
     set({ sequence: apres });
     openSequenceRound(get, set);
     return;
   }
-  const outcome = borne ? SEQUENCE_BORNE : (verdict as { outcome: string }).outcome;
-  if (borne) get().log(t('seq.borne', { max: borneOf(apres.params) }));
+  if (outcome === SEQUENCE_BORNE) get().log(t('seq.borne', { max: borneOf(apres.params) }));
   clearSequence(set);
   def.settle?.(get, set, apres as never, outcome);
 }
 
-/** ABANDON de la séquence en cours (le joueur renonce) : retire l'état, ferme la fenêtre, et laisse le
- *  domaine jouer son dénouement sur l'issue qu'il nomme. */
-export function abandonSequence(get: Get, set: Set, outcome: string): void {
+/** Un jet de l'étape est POSÉ : Test, table ou dé résolu ; sur une bande, les rangées INTERACTIVES
+ *  seules (une rangée témoin naît roulée, `cascade.ts` ouverture), toutes si la bande n'en a aucune.
+ *  Choix, quantité, affichage : aucun jet. */
+function jetPose(s: CascadeStep): boolean {
+  if (s.target != null) return estJete(s.result);
+  if (s.table) return s.table.result != null;
+  if (s.de) return s.de.result != null;
+  if (!s.participants) return false;
+  const joueurs = s.participants.filter((r) => r.interactive !== false);
+  return (joueurs.length ? joueurs : s.participants).some((r) => estJete(r.result));
+}
+
+/** La manche en cours est ENTAMÉE : un jet d'une étape ouverte (index ≤ curseur) est posé. LDB 12 l.176. */
+function mancheEntamee(pc: PendingCascade): boolean {
+  return pc.participants.slice(0, pc.cursor + 1).some(jetPose);
+}
+
+/** L'ABANDON de la séquence en cours (`SequenceDef.abandon`) et, s'il est FERMÉ, sa raison (`refus`) —
+ *  `null` sans séquence, quand sa définition n'en déclare pas, ou quand la fenêtre ouverte n'est pas
+ *  celle de la séquence (étape hébergée). Fermé : déjà DEMANDÉ (il attend la clôture de la manche),
+ *  fermé par la déclaration du domaine (son `refus`), ou manche entamée sans être résolue (LDB 12
+ *  l.176, NADJ 16 l.111) — la raison dit alors la nature de l'étape due (`stepInteraction`). UNE
+ *  lecture, pour la fenêtre ET pour l'action. */
+export function sequenceAbandonEtatOf(get: Get): SequenceAbandon | null {
   const seq = activeSequence(get);
-  if (!seq) return;
-  set({ sequence: null, pendingCascade: null });
-  sequenceDefOf(seq.def)?.settle?.(get, set, seq as never, outcome);
+  const pc = get().pendingCascade;
+  if (!seq || pc?.purpose !== SEQUENCE_PURPOSE) return null;
+  const abandon = sequenceDefOf(seq.def)?.abandon?.(seq as SequenceState<never>);
+  if (!abandon) return null;
+  if (seq.abandon !== undefined) return { ...abandon, refus: t('seq.abandonDemande') };
+  if (abandon.refus !== undefined) return abandon;
+  const due = pc.participants.find((s) => !stepReady(s, get()));
+  if (!due || !mancheEntamee(pc)) return abandon;
+  const interaction = stepInteraction(due);
+  const refus = interaction === 'choix' || interaction === 'quantite' ? t('seq.abandonChoixEnCours') : t('seq.abandonEntreDeuxTests');
+  return { ...abandon, refus };
+}
+
+/** L'abandon OFFERT (`sequenceAbandonEtatOf` ouvert), `null` sinon. */
+export function sequenceAbandonOf(get: Get): SequenceAbandon | null {
+  const etat = sequenceAbandonEtatOf(get);
+  return etat && etat.refus === undefined ? etat : null;
+}
+
+/** ABANDON de la séquence en cours (le joueur renonce) : POSE la demande (`SequenceState.abandon`), que
+ *  les gestes du joueur portent jusqu'à la clôture de la manche (`pasVersLAbandon`) — UNE queue de
+ *  clôture, celle de toute cascade. `closeSequenceRound` joue l'abandon au lieu de rouvrir : la manche
+ *  résolue se clôt, étapes dues comprises ; la manche sans jet posé n'est pas jouée. Le domaine joue
+ *  son dénouement sur l'issue que SA déclaration d'abandon nomme. */
+export function abandonSequence(get: Get, set: Set): void {
+  const seq = activeSequence(get);
+  const abandon = sequenceAbandonOf(get);
+  if (!seq || !abandon) return;
+  set({ sequence: { ...seq, abandon: abandon.outcome } as EtatDeSequence });
+}
+
+/** Le geste du joueur qui rapproche la clôture d'une manche dont l'abandon est DEMANDÉ : `'suivant'`
+ *  (l'étape courante est prête), `'terminer'` (bilan, ou manche sans jet posé : elle se ferme sans être
+ *  jouée), `null` (pas de demande, ou une étape due attend le joueur). */
+export function pasVersLAbandon(get: Get): 'suivant' | 'terminer' | null {
+  const pc = get().pendingCascade;
+  if (activeSequence(get)?.abandon === undefined || pc?.purpose !== SEQUENCE_PURPOSE) return null;
+  if (!mancheEntamee(pc)) return 'terminer';
+  const cur = pc.participants[pc.cursor];
+  if (!cur) return 'terminer';
+  return stepReady(cur, get()) ? 'suivant' : null;
 }

@@ -14,8 +14,10 @@
  * Moteur PUR (RNG seedable) : les valeurs de Compétence sont calculées par l'appelant.
  */
 import { RNG, defaultRNG } from './dice';
-import { rollTest, resolveOpposed, TestResult } from './tests';
-import { Difficulty, CharKey } from './types';
+import { rollTest, resolveOpposed, easeDifficulty, TestResult } from './tests';
+import { Difficulty, CharKey, type Combatant } from './types';
+import { hasTalent } from './magic';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
 import type {
@@ -24,7 +26,12 @@ import type {
 } from './sequenceVocab';
 import tavernGamesJson from '../data/tavernGames.json';
 import { indexParId } from '../data/versionDataset';
-import { t } from '../i18n';
+
+/** Spécial d'un jeu (NADJ 16 l.82) : l'effet d'un Talent sur la Difficulté des Tests du jeu, pour
+ *  le seul joueur qui le possède. `steps` suit `easeDifficulty` (positif = plus facile). */
+export type TavernSpecial =
+  | { effet: 'cran'; hasTalent: string; steps: number; source: SourceRef }
+  | { effet: 'difficulte'; hasTalent: string; difficulty: Difficulty; source: SourceRef };
 
 export interface TavernGame {
   id: string;
@@ -45,20 +52,24 @@ export interface TavernGame {
   /** Mode : `opposed` (un Test opposé, +DR l'emporte — variante rapide) ou `extended` (Test opposé étendu
    *  jusqu'à `target` DR cumulés — Bras de fer, l.34). */
   mode?: 'opposed' | 'extended';
+  /** Difficulté du Test du jeu (NADJ 16 l.90, l.105, l.125, l.145) ; absente : Intermédiaire (LDB 12 l.166). */
+  difficulty?: Difficulty;
   /** Test étendu : DR cumulés à atteindre (Bras de fer = 10). */
   target?: number;
   /** Plafond de DR d'une manche (Boules = 6 DR). */
   drCap?: number;
   /** DÉPARTAGE d'égalité DÉCLARÉ (id résolu par le socle de séquence, `state/sequenceCore`) : Dominos
    *  « En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui
-   *  a le nombre le plus bas gagne » (l.107) → `units-lowest` ; Boules « en cas d'égalité, la partie se
+   *  a le nombre le plus bas gagne » (l.105) → `units-lowest` ; Boules « en cas d'égalité, la partie se
    *  solde par un match nul » (l.57) → `nul`. Absent : l'égalité reste. */
   tieBreak?: string;
-  /** Bonus de CARACTÉRISTIQUE ajouté au DR de chaque manche — Bras de fer l.34 (Force), Alvatafl l.20
+  /** Bonus de CARACTÉRISTIQUE ajouté au DR de chaque manche — Bras de fer l.34 (Force), Alvatafl l.25
    *  (Intelligence), Bête l.42 (Capacité de Tir). Consommé par le socle (`SequenceParams.drBonus`). */
   drBonus?: CharKey;
-  /** EFFETS PAR MANCHE en donnée (`GameOp[]`) — Bras de fer l.34-35 : +1 Avantage au vainqueur de
-   *  chaque tour, +1 État Exténué tous les (Bonus d'Endurance) tours sans vainqueur. */
+  /** L'Avantage est-il en jeu, aux règles habituelles ? (NADJ 16 l.34, l.119) — gain et perte de manche
+   *  (`SequenceParams.avantage`) ; le Test UNIQUE d'un jeu sans `options` admet alors le +10 (LDB 14 l.215). */
+  avantage?: boolean;
+  /** EFFETS PAR MANCHE en donnée (`GameOp[]`) — Bras de fer l.34, LDB 14 l.219. */
   roundOps?: SequenceRoundOps;
   /** JEU D'ÉQUIPE (Middenball l.119-121) : « Deux équipes de 11 joueurs s'affrontent », « tous les
    *  joueurs effectuent un Test », « On additionne le nombre de DR obtenus pour chaque équipe ».
@@ -67,30 +78,28 @@ export interface TavernGame {
    *  simple éditable) — les héros portent leurs jets, les figurants roulent en témoins auto »). */
   team?: { size: number };
   /** FORME d'un tour — la CAPACITÉ que le jeu déclare, jamais déduite d'un effectif :
-   *  · `team` : tous les joueurs testent le même tour, on somme par équipe (Middenball l.121) ;
+   *  · `team` : tous les joueurs testent le même tour, on somme par équipe (Middenball l.119) ;
    *  · `thrower` : un tour = UN lanceur, chacun le sien jusqu'au dernier (Torchon l.111) ;
    *  · `pot` : un tour = UN joueur qui lance les dés devant un pot (Al-zahr l.17) ;
-   *  · `volley` : un tour = UN lancer d'un PASSAGE en nombre fixe (Bête l.42, Arène l.65,
-   *    Fléchettes l.83, Boules l.57).
+   *  · `volley` : un tour = UN lancer d'un PASSAGE en nombre fixe (Bête l.42, Arène l.70,
+   *    Fléchettes l.97, Boules l.57).
    *  Absente : une manche opposée ordinaire (variante rapide, l.9-11). */
   roundShape?: 'team' | 'thrower' | 'pot' | 'volley';
-  /** OPTIONS de Test d'une manche quand la règle en offre plusieurs (Middenball l.121 : « un Test de
+  /** OPTIONS de Test d'une manche quand la règle en offre plusieurs (Middenball l.119 : « un Test de
    *  Corps à corps (Bagarre) Accessible (+20) **ou** d'Athlétisme Intermédiaire (+0) »). Le RAW ne dit
    *  pas QUI choisit : le choix va au JOUEUR (credo « pas de MJ », jamais un défaut silencieux). La
    *  PREMIÈRE option est celle que jouent les porteurs qu'aucun siège ne tient, et les figurants. */
   options?: {
     skill?: RefDesignee; char?: CharKey; difficulty: Difficulty;
-    /** Ce Test est-il un Test de COMBAT ? — c'est lui qui décide si l'Avantage s'y applique : « +10 à
-     *  un Test de Combat ou de Psychologie approprié » (`LDB 14 l.215`). Middenball l.121 renvoie aux
-     *  « règles habituelles relatives à l'Avantage » : Corps à corps (Bagarre) en est un, Athlétisme
-     *  non. DÉCLARÉ par l'entrée (jamais déduit d'un id de Compétence au code). */
+    /** Ce Test est-il un Test de COMBAT, qui admet le +10 de l'Avantage ? (`LDB 14 l.215`, Middenball
+     *  l.119) — DÉCLARÉ par l'entrée (jamais déduit d'un id de Compétence au code). */
     combatTest?: boolean;
   }[];
-  /** Formule de score d'un CAMP (id de `registerSequenceScore` : `sum` pour une équipe, l.121). */
+  /** Formule de score d'un CAMP (id de `registerSequenceScore` : `sum` pour une équipe, l.119). */
   campScore?: string;
-  /** Seuil d'un ACQUIS de manche (Middenball l.121 : « marquera un but si son total est de +25 ou plus »). */
+  /** Seuil d'un ACQUIS de manche (Middenball l.119 : « marquera un but si son total est de +25 ou plus »). */
   scoreThreshold?: number;
-  /** PHASES de la partie (Middenball l.121 : « deux mi-temps de trois tours chacune »). */
+  /** PHASES de la partie (Middenball l.119 : « deux mi-temps de trois tours chacune »). */
   phases?: SequencePhases;
   /** Effectif du CERCLE qui esquive (Torchon l.109 : « deux cercles de 11 joueurs qui dansent main
    *  dans la main autour d'un membre de l'équipe adverse ») — la cible d'un lancer est tirée AU SORT
@@ -99,26 +108,30 @@ export interface TavernGame {
   /** TABLE de score par plage de DR (Torchon l.111 : jambe / corps ≥3 DR / tête ≥6 DR). */
   table?: SequenceTableRow[];
   /** VOLÉE de lancers (famille 7 du socle) : Bête l.42 (trois coups, quilles ÉCRÊTÉES à ce qu'il en
-   *  reste), Arène l.65 (cinq lancers, cible CHOISIE), Fléchettes l.83 (trois fléchettes, total
+   *  reste), Arène l.70 (cinq lancers, cible CHOISIE), Fléchettes l.97 (trois fléchettes, total
    *  EXACT), Boules l.57 (trois boules, la meilleure compte). Consommé par `SequenceParams.volley`. */
   volley?: SequenceVolleyRules;
-  /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.27-28. Consommé par `SequenceParams.sides`. */
+  /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.25-28. Consommé par `SequenceParams.sides`. */
   sides?: SequenceSide[];
-  /** TEST COMBINÉ à conséquences distinctes (famille 9 du socle) — Cerevis l.97. Consommé par
+  /** TEST COMBINÉ à conséquences distinctes (famille 9 du socle) — Cerevis l.90. Consommé par
    *  `SequenceParams.combined`. */
   combined?: SequenceCombinedRules;
   /** SANCTION DU LANCEUR QUI MANQUE (famille 10 du socle) — Torchon l.111 : le Test à passer, ce que
    *  son échec coûte au camp et applique au lanceur, et le balayage final des trop sobres. Consommé
    *  par `SequenceParams.throwerPenalty`. */
   throwerPenalty?: SequenceThrowerPenalty;
-  /** UNITÉ de ce que le jeu COMPTE, au pluriel (« quilles » l.42, « points » l.65/l.83, « pièces
-   *  prises » l.27, « chouettes » l.97). AFFICHAGE : tableau de marque et dénouement l'écrivent telle
+  /** UNITÉ de ce que le jeu COMPTE, au pluriel (« quilles » l.42, « points » l.70/l.97, « pièces
+   *  prises » l.25, « chouettes » l.90). AFFICHAGE : tableau de marque et dénouement l'écrivent telle
    *  quelle. Absente : des DR — l'unité du jeu rapide (l.11). */
   scoreUnit?: string;
+  /** La même UNITÉ au singulier (« quille », « pièce prise ») : le dénouement l'accorde au compte. */
+  scoreUnitSingular?: string;
   /** MISE, POT, ABANDON, ÉLIMINATION (Al-zahr, l.17) — famille (5) du socle de séquence : les dés du
    *  tour, la plage du nombre cible, les plages de résultat et leur effet de pot. Consommé par
    *  `SequenceParams.pot` (`state/sequenceCore`). */
   pot?: SequencePotRules;
+  /** SPÉCIAUX déclarés (NADJ 16 l.82), lus par `specialsApplicables`. */
+  specials?: TavernSpecial[];
   source: { book: string; page: number };
 }
 
@@ -184,7 +197,6 @@ export interface TavernGameResult {
   opponentSL: number;
   /** Nombre de manches jouées (1 en mode opposé). */
   rounds: number;
-  log: string;
 }
 
 /** Difficulté du Test de jeu de taverne (variante rapide, l.9-11 / Bras de fer l.34) — Intermédiaire (+0). */
@@ -205,8 +217,8 @@ export function roundSL(t: TestResult, cap?: number): number {
  * départage (LDB 12 l.160). Un adversaire INCARNÉ (héros) a une valeur de Test fondue — son porteur
  * (`state/tavernFlow.ts`) réécrit alors `base` à l'accesseur canon.
  */
-export function rollTavernTest(value: number, rng: RNG = defaultRNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY): TestResult {
-  return { ...rollTest(value, difficulty, rng), base: value };
+export function rollTavernTest(value: number, rng: RNG = defaultRNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
+  return { ...rollTest(value, difficulty, rng, modifier), base: value };
 }
 
 /** Issue d'UNE manche entre deux `TestResult` DÉJÀ roulés — PUR (aucun rng, aucune décision de
@@ -238,19 +250,33 @@ export function resolveTavernRound(
   const ps = roundSL(playerTR, game.drCap) + (drBonus.player ?? 0);
   const os = roundSL(opponentTR, game.drCap) + (drBonus.opponent ?? 0);
   const opp = resolveOpposed({ ...playerTR, sl: ps }, { ...opponentTR, sl: os });
-  const winner = opp.winner === 'attacker' ? 'player' : opp.winner === 'defender' ? 'opponent' : 'tie';
+  // NADJ 16 l.105 ; #1921 c.6233078802.
+  const departageGeneral = game.tieBreak === undefined || opp.decidedBy === 'dr';
+  const winner = !departageGeneral || opp.winner === 'tie' ? 'tie' : opp.winner === 'attacker' ? 'player' : 'opponent';
   return { winner, playerSL: ps, opponentSL: os };
 }
 
-/** Ligne de journal d'une manche `opposed` (variante rapide, l.11) — DR contre DR. */
-export function tavernOpposedLog(game: TavernGame, playerSL: number, opponentSL: number, winner: TavernRoundOutcome['winner']): string {
-  return t('tavern.opposedLog', {
-    jeu: game.label, mien: playerSL, sien: opponentSL,
-    issue: t(winner === 'player' ? 'tavern.issueWon' : winner === 'opponent' ? 'tavern.issueLost' : 'tavern.issueTie'),
-  });
+/**
+ * Les Spéciaux du jeu qui valent POUR CE JOUEUR (NADJ 16 l.82 : « si vous avez le Talent ») — lus une
+ * fois, à l'ouverture de la partie, sur sa fiche (`hasTalent`). Un siège sans fiche n'en a aucun.
+ */
+export function specialsApplicables(game: TavernGame, actor: Combatant | undefined): TavernSpecial[] {
+  if (!actor) return [];
+  return (game.specials ?? []).filter((s) => hasTalent(actor, s.hasTalent));
 }
 
-/** Ligne de journal d'une partie `extended` (Bras de fer, l.34) — DR cumulés sur N manches. */
-export function tavernExtendedLog(game: TavernGame, playerSL: number, opponentSL: number, rounds: number): string {
-  return t('tavern.extendedLog', { jeu: game.label, mien: playerSL, sien: opponentSL, rounds, s: rounds > 1 ? 's' : '' });
+/** La Difficulté DE BASE d'un Test du jeu : celle de l'option retenue, sinon celle du jeu (NADJ 16
+ *  l.90, l.105, l.125, l.145), sinon Intermédiaire (LDB 12 l.166). PUR. */
+export function difficulteDeBase(game: TavernGame, choix?: number): Difficulty {
+  return game.options?.[choix ?? 0]?.difficulty ?? game.difficulty ?? TAVERN_TEST_DIFFICULTY;
 }
+
+/** La Difficulté d'un Test du jeu POUR UN JOUEUR : la Difficulté de base, transformée par SES
+ *  Spéciaux dans leur ordre de déclaration (NADJ 16 l.82). PUR. */
+export function difficulteDuJoueur(base: Difficulty, specials: readonly TavernSpecial[]): Difficulty {
+  return specials.reduce<Difficulty>(
+    (d, s) => (s.effet === 'cran' ? easeDifficulty(d, s.steps) : s.difficulty),
+    base,
+  );
+}
+

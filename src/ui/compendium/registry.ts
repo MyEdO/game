@@ -2462,6 +2462,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(
         fact('Compétence', g.skill ? refLabel('skills', g.skill) : 'Pari (aucune Compétence)'),
         fact('Caractéristique', g.characteristic ? CHAR_LABELS[g.characteristic] : null),
+        fact('Difficulté', g.difficulty ? DIFFICULTY_LABELS[g.difficulty] : null),
+        fact('Spéciaux', g.specials?.length ? g.specials.map((sp) => `${refLabel('talents', { id: sp.hasTalent })} : ${
+          sp.effet === 'cran' ? `${sp.steps} cran${sp.steps > 1 ? 's' : ''} plus facile` : DIFFICULTY_LABELS[sp.difficulty]}`).join(' ; ') : null),
         fact('Mode', g.pot ? `Mise et pot (${g.pot.dice.count}d${g.pot.dice.faces})`
           : g.volley ? `Volée de ${g.volley.throws} lancers`
             : g.mode === 'extended' ? `Étendu (${g.target ?? '?'} DR)` : 'Opposé simple'),

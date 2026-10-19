@@ -148,7 +148,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } })
     .optional(),
   /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
-  tavernGame: nommerChamps(z.strictObject({ gameId: z.string(), stakeBrass: z.number().optional() }), { gameId: { label: "jeu" , texte: { regime: "technique"} }, stakeBrass: { label: "mise en cuivre" } }).optional(),
+  tavernGame: nommerChamps(z.strictObject({ gameId: idDe('tavernGame'), stakeBrass: z.number().optional() }), { gameId: { label: "jeu" , texte: { regime: "technique"} }, stakeBrass: { label: "mise en cuivre" } }).optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
    *  places que le TYPE porte (`seatSlots` → `placesJouables`, `state/seating.ts` — la seule capacité
    *  qui vive sur le TYPE, donc la seule qu'un opt-in d'instance ait à ouvrir), `actions` porte les

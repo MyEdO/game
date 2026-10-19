@@ -2531,7 +2531,7 @@
               "on": "caster",
               "ops": [
                 {
-                  "op": "gainAdvantage",
+                  "op": "topUpAdvantage",
                   "amount": "$indice",
                   "feedOpposingPool": true
                 }

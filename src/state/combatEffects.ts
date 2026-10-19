@@ -80,6 +80,7 @@ import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './usable';
 import type { SceneEntity } from './scene';
+import { campAdvantageHooks } from './combat/advantagePool';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -553,8 +554,8 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
 /**
  * RECONSTRUIT l'`OpsCtx` d'une feuille à sa reprise (étape `opsDe`, clôture `reprendreFlowDeCombat`) —
  * lecture UNIQUE de la partition totale d'`OpsCtx` (`engine/ops`) : la part GELÉE revient verbatim, les
- * Combattants sont retrouvés par ID, et ce qui ne se sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, le hook de
- * Corruption branché sur la cible — le seul que le dépôt pose sur une feuille, cf. `OPS_CTX_REBATIS`).
+ * Combattants sont retrouvés par ID, et ce qui ne se sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, les hooks
+ * de Corruption et de gain d'Avantage branchés sur l'état, cf. `OPS_CTX_REBATIS`).
  * `des` est monté par l'applier depuis les étapes sœurs, jamais recopié.
  *
  * Rend `null` quand la COQUE déclarée a disparu entre le mint et la résolution (voyage clos, cascade
@@ -569,6 +570,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     ...porte.gele,
     rng: battleRng(),
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
+    ...campAdvantageHooks(get),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
     ...(crew?.length ? { crew } : {}),
@@ -1629,7 +1631,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { rng: defaultRNG, sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align) });
+        const issue = applyLeafOps(env.get, env.set, c, e, { rng: defaultRNG, sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));

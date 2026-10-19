@@ -39,6 +39,7 @@ import { runPureFlowLines } from './combatEffects';
 import { combatConditionCtx, flowTestGated } from './combat/flowEval';
 import { resolveTestDifficulty } from './flow';
 import { RNG, defaultRNG } from '../engine/dice';
+import { campAdvantageHooks } from './combat/advantagePool';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
@@ -55,7 +56,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
   const diff = arg ? difficultyFromLabel(arg) : undefined;
   // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
   // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
-  // (Redoutable `value:2` → `gainAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
+  // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
   // Si l'instance N'A PAS le paramètre attendu (trait templé posé sans arg/value), l'op est DROPPÉE (null) :
   // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon).
   const substOp = (op: GameOp): GameOp | null => {
@@ -267,7 +268,7 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng?: RNG; ma
    *  auto) reste résolu inline. */
   deferInteractiveTest?: boolean;
   /** `OpsCtx.onOpposingAdvantage` (Redoutable AA, `MDG 16 l.13`) — fourni par `turnHooks.fireTurnEdgeTriggers`
-   *  pour `onTurnStart` ; threadé tel quel dans le `flowCtx` de CHAQUE effet (l'op `gainAdvantage` porteuse
+   *  pour `onTurnStart` ; threadé tel quel dans le `flowCtx` de CHAQUE effet (l'op `topUpAdvantage` porteuse
    *  du flag `feedOpposingPool` l'appelle). Absent ailleurs → clause inerte (cf. `engine/ops.ts`). */
   onOpposingAdvantage?: (n: number) => string[] }
 
@@ -432,7 +433,7 @@ export function applyTriggeredEffects(
       // fournit `set` + un routeur installé. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `if`.
-      const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage,
+      const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };

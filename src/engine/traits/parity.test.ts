@@ -151,7 +151,7 @@ const DISPATCH = new Set<string>([
   // par le JOUEUR via `battleSelfManeuver` (hotbar). Dispatché (grantsManeuvers). Auto-transformation de l'IA à câbler.
   'Métamorphose',
   // Redoutable (ZI) : Avantage min = Indice au début du tour — effet `onTurnStart` en donnée (op
-  // gainAdvantage, indice baké via withArg, gardé Empêtré/Surpris). Dispatché comme tout `effects`.
+  // topUpAdvantage, indice baké via withArg, gardé Empêtré/Surpris). Dispatché comme tout `effects`.
   'Redoutable',
   // Aura de Dhar (frenchy-bzh 295 l.233 / 313 l.341) : DEUX entrées, une par dieu — le texte filtre les
   // bénéficiaires par « de Slaanesh »/« de Nurgle » et n'a pas la même portée (10 m / 11 m). Aura

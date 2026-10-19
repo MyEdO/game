@@ -253,7 +253,7 @@ export const CLASSE_DES_ACTIONS = {
   councilPay: 'hôte', councilClose: 'hôte',
   // ── Décisions de GROUPE (mer, taverne, poursuite, séance) ─────────────────────────────────────
   seaActivitiesConfirm: 'hôte', resolveShoreLeave: 'hôte', resolveManannPriest: 'hôte',
-  playTavernGame: 'hôte', closeTavernGames: 'hôte', openTavernGames: 'hôte', pursuitAbandon: 'hôte',
+  playTavernGame: 'hôte', closeTavernGames: 'hôte', openTavernGames: 'hôte', sequenceAbandon: 'hôte',
   endSession: 'hôte', closeSessionEnd: 'hôte',
   // Cadre de campagne (#717) : l'invité VOIT les deux écrans (la cérémonie et la chronique se partagent
   // à la table) mais leurs GESTES sont à l'hôte, comme la fin de séance qu'ils enchaînent — l'ouverture

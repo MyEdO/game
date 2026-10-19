@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
-import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, TAVERN_TEST_DIFFICULTY, type TavernGame } from '../engine/tavernGame';
+import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { HABITUE, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../state/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../state/sceneNpc';
@@ -111,8 +111,8 @@ export function TavernGameModal() {
 
   // LE CADRE DU JET, DÉRIVÉ DU RÉGIME EN VIGUEUR — jamais une phrase figée :
   //  · rapide (`NADJ 16 l.11`) : le Test que la projection a retenu, à Intermédiaire (+0) ;
-  //  · complet : le Test de la PREMIÈRE option quand l'entrée en déclare (Cerevis « Pari Accessible
-  //    (+20) », Middenball), sinon celui du jeu à sa Difficulté de manche.
+  //  · complet : le Test de la PREMIÈRE option quand l'entrée en déclare (Middenball), sinon celui du
+  //    jeu, à la Difficulté de base (`difficulteDeBase`) que les Spéciaux du challenger ajustent.
   // Le nom du Test passe par `testSkillLabel` : un id moteur (« force ») n'est pas un
   // libellé d'écran (doctrine « on ne manipule que des ids, on n'AFFICHE que des labels »).
   const rapide = tavernFastRegime();
@@ -121,9 +121,9 @@ export function TavernGameModal() {
     skill: opt?.skill ?? game?.skill,
     char: opt?.char ?? (opt?.skill ? undefined : game?.characteristic),
   };
-  const difficulteAffichee: Difficulty = rapide ? TAVERN_TEST_DIFFICULTY : (opt?.difficulty ?? TAVERN_TEST_DIFFICULTY);
+  const difficulteAffichee: Difficulty | undefined = game && difficulteDuJoueur(difficulteDeBase(game), specialsApplicables(game, challenger));
   const nomDuTest = testSkillLabel(testAffiche) ?? refLabel('skills', { id: 'pari' });
-  const skillLine = game ? `${nomDuTest} ${DIFFICULTY_LABELS[difficulteAffichee]}` : '';
+  const skillLine = difficulteAffichee ? `${nomDuTest} ${DIFFICULTY_LABELS[difficulteAffichee]}` : '';
   const challengerVal = game && challenger ? tavernGameValue(challenger, game) : 0;
   const habitue = pnjAuProfil(profilId, HABITUE);
   const coequipier = pnjAuProfil(allyProfilId, HABITUE);
@@ -203,11 +203,8 @@ export function TavernGameModal() {
           <p className={`tavern-verdict ${result.winner === 'player' ? 'ok-text' : result.winner === 'opponent' ? 'ko-text' : ''}`}>
             {result.winner === 'player' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'opponent' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
           </p>
-          <p className="tavern-detail">
-            {/* Un jeu qui ne compte pas en DR (jeu de MISE) porte SA ligne, composée par le jeu. */}
-            {result.detail ?? `DR ${result.playerSL} contre ${result.opponentSL}`}
-            {result.rounds > 1 ? ` · ${result.rounds} manches` : ''}
-          </p>
+          {/* Le score dans l'unité du jeu, composé par son dénouement (`TavernGamesResult.detail`). */}
+          <p className="tavern-detail">{result.detail}</p>
           {result.netBrass !== 0 && (
             <p className="tavern-detail">
               {result.netBrass > 0 ? 'Gain : +' : 'Perte : −'}

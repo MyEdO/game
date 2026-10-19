@@ -21,7 +21,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
-import { findTavernGameById } from '../engine/tavernGame';
+import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
+import { setDataset } from '../data/overrides';
 import { effectiveTarget } from './rollSeam';
 import { testValue } from '../engine/skills';
 import { addCondition, COND } from '../engine/conditions';
@@ -90,7 +91,8 @@ afterEach(() => {
 
 describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', () => {
   it('Test combiné Initiative + Pari Accessible (+20), 3 échecs, 2 chouettes effacées, marque au perdant', () => {
-    expect(CEREVIS.options?.[0], '« Pari Accessible (+20) »').toEqual({ skill: { id: 'pari' }, difficulty: 'accessible' });
+    expect(CEREVIS.difficulty, '« Pari Accessible (+20) »').toBe('accessible');
+    expect(CEREVIS.skill).toEqual({ id: 'pari' });
     expect(CEREVIS.combined?.second, '« un Test combiné d’Initiative et de… »').toEqual({ char: 'initiative' });
     expect(CEREVIS.combined?.failEvery, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
     expect(CEREVIS.combined?.eraseEvery, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
@@ -220,7 +222,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     expect(compte().erased.player).toBe(1);
   });
 
-  it('DEUX chouettes effacées appellent l’alcool (l.97) — une seule, non', () => {
+  it('DEUX chouettes effacées appellent l’alcool (l.90) — une seule, non', () => {
     const a = seul();
     const poser = (erased: number): void => {
       useGame.setState({
@@ -255,6 +257,17 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
     expect(res.winner, '1 chouette contre 3 : le plus sobre gagne').toBe('player');
     expect([res.playerSL, res.opponentSL], 'ce qui se compte, ce sont les chouettes').toEqual([1, 3]);
     expect(get().sequence).toBeNull();
+  });
+
+  it('la ligne finale dit l’unité de score DÉCLARÉE par le jeu (`scoreUnit`), jamais un mot en dur', () => {
+    const catalogue = [...TAVERN_GAMES];
+    setDataset('tavernGames', catalogue.map((g) => (g.id === 'cerevis' ? { ...g, scoreUnit: 'marques', scoreUnitSingular: 'marque' } : g)));
+    try {
+      const a = seul();
+      useGame.setState({ sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { player: 1, opponent: 3 }) });
+      closeSequenceRound(get, useGame.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
+      expect(get().tavernGames!.result!.detail).toContain('1 marque contre 3 en');
+    } finally { setDataset('tavernGames', catalogue); }
   });
 
   it('un joueur SOUS LA TABLE arrête la partie avant terme (l.88)', () => {

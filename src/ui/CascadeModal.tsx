@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
 import { availableResistance, resistanceImproves } from '../engine/menace';
 import { RollShell, type RollAction } from './RollShell';
@@ -33,7 +34,7 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../state/rollSeam';
 import { useOwns } from './ownership';
-import { pursuitOf } from '../state/pursuitFlow';
+import { sequenceAbandonEtatOf } from '../state/sequenceCore';
 import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
 import { opposedResponded } from './opposedFrozen';
@@ -95,6 +96,18 @@ export function tableLineLabel(defLabel: string | undefined, stepLabel: string |
   return dejaLu.includes(l.toLowerCase()) ? '' : l;
 }
 
+/** COQUE d'une étape de cascade : `RollShell` + l'ABANDON de la séquence en cours (`SequenceDef.abandon`),
+ *  servi par TOUTE branche d'étape — l'issue est celle que la définition nomme. Un abandon FERMÉ (demandé,
+ *  ou manche entamée sans être résolue) reste affiché avec sa raison (`sequenceAbandonEtatOf`). */
+function CoqueDEtape(props: ComponentProps<typeof RollShell>): JSX.Element {
+  const sequenceAbandon = useGame((s) => s.sequenceAbandon);
+  const abandon = useGame(useShallow((s) => sequenceAbandonEtatOf(() => s)));
+  const actions: RollAction[] = abandon
+    ? [{ key: 'break', label: abandon.label, title: abandon.title, onClick: () => sequenceAbandon(), when: 'always', ...(abandon.refus !== undefined ? { refus: abandon.refus } : {}) }, ...props.actions]
+    : props.actions;
+  return <RollShell {...props} actions={actions} />;
+}
+
 /**
  * CASCADE de jets SÉQUENTIELS (nuit / voyage) — c'est LA coquille de jet partagée `RollShell`,
  * paramétrée comme `DefenseModal` : plusieurs RANGÉES de jet avec portraits (`RollShell rows`). Chaque
@@ -115,8 +128,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingCascade);
   const identites = useIdentites();
-  const pursuit = useGame((s) => pursuitOf(s)); // manche de poursuite (séquence `pursuit`) — porte partyRole/encounter
-  const pursuitAbandon = useGame((s) => s.pursuitAbandon);
   const batchRoll = useGame((s) => s.cascadeBatchRoll); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
   const batchReroll = useGame((s) => s.cascadeBatchReroll);
   const batchBonusSL = useGame((s) => s.cascadeBatchBonusSL);
@@ -442,11 +453,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // les props du hook : celui qui porte DÉJÀ son enjeu (Test étendu, dont le pending le transporte)
   // garde le sien, sans jamais deux `StakeNote`.
   const JET_RENDERERS: Record<NonNullable<CascadeStep['jet']>, () => JSX.Element> = {
-    attack: () => <RollShell {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
-    defense: () => <RollShell {...stakeProps} {...defenseProps!} embedded={embedded} etape={etape} />,
-    fumble: () => <RollShell {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
-    test: () => <RollShell {...stakeProps} {...testProps!} embedded={embedded} etape={etape} />,
-    extended: () => <RollShell {...stakeProps} {...extendedProps!} embedded={embedded} etape={etape} />,
+    attack: () => <CoqueDEtape {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
+    defense: () => <CoqueDEtape {...stakeProps} {...defenseProps!} embedded={embedded} etape={etape} />,
+    fumble: () => <CoqueDEtape {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
+    test: () => <CoqueDEtape {...stakeProps} {...testProps!} embedded={embedded} etape={etape} />,
+    extended: () => <CoqueDEtape {...stakeProps} {...extendedProps!} embedded={embedded} etape={etape} />,
     disengage: () => <DisengageModal />,
     forceDoor: () => <ForceDoorModal />,
     cast: () => <CastModal />,
@@ -473,21 +484,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     key: 'next', label: isLast ? 'Terminer' : 'Continuer', onClick: () => next(), when: 'always',
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
-  // Poursuite terrestre (séquence `pursuit`) : renoncer coûte la manche — le groupe qui FUIT se
-  // laisse rattraper (combat si une rencontre est fournie, LDB 15 l.94) ; côté poursuivant, la
-  // proie s'échappe (state/pursuitFlow.pursuitAbandon porte la vraie conséquence). Une manche est
-  // une BANDE : ces actions ne sont servies qu'à la branche BATCH.
-  const pursuitActions: RollAction[] = pursuit ? [{
-    key: 'break',
-    label: pursuit?.partyRole === 'pursuing' ? 'Abandonner la poursuite' : 'Abandonner la fuite',
-    onClick: () => pursuitAbandon(),
-    title: pursuit?.partyRole === 'pursuing'
-      ? 'Le groupe renonce à traquer sa proie — la poursuite est perdue.'
-      : pursuit?.encounter
-        ? 'Le groupe cesse de fuir et fait face — les poursuivants fondent sur lui.'
-        : 'Le groupe cesse de fuir et fait face.',
-    when: 'always',
-  }] : [];
 
   // AFFORDANCES DE POSE du dé d'une étape (#942 L3, généralisées aux deux lectures en #1508) — une
   // seule sémantique (POSER LE DÉ) : le champ « Fixer le dé » (sélecteur dérivé par la COUTURE UNIQUE
@@ -563,7 +559,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
     ];
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         rolled={false}
@@ -591,7 +587,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
     ];
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length }, porteurZ1(cur))}
         rolled={false}
@@ -615,7 +611,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       const revActor = rev.actorId ? pool.find((c) => c.id === rev.actorId) : undefined;
       const revSubject = rev.subjectId ? pool.find((c) => c.id === rev.subjectId) : undefined;
       return (
-        <RollShell
+        <CoqueDEtape
           title={titleNode}
           subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
           rolled
@@ -636,7 +632,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // COURANTE (le dé se re-pose, la ligne se re-choisit) — le tirage n'est pas un aller sans retour.
     const aff = affordancesDuDe(cur);
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length }, porteurZ1(cur))}
         rolled
@@ -676,7 +672,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const q = cur.quantity!;
     const n = cur.amount ?? q.min;
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         rolled
@@ -721,7 +717,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const revActor = rev?.actorId ? pool.find((c) => c.id === rev.actorId) : undefined;
     const revSubject = rev?.subjectId ? pool.find((c) => c.id === rev.subjectId) : undefined;
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         rolled
@@ -850,11 +846,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const batchActions: RollAction[] = [
       ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)', when: 'always' } as RollAction] : []),
       ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout résoudre</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)", when: 'always' } as RollAction] : []),
-      ...pursuitActions,
       ...(ready ? [continueAction] : []),
     ];
     return (
-      <RollShell
+      <CoqueDEtape
         title={titleNode}
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         {...stakeProps}
@@ -929,7 +924,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   ];
 
   return (
-    <RollShell
+    <CoqueDEtape
       title={titleNode}
       /* « jet N/M » : N = jets de dé jusqu'ici + celui-ci, M = total des jets RÉELS (arbitrage user
          2026-07-11 — l'agrégation/la météo/les affichages ne comptent pas). */

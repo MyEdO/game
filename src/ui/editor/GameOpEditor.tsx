@@ -69,7 +69,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   kill: 'journal/damage',
   removeShipPoste: 'travel/anchor', teamCommander: 'action/lead', attackKeyword: 'item/weapon',
   mitigateIncoming: 'mechanic/ward', ignoreStatePenalties: 'ui/done', freeReroll: 'resource/fortune',
-  critTwice: 'journal/critical', gainResource: 'resource/fortune', gainAdvantage: 'flag/focus',
+  critTwice: 'journal/critical', gainResource: 'resource/fortune', gainAdvantage: 'flag/focus', topUpAdvantage: 'flag/focus',
   attrMod: 'resource/fortune', corruption: 'nav/mutation', sinMod: 'ui/balance', corruptionExposure: 'nav/mutation',
   castPenalty: 'mechanic/ward', money: 'resource/gold-purse', statusMod: 'ui/balance', grantReverseToken: 'resource/fortune', castWard: 'mechanic/ward', arrowWard: 'mechanic/ward', domeWard: 'mechanic/ward',
   attackWardFM: 'mechanic/ward', grantWeapon: 'mechanic/invoke', grantNaturalWeapon: 'mechanic/invoke',

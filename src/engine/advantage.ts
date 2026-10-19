@@ -17,7 +17,19 @@ export function advantageCapFor(c: Combatant): number {
 }
 
 /** Gain d'Avantage CENTRALISÉ (héros ET ennemis) : clamp au plafond effectif du combattant. Les
- *  pertes et remises à zéro restent des affectations directes (LDB 14 l.219, 16 l.15…). Pure. */
+ *  remises à zéro restent des affectations directes (LDB 14 l.219, 16 l.7…). Pure. */
 export function gainAdvantage(c: Combatant, n = 1): void {
-  if (n > 0) c.advantage = Math.min(advantageCapFor(c), c.advantage + n);
+  c.advantage = avantageApresGain(c.advantage, n, advantageCapFor(c));
+}
+
+/** Avantage d'un porteur qui en tient `avant` après un gain de `n`, sous `plafond` — l'arithmétique de
+ *  `gainAdvantage`, pour un porteur sans fiche suivie (LDB 14 l.198). Pure. */
+export function avantageApresGain(avant: number, n: number, plafond: number): number {
+  return n > 0 ? Math.min(plafond, avant + n) : avant;
+}
+
+/** Avantage d'un porteur qui en tient `avant` après en avoir perdu `n` — tous sans `n`, plancher 0
+ *  (LDB 14 l.219). Pure. */
+export function avantageApresPerte(avant: number, n?: number): number {
+  return Math.max(0, avant - (n ?? avant));
 }

@@ -8,7 +8,7 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -556,25 +556,15 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
  * type canon (LDB Tests + extrêmes EDO App.2) — pas seulement le sous-ensemble présent aujourd'hui —
  * car c'est le type que les consommateurs attendent, une future entrée peut légitimement en ajouter.
  */
-export const difficultySchema = z.enum([
-  'tresFacile',
-  'facile',
-  'accessible',
-  'intermediaire',
-  'complexe',
-  'difficile',
-  'tresDifficile',
-  'presqueImpossible',
-  'impossible',
-]);
+export const difficultySchema = enumNomme(DIFFICULTY_LABELS);
 
 /**
  * Sous-ensemble de `difficultySchema` que la colonne « Pénalité de Couvert » d'une Structure peut porter
  * (`AA 10 l.28-51`) : les quatre échelons auxquels une classe de couvert répond (`CoverClass`,
- * `engine/cover.ts`). DÉRIVE du tuple canon `COUVERT_DIFFICULTES` (`src/engine/types.ts`) par
- * `.extract` — il ne re-tape rien.
+ * `engine/cover.ts`). DÉRIVE du tuple canon `COUVERT_DIFFICULTES` (`src/engine/types.ts`) et des
+ * libellés canon `DIFFICULTY_LABELS` — il ne re-tape rien, et garde ses libellés (son propre `enumNomme`).
  */
-export const couvertDifficultySchema = difficultySchema.extract(COUVERT_DIFFICULTES);
+export const couvertDifficultySchema = enumNomme(tableTotale(COUVERT_DIFFICULTES, (d) => DIFFICULTY_LABELS[d]));
 
 /**
  * `CharKey` (`src/engine/types.ts`) — les 10 Caractéristiques. Réf récurrente (Conditions `compare`,
@@ -942,7 +932,7 @@ export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE,
  * ou sur une expression de dé authorée (`structure-criticals.die`). La couverture EXACTE du domaine
  * se vérifie, elle, par `ecartsDeCouverture` ci-dessous.
  */
-export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "minimum" }, max: { label: "maximum" } });
+export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "Minimum" }, max: { label: "Maximum" } });
 
 /**
  * FOURCHETTE À BORNE EXTRÊME OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande

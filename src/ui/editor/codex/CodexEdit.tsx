@@ -355,8 +355,8 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
   if (categoryKey === 'characteristics') add('options'); // dépenses d'une ressource → éditeur GÉNÉRIQUE commun
-  // options de Test (l.121), barème par plage de DR (l.111), camps asymétriques (l.27) → MÊME éditeur générique
-  if (categoryKey === 'tavernGames') add('options', 'table', 'sides');
+  // options de Test (l.119), barème par plage de DR (l.111), camps asymétriques (l.25) → MÊME éditeur générique
+  if (categoryKey === 'tavernGames') add('options', 'table', 'sides', 'specials');
   if (categoryKey === 'creatures') add('traits', 'optionals', 'harvest');
   if (categoryKey === 'details') add('texts');
   if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657)
@@ -817,11 +817,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {/* DÉPENSES d'une ressource (`characteristics.options` — Résilience, #1117 geste 5) : tableau
             top-level d'objets homogènes → MÊME éditeur générique que la rubrique de Vent. */}
         {categoryKey === 'characteristics' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
-        {/* OPTIONS de Test d'un jeu de taverne (`tavernGames.options` — Middenball NADJ 16 l.119 :
-            Bagarre (+20) OU Athlétisme (+0)) : même forme, même éditeur générique. */}
-        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options de Test (la règle en offre plusieurs — le joueur choisit)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
-        {/* Barème de points par plage de DR (`tavernGames.table` — Torchon trempé NADJ 16 l.111). */}
-        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="barème de points par plage de DR" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
+        {/* NADJ 16 l.119 ; NADJ 16 l.111 ; NADJ 16 l.25 ; NADJ 16 l.82 */}
+        {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
+          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
+        ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
         {isCreature && (
@@ -2045,11 +2044,11 @@ function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin:
   return (
     <div className="ed-field ed-subform">
       <span>{label}</span>
-      <div className="ed-subfield">
+      <Grid className="ed-champs" min="sm" gap="sm">
         {subFields.map((f) => (
           <Field key={f.key} chemin={`${chemin}/${f.key}`} sujet={`de ${label}${sujet ? ` ${sujet}` : ''}`} field={f} value={obj[f.key]} onChange={(v) => onChange({ ...obj, [f.key]: v })} />
         ))}
-      </div>
+      </Grid>
     </div>
   );
 }
@@ -2086,12 +2085,12 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
     <div className="ed-field ed-subform">
       <span>{label}</span>
       {list.map((row, i) => (
-        <div className="ed-subfield" key={cles[i]}>
+        <Grid className="ed-champs" min="sm" gap="sm" key={cles[i]}>
           {cols.map((f) => nestedCols.has(f.key)
             ? <GenericArrayField key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} label={f.label} value={(row[f.key] as Record<string, unknown>[] | undefined) ?? []} noeud={f.noeud} columns={nestedCols.get(f.key)} onChange={(v) => setRow(i, f.key, v)} />
             : <Field key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} field={f} value={row[f.key]} onChange={(v) => setRow(i, f.key, v)} />)}
           <button className="btn small danger" aria-label={`Retirer la rangée ${i + 1} de ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
-        </div>
+        </Grid>
       ))}
       <button className="btn small" aria-label={`Ajouter une rangée à ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange([...list, {}])}>+ Ajouter</button>
     </div>

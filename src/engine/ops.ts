@@ -53,6 +53,7 @@ import { ConjureForm, conjureFormOptions, equipConjuredWeapon } from './conjured
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import type { Duration } from './duration';
+import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } from './advantage';
 import { rule } from './policy'; // module FEUILLE (registre des règles optionnelles) : terme `{rule}` d'une Formula
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
@@ -79,7 +80,7 @@ import { formatTrait, formatWardSave } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { TraitInstance } from './statEntry';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, type MsgKey } from '../i18n';
+import { t, pluriel, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 
 // ---------------------------------------------------------------------------
@@ -153,6 +154,20 @@ export function resolveFormula(f: Formula, ref: Combatant, rng: RNG = defaultRNG
   if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + resolveFormula(term, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl), 0);
   if ('times' in f) return resolveFormula(f.times.of, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl) * resolveFormula(f.times.factor, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl);
   return rollDice(f.dice, rng);
+}
+
+/** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
+ *  d'Avantage s'y lit (`gainAdvantage`, `spendAdvantage`), par les primitives d'`engine/advantage`. Toute
+ *  autre op lève : elle n'a aucun porteur où tomber (#2333). */
+export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], plafond: number, ref?: Combatant): number {
+  return ops.reduce((n, o) => {
+    if (o.op === 'gainAdvantage') {
+      if (typeof o.amount !== 'number' && !ref) throw new Error(`[avantage de camp] formule d'Avantage sans fiche où la résoudre (#2333)`);
+      return avantageApresGain(n, Math.max(0, typeof o.amount === 'number' ? o.amount : resolveFormula(o.amount, ref!)), plafond);
+    }
+    if (o.op === 'spendAdvantage') return avantageApresPerte(n, o.amount);
+    throw new Error(`[avantage de camp] op « ${o.op} » hors du vocabulaire d'Avantage d'un camp sans fiche (#2333)`);
+  }, avant);
 }
 
 /** Clés reconnues d'une `Formula` OBJET — SOURCE UNIQUE, alignée sur l'union `Formula` et sur les
@@ -555,14 +570,18 @@ export type GameOp =
    *  par +2 DR ». `amount` NÉGATIF = retrait (Dague voleuse de chance, VDM 12 l.833) — le compteur
    *  plancher à 0, jamais l'argument. */
   | { op: 'gainResource'; resource: 'fortune' | 'fate'; amount: number; perSL?: PerSL; temporary?: boolean }
-  /** Porte l'Avantage de la cible à AU MOINS `amount` (jamais réduit). Trait Redoutable (ZI) : au début
-   *  de son tour, la créature complète ses Avantages jusqu'à son *Indice* (`amount: '$indice'` baké).
+  /** Gain ADDITIF de `amount` Avantages (NADJ 16 l.34, LDB 14 l.204-209), plafonné (`engine/advantage`).
+   *  Passe par `ctx.onGainAdvantage` quand la couche state le fournit (`campGain` en combat) ; sinon le
+   *  primitif `engine/advantage.gainAdvantage`. */
+  | { op: 'gainAdvantage'; amount: Formula }
+  /** Porte l'Avantage de la cible à AU MOINS `amount` (jamais réduit). Trait Redoutable (MDG 16 l.11) :
+   *  complétion jusqu'à l'*Indice* (`amount: '$indice'` baké).
    *  `feedOpposingPool` : clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) — QUAND
    *  cette op S'EXÉCUTE (le garde-fou Empêtré/Inconscient/Surpris, MDG 16 l.11, vit dans le nœud `if`
    *  englobant de la donnée — jamais revérifié ici), la créature génère EN PLUS l'Indice PLEIN (`amount`
    *  résolu, pas le seul manquant) pour la réserve adverse, via `ctx.onOpposingAdvantage` (même patron que
    *  `ctx.onCorruption`) — consommé kind-agnostiquement par la couche state (`state/combat/advantagePool.ts`). */
-  | { op: 'gainAdvantage'; amount: Formula; feedOpposingPool?: boolean }
+  | { op: 'topUpAdvantage'; amount: Formula; feedOpposingPool?: boolean }
   /** Pénalité/blocage d'incantation temporisé (contrecoups, LDB 46/40) : −N à une
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
    *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
@@ -1132,8 +1151,8 @@ export type GameOp =
    *  `critTrigger`). Lu PAR ID par `qualityCritTriggered`. INERTE dans `applyOps`. */
   | { op: 'critOnRoll'; mod: number; equals: number }
   /** Dépense `amount` Points d'Avantage du RÉFÉRENT (Déstabilisante : coût d'un Test de renversement).
-   *  Effet PUR appliqué par `applyOps` (jamais sous 0). */
-  | { op: 'spendAdvantage'; amount: number }
+   *  `amount` absent = TOUS (LDB 14 l.219). Effet PUR appliqué par `applyOps` (jamais sous 0). */
+  | { op: 'spendAdvantage'; amount?: number }
   /** Émission de LUMIÈRE — `radiusM` = le rayon éclairé en MÈTRES, la valeur RAW telle qu'elle est
    *  écrite (Bougie 10 m `LDB 74 l.43`, Lanterne 20 m `LDB 74 l.58`) ; c'est `rayonEnCases`
    *  (`state/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
@@ -1324,9 +1343,13 @@ export interface OpsCtx {
   /** Gain de Corruption AVEC seuil → mutation (corruptionFlow) ; sans contexte
    *  store, l'op `corruption` incrémente simplement le compteur. */
   onCorruption?: (n: number, align?: ChaosAlign) => string[];
+  /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par la couche state (`state/combat/advantagePool.ts`
+   *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
+   *  `engine/advantage.gainAdvantage`. */
+  onGainAdvantage?: (c: Combatant, n: number) => void;
   /** Clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) : branché par le store
    *  (`state/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
-   *  pour `onTurnStart`) sur l'op `gainAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
+   *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
    *  réserve du camp OPPOSÉ. Sans contexte (moteur pur/tests, hors mode groupe), la clause est inerte. */
   onOpposingAdvantage?: (n: number) => string[];
   /** ARME du coup courant — quand un `op:'wounds' { weaponHit:true }` résout les Blessures comme un coup
@@ -1592,7 +1615,7 @@ export const OPS_CTX_GELES = [
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
 /** REBÂTIS à la reprise par un chemin NOMMÉ : le rng de la partie, le hook de Corruption branché sur la
  *  cible, et les dés eux-mêmes (relus sur les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE sur une feuille qui veut différer
  *  est un fail-fast NOMMÉ (`state/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
  *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude, du bus de
@@ -1762,9 +1785,18 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         break;
       }
       case 'gainAdvantage': {
+        const n = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks));
+        const avant = target.advantage ?? 0;
+        if (ctx.onGainAdvantage) ctx.onGainAdvantage(target, n);
+        else gainAvantage(target, n);
+        const gagne = (target.advantage ?? 0) - avant;
+        if (gagne > 0) lines.push(t('op.gainAdvantage', { name: target.label, n: gagne, s: pluriel(gagne) }));
+        break;
+      }
+      case 'topUpAdvantage': {
         // Porte l'Avantage à AU MOINS `amount` (jamais réduit) — Redoutable complète jusqu'à l'Indice.
         const want = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks));
-        if ((target.advantage ?? 0) < want) { target.advantage = want; lines.push(t('op.gainAdvantage', { name: target.label, n: want })); }
+        if ((target.advantage ?? 0) < want) { target.advantage = want; lines.push(t('op.topUpAdvantage', { name: target.label, n: want })); }
         // Clause AA Redoutable (MDG 16 l.13) : l'op S'EXÉCUTE ⇒ le garde-fou de la donnée (empetre/
         // inconscient/surpris, dans le nœud `if` englobant) est déjà franchi — l'Indice PLEIN part EN
         // PLUS pour la réserve adverse, indépendamment de si `target.advantage` avait déjà atteint `want`.
@@ -1816,6 +1848,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
           ? resolveFormula(o.durationMinutes ?? 0, ref, rng) + resolveFormula(o.durationHours ?? 0, ref, rng) * 60
           : undefined;
         const rounds = clockMin == null && o.durationRounds != null ? resolveFormula(o.durationRounds, ref, rng) : undefined;
+        const avantageAvant = target.advantage ?? 0;
         if (o.perRound) {
           // État récurrent = cas particulier de l'effet récurrent général (op `perRound`) : la
           // valeur est figée maintenant, l'op `condition` littérale est re-jouée chaque fin de Round,
@@ -1848,6 +1881,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         // Les QUATRE branches ci-dessus poussent EXACTEMENT une ligne nommant `o.id` : la notification
         // se pose ici, une fois, appariée à elle (une 5ᵉ branche future est couverte par construction).
         ctx.onCondition?.({ stateId: o.id, change: 'gain', targetId: target.id });
+        if (avantageAvant > 0 && !target.advantage) lines.push(t('op.spendAllAdvantage', { name: target.label })); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
         // (`ctx.caster`) et la cible — UNE seule fois (les ré-applications perRound ne portent pas le flag).
         if (o.grapple && ctx.caster && ctx.caster.id !== target.id) setGrapple(ctx.caster, target);
@@ -2870,7 +2904,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         break;
       case 'spendAdvantage': {
         const who = ctx.caster ?? target;
-        who.advantage = Math.max(0, (who.advantage ?? 0) - o.amount);
+        const avant = who.advantage ?? 0;
+        who.advantage = avantageApresPerte(avant, o.amount);
+        if (o.amount == null && avant > 0) lines.push(t('op.spendAllAdvantage', { name: who.label }));
         break;
       }
       case 'ignoreAnimosity': {

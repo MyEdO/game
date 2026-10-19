@@ -674,8 +674,8 @@ export interface GameState extends RollFlowActionsMap {
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
    *  d'auteur) + la charge utile du domaine ; persisté entre les manches. `null` hors séquence. */
   sequence: EtatDeSequence | null;
-  /** Abandon de la poursuite terrestre (le groupe renonce à fuir/traquer). */
-  pursuitAbandon: () => void;
+  /** Abandon de la séquence en cours, quand sa définition en déclare un (`SequenceDef.abandon`). */
+  sequenceAbandon: () => void;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
    *  auto-roulée, cible héros = interactive). `oppositionConfirm` agrège → `pendingCast.opposedOutcome`
