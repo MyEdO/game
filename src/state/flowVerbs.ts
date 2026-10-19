@@ -2,7 +2,7 @@
  * SOURCE UNIQUE du câblage des flux de jet différé — table de DONNÉES PURE (aucun import runtime).
  *
  * Elle vit à part de `rollFlowSpecs.ts` parce que ses consommateurs ne veulent PAS le graphe du store :
- * `net/intents.ts` en DÉRIVE la surface d'intents invité, et `rollFlowSpecs` (donc `FLOWS`, donc le store)
+ * `state/intents.ts` en DÉRIVE la surface d'intents invité, et `rollFlowSpecs` (donc `FLOWS`, donc le store)
  * n'est pas importable depuis là sans cycle d'initialisation. `rollFlowSpecs` la ré-exporte pour ses
  * propres consommateurs.
  *
@@ -64,9 +64,7 @@ export type FlowVerbs =
    *  `coop:true` reposé sur un mono ne compile plus.
    *  `resolution` OBLIGATOIRE (#1050) : les actions de store MANUSCRITES qui résolvent/closent CETTE
    *  fenêtre (Appliquer / Annuler / avancer). Elles sont DÉRIVÉES dans la surface invité comme les
-   *  verbes — avant, chaque flux multi les recopiait à la main dans `net/intents.ts` (2 lignes que
-   *  personne ne vérifiait : `oppositionConfirm` y manquait, et la cible invitée d'un sort opposé
-   *  jetait sans pouvoir appliquer). Liste VIDE = ce flux n'a aucune action de clôture propre (sa
+   *  verbes. Liste VIDE = ce flux n'a aucune action de clôture propre (sa
    *  fenêtre est close par la cascade hôte). Leur POSSESSION est celle de la FENÊTRE (repli
    *  `modalOwnerOf`) et non d'un porteur : ce sont des décisions de GROUPE qui agrègent TOUTES les
    *  rangées — router `oppositionConfirm` sur le lanceur rendrait un Sort ENNEMI inapplicable dès
@@ -152,7 +150,7 @@ export const flowActionName = (prefix: string, verb: string): string =>
 
 /**
  * Surface d'intents invité DÉRIVÉE de la table — aucun flux n'a de ligne à écrire dans
- * `net/intents.ts` :
+ * `state/intents.ts` :
  *  - MONO : TOUS ses verbes, `resist` et `cancel` compris (#1017), PLUS ses actions de `resolution`.
  *    Le porteur d'un flux mono peut être le héros d'un autre siège ; la surface ne décide donc rien,
  *    elle suit la POSSESSION, seule garde de dépense (`netOwnership.intentAllowedFor` →

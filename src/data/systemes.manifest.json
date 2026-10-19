@@ -211,7 +211,7 @@
       "src/state/netOwnership.ts",
       "src/net/relay.ts",
       "src/net/session.ts",
-      "src/net/intents.ts",
+      "src/state/intents.ts",
       "src/ui/CoopLobby.tsx",
       "src/ui/CoopPanels.tsx"
     ],

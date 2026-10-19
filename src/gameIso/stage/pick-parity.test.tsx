@@ -610,7 +610,7 @@ describe('sonde de picking — hors combat, un décor volumique nommé rend SA c
 /**
  * CONFORMITÉ de la SONDE DE RECETTE (#1687) — `state/devtools.ts` déclare la forme que le rendu lui
  * rend SANS pouvoir l'importer : la frontière `src/state ↛ src/gameIso` refuse jusqu'au `import type`
- * (`murs/purete-imports`, `oxlint.config.mjs`). Ce test vit du côté qui voit les DEUX types, et refuse
+ * (`murs/purete-imports`, `scripts/guards/lib/couches.mjs`). Ce test vit du côté qui voit les DEUX types, et refuse
  * qu'une 3ᵉ forme naisse : les deux se contiennent l'une l'autre, sinon le typecheck rougit ici.
  */
 describe('sonde de recette — la forme déclarée au store EST le verdict du rendu (#1687)', () => {

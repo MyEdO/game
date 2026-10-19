@@ -17,7 +17,7 @@ import { useGame, type BattleState } from './store';
 import { openAttackCascade, maybeOpenDefense } from './combatFlow';
 import { intentAllowedFor, modalOwnerOf } from './netOwnership';
 import { jetOwnedIntents } from './flowVerbs';
-import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from '../net/intents';
+import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';

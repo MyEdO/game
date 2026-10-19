@@ -13,7 +13,7 @@
  * racine `root` d'un dataset : le def dit son fichier, le registre dit d'où il vient).
  * `projection` (option PAR registre) : projette les ids des defs (et, avec `champ`, la valeur de ce champ
  * par id) dans `src/data/schemas/_art.generated.ts` (`genArt`) — la forme partagée extraite vers une
- * couche neutre (`oxlint.config.mjs`, `AVALS_DATA`) : la donnée juge un id d'art d'auteur sans importer
+ * couche neutre (table `COUCHES`, `scripts/guards/lib/couches.mjs`) : la donnée juge un id d'art d'auteur sans importer
  * le rendu.
  * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string } }[]}
  */

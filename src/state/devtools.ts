@@ -8,7 +8,7 @@ import type { AreteUtilisable } from './aretes';
  *  rapportait `nature:'case'` sur un PNJ dont le clic ouvre le dialogue. La forme est ÉCRITE ici et
  *  non importée de `gameIso/stage/pickResolve.ts` : la
  *  frontière `src/state ↛ src/gameIso` ne connaît aucune exception, pas même un `import type`
- *  (`murs/purete-imports`, `oxlint.config.mjs`). Ce qui empêche les deux formes de dériver est un test de
+ *  (`murs/purete-imports`, `scripts/guards/lib/couches.mjs`). Ce qui empêche les deux formes de dériver est un test de
  *  CONFORMITÉ qui vit du côté autorisé à voir les deux (`gameIso/stage/pick-parity.test.tsx`). */
 export type PickProbe = (px: { x: number; y: number }) => ({
   tile: { x: number; y: number; z: number } | null;

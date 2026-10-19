@@ -27,7 +27,7 @@ import type { HighlightsView } from '../gameIso/builders/highlights';
 import { runAction } from './actionRegistry';
 import { runBindingById } from './clavier/keybindings';
 import { applyNetSnapshot, netSnapshot } from './netFlow';
-import { GUEST_INTENTS } from '../net/intents';
+import { GUEST_INTENTS } from './intents';
 import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
