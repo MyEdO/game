@@ -416,6 +416,10 @@ test('un worktree dont le RÉPERTOIRE a disparu se classe absent, et la purge le
 test('#2795 inventaire RÉEL puis --purger : l’arbre À DEMI RETIRÉ se lit par SON dossier d’administration ; propre et fusionné il part, l’intrus et l’hors-main restent inscrits', () => {
   const { racine, git, jeter } = depotAvecOrigin()
   try {
+    writeFileSync(join(racine, '.gitignore'), 'node_modules/\n')
+    git('add', '.gitignore')
+    git('commit', '-q', '-m', 'règles')
+    git('push', '-q', 'origin', 'main')
     git('worktree', 'add', '-q', '--detach', join(racine, '.wt-demi'), 'origin/main')
     git('worktree', 'add', '-q', '--detach', join(racine, '.wt-intrus'), 'origin/main')
     git('worktree', 'add', '-q', '--detach', join(racine, '.wt-ignore'), 'origin/main')
@@ -427,6 +431,9 @@ test('#2795 inventaire RÉEL puis --purger : l’arbre À DEMI RETIRÉ se lit pa
     writeFileSync(join(racine, 'non-suivi-du-principal.txt'), 'au principal')
     for (const nom of ['.wt-demi', '.wt-intrus', '.wt-ignore', '.wt-hm']) rmSync(join(racine, nom, '.git'))
     rmSync(join(racine, '.wt-demi', 'a.txt'))
+    rmSync(join(racine, '.wt-demi', '.gitignore'))
+    mkdirSync(join(racine, '.wt-demi', 'node_modules'))
+    writeFileSync(join(racine, '.wt-demi', 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
     writeFileSync(join(racine, '.wt-intrus', 'intrus.txt'), 'authoré')
     writeFileSync(join(racine, '.git', 'info', 'exclude'), 'build/\n')
     mkdirSync(join(racine, '.wt-ignore', 'build'))
@@ -451,7 +458,7 @@ test('#2795 inventaire RÉEL puis --purger : l’arbre À DEMI RETIRÉ se lit pa
     assert.deepEqual(gestes.map((g) => `${g.ok ? 'ok' : 'ÉCHEC'} ${enSlash(g.geste).replace(enSlash(racine), '<r>')}`), [
       'ok relier .git, checkout-index, git worktree remove <r>/.wt-demi',
       'ÉCHEC git worktree prune',
-    ])
+    ], JSON.stringify(gestes))
     assert.match(enSlash(gestes[1].detail), /^non joué, il désinscrirait en perdant : .*\/\.wt-hm : dossier présent/)
     assert.equal(existsSync(join(racine, '.wt-demi')), false)
     for (const nom of ['.wt-intrus', '.wt-ignore', '.wt-hm']) assert.equal(existsSync(join(racine, nom, '.git')), false, `${nom} : rien n’y est écrit`)

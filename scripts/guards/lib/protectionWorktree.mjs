@@ -1,6 +1,7 @@
-import { lstatSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
-import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
+import { INDEX, cheminsIgnores, depotDe, dossierGitCommun, etatDeLArbre, lireEnLot, listerImage } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, liensProcessus, lireCause, mesurerProcessusWorktrees, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
 import { ancetresValidesDe } from './arbreProcessus.mjs'
@@ -61,8 +62,8 @@ export function ignoresAuthores(racine, ignores) {
 
 /**
  * `commun` : le dossier git commun du dépôt, sans lequel un arbre À DEMI RETIRÉ (fichier `.git`
- * parti) ne se mesure pas (`depotDeLArbre`) ; ses suivis supprimés n'y comptent pas
- * (`horsSuppressions`).
+ * parti) ne se mesure pas (`depotDeLArbre`) ; il se mesure tel que l'index le restaure
+ * (`etatDuDemiRetire`).
  * @returns {{ok: boolean, refus: string[], indeterminees: string[], horsMesure: string[], portee?: string}}
  */
 export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesurerProcessusWorktrees, etat = etatDeLArbre, commun, sessions } = {}) {
@@ -114,8 +115,9 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     if (vue.indeterminee && !vue.erreursGlobales.length) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne') + ' ' + citation(vue.indeterminee))
     refus.push(...new Set(indeterminees))
     const demiRetire = !lstatSync(join(chemin, '.git'), { throwIfNoEntry: false })
-    const arbres = etat(depotDeLArbre(chemin, commun), { ignores: true, strict: true })
-    const sales = (demiRetire ? horsSuppressions(arbres) : arbres).filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
+    const lu = etat(depotDeLArbre(chemin, commun), { ignores: true, strict: true })
+    const arbres = demiRetire ? etatDuDemiRetire(chemin, commun, lu) : lu
+    const sales = arbres.filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
     if (sales.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('modifications non commitées', sales))
     const ignores = ignoresAuthores(chemin, arbres.filter((e) => e.etat === '!!').flatMap((e) => e.chemins))
     if (ignores.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('ignoré authoré', ignores))
@@ -170,15 +172,53 @@ export function administrationDe(chemin, commun) {
  */
 export function depotDeLArbre(chemin, commun, options = {}) {
   if (lstatSync(join(chemin, '.git'), { throwIfNoEntry: false })) return depotDe(chemin, options)
+  return depotParAdministration(administrationExigee(chemin, commun), chemin, options)
+}
+
+function administrationExigee(chemin, commun) {
   const administration = commun ? administrationDe(chemin, commun) : null
   if (!administration) throw Object.assign(new Error('fichier .git absent de ' + chemin + ' : git y lirait le dépôt parent'
     + (commun ? ', et aucun dossier unique de ' + join(commun, 'worktrees') + ' ne le nomme' : '')), { categorie: 'validation' })
-  return depotDe(chemin, { ...options, env: { ...(options.env ?? process.env), GIT_DIR: administration, GIT_WORK_TREE: chemin } })
+  return administration
 }
 
-/** L'état d'un arbre À DEMI RETIRÉ sans ses suivis supprimés (` D`) : ce que le retrait interrompu
- *  a effacé, que l'index restaure. PURE. */
-export const horsSuppressions = (etat) => etat.filter((e) => e.etat !== ' D')
+const depotParAdministration = (administration, travail, options = {}) =>
+  depotDe(travail, { ...options, env: { ...(options.env ?? process.env), GIT_DIR: administration, GIT_WORK_TREE: travail } })
+
+/**
+ * L'état `etat` (`etatDeLArbre`) de l'arbre À DEMI RETIRÉ `chemin` tel que l'index le restaure : ses
+ * suivis supprimés (` D`) n'y comptent pas, et un non-suivi (`??`) qu'un `.gitignore` supprimé
+ * ignorait y redevient ignoré (`!!`). Les règles se lisent sur une COPIE des `.gitignore` que git
+ * lirait dans l'arbre restauré (`git help gitignore`, `git help check-ignore`) : le texte de l'index pour
+ * les supprimés, le disque pour tout autre présent, suivi ou non ; un absent du disque que la
+ * restauration ne rend pas n'y est pas. La copie vit sous `mkdtempSync` d'os.tmpdir(), effacée en
+ * finally : l'arbre n'est jamais écrit.
+ * @param {string} chemin @param {string} commun @param {{ etat: string, chemins: string[] }[]} etat
+ * @throws {Error} catégorie `validation`, sans dossier d'administration unique
+ */
+export function etatDuDemiRetire(chemin, commun, etat) {
+  const estRegle = (rel) => basename(rel) === '.gitignore'
+  const restants = etat.filter((e) => e.etat !== ' D')
+  const perdues = new Set(etat.filter((e) => e.etat === ' D' && estRegle(e.chemins[0])).map((e) => e.chemins[0]))
+  const nonSuivis = restants.filter((e) => e.etat === '??').map((e) => e.chemins[0])
+  if (!perdues.size || !nonSuivis.length) return restants
+  const administration = administrationExigee(chemin, commun)
+  const depot = depotParAdministration(administration, chemin)
+  const presentes = [...listerImage(depot, INDEX), ...restants.filter((e) => e.etat === '??' || e.etat === '!!').map((e) => e.chemins[0])]
+    .filter((rel) => estRegle(rel) && !perdues.has(rel) && lstatSync(join(chemin, rel), { throwIfNoEntry: false })?.isFile())
+  const textes = lireEnLot(depot, INDEX, [...perdues])
+  const copie = mkdtempSync(join(tmpdir(), 'regles-du-demi-retire-'))
+  try {
+    for (const [rel, texte] of [...[...perdues].map((rel) => [rel, textes.get(rel) ?? '']), ...presentes.map((rel) => [rel, readFileSync(join(chemin, rel))])]) {
+      mkdirSync(dirname(join(copie, rel)), { recursive: true })
+      writeFileSync(join(copie, rel), texte)
+    }
+    const ignores = cheminsIgnores(depotParAdministration(administration, copie), nonSuivis)
+    return restants.map((e) => e.etat === '??' && ignores.has(e.chemins[0]) ? { ...e, etat: '!!' } : e)
+  } finally {
+    rmSync(copie, { recursive: true, force: true })
+  }
+}
 
 /**
  * Le fichier `.git` de l'arbre `chemin` RECRÉÉ vers SON dossier d'administration

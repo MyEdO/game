@@ -4,9 +4,9 @@ import fs from 'node:fs'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, renameSync, symlinkSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { ajouterWorktree, commitDe, depotDe, retirerWorktree, reussi, worktreesDe, etatDeLArbre } from './gitPorte.mjs'
-import { instanceDeDepot } from './depotGabarit.mjs'
+import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { ignoresAuthores, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
@@ -199,16 +199,49 @@ test('#2795 sans fichier .git, l’arbre se mesure par SON dossier d’administr
   const mesurerDemi = (chemin) => mesurerProtectionWorktree(chemin, { snapshot, commun })
   writeFileSync(join(b.racine, 'non-suivi-du-principal.txt'), 'au principal')
   writeFileSync(join(b.arbre, 'suivi-de-l-arbre.txt'), 'que l’index du principal ignore')
-  assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['suivi-de-l-arbre.txt'] })))
+  writeFileSync(join(b.arbre, '.gitignore'), 'node_modules/\nnotes/\n*.log\ndist/*\n')
+  mkdirSync(join(b.arbre, 'sous'))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '!garde.log\n')
+  mkdirSync(join(b.arbre, 'outils'))
+  writeFileSync(join(b.arbre, 'outils', '.gitignore'), '*.tmp\n')
+  assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['suivi-de-l-arbre.txt', '.gitignore', 'sous/.gitignore', 'outils/.gitignore'] })))
   rmSync(join(b.arbre, '.git'))
   const validation = prefixeDeRefus('validation') + ' mesure indéterminée : '
   assert.deepEqual(mesurer(b.arbre).refus, [validation + 'fichier .git absent de ' + b.arbre + ' : git y lirait le dépôt parent'])
   const etranger = join(b.racine, 'etranger')
   mkdirSync(etranger)
   assert.deepEqual(mesurerDemi(etranger).refus, [validation + 'fichier .git absent de ' + etranger + ' : git y lirait le dépôt parent, et aucun dossier unique de ' + join(commun, 'worktrees') + ' ne le nomme'])
+  mkdirSync(join(b.arbre, 'node_modules', 'paquet'), { recursive: true })
+  writeFileSync(join(b.arbre, 'node_modules', 'paquet', 'index.js'), 'reconstructible')
   rmSync(join(b.arbre, '.gitignore'))
-  const propre = mesurerDemi(b.arbre)
-  assert.equal(propre.ok, true, 'ses suivis supprimés ne comptent pas, le non-suivi du principal non plus, ses propres suivis restent suivis : ' + propre.refus.join(' ; '))
+  rmSync(join(b.arbre, 'outils', '.gitignore'))
+  const temporaire = mkdtempSync(join(tmpdir(), 'temp-du-banc-'))
+  const variables = ['TEMP', 'TMP', 'TMPDIR'].map((v) => [v, process.env[v]])
+  for (const [v] of variables) process.env[v] = temporaire
+  let propre
+  try {
+    propre = mesurerDemi(b.arbre)
+  } finally {
+    for (const [v, valeur] of variables) if (valeur === undefined) delete process.env[v]; else process.env[v] = valeur
+  }
+  assert.equal(propre.ok, true, 'ses suivis supprimés ne comptent pas, ce qu’ignoraient ses .gitignore supprimés non plus, le non-suivi du principal non plus, ses propres suivis restent suivis : ' + propre.refus.join(' ; '))
+  assert.deepEqual(fs.readdirSync(temporaire), [], 'la copie des règles est effacée')
+  rmSync(temporaire, { recursive: true })
+  mkdirSync(join(b.arbre, 'notes'))
+  writeFileSync(join(b.arbre, 'notes', 'note.md'), 'authoré sous un motif du .gitignore supprimé')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : notes/note.md'], 'ignoré par la règle de l’index, il se juge comme tout ignoré')
+  rmSync(join(b.arbre, 'notes'), { recursive: true })
+  writeFileSync(join(b.arbre, 'outils', 'cache.tmp'), 'authoré sous le motif du .gitignore imbriqué supprimé')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : outils/cache.tmp'], 'la règle imbriquée supprimée se lit à l’index comme la racine')
+  rmSync(join(b.arbre, 'outils', 'cache.tmp'))
+  writeFileSync(join(b.arbre, 'sous', 'garde.log'), 'authoré, réinclus par le .gitignore resté')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : sous/garde.log'], 'la règle restée sur le disque prime sur celle de l’index')
+  rmSync(join(b.arbre, 'sous', 'garde.log'))
+  mkdirSync(join(b.arbre, 'dist'))
+  writeFileSync(join(b.arbre, 'dist', '.gitignore'), '!travail.txt\n')
+  writeFileSync(join(b.arbre, 'dist', 'travail.txt'), 'authoré, réinclus par un .gitignore non suivi')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : dist/travail.txt'], 'un .gitignore non suivi resté sur le disque compte aussi')
+  rmSync(join(b.arbre, 'dist'), { recursive: true })
   writeFileSync(join(b.arbre, 'intrus.txt'), 'authoré')
   assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : intrus.txt'])
   rmSync(join(b.arbre, 'intrus.txt'))
@@ -217,6 +250,22 @@ test('#2795 sans fichier .git, l’arbre se mesure par SON dossier d’administr
   writeFileSync(join(b.arbre, 'build', 'notes.md'), 'authoré, ignoré')
   assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : build/notes.md'])
   assert.equal(existsSync(join(b.arbre, '.git')), false, 'la mesure n’écrit rien')
+})
+
+test('#2795 sans fichier .git, un .gitignore indexé puis supprimé du disque reste un refus métier, jamais une règle lue', (t) => {
+  const b = terrain(t)
+  const mesurerDemi = (chemin) => mesurerProtectionWorktree(chemin, { snapshot, commun: join(b.racine, '.git') })
+  mkdirSync(join(b.arbre, 'sous'))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.a\n')
+  assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['sous/.gitignore'] })))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.b\n')
+  assert.equal(spawnSync('git', ['add', '--', 'sous/.gitignore'], { cwd: b.arbre, env: envDeDepotForge() }).status, 0)
+  rmSync(join(b.arbre, 'sous', '.gitignore'))
+  mkdirSync(join(b.arbre, 'node_modules'))
+  writeFileSync(join(b.arbre, 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
+  rmSync(join(b.arbre, '.git'))
+  rmSync(join(b.arbre, '.gitignore'))
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : sous/.gitignore'])
 })
 
 test('#2795 relierFichierGit : SON dossier d’administration seul, en création exclusive, sinon null', (t) => {
@@ -237,6 +286,8 @@ test('#2795 retrait d’un arbre À DEMI RETIRÉ : relié, suivis supprimés res
   const mesurerBanc = (chemin, options) => mesurerProtectionWorktree(chemin, { ...options, snapshot })
   const b = terrain(t)
   writeFileSync(join(b.racine, 'non-suivi-du-principal.txt'), 'au principal')
+  mkdirSync(join(b.arbre, 'node_modules'))
+  writeFileSync(join(b.arbre, 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
   rmSync(join(b.arbre, '.git'))
   rmSync(join(b.arbre, '.gitignore'))
   const retire = retirerWorktree(b.depot, b.arbre, { mesurer: mesurerBanc })

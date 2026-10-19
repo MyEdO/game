@@ -618,8 +618,8 @@ const ATTENDU = {
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
     // +1 le 2026-10-17 (#2586) : `protectionWorktree.mjs` est acquis par `gitPorte.mjs` (importé par
-    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`.
-    // L'arbre n'est jamais écrit.
+    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`,
+    // et `etatDuDemiRetire` n'écrit que sous un `mkdtempSync` d'os.tmpdir(), effacé par `rmSync` en finally. L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles

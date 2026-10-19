@@ -37,7 +37,7 @@
 // ou joue un geste (`commitDe`, `pousser`…) ; la sous-commande, ses drapeaux et sa forme restent ici.
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
-import { horsSuppressions, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
+import { etatDuDemiRetire, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { natureDuChemin } from './natureDuChemin.mjs'
 import { MARQUE_RACINE_MESUREE, normaliserRequeteMesuree, porteUnControle, verifierRequeteMesuree } from './requeteMesuree.mjs'
 import { Buffer } from 'node:buffer'
@@ -2040,8 +2040,11 @@ export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = fals
 /**
  * Le worktree À DEMI RETIRÉ `chemin` (dossier présent, fichier `.git` parti : un `worktree remove`
  * interrompu), mesuré par son dossier d'administration, RELIÉ (`relierFichierGit`), puis ses seuls
- * suivis SUPPRIMÉS restaurés (`checkout-index --stdin`, sans `-f` : rien d'existant n'est écrasé).
- * Une modification hors suppressions, apparue après la mesure, refuse encore une fois relié. Rend
+ * suivis SUPPRIMÉS restaurés (`checkout-index -u --stdin`, sans `-f` : rien d'existant n'est écrasé ;
+ * `-u` y réinscrit leur stat, `git help checkout-index` : sans lui l'index garde la taille d'avant la
+ * perte, et une conversion d'extraction autre que celle de la création, `core.autocrlf` système
+ * absent alors, la fait mentir : git le dit modifié sans relire son contenu).
+ * Une modification que l'index ne restaure pas (`etatDuDemiRetire`), apparue après la mesure, refuse encore une fois relié. Rend
  * `null` relié, sinon le refus.
  * @param {Depot} depot @param {string} chemin
  */
@@ -2057,10 +2060,11 @@ function relierArbreADemiRetire(depot, chemin, mesurer) {
   if (relie.valeur !== commun.valeur) return indisponible('arbre à demi retiré relié à ' + id + ', mais git n’y lit pas ' + commun.valeur + ' — ' + (relie.raison ?? relie.valeur), { issue: 'refus' })
   const arbre = depotDe(chemin)
   const etat = etatDeLArbre(arbre, { strict: true })
-  const autres = horsSuppressions(etat)
+  const autres = etatDuDemiRetire(chemin, commun.valeur, etat).filter((e) => e.etat !== '!!')
   if (autres.length) return indisponible('arbre à demi retiré relié, mais modifié hors suppressions : ' + autres.map((e) => e.etat + ' ' + e.chemins[0]).slice(0, 5).join(', '), { issue: 'refus' })
-  if (!etat.length) return null
-  const restaure = ecrire(arbre, ['checkout-index', '--stdin', '-z'], { entree: etat.map((e) => e.chemins[0] + '\0').join('') })
+  const supprimes = etat.filter((e) => e.etat === ' D')
+  if (!supprimes.length) return null
+  const restaure = ecrire(arbre, ['checkout-index', '-u', '--stdin', '-z'], { entree: supprimes.map((e) => e.chemins[0] + '\0').join('') })
   return reussi(restaure) ? null : restaure
 }
 
