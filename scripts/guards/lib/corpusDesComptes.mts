@@ -4,11 +4,16 @@
 //
 // DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
 // par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base).
-// L'image est celle de SON commit : `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code,
-// produites par son propre `genererCode` (scripts/docs/build-all.mjs) avant la pose du détecteur. Ce qui monte
-// sous l'un ou l'autre est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui
-// ne se lie pas est sautée et nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
-// ANGLE MORT : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711).
+// La constance couvre la MESURE ; les GÉNÉRATEURS appartiennent à l'image. L'image est celle de SON commit :
+// `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code, produites par son propre `genererCode`
+// (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
+// cibles se rejoue sous celles des générateurs du DÉTECTEUR (`comptesDuCommit`) : une borne se mesure si UNE des deux
+// configurations aboutit, sinon sa paire est sautée et nommée avec les deux raisons ; aucune paire liée, la porte
+// refuse. Ce qui monte sous l'un ou l'autre détecteur est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et
+// refuse la plage. Aucune ligne de message n'admet une hausse.
+// ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
+// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, ne se mesure sous aucune
+// configuration — la paire est sautée, la porte refuse sans paire liée.
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -135,51 +140,107 @@ const GENERATION_DE_L_IMAGE = 'const { genererCode } = await import(process.argv
 const envDeGeneration = (): NodeJS.ProcessEnv =>
   Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_') && nom !== ENV_EPOQUE && nom !== ENV_TENU));
 
-/**
- * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise) et son propre
- * code (`DU_DETECTEUR` de `arbre`), ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`),
- * ses cibles de code produites par SA génération (`GENERATION_DE_L_IMAGE`) dans un processus enfant, puis son
- * `scripts/` retiré et le code du `detecteur` posé, qui seul mesure. Un `dossier` contenu dans un dépôt git est refusé
- * (`ImageDansUnDepot`) avant toute écriture.
- */
-function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
+/** Un dossier neuf sous `os.tmpdir()` où poser une image, refusé (`ImageDansUnDepot`) avant toute écriture quand un
+ *  dépôt git le contient. */
+function dossierDImage(): string {
+  const dossier = mkdtempSync(join(tmpdir(), 'comptes-'));
   const gitDir = gitDirContenant(dossier);
-  if (gitDir !== null) throw new ImageDansUnDepot(`${dossier} : l’image d’une borne se pose hors de tout dépôt git — ${gitDir} le contient`);
-  ecrireDeLImage(depot, arbre, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
+  if (gitDir === null) return dossier;
+  rmSync(dossier, { recursive: true, force: true });
+  throw new ImageDansUnDepot(`${dossier} : l’image d’une borne se pose hors de tout dépôt git — ${gitDir} le contient`);
+}
+
+/** Les cibles de code de l'image `dossier`, produites par le `scripts/` qui y est posé (`GENERATION_DE_L_IMAGE`), ses
+ *  dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`), dans un processus enfant. */
+function genererLesCibles(dossier: string, configuration: string): void {
   lierDependances(dossier);
   const vu = spawnSync(process.execPath, ['--input-type=module', '-e', GENERATION_DE_L_IMAGE, pathToFileURL(join(dossier, 'scripts/docs/build-all.mjs')).href], {
     cwd: dossier, env: envDeGeneration(), encoding: 'utf8', maxBuffer: 1 << 28,
   });
-  if (vu.status !== 0)
-    throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
-  rmSync(join(dossier, 'scripts'), { recursive: true, force: true });
-  detecteur.poser(dossier);
+  if (vu.status !== 0) throw new MesureImpossible(`${configuration} : génération en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
 }
 
 /** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`. */
-function mesurerImage(dossier: string): Comptes {
+function mesurerImage(dossier: string, configuration: string): Comptes {
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), POINT_D_ENTREE], {
     cwd: dossier, encoding: 'utf8', maxBuffer: 1 << 28,
   });
-  if (vu.status !== 0) throw new MesureImpossible(`mesure de l’image en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
+  if (vu.status !== 0) throw new MesureImpossible(`${configuration} : mesure en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
   return new Map(JSON.parse(vu.stdout) as [string, EntreeDeCompte[]][]);
 }
 
-/** Les comptes du commit `sha` sous `detecteur`, une fois par processus : la mesure ne dépend que des deux. */
+/** L'image de chaque commit, générée par son propre code, une fois par processus : son dossier, ou la raison de son
+ *  échec. Les dossiers s'effacent à la sortie du processus. */
+const IMAGES_GENEREES = new Map<string, string | MesureImpossible>();
+const effacerLesImages = (): void => {
+  for (const image of IMAGES_GENEREES.values()) if (typeof image === 'string') rmSync(image, { recursive: true, force: true });
+};
+
+/** Le dossier de l'image de `sha` : `DE_L_IMAGE` et `DU_DETECTEUR` de `sha`, ses cibles de code produites par SON
+ *  `genererCode` (`genererLesCibles`). */
+function imageGeneree(depot: Depot, sha: string, configuration: string): string {
+  if (!IMAGES_GENEREES.has(sha)) {
+    if (!IMAGES_GENEREES.size) process.once('exit', effacerLesImages);
+    const dossier = dossierDImage();
+    try {
+      ecrireDeLImage(depot, sha, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
+      genererLesCibles(dossier, configuration);
+      IMAGES_GENEREES.set(sha, dossier);
+    } catch (e) {
+      rmSync(dossier, { recursive: true, force: true });
+      if (!(e instanceof MesureImpossible)) throw e;
+      IMAGES_GENEREES.set(sha, e);
+    }
+  }
+  const image = IMAGES_GENEREES.get(sha)!;
+  if (image instanceof MesureImpossible) throw image;
+  return image;
+}
+
+/** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien. */
+function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+  const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
+  const image = imageGeneree(depot, sha, configuration);
+  rmSync(join(image, 'scripts'), { recursive: true, force: true });
+  detecteur.poser(image);
+  return mesurerImage(image, configuration);
+}
+
+/** Les comptes de `sha` sous les cibles des générateurs du `detecteur` : `DE_L_IMAGE` de `sha`, le code du `detecteur`. */
+function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+  const configuration = `${sha.slice(0, 9)} sous les cibles du détecteur`;
+  const dossier = dossierDImage();
+  try {
+    ecrireDeLImage(depot, sha, dossier, DE_L_IMAGE);
+    detecteur.poser(dossier);
+    genererLesCibles(dossier, configuration);
+    return mesurerImage(dossier, configuration);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}
+
+/** Les comptes du commit `sha` sous `detecteur`, une fois par processus : sous les cibles de l'image, sinon sous celles
+ *  du détecteur ; les deux impossibles, les deux raisons. */
 const COMPTES_PAR_MESURE = new Map<string, Comptes>();
 function comptesDuCommit(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const cle = `${detecteur.cle}\u0000${sha}`;
   const connus = COMPTES_PAR_MESURE.get(cle);
   if (connus) return connus;
-  const dossier = mkdtempSync(join(tmpdir(), 'comptes-'));
+  let comptes: Comptes;
   try {
-    poserImage(depot, sha, dossier, detecteur);
-    const comptes = mesurerImage(dossier);
-    COMPTES_PAR_MESURE.set(cle, comptes);
-    return comptes;
-  } finally {
-    rmSync(dossier, { recursive: true, force: true });
+    comptes = mesurerSousLesCiblesDeLImage(depot, sha, detecteur);
+  } catch (e) {
+    if (!(e instanceof MesureImpossible)) throw e;
+    try {
+      comptes = mesurerSousLesCiblesDuDetecteur(depot, sha, detecteur);
+    } catch (repli) {
+      if (!(repli instanceof MesureImpossible)) throw repli;
+      throw new MesureImpossible(`${e.message} ; ${repli.message}`);
+    }
   }
+  COMPTES_PAR_MESURE.set(cle, comptes);
+  return comptes;
 }
 
 /** La mesure de la plage par un détecteur : ses comptes aux deux bornes, ou la raison qui la saute. */
@@ -216,7 +277,7 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
 /**
  * Le verdict de la plage `merge-base(base, tete)..tete` du `depot` (`depotDe`, gitPorte.mjs), dont chaque lecture git
  * passe par lui, jugée par le détecteur de la tête et par celui de la base (`verdictDesDetecteurs`). Chaque borne est
- * posée sous `os.tmpdir()` et mesurée dans son image, puis effacée ; un détecteur de base sans point d'entrée
+ * posée sous `os.tmpdir()` et mesurée dans son image (`comptesDuCommit`) ; un détecteur de base sans point d'entrée
  * (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
 export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD' }: { depot: Depot; base?: string; tete?: string }): { ok: boolean; texte: string } {
