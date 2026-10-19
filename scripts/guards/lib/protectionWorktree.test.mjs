@@ -4,13 +4,14 @@ import fs from 'node:fs'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, renameSync, symlinkSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { ajouterWorktree, commitDe, depotDe, retirerWorktree, reussi, worktreesDe, etatDeLArbre } from './gitPorte.mjs'
-import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
+import { instanceDeDepot } from './depotGabarit.mjs'
 import { ignoresAuthores, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
 import { listerDossier } from './lister.mjs'
+import { lancerGit } from '../../test/gitDeBanc.mjs'
 
 const snapshot = { portee: 'banc', processus: [] }
 function terrain(t) {
@@ -260,7 +261,7 @@ test('#2795 sans fichier .git, un .gitignore indexé puis supprimé du disque re
   writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.a\n')
   assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['sous/.gitignore'] })))
   writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.b\n')
-  assert.equal(spawnSync('git', ['add', '--', 'sous/.gitignore'], { cwd: b.arbre, env: envDeDepotForge() }).status, 0)
+  lancerGit(['add', '--', 'sous/.gitignore'], { cwd: b.arbre })
   rmSync(join(b.arbre, 'sous', '.gitignore'))
   mkdirSync(join(b.arbre, 'node_modules'))
   writeFileSync(join(b.arbre, 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
