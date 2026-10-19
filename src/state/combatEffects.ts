@@ -59,7 +59,7 @@ import { refuserGeste } from './refusVisible';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../noyau/monde/flow';
 import { inRect, combatantsWithinRadius } from '../noyau/monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
-import { playSfx } from '../audio/engine';
+import { bus, EVT } from './bus';
 import { combatDistance } from '../noyau/monde/footprint';
 import { registerCascadeApplier, setSuiteApresCommit, pushStep, idDeLaDernierePoussee,
   etapesDeLaFenetre, annoterEtapeDeLaFenetre } from '../noyau/cascade';
@@ -1409,10 +1409,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   playSfx: {
     group: 'Narration', label: libelleEffet('playSfx'), icon: 'audio/volume',
     make: () => ({ type: 'playSfx', id: '' }),
-    // Coop : `applyEffects` tourne côté HÔTE (hôte-autoritaire) — ce son ponctuel scripté ne
-    // joue que chez l'hôte, pas de réplication audio à l'invité dans ce lot. `moveEntity`
-    // (changement d'état) se réplique gratis par le snapshot hôte.
-    apply: (e) => { playSfx(e.id); },
+    // Le son est un ÉVÉNEMENT (`EVT.SFX`) que l'hôte joue (`audio/wiring`). Coop : `applyEffects`
+    // tourne côté HÔTE, le son ponctuel scripté ne sonne donc que chez lui.
+    apply: (e) => { bus.emit(EVT.SFX, { id: e.id }); },
   },
 
   // ── Récompenses ────────────────────────────────────────────────────────

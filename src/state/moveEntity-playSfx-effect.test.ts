@@ -2,7 +2,7 @@
  * Effets `moveEntity` et `playSfx` (#701) — mise en scène scriptée : repositionner/retirer une
  * entité de scène posée, jouer un son ponctuel. Handlers du registre `EFFECT_HANDLERS`.
  * ⚠ Suite sous `test.isolate:false` (vite.config.ts) : AUCUN `vi.mock`/`vi.spyOn`, et ce fichier
- * NETTOIE intégralement derrière lui (reset du singleton `useGame`, restauration d'`Audio`) pour ne
+ * NETTOIE intégralement derrière lui (reset du singleton `useGame`, désabonnement du bus) pour ne
  * PAS fuiter d'état aux fichiers du même worker (sinon un test aval — ex. `campaign-snapshot` — casse).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -11,6 +11,7 @@ import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from './combatEffects';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Effect } from '../noyau/monde/scene';
 import { effectSummary } from '../ui/editor/EffectList';
+import { bus, EVT } from './bus';
 
 // Reset du store APRÈS CHAQUE test (isolate:false) : rend au singleton `useGame` son état initial,
 // pour qu'aucune scène/donnée posée ici ne survive au fichier suivant du worker partagé.
@@ -66,35 +67,15 @@ describe('Effet moveEntity (#701)', () => {
 });
 
 describe('Effet playSfx (#701)', () => {
-  let created: string[] = [];
-  let realAudio: unknown;
-
-  beforeEach(() => {
-    useGame.setState({ scene: sceneWithNpc() });
-    created = [];
-    // Capture juste AVANT de remplacer (et non au chargement du module) : la restauration rend
-    // toujours la valeur d'`Audio` d'avant CE test, quel que soit l'ordre des fichiers du worker.
-    realAudio = (globalThis as { Audio?: unknown }).Audio;
-    (globalThis as { Audio?: unknown }).Audio = class {
-      volume = 1;
-      constructor(src: string) { created.push(src); }
-      play() { return Promise.resolve(); }
-    };
-  });
-
-  afterEach(() => {
-    if (realAudio === undefined) delete (globalThis as { Audio?: unknown }).Audio;
-    else (globalThis as { Audio?: unknown }).Audio = realAudio;
-  });
-
-  it('joue réellement le son du registre par son id (câblage sur audio/engine.playSfx)', () => {
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'playSfx', id: 'porte-ouvre' }] as Effect[]);
-    expect(created.some((src) => src.includes('porte-ouvre'))).toBe(true);
-  });
-
-  it('id hors registre : aucune lecture (no-op silencieux)', () => {
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'playSfx', id: 'inexistant-xyz' }] as Effect[]);
-    expect(created).toEqual([]);
+  it('émet `EVT.SFX` avec l\'id du son, que l\'hôte joue (`audio/wiring`)', () => {
+    const recus: unknown[] = [];
+    const off = bus.on(EVT.SFX, (p) => recus.push(p));
+    try {
+      applyEffects(useGame.getState, useGame.setState, [{ type: 'playSfx', id: 'porte-ouvre' }] as Effect[]);
+    } finally {
+      off();
+    }
+    expect(recus).toEqual([{ id: 'porte-ouvre' }]);
   });
 });
 
