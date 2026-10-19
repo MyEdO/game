@@ -244,6 +244,36 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(hero().xp).toBe(100);
   });
 
+  it('Apprentissage particulier : le Test se jette sur la valeur de Test, États compris (LDB 16 l.125)', () => {
+    const h = hero();
+    h.xp = 300;
+    const itl = useGame.getState().interlude!;
+    itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
+    useGame.setState({ interlude: { ...itl } });
+    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(5000));
+    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
+    const sansEtat = useGame.getState().pendingActivity!.skillValue;
+    useGame.setState({ pendingActivity: null });
+    hero().conditions = [{ id: 'sonne', value: 3 }];
+    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
+    expect(useGame.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(sansEtat - 30);
+  });
+
+  it('Recherche de savoir sans Savoir avancé : Intelligence Complexe, sur la valeur de Test, États compris (LDB 16 l.125)', () => {
+    const h = hero();
+    h.skills = h.skills.filter((k) => k.id !== 'savoir');
+    const itl = useGame.getState().interlude!;
+    itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
+    useGame.setState({ interlude: { ...itl } });
+    useGame.getState().interludeActivity(h.id, 'recherche-de-savoir');
+    const pa = useGame.getState().pendingActivity!;
+    expect(pa.difficulty, 'Complexe, un cran plus dur hors Classe Lettres (`classGate` de l’Activité)').toBe('difficile');
+    useGame.setState({ pendingActivity: null });
+    hero().conditions = [{ id: 'sonne', value: 3 }];
+    useGame.getState().interludeActivity(h.id, 'recherche-de-savoir');
+    expect(useGame.getState().pendingActivity!.skillValue, 'Sonné ×3 : −30').toBe(pa.skillValue - 30);
+  });
+
   it('Passer commande : objet du stock ordinaire refusé ; Exotique payé maintenant, livré à l’interlude SUIVANT', () => {
     const h = hero();
     const itl = useGame.getState().interlude!;

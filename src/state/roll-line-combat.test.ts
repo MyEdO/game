@@ -106,11 +106,12 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
   });
 });
 
-describe('Main ensanglantée (combatFlow/combatSlice) — cible INCHANGÉE par le monteur', () => {
-  it('le gate de Dextérité garde SA valeur (Dextérité effective), cible = valeur + Accessible', () => {
+describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la valeur de Test', () => {
+  it('le gate de Dextérité se jette sur sa valeur de Test (`testValue`, États compris, LDB 16 l.125), cible = valeur + Accessible', () => {
     const brute = hero({ id: 'br', label: 'Brute', conditions: ETAT, handGates: ['main'] as never, weapons: [] });
     setBattle([brute], 'br');
-    const dex = effectiveChar(brute, 'dexterite');
+    const dex = testValue(brute, undefined, 'dexterite');
+    expect(dex, 'l’État sépare la Dextérité nue de la valeur jetée').toBeLessThan(effectiveChar(brute, 'dexterite'));
 
     openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
     const pg = get().pendingHandGate!;

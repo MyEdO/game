@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { nommerChamps, metaDesChamps } from './meta';
 import { trappingRefSchema } from './reference';
 import { flowTestSchema, gameOpSchema } from './mecanique';
-import { TESTS_DE_CORRUPTION, bornesSchema, ecartDeCoPresenceDesBornes, ecartsDeCouverture, plageOuverteSchema, plageSchema } from './valeurs';
+import { NATURES_D_INFLUENCE, bornesSchema, ecartDeCoPresenceDesBornes, ecartsDeCouverture, plageOuverteSchema, plageSchema } from './valeurs';
 import { schemaForFile, validateDataset, validateDocument } from '../validate';
 import criticals from '../../criticals.json';
 import localisation from '../../localisation.json';
@@ -261,33 +261,25 @@ describe('flowTestSchema.menace — FK vers les specs du talent Résistance', ()
 });
 
 /**
- * `corruptionExposure.skill` (`refTestDeCorruption`, `grammaire/valeurs.ts`) — le Test d'Exposition se
- * joue avec l'UNE des deux Compétences que la règle offre (`LDB 19 l.23-75`). Une référence de
- * Compétence NUE laisserait passer les 100+ entrées de `skills.json` : le runtime
- * (`state/corruptionFlow.ts`) les raboterait en silence et la donnée mentirait. Les DEUX portes du
- * même concept — l'op `GameOp` et l'effet de scène — partagent la MÊME borne.
+ * `corruptionExposure.nature` (`natureDInfluenceSchema`, `grammaire/valeurs.ts`) — la nature de
+ * l'Influence est l'UNE des clés de la fiche `influences-corruptrices` (`LDB 19 l.29`). Les DEUX portes
+ * du même concept — l'op `GameOp` et l'effet de scène — partagent la MÊME borne.
  */
-describe('corruptionExposure.skill — borné aux deux Compétences du Test (LDB 19 l.23-75)', () => {
+describe('corruptionExposure.nature — bornée aux clés de `influences-corruptrices` (LDB 19 l.29)', () => {
   const portes = {
-    'op GameOp': (skill?: { id: string }) => gameOpSchema.safeParse({ op: 'corruptionExposure', level: 'mineure', ...(skill ? { skill } : {}) }),
-    'effet de scène': (skill?: { id: string }) => corruptionExposureSchema.safeParse({ type: 'corruptionExposure', level: 'mineure', ...(skill ? { skill } : {}) }),
+    'op GameOp': (nature?: string) => gameOpSchema.safeParse({ op: 'corruptionExposure', level: 'mineure', ...(nature ? { nature } : {}) }),
+    'effet de scène': (nature?: string) => corruptionExposureSchema.safeParse({ type: 'corruptionExposure', level: 'mineure', ...(nature ? { nature } : {}) }),
   };
 
   for (const [nom, parse] of Object.entries(portes)) {
-    it(`${nom} : accepte les deux Compétences de l'alphabet, et l'absence (choix du joueur)`, () => {
-      expect(TESTS_DE_CORRUPTION).toEqual(['resistance', 'calme']);
-      for (const id of TESTS_DE_CORRUPTION) expect(parse({ id }).success, `« ${id} » refusé`).toBe(true);
+    it(`${nom} : accepte EXACTEMENT les clés de la fiche, et l'absence (choix du joueur)`, () => {
+      expect(NATURES_D_INFLUENCE).toEqual(['physique', 'spirituelle']);
+      for (const n of NATURES_D_INFLUENCE) expect(parse(n).success, `« ${n} » refusée`).toBe(true);
       expect(parse().success).toBe(true);
     });
 
-    it(`${nom} : REFUSE une Compétence hors alphabet, et le message NOMME la valeur et la paire`, () => {
-      const r = parse({ id: 'charme' });
-      expect(r.success).toBe(false);
-      const msg = r.error!.issues.map((i) => i.message).join('\n');
-      expect(msg).toContain('charme');
-      expect(msg).toContain('resistance');
-      expect(msg).toContain('calme');
-      expect(msg).toContain('LDB 19 l.23-75');
+    it(`${nom} : REFUSE une compétence à la place d'une nature`, () => {
+      expect(parse('resistance').success).toBe(false);
     });
   }
 });

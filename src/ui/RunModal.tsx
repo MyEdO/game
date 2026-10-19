@@ -1,5 +1,6 @@
 import { useGame } from '../state/store';
-import { testValue } from '../engine/skills';
+import { valeurDecomposee } from '../engine/skills';
+import { cibleMesuree } from '../engine/tests';
 import { flowStakeRef, refLabel } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
@@ -10,7 +11,7 @@ import { describeRun } from '../state/flowOutcomes';
 import { Icon } from './Icon';
 
 /**
- * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test d'Athlétisme (+20),
+ * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test de `pendingRun.test`,
  * « Relancer »/« Résilience ×N » dépensent Chance/Résilience, « Appliquer » ouvre le déplacement
  * étendu (Marche + Course + DR). La Course N'EST PAS binaire : « +1 DR » (Chance, LDB 17 l.24) allonge
  * la distance parcourue (DR en mètres → cases, cf. le flux `run`).
@@ -29,17 +30,16 @@ export function RunModal() {
   const c = battle.combatants.find((x) => x.id === pr.combatantId);
   if (!c) return null;
   const r = pr.result;
-  // À cheval, la Course se teste sur Chevaucher (LDB 14 l.179) — même compétence que le flux `run`.
-  const skillId = c.mountId ? 'chevaucher' : 'athletisme';
-  const skillLabel = refLabel('skills', { id: skillId });
+  const skillLabel = refLabel('skills', pr.test.skill);
+  const { base, mods } = valeurDecomposee(c, pr.test);
   const rolled = !!r;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown(skillLabel, testValue(c, skillId), { roll: r.roll, target: r.target, sl: r.dr, success: r.success }, 'accessible') : undefined,
-      pending: testPending(skillLabel, testValue(c, skillId), undefined, 'accessible'),
+      d: r ? testBreakdown(skillLabel, base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, pr.test.difficulty, mods) : undefined,
+      pending: testPending(skillLabel, base, undefined, pr.test.difficulty, mods),
     },
     onRoll: roll,
     rerolled: !!pr.rerolled,
@@ -58,10 +58,10 @@ export function RunModal() {
     <RollShell
       flowKey="run"
       stake={flowStakeRef('run-roll')}
-      title={<><Icon id="melee/flee" size="sm" /> Course</>}
+      title={<><Icon id="melee/flee" size="sm" /> {pr.test.label}</>}
       subtitle={
         <>
-          <strong>{c.label}</strong> s'élance (Test {c.mountId ? 'de Chevaucher' : "d'Athlétisme"} +20)
+          <strong>{c.label}</strong> s'élance
         </>
       }
       rows={[actorRow]}

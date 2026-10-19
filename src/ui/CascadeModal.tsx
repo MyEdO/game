@@ -28,7 +28,7 @@ import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
 import { fourchette } from '../engine/tables';
-import { estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
+import { estJete, refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../state/rollSeam';
@@ -210,7 +210,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const l = stepLine(s);
     // Pré-jet : la seconde lecture n'a que sa CIBLE à annoncer (aucun dé n'est tombé) — c'est
     // précisément ce qui manquait au joueur, qui ne découvrait le second Test qu'en le ratant.
-    return testPending(l.label, l.base, s.target, s.difficulty, l.mods, s.easedBy, s.clamped, s.second ? { ...s.second } : undefined);
+    return testPending(l.label, l.base, s.target != null ? cibleMesuree({ target: s.target, clamped: s.clamped }) : undefined, s.difficulty, l.mods, s.easedBy, s.second ? { ...s.second } : undefined);
   };
   /** Étape qui LANCE — la ligne de jet n'existe que là (les étapes d'affichage/choix/table/batch
    *  n'ont ni cible ni libellé de ligne : elles se rendent par leur note). */
@@ -299,7 +299,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         if (!a) return [];
         const res = estJete(part.result) ? part.result : null;
         // La rangée FIGÉE garde sa seconde lecture : ce que la bande a tranché reste lisible au bilan.
-        const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
+        const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), ...(part.clamped ? { clamped: part.clamped } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
         const extendedDr = extendedDrData(part.extendedDrDone, part.extendedDrTarget, res);
         return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: refusSansJet(part) ?? partNote(part) }, extendedDr })];
       });

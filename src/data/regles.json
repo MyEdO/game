@@ -452,7 +452,39 @@
       "book": "livre-de-base",
       "page": 190,
       "note": "LDB 7 « Peur (Indice) »"
-    }
+    },
+    "tests": [
+      {
+        "id": "se-rapprocher",
+        "label": "Se rapprocher de la source de Peur",
+        "source": {
+          "book": "livre-de-base",
+          "page": 190,
+          "note": "LDB 21 l.27"
+        },
+        "test": {
+          "skill": {
+            "id": "calme"
+          },
+          "difficulty": "intermediaire"
+        }
+      },
+      {
+        "id": "source-se-rapproche",
+        "label": "La source de Peur se rapproche",
+        "source": {
+          "book": "livre-de-base",
+          "page": 190,
+          "note": "LDB 21 l.27"
+        },
+        "test": {
+          "skill": {
+            "id": "calme"
+          },
+          "difficulty": "intermediaire"
+        }
+      }
+    ]
   },
   {
     "id": "sur-la-defensive",
@@ -1757,7 +1789,24 @@
       "book": "livre-de-base",
       "page": 165,
       "note": "LDB 15 l.41"
-    }
+    },
+    "tests": [
+      {
+        "id": "courir",
+        "label": "Course",
+        "source": {
+          "book": "livre-de-base",
+          "page": 165,
+          "note": "LDB 15 l.41"
+        },
+        "test": {
+          "skill": {
+            "id": "athletisme"
+          },
+          "difficulty": "accessible"
+        }
+      }
+    ]
   },
   {
     "id": "charger",
@@ -1837,6 +1886,79 @@
         "valeur": 20,
         "famille": "circonstance"
       }
+    ],
+    "tests": [
+      {
+        "id": "touche-en-fuyant",
+        "label": "Touché en fuyant",
+        "source": {
+          "book": "livre-de-base",
+          "page": 166,
+          "note": "LDB 15 l.66"
+        },
+        "test": {
+          "skill": {
+            "id": "calme"
+          },
+          "difficulty": "intermediaire"
+        }
+      }
+    ]
+  },
+  {
+    "id": "saut",
+    "type": "regles",
+    "label": "Saut",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "15",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "saut",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "8b50a9dde863d45c"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 166,
+      "note": "LDB 15 l.74-76"
+    },
+    "tests": [
+      {
+        "id": "avec-elan",
+        "label": "Saut avec élan",
+        "source": {
+          "book": "livre-de-base",
+          "page": 166,
+          "note": "LDB 15 l.76"
+        },
+        "test": {
+          "skill": {
+            "id": "athletisme"
+          },
+          "difficulty": "accessible"
+        }
+      },
+      {
+        "id": "sans-elan",
+        "label": "Saut sans élan",
+        "source": {
+          "book": "livre-de-base",
+          "page": 166,
+          "note": "LDB 15 l.76"
+        },
+        "test": {
+          "skill": {
+            "id": "athletisme"
+          },
+          "difficulty": "intermediaire"
+        }
+      }
     ]
   },
   {
@@ -1861,7 +1983,24 @@
       "book": "livre-de-base",
       "page": 166,
       "note": "LDB 15 l.80-84"
-    }
+    },
+    "tests": [
+      {
+        "id": "tenter",
+        "label": "Chute volontaire",
+        "source": {
+          "book": "livre-de-base",
+          "page": 166,
+          "note": "LDB 15 l.82"
+        },
+        "test": {
+          "skill": {
+            "id": "athletisme"
+          },
+          "difficulty": "accessible"
+        }
+      }
+    ]
   },
   {
     "id": "influences-corruptrices",
@@ -1885,7 +2024,80 @@
       "book": "livre-de-base",
       "page": 182,
       "note": "LDB 19 l.27-29"
-    }
+    },
+    "tests": [
+      {
+        "id": "physique",
+        "label": "Influence physique",
+        "source": {
+          "book": "livre-de-base",
+          "page": 182,
+          "note": "LDB 19 l.29"
+        },
+        "test": {
+          "skill": {
+            "id": "resistance"
+          },
+          "difficulty": "intermediaire"
+        }
+      },
+      {
+        "id": "spirituelle",
+        "label": "Corruption spirituelle",
+        "source": {
+          "book": "livre-de-base",
+          "page": 182,
+          "note": "LDB 19 l.29"
+        },
+        "test": {
+          "skill": {
+            "id": "calme"
+          },
+          "difficulty": "intermediaire"
+        }
+      }
+    ]
+  },
+  {
+    "id": "corrompu",
+    "type": "regles",
+    "label": "Corrompu",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "19",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "corrompu",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "dd78e36b2c868020"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "LDB 19 l.66-70"
+    },
+    "tests": [
+      {
+        "id": "contenir",
+        "label": "Seuil de Corruption franchi",
+        "source": {
+          "book": "livre-de-base",
+          "page": 183,
+          "note": "LDB 19 l.70"
+        },
+        "test": {
+          "skill": {
+            "id": "resistance"
+          },
+          "difficulty": "intermediaire"
+        }
+      }
+    ]
   },
   {
     "id": "dissipation",
@@ -2087,7 +2299,24 @@
       "book": "livre-de-base",
       "page": 237,
       "note": "LDB 46 l.144"
-    }
+    },
+    "tests": [
+      {
+        "id": "maintenir",
+        "label": "Focalisation interrompue",
+        "source": {
+          "book": "livre-de-base",
+          "page": 237,
+          "note": "LDB 46 l.144"
+        },
+        "test": {
+          "skill": {
+            "id": "calme"
+          },
+          "difficulty": "difficile"
+        }
+      }
+    ]
   },
   {
     "id": "precieuses-entrailles",

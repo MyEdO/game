@@ -33,6 +33,7 @@ import { collectionDuDataset } from '../data/overrides';
 import { trappingsInstanciables, psychologies } from '../data';
 import { traumaById } from '../engine/trauma';
 import { browserUnfreezeTimeout } from './devtoolsTimers';
+import { mountMovement, movementRemaining } from './mount';
 
 describe('__wfrp — setup #1561', () => {
   beforeEach(() => {
@@ -588,6 +589,39 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
     expect(api.turn(heroId)).toMatch(/^✓/);
   };
+
+  it('turn rend un Tour NEUF : la Course jetée au Tour précédent ne prête plus son budget', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const g = useGame.getState;
+    const ici = combattant().pos!;
+    for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
+    g().battleRun({ x: ici.x + 3, y: ici.y });
+    g().runRoll();
+    g().runConfirm();
+    expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
+    expect(api.turn(heroId)).toMatch(/^✓/);
+    const b = g().battle!;
+    expect(movementRemaining(b, combattant()), 'le Mouvement du Tour, sans le reliquat de Course').toBe(mountMovement(b, combattant()));
+  });
+
+  it('combatEnd : un `corruption` qui n’est ni un Degré ni false est refusé, nommé, sans finir le combat', () => {
+    const api = buildApi();
+    expect(api.combatEnd({ corruption: true as never })).toMatch(/^✗ corruption « true »/);
+    expect(useGame.getState().battle!.over).toBeNull();
+    expect(useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy').every((c) => !c.dead)).toBe(true);
+  });
+
+  it('dealDamage : des Dégâts qui ne sont pas un nombre fini sont refusés, nommés, sans rien infliger', () => {
+    const api = buildApi();
+    const avant = combattant().wounds.current;
+    expect(api.dealDamage(heroId, '14' as never)).toMatch(/^✗ Dégâts « 14 »/);
+    expect(api.dealDamage(heroId, Number.NaN)).toMatch(/^✗/);
+    expect(api.dealDamage(heroId, JSON.parse(JSON.stringify(Number.NaN)) as never), 'NaN sérialisé par `evaluerFn` arrive `null`').toMatch(/^✗ Dégâts « null »/);
+    expect(combattant().wounds.current).toBe(avant);
+    expect(api.dealDamage(heroId, 3)).toMatch(/^✓/);
+    expect(combattant().wounds.current).toBe(avant - 3);
+  });
 
   it('attaque / turn pendant la pause de début de Round : refus nommés, la pause garde turn -1', () => {
     const api = buildApi();

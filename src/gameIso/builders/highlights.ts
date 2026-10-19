@@ -78,7 +78,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       const [x, y, z] = parse(k);
       out.push({ key: `h${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'walk' });
     }
-  // Zone de COURSE (LDB 15 l.79-82) au-delà de la Marche : y cliquer demandera le Test d'Athlétisme.
+  // Zone de COURSE (LDB 15 l.79-82) au-delà de la Marche : y cliquer demandera le Test `course`.
   if (view.myTurn)
     for (const k of view.runReach.keys()) {
       if (view.walkReach.has(k)) continue;

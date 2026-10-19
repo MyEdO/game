@@ -180,7 +180,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/magic.ts': 2,
   'src/engine/menace.ts': 1,
   'src/engine/provisions.ts': 1,
-  'src/engine/psychology.ts': 3,
+  'src/engine/psychology.ts': 2,
   // 3 → 2 (L2 #1548, commit 3b) : le Test d'équipage d'un Critique fluvial désigne une CARACTÉRISTIQUE
   // (`crewTest.char === 'initiative'`), plus un id de registre de Compétence.
   'src/engine/riverNavigation.ts': 1,

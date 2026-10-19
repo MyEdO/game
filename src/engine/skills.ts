@@ -93,6 +93,24 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
   return base + (sk?.advances ?? 0) + states + enc + traumaSkill + passive + fxChar + skillToolMod(c, skill);
 }
 
+/** Ce qu'un Test désigne : sa Compétence (`TestNomme` d'une fiche, `RefDesignee` d'une donnée) ou sa
+ *  seule Caractéristique. */
+export type TestDesigne = { readonly skill: RefDesignee } | { readonly char: CharKey };
+
+/** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
+export function valeurDuTest(c: Combatant, test: TestDesigne): number {
+  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.char);
+}
+
+/** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
+ *  (États, passifs, encombrement…), que la ligne rend en chips. */
+export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: number; mods: ModLine[] } {
+  const { base, mods } = 'skill' in test
+    ? testValueSplit(c, valeurDuTest(c, test), { skill: test.skill.id, spec: test.skill.spec })
+    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.char });
+  return { base, mods };
+}
+
 /**
  * DÉCOMPOSITION EXHAUSTIVE de `testValue` en composantes NOMMÉES — LE socle d'affichage de tout Test
  * hors combat, et la garantie que l'écran annonce ce que le moteur calcule. INVARIANT vérifié par la

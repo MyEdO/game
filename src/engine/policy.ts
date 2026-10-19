@@ -106,12 +106,12 @@ export function rule(id: string): RuleValue {
 export function setRule(id: string, value: RuleValue): void {
   if (!regleParId(id)) return;
   overrides.set(id, value);
-  bumperDataset('regles');
+  bumperDataset('surchargesDeReglesOptionnelles');
 }
 
 /** Retire la surcharge → retour au défaut. */
 export function resetRule(id: string): void {
-  if (overrides.delete(id)) bumperDataset('regles');
+  if (overrides.delete(id)) bumperDataset('surchargesDeReglesOptionnelles');
 }
 
 /** Snapshot des surcharges (pour persistance). */

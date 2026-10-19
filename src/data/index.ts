@@ -2363,6 +2363,15 @@ export interface RegleData {
   source: SourceRef;
   /** Les valeurs que le livre chiffre, lues par `engine/reglesChiffrees.ts` (schéma `defs/regles.ts`). */
   rangees?: RangeeDeRegleData[];
+  /** Les Tests que la règle nomme, lus par `engine/reglesChiffrees.ts` (`testDeRegle`) ; la Difficulté y
+   *  est exigée par le schéma. */
+  tests?: TestDeRegleData[];
+}
+export interface TestDeRegleData {
+  id: string;
+  label: string;
+  source: SourceRef;
+  test: import('../engine/flowCore').FlowTest & { skill: NonNullable<import('../engine/flowCore').FlowTest['skill']>; difficulty: Difficulty };
 }
 export interface RangeeDeRegleData {
   id: string;
@@ -2374,12 +2383,11 @@ export interface RangeeDeRegleData {
   plafond?: number;
 }
 export const regles = adressee<RegleData>(reglesJson);
-/** Index par `id` STABLE — patron des datasets HORS seam `ARRAYS` d'`overrides.ts` (même forme que
- *  `lieuServiceById`) : `regles` n'y est pas routé, `indexParId` ne peut donc pas le clefer. */
-const regleParId = new Map(regles.map((r) => [r.id, r]));
+/** Index VIVANT par `id` STABLE : `regles` est routé par le seam `ARRAYS` d'`overrides.ts`. */
+const regleParId = indexParId('regles', regles);
 /** Résout une fiche de Règle par son `id` STABLE. */
 export function findRegleById(id: string): RegleData | undefined {
-  return regleParId.get(id);
+  return regleParId(id);
 }
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */

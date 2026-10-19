@@ -270,7 +270,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
   const rollAllRowsWithPickedDice = (fallback: () => void) => () => {
     const rollable = rows
       .map((r, i) => ({ r, key: rowKeyOf(r, i) }))
-      .filter(({ r }) => r.interactive !== false && !(r.rolled ?? rolled) && r.onRoll);
+      .filter(({ r }) => r.interactive !== false && !(r.rolled ?? rolled) && r.onRoll && !r.rollBlocked);
     const launched = dieRegistry.commitAll(rollable.map((x) => x.key));
     if (!launched.size) { fallback(); return; } // aucun dé saisi : le verbe du domaine s'applique tel quel
     for (const { r, key } of rollable) if (!launched.has(key)) r.onRoll?.();
@@ -357,11 +357,14 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
         {/* « Lancer » HISSÉ (mono) : au MÊME niveau qu'Annuler/Appliquer, en DERNIER (à DROITE) — action
             PRIMAIRE à droite, « Annuler » à gauche (convention de la coquille). Pendant le roulis/
             l'atterrissage, la SCÈNE centrale (ci-dessus) porte les dés : ce bouton disparaît sans repli. */}
-        {hoistIdx >= 0 && !rolled && !hoist.rolling && (
-          <button key="roll" className="btn btn-primary" onClick={withPickedDie(hoistDieCommit, () => hoist.trigger())}>
-            {hoistRow?.rollLabel ?? DEFAULT_ROLL_LABEL}
-          </button>
-        )}
+        {/* Le CTA hissé EST celui de la rangée : son `rollBlocked` le ferme de même (`RollRow`). */}
+        {hoistIdx >= 0 && !rolled && !hoist.rolling && (hoistRow?.rollBlocked
+          ? <GatedAction key="roll" id={`${uid}-roll-hisse`} label={hoistRow.rollLabel ?? DEFAULT_ROLL_LABEL} enabled={false} reason={hoistRow.rollBlocked} onClick={() => {}} />
+          : (
+            <button key="roll" className="btn btn-primary" onClick={withPickedDie(hoistDieCommit, () => hoist.trigger())}>
+              {hoistRow?.rollLabel ?? DEFAULT_ROLL_LABEL}
+            </button>
+          ))}
     </>
   );
   if (!p) return null;

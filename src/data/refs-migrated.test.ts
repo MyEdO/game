@@ -405,7 +405,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     });
   });
 
-  it('scènes : FlowTest.skill / extendedTest.skill = skillId qui résout ; corruptionExposure.skill ∈ {resistance,calme}', () => {
+  it('scènes : FlowTest.skill / extendedTest.skill = skillId qui résout', () => {
     walk(areneProject, (o) => {
       if (o.kind === 'test' && isObj(o.test)) {
         const s = (o.test as Record<string, unknown>).skill;
@@ -416,7 +416,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         }
       }
       if (o.type === 'extendedTest' && o.skill != null) expect(byId('skill', (o.skill as { id: string }).id), `extendedTest → ${JSON.stringify(o.skill)}`).toBeTruthy();
-      if (o.type === 'corruptionExposure' && o.skill != null) expect(['resistance', 'calme'], JSON.stringify(o.skill)).toContain((o.skill as { id: string }).id);
     });
   });
 

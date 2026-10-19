@@ -615,9 +615,7 @@
           {
             "op": "corruptionExposure",
             "level": "mineure",
-            "skill": {
-              "id": "resistance"
-            }
+            "nature": "physique"
           }
         ],
         "note": "Le Personnage manipule l'objet avec une telle incompétence qu'une dangereuse contamination magique se produit. Il ne découvre rien sur l'objet, et doit en plus réaliser un Test d'Exposition mineure à la Corruption."

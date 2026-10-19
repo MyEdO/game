@@ -14,7 +14,7 @@ describe('règles de saut', () => {
     expect(freeJumpTiles(0)).toBe(0);
   });
 
-  it('saut MAX (avec Test d’Athlétisme) = libre + 1 case', () => {
+  it('saut MAX (avec le Test de `saut`) = libre + 1 case', () => {
     expect(maxJumpTiles(4)).toBe(1); // un humain peut TENTER 1 case (2 m) au prix d'un Test
     expect(maxJumpTiles(6)).toBe(2);
   });

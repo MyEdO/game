@@ -14,10 +14,10 @@
  */
 import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 
-/** Clés du témoin : les datasets du seam, plus `regles`, les surcharges de règles optionnelles
- *  (`engine/policy`, `setRule`/`resetRule`) — une donnée éditable elle aussi. */
-export type CleVersionnee = CleDeDataset | 'regles';
-export const CLES_VERSIONNEES: readonly CleVersionnee[] = [...CLES_DE_DATASET, 'regles'];
+/** Clés du témoin : les datasets du seam, plus `surchargesDeReglesOptionnelles` (`engine/policy`,
+ *  `setRule`/`resetRule`) — une donnée éditable elle aussi. */
+export type CleVersionnee = CleDeDataset | 'surchargesDeReglesOptionnelles';
+export const CLES_VERSIONNEES: readonly CleVersionnee[] = [...CLES_DE_DATASET, 'surchargesDeReglesOptionnelles'];
 
 /** Le compteur d'UN dataset, dans une CELLULE que le mémo capture UNE fois : une lecture chaude n'est
  *  plus une recherche par chaîne dans une `Map` mais une lecture de champ. */

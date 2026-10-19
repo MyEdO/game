@@ -38,7 +38,7 @@ export function ShantyModal() {
     actor: singer,
     row: {
       combatant: singer,
-      d: r ? testBreakdown('Divertissement (Chant)', value, { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, 'intermediaire') : undefined,
+      d: r ? testBreakdown('Divertissement (Chant)', value, r, 'intermediaire') : undefined,
       pending: testPending('Divertissement (Chant)', value, undefined, 'intermediaire'),
     },
     onRoll: roll,

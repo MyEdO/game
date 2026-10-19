@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { OptionChooser, ChoiceButtons, type RollOption, type RollSegOption } from './OptionChooser';
 import { optionValue, optionPending } from './breakdown';
+import { clampTarget } from '../engine/tests';
 
 /** Pose la cascade RÉELLE de l'app, dans SON ordre (`src/ui/styles.css` : `base.css`, puis
  *  `components.css`, foyer de `.seg`, puis `option-chooser.css`, foyer de `.rm-loc-inline`) — mesurer un style calculé sans elle mesurerait le vide. */
@@ -276,12 +277,14 @@ describe('OptionChooser — sélecteur d’options de jet partagé', () => {
 });
 
 describe('optionValue / optionPending — forme unique pré-jet', () => {
-  it('optionValue = base + combineMods (plafonds de Difficulté inclus)', () => {
+  it('optionValue = base + combineMods (plafonds de Difficulté inclus), bornée comme la cible du jet', () => {
     expect(optionValue(40, [{ label: 'Avantage', value: 10, famille: 'jet' }])).toBe(50);
     // Malus plafonné à −30 (Très Difficile) : 40 + (−40 plafonné −30) = 10.
     expect(optionValue(40, [{ label: 'X', value: -40, famille: 'circonstance' }])).toBe(10);
-    // `famille: 'jet'` (Avantage, hors table `LDB 14 l.48`) échappe au plafond des bonus.
-    expect(optionValue(40, [{ label: 'Avantage', value: 100, famille: 'jet' }])).toBe(140);
+    // `famille: 'jet'` (Avantage, hors table `LDB 14 l.48`) échappe au plafond des bonus ; la cible,
+    // elle, reste bornée (`clampTarget`) : l'option montre ce que sa ligne affichera.
+    expect(optionValue(40, [{ label: 'Avantage', value: 100, famille: 'jet' }])).toBe(clampTarget(140).target);
+    expect(optionValue(22, [{ label: 'X', value: -30, famille: 'circonstance' }])).toBe(clampTarget(-8).target);
   });
 
   it('optionPending : { label, base, mods } ; cible omise par défaut, fournie si plafonnée', () => {

@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../../engine/tests';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../state/rollFlowSpecs';
@@ -49,7 +50,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // ne reconstruit rien : une décomposition d'affichage peut diverger de celle qui a fait la cible.
   const base = pt.base ?? pt.skillValue;
   const extraMods = pt.mods ?? [];
-  const pendingLine = testPending(skillLabel, base, pt.target, pt.difficulty, extraMods, pt.easedBy, pt.clamped);
+  const pendingLine = testPending(skillLabel, base, cibleMesuree(pt), pt.difficulty, extraMods, pt.easedBy);
   // Capricieux (MSRC 15 l.149-159) : le d10 de l'interlocuteur ne touche NI `skillValue` NI `target` —
   // il décale le DR du Test résolu (`FLOWS.test`), donc il s'affiche comme une ligne de mod de DR.
   const capLabel = pt.capriciousRoll == null ? null
@@ -110,7 +111,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
            se dit par le verdict du flux ; la ligne, elle, dit le Test. C'est aussi l'issue canonique
            du seam (`rollOutcome`), dont dérivent Chance et Résilience. */
         row: rolled
-          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, target: pt.target, sl: pt.sl, success: pt.roll! <= pt.target, clamped: pt.clamped }, pt.difficulty, extraMods, pt.easedBy) }
+          ? { combatant: actor, d: testBreakdown(skillLabel, base, { roll: pt.roll!, ...cibleMesuree(pt), sl: pt.sl, success: pt.roll! <= pt.target }, pt.difficulty, extraMods, pt.easedBy) }
           : (multi ? { pending: pendingLine } : { combatant: actor, pending: pendingLine }),
         onRoll: roll,
         rerolled: !!pt.rerolled,

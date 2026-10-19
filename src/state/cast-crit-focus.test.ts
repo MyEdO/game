@@ -1,7 +1,7 @@
 /**
  * Risques d'incantation — câblage store (LDB 46) : Incantation Critique (choix +
  * contrecoup, Diction instinctive), Focalisation Critique (NI atteint + Imparfaite
- * sauf Harmonisation aethyrique), interruption de Focalisation (Calme −20),
+ * sauf Harmonisation aethyrique), Test `interruption-de-focalisation`,
  * convergence de Domaine (+1 Avantage).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -10,7 +10,8 @@ import { draineEtLit, avanceEtapeCascade } from './cascadeTestKit';
 import { applyCast, checkFocusInterruption, openCastCascade } from './combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
-import { findSpell, findEffectTableById } from '../data';
+import { findSpell, findEffectTableById, refLabel } from '../data';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
@@ -187,7 +188,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
 });
 
 /**
- * Interruption de Focalisation (LDB 46 l.142-144) : le Test de Calme Difficile (−20) du focaliseur est routé
+ * Interruption de Focalisation (LDB 46 l.142-144) : le Test `interruption-de-focalisation` du focaliseur est routé
  * CADENCE-AWARE (comme tout jet héros). Héros MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE
  * (le joueur PEUT dépenser sa Chance pour garder son sort) ; ennemi / cadence auto → jet INLINE. La
  * conséquence d'échec (perte des DR + Imparfaite Mineure, op `interruptFocus`) s'exécute APRÈS le Test.
@@ -216,14 +217,14 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     const step = c.participants.find((s) => s.kind === 'triggeredTest')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(w.id);
-    expect(step.rollLabel).toBe('Calme'); // le Test RÉEL (≠ le libellé de situation)
+    expect(step.rollLabel).toBe(refLabel('skills', testDeRegle('interruption-de-focalisation', 'maintenir').skill)); // le Test RÉEL (≠ le libellé de situation)
     expect(step.result).toBeFalsy(); // pas encore lancé → Chance/Résilience possibles
     expect(w.focus?.dr).toBe(3); // DR encore intacts : la conséquence est différée
   });
 
-  it('héros MANUEL : Calme RATÉ (cascadeRoll+Next) → DR perdus + Imparfaite Mineure', () => {
+  it('héros MANUEL : Test `maintenir` RATÉ (cascadeRoll+Next) → DR perdus + Imparfaite Mineure', () => {
     const w = wiz();
-    w.characteristics['force-mentale'] = 1; // Calme ~imbattable à rater
+    w.characteristics['force-mentale'] = 1; // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(useGame.getState, useGame.setState, w);
@@ -239,7 +240,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     expect(useGame.getState().pendingCascade!.participants.some((s) => s.kind === 'miscast')).toBe(true);
   });
 
-  it('héros MANUEL : Calme RÉUSSI → concentration maintenue, DR conservés, aucune Imparfaite', () => {
+  it('héros MANUEL : Test `maintenir` RÉUSSI → concentration maintenue, DR conservés, aucune Imparfaite', () => {
     const w = wiz();
     w.characteristics['force-mentale'] = 100;
     w.skills.push({ id: 'calme', characteristic: 'force-mentale', advances: 20 } as never);
@@ -254,14 +255,14 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     expect(useGame.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast') ?? false).toBe(false);
   });
 
-  it('ENNEMI focaliseur frappé → Test de Calme résolu INLINE, et son contrecoup tiré D’OFFICE', () => {
+  it('ENNEMI focaliseur frappé → Test `interruption-de-focalisation` résolu INLINE, et son contrecoup tiré D’OFFICE', () => {
     const foe = { ...wiz(), id: 'caster-foe', label: 'Sorcier ennemi', kind: 'enemy' } as Combatant;
-    foe.characteristics['force-mentale'] = 1; // Calme raté → conséquence inline
+    foe.characteristics['force-mentale'] = 1; // FM 1 : Test de la fiche du jeu raté → conséquence inline
     foe.focus = { spell: 'armure-aethyrique', dr: 2 };
     const w = wiz();
     inCombat(w, foe);
     checkFocusInterruption(useGame.getState, useGame.setState, foe);
-    // Aucune étape INFLUENÇABLE : le Test de Calme est roulé inline. Le contrecoup, lui, DÉCLARE son
+    // Aucune étape INFLUENÇABLE : le Test `maintenir` est roulé inline. Le contrecoup, lui, DÉCLARE son
     // étape à table comme partout — et le socle la résout d'office, nul siège ne tenant cet ennemi.
     const ouverte = useGame.getState().pendingCascade;
     expect(ouverte?.participants.some((s) => s.kind === 'triggeredTest') ?? false).toBe(false);

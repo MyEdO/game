@@ -40,7 +40,7 @@ export function DispelModal() {
     actor: caster,
     row: {
       combatant: caster,
-      d: r ? testBreakdown('Langue (Magick)', base, { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, undefined, supMods) : undefined,
+      d: r ? testBreakdown('Langue (Magick)', base, r, undefined, supMods) : undefined,
       pending: testPending('Langue (Magick)', base, undefined, undefined, supMods),
     },
     onRoll: roll,

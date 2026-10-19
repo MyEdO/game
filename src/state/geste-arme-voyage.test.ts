@@ -6,7 +6,7 @@
  * L'intention armée est LOCALE au client (`localIntent`, hors snapshot réseau). Deux situations la
  * rendent illisible AU MOMENT où le geste s'exécute — ce sont les deux sondes de ce fichier :
  *
- *  (A) RÉ-ENTRÉE : un gate (Test de Calme d'approche, Bénédiction de Protection, choix cavalier/
+ *  (A) RÉ-ENTRÉE : un gate (Test `calme-d-approche`, Bénédiction de Protection, choix cavalier/
  *      monture) DIFFÈRE le geste. Le premier clic a déjà dissous l'intention ; relire le store à la
  *      relance refuserait le geste que le joueur vient de GAGNER à son jet.
  *  (B) COOP : l'invité arme SA case, l'hôte exécute l'intent dans SON store — où cette intention

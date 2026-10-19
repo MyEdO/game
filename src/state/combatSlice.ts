@@ -13,16 +13,17 @@ import { tickCombatAuto } from './combatAuto';
 import type { GameState, BattleState, ShootingStanceKey } from './store';
 import type { BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
-import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
+import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
 import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '../engine/types';
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
+import { toRecapLines } from './recapLine';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, victimeDuCoup, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, victimeDuCoup, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './lineOfSight';
@@ -55,7 +56,7 @@ import { rule } from '../engine/policy';
 import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, overcastDurationParts, overcastBudget } from '../engine/overcast';
-import { resolveOpposed, extendedTestStep, ligneSansJet } from '../engine/tests';
+import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
@@ -128,6 +129,8 @@ import { checkPartyWiped } from './partyWipe';
 import { FLOWS } from './rollFlowSpecs';
 import { actionsAuthorees } from './usable';
 import { fateSaveOptions } from '../engine/fortune';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { testDuCavalier } from '../engine/movement';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
  *  2ᵉ frappe, Surincantation +Cible, pose de zone) :
@@ -419,8 +422,8 @@ export function createCombatSlice(get: Get, set: Set) {
   // Hook `grantFreeAttack` (op IMPURE) : pont exécuteur de Flow → vraie frappe — `runCombatFlow` l'appelle
   // sur le `do`/`grantFreeAttack` (Frappe réactive / Assaut féroce / Frénésie). Inversion de dépendance.
   setFreeAttackHook(freeAttackHookImpl);
-  // Hook `interruptFocus` (op IMPURE) : conséquence d'un Test de Calme d'interruption de Focalisation RATÉ
-  // (perte des DR + Imparfaite Mineure, LDB 46 l.144) — appelée par `runCombatFlow` sur le `do`/`interruptFocus`.
+  // Hook `interruptFocus` (op IMPURE) : conséquence du Test `interruption-de-focalisation` RATÉ
+  // (LDB 46 l.144) — appelée par `runCombatFlow` sur le `do`/`interruptFocus`.
   setFocusInterruptHook(applyFocusInterruption);
   // Hook `breakBlade` (op IMPURE) : conséquence d'un Test opposé de Piège-lame GAGNÉ (désarme/brise la lame,
   // LDB 62 l.280) — appelée par `runCombatFlow` sur le `do`/`breakBlade`.
@@ -679,7 +682,7 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
     // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
-    //    du FRAPPEUR, Test de Calme du FUYARD). Aucun jet ni aucune conséquence ici : `fleeConfirm`
+    //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `fleeConfirm`
     //    applique tout. La modale s'ouvre dès qu'UN des deux acteurs est JOUÉ (symétrie). ──
     disengageFlee: () => {
       const { battle, pendingDisengage: pd } = get();
@@ -718,7 +721,7 @@ export function createCombatSlice(get: Get, set: Set) {
           fuir: {
             participants: [
               { id: foe.id, kind: 'backstab', interactive: played(foe), result: null },
-              { id: mover.id, kind: 'calme', interactive: played(mover), calme: null },
+              { id: mover.id, kind: 'touche', interactive: played(mover), test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
             ],
           },
         },
@@ -742,12 +745,12 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pdOpen?.fuir) return;
       if (!fleeBackstab(pdOpen)?.result) get().fleeRoll(foe.id);
       const pdRolled = get().pendingDisengage;
-      if (pdRolled && fleeNeedCalme(pdRolled) && !fleeCalme(pdRolled)?.calme) get().fleeRoll(mover.id);
+      if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().fleeRoll(mover.id);
       get().fleeConfirm();
     },
     // ── « Fuir » — « Appliquer » : applique le coup dans le dos par l'applicateur CANONIQUE d'attaque
     //    (Coup Critique sur double LDB 13 l.183, Blessure critique + À Terre au dépassement LDB 13 l.161,
-    //    Avantage, Frappe Mortelle), PUIS la fuite elle-même (`completeFlee` : États Brisés du Calme raté
+    //    Avantage, Frappe Mortelle), PUIS la fuite elle-même (`completeFlee` : États Brisés du Test `fuite` raté
     //    l.66 + libération des Engagements + budget de Course l.68). Le coup gratuit consomme des tirages
     //    de `battleRng` (localisation, Critique, effets déclenchés) : à graine égale, la suite d'un combat
     //    où l'on fuit DIVERGE de l'ancienne — assumé (l'application canonique prime sur la reproductibilité
@@ -760,9 +763,9 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
       const res = fleeBackstab(pd)?.result;
       if (!res) return; // le coup dans le dos n'est pas résolu : rien à appliquer
-      const calmeSlot = fleeCalme(pd);
-      if (fleeNeedCalme(pd) && !calmeSlot?.calme) {
-        if (!calmeSlot || calmeSlot.interactive) return; // le fuyard joué n'a pas encore lancé son Calme
+      const toucheSlot = fleeTouche(pd);
+      if (fleeToucheDu(pd) && !toucheSlot?.jet) {
+        if (!toucheSlot || toucheSlot.interactive) return; // le fuyard joué n'a pas encore lancé son Test `fuite`
         get().fleeRoll(mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
         return get().fleeConfirm();
       }
@@ -778,13 +781,18 @@ export function createCombatSlice(get: Get, set: Set) {
       const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'hero', wasChain: false };
       const suspended = applyAttackResult(get, set, foe, mover, backstabWeapon(foe), res,
         { suite: { restitution: { prevActed: battle.acted }, manoeuvre: { kind: 'dos' }, enchainement } });
-      const calme = calmeSlot?.calme;
-      const broken = calme && !calme.success ? 1 + Math.max(0, -calme.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
+      const jet = toucheSlot?.jet;
+      const broken = jet && !jet.success ? 1 + Math.max(0, -jet.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
       if (suspended) {
         // Déviation Critique du fuyard : `applyAttackResult` a EMPILÉ son étape de choix — le coup gratuit
         // n'est PAS résolu. La fuite (Brisé + Course) attend SA résolution, dans la même fenêtre, via
         // l'étape de reprise `fleeMove` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
-        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'fleeMove', actorId: mover.id, icon: 'melee/flee', label: t('step.fuite'), fleeMove: { moverId: mover.id, foeId: foe.id, broken } });
+        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'fleeMove', actorId: mover.id, icon: 'melee/flee', label: t('step.fuite'),
+          outcome: toRecapLines([
+            t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
+            ...(broken > 0 ? [t('cs.panic', { name: mover.label, broken })] : []),
+          ]),
+          fleeMove: { moverId: mover.id, foeId: foe.id, broken } });
         const casc = get().pendingCascade;
         if (casc?.participants[casc.cursor]?.jet === 'disengage') get().cascadeNext(); // avancer sur l'étape de Déviation
         return;
@@ -958,24 +966,10 @@ export function createCombatSlice(get: Get, set: Set) {
         }
         return;
       }
-      // Peur (LDB 21 l.27) : se RAPPROCHER d'une source de Peur exige un Test de Calme Intermédiaire (+0)
-      // — vérifié au COMMIT seulement (l'aperçu reste libre). Une tentative par Tour (battle.fearGate) :
-      // succès → approches libres ce Tour ; échec → aucune approche ce Tour.
-      const fearGateBlocks = (): boolean => {
-        if (battle.fearGate === 'passed') return false;
-        const feared = fearedSourceTowards(battle, active, dest);
-        if (!feared) return false;
-        if (battle.fearGate === 'failed') {
-          refuserGeste(get, set, t('cs.fearNoApproach', { name: active.label, feared: feared.label }));
-          return true;
-        }
-        // On rejoue le clic BRUT (`pt`) après le Test (l.962) → `battleClickTile` re-résout l'escalier
-        // (sinon, stocker `dest` le re-traduirait une 2ᵉ fois et renverrait au pied). Le check de Peur, lui,
-        // porte bien sur la destination réelle (`dest` ci-dessus).
-        set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, sourceName: feared.label, intent: { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee }, result: null }, battle: { ...battle, preview: null } });
-        bus.emit(EVT.SCENE_DIRTY);
-        return true;
-      };
+      // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
+      // `battleClickTile` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
+      const fearGateBlocks = (): boolean =>
+        retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee });
       // Frénésie (LDB 21 l.33) : « vous devez vous déplacer à votre maximum en direction de l'ennemi
       // le plus proche dans votre Ligne de Vue » → seules les cases qui RAPPROCHENT de cette cible.
       const frenzyBlocks = (): boolean => {
@@ -996,7 +990,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // « la seule Action possible est un Test de Capacité de Combat ou un Test d'Athlétisme pour
         // atteindre votre ennemi le plus rapidement possible ») — ce que la règle impose ne s'arme pas.
         if (!courseDemandee && !isFrenzied(active)) return void refuserGeste(get, set, t('cs.refusCourseNonArmee'));
-        // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test d'Athlétisme (pendingRun + destination).
+        // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test de `course` (pendingRun + destination).
         if (!clickOpts?.confirm && !(prev?.kind === 'run' && prev.path === movement.path)) {
           set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } }, hoverDelta: null });
           bus.emit(EVT.SCENE_DIRTY);
@@ -1313,7 +1307,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingManeuver: { ...pm, avantageSpent: clamped } });
     },
 
-    // ── Course (LDB 15 l.41) : utilise l'Action + un Test d'Athlétisme (+20) → déplacement
+    // ── Course (LDB 15 l.41) : utilise l'Action + le Test de la fiche `course` → déplacement
     //    étendu (Marche + Course + DR) vers la destination cliquée dans la zone de Course. « Un jet = une
     //    modale » : le Test passe par pendingRun. ──
     battleRun: (dest?: Pt, movement?: { path: Pt[]; cost: number }) => {
@@ -1325,7 +1319,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'blocked') return;
       const plan = movement ?? (resolved?.status === 'ok' ? { path: resolved.path, cost: resolved.cost } : undefined);
-      set({ pendingRun: { combatantId: active.id, dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null }, hoverDelta: null });
+      set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null }, hoverDelta: null });
     },
     runConfirm: () => {
       const { battle, scene, pendingRun: pr } = get();
@@ -1337,7 +1331,6 @@ export function createCombatSlice(get: Get, set: Set) {
       const geom = mountOf(battle, c) ?? c;
       const range = mountMovement(battle, c) + pr.result.bonusCases; // Marche + (Course + DR) (LDB 15 l.41)
       const env = moveEnv(battle, geom);
-      const skill = c.mountId ? 'Chevaucher' : 'Athlétisme';
       // Le jet peut porter MOINS loin que la destination demandée : on suit le chemin et on s'arrête au
       // dernier point que le budget permet (« au max qu'il puisse faire »).
       const reach = reachable(scene, c.pos!, range, env);
@@ -1351,7 +1344,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!stop || (stop.x === c.pos!.x && stop.y === c.pos!.y)) {
         // Jet désastreux : aucun pas possible — l'Action est tout de même consommée (le Test a eu lieu).
         const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-        const log = [...b.log, ev('move', t('cs.runStumble', { name: c.label, skill, roll: pr.result.roll === 100 ? '00' : pr.result.roll }), c.id)];
+        const log = [...b.log, ev('move', t('cs.runStumble', { name: c.label }), c.id)];
         set({ battle: { ...b, action: null, runBudget: range, reachable: new Map(), preview: null, log } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
@@ -1371,7 +1364,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Budget du Tour étendu à Marche + Course + DR (l.80) : le reliquat non parcouru reste dépensable
       // en segments (A-M*) — `movementRemaining` lit `runBudget`.
       const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-      const log = [...b.log, ev('move', t('cs.run', { name: c.label, skill, roll: pr.result.roll === 100 ? '00' : pr.result.roll, cost, short: short ? t('cs.fragRunShort') : '' }), c.id)];
+      const log = [...b.log, ev('move', t('cs.run', { name: c.label, cost, short: short ? t('cs.fragRunShort') : '' }), c.id)];
       set({ battle: { ...b, action: null, runBudget: range, movementUsed: (battle.movementUsed ?? 0) + cost, reachable: new Map(), preview: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1575,7 +1568,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     shantyCancel: () => set({ pendingShanty: null }),
 
-    // ── Approche d'une source de Peur (LDB 21 l.27) : Test de Calme Intermédiaire (+0) qui DIFFÈRE le
+    // ── Approche d'une source de Peur (LDB 21 l.27) : le Test `pendingApproach.test` qui DIFFÈRE le
     //    clic d'approche. Succès → fearGate 'passed' (approches libres ce Tour) + l'intention est relancée ;
     //    échec → fearGate 'failed' (aucune approche ce Tour). « Un jet = une modale ». ──
     approachConfirm: () => {
@@ -1593,7 +1586,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (ok) {
         // Relance l'intention différée (le gate est 'passed') AVEC son verdict d'armement :
         // l'intention qui l'a produite a été dissoute par le premier clic, la relire ici refuserait le
-        // geste que le joueur vient de gagner à son Test de Calme.
+        // geste que le joueur vient de gagner à son Test `calme-d-approche`.
         if (pa.intent.kind === 'tile') get().battleClickTile(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
         else get().battleClickEntity(pa.intent.id, { confirm: true, approche: pa.intent.approche });
       }
@@ -1966,7 +1959,7 @@ export function createCombatSlice(get: Get, set: Set) {
           skillValue,
           difficulty: 'intermediaire',
           roll: null,
-          target: rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } }).target,
+          ...cibleMesuree(rollLine({ actor: active, difficulty: 'intermediaire', valeur: skillValue, combat: { kind: 'ranged', weapon: w } })),
           sl: 0,
           success: false,
         },
@@ -2007,10 +2000,10 @@ export function createCombatSlice(get: Get, set: Set) {
           actorId: chef.id, actorName: chef.label, weaponUid: w.uid!,
           reload: reloadDRTarget(w), progressBefore: poste.reloadProgress ?? 0,
           skillValue, difficulty: 'intermediaire', roll: null,
-          target: rollLine({
+          ...cibleMesuree(rollLine({
             actor: chef, difficulty: 'intermediaire', valeur: skillValue,
             soutien: sout.bonus ? sout : undefined, combat: { kind: 'ranged', weapon: w },
-          }).target, sl: 0, success: false,
+          })), sl: 0, success: false,
           posteUid, shipId, soutien: sout.bonus ? sout : undefined,
         },
       });
@@ -2544,16 +2537,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
       // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `skipGate` : Test déjà PASSÉ (reprise).
       if (!skipGate && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
-        const base = effectiveChar(attacker, 'dexterite'); // Dextérité effective — +20 « Accessible » via la Difficulté
-        // Cible montée par le MONTEUR : elle passe donc par `clampTarget`, comme celle que `rollTest`
-        // calculera au jet (`FLOWS.handGate`). Effet MESURÉ aux bornes seulement (Dex 85 : 105 → 99).
-        set({ pendingHandGate: {
-          attackerId: attacker.id, actorName: attacker.label, hand: 'off',
-          skillValue: base, difficulty: 'accessible', target: rollLine({ actor: attacker, difficulty: 'accessible', valeur: base }).target,
-          roll: null, sl: 0, success: false,
-          pa: { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true },
-          title: 'Des deux armes', icon: 'action/attack',
-        } });
+        poserLeTestDeMain(set, attacker, 'off', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
         return;
       }
       // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
@@ -2956,7 +2940,7 @@ export function createCombatSlice(get: Get, set: Set) {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
           skillValue, difficulty, roll: null, success: false, sl: 0,
-          target: rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue }).target,
+          ...cibleMesuree(rollLine({ actor: healer, test: { skill: 'guerison' }, difficulty, valeur: skillValue })),
         },
         battle: { ...battle, action: null },
       });
@@ -2972,10 +2956,10 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!target || !availableHealModes(target).includes(mode)) return;
       const difficulty = healDifficulty(mode);
       const soigneur = actorIn(get(), ph.healerId);
-      set({ pendingHeal: { ...ph, mode, difficulty, target: rollLine({
+      set({ pendingHeal: { ...ph, mode, difficulty, clamped: undefined, ...cibleMesuree(rollLine({
         actor: soigneur, ...(soigneur ? { test: { skill: 'guerison' } } : {}),
         difficulty, valeur: ph.skillValue, soutien: ph.support,
-      }).target } });
+      })) } });
     },
 
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. state/medicFlow ──

@@ -233,7 +233,8 @@ const CLES: Record<string, string> = {
   "crewMoraleBands": '817ce48b209e1729',
   "steamBreakdowns": '0241598713ede3cd',
   // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
-  "regles": '79d9382f8ab4c7bb',
+  // #1173 (2026-10-18) : +2 items `saut` (LDB 15 l.74-76) et `corrompu` (LDB 19 l.66-70), les fiches des Tests nommés de leur règle.
+  "regles": 'b7d087c98ce6b8cf',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que

@@ -17,6 +17,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { RollShell } from '../RollShell';
 import { useDefenseJetProps } from './useDefenseJetProps';
+import { ANONYMES } from '../RollLine';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -279,4 +280,85 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       expect(useGame.getState().codexOverlay).toMatchObject({ category: 'talents', id: 'porte-bouclier' });
     });
   });
+});
+
+/**
+ * CIBLE BORNÉE d'une ligne de Test opposé : l'écrêtage est MESURÉ par le constructeur du `TestResult`
+ * (`evaluateTest`, `hydrateTR`, `engine/tests.ts`, par `clampTarget`) et la ligne RENDUE le lit tel
+ * quel, avant le jet (`testPending`, même `clampTarget`) comme après (`bd`, `engine/combat.ts`, par
+ * `cibleMesuree`) ; l'attaque figée se ré-hydrate de sa cible brute (`cibleBrute`) et se re-mesure.
+ * MUTATION : retirer `clampTarget` d'`evaluateTest` ou de `hydrateTR` → la rangée témoin rend « autres » ;
+ * dériver la cible de `testPending` sans `clampTarget` → ma rangée pré-jet annonce −20.
+ */
+describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jamais « autres »', () => {
+  const blocs = () => Array.from(host!.querySelectorAll('.rm-roll-block')) as HTMLElement[];
+  const chips = (b: HTMLElement) => Array.from(b.querySelectorAll('.rm-mod')).map((c) => c.textContent);
+  const calcul = (b: HTMLElement) => b.querySelector('.rm-roll-calc')?.textContent;
+  const sonneEtAvantage = (hero: Combatant, battle: BattleState) => {
+    hero.characteristics = { ...hero.characteristics, agilite: 10 };
+    hero.conditions = [{ id: 'sonne', value: 3 }] as Combatant['conditions'];
+    battle.combatants[0].advantage = 6;
+  };
+
+  it('Esquive Sonné 3 sous le plancher, attaque à fort Avantage au-dessus du plafond', () => {
+    ANONYMES.count = 0;
+    openDefense(undefined, sonneEtAvantage);
+    act(() => { useGame.getState().defenseSetMode('esquive'); });
+    const [, maLigne] = blocs();
+    expect(calcul(maLigne), 'pré-jet : la cible annoncée est celle que le dé affrontera').toBe('10 −9 = 1');
+    expect(chips(maLigne)).toEqual(['−30 Sonné', '+21 plancher 1']);
+    act(() => { useGame.getState().defenseRoll(); });
+    const [temoin, resolue] = blocs();
+    expect(chips(temoin)).toEqual(['+70 Avantage', '−16 plafond 99']);
+    expect(chips(resolue)).toEqual(['−30 Sonné', '+21 plancher 1']);
+    expect(host!.textContent).not.toContain('autres');
+    expect(ANONYMES.count, 'la sonde DEV ne compte aucune chip anonyme').toBe(0);
+  });
+});
+
+/**
+ * DÉ CHOISI sur une cible bornée : le dé FIXÉ comme le dé de RÉSILIENCE (LDB 17 l.68) se réévaluent à la
+ * cible BRUTE du jet posé (`deDuJet`, `state/rollFlowFactory.ts`, par `cibleBrute`), que le constructeur
+ * re-borne et re-mesure (`evaluateTest`, `forcedTR`, `engine/tests.ts`), au plancher comme au plafond ;
+ * aucun appelant ne relaie l'écrêtage.
+ * MUTATION : retirer `clampTarget` d'`evaluateTest` → le dé fixé rend « autres » ; retirer `clampTarget`
+ * de `forcedTR` → le dé de Résilience rend « autres ».
+ */
+describe('Défense : un dé choisi sur une cible écrêtée nomme son plafond ou son plancher', () => {
+  const resolue = () => Array.from(host!.querySelectorAll('.rm-roll-block'))[1] as HTMLElement;
+  const chips = () => Array.from(resolue().querySelectorAll('.rm-mod')).map((c) => c.textContent);
+  const plancher = (hero: Combatant) => {
+    hero.characteristics = { ...hero.characteristics, agilite: 10 };
+    hero.conditions = [{ id: 'sonne', value: 3 }] as Combatant['conditions'];
+  };
+  const plafond = (hero: Combatant) => {
+    hero.characteristics = { ...hero.characteristics, agilite: 95 };
+    hero.advantage = 3;
+  };
+  const choisir = (resilience: boolean, de: number) => act(() => {
+    useGame.getState().defenseSetMode('esquive');
+    useGame.getState().defenseRoll();
+    if (resilience) useGame.getState().defenseForceSuccess();
+    useGame.getState().defenseSetForcedRoll(de);
+  });
+
+  for (const resilience of [false, true]) {
+    const dé = resilience ? 'dé de Résilience' : 'dé fixé';
+    it(`${dé} au plancher : « plancher 1 », jamais « autres »`, () => {
+      ANONYMES.count = 0;
+      openDefense(undefined, plancher);
+      choisir(resilience, 1);
+      expect(useGame.getState().pendingDefense!.def!.roll).toBe(1);
+      expect(chips()).toEqual(['−30 Sonné', '+21 plancher 1']);
+      expect(ANONYMES.count).toBe(0);
+    });
+    it(`${dé} au plafond : « plafond 99 », jamais « autres »`, () => {
+      ANONYMES.count = 0;
+      openDefense(undefined, plafond);
+      choisir(resilience, 40);
+      expect(useGame.getState().pendingDefense!.def!.roll).toBe(40);
+      expect(chips()).toEqual(['+30 Avantage', '−26 plafond 99']);
+      expect(ANONYMES.count).toBe(0);
+    });
+  }
 });

@@ -8,13 +8,13 @@
  */
 import { RNG, defaultRNG } from './dice';
 import { t } from '../i18n';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
+import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
 import { agilityTestPenalty } from './encumbrance';
-import { skillBaseValue } from './skills';
+import { skillBaseValue, testValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
 import { weatherTestMods } from './weatherTestMod';
 import { precipitationTestMods } from './seaWeather';
@@ -574,7 +574,7 @@ const bd = (label: string, base: number, t: TestResult, c?: DifficultyCompositio
     ...(c ? { mods: c.mods, difficulty: c.difficulty } : {}),
     ...(c?.difficultyCombined != null ? { difficultyCombined: c.difficultyCombined } : {}),
     ...(c?.difficultyParts ? { difficultyParts: c.difficultyParts } : {}),
-    target: t.target,
+    ...cibleMesuree(t),
     roll: t.roll,
     success: t.success,
     sl: t.sl,
@@ -1855,7 +1855,7 @@ export function initiativeOrder(combatants: Combatant[], rng?: RNG): Combatant[]
     const groupSize = new Map<string, number>();
     for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
     // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
-    for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(effectiveChar(c, 'agilite'), 'intermediaire', rng));
+    for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, undefined, 'agilite'), 'intermediaire', rng));
   }
   return [...combatants].sort((a, b) => {
     const ia = initOf(a), ib = initOf(b);

@@ -346,7 +346,7 @@ describe('matchOutcomes — bandes d’issue par DR (ACE Annexe I)', () => {
 
   it('Tester des objets : ≤ −4 DR → Test d’Exposition mineure à la Corruption (op GameOp)', () => {
     const bad = matchOutcomes(tst, { success: false, sl: -5 });
-    expect(bad.flatMap((b) => b.ops ?? [])).toEqual([{ op: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' } }]);
+    expect(bad.flatMap((b) => b.ops ?? [])).toEqual([{ op: 'corruptionExposure', level: 'mineure', nature: 'physique' }]);
   });
 
   it('Mécénat : 6 bandes — 120 % à +6, 100 % à +3..+5, 50 % à +0..+2, 0 en échec', () => {

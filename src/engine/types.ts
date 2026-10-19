@@ -1680,8 +1680,7 @@ export interface Combatant {
    *  Hémorragique tient — `removeCondition` purge ce marqueur dès que l'Hémorragique tombe à 0. */
   handGates?: ('main' | 'off')[];
   /** Points de Corruption (LDB 19) — dérive de l'âme vers le Chaos. Gagnés par expositions/
-   *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE, chaque gain impose un Test de
-   *  Résistance ou MUTATION. Persisté. */
+   *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE : Test `corrompu` (LDB 19 l.70). Persisté. */
   corruption?: number;
   /** Mutations subies (LDB 19, Tableaux p.184-185) — DONNÉE persistée ; les effets (caracs
    *  permanentes, Mouvement, PA naturels, mods de Tests, Traits) sont lus à la volée. */

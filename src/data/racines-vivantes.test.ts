@@ -23,8 +23,8 @@ import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 const OBJETS: ReadonlySet<string> = new Set(OBJECT_DATASET_KEYS);
 
 describe('CLÉS DE DATASET — le binding de la couche donnée EST la collection de la racine vivante', () => {
-  it('le domaine généré égale les clés du seam, 134 clés', () => {
-    expect(CLES_DE_DATASET.length).toBe(134);
+  it('le domaine généré égale les clés du seam, 135 clés', () => {
+    expect(CLES_DE_DATASET.length).toBe(135);
     expect(Object.keys(DATASET_FICHIER_DERIVE).sort()).toEqual([...CLES_DE_DATASET].sort());
     expect([...DATASET_KEYS, ...OBJECT_DATASET_KEYS].sort()).toEqual([...CLES_DE_DATASET].sort());
   });
@@ -38,7 +38,7 @@ describe('CLÉS DE DATASET — le binding de la couche donnée EST la collection
       return binding === collectionDuDataset(cle) ? [] : [`${cle} (${DATASET_FICHIER_DERIVE[cle]}${suite ? `#${suite}` : ''})`];
     });
     expect(fautes).toEqual([]);
-    expect(parCas).toEqual({ racine: 68, niche: 54, objet: 12 });
+    expect(parCas).toEqual({ racine: 69, niche: 54, objet: 12 });
   });
 });
 

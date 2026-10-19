@@ -17,7 +17,7 @@
  * normalement par le Bonus d'Endurance et les PA (p.238).
  */
 import { RNG, defaultRNG } from './dice';
-import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, TestResult } from './tests';
+import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult } from './tests';
 import { getTestPolicy } from './testPolicy';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
@@ -40,7 +40,7 @@ import { effectiveCastingNumber } from './castingNumber';
 import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { armourMaterialOf } from './armourBypass';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
-import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, DIFFICULTY_MODIFIERS, type ItemInstance } from './types';
+import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
 import { findTraitById, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
@@ -701,7 +701,7 @@ export function castTestTarget(
 ): number {
   const info = castInfo(spell);
   if (!knowsCastingSkill(caster, info.skill, info.spec)) return 0;
-  return clampTarget(castingValue(caster, info.skill, info.spec) + extraMod + DIFFICULTY_MODIFIERS[difficulty]).target;
+  return clampTarget(cibleDuTest(castingValue(caster, info.skill, info.spec), difficulty, extraMod)).target;
 }
 
 /**

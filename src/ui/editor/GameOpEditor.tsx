@@ -27,7 +27,7 @@ import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, refLabel, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
+import { etats, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
@@ -39,12 +39,9 @@ import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import type { IconIdInput } from '../icons';
-import { TESTS_DE_CORRUPTION, type TestDeCorruption, admetLePeche } from '../../data/schemas/grammaire/valeurs';
+import { NATURES_D_INFLUENCE, admetLePeche, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { OPTIONAL_RULES } from '../../engine/policy';
-
-/** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
- *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
-const NATURE_INFLUENCE: Record<TestDeCorruption, string> = { resistance: 'Influence physique', calme: 'Corruption spirituelle' };
 
 const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 
@@ -621,7 +618,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         {op.op === 'corruptionExposure' && (
           <>
             {/* Sens ABRI (VDM 05, Bouclier en acier doré) : `easeSteps` pose une protection en CRANS ;
-                le niveau et la compétence ne servent qu'au sens POSE. */}
+                le niveau et la nature ne servent qu'au sens POSE. */}
             <label className="dr">Abri (crans)
               <NumberField variant="nu" label="Abri (crans)" min={1} placeholder="—" vide value={typeof o.easeSteps === 'number' ? o.easeSteps : undefined}
                 onChange={(n) => upd({ easeSteps: n ?? undefined })} />
@@ -633,13 +630,12 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                     <option key={k} value={k}>Exposition {l}</option>
                   ))}
                 </select>
-                {/* Options BORNÉES à `TESTS_DE_CORRUPTION` (même alphabet que la porte de document) ;
-                    la valeur posée est la RÉFÉRENCE `{ id }`, jamais un id nu. */}
-                <select value={(o.skill as { id?: string } | undefined)?.id ?? ''}
-                  onChange={(e) => upd({ skill: e.target.value ? { id: e.target.value } : undefined })}>
-                  <option value="">Compétence : au choix du joueur</option>
-                  {TESTS_DE_CORRUPTION.map((id) => (
-                    <option key={id} value={id}>{refLabel('skills', { id })} ({NATURE_INFLUENCE[id]})</option>
+                {/* Options BORNÉES à `NATURES_D_INFLUENCE` (même alphabet que la porte de document). */}
+                <select value={o.nature ?? ''}
+                  onChange={(e) => upd({ nature: (e.target.value || undefined) as NatureDInfluence | undefined })}>
+                  <option value="">Nature : au choix du joueur</option>
+                  {NATURES_D_INFLUENCE.map((n) => (
+                    <option key={n} value={n}>{libelleDeLaNature(n)}</option>
                   ))}
                 </select>
               </>

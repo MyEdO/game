@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../../engine/tests';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { type RollAction, type RollShell } from '../RollShell';
@@ -37,8 +38,8 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
     actor: surgeon,
     row: {
       combatant: surgeon,
-      d: rolled ? testBreakdown('Guérison', base, { roll: ps.roll!, target: ps.target, sl: ps.sl, success: ps.success }, ps.difficulty, supMods) : undefined,
-      pending: testPending('Guérison', base, ps.target, ps.difficulty, supMods),
+      d: rolled ? testBreakdown('Guérison', base, { roll: ps.roll!, ...cibleMesuree(ps), sl: ps.sl, success: ps.success }, ps.difficulty, supMods) : undefined,
+      pending: testPending('Guérison', base, cibleMesuree(ps), ps.difficulty, supMods),
     },
     rerolled: !!ps.rerolled,
     onRoll: roll,

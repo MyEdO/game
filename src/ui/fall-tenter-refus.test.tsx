@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * « Tenter un Test d'Athlétisme » (chute volontaire, LDB 15 l.82) consomme l'Action (LDB 13 l.86-88) :
+ * « Tenter le Test » (chute volontaire, LDB 15 l.82) consomme l'Action (LDB 13 l.86-88) :
  * Action déjà prise → l'option porte le refus de `fallChoose` (`refusDuTestDeChute`,
  * `state/gesteDArete.ts`), éteinte ; Action libre → offerte. Afficher = agir.
  */
@@ -11,16 +11,19 @@ import { useGame } from '../state/store';
 import { FallModal } from './FallModal';
 import { phaseDeChute } from '../state/fallMove';
 import type { Combatant } from '../engine/types';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { difficultyText } from './difficultyText';
+import { refLabel } from '../data';
+import { t } from '../i18n';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { lignesDeJet } from './ligneDeJet.testkit';
+import { combattantDeModale } from './combattantDeModale.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 40 };
-const sauteur = { id: 'S', name: 'S', label: 'S', kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-  weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 18, max: 18 }, resilience: 2, fortune: 2,
-  species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4, traits: [],
-  armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant;
+const sauteur = combattantDeModale('S');
 
 let host: HTMLDivElement;
 let root: Root;
@@ -35,6 +38,7 @@ afterEach(() => {
   useGame.setState({ pendingFall: null, battle: null, mode: 'exploration' } as never);
 });
 
+const texte = (e: Element | null) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim();
 const tenter = (): HTMLElement => {
   const b = [...host.querySelectorAll('button')].find((x) => x.textContent?.includes('Tenter'));
   if (!b) throw new Error('l’option « Tenter » n’est pas rendue');
@@ -46,7 +50,7 @@ function monter(acted: boolean): void {
     mode: 'battle',
     battle: { combatants: [sauteur], order: [sauteur.id], turn: 0, acted, over: null },
     party: [sauteur],
-    pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [{ id: sauteur.id, interactive: true, attempt: null, result: null }] },
+    pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [{ id: sauteur.id, interactive: true, attempt: null, result: null }] },
   } as never);
   act(() => root.render(<FallModal />));
 }
@@ -83,7 +87,7 @@ describe('chute du groupe en coop (EDO 01 l.231) — chaque rangée se déclare 
     useGame.setState({
       mode: 'exploration', battle: null, party: [sauteur, compagnon],
       net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { K: 1 } },
-      pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
         { id: sauteur.id, interactive: true, attempt: null, result: null },
         { id: compagnon.id, interactive: true, attempt: null, result: null },
       ] },
@@ -93,5 +97,85 @@ describe('chute du groupe en coop (EDO 01 l.231) — chaque rangée se déclare 
     expect(tenters, 'une seule rangée offre la déclaration : celle du siège').toHaveLength(1);
     expect(host.textContent).toContain('en attente de la déclaration de S');
     expect(host.textContent).not.toContain('en attente de la déclaration de Kurt');
+  });
+});
+
+describe('chute volontaire — une rangée déclarée SANS Test n’a aucune ligne de jet (LDB 15 l.82)', () => {
+  beforeEach(poserFicheDeTest);
+  afterEach(restaurerFiche);
+  const zonesDifficulte = () => lignesDeJet(host).map((l) => l.diff);
+  const libelles = () => lignesDeJet(host).map((l) => l.label);
+  const posee = testDeFiche('chute', 'tenter');
+  const option = (texte: string): HTMLElement => {
+    const b = [...host.querySelectorAll('button')].find((x) => x.textContent?.includes(texte));
+    if (!b) throw new Error(`l’option « ${texte} » n’est pas rendue`);
+    return b;
+  };
+
+  it('titre = libellé du Test de la fiche ; l’enjeu du choix ne redit ni la compétence ni la Difficulté de la ligne (#1072)', () => {
+    monter(false);
+    expect(texte(host.ownerDocument.querySelector('.modal-title'))).toContain(testDeRegle('chute', 'tenter').label);
+    const enjeu = texte(host.ownerDocument.querySelector('.rm-stake'));
+    expect(enjeu, 'l’enjeu dit la hauteur du pending').toContain(`${useGame.getState().pendingFall!.metres} m`);
+    expect(enjeu, 'la compétence vit sur la ligne de jet').not.toContain(refLabel('skills', posee.skill));
+    expect(enjeu, 'la Difficulté vit sur la ligne de jet').not.toContain(difficultyText(posee.difficulty));
+  });
+
+  it('« Tenter » déclaré, une autre rangée à déclarer : la rangée déclarée dit son choix', () => {
+    const compagnon = { ...sauteur, id: 'K', name: 'K', label: 'Kurt' } as Combatant;
+    useGame.setState({
+      mode: 'exploration', battle: null, party: [sauteur, compagnon],
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
+        { id: sauteur.id, interactive: true, attempt: null, result: null },
+        { id: compagnon.id, interactive: true, attempt: null, result: null },
+      ] },
+    } as never);
+    act(() => root.render(<FallModal />));
+    act(() => option('Tenter').click());
+    expect(useGame.getState().pendingFall!.participants.map((x) => x.attempt)).toEqual([true, null]);
+    expect(texte(host)).toContain(t('fall.situation.tente', { metres: 4 }).replace(/\s+/g, ' '));
+  });
+
+  it('avant la déclaration, la rangée montre le Test de la fiche : compétence et Difficulté du pending', () => {
+    monter(false);
+    expect(zonesDifficulte()).toEqual([difficultyText(posee.difficulty)]);
+    expect(libelles()).toEqual([refLabel('skills', posee.skill)]);
+  });
+
+  it('« Sauter » déclaré : sa rangée dit la chute pleine, sans Difficulté ni cible ; celle qui reste à déclarer garde la sienne', () => {
+    const compagnon = { ...sauteur, id: 'K', name: 'K', label: 'Kurt' } as Combatant;
+    useGame.setState({
+      mode: 'exploration', battle: null, party: [sauteur, compagnon],
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
+        { id: sauteur.id, interactive: true, attempt: null, result: null },
+        { id: compagnon.id, interactive: true, attempt: null, result: null },
+      ] },
+    } as never);
+    act(() => root.render(<FallModal />));
+    act(() => option('Sauter').click());
+    expect(useGame.getState().pendingFall!.participants.map((x) => x.attempt)).toEqual([false, null]);
+    expect(host.textContent).toContain('saute sans Test');
+    expect(zonesDifficulte(), 'une seule ligne de Test : celle de Kurt').toEqual([difficultyText(posee.difficulty)]);
+    expect(host.querySelectorAll('.rm-roll-block')).toHaveLength(1);
+  });
+});
+
+describe('chute du groupe — « Tenter » déclaré, une autre rangée encore à déclarer', () => {
+  it('le « Lancer » de la barre est fermé avec sa raison, et son clic ne lance rien', () => {
+    const compagnon = { ...sauteur, id: 'K', name: 'K', label: 'Kurt' } as Combatant;
+    useGame.setState({
+      mode: 'exploration', battle: null, party: [sauteur, compagnon],
+      pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
+        { id: sauteur.id, interactive: true, attempt: true, result: null },
+        { id: compagnon.id, interactive: true, attempt: null, result: null },
+      ] },
+    } as never);
+    act(() => root.render(<FallModal />));
+    const lancer = [...document.querySelectorAll('button')].filter((b) => (b.textContent ?? '').trim() === 'Lancer');
+    expect(lancer.length, 'un CTA « Lancer »').toBeGreaterThan(0);
+    for (const b of lancer) expect(b.getAttribute('aria-disabled') ?? (b.disabled ? 'true' : null), 'CTA fermé').toBe('true');
+    expect(document.body.textContent, 'sa raison est lisible').toContain(t('declaration.attenteFenetre'));
+    act(() => lancer.forEach((b) => b.click()));
+    expect(useGame.getState().pendingFall!.participants[0].result).toBeNull();
   });
 });
