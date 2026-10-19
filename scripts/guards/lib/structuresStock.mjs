@@ -82,6 +82,9 @@ export const STRUCTURES_CIBLES = [
   { concept: "reference", signature: "count,id,type", date: "2026-08-23" },
   { concept: "reference", signature: "of,pick", date: "2026-08-23" },
   { concept: "reference", signature: "pick,table", date: "2026-08-23" },
+  // #1921 (2026-10-17) — le Spécial d'un jeu de taverne naît CIBLE : `specialSchema` le valide, rien à migrer.
+  { concept: "special-de-jeu", signature: "effet,hasTalent,source,steps", date: "2026-10-17" },
+  { concept: "special-de-jeu", signature: "difficulty,effet,hasTalent,source", date: "2026-10-17" },
   // RECLASSEMENT AU SITE (L2 #1548, commit 4bis) — trois graphies passent CIBLE au SEUL site du
   // STATBLOC (`SITE_STATBLOC` du lexique : bestiaire + statblocs embarqués des projets de scène,
   // champ `skills`). Elles restent HISTORIQUES partout ailleurs, et le stock des formes le montre :
