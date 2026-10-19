@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { effectiveChar } from '../engine/characteristics';
+import { valeurDecomposee } from '../engine/skills';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -29,13 +29,14 @@ export function WardModal() {
   if (!attacker) return null;
   const r = pw.result;
   const rolled = !!r;
+  const fm = valeurDecomposee(attacker, { char: 'force-mentale' });
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown('Force Mentale', effectiveChar(attacker, 'force-mentale'), { roll: r.roll, target: r.target, sl: r.sl, success: r.success }, 'accessible') : undefined,
-      pending: testPending('Force Mentale', effectiveChar(attacker, 'force-mentale'), undefined, 'accessible'),
+      d: r ? testBreakdown('Force Mentale', fm.base, r, 'accessible', fm.mods) : undefined,
+      pending: testPending('Force Mentale', fm.base, undefined, 'accessible', fm.mods),
     },
     onRoll: roll,
     rerolled: !!pw.rerolled,

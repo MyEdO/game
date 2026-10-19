@@ -9,8 +9,7 @@
  *     étapes sortaient sous le MÊME id, la seconde injoignable ;
  *  2. la POSSESSION d'une bande à plusieurs porteurs est PARTAGÉE (`groupOwner`) — chaque siège tient
  *     SA rangée dans l'unique fenêtre d'Exposition à la Corruption ;
- *  3. la RAFALE de seuils de Corruption (LDB 19 l.70, « effectuez immédiatement un Test de Résistance
- *     Intermédiaire (+0) ») : le slot `pendingCorruption` est UNIQUE, et une bande fait déborder N
+ *  3. la RAFALE de seuils de Corruption (LDB 19 l.70, Test `corrompu`) : le slot `pendingCorruption` est UNIQUE, et une bande fait déborder N
  *     héros d'un seul applier. Sans file, le 2ᵉ tombait sur le repli auto-résolu — un Test RAW roulé
  *     en silence, que le passage en bande aurait INTRODUIT.
  */

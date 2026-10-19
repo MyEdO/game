@@ -842,14 +842,14 @@ export const STRUCTURES_ENVELOPPE = [
  *  ne résout vers RIEN, sans être un document ni une op : HORS STRATE. `L1a #1466` quand le NOM de
  *  la clé annonçait une FK (`clé de référence non résolue`) — branche VIDE à ce jour, 0 ligne —,
  *  `#1553` sinon. CE QUE LE MOTIF DIT, ligne à ligne (mesuré 2026-10-18, #2724) : `clé réservée`
- *  97 lignes / 412 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
+ *  96 lignes / 411 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
  *  ci-dessous — la garde `src/data/plage-bornes-contrat.test.ts` (sonde D) les recalcule et exige
  *  que cet en-tête les CITE, elle ne les compare plus à un littéral recopié. Le motif `clé
  *  réservée` ne décrit PAS une valeur qui pointerait vers rien — le déclencheur est le NOM
  *  (`CLES_RESERVEES` du lexique : skill, char, talent, price, cost, count, source), et le contenu
- *  est légitime : `source` à lui seul déclenche 64 des 97 lignes (145 occurrences), qui portent de
+ *  est légitime : `source` à lui seul déclenche 64 des 96 lignes (145 occurrences), qui portent de
  *  vraies références de livre. Il se solde donc au VOCABULAIRE (#1463 S2 : un nom de concept est
- *  réservé à son type), jamais en curant un contenu. Les 99 lignes de ce volet ne sont pas du
+ *  réservé à son type), jamais en curant un contenu. Les 98 lignes de ce volet ne sont pas du
  *  ressort de `L1b #1467`, dont le dénominateur (205) les comptait ; elles portent leur lot ligne
  *  à ligne. */
 export const STRUCTURES_ORPHELINES = [
@@ -945,7 +945,6 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "talents.json", champ: "matches", signature: "skill,when", motif: "clé réservée", occurrences: 4, lot: "#1553", date: "2026-08-23" },
   { dataset: "talents.json", champ: "matches", signature: "skill,specFromInstance", motif: "clé réservée", occurrences: 3, lot: "#1553", date: "2026-08-23" },
   { dataset: "trappings.json", champ: "test", signature: "label,skill", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
-  { dataset: "arene-projet.json", champ: "effect", signature: "level,skill,type", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "etats.json", champ: "test", signature: "difficultyBy,gate,label,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "etats.json", champ: "recover", signature: "enjeu,form,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" }, // skill → enjeu,form,skill (#1920 B14, 2026-09-24) : l'enjeu de récupération se porte sur l'État
   { dataset: "qualities.json", champ: "test", signature: "characteristic,opposed,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },

@@ -12,7 +12,7 @@ import type { Scene } from './scene';
  * viser une structure (bélier-porte), un nombre de Rounds tenus, ou une zone atteinte.
  */
 
-/** Résout la cascade de fin de combat (Tests de Résistance influençables) — no-op si aucune. */
+/** Résout la cascade de fin de combat (Tests influençables) — no-op si aucune. */
 function drainCombatEndCascade(): void {
   for (let guard = 0; guard < 30; guard++) {
     const p = useGame.getState().pendingCascade;

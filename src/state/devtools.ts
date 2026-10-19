@@ -65,7 +65,9 @@ import { beginShipwreck } from './shipwreck';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
-import { findVehicleById } from '../data';
+import { findVehicleById, refLabel } from '../data';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { DIFFICULTY_LABELS } from '../engine/types';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from './terrain';
@@ -77,7 +79,7 @@ import { mirrorPools } from '../engine/advantagePool';
 import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
-import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
+import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
 import { defenseSurfaced } from './netOwnership';
 import { combatDistance } from './footprint';
 import { reachTiles } from '../engine/engagement';
@@ -128,7 +130,7 @@ import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
 import { demarrerScenario, poserScenario } from './scenarioFlow';
-import { t } from '../i18n';
+import { t, deElide } from '../i18n';
 import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
 import { actionsDe } from './usable';
@@ -304,7 +306,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           en avançant son horloge (jamais un état forgé)
  *   __wfrp.flags()        → drapeaux de scénario ; __wfrp.flag('id', true) → force un drapeau
  *   __wfrp.go('scene-id') → saute vers une scène du projet ; __wfrp.fight() → liste/lance une rencontre
- *   __wfrp.fear(h,e,i?)   → pose une Peur (Indice) de h envers e puis simule l'approche (Test de Calme ou Brisé)
+ *   __wfrp.fear(h,e,i?)   → pose une Peur (Indice) de h envers e puis simule l'approche (Test `calme-d-approche` › `source-se-rapproche`)
  *   __wfrp.psych(id,type) → pose l'état psychologique `type` (op `beginPsych`) ; type hors psychology.json → ✗ + ids valides
  *   __wfrp.time(min)      → avance l'horloge ; __wfrp.rest(jours) → dort (cascade quotidienne #T3)
  *   __wfrp.quality(id,label,av?) → ajoute un Atout d'arme à l'arme active + Avantages (test renversement…)
@@ -639,7 +641,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
   /** Donne le TOUR à un combattant de l'ordre d'initiative (Action/Mouvement du tour remis à zéro). */
   const donnerLeTour = (b: NonNullable<ReturnType<typeof g>['battle']>, idx: number) => {
     useGame.setState({
-      battle: { ...b, turn: idx, acted: false, movementUsed: 0, movedPreAction: false, action: null, selectedSpellId: null, preview: null, reachable: new Map(), moveSnapshot: null },
+      battle: { ...b, ...etatDeTourNeuf(), turn: idx },
     });
     bus.emit(EVT.SCENE_DIRTY);
   };
@@ -1606,8 +1608,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         },
       });
       checkBattleOver(() => useGame.getState(), useGame.setState);
-      // Une cascade peut être ouverte AVANT l'écran de victoire : fin de combat (Tests de Résistance
-      // maladie/Corruption, `combatEndBoundary`) OU cascade de SETUP non résolue (Surprise, purpose
+      // Une cascade peut être ouverte AVANT l'écran de victoire : fin de combat (Tests de maladie et
+      // `influences-corruptrices`, `combatEndBoundary`) OU cascade de SETUP non résolue (Surprise, purpose
       // 'combat' — #345, la victoire est désormais différée tant qu'UNE cascade est ouverte). Recette : on
       // draine d'office (sans influence) TOUTE cascade jusqu'à atteindre la victoire, sinon le drive
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
@@ -1631,14 +1633,15 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ ${slain.length} ennemi(s) éliminé(s) — ${useGame.getState().battle?.over ?? 'combat en cours'}${lootNote}`;
     },
 
-    /** RECETTE : inflige `n` Dégâts (op `wounds`, VRAI pipeline `applyOps`) à un combattant du combat — armure
-     *  de coque/PA appliquée, États dérivés, puis `checkBattleOver` (reddition/naufrage/victoire). Sert à
-     *  éprouver l'issue navale sans jouer chaque tir. `n` par défaut 5. */
+    /** RECETTE : inflige `n` Dégâts (op `wounds`, VRAI pipeline `applyOps`, BE et PA ignorés) à un combattant
+     *  du combat — États dérivés, puis `checkBattleOver` (reddition/naufrage/victoire). Sert à éprouver
+     *  l'issue navale sans jouer chaque tir. `n` par défaut 5 ; un `n` qui n'est pas un nombre fini est refusé. */
     dealDamage: (id: string, n = 5) => {
       const s = g();
       if (!s.battle || s.battle.over) return '✗ pas de combat en cours';
       const target = inBattleId(s.battle, id);
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
+      if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
       const lines = applyOps(target, [{ op: 'wounds', amount: n }], { caster });
       useGame.setState({
@@ -1664,6 +1667,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (!s.battle || s.battle.over) return '✗ pas de combat en cours';
       const level = opts?.corruption === undefined ? 'Modérée' : opts.corruption;
+      if (level !== false && typeof level !== 'string') return `✗ corruption « ${String(level)} » : le Degré du trait \`corruption\` (« Mineure », « Modérée », « Majeure ») ou false`;
       const hero = (opts?.heroId
         ? s.battle.combatants.find((c) => c.id === opts.heroId && c.kind === 'hero')
         : s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)));
@@ -2087,7 +2091,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       useGame.setState(touchActors);
       approachFearTrigger(() => useGame.getState(), useGame.setState, enemy, fromPos);
       bus.emit(EVT.SCENE_DIRTY);
-      return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test de Calme ou Brisé`;
+      const test = testDeRegle('calme-d-approche', 'source-se-rapproche');
+      return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test ${deElide(refLabel('skills', test.skill))} ${DIFFICULTY_LABELS[test.difficulty]}`;
     },
 
     /** RECETTE : pose l'état psychologique `type` (id de `psychology.json`) sur un combattant par l'op

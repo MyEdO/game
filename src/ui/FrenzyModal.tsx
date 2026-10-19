@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { effectiveChar } from '../engine/characteristics';
+import { valeurDecomposee } from '../engine/skills';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -29,12 +29,13 @@ export function FrenzyModal() {
   const r = pf.result;
   const rolled = !!r;
 
+  const { base, mods } = valeurDecomposee(c, { char: 'force-mentale' });
   const actorRow: BuiltRollRow = buildRollRow({
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown('Force Mentale', effectiveChar(c, 'force-mentale'), { roll: r.roll, target: r.target, sl: r.sl, success: r.success }) : undefined,
-      pending: testPending('Force Mentale', effectiveChar(c, 'force-mentale')),
+      d: r ? testBreakdown('Force Mentale', base, r, undefined, mods) : undefined,
+      pending: testPending('Force Mentale', base, undefined, undefined, mods),
     },
     rerolled: !!pf.rerolled,
     onRoll: roll,

@@ -162,8 +162,8 @@ export function RollRow({
               site appelant). Option de CONFORT — elle passe APRÈS les choix de règle, avant le CTA. */}
           {forcedRoll?.fixed && <ForcedRollPicker {...forcedRoll} marked={fixedMark} rowName={rowName} commitRef={dieCommit} />}
           {/* CTA de jet. `rollBlocked` = le résolveur REFUSERA (le site fournit la raison, dérivée de
-              SES propres gardes) : le bouton se désactive AVEC sa raison visible (`GatedAction`), au
-              lieu de rester cliquable pour rien. */}
+              SES propres gardes) : le bouton se ferme AVEC sa raison, lue au survol et au focus
+              (`GatedAction`), au lieu de rester cliquable pour rien. */}
           {onRoll && !rollInBar && (rollBlocked
             ? <GatedAction id={`prow-roll-${actor?.id ?? 'row'}`} label={rollLabel} enabled={false} reason={rollBlocked} onClick={() => {}} btnClassName="small" />
             : <button className="btn small btn-primary" onClick={rollWithPickedDie}>{rollLabel}</button>)}
@@ -236,7 +236,7 @@ export interface RollRowProps {
   /** Ce jet a été SAISI par le joueur (option « Dés fixés ») → mention « dé fixé » sur la rangée. */
   fixedMark?: boolean;
   /** Flux PROPRE à cette rangée quand il DIFFÈRE de celui de la coquille (`RollShell.flowKey`) :
-   *  « Se désengager » héberge les rangées du flux `flee` (coup dans le dos + Calme), la cascade
+   *  « Se désengager » héberge les rangées du flux `flee` (coup dans le dos + Test `fuite`), la cascade
    *  héberge l'étape courante. Sans lui, le sélecteur de dé serait dérivé du mauvais pending.
    *  `key` sert alors d'id de slot (participant) — c'est déjà sa valeur en multi. */
   flowKey?: keyof typeof FLOW_VERBS;
@@ -264,8 +264,8 @@ export interface RollRowProps {
     groupLabel?: ReactNode;
     hint?: ReactNode;
   };
-  /** Le résolveur du flux REFUSERA ce jet (garde de règle du SITE) : le CTA se rend désactivé avec
-   *  CETTE raison en texte visible (`GatedAction`) au lieu d'un bouton mort. La raison se DÉRIVE des
+  /** Le résolveur du flux REFUSERA ce jet (garde de règle du SITE) : le CTA se rend fermé avec
+   *  CETTE raison, lue au survol et au focus (`GatedAction`), au lieu d'un bouton mort. La raison se DÉRIVE des
    *  mêmes prédicats que la garde d'effet — jamais une seconde condition recopiée. */
   rollBlocked?: string;
   /** Anime le jet (dés qui roulent puis se figent sur les vraies faces) avant de résoudre — DÉFAUT

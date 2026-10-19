@@ -17175,9 +17175,7 @@
         "effect": {
          "type": "corruptionExposure",
          "level": "mineure",
-         "skill": {
-          "id": "calme"
-         }
+         "nature": "spirituelle"
         }
        },
        {

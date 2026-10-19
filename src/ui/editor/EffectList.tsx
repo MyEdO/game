@@ -37,7 +37,8 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
-import { chaosAlignSchema } from '../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
 import { PURSUIT_ESCAPE_DISTANCE } from '../../engine/pursuit';
@@ -257,7 +258,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       : `Déplacer ${e.id || '?'} → (${e.to?.x ?? '?'},${e.to?.y ?? '?'})`;
     case 'playSfx': return `Son : ${e.id || '?'}`;
     case 'giveSin': return `${e.amount ?? 1} point(s) de Péché`;
-    case 'corruptionExposure': return `Influence corruptrice (${e.level ?? 'mineure'}, ${e.skill ? refLabel('skills', e.skill) : 'au choix'})${e.align ? ` — ${libelleDeValeur(chaosAlignSchema, e.align)}` : ''}`;
+    case 'corruptionExposure': return `Influence corruptrice (${e.level ?? 'mineure'}, ${e.nature ? libelleDeLaNature(e.nature) : 'au choix'})${e.align ? ` — ${libelleDeValeur(chaosAlignSchema, e.align)}` : ''}`;
     case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'party' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
     case 'learnSpell': return `Apprendre : ${e.spell ? refLabel('spells', { id: e.spell }) : '?'}`;
     case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forceSuccess' ? ' (garanti)' : ''}`;
@@ -615,12 +616,13 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="moderee">Exposition modérée (+2 / +1 si DR 0-1)</option>
               <option value="majeure">Exposition majeure (+3 / +2 / +1 selon DR)</option>
             </select>
-            {/* Compétence déterminée en amont (verrouillée en jeu) ou « au choix » (nature indéterminée,
-                LDB 19 l.29 → le joueur tranche dans la modale, comme la Défense). */}
-            <select value={e.skill?.id ?? ''} onChange={(ev) => upd({ skill: ev.target.value ? { id: ev.target.value } : undefined })}>
+            {/* Nature imposée par la source (figée en jeu) ou « au choix » (indéterminée, LDB 19 l.29 →
+                le joueur tranche dans la modale, comme la Défense). */}
+            <select value={e.nature ?? ''} onChange={(ev) => upd({ nature: (ev.target.value || undefined) as NatureDInfluence | undefined })}>
               <option value="">Au choix du joueur (nature indéterminée)</option>
-              <option value="resistance">Résistance (Influence physique)</option>
-              <option value="calme">Calme (Corruption spirituelle)</option>
+              {NATURES_D_INFLUENCE.map((n) => (
+                <option key={n} value={n}>{libelleDeLaNature(n)}</option>
+              ))}
             </select>
             {/* Alignement de la SOURCE (Puissance du Chaos) : si une mutation survient, force la table
                 EDOC alignée. « règle globale » = laisse décider le réglage Règles maison. */}

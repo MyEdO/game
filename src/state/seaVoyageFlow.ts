@@ -57,7 +57,7 @@ import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLeng
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
-import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
+import { rollTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
@@ -2157,7 +2157,7 @@ function openSteamSave(get: Get, set: Set, failDamage: string, rng: RNG): void {
   set({
     pendingSteamSave: {
       actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
-      target: rollLine({ actor: eng, test: { char: 'initiative' }, difficulty: 'intermediaire', valeur: value }).target,
+      ...cibleMesuree(rollLine({ actor: eng, test: { char: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,
     } satisfies PendingSteamSave,

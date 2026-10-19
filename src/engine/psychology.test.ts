@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurTest, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, gainPhobieIfThreshold, animositeOrHaine, traumaOnImpossibleAmbition, effectivePsychTraits } from './psychology';
+import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurTest, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, gainPhobieIfThreshold, animositeOrHaine, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
@@ -151,5 +151,14 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
     const ok = traumaOnImpossibleAmbition(mk(), fixed(1));
     expect(ok!.test.success).toBe(true);
     expect(ok!.trait).toBeUndefined();
+  });
+});
+
+describe('Valeur de Calme : la valeur de Test, États compris (LDB 16 l.125)', () => {
+  it('Sonné ×3 retire 30 à la Force Mentale plus les avances de Calme', () => {
+    const c = { id: 'c', kind: 'enemy', characteristics: { 'force-mentale': 50 }, skills: [{ id: 'calme', advances: 10 }], talents: [], traits: [], conditions: [], items: [], weapons: [] } as unknown as Combatant;
+    expect(calmeValue(c)).toBe(60);
+    c.conditions = [{ id: 'sonne', value: 3 }];
+    expect(calmeValue(c)).toBe(30);
   });
 });

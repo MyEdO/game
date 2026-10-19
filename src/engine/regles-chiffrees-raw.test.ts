@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { RANGEES_DE_REGLE, type RegleChiffree } from './ruleRefs';
-import { modDeRangee, rangeesDeRegle } from './reglesChiffrees';
+import { RANGEES_DE_REGLE, TESTS_DE_REGLE, type RegleChiffree, type RegleATest } from './ruleRefs';
+import { modDeRangee, rangeesDeRegle, testDeRegle } from './reglesChiffrees';
+import type { Difficulty } from './types';
 import { findTraitById, findQualityById, findTalentById, findSpellById } from '../data';
 import { oupsTable } from '../data/oups';
 
@@ -63,6 +64,45 @@ describe('règles chiffrées — la donnée porte le nombre du livre', () => {
         const a = attendues[r.id];
         expect({ mod: modDeRangee(r), seuil: r.seuil, plafond: r.plafond }, `${regle}/${r.id} — ${a.ref}`)
           .toEqual({ mod: a.mod, seuil: a.seuil, plafond: a.plafond });
+      }
+    });
+  }
+});
+
+/**
+ * Les Tests NOMMÉS lus en donnée, confrontés au LIVRE (#1173) : compétence et Difficulté imprimées à la
+ * réf. La table couvre EXACTEMENT le vocabulaire `TESTS_DE_REGLE`.
+ */
+type TestAttendu = { skill: string; difficulty: Difficulty; ref: string };
+
+const LIVRE_TESTS: { [R in RegleATest]: Record<(typeof TESTS_DE_REGLE)[R][number], TestAttendu> } = {
+  course: { courir: { skill: 'athletisme', difficulty: 'accessible', ref: 'LDB 15 l.41' } },
+  chute: { tenter: { skill: 'athletisme', difficulty: 'accessible', ref: 'LDB 15 l.82' } },
+  saut: {
+    'avec-elan': { skill: 'athletisme', difficulty: 'accessible', ref: 'LDB 15 l.76' },
+    'sans-elan': { skill: 'athletisme', difficulty: 'intermediaire', ref: 'LDB 15 l.76' },
+  },
+  fuite: { 'touche-en-fuyant': { skill: 'calme', difficulty: 'intermediaire', ref: 'LDB 15 l.66' } },
+  'calme-d-approche': {
+    'se-rapprocher': { skill: 'calme', difficulty: 'intermediaire', ref: 'LDB 21 l.27' },
+    'source-se-rapproche': { skill: 'calme', difficulty: 'intermediaire', ref: 'LDB 21 l.27' },
+  },
+  'interruption-de-focalisation': { maintenir: { skill: 'calme', difficulty: 'difficile', ref: 'LDB 46 l.144' } },
+  'influences-corruptrices': {
+    physique: { skill: 'resistance', difficulty: 'intermediaire', ref: 'LDB 19 l.29' },
+    spirituelle: { skill: 'calme', difficulty: 'intermediaire', ref: 'LDB 19 l.29' },
+  },
+  corrompu: { contenir: { skill: 'resistance', difficulty: 'intermediaire', ref: 'LDB 19 l.70' } },
+};
+
+describe('tests nommés — la donnée porte la compétence et la Difficulté du livre', () => {
+  for (const regle of Object.keys(LIVRE_TESTS) as RegleATest[]) {
+    const attendus = LIVRE_TESTS[regle] as Record<string, TestAttendu>;
+    it(`${regle} : tests et Difficultés du livre`, () => {
+      expect(Object.keys(attendus)).toEqual([...TESTS_DE_REGLE[regle]]);
+      for (const [cle, a] of Object.entries(attendus)) {
+        const t = testDeRegle(regle, cle as never);
+        expect({ skill: t.skill?.id, difficulty: t.difficulty }, `${regle}/${cle} — ${a.ref}`).toEqual({ skill: a.skill, difficulty: a.difficulty });
       }
     });
   }

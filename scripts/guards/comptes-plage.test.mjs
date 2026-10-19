@@ -56,8 +56,8 @@ const ajouterOp = (choisir) => (texte) => {
 }
 
 /** Les verdicts de `jugerLesComptes` sur chaque `[base, tete]` du dépôt `racine`, dans UN processus `tsx` (la mesure
- *  d'un commit s'y mémoïse), sous l'env d'un dépôt forgé. Les verdicts sont la DERNIÈRE ligne de sa sortie : `genererCode`
- *  imprime son bilan sur la même. */
+ *  d'un commit s'y mémoïse), sous l'env d'un dépôt forgé. Les verdicts sont sa sortie ENTIÈRE : la génération et la
+ *  mesure d'une image tournent dans des processus enfants à sortie capturée. */
 function jugerDansTsx(racine, plages) {
   const module = (rel) => JSON.stringify(pathToFileURL(join(RACINE, rel)).href)
   const code = [
@@ -66,13 +66,13 @@ function jugerDansTsx(racine, plages) {
     'const [racine, plages] = JSON.parse(process.argv[1]);',
     'const depot = depotDe(racine);',
     'const verdicts = plages.map(([base, tete]) => jugerLesComptes({ depot, base, tete }));',
-    'process.stdout.write(`\\n${JSON.stringify(verdicts)}\\n`);',
+    'process.stdout.write(JSON.stringify(verdicts));',
   ].join('\n')
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), '--input-type=module', '-e', code, '--', JSON.stringify([racine, plages])], {
     cwd: RACINE, env: envDeDepotForge(), encoding: 'utf8', maxBuffer: 1 << 26,
   })
   assert.equal(vu.status, 0, `mesure tsx en échec (${vu.status ?? vu.signal}) : ${vu.stderr}`)
-  return JSON.parse(vu.stdout.trimEnd().split('\n').at(-1))
+  return JSON.parse(vu.stdout)
 }
 
 /** `texte` où `avant`, présent, devient `apres`. */
@@ -84,7 +84,7 @@ const remplacer = (avant, apres) => (texte) => {
 /** `texte` suivi de `ajout`. */
 const ajouter = (ajout) => (texte) => `${texte}${ajout}`
 
-test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src qui lit sa sortie, changés ensemble, se lient', { timeout: 600_000 }, () => {
+test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient',{ timeout: 600_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
@@ -116,8 +116,18 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
       ].reduce((texte, f) => f(texte), `import { MARQUE_DE_LA_TETE } from '../src/data/schemas/grammaire/cle-d-espace';\n${t}`),
       'src/data/schemas/grammaire/ref.ts': ajouter("\nimport { MARQUE_DE_LA_TETE } from '../_ids.generated';\nexport const MARQUE_LUE = MARQUE_DE_LA_TETE;\n"),
     }, 'générateur et src croisés')
+    // Un générateur et le module du DÉTECTEUR qui lit sa sortie, renommés ensemble : le détecteur de la base lit une
+    // sortie que le générateur de la tête ne produit plus, et seule la régénération par SES générateurs lie sa paire.
+    const lecteur = commiter({
+      'scripts/gen-espaces.mts': remplacer('= IDS;\\n\\n` +', '= IDS;\\n\\n` +\n    `export const MARQUE_DU_DETECTEUR = 2705;\\n\\n` +'),
+      'scripts/docs/lib/structures-scan.mts': ajouter("\nimport { MARQUE_DU_DETECTEUR } from '../../../src/data/schemas/_ids.generated';\nexport const MARQUE_LUE_PAR_LE_DETECTEUR = MARQUE_DU_DETECTEUR;\n"),
+    }, 'générateur et détecteur qui lit sa sortie')
+    const renommee = commiter({
+      'scripts/gen-espaces.mts': remplacer('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE'),
+      'scripts/docs/lib/structures-scan.mts': (t) => remplacer('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE')(t).replaceAll('MARQUE_DU_DETECTEUR', 'MARQUE_RENOMMEE'),
+    }, 'générateur et détecteur renommés ensemble')
 
-    const [passe, refus, liee] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache], [lache, croisee]])
+    const [passe, refus, liee, symetrique] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache], [lache, croisee], [lecteur, renommee]])
     assert.equal(passe.ok, true, passe.texte)
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)
@@ -127,6 +137,8 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
     assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), ['détecteur de la tête', deLaBase].flatMap((d) => attendues.map((a) => `  [${d}] ${a}`)), refus.texte)
     assert.equal(liee.ok, true, liee.texte)
     assert.doesNotMatch(liee.texte, /paire sautée/, liee.texte)
+    assert.equal(symetrique.ok, true, symetrique.texte)
+    assert.doesNotMatch(symetrique.texte, /paire sautée/, symetrique.texte)
     assert.match(refus.texte, /STRUCTURES_OPS : freeReroll \| op \| spells\.json — HAUSSE \d+ > \d+ : la dette GRANDIT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| skills — site NEUF : la dette NAÎT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| spells — site NEUF : la dette NAÎT\./)

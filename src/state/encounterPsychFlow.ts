@@ -19,15 +19,13 @@ import { Scene } from './scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite } from './sceneNpc';
 import { encounterPsych } from '../engine/encounterPsych';
-import { estCibleType, cibleLabel, PsychType, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
-import { skillBaseValue } from '../engine/skills';
-import { DIFFICULTY_MODIFIERS } from '../engine/types';
-import { refLabel, findPsychologyById, combatStakeRef } from '../data';
+import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
+import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { describeEncounterPsych } from './flowOutcomes';
-import { freeCons, resultLines, makeBandFactory, type Consequence } from './rollSeam';
+import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './combatants';
 import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
@@ -61,18 +59,14 @@ type PsychBandDecl = NonNullable<CascadeStep['encounterPsych']>;
  *  la présentation qui en découle (icône/libellé — communes à toute la bande). */
 interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: string; label: PlayerText }
 
-/** RANGÉE d'une bande : le Test de CE héros. Paramètres EN DONNÉES (`psychology.json` `test`) —
- *  compétence (défaut Calme) + difficulté (défaut Intermédiaire), mêmes données que le combat
- *  (`psychStepFor`). */
+/** RANGÉE d'une bande : le Test de CE héros, `psychTest` (mêmes données que le combat), monté par le
+ *  monteur canonique (`rollStep`) : base nue, pénalité d'États nommée (LDB 16 l.90, l.125), cible bornée. */
 function psychRow(hero: Combatant, kind: PsychType): BatchParticipant {
-  const td = findPsychologyById(kind)?.test;
-  const skill = td?.skill ?? { id: 'calme' };
-  const difficulty = td?.difficulty ?? 'intermediaire';
-  const base = skillBaseValue(hero, skill.id, skill.spec);
+  const { skill, difficulty } = psychTest(kind);
   return {
     id: hero.id, interactive: true, result: null,
-    label: refLabel('skills', skill), skillId: skill.id,
-    base, difficulty, target: base + DIFFICULTY_MODIFIERS[difficulty],
+    label: refLabel('skills', skill), skillId: skill.id, difficulty,
+    ...rollStep({ actor: hero, test: { skill: skill.id, spec: skill.spec }, difficulty }),
   };
 }
 

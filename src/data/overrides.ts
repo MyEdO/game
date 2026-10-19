@@ -229,8 +229,10 @@ const ARRAYS = {
   voyageStakes: VOYAGE_STAKES,
   flowStakes: FLOW_STAKES,
   combatStakes: COMBAT_STAKES,
-  // #2820 : catalogue des règles, en lecture seule au Codex — l'espace que le sélecteur du foyer de
-  // règle (`refTypee`, `cfgDuType`) offre au type `regle`.
+  // Fiches de règle (`regles.json`, tableau RACINE) : leurs `rangees` et `tests` sont lus par le moteur
+  // (`engine/reglesChiffrees.ts`), dont l'index se reconstruit à chaque écriture au seam (#1173) ; en
+  // lecture seule au Codex, c'est l'espace que le sélecteur du foyer de règle (`refTypee`, `cfgDuType`)
+  // offre au type `regle` (#2820).
   regles,
   // V9 #1318 : registre des RÈGLES OPTIONNELLES (tableau RACINE de `reglesOptionnelles.json`) —
   // MÊME référence que `engine/policy.ts::OPTIONAL_RULES` (singleton JSON) ; Tableau de

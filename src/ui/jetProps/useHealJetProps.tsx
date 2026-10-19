@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../../engine/tests';
 import { useGame } from '../../state/store';
 import { flowStakeRef } from '../../data';
 import { HEAL_STAKE } from '../../state/medicFlow';
@@ -64,8 +65,8 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     actor: healer,
     row: {
       combatant: healer,
-      d: rolled ? testBreakdown('Guérison', base, { roll: ph.roll!, target: ph.target, sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
-      pending: testPending('Guérison', base, ph.target, ph.difficulty, supMods),
+      d: rolled ? testBreakdown('Guérison', base, { roll: ph.roll!, ...cibleMesuree(ph), sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
+      pending: testPending('Guérison', base, cibleMesuree(ph), ph.difficulty, supMods),
     },
     rerolled: !!ph.rerolled,
     onRoll: roll,

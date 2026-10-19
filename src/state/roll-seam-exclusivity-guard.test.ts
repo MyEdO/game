@@ -801,17 +801,14 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
  * et le cliquet remonterait en silence si ce WIP était abandonné.
  */
 const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
-  // COMBAT — reste de #1467 (`encounterPsychFlow` = la rangée batch du Test de Peur hors rencontre).
-  // `combat/triggeredTest.ts` (L3) et `combatEffects.ts` (L2' : `openSkillTest`, Test ÉTENDU,
-  // exposition hydrique) sont SOLDÉS — leurs étapes montent toutes leur ligne par `rollStep`.
-  'src/state/encounterPsychFlow.ts': 1,
-  'src/state/rollFlowSpecs.ts': 2, // cible du dé d'une MANŒUVRE d'attaque + cible de repli d'un Test opposé — COMBAT
+  // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
+  // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
   'src/state/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
   'src/state/cascadeTestKit.ts': 1, // le cliquet lui-même (`inexplique`)
 };
 
-/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 5 occurrences / 4 fichiers, dont 3 en combat — verrou
+/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 2 occurrences / 2 fichiers, aucune en combat — verrou
  *  global : un site déplacé d'un fichier à l'autre ne s'y cache pas. `ui/editor/LogicDock.tsx` n'y
  *  figure pas : son aperçu de difficulté mesure 0 site, la borne du champ vit dans `NumberField`. */
 const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + n, 0);

@@ -35,6 +35,7 @@ import { join } from 'node:path';
 import { baseSection, mediaBlock } from '../../../scripts/guards/lib/cssCouches.mjs';
 import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
 import { srgbToLinear } from '../../gameIso/shade';
+import { testDeRegle } from '../../engine/reglesChiffrees';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -3303,7 +3304,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
   });
 
   it('modale DISTANTE ouverte pendant un tour distant : toujours UNE puce (l’arbitre parle, la bande se tait)', () => {
-    coop(1, { pendingFall: { to: { x: 1, y: 3 }, metres: 2, initiateurId: 'h2', participants: [{ id: 'h2', interactive: true, attempt: null, result: null }] } });
+    coop(1, { pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 1, y: 3 }, metres: 2, initiateurId: 'h2', participants: [{ id: 'h2', interactive: true, attempt: null, result: null }] } });
     expect(useGame.getState().pendingFall, 'témoin : la modale distante doit être ouverte').not.toBeNull();
     expect(puces(), 'deux puces (arbitre + bande) ou aucune').toBe(1);
   });

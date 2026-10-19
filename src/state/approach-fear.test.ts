@@ -1,7 +1,6 @@
 /**
- * Peur à l'approche (LDB 21 — Psychologie — l.27) : « Si la source de votre Peur se rapproche de vous,
- * vous devez réussir un Test de Calme Intermédiaire (+0) ou gagner un État Brisé. » Test SIMPLE : la
- * source ne jette RIEN. Depuis la VAGUE MULTI (#1117 L2), les craintifs appelés par le MÊME déplacement
+ * Peur à l'approche (LDB 21 — Psychologie — l.27), Test `source-se-rapproche` de la fiche
+ * `calme-d-approche`. Test SIMPLE : la source ne jette RIEN. Depuis la VAGUE MULTI (#1117 L2), les craintifs appelés par le MÊME déplacement
  * et affrontant la MÊME entrée de règle (cette source, à cet Indice) forment UNE BANDE
  * (`triggeredBatchTest`, une rangée par testeur) quand ils sont pilotés à la main ; héros AUTO / ennemi
  * → jet inline par le même Flow. La conséquence PURE de l'échec (1 État Brisé) est une op `condition`
@@ -15,6 +14,8 @@ import { testScene } from '../scenes/test-fixture';
 import './combat/triggeredTest'; // effet de bord : applier `triggeredTest` + appliers de cascade
 import { seedBattleRng } from './battleRng';
 import { stacks, COND } from '../engine/conditions';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { refLabel } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
@@ -53,18 +54,18 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(c.purpose).toBe('combat');
     expect(c.participants).toHaveLength(1);
     const step = bande();
-    expect(step.label).toBe('Approche menaçante');
+    expect(step.label).toBe(testDeRegle('calme-d-approche', 'source-se-rapproche').label);
     expect(step.aggregate).toBe('none'); // jets INDÉPENDANTS
     expect(step.target).toBeUndefined(); // aucun jet à l'étape…
     expect(step.participants!.map((p) => p.id)).toEqual([h.id]);
-    expect(step.participants![0].label).toBe('Calme'); // …le Test RÉEL est nommé sur la rangée
+    expect(step.participants![0].label).toBe(refLabel('skills', testDeRegle('calme-d-approche', 'source-se-rapproche').skill)); // …le Test RÉEL est nommé sur la rangée
     expect(step.participants![0].result).toBeNull(); // pas encore lancé → Chance/Résilience possibles
     expect(stacks(h, COND.brise)).toBe(0); // conséquence différée
   });
 
-  it('héros MANUEL : Calme RATÉ (cascadeBatchRoll+Next) → 1 État Brisé', () => {
+  it('héros MANUEL : Test `source-se-rapproche` RATÉ (cascadeBatchRoll+Next) → 1 État Brisé', () => {
     seedBattleRng(1);
-    const h = hero({ characteristics: { 'force-mentale': 1 } as never }); // Calme de cible 1 : ~imbattable à rater
+    const h = hero({ characteristics: { 'force-mentale': 1 } as never }); // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
     useGame.getState().cascadeBatchRoll(h.id);
     useGame.getState().cascadeNext(); // valide l’échec → branche fail → op condition `brise`
@@ -72,7 +73,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(stacks(got, COND.brise)).toBe(1);
   });
 
-  it('héros MANUEL : Calme RÉUSSI → pas de Brisé', () => {
+  it('héros MANUEL : Test `source-se-rapproche` RÉUSSI → pas de Brisé', () => {
     seedBattleRng(1);
     const h = hero({ characteristics: { 'force-mentale': 100 } as never });
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
@@ -113,7 +114,7 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(bandes.map((s) => s.participants!.map((p) => p.id))).toEqual([['h1'], ['h2']]);
   });
 
-  it('héros AUTO craint + Calme raté → résolu INLINE (1 Brisé, aucune cascade)', () => {
+  it('héros AUTO craint + Test `source-se-rapproche` raté → résolu INLINE (1 Brisé, aucune cascade)', () => {
     setCadence('auto');
     try {
       seedBattleRng(1);
@@ -211,7 +212,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     const E = foes[0];
     E.pos = { x: 12, y: 10 };
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 }];
-    E.characteristics['force-mentale'] = 1; // Calme ~imbattable à rater
+    E.characteristics['force-mentale'] = 1; // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     H.pos = { x: 6, y: 10 };
     const turn = b.order.indexOf(H.id);
     expect(turn, 'prémisse : le héros ouvre le round (graine 2)').toBe(0);
@@ -321,7 +322,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     expect(brise(E.id)).toBe(1);
     const txt = useGame.getState().battle!.log.map((l) => (typeof l === 'string' ? l : l.text)).join('\n');
     expect(txt).toMatch(/LIGNE-ACTION/);
-    expect(txt).toMatch(/Calme/);
+    expect(txt).toContain(refLabel('skills', testDeRegle('calme-d-approche', 'source-se-rapproche').skill));
     expect(txt).toMatch(/Brisé/);
   });
 

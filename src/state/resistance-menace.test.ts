@@ -44,7 +44,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
   it('l’Effet corruptionExposure tague la modale `menace: corruption` ; `corruptionResist` = auto-succès à DR = BE + spec consommée', () => {
     const a = hero();
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'moderee', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'moderee', nature: 'physique', heroId: a.id }]);
     const pc = useGame.getState().pendingCorruption!;
     expect(pc.menace).toBe('corruption');
     useGame.getState().corruptionResist();
@@ -60,18 +60,18 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
   it('« le premier Test […] à chaque séance » : 2e exposition la même séance → resist NO-OP ; nouvelle séance (restoreFortuneNow) → ré-armé', () => {
     const a = hero();
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionResist();
     useGame.getState().resolveCorruption();
     // 2e exposition, même séance : la spec est consommée → le verbe ne fait RIEN (pas de jet posé).
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionResist();
     expect(useGame.getState().pendingCorruption!.roll).toBeUndefined();
     useGame.getState().corruptionRoll(); // le jet normal reste possible
     useGame.getState().resolveCorruption();
     // Début de séance (couture UNIQUE restoreFortune) → compteur remis, le talent est de nouveau offert.
     useGame.getState().restoreFortuneNow();
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionResist();
     expect(useGame.getState().pendingCorruption!.success).toBe(true);
   });
@@ -80,7 +80,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     seedBattleRng(4); // 1er d100 = 93 → échec garanti (cible ≤ 63)
     const a = hero();
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionRoll();
     expect(useGame.getState().pendingCorruption!.success).toBe(false);
     useGame.getState().corruptionResist(); // rattrapage post-échec
@@ -95,7 +95,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     seedBattleRng(18); // 1er d100 = 40 contre cible 43 → réussite à DR 0 (Succès Minime)
     const a = hero({ fortune: 0 });
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionRoll();
     const jet = useGame.getState().pendingCorruption!;
     expect({ roll: jet.roll, target: jet.target, success: jet.success, sl: jet.sl }).toEqual({ roll: 40, target: 43, success: true, sl: 0 });
@@ -112,7 +112,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
     seedBattleRng(7); // 1er d100 = 2 contre cible 43 → réussite à DR 4 (= BE)
     const a = hero({ fortune: 0 });
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionRoll();
     expect(useGame.getState().pendingCorruption!.sl).toBe(bonus(43));
     useGame.getState().corruptionResist();
@@ -123,7 +123,7 @@ describe('Résistance (Corruption) — exposition (modale pendingCorruption, LDB
   it('spec non couverte → resist NO-OP (pas de dépense)', () => {
     const a = hero({ talents: [{ talentId: 'resistance', spec: 'poison', times: 1 }] });
     useGame.setState({ party: [a] });
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: a.id }]);
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: a.id }]);
     useGame.getState().corruptionResist();
     expect(useGame.getState().pendingCorruption!.roll).toBeUndefined();
     expect(useGame.getState().party[0].resistanceUsed ?? []).toEqual([]);

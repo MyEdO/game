@@ -6,6 +6,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascadeTestKit';
 import { t } from '../i18n';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * GARDE BEHAVIORAL de l'ISSUE CANONIQUE (`spec.outcome`) — VERROUILLE la classe de bugs « le prédicat
@@ -107,22 +108,22 @@ const FIXTURES: Record<string, Fix> = {
   grapple: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
   distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
   // ── Fuir (flux MULTI HÉTÉROGÈNE : slot `backstab` du frappeur 'B' — déjà résolu, il fait perdre des
-  //    PB donc le Test de Calme est dû — + slot `calme` du fuyard 'A', celui que la Chance influence) ──
+  //    PB donc le Test `fuite` est dû — + slot `touche` du fuyard 'A', celui que la Chance influence) ──
   flee: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingDisengage: { moverId: 'A', foeId: 'B', fuir: { participants: [
       { id: 'B', kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: atkDetail(true) } },
-      { id: 'A', kind: 'calme', interactive: true, calme: win ? WIN : LOSE },
+      { id: 'A', kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: win ? WIN : LOSE },
     ] } },
   }) },
   // ── Manœuvres d'attaquant NON opposées (issue = `result.success`) ──
   battement: { make: (win) => ({ battle: arena(), pendingBattement: { attackerId: 'A', result: win ? WIN : LOSE } }) },
   maneuver: { make: (win) => ({ battle: arena(), pendingManeuver: { attackerId: 'A', kind: 'souffle', result: win ? WIN : LOSE } }) },
   // ── Course / Frénésie / Approche / Bénédiction (Test binaire) ──
-  run: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
-  fall: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
+  run: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', test: testDeRegle('course', 'courir'), result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
+  fall: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
   frenzy: { make: (win) => ({ battle: arena(), pendingFrenzy: { combatantId: 'A', result: win ? WIN : LOSE } }) },
-  approach: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', result: win ? WIN : LOSE } }) },
+  approach: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', test: testDeRegle('calme-d-approche', 'se-rapprocher'), result: win ? WIN : LOSE } }) },
   ward: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
   // ── Tests numériques « jet propre » (soin/rechargement/évaluation/corruption/activité/test) ──
   reload: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
@@ -130,7 +131,7 @@ const FIXTURES: Record<string, Fix> = {
   heal: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   surgery: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   appraise: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  corruption: { make: (win) => ({ battle: arena(), pendingCorruption: { heroId: 'A', skill: 'calme', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  corruption: { make: (win) => ({ battle: arena(), pendingCorruption: { heroId: 'A', nature: 'spirituelle', test: testDeRegle('influences-corruptrices', 'spirituelle'),  roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   test: {
     make: (win) => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 0, roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }),
     // Seuil de DR EXIGÉ manqué (`requireSL`, `meetsRequiredSL`) : le d100 est réussi (8 ≤ 40), l'issue

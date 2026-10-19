@@ -4,8 +4,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 /**
- * Approche sous Peur (LDB 21 l.27) : « incapable de vous rapprocher … à moins de réussir un Test de
- * Calme Intermédiaire (+0) ». Le clic d'approche ouvre pendingApproach (jet GRATUIT) ; succès →
+ * Approche sous Peur (LDB 21 l.27), Test `se-rapprocher` de la fiche `calme-d-approche`. Le clic d'approche ouvre pendingApproach (jet GRATUIT) ; succès →
  * approches libres ce Tour (fearGate 'passed') et l'intention différée est relancée ; échec → aucune
  * approche ce Tour ('failed'). S'éloigner reste libre.
  */
@@ -95,7 +94,7 @@ describe('Approche sous Peur (store)', () => {
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le clic ne s'approche plus tout seul.
     useGame.getState().battleClickEntity(E.id, { confirm: true, approche: true });
     let st = useGame.getState();
-    // Le verdict d'armement est CAPTURÉ dans le pending : la relance après le Test de Calme ne relit
+    // Le verdict d'armement est CAPTURÉ dans le pending : la relance après le Test `se-rapprocher` ne relit
     // pas l'intention (dissoute par ce clic), sans quoi le geste gagné serait refusé.
     expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'entity', id: E.id, approche: true } });
     expect(st.pendingAttack).toBeNull(); // la charge attend le Test

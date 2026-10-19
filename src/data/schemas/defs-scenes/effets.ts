@@ -16,7 +16,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
+import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
@@ -427,10 +427,10 @@ export const giveSinSchema = nommerChamps(z.strictObject({
 export const corruptionExposureSchema = nommerChamps(z.strictObject({
   type: z.literal('corruptionExposure'),
   level: exposureLevelSchema,
-  skill: refTestDeCorruption.optional(),
+  nature: natureDInfluenceSchema.optional(),
   align: chaosAlignSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type"  }, level: { label: "niveau"  }, skill: { label: "Compétence" }, align: { label: "Puissance du Chaos"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
+}), { type: { label: "type"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, align: { label: "Puissance du Chaos"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Exposition HYDRIQUE (`MSRC 16` p.91 — « Maladies transmises par l'eau ») : Test de **Résistance
  *  Intermédiaire (+0)** modifié (tableau 1 « Source d'eau » = `source`, choix d'auteur de la zone

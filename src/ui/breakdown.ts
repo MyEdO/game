@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { combineMods, type ModLine, type RollBreakdown, type RollMask, type SecondReadLine } from '../engine/combat';
-import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
+import { clampTarget, cibleDuTest, cibleMesuree, type CibleMesuree } from '../engine/tests';
+import type { Difficulty } from '../engine/types';
 import type { PendingRoll } from './RollLine';
 
 /** Soutien (LDB 12) : la ligne de mod et le rebasage de la valeur soutenue vivent avec la règle
@@ -32,9 +33,7 @@ export function testBreakdown(
     ...(difficulty ? { difficulty } : {}),
     ...(easedBy ? { easedBy } : {}),
     mods: extraMods?.length ? extraMods : undefined,
-    target,
-    // L'écrêtage voyage tel que le résolveur l'a MESURÉ (`TestResult.clamped`) — jamais redevine ici.
-    ...(r.clamped ? { clamped: r.clamped } : {}),
+    ...cibleMesuree({ target, clamped: r.clamped }),
     // SEUIL PUR (#1426, #2389) : le verdict de l'étape, transmis tel quel (`state/pendings.LectureDuDe`).
     ...(r.seuil ? { seuil: r.seuil } : {}),
     roll: r.roll,
@@ -50,8 +49,11 @@ export function testBreakdown(
  *  dé et DR vides : pour le panneau PRÉ-REMPLI des flux `RollShell` (parité Attaque/Défense).
  *  `target` omis → dérivé `base + modificateur de Difficulté` (comme le calcule le jet) ; la
  *  Difficulté voyage en donnée de LIGNE (#1072), pas en chip. */
-export function testPending(label: ReactNode, base: number, target?: number, difficulty?: Difficulty, extraMods?: ModLine[], easedBy?: string, clamped?: number, second?: SecondReadLine): PendingRoll {
-  const t = target ?? base + (difficulty ? DIFFICULTY_MODIFIERS[difficulty] : 0) + combineMods(extraMods ?? []);
+export function testPending(label: ReactNode, base: number, cible?: CibleMesuree, difficulty?: Difficulty, extraMods?: ModLine[], easedBy?: string, second?: SecondReadLine): PendingRoll {
+  // Cible POSÉE (avec la mesure de son bornage, `cibleMesuree`) ou DÉRIVÉE, bornée et mesurée par la
+  // MÊME primitive que le jet (`clampTarget`).
+  const { target: t, clamped: ecrete } = cible
+    ?? clampTarget(cibleDuTest(base, difficulty, combineMods(extraMods ?? [])));
   return {
     label,
     base,
@@ -59,7 +61,7 @@ export function testPending(label: ReactNode, base: number, target?: number, dif
     ...(difficulty ? { difficulty } : {}),
     ...(easedBy ? { easedBy } : {}),
     mods: extraMods?.length ? extraMods : undefined,
-    ...(clamped ? { clamped } : {}),
+    ...(ecrete ? { clamped: ecrete } : {}),
     // Même zone qu'à la ligne résolue : la seconde cible s'annonce AVANT le dé (#1279 Sf).
     ...(second ? { second } : {}),
   };
@@ -71,7 +73,8 @@ export interface OpposedLineSpec {
   label: string;
   base: number;
   r?: { roll: number; target?: number; sl?: number; success?: boolean; clamped?: number } | null;
-  /** Cible pré-jet déjà connue (sinon dérivée `base + Difficulté + mods`). */
+  /** Cible pré-jet déjà connue, AVANT bornage (`cibleDuTest`) : `opposedLines` la borne et en mesure
+   *  l'écart (`clampTarget`). Absente : dérivée `base + Difficulté + mods`. */
   target?: number;
   mods?: ModLine[];
   /** Masque d'AFFICHAGE de la ligne (adversaire opaque — les valeurs restent exactes, cf. `RollMask`). */
@@ -92,17 +95,17 @@ export function opposedLines(
     ? { d: { ...testBreakdown(s.label, s.base, s.r, difficulty, s.mods), ...(s.mask ? { mask: s.mask } : {}) } }
     // Le masque suit la ligne AVANT le jet comme après : une ligne adverse opaque (`mask:'value'`) le
     // reste en PRÉ-JET, sinon la rangée figée révélerait la Compétence que le jet, lui, cachera.
-    : { pending: { ...testPending(s.label, s.base, s.target, difficulty, s.mods), ...(s.mask ? { mask: s.mask } : {}) } }));
+    : { pending: { ...testPending(s.label, s.base, s.target != null ? clampTarget(s.target) : undefined, difficulty, s.mods), ...(s.mask ? { mask: s.mask } : {}) } }));
 }
 
 /**
- * Valeur effective d'une « option de jet » = `base + combineMods(mods)` (plafonds de Difficulté
- * inclus). SOURCE UNIQUE du calcul « base + mods » montré sur le sélecteur d'options
- * (`OptionChooser`) — jusqu'ici réécrit inline dans chaque modale (ex. `segVal` de la Défense).
+ * Cible effective d'une « option de jet » = `base + combineMods(mods)` (plafonds de Difficulté
+ * inclus), BORNÉE comme la cible du jet (`clampTarget`) : l'option montre la cible que sa ligne
+ * affichera. SOURCE UNIQUE du calcul montré sur le sélecteur d'options (`OptionChooser`).
  * Réutiliser ; ne pas recombiner les mods à la main.
  */
 export function optionValue(base: number, mods: ModLine[]): number {
-  return base + combineMods(mods);
+  return clampTarget(base + combineMods(mods)).target;
 }
 
 /**

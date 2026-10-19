@@ -4,7 +4,7 @@ import { ChoiceButtons } from './OptionChooser';
 import { Icon } from './Icon';
 
 /**
- * « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test de Résistance du seuil de Corruption —
+ * « Je te renie ! » (LDB 17 l.67) : le héros a échoué au Test `corrompu` du seuil de Corruption —
  * la mutation menace. Il peut sacrifier 1 Point de Résilience pour la REFUSER : « vous pouvez choisir
  * de ne pas développer la mutation obtenue. Et comme vous ne mutez pas, vous ne perdez aucun Point
  * de Corruption. » Sinon, la mutation s'applique (−BFM Points, tirage sur le Tableau).

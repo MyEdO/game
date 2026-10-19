@@ -163,19 +163,17 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     expect(step.id).toBe(`sea-activity-generic-${hero.id}`);
     expect(step.rollLabel).toBe(def.label);
     expect(step.meta).toEqual({ activityId: def.id });
-    // ANCIEN littéral : `base: spec.value, target: spec.target` (seaActivities.ts:147 à `b29cbe51`).
     expect(step.target).toBe(spec.target);
     expect(step.base! + sommeMods(step.mods)).toBe(spec.value);
   });
 
   /**
-   * RÈGLE OPTIONNELLE « Tests >100 % » (LDB 12 l.77) : la borne de cible n'est PAS écrite dans le
-   * mint, elle vient de `getTestPolicy` (`clampTarget`). L'ancien littéral générique prenait sa
-   * cible de `travelActivitySpec`, qui borne à 99 EN DUR (`engine/activities.ts:467`) : sous la
-   * règle active, les deux grandeurs DIVERGENT — c'est ce que la migration change, et c'est mesuré
-   * ici dans les deux sens (règle éteinte : identiques ; règle active : le plafond se lève).
+   * RÈGLE OPTIONNELLE « Tests >100 % » (LDB 12 l.77) : la borne de cible vient du SEUL constructeur
+   * (`clampTarget`, `engine/tests.ts`, lu de `getTestPolicy`). Le mint et `travelActivitySpec`
+   * (`engine/activities.ts`) partent de la même cible brute (`cibleDuTest`) et la bornent par lui :
+   * règle éteinte, plafond 99 des deux côtés ; règle active, le plafond se lève des deux côtés.
    */
-  it('« Tests >100 % » — le mint suit la policy, le clamp EN DUR de `travelActivitySpec` ne bouge pas', () => {
+  it('« Tests >100 % » — le mint et `travelActivitySpec` suivent la même policy de bornage', () => {
     const hero = get().party[0];
     (hero as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 200 } as never];
     (hero as Combatant).characteristics = { ...hero.characteristics, dexterite: 80 };
@@ -194,7 +192,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
       expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
       expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);
       expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire']);
-      expect(travelActivitySpec(cible, def)!.target, 'le clamp EN DUR de l’engine ne suit pas la règle').toBe(99);
+      expect(travelActivitySpec(cible, def)!.target, 'la même cible bornée par le constructeur').toBe(actif.target);
     } finally {
       resetRule('test-over-100');
     }

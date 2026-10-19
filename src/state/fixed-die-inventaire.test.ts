@@ -8,6 +8,7 @@ import type { Combatant } from '../engine/types';
 import type { ShipManeuverParticipant } from './pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { cascadeDeTest } from './cascadeTestKit';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * GARDE EXHAUSTIVE de l'option « Dés fixés » — le socle, pas 36 copies.
@@ -162,10 +163,10 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingSurgery'),
   },
-  // Exposition à une Influence corruptrice (LDB 19 l.29) : « tentez un Test de Résistance Intermédiaire
-  // (+0) ou un Test de Calme » — un Test, donc la Résilience (LDB 17 l.68) et son dé choisi.
+  // Exposition à une Influence corruptrice (LDB 19 l.29) : un Test, donc la Résilience (LDB 17 l.68) et son
+  // dé choisi.
   corruption: {
-    state: { pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', skill: 'resistance', skillLocked: true, menace: 'corruption', ...rate } },
+    state: { pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', test: testDeRegle('influences-corruptrices', 'physique'), natureFixee: true, menace: 'corruption', ...rate } },
     read: flatRead('pendingCorruption'),
   },
   recover: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
@@ -174,7 +175,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: trRead('pendingBargain'),
   },
   frenzy: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
-  approach: { state: { pendingApproach: { combatantId: 'H', sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
+  approach: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
   ward: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
   dispel: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
   shanty: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
@@ -184,11 +185,11 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: () => ({ roll: P<{ result: { roll: number } }>('pendingFocus').result.roll, success: P<{ result: { dr: number } }>('pendingFocus').result.dr > 0 }),
   },
   run: {
-    state: { pendingRun: { combatantId: 'H', dest: { x: 5, y: 0 }, result: { success: false, roll: 88, target: T, dr: -4, bonusCases: 0 } } },
+    state: { pendingRun: { combatantId: 'H', test: testDeRegle('course', 'courir'), dest: { x: 5, y: 0 }, result: { success: false, roll: 88, target: T, dr: -4, bonusCases: 0 } } },
     read: resultRead('pendingRun'),
   },
   fall: {
-    state: { pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
+    state: { pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
     pid: 'H',
     read: () => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>('pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },

@@ -213,7 +213,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     expect(get().localIntent, 'l’intention doit se dissoudre au commit').toBeNull();
   });
 
-  it('AVEC intention de Course, le clic d’une case LOINTAINE part en Course réelle (jet d’Athlétisme)', () => {
+  it('AVEC intention de Course, le clic d’une case LOINTAINE part en Course réelle (Test de `course`)', () => {
     setup();
     const marche = displayedReach(get);
     const course = computeRunReach(get);
