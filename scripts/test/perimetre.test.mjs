@@ -13,7 +13,7 @@ import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
 import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
-import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
+import { CACHE, exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
@@ -187,7 +187,7 @@ function forger(t, base, apres, { commiter = true } = {}) {
 }
 
 const deriver = (racine, bornes = { base: 'HEAD~1', tete: 'HEAD' }) =>
-  perimetreDuDepot(racine, bornes, { dossierDesMemos: join(racine, '.git', 'perimetre'), env: envDeDepotForge() })
+  perimetreDuDepot(racine, bornes, { env: envDeDepotForge() })
 
 const lienDe = (perimetre, test) => {
   const lien = perimetre.retenus.get(test)
@@ -346,19 +346,23 @@ test('relais de la clôture des setupFiles appelé par un test : la racine s’a
 })
 
 test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide l’évaluation de son appelant, mémos internes compris', async (t) => {
-  const depot = (corps) => forger(t, {
+  const q = (corps) => `import { join } from 'node:path'\nexport const base = (d) => ${corps}\n`
+  const racine = forger(t, {
     'scripts/lib/r.mjs': "import { readdirSync } from 'node:fs'\nimport { base } from './q.mjs'\nexport function lister(d) { return readdirSync(base(d)) }\n",
-    'scripts/lib/q.mjs': `import { join } from 'node:path'\nexport const base = (d) => ${corps}\n`,
+    'scripts/lib/q.mjs': q('d'),
     'scripts/a.test.mjs': "import { lister } from './lib/r.mjs'\nlister('donnees')\n",
     'scripts/b.test.mjs': "import { lister } from './lib/r.mjs'\nlister('donnees')\n",
     'autre/donnees/x.json': '{}',
   }, { 'autre/donnees/x.json': '{"x":1}' })
-  const memos = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
-  t.after(() => rmSync(memos, { recursive: true, force: true }))
-  const avecMemos = (racine) => perimetreDuDepot(racine, { base: 'HEAD~1', tete: 'HEAD' }, { dossierDesMemos: memos })
-  const premier = (await avecMemos(depot('d'))).retenus
+  const premier = (await deriver(racine)).retenus
   assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => premier.has(f)), [false, false])
-  const { retenus } = (await avecMemos(depot("join('autre', d)")))
+  assert.notDeepEqual(readdirSync(join(racine, CACHE)), [], 'les mémos vivent sous le CACHE du dépôt')
+  const git = gitDe(racine)
+  for (const [rel, texte] of [['scripts/lib/q.mjs', q("join('autre', d)")], ['autre/donnees/x.json', '{"x":2}']]) {
+    writeFileSync(join(racine, rel), texte)
+    git('commit', '-q', '-am', rel)
+  }
+  const { retenus } = (await deriver(racine))
   assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => [retenus.get(f)?.nature, retenus.get(f)?.racine]),
     [['racine balayée', 'autre/donnees'], ['racine balayée', 'autre/donnees']])
 })
@@ -1056,13 +1060,14 @@ test('mesures illisibles : le plan lève AVANT tout lancement, l’entrée et l�
 })
 
 test('entrée du CLI : un mémo des mesures corrompu sort en 2 et imprime sa cause (#2586)', async (t) => {
-  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-entree-'))
-  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const racine = forger(t, {}, { 'scripts/seul.mjs': 'export const seul = 2\n' })
+  const dossier = dossierDesMesures(racine)
+  mkdirSync(dossier, { recursive: true })
   writeFileSync(join(dossier, 'durees.json'), '{ tronqu')
   const erreurs = []
   t.mock.method(console, 'error', (texte) => { erreurs.push(texte) })
-  const executer = async (argv, racine) => planDuPerimetre(new Map(), { mesures: mesuresDe(racine), lire: () => new Map() })
-  assert.equal(await entreeDuCli([], dossier, { executer }), 2)
+  t.mock.method(console, 'log', () => {})
+  assert.equal(await entreeDuCli(['--liste', '--base', 'HEAD~1', '--tete', 'HEAD'], racine), 2)
   assert.match(erreurs.join('\n'), /^\[perimetre\] .*illisible — cause SyntaxError : /)
 })
 

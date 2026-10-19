@@ -684,10 +684,9 @@ export function apprendre(racine, rapport, mesures, famille, planifies) {
   return { appris, workers, echecs: echecs.map(relDe) }
 }
 
-/** L'entrée du CLI (#2586) : le code de `executer` (`principal`) ; une levée s'imprime avec sa chaîne de causes (`texteDeLEchec`)
- *  et rend 2. */
-export async function entreeDuCli(argv, racine, { executer = principal } = {}) {
-  try { return await executer(argv, racine) }
+/** L'entrée du CLI (#2586) : le code de `principal` ; une levée s'imprime avec sa chaîne de causes (`texteDeLEchec`) et rend 2. */
+export async function entreeDuCli(argv, racine) {
+  try { return await principal(argv, racine) }
   catch (erreur) {
     console.error(`[perimetre] ${texteDeLEchec(erreur)}`)
     return 2
@@ -716,17 +715,20 @@ function stadeAtteint(marqueur, attendre) {
   }
 }
 
+/** Le module que joue l'enfant de `derivationBornee`. */
+const MODULE_DE_DERIVATION = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url))
+
 /** La dérivation de `entree` dans un ENFANT borné (#2603) : `perimetreDerivation.mjs` sous `lancer`, `limiteMs` et
  *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
  *  dossier temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
-export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
+export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync } = {}) {
   const temporaire = mkdtempSync(join(tmpdir(), 'perimetre-derivation-'))
   const debut = performance.now()
   let retraitPermis = true
   try {
     const input = join(temporaire, 'entree.json'), output = join(temporaire, 'sortie.json'), marqueur = join(temporaire, 'stade.json')
     ecrireJsonAtomique(input, entree, { indentation: 0 })
-    const vu = await lancer({ argv: ['--max-old-space-size=640', module, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
+    const vu = await lancer({ argv: ['--max-old-space-size=640', MODULE_DE_DERIVATION, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
     const bornes = `durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()
@@ -743,9 +745,9 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
 }
 
 /** Le périmètre du dépôt de `racine` (#2603) : images du diff et dérivation par `derivationBornee`, post-image lue sur
- *  le disque (arbre de travail) ou dans `tete`, mémos sous `dossierDesMemos`. */
-export async function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos = join(racine, CACHE), lectureSeule = false, env, signal, retenir } = {}) {
-  const derive = await derivationBornee({ racine, base, tete, dossierDesMemos, lectureSeule }, { env, signal, retenir })
+ *  le disque (arbre de travail) ou dans `tete`, mémos sous `CACHE` du dépôt. */
+export async function perimetreDuDepot(racine, { base, tete } = {}, { lectureSeule = false, env, signal, retenir } = {}) {
+  const derive = await derivationBornee({ racine, base, tete, dossierDesMemos: join(racine, CACHE), lectureSeule }, { env, signal, retenir })
   const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env }), derive.tete, rels) : lireDuDisque(racine)
   return { ...derive, lire }
 }
