@@ -22,7 +22,6 @@ const PILE := "Racine/Centre/Cadre/Pile/"
 @onready var _rangee_defense: RangeeJet = get_node(PILE + "Rangees/Defense")
 @onready var _dr_net: Label = get_node(PILE + "DrNet")
 @onready var _phrase: Label = get_node(PILE + "Phrase")
-@onready var _critique: Label = get_node(PILE + "Critique")
 @onready var _influences: HBoxContainer = get_node(PILE + "Influences")
 @onready var _relancer: Button = get_node(PILE + "Influences/Relancer")
 @onready var _plus_un_dr: Button = get_node(PILE + "Influences/PlusUnDR")
@@ -112,7 +111,6 @@ func remplir_jet(jet: Dictionary) -> void:
 	_dr_net.text = "DR net : %s" % RangeeJet.signe(int(jet.drNet))
 	_dr_net.visible = defense != null
 	_phrase.text = str(jet.phrase)
-	_critique.visible = jet.critique
 	_poser_influence(_relancer, "Relancer ×%d", jet.influences.relancer)
 	_poser_influence(_plus_un_dr, "Chance : +1 DR ×%d", jet.influences.plusUnDR)
 	_poser_phase()
@@ -128,7 +126,6 @@ func _poser_phase() -> void:
 	_phrase.visible = lance
 	if not lance:
 		_dr_net.hide()
-		_critique.hide()
 
 
 func _poser_combattant(noeud: VBoxContainer, c: Dictionary) -> void:
@@ -141,7 +138,7 @@ func _poser_combattant(noeud: VBoxContainer, c: Dictionary) -> void:
 
 func _poser_influence(bouton: Button, format: String, influence: Dictionary) -> void:
 	bouton.text = format % int(influence.restants)
-	bouton.disabled = not influence.possible
+	bouton.visible = influence.possible
 
 
 func _changer_localisation(index: int) -> void:

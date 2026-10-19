@@ -162,13 +162,6 @@ visible = false
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="Critique" type="Label" parent="Racine/Centre/Cadre/Pile"]
-visible = false
-layout_mode = 2
-theme_type_variation = &"Critique"
-text = "CRITIQUE !"
-horizontal_alignment = 1
-
 [node name="Influences" type="HBoxContainer" parent="Racine/Centre/Cadre/Pile"]
 visible = false
 layout_mode = 2

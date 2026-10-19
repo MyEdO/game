@@ -118,7 +118,6 @@ type Jet = {
   gagnant: 'attaquant' | 'defenseur';
   drNet: number;
   phrase: string;                                        // la phrase de touche ou d'échec, telle que le jeu l'écrit
-  critique: boolean;
   influences: {
     relancer:  { possible: boolean; restants: number };  // Point de Chance pour relancer
     plusUnDR:  { possible: boolean; restants: number };  // Point de Chance pour +1 DR

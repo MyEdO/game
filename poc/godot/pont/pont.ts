@@ -99,7 +99,6 @@ export type Jet = {
   gagnant: 'attaquant' | 'defenseur';
   drNet: number;
   phrase: string;
-  critique: boolean;
   influences: {
     relancer: { possible: boolean; restants: number };
     plusUnDR: { possible: boolean; restants: number };
@@ -323,7 +322,6 @@ export function jetDe(attaquant: Combatant, cible: Combatant, { arme, res }: Cou
     gagnant: res.hit ? 'attaquant' : 'defenseur',
     drNet: res.netSL,
     phrase: issueAuJet(cible, res, arme, attaquant).ligne,
-    critique: res.critical,
     influences: {
       relancer: { possible: relanceOuverte(attaquant, res, relancee), restants },
       plusUnDR: { possible: restants > 0, restants }, // rollFlowFactory.ts:446 ; LDB 17 l.24
