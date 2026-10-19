@@ -7,7 +7,8 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
-import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
+import { memoParVersion } from '../../data/versionDataset';
+import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
@@ -617,7 +618,7 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
 // re-matérialisent à la lecture qui suit (`memoParVersion`), et les composants abonnés
 // (`useVersionDesDatasets`) re-rendent.
 type IndexDeCategorie = { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> };
-const LOOKUP = memoParVersion(CLES_VERSIONNEES, () => new Map<string, IndexDeCategorie>());
+const LOOKUP = memoParVersion(CLES_DE_DATASET, () => new Map<string, IndexDeCategorie>());
 
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
@@ -651,9 +652,9 @@ interface CodexCategorySpec {
   build: () => CodexItem[];
 }
 
-/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_VERSIONNEES` : datasets et règles). */
+/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_DE_DATASET`). */
 function makeCategory(spec: CodexCategorySpec): CodexCategory {
-  const projection = memoParVersion(CLES_VERSIONNEES, () => {
+  const projection = memoParVersion(CLES_DE_DATASET, () => {
     const items = spec.build();
     return { items, facets: deriveFacets(spec.key, items) };
   });

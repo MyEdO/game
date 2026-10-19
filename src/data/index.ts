@@ -9,7 +9,9 @@ import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { CATEGORIE_CODEX_DU_FICHIER } from './schemas/_cles-de-dataset.generated';
+import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
+import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
@@ -3430,36 +3432,26 @@ export type AdvancementRef =
   | { pick: number; of: AdvancementRef[] }
   | { random: number };
 
-/** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. */
+/** ENTRÉE d'une catégorie Codex par `id`, lue sur la collection vivante de son dataset — au bout de son
+ *  chemin dans la racine vivante de son fichier (`DATASET_DE_LA_CATEGORIE`, `RACINES_VIVANTES`) — par
+ *  l'index vivant du dataset (`indexParId`) ; `undefined` hors de ces catégories (clés du prototype
+ *  comprises) ou pour un id absent. Porte générique de `findById`. */
+export function entreeDeCategorie(category: string, id: string): { id: string; label: string } | undefined {
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_LA_CATEGORIE, category)) return undefined;
+  const d = DATASET_DE_LA_CATEGORIE[category];
+  const entrees = suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[] | undefined;
+  return entrees && indexParId(d.cle, entrees)(id);
+}
+/** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. Une catégorie
+ *  sans `case` se lit par la porte générique `entreeDeCategorie`. */
 export function findById(category: string, id: string): { label: string } | undefined {
   switch (category) {
-    case 'skills': return byId('skill', id);
-    case 'talents': return findTalentById(id);
-    case 'trappings': return findTrappingById(id);
-    case 'weaponGroups': return findWeaponGroupById(id);
     case 'qualitySubtypes': return findQualitySubtypeById(id);
     case 'breathTypes': return findBreathTypeById(id);
     case 'damageTypes': return findDamageTypeById(id);
     case 'qualityTypes': return findQualityTypeById(id);
-    case 'groups': return findGroupById(id);
-    case 'domains': return findDomainById(id);
-    case 'qualities': return findQualityById(id);
     case 'spells': return findSpellById(id);
-    case 'maneuvers': return findManeuverById(id);
-    case 'careers': return findCareerById(id);
-    case 'classes': return findClassById(id);
-    case 'races': return findSpeciesById(id);
-    case 'etats': return findConditionById(id);
-    case 'psychologies': return findPsychologyById(id); // clé de CATÉGORIE Codex (cf. `CATEGORY_BY_SOURCE_KIND`)
-    case 'traits': return findTraitById(id);
-    case 'mutations': return findMutationById(id); // clé de CATÉGORIE Codex (compendium/registry, relations)
-    case 'symptoms': return findSymptomById(id);
-    case 'maladies': return findDiseaseById(id) ? { label: findDiseaseById(id)!.label } : undefined;
-    case 'shipStations': return findShipStation(id);
-    case 'crewRoles': return findCrewRoleById(id);
-    case 'creatures': return findCreatureById(id);
-    case 'navalTraits': return findNavalTrait(id);
-    default: return undefined;
+    default: return entreeDeCategorie(category, id);
   }
 }
 /** Libellé d'affichage d'un id, par source de spéc. */

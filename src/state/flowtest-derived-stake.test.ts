@@ -32,7 +32,9 @@ import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTes
 import { effectSourcesOf } from './triggeredEffects';
 import { EMPTY_FLOW, type Flow } from './flow';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
-import { resolveStake, findById, combatStakeRef, type StakeRef } from '../data';
+import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';
+import { ACTIVITIES } from '../engine/activities';
+import { TAVERN_GAMES } from '../engine/tavernGame';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -255,6 +257,19 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
   it('sans porteur résoluble, la dérivation se tait (elle n’invente rien)', () => {
     expect(withDerivedStake({ skill: { id: 'resistance' }}, undefined).stake).toBeUndefined();
     expect(withDerivedStake({ skill: { id: 'resistance' }}, { kind: 'spell', id: 'sort-qui-n-existe-pas' }).stake).toBeUndefined();
+  });
+
+  /** Natures sans `case` dans `findById` (#2820) : l'enjeu dérivé nomme le libellé de la fiche, lu par
+   *  `entreeDeCategorie` — la règle de l'Empoignade (`GRAPPLE_SOURCE`, `combatFlow.ts`), une Activité,
+   *  un jeu de taverne. */
+  it.each([
+    ['rule', 'empoignade', regles],
+    ['activity', 'plein-air', ACTIVITIES],
+    ['tavernGame', 'al-zahr', TAVERN_GAMES],
+  ] as const)('nature `%s` : l’enjeu dérivé nomme le libellé de la fiche `%s`', (kind, id, dataset) => {
+    const fiche = (dataset as readonly { id: string; label: string }[]).find((e) => e.id === id)!;
+    const ft = withDerivedStake({ skill: { id: 'resistance' } }, { kind, id });
+    expect(resolveStake(ft.stake!)).toEqual({ text: `Ce qui se joue : ${fiche.label}.`, rule: { category: CATEGORY_BY_SOURCE_KIND[kind], id } });
   });
 });
 

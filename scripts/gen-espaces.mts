@@ -23,8 +23,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
-import type { AccesAuxDocuments, CollectionDeFichier } from '../src/data/schemas/grammaire/collection-cle';
-import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE } from '../src/data/schemas/grammaire/cle-d-espace';
+import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
+import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
@@ -82,13 +82,68 @@ interface DocumentDeDataset {
   readonly chemin: string;
 }
 
+/** La collection d'une catégorie Codex lue par la porte `entreeDeCategorie` : sa clé de dataset, son
+ *  fichier et le chemin RÉSOLU de sa suite dans la racine vivante de ce fichier. */
+interface CollectionDeCategorie {
+  readonly categorie: string;
+  readonly cle: string;
+  readonly fichier: string;
+  readonly chemin: readonly PasResolu[];
+}
+
+/** Tête du module des clés : le type d'une rangée de `DATASET_DE_LA_CATEGORIE` (import de type seul,
+ *  le module reste sans import exécutable). */
+const TYPE_DATASET_DE_CATEGORIE =
+  `import type { PasResolu } from './grammaire/cle-d-espace';\n\n` +
+  `/** Une rangée de \`DATASET_DE_LA_CATEGORIE\`. */\n` +
+  `export interface DatasetDeCategorie {\n  readonly cle: CleDeDataset;\n  readonly fichier: string;\n  readonly chemin: readonly PasResolu[];\n}\n\n`;
+
+/** Littéral JS d'un pas résolu. */
+const litteralDePas = (pas: PasResolu): string =>
+  'champ' in pas ? `{ champ: ${litteralJs(pas.champ)} }` : `{ cle: ${litteralJs(pas.cle)}, par: ${litteralJs(pas.par)} }`;
+
+/** Catégories à dataset dont la collection n'est pas une liste d'entrées `{ id, label }`, et pourquoi :
+ *  hors de la porte `entreeDeCategorie`. */
+const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
+  navalProgression: 'entrées sans `label`',
+  shipConstructionTraits: 'entrées sans `label`',
+  shipHullSizes: 'entrées sans `label`',
+};
+
+/** `suite` résolue contre `schema` en pas lisibles sans lui (`suivreLeChemin`) : un pas `[clé]` y porte
+ *  le nom de la clé de la liste marquée qu'il traverse. LÈVE sur un pas `[]`, ou sur un pas `[clé]` hors
+ *  d'une liste marquée dont la clé se lit au champ de son nom. */
+function cheminResolu(
+  schema: unknown,
+  racine: unknown,
+  suite: string,
+  atteindre: (schema: unknown, racine: unknown, suite: string) => { readonly marque: MarqueDeCollection; readonly valeur: unknown } | undefined,
+  dit: string,
+): PasResolu[] {
+  const chemin: PasResolu[] = [];
+  let prefixe = '';
+  for (const pas of pasDeLaSuite(suite)) {
+    if ('rang' in pas) throw new Error(`gen-espaces: ${dit} : pas « [] », qui ne désigne pas UN point.`);
+    if ('cle' in pas) {
+      const liste = atteindre(schema, racine, prefixe);
+      const marque = liste?.marque;
+      if (marque?.forme !== 'liste' || !Array.isArray(liste!.valeur)) throw new Error(`gen-espaces: ${dit} : le pas « [${pas.cle}] » ne traverse pas une liste marquée.`);
+      for (const el of liste!.valeur as unknown[])
+        if (marque.de(el) !== (el as Record<string, unknown>)[marque.nom]) throw new Error(`gen-espaces: ${dit} : la clé de la liste traversée par « [${pas.cle}] » ne se lit pas au champ « ${marque.nom} ».`);
+      chemin.push({ cle: pas.cle, par: marque.nom });
+    } else chemin.push({ champ: pas.champ });
+    prefixe = suiteAvecPas(prefixe, pas);
+  }
+  return chemin;
+}
+
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; racines: DocumentDeDataset[] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; collections: CollectionDeCategorie[]; racines: DocumentDeDataset[] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
-  const { collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
-  const { DATASET_FICHIER_DERIVE } = await import('../src/data/schemas/exposition-derivee');
+  const { atteindre, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
+  const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } = await import('../src/data/schemas/exposition-derivee');
   const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(d.root, d.file), 'utf8')) as unknown]));
   const schemaParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema]));
   const acces: AccesAuxDocuments = (fichier) => (brutParNom.has(fichier) ? { schema: schemaParNom.get(fichier), racine: brutParNom.get(fichier) } : undefined);
@@ -112,13 +167,44 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     if (!def) throw new Error(`gen-espaces: DATASET_FICHIER_DERIVE désigne « ${fichier} », qu'aucun def de SCHEMA_DEFS ne porte.`);
     return { fichier, chemin: join(def.root, def.file) };
   });
+  const categories = SCHEMA_DEFS.flatMap((d): [string, string][] => {
+    const codex = d.exposition?.codex;
+    return codex && 'keys' in codex && codex.keys.length === 1 ? [[d.file, codex.keys[0]]] : [];
+  }).sort(([a], [b]) => parUnitesDeCode(a, b));
+  // Dataset d'une catégorie : sa route d'édition, sinon l'UNIQUE clé de dataset du fichier dont elle est
+  // l'unique catégorie (route `none` + `dataset`) ; sa collection, au bout de sa suite (`DATASET_SUITE_DERIVE`).
+  const datasetDe = new Map(Object.entries(CATEGORY_DATASET_DERIVE));
+  for (const [fichier, categorie] of categories) {
+    const cles = Object.keys(DATASET_FICHIER_DERIVE).filter((k) => DATASET_FICHIER_DERIVE[k] === fichier);
+    const route = datasetDe.get(categorie);
+    if (cles.length !== 1) continue;
+    if (route !== undefined && route !== cles[0]) throw new Error(`gen-espaces: la catégorie « ${categorie} » route vers « ${route} », son fichier « ${fichier} » ne porte que « ${cles[0]} ».`);
+    datasetDe.set(categorie, cles[0]);
+  }
+  const collections: CollectionDeCategorie[] = [];
+  for (const [categorie, cle] of datasetDe) {
+    const fichier = DATASET_FICHIER_DERIVE[cle];
+    const suite = DATASET_SUITE_DERIVE[cle];
+    if (suite === undefined) continue; // dataset-OBJET : sa collection est la racine, une configuration (`OBJECT_CATEGORY_DERIVE`)
+    const schema = schemaParNom.get(fichier);
+    const racine = brutParNom.get(fichier);
+    const chemin = cheminResolu(schema, racine, suite, atteindre, `« ${cle} » (${fichier}#${suite})`);
+    const valeur = atteindre(schema, racine, suite)?.valeur;
+    if (suivreLeChemin(racine, chemin) !== valeur) throw new Error(`gen-espaces: le chemin résolu de « ${cle} » (${fichier}#${suite}) n'atteint pas sa collection.`);
+    const entrees = Array.isArray(valeur) && valeur.every((e) => typeof e?.id === 'string' && typeof e?.label === 'string');
+    const exclue = HORS_DE_LA_PORTE[categorie];
+    if (entrees && exclue !== undefined) throw new Error(`gen-espaces: « ${categorie} » est exclue de la porte (${exclue}) mais sa collection est une liste d'entrées { id, label }.`);
+    if (!entrees && exclue === undefined) throw new Error(`gen-espaces: la collection de « ${categorie} » (${fichier}#${suite}) n'est pas une liste d'entrées { id, label } : la conformer, ou l'exclure avec sa raison (\`HORS_DE_LA_PORTE\`).`);
+    if (entrees) collections.push({ categorie, cle, fichier, chemin });
+  }
+  for (const categorie of Object.keys(HORS_DE_LA_PORTE))
+    if (!datasetDe.has(categorie)) throw new Error(`gen-espaces: \`HORS_DE_LA_PORTE\` nomme « ${categorie} », qui n'est aucune catégorie à dataset.`);
+  collections.sort((a, b) => parUnitesDeCode(a.categorie, b.categorie));
   return {
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
     clesDeDataset: Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode),
-    categories: SCHEMA_DEFS.flatMap((d): [string, string][] => {
-      const codex = d.exposition?.codex;
-      return codex && 'keys' in codex && codex.keys.length === 1 ? [[d.file, codex.keys[0]]] : [];
-    }).sort(([a], [b]) => parUnitesDeCode(a, b)),
+    categories,
+    collections,
     racines,
   };
 }
@@ -136,7 +222,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, racines } = await indexDesIds();
+  const { table, clesDeDataset, categories, collections, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -160,6 +246,7 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
   const cles =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
+    TYPE_DATASET_DE_CATEGORIE +
     `/** CLÉS DE DATASET : le domaine de \`DATASET_FICHIER_DERIVE\` (\`exposition-derivee.ts\`), une clé par\n` +
     ` *  collection que le seam mute EN PLACE (\`src/data/overrides.ts\`). */\n` +
     `export const CLES_DE_DATASET = [\n` +
@@ -171,6 +258,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     ` *  celle où s'ouvre la fiche d'une de ses entrées (\`cibleCodex\`, \`src/data/index.ts\`). */\n` +
     `export const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {\n` +
     categories.map(([f, c]) => `  ${litteralJs(f)}: ${litteralJs(c)},\n`).join('') +
+    `};\n\n` +
+    `/** DATASET de chaque catégorie Codex dont la collection est une liste d'entrées { id, label } : sa clé (index\n` +
+    ` *  vivant, \`indexParId\`), son fichier (\`RACINES_VIVANTES\`) et le chemin de sa collection dans sa racine\n` +
+    ` *  (\`suivreLeChemin\`) — la porte \`entreeDeCategorie\` (\`src/data/index.ts\`). */\n` +
+    `export const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {\n` +
+    collections.map(({ categorie, cle, fichier, chemin }) => `  ${litteralJs(categorie)}: { cle: ${litteralJs(cle)}, fichier: ${litteralJs(fichier)}, chemin: [${chemin.map(litteralDePas).join(', ')}] },\n`).join('') +
     `};\n`;
   const modRacines =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
@@ -209,7 +302,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
  *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
  *  la phase 2 n'en rende un de plus), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
-  [SORTIE_CLES, 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {};\n'],
+  [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = {};\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
 ]);
 

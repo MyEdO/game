@@ -188,7 +188,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const tables = datasetArray('mutationTables') as MutationTable[];
     const physique = tables.find((t) => t.id === 'physique')!;
     const avant = mutationTableRows('physique')[0];
-    expect(mutationTablePlayerLabel('physique')).toBe('Physique');
+    expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');
     const idsAvant = mutationTableIds().length;
 
     const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
