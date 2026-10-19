@@ -11,7 +11,8 @@ import { arretIndetermine, texteDeCause } from './arretNatif.mjs'
 import { ecrireJsonAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { LANCEMENTS_SUPERVISES, relancerApresNettoyage } from './controleEcritures.mjs'
 import { citerArgv } from './lancerDetache.mjs'
-import { tableTotale } from '../../../src/lib/tableTotale.ts'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const { tableTotale } = await import('../../../src/lib/tableTotale.ts')
 
 const DELAI_IPC = 15000
 /** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
