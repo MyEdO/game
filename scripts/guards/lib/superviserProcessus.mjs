@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { accessSync, constants, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { accessSync, constants, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -70,26 +70,17 @@ function resultatValide(vu) {
  * l'hôte lancé. `controle` : `pret`, `fin` (`{ resultatCible, arret }`), `finPhysique`, `mesurerDomaine`,
  * `attribuer`, `demanderArret`, `estFermeture` ; sous Linux, `mesurerDomaine` et `attribuer` lèvent `ENONSUPPORTE` et
  * arrêtent le lancement (#2586 c.6244746949). `surveillerGit` : les gardiens (parent, ancêtres git) jugés par la
- * vue native du processus, puis par leur identité de création quand la mesure échoue (#2586, #2626). Un refus porte `hoteLance` :
- * `true` dès l'hôte créé par `spawn`, `false` avant (#2586).
+ * vue native du processus, puis par leur identité de création quand la mesure échoue (#2586, #2626). Tout refus
+ * précède l'hôte ; un `cwd` qui n'est pas un dossier existant se refuse en le nommant (#2586).
  * @param {string} commande @param {string[]} [args] @param {Record<string, any>} [options]
  */
 export async function lancerProcessusSupervise(commande, args = [], options = {}) {
-  const lancement = { hote: undefined }
-  try {
-    return await lancerSousHote(commande, args, options, lancement)
-  } catch (e) {
-    throw Object.assign(e, { hoteLance: lancement.hote !== undefined })
-  }
-}
-
-/** Corps de `lancerProcessusSupervise` : `lancement.hote` reçoit l'hôte au `spawn` (#2586). */
-async function lancerSousHote(commande, args, options, lancement) {
   const { cwd = process.cwd(), env, shell = false, stdio = ['pipe', 'pipe', 'pipe'], timeout, signal,
     surveillerGit = false, delaiArretMs = 2000 } = options
   if (!Number.isFinite(delaiArretMs) || delaiArretMs <= 0 || delaiArretMs > 2147483647) throw erreur('BORNE_INVALIDE', 'delaiArretMs invalide')
   const delaiNatif = Math.ceil(delaiArretMs)
   if (timeout !== undefined && (!Number.isFinite(timeout) || timeout < 0 || timeout > 2147483647)) throw erreur('BORNE_INVALIDE', 'timeout invalide')
+  if (!statSync(cwd, { throwIfNoEntry: false })?.isDirectory()) throw erreur('ENOENT', 'dossier de travail absent : ' + cwd)
   if (signal?.aborted) throw raisonAnnulation(signal)
   let vueInitiale = []
   if (surveillerGit) {
@@ -111,7 +102,6 @@ async function lancerSousHote(commande, args, options, lancement) {
   const jeton = randomUUID()
   const adresse = process.platform === 'win32' ? '\\\\.\\pipe\\wfrp-supervision-' + jeton : join(dossier, 'controle.sock')
   let hote; let canal; let resultat; let instanceCible; let pid = null; let interruption = null; let clos = false; let eof = false
-  let fermetureEcoutee = false
   let fermeHote; let canalTermine = false; let clotureDefaillante = false; let resultatPublie
   let requeteActive = false; let serveur; let intervalle; let borne; let connexion; let attenteCloture; let clotureDemandee = false
   const pret = promesse(); const finCanal = promesse(); const finHote = promesse(); const defautCloture = promesse(); const decision = promesse()
@@ -292,7 +282,7 @@ async function lancerSousHote(commande, args, options, lancement) {
     const argv = process.platform === 'win32'
       ? ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('./hoteSupervision.ps1', import.meta.url)), '-Node', process.execPath, '-CommandLine', [process.execPath, worker, adresse, jeton].map(citerArgv).join(' '), '-Worktree', cwd, '-ParentPid', String(process.pid), '-ControlDirectory', dossier, '-DelaiArretMs', String(delaiNatif)]
       : [fileURLToPath(new URL('./hoteSupervision.py', import.meta.url)), String(process.pid), process.execPath, worker, adresse, jeton, dossier, String(delaiNatif)]
-    hote = lancement.hote = spawn(interpreteur, argv, { cwd, windowsHide: true, stdio })
+    hote = spawn(interpreteur, argv, { cwd, windowsHide: true, stdio })
     let erreurHote
     hote.once('close', (status, signalHote) => {
       fermeHote = { status, signal: signalHote, erreur: erreurHote }
@@ -301,7 +291,6 @@ async function lancerSousHote(commande, args, options, lancement) {
       else if (!canal) { faute('hôte fermé avant authentification du worker'); finirCanal() }
       else demanderArret()
     })
-    fermetureEcoutee = true
     hote.on('error', (e) => { erreurHote = e; faute(e.message, e.code ?? 'EHOTE') })
     connexion = setTimeout(() => faute('échéance de connexion du worker'), DELAI_IPC)
     let echecs = 0
@@ -368,11 +357,7 @@ async function lancerSousHote(commande, args, options, lancement) {
     })()
     return { hote, controle }
   } catch (e) {
-    if (hote) {
-      demanderArret(e)
-      if (fermetureEcoutee) await finHote.attente
-    }
-    clearInterval(intervalle); clearTimeout(borne); clearTimeout(connexion); clearTimeout(attenteCloture)
+    clearTimeout(borne); clearTimeout(attenteCloture)
     for (const detacher of detachements.splice(0)) detacher()
     for (const socket of sockets) socket.destroy()
     if (serveur?.listening) await new Promise((ok) => serveur.close(ok))

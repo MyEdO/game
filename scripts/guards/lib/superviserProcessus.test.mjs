@@ -231,7 +231,7 @@ test('#2795 mesure initiale impossible : EMESURE conserve le code, la catégorie
     supervision = superviserProcessus({ commande: 'executable-introuvable-2795', surveillerGit: true })
   } finally { process.env.SystemRoot = systemRoot }
   await assert.rejects(lancement, (e) => {
-    assert.deepEqual([e.code, e.codeMesure, e.categorie, e.hoteLance], ['EMESURE', e.cause.code, e.cause.categorie, false])
+    assert.deepEqual([e.code, e.codeMesure, e.categorie], ['EMESURE', e.cause.code, e.cause.categorie])
     assert.deepEqual([e.cause.code, e.cause.categorie], ['MESURE_PROCESSUS_IMPOSSIBLE', 'panne'])
     assert.match(e.message, /SystemRoot absent/)
     return true
@@ -251,7 +251,7 @@ import assert from 'node:assert/strict'
 const { lancerProcessusSupervise, superviserProcessus } = await import(${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)})
 const echeance = /^\\[transitoire · retentable\\] mesure des processus indéterminée : échéance de \\d+ ms atteinte$/
 await assert.rejects(lancerProcessusSupervise('executable-introuvable-2795', [], { surveillerGit: true }), (e) => {
-  assert.deepEqual([e.code, e.codeMesure, e.categorie, e.hoteLance], ['EMESURE', 'MESURE_PROCESSUS_EXPIREE', 'transitoire', false], e.message)
+  assert.deepEqual([e.code, e.codeMesure, e.categorie], ['EMESURE', 'MESURE_PROCESSUS_EXPIREE', 'transitoire'], e.message)
   assert.deepEqual([e.cause.code, e.cause.categorie], ['MESURE_PROCESSUS_EXPIREE', 'transitoire'])
   assert.match(e.message, echeance)
   return true
@@ -747,33 +747,22 @@ await controle.finPhysique
   await jouerPilote(b, pilote)
 })
 
-test('#2586 refus avant l’hôte : un signal déjà annulé rejette avec hoteLance false', async () => {
+test('#2586 refus avant l’hôte : un signal déjà annulé rejette en ABORT_ERR', async () => {
   const annulation = new AbortController()
   annulation.abort()
-  await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { signal: annulation.signal }),
-    (e) => e.code === 'ABORT_ERR' && e.hoteLance === false)
+  await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { signal: annulation.signal }), { code: 'ABORT_ERR' })
 })
 
-test('#2586 refus après l’hôte : une panne qui suit le spawn rejette avec hoteLance true', { timeout: 20000 }, async (t) => {
+test('#2586 refus avant l’hôte : un dossier de travail absent, ou qui n’est pas un dossier, se refuse en le nommant', async (t) => {
   const b = bancSupervision(t)
-  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
-  const pilote = b.script('pilote-refus-apres-hote', `
-import assert from 'node:assert/strict'
-import childProcess from 'node:child_process'
-import { syncBuiltinESMExports } from 'node:module'
-const spawn = childProcess.spawn
-childProcess.spawn = (_commande, _args, options) => {
-  const hote = spawn(process.execPath, ['-e', 'setTimeout(()=>{},200)'], { ...options, stdio: 'ignore' })
-  const once = hote.once.bind(hote)
-  hote.once = (...args) => { once(...args); throw Object.assign(new Error('panne après lancement'), { code: 'EPANNE' }) }
-  return hote
-}
-syncBuiltinESMExports()
-const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
-await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
-  (e) => e.code === 'EPANNE' && e.hoteLance === true)
-`)
-  await jouerPilote(b, pilote)
+  const fichier = join(b.dossier, 'fichier')
+  writeFileSync(fichier, '')
+  for (const cwd of [join(b.dossier, 'absent'), fichier]) {
+    await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { cwd, stdio: 'ignore' }),
+      { code: 'ENOENT', message: 'dossier de travail absent : ' + cwd })
+    const vu = await superviserProcessus({ commande: process.execPath, args: ['--version'], cwd })
+    assert.deepEqual([vu.status, vu.error], [null, { code: 'ENOENT', message: 'dossier de travail absent : ' + cwd }], JSON.stringify(vu))
+  }
 })
 
 test('#2586 requête native : une réponse tenue sans partage par un tiers se relit sous l’échéance de la requête', { skip: process.platform !== 'win32', timeout: 30000 }, async (t) => {
@@ -844,29 +833,6 @@ assert.equal(vue.metriqueMemoire, 'fixture')
 controle.demanderArret()
 await controle.fin
 await controle.finPhysique
-`)
-  await jouerPilote(b, pilote)
-})
-
-test('#2586 refus après l’hôte : des écouteurs de l’hôte qui lèvent rejettent sans attendre une fermeture jamais écoutée', { timeout: 20000 }, async (t) => {
-  const b = bancSupervision(t)
-  const superviseur = new URL('./superviserProcessus.mjs', import.meta.url).href
-  const pilote = b.script('pilote-ecouteurs-qui-levent', `
-import assert from 'node:assert/strict'
-import childProcess from 'node:child_process'
-import { syncBuiltinESMExports } from 'node:module'
-const spawn = childProcess.spawn
-childProcess.spawn = (_commande, _args, options) => {
-  const hote = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { ...options, stdio: 'ignore' })
-  hote.unref()
-  hote.on = () => { throw Object.assign(new Error('écouteur refusé'), { code: 'EPANNE' }) }
-  process.once('exit', () => hote.kill())
-  return hote
-}
-syncBuiltinESMExports()
-const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)})
-await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
-  (e) => e.code === 'EPANNE' && e.hoteLance === true)
 `)
   await jouerPilote(b, pilote)
 })
