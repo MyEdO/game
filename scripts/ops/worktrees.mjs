@@ -37,7 +37,7 @@ import {
 } from '../guards/lib/gitPorte.mjs'
 import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { depotDeLArbre, horsSuppressions, mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
+import { depotDeLArbre, etatDuDemiRetire, mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 import { PREFIXE_DE_CHANTIER } from './nomsDeChantier.mjs'
@@ -272,7 +272,7 @@ export function inventaire({
     if (!absent && !illisible) {
       try {
         const etat = gestes.etatDeLArbre(depotDeLArbre(w.chemin, sansGit ? communDuDepot() : undefined, { enPanne: () => { illisible = 'git en panne sur son dossier' } }))
-        sale = (demiRetire ? horsSuppressions(etat) : etat).length > 0 || Boolean(illisible)
+        sale = (demiRetire ? etatDuDemiRetire(w.chemin, communDuDepot(), etat) : etat).some((e) => e.etat !== '!!') || Boolean(illisible)
       } catch (e) {
         illisible = e.message
         sale = true

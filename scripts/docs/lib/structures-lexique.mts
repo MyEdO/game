@@ -723,9 +723,9 @@ export const CONCEPTS: readonly Concept[] = [
     label: 'jet à faire (compétence/caractéristique + difficulté)',
     strate: 'Valeur',
     signatures: [
-      { sig: 'difficulty,skill', statut: 'historique' },
+      { sig: 'difficulty,skill', statut: 'cible', note: 'Test nommé de `flowTestSchema` (#2779)' },
       { sig: 'char,difficulty', statut: 'historique' },
-      { sig: 'characteristic,difficulty', statut: 'historique' },
+      { sig: 'characteristic,difficulty', statut: 'cible', note: 'Test de caractéristique de `flowTestSchema` (#2779)' },
     ],
     noyau: ['difficulty'],
     horsDesignation: true,
