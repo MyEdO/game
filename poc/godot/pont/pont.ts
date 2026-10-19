@@ -2,24 +2,34 @@
 // `store` évalué avant `combatManeuvers` : sinon `combatEffects.ts:738` est lu avant son initialisation
 // (combatManeuvers → triggeredEffects → combatEffects → campaignData → store.ts:1816 → registerCloture).
 import '../../../src/state/store';
-import { findCreatureById } from '../../../src/data';
+import { findCreatureById, testSkillLabel } from '../../../src/data';
 import { makePregens } from '../../../src/data/pregens';
-import { hasActiveFlag } from '../../../src/engine/activeFlags';
+import { consumeActiveFlag, hasActiveFlag } from '../../../src/engine/activeFlags';
 import { gainAdvantage } from '../../../src/engine/advantage';
 import { groupAdvantage } from '../../../src/engine/advantagePool';
-import { assertAttackWeapon, compteDuCoup, initiativeOrder, resolveMelee, type AttackResult, type CompteDuCoup } from '../../../src/engine/combat';
+import { bonus, effectiveChar } from '../../../src/engine/characteristics';
+import {
+  assertAttackWeapon, attackModifiers, attackTestOf, compteDuCoup, finishMelee, frozenDifficulty, initiativeOrder, issueAuJet,
+  rederivePassiveAttack, resolveMelee, type AttackResult, type CompteDuCoup, type RollBreakdown,
+} from '../../../src/engine/combat';
 import { hasCritRollTwiceTalent } from '../../../src/engine/combatFeatures/dispatch';
-import { addCondition, appliquerMortSubite, applyZeroWounds, COND, hasCondition, isOutOfAction } from '../../../src/engine/conditions';
+import { addCondition, appliquerMortSubite, applyZeroWounds, cannotDefend, COND, hasCondition, isOutOfAction } from '../../../src/engine/conditions';
 import { critiqueTriviale, jeuDeCritique, porteurDeCritique, regimeDePorteur, resolveCritique, type CriticalResolved } from '../../../src/engine/critical';
 import { makeRNG, type RNG } from '../../../src/engine/dice';
 import { effectiveMovement } from '../../../src/engine/encumbrance';
 import { applyOps } from '../../../src/engine/ops';
 import { isInanimate } from '../../../src/engine/structures';
+import { bumpSL, hydrateTR, type TestResult } from '../../../src/engine/tests';
 import { consolidateAmputations, reinjuryBleed } from '../../../src/engine/trauma';
-import { locationLabel, type Combatant, type HitLocation } from '../../../src/engine/types';
+import { locationLabel, type Combatant, type HitLocation, type ModLine, type Weapon } from '../../../src/engine/types';
+import { effectiveWeaponDamage } from '../../../src/engine/weaponDamage';
 import { t } from '../../../src/i18n';
+import { previewDefense } from '../../../src/state/combatFlow';
 import { bestDefenseMode } from '../../../src/state/combatManeuvers';
+import { actorInfluenceView, rerollAvailable } from '../../../src/state/rollFlowFactory';
+import { composeRollLabel, rollLine } from '../../../src/state/rollSeam';
 import { creatureToCombatant } from '../../../src/state/spawn';
+import { difficultyText } from '../../../src/ui/difficultyText';
 
 export const VERSION_DU_PONT = 1;
 const LIGNES_DE_JOURNAL = 20;
@@ -67,6 +77,35 @@ export type Resultat = {
   journal: string;
 };
 
+export type Mod = { libelle: string; valeur: number };
+export type LigneAvant = { competence: string; base: number; cible: number; difficulte: string; mods: Mod[] };
+type Portrait = { id: string; libelle: string; blessures: number; blessuresMax: number };
+export type Apercu = {
+  titre: string;
+  sousTitre: string;
+  attaquant: Portrait;
+  cible: Portrait;
+  arme: string;
+  degats: number;
+  localisations: { id: string | null; libelle: string }[];
+  localisation: string | null;
+  attaque: LigneAvant;
+  defense: { competence: string; mods: Mod[] } | null;
+};
+export type LigneApres = { competence: string; jet: number; cible: number; reussite: boolean; dr: number; mods: Mod[] };
+export type Jet = {
+  attaque: LigneApres;
+  defense: LigneApres | null;
+  gagnant: 'attaquant' | 'defenseur';
+  drNet: number;
+  phrase: string;
+  critique: boolean;
+  influences: {
+    relancer: { possible: boolean; restants: number };
+    plusUnDR: { possible: boolean; restants: number };
+  };
+};
+
 export type Pont = {
   version(): string;
   demarrer(entree?: string): string;
@@ -75,6 +114,12 @@ export type Pont = {
   attaquer(entree?: string): string;
   finDeTour(): string;
   simulerAttaque(entree?: string): string;
+  apercuAttaque(entree?: string): string;
+  lancerAttaque(): string;
+  relancerAttaque(): string;
+  chancePlusUnDR(): string;
+  appliquerAttaque(): string;
+  annulerAttaque(): string;
   erreursGlobales(): string;
   sondeExceptionNue(): never;
 };
@@ -186,11 +231,18 @@ function encaisserLeCoup(cible: Combatant, coup: CompteDuCoup, twice: boolean, r
   return { blessuresPerdues, critiques, mortSubite: compte.mortSubite };
 }
 
-/** Résout une attaque de mêlée et l'applique comme combatFlow.ts:2721-2879, par les primitives de
- *  `src/engine`. Mute `attaquant` et `cible` ; pousse les lignes de l'encaissement dans `log`. */
-export function resoudreEtAppliquer(attaquant: Combatant, cible: Combatant, rng: RNG, log: string[], noter: Noter = () => {}): Resultat {
+/** Une attaque de mêlée résolue, pas encore appliquée. */
+export type Coup = { arme: Weapon; res: AttackResult };
+
+/** Résout une attaque de mêlée (aucune mutation des combattants) ; `lieu` = Localisation visée. */
+export function resoudre(attaquant: Combatant, cible: Combatant, rng: RNG, lieu?: HitLocation): Coup {
   const arme = assertAttackWeapon(attaquant.weapons, true);
-  const res = resolveMelee(attaquant, cible, arme, rng, { defense: bestDefenseMode(cible) });
+  return { arme, res: resolveMelee(attaquant, cible, arme, rng, { defense: bestDefenseMode(cible), ...(lieu ? { location: lieu } : {}) }) };
+}
+
+/** Applique un coup résolu comme combatFlow.ts:2721-2879, par les primitives de `src/engine`. Mute
+ *  `attaquant` et `cible` ; pousse les lignes de l'encaissement dans `log`. */
+export function appliquer(attaquant: Combatant, cible: Combatant, { arme, res }: Coup, rng: RNG, log: string[], noter: Noter = () => {}): Resultat {
   noter(resultatDe(res));
   const twice = critiquesTireesDeuxFois(attaquant);
   const coup = compteDuCoup(res, arme, attaquant, cible, 0);
@@ -208,6 +260,90 @@ export function resoudreEtAppliquer(attaquant: Combatant, cible: Combatant, rng:
   }
   if (res.hit && res.woundsLost && !groupAdvantage()) cible.advantage = 0; // combatFlow.ts:2879
   return resultatDe(res, encaissement);
+}
+
+/** useAttackJetProps.tsx:83 */
+const INTITULE = 'Attaque';
+/** useAttackJetProps.tsx:35 */
+const LIEUX: HitLocation[] = ['tete', 'corps', 'brasD', 'brasG', 'jambeD', 'jambeG'];
+
+const modDe = (m: ModLine): Mod => ({ libelle: m.label, valeur: m.value });
+const portraitDe = (c: Combatant): Portrait => ({ id: c.id, libelle: c.label, blessures: c.wounds.current, blessuresMax: c.wounds.max });
+
+/** L'aperçu avant le jet : previewAttack (combatFlow.ts:944) et previewDefense (combatFlow.ts:1025), sans
+ *  scène ni géométrie, comme la résolution du pont. */
+export function apercuDe(attaquant: Combatant, cible: Combatant, lieu: HitLocation | null): Apercu {
+  const arme = assertAttackWeapon(attaquant.weapons, true);
+  const test = attackTestOf(attaquant, arme, 'melee');
+  const mods = attackModifiers(attaquant, cible, arme, { kind: 'melee', location: lieu, env: [] });
+  const ligne = rollLine({ actor: attaquant, difficulty: 'intermediaire', combat: { kind: 'melee', weapon: arme }, surLaCible: mods, plafond: 'difficultes' }); // LDB 13 l.118
+  const defense = cannotDefend(cible) || isInanimate(cible) ? null : previewDefense(cible, { vsWeapon: arme, dodgeMods: [] });
+  return {
+    titre: INTITULE,
+    sousTitre: composeRollLabel(attaquant, INTITULE, test),
+    attaquant: portraitDe(attaquant),
+    cible: portraitDe(cible),
+    arme: arme.label,
+    degats: effectiveWeaponDamage(arme, bonus(effectiveChar(attaquant, 'force'))),
+    localisations: [
+      { id: null, libelle: 'Au hasard' },
+      ...LIEUX.map((l) => ({ id: l, libelle: `${locationLabel(l, cible.bodyShape)} (−20)` })), // LDB 14 l.73
+    ],
+    localisation: lieu,
+    attaque: {
+      competence: testSkillLabel(test),
+      base: ligne.base,
+      cible: Math.max(0, Math.min(100, ligne.target)),
+      difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined),
+      mods: ligne.mods.map(modDe),
+    },
+    defense: defense && { competence: defense.label, mods: defense.mods.map(modDe) },
+  };
+}
+
+const ligneApres = (d: RollBreakdown): LigneApres => ({
+  competence: d.label, jet: d.roll, cible: d.target, reussite: d.success, dr: d.sl, mods: (d.mods ?? []).map(modDe),
+});
+
+function detailDAttaque(res: AttackResult): RollBreakdown {
+  if (!res.attackerDetail) throw new Error('attaque résolue sans détail de jet de l’attaquant');
+  return res.attackerDetail;
+}
+
+/** La fenêtre de la relance : rollFlowFactory.ts:91, l'échec jugé sur le jet propre (rollFlowSpecs.ts:569). */
+const relanceOuverte = (attaquant: Combatant, res: AttackResult, relancee: boolean): boolean =>
+  rerollAvailable(actorInfluenceView(attaquant), { rolled: true, failed: !detailDAttaque(res).success, rerolled: relancee });
+
+/** Le jet résolu tel que la modale le montre ; la phrase est celle d'issueAuJet. */
+export function jetDe(attaquant: Combatant, cible: Combatant, { arme, res }: Coup, relancee: boolean): Jet {
+  const restants = attaquant.fortune ?? 0;
+  return {
+    attaque: ligneApres(detailDAttaque(res)),
+    defense: res.defenderDetail ? ligneApres(res.defenderDetail) : null,
+    gagnant: res.hit ? 'attaquant' : 'defenseur',
+    drNet: res.netSL,
+    phrase: issueAuJet(cible, res, arme, attaquant).ligne,
+    critique: res.critical,
+    influences: {
+      relancer: { possible: relanceOuverte(attaquant, res, relancee), restants },
+      plusUnDR: { possible: restants > 0, restants }, // rollFlowFactory.ts:446 ; LDB 17 l.24
+    },
+  };
+}
+
+/** Le coup re-dérivé d'un jet d'attaquant modifié, la défense et la Difficulté figées : rollFlowSpecs.ts:72-101,
+ *  branche mêlée. */
+function rederiver(attaquant: Combatant, cible: Combatant, { arme, res }: Coup, lieu: HitLocation | null, atk: TestResult, rng: RNG): Coup {
+  const compo = frozenDifficulty(res.attackerDetail);
+  const tirage = { rng, fige: res.critLocation };
+  const dd = res.defenderDetail;
+  const loc = lieu ?? undefined;
+  return {
+    arme,
+    res: dd
+      ? finishMelee(attaquant, cible, arme, atk, hydrateTR(dd), dd.mode ?? bestDefenseMode(cible), tirage, loc, [], [], undefined, res.parryWeapon, false, undefined, compo)
+      : rederivePassiveAttack(attaquant, cible, arme, atk, 'melee', tirage, loc, false, compo),
+  };
 }
 
 function issueDe(combattants: Combatant[]): Vue['issue'] {
@@ -288,15 +424,68 @@ function cibleValide(p: Partie, attaquant: Combatant, id: string): Combatant {
   return cible;
 }
 
+/** L'attaquant et la cible d'une attaque permise : mêmes refus pour `attaquer` et la modale. */
+function opposants(p: Partie, idAttaquant: string, idCible: string): { attaquant: Combatant; defenseur: Combatant } {
+  const attaquant = agissant(p, idAttaquant);
+  const defenseur = cibleValide(p, attaquant, idCible);
+  if (p.aAttaque.has(attaquant.id)) throw new EchecDuPont('refus', `${attaquant.label} a déjà attaqué ce tour`);
+  return { attaquant, defenseur };
+}
+
+/** La Localisation visée lue de l'entrée : absente ou `null` = au hasard. */
+function lieuDe(e: Record<string, unknown>): HitLocation | null {
+  const v = e.localisation;
+  if (v === undefined || v === null) return null;
+  const lieu = LIEUX.find((l) => l === v);
+  if (!lieu) throw new EchecDuPont('entree', `« localisation » attendue : null ou l'une de ${LIEUX.join(', ')}`);
+  return lieu;
+}
+
+/** L'attaque de la modale : ouverte par `apercuAttaque`, son coup posé par `lancerAttaque`. */
+type AttaqueEnCours = { attaquant: string; cible: string; lieu: HitLocation | null; coup: Coup | null; relancee: boolean };
+
 type Corps = (entree: unknown, noter: Noter) => Record<string, unknown>;
 
 export function creerPont(): Pont {
   let partie: Partie | null = null;
+  let enCours: AttaqueEnCours | null = null;
   const erreurs: { message: string; source?: string }[] = [];
 
-  const enCours = (): Partie => {
+  const demarree = (): Partie => {
     if (!partie) throw new EchecDuPont('etat', 'partie non démarrée : appeler demarrer');
     return partie;
+  };
+
+  /** L'application commune à `attaquer` et `appliquerAttaque`. */
+  const conclure = (p: Partie, attaquant: Combatant, defenseur: Combatant, coup: Coup, noter: Noter) => {
+    const lignes: string[] = [];
+    const resultat = appliquer(attaquant, defenseur, coup, p.rng, lignes, noter);
+    p.aAttaque.add(attaquant.id);
+    p.journal.push(resultat.journal, ...lignes);
+    if (isOutOfAction(defenseur)) p.journal.push(`${defenseur.label} est hors de combat.`);
+    return { vue: vueDe(p), resultat };
+  };
+
+  /** L'attaque en cours, ses combattants revalidés. */
+  const ouverte = () => {
+    const p = demarree();
+    const o = enCours;
+    if (!o) throw new EchecDuPont('etat', 'aucune attaque en cours : appeler apercuAttaque');
+    return { p, o, ...opposants(p, o.attaquant, o.cible) };
+  };
+
+  /** L'attaque en cours dont le jet est posé. */
+  const lancee = () => {
+    const r = ouverte();
+    if (!r.o.coup) throw new EchecDuPont('refus', 'le jet n’est pas lancé : appeler lancerAttaque');
+    return { ...r, coup: r.o.coup };
+  };
+
+  /** L'attaque en cours dont le jet n'est pas posé. */
+  const avantLeJet = () => {
+    const r = ouverte();
+    if (r.o.coup) throw new EchecDuPont('refus', 'le jet est déjà lancé');
+    return r;
   };
 
   /** L'enveloppe unique : décode l'entrée, ne lève jamais, rend une chaîne JSON. */
@@ -344,11 +533,12 @@ export function creerPont(): Pont {
       const combattants = combattantsDeLaRencontre();
       const ordre = initiativeOrder(combattants, rng).map((c) => c.id);
       partie = { combattants, ordre, tour: 0, round: 1, rng, aDeplace: new Set(), aAttaque: new Set(), journal: [] };
+      enCours = null;
       return { vue: vueDe(partie) };
     }),
-    vue: envelopper('vue', () => ({ vue: vueDe(enCours()) })),
+    vue: envelopper('vue', () => ({ vue: vueDe(demarree()) })),
     deplacer: envelopper('deplacer', (entree) => {
-      const p = enCours();
+      const p = demarree();
       const e = objetDEntree(entree);
       const c = agissant(p, chaine(e, 'id'));
       const cases = entier(e, 'cases');
@@ -360,21 +550,15 @@ export function creerPont(): Pont {
       return { vue: vueDe(p) };
     }),
     attaquer: envelopper('attaquer', (entree, noter) => {
-      const p = enCours();
+      const p = demarree();
       const e = objetDEntree(entree);
-      const attaquant = agissant(p, chaine(e, 'attaquant'));
-      const defenseur = cibleValide(p, attaquant, chaine(e, 'cible'));
-      if (p.aAttaque.has(attaquant.id)) throw new EchecDuPont('refus', `${attaquant.label} a déjà attaqué ce tour`);
-      const lignes: string[] = [];
-      const resultat = resoudreEtAppliquer(attaquant, defenseur, p.rng, lignes, noter);
-      p.aAttaque.add(attaquant.id);
-      p.journal.push(resultat.journal, ...lignes);
-      if (isOutOfAction(defenseur)) p.journal.push(`${defenseur.label} est hors de combat.`);
-      return { vue: vueDe(p), resultat };
+      const { attaquant, defenseur } = opposants(p, chaine(e, 'attaquant'), chaine(e, 'cible'));
+      return conclure(p, attaquant, defenseur, resoudre(attaquant, defenseur, p.rng), noter);
     }),
     finDeTour: envelopper('finDeTour', () => {
-      const p = enCours();
+      const p = demarree();
       if (issueDe(p.combattants)) throw new EchecDuPont('etat', 'la rencontre est terminée');
+      enCours = null;
       for (let pas = 1; pas <= p.ordre.length; pas++) {
         const suivant = (p.tour + pas) % p.ordre.length;
         if (suivant === 0) p.round += 1;
@@ -388,13 +572,65 @@ export function creerPont(): Pont {
       throw new Error('finDeTour : aucun combattant en état de combattre sans issue de rencontre');
     }),
     simulerAttaque: envelopper('simulerAttaque', (entree, noter) => {
-      const p = enCours();
+      const p = demarree();
       const e = objetDEntree(entree);
       const attaquant = combattant(p, chaine(e, 'attaquant'));
       const defenseur = combattant(p, chaine(e, 'cible'));
       const graine = entier(e, 'graine');
-      const resultat = resoudreEtAppliquer(structuredClone(attaquant), structuredClone(defenseur), makeRNG(graine), [], noter);
+      const a = structuredClone(attaquant);
+      const c = structuredClone(defenseur);
+      const rng = makeRNG(graine);
+      const resultat = appliquer(a, c, resoudre(a, c, rng), rng, [], noter);
       return { resultat };
+    }),
+    apercuAttaque: envelopper('apercuAttaque', (entree) => {
+      const p = demarree();
+      const e = objetDEntree(entree);
+      const { attaquant, defenseur } = opposants(p, chaine(e, 'attaquant'), chaine(e, 'cible'));
+      if (attaquant.kind !== 'hero') throw new EchecDuPont('refus', `${attaquant.label} n'est pas un héros`);
+      const lieu = lieuDe(e);
+      if (enCours?.coup && enCours.attaquant === attaquant.id) throw new EchecDuPont('refus', 'le jet est déjà lancé');
+      enCours = { attaquant: attaquant.id, cible: defenseur.id, lieu, coup: null, relancee: false };
+      return { apercu: apercuDe(attaquant, defenseur, lieu) };
+    }),
+    lancerAttaque: envelopper('lancerAttaque', () => {
+      const { p, o, attaquant, defenseur } = avantLeJet();
+      o.coup = resoudre(attaquant, defenseur, p.rng, o.lieu ?? undefined);
+      return { jet: jetDe(attaquant, defenseur, o.coup, o.relancee) };
+    }),
+    relancerAttaque: envelopper('relancerAttaque', () => {
+      const { p, o, attaquant, defenseur, coup } = lancee();
+      if (!relanceOuverte(attaquant, coup.res, o.relancee)) {
+        throw new EchecDuPont('refus', o.relancee ? 'le jet a déjà été relancé' : coup.res.attackerDetail?.success ? 'le jet de l’attaquant est réussi' : `${attaquant.label} n'a plus de Point de Chance`); // LDB 12 l.40 ; LDB 17 l.23
+      }
+      // rollFlowFactory.ts:427-438 ; rollFlowSpecs.ts:561
+      o.coup = resoudre(attaquant, defenseur, p.rng, o.lieu ?? undefined);
+      if (hasActiveFlag(attaquant, 'freeReroll')) {
+        const source = consumeActiveFlag(attaquant, 'freeReroll');
+        p.journal.push(t('roll.freeReroll', { name: attaquant.label, src: source ?? t('roll.blessingFallback') }));
+      } else {
+        attaquant.fortune = (attaquant.fortune ?? 0) - 1;
+      }
+      o.relancee = true;
+      return { jet: jetDe(attaquant, defenseur, o.coup, o.relancee) };
+    }),
+    chancePlusUnDR: envelopper('chancePlusUnDR', () => {
+      const { p, o, attaquant, defenseur, coup } = lancee();
+      if ((attaquant.fortune ?? 0) <= 0) throw new EchecDuPont('refus', `${attaquant.label} n'a plus de Point de Chance`); // LDB 17 l.24
+      // rollFlowFactory.ts:446-450 ; rollFlowSpecs.ts:572-577
+      o.coup = rederiver(attaquant, defenseur, coup, o.lieu, bumpSL(hydrateTR(detailDAttaque(coup.res))), p.rng);
+      attaquant.fortune = (attaquant.fortune ?? 0) - 1;
+      return { jet: jetDe(attaquant, defenseur, o.coup, o.relancee) };
+    }),
+    appliquerAttaque: envelopper('appliquerAttaque', (_entree, noter) => {
+      const { p, attaquant, defenseur, coup } = lancee();
+      enCours = null;
+      return conclure(p, attaquant, defenseur, coup, noter);
+    }),
+    annulerAttaque: envelopper('annulerAttaque', () => {
+      const { p } = avantLeJet();
+      enCours = null;
+      return { vue: vueDe(p) };
     }),
     erreursGlobales: envelopper('erreursGlobales', () => ({ erreurs: erreurs.splice(0) })),
     sondeExceptionNue: () => {

@@ -80,6 +80,59 @@ Le pont TypeScript ne produit que les quatre natures du type `Erreur`. `pont.gd`
 | `transport` | `pont.gd:102-103` | chaîne non décodable en objet JSON (`pont.gd:82-84`) | idem | la chaîne reçue |
 | `transport` | `pont.gd:102-103` | objet décodé sans champ `ok` (`pont.gd:87-88`) | idem | l'objet décodé |
 | `transport` | `pont.gd:102-103` | `ok: false` sans objet `erreur` (`pont.gd:93-94`) | idem | l'objet décodé |
-| `globale` | `pont.gd:54-61` | une entrée de `erreursGlobales()` (`window` `error` ou `unhandledrejection`, `pont.ts:329-336`) relevée après chaque `appeler` (`pont.gd:47-49`) et après les sondes de `mesures.gd:20` et `mesures.gd:68` ; une erreur par entrée | méthode et entrée de l'appel qui précède le relevé | `source` de l'entrée : `'unhandledrejection'`, `'<fichier>:<ligne>'` de l'`error` (`pont.ts:332`), ou `null` si l'`error` n'a pas de fichier |
+| `globale` | `pont.gd:54-61` | une entrée de `erreursGlobales()` (`window` `error` ou `unhandledrejection`, `pont.ts:518-525`) relevée après chaque `appeler` (`pont.gd:47-49`) et après les sondes de `mesures.gd:20` et `mesures.gd:68` ; une erreur par entrée | méthode et entrée de l'appel qui précède le relevé | `source` de l'entrée : `'unhandledrejection'`, `'<fichier>:<ligne>'` de l'`error` (`pont.ts:521`), ou `null` si l'`error` n'a pas de fichier |
 
 Le relevé lui-même passe par `_verifier` (`pont.gd:55`) : une réponse défaillante de `erreursGlobales()` produit un `transport` de méthode `erreursGlobales`. `appeler_brut` (`pont.gd:41-43`) et `sonder_exception_nue` (`pont.gd:65-66`) ne produisent aucune de ces natures : ils servent la mesure et la sonde.
+
+## Contrat de la modale d'attaque (#2870, fixé par l'orchestrateur le 2026-10-19)
+
+Mêmes règles de transport que le reste du pont : une chaîne JSON en entrée au plus, une chaîne JSON `{ ok, ... }` en sortie, jamais de levée.
+
+Le pont tient AU PLUS UNE attaque en cours, `enCours`. L'attaquant doit être le combattant actif, héros, n'ayant pas encore attaqué ce tour ; sinon `refus` (mêmes refus que `attaquer`).
+
+```ts
+type Mod = { libelle: string; valeur: number };          // un modificateur affiché en chip, valeur signée
+type LigneAvant = {
+  competence: string;                                    // libellé de la compétence de combat, ex. « Corps à corps (Base) »
+  base: number;                                          // valeur de la compétence avant modificateurs
+  cible: number;                                         // valeur cible finale, bornée 0-100
+  difficulte: string;                                    // libellé de la Difficulté, ex. « Intermédiaire (+0) »
+  mods: Mod[];
+};
+type Apercu = {
+  titre: string;                                         // « Attaque »
+  sousTitre: string;                                     // « <Héros> — Attaque (<Compétence>) »
+  attaquant: { id: string; libelle: string; blessures: number; blessuresMax: number };
+  cible:     { id: string; libelle: string; blessures: number; blessuresMax: number };
+  arme: string;                                          // libellé de l'arme, ou « Mains nues »
+  degats: number;                                        // dégâts affichés « Dégâts +N »
+  localisations: { id: string | null; libelle: string }[]; // « Au hasard » (id null) puis les 6 localisations, libellé « Tête (−20) »
+  localisation: string | null;                           // celle retenue
+  attaque: LigneAvant;
+  defense: { competence: string; mods: Mod[] } | null;   // défense probable, SANS valeur cible ; null si la cible ne se défend pas
+};
+type LigneApres = { competence: string; jet: number; cible: number; reussite: boolean; dr: number; mods: Mod[] };
+type Jet = {
+  attaque: LigneApres;
+  defense: LigneApres | null;
+  gagnant: 'attaquant' | 'defenseur';
+  drNet: number;
+  phrase: string;                                        // la phrase de touche ou d'échec, telle que le jeu l'écrit
+  critique: boolean;
+  influences: {
+    relancer:  { possible: boolean; restants: number };  // Point de Chance pour relancer
+    plusUnDR:  { possible: boolean; restants: number };  // Point de Chance pour +1 DR
+  };
+};
+```
+
+| Méthode | Entrée | Sortie `ok:true` | Effet |
+|---|---|---|---|
+| `apercuAttaque` | `{ attaquant, cible, localisation?: string \| null }` | `{ apercu: Apercu }` | Ouvre ou met à jour `enCours` (aucun jet). Rappelée quand la Localisation change. |
+| `lancerAttaque` | aucune | `{ jet: Jet }` | Résout l'attaque de `enCours`, SANS l'appliquer. |
+| `relancerAttaque` | aucune | `{ jet: Jet }` | Dépense 1 Point de Chance, relance le jet de l'attaquant, re-résout. |
+| `chancePlusUnDR` | aucune | `{ jet: Jet }` | Dépense 1 Point de Chance, +1 DR à l'attaquant, re-résout. |
+| `appliquerAttaque` | aucune | `{ resultat: Resultat, vue: Vue }` | Applique le jet de `enCours` (même effet que `attaquer`), vide `enCours`. |
+| `annulerAttaque` | aucune | `{ vue: Vue }` | Vide `enCours` sans rien dépenser. Refusée après `lancerAttaque`. |
+
+`attaquer` (chemin de l'IA) reste et passe par la même résolution et la même application, sans duplication.

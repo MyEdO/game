@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 // `./pont` en tête : il fixe l'ordre d'évaluation du graphe de `src/state` (voir pont.ts).
-import { creerPont, type CombattantVu, type Erreur, type Pont, type Resultat, type Vue } from './pont';
+import { creerPont, type Apercu, type CombattantVu, type Erreur, type Jet, type Pont, type Resultat, type Vue } from './pont';
 import { findCreatureById } from '../../../src/data';
 import { makePregens } from '../../../src/data/pregens';
 import { hasActiveFlag } from '../../../src/engine/activeFlags';
@@ -15,7 +15,7 @@ import { effectiveMovement } from '../../../src/engine/encumbrance';
 import { applyOps } from '../../../src/engine/ops';
 import { isInanimate } from '../../../src/engine/structures';
 import { consolidateAmputations, reinjuryBleed } from '../../../src/engine/trauma';
-import type { Combatant } from '../../../src/engine/types';
+import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../../../src/engine/types';
 import { bestDefenseMode } from '../../../src/state/combatManeuvers';
 import { creatureToCombatant } from '../../../src/state/spawn';
 
@@ -32,7 +32,7 @@ vi.mock('../../../src/engine/trauma', async (original) => {
   };
 });
 
-type Reponse = { ok: true; vue?: Vue; resultat?: Resultat } | { ok: false; erreur: Erreur };
+type Reponse = { ok: true; vue?: Vue; resultat?: Resultat; apercu?: Apercu; jet?: Jet } | { ok: false; erreur: Erreur };
 
 const appel = (pont: Pont, methode: Exclude<keyof Pont, 'sondeExceptionNue'>, entree?: unknown): Reponse =>
   JSON.parse((pont[methode] as (json?: string) => string)(entree === undefined ? undefined : JSON.stringify(entree)));
@@ -251,5 +251,144 @@ describe('pont wfrpPont — contrat (#2793)', () => {
 
   it('sondeExceptionNue lève', () => {
     expect(() => creerPont().sondeExceptionNue()).toThrow('sonde-exception-nue');
+  });
+});
+
+/** Une partie dont l'actif est un héros, sa cible le premier adversaire. */
+function partieAuHeros(depuis: number) {
+  for (let graine = depuis; graine < depuis + 200; graine++) {
+    const partie = partieDemarree(graine);
+    if (partie.attaquant.camp === 'heros') return { graine, ...partie };
+  }
+  throw new Error(`aucune graine dès ${depuis} ne donne la main à un héros`);
+}
+
+const jetDe = (r: Reponse): Jet => {
+  if (!r.ok || !r.jet) throw new Error(`réponse sans jet : ${JSON.stringify(r)}`);
+  return r.jet;
+};
+
+const apercuDe = (r: Reponse): Apercu => {
+  if (!r.ok || !r.apercu) throw new Error(`réponse sans aperçu : ${JSON.stringify(r)}`);
+  return r.apercu;
+};
+
+/** Une attaque lancée par la modale, dont le jet de l'attaquant réussit (`voulu`) ou échoue. */
+function attaqueLancee(voulu: boolean) {
+  for (let depuis = 1; depuis < 400;) {
+    const partie = partieAuHeros(depuis);
+    depuis = partie.graine + 1;
+    appel(partie.pont, 'apercuAttaque', { attaquant: partie.attaquant.id, cible: partie.cible.id });
+    const jet = jetDe(appel(partie.pont, 'lancerAttaque'));
+    if (jet.attaque.reussite === voulu && jet.influences.relancer.restants > 0) return { ...partie, jet };
+  }
+  throw new Error(`aucune graine ne donne un jet d'attaquant ${voulu ? 'réussi' : 'raté'} avec de la Chance`);
+}
+
+describe('pont wfrpPont — modale d’attaque (#2870)', () => {
+  it('l’aperçu donne la cible = base + modificateurs + Difficulté, bornée, et le jet lancé la confirme', () => {
+    for (const localisation of [null, 'tete', 'jambeG'] as const) {
+      const { pont, attaquant, cible } = partieAuHeros(1);
+      const a = apercuDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id, localisation }));
+      const difficulte = (Object.keys(DIFFICULTY_LABELS) as Difficulty[]).find((d) => DIFFICULTY_LABELS[d] === a.attaque.difficulte);
+      expect(difficulte, a.attaque.difficulte).toBeDefined();
+      const brute = a.attaque.base + a.attaque.mods.reduce((n, m) => n + m.valeur, 0) + DIFFICULTY_MODIFIERS[difficulte!];
+      expect(a.attaque.cible).toBe(Math.max(0, Math.min(100, brute)));
+      expect(a.localisation).toBe(localisation);
+      expect(a.localisations).toHaveLength(7);
+      expect(a.localisations[0]).toEqual({ id: null, libelle: 'Au hasard' });
+      expect(a.sousTitre).toBe(`${attaquant.libelle} — Attaque (${a.attaque.competence})`);
+      expect(a.defense).not.toBeNull();
+      expect(jetDe(appel(pont, 'lancerAttaque')).attaque.cible).toBe(a.attaque.cible);
+    }
+  });
+
+  it('viser une Localisation abaisse la cible de l’aperçu', () => {
+    const { pont, attaquant, cible } = partieAuHeros(1);
+    const auHasard = apercuDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id }));
+    const tete = apercuDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id, localisation: 'tete' }));
+    expect(tete.attaque.cible).toBe(Math.max(0, auHasard.attaque.cible - 20));
+  });
+
+  it('lancer puis appliquer égale attaquer à graine égale (Blessures, résultat, vue)', () => {
+    let touches = 0;
+    for (let depuis = 1, n = 0; n < 15; n++) {
+      const modale = partieAuHeros(depuis);
+      depuis = modale.graine + 1;
+      const direct = partieDemarree(modale.graine);
+      appel(modale.pont, 'apercuAttaque', { attaquant: modale.attaquant.id, cible: modale.cible.id, localisation: null });
+      const jet = jetDe(appel(modale.pont, 'lancerAttaque'));
+      const r1 = appel(modale.pont, 'appliquerAttaque');
+      const r2 = appel(direct.pont, 'attaquer', { attaquant: modale.attaquant.id, cible: modale.cible.id });
+      if (!r1.ok || !r2.ok) throw new Error(JSON.stringify([r1, r2]));
+      expect(r1.resultat).toEqual(r2.resultat);
+      expect(r1.vue).toEqual(r2.vue);
+      expect(jet.gagnant === 'attaquant').toBe(r1.resultat!.touche);
+      if (r1.resultat!.touche) touches += 1;
+    }
+    expect(touches).toBeGreaterThan(0);
+  });
+
+  it('appliquer vide l’attaque en cours ; une seconde attaque est refusée', () => {
+    const { pont, attaquant, cible } = attaqueLancee(true);
+    expect(appel(pont, 'appliquerAttaque').ok).toBe(true);
+    expect(natureDe(appel(pont, 'appliquerAttaque'))).toBe('etat');
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id }))).toBe('refus');
+  });
+
+  it('relancer dépense un Point de Chance, une seule fois, et seulement sur un jet raté', () => {
+    const { pont, jet } = attaqueLancee(false);
+    expect(jet.influences.relancer.possible).toBe(true);
+    const relance = jetDe(appel(pont, 'relancerAttaque'));
+    expect(relance.influences.relancer.restants).toBe(jet.influences.relancer.restants - 1);
+    expect(relance.influences.relancer.possible).toBe(false);
+    expect(natureDe(appel(pont, 'relancerAttaque'))).toBe('refus');
+
+    const reussi = attaqueLancee(true);
+    expect(reussi.jet.influences.relancer.possible).toBe(false);
+    expect(natureDe(appel(reussi.pont, 'relancerAttaque'))).toBe('refus');
+  });
+
+  it('+1 DR dépense un Point de Chance et ajoute 1 DR au jet de l’attaquant ; sans Chance, +1 DR et relancer sont refusés', () => {
+    const { pont, jet } = attaqueLancee(false);
+    let courant = jet;
+    for (let restants = jet.influences.plusUnDR.restants; restants > 0; restants--) {
+      expect(courant.influences.plusUnDR.possible).toBe(true);
+      const suivant = jetDe(appel(pont, 'chancePlusUnDR'));
+      expect(suivant.attaque.dr).toBe(courant.attaque.dr + 1);
+      expect(suivant.attaque.jet).toBe(courant.attaque.jet);
+      expect(suivant.influences.plusUnDR.restants).toBe(restants - 1);
+      courant = suivant;
+    }
+    expect(courant.influences.plusUnDR.possible).toBe(false);
+    expect(courant.influences.relancer.possible).toBe(false);
+    expect(natureDe(appel(pont, 'chancePlusUnDR'))).toBe('refus');
+    expect(natureDe(appel(pont, 'relancerAttaque'))).toBe('refus');
+  });
+
+  it('annuler vide l’attaque avant le jet et est refusé après lancer', () => {
+    const { pont, attaquant, cible } = partieAuHeros(1);
+    appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id });
+    expect(appel(pont, 'annulerAttaque').ok).toBe(true);
+    expect(natureDe(appel(pont, 'lancerAttaque'))).toBe('etat');
+    appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id });
+    expect(appel(pont, 'lancerAttaque').ok).toBe(true);
+    expect(natureDe(appel(pont, 'annulerAttaque'))).toBe('refus');
+    expect(natureDe(appel(pont, 'lancerAttaque'))).toBe('refus');
+  });
+
+  it('rend { ok:false } sur une entrée invalide, sans jamais lever', () => {
+    expect(natureDe(appel(creerPont(), 'apercuAttaque', { attaquant: 'x', cible: 'y' }))).toBe('etat');
+    const { pont, attaquant, cible, vue } = partieAuHeros(1);
+    expect(natureDe(JSON.parse(pont.apercuAttaque('{')))).toBe('entree');
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id }))).toBe('entree');
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: 'inconnu', cible: cible.id }))).toBe('entree');
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: cible.id, localisation: 'nez' }))).toBe('entree');
+    const allie = vue.combattants.find((c) => c.camp === 'heros' && c.id !== attaquant.id)!;
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: attaquant.id, cible: allie.id }))).toBe('refus');
+    expect(natureDe(appel(pont, 'apercuAttaque', { attaquant: allie.id, cible: cible.id }))).toBe('refus');
+    for (const m of ['lancerAttaque', 'relancerAttaque', 'chancePlusUnDR', 'appliquerAttaque', 'annulerAttaque'] as const) {
+      expect(natureDe(appel(pont, m)), m).toBe('etat');
+    }
   });
 });
