@@ -615,7 +615,7 @@ const ATTENDU = {
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
     // +1 le 2026-10-17 (#2586) : `protectionWorktree.mjs` est acquis par `gitPorte.mjs` (importé par
-    // `verrouGestesLourds.mjs`), dont l'unique écrivain `retirerResiduelVide` n'est appelé que depuis `retirerWorktree`.
+    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`.
     // L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
   ],

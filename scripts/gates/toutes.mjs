@@ -82,7 +82,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
  */
-const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
+const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
 const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
@@ -476,8 +476,8 @@ export const ECRIT_LU = {
       'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
       '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`) ; ' +
-      'protectionWorktree.mjs est acquis par gitPorte.mjs : son unique écrivain retirerResiduelVide appelle rmdirSync, ' +
-      'uniquement depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree',
+      'protectionWorktree.mjs est acquis par gitPorte.mjs : ses écrivains retirerResiduelVide (rmdirSync) et ' +
+      'relierFichierGit (writeFileSync exclusif) ne s’appellent que depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree',
   },
   'test:raw': {
     ecrit: [],
