@@ -151,7 +151,7 @@ async function terrain(t, fichier, options = {}) {
   const processus = [creer(2, 'hote', 3), creer(3, 'worker', 7), creer(10, null, 20), creer(entree.pid, null, 100, entree.creation), creer(DESCENDANT, null, 300)]
   const identites = [], fermetures = new WeakSet()
   let captures = 0
-  /** Le budget d'une requête native, tenu comme `echanger` (`superviserProcessus.mjs:171-172`). */
+  /** Le budget d'une requête native, tenu comme `echanger` (`superviserProcessus.mjs`). */
   const budget = (operation, { timeout }) => {
     if (!Number.isFinite(timeout) || timeout < 0) throw Object.assign(new Error('timeout de requête natif invalide'), { code: 'BORNE_INVALIDE' })
     if (timeout === 0) throw Object.assign(new Error('échéance de requête native épuisée'), { code: 'ETIMEDOUT', origine: 'controle-natif', operation, expiree: true })

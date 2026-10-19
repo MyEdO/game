@@ -288,8 +288,8 @@ const ATTENDU = {
     // sous la porte `import.meta.main` de `suivi.mjs` et dans les dépôts jetables des bancs.
     'scripts/ops/suiviFichiers.mjs',
     // +1 le 2026-10-07 (#2400) : la garde des balayages non résolus (`scripts/guards/balayages-non-resolus.test.mjs`)
-    // dérive par `balayagesNonResolus` de `perimetre.mjs`, qui sauve ses mémos sous `node_modules/.cache/perimetre/`,
-    // hors de l'arbre ; l'arbre n'est jamais écrit.
+    // atteint `perimetre.mjs` par l'import de `scripts/guards/lib/balayagesNonResolus.mjs` et n'en appelle que
+    // `classer`, sans dériver ; l'arbre n'est jamais écrit.
     'scripts/test/perimetre.mjs',
     // +2 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI), et son banc, qui n'écrit que sous un
