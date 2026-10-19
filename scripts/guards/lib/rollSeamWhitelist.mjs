@@ -228,7 +228,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/state/shipManeuver.ts', { n: 2, kind: 'dette', why: 'mesuré : rollTest×2. Tests d\'équipage roulés en direct -> #1508 T3.' }],
   ['src/state/spawn.ts', { n: 4, kind: 'dette', why: 'mesuré : randomizeChars×2, rng.int×2. F (désignation `rng.int`), caractéristiques aléatoires au spawn -> #1508 T6.' }],
   ['src/state/summonFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : resolveFormula×1. B (`resolveFormula`) -> #1508 T2.' }],
-  ['src/state/tavernFlow.ts', { n: 9, kind: 'dette', why: 'mesuré : rng.int×4, applyOps×3, rollTavernTest×2. B, F (désignation `rng.int`) -> #1508 T2/T6.' }],
+  ['src/state/tavernFlow.ts', { n: 8, kind: 'dette', why: 'mesuré : rng.int×4, applyOps×3, rollTavernTest×1. B, F (désignation `rng.int`) -> #1508 T2/T6.' }],
   ['src/state/travelFlow.ts', { n: 9, kind: 'dette', why: '11 -> 9 (#2533 : les deux d10 des péripéties, seuil et table LDB 51 l.208-221, sont des étapes à TABLE de monde, posables). mesuré : d100×2, applyOps×1, declareDisease×1, forcedMarchTest×1, forcedPaceBeastCheck×1, forcedPaceCheck×1, resolveMountedDay×1, rollTest×1. C (magnitudes de route) -> #1508 T5.' }],
   ['src/state/travelPostes.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, applyExposureFailure×1, d100×1. B, C (Exposition des postes) -> #1508 T2/T5.' }],
   ['src/state/triggeredEffects.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3.' }],
