@@ -3,6 +3,7 @@
 import { types } from 'node:util'
 
 const mapperTableau = Array.prototype.map
+const proprePropriete = Object.hasOwn
 const getterDePrototype = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__')?.get
 const prototypesDeCle = [Object.prototype, Array.prototype].map((prototype) => {
   const noms = Reflect.ownKeys(prototype)
@@ -24,6 +25,32 @@ const prototypesInertes = () => {
   return true
 }
 
+/** La DONNÉE PLATE : un objet que ses descripteurs propres décrivent, lu par eux sans qu'aucun code ne s'exécute, et
+ *  dont le moteur JSON n'appelle aucun `toJSON` à son niveau — ni proxy, prototype `Object.prototype` ou `null` (`Array.prototype` ou `null` pour un tableau),
+ *  propriétés propres à clé texte en donnée, aucun `toJSON` propre hors membre énuméré non appelable d'un objet, aucun
+ *  `toJSON` hérité. Rend ses descripteurs propres, `null` hors donnée plate (#2586).
+ *  @param {object} v @returns {Record<PropertyKey, PropertyDescriptor> | null} */
+export function donneePlate(v) {
+  if (types.isProxy(v)) return null
+  const tableau = Array.isArray(v)
+  const prototype = Object.getPrototypeOf(v)
+  if (prototype !== null && (prototype !== (tableau ? Array.prototype : Object.prototype) ||
+    proprePropriete(Object.prototype, 'toJSON') || tableau && proprePropriete(Array.prototype, 'toJSON'))) return null
+  const proprietes = Object.getOwnPropertyDescriptors(v)
+  for (const p of Object.values(proprietes)) if (!proprePropriete(p, 'value')) return null
+  const toJSON = proprePropriete(proprietes, 'toJSON') ? proprietes.toJSON : undefined
+  if (toJSON && (tableau || !toJSON.enumerable || typeof toJSON.value === 'function')) return null
+  return proprietes
+}
+
+/** La projection de `porteur` par le moteur JSON, seul à sérialiser une valeur de l'appelant ; `CLE_DOMAINE_JSON` s'il
+ *  ne rend aucun texte (#2586). */
+const parLeMoteur = (porteur) => {
+  const texte = JSON.stringify(porteur)
+  if (texte === undefined) throw new Error('CLE_DOMAINE_JSON')
+  return JSON.parse(texte)
+}
+
 /** Les modes d'une clé : `texte` (projection JSON), `strict` (certifiée, `null` hors domaine), `cellules` (stricte, en cellules). */
 const MODES = Object.freeze({
   texte: Object.freeze({ strict: false, cellules: false }),
@@ -31,8 +58,8 @@ const MODES = Object.freeze({
   cellules: Object.freeze({ strict: true, cellules: true }),
 })
 
-/** Une surface de clé dont la valeur sort du domaine JSON (proxy révoqué, `BigInt`, cycle, non-objet) refuse par
- *  `CLE_DOMAINE_JSON`, l'erreur native en `cause` ; la table des formes garde le contrat natif de `WeakMap` (#2586).
+/** Une surface de clé nomme `CLE_DOMAINE_JSON` toute `TypeError`, refus du moteur JSON compris (proxy révoqué, `BigInt`,
+ *  cycle), l'erreur native en `cause`, et laisse passer intacte toute autre erreur ; la table des formes garde le contrat natif de `WeakMap` (#2586).
  *  @template {(...a: any[]) => any} F @param {F} surface @returns {F} */
 const refusNomme = (surface) => /** @type {F} */ ((...a) => {
   try {
@@ -312,18 +339,18 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     }
     const interner = (descriptor) => {
       let tokens = []
+      let entree = descriptor
       if (!tokensDe(descriptor, tokens)) {
         stable = false
         tokens = []
-        const projete = JSON.stringify(descriptor)
-        if (projete === undefined) throw new Error('CLE_DOMAINE_JSON')
-        tokensDe(JSON.parse(projete), tokens, true)
+        entree = parLeMoteur(descriptor)
+        tokensDe(entree, tokens, true)
       }
       if (cellules) return celluleDe(tokens)
       const signature = signatureDe(tokens)
       if (!descripteurs.has(signature)) {
         descripteurs.set(signature, table.length)
-        table.push(descriptor)
+        table.push(entree)
       }
       return descripteurs.get(signature)
     }
@@ -339,7 +366,18 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     const memo = new WeakMap()
     const references = ferme ? referencesPrivees : memo
     const pile = new Map()
-    const referenceDe = (v) => {
+    const proprietesDeLaPile = []
+    /** Les références des éléments d'une liste, lus par ses descripteurs propres `proprietes` (index absent : `undefined`),
+     *  `projete` transmis. */
+    const elementsDe = (proprietes, projete) => {
+      const elements = new Array(proprietes.length.value)
+      for (let i = 0; i < elements.length; i++) elements[i] = referenceDe(Object.hasOwn(proprietes, i) ? proprietes[i].value : undefined, i, projete)
+      return elements
+    }
+    /** La référence de `v`, `k` reçu par `toJSON` : la donnée plate se parcourt, toute autre valeur vaut par sa
+     *  projection JSON, que `projete` parcourt sans la rejuger (`tokensDe`, `projection`) ; le `faire` de `cleCanonique`
+     *  n'en reçoit que `v`. */
+    const referenceDe = (v, k = '', projete = false) => {
       if (cellules && v && typeof v === 'object' && referencesBooleennes.has(v)) return v
       if (v === null || typeof v !== 'object') return interner(tuple(typeof v, v))
       if (ferme) {
@@ -348,9 +386,12 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       }
       observer(v)
       if (ferme) objetsCles.add(v)
-      if (pile.has(v)) return !strict && formesDesArguments.has(v) ? interner(tuple('coupe', v.map(referenceDe)))
-        : interner(tuple('cycle', pile.size - pile.get(v)))
+      const rang = pile.get(v)
+      if (rang !== undefined) return !strict && formesDesArguments.has(v) ? interner(tuple('coupe', elementsDe(proprietesDeLaPile[rang], projete)))
+        : interner(tuple('cycle', pile.size - rang))
       if (references.has(v)) return references.get(v)
+      const proprietes = projete ? Object.getOwnPropertyDescriptors(v) : donneePlate(v)
+      if (!proprietes) return referenceDe(parLeMoteur({ [k]: v })[k], k, true)
       const preuve = preuveDe(v)
       if (preuve) {
         references.set(v, preuve.cellule)
@@ -362,12 +403,14 @@ export function clesCanoniques({ ferme, litSonContexte }) {
         return fermeture.precedent.cellule
       }
       pile.set(v, pile.size)
+      proprietesDeLaPile.push(proprietes)
       const forme = formesDesArguments.get(v)
-      const descriptor = forme ? tuple('argument', v.map(referenceDe), referenceDe(forme.e),
+      const descriptor = forme ? tuple('argument', elementsDe(proprietes, projete), referenceDe(forme.e),
         litSonContexte(forme.e) ? contexteDe(forme.ctx) : null)
-        : Array.isArray(v) ? tuple('liste', v.map(referenceDe))
-        : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(v[nom]))))
+        : Array.isArray(v) ? tuple('liste', elementsDe(proprietes, projete))
+        : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(proprietes[nom].value, nom, projete))))
       pile.delete(v)
+      proprietesDeLaPile.pop()
       const reference = interner(descriptor)
       references.set(v, reference)
       if (cellules && stable && fermetures.get(v)?.eligible && revisionAvant === revisionDesFormes)
@@ -378,7 +421,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
           .map((p) => [p.value, references.get(p.value)])) })
       return reference
     }
-    const reference = faire({ interner, referenceDe, tuple })
+    const reference = faire({ interner, referenceDe: (v) => referenceDe(v), tuple })
     const cle = cellules ? reference : JSON.stringify([reference, table])
     if (stable && cache) {
       const records = [...objets.values()]
@@ -443,7 +486,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     if ('chemin' in v) return `c${v.chemin}:${v.sous ?? ''}`
     if ('espace' in v) return `e${v.espace}:${v.cheminExterne}`
     if ('fragment' in v) return composerCle('d', cleDe(v.fragment))
-    if ('couvertureCorpusEntier' in v) return `u${JSON.stringify(v.couvertureCorpusEntier)}`
+    if ('couvertureCorpusEntier' in v) return `u${JSON.stringify({ couvertureCorpusEntier: v.couvertureCorpusEntier })}`
     if ('texte' in v) return `t${v.texte}`
     if ('non' in v) return `n${v.non}`
     if ('relais' in v) return `r${v.relais}`

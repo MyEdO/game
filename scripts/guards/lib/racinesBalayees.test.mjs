@@ -1813,7 +1813,7 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
   for (const regime of [false, true]) {
     const c = clesDeLEvaluateur(regime)
     const surfaces = { cleDe: () => c.cleDe(revoque), cleDesArgs: () => c.cleDesArgs([revoque]), uniques: () => c.uniques([revoque, revoque]),
-      composerCle: () => c.composerCle('d', revoque), objet: () => c.cleDe({ objet: { a: revoque } }),
+      composerCle: () => c.composerCle('d', revoque), objet: () => c.cleDe({ objet: { a: revoque } }), bigint: () => c.cleDe({ objet: { a: 1n } }),
       ...regime ? {} : { cleCanonique: () => c.cleCanonique(({ referenceDe }) => referenceDe(revoque), null, null, 'texte') } }
     for (const [nom, appel] of Object.entries(surfaces)) assert.throws(appel, nomme, `${regime ? 'fermé' : 'ouvert'} ${nom}`)
   }
@@ -1847,6 +1847,141 @@ test('clés canoniques : noyau fermé sans clé à mode, hors domaine JSON nomm�
   }
   for (const c of [clesDuDepot(), clesDuDepot(true)]) assert.throws(() => c.cleDe(profond()), RangeError)
   for (const mode of ['strict', 'cellules']) assert.equal(clesDuDepot().cle(profond(), mode), null)
+})
+
+// #2586
+test('clés canoniques : toute valeur hors donnée plate vaut par le moteur JSON, refus nommé et partition', () => {
+  const revoque = (cible = {}) => { const r = Proxy.revocable(cible, {}); r.revoke(); return r.proxy }
+  const valeurs = {
+    proxyAuToJSON: () => new Proxy(revoque(), { get: (t, k) => k === 'toJSON' ? () => 1 : undefined }),
+    proxyFonction: () => new Proxy(revoque(function () {}), { get: () => undefined }),
+    prototypeProxy: () => Object.create(new Proxy(revoque(), { get: () => undefined })),
+    toJSONProxyAppelable: () => ({ toJSON: new Proxy(revoque(function () {}), { apply: () => 7 }) }),
+    proxyDePrototypeRevoque: () => new Proxy(Object.create(revoque()), {}), toJSONBigInt: () => ({ toJSON: () => 1n }),
+    toJSONAccesseur: () => Object.defineProperty({}, 'toJSON', { get: () => revoque(function () {}) }), toJSONRevoque: () => ({ toJSON: () => revoque() }),
+    texteAuSymbole: () => Object.assign(Object('x'), { toString: () => Symbol('s') }), primitiveNonAppelable: () => Object.assign(Object(1), { [Symbol.toPrimitive]: 5 }),
+    longueurSymbole: () => new Proxy([], { get: (t, k) => k === 'length' ? Symbol('l') : Reflect.get(t, k) }), revoque: () => revoque(), bigint: () => 1n,
+    enveloppeBigInt: () => Object(1n), un: () => 1, enveloppeUn: () => Object(1), enveloppeDeux: () => Object(2), nombreRendu: () => Object.assign(Object(1), { valueOf: () => 2 }),
+    deux: () => 2, enveloppeTexte: () => Object('ab'), texte: () => 'ab', enveloppeFaux: () => Object(false), toJSONObjet: () => ({ toJSON: () => ({ b: 2, a: 1 }) }),
+    objetBA: () => ({ b: 2, a: 1 }), proxyTableau: () => new Proxy(['enfant', 7], {}), tableau: () => ['enfant', 7], accesseur: () => ({ get a() { return 7 } }),
+    objetA7: () => ({ a: 7 }), map: () => new Map([[1, 2]]), toJSONCle: () => ({ toJSON: (k) => k }), texteA: () => 'a', vide: () => ({}), date: () => new Date(0),
+    dateTexte: () => new Date(0).toISOString(),
+  }
+  let refus = 0
+  for (const regime of [false, true]) {
+    const c = clesDeLEvaluateur(regime)
+    const surfaces = { cleDe: (v) => c.cleDe({ objet: { a: v } }), cleDesArgs: (v) => c.cleDesArgs([{ a: v }]),
+      contexte: (v) => {
+        const args = [{ scalaire: 1 }]
+        c.formesDesArguments.set(args, { e: { k: 'appel' }, ctx: { f: { a: v }, env: { args: [] } } })
+        return c.cleDesArgs(args)
+      },
+      ...regime ? {} : { interner: (v) => c.cleCanonique(({ interner, tuple }) => interner(tuple({ a: v })), null, null, 'texte') } }
+    for (const [nomSurface, surface] of Object.entries(surfaces)) {
+      const cles = []
+      for (const [nom, valeur] of Object.entries(valeurs)) {
+        const cas = `${regime ? 'fermé' : 'ouvert'} ${nomSurface} ${nom}`
+        let moteur
+        try { moteur = { json: JSON.stringify({ a: valeur() }) } } catch (erreur) { moteur = { erreur } }
+        if (moteur.erreur) {
+          refus++
+          assert.throws(() => surface(valeur()), (e) => e.message === 'CLE_DOMAINE_JSON' && e.cause?.message === moteur.erreur.message, cas)
+        } else cles.push({ nom: cas, json: moteur.json, cle: c.texteDeCle(surface(valeur())) })
+      }
+      for (const a of cles) for (const b of cles) {
+        if (a.nom < b.nom) assert.equal(a.cle === b.cle, a.json === b.json, `${a.nom} / ${b.nom}`)
+      }
+    }
+  }
+  assert.ok(refus, 'le moteur refuse une part des valeurs')
+})
+
+// #2586
+test('clés canoniques : un toJSON hérité qui rend une valeur, la clé suit le moteur JSON', () => {
+  const toJSONs = { identite() { return this }, copie() { return Array.isArray(this) ? [...this] : { ...this } } }
+  const valeurs = { objet: () => ({ objet: { a: 1 } }), liste: () => ({ objet: { a: [1] } }) }
+  for (const prototype of [Object.prototype, Array.prototype]) {
+    for (const [nomToJSON, toJSON] of Object.entries(toJSONs)) {
+      const avant = Object.getOwnPropertyDescriptor(prototype, 'toJSON')
+      try {
+        Object.defineProperty(prototype, 'toJSON', { configurable: true, writable: true, value: toJSON })
+        for (const regime of [false, true]) {
+          const c = clesDeLEvaluateur(regime)
+          for (const [nom, valeur] of Object.entries(valeurs)) {
+            const cas = `${prototype === Object.prototype ? 'Object' : 'Array'}.prototype.toJSON=${nomToJSON} ${regime ? 'fermé' : 'ouvert'} ${nom}`
+            let moteur
+            try { moteur = { json: JSON.stringify(valeur().objet) } } catch (erreur) { moteur = { erreur } }
+            if (moteur.erreur) assert.throws(() => c.cleDe(valeur()), (e) => e.message === 'CLE_DOMAINE_JSON' && e.cause?.message === moteur.erreur.message, cas)
+            else assert.equal(typeof c.texteDeCle(c.cleDe(valeur())), 'string', cas)
+          }
+        }
+      } finally {
+        if (avant) Object.defineProperty(prototype, 'toJSON', avant)
+        else delete prototype.toJSON
+      }
+    }
+  }
+})
+
+// #2586
+test('clés canoniques : un nœud partagé par cinquante parents ne se décrit qu’une fois par clé, dans chaque régime', () => {
+  const descripteurs = Object.getOwnPropertyDescriptors
+  let lectures = 0
+  let partage
+  Object.getOwnPropertyDescriptors = function (o) {
+    if (o === partage) lectures++
+    return descripteurs(o)
+  }
+  try {
+    for (const [regime, mode] of [[false, 'texte'], [false, 'strict'], [false, 'cellules'], [true, 'cellules']]) {
+      const c = clesDeLEvaluateur(regime)
+      partage = { x: [1, 2, 3] }
+      const racine = { objet: Array.from({ length: 50 }, () => ({ p: partage })) }
+      lectures = 0
+      if (regime) c.cleDe(racine)
+      else c.cleCanonique(({ referenceDe }) => referenceDe(racine), null, null, mode)
+      assert.equal(lectures, 1, `${regime ? 'fermé' : 'ouvert'} ${mode}`)
+    }
+  } finally {
+    Object.getOwnPropertyDescriptors = descripteurs
+  }
+})
+
+// #2586
+test('clés canoniques : aucun code de l’appelant ne s’exécute hors du moteur JSON, par map dans faire, sous un toJSON hérité en accesseur ni par un toJSON frère', () => {
+  let hors = 0
+  const noter = () => { if (!new Error().stack.includes('JSON.stringify')) hors++ }
+  const sansCodeHorsMoteur = (cas, cle) => {
+    hors = 0
+    cle()
+    assert.equal(hors, 0, cas)
+  }
+  const accesseur = () => ({ get a() { noter(); return 1 } })
+  const proxy = () => new Proxy({ a: 1 }, {
+    ownKeys(t) { noter(); return Reflect.ownKeys(t) },
+    getOwnPropertyDescriptor(t, k) { noter(); return Reflect.getOwnPropertyDescriptor(t, k) },
+    get(t, k) { noter(); return Reflect.get(t, k) },
+  })
+  const ouvert = clesDeLEvaluateur(false)
+  for (const [nom, valeur] of [['accesseur', accesseur], ['proxy', proxy]]) for (const mode of ['texte', 'strict', 'cellules'])
+    sansCodeHorsMoteur(`ouvert ${mode} [${nom}].map(referenceDe)`, () =>
+      ouvert.cleCanonique(({ referenceDe, interner, tuple }) => interner(tuple(...[valeur()].map(referenceDe))), null, null, mode))
+  for (const regime of [false, true]) {
+    const c = clesDeLEvaluateur(regime)
+    const nom = regime ? 'fermé' : 'ouvert'
+    const avant = Object.getOwnPropertyDescriptor(Object.prototype, 'toJSON')
+    try {
+      Object.defineProperty(Object.prototype, 'toJSON', { configurable: true, get() { noter(); return undefined } })
+      sansCodeHorsMoteur(`${nom} liste à prototype nul sous un toJSON hérité en accesseur`, () => c.cleDesArgs(Object.setPrototypeOf([1, 2], null)))
+      if (!regime) sansCodeHorsMoteur('ouvert objet à prototype nul sous un toJSON hérité en accesseur', () =>
+        c.cleCanonique(({ referenceDe }) => referenceDe(Object.assign(Object.create(null), { x: 1 })), null, null, 'texte'))
+    } finally {
+      if (avant) Object.defineProperty(Object.prototype, 'toJSON', avant)
+      else delete Object.prototype.toJSON
+    }
+    const objet = { a: { toJSON() { Object.defineProperty(objet, 'b', { get() { noter(); return 1 }, enumerable: true, configurable: true }); return 0 } }, b: 1 }
+    sansCodeHorsMoteur(`${nom} accesseur posé par le toJSON d’un membre frère`, () => c.cleDe({ objet }))
+  }
 })
 
 // #2586

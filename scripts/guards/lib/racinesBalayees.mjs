@@ -19,10 +19,9 @@
 // elle dépend (`requeteDe`). Ce qui ne se lit pas ainsi n'est pas deviné : il rend `{ non: raison }`, et
 // son site sort au rapport de l'appelant.
 import { posix } from 'node:path'
-import { types } from 'node:util'
 import { typescript } from './dialecte.mjs'
 import { gelerLaConstante } from '../../../src/lib/gelerProfond.ts'
-import { clesCanoniques } from './clesCanoniques.mjs'
+import { clesCanoniques, donneePlate } from './clesCanoniques.mjs'
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
  *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
@@ -658,13 +657,10 @@ export function encoderLecture(racine) {
   }
   /** Le cadre d'un objet du domaine JSON : ses valeurs à encoder, dans l'ordre de ses entrées. */
   const ouvrir = (v) => {
-    if (types.isProxy(v)) throw new Error('IR_DOMAINE_JSON')
+    const proprietes = donneePlate(v)
+    if (!proprietes) throw new Error('IR_DOMAINE_JSON')
     if (actifs.has(v)) throw new Error('IR_CYCLE')
     const tableau = Array.isArray(v)
-    if (!tableau) { const prototype = Object.getPrototypeOf(v); if (prototype !== Object.prototype && prototype !== null) throw new Error('IR_DOMAINE_JSON') }
-    const proprietes = Object.getOwnPropertyDescriptors(v)
-    for (const p of Object.values(proprietes)) if (!Object.hasOwn(p, 'value')) throw new Error('IR_DOMAINE_JSON')
-    if (Object.hasOwn(proprietes, 'toJSON') && (tableau || !proprietes.toJSON.enumerable)) throw new Error('IR_DOMAINE_JSON')
     const cles = []
     const valeurs = []
     if (tableau) for (let i = 0; i < v.length; i++) valeurs.push(proprietes[i]?.value)
