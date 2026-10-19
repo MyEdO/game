@@ -28,7 +28,7 @@
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
 import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs'
 import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
-import { inventaire, raisonDe } from './worktrees.mjs'
+import { estPurgeable, inventaire, raisonDe } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, estPullRequest, pagesRest } from '../guards/lib/ticketsGh.mjs'
 
 /** Le propriétaire du Project (un Project d'UTILISATEUR, pas d'organisation). */
@@ -618,7 +618,7 @@ export function mesurer({
   for (const w of vuInv.worktrees) {
     if (w.principal) continue
     if (!w.branche) {
-      const conserve = w.classe !== 'propre+fusionné'
+      const conserve = !estPurgeable(w)
       anomalies.push(anomalie(conserve ? 'worktree-conserve' : 'worktree-detache', w.chemin, `worktree ${conserve ? 'conservé' : 'détaché'} : ${w.chemin} (${w.classe}) — ${raisonDe(w)}`))
       continue
     }

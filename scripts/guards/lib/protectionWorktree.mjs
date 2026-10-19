@@ -1,5 +1,5 @@
-import { lstatSync, readFileSync, rmdirSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { lstatSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { depotDe, dossierGitCommun, etatDeLArbre } from './gitPorte.mjs'
 import { estCiblePure } from '../../docs/lib/cibles-generees.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, liensProcessus, lireCause, mesurerProcessusWorktrees, porteeProcessus, sousArbre } from './processusWorktrees.mjs'
@@ -8,6 +8,7 @@ import { CATEGORIES_DE_REFUS, prefixeDeRefus } from './categorieDeRefus.mjs'
 import { CACHE_FRAICHEUR } from '../../docs/lib/cache-fraicheur.mjs'
 import { listerDossier, listerEntrees } from './lister.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { normaliserRacine } from '../../port-dev.mjs'
 
 const LARGEUR_DE_CITATION = 160
 const ELEMENTS_CITES = 5
@@ -52,16 +53,19 @@ export function ignoresAuthores(racine, ignores) {
     }
     if (!stat) throw Object.assign(new Error('ignoré disparu pendant mesure : ' + rel), { categorie: 'transitoire' })
     if (!stat.isDirectory() || stat.isSymbolicLink()) { authores.push(rel); return }
-    const enfants = listerDossier(chemin, { absent: 'vide' })
-    if (!enfants.length) authores.push(rel + '/')
-    for (const enfant of enfants) visiter(rel.replace(/\/$/, '') + '/' + enfant)
+    for (const enfant of listerDossier(chemin, { absent: 'vide' })) visiter(rel.replace(/\/$/, '') + '/' + enfant)
   }
   for (const chemin of ignores) visiter(chemin.replace(/\/$/, ''))
   return [...new Set(authores)].sort()
 }
 
-/** @returns {{ok: boolean, refus: string[], indeterminees: string[], horsMesure: string[], portee?: string}} */
-export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesurerProcessusWorktrees, etat = etatDeLArbre, sessions } = {}) {
+/**
+ * `commun` : le dossier git commun du dépôt, sans lequel un arbre À DEMI RETIRÉ (fichier `.git`
+ * parti) ne se mesure pas (`depotDeLArbre`) ; ses suivis supprimés n'y comptent pas
+ * (`horsSuppressions`).
+ * @returns {{ok: boolean, refus: string[], indeterminees: string[], horsMesure: string[], portee?: string}}
+ */
+export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesurerProcessusWorktrees, etat = etatDeLArbre, commun, sessions } = {}) {
   const refus = []
   const indeterminees = []
   const horsMesure = []
@@ -109,14 +113,18 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     for (const erreur of vue.erreursGlobales) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : categorieDeCause(erreur)) + ' ' + citation(texteDeCause(erreur)))
     if (vue.indeterminee && !vue.erreursGlobales.length) indeterminees.push(prefixeDeRefus(vue.code === 'MESURE_PROCESSUS_EXPIREE' ? 'transitoire' : 'panne') + ' ' + citation(vue.indeterminee))
     refus.push(...new Set(indeterminees))
-    const arbres = etat(depotDe(chemin), { ignores: true, strict: true })
-    const sales = arbres.filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
+    const demiRetire = !lstatSync(join(chemin, '.git'), { throwIfNoEntry: false })
+    const arbres = etat(depotDeLArbre(chemin, commun), { ignores: true, strict: true })
+    const sales = (demiRetire ? horsSuppressions(arbres) : arbres).filter((e) => e.etat !== '!!').flatMap((e) => e.chemins)
     if (sales.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('modifications non commitées', sales))
     const ignores = ignoresAuthores(chemin, arbres.filter((e) => e.etat === '!!').flatMap((e) => e.chemins))
     if (ignores.length) refus.push(prefixeDeRefus('métier') + ' ' + enumeration('ignoré authoré', ignores))
-    const commun = dossierGitCommun(depotDe(chemin))
-    if (!commun.disponible) throw new Error(commun.raison)
-    const dossier = sessions ?? join(commun.valeur, 'sessions')
+    let dossier = sessions ?? (commun && join(commun, 'sessions'))
+    if (!dossier) {
+      const lu = dossierGitCommun(depotDe(chemin))
+      if (!lu.disponible) throw new Error(lu.raison)
+      dossier = join(lu.valeur, 'sessions')
+    }
     const lues = listerEntrees(dossier, { absent: 'vide' })
     if (lues.nature === 'other') throw new Error('dossier sessions non répertoire : ' + dossier)
     for (const { nom } of lues.entrees.filter((e) => e.nom.endsWith('.json'))) {
@@ -136,6 +144,53 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     }
     return { ok: refus.length === 0, refus, indeterminees, horsMesure, portee: vue.portee }
   } catch (e) { return { ok: false, refus: [...refus, prefixeDeRefus(categorieDeCause(e)) + ' mesure indéterminée : ' + e.message], indeterminees, horsMesure } }
+}
+
+/**
+ * Le dossier d'administration `<commun>/worktrees/<id>` de l'arbre `chemin` : le seul dont le
+ * `gitdir` nomme `<chemin>/.git` (`git help gitrepository-layout`, « worktrees/<id>/gitdir »).
+ * @param {string} chemin @param {string} commun @returns {string | null} `null` sans dossier unique
+ */
+export function administrationDe(chemin, commun) {
+  const administration = join(commun, 'worktrees')
+  const cible = normaliserRacine(join(chemin, '.git'))
+  const ids = listerDossier(administration, { absent: 'vide' }).filter((id) => {
+    const gitdir = join(administration, id, 'gitdir')
+    return lstatSync(gitdir, { throwIfNoEntry: false })?.isFile() && normaliserRacine(readFileSync(gitdir, 'utf8').trim()) === cible
+  })
+  return ids.length === 1 ? join(administration, ids[0]) : null
+}
+
+/**
+ * Le dépôt de l'arbre `chemin` ; À DEMI RETIRÉ (fichier `.git` parti), lu par SON dossier
+ * d'administration (`administrationDe`, `git help git`, « GIT_DIR », « GIT_WORK_TREE »), sans rien
+ * écrire : depuis le dossier seul, git répondrait pour le dépôt parent.
+ * @param {string} chemin @param {string} [commun] @param {Parameters<typeof depotDe>[1]} [options] ceux de `depotDe`
+ * @throws {Error} catégorie `validation`, sans dossier unique
+ */
+export function depotDeLArbre(chemin, commun, options = {}) {
+  if (lstatSync(join(chemin, '.git'), { throwIfNoEntry: false })) return depotDe(chemin, options)
+  const administration = commun ? administrationDe(chemin, commun) : null
+  if (!administration) throw Object.assign(new Error('fichier .git absent de ' + chemin + ' : git y lirait le dépôt parent'
+    + (commun ? ', et aucun dossier unique de ' + join(commun, 'worktrees') + ' ne le nomme' : '')), { categorie: 'validation' })
+  return depotDe(chemin, { ...options, env: { ...(options.env ?? process.env), GIT_DIR: administration, GIT_WORK_TREE: chemin } })
+}
+
+/** L'état d'un arbre À DEMI RETIRÉ sans ses suivis supprimés (` D`) : ce que le retrait interrompu
+ *  a effacé, que l'index restaure. PURE. */
+export const horsSuppressions = (etat) => etat.filter((e) => e.etat !== ' D')
+
+/**
+ * Le fichier `.git` de l'arbre `chemin` RECRÉÉ vers SON dossier d'administration
+ * (`administrationDe`), en création exclusive. `git worktree repair` réécrit les `.git` de TOUS les
+ * worktrees, ceux d'un retrait voisin en cours compris.
+ * @param {string} chemin @param {string} commun @returns {string | null} l'id relié, `null` sans dossier unique
+ */
+export function relierFichierGit(chemin, commun) {
+  const administration = administrationDe(chemin, commun)
+  if (!administration) return null
+  writeFileSync(join(chemin, '.git'), 'gitdir: ' + administration.replaceAll('\\', '/') + '\n', { flag: 'wx' })
+  return basename(administration)
 }
 
 export function retirerResiduelVide(chemin) {
