@@ -175,8 +175,6 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/parite-import.ts',"import {glob} from 'node:fs';glob('.');",'murs/ordre-total-imports',0],
     ['scripts/docs/parite-locale.mjs','a.localeCompare(b);','murs/ordre-total-locale',1],
     ['src/parite-locale.test.ts','a.localeCompare(b);','murs/ordre-total-locale',0],
-    ['src/ui/parite-possession.ts',"import {ownsLocally} from '../state/netOwnership';ownsLocally();",'murs/possession',1],
-    ['src/ui/ownership.ts',"import {ownsLocally} from '../state/netOwnership';ownsLocally();",'murs/possession',0],
     ['src/state/parite-issue.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',1],
     ['src/state/rollFlowSpecs.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',0],
     ['src/engine/parite-dynamique.ts',"import('../ui/x');",'murs/purete',1],
@@ -200,6 +198,74 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
+    ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
+    ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
+    ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],
+    ['src/state/parite-minuterie-window.ts','window.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/lib/parite-minuterie-globalthis.ts','globalThis.setInterval(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-self.ts','self.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-global.ts','global.setTimeout(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-destructuree.ts','const {setTimeout:poser}=window;poser(f,0);','murs/minuteries-hote',1],
+    ['src/state/parite-minuterie-type.ts','export type T=ReturnType<typeof setTimeout>;','murs/minuteries',0],
+    ['src/state/parite-minuterie-tierce.ts','horloge.setTimeout(f,0);','murs/minuteries-hote',0],
+    ['src/state/parite-minuterie-import-node.ts',"import {setTimeout} from 'node:timers';setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/lib/parite-minuterie-import-timers.ts',"import {setInterval} from 'timers';setInterval(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-espace.ts',"import * as t from 'node:timers';t.setTimeout(f,0);",'murs/minuteries-import',1],
+    ['src/state/parite-minuterie-import-neutre.ts',"import {clearTimeout} from 'node:timers';clearTimeout(x);",'murs/minuteries-import',0],
+    ['src/state/parite-minuterie-appel-import.ts',"import {setTimeout} from './horloge';setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-declare.ts','declare const setTimeout:(f:()=>void,n:number)=>number;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-declare-fonction.ts','declare function setInterval(f:()=>void,n:number):number;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-parametre.ts','export function g(setTimeout:(f:()=>void,n:number)=>void){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-neutre.ts','export const poserPlusTard=(f:()=>void)=>f;','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-objet.ts','const {setTimeout}=horloge;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-appel-window-as.ts','const {setInterval}=window as Window;setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-import-require.ts',"import timers=require('node:timers');import setTimeout=timers.setTimeout;setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-objet.ts','export const g=({setTimeout}:{setTimeout:(f:()=>void,n:number)=>void})=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-parametre-defaut.ts','export const g=(setTimeout=h)=>{setTimeout(f,0);};','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-catch.ts','try{x();}catch(setTimeout){setTimeout(f,0);}','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-tableau.ts','const [setTimeout]=paire;setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-appel-namespace.ts','namespace setTimeout {}setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-globalthis-as.ts','const {setTimeout}=globalThis as typeof globalThis;export const t=new setTimeout(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-timers-defaut.ts',"import timers from 'node:timers';const {setTimeout}=timers;export const t=new setTimeout(f,0);",'murs/minuteries-appel',1],
+    ['src/lib/parite-minuterie-new-window-as.ts','const {setInterval}=window as Window;export const t=new setInterval(f,0);','murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-import-dynamique.ts',"export async function g(){const {setTimeout}=await import('node:timers');return new setTimeout(f,0);}",'murs/minuteries-appel',1],
+    ['src/state/parite-minuterie-new-neutre.ts','export const t=new Horloge(f,0);','murs/minuteries-appel',0],
+    ['src/state/parite-minuterie-appel-methode.ts','export const o={setTimeout(f:()=>void){return f;}};','murs/minuteries-appel',0],
+    ['src/lib/minuteries.ts',"import {setInterval} from 'node:timers';export const id=setTimeout(f,0)+setInterval(f,0);",'murs/minuteries',0],
+    ['src/state/parite-minuterie.test.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['src/ui/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',0],
+    ['server/src/parite-alea.ts','export const a=Math.random();','murs/alea-serveur',1],
+    ['server/src/sous/parite-alea-valeur.ts','export const f=(g)=>g(Math.random);','murs/alea-serveur',1],
+    ['server/src/parite-alea-destructure.ts','const {random}=Math; export const a=random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-global.ts','export const a=globalThis.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-self.ts','export const a=self.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-window.ts',"export const a=window['Math'].random();",'murs/alea-serveur',1],
+    ['server/src/parite-alea-alias-global.ts','const g=globalThis; export const a=g.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-chaine.ts','export const a=globalThis.self.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-chaine-double.ts','export const a=globalThis.globalThis.Math.random();','murs/alea-serveur',1],
+    ['server/src/parite-alea-neutre.ts','export const a=Math.floor(1);','murs/alea-serveur',0],
+    ['server/src/parite-alea.test.ts','export const a=Math.random();','murs/alea-serveur',0],
+    ['server/src/parite-alea.test.tsx','export const a=Math.random();','murs/alea-serveur',0],
+    ['src/parite-alea.ts','export const a=Math.random();','murs/alea-serveur',0],
+    ['src/ui/console/CombatConsole.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-jsx-multiligne.tsx','export const A=()=><b title={raison}\n>x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-litteral.ts',"export const c={id:'x',title:'raison'};",'murs/console-sans-title',1],
+    ['src/ui/console/sous/parite-imbrique.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation.tsx',"({title:t}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-profonde.tsx',"({a:{title:t}}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-tableau.tsx',"[{title:t}]=x;",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-of.tsx',"for ({title:t} of xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-in.tsx',"for ({title:t} in xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-objet-tableau.tsx',"({a:[{title:t}]}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-tableau-tableau.tsx',"[[{title:t}]]=x;",'murs/console-sans-title',1],
+    ['src/ui/parite-hors-console.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-console.test.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-attributs-voisins.tsx','export const A=()=><b aria-label="nom" data-title="x"><use xlink:title="x"/></b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-proprietes-neutres.tsx',"const {title:t}=x; const o={title, 'title':1, ['title']:2, get title(){return 1}}; type T={title:string};",'murs/console-sans-title',0],
+    ['src/ui/console/parite-liaisons.tsx',"function f({title:t}){} for (const {title:u} of xs){} try{}catch({title:v}){}",'murs/console-sans-title',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {
@@ -207,10 +273,43 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     assert.equal(messages.length,cas[i][3],JSON.stringify(resultats[i]))
     for(const m of messages) {assert.equal(m.severity,2);assert.equal(m.line,1);assert.ok(m.column>0)}
   }
+  assert.deepEqual(resultats[cas.findIndex(([filePath])=>filePath==='src/lib/minuteries.ts')].messages.filter(m=>(m.ruleId??'').startsWith('murs/minuteries')),[])
   const unused=lintFixtures([{filePath:'src/parite-directive.ts',code:'// eslint-disable-next-line murs/marques -- sonde\nexport const a=1;'}])[0]
   assert.equal(unused.messages.length,1)
   assert.equal(unused.messages[0].severity,1)
   assert.equal(unused.messages[0].line,1)
+})
+
+test('murs/stockage-web : le stockage web nommé sous src/ est refusé, quel que soit son porteur, hors instruments Vitest', () => {
+  const PROPRIETE='murs/stockage-web', GLOBAL='murs/stockage-web-global'
+  const cas = [
+    ['src/state/parite-sw-nu.ts','export const lire = (k: string) => sessionStorage.getItem(k);',GLOBAL],
+    ['src/ui/parite-sw-typeof.ts',"export const a = typeof localStorage === 'undefined';",GLOBAL],
+    ['src/ui/parite-sw-window.ts','window.localStorage.clear();',PROPRIETE],
+    ['src/audio/parite-sw-globalthis.ts','export const s = (globalThis as { sessionStorage?: Storage }).sessionStorage;',PROPRIETE],
+    ['src/net/parite-sw-self.ts','export const s = self.localStorage;',PROPRIETE],
+    ['src/lib/parite-sw-indexe.ts',"export const s = globalThis['sessionStorage'];",PROPRIETE],
+    ['src/lib/parite-sw-gabarit.ts','export const s = globalThis[`localStorage`];',PROPRIETE],
+    ['src/state/parite-sw-destructure.ts','export const { localStorage: s } = window;',PROPRIETE],
+    ['src/state/parite-sw-objet.ts','export const s = porteur.sessionStorage;',PROPRIETE],
+    ['src/state/parite-sw-neutre.ts',[
+      '// le localStorage en commentaire',
+      'export const t = "miroir localStorage";',
+      "export type G = 'localStorage' | 'sessionStorage';",
+      'export type T = { localStorage?: Storage }; export const o = { sessionStorage: 1 };',
+      'export function f(localStorage: number) { return localStorage; }',
+      'export const couture = (genre: G): Storage | null => globalThis[genre] ?? null;',
+    ].join('\n'),null],
+    ['src/state/parite-sw.test.ts','(globalThis as { localStorage?: Storage }).localStorage = fake; sessionStorage.clear();',null],
+    ['src/gameIso/parite-sw.bench.ts','localStorage.clear();',null],
+    ['scripts/parite-sw.mjs','window.localStorage.clear();',null],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const [filePath,,regle]=cas[i]
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===PROPRIETE||m.ruleId===GLOBAL)
+    assert.deepEqual(vus.map(m=>[m.ruleId,m.severity,m.line]),regle?[[regle,2,1]]:[],`${filePath}: ${JSON.stringify(resultats[i].messages)}`)
+  }
 })
 
 test('positions Unicode et erreur de parse sans code sont rendues par le vrai CLI', () => {

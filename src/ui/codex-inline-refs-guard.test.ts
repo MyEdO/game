@@ -204,7 +204,7 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     for (const s of sites) parFichier.set(s.rel, (parFichier.get(s.rel) ?? 0) + 1);
     expect(parFichier.size, 'le scan ne voit plus qu’une poignée de fichiers').toBeGreaterThanOrEqual(5);
     expect(Math.max(...parFichier.values()), 'aucun fichier ne porte plus de STOCK de refs littérales').toBeGreaterThanOrEqual(5);
-    expect(sites.some((s) => s.rel === 'src/ui/CombatConsole.tsx'), 'la console est retombée hors scan').toBe(true);
+    expect(sites.some((s) => s.rel === 'src/ui/console/CombatConsole.tsx'), 'la console est retombée hors scan').toBe(true);
     expect(sites.some((s) => s.forme === 'jsx'), 'aucun site JSX mesuré : la forme `<CodexRef …>` est retombée hors scan').toBe(true);
     expect(sites.some((s) => s.rel.endsWith('.ts')), 'aucun site `.ts` mesuré : le périmètre est retombé aux seuls composants').toBe(true);
     // L'ANGLE MORT, chiffré : le corpus porte bien plus de refs à identité CALCULÉE que de littéraux.

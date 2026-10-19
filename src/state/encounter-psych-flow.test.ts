@@ -343,7 +343,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
 
 /**
  * COOP (#1262 V2 lot 3) — la bande de Psychologie de RENCONTRE ne déclarait AUCUNE possession : son
- * `modalOwnerOf` valait `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocally`),
+ * `modalOwnerOf` valait `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocal`),
  * qui jouait alors le Test de Calme du héros d'un invité (classe #1268). Le mint (`bandStep`, via
  * `makeBandFactory`) la pose : plusieurs appelés → `groupOwner`, un seul → SON porteur.
  */

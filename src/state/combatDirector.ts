@@ -13,7 +13,7 @@ import type { Get } from './flowTypes';
 import { TEMPO } from './tempo';
 import { walkMs } from '../geometry/walk';
 import { lastEventTone, type CombatTone } from './combatLog';
-import { scheduleCombatTimer } from './combatTimers';
+import { scheduleCombatTimer } from '../lib/minuteries';
 
 type Pt = { x: number; y: number };
 

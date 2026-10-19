@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { CharFrame } from './CharFrame';
-import type { CharSize, CharVariant } from './PortraitTile';
-import type { Combatant } from '../engine/types';
+import { CharFrame } from '../CharFrame';
+import type { CharSize, CharVariant } from '../PortraitTile';
+import type { Combatant } from '../../engine/types';
 
 /** Un choix du picker : le combattant + une légende optionnelle (valeur/rôle) + infobulle. */
 export interface PortraitChoice {

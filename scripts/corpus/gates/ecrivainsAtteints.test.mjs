@@ -69,6 +69,9 @@ const ATTENDU = {
     'scripts/guards/lib/lint-parite.test.mjs',
     'scripts/guards/lib/lint.testkit.mjs',
     'scripts/guards/lib/lintStage.mjs',
+    // +1 le 2026-10-19 (#2724) : `fichiersLus` copie les fichiers mesurés sous un `mkdtempSync` d'os.tmpdir(), retiré
+    // par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/lib/bancLister.mjs',
     'scripts/guards/lib/tsProgram.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
@@ -821,6 +824,8 @@ const ATTENDU = {
     "scripts/raw/reparer-titres.mjs",
     "scripts/raw/sonde-titres.mjs",
     "scripts/raw/workflow-args.mjs",
+    // #2724 : `fichiersLus` copie sous un `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally.
+    "scripts/test/lib/bancLister.mjs",
     "scripts/test/node-tests.mjs",
     "scripts/test/verrou.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",

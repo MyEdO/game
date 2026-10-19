@@ -10,11 +10,8 @@ import {
   EFFECT_ZONE_SEEDS,
   renameEffectZone,
 } from './editorState';
-// `putLayer` n'est plus ré-exporté par `editorState.ts` : sans appelant en `src/ui/**` (#855), seul
-// `state/mapSpec.ts` (compilateur `buildScene`) l'appelle — import direct de sa source. Même raison
-// pour `patchEntity`/`patchEntityCombat` : l'interface passe par le seam d'assise (`editEntity`),
-// ces écritures mécaniques ne sont plus joignables depuis l'éditeur, même à un import près.
-import { patchEntity, patchEntityCombat, putLayer, renameActionAuthoree } from '../../state/sceneEdit';
+// `putLayer` : appelant unique `state/mapSpec.ts` (`buildScene`), sans porte en `src/ui/**` (#855).
+import { editEntity, editEntityCombat, putLayer, renameActionAuthoree } from '../../state/sceneEdit';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import type { ActionAuthoree, SceneEntity } from '../../state/scene';
 
@@ -119,16 +116,16 @@ describe('editorState — patch d’entité', () => {
     return s;
   };
 
-  it('patchEntity fusionne les champs de haut niveau (crewIds/upgrades/facing)', () => {
-    const out = patchEntity(base(), 'e0', { crewIds: ['c1'], upgrades: [{ id: 'blindage-fer' }], facing: 'N' });
+  it('editEntity fusionne les champs de haut niveau (crewIds/upgrades/facing)', () => {
+    const out = editEntity(base(), 'e0', { crewIds: ['c1'], upgrades: [{ id: 'blindage-fer' }], facing: 'N' });
     const e = out.entities[0];
     expect(e.crewIds).toEqual(['c1']);
     expect(e.upgrades).toEqual([{ id: 'blindage-fer' }]);
     expect(e.facing).toBe('N');
   });
 
-  it('patchEntityCombat fusionne DANS combat sans écraser l’existant', () => {
-    const out = patchEntityCombat(base(), 'e0', { skills: [{ id: 'projectiles', spec: 'poudre-noire', value: 40 }] });
+  it('editEntityCombat fusionne DANS combat sans écraser l’existant', () => {
+    const out = editEntityCombat(base(), 'e0', { skills: [{ id: 'projectiles', spec: 'poudre-noire', value: 40 }] });
     const e = out.entities[0];
     expect(e.combat?.skills?.[0].spec).toBe('poudre-noire');
     expect(e.combat?.hiddenUntilCombat).toBe(true); // préservé
@@ -136,8 +133,8 @@ describe('editorState — patch d’entité', () => {
 
   it('no-op si l’entité est absente', () => {
     const s = base();
-    expect(patchEntity(s, 'nope', { facing: 'S' })).toEqual(s);
-    expect(patchEntityCombat(s, 'nope', { spells: ['x'] })).toEqual(s);
+    expect(editEntity(s, 'nope', { facing: 'S' })).toEqual(s);
+    expect(editEntityCombat(s, 'nope', { spells: ['x'] })).toEqual(s);
   });
 });
 

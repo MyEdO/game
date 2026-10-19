@@ -3,7 +3,7 @@ import { useGame } from '../../state/store';
 import { FLOWS } from '../../state/rollFlowSpecs';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow } from '../rollRowBuild';
-import { PortraitPicker } from '../PortraitPicker';
+import { PortraitPicker } from '../console/PortraitPicker';
 import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../state/combatLog';

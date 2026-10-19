@@ -81,10 +81,16 @@ const VERROU_LISTAGE = [
   `JSXMemberExpression[property.name=${NOMS_MARCHE}]`,
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
-const POLICE_POSSESSION = [{
-  group: ['**/state/netOwnership', '**/state/netFlow'],
-  importNames: ['ownsLocally'],
-  message: 'Possession à l’affichage (#1262) : passer par `ui/ownership.ts` (`ownsLocal`/`useOwns`) — le terme `net.mode === "local"` y est déjà mort.',
+const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/lib/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+
+const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
+const VERROU_CONSOLE = [{
+  selector: 'JSXAttribute > JSXIdentifier.name[name="title"]',
+  message: `Infobulle native dans la console (\`title\`) : invisible au tactile, au clavier et à l’arbre d’accessibilité ; ${REMEDE_CONSOLE}.`,
+}, {
+  selector: ':matches(ObjectExpression, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > ObjectPattern.left, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > :matches(ObjectPattern, ArrayPattern).left ObjectPattern) > Property[key.type="Identifier"][key.name="title"][computed=false][shorthand=false][method=false][kind="init"]',
+  message: `Propriété \`title\` de littéral dans la console : elle finit en attribut \`title\` au rendu ; une case nomme son geste et pointe sa règle (\`rule\`, \`gate\`) ; ${REMEDE_CONSOLE}.`,
 }];
 
 const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
@@ -114,6 +120,13 @@ const GLOBS_GENERATEURS = [
 ];
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
+
+const SOURCE_DES_MINUTERIES = 'src/lib/minuteries.ts';
+const MINUTERIES = ['setTimeout', 'setInterval'];
+const HOTES = ['window', 'globalThis', 'self', 'global'];
+const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
+const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
+const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state et src/lib, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
 
 const msgPurete = (amont, aval, suite, types) =>
   `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} ${types ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION'} — ${suite}`;
@@ -480,11 +493,11 @@ export const BLOCS_LINT = [
     },
   },
   {
-
-    files: ['src/ui/**/*.ts', 'src/ui/**/*.tsx'],
-    excludeFiles: ['src/ui/ownership.ts'],
+    // #2724
+    files: ['src/ui/console/**'],
+    excludeFiles: ['src/ui/console/**/*.test.ts', 'src/ui/console/**/*.test.tsx'],
     rules: {
-      'murs/possession': ['error', { patterns: POLICE_POSSESSION }],
+      'murs/console-sans-title': ['error', ...VERROU_CONSOLE],
     },
   },
   {
@@ -553,9 +566,29 @@ export const BLOCS_LINT = [
     },
   },
   {
+    // #415, #2724
+    files: ['src/state/**', 'src/lib/**'],
+    excludeFiles: [SOURCE_DES_MINUTERIES, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    rules: {
+      'murs/minuteries': ['error', ...MINUTERIES.map((name) => ({ name, message: MSG_MINUTERIE }))],
+      'murs/minuteries-hote': ['error', ...HOTES.flatMap((object) => MINUTERIES.map((property) => ({ object, property, message: MSG_MINUTERIE })))],
+      'murs/minuteries-import': ['error', { paths: MODULES_DE_MINUTERIES.map((name) => ({ name, importNames: MINUTERIES, message: MSG_MINUTERIE })) }],
+      'murs/minuteries-appel': ['error', { selector: APPEL_DE_MINUTERIE, message: MSG_MINUTERIE }],
+    },
+  },
+  {
     // #2724
     files: ['src/**', 'scripts/**'],
     rules: { 'murs/interne': 'error' },
+  },
+  {
+    // #1897, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: {
+      'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))],
+      'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))],
+    },
   },
   {
     // #495, #2724
@@ -568,6 +601,20 @@ export const BLOCS_LINT = [
           message: 'Atelier (#495) : `GameOpEditor`, `ConditionEditor` et la palette d’auteur `refsDOp` ne servent qu’à l’atelier (`src/ui/editor/`, et la galerie DEV `src/ui/gallery/`) — une surface joueur compose `opRows`/`GameOpChips`/`humanizeCondition`.',
         }],
       }],
+    },
+  },
+  {
+    // CWE-338, #2724
+    files: ['server/src/**'],
+    excludeFiles: ['server/src/**/*.test.*'],
+    rules: {
+      'murs/alea-serveur': ['error', ...[
+        { object: 'Math', property: 'random' },
+        { property: 'Math' },
+      ].map((cible) => ({
+        ...cible,
+        message: 'Aléa du serveur (CWE-338) : `server/src` émet les secrets de partie (token hôte, token de siège, code de room) ; tirer par `secureRandom` (`server/src/rand.ts`).',
+      }))],
     },
   },
   {

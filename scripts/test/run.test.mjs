@@ -84,24 +84,24 @@ test('workers : partage à partir de 7 cœurs (n − 1 ≥ 6), 2/3 node · 1/3 j
 
 const partition = {
   node: [abs('src/i18n/labels.test.ts'), abs('src/engine/combat.test.ts')],
-  jsdom: [abs('src/ui/CombatConsole.test.tsx')],
+  jsdom: [abs('src/ui/console/CombatConsole.test.tsx')],
 }
 
 test('filtrage des fichiers : sous-chaîne relative, dossier, chemin absolu, casse', () => {
   const tous = [...partition.node, ...partition.jsdom]
   assert.deepEqual(filtrerFichiers(tous, [], RACINE, 'win32'), tous)
   assert.deepEqual(filtrerFichiers(tous, ['src/engine'], RACINE, 'win32'), [abs('src/engine/combat.test.ts')])
-  assert.deepEqual(filtrerFichiers(tous, ['src\\ui'], RACINE, 'win32'), [abs('src/ui/CombatConsole.test.tsx')])
-  assert.deepEqual(filtrerFichiers(tous, [abs('src/ui')], RACINE, 'linux'), [abs('src/ui/CombatConsole.test.tsx')])
+  assert.deepEqual(filtrerFichiers(tous, ['src\\ui'], RACINE, 'win32'), [abs('src/ui/console/CombatConsole.test.tsx')])
+  assert.deepEqual(filtrerFichiers(tous, [abs('src/ui')], RACINE, 'linux'), [abs('src/ui/console/CombatConsole.test.tsx')])
   assert.deepEqual(filtrerFichiers(tous, ['SRC/I18N'], RACINE, 'win32'), [abs('src/i18n/labels.test.ts')])
   assert.deepEqual(filtrerFichiers(tous, ['src/inexistant'], RACINE, 'win32'), [])
 })
 
 test('routage : un filtre-fichier ne lance que le processus qui porte ce fichier', () => {
-  assert.deepEqual(cotesRequis(['src/ui/CombatConsole.test.tsx'], partition, RACINE, 'win32'), ['jsdom'])
+  assert.deepEqual(cotesRequis(['src/ui/console/CombatConsole.test.tsx'], partition, RACINE, 'win32'), ['jsdom'])
   assert.deepEqual(cotesRequis(['src/i18n'], partition, RACINE, 'win32'), ['node'])
   assert.deepEqual(
-    cotesRequis(['src/ui/CombatConsole.test.tsx', 'src/i18n'], partition, RACINE, 'win32'),
+    cotesRequis(['src/ui/console/CombatConsole.test.tsx', 'src/i18n'], partition, RACINE, 'win32'),
     ['node', 'jsdom'],
   )
   assert.deepEqual(cotesRequis([], partition, RACINE, 'win32'), ['node', 'jsdom'])
@@ -125,7 +125,7 @@ test('chemins à métacaractère de glob : repérés, sinon liste vide', () => {
 })
 
 test('arguments : un positionnel ne route que s’il est un chemin existant ; drapeaux mono', () => {
-  const estChemin = (t) => ['src/i18n', 'src/ui/CombatConsole.test.tsx'].includes(t)
+  const estChemin = (t) => ['src/i18n', 'src/ui/console/CombatConsole.test.tsx'].includes(t)
   // `2` et `Sort` sont des valeurs de drapeau, pas des filtres.
   assert.deepEqual(separerArguments(['src/i18n', '--retry', '2', '-t', 'Sort'], estChemin), {
     filtres: ['src/i18n'],
@@ -156,7 +156,7 @@ test('argv de l’enfant : les arguments hors workers ressortent tels quels, en 
   const tete = ['/v.mjs', 'run', '--config', '/atelier/vitest.node.config.ts', '--maxWorkers', '10', '--passWithNoTests']
   for (const argv of [
     ['src/i18n', '--retry', '2'],
-    ['src/i18n/i18n.test.ts', 'src/ui/CombatConsole.test.tsx', '--bail', '1'],
+    ['src/i18n/i18n.test.ts', 'src/ui/console/CombatConsole.test.tsx', '--bail', '1'],
     ['-t', 'Sort de feu', '--no-file-parallelism'],
     [],
   ]) {

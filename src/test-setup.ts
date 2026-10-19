@@ -61,7 +61,7 @@
  *
  * 2. FILET D'ISOLATION DES TIMERS. Le combat planifie l'IA et l'enchaînement des tours via de VRAIS
  *    `setTimeout` (`combatFlow.ts`/`combatDirector.ts`/`combatAuto.ts`, via `scheduleCombatTimer` de
- *    `state/combatTimers.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
+ *    `lib/minuteries.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
  *    échéance. Un test qui arme `vi.useFakeTimers()` sans le restaurer laisse des timers fantômes :
  *    `vi.useRealTimers()` DÉSINSTALLE l'horloge factice et JETTE ses timers en attente (en mode réel,
  *    c'est un no-op → ZÉRO risque). Mais un test SYNCHRONE qui déclenche un beat de combat AVANT de
@@ -98,7 +98,7 @@ import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
 import { cascadeAppliers } from './state/cascade';
-import { clearTrackedTimers } from './state/combatTimers';
+import { clearTrackedTimers } from './lib/minuteries';
 import { resetOwnTestFailedGuard } from './state/triggeredEffects';
 import { resetDesFixes } from './engine/fixedDie';
 import { seedBattleRng } from './state/battleRng';

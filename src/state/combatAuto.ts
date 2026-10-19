@@ -23,7 +23,7 @@ import { stepInteraction } from './cascade';
 import { seatOwns, influencesLocally } from './netOwnership';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
-import { scheduleCombatTimer } from './combatTimers';
+import { scheduleCombatTimer } from '../lib/minuteries';
 import { fateSaveOptions } from '../engine/fortune';
 
 /**

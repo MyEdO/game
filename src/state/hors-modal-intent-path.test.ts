@@ -333,7 +333,7 @@ const ecranSources = (): string[] => readCorpus(['src/ui', 'src/gameIso']).map((
  *  ou `data-action="<id>"`), le bandeau d'interlude que la console rend depuis le registre, ou une
  *  touche du registre clavier. Même définition que la garde `action-atteignabilite`. */
 function actionsAvecSurface(): Set<string> {
-  const src = readFileSync(join(process.cwd(), 'src', 'ui', 'CombatConsole.tsx'), 'utf8');
+  const src = readFileSync(join(process.cwd(), 'src', 'ui', 'console', 'CombatConsole.tsx'), 'utf8');
   const frise = readFileSync(join(process.cwd(), 'src', 'ui', 'InitiativeStrip.tsx'), 'utf8');
   const cles = [
     ...[...src.matchAll(/cellFor\(\s*'([^']+)'/g)].map((m) => m[1]),

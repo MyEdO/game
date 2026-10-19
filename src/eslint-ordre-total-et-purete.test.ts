@@ -293,13 +293,4 @@ describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉS
       ).toEqual([2]);
     }
   });
-
-  it('POLICE : sur un test réel de `src/ui`, la police de la possession et le mur de l’ordre total sont résolus ENSEMBLE', { timeout: 30_000 }, async () => {
-    // Chaque mur porte son nom de règle (`murs/possession`, `murs/ordre-total-imports`) : aucun des deux
-    // blocs ne remplace les options de l'autre.
-    const rel = sondeTest('src/ui');
-    const cfg = await eslint.calculateConfigForFile(`${ROOT}/${rel}`);
-    expect(JSON.stringify(cfg.rules?.['murs/possession']), `police de la possession DÉSARMÉE sur les tests de src/ui — sonde : ${rel}`).toContain('netOwnership');
-    expect(JSON.stringify(cfg.rules?.['murs/ordre-total-imports']), `mur de l’ordre total absent des tests de src/ui — sonde : ${rel}`).toContain('opendirSync');
-  });
 });

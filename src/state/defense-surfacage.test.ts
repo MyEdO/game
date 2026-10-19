@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState, type PendingAttack } from './store';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from './combatFlow';
-import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocally, modalOwnerOf } from './netOwnership';
+import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal, modalOwnerOf } from './netOwnership';
 import { willAutoResolve } from './combatAuto';
 import { evaluateTest, maxForcedRoll } from '../engine/tests';
 import { hitLocation, reverseRoll } from '../engine/combat';
@@ -325,32 +325,32 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
 // ── B1 : affichage de la fenêtre du siège MJ (contre-passe du juge) ──────────────────────────────
 
 describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manuelle)', () => {
-  it('ennemi conduit par le MJ : `ownsLocally` (gate d’AFFICHAGE) répond comme `intentAllowedFor`', () => {
+  it('ennemi conduit par le MJ : `ownsLocal` (gate d’AFFICHAGE) répond comme `intentAllowedFor`', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
     expect(maybeOpenDefense(useGame.getState, useGame.setState, hero, enemy)).toBe(true);
     const s0 = useGame.getState();
     expect(modalOwnerOf(s0), 'la fenêtre est celle de l’ennemi').toBe(enemy.id);
-    expect(ownsLocally(s0, enemy.id), 'l’HÔTE ne rend pas la fenêtre du MJ (bandeau spectateur)').toBe(false);
+    expect(ownsLocal(s0, enemy.id), 'l’HÔTE ne rend pas la fenêtre du MJ (bandeau spectateur)').toBe(false);
     expect(intentAllowedFor(s0, 0, 'defenseRoll'), 'et il ne peut pas agir non plus').toBe(false);
     useGame.setState({ net: { ...s0.net, mySeat: 1 } }); // on se place au siège MJ
     const s1 = useGame.getState();
-    expect(ownsLocally(s1, enemy.id), 'le MJ VOIT sa fenêtre').toBe(true);
+    expect(ownsLocal(s1, enemy.id), 'le MJ VOIT sa fenêtre').toBe(true);
     expect(intentAllowedFor(s1, 1, 'defenseRoll'), 'afficher et agir répondent pareil').toBe(true);
   });
 
   it('héros d’un autre siège : inchangé (le gate d’affichage reste l’ownership)', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
     expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
-    expect(ownsLocally(useGame.getState(), hero.id)).toBe(false);
+    expect(ownsLocal(useGame.getState(), hero.id)).toBe(false);
     useGame.setState({ net: { ...useGame.getState().net, mySeat: 1 } });
-    expect(ownsLocally(useGame.getState(), hero.id)).toBe(true);
+    expect(ownsLocal(useGame.getState(), hero.id)).toBe(true);
   });
 
-  it('SOLO (net par défaut) : `ownsLocally` reste vrai pour tous — bit-à-bit', () => {
+  it('SOLO (net par défaut) : `ownsLocal` reste vrai pour tous — bit-à-bit', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     const s = useGame.getState();
-    expect([ownsLocally(s, hero.id), ownsLocally(s, enemy.id), ownsLocally(s, undefined)]).toEqual([true, true, true]);
+    expect([ownsLocal(s, hero.id), ownsLocal(s, enemy.id), ownsLocal(s, undefined)]).toEqual([true, true, true]);
   });
 });
 

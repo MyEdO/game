@@ -82,7 +82,7 @@ export const IDENTITE_HEROS_KEYS = ['identite-heros-1', 'identite-heros-2', 'ide
  * case). Deux consommateurs sur des AXES différents gardent DEUX entrées même à octet égal, et le
  * partage se déclare ici : `anneau-ennemi` est le cran non-héros de l'axe d'IDENTITÉ PAR UNITÉ
  * (`ENEMY_RING`, frère des quatre `HERO_RING` : `builders/dynamicMarks.teamRingDecor`, et les
- * portraits `ui/CombatConsole`/`ui/CharFrame`/`ui/TeamPortrait`), `equipe-ennemi` est le cran ennemi de l'axe
+ * portraits `ui/console/CombatConsole`/`ui/CharFrame`/`ui/TeamPortrait`), `equipe-ennemi` est le cran ennemi de l'axe
  * d'APPARTENANCE (`ENEMY_TINT` : `teamColors.tileTint`/`veilTint`/`relationColor`, et
  * `topoMarkers.stationTint`, qui colore une STATION de la carte, jamais un anneau d'unité).
  */
