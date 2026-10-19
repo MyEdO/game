@@ -12,7 +12,7 @@
  * SEAT-AGNOSTIQUE : le porteur d'un autre siège surface aussi.
  *
  * Les DEUX temps sont joués ici dans l'ordre RÉEL (hooks PUIS collecte), sur le harnais à deux sièges
- * (#1262 B7) : en SOLO les deux prédicats coïncident (`ownsLocally` vrai pour tous), la régression y est
+ * (#1262 B7) : en SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous), la régression y est
  * invisible. Chaque cas vérifie l'EXCLUSIVITÉ : rien n'a été résolu inline ET l'étape existe (ni perdu, ni
  * doublé).
  */
@@ -29,7 +29,7 @@ import { testValue } from '../engine/skills';
 import { setRule, resetRule } from '../engine/policy';
 import { surfaceOf, rollSansPilote } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocally, seatOwns, humanControlled } from './netOwnership';
+import { ownsLocal, seatOwns, humanControlled } from './netOwnership';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import './combat/roundHooks';
@@ -82,10 +82,10 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
   it('les deux prédicats DIVERGENT sur ce harnais — c’est l’énoncé du fix (en solo ils coïncident)', () => {
     const H = setupCoop();
     expect({
-      ownsLocally: ownsLocally(g(), H.id),
+      ownsLocal: ownsLocal(g(), H.id),
       humanControlled: humanControlled(g(), H),
       surfaceOf: surfaceOf(g, H.id),
-    }).toEqual({ ownsLocally: false, humanControlled: false, surfaceOf: true });
+    }).toEqual({ ownsLocal: false, humanControlled: false, surfaceOf: true });
   });
 
   it('Empoisonné (LDB 16 l.70-72) : le Test de Résistance n’est pas jeté inline, il devient une étape au siège du porteur', () => {

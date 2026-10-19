@@ -7,7 +7,7 @@
  * fenêtre — la décision « Action OU Mouvement » que le RAW lui laisse était prise pour lui.
  *
  * `surfaceOf` (`rollSeam`) est SEAT-AGNOSTIQUE : le porteur d'un autre siège surface aussi.
- * En SOLO les deux prédicats coïncident (`ownsLocally` vrai pour tous) — d'où le harnais à deux
+ * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) — d'où le harnais à deux
  * sièges de `roll-seam-socle.test.ts` (#1262 B7) : sans lui la régression est invisible.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -16,7 +16,7 @@ import { resolveActGates } from './combatFlow'; // baril : charge `combat/turnHo
 import { cascadeAppliers } from './cascade';
 import { surfaceOf } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
-import { ownsLocally, seatOwns, humanControlled } from './netOwnership';
+import { ownsLocal, seatOwns, humanControlled } from './netOwnership';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { CascadeStep } from './pendings';
@@ -73,12 +73,12 @@ describe('#1262 — sonde B : le gate d’Action d’un héros d’INVITÉ ne se
   it('COOP — la fenêtre s’ouvre au siège du porteur, et son Mouvement reste intact', () => {
     const hero = setup(mk('H1'), COOP);
     // L'ÉNONCÉ du fix, figé sur le harnais coop : les deux prédicats DIVERGENT ici, et c'est la seule
-    // configuration où ils le font (en solo `ownsLocally` est vrai pour tous, donc ils coïncident).
+    // configuration où ils le font (en solo `ownsLocal` est vrai pour tous, donc ils coïncident).
     expect({
-      ownsLocally: ownsLocally(g(), 'H1'),
+      ownsLocal: ownsLocal(g(), 'H1'),
       humanControlled: humanControlled(g(), hero),
       surfaceOf: surfaceOf(g, hero.id),
-    }).toEqual({ ownsLocally: false, humanControlled: false, surfaceOf: true });
+    }).toEqual({ ownsLocal: false, humanControlled: false, surfaceOf: true });
 
     const out = resolveActGates(g, useGame.setState, hero);
 

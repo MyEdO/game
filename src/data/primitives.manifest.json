@@ -380,7 +380,7 @@
   {
     "id": "netOwnership",
     "type": "primitives.manifest",
-    "label": "ownsLocally/pilotedByHuman/aiDriven/siegesRequis",
+    "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
     "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",

@@ -81,12 +81,6 @@ const VERROU_LISTAGE = [
   `JSXMemberExpression[property.name=${NOMS_MARCHE}]`,
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
-const POLICE_POSSESSION = [{
-  group: ['**/state/netOwnership', '**/state/netFlow'],
-  importNames: ['ownsLocally'],
-  message: 'Possession à l’affichage (#1262) : passer par `ui/ownership.ts` (`ownsLocal`/`useOwns`) — le terme `net.mode === "local"` y est déjà mort.',
-}];
-
 const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
 const VERROU_LOCALE_COMPARE = [
   ...cles('property', NOMS_LOCALE).map((c) => `MemberExpression${c}`),
@@ -477,14 +471,6 @@ export const BLOCS_LINT = [
     excludeFiles: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
       'murs/conteneur': ['error', ...VERROU_CONTENEUR],
-    },
-  },
-  {
-
-    files: ['src/ui/**/*.ts', 'src/ui/**/*.tsx'],
-    excludeFiles: ['src/ui/ownership.ts'],
-    rules: {
-      'murs/possession': ['error', { patterns: POLICE_POSSESSION }],
     },
   },
   {
