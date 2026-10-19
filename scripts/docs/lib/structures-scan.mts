@@ -38,6 +38,7 @@ import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/s
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
+import { TYPES, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
 import {
   CLES_DE_SPECIALISATION,
@@ -657,6 +658,22 @@ export function scannerDonnees(
     !choixDeclares.get(dataset)?.get(k)?.has(v) &&
     !(typeof porteur.op === 'string' && choixDesOps.get(porteur.op)?.get(k)?.has(v));
 
+  /** L'espace que NOMME le `type` d'une référence TYPÉE (`{ id, type }`, `refTypee` de
+   *  `grammaire/ref.ts`), quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
+   *  plusieurs espaces n'y est donc jamais ambigu. */
+  const espaceNomme = (o: Obj, k: string, v: string): string | undefined => {
+    const type = o.type;
+    if (k !== 'id' || typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(TYPES, type)) return undefined;
+    const espace = espaceDe(type as TypeEntite);
+    return index.get(v)?.has(espace) ? espace : undefined;
+  };
+  /** Datasets vers lesquels la valeur `v` de la clé `k` de `o` résout : l'espace NOMMÉ d'une référence
+   *  typée, sinon tous ceux où l'id est indexé. */
+  const ciblesDe = (o: Obj, k: string, v: string): ReadonlySet<string> | undefined => {
+    const espace = espaceNomme(o, k, v);
+    return espace ? new Set([espace]) : index.get(v);
+  };
+
   /** Résolution BRUTE (l'id est indexé quelque part, ou le `{text}` égale un libellé). */
   const resoutIndex = (dataset: string, porteur: Obj, k: string, v: unknown): boolean =>
     typeof v === 'string' &&
@@ -690,7 +707,7 @@ export function scannerDonnees(
           s.total += 1;
           if (!resoutIndex(p.nom, o, k, v)) continue;
           s.resolvent += 1;
-          for (const d of index.get(v) ?? []) inc(s.cibles, d);
+          for (const d of ciblesDe(o, k, v) ?? []) inc(s.cibles, d);
         }
       });
     return sites;
@@ -790,6 +807,7 @@ export function scannerDonnees(
 
   const resoutSite = (p: Prepare, o: Obj, champ: string, k: string, v: unknown): boolean => {
     if (!resoutIndex(p.nom, o, k, v)) return false;
+    if (espaceNomme(o, k, v as string)) return true;
     const datasets = index.get(v as string);
     // `{text}` résolu vers un LIBELLÉ : la résolution est scopée aux cibles majoritaires du site.
     if (!datasets) return k === 'text' && datasetsDuTexte(p, o, champ, v as string).length > 0;
@@ -976,7 +994,7 @@ export function scannerDonnees(
         if (k === identite || !resoutSite(p, o, champ, k, v)) continue;
         resolvantes.add(k);
         if (typeof v !== 'string') continue;
-        for (const d of index.get(v) ?? []) cibles.add(d);
+        for (const d of ciblesDe(o, k, v) ?? []) cibles.add(d);
         if (k === 'text') for (const d of datasetsDuTexte(p, o, champ, v)) cibles.add(d);
       }
 

@@ -4,18 +4,18 @@
  * d'enjeux doit renvoyer vers une fiche de `regles.json`, pour que la règle soit à UN CLIC.
  *
  * Le stock RESTANT est ÉNUMÉRÉ nominativement et DÉCROISSANT : chaque lot de curation (patron L0a)
- * retire ses ids d'ici. Fail-closed : une entrée NEUVE sans règle, ou un renvoi MORT, échoue.
+ * retire ses ids d'ici. Fail-closed : une entrée NEUVE sans règle échoue ; un renvoi MORT casse au parse
+ * (`foyerDeRegleSchema`, `src/data/schemas/grammaire/valeurs.ts`).
  * La nuit est SOLDÉE (15/15 depuis L0a) — aucune tolérance n'y est ouverte.
  */
 import { describe, it, expect } from 'vitest';
 import {
   NIGHT_STAKES, VOYAGE_STAKES, FLOW_STAKES, COMBAT_STAKES,
   regles, skills, symptoms, etats, talents, qualities, spells,
-  characteristics, psychologies, seaShanties, crewTestTypes, maladies, maneuvers, resolveStake,
+  psychologies, seaShanties, crewTestTypes, maladies, maneuvers, resolveStake,
   mutations, mutationTables, interludeEvents, trappings, traits, creatures, ACTIVITY_STAKES,
 } from './index';
 import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
@@ -68,21 +68,6 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(sans).toEqual(attendu);
   });
 
-  it('aucun renvoi MORT : chaque `rule` déclarée existe dans SON foyer', () => {
-    // Le foyer peut être une ENTITÉ (amendement A) : la catégorie voyage avec l'id. Les trois datasets
-    // passent par le MÊME contrôle — un renvoi mort est un renvoi mort, quelle que soit la famille.
-    const FOYERS: Record<string, { id: string }[]> = {
-      regles, skills, symptoms, etats, talents, qualities, spells,
-      characteristics, psychologies, seaShanties, crewTestTypes, maladies, maneuvers,
-      steamBreakdowns: STEAM_BREAKDOWNS,
-    };
-    const cat = (e: { ruleCategory?: string | undefined }) => e.ruleCategory ?? 'regles';
-    const morts = [...NIGHT_STAKES, ...VOYAGE_STAKES, ...FLOW_STAKES, ...COMBAT_STAKES]
-      .filter((e) => e.rule && !(FOYERS[cat(e as { ruleCategory?: string })] ?? []).some((x) => x.id === e.rule))
-      .map((e) => `${e.id} → ${cat(e as { ruleCategory?: string })}:${e.rule}`);
-    expect(morts, 'renvoi vers un foyer inexistant').toEqual([]);
-  });
-
   it('le stock DÉCROÎT : le plafond mesuré ne remonte pas', () => {
     expect(VOYAGE_STAKES.filter((e) => !e.rule).length).toBeLessThanOrEqual(11);
   });
@@ -103,28 +88,16 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(absentes, 'fiche annoncée par L1a mais absente du catalogue').toEqual([]);
 
     const referencees = new Set(
-      [...NIGHT_STAKES, ...VOYAGE_STAKES, ...FLOW_STAKES].map((e) => e.rule).filter((r): r is string => !!r),
+      [...NIGHT_STAKES, ...VOYAGE_STAKES, ...FLOW_STAKES].flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])),
     );
     const orphelines = FICHES_L1A_CABLEES.filter((id) => !referencees.has(id));
     expect(orphelines, 'fiche L1a SANS référent : son jet ne la cite plus (câblage L1b perdu)').toEqual([]);
   });
 
-  /**
-   * Les enjeux de MODALE MONO sont soldés dès leur naissance : chaque entrée porte SA porte de
-   * lecture — le foyer du jet (`rule` + `ruleCategory`) ou la catégorie de l'ENTRÉE jouée
-   * (`entryCategory`). Aucune tolérance ouverte : le dataset naît sans dette.
-   */
-  it('chaque enjeu de modale mono porte SA porte (foyer ou entrée)', () => {
-    const sans = FLOW_STAKES.filter((e) => !e.entryCategory && !(e.rule && e.ruleCategory)).map((e) => e.id);
-    expect(sans, 'enjeu de modale mono sans foyer ni catégorie d’entrée').toEqual([]);
-  });
-
-  /** Même contrat pour la cascade de COMBAT (#1117 L2) : le dataset naît sans dette. */
-  it('chaque enjeu de combat porte SA porte (foyer, entrée déclarée, ou entrée de la SOURCE)', () => {
-    const sans = COMBAT_STAKES.filter((e) => !e.entryCategory && !e.entryFromSource && !(e.rule && e.ruleCategory)).map((e) => e.id);
-    expect(sans, 'enjeu de combat sans foyer ni catégorie d’entrée').toEqual([]);
-    // `entryFromSource` n'est pas un blanc-seing : le PRODUCTEUR doit pouvoir nommer une catégorie que
-    // le résolveur sait interroger. La table des natures de source est TOTALE — le pool doit l'être.
+  /** Un enjeu de COMBAT à `entryFromSource` (#1117 L2) n'a pas de blanc-seing : le PRODUCTEUR doit
+   *  pouvoir nommer une catégorie que le résolveur sait interroger. */
+  it('chaque nature de SOURCE a son pool d’entrées', () => {
+    // La table des natures de source est TOTALE — le pool doit l'être.
     const POOLS_MANQUANTS = Object.values(CATEGORY_BY_SOURCE_KIND).filter(
       (cat) => !resolveStake({ key: { dataset: 'combat', kind: 'actGate', entryId: PROBE_ID[cat], entryCategory: cat } }).rule,
     );

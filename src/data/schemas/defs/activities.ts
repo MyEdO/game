@@ -8,7 +8,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { conditionSchema, gameOpSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -196,11 +196,9 @@ const doc = document(
     stake: z.string().optional(),
     /** FORME DÉCLARÉE du `stake` (même contrat que `night-stakes`/`flow-stakes`). */
     stakeForm: stakeFormSchema.optional(),
-    /** FOYER de la règle derrière le jet — id de l'entité qui la PORTE. Absent : le foyer est
+    /** FOYER de la règle derrière le jet — l'entité qui la PORTE. Absent : le foyer est
      *  l'Activité elle-même (sa `desc` verbatim, catégorie Codex `activities`). */
-    rule: z.string().optional(),
-    /** Catégorie Codex du foyer (`'regles'`, `'skills'`, `'etats'`…) — exigée avec `rule`. */
-    ruleCategory: z.string().optional(),
+    rule: foyerDeRegleSchema.optional(),
   },
   {
     contexts: {
@@ -283,9 +281,8 @@ const doc = document(
     stakeForm: { label: 'Forme de l’enjeu' },
     rule: {
       label: 'Règle associée',
-      hint: 'Identifiant de l’entité qui porte la règle derrière le jet ; absent, c’est l’Activité elle-même',
+      hint: 'Entité qui porte la règle derrière le jet ; absent, c’est l’Activité elle-même',
     },
-    ruleCategory: { label: 'Catégorie de la règle', hint: 'Catégorie Codex de l’entité désignée par « Règle associée »' },
   },
   {
     codex: { keys: ['activities'] },
@@ -295,7 +292,7 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; contexts: string[]; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
+        const a = v as { id: string; contexts: string[]; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
         if (a.freeSkill && a.contexts.includes('mer')) {
           ctx.addIssue({ code: 'custom', path: ['freeSkill'], message: `${a.id} : une Activité de contexte mer ne déclare pas de Compétence libre — le choix d’Activité en mer ne nomme aucune Compétence (MDG 15 l.266-300)` });
         }
@@ -307,9 +304,6 @@ const doc = document(
         }
         if (a.stakeForm && !a.stake) {
           ctx.addIssue({ code: 'custom', message: `${a.id} : forme d’enjeu déclarée sans enjeu` });
-        }
-        if (a.rule && !a.ruleCategory) {
-          ctx.addIssue({ code: 'custom', message: `${a.id} : rule sans ruleCategory` });
         }
         for (const m of (v as { testMods?: { mod?: unknown; label?: string }[] }).testMods ?? []) {
           const terme = termeAleatoire(m.mod);

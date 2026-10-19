@@ -20,8 +20,10 @@
     "kind": "combatEndCorruption",
     "template": "Échec : {gainEchec} point(s) de Corruption (exposition {niveau}) — au seuil, une mutation.",
     "form": "descripteur",
-    "rule": "influences-corruptrices",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "influences-corruptrices",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 182,
@@ -35,8 +37,10 @@
     "kind": "fatigue",
     "template": "Échec : État Exténué. Réussite : le compteur d’effort baisse d’autant de Rounds que le DR.",
     "form": "descripteur",
-    "rule": "extenue",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "extenue",
+      "type": "etat"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 168,
@@ -50,8 +54,10 @@
     "kind": "aaBleedUnconscious",
     "template": "Échec : État Inconscient. Réussite : vous tenez bon ce Round — le Test revient au suivant tant que l’Hémorragie dure.",
     "form": "descripteur",
-    "rule": "inconscient",
-    "ruleCategory": "etats",
+    "rule": {
+      "id": "inconscient",
+      "type": "etat"
+    },
     "source": {
       "book": "aux-armes",
       "page": 80,
@@ -121,8 +127,10 @@
     "kind": "waterExposure",
     "template": "Échec : un tirage sur la table des maladies de l’eau (+10 par DR négatif) — la maladie tirée est contractée directement. Réussite : rien.",
     "form": "descripteur",
-    "rule": "exposition-hydrique",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "exposition-hydrique",
+      "type": "regle"
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 92,
@@ -136,8 +144,10 @@
     "kind": "pursuitMove",
     "template": "Test de Mouvement de la manche : les DR des deux camps se comparent et l’écart bouge la Distance ({distance}/{evasion}). À 0 ou moins, les poursuivants rattrapent ; à {evasion}, la proie est perdue.",
     "form": "descripteur",
-    "rule": "poursuite",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "poursuite",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 166,
@@ -151,8 +161,10 @@
     "kind": "tavernGame",
     "template": "{jeu} contre {adversaire} : la manche se gagne au plus grand nombre de DR. Mise engagée : {mise}.",
     "form": "descripteur",
-    "rule": "pari",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "pari",
+      "type": "skill"
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 91,
@@ -166,8 +178,10 @@
     "kind": "critSeverity",
     "template": "Un d100 sur le Tableau des Critiques de la Localisation touchée : la ligne tirée dit les Points de Blessure perdus — Bonus d’Endurance et PA ignorés — et ses Effets supplémentaires.",
     "form": "descripteur",
-    "rule": "blessures-critiques",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "blessures-critiques",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 174,
@@ -179,8 +193,10 @@
     "type": "combat-stakes",
     "label": "Blessure critique — Test de la ligne tirée",
     "kind": "critRowTest",
-    "rule": "blessures-critiques",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "blessures-critiques",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 174,
@@ -192,8 +208,10 @@
     "type": "combat-stakes",
     "label": "Critique de bateau — coup à l’équipage",
     "kind": "shipCrewHit",
-    "rule": "critiques-de-bateau",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "critiques-de-bateau",
+      "type": "regle"
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 29,
@@ -235,8 +253,10 @@
     "kind": "miscastTable",
     "template": "Un d100 sur le Tableau des Incantations Imparfaites : la ligne tirée dit le contrecoup subi — certaines lignes en appellent un nouveau lancer.",
     "form": "descripteur",
-    "rule": "incantation-imparfaite",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "incantation-imparfaite",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 236,
@@ -248,8 +268,10 @@
     "type": "combat-stakes",
     "label": "Incantation Imparfaite — Test de la ligne tirée",
     "kind": "miscastRowTest",
-    "rule": "incantation-imparfaite",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "incantation-imparfaite",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 236,
@@ -333,8 +355,10 @@
     "kind": "climbTest",
     "template": "Réussite : vous prenez pied en haut. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
-    "rule": "chute",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "chute",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -348,8 +372,10 @@
     "kind": "jumpTest",
     "template": "Réussite : le gouffre est franchi. Échec : vous manquez le bord et tombez — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
-    "rule": "chute",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "chute",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 166,
@@ -361,8 +387,10 @@
     "type": "combat-stakes",
     "label": "Embuscade — repérer les embusqués",
     "kind": "ambushSurprise",
-    "rule": "embuscade-surprise",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "embuscade-surprise",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 157,
@@ -374,8 +402,10 @@
     "type": "combat-stakes",
     "label": "Vigilance — éviter la Surprise",
     "kind": "ambushVigilance",
-    "rule": "vigilance",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "vigilance",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 147,
@@ -389,8 +419,10 @@
     "kind": "focusInterrupt",
     "template": "Réussite : votre concentration tient, les DR accumulés restent acquis. Échec : tous les DR du Test étendu de Focalisation sont perdus et vous subissez une Incantation Imparfaite Mineure — sans effet si un composant du Sort est sacrifié.",
     "form": "descripteur",
-    "rule": "interruption-de-focalisation",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "interruption-de-focalisation",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 237,
@@ -404,8 +436,10 @@
     "kind": "bladeTrapForce",
     "template": "Test opposé de Force, votre DR de défense en renfort. Vous l’emportez : la lame de l’adversaire lui est arrachée — et brisée sur un Succès Stupéfiant si elle n’y résiste pas (Incassable, sauvegarde de Solide) ; un gantelet verrouillé la lui laisse en main. Il l’emporte : il libère sa lame et combat normalement.",
     "form": "descripteur",
-    "rule": "piege-lame",
-    "ruleCategory": "qualities",
+    "rule": {
+      "id": "piege-lame",
+      "type": "quality"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 298,
@@ -419,8 +453,10 @@
     "kind": "harvestCreature",
     "template": "Réussite : vous reconnaissez les parties prisées — {encPlein} Enc de pièces prélevées. Échec : la quantité exploitable descend d’un cran — {encEchec} Enc.",
     "form": "descripteur",
-    "rule": "precieuses-entrailles",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "precieuses-entrailles",
+      "type": "regle"
+    },
     "source": {
       "book": "zoo-imperial",
       "page": 99,
@@ -434,8 +470,10 @@
     "kind": "teamCommand",
     "template": "Réussite : chaque chef d’équipe à portée de voix est dirigé — son équipe tire ensuite au score de Projectiles du commandant. Échec : rien. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
-    "rule": "commandant-d-equipe",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "commandant-d-equipe",
+      "type": "talent"
+    },
     "source": {
       "book": "aux-armes",
       "page": 140,
@@ -463,8 +501,10 @@
     "kind": "land-market-gossip",
     "template": "Réussite : une rumeur commerciale est glanée — les biens qu’elle vise se vendent au double du prix de base au Lieu désigné, sans échéance. Échec : aucune rumeur.",
     "form": "descripteur",
-    "rule": "ragot",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "ragot",
+      "type": "skill"
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 74,
@@ -478,8 +518,10 @@
     "kind": "land-market-wine-eval",
     "template": "Réussite : la qualité réelle du lot est révélée. Échec : une fausse qualité est annoncée, d’autant plus éloignée du vrai que le Degré d’échec est grand. Un lot ne s’évalue qu’une fois, quelle que soit l’issue.",
     "form": "descripteur",
-    "rule": "evaluation",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "evaluation",
+      "type": "skill"
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 72,
@@ -493,8 +535,10 @@
     "kind": "merchant-ragot",
     "template": "Réussite : la journée aux étals paie — le stock du marchand est renouvelé avec +10 % de Disponibilité. Échec : il est renouvelé sans ce bonus. Une journée entière passe dans les deux cas.",
     "form": "descripteur",
-    "rule": "ragot-au-marche",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "ragot-au-marche",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 291,
@@ -508,8 +552,10 @@
     "kind": "port-buy-bargain",
     "template": "Test opposé de Marchandage contre le commerçant, où son camp compte {sellerDR} DR de vendeur (lot partiel, cargaison en Surplus). Vous l’emportez : le prix baisse de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : le prix monte selon la même règle, son Négociateur compris.",
     "form": "descripteur",
-    "rule": "marchandage",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "marchandage",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 135,
@@ -523,8 +569,10 @@
     "kind": "port-sell-bargain",
     "template": "Test opposé de Marchandage contre l’acheteur, où votre camp compte {sellerDR} DR de relation du port au bien. Vous l’emportez : le prix d’offre monte de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : il baisse selon la même règle, son Négociateur compris.",
     "form": "descripteur",
-    "rule": "marchandage",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "marchandage",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 136,
@@ -538,8 +586,10 @@
     "kind": "port-sell-gossip",
     "template": "Réussite : un acheteur potentiel est approché — le dé de recherche suit. Échec : personne ne s’intéresse à cette cargaison dans ce port.",
     "form": "descripteur",
-    "rule": "ragot",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "ragot",
+      "type": "skill"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 136,
