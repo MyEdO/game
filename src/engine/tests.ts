@@ -131,11 +131,13 @@ export function rollTest(
   modifier = 0,
   policy: TestPolicy = getTestPolicy(),
 ): TestResult {
-  const raw = value + DIFFICULTY_MODIFIERS[difficulty] + modifier;
-  const target = clamp(raw, policy);
-  const r = d100(rng);
-  const res = evaluateTest(r, target, undefined, policy);
-  return target === raw ? res : { ...res, clamped: target - raw };
+  return evaluateTest(d100(rng), cibleDuTest(value, difficulty, modifier), undefined, policy);
+}
+
+/** Cible d'un Test AVANT bornage : valeur testée + Difficulté + modificateurs (LDB 12 l.92-94). C'est elle
+ *  que reçoivent les constructeurs (`evaluateTest`, `forcedTR`) — un dé forcé AVANT le jet en part aussi. */
+export function cibleDuTest(value: number, difficulty: Difficulty = 'intermediaire', modifier = 0): number {
+  return value + DIFFICULTY_MODIFIERS[difficulty] + modifier;
 }
 
 /** Un d100 est-il un « double » (11, 22, …, 99, 00=100) ? Génère Critique (réussi) ou Maladresse (raté). */
@@ -143,10 +145,13 @@ export function isDoubleRoll(roll: number): boolean {
   return roll === 100 || roll % 11 === 0;
 }
 
-/** Évalue un jet déjà obtenu contre une cible (utile pour rejouer un jet). `base` = valeur NUE
- *  testée (avant Difficulté/modificateurs) : un site qui la connaît la fait voyager jusqu'au
- *  départage d'un Test opposé (LDB 12 l.160). */
-export function evaluateTest(r: number, target: number, base?: number, policy: TestPolicy = getTestPolicy()): TestResult {
+/** Évalue un jet déjà obtenu contre une cible (utile pour rejouer un jet). `cible` = la cible AVANT
+ *  bornage (valeur + Difficulté + modificateurs ; `cibleBrute` d'un jet posé) : le constructeur la BORNE
+ *  lui-même (`clampTarget`) et MESURE l'écrêtage (`clamped`) — aucun appelant ne borne ni ne relaie.
+ *  `base` = valeur NUE testée (avant Difficulté/modificateurs) : un site qui la connaît la fait voyager
+ *  jusqu'au départage d'un Test opposé (LDB 12 l.160). */
+export function evaluateTest(r: number, cible: number, base?: number, policy: TestPolicy = getTestPolicy()): TestResult {
+  const { target, clamped } = clampTarget(cible, policy);
   // 1) Réussite « numérique » : jet ≤ cible.
   let success = r <= target;
   // 2) Bandes automatiques (LDB 12 l.28). 'normal' = RAW (01..autoSuccessMax réussite auto,
@@ -165,7 +170,29 @@ export function evaluateTest(r: number, target: number, base?: number, policy: T
   const baseSL = policy.slMode === 'fast' && success ? tens(r) : tens(target) - tens(r);
   // 4) DR auto des bandes (LDB 12 l.119/l.121) : réussite forcée ≥ +1 ; échec forcé ≤ −1.
   const sl = forced === 'success' ? Math.max(1, baseSL) : forced === 'fail' ? Math.min(-1, baseSL) : baseSL;
-  return { roll: r, target, success, sl, isDouble: isDoubleRoll(r), ...(base != null ? { base } : {}) };
+  return { roll: r, target, success, sl, isDouble: isDoubleRoll(r), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) };
+}
+
+/** Cible d'un jet posé AVANT bornage — l'inverse de la mesure des constructeurs (`evaluateTest`,
+ *  `forcedTR`) : un dé réévalué sur le MÊME jet repart de là, et le constructeur re-mesure son écrêtage. */
+export function cibleBrute(t: { target: number; clamped?: number }): number {
+  return t.target - (t.clamped ?? 0);
+}
+
+/** Cible d'un jet telle que son constructeur l'a MESURÉE : la cible bornée et son écrêtage voyagent
+ *  ENSEMBLE dans toute forme RANGÉE d'un jet — aucun stockage ne garde l'une sans l'autre. */
+export type CibleMesuree = Pick<TestResult, 'target' | 'clamped'>;
+/** Projection UNIQUE de la paire (cible bornée, écrêtage) d'un jet vers une forme rangée ou affichée. */
+export function cibleMesuree(t: CibleMesuree): CibleMesuree {
+  return { target: t.target, ...(t.clamped ? { clamped: t.clamped } : {}) };
+}
+
+/** Forme RANGÉE d'un jet (`{ roll, target, sl, success }` + l'écrêtage de sa cible) : `cibleBrute`
+ *  d'un jet rangé rend la cible du constructeur. */
+export type JetPose = Pick<TestResult, 'roll' | 'sl' | 'success'> & CibleMesuree;
+/** Projection UNIQUE d'un `TestResult` vers sa forme rangée (`JetPose`). */
+export function jetPose(t: TestResult): JetPose {
+  return { roll: t.roll, sl: t.sl, success: t.success, ...cibleMesuree(t) };
 }
 
 /** Valeur maximale d'un dé FORCÉ par la Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : le dé
@@ -174,7 +201,7 @@ export function evaluateTest(r: number, target: number, base?: number, policy: T
  *  de la policy, jamais un nombre en dur. SOURCE UNIQUE (sélecteur + résolveurs de jet forcé). */
 export function maxForcedRoll(target: number, policy: TestPolicy = getTestPolicy()): number {
   const ceil = policy.bandsMode === 'normal' ? policy.autoFailMin - 1 : policy.targetMax;
-  return Math.min(target, ceil);
+  return Math.min(clamp(target, policy), ceil);
 }
 
 /** Le dé qui MAXIMISE le DR d'une réussite FORCÉE (« Je ne faillirai pas ! », LDB 17 l.68 : on choisit
@@ -349,9 +376,11 @@ export function bumpSL(t: TestResult, by = 1): TestResult {
 /** `TestResult` d'une réussite FORCÉE (Résilience « Je ne faillirai pas ! » LDB 17 l.68 / Résistance
  *  Menace LDB 10) au dé `roll`, DR `sl` imposé. Collapse le littéral `{ roll, target, success: true,
  *  sl, isDouble: isDoubleRoll(roll) }` recopié dans chaque résolveur forcé — atome PARTAGÉ, voisin de `bumpSL`.
+ *  `cible` = la cible AVANT bornage, bornée et MESURÉE ici comme dans `evaluateTest` ;
  *  `base` = valeur nue, à fournir quand le site la connaît (départage opposé, LDB 12 l.160). */
-export function forcedTR(roll: number, target: number, sl: number, base?: number): TestResult {
-  return { roll, target, success: true, sl, isDouble: isDoubleRoll(roll), ...(base != null ? { base } : {}) };
+export function forcedTR(roll: number, cible: number, sl: number, base?: number): TestResult {
+  const { target, clamped } = clampTarget(cible);
+  return { roll, target, success: true, sl, isDouble: isDoubleRoll(roll), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) };
 }
 
 /** `TestResult` RE-HYDRATÉ depuis un détail de jet stocké (RollBreakdown/attackerDetail/étape de
@@ -360,9 +389,10 @@ export function forcedTR(roll: number, target: number, sl: number, base?: number
  *  à `base` à défaut — les détails de COMBAT ont un `base` qui est la valeur TESTÉE, reprendre celui-là
  *  rouvrirait le départage mixte que #1153 ferme (`LDB 12 l.160`) ; hors combat les deux coïncident.
  *  Atome PARTAGÉ. */
-export function hydrateTR(d: { roll: number; target: number; success: boolean; sl: number; base?: number; nue?: number }): TestResult {
+export function hydrateTR(d: { roll: number; target: number; success: boolean; sl: number; base?: number; nue?: number; clamped?: number }): TestResult {
   const nue = d.nue ?? d.base;
-  return { roll: d.roll, target: d.target, success: d.success, sl: d.sl, isDouble: isDoubleRoll(d.roll), ...(nue != null ? { base: nue } : {}) };
+  const { target, clamped } = clampTarget(cibleBrute(d));
+  return { roll: d.roll, target, success: d.success, sl: d.sl, isDouble: isDoubleRoll(d.roll), ...(nue != null ? { base: nue } : {}), ...(clamped ? { clamped } : {}) };
 }
 
 /** Test Soutenu (LDB 12 l.187-200) — BONUS de coopération : chaque soutien octroie +10 au Test, MAIS le

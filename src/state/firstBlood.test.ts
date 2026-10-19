@@ -15,7 +15,7 @@ import type { Weapon } from '../engine/types';
  * `victoryCondition.test.ts`) et le harnais `applyAttackResult` direct de `at-terre.test.ts`.
  */
 
-/** Résout la cascade de fin de combat (Tests de Résistance influençables) — no-op si aucune. */
+/** Résout la cascade de fin de combat (Tests influençables) — no-op si aucune. */
 function drainCombatEndCascade(): void {
   for (let guard = 0; guard < 30; guard++) {
     const p = useGame.getState().pendingCascade;

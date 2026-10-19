@@ -29,7 +29,7 @@ import { surfaceOf } from './rollSeam';
 import { gainCorruption } from './corruptionFlow';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
-import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, type TestResult } from '../engine/tests';
+import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
 import { applyReverse, reverseAvailable as engineReverseAvailable, reversePreview as engineReversePreview } from '../engine/reverseToken';
 import { clampFixedRoll } from '../engine/fixedDie';
 import { TestOutcome } from '../engine/testOutcome';
@@ -149,6 +149,8 @@ export interface ForcedResolve {
  */
 export interface ForcedPick {
   roll: number;
+  /** Cible du dé AVANT bornage (`cibleBrute` d'un jet posé) : le constructeur qui réévalue le dé
+   *  (`evaluateTest`/`forcedTR`) la borne et en mesure l'écrêtage lui-même. */
   target: number;
   /** Valeur NUE testée (avant Difficulté et modificateurs), quand le slot la porte : le `TestResult`
    *  reconstruit sur un dé CHOISI ou FIXÉ la reconduit, faute de quoi le départage d'un Test opposé
@@ -159,6 +161,12 @@ export interface ForcedPick {
   /** FACES du dé quand ce n'est pas un d100 (dé de lot d'étal : d10…). Le champ s'y borne — sans quoi
    *  il accepterait un 73 sur un dé à 10 faces et afficherait une valeur intirable. */
   max?: number;
+}
+
+/** Dé LU sur un jet posé (`TestResult`, `RollBreakdown`, ou sa projection stockée) : sa cible AVANT
+ *  bornage (`cibleBrute`) et sa valeur nue. SEULE forme de lecture des accesseurs de dé. */
+export function deDuJet(t: { roll: number; target: number; base?: number; clamped?: number }, critable = false): ForcedPick {
+  return { roll: t.roll, target: cibleBrute(t), ...(t.base != null ? { base: t.base } : {}), critable };
 }
 
 /**
@@ -301,7 +309,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * dérive de `actorTR`/`dieTarget`) ; il ne subsiste que pour les résultats de forme PROPRE, non
    * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
    * incantation (`CastResult`, `critable` faux pour une Prière), étape de cascade (`step.result`/`target`),
-   * Test de Calme du fuyard (`slot.calme`). Le QUAND (Résilience vs dé fixé, avant/après le jet) ne s'écrit
+   * Test `fuite` du fuyard (`slot.jet`). Le QUAND (Résilience vs dé fixé, avant/après le jet) ne s'écrit
    * plus ici : il est arbitré une seule fois par `ui/forcedDieRow.ts`.
    */
   caps?: {
@@ -576,7 +584,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // (LDB 17 l.68) sur un Test qu'il vient de forcer, et le sélecteur disparaîtrait sous ses doigts.
   // Avant le jet, repli sur `dieTarget` (la cible n'existe encore nulle part ailleurs).
   const lensDieTarget = (slot: Slot, actor: Combatant | undefined): number | null =>
-    L?.actorTR(slot)?.target ?? (actor && L?.dieTarget ? L.dieTarget(slot, actor) : null);
+    (L?.actorTR(slot) ? cibleBrute(L.actorTR(slot)!) : null) ?? (actor && L?.dieTarget ? L.dieTarget(slot, actor) : null);
   // ACCESSEUR DE DÉ, dérivé UNE fois : déclaré par la spec, sinon obtenu de la lentille (le jet POSÉ fait
   // foi — sa cible reste vraie une fois le Test réussi, là où `dieTarget` encode « reste-t-il à forcer ? »
   // et s'éteint) ; `caps.picker` reste accepté comme `read` seul (flux historique sans écrivain).
@@ -586,7 +594,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     ?? (L
       ? (slot: Slot, actor: Combatant | undefined) => {
           const tr = L.actorTR(slot);
-          if (tr) return { roll: tr.roll, target: tr.target, base: tr.base, critable: false };
+          if (tr) return deDuJet(tr);
           const tgt = lensDieTarget(slot, actor);
           return tgt == null ? null : { roll: bestForcedRoll(tgt), target: tgt, critable: false };
         }

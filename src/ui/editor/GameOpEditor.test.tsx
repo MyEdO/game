@@ -226,7 +226,6 @@ describe('GameOpEditor — résumé d’une réf ABSENTE ou VIDE (#1473)', () =>
       newOp('skillDRBonus'),
       { op: 'grantReverseToken', skill: { id: '' } },
       { op: 'castPenalty', mod: -10, skill: { id: '' } },
-      { op: 'corruptionExposure', level: 'mineure', skill: { id: '' } },
       { op: 'reduceDiseaseDays', days: 1, disease: '' },
       { op: 'diseaseTestMod', amount: 10, diseases: [''] },
     ];

@@ -4,8 +4,9 @@
 import { RNG, defaultRNG } from './dice';
 import { effectiveChar } from './characteristics';
 import { loseWounds, addCondition } from './conditions';
-import type { Combatant } from './types';
-import { rollTest, type TestResult } from './tests';
+import type { Combatant, Difficulty } from './types';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { rollTest, cibleMesuree, type CibleMesuree, type TestResult } from './tests';
 import { effectiveMovement } from './encumbrance';
 
 /**
@@ -17,30 +18,39 @@ export function slowestMovement(membres: readonly Combatant[]): number {
   return membres.length ? Math.max(0, Math.min(...membres.map((c) => effectiveMovement(c)))) : 0;
 }
 
+/** Le Test de fiche que jette un cavalier (LDB 14 l.179), posé UNE fois par l'ouvreur de la Course (héros :
+ *  `battleRun` ; IA : `aiApproachPlan`). Le saut et la chute volontaire ne se jouent pas montés : refus
+ *  `geste.refus.monte` (`state/gesteDArete.ts:89`), saut du groupe hors combat (`state/jumpMove.ts`). */
+export function testDuCavalier<T extends { readonly skill: RefDesignee }>(actor: Pick<Combatant, 'mountId'>, test: T): T {
+  return actor.mountId ? { ...test, skill: { id: 'chevaucher' } } : test;
+}
+
 /**
- * Course (LDB 15 l.41) : « vous pouvez utiliser votre Action pour courir. Vous avez
- * besoin d'un Test d'Athlétisme Accessible (+20)… Vous pouvez courir sur une distance équivalente à
- * votre Mouvement de Course + DR ». On parcourt donc sa Marche (Mouvement) PLUS cette distance de course.
+ * Course (LDB 15 l.41) : on parcourt sa Marche (Mouvement) PLUS la distance de course que donne le Test.
+ * `difficulty` est la Difficulté RÉSOLUE du Test (fiche `course`, `testDeRegle`), jamais relue ici.
  *
  * Grille du jeu : 2 m/case ; le Mouvement de Course = 2×Mouvement cases (cf. Charge). Le DR du Test est
  * exprimé en MÈTRES par le livre → converti en cases (÷2, arrondi). `bonusCases` = la distance de course
  * ajoutée à la Marche, plancher 0. Le `success` sert à l'affichage ; le bonus s'applique même sur un DR
- * négatif (le livre court « Course + DR » avec un DR pouvant être négatif), clampé ≥ 0.
+ * négatif, clampé ≥ 0.
  */
 export function resolveRun(
   athletics: number,
+  difficulty: Difficulty,
   movement: number,
   rng: RNG = defaultRNG,
-): { success: boolean; roll: number; target: number; dr: number; bonusCases: number } {
-  return runFromTest(rollTest(athletics, 'accessible', rng), movement); // Athlétisme Accessible (+20)
+): IssueDeCourse {
+  return runFromTest(rollTest(athletics, difficulty, rng), movement);
 }
 
+/** Issue rangée d'une Course : le jet (cible mesurée) et la distance qu'il donne. */
+export type IssueDeCourse = { success: boolean; roll: number; dr: number; bonusCases: number } & CibleMesuree;
 /** PROJECTION PURE d'un `TestResult` sur l'issue d'une Course (distance en cases). SÉPARE le jet de sa
  *  lecture : le socle des jets rejoue cette projection sur un dé SAISI sans relancer, et sans recopier
  *  la formule. */
-export function runFromTest(t: TestResult, movement: number): { success: boolean; roll: number; target: number; dr: number; bonusCases: number } {
+export function runFromTest(t: TestResult, movement: number): IssueDeCourse {
   const bonusCases = Math.max(0, 2 * movement + Math.round(t.sl / 2));
-  return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, bonusCases };
+  return { success: t.success, roll: t.roll, ...cibleMesuree(t), dr: t.sl, bonusCases };
 }
 
 /**
@@ -63,7 +73,7 @@ export function freeJumpTiles(movement: number): number {
 }
 
 /**
- * Distance MAXIMALE qu'on peut TENTER (au prix d'un Test d'Athlétisme) = saut libre + 1 case. Le livre
+ * Distance MAXIMALE qu'on peut TENTER (au prix du Test de la fiche `saut`) = saut libre + 1 case. Le livre
  * étend le saut de « 30 cm par DR » sur réussite ; sur la grille à 2 m/case, l'incrément minimal
  * praticable est UNE case. Au-delà, le gouffre est infranchissable.
  */
@@ -71,7 +81,7 @@ export function maxJumpTiles(movement: number): number {
   return freeJumpTiles(movement) + 1;
 }
 
-/** Un saut de `tiles` cases exige-t-il un Test d'Athlétisme ? Oui dès qu'il dépasse le saut libre. */
+/** Un saut de `tiles` cases exige-t-il le Test de `saut` ? Oui dès qu'il dépasse le saut libre. */
 export function jumpNeedsTest(movement: number, tiles: number): boolean {
   return tiles > freeJumpTiles(movement);
 }
@@ -140,26 +150,27 @@ export function resolveSurfaceClimb(
 }
 
 /**
- * Chute VOLONTAIRE — « à dessein » (LDB 15 l.82) : « vous pouvez tenter un Test d'Athlétisme
- * Accessible (+20) afin de réduire les Dégâts reçus. Pour chaque DR, considérez que vous tombez de 1 m de
- * moins. Si vous parvenez à réduire votre distance de chute à 0 ou moins, vous ne subissez aucun Dégât de
- * chute. » Renvoie la hauteur EFFECTIVE de chute (à passer à `applyFall`) après réduction ; seul un DR
- * POSITIF réduit (un Test raté ne fait pas chuter de plus haut que la chute subie). Pur ; ne mute rien.
+ * Chute VOLONTAIRE — « à dessein » (LDB 15 l.82). `difficulty` est la Difficulté RÉSOLUE du Test (fiche
+ * `chute`, `testDeRegle`), jamais relue ici. Renvoie la hauteur EFFECTIVE de chute (à passer à `applyFall`)
+ * après réduction ; seul un DR POSITIF réduit. Pur ; ne mute rien.
  */
 export function resolveDeliberateFall(
   athletics: number,
+  difficulty: Difficulty,
   metres: number,
   rng: RNG = defaultRNG,
-): { success: boolean; roll: number; target: number; dr: number; effectiveMetres: number } {
-  return fallFromTest(rollTest(athletics, 'accessible', rng), metres); // Athlétisme Accessible (+20)
+): IssueDeChute {
+  return fallFromTest(rollTest(athletics, difficulty, rng), metres);
 }
 
+/** Issue rangée d'une chute volontaire : le jet (cible mesurée) et la hauteur effective. */
+export type IssueDeChute = { success: boolean; roll: number; dr: number; effectiveMetres: number } & CibleMesuree;
 /** PROJECTION PURE d'un `TestResult` sur l'issue d'une chute volontaire (−1 m par DR positif, LDB 15
  *  l.82). SÉPARE le jet de sa lecture : le socle des jets rejoue cette projection sur un dé SAISI sans
  *  relancer, et sans recopier la formule. */
-export function fallFromTest(t: TestResult, metres: number): { success: boolean; roll: number; target: number; dr: number; effectiveMetres: number } {
+export function fallFromTest(t: TestResult, metres: number): IssueDeChute {
   const reduction = Math.max(0, t.sl); // −1 m par DR (positif) ; échec = aucune réduction
-  return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, effectiveMetres: Math.max(0, metres - reduction) };
+  return { success: t.success, roll: t.roll, ...cibleMesuree(t), dr: t.sl, effectiveMetres: Math.max(0, metres - reduction) };
 }
 
 /**

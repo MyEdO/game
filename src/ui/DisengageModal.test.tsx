@@ -6,6 +6,15 @@ import { useGame } from '../state/store';
 import { DisengageModal } from './DisengageModal';
 import type { Combatant } from '../engine/types';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { refLabel } from '../data';
+import { testBreakdown } from './breakdown';
+import { difficultyText } from './difficultyText';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
+import { lignesDeJet } from './ligneDeJet.testkit';
+import { clampTarget, cibleDuTest } from '../engine/tests';
+import { valeurDuTest } from '../engine/skills';
+import { t } from '../i18n';
 
 /**
  * Menu de Désengagement (LDB 15 l.45-49, l.61-68) : chaque option OFFERTE porte sa note d'enjeu dans
@@ -99,5 +108,64 @@ describe('Désengagement — valeur d’Esquive du choix = cible lancée', () =>
     useGame.getState().disengageRoll();
     expect(affichee).toBe(useGame.getState().pendingDisengage!.def!.target);
     expect(affichee).toBe(chars.agilite - 20);
+  });
+});
+
+// Fuite touchée (LDB 15 l.66) : le Test du fuyard se lit AVANT le jet, sur la même ligne qu'après.
+describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', () => {
+  beforeEach(poserFicheDeTest);
+  afterEach(restaurerFiche);
+  it('le coup a porté : la rangée du fuyard montre compétence et Difficulté de son slot, sans jet', () => {
+    const test = testDeRegle('fuite', 'touche-en-fuyant');
+    const posee = testDeFiche('fuite', 'touche-en-fuyant');
+    useGame.setState({
+      battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
+      pendingDisengage: {
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        fuir: { participants: [
+          { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
+          { id: 'Héros', kind: 'touche', interactive: true, test, jet: null },
+        ] },
+      },
+    } as never);
+    act(() => root.render(<DisengageModal />));
+    expect(lignesDeJet(host), 'la ligne du Test du fuyard est rendue avant le jet').toContainEqual({ label: refLabel('skills', posee.skill), diff: difficultyText(posee.difficulty) });
+  });
+
+  // LDB 15 l.68 : la Course de fuite suppose le fuyard encore capable de courir.
+  it('issue de la fuite : la Course n’est annoncée que sous condition de capacité', () => {
+    const test = testDeRegle('fuite', 'touche-en-fuyant');
+    useGame.setState({
+      battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
+      pendingDisengage: {
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        fuir: { participants: [
+          { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
+          { id: 'Héros', kind: 'touche', interactive: true, test, jet: { roll: 10, target: 50, sl: 4, success: true } },
+        ] },
+      },
+    } as never);
+    act(() => root.render(<DisengageModal />));
+    expect(texte(host.querySelector('.rm-journal')!)).toContain(t('out.disengageFlee', { hit: t('out.fleeHit', { wounds: 3, s: 's', broken: '' }) }).trim());
+  });
+
+  // LDB 16 l.125, LDB 16 l.11.
+  it('fuyard Sonné ×3 : la ligne de son Test nomme « −30 Sonné » et annonce la cible du jet', () => {
+    const test = testDeRegle('fuite', 'touche-en-fuyant');
+    const fuyard = { ...mk('Héros', 'hero'), conditions: [{ id: 'sonne', value: 3 }] } as Combatant;
+    useGame.setState({
+      battle: { combatants: [fuyard, mk('Brute', 'enemy')] } as never,
+      pendingDisengage: {
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        fuir: { participants: [
+          { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
+          { id: 'Héros', kind: 'touche', interactive: true, test, jet: null },
+        ] },
+      },
+    } as never);
+    act(() => root.render(<DisengageModal />));
+    const ligne = [...host.querySelectorAll('.rm-roll-block')].find((b) => texte(b).includes(refLabel('skills', test.skill)))!;
+    expect([...ligne.querySelectorAll('.rm-mod')].map(texte)).toContain('−30 Sonné');
+    expect(texte(ligne.querySelector('.rm-roll-calc')!)).toMatch(new RegExp(`= ${clampTarget(cibleDuTest(valeurDuTest(fuyard, test), test.difficulty)).target}$`));
   });
 });

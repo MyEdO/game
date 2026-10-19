@@ -382,7 +382,7 @@ export function makeZone11() {
         rect: { x: 13, y: 3, w: 8, h: 6 },
         once: true,
         flow: flowOf([
-          { type: 'corruptionExposure', level: 'mineure', skill: { id: 'calme' } },
+          { type: 'corruptionExposure', level: 'mineure', nature: 'spirituelle' },
           { type: 'journal', desc: 'L’idole noire CHANTE dans vos crânes — une influence corruptrice à l’état pur.' },
         ]),
       },

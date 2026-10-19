@@ -13,7 +13,6 @@ import { z } from 'zod';
 import { familleDuRepere, idDe, idsDe, mesureDuParse, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema } from './mecanique';
-import { refTestDeCorruption } from './valeurs';
 import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
@@ -70,8 +69,16 @@ describe('reperesDuParse — le path de DONNÉE de chaque référence validée p
   });
 
   it('un RAFFINEMENT posé en SORTIE de la feuille est jugé au parse normal : hors borne LÈVE, dans la borne rend son slot', () => {
-    expect(() => reperesDuParse(refTestDeCorruption, { id: 'athletisme' })).toThrow(/« custom » à « id » \(corruptionExposure\.skill : « athletisme »/);
-    expect(reperesDuParse(refTestDeCorruption, { id: 'resistance' })).toEqual([{ path: ['id'], type: 'skill', parCle: false }]);
+    const borne = z.strictObject({
+      id: idDe('skill').transform((v, ctx) => {
+        if (v === COMPETENCE) return v;
+        ctx.addIssue({ code: 'custom', input: v, message: `borne : « ${v} » hors de la paire` });
+        return z.NEVER;
+      }),
+    });
+    const autre = IDS_PAR_ESPACE['skills.json'].find((x) => x !== COMPETENCE)!;
+    expect(() => reperesDuParse(borne, { id: autre })).toThrow(new RegExp(`« custom » à « id » \\(borne : « ${autre} »`));
+    expect(reperesDuParse(borne, { id: COMPETENCE })).toEqual([{ path: ['id'], type: 'skill', parCle: false }]);
   });
 });
 

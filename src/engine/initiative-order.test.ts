@@ -52,4 +52,11 @@ describe('initiativeOrder — tri RAW (LDB 13 l.31)', () => {
     expect(out[1]).toBe('b');
     expect([...out.slice(2)].sort()).toEqual(['a', 'c']); // a et c en queue, départagés par le Test
   });
+
+  it('égalité EXACTE I+Ag : le Test d’Agilité se jette sur la valeur de Test, États compris (LDB 16 l.125)', () => {
+    const a = c('a', 40, 40); a.conditions = [{ id: 'sonne', value: 3 }];
+    const b = c('b', 40, 40);
+    // Dé 30 pour chacun : b réussit (40), a Sonné ×3 échoue (40 − 30 = 10) → b d'abord.
+    expect(ids(initiativeOrder([a, b], { int: () => 30 }))).toEqual(['b', 'a']);
+  });
 });

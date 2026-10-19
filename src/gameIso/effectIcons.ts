@@ -3,16 +3,18 @@
  * (pion sur le terrain, panneau Perso, ordre de bataille, fiche express au survol).
  * Aucune règle ici : on lit `conditions[]` et `activeEffects[]` déjà gérés par le moteur.
  */
-import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
+import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../ui/icons';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
 import { ACTIVITIES } from '../engine/activities';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { deElide } from '../i18n';
 import { MISCAST_TABLES } from '../engine/miscast';
 import { slugId } from '../data/slug';
-import { isFrenzied } from '../engine/psychology';
+import { isFrenzied, psychTest } from '../engine/psychology';
 import { etatConnu, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
 
@@ -295,9 +297,11 @@ function flagChips(flags?: EffectFlags): EffectChip[] {
     });
   }
   if (flags?.fear != null) {
+    const approche = testDeRegle('calme-d-approche', 'se-rapprocher');
+    const vaincre = psychTest('peur');
     out.push({
       key: 'f-fear', flagId: 'fear', icon: 'flag/fear', kind: 'state', severity: 66, indice: flags.fear,
-      label: `Peur (Indice ${flags.fear}) — −1 DR contre la source ; approcher exige un Test de Calme (+0) ; Test étendu de Calme en fin de Round pour la vaincre`,
+      label: `Peur (Indice ${flags.fear}) — −1 DR contre la source ; approcher exige un Test ${deElide(refLabel('skills', approche.skill))} ${DIFFICULTY_LABELS[approche.difficulty]} ; Test étendu ${deElide(refLabel('skills', vaincre.skill))} en fin de Round pour la vaincre`,
     });
   }
   return out;

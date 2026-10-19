@@ -1,13 +1,22 @@
-import { describe, it, expect } from 'vitest';
-import { aiApproachPlan } from './combatFlow';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { aiApproachPlan, runEnemyAI } from './combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
+import { useGame } from './store';
+import { battleRng, seedBattleRng } from './battleRng';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { valeurDuTest } from '../engine/skills';
+import { cibleDuTest, evaluateTest } from '../engine/tests';
+import { traceLineOf, testTraceLabel } from '../engine/traceLine';
+import { runFromTest } from '../engine/movement';
+import { refLabel } from '../data';
+import { t } from '../i18n';
 
 /**
  * Parité héros/IA sur l'approche (LDB 15 l.35-41) : Charge à portée de Course (2M) quand la Marche
- * ne suffit pas à entrer au contact ; Course (Test d'Athlétisme, pas d'attaque) au-delà.
+ * ne suffit pas à entrer au contact ; Course (Test `course`, pas d'attaque) au-delà.
  */
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
@@ -44,7 +53,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     expect(chebyshev(to, { x: 8, y: 10 })).toBe(1); // adjacent au héros
   });
 
-  it('cible hors de portée de Course : COURT (Test d’Athlétisme) et avance plus loin que la Marche', () => {
+  it('cible hors de portée de Course : COURT (Test `course`) et avance plus loin que la Marche', () => {
     const { plan, ran, action } = planFor(25); // distance 23 : même la Course (8) n'atteint pas
     expect(ran).not.toBeNull(); // jet de Course consommant l'Action
     expect(ran!.budget).toBeGreaterThan(4); // Marche + Course + DR
@@ -57,5 +66,34 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     const { plan, action, ran } = planFor(8, { engagedWith: ['x'] });
     expect(plan).toBe(action);
     expect(ran).toBeNull();
+  });
+});
+
+describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); useGame.setState({ battle: null, actorMove: null } as never); });
+
+  it('contient EXACTEMENT la ligne du Test de `course` puis la Course, à la forme de celle du héros (`cs.run`, cases parcourues)', () => {
+    vi.useFakeTimers();
+    const enemy = C('enemy', 'e', 2, { label: 'Gobelin' } as Partial<Combatant>);
+    // Héros à 11 cases : hors de la Charge (8), au contact par la Course — l'ennemi s'arrête AVANT
+    // d'épuiser son budget (Marche + Course + DR), et la ligne dit les cases PARCOURUES, pas le budget.
+    const hero = C('hero', 'h', 13);
+    useGame.setState({ scene: scene(), party: [], pendingCascade: null, actorMove: null,
+      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null } as never });
+    seedBattleRng(3);
+    const des = vi.spyOn(battleRng(), 'int');
+    const depart = { ...enemy.pos! };
+    runEnemyAI(useGame.getState, useGame.setState, 'e');
+    vi.runOnlyPendingTimers();
+    const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
+    expect(d100, 'un seul d100 au tour : celui de la Course').toHaveLength(1);
+    const course = testDeRegle('course', 'courir');
+    const jet = evaluateTest(d100[0], cibleDuTest(valeurDuTest(enemy, course), course.difficulty));
+    const lignes = useGame.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'move').map((l) => l.text);
+    expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
+    expect(lignes).toEqual([
+      traceLineOf({ who: 'Gobelin', label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),
+      t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' }),
+    ]);
   });
 });

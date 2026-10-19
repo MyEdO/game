@@ -148,12 +148,12 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
   });
   it('malepierre-brute : « Être en contact avec un Démon, une malepierre ou un artefact profané » (LDB 19 l.51) → corruptionExposure moderee/Résistance', () => {
     expect(consumableOps(findTrappingById('malepierre-brute')!.consumable)).toEqual([
-      { op: 'corruptionExposure', level: 'moderee', skill: { id: 'resistance' } },
+      { op: 'corruptionExposure', level: 'moderee', nature: 'physique' },
     ]);
   });
   it('malepierre-raffinee : « Utiliser une malepierre raffinée » (LDB 19 l.63) → corruptionExposure majeure/Résistance', () => {
     expect(consumableOps(findTrappingById('malepierre-raffinee')!.consumable)).toEqual([
-      { op: 'corruptionExposure', level: 'majeure', skill: { id: 'resistance' } },
+      { op: 'corruptionExposure', level: 'majeure', nature: 'physique' },
     ]);
   });
 });

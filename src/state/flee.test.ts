@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { fleeReachable } from './path';
 import { emptyScene } from './scene';
 import { stacks, hasCondition, COND } from '../engine/conditions';
-import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
+import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { intentAllowedFor, modalOwnerOf } from './netOwnership';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
@@ -26,7 +27,7 @@ describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (
   });
 });
 
-// Fuite (LDB 15 l.63-66) : le coup dans le dos du frappeur et le Test de Calme du fuyard sont DEUX
+// Fuite (LDB 15 l.63-66) : le coup dans le dos du frappeur et le Test `fuite` du fuyard sont DEUX
 // jets du flux `flee` ; la complétion de la fuite est DIFFÉRÉE jusqu'au « Appliquer ».
 describe('Fuite intégrée à la modale (store)', () => {
   beforeEach(() => {
@@ -39,7 +40,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     vi.useRealTimers();
   });
 
-  it('Fuir : coup dans le dos (témoin IA) + Test de Calme DIFFÉRÉ (flux flee) ; fuite complétée au confirm, sans révélation', () => {
+  it('Fuir : coup dans le dos (témoin IA) + Test `fuite` DIFFÉRÉ (flux flee) ; fuite complétée au confirm, sans révélation', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
@@ -68,14 +69,14 @@ describe('Fuite intégrée à la modale (store)', () => {
     expect(bs.interactive).toBe(false); // frappeur IA → rangée témoin, auto-roulée
     expect(bs.result!.hit).toBe(true); // CC 90 +20 → touche
     expect(bs.result!.woundsLost).toBeGreaterThan(0);
-    expect(fleeCalme(pdf)!.calme).toBeNull(); // touché → Test de Calme DIFFÉRÉ (jet influençable en attente)
+    expect(fleeTouche(pdf)!.jet).toBeNull(); // touché → Test `fuite` DIFFÉRÉ (jet influençable en attente)
     // Blessures NON encore appliquées, fuite NON complétée : tout attend le « Appliquer ».
     expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBe(40);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([E.id]);
 
-    // Le Test de Calme passe par le flux `flee` (jet INFLUENÇABLE) : Lancer puis Appliquer.
+    // Le Test `fuite` passe par le flux `flee` (jet INFLUENÇABLE) : Lancer puis Appliquer.
     useGame.getState().fleeRoll(H.id);
-    expect(fleeCalme(useGame.getState().pendingDisengage!)!.calme).toBeTruthy(); // Calme résolu
+    expect(fleeTouche(useGame.getState().pendingDisengage!)!.jet).toBeTruthy(); // Test `fuite` résolu
     useGame.getState().fleeConfirm();
 
     // « Appliquer » applique le coup dans le dos puis complète la fuite (libération + Course).
@@ -101,7 +102,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     H.wounds = { current: 40, max: 40, base: 40 } as never;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
-    // Phase 'fuir' avec un coup dans le dos FIGÉ (4 PB) et un Test de Calme RATÉ figé (DR -2 → 3 États Brisés).
+    // Phase 'fuir' avec un coup dans le dos FIGÉ (4 PB) et un Test `fuite` RATÉ figé (DR -2 → 3 États Brisés).
     useGame.setState({
       battle: { ...b },
       pendingDisengage: {
@@ -109,7 +110,7 @@ describe('Fuite intégrée à la modale (store)', () => {
         fuir: {
           participants: [
             { id: E.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
-            { id: H.id, kind: 'calme', interactive: true, calme: { success: false, roll: 70, target: 50, sl: -2 } },
+            { id: H.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -2 } },
           ],
         },
       },
@@ -118,8 +119,8 @@ describe('Fuite intégrée à la modale (store)', () => {
     // Chance « +1 DR » : DR -2 → -1 ; l'échec NE bascule PAS en réussite (1 Point de Chance dépensé).
     useGame.getState().fleeBonusSL(H.id);
     let st = useGame.getState();
-    expect(fleeCalme(st.pendingDisengage!)!.calme!.sl).toBe(-1);
-    expect(fleeCalme(st.pendingDisengage!)!.calme!.success).toBe(false);
+    expect(fleeTouche(st.pendingDisengage!)!.jet!.sl).toBe(-1);
+    expect(fleeTouche(st.pendingDisengage!)!.jet!.success).toBe(false);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
 
     // « Appliquer » : broken = 1 + max(0, 1) = 2 États Brisés (au lieu de 3 sans le +1 DR).
@@ -195,7 +196,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
     const pdAfter = useGame.getState().pendingDisengage!;
-    if (fleeNeedCalme(pdAfter)) useGame.getState().fleeRoll(fleeCalme(pdAfter)!.id);
+    if (fleeToucheDu(pdAfter)) useGame.getState().fleeRoll(fleeTouche(pdAfter)!.id);
     useGame.getState().fleeConfirm();
     draineCascade(useGame.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
 
@@ -216,7 +217,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
         fuir: {
           participants: [
             { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 40, netSL: 2, location: 'corps', damage: 5, woundsLost: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
-            { id: fuyard.id, kind: 'calme', interactive: true, calme: { success: true, roll: 10, target: 50, sl: 2 } },
+            { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: true, roll: 10, target: 50, sl: 2 } },
           ],
         },
       },
@@ -239,7 +240,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const bsA = fleeBackstab(useGame.getState().pendingDisengage!)!;
     expect(bsA.interactive).toBe(true);
     expect(bsA.result).toBeNull(); // en attente du frappeur — plus de jet roulé en silence
-    expect(fleeCalme(useGame.getState().pendingDisengage!)!.interactive).toBe(true); // le fuyard est humain aussi
+    expect(fleeTouche(useGame.getState().pendingDisengage!)!.interactive).toBe(true); // le fuyard est humain aussi
 
     // (b) frappeur ENNEMI (IA) : rangée TÉMOIN, jet auto-roulé à l'ouverture (le fuyard garde le sien).
     const b = useGame.getState().battle!;
@@ -248,7 +249,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     E.pos = { x: 8, y: 10 };
-    E.characteristics['capacite-de-combat'] = 90; // touche à coup sûr → le slot de Calme reste dû
+    E.characteristics['capacite-de-combat'] = 90; // touche à coup sûr → le slot du Test `fuite` reste dû
     useGame.setState({
       battle: { ...b },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
@@ -257,7 +258,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const pdB = useGame.getState().pendingDisengage!;
     expect(fleeBackstab(pdB)!.interactive).toBe(false);
     expect(fleeBackstab(pdB)!.result).toBeTruthy(); // témoin auto-roulé
-    expect(fleeCalme(pdB)!.interactive).toBe(true);
+    expect(fleeTouche(pdB)!.interactive).toBe(true);
   });
 
   it('100 % IA (ennemi qui fuit un ennemi) : résolution HEADLESS par le même flux, aucun pending qui traîne', () => {
@@ -368,7 +369,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const pd = useGame.getState().pendingDisengage!;
     expect(fleeBackstab(pd)!.interactive, 'pré-requis : le frappeur est conduit par l’IA').toBe(false);
     expect(fleeBackstab(pd)!.result!.cleave, 'pré-requis : la touche d’un plus grand pose le balayage').toBe(true);
-    if (fleeNeedCalme(pd)) useGame.getState().fleeRoll(fleeCalme(pd)!.id);
+    if (fleeToucheDu(pd)) useGame.getState().fleeRoll(fleeTouche(pd)!.id);
     useGame.getState().fleeConfirm();
     draineCascade(useGame.getState);
     const pdef = useGame.getState().pendingDefense;
@@ -394,7 +395,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
         fuir: {
           participants: [
             { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
-            { id: fuyard.id, kind: 'calme', interactive: true, calme: { success: false, roll: 70, target: 50, sl: -1 } },
+            { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },
       },
@@ -417,7 +418,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     draineCascade(useGame.getState, 4);
     const f = live(fuyard.id);
     expect(f.criticalWounds ?? 0).toBeGreaterThan(0); // Blessure critique subie
-    expect(stacks(f, COND.brise)).toBe(2); // Calme raté DR -1 → 1 + 1 États Brisés (LDB 15 l.66)
+    expect(stacks(f, COND.brise)).toBe(2); // Test `fuite` raté DR -1 → 1 + 1 États Brisés (LDB 15 l.66)
     expect(f.engagedWith).toEqual([]); // fuite complétée APRÈS le coup
     expect(useGame.getState().battle!.reachable.size).toBeGreaterThan(0); // budget de Course posé
   });
@@ -436,7 +437,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const res = fleeBackstab(useGame.getState().pendingDisengage!)!.result!;
     expect(res.attackerDetail!.label).not.toMatch(/Projectiles/); // jet de CC, pas de CT
     const pdNow = useGame.getState().pendingDisengage!;
-    if (fleeNeedCalme(pdNow)) useGame.getState().fleeRoll(fleeCalme(pdNow)!.id);
+    if (fleeToucheDu(pdNow)) useGame.getState().fleeRoll(fleeTouche(pdNow)!.id);
     useGame.getState().fleeConfirm();
     const log = useGame.getState().battle!.log;
     expect(log.some((e) => e.kind === 'attack' && e.actorId === frappeur.id)).toBe(true);
@@ -450,7 +451,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const { frappeur, fuyard } = duelHeros(8);
     useGame.setState({
       net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { [frappeur.id]: 1 } },
-      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: fuyard.id }], { title: 'Se désengager', icon: '↩', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
     });
     useGame.getState().disengageFlee();
     const st = useGame.getState();
@@ -458,7 +459,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     // Les deux rangées sont INTERACTIVES (acteurs joués), le coup dans le dos n'est PAS auto-roulé.
     expect(fleeBackstab(st.pendingDisengage!)!.interactive).toBe(true);
     expect(fleeBackstab(st.pendingDisengage!)!.result).toBeNull();
-    expect(fleeCalme(st.pendingDisengage!)!.interactive).toBe(true);
+    expect(fleeTouche(st.pendingDisengage!)!.interactive).toBe(true);
     // La fenêtre est un moment PARTAGÉ ('*') : sinon le siège du frappeur ne la verrait jamais.
     expect(modalOwnerOf(st)).toBe('*');
     // Chaque siège ne lance QUE le jet de SON héros (routage par possession du 1ᵉʳ argument).
@@ -491,7 +492,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const pdB = useGame.getState().pendingDisengage!;
     expect(fleeBackstab(pdB)!.interactive).toBe(false);
     expect(fleeBackstab(pdB)!.result).toBeTruthy(); // résolu à l'ouverture : le fuyard n'attend personne
-    expect(fleeCalme(pdB)!.interactive).toBe(true);
+    expect(fleeTouche(pdB)!.interactive).toBe(true);
     // Le fuyard peut mener la fenêtre à son terme tout seul.
     useGame.getState().fleeRoll(H.id);
     useGame.getState().fleeConfirm();

@@ -334,9 +334,9 @@ describe('Cascade séquentielle influençable', () => {
 
   it('buildConsequenceSteps : groupes non vides → étapes d’affichage (outcome pré-posé), vides ignorés', () => {
     const steps = buildConsequenceSteps([
-      { kind: 'miscast', label: 'Imparfaite', icon: '💥', lines: ['Le Vent se déchaîne.', 'L’incantateur perd 3 PB.'], actorId: 'x' },
+      { kind: 'miscast', label: 'Imparfaite', icon: 'action/cast', lines: ['Le Vent se déchaîne.', 'L’incantateur perd 3 PB.'], actorId: 'x' },
       { kind: 'effet', label: 'Effets', lines: [] }, // vide → ignoré
-      { kind: 'effet', label: 'Effets', icon: '✨', lines: ['Cible Aveuglée 2 rounds.'] },
+      { kind: 'effet', label: 'Effets', icon: 'magic/power', lines: ['Cible Aveuglée 2 rounds.'] },
     ]);
     expect(steps.map((s) => s.kind)).toEqual(['miscast', 'effet']);
     expect(steps[0].outcome).toEqual([{ text: 'Le Vent se déchaîne.' }, { text: 'L’incantateur perd 3 PB.' }]);

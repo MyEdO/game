@@ -52,3 +52,14 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
     expect(r.error?.issues.map((i) => i.path.slice(-3).join('.'))).toContain('parts.0.kind');
   });
 });
+
+describe('regles.json — un seul libellé par Test nommé', () => {
+  const reglesJson = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8')) as { tests?: { test: object }[] }[];
+  const porteuse = reglesJson.find((e) => e.tests?.length)!;
+
+  it('un `test.label` sous une entrée de `tests` est REFUSÉ : le libellé est celui de l’entrée', () => {
+    const r = schema.safeParse([{ ...porteuse, tests: porteuse.tests!.map((t, i) => (i ? t : { ...t, test: { ...t.test, label: 'Second libellé' } })) }]);
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.path.slice(-2).join('.'))).toContain('test.label');
+  });
+});

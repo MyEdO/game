@@ -107,14 +107,14 @@ function DifficultyText({ difficulty, easedBy, parts, combined }: { difficulty?:
  *  NOMMÉE de plus, jamais un masquage. Le bornage de cible ne se DEVINE pas (une cible à 99 peut
  *  l'être sans écrêtage) : il est NOMMÉ seulement à hauteur de ce que le résolveur a MESURÉ
  *  (`clamped`, `engine/tests.ts` — négatif au plafond, positif au plancher) ; le reste est avoué
- *  « autres » et se résorbe en itemisant sa source à l'émission. Une ligne SANS aucune chip NI
- *  Difficulté ne prétend rien détailler (« 55 −10 = 45 » se lit seul) : rien à réconcilier. La
- *  Difficulté (`diff`, rendue en TEXTE sur la ligne, #1072) compte comme un détail déjà donné : elle
- *  ENGAGE la réconciliation sans y contribuer de chip — sinon une ligne dont elle est le seul poste
- *  tairait son écrêtage mesuré (régression #1064). */
+ *  « autres » et se résorbe en itemisant sa source à l'émission. Une ligne SANS aucune chip, NI
+ *  Difficulté, NI écrêtage mesuré ne prétend rien détailler (« 55 −10 = 45 » se lit seul) : rien à
+ *  réconcilier. La Difficulté (`diff`, rendue en TEXTE sur la ligne, #1072) et l'écrêtage mesuré
+ *  comptent comme des détails déjà donnés : ils ENGAGENT la réconciliation — sinon une ligne dont ils
+ *  sont les seuls postes tairait son écrêtage (régression #1064). */
 function reconciled(mods: ModLine[], modifier: number, target: number, clamped?: number, diff = 0): ModLine[] {
   const residual = modifier - mods.reduce((s, m) => s + m.value, 0);
-  if ((!mods.length && !diff) || residual === 0) return mods;
+  if ((!mods.length && !diff && !clamped) || residual === 0) return mods;
   // La part ÉCRÊTÉE n'est nommée que si elle est à la fois mesurée ET de même sens que le reste à
   // expliquer (un `clamped` sans rapport avec l'écart courant ne s'invite pas dans la ligne).
   const cut = clamped && Math.sign(clamped) === Math.sign(residual) && Math.abs(clamped) <= Math.abs(residual) ? clamped : 0;

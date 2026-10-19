@@ -1,33 +1,55 @@
 /**
- * RÈGLES CHIFFRÉES — la valeur d'une règle scalaire se LIT dans sa fiche (`regles.json`, `rangees`),
- * jamais au site qui pousse la `ModLine`. Une rangée porte le palier que le livre nomme (le modificateur
- * en dérive par `DIFFICULTY_MODIFIERS`) ou la valeur nue qu'il donne, sa famille et son libellé : la
- * ligne émise est donc celle que le Codex affiche. #1173
+ * RÈGLES CHIFFRÉES — la valeur d'une règle scalaire se LIT dans sa fiche (`regles.json`), jamais au site
+ * qui l'emploie : ses `rangees` (le palier ou la valeur nue d'une `ModLine`, sa famille et son libellé : la
+ * ligne émise est donc celle que le Codex affiche) et ses `tests` (le `FlowTest` d'un Test qu'elle nomme,
+ * Difficulté comprise). #1173
  *
- * Le vocabulaire des rangées vit dans `RANGEES_DE_REGLE` (`ruleRefs.ts`) ; la donnée doit porter
- * EXACTEMENT ces rangées, vérifié pour TOUTES les règles à la première lecture de l'une d'elles (une rangée
- * renommée ou manquante lève là, quelle que soit la règle lue). L'index est construit à la première lecture,
- * pas à l'import : le module est atteint par des cycles d'import du moteur (`grapple`, `ops`).
+ * Le vocabulaire de chaque champ vit dans `ruleRefs.ts` (`RANGEES_DE_REGLE`, `TESTS_DE_REGLE`) ; la donnée
+ * doit porter EXACTEMENT ces clés, vérifié pour TOUTES les règles du vocabulaire à la première lecture de
+ * l'une d'elles (une clé renommée ou manquante lève là, quelle que soit la règle lue). L'index est construit
+ * à la première lecture, pas à l'import (le module est atteint par des cycles d'import du moteur :
+ * `grapple`, `ops`), et reconstruit à la lecture qui suit une écriture de `regles` au seam
+ * (`memoParVersion`).
  */
-import { findRegleById, type RangeeDeRegleData } from '../data';
+import { findRegleById, type RangeeDeRegleData, type RegleData, type TestDeRegleData } from '../data';
+import { memoParVersion } from '../data/versionDataset';
 import { DIFFICULTY_MODIFIERS, type ModLine } from './types';
-import { RANGEES_DE_REGLE, type CodexTarget, type RegleChiffree, type RangeeDe } from './ruleRefs';
+import {
+  RANGEES_DE_REGLE, TESTS_DE_REGLE,
+  type CodexTarget, type RegleChiffree, type RangeeDe, type RegleATest, type TestDe,
+} from './ruleRefs';
 
-const regleChiffree = (id: RegleChiffree): Map<string, RangeeDeRegleData> => {
-  const fiche = findRegleById(id);
-  if (!fiche) throw new Error(`Règle chiffrée « ${id} » : aucune fiche dans regles.json.`);
-  const lues = new Map((fiche.rangees ?? []).map((r) => [r.id, r]));
-  const attendues: readonly string[] = RANGEES_DE_REGLE[id];
-  const manquantes = attendues.filter((cle) => !lues.has(cle));
-  const inconnues = [...lues.keys()].filter((cle) => !attendues.includes(cle));
-  if (manquantes.length || inconnues.length)
-    throw new Error(`Règle chiffrée « ${id} » : rangées manquantes [${manquantes.join(', ')}], inconnues [${inconnues.join(', ')}] (RANGEES_DE_REGLE, ruleRefs.ts).`);
-  return lues;
-};
+/** L'index vivant d'un champ à clé des fiches (`rangees`, `tests`), contrôlé contre son vocabulaire. */
+function indexDuChamp<R extends string, C extends 'rangees' | 'tests'>(
+  vocabulaire: Readonly<Record<R, readonly string[]>>, champ: C, nom: string,
+): (id: R) => Map<string, NonNullable<RegleData[C]>[number]> {
+  type Entree = NonNullable<RegleData[C]>[number];
+  const lire = (id: R): Map<string, Entree> => {
+    const fiche = findRegleById(id);
+    if (!fiche) throw new Error(`Règle « ${id} » : aucune fiche dans regles.json.`);
+    const lues = new Map(((fiche[champ] ?? []) as Entree[]).map((r) => [r.id, r]));
+    const attendues: readonly string[] = vocabulaire[id];
+    const manquantes = attendues.filter((cle) => !lues.has(cle));
+    const inconnues = [...lues.keys()].filter((cle) => !attendues.includes(cle));
+    if (manquantes.length || inconnues.length)
+      throw new Error(`Règle « ${id} » : ${champ} manquantes [${manquantes.join(', ')}], inconnues [${inconnues.join(', ')}] (${nom}, ruleRefs.ts).`);
+    return lues;
+  };
+  const index = memoParVersion('regles', () => new Map((Object.keys(vocabulaire) as R[]).map((r) => [r, lire(r)])));
+  return (id) => index().get(id)!;
+}
 
-let index: Map<RegleChiffree, Map<string, RangeeDeRegleData>> | undefined;
-const rangees = (id: RegleChiffree): Map<string, RangeeDeRegleData> =>
-  (index ??= new Map((Object.keys(RANGEES_DE_REGLE) as RegleChiffree[]).map((r) => [r, regleChiffree(r)]))).get(id)!;
+const rangees = indexDuChamp(RANGEES_DE_REGLE, 'rangees', 'RANGEES_DE_REGLE');
+const tests = indexDuChamp(TESTS_DE_REGLE, 'tests', 'TESTS_DE_REGLE');
+
+/** Un Test que nomme une règle, tel que son ouvreur le pose : compétence, Difficulté et libellé de l'entrée. */
+export type TestNomme = Readonly<TestDeRegleData['test'] & { label: string }>;
+
+/** Le Test `cle` que nomme la règle `id` : une copie neuve à chaque lecture, jamais l'objet de la fiche. */
+export function testDeRegle<R extends RegleATest>(id: R, cle: TestDe<R>): TestNomme {
+  const entree = tests(id).get(cle)!;
+  return { ...structuredClone(entree.test), label: entree.label };
+}
 
 /** La rangée `cle` de la règle `id`. */
 export function rangeeDeRegle<R extends RegleChiffree>(id: R, cle: RangeeDe<R>): RangeeDeRegleData {

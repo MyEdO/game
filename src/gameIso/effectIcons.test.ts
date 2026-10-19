@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { conditionMeta, summarizeEffects, topImportantCondition, combatantFlags } from './effectIcons';
 import type { Combatant, ConditionInstance, ActiveEffect, CharKey } from '../engine/types';
+import { psychologies, refLabel } from '../data';
+import { setDataset } from '../data/overrides';
+import { deElide } from '../i18n';
+import { DIFFICULTY_LABELS } from '../engine/types';
+import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
 
 const cond = (name: string, value = 1): ConditionInstance => ({ id: name, value });
 const buff = (label: string, bonus: number, roundsLeft: number, char?: CharKey): ActiveEffect => ({ label, bonus, duration: { scale: "rounds", left: roundsLeft }, char });
@@ -31,6 +36,26 @@ describe('combatantFlags — Peur (LDB 21 l.27)', () => {
   it('Peur vaincue (calmeDR ≥ Indice) ou absente → pas de drapeau', () => {
     expect(combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 2 }])).fear).toBeUndefined();
     expect(combatantFlags(C([])).fear).toBeUndefined();
+  });
+  it('la puce nomme la compétence du Test étendu lue dans `psychology.json`, reposée sur une autre compétence', () => {
+    const livre = structuredClone([...psychologies]);
+    try {
+      setDataset('psychologies', livre.map((p) => (p.id === 'peur' ? { ...p, test: { ...p.test, skill: { id: 'intimidation' } } } : p)));
+      const puce = summarizeEffects([], [], Infinity, { fear: 2 }).visible.find((c) => c.key === 'f-fear');
+      expect(puce?.label).toContain(`Test étendu ${deElide(refLabel('skills', { id: 'intimidation' }))} en fin de Round`);
+    } finally {
+      setDataset('psychologies', livre);
+    }
+  });
+  it('la puce annonce le Test `se-rapprocher` de la fiche `calme-d-approche` : sa compétence ET sa Difficulté', () => {
+    poserFicheDeTest();
+    try {
+      const posee = testDeFiche('calme-d-approche', 'se-rapprocher');
+      const puce = summarizeEffects([], [], Infinity, { fear: 2 }).visible.find((c) => c.key === 'f-fear');
+      expect(puce?.label).toContain(`approcher exige un Test ${deElide(refLabel('skills', posee.skill))} ${DIFFICULTY_LABELS[posee.difficulty]}`);
+    } finally {
+      restaurerFiche();
+    }
   });
 });
 

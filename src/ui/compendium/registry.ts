@@ -2574,13 +2574,20 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Procédures / options de jeu au texte VERBATIM (Sombre Pacte, Empoignade, modes d'attaque…) —
     // cible des tooltips `CodexRef` qui portaient une paraphrase de règle (#392).
     key: 'regles', label: 'Règles de jeu', group: 'Monde',
-    // Une règle chiffrée montre les valeurs que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
-    build: () => regles.map((r) => depuisEnveloppe(r, r.rangees?.length ? {
-      sections: [{
-        title: 'Valeurs chiffrées', layout: 'list' as const,
-        rows: r.rangees.map((x): CodexRow => ({ t: 'kv', k: x.label, v: x.palier !== undefined ? DIFFICULTY_LABELS[x.palier] : `${x.valeur! >= 0 ? '+' : '−'}${Math.abs(x.valeur!)}` })),
-      }],
-    } : undefined)),
+    // Une règle chiffrée montre les valeurs et les Tests que le moteur lit (`engine/reglesChiffrees.ts`, #1173).
+    build: () => regles.map((r) => {
+      const sections: CodexSection[] = [
+        ...(r.rangees?.length ? [{
+          title: 'Valeurs chiffrées', layout: 'list' as const,
+          rows: r.rangees.map((x): CodexRow => ({ t: 'kv', k: x.label, v: x.palier !== undefined ? DIFFICULTY_LABELS[x.palier] : `${x.valeur! >= 0 ? '+' : '−'}${Math.abs(x.valeur!)}` })),
+        }] : []),
+        ...(r.tests?.length ? [{
+          title: 'Tests nommés', layout: 'list' as const,
+          rows: r.tests.map(({ label, test: t }): CodexRow => ({ t: 'kv', k: label, v: `${refLabel('skills', t.skill)} ${DIFFICULTY_LABELS[t.difficulty]}` })),
+        }] : []),
+      ];
+      return depuisEnveloppe(r, sections.length ? { sections } : undefined);
+    }),
   },
 ];
 

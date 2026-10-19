@@ -25,7 +25,7 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { PorteeDAssaut } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
@@ -540,14 +540,14 @@ export type GameOp =
   /** EXPOSITION à une Influence corruptrice (LDB 19 l.23-75) : Test différé par MODALE
    *  (pendingCorruption) — op IMPURE résolue par la couche state via `ctx.onCorruptionExposure`
    *  (même patron que `ctx.onCorruption`) ; sans contexte (moteur pur), journalisée sans jet.
-   *  `skill` absent = nature indéterminée → le joueur choisit Résistance/Calme dans la modale.
+   *  `nature` absente = indéterminée → le joueur choisit le Test de `influences-corruptrices` dans la modale.
    *  DEUX SENS, une seule op — `easeSteps` présent = la cible est ABRITÉE : l'op pose une protection
    *  (`ActiveEffect.corruptionEase`, N crans) qui ATTÉNUE toute Influence subie tant qu'elle dure
    *  (VDM 05 — Bouclier en acier doré : « réduit de 2 crans une Influence corruptrice (une Exposition
    *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
    *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
    *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; skill?: RefDesignee; easeSteps?: number }
+  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; easeSteps?: number }
   /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
    *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
    *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
@@ -825,7 +825,7 @@ export type GameOp =
   | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
       advantageCost?: number; advantageOrMovement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
-  /** Marqueur IMPUR de la branche d'ÉCHEC du Test de Calme d'interruption de Focalisation (LDB 46 l.144) :
+  /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
    *  Mineure. Résolu par la couche state (combatFlow : `applyFocusInterruption` via le hook injecté
    *  `focusInterrupt` appelé par `runCombatFlow`), qui détient get/set et le combattant. `applyOps` (moteur
@@ -1223,7 +1223,7 @@ export interface OpsCtx {
   conjureForm?: ConjureForm;
   /** Branché par le store : EXPOSITION corruptrice (op `corruptionExposure`) → Test différé par modale
    *  (pendingCorruption). Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (level: ExposureLevel, skill?: RefDesignee) => string[];
+  onCorruptionExposure?: (level: ExposureLevel, nature?: NatureDInfluence) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -2005,7 +2005,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
           lines.push(t('op.corruptionWarded', { name: target.label }));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.skill));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.nature));
         else lines.push(t('op.corruptionExposure', { name: target.label, level }));
         break;
       }

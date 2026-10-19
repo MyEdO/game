@@ -6,6 +6,7 @@ import {
 import { displayStep, hostStep, tableStep } from './rollSeam';
 import { stepInteraction, tableStepPosee } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
+import { t } from '../i18n';
 import { combatStakeRef } from '../data';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
@@ -17,6 +18,7 @@ import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from './pendings';
 import { OPS_DIFFEREES } from './combatEffects';
+import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
@@ -252,7 +254,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         fuir: {
           participants: [
             { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
-            { id: fuyard.id, kind: 'calme', interactive: true, calme: { success: false, roll: 70, target: 50, sl: -1 } },
+            { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },
       },
@@ -265,7 +267,11 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(st.fleeMove, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
     expect(st.fleeMove!.moverId).toBe(fuyard.id);
     expect(st.fleeMove!.foeId).toBe(frappeur.id);
-    expect(st.fleeMove!.broken, 'Calme raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.fleeMove!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
+      t('cs.fuiteReprise', { name: fuyard.label, foe: frappeur.label }),
+      t('cs.panic', { name: fuyard.label, broken: 2 }),
+    ]);
     expect(st.reveal).toBeUndefined();
     expect(st.options).toBeUndefined();
     expect(st.actorId, 'la reprise appartient au FUYARD').toBe(fuyard.id);

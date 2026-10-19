@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, movementRemaining } from './store';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { computeMoveReach, computeRunReach, displayedReach } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -127,7 +128,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const p = { ...useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y };
-    useGame.setState({ pendingRun: { combatantId: H.id, dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
+    useGame.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
     useGame.getState().runConfirm();
     const st = useGame.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
@@ -140,7 +141,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const p = { ...useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // coût M+2 ; budget M + 2M = 3M → reliquat 2M−2
-    useGame.setState({ pendingRun: { combatantId: H.id, dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
+    useGame.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
     useGame.getState().runConfirm();
     let st = useGame.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -159,7 +160,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + 2 * M, y: p.y }; // demandé : 2M cases plein est
     // Jet désastreux : bonus de Course 1 seule case → budget total M+1.
-    useGame.setState({ pendingRun: { combatantId: H.id, dest, result: { success: false, roll: 96, target: 60, dr: -3, bonusCases: 1 } } });
+    useGame.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: false, roll: 96, target: 60, dr: -3, bonusCases: 1 } } });
     useGame.getState().runConfirm();
     const st = useGame.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;

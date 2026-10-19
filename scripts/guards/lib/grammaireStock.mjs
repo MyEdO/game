@@ -72,7 +72,6 @@ export const GRAMMAIRE_STOCK = {
   // liste nominative de ces graphies et son cardinal sont tenus par le test « les graphies de la
   // grammaire sont hors stock par construction » (`src/data/grammaire-guard.test.ts`), et la perte de
   // couverture qu'un déplacement vers la grammaire produit est déclarée en `GARDE.angleMort`.
-  'src/data/schemas/defs-scenes/effets.ts:corruptionExposureSchema|alias|skill': e('Effet `corruptionExposure` désignant la Compétence du jet de résistance par `skill`.', L2),
   'src/data/schemas/defs-scenes/effets.ts:startPursuitSchema|alias|skill': e('Effet `startPursuit` désignant la Compétence de course par `skill`.', L2),
 
   // ── Graphies historiques de RÉFÉRENCE à une autre entité (`ref`, `talentId`, `trappingId`) ────

@@ -1,8 +1,9 @@
 import { useGame } from '../state/store';
 import { availableResistance, resistanceImproves } from '../engine/menace';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { exposureLevelSchema } from '../data/schemas/grammaire/valeurs';
-import { testValue } from '../engine/skills';
+import { exposureLevelSchema, NATURES_D_INFLUENCE } from '../data/schemas/grammaire/valeurs';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import { valeurDecomposee, valeurDuTest } from '../engine/skills';
 import { flowStakeRef, libelleOuAbsence, refLabel, type FlowStakeId } from '../data';
 import type { ExposureLevel } from '../engine/corruption';
 import { RollShell, type RollAction } from './RollShell';
@@ -18,20 +19,19 @@ import { describeCorruption } from '../state/flowOutcomes';
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
 
 /**
- * Exposition à une Influence corruptrice (LDB 19 l.23-75) : Test de Résistance
- * (Influence physique) ou de Calme (spirituelle) — le gain de Points de Corruption
- * dépend du niveau d'exposition ET du DR, donc la Chance « +1 DR » peut sauver
- * l'âme. Test imposé (pas d'« Annuler »).
+ * Exposition à une Influence corruptrice (LDB 19 l.23-75) : le Test de `pendingCorruption.test` — le gain
+ * de Points dépend du niveau d'exposition ET du DR, donc la Chance « +1 DR » peut sauver l'âme. Test
+ * imposé (pas d'« Annuler »).
  *
- * MÊME modale pour le SEUIL de Corruption (kind 'seuil', LDB 19 l.70) : Test de Résistance
- * au franchissement — succès = contenu « pour cette fois » ; échec = « Je te renie ! »/mutation.
+ * MÊME modale pour le SEUIL de Corruption (kind 'seuil', LDB 19 l.70) : succès = contenu « pour cette
+ * fois » ; échec = « Je te renie ! »/mutation.
  */
 export function CorruptionModal() {
   const pc = useGame((s) => s.pendingCorruption);
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
   const roll = useGame((s) => s.corruptionRoll);
-  const setSkill = useGame((s) => s.corruptionSetSkill);
+  const setNature = useGame((s) => s.corruptionSetNature);
   const reroll = useGame((s) => s.corruptionReroll);
   const bonusSL = useGame((s) => s.corruptionBonusSL);
   const darkPact = useGame((s) => s.corruptionDarkPact);
@@ -49,15 +49,15 @@ export function CorruptionModal() {
     && resistanceImproves(hero, rolled ? { won: !!pc.success, sl: pc.sl ?? 0 } : null);
   // Pré-jet (audit M6) : `pc.target` n'existe qu'après resolve → base réelle du Test affichée
   // AVANT le jet (même parité que les autres flux).
-  const base = hero ? testValue(hero, pc.skill) : 0;
-  const skillLabel = refLabel('skills', { id: pc.skill }); // 'Résistance' / 'Calme' (affichage)
+  const { base, mods } = hero ? valeurDecomposee(hero, pc.test) : { base: 0, mods: [] };
+  const skillLabel = refLabel('skills', pc.test.skill);
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: hero,
     row: {
       combatant: hero,
-      d: rolled ? testBreakdown(`Test de ${skillLabel}`, base, { roll: pc.roll!, target: pc.target, sl: pc.sl, success: pc.success }, 'intermediaire') : undefined,
-      pending: testPending(`Test de ${skillLabel}`, base, undefined, 'intermediaire'),
+      d: rolled ? testBreakdown(skillLabel, base, { ...pc, roll: pc.roll! }, pc.test.difficulty, mods) : undefined,
+      pending: testPending(skillLabel, base, undefined, pc.test.difficulty, mods),
     },
     onRoll: roll,
     rerolled: !!pc.rerolled,
@@ -81,21 +81,21 @@ export function CorruptionModal() {
       title={seuil ? <><Icon id="nav/mutation" size="sm" /> Seuil de Corruption ({hero?.corruption ?? '?'} Points)</> : <><Icon id="nav/mutation" size="sm" /> Influence corruptrice ({libelleDeValeur(exposureLevelSchema, pc.level ?? 'mineure')})</>}
       subtitle={
         <>
-          <strong>{libelleOuAbsence(hero, 'heros', pc.heroId)}</strong> — Test de {skillLabel} Intermédiaire (+0)
+          <strong>{libelleOuAbsence(hero, 'heros', pc.heroId)}</strong>
         </>
       }
       setup={
-        // Compétence indéterminée en amont (LDB 19 l.29) → le joueur tranche Résistance/Calme (cf.
-        // Défense). Déterminée par la source (`skillLocked`) ou au seuil → pas de choix.
-        !seuil && !pc.skillLocked && hero ? (
+        // Nature indéterminée en amont (LDB 19 l.29) → le joueur tranche entre les Tests de la fiche
+        // `influences-corruptrices` (cf. Défense). Imposée par la source (`natureFixee`) ou au seuil → pas de choix.
+        !seuil && !pc.natureFixee && hero ? (
           <div className="rm-options">
             <OptionChooser
               layout="seg"
               groupLabel="Compétence"
-              options={[
-                { key: 'resistance', label: refLabel('skills', { id: 'resistance' }), value: testValue(hero, 'resistance'), selected: pc.skill === 'resistance', title: 'Influence physique', onSelect: () => setSkill('resistance') },
-                { key: 'calme', label: refLabel('skills', { id: 'calme' }), value: testValue(hero, 'calme'), selected: pc.skill === 'calme', title: 'Corruption spirituelle', onSelect: () => setSkill('calme') },
-              ]}
+              options={NATURES_D_INFLUENCE.map((cle) => {
+                const test = testDeRegle('influences-corruptrices', cle);
+                return { key: cle, label: refLabel('skills', test.skill), value: valeurDuTest(hero, test), selected: pc.nature === cle, title: test.label, onSelect: () => setNature(cle) };
+              })}
             />
           </div>
         ) : undefined

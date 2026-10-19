@@ -1,3 +1,4 @@
+import { cibleMesuree } from '../engine/tests';
 import { useGame, type PendingAppraise } from '../state/store';
 import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import type { Combatant } from '../engine/types';
@@ -53,8 +54,8 @@ export function AppraiseModalView({
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown(skill, base, { roll: pa.roll!, target: pa.target, sl: pa.sl, success: pa.success }, pa.difficulty, supMods) : undefined,
-      pending: testPending(skill, base, pa.target, pa.difficulty, supMods),
+      d: rolled ? testBreakdown(skill, base, { roll: pa.roll!, ...cibleMesuree(pa), sl: pa.sl, success: pa.success }, pa.difficulty, supMods) : undefined,
+      pending: testPending(skill, base, cibleMesuree(pa), pa.difficulty, supMods),
     },
     rerolled: !!pa.rerolled,
     onRoll,

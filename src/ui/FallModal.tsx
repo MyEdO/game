@@ -1,9 +1,10 @@
 import { useGame, type GameState } from '../state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { flowStakeRef, type FlowStakeId } from '../data';
+import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import type { TombantParticipant } from '../state/pendings';
 import { metresRetenus, phaseDeChute } from '../state/fallMove';
-import { testValue } from '../engine/skills';
+import { valeurDecomposee } from '../engine/skills';
+import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -36,7 +37,7 @@ const refusDesSuspensions = (s: GameState) => (s.pendingFall?.suspendu !== undef
 /**
  * Modale de Chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : une rangée par TOMBANT, patron de la rangée
  * de Contre-sort (`CastModal`). Chaque rangée DÉCLARE depuis le siège de son héros (Sauter / Tenter le
- * Test d'Athlétisme) ; une rangée qui saute ne lance rien. Les jets s'ouvrent quand toutes ont déclaré
+ * Test) ; une rangée qui saute ne lance rien. Les jets s'ouvrent quand toutes ont déclaré
  * (`phaseDeChute`), puis « Appliquer » résout l'étape entière.
  */
 export function FallModal() {
@@ -57,6 +58,7 @@ export function FallModal() {
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const phase = phaseDeChute(p);
+  const competence = refLabel('skills', p.test.skill);
 
   const rangee = (part: TombantParticipant): BuiltRollRow[] => {
     const c = pool.find((x) => x.id === part.id);
@@ -64,15 +66,15 @@ export function FallModal() {
     const m = metresRetenus(p, part);
     const owned = owns(part.id) && !!part.interactive;
     const r = part.result;
-    const val = testValue(c, 'athletisme');
-    // La rangée DIT sa situation : attente d'un autre siège, chute pleine, ou l'issue du Test.
+    const { base, mods } = valeurDecomposee(c, p.test);
+    // La rangée DIT sa situation : attente d'un autre siège, sa déclaration, ou l'issue du Test.
     const situation = part.attempt === null
       ? (owned ? null : t('declaration.attente', { name: c.label }))
       : part.attempt === false
         ? t(!part.interactive ? 'fall.situation.nonDebout' : part.suspendre ? 'fall.situation.suspendSansTest' : 'fall.situation.sauteSansTest', { metres: m })
         : r
           ? (r.effectiveMetres <= 0 ? t('fall.situation.amortie') : t('fall.situation.reduite', { metres: r.effectiveMetres, reduction: Math.max(0, m - r.effectiveMetres) }))
-          : null;
+          : t(part.suspendre ? 'fall.situation.suspendTente' : 'fall.situation.tente', { metres: m });
     const note = situation ? <div className="hint">{resultLine(freeCons([situation]))}</div> : null;
     const refusTest = refusTests[part.id];
     const refusSusp = refusSuspensions[part.id];
@@ -94,9 +96,10 @@ export function FallModal() {
       actor: c,
       row: {
         combatant: c,
+        // Une rangée déclarée SANS Test (LDB 15 l.82) n'a aucune ligne de jet.
         ...(r
-          ? { d: testBreakdown('Athlétisme', val, { roll: r.roll, target: r.target, sl: r.dr, success: r.success }, 'accessible') }
-          : { pending: testPending('Athlétisme', val, undefined, 'accessible') }),
+          ? { d: testBreakdown(competence, base, { roll: r.roll, ...cibleMesuree(r), sl: r.dr, success: r.success }, p.test.difficulty, mods) }
+          : part.attempt === false ? {} : { pending: testPending(competence, base, undefined, p.test.difficulty, mods) }),
         note,
       },
       ...(part.attempt === true ? { onRoll: () => roll(part.id) } : {}),
@@ -137,9 +140,9 @@ export function FallModal() {
       etape={phase}
       flowKey="fall"
       stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
-      title={<><Icon id="melee/flee" size="sm" /> {t('fall.modale.titre')}</>}
-      /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur). La Compétence est le label de la ligne
-         et le « +20 » sa Difficulté (`accessible`, `.rm-roll-diff` #1072) — pas ici. */
+      title={<><Icon id="melee/flee" size="sm" /> {p.test.label}</>}
+      /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur) ; Compétence et Difficulté sont à la
+         ligne (`.rm-roll-diff`, #1072). */
       subtitle={p.suspendu !== undefined ? t('fall.modale.deniveleSuspendu', { metres: p.metres, suspendu: p.suspendu }) : t('fall.modale.denivele', { metres: p.metres })}
       rows={rows}
       rolled={rolled}

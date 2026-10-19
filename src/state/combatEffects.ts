@@ -13,7 +13,7 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
   type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
-import { gainCorruption, corruptionTarget, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
+import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -1883,17 +1883,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   corruptionExposure: {
     group: 'Afflictions', label: libelleEffet('corruptionExposure'), icon: 'nav/mutation',
-    make: () => ({ type: 'corruptionExposure', level: 'mineure', skill: { id: 'resistance' }, heroId: '' }),
+    make: () => ({ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: '' }),
     apply: (e, env) => {
       // Influence corruptrice (LDB 19 l.23-75) : ouvre le Test différé par modale
       // (Lancer → Chance → Appliquer) ; le gain dépendra du niveau et du DR.
       const hero = corruptionTarget(env.get(), e.heroId);
-      // `e.skill` présent = déterminé en amont (verrouillé) ; absent = nature indéterminée → le
-      // joueur choisira Résistance/Calme dans la modale (défaut affiché : Résistance).
+      // `e.nature` présente = imposée par la source ; absente = indéterminée → le joueur choisira un
+      // Test de `influences-corruptrices` dans la modale (`expositionPending`).
       // Test d'Exposition = « résister à la Corruption » → Résistance (Menace : Corruption) offerte (LDB 10).
       // La pose passe par LA PORTE du slot (#1282) : une fenêtre de Corruption déjà ouverte n'est pas
       // écrasée — l'Exposition prend rang (`corruptionQueue`).
-      if (hero) poseCorruptionPending(env.get, env.set, { heroId: hero.id, level: e.level, skill: testDeCorruption(e.skill), skillLocked: e.skill != null, align: e.align, menace: 'corruption' });
+      if (hero) poseCorruptionPending(env.get, env.set, expositionPending(hero.id, e.level, e.nature, e.align));
     },
   },
   giveSin: {
