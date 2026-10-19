@@ -72,15 +72,15 @@ const CLES: Record<string, string> = {
   "miscastMinor": '3dc24773d14f1b94',
   "miscastMajor": '416a3aa0219e8f4e',
   "miscastWrath": '3da49a322927f1e7',
-  "nightStakes": '54a15ad6883f8c31',
+  "nightStakes": '79447a698a535c8d',
   // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
   // #1595 (2026-10-12) : +1 item `sea-salissures` (MDG 13 l.148) ; `sea-overspeed` resourcé (MDG 13 l.121-142, p.105).
   // #2533 (2026-10-09) : +2 items `land-peril` (LDB 51 l.208) et `land-peril-table` (LDB 51 l.210-221), les deux dés des péripéties.
-  "voyageStakes": '3467f1d9012162a2',
+  "voyageStakes": '9df85225dd31b27d',
   // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
   // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
-  "flowStakes": '92b8c08cdf35308e',
-  "combatStakes": '3118d89c497c1439',
+  "flowStakes": 'd76691316e92b11c',
+  "combatStakes": '14a1a6b01990ab3b',
   "races": '0728d04812275962',
   "careers": '128ef2031ede96cd',
   "characteristics": '532e47bfff4a9328',
@@ -235,7 +235,7 @@ const CLES: Record<string, string> = {
   "steamBreakdowns": '0241598713ede3cd',
   // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
   // #2533 (2026-10-18) : +1 item `peripeties-de-voyage` (LDB 51 l.208), la règle des enjeux `land-peril` et `land-peril-table`.
-  "regles": 'addb644c0287eae2',
+  "regles": '0109e542b5b03fa2',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que
@@ -253,10 +253,10 @@ const FORME: Record<string, string> = {
   "miscastMinor": 'id label meta sections source sub',
   "miscastMajor": 'id label meta sections source sub',
   "miscastWrath": 'id label meta sections source sub',
-  "nightStakes": 'desc id label source',
-  "voyageStakes": 'desc id label source',
-  "flowStakes": 'desc id label source', // #1920 B14 (2026-09-24) : `sub` (`flow/phase`) retiré
-  "combatStakes": 'desc id label source sub',
+  "nightStakes": 'desc id label sections source',
+  "voyageStakes": 'desc id label sections source',
+  "flowStakes": 'desc id label sections source', // #1920 B14 (2026-09-24) : `sub` (`flow/phase`) retiré
+  "combatStakes": 'desc id label sections source sub',
   "races": 'appearance desc group id label meta source tabs',
   "careers": 'desc group id label meta source sub tabs',
   "characteristics": 'desc id label meta sections source sub',
@@ -371,7 +371,7 @@ const FORME: Record<string, string> = {
   "crewMoraleFactors": 'desc id label source',
   "crewMoraleBands": 'desc id label meta source sub',
   "steamBreakdowns": 'desc id label meta source sub',
-  "regles": 'desc id label source',
+  "regles": 'desc id label sections source',
 };
 
 /** #1472 T3 — LISTE NOMINATIVE DES DELTAS, gelée au compte. Chaque catégorie ci-dessous a adopté

@@ -47,10 +47,11 @@ import { lireStockJson } from '../guards/lib/stockDeSites.mjs'
 import { RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
-  stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
+  stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH, etatsDuRapport, RAPPORT as RAPPORT_IMPLEMENTATION,
 } from './build-implemente.mjs'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
+import { rendreCible } from '../docs/build-all.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
 export const RAWDIR = 'docs/raw'
@@ -166,7 +167,8 @@ const setDe = (table, book) => table.get(book) || new Set()
 /** Calcule la réconciliation CODE↔ATLAS. Pur vis-à-vis de l'écriture de fichier (aucun writeFileSync ici).
  *  `registre` = le registre des livres (`books.json` par défaut), `manifestPath` = la dette éditoriale :
  *  les tests en injectent des fixtures, comme la source de catalogues (`catalogues`, `pagesDeLAtlasRendues`). */
-export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH, catalogues } = {}) {
+export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH, catalogues, rapportImplementation } = {}) {
+  const etats = etatsDuRapport(rapportImplementation)
   const books = booksDe(registre)
   const coeurs = coeursDe(registre)
   const ALT = alternationDe(books.map(([a]) => a))
@@ -330,32 +332,19 @@ export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWD
   // Dette éditoriale — UNE lecture, la couture de `build-implemente.mjs` (jamais un 2e lecteur du
   // manifest) : ses `id` se résolvent contre les registres tirés du parse des fiches ci-dessus.
   const dette = chargerDette(registresDeFiches(fiches), manifestPath)
-  // Ligne du champ `**Implémente :**` → son topic, pour rattacher un marqueur B1 à sa dette.
-  const topicParLigne = new Map() // doc -> Map(row -> topic)
-  for (const fi of fiches) {
-    const rows = new Map()
-    for (const f of fi.parsed.fields) rows.set(f.headerIdx + 1, f.topic)
-    topicParLigne.set(fi.doc, rows)
-  }
-
-  // === SENS B1 : lignes marquées « (non implémenté) » — GLOBAL, aucune dimension de livre.
-  // Chaque marqueur dit s'il est COUVERT par une dette déclarée (entrée de topic ou de fiche) ou SANS
-  // entrée : sans cette ventilation, un chiffre de tête qui grossit ne distingue plus l'instruit du reste.
   const nonImpl = []
+  for (const fi of fiches) for (const f of fi.parsed.fields) {
+    const etat = etats.get(f.topic)
+    if (!etat) throw new Error(`rapport Implementation : topic absent ${f.topic}`)
+    if (!etat.implemente) nonImpl.push({ doc: 'implemente.generated.md', row: etat.row, text: etat.text, topic: f.topic, dette: dette.detteDe(f.topic) })
+  }
   for (const { relatif: nom, texte } of DOCS) {
-    const rows = topicParLigne.get(nom)
+    const fi = fiches.find((f) => f.doc === nom)
+    const champs = new Set(fi?.parsed.fields.flatMap((f) => Array.from({ length: f.endIdx - f.headerIdx }, (_, n) => f.headerIdx + n)) ?? [])
     texte.split('\n').forEach((ln, i) => {
-      if (!/non impl[ée]ment[ée]/i.test(ln)) return
-      const topic = rows?.get(i + 1)
-      const entree = topic ? dette.detteDe(topic) : undefined
-      nonImpl.push({ doc: nom, row: i + 1, text: ln.trim().slice(0, 200), topic, dette: entree })
+      if (!champs.has(i) && /non impl[ée]ment[ée]/i.test(ln)) nonImpl.push({ doc: nom, row: i + 1, text: ln.trim().slice(0, 200) })
     })
   }
-
-  // DÉCROISSANCE de chaque entrée de FICHE : combien de ses topics elle couvre ENCORE, sur combien.
-  // L'état est lu au marqueur de l'Atlas COMMITTÉ (`(non implémenté)`), la vérité que `raw:implemente`
-  // vient d'y écrire — aucun second index du code ici. Imprimé, jamais asserté : la garde qui REFUSE
-  // une entrée sans objet vit dans `raw:implemente` (`dettesDeFicheSansObjet`).
   const marqueurs = new Set(nonImpl.filter((n) => n.topic).map((n) => n.topic))
   const topicsParFiche = new Map()
   for (const fi of fiches) {
@@ -583,12 +572,13 @@ export function ecartsTrousDurs(entrees, stock, registre = REGISTRE_LIVRES) {
 const RAPPORT = `${RAWDIR}/reconciliation.md`
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
-export function rendre(data = computeReconciliation()) {
+export async function rendre(data) {
+  data ??= computeReconciliation({ rapportImplementation: await rendreCible(RAPPORT_IMPLEMENTATION) })
   return new Map([[RAPPORT, renderReport(data)]])
 }
 
-function main() {
-  const data = computeReconciliation()
+async function main() {
+  const data = computeReconciliation({ rapportImplementation: await rendreCible(RAPPORT_IMPLEMENTATION) })
   const noChapterCount = [...data.codeNoCh.values()].reduce((n, a) => n + a.length, 0)
   console.log(`Sens A : ${data.hardA.length} trou(s) dur(s) chapitre-livre · ${data.softA.length} chapitre(s)-livre à lignes non pinées · ${noChapterCount} réf(s) sans chapitre (hors mesure) · folios Atlas ignorés ${data.folioIgnored}`)
   for (const [book, st] of [...data.bookStats].sort((a, b) => parUnitesDeCode(a[0], b[0])))
@@ -631,7 +621,7 @@ function main() {
   if (neuves.length || perimees.length || coeur.length || data.etrangers.length || data.fichesJugees === 0) process.exitCode = 1
   else console.log(`Cliquet des trous durs : ${entrees.length} trou(s) dur(s), tous au stock (${Object.keys(stock).length} entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.`)
   ecrireOuVerifier({
-    out: rendre(data).get(RAPPORT),
+    out: (await rendre(data)).get(RAPPORT),
     path: RAPPORT,
     check: process.argv.includes('--check'),
     staleMsg: `raw:reconcile — ${RAPPORT} est PÉRIMÉ (code ou Atlas changé).`,

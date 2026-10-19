@@ -159,7 +159,7 @@ export function auditDataset(data) {
  */
 export const EXEMPT_DATASETS = {
   'books.json': 'catalogue des LIVRES eux-mêmes — pas de "source" au sens où un livre se cite lui-même.',
-  'actions.json': "registre de ROUTAGE des actions de combat (id → icône, surface, gate/candidates/run) : aucune table CHIFFRÉE, la règle vit dans la fiche pointée par `rule`+`ruleCategory` (regles/talents/etats/qualities/skills) qui porte SA citation. `source` n'y est posée que sur les entrées dont le COÛT est adossé à un verbatim (LDB 13 l.106, 15 l.35-49, 14 « Viser »…).",
+  'actions.json': "registre de ROUTAGE des actions de combat (id → icône, surface, gate/candidates/run) : aucune table CHIFFRÉE, la règle vit dans la fiche pointée par `rule` (référence `{ id, type }` : règle/talent/état/qualité/compétence/caractéristique) qui porte SA citation. `source` n'y est posée que sur les entrées dont le COÛT est adossé à un verbatim (LDB 13 l.106, 15 l.35-49, 14 « Viser »…).",
   'decorPalette.json': 'palette de couleurs de RENDU (hex), pas une donnée RAW.',
   'teintesJeu.json': "teintes de RENDU du terrain (surbrillances tactiques et identité d'unité, hex), pas une donnée RAW.",
   'ambiance.json': 'config de rendu (éclairage iso/POV), pas une donnée RAW.',

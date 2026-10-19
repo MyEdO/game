@@ -67,12 +67,12 @@ export const GATE_ETAT_PORTE = 'etat-porte';
 const ok: ActionGate = { ok: true };
 const no = (reason: string): ActionGate => ({ ok: false, reason });
 
-/** L'ÉTAT qu'une entrée de remède déclare (`rule` + `ruleCategory: 'etats'`). FAIL-FAST : une entrée
+/** L'ÉTAT qu'une entrée de remède déclare (`rule`, de type `etat`). FAIL-FAST : une entrée
  *  portée au gate `etat-porte` sans État déclaré est un bug de donnée, que la garde de registre
  *  (`action-atteignabilite.test`) refuse déjà — il ne se traduit pas en refus de jeu. */
 function etatDeclare(def?: ActionDef): string {
-  const id = def?.ruleCategory === 'etats' ? def.rule : undefined;
-  if (!id) throw new Error(`gate de remède : l'entrée « ${def?.id ?? '?'} » ne déclare aucun État (rule + ruleCategory: 'etats')`);
+  const id = def?.rule?.type === 'etat' ? def.rule.id : undefined;
+  if (!id) throw new Error(`gate de remède : l'entrée « ${def?.id ?? '?'} » ne déclare aucun État (rule de type « etat »)`);
   return id;
 }
 
@@ -259,7 +259,7 @@ export const REMEDES = ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_
 /** LE GESTE QUI REMÈDE À CET ÉTAT — source unique de son libellé pour les surfaces qui le nomment
  *  (fenêtre du Test de récupération). */
 export function remedeDeLEtat(stateId: string): ActionDef | undefined {
-  return REMEDES.find((a) => a.rule === stateId);
+  return REMEDES.find((a) => a.rule?.type === 'etat' && a.rule.id === stateId);
 }
 
 /** Les remèdes PERTINENTS pour ce porteur : ceux dont l'État est porté (le verdict du gate, pris une

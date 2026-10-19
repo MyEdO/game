@@ -2,7 +2,7 @@ import { useGame } from '../state/store';
 import { garanti } from '../lib/garanti';
 import { etatDeclare } from '../data/schemas/defs-scenes/formes-d-etat';
 import { Modal } from './Modal';
-import { PortraitPicker } from './PortraitPicker';
+import { PortraitPicker } from './console/PortraitPicker';
 import { Prose } from './Prose';
 
 /**

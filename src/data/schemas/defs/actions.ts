@@ -1,14 +1,14 @@
 /** LDB 13 l.106. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison } from '../grammaire/valeurs';
+import { blocageDeLivraison, foyerDeRegleSchema } from '../grammaire/valeurs';
 
 export const file = 'actions.json';
 export const famille = 'entite';
 
 /** RENDEUR d'accueil PAR DÉFAUT (spec §1a / §1c-bis / zone 4). Le placement joueur reste libre :
  *  ce champ dit d'où l'action NAÎT quand rien n'a été posé — et il nomme un rendeur RÉEL, mesuré au
- *  DOM par le contrat « surface ⇄ rendeur » (`src/ui/CombatConsole.test.tsx`). Correspondances :
+ *  DOM par le contrat « surface ⇄ rendeur » (`src/ui/console/CombatConsole.test.tsx`). Correspondances :
  *   • `deduite-du-set` / `geste-d-etat` → la travée GAUCHE (`.cc-bay-left` : cases déduites du set,
  *     rubrique ACCÈS RAPIDE) ; `geste-d-etat` = la case G6bis (spec §1a) : ce que l'ÉTAT du porteur
  *     ouvre, pas ce que son arme offre ;
@@ -49,8 +49,6 @@ type EntreeAction = {
   run?: string;
   intent?: string;
   stance?: 'heldGround' | 'intoCrowd';
-  rule?: string;
-  ruleCategory?: string;
   blocked?: { ticket: string; raison: string };
   exitSafe?: boolean;
   role?: 'valide' | 'renonce';
@@ -83,10 +81,8 @@ const doc = document(
      *  `PendingAttack` qu'elle pré-remplit) — exigée par le dispatcher `battleToggleStance`. */
     stance: z.enum(['heldGround', 'intoCrowd']).optional(),
     coutAction: coutActionSchema,
-    /** FOYER de la règle : id de l'entrée Codex qui la porte (jamais une phrase recomposée). */
-    rule: z.string().optional(),
-    /** Catégorie Codex du foyer (`'regles'`, `'talents'`, `'etats'`…) — exigée avec `rule`. */
-    ruleCategory: z.string().optional(),
+    /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
+    rule: foyerDeRegleSchema.optional(),
 
     keys: z.array(z.string()).optional(),
     /** Dette BLOQUANTE : l'action est déclarée mais aucun dispatcher ne l'exécute encore. */
@@ -128,8 +124,7 @@ const doc = document(
       hint: 'Posture basculée par cette action (tenir sa position/foncer dans la mêlée)',
     },
     coutAction: { label: 'Coût en Action', hint: 'Ce que l’acte consomme dans l’économie du Tour (Action/Mouvement/gratuit/aucun)' },
-    rule: { label: 'Règle associée', hint: 'Identifiant de l’entrée Codex qui porte la règle' },
-    ruleCategory: { label: 'Catégorie de la règle' },
+    rule: { label: 'Règle associée', hint: 'Entrée Codex qui porte la règle' },
     keys: {
       label: 'Clés historiques de surface',
       hint: 'Anciennes clés de case couvertes par cette action (liste décroissante, en transition)',
@@ -145,7 +140,7 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          "registre de ROUTAGE des actions de combat (id → icône, surface, gate/candidates/run, mode armé) : chaque entrée POINTE vers la fiche qui porte sa règle (`rule`+`ruleCategory` → regles/talents/etats/qualities/skills), elle n'en héberge aucune — aucun verbatim à exposer, la fiche l'est déjà.",
+          "registre de ROUTAGE des actions de combat (id → icône, surface, gate/candidates/run, mode armé) : chaque entrée POINTE vers la fiche qui porte sa règle (`rule`, référence `{ id, type }` → règle/talent/état/qualité/compétence/caractéristique), elle n'en héberge aucune — aucun verbatim à exposer, la fiche l'est déjà.",
       },
     },
     edit: { none: 'registre de routage édité au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
@@ -155,9 +150,6 @@ const doc = document(
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const a = v as EntreeAction;
-    if (a.rule && !a.ruleCategory) {
-      ctx.addIssue({ code: 'custom', message: `${a.id} : rule sans ruleCategory` });
-    }
     if (!a.run && !a.intent && !a.blocked) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)` });
     }

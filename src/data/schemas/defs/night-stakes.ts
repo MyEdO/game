@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { stakeFormSchema } from '../grammaire/valeurs';
+import { foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
 
 export const file = 'night-stakes.json';
 export const famille = 'entite';
@@ -23,14 +23,11 @@ const doc = document(
      *    (aucun fragment n'est réputé verbatim). Le verbatim intégral vit dans la fiche `rule`.
      *  La garde distingue les deux STRUCTURELLEMENT : un assemblage non déclaré échoue. */
     form: stakeFormSchema.optional(),
-    /** FICHE derrière cette étape — la règle est à UN CLIC depuis l'enjeu (#1117). C'est l'id de
+    /** FICHE derrière cette étape — la règle est à UN CLIC depuis l'enjeu (#1117). C'est
      *  l'entité qui PORTE déjà la règle (amendement A, 2026-08-06 : « tant qu'on évite de surcharger
      *  au maximum la table régle ») : une compétence, un État, un symptôme… `regles.json` n'est que
      *  le foyer des règles de CADRE, sans entité porteuse. */
-    rule: z.string().optional(),
-    /** CATÉGORIE Codex du foyer — `'regles'` par défaut. `'skills'` quand la règle vit sur la
-     *  compétence, `'etats'` sur l'État, etc. Le renvoi est un couple {catégorie, id}. */
-    ruleCategory: z.string().optional(),
+    rule: foyerDeRegleSchema.optional(),
   },
   {
     kind: {
@@ -39,11 +36,7 @@ const doc = document(
     },
     stake: { label: 'Enjeu' },
     form: { label: 'Forme de l’enjeu' },
-    rule: { label: 'Règle associée', hint: 'Identifiant de l’entité qui porte la règle derrière l’étape' },
-    ruleCategory: {
-      label: 'Catégorie de la règle',
-      hint: 'Catégorie Codex de l’entité désignée par « Règle associée »',
-    },
+    rule: { label: 'Règle associée', hint: 'Entité qui porte la règle derrière l’étape' },
   },
   {
     codex: { keys: ['nightStakes'] },

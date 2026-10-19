@@ -3,14 +3,14 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite sa source `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/engine/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > **Périmètre de ce fichier** : Mouvement hors combat (règles générales), voyage entre lieux, montures
 > et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours).
 > Les règles de Charge, Désengagement, Fuite, Escalade, Saut et Chute *en combat* sont dans
 > [`combat.md`](combat.md) §§ correspondants — ce fichier les renvoie sans les re-transcrire.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

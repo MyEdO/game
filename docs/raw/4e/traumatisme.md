@@ -8,7 +8,7 @@
 > ⚠️ **Tables de Critiques** (Tête / Bras / Torse / Jambe, `LDB 18 l.56-187`) — déjà transcrites verbatim dans
 > **[combat.md § Critiques et Frappe Mortelle](combat.md#critiques-et-frappe-mortelle)** (lignes 542–641).
 > Ce fichier ne les re-transcrit **pas** — renvoi systématique.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

@@ -1,7 +1,7 @@
 // scripts/docs/lib/rendre-seul.mjs — joue le `rendre()` du générateur `process.argv[2]` (chemin relatif
 // au cwd) sans rien écrire, et imprime son rendu (`[cible, texte][]`, JSON) sur stdout : le point
-// d'entrée du mode `rendre` de `mesurerGenerateur` (scripts/docs/build-all.mjs) et du rendu sous win32
-// (`plateforme-win32.test.mjs`).
+// d'entrée du mode `rendre` de `mesurerGenerateur` (scripts/docs/build-all.mjs) et des deux rendus que
+// compare `plateforme-win32.test.mjs`, sur l'hôte (`renduSurLHote`) et sous win32 (`renduSousWin32`).
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 

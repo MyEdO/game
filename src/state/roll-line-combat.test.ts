@@ -21,6 +21,7 @@ import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { refDeRegle } from '../engine/reglesChiffrees';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -442,7 +443,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
    * `attackModifiers` — la ligne reste une circonstance de la table).
    */
   it('MODE PLAFONNÉ — une circonstance hors cran (−15) COMPOSE une Difficulté combinée', () => {
-    const mods: ModLine[] = [{ label: 'Distance extrême', value: -15, famille: 'circonstance', ref: RULE_REF['portee-d-une-arme'] }];
+    const mods: ModLine[] = [{ label: 'Distance extrême', value: -15, famille: 'circonstance', ref: refDeRegle('portee-d-une-arme') }];
     const l = rollLine({ difficulty: 'intermediaire', valeur: 60, surLaCible: mods, plafond: 'difficultes' });
     expect(l.difficulty, 'aucun cran ne vaut −15 : la Difficulté déclarée reste le porteur').toBe('intermediaire');
     expect(l.difficultyCombined, 'le modificateur RÉEL voyage tel quel').toBe(-15);

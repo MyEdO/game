@@ -1,7 +1,7 @@
 # Atlas RAW — Classes, Carrières & Statut
 
 > Référentiel autosuffisant des règles WFRP4 (RAW). Chaque règle cite `LDB NN l.X` (source = dernier recours). Voir [`sources.md`](../sources.md), [`00-index.md`](00-index.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 Ce fichier couvre le **système de Classes et Carrières** (structure, avancement, changement) et le **Statut social** (Échelons, Standing, effets, revenus). L'index de carrières donne les 4 noms de niveau et le Statut de chaque niveau pour toutes les carrières LDB + suppléments.
 
@@ -492,9 +492,7 @@ Détails complets par niveau (compétences/talents/possessions) → [`catalogue-
 
 **Sources RAW** : `MDG 09 l.3-30` + `l.57-757`
 **Voir aussi** : [Index des carrières](#index-des-carrières) · [Carrières norses (MDG)](#carrières-norses-mdg) · [`talents.md`](talents.md) (Chanson de marin, Commandant d'équipe, Commandant émérite)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.3-30, l.59, l.626, l.718) → `ShantyModal`, `REPORT_DE_COMBATTANT`, `rollCrewRole`, `forceCrewRole`, `CreatorDraft`, `CombatFeature`, `CrewContributorBase`, `Condition`, `QUART_MINUTES`, `SHANTY_LABEL`, +35 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +17 fichiers
-- sans code : `MDG 9` (l.134)
+**Implémente :** [État calculé](../implemente.generated.md#4ecarrieresclasse-cotier-mdg)
 
 ---
 
@@ -516,8 +514,7 @@ Une chanson de marin affecte un équipage entier. Le Personnage doit trouver un 
 
 **Sources RAW** : `MDG 09 l.32-54`
 **Voir aussi** : [Classe Côtier (MDG)](#classe-côtier-mdg) · [Chansons de marins (MDG)](#chansons-de-marins-mdg) · [`talents.md`](talents.md)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.32-54) → `ShantyModal`, `REPORT_DE_COMBATTANT`, `rollCrewRole`, `forceCrewRole`, `CombatFeature`, `CrewContributorBase`, `Condition`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, +21 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +15 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecarrieresnouveaux-talents-de-la-classe-cotier-mdg)
 
 ---
 
@@ -541,8 +538,7 @@ Le **Chansonnier** est inextricablement lié au culte de **Manann** ; d'autres d
 
 **Sources RAW** : `MDG 09 l.206-248`
 **Voir aussi** : [Nouveaux Talents de la Classe Côtier (MDG)](#nouveaux-talents-de-la-classe-côtier-mdg)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.206-248) → `naviguons-tous-ensemble`, `tenueDeCarriere`, `jacques-bret-a-rencontre-notre-acier`, `doc`, `de-toutes-les-terreurs-sur-les-mers`, `camarades-d-equipage-rassemblez-vous`, `tous-a-la-vigie`, `les-dames-de-l-anguille`, `suivez-le-capitaine`, `skillDRBonus`, +24 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/index.ts`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/schemas/defs/careers.ts`, `src/data/sea-shanties.json`, +8 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecarriereschansons-de-marins-mdg)
 
 ---
 
@@ -598,9 +594,7 @@ Ces Carrières sont les Carrières **existantes** (LDB + Côtiers), réinterpré
 
 **Sources RAW** : `MDG 07 l.263-311`
 **Voir aussi** : [Classe Côtier (MDG)](#classe-côtier-mdg) · [Origines norses et Personnages norses (MDG)](#origines-norses-et-personnages-norses-mdg)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 7` (l.263-311) → `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, `marque-de-khorne`, `suivants-de-khorne` — `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, `src/data/traits.json`
-- sans code : `MDG 7` (l.305-311)
+**Implémente :** [État calculé](../implemente.generated.md#4ecarrierescarrieres-norses-mdg)
 
 ---
 
@@ -622,9 +616,7 @@ Trois origines humaines norses (`MDG 07 l.228-246`) :
 
 **Sources RAW** : `MDG 07 l.222-260`
 **Voir aussi** : [Carrières norses (MDG)](#carrières-norses-mdg) · [Trait Marque de Khorne (MDG)](#trait-marque-de-khorne-mdg)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `rollRandomTalent`, `mouvement`, `resolveSpeciesTalents`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
-- `MDG 7` (l.222-260) → `hiddenGroupsOf`, `TraitInstance`, `passiveCastPenalties`, `careerTalentAdditions`, `traitGrantedTalents`, `effectiveTalents`, `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, +5 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/mutations.json`, `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecarrieresorigines-norses-et-personnages-norses-mdg)
 
 ---
 
@@ -640,8 +632,7 @@ De plus, le Personnage peut acheter les Talents suivants **comme s'ils étaient 
 
 **Sources RAW** : `MDG 07 l.250-252`
 **Voir aussi** : [Origines norses et Personnages norses (MDG)](#origines-norses-et-personnages-norses-mdg) · [`talents.md`](talents.md) (Frénésie)
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 7` (l.250-252) → `hiddenGroupsOf`, `TraitInstance`, `passiveCastPenalties`, `careerTalentAdditions`, `traitGrantedTalents`, `effectiveTalents`, `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, +3 — `src/data/index.ts`, `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, `src/data/traits.json`, `src/engine/groups.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4ecarrierestrait-marque-de-khorne-mdg)
 
 <!-- VDM-CARRIERES-ARCANIQUES -->
 

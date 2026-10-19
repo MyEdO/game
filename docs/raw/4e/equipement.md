@@ -10,7 +10,7 @@
 > Outils à effet mécanique (LDB 67), Possessions diverses à effet (LDB 74).
 > Armes → [`combat.md`](combat.md). Armures → [`combat.md`](combat.md).
 > Encombrement voyage + pénalités Mouvement → [`deplacement.md`](deplacement.md) (table complète là-bas).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 > Prix / Disponibilité / Fabrication → [`economie.md`](economie.md).
 
 ## Sommaire
@@ -445,9 +445,7 @@ Le Talent **Vision nocturne** étend le rayon effectif de toute source de lumiè
 
 **Voir aussi :** `talents.md` § Vision nocturne — extension de portée d'éclairage.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 11` (l.176) → `ambush-vigilance`, `TraitCapabilities`, `trappeur`, `travailleur-qualifie`, `tres-fort`, `tres-resistant`, `tricheur`, `tueur`, `veloce`, `vigilance`, +5 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/talents.json`, `src/state/vision.ts`
-- `LDB 74` (l.5-62) → `SANS_LIVRE`, `doc`, `rayonEnCases`, `PropData`, `possessions-diverses`, `ItemCapabilities`, `GameOp` — `src/data/index.ts`, `src/data/props.json`, `src/data/props.types.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/props.ts`, `src/data/schemas/grammaire/sans-livre.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementeclairage-recapitulatif-mecanique)
 
 #### Grappin (1 CO, Limitée ; Enc 1)
 > LDB 74 l.45 : « couplé à une corde, il permet de gravir des surfaces inaccessibles. »
@@ -578,9 +576,7 @@ Les objets personnels portés ne comptent pas, sauf très volumineux/lourds : ta
 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (tables *Exemples de bateaux* et *Caractéristiques de bateau standard*) · § Construction navale (MDG) · § Traits de navire (MDG) · § Améliorations de navire (MDG) · [`deplacement.md`](deplacement.md) (voyage, vitesses).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.5-81) → `SIZE_SHIPBOARD_ENC`, `cargoTone`, `resolveShipManeuver`, `OverloadPalier`, `PortState`, `ShipDossierView`, `vesselMaxLoadEnc`, `OVERLOAD_HARD_CAP_PCT`, `CargoOverload`, `cargoOverload`, +25 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/data/skills.json`, `src/engine/possession.ts`, `src/engine/seaVoyage.ts`, +13 fichiers
-- sans code : `MDG 12` (l.5)
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementnavires-profil-et-caracteristiques-mdg)
 
 ---
 
@@ -618,8 +614,7 @@ Procédure pour qu'un Personnage construise (ou fasse construire) son vaisseau, 
 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (table *Caractéristiques de bateau standard*) · § Navires — profil et Caractéristiques (MDG) · § Traits de navire (MDG) · § Améliorations de navire (MDG).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.108-164) → `BandeOuverte`, `minuscule`, `peu-maniable`, `construireScene`, `renforce`, `tres-petite`, `robuste`, `petite`, `solide`, `doc`, +49 — `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/schemas/defs/ship-construction.ts`, `src/data/schemas/defs/vehicles.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/sea-cargo.json`, +15 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementconstruction-navale-mdg)
 
 ---
 
@@ -641,8 +636,7 @@ Les **Traits** sont intégrés à la construction initiale et, contrairement aux
 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (Traits dans la colonne *Traits et Améliorations* des exemples) · § Navires — profil et Caractéristiques (MDG) · § Construction navale (MDG).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.167-193) → `minuscule`, `peu-maniable`, `renforce`, `tres-petite`, `robuste`, `petite`, `solide`, `navalSkillTestDR`, `moyenne`, `ancre`, +25 — `src/data/naval-traits.json`, `src/data/schemas/defs/ship-construction.ts`, `src/data/ship-construction.json`, `src/engine/navalTraits.ts`, `src/engine/shipBuild.ts`, `src/i18n/messages/fr.ts`, +1 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementtraits-de-navire-mdg)
 
 ---
 
@@ -691,8 +685,7 @@ Modifications ajoutables après coup à un vaisseau ; d'autres figurent dans le 
 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (Coûts/Poids des Améliorations, table *Panne de Vapeur*) · § Navires — profil et Caractéristiques (MDG) · § Pièces d'artillerie navale (MDG) (Sabords & tir).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.195-364) → `SteamSaveModal`, `moteur-broute`, `fuite-de-vapeur`, `CollisionShip`, `nid-de-pie`, `doc`, `peu-maniable`, `MilieuDeNavigation`, `perte-de-pression`, `renforce`, +51 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/schemas/defs/naval-traits.ts`, `src/data/schemas/defs/ship-construction.ts`, `src/data/schemas/defs/ship-stations.ts`, +22 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementameliorations-de-navire-mdg)
 
 ---
 
@@ -732,6 +725,5 @@ Si un Défaut ainsi reçu est déjà présent, c'est **–10** supplémentaire �
 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (tables *Pièces d'artillerie* et *Munitions pour pièces d'artillerie*) · [`combat.md`](combat.md) (armes à distance, Atouts/Défauts, Portée) · § Améliorations de navire (MDG) (Sabords).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.367-472) → `ammoSeq`, `moteur-broute`, `crewedPenalty`, `canon`, `warMachineCrewPenalty`, `VolleyShot`, `fuite-de-vapeur`, `nid-de-pie`, `ReloadModalView`, `placementPenalty`, +26 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/qualities.json`, `src/data/ship-stations.json`, `src/data/steam-breakdown.json`, +20 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementpieces-d-artillerie-navale-mdg)
 

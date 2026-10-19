@@ -51,7 +51,7 @@ export interface PanneauParametreProps {
   anchor: Element | null;
   /** Ce que le panneau DEMANDE, en une ligne (« Quel Sort dissiper ? ») — c'est aussi son nom
    *  accessible. Nommé `intitule` et non `title` : la prose du panneau est RENDUE à l'écran, jamais
-   *  déposée dans une infobulle native (garde `console-no-title-only`). */
+   *  déposée dans une infobulle native (mur `murs/console-sans-title`). */
   intitule: string;
   options: ParamOption[];
   /** Fermeture SANS commit (Échap, clic dehors) — et fermeture APRÈS commit, appelée par le panneau. */

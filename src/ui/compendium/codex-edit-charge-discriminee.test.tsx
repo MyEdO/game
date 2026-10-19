@@ -126,18 +126,24 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     expect(presentes.filter((l) => libellesEtrangers('prop').includes(l)), 'la création empile les champs des autres domaines').toEqual([]);
   });
 
-  it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union : l’Incident de Tir édite les deux bornes d100', () => {
-    // `oups.json` partitionne ses entrées par refine (un `misfire` ne porte NI min NI max, defs/oups.ts)
-    // sans DÉCLARER sa charge par cas : l'atelier lui présente donc l'union — les deux bornes que son
-    // schéma REFUSE au save. C'est ce que le mécanisme retire aux documents qui déclarent, et ce témoin
-    // le tient à l'écran : le jour où `oups` déclare, il rougit ici et le stock ci-dessous décroît.
+  it('Oups ! : l’Incident de Tir, hors table, n’édite ni borne ni modificateur', () => {
+    const meta = { meta: metaPourFichier('oups.json') };
+    const [min, max, mod] = (['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, meta));
     const misfire = oups.find((o) => o.kind === 'misfire')!;
     monte('oups', misfire.id);
     const presentes = champsPresentes();
-    expect(presentes, 'le formulaire de l’Incident de Tir n’est pas monté — le témoin ne mesure rien').toContain('Effet mécanique');
-    expect(presentes).toContain(libelleDuChamp('min', { meta: metaPourFichier('oups.json') }));
-    expect(presentes).toContain(libelleDuChamp('max', { meta: metaPourFichier('oups.json') }));
-    expect(chargeDiscriminee('oups.json', misfire as unknown as Record<string, unknown>)).toBeUndefined();
+    expect(presentes, 'le formulaire de l’Incident de Tir n’est pas monté — la mesure ne mesure rien').toContain('Effet mécanique');
+    expect(presentes.filter((l) => [min, max, mod].includes(l))).toEqual([]);
+  });
+
+  it('Oups ! : le Malus d’Action édite ses bornes et son modificateur', () => {
+    const meta = { meta: metaPourFichier('oups.json') };
+    monte('oups', oups.find((o) => o.kind === 'actionPenalty')!.id);
+    expect(champsPresentes()).toEqual(expect.arrayContaining((['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, meta))));
+  });
+
+  it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union', () => {
+    expect(chargeDiscriminee('reglesOptionnelles.json', {})).toBeUndefined();
     // Une valeur INCONNUE du discriminant ne fabrique pas une charge : l'union reprend (saisie en cours).
     expect(chargeDiscriminee('materials.json', { domain: 'inconnu' })).toBeUndefined();
   });
@@ -170,8 +176,7 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
   const STOCK: Record<string, readonly string[]> = {
     // Chacun partitionne ses entrées par REFINE sans DÉCLARER sa charge par cas — les clés fautives sont
     // MESURÉES par la sonde ci-dessous, elles sont ici pour se lire :
-    activities: ['stake', 'stakeForm', 'rule'], // `recuperer` : enjeu et règle optionnelle d'un autre cas d'activité
-    oups: ['min', 'max'], // Incident de Tir : les bornes d100 d'une bande de table (defs/oups.ts)
+    activities: ['stake', 'stakeForm'], // `recuperer` : enjeu d'un autre cas d'activité
     reglesOptionnelles: ['min', 'max'], // règle à BANDES : d'une autre forme de valeur par défaut
     // ENTRÉE #1691 : `terrains` rejoint la même famille — le bloc plein et la matière de ses flancs
     // vont par PAIRE (`solidHeightM` ⟺ `matiere`, `defs/terrains.ts`), si bien qu'un sol nu à qui

@@ -12,19 +12,26 @@
 // Re-run : node scripts/raw/check-ancres.mjs (npm run raw:check-ancres).
 import { posix } from 'node:path'
 import { CLASSES_DE_PAGE, pagesDeLAtlas, readText } from './_lib.mjs'
+import { pagesDeLAtlasRendues, cataloguesRendus } from './build-catalogs.mjs'
+import { GENERATORS, rendreCible } from '../docs/build-all.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { tableDAncres } from './lib/ancres.mjs'
 
 export const RAWDIR = 'docs/raw'
 
 /** Les pages de l'Atlas, LUES une fois : chemin relatif → texte et TABLE de ses ancres. */
-export function pagesAvecAncres(rawDir = RAWDIR) {
+export function pagesAvecAncres(rawDir = RAWDIR, { catalogues = () => new Map(pagesDeLAtlas(rawDir, { classes: ['catalogue'] }).map((p) => [p.relatif, readText(p.chemin)])), rendus } = {}) {
   const pages = new Map()
-  for (const p of pagesDeLAtlas(rawDir, { classes: CLASSES_DE_PAGE })) {
-    const texte = readText(p.chemin)
-    pages.set(p.relatif, { texte, table: tableDAncres(texte) })
-  }
+  for (const p of pagesDeLAtlasRendues(rawDir, { classes: CLASSES_DE_PAGE }, catalogues, rendus))
+    pages.set(p.relatif, { texte: p.texte, table: tableDAncres(p.texte) })
   return pages
+}
+
+export async function rendusDeLAtlas() {
+  const rendus = new Map()
+  for (const g of GENERATORS) for (const cible of g.targets)
+    if (cible.startsWith(`${RAWDIR}/`) && !cible.includes('*')) rendus.set(cible.slice(RAWDIR.length + 1), await rendreCible(cible))
+  return rendus
 }
 
 /**
@@ -58,8 +65,8 @@ export function renvoisMorts(pages, renvois = renvoisDAncre(pages)) {
   return morts
 }
 
-function main(rawDir = RAWDIR) {
-  const pages = pagesAvecAncres(rawDir)
+async function main(rawDir = RAWDIR) {
+  const pages = pagesAvecAncres(rawDir, { catalogues: cataloguesRendus, rendus: await rendusDeLAtlas() })
   const renvois = renvoisDAncre(pages)
   const morts = renvoisMorts(pages, renvois)
   console.log(`check-ancres : ${renvois.length} renvoi(s) d'ancre sur ${pages.size} page(s) de l'Atlas — ${morts.length} mort(s)`)

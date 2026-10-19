@@ -27,14 +27,18 @@ import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
-import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
+import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
+import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
+import { TYPES, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
 import {
   CLES_DE_SPECIALISATION,
@@ -309,6 +313,9 @@ export type GroupeEnveloppe = {
   famille: string;
   /** Record : l'identité est portée par la CLÉ de l'entrée, pas par une clé de l'objet. */
   identiteParCle?: boolean;
+  /** `type` du document de RACINE (`typeDuDocument`) : il ouvre les régimes déclarés par type
+   *  (`requiseSelon` d'un rôle). Sans lui, aucun régime d'exemption ne s'applique. */
+  type?: string;
   nbEntrees: number;
   cles: CleNiveau1[];
 };
@@ -525,11 +532,15 @@ export function clesPortees(
  * @param choixDeclares nom de document → clé → littéraux d'enum déclarés par son schéma zod
  *   (`choixDeclares`) : une clé dont la valeur est l'un d'eux est un DISCRIMINANT, jamais une
  *   référence. Absente = aucune fermeture d'enum — repli sans population depuis #1466 L1a.
+ * @param choixDesOps op → champ du payload → littéraux d'enum que ce champ déclare
+ *   (`choixDesPayloadsDOp`, #2818) : sur un objet qui porte `op: X`, la clé `k` dont la valeur est l'un
+ *   d'eux n'ouvre pas de référence. Absente = aucun payload fermé.
  */
 export function scannerDonnees(
   root: string,
   defs: readonly SchemaDef[],
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
+  choixDesOps: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
   const docs = listerDocuments(root);
   const brutParDocument = new Map<string, unknown>(
@@ -637,18 +648,36 @@ export function scannerDonnees(
    * La clé OUVRE-T-ELLE une référence ? Non pour une clé de PROSE, non pour une clé de
    * `CLES_DE_SPECIALISATION` (même règle que les cases de `inscrireReference` ; #1904), non quand la
    * valeur est un LITTÉRAL D'ENUM du schéma du document (un discriminant `kind`/`type`/`op`… n'est pas
-   * une FK).
+   * une FK), ni quand le PORTEUR est une op dont le payload déclare cette valeur à cette clé
+   * (`choixDesOps`, #2818).
    */
-  const ouvreReference = (dataset: string, k: string, v: string): boolean =>
+  const ouvreReference = (dataset: string, porteur: Obj, k: string, v: string): boolean =>
     !(CLES_PROSE_SANS_REFERENCE as readonly string[]).includes(k) &&
     !CLES_DE_SPECIALISATION.has(k) &&
     !estCleScopee(k) &&
-    !choixDeclares.get(dataset)?.get(k)?.has(v);
+    !choixDeclares.get(dataset)?.get(k)?.has(v) &&
+    !(typeof porteur.op === 'string' && choixDesOps.get(porteur.op)?.get(k)?.has(v));
+
+  /** L'espace que NOMME le `type` d'une référence TYPÉE (`{ id, type }`, `refTypee` de
+   *  `grammaire/ref.ts`), quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
+   *  plusieurs espaces n'y est donc jamais ambigu. */
+  const espaceNomme = (o: Obj, k: string, v: string): string | undefined => {
+    const type = o.type;
+    if (k !== 'id' || typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(TYPES, type)) return undefined;
+    const espace = espaceDe(type as TypeEntite);
+    return index.get(v)?.has(espace) ? espace : undefined;
+  };
+  /** Datasets vers lesquels la valeur `v` de la clé `k` de `o` résout : l'espace NOMMÉ d'une référence
+   *  typée, sinon tous ceux où l'id est indexé. */
+  const ciblesDe = (o: Obj, k: string, v: string): ReadonlySet<string> | undefined => {
+    const espace = espaceNomme(o, k, v);
+    return espace ? new Set([espace]) : index.get(v);
+  };
 
   /** Résolution BRUTE (l'id est indexé quelque part, ou le `{text}` égale un libellé). */
-  const resoutIndex = (dataset: string, k: string, v: unknown): boolean =>
+  const resoutIndex = (dataset: string, porteur: Obj, k: string, v: unknown): boolean =>
     typeof v === 'string' &&
-    ouvreReference(dataset, k, v) &&
+    ouvreReference(dataset, porteur, k, v) &&
     (index.has(v) || (k === 'text' && libelles.has(normaliserLibelle(v))));
 
   // --- passe 2 : SITES ------------------------------------------------------
@@ -676,9 +705,9 @@ export function scannerDonnees(
           if (!sites.has(k2)) sites.set(k2, { resolvent: 0, total: 0, cibles: new Map() });
           const s = sites.get(k2)!;
           s.total += 1;
-          if (!resoutIndex(p.nom, k, v)) continue;
+          if (!resoutIndex(p.nom, o, k, v)) continue;
           s.resolvent += 1;
-          for (const d of index.get(v) ?? []) inc(s.cibles, d);
+          for (const d of ciblesDe(o, k, v) ?? []) inc(s.cibles, d);
         }
       });
     return sites;
@@ -777,7 +806,8 @@ export function scannerDonnees(
   };
 
   const resoutSite = (p: Prepare, o: Obj, champ: string, k: string, v: unknown): boolean => {
-    if (!resoutIndex(p.nom, k, v)) return false;
+    if (!resoutIndex(p.nom, o, k, v)) return false;
+    if (espaceNomme(o, k, v as string)) return true;
     const datasets = index.get(v as string);
     // `{text}` résolu vers un LIBELLÉ : la résolution est scopée aux cibles majoritaires du site.
     if (!datasets) return k === 'text' && datasetsDuTexte(p, o, champ, v as string).length > 0;
@@ -964,7 +994,7 @@ export function scannerDonnees(
         if (k === identite || !resoutSite(p, o, champ, k, v)) continue;
         resolvantes.add(k);
         if (typeof v !== 'string') continue;
-        for (const d of index.get(v) ?? []) cibles.add(d);
+        for (const d of ciblesDe(o, k, v) ?? []) cibles.add(d);
         if (k === 'text') for (const d of datasetsDuTexte(p, o, champ, v)) cibles.add(d);
       }
 
@@ -1026,7 +1056,7 @@ export function scannerDonnees(
         // registre du type, JAMAIS une FK »). Sans ce filtre, un id de spéc qui COLLISIONNE avec un
         // document indexé ouvrirait un couple (dataset, champ) fantôme au registre des slots.
         if (GRAPHIE_REFERENCE.has(k)) continue;
-        if (!(v as string[]).some((x) => index.has(x) && ouvreReference(p.nom, k, x))) continue;
+        if (!(v as string[]).some((x) => index.has(x) && ouvreReference(p.nom, o, k, x))) continue;
         const ligne = inscrireReference(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'), v, v.keys());
         for (const x of v as string[]) for (const d of index.get(x) ?? []) ligne.ciblesSet.add(d);
         classe = true;
@@ -1106,6 +1136,7 @@ export function scannerDonnees(
       portee: 'racine',
       famille: p.famille,
       identiteParCle: p.regime === 'valeurs',
+      type: typeDuDocument(p.brut, p.chemin),
       nbEntrees: p.entrees.length,
       cles: documents.find((d) => d.chemin === p.chemin)!.clesNiveau1,
     })),
@@ -1238,14 +1269,15 @@ export function scannerDonnees(
  * ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas (sans `choix`,
  * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
  * la divergence.
- * Tout est rendu — `defs`, `declares`, `choix`, `scan` — parce que chaque consommateur
+ * Tout est rendu — `defs`, `declares`, `choix`, `choixOps`, `scan` — parce que chaque consommateur
  * en lit une part différente et qu'aucun ne doit refabriquer la sienne.
  */
 export function scanDuCorpus(root: string) {
   const defs = defsDeDocument();
   const declares = introspecterDefs(defs);
   const choix = choixDeclares(defs);
-  return { defs, declares, choix, scan: scannerDonnees(root, defs, choix) };
+  const choixOps = choixDesPayloadsDOp(OP_DEFS, IDS_PAR_ESPACE);
+  return { defs, declares, choix, choixOps, scan: scannerDonnees(root, defs, choix, choixOps) };
 }
 
 /**
@@ -1254,8 +1286,9 @@ export function scanDuCorpus(root: string) {
  *   `clé divergente`  — le rôle est porté sous un autre nom que sa cible (`key`/`nom` pour l'identité) ;
  *   `type divergent`  — la clé cible est là, sa classe de type ne l'est pas (`source` en chaîne) ;
  *   `clé absente`     — une ENTRÉE DE RACINE ne porte nulle part la clé cible d'un rôle requis
- *                       (`id`, `type` et `source` partout, `label` sur les familles `entité`/`table`),
- *                       ni l'`alternative` déclarée par le rôle (`maison` pour `source`) ;
+ *                       (`id` et `type` partout, `label` sur les familles `entité`/`table`, `source`
+ *                       sur tout type dont la provenance se mesure, `requiseSelon`), ni
+ *                       l'`alternative` déclarée par le rôle (`maison` pour `source`) ;
  *   `cible partielle` — un rôle `entiere` (le `type` du document) est porté par une PARTIE des
  *                       entrées du groupe, de racine ou EMBARQUÉ.
  * Hors rôle `entiere`, un document EMBARQUÉ ne compte que ses clés DIVERGENTES : il n'est jamais
@@ -1274,7 +1307,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
       if (!def.cible) continue;
       const cible = parCle.get(def.cible);
       if (!cible) {
-        const requise = def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false);
+        const requise =
+          (def.requise || (def.requiseSurFamilles?.includes(g.famille) ?? false)) &&
+          (def.requiseSelon === undefined || g.type === undefined || def.requiseSelon(g.type));
         const porteeParCle = role === 'identité' && g.identiteParCle;
         const satisfaitAutrement = def.alternative !== undefined && parCle.has(def.alternative);
         if (requise && !porteeParCle && !satisfaitAutrement && g.portee === 'racine' && g.nbEntrees > 0)

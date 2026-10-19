@@ -98,6 +98,7 @@ const NOMMES = [
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',
+  'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'fixed|variable|all',
   'gable|stone-entry|chimney|sign|window-band|belfry',
@@ -140,13 +141,17 @@ const NOMMES = [
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
   // Payloads d'`OP_DEFS` (#1473) : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
-  // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json`.
+  // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
+  // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
+  'melee|ranged|all',
   'action|movement',
   'all|metal|leather|nonMagic|nonMetal',
   'd10|d100',
   'disc|wall',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
+  'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
 ].sort();
 
 /**

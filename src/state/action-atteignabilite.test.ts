@@ -31,7 +31,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ACTIONS, findConditionById } from '../data/index';
+import { ACTIONS } from '../data/index';
 import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
 import { KEYBINDINGS } from './keybindings';
@@ -42,7 +42,7 @@ import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-const CONSOLE_SRC = src('../ui/CombatConsole.tsx');
+const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
 const FRISE_SRC = src('../ui/InitiativeStrip.tsx');
 const TARGETING_SRC = src('./targetingModes.ts');
 
@@ -94,8 +94,8 @@ const GESTE_2E_KEYS = GESTE_2E_BRANCHE
   : [];
 
 /** Un REMÈDE D'ÉTAT (Se relever, Se rouler, Se libérer) n'a plus d'id cité au site : sa PERTINENCE
- *  est le gate que SON entrée DÉCLARE (`etat-porte` — l'entrée dit l'État qu'elle traite par `rule` +
- *  `ruleCategory: 'etats'`), et la console rend TOUTES les entrées qui le portent. Sa surface est CE
+ *  est le gate que SON entrée DÉCLARE (`etat-porte` — l'entrée dit l'État qu'elle traite par `rule`,
+ *  de type `etat`), et la console rend TOUTES les entrées qui le portent. Sa surface est CE
  *  branchement, mesuré à sa source ; la preuve structurelle (la case naît de l'État porté, porte sa
  *  raison, exécute son dispatcher) est au DOM dans `CombatConsole.test.tsx`. */
 const REMEDE_BRANCHE = /remedesPertinents\(/.test(CONSOLE_SRC);
@@ -114,7 +114,7 @@ const OFFRES_SRC = src('./registreOffres.ts');
  *  appelants) : une entrée de ces surfaces SANS porteur déclaré est skippée EN SILENCE par le socle — elle
  *  n'atteindrait donc personne. C'est ce que la garde de porteur ci-dessous refuse. */
 const OFFRES_CONSOMMEES = [...new Set(
-  [OFFRES_SRC, src('../ui/CombatConsole.tsx')]
+  [OFFRES_SRC, src('../ui/console/CombatConsole.tsx')]
     .flatMap((s) => s.split("offresDuRegistre(").slice(1).map((suite) => suite.split("'")[1]))
     .filter((s) => ACTIONS.some((a) => a.surface === s)), // écarte la DÉCLARATION du socle (son paramètre)
 )];
@@ -138,10 +138,10 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
   });
   // Un gate de remède LIT l'État que son entrée déclare : sans cette déclaration il lève (fail-fast).
   // La donnée ne peut donc pas naître dans la forme que le code refuse.
-  it('toute entrée de remède déclare un État de `etats.json`', () => {
+  it('toute entrée de remède déclare un État (l’id résout au parse dans `etats.json`)', () => {
     expect(REMEDES.length, 'aucun remède au registre : la garde ne mesure rien').toBeGreaterThan(0);
-    const bad = REMEDES.filter((a) => a.ruleCategory !== 'etats' || !a.rule || !findConditionById(a.rule));
-    expect(bad.map((a) => `${a.id} → ${a.ruleCategory}/${a.rule}`), 'État non déclaré ou inconnu').toEqual([]);
+    const bad = REMEDES.filter((a) => a.rule?.type !== 'etat');
+    expect(bad.map((a) => `${a.id} → ${a.rule ? `${a.rule.type}:${a.rule.id}` : '(aucun foyer)'}`), 'État non déclaré').toEqual([]);
   });
   it('chaque `candidates` déclaré existe dans ACTION_CANDIDATES', () => {
     const bad = ACTIONS.filter((a) => a.candidates && !(a.candidates in ACTION_CANDIDATES)).map((a) => `${a.id} → ${a.candidates}`);

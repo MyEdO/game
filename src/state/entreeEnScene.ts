@@ -11,7 +11,7 @@
  * de la prose : ce module est de la couche `state`, la narration de son refus appartient à son
  * appelant (`devtools.ts:ready`, seule surface FR — garde `i18n-narration-guard.test.ts`).
  */
-import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
+import { scheduleFlowTimer, clearTrackedTimer } from '../lib/minuteries';
 
 type EtatEntree = { sceneId: string | null; voile: boolean };
 

@@ -119,7 +119,15 @@
       "book": "livre-de-base",
       "page": 163,
       "note": "LDB 14 « Combat à deux armes »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "main-secondaire",
+        "label": "Main secondaire",
+        "palier": "difficile",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "viser-une-localisation",
@@ -142,8 +150,16 @@
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Difficile (-20)"
-    }
+      "note": "LDB 14, Tableau des Difficultés de Combat"
+    },
+    "rangees": [
+      {
+        "id": "localisation",
+        "label": "Localisation visée",
+        "palier": "difficile",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "viser",
@@ -166,8 +182,16 @@
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Accessible (+20)"
-    }
+      "note": "LDB 14, Tableau des Difficultés de Combat"
+    },
+    "rangees": [
+      {
+        "id": "viser",
+        "label": "Viser",
+        "palier": "accessible",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "tirer-dans-le-tas",
@@ -191,7 +215,30 @@
       "book": "livre-de-base",
       "page": 162,
       "note": "LDB 14 « Tirer dans le tas »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "petit-groupe",
+        "label": "Tirer dans le tas (3-6)",
+        "palier": "accessible",
+        "famille": "circonstance",
+        "seuil": 3
+      },
+      {
+        "id": "groupe-important",
+        "label": "Tirer dans le tas (7-12)",
+        "palier": "facile",
+        "famille": "circonstance",
+        "seuil": 7
+      },
+      {
+        "id": "foule",
+        "label": "Tirer dans le tas (13+)",
+        "palier": "tresFacile",
+        "famille": "circonstance",
+        "seuil": 13
+      }
+    ]
   },
   {
     "id": "tir-en-mouvement",
@@ -214,8 +261,16 @@
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Complexe (-10)"
-    }
+      "note": "LDB 14, Tableau des Difficultés de Combat"
+    },
+    "rangees": [
+      {
+        "id": "tir-en-mouvement",
+        "label": "Tir en bougeant",
+        "palier": "complexe",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "empoignade",
@@ -239,7 +294,21 @@
       "book": "livre-de-base",
       "page": 163,
       "note": "LDB 14 « Empoignade »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "avantage-le-plus-faible",
+        "label": "Empoignade (cible bloquée)",
+        "valeur": 20,
+        "famille": "circonstance"
+      },
+      {
+        "id": "avantage-le-plus-fort",
+        "label": "Empoignade (cible bloquée)",
+        "valeur": 10,
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "retenir-ses-coups",
@@ -407,7 +476,15 @@
       "book": "livre-de-base",
       "page": 158,
       "note": "LDB 13 « OPTION : Sur la défensive »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "sur-la-defensive",
+        "label": "Sur la défensive",
+        "valeur": 20,
+        "famille": "jet"
+      }
+    ]
   },
   {
     "id": "faim-et-soif",
@@ -527,7 +604,15 @@
       "book": "livre-de-base",
       "page": 164,
       "note": "LDB 14 « Avantage » — Les bénéfices de l'Avantage"
-    }
+    },
+    "rangees": [
+      {
+        "id": "par-point",
+        "label": "Avantage",
+        "valeur": 10,
+        "famille": "jet"
+      }
+    ]
   },
   {
     "id": "amputation",
@@ -603,7 +688,44 @@
       "book": "livre-de-base",
       "page": 297,
       "note": "LDB 62 « Portée d'une arme »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "bout-portant",
+        "label": "Bout portant",
+        "palier": "facile",
+        "famille": "circonstance",
+        "plafond": 0.1
+      },
+      {
+        "id": "courte",
+        "label": "Courte portée",
+        "palier": "accessible",
+        "famille": "circonstance",
+        "plafond": 0.5
+      },
+      {
+        "id": "moyenne",
+        "label": "Moyenne",
+        "palier": "intermediaire",
+        "famille": "circonstance",
+        "plafond": 1
+      },
+      {
+        "id": "longue",
+        "label": "Longue",
+        "palier": "complexe",
+        "famille": "circonstance",
+        "plafond": 2
+      },
+      {
+        "id": "extreme",
+        "label": "Extrême",
+        "palier": "tresDifficile",
+        "famille": "circonstance",
+        "plafond": 3
+      }
+    ]
   },
   {
     "id": "allonge-longueur-d-arme",
@@ -629,7 +751,15 @@
       "book": "livre-de-base",
       "page": 297,
       "note": "LDB 62 « OPTION : LONGUEUR D'ARME ET COMBAT AU CONTACT »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "arme-plus-longue",
+        "label": "Allonge de l'adversaire",
+        "valeur": -10,
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "taille-modificateurs-en-combat",
@@ -653,7 +783,15 @@
       "book": "livre-de-base",
       "page": 342,
       "note": "LDB 85 « Taille (Divers) » — Modificateurs de Taille en Combat"
-    }
+    },
+    "rangees": [
+      {
+        "id": "plus-petit",
+        "label": "Taille (plus petit)",
+        "valeur": 10,
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "taille-cible-au-tir",
@@ -701,7 +839,23 @@
       "book": "livre-de-base",
       "page": 162,
       "note": "LDB 14 « Supériorité numérique »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "deux-contre-un",
+        "label": "Surnombre (2 contre 1)",
+        "palier": "accessible",
+        "famille": "circonstance",
+        "seuil": 2
+      },
+      {
+        "id": "trois-contre-un",
+        "label": "Surnombre (3 contre 1 ou plus)",
+        "palier": "facile",
+        "famille": "circonstance",
+        "seuil": 3
+      }
+    ]
   },
   {
     "id": "attaque-de-flanc-ou-de-dos",
@@ -724,8 +878,16 @@
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Accessible (+20)"
-    }
+      "note": "LDB 14, Tableau des Difficultés de Combat"
+    },
+    "rangees": [
+      {
+        "id": "flanc-ou-dos",
+        "label": "Flanc/dos",
+        "palier": "accessible",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "cible-en-contrebas",
@@ -748,8 +910,16 @@
     "source": {
       "book": "livre-de-base",
       "page": 161,
-      "note": "LDB 14, Tableau des Difficultés de Combat — Complexe (-10)"
-    }
+      "note": "LDB 14, Tableau des Difficultés de Combat"
+    },
+    "rangees": [
+      {
+        "id": "en-contrebas",
+        "label": "En contrebas de la cible",
+        "palier": "complexe",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "tir-dans-un-combat-au-corps-a-corps",
@@ -773,7 +943,15 @@
       "book": "livre-de-base",
       "page": 162,
       "note": "LDB 14 « OPTION : TIRER DANS UN COMBAT AU CORPS À CORPS »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "tir-dans-la-melee",
+        "label": "Tir dans la mêlée",
+        "valeur": -20,
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "cible-dissimulee",
@@ -821,7 +999,27 @@
       "book": "livre-de-base",
       "page": 163,
       "note": "LDB 14 « Combat monté »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "cible-plus-petite",
+        "label": "Combat monté (cible plus petite)",
+        "valeur": 20,
+        "famille": "circonstance"
+      },
+      {
+        "id": "cibler-le-cavalier",
+        "label": "Cibler le cavalier (plus petit que la monture)",
+        "valeur": -10,
+        "famille": "circonstance"
+      },
+      {
+        "id": "esquive-a-cheval",
+        "label": "Esquive à cheval",
+        "palier": "difficile",
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "equipe-incomplete-machine-de-guerre",
@@ -845,7 +1043,15 @@
       "book": "archives-de-l-empire-2",
       "page": 88,
       "note": "ADE II 8 « Machines de guerre »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "equipe-incomplete",
+        "label": "Équipe incomplète",
+        "valeur": -20,
+        "famille": "jet"
+      }
+    ]
   },
   {
     "id": "possession-pas-a-sa-taille",
@@ -869,7 +1075,15 @@
       "book": "archives-de-l-empire-2",
       "page": 31,
       "note": "ADE II 2 « UN LOURD FARDEAU »"
-    }
+    },
+    "rangees": [
+      {
+        "id": "possession-pas-a-sa-taille",
+        "label": "Possession pas à sa taille",
+        "valeur": -20,
+        "famille": "jet"
+      }
+    ]
   },
   {
     "id": "navigation-derive",
@@ -1639,7 +1853,15 @@
       "book": "livre-de-base",
       "page": 165,
       "note": "LDB 15 l.61-68 — phrase RECOLLÉE à la soudure de folio 165/166 (l.63 se termine sur « Comme vous lui », la suite « tournez le dos, … » ouvre le folio 166)"
-    }
+    },
+    "rangees": [
+      {
+        "id": "dos-tourne",
+        "label": "Dos tourné (adversaire en fuite)",
+        "valeur": 20,
+        "famille": "circonstance"
+      }
+    ]
   },
   {
     "id": "chute",

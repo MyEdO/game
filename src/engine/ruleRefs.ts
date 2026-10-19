@@ -66,10 +66,6 @@ export type RuleId =
   | 'combat-monte'
   | 'equipe-incomplete-machine-de-guerre'
   | 'possession-pas-a-sa-taille'
-  | 'salve'
-  | 'arme-d-equipe'
-  | 'nuee'
-  | 'parasite'
   | 'tests-opposes'
   | 'rapide'
   | 'commandant-d-equipe'
@@ -90,44 +86,52 @@ export type RuleId =
   | 'echouer-en-mer'
   | 'navigation-echouage';
 
-/** La fiche Codex de chaque règle, en ids STABLES. Les producteurs de `ModLine` la consomment
- *  (`RULE_REF.viser`), l'affichage la résout en chip cliquable — jamais un `{category, id}` recopié
- *  au site de push. Garde d'intégrité : `src/engine/rule-refs.test.ts`. */
-export const RULE_REF: Record<RuleId, CodexTarget> = gelerLaConstante({
-  viser: { category: 'regles', id: 'viser' },
-  'viser-une-localisation': { category: 'regles', id: 'viser-une-localisation' },
-  'main-secondaire': { category: 'regles', id: 'main-secondaire' },
+/**
+ * Les règles CHIFFRÉES et les rangées que le moteur lit de leur fiche (`regles.json`, champ `rangees`) :
+ * la valeur, la famille et le libellé de leur `ModLine` sont de la DONNÉE, que seul `ligneDeRegle`
+ * (`src/engine/reglesChiffrees.ts`) transforme en ligne. Elles n'ont donc pas d'entrée `RULE_REF` : une
+ * ligne qui l'écrirait à la main ne compile pas. #1173
+ */
+export const RANGEES_DE_REGLE = {
+  viser: ['viser'],
+  'viser-une-localisation': ['localisation'],
+  'superiorite-numerique': ['deux-contre-un', 'trois-contre-un'],
+  'tirer-dans-le-tas': ['petit-groupe', 'groupe-important', 'foule'],
+  'sur-la-defensive': ['sur-la-defensive'],
+  'attaque-de-flanc-ou-de-dos': ['flanc-ou-dos'],
+  fuite: ['dos-tourne'],
+  'tir-en-mouvement': ['tir-en-mouvement'],
+  'tir-dans-un-combat-au-corps-a-corps': ['tir-dans-la-melee'],
+  'cible-en-contrebas': ['en-contrebas'],
+  'combat-monte': ['cible-plus-petite', 'cibler-le-cavalier', 'esquive-a-cheval'],
+  'possession-pas-a-sa-taille': ['possession-pas-a-sa-taille'],
+  empoignade: ['avantage-le-plus-faible', 'avantage-le-plus-fort'],
+  'portee-d-une-arme': ['bout-portant', 'courte', 'moyenne', 'longue', 'extreme'],
+  'main-secondaire': ['main-secondaire'],
+  'taille-modificateurs-en-combat': ['plus-petit'],
+  'allonge-longueur-d-arme': ['arme-plus-longue'],
+  'equipe-incomplete-machine-de-guerre': ['equipe-incomplete'],
+  avantage: ['par-point'],
+} as const satisfies Partial<Record<RuleId, readonly string[]>>;
+
+export type RegleChiffree = keyof typeof RANGEES_DE_REGLE;
+export type RangeeDe<R extends RegleChiffree> = (typeof RANGEES_DE_REGLE)[R][number];
+
+/** La fiche Codex de chaque règle NON chiffrée, en ids STABLES. Les producteurs de `ModLine` la
+ *  consomment (`RULE_REF.charger`), l'affichage la résout en chip cliquable — jamais un
+ *  `{category, id}` recopié au site de push. Garde d'intégrité : `src/engine/rule-refs.test.ts`. */
+export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gelerLaConstante({
   'combat-deux-armes': { category: 'regles', id: 'combat-deux-armes' },
-  'tirer-dans-le-tas': { category: 'regles', id: 'tirer-dans-le-tas' },
-  'tir-en-mouvement': { category: 'regles', id: 'tir-en-mouvement' },
-  'sur-la-defensive': { category: 'regles', id: 'sur-la-defensive' },
-  empoignade: { category: 'regles', id: 'empoignade' },
   charger: { category: 'regles', id: 'charger' },
   soutien: { category: 'regles', id: 'soutien' },
   'sombre-pacte': { category: 'regles', id: 'sombre-pacte' },
   chance: { category: 'characteristics', id: 'chance' },
   'benediction-de-chance': { category: 'spells', id: 'benediction-de-chance' },
   determination: { category: 'characteristics', id: 'determination' },
-  avantage: { category: 'regles', id: 'avantage' },
   amputation: { category: 'regles', id: 'amputation' },
   'maladresse-tableau-des-oups': { category: 'regles', id: 'maladresse-tableau-des-oups' },
-  'portee-d-une-arme': { category: 'regles', id: 'portee-d-une-arme' },
-  'allonge-longueur-d-arme': { category: 'regles', id: 'allonge-longueur-d-arme' },
-  'taille-modificateurs-en-combat': { category: 'regles', id: 'taille-modificateurs-en-combat' },
   'taille-cible-au-tir': { category: 'regles', id: 'taille-cible-au-tir' },
-  'superiorite-numerique': { category: 'regles', id: 'superiorite-numerique' },
-  'attaque-de-flanc-ou-de-dos': { category: 'regles', id: 'attaque-de-flanc-ou-de-dos' },
-  fuite: { category: 'regles', id: 'fuite' },
-  'cible-en-contrebas': { category: 'regles', id: 'cible-en-contrebas' },
-  'tir-dans-un-combat-au-corps-a-corps': { category: 'regles', id: 'tir-dans-un-combat-au-corps-a-corps' },
   'cible-dissimulee': { category: 'regles', id: 'cible-dissimulee' },
-  'combat-monte': { category: 'regles', id: 'combat-monte' },
-  'equipe-incomplete-machine-de-guerre': { category: 'regles', id: 'equipe-incomplete-machine-de-guerre' },
-  'possession-pas-a-sa-taille': { category: 'regles', id: 'possession-pas-a-sa-taille' },
-  salve: { category: 'qualities', id: 'salve' },
-  'arme-d-equipe': { category: 'qualities', id: 'arme-d-equipe' },
-  nuee: { category: 'traits', id: 'nuee' },
-  parasite: { category: 'traits', id: 'parasite' },
   'tests-opposes': { category: 'regles', id: 'tests-opposes' },
   rapide: { category: 'qualities', id: 'rapide' },
   'commandant-d-equipe': { category: 'talents', id: 'commandant-d-equipe' },

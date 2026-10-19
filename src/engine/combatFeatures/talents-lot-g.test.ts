@@ -13,6 +13,7 @@ import { endOfRound } from '../conditions';
 import { makeRNG } from '../dice';
 import { slugId } from '../../data/slug';
 import type { Combatant, Weapon } from '../types';
+import { modDeRegle } from '../reglesChiffrees';
 
 /** Lot G — Talents à effet de jeu (LDB 10) : helpers du registre + câblages moteur purs. */
 const w = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], ...over });
@@ -71,9 +72,9 @@ describe('modificateurs de Test (LDB 10)', () => {
     const mods = attackModifiers(c, grand, w({ type: 'ranged', range: 30 }), { kind: 'ranged', distanceTiles: 5 });
     expect(mods.find((m) => m.label.startsWith('Taille (cible)'))).toBeUndefined();
     const sniper = mk([{ name: 'Tireur embusqué', times: 1 }]);
-    expect(sniperRangeAdjust(sniper, -10)).toBe(0);
-    expect(sniperRangeAdjust(sniper, -30)).toBe(-15);
-    expect(sniperRangeAdjust(mk([]), -10)).toBe(-10);
+    expect(sniperRangeAdjust(sniper, 'longue', modDeRegle('portee-d-une-arme', 'longue'))).toBe(0);
+    expect(sniperRangeAdjust(sniper, 'extreme', modDeRegle('portee-d-une-arme', 'extreme'))).toBe(-15);
+    expect(sniperRangeAdjust(mk([]), 'longue', modDeRegle('portee-d-une-arme', 'longue'))).toBe(-10);
   });
 });
 
@@ -135,8 +136,8 @@ describe('tests hors combat (LDB 10)', () => {
     expect(talentReverseFailed(c, { skill: 'charme' })).toBeNull();
   });
   it('Ambidextre toujours fonctionnel après la refonte (régression)', () => {
-    expect(offHandPenalty(mk([{ name: 'Ambidextre', times: 1 }]))).toBe(-10);
-    expect(offHandPenalty(mk([{ name: 'Ambidextre', times: 2 }]))).toBe(0);
-    expect(offHandPenalty(mk([]))).toBe(-20);
+    expect(offHandPenalty(mk([{ name: 'Ambidextre', times: 1 }]), modDeRegle('main-secondaire', 'main-secondaire'))).toBe(-10);
+    expect(offHandPenalty(mk([{ name: 'Ambidextre', times: 2 }]), modDeRegle('main-secondaire', 'main-secondaire'))).toBe(0);
+    expect(offHandPenalty(mk([]), modDeRegle('main-secondaire', 'main-secondaire'))).toBe(-20);
   });
 });

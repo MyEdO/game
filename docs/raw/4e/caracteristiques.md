@@ -3,14 +3,14 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite sa source `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/engine/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > **Périmètre de ce fichier** : les 10 Caractéristiques (CC/CT/F/E/I/Ag/Dex/Int/FM/Soc), le
 > Bonus de Caractéristique, et les statistiques dérivées Blessures et Mouvement.
 > Génération des valeurs à la création → voir [`avancement.md`](avancement.md).
 > Taille et variations créature → voir § Blessures par Taille ci-dessous + [`deplacement.md`](deplacement.md).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

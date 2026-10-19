@@ -50,7 +50,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/CascadeModal.tsx|s.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|r.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|cur.label ?? \'\'', AUTHORE],
-  ['src/ui/CombatConsole.tsx|setWeapon?.label ?? \'Mains nues\'', SANS_ARME],
+  ['src/ui/console/CombatConsole.tsx|setWeapon?.label ?? \'Mains nues\'', SANS_ARME],
   ['src/ui/editor/codex/CodexEdit.tsx|indice?.label ?? \'\'', AUTHORE],
   ['src/ui/compendium/CompendiumScreen.tsx|cat?.label ?? \'\'', PLACEHOLDER],
   ['src/ui/compendium/registry.ts|e.label ?? \'\'', AUTHORE],

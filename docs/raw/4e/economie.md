@@ -6,7 +6,7 @@
 >
 > Scope : monnaie / achat-vente / Disponibilité / Marchandage / Évaluation / Fabrication / commerce de cargaison (MSRC 11).
 > Renvoie à **Équipement** pour les prix individuels des objets (armes, armures, trappings — non retranscrits ici).
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire
 

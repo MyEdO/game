@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { parseQualityInstance } from './qualities/normalize';
 import { resolveMelee, resolveRanged, rangeBandModifier, rangeBandName, attackModifiers, psychDRAdjust, resolveStrayRangedHit, defenseModifiers, rollMeleeDefender, finishMelee, resolveMeleePassive, freeAttackWeapon, resolveBackstabAttack, rederivePassiveAttack, frozenDifficulty, REDERIVATIONS, attackTestLabel, type ModLine, type RollBreakdown } from './combat';
-import { RULE_REF } from './ruleRefs';
 import { evaluateTest, hydrateTR, bumpSL } from './tests';
 import { makeRNG } from './dice';
 import { Combatant, Weapon, DIFFICULTY_MODIFIERS } from './types';
 import { attaqueNaturelle } from './creatureAttacks';
+import { ligneDeRegle } from './reglesChiffrees';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -341,27 +341,27 @@ describe('Bandes de portée — échelle métrique de la Scène (#249, metresPer
   });
   it('attackModifiers propage metresPerTile jusqu’au mod de portée affiché', () => {
     const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'ranged', distanceTiles: 3, metresPerTile: 10 });
-    expect(mods).toContainEqual({ label: 'Courte portée', value: 20, famille: 'circonstance', ref: RULE_REF['portee-d-une-arme'] });
+    expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'courte'));
   });
   it('sans metresPerTile (défaut 2, terrestre) : même distanceTiles=3 reste Bout Portant/hors-Courte, comportement BYTE-IDENTIQUE', () => {
     const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'ranged', distanceTiles: 3 });
-    expect(mods).toContainEqual({ label: 'Bout portant', value: 40, famille: 'circonstance', ref: RULE_REF['portee-d-une-arme'] }); // 6 m ≤ 6, comme avant le câblage
+    expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'bout-portant')); // 6 m ≤ 6, comme avant le câblage
   });
 });
 
 describe('attackModifiers — modificateurs étiquetés (source unique)', () => {
   it('tir à courte portée → mod « Courte portée » +20', () => {
     const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'ranged', distanceTiles: 10 });
-    expect(mods).toContainEqual({ label: 'Courte portée', value: 20, famille: 'circonstance', ref: RULE_REF['portee-d-une-arme'] });
+    expect(mods).toContainEqual(ligneDeRegle('portee-d-une-arme', 'courte'));
   });
   it('tireur qui a Visé → mod « Viser » +20 (action Viser, l.90)', () => {
     const mods = attackModifiers(mk({ label: 'A', aiming: true }), mk({ label: 'B' }), bow, { kind: 'ranged', distanceTiles: 28 });
     // La ligne porte SA règle : la chip du breakdown ouvre `regles/viser` (#1078).
-    expect(mods).toContainEqual({ label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser });
+    expect(mods).toContainEqual(ligneDeRegle('viser', 'viser'));
   });
   it('viser une localisation → mod « Localisation visée » −20 (« Une attaque ou un tir qui cherche à atteindre une Localisation particulière », LDB 14 l.73)', () => {
     const mods = attackModifiers(mk({ label: 'A' }), mk({ label: 'B' }), bow, { kind: 'ranged', distanceTiles: 28, location: 'tete' });
-    expect(mods).toContainEqual({ label: 'Localisation visée', value: -20, famille: 'circonstance', ref: RULE_REF['viser-une-localisation'] });
+    expect(mods).toContainEqual(ligneDeRegle('viser-une-localisation', 'localisation'));
   });
   it('mêlée vs cible À Terre → la ligne NOMME l’État qui expose la cible (+20 À Terre, lié au Codex)', () => {
     const downed = mk({ label: 'B', conditions: [{ id: 'a-terre', value: 1 }] });

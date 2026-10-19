@@ -11,6 +11,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { foyerDeRegleSchema } from '../grammaire/valeurs';
 
 export const file = 'voyage-stakes.json';
 export const famille = 'entite';
@@ -24,12 +25,10 @@ const doc = document(
     /** Gabarit du descripteur mécanique — trous `{nom}` remplis par le flux (valeurs calculées). */
     template: z.string(),
     /** FOYER de la règle derrière cette étape — la règle est à UN CLIC depuis l'enjeu (#1117).
-     *  Absent = aucune fiche ne couvre encore ce `kind`. */
-    rule: z.string().optional(),
-    /** Catégorie Codex du foyer (`'regles'` par défaut, `'skills'`, `'etats'`…) — même contrat que
-     *  `flow-stakes`/`combat-stakes` : le renvoi vise l'entité qui PORTE déjà la règle (la Compétence
-     *  jetée, l'État subi), `regles.json` n'étant que le foyer des règles de cadre. */
-    ruleCategory: z.string().optional(),
+     *  Absent = aucune fiche ne couvre encore ce `kind`. Même contrat que `flow-stakes`/`combat-stakes` :
+     *  le renvoi vise l'entité qui PORTE déjà la règle (la Compétence jetée, l'État subi), `regles.json`
+     *  n'étant que le foyer des règles de cadre. */
+    rule: foyerDeRegleSchema.optional(),
   },
   {
     kind: { label: 'Type d’étape', hint: 'Étape de la cascade de voyage servie' },
@@ -43,10 +42,6 @@ const doc = document(
     rule: {
       label: 'Règle associée',
       hint: 'Entité qui porte la règle derrière l’étape (Compétence/État/Talent, ou fiche de règles-cadre)',
-    },
-    ruleCategory: {
-      label: 'Catégorie de la règle',
-      hint: 'Catégorie Codex de l’entité qui porte la règle (regles par défaut, skills, etats…)',
     },
   },
   {

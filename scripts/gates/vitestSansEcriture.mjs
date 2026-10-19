@@ -1,7 +1,7 @@
 import { afterAll, expect } from 'vitest'
 import { appendFileSync } from 'node:fs'
 import { relative } from 'node:path'
-import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
+import { estDeLaSuiteVitest } from '../guards/lib/racinesDeLaSuite.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const EN_COURS = Symbol.for('wfrp.tests.vitest.controle')
@@ -15,7 +15,7 @@ export async function protegerSuiteVitest(racine = process.cwd()) {
   const chemin = expect.getState().testPath
   if (!chemin) throw new Error('garde Vitest : testPath absent avant la collecte')
   const rel = relative(racine, chemin).replaceAll('\\', '/')
-  if (!RACINES_DE_LA_SUITE.some(({ dir, exts }) => dir.startsWith('scripts/') && rel.startsWith(`${dir}/`) && exts.some((e) => rel.endsWith(e)))) return
+  if (!rel.startsWith('scripts/') || !estDeLaSuiteVitest(rel)) return
   const [{ ouvrirControleEcritures }, { installer }] = await Promise.all([
     import('../guards/lib/controleEcritures.mjs'), import('../guards/lib/intercepterEcritures.mjs'),
   ])

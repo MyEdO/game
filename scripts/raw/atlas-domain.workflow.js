@@ -165,9 +165,7 @@ const STRUCT = '<synthese fidele et COMPLETE, en FRANCAIS parfaitement accentue,
   + '\n' + '- `<ABBR NN l.X-Y>` — <ce que precise ce passage> (CONSOLIDE tous livres)'
   + '\n\n' + '> « citation verbatim quand le mot exact compte, dans la LANGUE DU LIVRE cite » — `<ABBR NN l.X>`'
   + '\n\n' + '**Voir aussi** : <topics lies>'
-  // Le champ Implemente est DERIVE du code par build-implemente (#487) : le workflow ne pose qu'un
-  // placeholder nu, jamais un module devine a la main (que la regeneration remplace).
-  + '\n' + '**Implémente :** (non implémenté)'
+  + '\n' + '**Implémente :**'
 
 function cadragePrompt(dom) {
   return 'CADRAGE du domaine "' + dom.title + '" (id ' + dom.domain + ') pour l Atlas RAW du coeur de regles « ' + COEUR + ' ». Tu decouvres TOUS les chapitres (tous les livres du perimetre ci-dessous) qui contiennent des regles de ce domaine.'

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -90,8 +90,13 @@ function annoncesDeLIndex(): string[] {
 }
 
 describe('angle mort de recherche — fichiers > 512 Ko', () => {
-  it('docs/raw : tout fichier au-dessus du seuil est ANNONCÉ dans 00-index.md', async () => {
-    const mesures = await oversizeAtlas();
+  let mesuresAtlas: string[];
+  beforeAll(async () => {
+    mesuresAtlas = await oversizeAtlas();
+  }, 120_000);
+
+  it('docs/raw : tout fichier au-dessus du seuil est ANNONCÉ dans 00-index.md', () => {
+    const mesures = mesuresAtlas;
     const annonces = annoncesDeLIndex();
     const manquants = mesures.filter((f) => !annonces.includes(f));
     expect(
@@ -102,8 +107,8 @@ describe('angle mort de recherche — fichiers > 512 Ko', () => {
     ).toEqual([]);
   });
 
-  it("docs/raw : rien d'ANNONCÉ ne repasse sous le seuil (l'annonce ne doit pas mentir)", async () => {
-    const mesures = await oversizeAtlas();
+  it("docs/raw : rien d'ANNONCÉ ne repasse sous le seuil (l'annonce ne doit pas mentir)", () => {
+    const mesures = mesuresAtlas;
     const annonces = annoncesDeLIndex();
     const fantomes = annonces.filter((f) => !mesures.includes(f));
     expect(

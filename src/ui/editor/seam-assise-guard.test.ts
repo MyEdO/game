@@ -32,8 +32,8 @@ import {
  *     est posée.
  *  2. `src/state/sceneEdit.ts` : toute fonction EXPORTÉE (déclaration ou const fléchée) qui pose
  *     `entities` dans un littéral — ou qui appelle une écriture mécanique — traverse
- *     `normaliseAssises`, directement ou par fermeture d'appels ; sauf les écritures mécaniques
- *     elles-mêmes, nommées au cliquet `HORS_SEAM`.
+ *     `normaliseAssises`, directement ou par fermeture d'appels. Les écritures mécaniques
+ *     (`MECANIQUES`) ne sont pas exportées : seul le seam les atteint (#2724).
  *  3. ORACLE COMPORTEMENTAL : chaque geste d'édition d'entité, appliqué à une scène HOSTILE, rend
  *     un document que `validateScene` accepte. L'oracle est le VALIDATEUR, pas une reformulation.
  *
@@ -132,21 +132,12 @@ function traverseLeSeam(fns: Map<string, Fonction>, nom: string, vus = new Set<s
   return false;
 }
 
-/**
- * CLIQUET NOMMÉ — les écrivains d'entité qui NE traversent PAS le seam. Chacun porte sa raison ; la
- * liste ne peut que décroître, et un écrivain nouveau y échoue tant qu'il n'est pas classé.
- */
-const HORS_SEAM: Record<string, string> = {
-  patchEntity: 'écriture mécanique — le seam la compose (editEntity), elle ne peut pas le composer',
-  patchEntityCombat: 'écriture mécanique — le seam la compose (editEntityCombat)',
-};
-
 describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entité', () => {
   it('toute primitive exportée de `sceneEdit` qui écrit une entité traverse `normaliseAssises`', () => {
     const { sf, fns } = fonctionsDuModule(SCENE_EDIT);
     const manquantes: string[] = [];
     for (const [nom, fn] of fns) {
-      if (!fn.exportee || HORS_SEAM[nom] || !ecritUneEntite(fn, sf).length) continue;
+      if (!fn.exportee || !ecritUneEntite(fn, sf).length) continue;
       if (!traverseLeSeam(fns, nom)) manquantes.push(`${SCENE_EDIT} :: ${nom}`);
     }
     expect(manquantes, `écrivain(s) d’entité hors seam :\n${manquantes.join('\n')}`).toEqual([]);
@@ -157,15 +148,6 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
     const vus = [...fns].filter(([, fn]) => ecritUneEntite(fn, sf).length).map(([nom]) => nom);
     for (const attendu of ['patchEntity', 'patchEntityCombat', 'addEntity', 'editEntity', 'editEntityCombat', 'moveEntityTo', 'removeEntity'])
       expect(vus, `${attendu} devrait être vu comme écrivain d’entité`).toContain(attendu);
-  });
-
-  it('le cliquet ne porte aucune entrée PÉRIMÉE (primitive disparue ou rentrée dans le rang)', () => {
-    const { sf, fns } = fonctionsDuModule(SCENE_EDIT);
-    for (const nom of Object.keys(HORS_SEAM)) {
-      const fn = fns.get(nom);
-      expect(fn, `${nom} n’existe plus — retire-le de HORS_SEAM`).toBeDefined();
-      expect(ecritUneEntite(fn!, sf).length, `${nom} n’écrit plus d’entité — retire-le de HORS_SEAM`).toBeGreaterThan(0);
-    }
   });
 
   it('aucun fichier de `src/ui/**` ne pose la propriété `entities` dans un littéral', () => {

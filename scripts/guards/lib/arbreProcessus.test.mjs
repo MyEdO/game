@@ -1,37 +1,54 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { mesurerArbreProcessus, ancetresValidesDe } from './arbreProcessus.mjs'
+import { jouerSousSuspendeur } from '../../test/suspendeurDeMesure.mjs'
 
-const expiree = { processus: [], erreurs: ['échéance de 5000 ms atteinte'], indeterminee: 'échéance de 5000 ms atteinte', code: 'MESURE_PROCESSUS_EXPIREE' }
+// La mesure Windows est un `powershell.exe` enfant du mesurant, borné par `DELAI_MESURE_PROCESSUS_MS`, qui lit `SystemRoot` à chaque appel (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc dans le processus lui-même.
+const MESURE_WINDOWS = { skip: process.platform !== 'win32' && 'mesure Linux sans mesureur distinct à suspendre ni SystemRoot à retirer', timeout: 60000 }
 
-test('#2741 mesure lente : seule une première expiration autorise une seconde mesure bornée', () => {
-  const appels = []
-  const processus = [{ pid: 1, creation: '2026-10-18T00:00:00Z' }]
-  assert.deepEqual(mesurerArbreProcessus({ mesurer: (options) => { appels.push(options); return appels.length === 1 ? expiree : { processus, erreurs: [] } } }), processus)
-  assert.deepEqual(appels, [{ identites: true, timeout: 5000 }, { identites: true, timeout: 5000 }])
+const MODULE = JSON.stringify(new URL('./arbreProcessus.mjs', import.meta.url).href)
+
+test('#2741 mesure lente : seule une première expiration autorise une seconde mesure, qui rend la vue', MESURE_WINDOWS, async (t) => {
+  const vu = await jouerSousSuspendeur(t, `const { mesurerArbreProcessus } = await import(${MODULE})
+console.log(JSON.stringify(mesurerArbreProcessus().some((p) => p.pid === process.pid)))`, { max: 1 })
+  assert.deepEqual([vu.status, vu.sortie.trim()], [0, 'true'], vu.sortie)
+  assert.deepEqual(vu.suspendeur, { status: 0, erreurs: '' })
+  assert.equal(vu.suspendus.length, 1, `mesureurs suspendus : ${vu.suspendus}`)
 })
 
-test('#2741 échéance répétée : refus transitoire codé, aucune vue expirée exploitée', () => {
-  let appels = 0
-  assert.throws(() => mesurerArbreProcessus({ mesurer: () => { appels++; return { ...expiree, processus: [{ pid: 999 }] } } }), (e) => {
-    assert.equal(e.code, 'MESURE_PROCESSUS_EXPIREE')
-    assert.equal(e.categorie, 'transitoire')
-    assert.match(e.message, /^\[transitoire · retentable\].*5000 ms/)
-    return true
-  })
-  assert.equal(appels, 2)
+test('#2741 échéance répétée : refus transitoire codé après deux mesures bornées, aucune vue expirée exploitée', MESURE_WINDOWS, async (t) => {
+  const vu = await jouerSousSuspendeur(t, `const { mesurerArbreProcessus } = await import(${MODULE})
+try { console.log(JSON.stringify({ vue: mesurerArbreProcessus() })) }
+catch (e) { console.log(JSON.stringify({ code: e.code, categorie: e.categorie, message: e.message })) }`)
+  assert.equal(vu.status, 0, vu.sortie)
+  const refus = JSON.parse(vu.sortie)
+  assert.deepEqual([refus.code, refus.categorie], ['MESURE_PROCESSUS_EXPIREE', 'transitoire'], vu.sortie)
+  assert.match(refus.message, /^\[transitoire · retentable\] mesure des processus indéterminée : échéance de 5000 ms atteinte$/)
+  assert.deepEqual(vu.suspendeur, { status: 0, erreurs: '' })
+  assert.equal(vu.suspendus.length, 2, `mesureurs suspendus : ${vu.suspendus}`)
 })
 
-test('#2741 panne permanente : aucun nouvel appel', () => {
-  let appels = 0
-  assert.throws(() => mesurerArbreProcessus({ mesurer: () => { appels++; return { processus: [], erreurs: ['lecteur absent'] } } }), (e) => {
-    assert.equal(e.categorie, 'panne')
-    assert.match(e.message, /^\[panne · non retentable\].*lecteur absent/)
+test('#2741 mesure qui lève : refus de panne, code et cause de la mesure conservés', MESURE_WINDOWS, (t) => {
+  const systemRoot = process.env.SystemRoot
+  t.after(() => { process.env.SystemRoot = systemRoot })
+  delete process.env.SystemRoot
+  assert.throws(() => mesurerArbreProcessus(), (e) => {
+    assert.deepEqual([e.code, e.categorie, e.cause.code], ['MESURE_PROCESSUS_IMPOSSIBLE', 'panne', undefined])
+    assert.equal(e.message, '[panne · non retentable] ' + e.cause.message)
+    assert.match(e.message, /SystemRoot absent/)
     return true
   })
-  assert.equal(appels, 1)
-  const cause = Object.assign(new Error('collecteur cassé'), { code: 'EIO' })
-  assert.throws(() => mesurerArbreProcessus({ mesurer: () => { throw cause } }), (e) => e.categorie === 'panne' && e.code === 'EIO' && e.cause === cause)
+  const vide = mkdtempSync(join(tmpdir(), '2741-systemroot-'))
+  t.after(() => rmSync(vide, { recursive: true, force: true }))
+  process.env.SystemRoot = vide
+  assert.throws(() => mesurerArbreProcessus(), (e) => {
+    assert.deepEqual([e.code, e.categorie, e.cause.code], ['ENOENT', 'panne', 'ENOENT'])
+    assert.equal(e.message, '[panne · non retentable] ' + e.cause.message)
+    return true
+  })
 })
 
 test('#2741 ancêtres : cycle et PID recyclé rompent la filiation', () => {

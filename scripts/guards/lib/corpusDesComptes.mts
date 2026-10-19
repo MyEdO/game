@@ -2,26 +2,27 @@
 // `occurrencesStock.mjs`) sur une racine, et la PORTE DE PLAGE qui refuse qu'un compte monte ou qu'un
 // site naisse entre la base d'une plage et sa tête.
 //
-// DÉTECTEURS CONSTANTS : la base et la tête se mesurent par le MÊME code, posé dans chaque image — deux fois,
-// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base) ;
-// tout `src/` vient de l'image — donnée, defs, grammaire, `OP_DEFS`. Ce qui monte sous l'un ou l'autre est la
-// DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui ne se lie pas est sautée et
-// nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
+// DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
+// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base).
+// L'image est celle de SON commit : `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code,
+// produites par son propre `genererCode` (scripts/docs/build-all.mjs) avant la pose du détecteur. Ce qui monte
+// sous l'un ou l'autre est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et refuse la plage. Une paire qui
+// ne se lie pas est sautée et nommée ; aucune paire liée, la porte refuse. Aucune ligne de message n'admet une hausse.
 // ANGLE MORT : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711).
-import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { GENERATORS, genererCodeSansCertifier } from '../../docs/build-all.mjs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lierDependances } from '../../migrations/replay-head.mjs';
 import { scanDuCorpus, scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
-import { GitIndisponible, TRONC, baseCommune, depotDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
-import { COLLECTIONS_A_COMPTE, occurrencesDe, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
+import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
+import { GitIndisponible, TRONC, baseCommune, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
 
@@ -53,17 +54,6 @@ export const corpusDesComptes = (root: string): CorpusDesComptes =>
 /** Les entrées mesurées de chaque collection sous la porte, par nom. */
 export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
 
-/** Une collection SOUS LA PORTE : son nom, l'identité d'un site, la cible qui solde sa hausse, son compte. */
-type SousLaPorte = {
-  readonly nom: string;
-  readonly site: (e: EntreeDeCompte) => string;
-  readonly cible: (cle: string, e: EntreeDeCompte) => string;
-  readonly nombre: (e: EntreeDeCompte) => number;
-};
-
-/** Tout ce que la porte juge : les collections à compte (`COLLECTIONS_A_COMPTE`) et le volet `SOURCE_FORMAT`. */
-const SOUS_LA_PORTE: readonly SousLaPorte[] = [...COLLECTIONS_A_COMPTE.map((c) => ({ ...c, nombre: occurrencesDe })), SOURCE_FORMAT];
-
 /** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
 export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
@@ -73,7 +63,8 @@ const comptesDeLaRacine = (root: string): Comptes =>
 
 /**
  * Le REFUS de la plage `base` → `tete`, une ligne par site : un site NEUF d'une collection sous la porte, ou
- * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock). PURE.
+ * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock), sur chaque volet de
+ * `SOUS_LA_PORTE` (`occurrencesStock.mjs`). PURE.
  */
 export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   return SOUS_LA_PORTE.flatMap((c) => {
@@ -103,6 +94,9 @@ const POINT_D_ENTREE = 'scripts/guards/lib/corpusDesComptes.mts';
 /** La mesure d'une image n'a pas abouti : la porte ne juge pas ce qu'elle n'a pas mesuré. */
 class MesureImpossible extends Error {}
 
+/** Le dossier d'une image est DANS un dépôt git : ses cibles de code y verraient l'écrivain de ce dépôt (`gitDirContenant`). */
+class ImageDansUnDepot extends Error {}
+
 /** Les fichiers texte de `dossiers` dans l'image `arbre`, écrits sous `dossier`. */
 function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[]): void {
   for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
@@ -129,18 +123,37 @@ export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
   poser: (dossier) => ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR),
 });
 
+/** La première ligne d'erreur d'un processus enfant : la première `…Error`, sinon la dernière ligne de son stderr. */
+const premiereErreur = (vu: SpawnSyncReturns<string>): string =>
+  (vu.stderr ?? '').split('\n').find((l) => /^\w*Error\b/.test(l)) ?? (vu.stderr ?? '').trim().split('\n').slice(-1)[0];
+
+/** La génération du code d'une image : le `genererCode` de SON `scripts/docs/build-all.mjs` (argv[1]), cwd = l'image. */
+const GENERATION_DE_L_IMAGE = 'const { genererCode } = await import(process.argv[1]); process.exitCode = await genererCode({ cwd: process.cwd(), quiet: true });';
+
+/** L'env de la génération d'une image : sans l'espace de noms de git (`GIT_*`, `git help git`, « ENVIRONMENT
+ *  VARIABLES ») ni l'écrivain des dérivés de l'arbre qui tourne (`ENV_EPOQUE`, `ENV_TENU`, ecrivain-derives.mjs). */
+const envDeGeneration = (): NodeJS.ProcessEnv =>
+  Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_') && nom !== ENV_EPOQUE && nom !== ENV_TENU));
+
 /**
- * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
- * `detecteur`, ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
- * et ses cibles de code produites sans certificat (`genererCodeSansCertifier` : `_registry.generated.ts`
- * n'est pas suivi, et une image jetable ne certifie rien).
+ * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise) et son propre
+ * code (`DU_DETECTEUR` de `arbre`), ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`),
+ * ses cibles de code produites par SA génération (`GENERATION_DE_L_IMAGE`) dans un processus enfant, puis son
+ * `scripts/` retiré et le code du `detecteur` posé, qui seul mesure. Un `dossier` contenu dans un dépôt git est refusé
+ * (`ImageDansUnDepot`) avant toute écriture.
  */
 function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
-  ecrireDeLImage(depot, arbre, dossier, DE_L_IMAGE);
-  detecteur.poser(dossier);
+  const gitDir = gitDirContenant(dossier);
+  if (gitDir !== null) throw new ImageDansUnDepot(`${dossier} : l’image d’une borne se pose hors de tout dépôt git — ${gitDir} le contient`);
+  ecrireDeLImage(depot, arbre, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
   lierDependances(dossier);
-  if (genererCodeSansCertifier({ cwd: dossier, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
-    throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites`);
+  const vu = spawnSync(process.execPath, ['--input-type=module', '-e', GENERATION_DE_L_IMAGE, pathToFileURL(join(dossier, 'scripts/docs/build-all.mjs')).href], {
+    cwd: dossier, env: envDeGeneration(), encoding: 'utf8', maxBuffer: 1 << 28,
+  });
+  if (vu.status !== 0)
+    throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
+  rmSync(join(dossier, 'scripts'), { recursive: true, force: true });
+  detecteur.poser(dossier);
 }
 
 /** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`. */
@@ -148,10 +161,7 @@ function mesurerImage(dossier: string): Comptes {
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), POINT_D_ENTREE], {
     cwd: dossier, encoding: 'utf8', maxBuffer: 1 << 28,
   });
-  if (vu.status !== 0) {
-    const erreur = (vu.stderr ?? '').split('\n').find((l) => /^\w*Error\b/.test(l)) ?? (vu.stderr ?? '').trim().split('\n').slice(-1)[0];
-    throw new MesureImpossible(`mesure de l’image en échec (${vu.status ?? vu.signal}) — ${erreur}`);
-  }
+  if (vu.status !== 0) throw new MesureImpossible(`mesure de l’image en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
   return new Map(JSON.parse(vu.stdout) as [string, EntreeDeCompte[]][]);
 }
 
@@ -204,13 +214,13 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
 }
 
 /**
- * Le verdict de la plage `merge-base(base, tete)..tete`, jugée par le détecteur de la tête et par celui de la
- * base (`verdictDesDetecteurs`). Chaque borne est posée sous `os.tmpdir()` et mesurée dans son image, puis
- * effacée ; un détecteur de base sans point d'entrée (`POINT_D_ENTREE`) est sauté sans poser d'image.
+ * Le verdict de la plage `merge-base(base, tete)..tete` du `depot` (`depotDe`, gitPorte.mjs), dont chaque lecture git
+ * passe par lui, jugée par le détecteur de la tête et par celui de la base (`verdictDesDetecteurs`). Chaque borne est
+ * posée sous `os.tmpdir()` et mesurée dans son image, puis effacée ; un détecteur de base sans point d'entrée
+ * (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
-export function jugerLesComptes({ cwd, base = TRONC.suivi, tete = 'HEAD' }: { cwd: string; base?: string; tete?: string }): { ok: boolean; texte: string } {
+export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD' }: { depot: Depot; base?: string; tete?: string }): { ok: boolean; texte: string } {
   try {
-    const depot = depotDe(cwd);
     const shaTete = shaDe(depot, tete);
     const shaBase = shaTete && baseCommune(depot, base, shaTete);
     if (!shaTete || !shaBase) return { ok: false, texte: `⛔ ${base}..${tete} : base commune illisible — la porte ne juge pas une plage sans borne.` };

@@ -4,7 +4,7 @@
  * l'IA (résolution inline, combatFlow) ET le flux joueur (`pendingStateRecovery`, combatSlice). Remplace
  * les branches par-nom `if state === empetre … else athletisme` dupliquées des deux côtés.
  */
-import { type Combatant, type Difficulty } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../../engine/types';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { isOutOfAction } from '../../engine/conditions';
 import { findConditionById, testSkillLabel } from '../../data';
@@ -19,6 +19,8 @@ export interface RecoverOpposition {
   base: number;
   /** Le combattant source de l'État (`sourceId`), ou, sans source au combat, l'État lui-même. */
   label: string;
+  /** Difficulté du jet de l'entrave, lue sur l'État (`recover.opposedDifficulty`, `LDB 12 l.166`). */
+  difficulty: Difficulty;
 }
 
 export interface RecoverResolution {
@@ -65,10 +67,10 @@ export function resolveRecoverTest(
     const source = cond?.sourceId && battle ? battle.combatants.find((c) => c.id === cond.sourceId) : undefined;
     const src = source && !isOutOfAction(source) ? source : undefined;
     if (cond?.escapeThreshold != null) { requireSl = cond.escapeThreshold; }
-    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source?.label ?? etat.label };
-    else if (src) opposition = { value: testValue(src, undefined, 'force'), base: skillBaseValue(src, undefined, undefined, 'force'), label: src.label };
+    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source?.label ?? etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
+    else if (src) opposition = { value: testValue(src, undefined, 'force'), base: skillBaseValue(src, undefined, undefined, 'force'), label: src.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
     entangleOnFail = cond?.entangleOnFail;
     struggleDamage = cond?.struggleDamage;
   }
-  return { skillValue, skillBase, skillLabel, difficulty: rec.difficulty ?? 'intermediaire', opposition, requireSl, entangleOnFail, struggleDamage };
+  return { skillValue, skillBase, skillLabel, difficulty: rec.difficulty ?? DIFFICULTE_PAR_DEFAUT, opposition, requireSl, entangleOnFail, struggleDamage };
 }

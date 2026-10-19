@@ -5,11 +5,43 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync 
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join, resolve, win32 } from 'node:path'
-import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, toleranceDeMesure, classerFiliation, argumentsProcessus } from './processusWorktrees.mjs'
+import { cheminDArgument, liensProcessus, lireCause, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux, sousArbre, toleranceDeMesure, classerFiliation, argumentsProcessus, DELAI_MESURE_PROCESSUS_MS } from './processusWorktrees.mjs'
 import { citerArgv } from './lancerDetache.mjs'
 import { litteralJs } from './litteralJs.mjs'
 
 const DRIVE = 'C' + ':'
+
+test('#2795 cause de lecture : champ et code tirés de la forme des collecteurs ; une cause nue seulement pour un champ muet', () => {
+  assert.deepEqual(lireCause('cwd illisible : [win32 5] Accès refusé'), { champ: 'cwd', code: 'win32 5' })
+  assert.deepEqual(lireCause('propriétaire illisible : [EACCES] permission denied'), { champ: 'proprietaire', code: 'EACCES' })
+  assert.deepEqual(lireCause('cwd illisible : accès refusé (EACCES)'), { champ: 'cwd', code: null })
+  assert.deepEqual(lireCause('cwd illisible'), { champ: 'cwd', code: null })
+  assert.deepEqual(lireCause('ancêtre illisible : [EACCES] x'), { champ: null, code: null })
+  assert.deepEqual(lireCause(Object.assign(new Error('ancêtre illisible'), { cause: { code: 'UNKNOWN' } })), { champ: null, code: 'UNKNOWN' })
+  const p = { pid: 1, proprietaire: 'moi', cwd: null, commande: null, creation: 'a', erreurs: ['cwd illisible : [win32 5] Accès refusé', 'commande illisible : [win32 5] Accès refusé'] }
+  const erreurs = (q) => porteeProcessus({ utilisateur: 'moi', processus: [q] }).processus[0].erreurs
+  assert.deepEqual(erreurs(p), p.erreurs)
+  assert.deepEqual(erreurs({ ...p, creation: '', erreurs: [] }), ['commande illisible', 'cwd illisible', 'creation illisible'])
+  assert.deepEqual(erreurs({ ...p, commande: '', cwd: '/', erreurs: [] }), [])
+})
+
+test('#2795 argument : seule sa part en forme de chemin se canonise ; un chemin \\\\ se compare sans lecture', () => {
+  const racine = DRIVE + '\\terrain\\.wt-1'
+  assert.equal(cheminDArgument('// Windows may deny (EPERM, EACCES).\nconst x = 1', 'win32'), '// Windows may deny (EPERM, EACCES).')
+  assert.equal(cheminDArgument(racine + '\\src\\*.ts', 'win32'), racine + '\\src\\')
+  assert.equal(cheminDArgument(racine + '\\f.txt:flux', 'win32'), racine + '\\f.txt')
+  assert.equal(cheminDArgument('https://exemple.org/x', 'win32'), 'https')
+  assert.equal(cheminDArgument('|', 'win32'), null)
+  assert.equal(cheminDArgument('a\nb:c', 'linux'), 'a\nb:c')
+  const autre = DRIVE + '\\autre'
+  for (const commande of ['node --eval "// Windows may deny (EPERM, EACCES).\nconst p = \\"a/b\\""', 'node -e 1 //serveur/partage/x', 'node \\\\.\\pipe\\x']) assert.deepEqual(liensProcessus({ cwd: autre, commande }, racine, 'win32'), [], commande)
+  for (const argument of [racine + '\\src\\*.ts', '\\\\?\\' + racine + '\\x.mjs']) assert.ok(liensProcessus({ cwd: autre, commande: 'node ' + argument }, racine, 'win32').includes('argument ' + argument), argument)
+  const avant = DRIVE + '/terrain/.wt-1/x.mjs'
+  assert.equal(cheminDArgument('//./' + avant, 'win32'), avant)
+  for (const argument of ['//./' + avant, '//?/' + avant, '\\\\.\\' + avant]) assert.ok(liensProcessus({ cwd: autre, argv: ['node', argument] }, racine, 'win32').includes('argument ' + argument), argument)
+  assert.ok(sousArbre('\\\\.\\' + racine + '\\x', racine, 'win32'))
+  assert.equal(sousArbre('\\\\serveur\\partage\\.wt-1', racine, 'win32'), false)
+})
 
 test('arguments processus Windows : CRT, apostrophe littérale, chaînes vides et aller-retour du canon citerArgv', () => {
   const valeurs = ['', DRIVE + "\\l'apostrophe\\test avec espace.mjs", 'a"b', 'fin\\', '\\\\"', 'onglet\tinterne', "l'apostrophe", 'a\\ b']
@@ -29,7 +61,7 @@ test('arguments processus Windows : CRT, apostrophe littérale, chaînes vides e
 })
 
 test('projection mémoire : topologie RSS globale, métadonnées ciblées dans la même vue', () => {
-  const vue = mesurerProcessusWorktrees({ memoireSeulement: true, pidsAInspecter: [process.pid, process.pid], timeout: 2000 })
+  const vue = mesurerProcessusWorktrees({ memoireSeulement: true, pidsAInspecter: [process.pid, process.pid], timeout: DELAI_MESURE_PROCESSUS_MS })
   assert.equal(vue.indeterminee, undefined)
   const courant = vue.processus.find((p) => p.pid === process.pid)
   assert.equal(courant.ppid, process.ppid)
@@ -98,6 +130,26 @@ $texte
     assert.throws(() => JSON.parse(String(erreur.stdout)))
     return true
   })
+})
+
+test('collecteur Windows : PID 0 jamais rendu, image absente de CIM lue au processus réel', { skip: process.platform !== 'win32' }, () => {
+  const executable = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')
+  const script = String.raw`
+$ErrorActionPreference = 'Stop'
+function Get-CimInstance {
+  param($ClassName, $Property)
+  foreach ($id in @(0, $PID)) { [pscustomobject]@{ProcessId=$id;ParentProcessId=0;CreationDate=$null;WorkingSetSize=4096;Name='temoin';ExecutablePath=$null} }
+}
+& $env:COLLECTEUR
+`
+  const vue = JSON.parse(execFileSync(executable, ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], {
+    encoding: 'utf8', timeout: 60_000, windowsHide: true, env: { ...process.env, COLLECTEUR: fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)) },
+  }))
+  assert.equal(vue.processus.length, 1)
+  const [p] = vue.processus
+  assert.notEqual(p.pid, 0)
+  assert.ok(p.cwd && p.commande && p.image, JSON.stringify(p))
+  assert.deepEqual(p.erreurs, ['creation illisible'])
 })
 
 test('jonction réelle extérieure vers arbre : cwd et référence commandée physiques', async () => {
@@ -257,6 +309,7 @@ test('processus utilisateur réel illisible : SID prouvé, VM_READ refusé, DACL
     const p = vue.processus.find((p) => p.pid === enfant.pid)
     assert.equal(p.proprietaire, vue.utilisateur)
     assert.equal(p.cwd, null)
+    assert.deepEqual(p.erreurs.map(lireCause), [{ champ: 'cwd', code: 'win32 5' }, { champ: 'commande', code: 'win32 5' }])
     assert.match(vue.erreurs.join(' '), new RegExp('PID ' + enfant.pid + ' node.exe.*cwd illisible'))
     console.log('TEMOIN utilisateur illisible réel ' + JSON.stringify(p))
     assert.ok(mesurerProcessusWorktrees({ pids: [enfant.pid] }).processus[0].cwd, 'DACL restaurée : cwd de nouveau lisible')
@@ -272,6 +325,9 @@ test('processus système réel illisible : propriétaire exclu et portée annonc
   const p = vue.horsPortee.find((p) => !p.proprietaire && !p.commande && !p.cwd)
   assert.ok(p, 'au moins un propriétaire système illisible sur cette machine')
   assert.ok(!vue.erreurs.some((erreur) => erreur.startsWith('PID ' + p.pid + ' ')))
+  const causes = p.erreurs.map(lireCause)
+  assert.ok(causes.every((c) => c.champ && c.code), p.erreurs.join('; '))
+  assert.equal(new Set(causes.map((c) => c.champ)).size, causes.length, p.erreurs.join('; '))
   assert.match(vue.portee, /hors portée : [1-9]\d* processus/)
   console.log('TEMOIN système illisible réel ' + JSON.stringify(p) + ' ' + vue.portee)
 })

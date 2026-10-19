@@ -2,7 +2,7 @@ import { useGame, type LootGear } from '../state/store';
 import { giveTrappingQualities } from '../engine/items';
 import { appraiseRefus } from '../state/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { PortraitPicker } from './PortraitPicker';
+import { PortraitPicker } from './console/PortraitPicker';
 import { QualityChips } from './EntityChip';
 import type { Combatant } from '../engine/types';
 import { MINUTES_PER_DAY } from '../engine/clock';

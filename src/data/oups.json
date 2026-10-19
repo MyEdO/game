@@ -31,6 +31,7 @@
     "min": 41,
     "max": 60,
     "kind": "actionPenalty",
+    "mod": -10,
     "label": "−10 à votre Action au prochain Round.",
     "source": {
       "book": "livre-de-base",

@@ -404,8 +404,8 @@ describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais de
     // Côté combat, la boîte qui porte la MATIÈRE est la BANDE (`.cc-dock`) : la racine du pont est
     // son EMPREINTE (bande + saillie du fronton) et ne peint rien (#1848).
     for (const [fichier, classe] of [
-      ['CombatConsole.tsx', 'cc-dock'],
-      ['CombatConsole.tsx', 'cc-arch'],
+      ['console/CombatConsole.tsx', 'cc-dock'],
+      ['console/CombatConsole.tsx', 'cc-arch'],
       ['ExplorationDock.tsx', 'exploration-dock'],
     ] as const) {
       const code = readFileSync(join(process.cwd(), 'src', 'ui', fichier), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

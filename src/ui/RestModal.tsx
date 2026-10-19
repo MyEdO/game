@@ -13,9 +13,8 @@ import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../state/comba
 import { t } from '../i18n';
 import { hasCondition } from '../engine/conditions';
 import { toBrass } from '../engine/money';
-import { ownsLocal } from './ownership';
 import { ReadyRow } from './ReadyRow';
-import { quorumAtteint } from '../state/netOwnership';
+import { ownsLocal, quorumAtteint } from '../state/netOwnership';
 import { Icon } from './Icon';
 import type { IconIdInput } from './icons';
 import type { Combatant } from '../engine/types';

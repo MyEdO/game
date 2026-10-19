@@ -21,8 +21,6 @@ import {
   EST_KIT_DE_TEST,
   SUFFIXE_KIT,
   MOTIF_D_EXTENSION,
-  finsDuGlob,
-  SEPARATEUR_GLOB,
 } from './fichierVitest.mjs'
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 
@@ -111,13 +109,6 @@ test('estKitDeTest : un KIT de test, ni une suite, ni sa déclaration, ni la pro
   assert.equal(estSuiteVitest('src/detenteur.testkit.test.ts'), true)
   assert.equal(EST_KIT_DE_TEST.source, `${SUFFIXE_KIT}$`)
   assert.equal(EST_KIT_DE_TEST.global, false)
-})
-
-test('finsDuGlob : l’accolade se DÉPLIE en une fin par dialecte, sans accolade une seule fin', () => {
-  assert.equal(SEPARATEUR_GLOB, '/**/*')
-  assert.deepEqual(finsDuGlob('src/**/*.test.{ts,tsx}'), ['.test.ts', '.test.tsx'])
-  assert.deepEqual(finsDuGlob('server/src/**/*.test.ts'), ['.test.ts'])
-  assert.throws(() => finsDuGlob('src/*.test.ts'), /non reconnu/)
 })
 
 // ── CLIQUET DE BALAYAGE : le prédicat vit en UN exemplaire ────────────────────────────────────────

@@ -8,48 +8,12 @@ import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerEntrees } from './lister.mjs'
-import { MESURES_INDETERMINEES_MAX, sortieDeSupervision, superviserProcessus, lancerProcessusSupervise } from './superviserProcessus.mjs'
-import { ancetresValidesDe, identitePresente, mesurerArbreProcessus } from './arbreProcessus.mjs'
-
-test('un hook refuse de démarrer quand son parent a disparu pendant la mesure initiale', async () => {
-  const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => [] })
-  assert.equal(vu.error.code, 'EPARENT')
-  assert.equal(vu.status, null)
-  assert.match(vu.error.message, /avant démarrage/)
-})
-
-function vueHook(git) {
-  return [
-    { pid: process.pid, ppid: process.ppid, nom: 'node', creation: '2026-10-16T01:00:00.000000002Z' },
-    { pid: process.ppid, ppid: -2626, nom: 'sh', creation: '2026-10-16T01:00:00.000000001Z' },
-    ...(git ? [{ pid: -2626, ppid: 0, nom: 'git.exe', creation: git }] : []),
-  ]
-}
-
-test('ascendance du hook : un shell vivant sans git refuse tout lancement', async () => {
-  const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => vueHook() })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.status, null)
-  assert.equal(vu.error.message, 'ancêtre git absent avant démarrage du hook')
-})
-
-test('ascendance du hook : un PID git réutilisé plus jeune que le shell refuse tout lancement', async () => {
-  const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => vueHook('2026-10-16T01:00:00.000000002Z') })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.status, null)
-})
-
-test('ascendance du hook : une identité courante absente refuse tout lancement', async () => {
-  const vu = await superviserProcessus({ commande: 'executable-introuvable-2626', surveillerGit: true, mesurer: () => vueHook('2026-10-16T01:00:00.000000000Z').filter((p) => p.pid !== process.pid) })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.status, null)
-})
-
-test('ascendance du hook : une chaîne chronologique valide autorise le lancement', async () => {
-  const vu = await superviserProcessus({ commande: process.execPath, args: ['--version'], stdio: 'ignore', surveillerGit: true, mesurer: () => vueHook('2026-10-16T01:00:00.000000000Z') })
-  assert.equal(vu.status, 0)
-  assert.equal(vu.error, undefined)
-})
+import { gitEnFond } from '../../test/gitDeBanc.mjs'
+import { jouerSousSuspendeur } from '../../test/suspendeurDeMesure.mjs'
+import { sortieDeSupervision, superviserProcessus, lancerProcessusSupervise } from './superviserProcessus.mjs'
+import { ancetresValidesDe, gardienDisparu, mesurerArbreProcessus } from './arbreProcessus.mjs'
+import { creationMemorisee, estPidVivantDepuis } from './pid.mjs'
+import { IDENTITE_MESUREE } from '../../test/identiteMesuree.mjs'
 
 test('une erreur de supervision refuse la sortie même après un enfant réussi', () => {
   let diagnostic = ''
@@ -59,8 +23,17 @@ test('une erreur de supervision refuse la sortie même après un enfant réussi'
     assert.equal(sortieDeSupervision(resultat, journal), 1)
     assert.ok(diagnostic.includes(`${code} : nettoyage impossible`))
   }
+  diagnostic = ''
+  assert.equal(sortieDeSupervision({ status: 0, error: { message: 'sans code' } }, journal), 1)
+  assert.equal(diagnostic, '[supervision] sans code\n')
   assert.equal(sortieDeSupervision({ status: 0 }, journal), 0)
   assert.equal(sortieDeSupervision({ status: 3 }, journal), 3)
+})
+
+test('superviserProcessus : le rendu porte l’arrêt certifié de l’unique fin native', { timeout: 20000 }, async () => {
+  const vu = await superviserProcessus({ commande: process.execPath, args: ['-e', 'process.exit(3)'], stdio: 'ignore' })
+  assert.equal(vu.status, 3, JSON.stringify(vu))
+  assert.deepEqual([vu.arret?.etat, vu.arret?.erreurs, vu.arret?.methode], ['mort', [], process.platform === 'win32' ? 'job-windows' : 'subreaper-linux'], JSON.stringify(vu))
 })
 
 test('la filiation coupe les PID parents réutilisés à chaque profondeur', () => {
@@ -82,136 +55,21 @@ test('la filiation coupe les PID parents réutilisés à chaque profondeur', () 
 })
 
 test('une identité PID réutilisée ne désigne jamais le processus capturé', () => {
-  assert.equal(identitePresente({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'nouveau' }]), false)
-  assert.equal(identitePresente({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'ancien' }]), true)
-  assert.equal(identitePresente({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'ancien', etat: 'Z' }]), false)
+  assert.equal(gardienDisparu({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'nouveau' }]), true)
+  assert.equal(gardienDisparu({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'ancien' }]), false)
+  assert.equal(gardienDisparu({ pid: 42, creation: 'ancien' }, [{ pid: 42, creation: 'ancien', etat: 'Z' }]), true)
 })
 
-const VUE_SAINE = '2026-10-16T01:00:00.000000000Z'
-
-/** L'identité de création des gardiens de `vue` : leur `creation` lue dans la vue injectée, `decalageMs` en plus (#2586). */
-function identiteDe(vue, decalageMs = 0) {
-  return {
-    lireCreation: (pid) => {
-      const gardien = vue.find((p) => p.pid === pid)
-      return gardien ? Date.parse(gardien.creation) + decalageMs : null
-    },
-    toleranceMs: 0,
+test('gardien en vol, vue mesurée ou mesure en échec : seuls un pid mort et un pid réutilisé, né après la capture, ont disparu', { timeout: 30000 }, () => {
+  const vue = mesurerArbreProcessus()
+  const capture = vue.find((p) => p.pid === process.pid)
+  const reutilise = { pid: process.pid, creation: new Date(Date.parse(capture.creation) - 3_600_000).toISOString() }
+  const { pid: mort } = spawnSync(process.execPath, ['-e', ''])
+  for (const vueDuTour of [vue, null]) {
+    assert.equal(gardienDisparu(capture, vueDuTour), false, `vivant, vue ${vueDuTour ? 'mesurée' : 'en échec'}`)
+    assert.equal(gardienDisparu(reutilise, vueDuTour), true, `réutilisé, vue ${vueDuTour ? 'mesurée' : 'en échec'}`)
+    assert.equal(gardienDisparu({ pid: mort, creation: capture.creation }, vueDuTour), true, `mort, vue ${vueDuTour ? 'mesurée' : 'en échec'}`)
   }
-}
-
-test('supervision : une panne de mesure isolée suivie d’une vue saine laisse le hook aller à son terme', { timeout: 20000 }, async () => {
-  let lectures = 0
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', 'setTimeout(()=>{},2500)'],
-    timeout: 15000,
-    surveillerGit: true,
-    estVivant: () => true,
-    identite: identiteDe(vueHook(VUE_SAINE)),
-    mesurer: () => {
-      lectures += 1
-      if (lectures === 2) throw new Error('CIM injecté indisponible')
-      return vueHook(VUE_SAINE)
-    },
-  })
-  assert.equal(vu.error, undefined)
-  assert.equal(vu.status, 0)
-  assert.ok(lectures > 3, `${lectures} lectures : la surveillance a repris après la panne`)
-})
-
-test('supervision : des pannes de mesure consécutives au-delà de la borne interrompent, nomment leur compte et nettoient l’enfant', { timeout: 60000 }, async () => {
-  let lectures = 0
-  let enfant
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['--input-type=module', '-e', 'setInterval(()=>{},1000)'],
-    timeout: 45000,
-    surveillerGit: true,
-    estVivant: () => true,
-    identite: identiteDe(vueHook(VUE_SAINE)),
-    mesurer: () => {
-      lectures += 1
-      if (lectures === 1) return vueHook(VUE_SAINE)
-      enfant ??= mesurerArbreProcessus().find((p) => p.ppid === process.pid && /^(?:powershell(?:\.exe)?|python(?:3(?:\.\d+)?)?)$/i.test(p.nom))
-      throw new Error('CIM injecté indisponible')
-    },
-  })
-  assert.equal(vu.error?.code, 'EMESURE')
-  assert.equal(vu.error.message, `${MESURES_INDETERMINEES_MAX} mesures consécutives indéterminées : CIM injecté indisponible`)
-  assert.ok(lectures >= 1 + MESURES_INDETERMINEES_MAX)
-  assert.ok(enfant)
-  assert.equal(identitePresente(enfant, mesurerArbreProcessus()), false)
-})
-
-test('supervision : un gardien absent d’une vue saine interrompt en EPARENT', { timeout: 20000 }, async () => {
-  let lectures = 0
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', 'setInterval(()=>{},1000)'],
-    timeout: 15000,
-    surveillerGit: true,
-    estVivant: () => true,
-    mesurer: () => (lectures += 1) === 1 ? vueHook(VUE_SAINE) : vueHook(),
-  })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.error.message, 'parent disparu')
-})
-
-test('supervision : une mesure en échec avec un gardien prouvé mort (ESRCH) interrompt en EPARENT, jamais en EMESURE', { timeout: 20000 }, async () => {
-  let lectures = 0
-  const sondes = []
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', 'setInterval(()=>{},1000)'],
-    timeout: 15000,
-    surveillerGit: true,
-    estVivant: (pid) => { sondes.push(pid); return pid !== -2626 },
-    identite: identiteDe(vueHook(VUE_SAINE)),
-    mesurer: () => {
-      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
-      throw new Error('CIM injecté indisponible')
-    },
-  })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.error.message, 'parent disparu')
-  assert.ok(sondes.includes(-2626))
-})
-
-test('supervision : une mesure en échec avec un gardien au pid réutilisé (né après sa capture) interrompt en EPARENT sans attendre la borne', { timeout: 20000 }, async () => {
-  let lectures = 0
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', 'setInterval(()=>{},1000)'],
-    timeout: 15000,
-    surveillerGit: true,
-    estVivant: () => true,
-    identite: identiteDe(vueHook(VUE_SAINE), 60_000),
-    mesurer: () => {
-      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
-      throw new Error('CIM injecté indisponible')
-    },
-  })
-  assert.equal(vu.error?.code, 'EPARENT')
-  assert.equal(vu.error.message, 'parent disparu')
-  assert.ok(lectures < 1 + MESURES_INDETERMINEES_MAX, `${lectures} lectures`)
-})
-
-test('supervision : une sonde de pid qui lève reste indéterminée, jamais une mort', { timeout: 60000 }, async () => {
-  let lectures = 0
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', 'setInterval(()=>{},1000)'],
-    timeout: 45000,
-    surveillerGit: true,
-    estVivant: () => { throw Object.assign(new Error('sonde indisponible'), { code: 'EINVAL' }) },
-    mesurer: () => {
-      if ((lectures += 1) === 1) return vueHook(VUE_SAINE)
-      throw new Error('CIM injecté indisponible')
-    },
-  })
-  assert.equal(vu.error?.code, 'EMESURE')
-  assert.ok(lectures >= 1 + MESURES_INDETERMINEES_MAX)
 })
 
 test('supervision : sortie volumineuse drainée et stdio explicite sans pipe', { timeout: 20000 }, async () => {
@@ -225,7 +83,6 @@ test('supervision : sortie volumineuse drainée et stdio explicite sans pipe', {
 
 test('supervision : le plafond tue aussi le petit-fils détaché persistant', { timeout: 30000 }, async () => {
   const racine = mkdtempSync(join(tmpdir(), '2626-supervision-'))
-  let petitFils
   try {
     const feuille = join(racine, 'feuille.mjs')
     const parent = join(racine, 'parent.mjs')
@@ -233,32 +90,207 @@ test('supervision : le plafond tue aussi le petit-fils détaché persistant', { 
     const pid = join(racine, 'pid')
     writeFileSync(feuille, `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>writeFileSync(${JSON.stringify(preuve)},String(Date.now())),20)`)
     writeFileSync(parent, `import {spawn} from 'node:child_process';spawn(process.execPath,[${JSON.stringify(feuille)}],{detached:true,stdio:['ignore',1,2]}).unref();setInterval(()=>{},1000)`)
-    const vu = await superviserProcessus({ commande: process.execPath, args: [parent], timeout: 3500 })
-    petitFils = Number(readFileSync(pid, 'utf8'))
+    const supervision = superviserProcessus({ commande: process.execPath, args: [parent], timeout: 3500 })
+    const petitFils = identiteMesureeDe(Number(await attendreFichier(pid)))
+    const vu = await supervision
     const avant = readFileSync(preuve, 'utf8')
     await new Promise((resolve) => setTimeout(resolve, 400))
     assert.equal(readFileSync(preuve, 'utf8'), avant, 'le petit-fils écrit encore après le retour du superviseur')
     assert.match(vu.error?.message, /échéance/)
-    assert.ok(!mesurerArbreProcessus().some((p) => p.pid === petitFils && p.etat !== 'Z'), 'le petit-fils doit avoir disparu')
+    assert.ok(gardienDisparu(petitFils, mesurerArbreProcessus()), 'le petit-fils doit avoir disparu')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
-test('supervision générique longue : aucune mesure de processus, même défaillante', { timeout: 15000 }, async () => {
-  let mesures = 0
-  const vu = await superviserProcessus({
-    commande: process.execPath,
-    args: ['-e', "setTimeout(()=>console.log('fin générique'),2500)"],
-    mesurer: () => { mesures += 1; throw new Error('CIM interdit pour le générique') },
-    timeout: 10000,
-  })
-  assert.equal(vu.status, 0, JSON.stringify(vu))
-  assert.equal(vu.stdout.trim(), 'fin générique')
-  assert.equal(vu.error, undefined)
-  assert.equal(mesures, 0)
-  console.log('GÉNÉRIQUE : compteur mesures=' + mesures)
+/** L'identité de création des P de `jouerHook`, mesurée au plus une fois par seconde et par PID (#2603). */
+const IDENTITE_MEMORISEE = { ...IDENTITE_MESUREE, lireCreation: creationMemorisee(IDENTITE_MESUREE.lireCreation, { pasMs: 1000, horloge: Date.now }) }
+
+/** Joue `superviserProcessus({ surveillerGit: true })` dans un Node P à l'ascendance RÉELLE de `mode` et rend `{ vu, temoins }`
+ *  que P écrit (#2586, #2626). `orphelin` : P lancé par un relais vivant dont le parent est sorti, aucun git au-dessus ;
+ *  `parent-mort` : le relais sort dès P lancé, P attend sa mort. Relais et P attendent la mort de LEUR lanceur, PID et
+ *  naissance reçus par argv, car hors win32 le `process.ppid` d'un orphelin est déjà son nouveau parent (getppid(2)) ;
+ *  `git` : P lancé par un alias `!` de git, l'ascendance d'un hook. Les modes `git-…` suivants lancent une cible longue,
+ *  puis : `git-tue`, le parent de P tué ; `git-mesure-coupee`, la mesure de P rendue impossible (son `SystemRoot` retiré)
+ *  un temps puis rétablie, puis retirée pour de bon, `temoins.depuisCoupureMs` du dernier retrait à la fin ;
+ *  `git-mesure-coupee-tue`, la mesure retirée puis le parent tué. */
+async function jouerHook(t, mode) {
+  const b = bancSupervision(t)
+  const sortie = join(b.dossier, 'resultat.json')
+  const hook = b.script('hook', `
+import { spawn } from 'node:child_process'
+import { existsSync, renameSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { superviserProcessus } from ${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)}
+import { creationMemorisee, estPidVivantDepuis } from ${JSON.stringify(new URL('./pid.mjs', import.meta.url).href)}
+import { IDENTITE_MESUREE } from ${JSON.stringify(new URL('../../test/identiteMesuree.mjs', import.meta.url).href)}
+const naissance = Date.now()
+const [role, mode, sortie, lanceur, naissanceDuLanceur] = process.argv.slice(2)
+const identite = { ...IDENTITE_MESUREE, lireCreation: creationMemorisee(IDENTITE_MESUREE.lireCreation, { pasMs: 1000, horloge: Date.now }) }
+const pause = (ms) => new Promise((ok) => setTimeout(ok, ms))
+const publier = (chemin, texte) => { writeFileSync(chemin + '.tmp', texte); renameSync(chemin + '.tmp', chemin) }
+const attendreMortDuLanceur = async () => { while (estPidVivantDepuis(Number(lanceur), Number(naissanceDuLanceur), identite)) await pause(20) }
+const relancer = (suite, options) => spawn(process.execPath, [fileURLToPath(import.meta.url), suite, mode, sortie, String(process.pid), String(naissance)], options)
+if (role === 'a') relancer('i', { detached: true, stdio: 'ignore' }).unref()
+else if (role === 'i') {
+  await attendreMortDuLanceur()
+  const p = relancer('p', { detached: true, stdio: 'ignore' })
+  if (mode === 'parent-mort') p.unref()
+  else await new Promise((ok) => p.once('close', ok))
+} else {
+  if (mode === 'parent-mort') await attendreMortDuLanceur()
+  const longue = mode.startsWith('git-')
+  const cible = longue ? "require('fs').writeFileSync(" + JSON.stringify(sortie + '.cible') + ",'');setInterval(()=>{},1000)" : 'process.exit(0)'
+  let finie = false
+  const supervision = superviserProcessus({ commande: process.execPath, args: ['-e', cible], surveillerGit: true, timeout: 45000 }).finally(() => { finie = true })
+  const temoins = {}
+  if (longue) {
+    while (!finie && !existsSync(sortie + '.cible')) await pause(25)
+    const systemRoot = process.env.SystemRoot
+    if (mode === 'git-mesure-coupee') { delete process.env.SystemRoot; await pause(3750); process.env.SystemRoot = systemRoot; await pause(1500) }
+    if (mode.startsWith('git-mesure-coupee')) { delete process.env.SystemRoot; temoins.coupure = Date.now() }
+    publier(sortie + '.parent', String(process.ppid))
+  }
+  const vu = await supervision
+  if (temoins.coupure) temoins.depuisCoupureMs = Date.now() - temoins.coupure
+  publier(sortie, JSON.stringify({ vu, temoins, pid: process.pid, naissance }))
+}
+`)
+  if (mode === 'git' || mode.startsWith('git-')) {
+    const node = process.execPath.replaceAll('\\', '/')
+    const git = gitEnFond(['-c', `alias.wfrp-hook=!"${node}" "${hook.replaceAll('\\', '/')}" p ${mode} "${sortie.replaceAll('\\', '/')}"`, 'wfrp-hook'], { cwd: b.dossier })
+    let ferme = false
+    const fin = new Promise((ok) => git.once('close', () => { ferme = true; ok() }))
+    if (mode.endsWith('-tue')) {
+      while (!ferme && !existsSync(sortie + '.parent')) await new Promise((ok) => setTimeout(ok, 25))
+      const parent = ferme ? null : Number(readFileSync(sortie + '.parent', 'utf8'))
+      if (parent !== null) { assert.ok(Number.isInteger(parent) && parent > 0, `parent illisible : ${parent}`); process.kill(parent) }
+    }
+    await fin
+  } else spawn(process.execPath, [hook, 'a', mode, sortie], { stdio: 'ignore' })
+  const { vu, temoins, pid, naissance } = JSON.parse(await attendreFichier(sortie, 1200))
+  while (estPidVivantDepuis(pid, naissance, IDENTITE_MEMORISEE)) await new Promise((ok) => setTimeout(ok, 25))
+  return { vu, temoins }
+}
+
+test('ascendance du hook : un parent disparu avant la mesure initiale refuse tout lancement', { timeout: 60000 }, async (t) => {
+  const { vu } = await jouerHook(t, 'parent-mort')
+  assert.equal(vu.error?.code, 'EPARENT', JSON.stringify(vu))
+  assert.equal(vu.status, null)
+  // Hors win32, l'orphelin est rattaché à un nouveau parent vivant : seule l'absence de git s'y observe.
+  if (process.platform === 'win32') assert.equal(vu.error.message, 'parent disparu avant démarrage du hook')
+  else assert.match(vu.error.message, /avant démarrage du hook/)
 })
+
+test('ascendance du hook : un parent vivant sans git au-dessus refuse tout lancement', { timeout: 60000 }, async (t) => {
+  const { vu } = await jouerHook(t, 'orphelin')
+  assert.equal(vu.error?.code, 'EPARENT', JSON.stringify(vu))
+  assert.equal(vu.status, null)
+  assert.match(vu.error.message, /avant démarrage du hook/)
+})
+
+test('ascendance du hook : sous un alias de git, la chaîne réelle autorise le lancement', { timeout: 60000 }, async (t) => {
+  const { vu } = await jouerHook(t, 'git')
+  assert.equal(vu.error, undefined, JSON.stringify(vu))
+  assert.equal(vu.status, 0)
+  assert.equal(vu.arret.etat, 'mort')
+})
+
+test('supervision : le parent réel du hook tué en vol interrompt en EPARENT', { timeout: 60000 }, async (t) => {
+  const { vu } = await jouerHook(t, 'git-tue')
+  assert.equal(vu.error?.code, 'EPARENT', JSON.stringify(vu))
+  assert.equal(vu.error.message, 'parent disparu')
+})
+
+// La mesure Windows lit `SystemRoot` à chaque appel (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc, qu'aucun processus non privilégié ne retire.
+const MESURE_RETIRABLE = { skip: process.platform !== 'win32' && 'mesure /proc non retirable hors privilège' }
+
+test('supervision : une mesure perdue en vol, après une panne isolée rattrapée, interrompt en EMESURE au seuil de pannes CONSÉCUTIVES, sa cause nommée, la cible arrêtée', { ...MESURE_RETIRABLE, timeout: 90000 }, async (t) => {
+  const { vu, temoins } = await jouerHook(t, 'git-mesure-coupee')
+  assert.equal(vu.error?.code, 'EMESURE', JSON.stringify(vu))
+  const [, pannes] = /^(\d+) mesures consécutives indéterminées : .*SystemRoot absent/.exec(vu.error.message) ?? []
+  assert.ok(Number(pannes) > 1, vu.error.message)
+  assert.ok(temoins.depuisCoupureMs >= (Number(pannes) - 1) * 250, `${pannes} pannes comptées en ${temoins.depuisCoupureMs} ms : la panne isolée n'est pas remise à zéro`)
+  assert.deepEqual([vu.error.codeMesure, vu.error.categorie], [vu.error.cause.code, vu.error.cause.categorie])
+  assert.deepEqual([vu.error.cause.code, vu.error.cause.categorie], ['MESURE_PROCESSUS_IMPOSSIBLE', 'panne'])
+  assert.equal(vu.arret.etat, 'mort', JSON.stringify(vu.arret))
+})
+
+test('supervision : une mesure perdue en vol avec le parent réel tué (ESRCH) interrompt en EPARENT, jamais en EMESURE', { ...MESURE_RETIRABLE, timeout: 60000 }, async (t) => {
+  const { vu } = await jouerHook(t, 'git-mesure-coupee-tue')
+  assert.equal(vu.error?.code, 'EPARENT', JSON.stringify(vu))
+  assert.equal(vu.error.message, 'parent disparu')
+})
+
+test('#2795 mesure initiale impossible : EMESURE conserve le code, la catégorie et la cause de la mesure, avant tout hôte', MESURE_RETIRABLE, async () => {
+  const systemRoot = process.env.SystemRoot
+  let lancement; let supervision
+  delete process.env.SystemRoot
+  try {
+    lancement = lancerProcessusSupervise('executable-introuvable-2795', [], { surveillerGit: true })
+    supervision = superviserProcessus({ commande: 'executable-introuvable-2795', surveillerGit: true })
+  } finally { process.env.SystemRoot = systemRoot }
+  await assert.rejects(lancement, (e) => {
+    assert.deepEqual([e.code, e.codeMesure, e.categorie, e.hoteLance], ['EMESURE', e.cause.code, e.cause.categorie, false])
+    assert.deepEqual([e.cause.code, e.cause.categorie], ['MESURE_PROCESSUS_IMPOSSIBLE', 'panne'])
+    assert.match(e.message, /SystemRoot absent/)
+    return true
+  })
+  const vu = await supervision
+  assert.deepEqual([vu.status, vu.error.code, vu.error.codeMesure, vu.error.categorie], [null, 'EMESURE', 'MESURE_PROCESSUS_IMPOSSIBLE', 'panne'], JSON.stringify(vu))
+  assert.deepEqual(vu.error.cause, { code: 'MESURE_PROCESSUS_IMPOSSIBLE', categorie: 'panne', message: vu.error.message })
+  assert.doesNotThrow(() => JSON.stringify(vu))
+})
+
+// La mesure Windows est un `powershell.exe` enfant du superviseur, borné par `DELAI_MESURE_PROCESSUS_MS` (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc dans le processus superviseur lui-même.
+const MESUREUR_SUSPENDU = { skip: process.platform !== 'win32' && 'mesure Linux sans processus mesureur distinct à suspendre' }
+
+test('#2795 mesure initiale expirée deux fois : EMESURE porte le code et la catégorie transitoire de sa cause, avant tout hôte', { ...MESUREUR_SUSPENDU, timeout: 90000 }, async (t) => {
+  const vu = await jouerSousSuspendeur(t, `
+import assert from 'node:assert/strict'
+const { lancerProcessusSupervise, superviserProcessus } = await import(${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)})
+const echeance = /^\\[transitoire · retentable\\] mesure des processus indéterminée : échéance de \\d+ ms atteinte$/
+await assert.rejects(lancerProcessusSupervise('executable-introuvable-2795', [], { surveillerGit: true }), (e) => {
+  assert.deepEqual([e.code, e.codeMesure, e.categorie, e.hoteLance], ['EMESURE', 'MESURE_PROCESSUS_EXPIREE', 'transitoire', false], e.message)
+  assert.deepEqual([e.cause.code, e.cause.categorie], ['MESURE_PROCESSUS_EXPIREE', 'transitoire'])
+  assert.match(e.message, echeance)
+  return true
+})
+const vu = await superviserProcessus({ commande: 'executable-introuvable-2795', surveillerGit: true })
+assert.deepEqual([vu.status, vu.error?.code, vu.error?.codeMesure, vu.error?.categorie], [null, 'EMESURE', 'MESURE_PROCESSUS_EXPIREE', 'transitoire'], JSON.stringify(vu))
+assert.deepEqual(vu.error.cause, { code: 'MESURE_PROCESSUS_EXPIREE', categorie: 'transitoire', message: vu.error.message })
+assert.match(vu.error.message, echeance)
+`)
+  assert.equal(vu.status, 0, vu.sortie)
+  assert.deepEqual(vu.suspendeur, { status: 0, erreurs: '' })
+  assert.equal(vu.suspendus.length, 4, `mesureurs suspendus : ${vu.suspendus}`)
+})
+
+test('supervision générique longue : aucune mesure de processus, même rendue impossible en vol', { ...MESURE_RETIRABLE, timeout: 60000 }, async (t) => {
+  const b = bancSupervision(t)
+  const lancee = join(b.dossier, 'cible-lancee')
+  const pilote = b.script('generique', `
+import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
+const { superviserProcessus } = await import(${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)})
+const supervision = superviserProcessus({ commande: process.execPath, args: ['-e', "require('fs').writeFileSync(" + JSON.stringify(${JSON.stringify(lancee)}) + ",'');setTimeout(()=>console.log('fin générique'),6500)"], timeout: 30000 })
+while (!existsSync(${JSON.stringify(lancee)})) await new Promise((ok) => setTimeout(ok, 25))
+delete process.env.SystemRoot
+const vu = await supervision
+assert.equal(vu.error, undefined, JSON.stringify(vu))
+assert.equal(vu.status, 0)
+assert.equal(vu.stdout.trim(), 'fin générique')
+`)
+  await jouerPilote(b, pilote)
+})
+
+/** L'identité `{ pid, creation }` du processus VIVANT `pid`, mesurée : un PID réutilisé après sa mort ne la porte pas, et
+ *  `gardienDisparu` juge sa disparition sur elle (#2586). */
+function identiteMesureeDe(pid) {
+  const identite = mesurerArbreProcessus().find((p) => p.pid === pid)
+  assert.ok(identite?.creation, `processus ${pid} absent de la vue`)
+  return identite
+}
 
 function bancSupervision(t) {
   const dossier = mkdtempSync(join(tmpdir(), '2626-confinement-'))
@@ -268,8 +300,8 @@ function bancSupervision(t) {
 }
 
 /** Joue le script `pilote` dans un Node à part ; son code de sortie nul fait le verdict, sa sortie le diagnostic (#2586). */
-async function jouerPilote(pilote) {
-  const enfant = spawn(process.execPath, [pilote], { stdio: ['ignore', 'pipe', 'pipe'] })
+async function jouerPilote(b, pilote) {
+  const enfant = spawn(process.execPath, [pilote], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier } })
   let sortie = ''
   enfant.stdout.on('data', (d) => { sortie += d }); enfant.stderr.on('data', (d) => { sortie += d })
   const status = await new Promise((ok, non) => { enfant.once('error', non); enfant.once('close', ok) })
@@ -314,14 +346,14 @@ net.createServer = (ecouter) => creer((socket) => {
 })
 syncBuiltinESMExports()
 const { superviserProcessus } = await import(${JSON.stringify(new URL('./superviserProcessus.mjs', import.meta.url).href)})
-const vu = await superviserProcessus({ commande: process.execPath, args: [${JSON.stringify(cible)}], cwd: ${JSON.stringify(b.dossier)}, entree: 'entrée intacte', timeout: 10000 })
+const vu = await superviserProcessus({ commande: process.execPath, args: [${JSON.stringify(cible)}], cwd: ${JSON.stringify(b.dossier)}, timeout: 10000 })
 console.log(JSON.stringify(vu))
 assert.equal(pause, true)
 assert.equal(hoteFerme, true)
 assert.equal(resultatApresFermeture, true)
 assert.equal(vu.status, 0, JSON.stringify(vu))
 assert.equal(vu.error, undefined)
-assert.equal(vu.stdout, 'sortie:entrée intacte')
+assert.equal(vu.stdout, 'sortie:')
 assert.equal(vu.stderr, 'erreur intacte')
 `)
   const enfant = spawn(process.execPath, [fixture], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -338,8 +370,8 @@ assert.equal(vu.stderr, 'erreur intacte')
   assert.equal(JSON.parse(stdout).status, 0)
 })
 
-async function attendreFichier(chemin) {
-  for (let i = 0; i < 200; i++) {
+async function attendreFichier(chemin, essais = 200) {
+  for (let i = 0; i < essais; i++) {
     try { return readFileSync(chemin, 'utf8') } catch {}
     await new Promise((r) => setTimeout(r, 25))
   }
@@ -368,13 +400,13 @@ test('confinement : parent bref, feuille détachée et processus étranger prés
   }
 })
 
-test('confinement : stdin stdout stderr simultanés de plus de 2MiB et UTF8 intact', { timeout: 30000 }, async (t) => {
+test('confinement : stdin fermé vide, stdout stderr simultanés de plus de 2MiB et UTF8 intact', { timeout: 30000 }, async (t) => {
   const b = bancSupervision(t)
   const taille = (2 << 20) + 17
   const cible = b.script('io', `let n=0;process.stdin.on('data',b=>n+=b.length);process.stdout.write('é'.repeat(${taille}));process.stderr.write('è'.repeat(${taille}));process.stdin.on('end',()=>{process.stdout.write(':'+n)})`)
-  const vu = await superviserProcessus({ commande: process.execPath, args: [cible], entree: Buffer.alloc(taille, 113), timeout: 15000 })
+  const vu = await superviserProcessus({ commande: process.execPath, args: [cible], timeout: 15000 })
   assert.equal(vu.status, 0, JSON.stringify(vu.error))
-  assert.equal(vu.stdout, 'é'.repeat(taille) + ':' + taille)
+  assert.equal(vu.stdout, 'é'.repeat(taille) + ':0')
   assert.equal(vu.stderr, 'è'.repeat(taille))
 })
 
@@ -398,16 +430,17 @@ test('confinement : argv exact, environnement cible et absence exécutable', { t
   assert.ok(!JSON.stringify(invalide).includes('ne-jamais-imprimer'))
 })
 
-test('confinement : interruption SIGTERM refuse le succès et nettoie la cible', { timeout: 30000 }, async (t) => {
+test('confinement : interruption par signal du processus refuse le succès et nettoie la cible', { timeout: 30000 }, async (t) => {
   const b = bancSupervision(t)
   const pid = join(b.dossier, 'pid')
   const cible = b.script('signal', `import {writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(pid)},String(process.pid));setInterval(()=>{},1000)`)
   const supervision = superviserProcessus({ commande: process.execPath, args: [cible], timeout: 15000 })
-  const ciblePid = Number(await attendreFichier(pid))
-  process.emit('SIGTERM')
+  const lancee = identiteMesureeDe(Number(await attendreFichier(pid)))
+  // SIGINT et SIGTERM de ce processus relaient aussi depotGabarit.mjs:32-33, chargé par gitDeBanc.mjs.
+  process.emit('SIGHUP')
   const vu = await supervision
   assert.equal(vu.error?.code, 'EINTR')
-  assert.ok(!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z'))
+  assert.ok(gardienDisparu(lancee, mesurerArbreProcessus()))
 })
 
 test('confinement : mort du Node appelant nettoie une feuille déjà orpheline', { timeout: 30000 }, async (t) => {
@@ -422,17 +455,16 @@ test('confinement : mort du Node appelant nettoie une feuille déjà orpheline',
   const node = spawn(process.execPath, [appelant], { stdio: ['ignore', 'ignore', fd], env: { ...process.env, TMP: b.dossier, TEMP: b.dossier, TMPDIR: b.dossier } })
   closeSync(fd)
   const fin = new Promise((r) => node.once('close', r))
-  let ciblePid; let hote
   try {
-    ciblePid = Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + readFileSync(diagnostic, 'utf8'))))
-    hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
+    const cible = identiteMesureeDe(Number(await attendreFichier(pid).catch((e) => assert.fail(e.message + ' : ' + readFileSync(diagnostic, 'utf8')))))
+    const hote = mesurerArbreProcessus().find((p) => p.ppid === node.pid && /^(?:powershell|python)/i.test(p.nom))
     assert.ok(hote, 'hôte natif propriétaire présent')
     node.kill('SIGKILL'); await fin
     for (let i = 0; i < 50; i++) {
-      if (!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z')) break
+      if (gardienDisparu(cible, mesurerArbreProcessus())) break
       await new Promise((r) => setTimeout(r, 30))
     }
-    assert.ok(!mesurerArbreProcessus().some((p) => p.pid === ciblePid && p.etat !== 'Z'), 'la feuille survit à la mort de Node')
+    assert.ok(gardienDisparu(cible, mesurerArbreProcessus()), 'la feuille survit à la mort de Node')
     const prives = listerDossier(b.dossier).filter((n) => n.startsWith('wfrp-supervision-'))
     assert.ok(prives.length, 'le contrôle du canal privé doit porter sur le dossier du Node mort')
     for (const prive of prives) {
@@ -461,7 +493,6 @@ test('IPC : EOF avant les options complètes refuse la cible et conserve stdin s
     const vu = await superviserProcessus({
       commande: process.execPath,
       args: [fileURLToPath(new URL('./enfantSupervise.mjs', import.meta.url)), adresse, 'fixture'],
-      entree: 'stdin joueur',
       timeout: 5000,
     })
     assert.equal(vu.status, 1, JSON.stringify(vu))
@@ -493,6 +524,28 @@ test('factory : vrai ChildProcess hôte, cible distincte, streams avant fin et r
     assert.equal(controle.estFermeture({ ...cause }), false)
     return true
   })
+})
+
+test('factory : des supervisions simultanées partagent un seul écouteur par signal du processus, retiré à la dernière fin', { timeout: 20000 }, async () => {
+  const signaux = ['SIGINT', 'SIGTERM', 'SIGHUP']
+  const compter = () => signaux.map((nom) => process.listenerCount(nom))
+  const avant = compter()
+  const lances = await Promise.all([0, 1].map(() => lancerProcessusSupervise(process.execPath, ['-e', 'setTimeout(()=>{},200)'])))
+  for (const { hote } of lances) { hote.stdin.end(); hote.stdout.resume(); hote.stderr.resume() }
+  assert.deepEqual(compter(), avant.map((n) => n + 1))
+  await Promise.all(lances.map(({ controle }) => controle.finPhysique))
+  assert.deepEqual(compter(), avant)
+})
+
+test('factory : un hôte natif tué après pret publie un arrêt indéterminé qui nomme sa cause', { timeout: 20000 }, async () => {
+  const { hote, controle } = await lancerProcessusSupervise(process.execPath, ['-e', 'setInterval(()=>{},1000)'])
+  hote.stdin.end(); hote.stdout.resume(); hote.stderr.resume()
+  await controle.pret
+  hote.kill()
+  const fin = await controle.fin
+  await controle.finPhysique
+  assert.equal(fin.arret.etat, 'indetermine', JSON.stringify(fin))
+  assert.deepEqual(fin.arret.erreurs.map((e) => [e.operation, e.code, e.message]), [['cloture', fin.resultatCible.error.code, fin.resultatCible.error.message]], JSON.stringify(fin))
 })
 
 test('factory : en processus nu, la projection est l’identité des options reçues', () => {
@@ -552,7 +605,7 @@ canal.on('data', (d) => {
     const cloture = JSON.parse(readFileSync(join(dossier, 'cloture.json'), 'utf8'))
     ecrireJsonAtomique(join(dossier, 'certificat.json'), {version:1,generation:configuration.generation,methode:process.platform==='win32'?'job-windows':'subreaper-linux',zero:true,echeance:cloture.echeance,erreurs:[]})
     canal.end(JSON.stringify({type:'resultat',instanceCible:'fixture-exacte',resultat:{status,signal,pid:enfant.pid}})+'\\n')
-    if (mode === 'close-en-file') process.exit(0)
+    if (mode !== 'persistant') process.exit(0)
     const attente = setInterval(() => { if (existsSync(liberation) || !estPidVivantDepuis(process.ppid, Number(naissanceParent), identiteParent)) { clearInterval(attente); process.exit(0) } }, 5)
   })
 })
@@ -600,6 +653,9 @@ try {
   if (${JSON.stringify(mode)} === 'persistant') {
     assert.equal(fin.arret.etat, 'indetermine')
     assert.equal(fin.arret.zeroNatif, true)
+    const [cloture] = fin.arret.erreurs
+    assert.deepEqual([cloture.operation, cloture.pid, cloture.code, cloture.message], ['cloture', fin.arret.pid, cloture.cause.code, cloture.cause.message], JSON.stringify(fin))
+    assert.ok(cloture.cause instanceof Error, JSON.stringify(fin))
     assert.equal(hote.exitCode, null)
     assert.equal(controle.phase, 'cloture')
     assert.equal(existsSync(dossier), true)
@@ -619,7 +675,7 @@ try {
   await controle.finPhysique
 }
 `)
-  await jouerPilote(pilote)
+  await jouerPilote(b, pilote)
 })
 
 test('#2586 requête native : une clôture publiée sans réponse lève FERMETURE avant l’échéance de la requête', { timeout: 15000 }, async (t) => {
@@ -688,7 +744,7 @@ const fin = await controle.fin
 assert.equal(fin.arret.etat, 'mort', JSON.stringify(fin))
 await controle.finPhysique
 `)
-  await jouerPilote(pilote)
+  await jouerPilote(b, pilote)
 })
 
 test('#2586 refus avant l’hôte : un signal déjà annulé rejette avec hoteLance false', async () => {
@@ -717,7 +773,7 @@ const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)}
 await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
   (e) => e.code === 'EPANNE' && e.hoteLance === true)
 `)
-  await jouerPilote(pilote)
+  await jouerPilote(b, pilote)
 })
 
 test('#2586 requête native : une réponse tenue sans partage par un tiers se relit sous l’échéance de la requête', { skip: process.platform !== 'win32', timeout: 30000 }, async (t) => {
@@ -789,7 +845,7 @@ controle.demanderArret()
 await controle.fin
 await controle.finPhysique
 `)
-  await jouerPilote(pilote)
+  await jouerPilote(b, pilote)
 })
 
 test('#2586 refus après l’hôte : des écouteurs de l’hôte qui lèvent rejettent sans attendre une fermeture jamais écoutée', { timeout: 20000 }, async (t) => {
@@ -812,7 +868,7 @@ const { lancerProcessusSupervise } = await import(${JSON.stringify(superviseur)}
 await assert.rejects(lancerProcessusSupervise(process.execPath, ['--version'], { delaiArretMs: 2000 }),
   (e) => e.code === 'EPANNE' && e.hoteLance === true)
 `)
-  await jouerPilote(pilote)
+  await jouerPilote(b, pilote)
 })
 
 /** Supervise `niveau.mjs <restant>` depuis ce test : chaque niveau supervise le suivant, le dernier supervise un shell

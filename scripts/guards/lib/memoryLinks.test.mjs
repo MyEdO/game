@@ -177,13 +177,19 @@ test('PORTÉE 2 — HORS dépôt, le vocabulaire est l’arbre seul ; une PANNE 
   }
 })
 
-test("PORTÉE 2 — la FORME d'un nom de fiche discrimine : un littéral `[[a, b]]` n'est pas un lien", () => {
+// #2586
+test("PORTÉE 2 — la FORME d'un nom de fiche discrimine : un littéral `[[a, b]]` ou un tableau imbriqué `[[ancien]]` du code n'est pas un lien, la prose d'un module l'est", () => {
   const root = forgeMemory({ 'fiche-a.md': 'a\n' })
   mkdirSync(join(root, 'src'), { recursive: true })
-  // Trois faux positifs mesurés sur le dépôt réel : paires, classe de regex, cible trop courte.
-  writeFileSync(join(root, 'src', 'bruit.ts'), "const m = [['ligne-de-mire', 1]];\nconst r = /[[^\\]]/;\n// [[nom]]\n")
+  // Quatre faux positifs mesurés sur le dépôt réel : paires, classe de regex, cible trop courte, tableau imbriqué d'un
+  // identifiant hors prose (ni commentaire, ni chaîne, ni texte de gabarit).
+  writeFileSync(join(root, 'src', 'bruit.ts'), "const m = [['ligne-de-mire', 1]];\nconst r = /[[^\\]]/;\n// [[nom]]\nconst e = { args: [[ancien]] }\n")
+  writeFileSync(join(root, 'src', 'prose.ts'), "const e = { args: [[ancien]] } // [[ancien]]\nconst s = '[[ancien]]'\nconst g = `x ${[[ancien]]} [[ancien]]`\n")
+  writeFileSync(join(root, 'src', 'note.md'), 'args: [[ancien]]\n')
   try {
-    assert.deepEqual(scanRepoMemoryLinks(root, { fichiers: ['src/bruit.ts'] }), [])
+    const mort = (file, line) => ({ file, line, kind: 'fiche inexistante', tok: '[[ancien]]' })
+    assert.deepEqual(scanRepoMemoryLinks(root, { fichiers: ['src/bruit.ts', 'src/prose.ts', 'src/note.md'] }),
+      [mort('src/note.md', 1), mort('src/prose.ts', 1), mort('src/prose.ts', 2), mort('src/prose.ts', 3)])
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

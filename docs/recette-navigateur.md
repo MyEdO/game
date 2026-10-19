@@ -582,7 +582,7 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -833,7 +833,7 @@ vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la desce
 | `aiLog(n=50)` | diagnostic IA : action choisie + classement des candidats par tour | `(forcé)` = garde psychologie/RAW hors scoring |
 | `auto()` | diagnostic auto-cadence (mode, modale active, `willAutoResolve`, `pending*` ouverts) | pour investiguer un soft-lock, pas pour agir |
 
-**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/CombatConsole.tsx`), sans
+**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/console/CombatConsole.tsx`), sans
 défilement : un gros grimoire déborde et ses derniers sorts n'ont aucune alvéole. Pour recetter un
 sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénario court existant
 `__wfrp.scenario('dome', 11)` : quatre combattants, une sorcière, sorts `dome`,
@@ -1713,7 +1713,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 |---|---|---|---|
 | 1 | **Un jet possédé par l'invité surface CHEZ LUI** | `ActiveModal` (`src/ui/ActiveModal.tsx`) ne monte la modale que si le siège local possède le concerné (`modalOwnerOf` + `ownsLocal`) ; `'*'` = tous | **invité** : la modale est rendue (`.modal-overlay`) — **hôte** : rien. Hors tour du concerné (défense réactive), l'hôte a la puce `.spectator-chip` |
 | 2 | **Le `pending*` NE prouve rien** | l'état voyage entier (`netSnapshot`) | `__wfrp.modal()` répond PAREIL des deux côtés — la possession se lit au DOM, jamais au pending. C'est le piège n°1 d'une recette coop |
-| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/state/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/ui/ownership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
+| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/state/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/state/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
 | 4 | **Une bande partagée : chaque siège ses rangées** | `bandStep` (`src/state/rollSeam.ts`) pose `groupOwner` dès >1 porteur → `modalOwnerOf` rend `'*'` → fenêtre chez TOUS ; chaque rangée n'est actionnable que par le siège qui possède son acteur (`useOwns`, `src/ui/ownership.ts` — `rollAllUnrolledRows` filtré par `owns`) | la MÊME fenêtre est ouverte des deux côtés ; le bouton de jet d'une rangée n'est servi qu'au siège propriétaire ; « Tout lancer » ne roule QUE les rangées du siège qui clique |
 | 5 | **La Résilience de l'invité sur SA rangée** | `seatInfluences` : un héros non piloté par l'IA n'est influençable que par SON siège (`src/state/netOwnership.ts`) ; `canFixDie` (option « Dés fixés ») en dérive | chez l'invité, Chance/Résilience/Pacte ne sont offerts QUE sur sa rangée ; la rangée d'un héros de l'hôte les porte chez l'hôte et pas chez lui |
 | 6 | **Console 0 des DEUX côtés** | — | `guard.errors()` vide pour chacune des deux sessions (un `consoleGuard` par page) |
@@ -1930,7 +1930,7 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   `ciblageEntiteArme`, `src/state/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
 - **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
-  (`src/ui/CombatConsole.tsx:1395`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
+  (`src/ui/console/CombatConsole.tsx:1395`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
   dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`), « Finir quand même » et
   sa note « Finir quand même ? » (`:1107`, `:1404`). Son texte change : jamais un
   `clickButtonByText('Fin du tour')`. `finDuTour` clique la plaque et confirme l'armement au second

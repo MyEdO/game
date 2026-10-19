@@ -3,12 +3,12 @@
 > Base de connaissance des **règles WFRP4 (RAW)**, consolidées sur les livres autorisés, à usage d'agent
 > (vérifier que le code respecte le RAW). Chaque règle cite sa source `LIVRE NN l.X-Y`
 > (NN = préfixe du fichier de chapitre, l = lignes du `.md` source). **Voir aussi** tisse les renvois
-> entre règles ; **Implémente** pointe le(s) module(s) `src/engine/` correspondant(s).
+> entre règles ; **Implémente** référence l’état calculé du topic dans le rapport pur.
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > ⚠️ **Brouillon agent-généré** — fidélité contrôlée par une passe de vérification adversariale (voir
 > § *Bilan de fidélité* en bas). Les entrées marquées y restent à corriger.
-> ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
+> Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 >
 > **Catalogue de sorts** (sorts mineurs, arcanes, de domaine, du chaos, magie noire) : à transcrire
 > séparément depuis `LDB 47 - Listes des sorts.md`, `LDB 48 - Magie des Couleurs.md`,
@@ -118,9 +118,7 @@ Les Collèges de Magie (comme les elfes) enseignent que la magie se divise en **
 
 Le Talent **Seconde vue** (LDB 10) permet de percevoir les Vents de Magie et leur influence sur le monde. Elle affecte tous les sens (manifestation dépend de l'expérience du lanceur). Avec la Seconde vue, on peut utiliser les compétences **Intuition**, **Perception** et **Pistage** avec les sens aethyriques. La Seconde vue ne se désactive pas : le MJ peut demander des Tests spontanés pour percevoir des détails magiques.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.5-9) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +37 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/state/combatEffects.ts`, `src/state/partyFlow.ts`
-- dette : #463
+**Implémente :** [État calculé](../implemente.generated.md#4emagieseconde-vue)
 
 ---
 
@@ -136,8 +134,7 @@ Quatre types de sorts :
 
 **Voir aussi :** [Magie Noire](#magie-noire-dhar), [Magie du Chaos — LDB 51](#magie-elfique-qhaysh)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.12-14) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +46 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +4 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagietypes-de-sorts)
 
 ---
 
@@ -149,8 +146,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 
 > **Verbatim** (l.20) : « Une fois qu'un Sort a été mémorisé, un lanceur de Sorts le connaît de façon permanente, sauf circonstances particulières. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.16-20) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +59 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, +9 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiememoriser-des-sorts)
 
 ---
 
@@ -168,9 +164,7 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 
 > **Verbatim** (l.24) : « Pour lancer un Sort, effectuez un Test de Langue (Magick). Sur un succès, comparez votre DR au Niveau d'Incantation (NI) du Sort (indiqué dans sa description). Si votre DR est égal ou supérieur au NI du Sort, il est lancé comme dans la description du Sort. Sur un échec, la tentative échoue et rien ne se produit. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +64 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/domainAttributes.ts`, +11 fichiers
-- `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `TEST_PROLONGATION`, `Condition`, `langue-prehensile`, `doc`, `mutationsAtSpawn`, +28 — `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +10 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagietest-d-incantation)
 
 ---
 
@@ -195,12 +189,7 @@ Un **Critique** au Test d'incantation (double réussi, `LDB 46 l.28` renvoie à 
 > **Verbatim** (l.30) : « **Incantation Critique :** si le Sort inflige des Dégâts, il inflige également une Blessure Critique. Voir page 172 pour plus de détails. »
 > **Verbatim** (`VDM 02 l.52`) : « Le Personnage doit effectuer un lancer sur le Tableau des Incantations Imparfaites Mineures (voir **WFJDR**, page 234) à moins qu'il ne dispose du Talent *Diction instinctive*. Un Personnage qui obtient une Incantation Critique peut également choisir l'un des trois effets supplémentaires suivants : »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.7-25, l.53) → `criticals-ldb-tete`, `CritEntry`, `followsCharacterRules`, `isHealable`, `blessure-spectaculaire`, `fr`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `estDebout`, +109 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +29 fichiers
-- `LDB 40` (l.13) → `isPrayerFamily`, `poolDeNonCumul`, `castInfoIsPrayer`, `castInfo`, `effectGlobalTestLines`, `castTestDRMods`, `ActiveEffect`, `PassiveKind`, `createCombatSlice` — `src/engine/characteristics.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/conditions.ts`, `src/engine/magic.ts`, `src/engine/ops.ts`, `src/engine/types.ts`, +1 fichiers
-- `LDB 46` (l.24, l.26-32, l.101) → `miscast-mineure`, `mineure-signe-de-sorciere`, `followsCharacterRules`, `mineure-lait-caille`, `overcastAxes`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `REPORT_DE_COMBATTANT`, `mineure-cerumen`, `combat-spell-plus`, +86 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, +20 fichiers
-- `VDM 2` (l.52, l.54) → `CritChoice`, `applyFullPower`, `castAfterCrit`, `isDispellableCast` — `src/engine/magic.ts`, `src/state/combatFlow.ts`
-- dette : #1035
+**Implémente :** [État calculé](../implemente.generated.md#4emagieincantation-critique)
 
 ---
 
@@ -212,8 +201,7 @@ Un **double raté** au Test d'incantation entraîne une **Incantation Imparfaite
 
 > **Verbatim** (l.85) : « Si vous perdez le contrôle de l'énergie magique que vous focalisez, les choses se passent toujours mal. Si vous obtenez une Maladresse à votre Test d'Incantation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.83-85) → `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `malevolentInfluenceSeverity`, `ALL_MAGIC`, `magic-composant`, `incantation-imparfaite`, +4 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemaladresse-d-incantation-incantation-imparfaite)
 
 ---
 
@@ -242,10 +230,7 @@ cibles supplémentaires (`LDB 47 l.28`).
 > indiquée dans la description du Sort. »
 > **Verbatim Bénédiction** (`LDB 41 l.23-25`) : « • Portée : +6 mètres • Cibles : +1 • Durée : +6 Rounds »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 41` (l.21-27) → `BLESSING_STEP`, `effectiveRangeMetres`, `effectiveSpellRangeTiles` — `src/engine/magic.ts`, `src/engine/overcast.ts`
-- `LDB 42` (l.7-13) → `src/engine/overcast.ts`
-- `LDB 47` (l.13-17, l.28) → `CastingNumberRounding`, `SpellTarget`, `overcastBudget`, `CastModal`, `zoneDiameterMultiplier`, `DECLARATIONS_D_OPS`, `carriedGrimoire`, `SpellbookSection`, `zdeDiameterMeters`, `bestAreaCenter`, +22 — `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/castingNumber.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/ops.ts`, +12 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiesurincantation)
 
 ---
 
@@ -260,8 +245,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 
 > **Verbatim** (l.89) : « tout lancer obtenant un 8 (représentant le symbole du Chaos à huit pointes) sur le dé des unités entraîne une Incantation Imparfaite Mineure, car la Magie s'emballe. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.87-89) → `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `malevolentInfluenceSeverity`, `ALL_MAGIC`, `magic-composant`, +4 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +4 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagieinfluences-malfaisantes-le-8)
 
 ---
 
@@ -292,8 +276,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 | 91–95 | Multiplication d'infortune | Effectuer deux lancers sur cette table, en relançant tout résultat entre 91–00. |
 | 96–00 | Chaos en cascade | Effectuer un nouveau lancer sur le Tableau des Incantations Imparfaites **Majeures**. |
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.34-55) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +65 — `src/data/index.ts`, `src/data/miscast.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +6 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagietableau-des-incantations-imparfaites-mineures-d100-verbatim)
 
 ---
 
@@ -324,8 +307,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 | 91–95 | Drain de puissance | Incapable d'utiliser le Talent permettant de lancer des Sorts (Magie des Arcanes / Magie du Chaos ou similaire) pendant 1d10 minutes. |
 | 96–00 | Contre-réaction aethyrique | Quiconque dans un rayon en mètres = BFM (allié ou ennemi) subit 1d10 Blessures ignorant BE et PA + État **À Terre**. Si aucune cible à portée : la tête du lanceur **explose**, mort instantanée. |
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.58-80) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, +49 — `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagietableau-des-incantations-imparfaites-majeures-d100-verbatim)
 
 > **Note :** La table de la **Colère des dieux** (prières, LDB 40 l.52-101) est implémentée dans `WRATH` (`src/engine/miscast.ts` l.164-206) mais appartient au domaine **Religion** → voir `religion.md` (à construire).
 
@@ -349,8 +331,7 @@ Les Avantages **ne s'appliquent pas** aux Tests de Focalisation (contrairement a
 
 > **Verbatim** (l.125) : « Les Avantages en combat s'appliquent aux Tests d'Incantation, pas aux Tests de Focalisation. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.128-151) → `DispelModal`, `poolDeNonCumul`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `HoverTargeting`, `useHoverTargeting`, `CastableSpell`, `FocusInterruptHook`, `dispel-roll`, +77 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +24 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiefocalisation-test-etendu)
 
 ---
 
@@ -362,8 +343,7 @@ Un **Critique** (double réussi) lors de la Focalisation signifie qu'un flux pui
 
 > **Verbatim** (l.136) : « tant de magie concentrée si rapidement en un endroit entraîne un contrecoup magique : lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures (voir p.234), sauf si vous possédez le Talent Harmonisation aethyrique (voir p.138). »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.134-136) → `combat-spell-plus`, `FocusInterruptHook`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, `focalisation-etendue`, `dispel`, +21 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiefocalisation-critique)
 
 ---
 
@@ -375,8 +355,7 @@ La définition de **Maladresse est élargie** lors d'un Test de Focalisation : c
 
 > **Verbatim** (l.140) : « Concentrer les Vents de la Magie en un flux important est dangereux. Considérez comme Maladresse tout double ou tout résultat terminant par un 0 au-delà de votre Compétence, donc 00, 99, 90, 88, etc. Si vous obtenez une Maladresse à un Test de Focalisation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Majeures. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.138-140) → `combat-spell-plus`, `FocusInterruptHook`, `dispel-roll`, `armourCastDRPenalty`, `miscast-table`, `miscast-row-test`, `focalisation-etendue`, `dispel`, `lecture-au-grimoire`, `dispel-spell`, +19 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +6 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemaladresse-de-focalisation)
 
 ---
 
@@ -388,8 +367,7 @@ La concentration est vitale pour focaliser. Si perturbé par quelque chose (brui
 
 > **Verbatim** (l.144) : « Si vous êtes perturbé par quelque chose – bruits forts, Dégâts subis, lumières aveuglantes ou autres –, vous devrez réussir un Test de Calme Difficile (−20) ou subir une Incantation Imparfaite Mineure et perdre tous les DR accumulés jusque-là au Test étendu de Focalisation. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.142-144) → `FocusInterruptHook`, `dispel-roll`, `armourCastDRPenalty`, `focalisation-etendue`, `dispel`, `dispel-spell`, `focus-interrupt`, `createCombatSlice`, `runCombatFlow`, `CastTestModsContext`, +12 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +5 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagieinterruptions-de-focalisation)
 
 ---
 
@@ -411,9 +389,7 @@ Porter les couleurs appropriées au Vent manipulé aide à l'attirer. C'est pour
 
 > **Verbatim** (l.150) : « tout Lanceur de Sorts portant une armure subit une pénalité de −1 DR à tous ses Tests d'Incantation et de Focalisation, pour chaque PA sur la Localisation la mieux protégée du corps. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.150-152) → `DispelModal`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `HoverTargeting`, `FocusInterruptHook`, `dispel-roll`, `jetSurfaced`, `armourCastDRPenalty`, `RollRowProps`, `focalisation-etendue`, +54 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +21 fichiers
-- `VDM 2` (l.5, l.169) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `magic-vdm-incantation`, `malepierreDR`, `malepierreCharge`, `ItemInstance`, `malepierreReserveOf`, +5 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagierepousser-les-vents-armure-et-tenue)
 
 ---
 
@@ -437,10 +413,7 @@ Si un sort **vous cible** ou vise un point **visible** à une distance en mètre
 > **Verbatim** (l.31-32) : « **Puissance totale :** le Sort est lancé, quels que soient son NI et votre DR obtenu, mais il peut être Dissipé. » / « **Force inéluctable :** si vous obtenez suffisamment de DR pour lancer votre Sort, il ne peut être Dissipé. »
 > **Verbatim** (`LDB 13 l.110`) : « Qu'en est-il si vous souhaitez vous préparer à éviter ou parer les coups, à tenir une position défensive ou utiliser Langue (Magick) afin de lancer une salve de dissipations ? Pour votre Action, choisissez une Compétence que vous allez utiliser en défense et vous gagnerez un bonus de +20 à tous les Tests de défense que vous effectuerez jusqu'au début du prochain Tour. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.108-110) → `GrappleModal`, `AuContactModal`, `useHoverTargeting`, `entityBlockedAt`, `useDefenseJetProps`, `useAttackJetProps`, `cleFeuilleRamassee`, `DisengageModal`, `ACTION_GATES`, `use-item`, +20 — `src/data/actions.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/engine/combat.ts`, `src/gameIso/stage/useHoverTargeting.ts`, +15 fichiers
-- `LDB 46` (l.154-156) → `DispelModal`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `HoverTargeting`, `FocusInterruptHook`, `dispel-roll`, `jetSurfaced`, `armourCastDRPenalty`, `RollRowProps`, `focalisation-etendue`, +54 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +21 fichiers
-- dette : #1033
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedissipation-contre-sort)
 
 ---
 
@@ -455,8 +428,7 @@ Pour dissiper un sort à **effet durable** déjà en place :
 
 > **Verbatim** (l.160, l.162) : « Il faut pour cela effectuer un Test étendu de Langue (Magick). Quand votre DR atteint la NI du Sort, vous le dissipez avec succès. » / « Plusieurs lanceurs de Sorts tentant de dissiper le même Sort effectuent leur lancer séparément. S'ils incantent en utilisant le même Domaine, ils peuvent décider d'effectuer un Test Soutenu à la place. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.158-162) → `DispelModal`, `force-des-vents`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `HoverTargeting`, `dispel-roll`, `jetSurfaced`, `armourCastDRPenalty`, `RollRowProps`, `focalisation-etendue`, +49 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +22 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedissiper-des-sorts-permanents)
 
 ---
 
@@ -474,8 +446,7 @@ Les durées se lisent :
 
 > **Verbatim** (l.93) : « Si un Sort est lancé avec succès, il reste actif pour sa Durée à moins d'être dissipé. Vous ne pouvez pas simplement mettre fin à vos Sorts déjà en jeu, mais vous pouvez tenter de les Dissiper. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.91-93) → `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, `lecture-au-grimoire`, +7 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/overcast.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagieduree-des-sorts)
 
 ---
 
@@ -487,8 +458,7 @@ Un lanceur peut activer un sort depuis un **grimoire** si le sort appartient au 
 
 > **Verbatim** (l.97) : « Un lanceur de Sorts peut en activer un depuis un grimoire si le Sort appartient au Domaine qu'il possède, mais cela double le Niveau d'Incantation. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.95-97) → `followsCharacterRules`, `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, +13 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/overcast.ts`, +8 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiegrimoires-lancer-depuis-le-livre)
 
 ---
 
@@ -507,13 +477,7 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 
 > **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `RegimeDePorteur`, `FLOWS`, `previewDefense`, `passiveOutcome`, `rangedDefenseModes`, +8 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/critical.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, +5 fichiers
-- `LDB 46` (l.30, l.99-101) → `miscast-mineure`, `mineure-signe-de-sorciere`, `followsCharacterRules`, `mineure-lait-caille`, `overcastAxes`, `mineure-mildiou`, `REPORT_DE_COMBATTANT`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, +87 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, +19 fichiers
-- `LDB 47` (l.410) → `scenario`, `domeWardTraits`, `seuilsDeSauvegarde`, `HitModifierCtx`, `DECLARATIONS_D_OPS`, `SourceDeSauvegarde`, `formatWardSave`, `hitModifiers`, `lireEnSeuil`, `newOp`, +15 — `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/combat.ts`, `src/engine/ops.ts`, `src/engine/traits/dispatch.ts`, `src/engine/types.ts`, +6 fichiers
-- `LDB 63` (l.13, l.30, l.32, l.78) → `repairCostBrass`, `doc`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `ActiveEffect`, +49 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +10 fichiers
-- `EDO 11` (l.196) → `plancher`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `OpFields`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +4 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +2 fichiers
-- sans code : `ADE II 4` (l.349)
+**Implémente :** [État calculé](../implemente.generated.md#4emagieprojectiles-magiques)
 
 ---
 
@@ -536,8 +500,7 @@ Les lanceurs peuvent focaliser leur magie au moyen d'un **composant approprié**
 
 > **Verbatim** (l.111) : « Si vous utilisez un composant quand vous incantez, toute Incantation Imparfaite Majeure devient une Incantation Imparfaite Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet. Utilisé ainsi, le composant est consumé ou détruit par le processus, même si aucune Incantation Imparfaite n'a été obtenue. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.107-114) → `followsCharacterRules`, `poolDeNonCumul`, `overcastAxes`, `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `castingBaseValue`, +36 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/characteristics.ts`, `src/engine/conditions.ts`, `src/engine/grimoire.ts`, +16 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiecomposants-ingredients)
 
 ---
 
@@ -563,9 +526,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 2. Puis effectuer un **Test opposé de Corps à corps (Bagarre)** (vs Corps à corps ou Esquive de la cible).
 3. Si le sort est un *Projectile magique*, le Test de Corps à corps (Bagarre) est utilisé pour déterminer la **Localisation** (à la place du Test de Langue Magick inversé).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.103-105) → `followsCharacterRules`, `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, +16 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +11 fichiers
-- dette : #2669
+**Implémente :** [État calculé](../implemente.generated.md#4emagiesorts-de-contact-en-combat)
 
 ---
 
@@ -576,8 +537,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 - Les Avantages en combat s'appliquent aux Tests d'**Incantation** (pas de Focalisation).
 - Gain d'Avantage spécifique pendant l'incantation : si la cible a déjà été visée par un sort **du même Domaine** durant ce Round → +1 Avantage (le renforcement du Vent aide à focaliser la magie).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.123-125) → `poolDeNonCumul`, `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, +36 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/characteristics.ts`, +13 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagieavantages-et-magie)
 
 ---
 
@@ -587,8 +547,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 
 **Sources RAW :** `LDB 48 l.11 / l.106 / l.203 / l.302 / l.399 / l.501 / l.588 / l.690` (Bête/Cieux/Feu/Lumière/Métal/Mort/Ombres/Vie)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.11) → `forme-bestiale`, `incarnation-de-wyssan`, `la-lance-d-ambre`, `langue-bestiale`, `maitre-de-la-bete` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagieattributs-des-domaines-de-la-magie-des-couleurs-ldb-48)
 
 ---
 
@@ -600,8 +559,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 
 Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Peur 1` pour `1d10` Rounds.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.7) → `forme-bestiale`, `incarnation-de-wyssan`, `la-lance-d-ambre`, `langue-bestiale`, `maitre-de-la-bete` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-de-la-bete-ghur-vent-ambre)
 
 ---
 
@@ -611,8 +569,7 @@ Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Pe
 
 > « Les Sorts infligeant des Dégâts ignorent les PA des armures en métal, et se dirigent vers toutes les autres cibles dans les 2 mètres, à l'exception de ceux possédant le Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre Bonus de Force Mentale, traités comme un Projectile magique. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.104-106) → `maitre-de-la-bete`, `peau-de-chasseur`, `serres-d-ambre`, `vol-du-destin`, `arc-de-t-essla`, `bouclier-ceruleen` — `src/data/spells.json`, `src/engine/domainAttributes.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-des-cieux-azyr-vent-ceruleen)
 
 ---
 
@@ -624,8 +581,7 @@ Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Pe
 
 Double effet : (1) rider optionnel `+1 État Enflammé` sur chaque cible (sauf porteurs du Talent) ; (2) chaque état `Enflammé` actif à portée (≤ BFM mètres) octroie `+10` aux Tests de Focalisation/Incantation du lanceur.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.201) → `comete-de-cassandora`, `ironie-du-destin`, `le-premier-signe-d-amul`, `le-second-signe-d-amul`, `le-troisieme-signe-d-amul`, `maudit`, `cauteriser`, `coeurs-ardents`, `couronne-de-flammes`, `castContextMods` — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-du-feu-aqshy-vent-rouge)
 
 ---
 
@@ -638,8 +594,7 @@ Double effet : (1) rider optionnel `+1 État Enflammé` sur chaque cible (sauf p
 
 Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf porteurs du Talent) ; (2) frappe supplémentaire `BInt` dégâts ignorant BE+PA contre les cibles `Démoniaque` ou `Mort-vivant`.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.302-304) → `grands-feux-d-u-zhul`, `l-egide-d-aqshy`, `l-epee-ardente-de-rhuin`, `mur-de-feu`, `purification`, `bannissement`, `castContextMods` — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-de-la-lumiere-hysh-vent-blanc)
 
 ---
 
@@ -651,9 +606,7 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 
 - **Lecture du silence, décision d'orchestrateur révisable, non entérinée** (#1595 c.6232294713, 2026-10-17) : Déviation d'une Blessure critique de sort du Métal à un emplacement protégé par une armure métallique. Le bonus se fige à la frappe (« si votre Sort frappe un Bras protégé par 2 PA d'une armure métallique, il inflige +2 Dégâts supplémentaires et ignore les PA » — `LDB 48 l.399`), la Blessure Critique étant « issue d'une attaque » (`LDB 63 l.30`) : la Déviation n'ôte aucune Blessure, Blessure supplémentaire 0. Le texte ne dit pas si ce bonus se relit quand « vos PA sont à présent réduits de 1 Point » (`LDB 63 l.32`). Déviabilité même du cas : [§ Projectiles Magiques](#projectiles-magiques).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.399) → `gainCorruption`, `isProfane`, `GameOp`, `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, +3 — `src/data/spells.json`, `src/engine/corruption.ts`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, `src/state/corruptionFlow.ts`
-- `LDB 63` (l.30, l.32) → `repairCostBrass`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `RegimeDePorteur`, `AttackResult`, `GameOp`, `ActiveEffect`, `DecisionDeCritique`, +38 — `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, `src/engine/combat.ts`, `src/engine/critical.ts`, +7 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-du-metal-chamon-vent-dore)
 
 ---
 
@@ -665,8 +618,7 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 
 Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par sort, mais une cible ne peut accumuler qu'un seul état `Exténué` issu de cet Attribut à la fois).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.497) → `effectSourcesOf`, `doc`, `refusLoose`, `GameOp`, `OpFields`, `ActiveEffect`, `removeActiveEffects`, `passiveMods`, `applyOps`, `ecaille-d-acier`, +14 — `src/data/schemas/defs/spells.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/conditions.ts`, `src/engine/dispel.ts`, `src/engine/domainAttributes.ts`, +6 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-de-la-mort-shyish-vent-amethyste)
 
 ---
 
@@ -680,10 +632,7 @@ Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par s
 
 > « L'armure magique protège également des attaques qui ignorent les protections des armures non magiques. » — `ADE II 04 l.349`
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.584-588) → `castContextMods`, `caresse-de-laniph`, `dernieres-paroles`, `la-faux-de-shyish`, `le-voile-violet-de-shyish`, `mort-rapide`, `sanctifier`, `vol-de-vie`, `vortex-d-ames`, `destrier-d-ombre`, +7 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
-- `VDM 8` (l.243) → `ailes-grises`, `bosquet-d-ombre`, `charme-changeant`, `chut`, `corne-d-andar` — `src/data/spells.json`
-- sans code : `ADE II 4` (l.349)
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-des-ombres-ulgu-vent-gris)
 
 ---
 
@@ -695,8 +644,7 @@ Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par s
 
 Triple effet : (1) `+10` à Incanter/Focaliser en environnement rural/sauvage (bonus du lanceur) ; (2) toutes les cibles **vivantes** voient retirer leurs états `Exténué` et `Hémorragique` après application des effets ; (3) toutes les cibles `Mort-vivant` subissent `+BFM` dégâts ignorant BE+PA.
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.679-689) → `domainEnvironmentBonus`, `Scene`, `setEnvironment`, `FLOWS`, `sceneSchema`, `GameOp`, `DomainData`, `castContextMods`, `destrier-d-ombre`, `illusion`, +11 — `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, +3 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiedomaine-de-la-vie-ghyran-vent-de-jade)
 
 ---
 
@@ -712,8 +660,7 @@ Les sorts marqués **ZdE** affectent tous les individus à l'intérieur de ce **
 
 > **Verbatim** (LDB 47 l.28) : « Les Sorts marqués ZdE (Zone d'Effet) affectent tous les individus à l'intérieur de ce diamètre. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 47` (l.28) → `CastingNumberRounding`, `SpellTarget`, `CastModal`, `DECLARATIONS_D_OPS`, `carriedGrimoire`, `SpellbookSection`, `zdeDiameterMeters`, `bestAreaCenter`, `overcastAffordance`, `TIER`, +18 — `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/castingNumber.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/ops.ts`, +11 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiezone-d-effet-zde)
 
 ---
 
@@ -725,9 +672,7 @@ Les sorts marqués **ZdE** affectent tous les individus à l'intérieur de ce **
 
 > **Verbatim** (LDB 44 l.103) : « C'est le mélange de plusieurs Vents de Magie réunis en une énergie étincelante et aveuglante. Cette magie est impressionnante et difficile, et les elfes affirment qu'elle dépasse les capacités du genre humain. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 44` (l.101-105) → `doc` — `src/data/schemas/defs/trappings.ts`
-- bloqué : passage de lore (LDB 44 l.101-109), aucune règle mécanique — vérifié au Source le 2026-07-16
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemagie-elfique-qhaysh)
 
 ---
 
@@ -741,9 +686,7 @@ Les sorts marqués **ZdE** affectent tous les individus à l'intérieur de ce **
 
 **Voir aussi :** [Malepierre](#malepierre), [Magie Noire — LDB 50 (sorts)](#listes-de-sorts--à-transcrire-séparément)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 44` (l.107-111) → `doc` — `src/data/schemas/defs/trappings.ts`
-- dette : #517
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemagie-noire-dhar)
 
 ---
 
@@ -762,12 +705,7 @@ La **malepierre** est un éclat de magie pure dans le plan matériel — manifes
   d'option. Seule la réserve FINIE de NI (`VDM 02 l.165`, `1 g = 20 NI`) relève de l'option
   `magic-vdm-incantation` (`TrappingData.niPerGram`/`niConsumedPerDR`).
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 19` (l.40, l.51-53) → `CorruptionModal`, `combat-end-corruption`, `EXPOSURE_LADDER`, `testDeCorruption`, `sombre-pacte`, `physique`, `exposureLevelSchema`, `corruption-mineure`, `corruption-moderee`, `corruption-majeure`, +18 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +10 fichiers
-- `LDB 44` (l.113-119) → `doc` — `src/data/schemas/defs/trappings.ts`
-- `LDB 46` (l.164-173) → `DispelModal`, `windsModFromRoll`, `FocusModal`, `force-des-vents`, `rollWindsOfMagic`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `doc`, `windsMagicModOf`, `HoverTargeting`, +70 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +32 fichiers
-- `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `malepierreDR`, `malepierreCharge`, `ItemInstance`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
-- dette : #884
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemalepierre)
 
 ---
 
@@ -800,9 +738,7 @@ La Sorcellerie n'est pas réellement malveillante mais a une réputation mérit�
 
 > **Verbatim** (LDB 49 l.5-5) : « À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. »
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 44` (l.129-131) → `doc` — `src/data/schemas/defs/trappings.ts`
-- `LDB 49` (l.5-7) → `MiscastResult`, `rollMiscast`, `liveSinPoints`, `sorceryCorruptionLines`, `finishMiscast` — `src/data/reglesOptionnelles.json`, `src/engine/miscast.ts`, `src/state/combatFlow.ts`
+**Implémente :** [État calculé](../implemente.generated.md#4emagiesorcellerie-domaine-hors-college)
 
 ---
 
@@ -849,8 +785,7 @@ Le « Département des arts magiques maritimes » du collège du baron Henryk (M
 
 **Voir aussi :** [Focalisation (Test étendu)](#focalisation-test-étendu), [Focalisation Critique](#focalisation-critique), [Maladresse de Focalisation](#maladresse-de-focalisation), [Domaine du Feu (Aqshy — Vent Rouge)](#domaine-du-feu-aqshy--vent-rouge)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.178-186) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiemagie-des-mers-modificateurs-des-vents-en-mer)
 
 ---
 
@@ -871,8 +806,7 @@ Ces sorts manipulent des objets de jeu « navals » (navire, Manœuvre, tourbill
 
 **Voir aussi :** [Magie des mers — modificateurs des Vents en mer](#magie-des-mers--modificateurs-des-vents-en-mer), [Surincantation](#surincantation), [Zone d'Effet (ZdE)](#zone-deffet-zde)
 
-**Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.189-262) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+**Implémente :** [État calculé](../implemente.generated.md#4emagiesorts-de-magie-des-mers-college-du-baron-henryk)
 
 ---
 

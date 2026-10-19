@@ -2,9 +2,8 @@ import { correspondGlob } from '../../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../../raw/motif-catalogues.mjs'
 import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS } from './cibles-registres.mjs'
 
-/** `{ runner, script, targets, injecte }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
- *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`) ; `injecte` = fichiers commités
- *  dont le générateur ne réécrit QU'UN BLOC (il les relit, ils ne sont donc pas ses sources).
+/** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
+ *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
  *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
  *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
  *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
@@ -15,9 +14,9 @@ export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.incl
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
-  { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: [], injecte: ['docs/raw/**/00-index.md'] },
+  { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: ['docs/raw/atlas.generated.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
-  { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: [], injecte: ['docs/raw/**/*.md'] },
+  { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: ['docs/raw/implemente.generated.md'] },
   { runner: 'node', script: 'scripts/docs/build-primitives.mjs', targets: ['docs/primitives.md'] },
   { runner: 'node', script: 'scripts/docs/build-systemes.mjs', targets: ['docs/systemes.md'] },
   { runner: 'node', script: 'scripts/docs/build-donnees.mjs', targets: ['docs/donnees.md'] },

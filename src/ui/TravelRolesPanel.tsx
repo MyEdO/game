@@ -3,7 +3,7 @@ import { activitiesFor, activityById, competencesAPratiquer, posteEpingle, refus
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel } from '../data';
 import { activityAsPoste } from '../state/poste';
-import { PostesRoster } from './PostesRoster';
+import { PostesRoster } from './console/PostesRoster';
 
 /**
  * Wrapper store des Rôles de marche (Voyage par Étapes, EDOC 8) : projette les Activités de voyage

@@ -103,8 +103,8 @@ const CORPUS = new Map();
  *  @type {Map<string, Readonly<{ abs: string, rel: string, text: string }>>} */
 const ENTREES = new Map();
 
-/** L'entrée de `p`, lue au disque la première fois qu'une clé la demande. @param {string} p */
-function entreeDe(p) {
+/** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande. @param {string} p */
+export function entreeDe(p) {
   let e = ENTREES.get(p);
   if (!e) ENTREES.set(p, (e = Object.freeze({ abs: p, rel: posixDepuisRacine(p), text: readFileSync(p, 'utf8') })));
   return e;

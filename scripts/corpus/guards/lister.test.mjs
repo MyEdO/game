@@ -4,13 +4,15 @@ import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listerArbre, parUnitesDeCode } from '../../guards/lib/lister.mjs'
+import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { clotureDImports, estModule } from '../../guards/lib/importGraph.mjs'
-import { lintFixtures, directivesLint, directivesLintCiblees } from '../../guards/lib/lint.testkit.mjs'
+import { lintFixtures, directivesLint, directivesLintCiblees, porteCommentaireEslint } from '../../guards/lib/lint.testkit.mjs'
 import { cleDeContenu, lignesDuContenu } from '../../guards/lib/stock.mjs'
 import { lancerLint } from '../../guards/lib/lintStage.mjs'
 import configurationLint, { REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
-import { blocsDuMur, couvre, exempte, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
+import { armeParUnMur, blocsDuMur, couvre, exempte, fichiersLus, fichiersSousUnMur, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
+import { depotDe, listerImage, SUIVI } from '../../guards/lib/gitPorte.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../../guards/lib/dialecte.mjs'
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
@@ -45,7 +47,7 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
  *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
  *  le CONTENU de la ligne que la directive ÉTEINT (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
  *  la suivante pour `-next-line`, la sienne pour `-line` ; la forme bloc, qui n'éteint pas UNE ligne,
- *  est refusée. Le texte de la directive se répète (le même crochet dans `enregistreur-lectures.mjs`),
+ *  est refusée par `directivesMurs.test.mjs`. Le texte de la directive se répète (le même crochet dans `enregistreur-lectures.mjs`),
  *  la ligne qu'elle éteint non. */
 const EXEMPTIONS_DU_MUR = [
   "scripts/guards/lib/sourceCorpus.test.mjs :: import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'",
@@ -66,35 +68,49 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]
 
-const porteCommentaireEslint = texte => texte.includes('eslint') || texte.includes('oxlint')
+const estScript = (rel) => EXTENSIONS_DE_SCRIPT.some((ext) => rel.endsWith(ext))
 
-/** Les fichiers de code qu'arme au moins une règle du mur, marchés depuis les racines que ses globs
- *  nomment (premier segment de chaque glob). */
-function fichiersSousLeMur() {
-  const blocs = blocsDuMur()
-  const racines = [...new Set(blocs.flatMap((c) => c.files.map((g) => g.split('/')[0])))].sort(parUnitesDeCode)
-  return racines
-    .flatMap((racine) => listerArbre(join(RACINE_DEPOT, racine), { descendre: (r) => r !== 'node_modules' }).map((r) => `${racine}/${r}`))
-    .filter((rel) => estModule(rel) && blocs.some((c) => couvre(c, rel) && !exempte(c, rel)))
-}
+/** Les fichiers de script qu'arme au moins une règle du mur de l'ordre total. */
+const fichiersSousLeMur = () => fichiersSousUnMur(RACINE_DEPOT).filter((rel) => estScript(rel) && blocsDuMur().some((c) => couvre(c, rel) && !exempte(c, rel)))
 
-test('IGNORES — aucun ignore global ne couvre un fichier sous le mur', () => {
-  const fichiers = fichiersSousLeMur()
+/** Ce que la mesure copie : les fichiers armés et tout fichier d'ignore suivi (`.gitignore`, `.eslintignore`…). */
+const estFichierDIgnore = (rel) => /(^|\/)\.[\w-]*ignore$/.test(rel)
+const entreeDeLaGate = (armes, suivis) => [...armes, ...suivis.filter(estFichierDIgnore)]
+
+test('IGNORES — la gate lint lit tout fichier de script suivi qu’arme un mur, et aucun autre dialecte', () => {
+  const suivis = listerImage(depotDe(RACINE_DEPOT), SUIVI)
+  const armes = suivis.filter(armeParUnMur)
+  const scripts = armes.filter(estScript)
+  for (const temoin of ['scripts/docs/build-all.mjs', 'src/state/rollSeam.ts', 'server/src/rand.ts']) {
+    assert.ok(scripts.includes(temoin), `les fichiers suivis armés ne comptent plus \`${temoin}\``)
+  }
+  const lus = fichiersLus(RACINE_DEPOT, entreeDeLaGate(armes, suivis))
+  assert.deepEqual(scripts.filter((rel) => !lus.has(rel)), [], 'fichier suivi armé SAUTÉ par la gate (`.gitignore`, `.eslintignore`, ignore de la config, ou ignore implicite d’oxlint)')
+  assert.deepEqual([...lus].filter((rel) => !estScript(rel)), [], 'fichier armé lu par la gate dans un dialecte hors `EXTENSIONS_DE_SCRIPT`, que les gardes ne lisent pas')
+
+  const L = 'export const a = setTimeout\n'
+  const banc = new Map([
+    ['.gitignore', 'src/state/zz-plante-racine.ts\n'], ['src/state/.gitignore', 'zz-plante-imbrique.ts\n'],
+    ['.eslintignore', 'src/state/zz-plante-eslint-racine.ts\n'], ['src/state/.eslintignore', 'zz-plante-eslint-imbrique.ts\n'],
+    ['src/state/zz-plante-eslint-racine.ts', L], ['src/state/zz-plante-eslint-imbrique.ts', L],
+    ['src/state/zz-plante.ts', L], ['src/state/zz-plante.jsx', L],
+    ['src/state/zz-plante-racine.ts', L], ['src/state/zz-plante-imbrique.ts', L],
+    ['src/state/zz-plante-min.ts', L], ['src/state/zz-plante.min.ts', L], ['src/state/zz-plante_min.mjs', L],
+    ['src/state/zz-plante.vue', `<script>\n${L}</script>\n`],
+  ])
+  const plantes = [...banc.keys()]
+  assert.deepEqual([...fichiersLus(RACINE_DEPOT, entreeDeLaGate(plantes.filter((rel) => rel.startsWith('src/state/zz-plante')), plantes), banc)].sort(parUnitesDeCode),
+    ['src/state/zz-plante.jsx', 'src/state/zz-plante.ts', 'src/state/zz-plante.vue'], 'la mesure voit les `.gitignore`, les `.eslintignore`, les ignores implicites et les dialectes lus')
+
+  const temoin = 'scripts/docs/build-all.mjs'
   const dossier = mkdtempSync(join(tmpdir(), 'lint-ignores-'))
   try {
-    for (const fichier of fichiers) {
-      const cible = join(dossier, fichier)
-      mkdirSync(dirname(cible), { recursive: true })
-      copyFileSync(join(RACINE_DEPOT, fichier), cible)
-    }
-    const resultat = lancerLint(RACINE_DEPOT,fichiers,{cwd:dossier,configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
-    assert.deepEqual(resultat.defauts,[])
-    assert.equal(JSON.parse(resultat.stdout).number_of_files,new Set(fichiers).size)
-    const temoin='scripts/docs/build-all.mjs'
-    for(const motif of [temoin,'scripts/docs/**']) {
-      const plante=lancerLint(RACINE_DEPOT,[temoin],{cwd:dossier,configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
-      assert.deepEqual(plante.defauts,[])
-      assert.equal(JSON.parse(plante.stdout).number_of_files,0)
+    mkdirSync(dirname(join(dossier, temoin)), { recursive: true })
+    copyFileSync(join(RACINE_DEPOT, temoin), join(dossier, temoin))
+    for (const motif of [temoin, 'scripts/docs/**']) {
+      const plante = lancerLint(RACINE_DEPOT, [temoin], { cwd: dossier, configuration: { overrides: [], rules: {}, ignorePatterns: [...configurationLint.ignorePatterns, motif] } })
+      assert.deepEqual(plante.defauts, [])
+      assert.equal(JSON.parse(plante.stdout).number_of_files, 0)
     }
   } finally { rmSync(dossier, { recursive: true, force: true }) }
 })
@@ -109,8 +125,7 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
   const vues = []
   for (const rel of porteurs) {
     const code = readFileSync(join(RACINE_DEPOT, rel), 'utf8')
-    for (const { ligne, cible } of directivesLintCiblees(code, rel, regles)) {
-      assert.notEqual(cible, null, `${rel}:${ligne} : directive de forme BLOC — elle n’éteint pas UNE ligne, écrire \`-next-line\` ou \`-line\``)
+    for (const { cible } of directivesLintCiblees(code, rel, regles).filter((d) => d.cible !== null)) {
       const cle = cleDeContenu(rel, code, cible)
       assert.equal(lignesDuContenu(rel, code, cle).length, 1, `exemption AMBIGUË : « ${cle} » désigne plusieurs lignes`)
       vues.push(cle)

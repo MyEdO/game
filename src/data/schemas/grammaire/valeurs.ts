@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
-import { refOuSpec, idDe, refs, specDe } from './ref';
+import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
@@ -166,6 +166,30 @@ export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
  * `maneuvers`). L'OPTIONALITÉ reste au site : elle se décide par def, pas ici.
  */
 export const stakeFormSchema = z.enum(STAKE_FORMS);
+
+/** Les espaces où le FOYER d'une règle peut vivre — l'entité qui la PORTE, `regle` (`regles.json`)
+ *  n'étant que le foyer des règles de cadre (#1117, amendement A). */
+export const typeDeFoyerSchema = enumNomme({
+  regle: 'Règle de jeu',
+  skill: 'Compétence',
+  talent: 'Talent',
+  etat: 'État',
+  quality: 'Qualité',
+  characteristic: 'Caractéristique',
+  spell: 'Sort',
+  psychology: 'État psychologique',
+  symptome: 'Symptôme',
+  steamBreakdown: 'Panne de navire à vapeur',
+});
+export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
+
+/**
+ * FOYER de la règle derrière un jet, une action ou une étape : `{ id, type }` (#2820) — la fiche que le
+ * ⓘ ouvre. UNE graphie pour les 7 porteurs (`actions`, `activities`, `combat-stakes`, `flow-stakes`,
+ * `night-stakes`, `voyage-stakes`, `crew-test-types`), l'id résolu AU PARSE dans l'espace de son type.
+ */
+export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
+export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
 
 /**
  * Réf de source récurrente `{ book, page }` — vue sur 2-3 datasets (`characteristics.json`,
@@ -372,6 +396,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
   nommerChamps(z.strictObject({
     offHandPenalty: nommerChamps(z.strictObject({ perLevel: z.number(), zeroAt: z.number() }), { perLevel: { label: "par niveau" }, zeroAt: { label: "seuil de zéro" } }).optional(),
     attackModes: z.array(z.string()).optional(),
+    dualStrikeDefense: z.number().optional(),
     meleeDamageBonus: z.boolean().optional(),
     rangedDamageBonus: z.boolean().optional(),
     brawlDamageBonus: z.boolean().optional(),
@@ -422,7 +447,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     commandTeam: z.boolean().optional(),
     seaShanty: z.boolean().optional(),
     critRollTwice: z.boolean().optional(),
-  }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, counterDeclaredPerLevel: { label: "riposte déclarée, plafond par Niveau" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
+  }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, dualStrikeDefense: { label: "pénalité de défense après double frappe" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, counterDeclaredPerLevel: { label: "riposte déclarée, plafond par Niveau" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
 );
 
 /**

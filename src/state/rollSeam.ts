@@ -451,7 +451,7 @@ export interface BandSpec {
  *
  * L'arbitre (`modalArbiter`, entrée `cascade`) prend l'owner de l'étape : `'*'` si `groupOwner`, sinon
  * son `actorId`, sinon `undefined` — et `undefined` rend la fenêtre à l'HÔTE SEUL
- * (`netOwnership.ownsLocally`). Une bande doit donc TOUJOURS dire à qui elle appartient :
+ * (`netOwnership.ownsLocal`). Une bande doit donc TOUJOURS dire à qui elle appartient :
  *  - plus d'UN porteur (seul cas où plus d'un siège peut être concerné) → `groupOwner` ;
  *  - un SEUL porteur → `actorId` = ce porteur (une bande d'un seul porteur EST son porteur) ; sans
  *    lui, le siège qui possède ce porteur ne voit jamais la fenêtre où se tient sa rangée.
@@ -1834,7 +1834,7 @@ interface HostBase {
  *    dernier producteur de `groupOwner` devait monter son étape À LA MAIN, hors de la porte (#1262 V2 L4).
  *
  * Une étape hôte dit donc TOUJOURS à qui elle appartient : `{}` ne compile pas — et `undefined`
- * rendrait la fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocally`), volant le jet des autres sièges.
+ * rendrait la fenêtre à l'HÔTE SEUL (`netOwnership.ownsLocal`), volant le jet des autres sièges.
  */
 type HostOwner =
   | { actorId: string; groupOwner?: boolean }
