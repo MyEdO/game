@@ -7,6 +7,7 @@ import { emptyScene } from './scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep, CascadeRoll } from './pendings';
+import { fixtureText } from '../i18n/fixtureText';
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
@@ -52,7 +53,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     const a = hero({ id: 'A', label: 'Affamée', hunger: { days: 1, tests: 0, failures: 0 }, fortune: 2 });
     const b = hero({ id: 'B', label: 'Repue', items: [ration('r1')] }); // B mange sa ration → aucun jet
     useGame.setState({ party: [a, b] });
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSet('A', { food: 'rien' });
     useGame.getState().restSet('B', { food: 'ration' });
     useGame.getState().restSleep();
@@ -88,7 +89,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     expect(contagiousDiseases(a).length).toBe(1); // garde : la maladie est bien active + contagieuse (l.206)
     const b = hero({ id: 'B', label: 'Sain', fortune: 2 });
     useGame.setState({ party: [a, b] });
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSet('A', { food: 'rien' });
     useGame.getState().restSet('B', { food: 'rien' });
     useGame.getState().restSleep();
@@ -189,7 +190,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     sc.weather = 'pluie'; // difficile → Tests d'Exposition ; aucune compétence Survie → pas d'abri, jets directs
     const a = hero({ id: 'A', label: 'Transi', fortune: 2 });
     useGame.setState({ party: [a], scene: sc });
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSet('A', { lodging: 'dehors', food: 'rien' });
     useGame.getState().restSleep();
 

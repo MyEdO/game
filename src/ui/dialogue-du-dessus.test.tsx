@@ -32,6 +32,7 @@ import { PovControls } from './PovControls';
 import { campaignStart } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../state/cascadeTestKit';
+import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -64,7 +65,7 @@ afterEach(() => {
   useGame.setState(etatInitial, true);
 });
 
-const vider = async () => { await act(async () => { await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); }); };
+const vider = tacheSuivante;
 const sommet = () => { const pile = dismissStackKinds(); return pile[pile.length - 1]; };
 const actif = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.textContent ?? '').replace(/\s+/g, ' ').trim());
 const dialogue = (nom: RegExp) => [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]

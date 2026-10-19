@@ -149,7 +149,7 @@ describe('Activités en mer non tentables', () => {
     useGame.getState().seaActivitiesConfirm({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
     expect(useGame.getState().pendingExtendedTest).toBeNull();
     expect(toBrass(bourseOf(useGame.getState().party[0]))).toBe(avant);
-    expect(useGame.getState().pendingRest!.travelDay!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
+    expect(useGame.getState().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
   // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.

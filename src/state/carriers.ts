@@ -15,7 +15,8 @@ import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
-import { findVehicleById, libelleOuAbsence } from '../data';
+import { findVehicleById, libelleOuAbsence, dataLabel } from '../data';
+import type { PlayerText } from '../i18n/playerText';
 import { placeOfScene } from './worldMap';
 import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
@@ -71,8 +72,8 @@ function landCarriers(s: CarrierStateSlice, placeId: string | undefined): { vehi
 }
 
 /** Le nom du navire de campagne : celui de l'instance (#230), sinon celui de sa fiche de véhicule — SOURCE UNIQUE (#1906). */
-export function nomDuNavire(vessel: { label?: string; vehicleId: string }): string {
-  return vessel.label ?? libelleOuAbsence(findVehicleById(vessel.vehicleId), 'navire', vessel.vehicleId);
+export function nomDuNavire(vessel: { label?: string; vehicleId: string }): PlayerText {
+  return vessel.label != null ? dataLabel(vessel.label) : libelleOuAbsence(findVehicleById(vessel.vehicleId), 'navire', vessel.vehicleId);
 }
 
 /** Porteur « navire de campagne » : la cale (`vessel.cargo`) EST la source unique (verrou 1). */

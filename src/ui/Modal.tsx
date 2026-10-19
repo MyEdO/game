@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
-import { atteignable, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
+import { atteignable, dernierFocaliseVivant, noterDernierFocalise, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
 import { dialogueDuDessus, useDismissLayer } from './useDismissLayer';
 import { usePiegeDeDialogue } from './clavier/couches/piegeDeDialogue';
 import { subscribeDismissStack, type LayerPlan, type OnDismiss } from '../state/dismissStack';
@@ -99,28 +99,42 @@ export function useModalA11y(
   // l'ordre des effets est celui des appels, et l'emprunt lit la pile (`cibleDialogue`).
   useDismissLayer({ kind, nature: 'modale', plan, boite: boxRef }, onClose ?? null, actif);
   useFocusEmprunte(boxRef, actif, cibleDialogue, etape);
-  // SAUVETAGE du focus : un contrôle focalisé que le rendu DÉMONTE (« Résilience » cède la place au
-  // groupe de choix du dé, « Lancer » au résultat…) laisse le focus sur <body> — le piège Tab est
-  // rompu et la tabulation suivante s'échappe vers l'arrière-plan. On le replace DANS la boîte, sur la
-  // cible révélée. Observateur de MUTATIONS et non effet de rendu : la transition peut venir de l'état
-  // LOCAL d'une rangée, qui ne re-rend pas cette boîte — un effet d'ici ne serait pas rejoué.
+  // SAUVETAGE du focus : le DERNIER contrôle focalisé dans la boîte, que le rendu DÉMONTE ou rend
+  // inatteignable (« Résilience » cède la place au groupe de choix du dé, « Lancer » au résultat…),
+  // laisse le focus sur <body> — le piège Tab est rompu et la tabulation suivante s'échappe vers
+  // l'arrière-plan. Après une mutation de la boîte, si le focus est sur <body> et que ce contrôle a
+  // disparu ou n'est plus atteignable (`dernierFocaliseVivant`, source unique avec l'effet d'étape),
+  // le focus revient DANS la boîte, sur la cible révélée ; un contrôle encore vivant et atteignable
+  // (un clic sur une zone vide) n'est pas sauvé.
+  // Observateur de MUTATIONS et non effet de rendu : la transition peut venir de l'état LOCAL d'une
+  // rangée, qui ne re-rend pas cette boîte — un effet d'ici ne serait pas rejoué.
+  // Lu à la tâche SUIVANTE, comme le REPLI ci-dessous : un champ qui commet au `blur` re-rend PENDANT
+  // que le focus passe au contrôle cliqué, <body> le temps de l'événement — le lire dans la mutation
+  // volerait ce focus (#2533).
   useEffect(() => {
     const box = boxRef.current;
     if (!actif || !box) return;
     const had = { current: box.contains(document.activeElement) };
-    const onFocusIn = () => { had.current = true; };
+    noterDernierFocalise(box, box.contains(document.activeElement) ? document.activeElement as HTMLElement : null);
+    const onFocusIn = (e: FocusEvent) => { had.current = true; noterDernierFocalise(box, e.target as HTMLElement); };
     box.addEventListener('focusin', onFocusIn);
-    const obs = new MutationObserver(() => {
+    let relecture: ReturnType<typeof setTimeout> | undefined;
+    const sauver = () => {
       if (!had.current || !document.body.contains(box)) return;
       if (dialogueDuDessus() !== box) return;
       const ae = document.activeElement;
       if (ae && ae !== document.body && box.contains(ae)) return;
       // Focus parti VOLONTAIREMENT sur un élément vivant hors de la boîte : on ne le rapatrie pas.
       if (ae && ae !== document.body && document.body.contains(ae)) { had.current = false; return; }
+      if (dernierFocaliseVivant(box)) return;
       poserFocus(focusTarget(box, 'rescue'));
+    };
+    const obs = new MutationObserver(() => {
+      clearTimeout(relecture);
+      relecture = setTimeout(sauver, 0);
     });
     obs.observe(box, { childList: true, subtree: true });
-    return () => { obs.disconnect(); box.removeEventListener('focusin', onFocusIn); };
+    return () => { obs.disconnect(); clearTimeout(relecture); box.removeEventListener('focusin', onFocusIn); };
   }, [boxRef, actif]);
   // REPLI quand une couche se retire (dialogue fermé, bulle, panneau) en laissant le focus sur <body> —
   // son invocateur n'existe plus : le dialogue qui DEVIENT le dessus le reprend. Évaluation
@@ -203,7 +217,8 @@ export function Modal({
   backdropClose?: boolean;
   /** PIED : les gestes de sortie, hors du défileur (`CadrePied`). */
   footer?: ReactNode;
-  /** Étape courante du dialogue : quand elle change, le focus entre sur la cible de l'étape (`useFocusEmprunte`). */
+  /** Étape courante du dialogue : quand elle change, le focus entre sur la cible de l'étape ; si le geste
+   *  focalisé a disparu, sur le groupe révélé par le sauvetage (`useFocusEmprunte`, #2533). */
   etape?: string | number;
   children?: ReactNode;
 }) {

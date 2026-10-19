@@ -79,5 +79,11 @@ export function t(key: MsgKey, params?: Params): PlayerText {
  * traite en donnée, jamais par une heuristique ici.
  */
 export function deElide(nom: string): string {
-  return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `d’${nom}` : `de ${nom}`;
+  return `${elision('de', nom)}${nom}`;
+}
+
+/** La particule `de` ou l'article `le` devant `nom`, ÉLIDÉ ou non (« d’ » / « de », « l’ » / « le ») —
+ *  même périmètre que `deElide`, dont elle est la règle : « arrive **l’**Aubentag », « arrive **le** Wellentag ». */
+export function elision(particule: 'de' | 'le', nom: string): string {
+  return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `${particule[0]}’` : `${particule} `;
 }

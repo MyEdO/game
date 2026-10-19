@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Row } from './Layout';
+import { GatedAction } from './GatedAction';
 
 /**
  * Gestes d'un CADRE, partagés par les trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`), qui les
@@ -23,8 +24,12 @@ export function CadrePied({ children }: { children?: ReactNode }) {
 }
 
 /** CROIX de fermeture d'un cadre (`Modal` `croix`, `ScreenShell`) : un geste du CADRE, rendu en
- *  tête, jamais recopié par un contenu. Sans libellé, la croix nue porte le nom « Fermer ». */
-export function CadreFermer({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
+ *  tête, jamais recopié par un contenu. Sans libellé, la croix nue porte le nom « Fermer ».
+ *  `refus` : la fermeture est INDISPONIBLE — le geste se grise et dit sa raison (`GatedAction`). */
+export function CadreFermer({ onClose, children, refus }: { onClose: () => void; children?: ReactNode; refus?: { id: string; raison: string } }) {
+  if (refus) {
+    return <GatedAction id={refus.id} label={children ?? '✕'} ariaLabel={children == null ? 'Fermer' : undefined} enabled={false} reason={refus.raison} onClick={onClose} primary={false} btnClassName="small cadre-fermer" />;
+  }
   return (
     <button type="button" className="btn small cadre-fermer" onClick={onClose} aria-label={children == null ? 'Fermer' : undefined}>
       {children ?? '✕'}

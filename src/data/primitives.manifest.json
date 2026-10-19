@@ -243,6 +243,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "clockLabel",
+    "type": "primitives.manifest",
+    "label": "clockLabel",
+    "fichier": "src/engine/duration.ts",
+    "concept": "libellé d'une durée d'HORLOGE en minutes de jeu : reste d'un effet (forme courte, une unité arrondie au-dessus) ou durée écoulée/estimée (`exact` : « 2 h 40 », « 1 j 6 h »)",
+    "perimetre": "échéance d'un effet (`EtatPanel`), estimation de trajet de la carte (`WorldMapView`), durée du récapitulatif de voyage (`TravelRecapModal`)",
+    "verrou": "src/engine/duration.test.ts"
+  },
+  {
     "id": "fourchette",
     "type": "primitives.manifest",
     "label": "fourchette",
@@ -410,7 +419,7 @@
     "label": "ProseField",
     "fichier": "src/ui/ProseField.tsx",
     "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
-    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille",
+    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille ; en zone basse (`courte`) : la raison maison d'une valeur (`ProvenanceDeValeur`)",
     "verrou": "ui-ratchets.test.ts"
   },
   {
@@ -787,6 +796,15 @@
     "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie ; en copie avec adresse embarquée (adresseEmbarquee), « Détacher » reporte source sur adapteDe",
     "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
+  },
+  {
+    "id": "provenanceDeValeur",
+    "type": "primitives.manifest",
+    "label": "ProvenanceDeValeur",
+    "fichier": "src/ui/editor/ProvenanceDeValeur.tsx",
+    "concept": "provenance d'une VALEUR d'auteur : sa source (SourceRefField facultative) ou sa raison maison (ProseField courte), dans un panneau creux posé à côté de la valeur ; une valeur exigée sans l'une ni l'autre porte son refus (ChipDeRefus), miroir de refuserSansProvenance au chargement",
+    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel)",
+    "verrou": "src/ui/editor/worldmap-gating-editable.test.tsx, src/ui/editor/WorldMapEditor.test.tsx"
   },
   {
     "id": "couvreField",

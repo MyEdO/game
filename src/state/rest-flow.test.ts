@@ -107,7 +107,7 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
 describe('openRest / choix par héros', () => {
   it('auberge : choix PERSONNELS et orthogonaux — un héros en chambre+repas, l’autre dort dehors avec sa ration', () => {
-    useGame.getState().openRest({ places: { auberge: true, camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
     const p = useGame.getState().pendingRest!;
     expect(p.perHero['h1'].lodging).toBe('privee'); // défaut auberge
     useGame.getState().restSet('h2', { lodging: 'dehors' });
@@ -129,7 +129,7 @@ describe('openRest / choix par héros', () => {
   });
 
   it('chambres regroupées par 2 (RAW : « convient à 2 invités ») : 2 héros en privée = 1 chambre (10 pa)', () => {
-    useGame.getState().openRest({ places: { auberge: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
     useGame.getState().restSet('h2', { lodging: 'privee' });
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSet('h2', { food: 'rien' });
@@ -139,7 +139,7 @@ describe('openRest / choix par héros', () => {
 
   it('bourse insuffisante : Dormir refusé (on peut alors choisir la belle étoile, gratuite)', () => {
     setGroupPurse({ gold: 0, silver: 0, brass: 5 });
-    useGame.getState().openRest({ places: { auberge: true, camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
     useGame.getState().restSleep(); // refus (privée + repas impayables)
     expect(useGame.getState().pendingRest?.phase).toBe('setup');
     for (const id of ['h1', 'h2']) {
@@ -156,7 +156,7 @@ describe('openRest / choix par héros', () => {
     const sc = emptyScene(10, 10);
     sc.weather = 'pluie'; // difficile → 2 Tests/nuit si pas d'abri
     useGame.setState({ scene: sc });
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSleep();
     const cas = useGame.getState().pendingCascade!;
     expect(cas.participants[0].kind).toBe('shelter'); // l'abri de fortune ouvre la séquence
@@ -211,7 +211,7 @@ describe('openRest / choix par héros', () => {
     sc.weather = 'pluie';
     useGame.setState({ scene: sc });
     useGame.getState().party[1].items!.push({ uid: 't', label: 'Tente', trappingId: 'tente', kind: 'misc', qualities: [], enc: 2, equipped: false } as ItemInstance);
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSleep();
     const cas = useGame.getState().pendingCascade!;
     expect(cas.participants.some((s) => s.kind === 'exposure')).toBe(false); // tente → 0 Test difficile
@@ -234,7 +234,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     creditBourse(useGame.getState, useGame.setState, 'h1', { gold: 10, silver: 0, brass: 0 }); // couvre largement le gage du Mousse (288 sc)
     expect(stacks(useGame.getState().party[0], 'extenue')).toBe(1);
 
-    useGame.getState().openRest({ places: { camp: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSet('h1', { lodging: 'dehors' });
     useGame.getState().restSet('h1', { food: 'ration' }); // mange sa ration : jamais affamé, la récupération s'applique
     useGame.getState().restSleep();
@@ -259,7 +259,7 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
     const sc = emptyScene(10, 10);
     sc.weather = 'tempete'; // extrême à terre — mais on est à bord (hamacs, abrité)
     useGame.setState({ scene: sc });
-    useGame.getState().openRest({ places: { bord: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { bord: true } });
     expect(useGame.getState().pendingRest!.perHero['h1'].lodging).toBe('bord'); // défaut = à bord
     useGame.getState().restSleep();
     const cas = useGame.getState().pendingCascade!;
@@ -301,7 +301,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
   it('2 nuits d’affilée sans ration : CHAQUE nuit est SA PROPRE cascade influençable, non pré-résolue', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 1, tests: 0, failures: 0 } });
     useGame.setState({ party: [starving], scene: emptyScene(10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
-    useGame.getState().openRest({ places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSleep();
 
@@ -331,7 +331,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
   it('escalade CUMULATIVE de la Faim PORTÉE d’une nuit à l’autre (compteur persisté sur le héros)', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 0, tests: 0, failures: 0 } });
     useGame.setState({ party: [starving], scene: emptyScene(10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
-    useGame.getState().openRest({ places: { camp: true }, days: 4 });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 });
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSleep();
     walkNightChain();
@@ -417,7 +417,7 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
   it('« Dormir » à l’auberge → l’étape du symptôme porte son `entryId` et renvoie à SA fiche', () => {
     malade();
     setGroupPurse({ gold: 5, silver: 0, brass: 0 });
-    useGame.getState().openRest({ places: { auberge: true } });
+    useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
     useGame.getState().restSleep();
     const p = useGame.getState().pendingCascade;
     expect(p, 'la cascade de nuit s’ouvre').toBeTruthy();

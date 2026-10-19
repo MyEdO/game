@@ -4,7 +4,9 @@ import { MultiRollList } from './MultiRollList';
 import { RecapLineSections } from './RecapLine';
 import { travelModeLabels, routeDistanceLabel } from '../engine/travel';
 import type { TravelRecap } from '../state/travelFlow';
-import { GameDate } from './GameDate';
+import { GameDate, gameDateText } from './GameDate';
+import { elision, t } from '../i18n';
+import { clockLabel } from '../engine/duration';
 import { SeaVoyageBody } from './SeaVoyageScreen';
 import { Icon } from './Icon';
 
@@ -43,38 +45,38 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const ambush = !!recap.then; // une embuscade ATTEND : l'acquittement déclenche le combat
   const sea = recap.mode === 'mer'; // route MARITIME : `km` porte des MILLES (cf. `routeDistanceLabel`)
   const title = ambush
-    ? <><Icon id="action/attack" size="sm" /> Embuscade en chemin !</>
+    ? <><Icon id="action/attack" size="sm" /> {t('trm.titreEmbuscade')}</>
     : recap.status === 'arrived'
-      ? <><Icon id="scenario/travel" size="sm" /> Arrivée à {recap.toLabel}</>
+      ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArrivee', { lieu: recap.toLabel })}</>
       : recap.status === 'interrupted'
-        ? <><Icon id="scenario/travel" size="sm" /> Voyage interrompu !</>
-        : <><Icon id="scenario/travel" size="sm" /> Le convoi s'arrête</>;
+        ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreInterrompu')}</>
+        : <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArret')}</>;
   const kmLeft = Math.max(0, Math.round(recap.km - recap.kmDone));
   const onContinue = () => { dismiss(); openWorldMap(); };
   return (
     <Modal title={title} onClose={dismiss} backdropClose={!ambush}
       footer={
         <>
-          {!ambush && <button className="btn" onClick={dismiss}>Fermer</button>}
+          {!ambush && <button className="btn" onClick={dismiss}>{t('trm.fermer')}</button>}
           {ambush
-            ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attack" size="sm" /> Faire face</button>
+            ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attack" size="sm" /> {t('trm.faireFace')}</button>
             : recap.status === 'arrived'
-              ? <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Continuer le voyage</button>
-              : <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Ouvrir la carte</button>}
+              ? <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> {t('trm.continuer')}</button>
+              : <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> {t('trm.ouvrirCarte')}</button>}
         </>
       }
     >
       <p className="travel-recap-route">
         {recap.fromLabel} → <b>{recap.toLabel}</b> · {routeDistanceLabel(recap.km, sea)}, {travelModeLabels()[recap.mode].toLowerCase()}
-        {recap.status !== 'arrived' && <> · <b>{kmLeft > 0 ? `${routeDistanceLabel(kmLeft, sea)} restants` : `aux portes de ${recap.toLabel}`}</b></>}
+        {recap.status !== 'arrived' && <> · <b>{kmLeft > 0 ? t('trm.restants', { distance: routeDistanceLabel(kmLeft, sea) }) : t('trm.auxPortes', { lieu: recap.toLabel })}</b></>}
       </p>
       {/* ARRIVÉE amincie (diagnostic fil 4, vague « lisibilité 2/2 ») : un ACCUSÉ (route + durée +
           date), pas le dump jour par jour — il fait doublon avec la halte du soir / la chronique du
           hub. `interrupted`/`stalled` GARDENT le déroulé : seule trace de la raison de l'arrêt. */}
       {recap.status === 'arrived' ? (
         <p className="travel-recap-foot">
-          Voyage de {recap.daysTotal ?? recap.days.length} jour{(recap.daysTotal ?? recap.days.length) > 1 ? 's' : ''}.
-          {' '}Le groupe arrive le <GameDate time={gameTime} />.
+          {recap.dureeMin != null && recap.dureeMin > 0 && <>{t('trm.dureeVoyage', { duree: clockLabel(recap.dureeMin, { exact: true }) ?? '' })}{' '}</>}
+          {t('trm.groupeArrive', { le: elision('le', gameDateText(gameTime)) })}<GameDate time={gameTime} />.
         </p>
       ) : (
         <ol className="travel-recap-days">
@@ -89,11 +91,11 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         </ol>
       )}
       {ambush ? (
-        <p className="travel-recap-foot">Impossible de poursuivre : il faut faire face. (Le voyage pourra reprendre ensuite depuis la carte <Icon id="nav/campaign" size="sm" />.)</p>
+        <p className="travel-recap-foot">{t('trm.piedEmbuscade')} <Icon id="nav/campaign" size="sm" />.)</p>
       ) : recap.status === 'interrupted' ? (
-        <p className="travel-recap-foot">Le voyage pourra reprendre depuis la carte du monde (<Icon id="nav/campaign" size="sm" />).</p>
+        <p className="travel-recap-foot">{t('trm.piedInterrompu')} (<Icon id="nav/campaign" size="sm" />).</p>
       ) : recap.status === 'stalled' ? (
-        <p className="travel-recap-foot">Le groupe est trop chargé pour avancer — allégez les sacs, puis reprenez depuis la carte.</p>
+        <p className="travel-recap-foot">{t('trm.piedSurcharge')}</p>
       ) : null}
     </Modal>
   );

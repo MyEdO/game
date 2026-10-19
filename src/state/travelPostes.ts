@@ -360,6 +360,8 @@ registerCascadeApplier('stageAggregate', (get, set, step) => {
 
   // EXPOSITION de fin d'Étape (l.73) : INSÈRE un jet influençable par héros exposé (sauf « Plein air » l.141).
   const suppress = agg.gates.includes('suppressExposure');
+  const jours = get().travelPlan?.recap?.days ?? [];
+  if (suppress && jours.length) jours[jours.length - 1].pleinAir = true;
   const insert = suppress ? [] : buildExposureSteps(get(), stage);
   return { consequences: freeCons(j), insert };
 });

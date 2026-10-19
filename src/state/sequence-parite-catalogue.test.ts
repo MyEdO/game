@@ -400,9 +400,9 @@ const V8C2: Site[] = [
     apres: t('tf.mountCared', { mount: BETE, owner: t('tf.fragMountOwner', { name: HEROS3 }), soin: t('tf.mountHealed') }),
   },
   {
-    site: 'travelFlow.ts:795 — péripétie de la table d10 (trois champs de donnée)',
-    avant: `Péripétie de voyage (${4}) — ${'Averse'} : ${'La pluie détrempe la route.'}`,
-    apres: t('tf.perilTable', { roll: 4, label: 'Averse', text: 'La pluie détrempe la route.' }),
+    site: 'travelFlow.ts — péripétie de la table d10 (deux champs de donnée)',
+    avant: `Péripétie de voyage — ${'Averse'} : ${'La pluie détrempe la route.'}`,
+    apres: t('tf.perilTable', { label: 'Averse', text: 'La pluie détrempe la route.' }),
   },
   {
     site: 'riverVoyageFlow.ts:424 — progression du jour (branche DÉRIVE, tiret cadratin + %)',

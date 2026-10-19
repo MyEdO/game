@@ -20,6 +20,7 @@ import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import type { Combatant } from '../engine/types';
+import { tacheSuivante } from './focus.testkit';
 
 let retirerLayout: () => void;
 beforeAll(() => {
@@ -119,13 +120,13 @@ describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', (
   /** Une frappe d'Entrée telle que le document la reçoit. `Modal` laisse un BOUTON focalisé à son
    *  activation native (il ne l'empêche pas) : jsdom n'active pas un bouton sur `keydown`, le banc
    *  joue donc l'activation native lui-même, et seulement si la boîte ne l'a pas prise. Le sauvetage
-   *  du focus (`useModalA11y`) passe par un `MutationObserver` : on rend la main une fois. */
+   *  du focus (`useModalA11y`) se lit à la tâche suivante : on rend la main jusqu'à elle. */
   async function entree() {
     const cible = document.activeElement as HTMLElement;
     const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
     act(() => { cible.dispatchEvent(ev); });
     if (!ev.defaultPrevented && cible instanceof HTMLButtonElement) act(() => cible.click());
-    await act(async () => { await Promise.resolve(); });
+    await tacheSuivante();
   }
 
   it('AVEC équipement : focus au 1er portrait ; Entrée répétée attribue ligne à ligne au 1er héros, puis « Continuer » ferme (déclaré, réversible par `transferItem`)', async () => {

@@ -30,6 +30,8 @@ import type { Get } from './flowTypes';
 import type { CascadeStep } from './pendings';
 import { battleRng } from './battleRng';
 import { draineCascade } from './cascadeTestKit';
+import { sceneLieu } from './restFlow';
+import { emptyScene, type Scene } from './scene';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 
@@ -105,10 +107,18 @@ export function groupeDeQuatre(): Combatant[] {
 
 /** Décor HORS COMBAT des bancs de Test SUBI : aucune bataille, aucune scène, journal et files vides,
  *  aucun repos ouvert, entretien à jour — la nuit suivante en traite exactement UN jour. */
+/** Le lieu où le groupe se tient hors combat — une nuit de repos s'y passe (`sceneLieu`). */
+function lieuDuDecor(): Scene {
+  const s = emptyScene(5, 5);
+  s.id = 'decor-hors-combat';
+  s.label = 'Campement';
+  return s;
+}
+
 export function decorHorsCombat(): Partial<GameState> {
   const gameTime = 480;
   return {
-    battle: null, scene: null, flags: {}, journal: [],
+    battle: null, scene: lieuDuDecor(), flags: {}, journal: [],
     pendingTest: null, pendingCascade: null, pendingRest: null, pendingLogQueue: [], scheduledEffects: [],
     gameTime, lastUpkeepDay: dayIndex(gameTime), party: groupeDeQuatre(),
   };
@@ -152,7 +162,7 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
  *  rangée un 1. Aucun dé tiré : deux nuits de même décor ne divergent que par l'issue du jet du nœud. */
 export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
-  get().openRest();
+  get().openRest({ lieu: sceneLieu(get) });
   get().restSleep();
   const p = get().pendingCascade;
   const vise = (s: CascadeStep): boolean => s.kind === 'diseaseTick' && s.meta?.symptomId === symptomId

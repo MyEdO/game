@@ -56,6 +56,7 @@ export function ScreenShell({
   title,
   onClose,
   closeLabel = '✕ Fermer',
+  closeRefus,
   meta,
   actions,
   tabs,
@@ -72,6 +73,9 @@ export function ScreenShell({
   onClose: () => void;
   /** Libellé du bouton de fermeture (défaut « ✕ Fermer »). */
   closeLabel?: ReactNode;
+  /** Raison pour laquelle la fermeture est INDISPONIBLE : le bouton se grise et la dit au survol
+   *  (`GatedAction`). Absente = fermeture offerte. */
+  closeRefus?: string;
   /** Slot d'en-tête STANDARD date/bourse (opt-in) — `time` = instant de campagne, `money` = bourse du groupe. */
   meta?: { time?: number; money?: Money };
   /** Boutons d'en-tête AVANT la fermeture (rendus à droite, à côté du bouton Fermer). */
@@ -87,7 +91,8 @@ export function ScreenShell({
   /** Crochet d'appelant pour SES descendants — la boîte elle-même ne se vise pas (§5.3,
    *  `css-modules-guard.test.ts`) : sa matière est un état ci-dessus (`ambiance`). */
   className?: string;
-  /** Étape courante de l'écran : quand elle change, le focus entre sur la cible de l'étape (`useFocusEmprunte`). */
+  /** Étape courante de l'écran : quand elle change, le focus entre sur la cible de l'étape ; si le geste
+   *  focalisé a disparu, sur le groupe révélé par le sauvetage (`useFocusEmprunte`, #2533). */
   etape?: string | number;
   children: ReactNode;
 }) {
@@ -102,7 +107,7 @@ export function ScreenShell({
         <Row justify="end" className="worldmap-head-actions">
           <ScreenMeta meta={meta} />
           {actions}
-          <CadreFermer onClose={onClose}>{closeLabel}</CadreFermer>
+          <CadreFermer onClose={onClose} refus={closeRefus ? { id: `${titreId}-fermer`, raison: closeRefus } : undefined}>{closeLabel}</CadreFermer>
         </Row>
       </Row>
       {tabs != null && <Row className="screen-toolbar">{tabs}</Row>}

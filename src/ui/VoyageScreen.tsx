@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import type { CampaignVessel, PendingRest } from '../state/store';
 import type { TravelPlan, TravelRecapDay } from '../state/travelFlow';
-import { currentTravelDayWeather } from '../state/travelFlow';
+import { activeDayWeather } from '../state/combatFlow';
+import { t } from '../i18n';
 import type { PendingCascade } from '../state/pendings';
 import { DAY_PHASE_CATALOG } from '../state/recapLine';
 import type { Combatant } from '../engine/types';
@@ -17,7 +18,7 @@ import { riverForceLabel, riverDirLabel } from '../engine/riverNavigation';
 import { cargoTotalEnc } from '../engine/seaVoyage';
 import { partyItemsCargoEnc, partyLandCapacity } from '../state/carriers';
 import { moraleBand } from '../engine/crewMorale';
-import { seasonOfMonth, weatherCondition } from '../engine/travelStages';
+import { seasonOfMonth, weatherCondition, type Weather } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import { findVehicleById, seasonLabel, libelleOuAbsence } from '../data';
 import { ScreenShell } from './ScreenShell';
@@ -101,7 +102,7 @@ export interface DayAgendaItem {
  *  les étapes de la cascade `travelDay` PAR KIND (`DAY_PHASE_CATALOG`, une phase absente ce jour-là
  *  n'apparaît pas), puis la Nuit (halte en cours ou à venir). Météo = CONTEXTE de la carte, pas une
  *  phase (arbitrage user 2026-07-11) — jamais listée ici. */
-export function dayAgenda(pendingCascade: PendingCascade | null | undefined, pendingRest: PendingRest | null | undefined): DayAgendaItem[] {
+export function dayAgenda(pendingCascade: PendingCascade | null | undefined, pendingRest: PendingRest | null | undefined, arriveCeJour = false): DayAgendaItem[] {
   const items: DayAgendaItem[] = [];
   if (pendingCascade && pendingCascade.purpose === 'travelDay') {
     // Jets DE DÉ réels d'un pas (batch = N rangées, jet = 1, agrégat/affichage/météo = 0) — même compte
@@ -117,13 +118,28 @@ export function dayAgenda(pendingCascade: PendingCascade | null | undefined, pen
       const jets = idxs.reduce((n, i) => n + diceOf(pendingCascade.participants[i]), 0);
       items.push({ key: phase.key, label: phase.label, state, jets });
     }
-    items.push({ key: 'nuit', label: 'Nuit', state: 'pending' });
+    if (!arriveCeJour) items.push({ key: 'nuit', label: t('vs.phaseNuit'), state: 'pending' }); // le jour d'arrivée n'a pas de halte
   } else if (pendingRest) {
     // La cascade du jour a déjà clos (Route/Activités/Rencontre faites) — la halte de nuit est la phase active.
-    items.push({ key: 'route', label: 'Route', state: 'done' });
-    items.push({ key: 'nuit', label: 'Nuit', state: 'current' });
+    items.push({ key: 'route', label: t('vs.phaseRoute'), state: 'done' });
+    items.push({ key: 'nuit', label: t('vs.phaseNuit'), state: 'current' });
   }
   return items;
+}
+
+/** Jours restants : distance restante ÷ km du DERNIER JOUR MARCHÉ — celui en cours s'il a déjà avancé,
+ *  sinon le dernier clos. Une seule source, du flux (aucune vitesse inventée) : le compteur ne clignote ni
+ *  pendant les péripéties du jour, ni à sa clôture. `null` tant qu'aucun jour n'a avancé. */
+export function etaJours(plan: Pick<TravelPlan, 'km' | 'kmDone' | 'log'>): number | null {
+  const lastDay = plan.log?.[plan.log.length - 1];
+  const kmDuJour = plan.kmDone - (lastDay?.kmTo ?? 0);
+  const rate = kmDuJour > 1e-9 ? kmDuJour : lastDay ? lastDay.kmTo - lastDay.kmFrom : 0;
+  return rate > 0.5 ? Math.ceil(Math.max(0, plan.km - plan.kmDone) / rate) : null;
+}
+
+/** Jours de route restants estimés : « dernier jour », « ~1 jour restant », « ~N jours restants ». */
+export function etaLabel(jours: number): string {
+  return jours <= 0 ? t('vs.etaDernier') : jours === 1 ? t('vs.etaUn') : t('vs.etaPlusieurs', { n: jours });
 }
 
 /** Coque + ton (fraction de Blessures restantes). */
@@ -195,9 +211,9 @@ export function voyageTiles(
   possessions: Possession[],
   gameTime: number,
   onDossier?: () => void,
-  /** Météo du jour EN COURS (`currentTravelDayWeather`) — terre / fleuve NON joué (transport payant
+  /** Météo du jour EN COURS (`activeDayWeather`) — terre / fleuve NON joué (transport payant
    *  sans navigation) seulement : mer et fleuve JOUÉ ont leur propre système météo (tuiles dédiées). */
-  dayWeather?: TravelRecapDay['weather'],
+  dayWeather?: Weather,
 ): VoyageTile[] {
   const tiles: VoyageTile[] = [];
   if (sub === 'mer' && plan.sea) {
@@ -247,7 +263,7 @@ export function voyageTiles(
   });
   // Météo du jour EN COURS (règle `travel-etapes`, EDOC 8) — absente si la règle est éteinte ou
   // qu'aucun jour n'est encore engagé.
-  if (dayWeather) tiles.push({ key: 'meteo', icon: 'rest/rain', label: 'Météo', value: weatherCondition(dayWeather.id).label });
+  if (dayWeather) tiles.push({ key: 'meteo', icon: 'rest/rain', label: 'Météo', value: weatherCondition(dayWeather).label });
   const mounts = partyMounts(party, possessions);
   if (mounts.length) {
     const hurt = mounts.filter((m) => m.possession.mountInjury).length;
@@ -262,21 +278,20 @@ export function voyageTiles(
 /** CHRONIQUE (gabarit #257) : une carte par jour CLOS (`plan.log`) + le jour EN COURS (`current`).
  *  `stepWord` = « Jour » (mer/fleuve) ou « Étape » (terre) ; `pendingActive` = une étape attend ;
  *  `agenda` = ses sous-phases (fait/en cours/à venir, cf. `dayAgenda`) — carte `current` seulement.
- *  `pendingDay` (vague « lisibilité du voyage » 2/2) : le jour tout juste CLOS d'une halte de nuit
- *  EN COURS (`pendingRest.travelDay`) — le BILAN sort du panneau de nuit (la DÉCISION seule y reste) :
- *  ce jour devient une carte SÉLECTIONNABLE comme un jour passé, et `current` bascule sur la Nuit elle-même. */
+ *  `nightHalt` : une halte de nuit est EN COURS — le jour qu'elle clôt est DÉJÀ le dernier de `plan.log`
+ *  (`openRest`, ou `resumeTravel` pour un jour interrompu), une carte sélectionnable comme tout jour
+ *  passé, et `current` est la Nuit elle-même. */
 export function voyageDayCards(
   plan: TravelPlan, sub: 'mer' | 'fleuve' | 'terre', stepWord: string, pendingActive: boolean,
-  agenda: DayAgendaItem[] = [], pendingDay?: TravelRecapDay,
+  agenda: DayAgendaItem[] = [], nightHalt = false,
 ): VoyageDayCard[] {
   const log = plan.log ?? [];
   const cards: VoyageDayCard[] = log.map((d, i) => ({ key: `d${i}`, seal: String(i + 1), dayLabel: `${stepWord} ${i + 1}`, summary: dayCardSummary(d, sub) }));
-  if (pendingDay) cards.push({ key: `d${log.length}`, seal: String(log.length + 1), dayLabel: `${stepWord} ${log.length + 1}`, summary: dayCardSummary(pendingDay, sub) });
   cards.push({
     key: 'current',
-    seal: pendingDay ? '•' : String(log.length + 1),
-    dayLabel: pendingDay ? 'Nuit' : `${stepWord} ${log.length + 1}`,
-    summary: pendingActive ? 'EN COURS…' : 'La traversée suit son cours.',
+    seal: nightHalt ? '•' : String(log.length + 1),
+    dayLabel: nightHalt ? t('vs.phaseNuit') : `${stepWord} ${log.length + 1}`,
+    summary: pendingActive ? t('vs.enCours') : t('vs.suitSonCours'),
     current: true,
     agenda,
   });
@@ -285,7 +300,7 @@ export function voyageDayCards(
 
 /** Coquille store-connectée : lit le voyage en cours, dérive les tuiles/chronique et incruste la cascade
  *  du jour en son centre. `onClose` = minimiser le hub (rendu par `CampaignView`). */
-export function VoyageScreen({ onClose }: { onClose: () => void }) {
+export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; reduireRefus?: string }) {
   const plan = useGame((s) => s.travelPlan);
   const worldMap = useGame((s) => s.worldMap);
   const vessel = useGame((s) => s.vessel);
@@ -304,39 +319,34 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
   const fromLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.fromPlaceId) : undefined, 'lieu', plan.fromPlaceId);
   const toLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.toPlaceId) : undefined, 'lieu', plan.toPlaceId);
   const log = plan.log ?? [];
-  const dayNum = log.length + 1;
-  const stepWord = sub === 'terre' ? 'Étape' : 'Jour';
+  // Halte de nuit EN COURS : le jour qu'elle clôt est déjà le dernier de `plan.log` (`openRest`, `resumeTravel`).
+  const nightHalt = !!pendingRest?.travelHalt;
+  const dayNum = nightHalt ? log.length : log.length + 1;
+  const stepWord = sub === 'terre' ? t('vs.motEtape') : t('vs.motJour');
   const kmLeft = Math.max(0, plan.km - plan.kmDone);
-  // ETA = distance restante ÷ ALLURE RÉELLE du mode (dernier jour clos parcouru) — mode-agnostique, tiré
-  // du flux (aucune vitesse inventée). Sans jour clos encore, l'estimation est omise.
-  const lastDay = log[log.length - 1];
-  const rate = lastDay ? lastDay.kmTo - lastDay.kmFrom : 0;
-  const etaDays = rate > 0.5 ? Math.ceil(kmLeft / rate) : null;
+  const etaDays = etaJours(plan);
 
   const dossier = vessel ? () => setDossierOpen(true) : undefined;
-  const dayWeather = currentTravelDayWeather(plan, pendingRest);
+  const dayWeather = activeDayWeather(useGame.getState);
   const tiles = voyageTiles(sub, plan, vessel, party, possessions, gameTime, dossier, dayWeather);
 
-  const agenda = dayAgenda(pendingCascade, pendingRest);
-  const days = voyageDayCards(plan, sub, stepWord, !!pendingCascade || !!pendingRest, agenda, pendingRest?.travelDay);
+  const agenda = dayAgenda(pendingCascade, pendingRest, kmLeft < 1e-9);
+  const days = voyageDayCards(plan, sub, stepWord, !!pendingCascade || !!pendingRest, agenda, nightHalt);
   const selectedKey = selDay == null ? 'current' : `d${selDay}`;
   // Clic d'une SOUS-RANGÉE de phase (jour EN COURS) : phase COURANTE → centre live (relâche/nuit/cascade) ;
-  // phase CLOSE d'une nuit de halte → le jour tout juste clos (`pendingRest.travelDay`, dernier index) ;
+  // phase CLOSE d'une nuit de halte → le jour qu'elle clôt, le dernier de `plan.log` ;
   // sinon (cascade en vol) → le centre live où les phases faites sont des rangées-témoins.
-  const closedDayIdx = pendingRest?.travelDay ? log.length : null;
+  const closedDayIdx = nightHalt && log.length ? log.length - 1 : null;
   const onPhase = (a: DayAgendaItem) => {
     if (a.state === 'done' && a.key !== 'nuit' && closedDayIdx != null) setSelDay(closedDayIdx);
     else setSelDay(null);
   };
-  // Jour tout juste CLOS (halte de nuit ouverte) : lookup ÉTENDU du log — le bilan ne vit plus dans le
-  // panneau de nuit (vague « lisibilité du voyage » 2/2), il se consulte comme n'importe quel jour passé.
-  const fullDays = pendingRest?.travelDay ? [...log, pendingRest.travelDay] : log;
 
   // Priorité de rendu du centre : une SÉLECTION EXPLICITE (peek d'un jour passé, y compris celui qui
   // vient de clore) prime ; sinon l'ÉTAPE qui attend (repos > cascade) ; sinon le point courant.
   let center: ReactNode;
-  if (selDay != null && fullDays[selDay]) {
-    center = <TravelDayBody day={fullDays[selDay]} />;
+  if (selDay != null && log[selDay]) {
+    center = <TravelDayBody day={log[selDay]} />;
   } else if (pendingShoreLeave) {
     center = <ShoreLeaveBody embedded />; // accostage : la relâche à terre vit dans le journal de voyage (arbitrage user 2026-07-11)
   } else if (pendingRest) {
@@ -344,7 +354,7 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
   } else if (pendingCascade) {
     center = <CascadeBody embedded />; // étape du jour incrustée (MÊME rendu que la modale)
   } else {
-    center = <p className="voyage-hint">La traversée suit son cours — la prochaine étape s’ouvrira ici.</p>;
+    center = <p className="voyage-hint">{t('vs.prochaineEtape')}</p>;
   }
 
   return (
@@ -353,17 +363,18 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
         className="voyage-screen"
         title={<>
           <Icon id={sea ? 'travel/sail-ship' : sub === 'fleuve' ? 'travel/sail-ship' : 'travel/mount'} size="sm" />
-          {' '}{sub === 'mer' ? 'Traversée' : sub === 'fleuve' ? 'Descente' : 'Route'} — {fromLabel} → <b>{toLabel}</b>
+          {' '}{t(sub === 'mer' ? 'vs.titreMer' : sub === 'fleuve' ? 'vs.titreFleuve' : 'vs.titreTerre')} — {fromLabel} → <b>{toLabel}</b>
         </>}
         onClose={onClose}
-        closeLabel="Réduire"
+        closeLabel={t('vs.reduire')}
+        closeRefus={reduireRefus}
         meta={{ time: gameTime }}
-        actions={dossier && <button type="button" className="btn small" onClick={dossier}>Dossier navire</button>}
+        actions={dossier && <button type="button" className="btn small" onClick={dossier}>{t('vs.dossierNavire')}</button>}
       >
         <div className="voyage-body">
           <div className="voyage-head">
             <span className="voyage-step">{stepWord} {dayNum}</span>
-            {etaDays != null && <span className="voyage-eta"> · ~{etaDays} {sub === 'terre' ? 'jour(s)' : 'jour(s)'} restant{etaDays > 1 ? 's' : ''}</span>}
+            {etaDays != null && <span className="voyage-eta"> · {etaLabel(etaDays)}</span>}
             <span className="voyage-dist"> · {Math.round(plan.kmDone)} / {routeDistanceLabel(plan.km, sea)}</span>
             <div className="voyage-progress" aria-hidden><div className="voyage-progress-fill" style={{ width: `${plan.km > 0 ? Math.min(100, Math.round((plan.kmDone / plan.km) * 100)) : 0}%` }} /></div>
           </div>

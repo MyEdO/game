@@ -43,7 +43,7 @@ import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoy
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { tavernNpcOffers } from './tavernFlow';
-import { openRest, placesOfKind } from './restFlow';
+import { openRest, placesOfKind, sceneLieu } from './restFlow';
 import { traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
@@ -1929,7 +1929,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
       // pitance par héros, prix RAW, bilan globalisé). `lodging` non renseigné dans l'effet ⇒
       // défaut maison (arbitrage de contexte, cf. `placesOfKind`).
-      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), quality: e.quality, days: e.days ?? 1 });
+      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
     },
   },
   mealParty: {

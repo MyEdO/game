@@ -75,7 +75,8 @@ const CLES: Record<string, string> = {
   "nightStakes": '79447a698a535c8d',
   // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
   // #1595 (2026-10-12) : +1 item `sea-salissures` (MDG 13 l.148) ; `sea-overspeed` resourcé (MDG 13 l.121-142, p.105).
-  "voyageStakes": '64552e7cb002e96e',
+  // #2533 (2026-10-09) : +2 items `land-peril` (LDB 51 l.208) et `land-peril-table` (LDB 51 l.210-221), les deux dés des péripéties.
+  "voyageStakes": '9df85225dd31b27d',
   // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
   // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
   "flowStakes": 'd76691316e92b11c',
@@ -233,8 +234,9 @@ const CLES: Record<string, string> = {
   "crewMoraleBands": '817ce48b209e1729',
   "steamBreakdowns": '0241598713ede3cd',
   // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
+  // #2533 (2026-10-18) : +1 item `peripeties-de-voyage` (LDB 51 l.208), la règle des enjeux `land-peril` et `land-peril-table`.
   // #1173 (2026-10-18) : +2 items `saut` (LDB 15 l.74-76) et `corrompu` (LDB 19 l.66-70), les fiches des Tests nommés de leur règle.
-  "regles": 'b7d087c98ce6b8cf',
+  "regles": '84733b8e9fbc7966',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que

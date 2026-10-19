@@ -490,7 +490,8 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           real(tick, 0); return;
         }
         if (s.pendingRest) {
-          const evts = s.pendingRest.travelDay?.events ?? [];
+          const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `openRest`
+          const evts = jourClos?.events ?? [];
           if (stopOnEvent && evts.length) {
             resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible à la halte de nuit (__wfrp.modal()/state()) ; restSleep() ou advanceSeaDay() reprend`);
             return;

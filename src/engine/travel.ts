@@ -137,13 +137,18 @@ export interface TravelPlanCalc {
   travelMinutes: number;
 }
 
-/** Découpe un trajet en journées : `km` à `kmh` km/h, `hoursPerDay` heures de route par jour. */
-export function travelPlanCalc(km: number, kmh: number, hoursPerDay: number): TravelPlanCalc | null {
+/** Découpe un trajet en journées : `km` à `kmh` km/h, `hoursPerDay` heures de route par jour.
+ *  `firstDayHours` = ce qui reste du budget du jour COURANT (les heures déjà marchées aujourd'hui en
+ *  sont retirées, LDB 51 l.195) ; 0 = le groupe repart le lendemain. Défaut : un jour plein. */
+export function travelPlanCalc(km: number, kmh: number, hoursPerDay: number, firstDayHours = hoursPerDay): TravelPlanCalc | null {
   if (km <= 0 || kmh <= 0 || hoursPerDay <= 0) return null;
   const totalHours = km / kmh;
-  const fullDays = Math.floor(totalHours / hoursPerDay);
-  const rest = totalHours - fullDays * hoursPerDay;
-  const days = rest > 1e-9 ? fullDays + 1 : Math.max(1, fullDays);
+  const first = Math.max(0, Math.min(firstDayHours, hoursPerDay));
+  if (totalHours <= first + 1e-9) return { days: 1, hoursLastDay: totalHours, travelMinutes: Math.round(totalHours * 60) };
+  const after = totalHours - first;
+  const fullDays = Math.floor(after / hoursPerDay);
+  const rest = after - fullDays * hoursPerDay;
+  const days = (first > 1e-9 ? 1 : 0) + (rest > 1e-9 ? fullDays + 1 : Math.max(1, fullDays));
   const hoursLastDay = rest > 1e-9 ? rest : hoursPerDay;
   return { days, hoursLastDay, travelMinutes: Math.round(totalHours * 60) };
 }

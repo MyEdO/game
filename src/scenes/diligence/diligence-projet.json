@@ -40664,6 +40664,22 @@
     "speed": {
      "diligence": 15
     },
+    "perilDie": 0,
+    "provenances": {
+     "perilDie": {
+      "source": {
+       "book": "ennemi-dans-l-ombre",
+       "page": 24,
+       "note": "EDO 02 l.13"
+      }
+     },
+     "speed": {
+      "maison": "15 km/h en diligence, valeur d'adaptation (LDB 51 l.178, EDO 01 l.13, LDB 51 l.195)"
+     },
+     "km": {
+      "maison": "10 km jusqu'au croisement (adaptation : EDO 01 l.255, l.309, l.340) + 2 h × 15 km/h (EDO 02 l.13)"
+     }
+    },
     "inns": true,
     "when": {
      "kind": "flag",
@@ -40691,6 +40707,22 @@
     "speed": {
      "diligence": 15
     },
+    "perilDie": 0,
+    "provenances": {
+     "perilDie": {
+      "source": {
+       "book": "ennemi-dans-l-ombre",
+       "page": 28,
+       "note": "EDO 02 l.180"
+      }
+     },
+     "speed": {
+      "maison": "15 km/h en diligence, valeur d'adaptation (LDB 51 l.178, EDO 01 l.13, LDB 51 l.195)"
+     },
+     "km": {
+      "maison": "75 − 40 km (EDO 01 l.142)"
+     }
+    },
     "inns": true,
     "when": {
      "kind": "flag",
@@ -40717,6 +40749,22 @@
     ],
     "speed": {
      "diligence": 15
+    },
+    "perilDie": 0,
+    "provenances": {
+     "perilDie": {
+      "source": {
+       "book": "ennemi-dans-l-ombre",
+       "page": 29,
+       "note": "EDO 02 l.189"
+      }
+     },
+     "speed": {
+      "maison": "15 km/h en diligence, valeur d'adaptation (LDB 51 l.178, EDO 01 l.13, LDB 51 l.195)"
+     },
+     "km": {
+      "maison": "180 − (75 − 10) km (EDO 01 l.340)"
+     }
     },
     "inns": true
    }
