@@ -51,7 +51,7 @@ export function decomposerOptionsNode(texte = '') {
   return mots
 }
 
-export function environnementDeLaMesure(env, argv = [], cwd = process.cwd()) {
+export function environnementDeLaMesure(env, argv, cwd) {
   const options = decomposerOptionsNode(env.NODE_OPTIONS ?? '')
   for (const liste of [options, argv]) for (let i = 0; i < liste.length; i++) {
     const a = liste[i], nom = nomOption(a)
@@ -241,11 +241,9 @@ export function collecterMemoire({ controle, pid, fichiers, racine, dossier, gen
           const inspection = mesurerProcessusWorktrees({ pids: [p.pid], pidsAInspecter: [p.pid], memoireSeulement: true, timeout: restant() })
           if (inspection?.code === 'MESURE_PROCESSUS_EXPIREE' && Object.hasOwn(inspection, 'indeterminee')) throw expiration(inspection.indeterminee)
           if (!inspection || Object.hasOwn(inspection, 'indeterminee') || inspection.expiree || !Array.isArray(inspection.processus)) throw erreur('inspection initiale indéterminée')
-          const correspondants = inspection.processus.filter((m) => m.pid === p.pid && creationExacte(m.creationNative) === creationExacte(p.creation))
-          const m = correspondants[0]
-          if (correspondants.length !== 1 || !m.cwd || !m.commande || m.erreurs?.length) throw erreur('inspection initiale sans identité exacte')
-          const argv = m.argv ?? argumentsProcessus(m.commande, 'win32')
-          const cheminsLus = new Set(argv.filter((a) => a && !a.startsWith('-')).map((a) => canonique(a, m.cwd)))
+          const [m] = inspection.processus
+          if (inspection.processus.length !== 1 || creationExacte(m.creationNative) !== creationExacte(p.creation) || !m.cwd) throw erreur('inspection initiale sans identité exacte')
+          const cheminsLus = new Set(argumentsProcessus(m.commande, 'win32').filter((a) => a && !a.startsWith('-')).map((a) => canonique(a, m.cwd)))
           const trouves = candidats.filter((c) => cheminsLus.has(c.chemin))
           if (trouves.length !== 1) throw erreur('association initiale non unique : ' + trouves.length + ' candidats')
           attribuer(e.identite, { type: 'entree', id: trouves[0].id })

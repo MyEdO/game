@@ -69,7 +69,7 @@ test('lecture des sources : ENOENT signe le vide, toute autre erreur lève telle
 test('options Node : gate CJS première, précharges homonymes conservées et gate héritée exacte retirée', () => {
   const utilisateur = join(tmpdir(), 'utilisateur', 'memoire-precharge.cjs')
   const env = { NODE_OPTIONS: ['--import=file:///user.mjs', '--require', utilisateur, '--require=' + gate, '-r' + gate, '--require', gate].map(JSON.stringify).join(' ') }
-  const options = decomposerOptionsNode(environnementDeLaMesure(env).NODE_OPTIONS)
+  const options = decomposerOptionsNode(environnementDeLaMesure(env, [], tmpdir()).NODE_OPTIONS)
   assert.deepEqual(options, ['--require', gate, '--import=file:///user.mjs', '--require', utilisateur])
   assert.deepEqual(decomposerOptionsNode('"--require" "' + DRIVE + '\\dossier test\\a.cjs"'), ['--require', 'C:dossier testa.cjs'])
   assert.deepEqual(decomposerOptionsNode("--require='a.cjs'"), ["--require='a.cjs'"])
@@ -84,10 +84,12 @@ test('options incompatibles : alias snapshots et isolation none refusés avant t
     assert.equal(r.arret.etat, 'mort')
     assert.match(r.error.message, /snapshot|isolation/)
   }
-  assert.throws(() => environnementDeLaMesure({ NODE_OPTIONS: '--snapshot_blob=x' }), /snapshot/)
+  assert.throws(() => environnementDeLaMesure({ NODE_OPTIONS: '--snapshot_blob=x' }, [], racine), /snapshot/)
 })
 
-test('profils : corpus et destinations indépendants, reporter et contenu distingués, contrat antérieur invalidé', (t) => {
+test('profils : sans lancement, corpus et destinations indépendants, reporter et contenu distingués, contrat antérieur invalidé', async (t) => {
+  const lancements = () => process.getActiveResourcesInfo().filter((r) => /Process|Pipe|TCP|TTY/.test(r)).sort()
+  const ouverts = lancements()
   const racine = temporaire(t, 'memoire-profils-'), mesures = mesuresEnMemoire()
   writeFileSync(join(racine, 'a.mjs'), 'export {}')
   const p = { racine, fichiers: ['a.mjs'], argv: ['--test'], env: {}, mesures }
@@ -100,6 +102,8 @@ test('profils : corpus et destinations indépendants, reporter et contenu distin
   assert.notEqual(a.blob, lire().entrees[0].blob)
   mesures.memos['memoire-node.json'] = { [hacher('ancien-contrat-' + a.cle)]: { blob: lire().entrees[0].blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'rss' } }
   assert.equal(lire().entrees[0].utilisable, false)
+  await new Promise((r) => setTimeout(r, 50))
+  assert.deepEqual(lancements(), ouverts)
 })
 
 /** Le dossier commun des terrains : les entrées `a.mjs`, `b.mjs`, `c.mjs` et le corps `enfant.cjs` des processus
@@ -147,16 +151,21 @@ async function terrain(t, fichier, options = {}) {
   const processus = [creer(2, 'hote', 3), creer(3, 'worker', 7), creer(10, null, 20), creer(entree.pid, null, 100, entree.creation), creer(DESCENDANT, null, 300)]
   const identites = [], fermetures = new WeakSet()
   let captures = 0
+  /** Le budget d'une requête native, tenu comme `echanger` (`superviserProcessus.mjs:171-172`). */
+  const budget = (operation, { timeout }) => {
+    if (!Number.isFinite(timeout) || timeout < 0) throw Object.assign(new Error('timeout de requête natif invalide'), { code: 'BORNE_INVALIDE' })
+    if (timeout === 0) throw Object.assign(new Error('échéance de requête native épuisée'), { code: 'ETIMEDOUT', origine: 'controle-natif', operation, expiree: true })
+  }
   const controle = {
     pid: 10,
     phase: 'execution',
     estFermeture: (cause) => fermetures.has(cause),
-    mesurerDomaine() { captures++; options.avantVue?.(captures, processus); return { processus: processus.map((p) => ({ ...p })), metriqueMemoire: 'working-set' } },
+    mesurerDomaine(o) { budget('vue', o); captures++; options.avantVue?.(captures, processus); return { processus: processus.map((p) => ({ ...p })), metriqueMemoire: 'working-set' } },
     attribuer(p, o) {
+      budget('attribuer', o)
       identites.push(p)
       const m = processus.find((m) => m.identifiant === p.identifiant && m.pid === p.pid && m.creation === p.creation)
       assert.ok(m)
-      assert.ok(o.timeout > 0)
       if (p.destination.type === 'parent') m.role = 'cible'
       else for (const n of processus.filter((n) => n.pid === entree.pid || n.pid === DESCENDANT)) n.entreeId = p.destination.id
     },
@@ -375,7 +384,7 @@ test('gate physique : require/import/loader attendent challenge et ACK ; threads
   writeFileSync(join(dossier, 'cli.cjs'), marquer('require-cli\n'))
   writeFileSync(join(dossier, 'cli.mjs'), `import {appendFileSync} from 'node:fs';appendFileSync(${JSON.stringify(marqueur)},'import-cli\\n')`)
   const env = environnementDeLaMesure({ ...process.env, WFRP_MEMOIRE_DOSSIER: dossier, WFRP_MEMOIRE_GENERATION: generation,
-    NODE_OPTIONS: ['--require', join(dossier, 'user.cjs'), '--import', pathToFileURL(join(dossier, 'user.mjs')).href].map(JSON.stringify).join(' ') })
+    NODE_OPTIONS: ['--require', join(dossier, 'user.cjs'), '--import', pathToFileURL(join(dossier, 'user.mjs')).href].map(JSON.stringify).join(' ') }, [], process.cwd())
   const enfant = spawn(process.execPath, ['--require', join(dossier, 'cli.cjs'), '--import', pathToFileURL(join(dossier, 'cli.mjs')).href,
     '--experimental-loader', pathToFileURL(join(dossier, 'loader.mjs')).href, join(dossier, 'body.cjs')], { env, stdio: ['ignore', 'pipe', 'pipe'] })
   let erreurs = ''
