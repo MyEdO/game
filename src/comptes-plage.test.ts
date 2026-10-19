@@ -1,23 +1,19 @@
 /**
  * PORTE DES COMPTES (#2705, `scripts/guards/lib/corpusDesComptes.mts`) : entre la base d'une plage et sa
  * tête, aucun compte d'une collection à compte ne monte et aucun site n'y naît, mesuré à détecteur
- * constant — et aucune ligne de message ne l'admet.
+ * constant — et aucune ligne de message ne l'admet. La plage d'un dépôt jetable : `scripts/guards/comptes-plage.test.mjs`.
  */
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { detecteurDuCommit, refsAPlat, refusDesComptes, jugerLesComptes, verdictDesDetecteurs, type Comptes } from '../scripts/guards/lib/corpusDesComptes.mjs';
+import { detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, verdictDesDetecteurs, type Comptes } from '../scripts/guards/lib/corpusDesComptes.mts';
 import { idDe } from './data/schemas/grammaire/ref';
-import { instanceDeDepot, envDeDepotForge } from '../scripts/guards/lib/depotGabarit.mjs';
+import { envDeDepotForge, forgerDepot } from '../scripts/guards/lib/depotGabarit.mjs';
 import { cleDeSite, remedeNomme } from '../scripts/guards/lib/stock.mjs';
-import { tableTotale } from './lib/tableTotale';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
-
-const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 const comptes = (entrees: Partial<Record<string, { dataset: string; champ: string; occurrences: number }[]>>): Comptes =>
   new Map(Object.entries(entrees)) as Comptes;
@@ -112,52 +108,28 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
   });
 });
 
-/** Une op du premier tableau d'ops de `donnee` qui satisfait `choisir`, et ce tableau. */
-function opDe(donnee: unknown, choisir: (op: Record<string, unknown>) => boolean): { op: Record<string, unknown>; tableau: unknown[] } {
-  const pile = [donnee];
-  while (pile.length) {
-    const v = pile.pop();
-    if (!v || typeof v !== 'object') continue;
-    if (Array.isArray(v)) {
-      const op = v.find((x) => x && typeof x === 'object' && typeof (x as { op?: unknown }).op === 'string' && choisir(x as Record<string, unknown>));
-      if (op) return { op: op as Record<string, unknown>, tableau: v };
-    }
-    pile.push(...Object.values(v));
-  }
-  throw new Error('aucune op ne répond au choix');
-}
-
-describe('jugerLesComptes — la plage d’un dépôt, chaque borne mesurée dans SON image', () => {
-  it('un schéma qui régresse est refusé ; une op TYPÉE ajoutée passe ; une op NON TYPÉE ajoutée est refusée MÊME sous `CLIQUET:`', { timeout: 300_000 }, () => {
-    const suivis = execFileSync('git', ['ls-files', '-z', 'src', 'Source'], { cwd: ROOT, env: envDeDepotForge(), encoding: 'utf8', maxBuffer: 1 << 26 }).split('\0').filter(Boolean);
-    const { racine } = instanceDeDepot({ fichiers: tableTotale(suivis, (rel) => readFileSync(join(ROOT, rel), 'utf8')) });
-    const depot = depotDe(racine, { env: envDeDepotForge() });
-    const commiter = (rel: string, muter: (texte: string) => string, message: string) => {
-      writeFileSync(join(racine, rel), muter(readFileSync(join(racine, rel), 'utf8')), 'utf8');
-      expect(reussi(commitDe(depot, { message, chemins: [rel] }))).toBe(true);
-      return shaDe(depot, 'HEAD')!;
-    };
-    const ajouterOp = (choisir: (op: Record<string, unknown>) => boolean) => (texte: string) => {
-      const spells = JSON.parse(texte) as unknown;
-      const { op, tableau } = opDe(spells, choisir);
-      tableau.push({ ...op });
-      return JSON.stringify(spells);
-    };
+describe('jugerLesComptes — l’image d’une borne se pose HORS de tout dépôt git', () => {
+  it('un `os.tmpdir()` contenu dans un dépôt git refuse la mesure par une erreur nommée, avant toute écriture', () => {
+    const racine = mkdtempSync(join(tmpdir(), 'image-dans-un-depot-'));
+    const ancien = { TMPDIR: process.env.TMPDIR, TMP: process.env.TMP, TEMP: process.env.TEMP };
     try {
-      const fondation = shaDe(depot, 'HEAD')!;
-      const regression = commiter('src/data/schemas/defs/creatures.ts', (t) => t.replace('skills: z.array(competenceChiffreeAEmplacementSchema),', 'skills: z.array(z.any()),').replace("spells: refs('spell'),", 'spells: z.array(z.string()),'), 'schéma');
-      const refus = jugerLesComptes({ cwd: racine, base: fondation, tete: regression });
-      expect(refus.ok).toBe(false);
-      expect(refus.texte).toContain('SLOTS_SANS_DECLARATION : creatures.json | skills — site NEUF : la dette NAÎT.');
-      expect(refus.texte).toContain('SLOTS_SANS_DECLARATION : creatures.json | spells — site NEUF : la dette NAÎT.');
-      const typee = commiter('src/data/spells.json', ajouterOp((o) => o.op === 'reduceDiseaseDays'), 'op typée');
-      expect(jugerLesComptes({ cwd: racine, base: regression, tete: typee })).toMatchObject({ ok: true });
-      const lache = commiter('src/data/spells.json', ajouterOp((o) => o.op === 'freeReroll'), 'op\n\nCLIQUET: scripts/guards/lib/structuresStock.mjs +1 — op de plus');
-      const nonTypee = jugerLesComptes({ cwd: racine, base: typee, tete: lache });
-      expect(nonTypee.ok).toBe(false);
-      expect(nonTypee.texte).toMatch(/STRUCTURES_OPS : freeReroll \| op \| spells\.json — HAUSSE \d+ > \d+ : la dette GRANDIT\./);
-      expect(nonTypee.texte).toContain('aucun `CLIQUET:` ne les couvre');
+      const depot = forgerDepot(racine);
+      const commiter = (texte: string) => {
+        writeFileSync(join(racine, 'src.txt'), texte);
+        expect(reussi(commitDe(depot, { message: texte, chemins: ['src.txt'] }))).toBe(true);
+        return shaDe(depot, 'HEAD')!;
+      };
+      const base = commiter('base');
+      const tete = commiter('tête');
+      const dedans = join(racine, 'tmp');
+      mkdirSync(dedans);
+      Object.assign(process.env, { TMPDIR: dedans, TMP: dedans, TEMP: dedans });
+      expect(() => jugerLesComptes({ depot, base, tete })).toThrow(/l’image d’une borne se pose hors de tout dépôt git/);
     } finally {
+      for (const [cle, valeur] of Object.entries(ancien)) {
+        if (valeur === undefined) delete process.env[cle];
+        else process.env[cle] = valeur;
+      }
       rmSync(racine, { recursive: true, force: true });
     }
   });

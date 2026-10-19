@@ -70,13 +70,15 @@ import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.m
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { EXEMPTIONS_IMPERATIF_SOUDE, sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
+import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs'
 
-export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-format-stock.json')
+export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', PORTEURS.SOURCE_FORMAT)
 
-/** Le volet SOUS LA PORTE des comptes (`SOUS_LA_PORTE`, `scripts/guards/lib/corpusDesComptes.mts`), mesuré par
- *  ses sites (`scanAll`) : une entrée de stock de sites, sa clé `cleDeSite`, son compte `nombre`. */
+/** Le volet SOUS LA PORTE des comptes (`SOUS_LA_PORTE`, `scripts/guards/lib/occurrencesStock.mjs`), mesuré par
+ *  ses sites (`scanAll`) : son porteur, une entrée de stock de sites, sa clé `cleDeSite`, son compte `nombre`. */
 export const SOURCE_FORMAT = {
-  nom: 'scripts/raw/source-format-stock.json',
+  porteur: PORTEURS.SOURCE_FORMAT,
+  nom: PORTEURS.SOURCE_FORMAT,
   site: cleDeSite,
   cible: () => 'Corriger le site : la mise en forme du chapitre (scripts/raw/check-source-format.mjs).',
   nombre: (e) => Number(e.nombre),
@@ -447,7 +449,7 @@ export function scanAll(dossiers = dossiersFR()) {
 /** L'écart des `sites` au `stock` de ce volet (`ecartDuVolet`), un site neuf refusé comme à la porte des
  *  comptes (`remedeDeNaissance`). PURE. */
 export const ecartDuStock = (sites, stock) =>
-  ecartDuVolet({ sites, stock, ou: 'source-format-stock.json', remede: { neuve: remedeDeNaissance(SOURCE_FORMAT.cible) } })
+  ecartDuVolet({ sites, stock, ou: PORTEURS.SOURCE_FORMAT, remede: { neuve: remedeDeNaissance(SOURCE_FORMAT.cible) } })
 
 /** Compte par DOSSIER de livre — le `file` d'un site nomme un CHAPITRE, le dossier en est le
  *  préfixe. C'est le grain du rapport : l'unité de réparation est le livre. */

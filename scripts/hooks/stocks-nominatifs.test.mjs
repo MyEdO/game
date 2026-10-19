@@ -16,6 +16,8 @@ import {
   estEntreeNominative, estPorteurDeStock, fichierNommePar, raisonDeRefus,
 } from '../guards/lib/stocksNominatifs.mjs'
 import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLaPlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
+import { SOUS_LA_PORTE } from '../guards/lib/occurrencesStock.mjs'
+import { PORTEURS_SOUS_LA_PORTE } from '../guards/lib/porteursDesComptes.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -588,6 +590,23 @@ test('refus — nomme le fichier, le compte et jusqu à trois exemples', () => {
   assert.match(raison, /scripts\/guards\/lib\/folioRatchetStock\.mjs : \+4 entrée\(s\) nette\(s\)/)
   assert.equal(raison.split(' · ').length, 3, 'trois exemples, pas la liste entière')
   assert.match(raison, /CLIQUET: <fichier> \+N/)
+})
+
+test('porte des comptes (#2705) — chaque porteur porte un volet de `SOUS_LA_PORTE`, et aucun `CLIQUET:` n’y admet une croissance', () => {
+  for (const porteur of PORTEURS_SOUS_LA_PORTE) {
+    assert.ok(SOUS_LA_PORTE.some((v) => v.porteur === porteur), `${porteur} : porteur sans volet sous la porte`)
+    assert.equal(estPorteurDeStock(porteur), true, `${porteur} : porteur de stock`)
+    const diff = diffDe(porteur, [ENTREE_A, ENTREE_B])
+    const [c, ...reste] = croissancesNonCouvertes({ diff, message: `CLIQUET: ${porteur} +2 — deux sites mesurés ce jour, compte exact` }, REPLI)
+    assert.deepEqual([c?.fichier, c?.net, c?.sousLaPorte, reste.length], [porteur, 2, true, 0], porteur)
+    const raison = raisonDeRefus([c])
+    assert.match(raison, /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT/)
+    assert.match(raison, /Migrer vers la forme cible ; la porte comptes:plage refuse toute hausse, aucun `CLIQUET:` ne l'admet/)
+    assert.doesNotMatch(raison, /CLIQUET: <fichier> \+N/, 'le remède ne propose pas le CLIQUET')
+  }
+  const autre = 'scripts/guards/lib/folioRatchetStock.mjs'
+  assert.deepEqual(croissancesNonCouvertes({ diff: diffDe(autre, [ENTREE_A, ENTREE_B]), message: `CLIQUET: ${autre} +2 — deux sites mesurés ce jour, compte exact` }, REPLI), [],
+    'hors de la porte, le CLIQUET au compte exact couvre')
 })
 
 // ── PORTÉE DE MODULE : une fixture DANS un test n'est pas un stock ────────────────────────────────

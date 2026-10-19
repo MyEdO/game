@@ -52,6 +52,9 @@ const ATTENDU = {
     // +1 le 2026-10-17 (#2586) : chaque banc de `spawnBorne` pose son fichier de sortie sous un `mkdtempSync`
     // d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/processusBorne.test.mjs',
+    // #2705 : le banc de la porte des comptes forge son dépôt sous un `mkdtempSync` d'os.tmpdir(), effacé en finally ; son
+    // enfant `tsx` pose chaque borne sous un `mkdtempSync` d'os.tmpdir(), effacé en finally. L'arbre n'est jamais écrit.
+    'scripts/guards/comptes-plage.test.mjs',
     // +1 le 2026-10-18 (#2586) : les fichiers de sortie de `spawnBorne` sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/fileBornee.test.mjs',
@@ -315,7 +318,7 @@ const ATTENDU = {
   'mods:check': ['scripts/mods/verifier.mjs'],
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
-  // +10 le 2026-10-17 (#2705) : la porte des comptes pose chaque borne de la plage sous un `mkdtempSync`
+  // #2705 : la porte des comptes pose chaque borne de la plage sous un `mkdtempSync`
   // d'os.tmpdir(), effacé en finally, y lie `node_modules` (`replay-head.mjs`) et y produit et certifie les cibles de code
   // (`genererCode` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
   // jamais écrit.
@@ -615,7 +618,7 @@ const ATTENDU = {
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
     // +1 le 2026-10-17 (#2586) : `protectionWorktree.mjs` est acquis par `gitPorte.mjs` (importé par
-    // `verrouGestesLourds.mjs`), dont l'unique écrivain `retirerResiduelVide` n'est appelé que depuis `retirerWorktree`.
+    // `verrouGestesLourds.mjs`), dont les écrivains `retirerResiduelVide` et `relierFichierGit` ne sont appelés que depuis `retirerWorktree`.
     // L'arbre n'est jamais écrit.
     'scripts/guards/lib/protectionWorktree.mjs',
   ],
