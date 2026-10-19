@@ -276,8 +276,7 @@ export function clesCanoniques({ ferme, litSonContexte }) {
     const descripteurs = new Map()
     const table = []
     const sousDescripteurs = new Map()
-    const possedes = new WeakSet()
-    const tuple = (...valeurs) => { possedes.add(valeurs); return valeurs }
+    const tuple = (...valeurs) => valeurs
     const liste = cellules ? marqueursBooleens.liste : Symbol()
     const objet = cellules ? marqueursBooleens.objet : Symbol()
     const fin = cellules ? marqueursBooleens.fin : Symbol()
@@ -304,20 +303,15 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       if (type === 'number') { tokens.push(Number.isFinite(v) ? v + 0 : null); return true }
       if (type !== 'object') return false
       if (cellules && referencesBooleennes.has(v)) { tokens.push(v); return true }
-      const lectureDirecte = possedes.has(v) && !Object.hasOwn(Array.prototype, 'toJSON') && !Object.hasOwn(Object.prototype, 'toJSON')
-      if (!lectureDirecte && !projection && (types.isProxy(v) || !Array.isArray(v) || Object.getPrototypeOf(v) !== Array.prototype ||
+      if (!projection && (types.isProxy(v) || !Array.isArray(v) || Object.getPrototypeOf(v) !== Array.prototype ||
         Object.hasOwn(v, 'toJSON') || Object.hasOwn(Array.prototype, 'toJSON') || Object.hasOwn(Object.prototype, 'toJSON'))) return false
       const locaux = []
-      if (lectureDirecte || Array.isArray(v)) {
+      if (Array.isArray(v)) {
         if (pileDesTokens.has(v)) return false
         pileDesTokens.add(v)
         locaux.push(liste)
         let exact = true
         for (let i = 0; i < v.length; i++) {
-          if (lectureDirecte) {
-            if (!tokensDe(v[i], locaux, projection)) { exact = false; break }
-            continue
-          }
           const p = Object.getOwnPropertyDescriptor(v, i)
           if (!p || !Object.hasOwn(p, 'value') || !tokensDe(p.value, locaux, projection)) { exact = false; break }
         }
@@ -354,14 +348,32 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       }
       return descripteurs.get(signature)
     }
-    const contexteDe = (ctx) => {
-      const preuveBooleenne = referenceDe(ctx.preuveBooleenne)
+    /** Les descripteurs propres de `o`, jugé à la lecture : ceux de la donnée plate, sinon ceux de sa projection JSON (#2586). */
+    const descripteursDe = (o) => donneePlate(o) ?? Object.getOwnPropertyDescriptors(Object(parLeMoteur({ '': o })['']))
+    const membre = (descripteurs, nom) => proprePropriete(descripteurs, nom) ? descripteurs[nom].value : undefined
+    /** Les membres d'une forme d'argument, lus par descripteurs avant tout code de l'appelant du parcours de son argument :
+     *  l'expression et, si `litSonContexte(e)`, le contexte (module, preuve booléenne, chaîne d'environnements) (#2586). */
+    const membresDeForme = (forme) => {
+      const descripteurs = descripteursDe(forme)
+      const e = membre(descripteurs, 'e')
+      if (!litSonContexte(e)) return { e, contexte: null }
+      const ctx = descripteursDe(membre(descripteurs, 'ctx'))
       const chaine = []
-      for (let env = ctx.env; env; env = env.parent) {
-        observer(env)
-        chaine.push(tuple('env', env.fn, env.args ? referenceDe(env.args) : null, env.params ? referenceDe(env.params) : null))
+      for (let env = membre(ctx, 'env'); env;) {
+        const lu = descripteursDe(env)
+        chaine.push({ env, fn: membre(lu, 'fn'), args: membre(lu, 'args'), params: membre(lu, 'params') })
+        env = membre(lu, 'parent')
       }
-      return interner(tuple('contexte', ctx.f, preuveBooleenne, tuple(...chaine)))
+      return { e, contexte: { f: membre(ctx, 'f'), preuveBooleenne: membre(ctx, 'preuveBooleenne'), chaine } }
+    }
+    const contexteDe = ({ f, preuveBooleenne, chaine }) => {
+      const preuve = referenceDe(preuveBooleenne)
+      const envs = []
+      for (const { env, fn, args, params } of chaine) {
+        observer(env)
+        envs.push(tuple('env', fn, args ? referenceDe(args) : null, params ? referenceDe(params) : null))
+      }
+      return interner(tuple('contexte', f, preuve, tuple(...envs)))
     }
     const memo = new WeakMap()
     const references = ferme ? referencesPrivees : memo
@@ -405,8 +417,9 @@ export function clesCanoniques({ ferme, litSonContexte }) {
       pile.set(v, pile.size)
       proprietesDeLaPile.push(proprietes)
       const forme = formesDesArguments.get(v)
-      const descriptor = forme ? tuple('argument', elementsDe(proprietes, projete), referenceDe(forme.e),
-        litSonContexte(forme.e) ? contexteDe(forme.ctx) : null)
+      const lue = forme && membresDeForme(forme)
+      const descriptor = forme ? tuple('argument', elementsDe(proprietes, projete), referenceDe(lue.e),
+        lue.contexte ? contexteDe(lue.contexte) : null)
         : Array.isArray(v) ? tuple('liste', elementsDe(proprietes, projete))
         : tuple('objet', Object.keys(v).sort().map((nom) => tuple(nom, referenceDe(proprietes[nom].value, nom, projete))))
       pile.delete(v)

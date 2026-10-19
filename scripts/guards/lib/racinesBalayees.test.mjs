@@ -1948,7 +1948,7 @@ test('clés canoniques : un nœud partagé par cinquante parents ne se décrit q
 })
 
 // #2586
-test('clés canoniques : aucun code de l’appelant ne s’exécute hors du moteur JSON, par map dans faire, sous un toJSON hérité en accesseur ni par un toJSON frère', () => {
+test('clés canoniques : aucun code de l’appelant ne s’exécute hors du moteur JSON, par map dans faire, sous un toJSON hérité en accesseur, par un toJSON frère sur une forme d’argument ni sur un tuple muté', () => {
   let hors = 0
   const noter = () => { if (!new Error().stack.includes('JSON.stringify')) hors++ }
   const sansCodeHorsMoteur = (cas, cle) => {
@@ -1981,6 +1981,34 @@ test('clés canoniques : aucun code de l’appelant ne s’exécute hors du mote
     }
     const objet = { a: { toJSON() { Object.defineProperty(objet, 'b', { get() { noter(); return 1 }, enumerable: true, configurable: true }); return 0 } }, b: 1 }
     sansCodeHorsMoteur(`${nom} accesseur posé par le toJSON d’un membre frère`, () => c.cleDe({ objet }))
+    const cibles = {
+      'forme.e': (forme) => [forme, 'e'], 'forme.ctx': (forme) => [forme, 'ctx'], 'ctx.f': (forme) => [forme.ctx, 'f'],
+      'ctx.preuveBooleenne': (forme) => [forme.ctx, 'preuveBooleenne'], 'ctx.env': (forme) => [forme.ctx, 'env'],
+      'env.fn': (forme) => [forme.ctx.env, 'fn'], 'env.args': (forme) => [forme.ctx.env, 'args'],
+      'env.params': (forme) => [forme.ctx.env, 'params'], 'env.parent': (forme) => [forme.ctx.env, 'parent'],
+    }
+    for (const [membre, cible] of Object.entries(cibles)) {
+      const cles = clesDeLEvaluateur(regime)
+      const forme = { e: { k: 'appel' }, ctx: { f: 'm', preuveBooleenne: null, env: { fn: 'g', args: [], params: ['p'], parent: { fn: 'h', args: [] } } } }
+      const [porteur, cle] = cible(forme)
+      const valeur = porteur[cle]
+      const args = [{ toJSON() { Object.defineProperty(porteur, cle, { get() { noter(); return valeur }, enumerable: true, configurable: true }); return 0 } }]
+      cles.formesDesArguments.set(args, forme)
+      sansCodeHorsMoteur(`${nom} accesseur posé sur ${membre} par le toJSON d’un élément de l’argument`, () => cles.cleDesArgs(args))
+    }
+  }
+  for (const mode of ['texte', 'strict', 'cellules']) {
+    sansCodeHorsMoteur(`ouvert ${mode} tuple muté en accesseur par faire`, () => ouvert.cleCanonique(({ interner, tuple }) => {
+      const t = tuple(0)
+      Object.defineProperty(t, 0, { get() { noter(); return 1 }, enumerable: true })
+      return interner(t)
+    }, null, null, mode))
+    sansCodeHorsMoteur(`ouvert ${mode} tuple troué à prototype proxy par faire`, () => ouvert.cleCanonique(({ interner, tuple }) => {
+      const t = tuple()
+      t.length = 1
+      Object.setPrototypeOf(t, new Proxy([], { get(o, k) { noter(); return Reflect.get(o, k) } }))
+      return interner(t)
+    }, null, null, mode))
   }
 })
 
