@@ -125,6 +125,7 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+      'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +

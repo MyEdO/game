@@ -20,8 +20,9 @@ import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../d
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
-import { GitIndisponible, TRONC, baseCommune, depotDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
-import { COLLECTIONS_A_COMPTE, occurrencesDe, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
+import { gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
+import { GitIndisponible, TRONC, baseCommune, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
 
@@ -53,17 +54,6 @@ export const corpusDesComptes = (root: string): CorpusDesComptes =>
 /** Les entrées mesurées de chaque collection sous la porte, par nom. */
 export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
 
-/** Une collection SOUS LA PORTE : son nom, l'identité d'un site, la cible qui solde sa hausse, son compte. */
-type SousLaPorte = {
-  readonly nom: string;
-  readonly site: (e: EntreeDeCompte) => string;
-  readonly cible: (cle: string, e: EntreeDeCompte) => string;
-  readonly nombre: (e: EntreeDeCompte) => number;
-};
-
-/** Tout ce que la porte juge : les collections à compte (`COLLECTIONS_A_COMPTE`) et le volet `SOURCE_FORMAT`. */
-const SOUS_LA_PORTE: readonly SousLaPorte[] = [...COLLECTIONS_A_COMPTE.map((c) => ({ ...c, nombre: occurrencesDe })), SOURCE_FORMAT];
-
 /** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
 export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
@@ -73,7 +63,8 @@ const comptesDeLaRacine = (root: string): Comptes =>
 
 /**
  * Le REFUS de la plage `base` → `tete`, une ligne par site : un site NEUF d'une collection sous la porte, ou
- * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock). PURE.
+ * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock), sur chaque volet de
+ * `SOUS_LA_PORTE` (`occurrencesStock.mjs`). PURE.
  */
 export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   return SOUS_LA_PORTE.flatMap((c) => {
@@ -102,6 +93,9 @@ const POINT_D_ENTREE = 'scripts/guards/lib/corpusDesComptes.mts';
 
 /** La mesure d'une image n'a pas abouti : la porte ne juge pas ce qu'elle n'a pas mesuré. */
 class MesureImpossible extends Error {}
+
+/** Le dossier d'une image est DANS un dépôt git : ses cibles de code y verraient l'écrivain de ce dépôt (`gitDirContenant`). */
+class ImageDansUnDepot extends Error {}
 
 /** Les fichiers texte de `dossiers` dans l'image `arbre`, écrits sous `dossier`. */
 function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[]): void {
@@ -132,13 +126,16 @@ export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
 /**
  * L'image mesurable de `arbre` sous `dossier` : ce qu'elle apporte (`DE_L_IMAGE`, grammaire comprise), le code du
  * `detecteur`, ses dépendances liées (`lierDependances`, `scripts/migrations/replay-head.mjs`)
- * et ses cibles de code produites et certifiées localement (`genererCode`).
+ * et ses cibles de code produites et certifiées localement (`genererCode`). Un `dossier` contenu dans un dépôt git est
+ * refusé (`ImageDansUnDepot`) avant toute écriture.
  */
 function poserImage(depot: Depot, arbre: string, dossier: string, detecteur: Detecteur): void {
+  const gitDir = gitDirContenant(dossier);
+  if (gitDir !== null) throw new ImageDansUnDepot(`${dossier} : l’image d’une borne se pose hors de tout dépôt git — ${gitDir} le contient`);
   ecrireDeLImage(depot, arbre, dossier, DE_L_IMAGE);
   detecteur.poser(dossier);
   lierDependances(dossier);
-  if (genererCode({ cwd: dossier, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
+  if (genererCode({ cwd: dossier, quiet: true, generateurs: GENERATORS.filter((g) => existsSync(join(dossier, g.script))) }) !== 0)
     throw new MesureImpossible(`${arbre.slice(0, 9)} : cibles de code de l’image non produites`);
 }
 
@@ -203,13 +200,13 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
 }
 
 /**
- * Le verdict de la plage `merge-base(base, tete)..tete`, jugée par le détecteur de la tête et par celui de la
- * base (`verdictDesDetecteurs`). Chaque borne est posée sous `os.tmpdir()` et mesurée dans son image, puis
- * effacée ; un détecteur de base sans point d'entrée (`POINT_D_ENTREE`) est sauté sans poser d'image.
+ * Le verdict de la plage `merge-base(base, tete)..tete` du `depot` (`depotDe`, gitPorte.mjs), dont chaque lecture git
+ * passe par lui, jugée par le détecteur de la tête et par celui de la base (`verdictDesDetecteurs`). Chaque borne est
+ * posée sous `os.tmpdir()` et mesurée dans son image, puis effacée ; un détecteur de base sans point d'entrée
+ * (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
-export function jugerLesComptes({ cwd, base = TRONC.suivi, tete = 'HEAD' }: { cwd: string; base?: string; tete?: string }): { ok: boolean; texte: string } {
+export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD' }: { depot: Depot; base?: string; tete?: string }): { ok: boolean; texte: string } {
   try {
-    const depot = depotDe(cwd);
     const shaTete = shaDe(depot, tete);
     const shaBase = shaTete && baseCommune(depot, base, shaTete);
     if (!shaTete || !shaBase) return { ok: false, texte: `⛔ ${base}..${tete} : base commune illisible — la porte ne juge pas une plage sans borne.` };
