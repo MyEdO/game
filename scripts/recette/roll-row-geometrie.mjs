@@ -1,4 +1,4 @@
-import { evaluate } from './lib.mjs';
+import { evaluate } from './cdp.mjs';
 
 const EPSILON = 1;
 const deborde = (interieur, exterieur) => !exterieur || interieur.left < exterieur.left - EPSILON || interieur.right > exterieur.right + EPSILON || interieur.top < exterieur.top - EPSILON || interieur.bottom > exterieur.bottom + EPSILON;

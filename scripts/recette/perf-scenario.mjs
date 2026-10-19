@@ -20,7 +20,9 @@
 //   --sampling-interval   µs entre échantillons du profileur CDP (mode profile, défaut 200)
 //
 // Sortie : statistiques imprimées sur stdout, exit 1 si la console a remonté une erreur.
-import { openApp, evaluate, sleep, consoleGuard, realKey, geste, clic, SURFACE_CARTE } from './lib.mjs';
+import { openApp, consoleGuard, realKey, SURFACE_CARTE } from './lib.mjs';
+import { evaluate, sleep } from './cdp.mjs';
+import { geste, clic } from './entree.mjs';
 
 /** Clic RÉEL de marche au point demandé, sur la surface de carte (`geste`). La marche naît du clic :
  *  la fenêtre échantillonnée l'englobe, et avec lui le coût du geste (lectures de page de la

@@ -6,7 +6,8 @@
 //   import { demarrer } from 'file:///…/scripts/recette/setup.mjs';
 //   const { session } = await demarrer({ scenario: 'entrainement', combat: 'enc-entrainement' });   // lance son Chrome
 //   const { session } = await demarrer({ scenario: 'embuscade', attacher: true });                 // session TENUE
-import { appelerWfrp, attacherSession, leverApresNettoyage, openApp, ouvrirRound, resoudreModales, waitFor } from './lib.mjs';
+import { appelerWfrp, attacherSession, openApp, ouvrirRound, resoudreModales, waitFor } from './lib.mjs';
+import { leverApresNettoyage } from './cdp.mjs';
 
 /**
  * Ouvre l'app (`ouvrir`), ou s'attache à la session tenue, ou reprend la `session` donnée ; lance le

@@ -23,7 +23,9 @@
 //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE, FN_NOMMER_ELEMENT } from './lib.mjs';
+import { openApp, setViewport, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE } from './lib.mjs';
+import { evaluate, sleep } from './cdp.mjs';
+import { FN_NOMMER_ELEMENT } from './cible.mjs';
 import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
 
 /** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur

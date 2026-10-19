@@ -10,7 +10,6 @@ import os from 'node:os'
 import { spawnSync } from 'node:child_process'
 import {
   ALT,
-  DELAI_EVALUATE,
   champParLibelle,
   clickItemByText,
   setAtelier,
@@ -25,14 +24,11 @@ import {
   realKeyDown,
   realKeyUp,
   empreinteArbre,
-  evaluate,
   expressionRestaurerStockage,
   instantanerStockage,
-  isNavigationError,
   poserFichier,
   resoudreChrome,
   restaurerStockage,
-  TARGET_NAVIGATED,
   verdictArbreGele,
   verdictArbreServi,
   withReloadRetry,
@@ -57,14 +53,12 @@ import {
   resoudreModales,
   cliquerAction,
   cliquerPremierOffert,
-  brancherCdp,
   fichiersSurveilles,
   killChromeTree,
   lireProcessus,
   nettoyerALaSortie,
   waitForWsUrl,
   purgerProfil,
-  leverApresNettoyage,
   waitForAppSilently,
   espionReseau,
   survoler,
@@ -89,10 +83,20 @@ import {
   mesurerProvenance,
   ouvrirFiche,
   ATTRIBUTS_VOLATILS,
+} from './lib.mjs'
+import {
+  DELAI_EVALUATE,
+  evaluate,
+  isNavigationError,
+  TARGET_NAVIGATED,
+  leverApresNettoyage,
+} from './cdp.mjs'
+import {
+  brancherCdp,
   geste,
   clic,
   frappe,
-} from './lib.mjs'
+} from './entree.mjs'
 import { ENTETE_RACINE } from '../port-dev.mjs'
 import { JSDOM } from 'jsdom'
 import * as kitRecette from './lib.mjs'
@@ -2755,10 +2759,11 @@ test('mesurerProvenance : aucune provenance, ou plusieurs, ou conteneur absent �
 test('gabarit : le squelette importe le gabarit et le kit par URL file:/// de CET arbre, et ces URL s’importent', async () => {
   const texte = squelette()
   const urls = [...texte.matchAll(/from '(file:\/\/\/[^']+)'/g)].map((m) => m[1])
-  assert.equal(urls.length, 2)
-  assert.ok(urls[0].endsWith('/scripts/recette/gabarit.mjs') && urls[1].endsWith('/scripts/recette/lib.mjs'), urls.join(' '))
+  assert.equal(urls.length, 3)
+  assert.ok(urls[0].endsWith('/scripts/recette/gabarit.mjs') && urls[1].endsWith('/scripts/recette/lib.mjs') && urls[2].endsWith('/scripts/recette/cdp.mjs'), urls.join(' '))
   assert.equal(typeof (await import(urls[0])).recette, 'function')
   assert.equal(typeof (await import(urls[1])).clickButtonByText, 'function')
+  assert.equal(typeof (await import(urls[2])).evaluerFn, 'function')
   assert.match(texte, /await recette\(async \(\{ session \}\) => \{/)
 })
 
@@ -3085,7 +3090,7 @@ test('clic : un `mousePressed` sans accusé de réception est suivi de son `mous
 function helpersDEntree() {
   const source = readFileSync(new URL('./lib.mjs', import.meta.url), 'utf8')
   return [...source.matchAll(/^export (?:async )?function (\w+)\(([\s\S]*?)^\}$/gm)]
-    .filter(([, nom, corps]) => nom !== 'geste' && nom !== 'frappe' && /\b(?:geste|frappe)\(session\b/.test(corps))
+    .filter(([, , corps]) => /\b(?:geste|frappe)\(session\b/.test(corps))
     .map(([, nom]) => nom)
     .sort()
 }

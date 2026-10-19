@@ -34,8 +34,10 @@
 // Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
 // la sonde reste rouge tant qu'il vit.
 import {
-  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE, FN_NOMMER_ELEMENT,
+  openApp, setViewport, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE,
 } from './lib.mjs';
+import { evaluate, sleep } from './cdp.mjs';
+import { FN_NOMMER_ELEMENT } from './cible.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
   contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert, ongletClicAVide,

@@ -4,7 +4,8 @@
 // capture au réglage par défaut puis aux deux extrêmes du curseur d'opacité du gabarit.
 //
 // Usage : node scripts/recette/shot-editor-lower-layer-gabarit.mjs [--url <url>] [--out dir]
-import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, evaluate, waitFor, sleep, shot, VUE_REFERENCE, clickButtonByText, champParLibelle, selectOption } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, waitFor, shot, VUE_REFERENCE, clickButtonByText, champParLibelle, selectOption } from './lib.mjs';
+import { evaluate, sleep } from './cdp.mjs';
 
 export function parseArgs(argv) {
   const out = { url: undefined, out: DOSSIER_CAPTURES };

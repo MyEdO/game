@@ -18,7 +18,8 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { openApp, evaluate, waitFor, consoleGuard } from './lib.mjs';
+import { openApp, waitFor, consoleGuard } from './lib.mjs';
+import { evaluate } from './cdp.mjs';
 import { decodePng } from '../qc/lib/pngDecode.mjs';
 
 const SORTIE = join('public', 'qc', 'tons-lumiere-1245');

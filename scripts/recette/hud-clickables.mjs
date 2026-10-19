@@ -63,7 +63,9 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE, FN_NOMMER_ELEMENT } from './lib.mjs';
+import { openApp, setViewport, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+import { evaluate, sleep } from './cdp.mjs';
+import { FN_NOMMER_ELEMENT } from './cible.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder

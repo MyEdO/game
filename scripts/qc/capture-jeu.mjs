@@ -19,7 +19,8 @@
  * `public/qc/baseline-affine/` — la référence de non-régression d'avant la bascule.
  */
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { openApp, evaluate, waitFor, consoleGuard, withReloadRetry, sleep, cliquerPremierOffert, ATTENTE_ECHUE, DEFAULT_URL } from '../recette/lib.mjs';
+import { openApp, waitFor, consoleGuard, withReloadRetry, cliquerPremierOffert, ATTENTE_ECHUE, DEFAULT_URL } from '../recette/lib.mjs';
+import { evaluate, sleep } from '../recette/cdp.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 
 const OUT_DIR = 'public/qc/jeu';

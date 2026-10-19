@@ -8,16 +8,17 @@
 //
 // Le script s'écrit avec l'outil d'écriture de fichier, jamais par heredoc, sed ou `node -e` : Git Bash
 // y casse les antislashs, les regex et l'accentué.
-import { leverApresNettoyage } from './lib.mjs';
+import { leverApresNettoyage } from './cdp.mjs';
 import { demarrer } from './setup.mjs';
 
-/** Le texte d'un script de recette neuf (PURE) : ses imports visent le gabarit et le kit par leur URL
- *  `file:///` (`urlGabarit`, `urlKit`). */
-export function squelette({ urlGabarit = import.meta.url, urlKit = new URL('./lib.mjs', import.meta.url).href } = {}) {
+/** Le texte d'un script de recette neuf (PURE) : ses imports visent le gabarit, le kit et sa couche CDP
+ *  par leur URL `file:///` (`urlGabarit`, `urlKit`, `urlCdp`). */
+export function squelette({ urlGabarit = import.meta.url, urlKit = new URL('./lib.mjs', import.meta.url).href, urlCdp = new URL('./cdp.mjs', import.meta.url).href } = {}) {
   return `// Recette : <ce que ce script prouve, et son ticket>.
 // Lancer : node <ce fichier>   (session tenue : « node scripts/recette/session.mjs ouvrir » en fond, d'abord)
 import { recette } from '${urlGabarit}';
-import { clickButtonByText, evaluerFn, shot } from '${urlKit}';
+import { clickButtonByText, shot } from '${urlKit}';
+import { evaluerFn } from '${urlCdp}';
 
 await recette(async ({ session }) => {
   // Les gestes du JOUEUR : clickButtonByText, cliquerSelecteur, realKey… ; \`__wfrp\` pour la mise en
