@@ -105,14 +105,14 @@ const FAMILLES = Object.freeze(['vitest', 'node'])
 
 /**
  * L'ORDRE dans lequel le lanceur de la famille `famille` démarre ses fichiers `[test, ms][]` (chemins POSIX). PURE.
- * - node : lexical sur le chemin au séparateur NATIF `separateur` (node v22, `internal/test_runner/runner`
+ * - node : lexical sur le chemin au séparateur NATIF `sep` (node v22, `internal/test_runner/runner`
  *   `createTestFileList` → `ArrayPrototypeSort` des chemins du glob).
  * - vitest : durée décroissante (`BaseSequencer.sort`, node_modules/vitest/dist/chunks/index.DpLw24bj.js:13385-13414) ;
  *   ses autres clés — échec au run précédent d'abord, fichier sans résultat en cache d'abord, puis par taille — lisent
  *   le cache de Vitest, absent des mesures : non reproduites.
  */
-export const ordreDuLanceur = (famille, fichiers, separateur = sep) => {
-  const natif = (chemin) => chemin.split('/').join(separateur)
+export const ordreDuLanceur = (famille, fichiers) => {
+  const natif = (chemin) => chemin.split('/').join(sep)
   return [...fichiers].sort(famille === 'node'
     ? ([a], [b]) => (natif(a) < natif(b) ? -1 : natif(a) > natif(b) ? 1 : 0)
     : ([a, ma], [b, mb]) => mb - ma || (a < b ? -1 : a > b ? 1 : 0))
@@ -338,12 +338,11 @@ const aLinter = (touches, post) => touches.filter((t) => post.includes(t) && EXT
 /**
  * Le LINT des fichiers touchés (`aLinter`) par la couture `lancerLint` : ses défauts et son code de sortie.
  * @param {string} racine @param {string[]} touches @param {string[]} post
- * @param {typeof lancerLint} [lancer]
  */
-export function lintDesTouches(racine, touches, post, lancer = lancerLint) {
+export function lintDesTouches(racine, touches, post) {
   const fichiers = aLinter(touches, post)
   if (!fichiers.length) return { fichiers, defauts: [], code: 0 }
-  const { defauts, codeSortie } = lancer(racine, fichiers, { cwd: racine })
+  const { defauts, codeSortie } = lancerLint(racine, fichiers, { cwd: racine })
   return { fichiers, defauts, code: codeSortie || (defauts.length ? 1 : 0) }
 }
 
@@ -512,21 +511,21 @@ const argumentsNode = (sortie) => ['--test', '--test-reporter=spec', '--test-rep
 
 /** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
  *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. */
-export async function principal(args, racine, { env = process.env, verrou, signal } = {}) {
-  const configuration = verrou ?? verrouGestesLourds(racine)
+export async function principal(args, racine) {
+  const configuration = verrouGestesLourds(racine)
   const prise = await prendreVerrouAsync({
-    ...configuration, env, signal, cwd: racine, commande: 'test:perimetre',
+    ...configuration, env: process.env, cwd: racine, commande: 'test:perimetre',
     attente: { ...configuration.attente, annoncer: (tenant) => console.error('[verrou] ' + tenantEnUneLigne(tenant)) },
   })
   if (prise.etat !== 'pris') { console.error(prise.message); return CODE_DIFFERE }
   let retraitPermis = true
-  try { return await executerPerimetre(args, racine, { env: { ...env, ...prise.env }, signal, retenir: () => { retraitPermis = false } }) }
+  try { return await executerPerimetre(args, racine, { env: { ...process.env, ...prise.env }, retenir: () => { retraitPermis = false } }) }
   finally { if (retraitPermis) prise.liberer() }
 }
-async function executerPerimetre(args, racine, { env, signal, retenir }) {
+async function executerPerimetre(args, racine, { env, retenir }) {
   const options = lireArguments(args)
   const debut = performance.now()
-  const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, signal, retenir })
+  const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = await perimetreDuDepot(racine, options, { lectureSeule: options.liste, env, retenir })
   const duree = Math.round(performance.now() - debut)
   const docs = selectionDesGenerateurs({ lot: touches, mesure: sourcesMesurees(racine), cwd: racine })
   const cache = join(racine, CACHE)
@@ -588,7 +587,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir }) {
     }),
     ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
-  const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire })
+  const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire })
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
   journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
@@ -601,11 +600,11 @@ async function executerPerimetre(args, racine, { env, signal, retenir }) {
 /** La raison d'un refus d'admission `r` : son `message`, sinon la dernière ligne non vide de sa `sortie`. PURE. */
 export const raisonDuRefus = (r) => r.message ?? (r.sortie ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1) ?? 'raison non rapportée'
 
-/** Joue les `lancements` dans l'ordre (#2586) : node par `lancerNode`, vitest et docs par `lancer`. Une clôture non
+/** Joue les `lancements` dans l'ordre (#2586) : node par `lancerNodeMesure`, vitest et docs par `spawnBorne`. Une clôture non
  *  confirmée (`retenir`) ou un lancement interrompu arrête la suite sans apprendre ; sinon chaque famille apprend ses
  *  durées (`apprendre`) et son surcoût (`bilanDuLancement`). Rend le premier code non nul, le mur réel par famille,
  *  les lancements joués et les fichiers joués (`fichiersJoues`, ceux que leur rapport mesure). */
-export async function executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code, forcer }, { lancerNode = lancerNodeMesure, lancer = spawnBorne } = {}) {
+export async function executerLancements({ lancements, racine, node, env, mesures, journal, retenir, cache, workers, code, forcer }) {
   const reels = {}
   const joues = []
   const fichiersJoues = new Set()
@@ -614,8 +613,8 @@ export async function executerLancements({ lancements, racine, node, env, signal
     const debutDuLancement = performance.now()
     const fichiers = famille === 'node' ? args.filter((a) => node.includes(a)) : []
     const r = famille === 'node'
-      ? await lancerNode({ racine, fichiers, argv: args.filter((a) => !fichiers.includes(a)), env, signal, mesures, journal, forcer })
-      : await lancer({ argv: args, cwd: racine, env, signal, fichier: join(cache, 'lancement-' + process.pid + '.log'),
+      ? await lancerNodeMesure({ racine, fichiers, argv: args.filter((a) => !fichiers.includes(a)), env, mesures, journal, forcer })
+      : await spawnBorne({ argv: args, cwd: racine, env, fichier: join(cache, 'lancement-' + process.pid + '.log'),
         limiteMs: 30 * 60_000, maxBuffer: 16 * 2 ** 20 })
     if (famille !== 'node' && r.sortie) process.stdout.write(r.sortie)
     if (r.arret?.etat !== 'mort') {
@@ -628,7 +627,7 @@ export async function executerLancements({ lancements, racine, node, env, signal
       break
     }
     const murMs = performance.now() - debutDuLancement
-    if (r.annulee || r.expiree || r.error) {
+    if (r.expiree || r.error) {
       const codeDuLancement = r.code || 1
       if (code === 0) code = codeDuLancement
       joues.push({ famille: famille ?? 'docs', code: codeDuLancement, echecs: [], args })
@@ -721,18 +720,18 @@ const MODULE_DE_DERIVATION = fileURLToPath(new URL('./perimetreDerivation.mjs', 
 /** La dérivation de `entree` dans un ENFANT borné (#2603) : `perimetreDerivation.mjs` sous `lancer`, `limiteMs` et
  *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
  *  dossier temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
-export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync } = {}) {
+export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, retenir = () => {}, attendre = attendreSync } = {}) {
   const temporaire = mkdtempSync(join(tmpdir(), 'perimetre-derivation-'))
   const debut = performance.now()
   let retraitPermis = true
   try {
     const input = join(temporaire, 'entree.json'), output = join(temporaire, 'sortie.json'), marqueur = join(temporaire, 'stade.json')
     ecrireJsonAtomique(input, entree, { indentation: 0 })
-    const vu = await lancer({ argv: ['--max-old-space-size=640', MODULE_DE_DERIVATION, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
+    const vu = await lancer({ argv: ['--max-old-space-size=640', MODULE_DE_DERIVATION, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, site: 'perimetre' })
     const bornes = `durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()
-    if (vu.code !== 0 || vu.expiree || vu.annulee || vu.arret?.etat !== 'mort') {
+    if (vu.code !== 0 || vu.expiree || vu.arret?.etat !== 'mort') {
       const { texte, panne } = stadeAtteint(marqueur, attendre)
       const erreur = vu.error ? `, erreur ${vu.error.code ?? 'ERREUR_ENFANT'} : ${vu.error.message}` : ''
       throw new Error(`perimetre : dérivation échouée au ${texte}, ${bornes}, code ${vu.code}, arrêt ${vu.arret?.etat ?? 'aucun'}${erreur}\n${vu.sortie ?? ''}`, { cause: vu.error ?? panne })
@@ -746,8 +745,8 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
 
 /** Le périmètre du dépôt de `racine` (#2603) : images du diff et dérivation par `derivationBornee`, post-image lue sur
  *  le disque (arbre de travail) ou dans `tete`, mémos sous `CACHE` du dépôt. */
-export async function perimetreDuDepot(racine, { base, tete } = {}, { lectureSeule = false, env, signal, retenir } = {}) {
-  const derive = await derivationBornee({ racine, base, tete, dossierDesMemos: join(racine, CACHE), lectureSeule }, { env, signal, retenir })
+export async function perimetreDuDepot(racine, { base, tete } = {}, { lectureSeule = false, env, retenir } = {}) {
+  const derive = await derivationBornee({ racine, base, tete, dossierDesMemos: join(racine, CACHE), lectureSeule }, { env, retenir })
   const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env }), derive.tete, rels) : lireDuDisque(racine)
   return { ...derive, lire }
 }

@@ -1,18 +1,18 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
 import { createHash } from 'node:crypto'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitDe } from './gitDeBanc.mjs'
 import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
 import { CACHE, exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
@@ -25,95 +25,131 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { fichiersDeLaSuite } from '../guards/lib/suiteVitest.mjs'
 import { lancerTests } from './run.mjs'
+import { prendreVerrou } from './verrou.mjs'
+import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 
 // #2586
-function bancDeCloture(t, fichier, familles) {
-  const racine = mkdtempSync(join(tmpdir(), 'perimetre-cloture-'))
-  t.after(() => rmSync(racine, { recursive: true, force: true }))
-  const lancements = familles.map((famille, i) => ({
-    famille, sortie: famille ? join(racine, i + '.json') : null,
-    args: famille ? [fichier] : ['scripts/docs/build-all.mjs', '--check'],
-  }))
-  const journal = [], ecritures = [], spawns = []
-  let retenues = 0
-  const options = {
-    lancements, racine, cache: racine, node: [fichier], env: {}, mesures: {
-      lire: () => ({}), ecrire: (...args) => { ecritures.push(args) },
-    }, workers: { node: 1, vitest: 1 }, code: 0,
-    journal: (texte) => { journal.push(texte) }, retenir: () => { retenues++ },
-  }
-  const rapport = JSON.stringify({ workers: 1, durees: { [join(racine, fichier)]: 42 }, echecs: [] })
-  const lancer = (resultat) => async () => {
-    const charge = lancements[spawns.length]
-    spawns.push(charge.famille)
-    if (charge.sortie) writeFileSync(charge.sortie, rapport)
-    return resultat
-  }
-  return { options, journal, ecritures, spawns, rapport, lancer, retenues: () => retenues }
+/** Les arguments `node --test` d'un lancement au rapport de durées `sortie` (`argumentsNode` de `perimetre.mjs`). */
+const argvNode = (sortie) => ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
+  `--test-reporter=${new URL('./dureesNodeTest.mjs', import.meta.url).href}`, `--test-reporter-destination=${sortie}`]
+
+/** Le lancement n° `i` de la famille `famille` (`null` : docs dérivés) sur le `paquet` du dépôt `racine`, rapport sous son
+ *  `CACHE` (`rapportDuLancement`), arguments de `executerPerimetre`. */
+const lancementDe = (racine, famille, paquet, i) => {
+  const sortie = famille ? rapportDuLancement(join(racine, CACHE), 4242)(famille, i) : null
+  return { famille, sortie, args: famille === 'vitest' ? argumentsVitest(paquet, sortie, 'lot')
+    : famille === 'node' ? [...argvNode(sortie), ...paquet] : ['scripts/docs/build-all.mjs', '--check'] }
 }
 
-test('clôture non confirmée : stoppe tous les lancements et conserve les rapports sans apprendre, même code zéro ou arrêt absent', async (t) => {
+/** `executerLancements` des `lancements` du dépôt forgé `racine`, en sous-processus aux sorties ignorées (#2586) : lanceurs
+ *  réels, mesures du dépôt (`mesuresDe`), cache `CACHE`, dossier de travail `cwd`. Rend son rendu, son journal, ses retenues. */
+function executerReel(racine, lancements, { cwd = racine, env = {}, workers = { node: 1, vitest: 1 } } = {}) {
+  const de = (m) => JSON.stringify(pathToFileURL(join(import.meta.dirname, m)).href)
+  const resultat = join(racine, 'executer.json')
+  const node = lancements.filter((l) => l.famille === 'node').flatMap((l) => l.args.filter((a) => a.endsWith('.test.mjs')))
+  const code = `import { executerLancements } from ${de('perimetre.mjs')}; import { dossierDesMesures, mesuresDe } from ${de('mesures.mjs')}
+import { mkdirSync, writeFileSync } from 'node:fs'
+const journal = []; let retenues = 0; const cache = ${JSON.stringify(join(racine, CACHE))}; mkdirSync(cache, { recursive: true })
+const rendu = await executerLancements({ lancements: ${JSON.stringify(lancements)}, racine: ${JSON.stringify(cwd)}, node: ${JSON.stringify(node)}, env: process.env,
+  mesures: mesuresDe(dossierDesMesures(${JSON.stringify(racine)})), journal: (t) => journal.push(t), retenir: () => { retenues++ }, cache, workers: ${JSON.stringify(workers)}, code: 0, forcer: false })
+writeFileSync(${JSON.stringify(resultat)}, JSON.stringify({ rendu: { ...rendu, fichiersJoues: [...rendu.fichiersJoues] }, journal, retenues }))`
+  const vu = spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'ignore', 'pipe'],
+    env: { ...envDeDepotForge(), NODE_TEST_CONTEXT: undefined, ...env } })
+  assert.equal(vu.status, 0, vu.stderr)
+  return JSON.parse(readFileSync(resultat, 'utf8'))
+}
+
+/** Les durées apprises du dépôt `racine`. */
+const dureesApprises = (racine) => mesuresDe(dossierDesMesures(racine)).lire('durees.json')
+
+const NODE_VERT = "import { test } from 'node:test'\ntest('vert', () => {})\n"
+const NODE_ROUGE = "import { test } from 'node:test'\nimport assert from 'node:assert/strict'\ntest('rouge', () => assert.equal(1, 2))\n"
+const DOCS_VERTS = { 'scripts/docs/build-all.mjs': 'export {}\n' }
+
+test('clôture non confirmée (dossier de travail absent : arrêt indéterminé réel) : stoppe tous les lancements sans apprendre, rapports suivants intacts, diagnostic au journal', (t) => {
+  const racine = forger(t, {}, { 'scripts/a.test.mjs': NODE_VERT })
+  const absent = join(racine, 'absent')
   for (const famille of ['node', 'vitest', null]) {
-    for (const arret of [{ etat: 'indetermine' }, undefined]) {
-      for (const code of [0, 1]) {
-        const b = bancDeCloture(t, 'scripts/a.test.mjs', [famille, 'vitest', 'node', null])
-        for (const charge of b.options.lancements.slice(1)) if (charge.sortie) writeFileSync(charge.sortie, 'rapport suivant intact')
-        const lancer = b.lancer({ code, arret })
-        const rendu = await executerLancements(b.options, { lancer, lancerNode: lancer })
-        assert.deepEqual(b.spawns, [famille])
-        assert.equal(b.retenues(), 1)
-        assert.notEqual(rendu.code, 0)
-        assert.deepEqual(b.ecritures, [])
-        assert.deepEqual(rendu.reels, {})
-        assert.equal(rendu.joues.length, 1)
-        assert.notEqual(rendu.joues[0].code, 0)
-        assert.match(b.journal[0], /clôture non confirmée/)
-        assert.match(ligneDeRelance({ code: rendu.code, lancements: rendu.joues, lint: { code: 0, defauts: [] } }), /^rouge/)
-        if (b.options.lancements[0].sortie) assert.equal(readFileSync(b.options.lancements[0].sortie, 'utf8'), b.rapport)
-        for (const charge of b.options.lancements.slice(1)) if (charge.sortie) assert.equal(readFileSync(charge.sortie, 'utf8'), 'rapport suivant intact')
-      }
-    }
+    const lancements = [lancementDe(racine, famille, ['scripts/a.test.mjs'], 0), lancementDe(racine, 'vitest', ['src/a.test.ts'], 1),
+      lancementDe(racine, 'node', ['scripts/a.test.mjs'], 2), lancementDe(racine, null, [], 3)]
+    mkdirSync(join(racine, CACHE), { recursive: true })
+    for (const { sortie } of lancements.slice(1)) if (sortie) writeFileSync(sortie, 'rapport suivant intact')
+    const { rendu, journal, retenues } = executerReel(racine, lancements, { cwd: absent })
+    assert.equal(retenues, 1)
+    assert.notEqual(rendu.code, 0)
+    assert.deepEqual([rendu.reels, rendu.joues.length, dureesApprises(racine)], [{}, 1, {}])
+    assert.notEqual(rendu.joues[0].code, 0)
+    assert.ok(journal.includes(`clôture non confirmée : ${famille ?? 'docs'}, arrêt indetermine, code 1 ; lancements interrompus, verrou et traces conservés`), journal.join('\n'))
+    assert.ok(journal.some((l) => l.includes('dossier de travail absent : ' + absent)), journal.join('\n'))
+    for (const ligne of journal) assert.match(ligne, /^[^\n]+$/, `ligne de journal non unique : ${JSON.stringify(ligne)}`)
+    assert.match(ligneDeRelance({ code: rendu.code, lancements: rendu.joues, lint: { code: 0, defauts: [] } }), /^rouge/)
+    for (const { sortie } of lancements.slice(1)) if (sortie) assert.equal(readFileSync(sortie, 'utf8'), 'rapport suivant intact')
   }
 })
 
-test('clôture morte : autorise les familles suivantes et les docs, apprend puis retire leurs rapports', async (t) => {
-  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['vitest', 'node', null])
-  const lancer = b.lancer({ code: 0, arret: { etat: 'mort' } })
-  const rendu = await executerLancements(b.options, { lancer, lancerNode: lancer })
-  assert.deepEqual(b.spawns, ['vitest', 'node', null])
-  assert.equal(b.retenues(), 0)
-  assert.equal(rendu.code, 0)
-  assert.equal(rendu.joues.length, 3)
+test('clôture morte : autorise les familles suivantes et les docs, apprend puis retire leurs rapports', (t) => {
+  const racine = forger(t, {}, { 'scripts/a.test.mjs': NODE_VERT, 'src/a.test.ts': 'export {}\n', 'scripts/test/run.mjs': RUN_AU_RAPPORT_PARTIEL, ...DOCS_VERTS })
+  const lancements = [lancementDe(racine, 'vitest', ['src/a.test.ts'], 0), lancementDe(racine, 'node', ['scripts/a.test.mjs'], 1), lancementDe(racine, null, [], 2)]
+  const { rendu, retenues, journal } = executerReel(racine, lancements)
+  assert.equal(retenues, 0)
+  assert.equal(rendu.code, 0, journal.join('\n'))
+  assert.deepEqual(rendu.joues.map((j) => [j.famille, j.code]), [['vitest', 0], ['node', 0], ['docs', 0]])
   assert.deepEqual(Object.keys(rendu.reels), ['vitest', 'node'])
-  assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 2)
-  for (const charge of b.options.lancements) if (charge.sortie) assert.equal(existsSync(charge.sortie), false)
+  assert.deepEqual(Object.keys(dureesApprises(racine)).sort(), ['scripts/a.test.mjs', 'src/a.test.ts'])
+  for (const { sortie } of lancements) if (sortie) assert.equal(existsSync(sortie), false)
 })
 
-test('refus d’admission : un lanceur qui rend `CODE_DIFFERE` est nommé avec sa raison, jamais compté rouge sans fichier', async (t) => {
-  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['vitest', 'node'])
+test('refus d’admission : un lanceur qui rend `CODE_DIFFERE` est nommé avec sa raison, jamais compté rouge sans fichier', (t) => {
   const ligne = '[memoire] MEMOIRE_INSUFFISANTE : minimum 5408 Mo, disponible 4656 Mo'
-  const lancer = async () => { b.spawns.push('vitest'); return { code: CODE_DIFFERE, sortie: '[verrou] attente\n' + ligne + '\n', arret: { etat: 'mort' } } }
-  const lancerNode = async () => { b.spawns.push('node'); return { code: CODE_DIFFERE, message: ligne.replace('5408', '3328'), arret: { etat: 'mort' } } }
-  const rendu = await executerLancements(b.options, { lancer, lancerNode })
-  assert.deepEqual(b.spawns, ['vitest', 'node'])
+  const racine = forger(t, {}, { 'scripts/a.test.mjs': NODE_VERT, 'src/a.test.ts': 'export {}\n',
+    'scripts/test/run.mjs': `process.stdout.write(${JSON.stringify('[verrou] attente\n' + ligne + '\n')})\nprocess.exitCode = ${CODE_DIFFERE}\n` })
+  const lancements = [lancementDe(racine, 'vitest', ['src/a.test.ts'], 0), lancementDe(racine, 'node', ['scripts/a.test.mjs'], 1)]
+  const mesures = mesuresDe(dossierDesMesures(racine))
+  const profils = profilsDuLancement({ racine, fichiers: ['scripts/a.test.mjs'], argv: argvNode(lancements[1].sortie), mesures, env: {} })
+  mesures.ecrire('memoire-node.json', Object.fromEntries(profils.entrees.map((e) => [e.cle, {
+    fichier: e.fichier, blob: e.blob, picOctets: 2 ** 40, parentOctets: 20, descendantsInclus: true, metrique: 'working-set',
+  }])))
+  const { rendu } = executerReel(racine, lancements, { env: { WFRP_TEST_MEMOIRE_MO: '1', WFRP_TEST_COEURS: '4' } })
+  const refusNode = process.platform === 'win32' ? /^\[memoire\] MEMOIRE_INSUFFISANTE : minimum \d+ Mo, disponible 1 Mo$/ : undefined
   assert.equal(rendu.code, CODE_DIFFERE)
-  assert.deepEqual(rendu.joues.map((j) => j.refus), [ligne, ligne.replace('5408', '3328')])
+  assert.equal(rendu.joues[0].refus, ligne)
+  if (refusNode) assert.match(rendu.joues[1].refus, refusNode)
+  else assert.deepEqual([rendu.joues[1].code, rendu.joues[1].refus], [0, undefined], 'hors win32, aucune admission : le lancement node joue')
   const relance = ligneDeRelance({ code: rendu.code, lancements: rendu.joues, lint: { code: 0, defauts: [] } })
-  assert.equal(relance, `rouge — refus d'admission, aucun test joué : vitest : ${ligne} ; node : ${ligne.replace('5408', '3328')}`)
+  assert.ok(relance.startsWith(`rouge — refus d'admission, aucun test joué : vitest : ${ligne}${refusNode ? ` ; node : ${rendu.joues[1].refus}` : ''}`), relance)
+  assert.doesNotMatch(relance, /sans fichier/)
 })
 
-test('principal : annonce le propriétaire du verrou pendant son attente', async (t) => {
-  const racine = mkdtempSync(join(tmpdir(), 'perimetre-attente-'))
-  t.after(() => rmSync(racine, { recursive: true, force: true }))
-  const chemin = join(racine, 'verrou')
+/** `principal` du dépôt `racine` en sous-processus sous `env` (`lancerPrincipal`, asynchrone) : son code et son stderr, ou,
+ *  dès qu'une ligne de stderr satisfait `arreter`, ou au plus tard à 8 s, le processus tué et son stderr. */
+function principalJusqua(racine, env, arreter = () => false) {
+  const module = pathToFileURL(join(import.meta.dirname, 'perimetre.mjs')).href
+  const enfant = spawn(process.execPath, ['--input-type=module', '-e', `import { principal } from ${JSON.stringify(module)}; process.exitCode = await principal([], ${JSON.stringify(racine)})`],
+    { cwd: racine, env: { ...envDeDepotForge(), NODE_TEST_CONTEXT: undefined, ...env }, stdio: ['ignore', 'ignore', 'pipe'] })
+  let stderr = ''
+  enfant.stderr.setEncoding('utf8').on('data', (d) => {
+    stderr += d
+    if (stderr.split(/\r?\n/).some(arreter)) enfant.kill()
+  })
+  const borne = setTimeout(() => enfant.kill(), 8000)
+  return new Promise((rendre) => enfant.on('close', (code) => { clearTimeout(borne); rendre({ code, stderr }) }))
+}
+
+test('principal : un jeton d’emprunt périmé est refusé en CODE_DIFFERE ; un tenant vivant est annoncé pendant l’attente', async (t) => {
+  const racine = forger(t, {}, { 'scripts/a.mjs': 'export {}\n' })
+  const verrou = verrouGestesLourds(racine)
+  const prise = prendreVerrou({ ...verrou, cwd: racine, commande: 'parent du banc' })
+  assert.equal(prise.etat, 'pris')
+  prise.liberer()
+  const perime = await principalJusqua(racine, prise.env)
+  assert.equal(perime.code, CODE_DIFFERE, perime.stderr)
+  assert.match(perime.stderr, /\[verrou\] un geste lourd tient la machine : jeton d'emprunt invalide \(GENERATION\)/)
   const tenant = { pid: process.pid, cwd: racine, commande: 'charge propriétaire', date: '2026-10-16T10:51:24Z' }
-  writeFileSync(chemin, JSON.stringify(tenant))
-  const journal = []
-  t.mock.method(console, 'error', (texte) => { journal.push(texte) })
-  let instant = 0
-  const code = await principal([], racine, { env: {}, verrou: { chemin, libelle: 'banc', horloge: () => instant++, attente: { echeanceMs: 3, pasMs: 1 } } })
-  assert.equal(code, CODE_DIFFERE)
-  assert.ok(journal.some((texte) => texte.startsWith('[verrou] PID ' + tenant.pid + ' · ') && texte.includes(tenant.commande) && texte.includes(tenant.cwd) && texte.includes(tenant.date)))
+  writeFileSync(verrou.chemin, JSON.stringify(tenant))
+  const annonce = (texte) => texte.startsWith('[verrou] PID ' + tenant.pid + ' · ') && texte.includes(tenant.commande) && texte.includes(tenant.cwd) && texte.includes(tenant.date)
+  const attente = await principalJusqua(racine, {}, annonce)
+  assert.ok(attente.stderr.split(/\r?\n/).some(annonce), attente.stderr)
+  assert.equal(JSON.parse(readFileSync(verrou.chemin, 'utf8')).commande, tenant.commande, 'le verrou du tenant est intact')
 })
 
 test('dérivation échouée : diagnostic depuis la sortie bornée sans relire le journal', async () => {
@@ -622,8 +658,7 @@ test('plan Node : profils de la configuration reporters effective, source modifi
   const retenus = new Map(tests.map((f) => [f, { rang: 0 }]))
   const mur = () => planDuPerimetre(retenus, p).plan.murParFamille.node
   assert.equal(mur(), 2000 + REPLI_SURCOUT_MS.node)
-  const argv = ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
-    `--test-reporter=${new URL('./dureesNodeTest.mjs', import.meta.url).href}`, '--test-reporter-destination=ailleurs.json']
+  const argv = argvNode('ailleurs.json')
   const profils = profilsDuLancement({ racine, fichiers: tests, argv, mesures, env: {} })
   memos['memoire-node.json'] = Object.fromEntries(profils.entrees.map((e) => [e.cle, {
     fichier: e.fichier, blob: e.blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'working-set',
@@ -636,23 +671,20 @@ test('plan Node : profils de la configuration reporters effective, source modifi
   assert.equal(mur(), 2000 + REPLI_SURCOUT_MS.node)
 })
 
-test('paquet achevé : apprentissage visible avant le suivant interrompu, rouge agrégé sans rejeu', async (t) => {
-  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['node', 'node', 'node'])
-  let appels = 0
-  b.options.workers.node = 8
-  const rendu = await executerLancements(b.options, { lancerNode: async () => {
-    const lancement = b.options.lancements[appels++]
-    writeFileSync(lancement.sortie, b.rapport)
-    if (appels === 1) return { code: 1, concurrence: 1, arret: { etat: 'mort' } }
-    assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 1)
-    assert.ok(b.journal.some((s) => s.includes('servis 1, plan 8')))
-    return { code: 0, concurrence: 1, annulee: true, arret: { etat: 'mort' } }
-  } })
-  assert.equal(appels, 2)
+test('paquet achevé : apprentissage visible avant le suivant interrompu (capture au-delà de 16 Mio, arrêt mort), rouge agrégé sans rejeu', (t) => {
+  const racine = forger(t, {}, { 'scripts/rouge.test.mjs': NODE_ROUGE, 'scripts/bavard.test.mjs': "process.stdout.write('x'.repeat(17 * 2 ** 20))\n", 'scripts/a.test.mjs': NODE_VERT })
+  const lancements = ['rouge', 'bavard', 'a'].map((nom, i) => lancementDe(racine, 'node', [`scripts/${nom}.test.mjs`], i))
+  mkdirSync(join(racine, CACHE), { recursive: true })
+  writeFileSync(lancements[2].sortie, 'rapport suivant intact')
+  const { rendu, journal } = executerReel(racine, lancements, { workers: { node: 8, vitest: 1 } })
   assert.equal(rendu.code, 1)
-  assert.equal(rendu.joues.length, 2)
-  assert.equal(b.ecritures.filter(([nom]) => nom === 'durees.json').length, 1)
-  assert.equal(existsSync(b.options.lancements[1].sortie), true)
+  assert.deepEqual(rendu.joues.map((j) => j.echecs), [['scripts/rouge.test.mjs'], []])
+  assert.deepEqual(Object.keys(dureesApprises(racine)), ['scripts/rouge.test.mjs'])
+  const appris = journal.findIndex((l) => l.includes('servis 1, plan 8'))
+  const interrompu = journal.indexOf('lancement interrompu : node ; rapports conservés, aucun apprentissage')
+  assert.ok(appris >= 0 && interrompu > appris, journal.join('\n'))
+  assert.ok(journal.some((l) => l.includes('ENOBUFS')), journal.join('\n'))
+  assert.equal(readFileSync(lancements[2].sortie, 'utf8'), 'rapport suivant intact')
 })
 
 /** Le mur du plan de `durees` (`{ [test]: ms }`), tous au rang touché, sur `workers`. */
@@ -810,12 +842,19 @@ test('mémos signés par la fermeture du propriétaire, hors CLI (C2)', (t) => {
   assert.notEqual(versionDesMemosDeDerivation(racine, autre), versionDesMemosDeDerivation(racine, meme))
 })
 
-test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', () => {
-  const appels = []
-  const lancer = (racine, fichiers, { cwd }) => { appels.push([racine, fichiers, cwd]); return { defauts: [], codeSortie: 1 } }
-  const lint = lintDesTouches('/r', ['a.ts', 'b.json', 'parti.mjs', 'c.mjs'], ['a.ts', 'b.json', 'c.mjs'], lancer)
-  assert.deepEqual([appels, lint.code], [[['/r', ['a.ts', 'c.mjs'], '/r']], 1])
-  assert.deepEqual(lintDesTouches('/r', ['b.json'], ['b.json'], lancer), { fichiers: [], defauts: [], code: 0 })
+test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-lint-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const appels = join(racine, 'appels.json')
+  mkdirSync(join(racine, 'scripts'))
+  writeFileSync(join(racine, 'package.json'), LINT_FORGE['package.json'])
+  writeFileSync(join(racine, 'scripts/lint-forge.mjs'), "import fs from 'node:fs'\nfs.writeFileSync(" + JSON.stringify(appels) + ", JSON.stringify(process.argv.slice(2).filter((a) => /\\.(ts|mjs|json)$/.test(a) && !a.includes('.lint-'))))\n" +
+    "process.stdout.write(JSON.stringify({ diagnostics: [], number_of_files: 0 }))\nprocess.exitCode = 1\n")
+  const lint = lintDesTouches(racine, ['a.ts', 'b.json', 'parti.mjs', 'c.mjs'], ['a.ts', 'b.json', 'c.mjs'])
+  assert.deepEqual([JSON.parse(readFileSync(appels, 'utf8')), lint.fichiers, lint.code], [['a.ts', 'c.mjs'], ['a.ts', 'c.mjs'], 1])
+  rmSync(appels)
+  assert.deepEqual(lintDesTouches(racine, ['b.json'], ['b.json']), { fichiers: [], defauts: [], code: 0 })
+  assert.equal(existsSync(appels), false, 'aucun fichier à linter : aucun lancement')
 })
 
 test('lireArguments : --tete exige --base, --budget exige un entier de secondes', () => {
@@ -1141,9 +1180,8 @@ const ORDRE_WINDOWS = ['B2/x', 'Z', 'a-b/x', 'a.test', 'a2/x', 'aB/x', 'a/Y2', '
 
 test('ordreDuLanceur : node trie le chemin au séparateur NATIF — l’ordre mesuré sous Windows avec \\, l’ordre POSIX avec /', () => {
   const melange = [...ORDRE_WINDOWS].reverse().map((t) => [t, 1])
-  assert.deepEqual(ordreDuLanceur('node', melange, '\\').map(([t]) => t), ORDRE_WINDOWS)
-  assert.deepEqual(ordreDuLanceur('node', melange, '/').map(([t]) => t),
-    ['B2/x', 'Z', 'a-b/x', 'a.test', 'a/Y2', 'a/x', 'a/y', 'a2/x', 'aB/x', 'a_b/x', 'b', 'é/x'].map((n) => `${n}.test.mjs`))
+  const posix = ['B2/x', 'Z', 'a-b/x', 'a.test', 'a/Y2', 'a/x', 'a/y', 'a2/x', 'aB/x', 'a_b/x', 'b', 'é/x'].map((n) => `${n}.test.mjs`)
+  assert.deepEqual(ordreDuLanceur('node', melange).map(([t]) => t), sep === '\\' ? ORDRE_WINDOWS : posix)
 })
 
 test('minorant PAR FAMILLE (sonde du juge de diff) : la famille qui porte un test sans durée dit « ≥ » et son écart un majorant', () => {
@@ -1219,23 +1257,6 @@ test('bilan après lancement : les fichiers joués sont ceux que les rapports me
   const tout = forger(t, base, { 'scripts/temoin.test.mjs': "import './seul.mjs'\nexport {}\n", 'src/a.test.ts': 'export {}\n' })
   assert.deepEqual(bilan(tout), ['[perimetre] bilan : joué(s) 2 / retenu(s) 2 / suite 2 fichier(s) — suite entière jouée'
     + ' (vitest 1/1/1, node 1/1/1) ; → CI 0 (budget 0, audit 0, durée inconnue 0)'])
-})
-
-test('diagnostic périmètre : clôture conserve causes, certificat natif et défaut collecte au journal', async (t) => {
-  const b = bancDeCloture(t, 'scripts/a.test.mjs', ['node', 'vitest'])
-  const error = new Error('enveloppe', { cause: Object.assign(new Error('lecture native'), { code: 'EIO' }) })
-  const lancer = b.lancer({ code: 1, error, defautCollecte: new Error('collecte parallèle'),
-    arret: { etat: 'indetermine', pid: 42, echeance: 1234, methode: 'job-windows', zeroNatif: false,
-      erreurs: [{ operation: 'constat', pid: 42, code: 'EACCES', message: 'preuve absente' }] } })
-  await executerLancements(b.options, { lancer, lancerNode: lancer })
-  const texte = b.journal.join('')
-  assert.match(texte, /EIO — lecture native/)
-  assert.match(texte, /constat PID 42 EACCES — preuve absente/)
-  assert.match(texte, /collecte parallèle/)
-  assert.match(texte, /"arret":\{"etat":"indetermine","pid":42,"echeance":1234,"methode":"job-windows","zeroNatif":false,/)
-  for (const ligne of b.journal) assert.match(ligne, /^[^\n]+$/, `ligne de journal non unique : ${JSON.stringify(ligne)}`)
-  assert.equal(b.spawns.length, 1)
-  assert.deepEqual(b.ecritures, [])
 })
 
 test('apprendre : un rapport illisible lève avec sa cause et s’efface (#2586)', (t) => {
