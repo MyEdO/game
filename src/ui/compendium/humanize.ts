@@ -405,7 +405,8 @@ export function humanizeOp(o: GameOp): string {
     case 'sinMod': return `${o.amount >= 0 ? 'gagne' : 'perd'} ${Math.abs(o.amount)} point(s) de Péché`;
     case 'corruptionExposure': return `est exposé à une influence corruptrice`;
     case 'gainResource': return `${o.amount >= 0 ? 'gagne' : 'perd'} ${Math.abs(o.amount)} point(s) de ${RESOURCE_LABEL[o.resource]}${o.temporary ? ' (temporaire)' : ''}`;
-    case 'gainAdvantage': return `voit son Avantage porté à au moins ${humanizeFormula(o.amount)}`;
+    case 'gainAdvantage': return `gagne ${humanizeFormula(o.amount)} Avantage(s)`;
+    case 'topUpAdvantage': return `voit son Avantage porté à au moins ${humanizeFormula(o.amount)}`;
     case 'castPenalty': return o.blocked ? "ne peut plus lancer de magie" : o.maxZeroDR ? 'ne peut plus obtenir de DR en Prière' : `subit ${o.mod ?? 0} aux Tests de magie`;
     case 'money': {
       const debit = estDebit(o.montant.brass);
@@ -514,7 +515,7 @@ export function humanizeOp(o: GameOp): string {
     case 'weaponDamageMod': return `modifie ses Dégâts d'arme`;
     case 'armourPierce': { const cat = armourBypassCatLabel(o.bypass); return `perce ${o.amount} PA${cat ? ` (ignore ${cat})` : ''}`; }
     case 'critOnRoll': return `déclenche un Critique sur certains jets`;
-    case 'spendAdvantage': return `dépense ${o.amount} point(s) d'Avantage`;
+    case 'spendAdvantage': return o.amount == null ? 'perd tous ses Avantages' : `dépense ${o.amount} point(s) d'Avantage`;
     case 'light': return `émet de la lumière sur ${o.radiusM} m`;
     case 'intoxicate': return `échoue à résister à l'alcool`;
     case 'narrative': return o.text;

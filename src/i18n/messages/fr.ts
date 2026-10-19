@@ -307,7 +307,9 @@ export const fr = {
   // Dégâts (LDB 15 l.80). Le libellé dit ce que le dé DÉCIDE, l'unité vit sur la déclaration.
   'op.fall.deHauteur': 'Hauteur de chute — {table}',
   'op.fall.deDegats': 'Dégâts de chute',
-  'op.gainAdvantage': '{name} porte son Avantage à {n}.',
+  'op.gainAdvantage': '{name} gagne {n} Avantage{s}.',
+  'op.topUpAdvantage': '{name} porte son Avantage à {n}.',
+  'op.spendAllAdvantage': '{name} perd tous ses Avantages.',
   'op.condPerRound': '{name} subira {v} État {cond} par Round ({src}).',
   'op.nature.effet': 'Effet',
   'op.nature.metamorphose': 'Métamorphose',
@@ -1170,6 +1172,11 @@ export const fr = {
   'mf.appraiseValue': 'Évaluation : {item} révélé (valeur estimée {range}).',
   // POURSUITE terrestre (LDB 15 l.88-108) et SOCLE DE SÉQUENCE (#1279) — narration de journal.
   'pursuit.none': 'Poursuite : aucun participant.',
+  'pursuit.abandonPoursuite': 'Abandonner la poursuite',
+  'pursuit.abandonFuite': 'Abandonner la fuite',
+  'pursuit.abandonPoursuiteTitre': 'Le groupe renonce à traquer sa proie — la poursuite est perdue.',
+  'pursuit.abandonFuiteCombatTitre': 'Le groupe cesse de fuir et fait face — les poursuivants fondent sur lui.',
+  'pursuit.abandonFuiteTitre': 'Le groupe cesse de fuir et fait face.',
   'pursuit.open': 'Poursuite — {camp} (Distance {distance}, évasion à {evasion} — LDB 15).',
   'pursuit.openFleeing': 'le groupe prend la fuite',
   'pursuit.openPursuing': 'le groupe se lance à la poursuite',
@@ -1200,6 +1207,9 @@ export const fr = {
   'pursuit.titreDistance': 'Distance {distance}/{evasion}',
   'pursuit.dr': '{dr} DR',
   'seq.borne': 'La partie s’arrête sur sa borne de {max} tours.',
+  'seq.abandonDemande': 'Abandon demandé : il prend effet à la fin de la manche.',
+  'seq.abandonEntreDeuxTests': 'Abandon possible entre deux Tests.',
+  'seq.abandonChoixEnCours': 'Répondez d’abord au choix en cours.',
   // TABLEAU DE MARQUE (`ui/SequencePanel.tsx`) — le SEUL texte que le panneau écrit lui-même : le
   // reste (titre, camps, pot, unité) vient du système, déjà minté. `{n}` reçoit le rang seul ou la
   // fraction `stepFraction` ; le repli d'unité est celui du contrat (une séquence de Tests compte des DR).
@@ -1215,8 +1225,14 @@ export const fr = {
   // Torchon trempé (NADJ 16 l.109-111). Le RÉCIT DE LA SANCTION (coup manqué, pinte vidée ou non,
   // balayage des trop sobres) vit dans la DÉCLARATION du jeu (`throwerPenalty.lines`) : il est propre
   // à CE jeu, et un second jeu à lanceurs en déclare un autre.
-  'tavern.torchonFinal': '{mien} points contre {sien} en {lancers} lancers.',
-  'tavern.finDePartie': '{jeu} — {who} contre {adversaire} : {log}{enjeu}',
+  'tavern.torchonFinal': '{mien} point{sm} contre {sien} en {lancers} lancer{sl}.',
+  'tavern.equipeFinal': '{mien} but{sm} contre {sien} en {tours} tour{st}.',
+  'tavern.abandon': 'Abandonner',
+  'tavern.abandonTitre': 'Renoncer à la partie : elle est perdue.',
+  'tavern.abandonEntreDeuxManches': 'Abandon possible entre deux manches.',
+  'tavern.abandonDetail': '{who} abandonne. {detail}',
+  'tavern.abandonSeul': '{who} abandonne.',
+  'tavern.finDePartie': '{jeu} — {who} contre {adversaire}, {issue} : {texte}{enjeu}',
   'tavern.enjeuGain': ' — gain {montant}',
   'tavern.enjeuPerte': ' — perte {montant}',
   'tavern.torchonTouche': '{who} touche {ou} : {points} point{s} ({dr} DR).',
@@ -1238,6 +1254,7 @@ export const fr = {
   'tavern.potMancheTitre': '{jeu} — manche {n}',
   'tavern.potManche': 'Manche {n} : chacun mise {mise} — le pot est de {pot}.',
   'tavern.potCibleChoix': '{who} — quel nombre cible ?',
+  'tavern.potOuverture': 'Manche {n} : chacun mise {mise}, puis {who} annonce le nombre cible.',
   'tavern.potCible': '{who} annonce le nombre cible : {cible}.',
   'tavern.potNouvelleCible': '{who} passe : nouveau nombre cible {cible}.',
   'tavern.potTour': '{who} lance les dés (cible {cible})',
@@ -1265,7 +1282,7 @@ export const fr = {
   'tavern.potEnJeu': 'Pot : {montant}',
   'tavern.potSorti': 'sorti de la manche',
   'tavern.potSolde': '{signe}{montant}',
-  'tavern.potFinal': '{manches} manche(s) à {mise} la mise.',
+  'tavern.potFinal': '{manches} manche{s} à {mise} la mise.',
 
   'tavern.volleyTour': '{who} — lancer {n}/{total}',
   'tavern.volleyLancer': '{jeu} — lancer {n}/{total}',
@@ -1285,20 +1302,20 @@ export const fr = {
   'tavern.regimeRapideNote': 'Règle optionnelle « Jeux de taverne rapides » : cette partie se résout en un seul Test opposé Intermédiaire (+0) — les règles ci-dessous ne sont pas jouées.',
   'tavern.volleyDepasse': '{who} dépasse {exact} : son tour est terminé, ce dernier lancer ne compte pas.',
   'tavern.volleyNote': 'lancer {n}/{total}',
-  'tavern.volleyFinal': '{mien} {unite} contre {sien} en {manches} manche(s).',
+  'tavern.volleyFinal': '{mien} {unite} contre {sien} en {manches} manche{sm}.',
   'tavern.sideTitre': '{jeu} — quel camp ?',
   'tavern.sideChoix': '{who} — quel camp menez-vous ?',
   'tavern.side': '{who} mène {camp}.',
   'tavern.sidePieces': '{pieces} pièces',
-  'tavern.sidePrises': '{mien} : {prisesMien} pièces prises — {sien} : {prisesSien}.',
+  'tavern.sidePrises': '{mien} : {prisesMien} {unite} — {sien} : {prisesSien}.',
   'tavern.sideCritique': 'Critique : {camp} emporte la partie.',
-  'tavern.sideFinal': '{mien} {unite} contre {sien} en {tours} tour(s).',
+  'tavern.sideFinal': '{mien} {unite} contre {sien} en {tours} tour{st}.',
   'tavern.optionTitre': 'que tentez-vous ?',
   'tavern.optionChoix': '{who} — quel Test tentez-vous ?',
   // Titre de manche d'un jeu à MI-TEMPS (famille 6 du socle) — position `SequenceRound.title`.
   'tavern.miTempsTitre': '{jeu} — {phase}ᵉ mi-temps, tour {n}/{total}',
   'tavern.cerevisTour': '{jeu} — tour {n}',
-  'tavern.cerevisEffaceChoix': '{who} — {marques} chouette(s) à la craie : en effacer une ?',
+  'tavern.cerevisEffaceChoix': '{who} — {marques} chouette{s} à la craie : en effacer une ?',
   'tavern.cerevisEfface': 'Effacer une chouette (boire une demi-chope)',
   'tavern.cerevisGarde': 'Les laisser',
   'tavern.cerevisEffacee': '{who} boit une demi-chope et efface une chouette.',
@@ -1307,7 +1324,6 @@ export const fr = {
   'tavern.cerevisAlcool': '{who} doit tenir l’alcool.',
   'tavern.cerevisSousLaTable': 'Un joueur roule sous la table : la partie s’arrête là.',
   'tavern.cerevisNote': 'le moins de chouettes l’emporte',
-  'tavern.cerevisFinal': '{mien} chouette(s) contre {sien} en {tours} tour(s).',
 
   // ── #2389 — VERDICTS des dés de monde lus en seuil (`state/pendings.SeuilVerdict`).
   'seuil.acheteurTrouve': 'acheteur trouvé',
@@ -2578,14 +2594,14 @@ export const fr = {
 
   // ── #1318 V8c₅ — JEUX DE TAVERNE : issue d'une manche/partie (`engine/tavernGame.ts`, NADJ 16
   // l.11/34). Le nom du jeu vient d'`activities.json` (donnée), l'issue est une clé.
-  'tavern.opposedLog': '{jeu} : {mien} DR contre {sien} → {issue}.',
-  'tavern.extendedLog': '{jeu} : {mien} DR cumulés contre {sien} en {rounds} manche{s}.',
   'tavern.issueWon': 'gagné',
   'tavern.issueLost': 'perdu',
   'tavern.issueTie': 'égalité',
   // NADJ 16 l.105 — la clause d'égalité d'un jeu, dite au résultat et au journal.
   'sequence.departageUnites': 'À DR égal, dé d’unités {mien} contre {sien} : le plus bas l’emporte',
   'tavern.departageDetail': 'DR {mien} contre {sien} — {departage}',
+  'tavern.opposedDetail': 'DR {mien} contre {sien}',
+  'tavern.extendedDetail': '{mien} DR cumulés contre {sien} en {rounds} manche{s}',
 
   // ── #1318 V8c₅ — SQUELETTE D'ARGUMENT d'un Trait (`engine/traits/dispatch.ts`) : le nom du POOL
   // attendu (type d'argument), résolu à l'APPEL — la carte porte des clés, jamais des chaînes gelées.

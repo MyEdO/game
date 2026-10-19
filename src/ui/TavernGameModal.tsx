@@ -203,11 +203,8 @@ export function TavernGameModal() {
           <p className={`tavern-verdict ${result.winner === 'player' ? 'ok-text' : result.winner === 'opponent' ? 'ko-text' : ''}`}>
             {result.winner === 'player' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'opponent' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
           </p>
-          <p className="tavern-detail">
-            {/* Un jeu qui ne compte pas en DR (jeu de MISE) porte SA ligne, composée par le jeu. */}
-            {result.detail ?? `DR ${result.playerSL} contre ${result.opponentSL}`}
-            {result.rounds > 1 ? ` · ${result.rounds} manches` : ''}
-          </p>
+          {/* Le score dans l'unité du jeu, composé par son dénouement (`TavernGamesResult.detail`). */}
+          <p className="tavern-detail">{result.detail}</p>
           {result.netBrass !== 0 && (
             <p className="tavern-detail">
               {result.netBrass > 0 ? 'Gain : +' : 'Perte : −'}

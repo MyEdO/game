@@ -172,7 +172,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   playTavernGame: HOTE('jeu de taverne'),
   closeTavernGames: HOTE('jeux de taverne'),
   openTavernGames: HOTE('jeux de taverne'),
-  pursuitAbandon: HOTE('abandon d’une manche de poursuite'),
+  sequenceAbandon: HOTE('abandon d’une séquence (poursuite, jeu de taverne)'),
   endSession: HOTE('fin de séance'),
   closeSessionEnd: HOTE('fin de séance'),
   // Cadre de campagne (#717) : l'invité VOIT les deux écrans (la cérémonie et la chronique se partagent

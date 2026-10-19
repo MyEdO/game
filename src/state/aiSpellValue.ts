@@ -215,7 +215,7 @@ function opIsBeneficial(op: GameOp): boolean {
     case 'heal': case 'healCaster': case 'cureCriticalWound': case 'cureDisease':
     case 'reduceDiseaseDays': case 'diseaseTestMod': case 'suppressSymptom': case 'preventInfection': case 'removeCondition': case 'endPsych':
     case 'grantTalent': case 'grantTrait': case 'augmentWeapon': case 'grantWeapon':
-    case 'grantNaturalWeapon': case 'ap': case 'gainResource': case 'gainAdvantage':
+    case 'grantNaturalWeapon': case 'ap': case 'gainResource': case 'gainAdvantage': case 'topUpAdvantage':
     case 'freeReroll': case 'critTwice': case 'ignoreStatePenalties': case 'suppressPsych':
     case 'noBreath': case 'noHunger': case 'weatherWard': case 'castWard': case 'arrowWard':
     case 'domeWard': case 'attackWardFM': case 'martyr': case 'giveTrapping':
@@ -265,7 +265,7 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
     case 'skillMod':
       return op.mod > 0 ? marginalBuff(caster, subject, op, ctx) : Math.abs(op.mod) / 10;
     case 'augmentWeapon': case 'grantWeapon': case 'grantNaturalWeapon':
-    case 'gainAdvantage': case 'grantFreeAttack':
+    case 'gainAdvantage': case 'topUpAdvantage': case 'grantFreeAttack':
       return marginalBuff(caster, subject, op, ctx);
     // CONTRÔLE hostile.
     case 'condition':

@@ -66,7 +66,7 @@ describe('campGain — mode « Avantage de groupe » : réserve du camp (AA 11 l
     const a = mk('h1', 'hero');
     const e = mk('e1', 'enemy');
     const { get, battle } = makeGet([a, e], { allies: 0, foes: 0 });
-    // l’op `gainAdvantage` (Redoutable) a complété l’Avantage de l’ennemi jusqu’à l’Indice sur la projection…
+    // l’op `topUpAdvantage` (Redoutable) a complété l’Avantage de l’ennemi jusqu’à l’Indice sur la projection…
     e.advantage = 3;
     reconcileAdvantageToPool(get, e); // …on relève la réserve adverse en conséquence
     expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 });
@@ -131,7 +131,7 @@ describe('Distraire (LDB 10 l.364) — le distrait ne génère plus d’Avantage
 });
 
 describe('reconcileAdvantageToPool — bidirectionnel (octroi/dépense par op)', () => {
-  it('un spendAdvantage op (projection abaissée) ABAISSE la réserve du camp', () => {
+  it('une projection abaissée hors `campSpend` ABAISSE la réserve du camp', () => {
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'hero');
     const b = mk('h2', 'hero');
@@ -139,7 +139,7 @@ describe('reconcileAdvantageToPool — bidirectionnel (octroi/dépense par op)',
     campGain(get, a, 4); // réserve alliés = 4, projetée sur a ET b
     expect(a.advantage).toBe(4);
     expect(b.advantage).toBe(4);
-    a.advantage = 1; // un op `spendAdvantage` a dépensé 3 DIRECTEMENT sur la projection d’un allié
+    a.advantage = 1; // 3 dépensés DIRECTEMENT sur la projection d’un allié
     reconcileAdvantageToPool(get, a);
     expect(battle.advantagePools).toEqual({ allies: 1, foes: 0 }); // réserve abaissée
     expect(b.advantage).toBe(1); // re-projeté sur tout le camp
@@ -212,14 +212,14 @@ describe('creditOpposingAdvantage — fournisseur ctx.onOpposingAdvantage (Redou
   });
 });
 
-describe('Redoutable — clause AA bout-en-bout (op gainAdvantage{feedOpposingPool} → ctx.onOpposingAdvantage, via fireTurnStartTriggers)', () => {
+describe('Redoutable — clause AA bout-en-bout (op topUpAdvantage{feedOpposingPool} → ctx.onOpposingAdvantage, via fireTurnStartTriggers)', () => {
   it('début de tour : regain propre jusqu’à l’Indice + génération PLEINE pour la réserve adverse', () => {
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'hero');
     const e = mk('e1', 'enemy', { traits: [{ id: 'redoutable', value: 3 }], advantage: 0 });
     const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 0 });
     fireTurnStartTriggers(get, set, e);
-    expect(e.advantage).toBe(3); // regain propre (op gainAdvantage) jusqu'à l'Indice
+    expect(e.advantage).toBe(3); // regain propre (op topUpAdvantage) jusqu'à l'Indice
     expect(battle.advantagePools).toEqual({ allies: 3, foes: 3 }); // + Indice plein côté alliés (camp OPPOSÉ)
     expect(a.advantage).toBe(3); // projection
   });

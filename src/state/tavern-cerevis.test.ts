@@ -21,7 +21,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
-import { findTavernGameById } from '../engine/tavernGame';
+import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
+import { setDataset } from '../data/overrides';
 import { effectiveTarget } from './rollSeam';
 import { testValue } from '../engine/skills';
 import { addCondition, COND } from '../engine/conditions';
@@ -256,6 +257,17 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
     expect(res.winner, '1 chouette contre 3 : le plus sobre gagne').toBe('player');
     expect([res.playerSL, res.opponentSL], 'ce qui se compte, ce sont les chouettes').toEqual([1, 3]);
     expect(get().sequence).toBeNull();
+  });
+
+  it('la ligne finale dit l’unité de score DÉCLARÉE par le jeu (`scoreUnit`), jamais un mot en dur', () => {
+    const catalogue = [...TAVERN_GAMES];
+    setDataset('tavernGames', catalogue.map((g) => (g.id === 'cerevis' ? { ...g, scoreUnit: 'marques', scoreUnitSingular: 'marque' } : g)));
+    try {
+      const a = seul();
+      useGame.setState({ sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { player: 1, opponent: 3 }) });
+      closeSequenceRound(get, useGame.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
+      expect(get().tavernGames!.result!.detail).toContain('1 marque contre 3 en');
+    } finally { setDataset('tavernGames', catalogue); }
   });
 
   it('un joueur SOUS LA TABLE arrête la partie avant terme (l.88)', () => {

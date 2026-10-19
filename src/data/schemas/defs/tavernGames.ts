@@ -91,6 +91,9 @@ const doc = document(
     /** Bonus de Caractéristique ajouté au DR de chaque manche (Bras de fer l.34 : Force) — consommé
      *  par `SequenceParams.drBonus` (`src/state/sequenceCore.ts`). */
     drBonus: charKeySchema.optional(),
+    /** L'Avantage est en jeu, aux règles habituelles (NADJ 16 l.34, l.119) — `options[].combatTest` dit
+     *  quel Test d'un jeu à options admet le +10 (LDB 14 l.215). */
+    avantage: z.boolean().optional(),
     /** Effets PAR MANCHE en `GameOp[]` (Bras de fer l.34 : +1 Avantage au vainqueur du tour,
      *  +1 Exténué tous les (Bonus d'Endurance) tours) — `SequenceParams.rounds`. */
     roundOps: nommerChamps(z.strictObject({
@@ -239,6 +242,8 @@ const doc = document(
     }).optional(),
     /** Unité de ce que le jeu compte, au pluriel (affichage : « quilles », « points »…). */
     scoreUnit: z.string().optional(),
+    /** La même unité au singulier (« quille », « point »…), accordée au compte du dénouement. */
+    scoreUnitSingular: z.string().optional(),
     /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.25-28 : chaque camp convertit son total en
      *  prises sur l'adversaire (`div`), et sa victoire au Critique se lit au dé des unités (`mult`). */
     sides: z.array(nommerChamps(z.strictObject({
@@ -309,6 +314,7 @@ const doc = document(
       hint: 'Règle appliquée à une égalité de DR : dé des unités le plus bas, ou égalité maintenue (nul)',
     },
     drBonus: { label: 'Bonus de Caractéristique', hint: 'Bonus de la Caractéristique ajouté au DR de chaque manche' },
+    avantage: { label: 'Avantage en jeu', hint: 'L’Avantage se gagne et se perd par manche, aux règles habituelles' },
     roundOps: { label: 'Effets par manche', hint: 'Effets mécaniques appliqués au vainqueur de la manche, et par usure' },
     team: { label: 'Effectif d’équipe', hint: 'Effectif requis par camp, complété de figurants si incomplet' },
     roundShape: { label: 'Forme du tour', hint: 'Structure d’un tour : équipe, lanceur unique, mise ou volée' },
@@ -328,6 +334,7 @@ const doc = document(
     combined: { label: 'Test combiné', hint: 'Un seul jet lu deux fois : conséquence principale et secondaire' },
     throwerPenalty: { label: 'Sanction du lanceur', hint: 'Test et coût imposés au lanceur qui manque son lancer' },
     scoreUnit: { label: 'Unité de score', hint: 'Nom au pluriel de ce que le jeu compte (quilles, points…)' },
+    scoreUnitSingular: { label: 'Unité de score (singulier)', hint: 'La même unité au singulier (quille, point…)' },
     sides: { label: 'Camps asymétriques', hint: 'Conversion du score de chaque camp en prises sur l’adversaire' },
     specials: {
       label: 'Spéciaux',

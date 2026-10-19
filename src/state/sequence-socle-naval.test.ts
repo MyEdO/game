@@ -52,11 +52,12 @@ describe('Structure d’orchestrateur — garde structurelle (elle ne connaît a
   /**
    * Les champs ÉCRITS se lisent sur le LITTÉRAL ENTIER de chaque `set({...})`, pas sur son premier
    * champ : une écriture glissée en 2ᵉ position (`set({ sequence, battle })`) passerait sinon sous le
-   * radar — mesuré par mutation. `pendingCascade` est autorisé pour un seul geste, l'ABANDON, qui
-   * ferme la fenêtre en même temps qu'il retire la séquence.
+   * radar — mesuré par mutation. `pendingCascade` est la fenêtre de la manche : le socle la LIT pour
+   * savoir si la manche est entamée ou résolue (LDB 12 l.176), jamais ne l'écrit — même l'abandon la
+   * ferme par la queue de clôture de toute cascade.
    */
-  it('les SEULS champs d’état écrits sont les SIENS (`sequence`, et la fenêtre qu’elle ferme)', () => {
-    const AUTORISES = ['sequence', 'pendingCascade'];
+  it('le SEUL champ d’état écrit est le SIEN (`sequence`) ; la fenêtre est lue, jamais écrite', () => {
+    const AUTORISES = ['sequence'];
     // Les champs de PREMIER NIVEAU de chaque `set({...})` — un compteur d'accolades, parce qu'une
     // valeur imbriquee (`set({ sequence: { ...seq, payload } })`) n'est PAS un champ d'etat ecrit.
     const ecrits = new Set<string>();
@@ -79,11 +80,11 @@ describe('Structure d’orchestrateur — garde structurelle (elle ne connaît a
     }
     expect(ecrits.size, 'la garde doit VOIR des écritures, sinon elle ne mesure rien').toBeGreaterThan(0);
     for (const champ of ecrits) expect(AUTORISES).toContain(champ);
-    expect([...ecrits], 'les deux champs autorisés sont VIVANTS — aucune entrée morte dans la liste').toEqual(
+    expect([...ecrits], 'le champ autorisé est VIVANT — aucune entrée morte dans la liste').toEqual(
       expect.arrayContaining(AUTORISES),
     );
     const lus = new Set([...CODE.matchAll(/get\(\)\.(\w+)/g)].map((m) => m[1]));
-    for (const champ of lus) expect(['sequence', 'log']).toContain(champ);
+    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'log']).toContain(champ);
   });
 });
 

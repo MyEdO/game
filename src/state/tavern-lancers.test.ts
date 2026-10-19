@@ -200,6 +200,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
     poseLancer(5, 20); // réussite à +60, DR posé bien au-delà des 16 quilles
     const res = get().tavernGames!.result!;
     expect(res.playerSL, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
+    expect(res.detail.startsWith('16 quilles contre'), res.detail).toBe(true);
     expect(get().sequence, 'la partie est close : plus rien à abattre des deux côtés').toBeNull();
   });
 
@@ -419,6 +420,17 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
       ['elfe', 12, 1, 4], // « le nombre obtenu sur le dé des unités, multiplié par quatre »
     ]);
     expect(ALVATAFL.drBonus, '« ajoutez ensuite votre Bonus d’Intelligence au nombre de DR »').toBe('intelligence');
+  });
+
+  it('le dénouement accorde l’unité au compte : 1 pièce prise', () => {
+    const a = seul();
+    const bonusInt = bonus(effectiveChar(a, 'intelligence'));
+    useGame.setState({ tavernGames: null, sequence: partie('nain', {}, a.id) });
+    // Critique sur 11 : dé des unités 1 ≤ 1 prise, la partie est emportée sur une seule pièce.
+    closeSequenceRound(get, useGame.setState, manche(a.id, { roll: 11, sl: 1 - bonusInt }, { roll: 41, sl: 0 }));
+    const res = get().tavernGames!.result!;
+    expect(res.playerSL).toBe(1);
+    expect(res.detail.startsWith('1 pièce prise contre'), res.detail).toBe(true);
   });
 
   it('le CRITIQUE emporte la partie quand la condition du camp est remplie — et PAS quand elle ne l’est pas', () => {

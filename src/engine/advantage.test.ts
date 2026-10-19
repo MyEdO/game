@@ -1,7 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { advantageCap, advantageCapFor, gainAdvantage } from './advantage';
+import { advantageCap, advantageCapFor, gainAdvantage, avantageApresPerte } from './advantage';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
+import { applyOps, avantageDeCampSansFiche } from './ops';
+import { TAVERN_GAMES } from './tavernGame';
+import { createHero } from './character';
 
 const c = (advantage: number) => ({ advantage }) as Combatant;
 const ci = (advantage: number, I: number) =>
@@ -24,6 +27,15 @@ describe('gainAdvantage — plafond « Limiter les Avantages » (LDB 14 l.198)',
   });
 });
 
+describe('avantageApresPerte — perte d’Avantage (LDB 14 l.219)', () => {
+  it('sans montant : tout est perdu ; avec montant : n retirés, plancher 0', () => {
+    expect(avantageApresPerte(4)).toBe(0);
+    expect(avantageApresPerte(4, 1)).toBe(3);
+    expect(avantageApresPerte(1, 3)).toBe(0);
+    expect(avantageApresPerte(0, 1)).toBe(0);
+  });
+});
+
 describe('Plafond d’Avantage = Bonus d’Initiative (LDB 14 l.197, règle optionnelle)', () => {
   afterEach(() => { resetRule('combat-advantage-cap-bi'); resetRule('combat-advantage-cap'); });
   it('off (défaut) : advantageCapFor = plafond fixe', () => {
@@ -37,5 +49,58 @@ describe('Plafond d’Avantage = Bonus d’Initiative (LDB 14 l.197, règle opti
   it('gainAdvantage clampe au Bonus d’Initiative quand la règle est active', () => {
     setRule('combat-advantage-cap-bi', true);
     const a = ci(2, 45); gainAdvantage(a, 10); expect(a.advantage).toBe(4);
+  });
+});
+
+/** Les verbes d'Avantage du vocabulaire d'ops (`engine/ops.ts`), joués SANS couche state (aucun hook). */
+describe('ops d’Avantage — gain additif, complétion, perte totale', () => {
+  afterEach(() => resetRule('combat-advantage-cap'));
+  const heros = () => { const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lutteur', seed: 1 }); h.advantage = 0; return h; };
+
+  it('`gainAdvantage` S’ADDITIONNE (NADJ 16 l.34, LDB 14 l.204-209) et s’arrête au plafond (l.198)', () => {
+    setRule('combat-advantage-cap', 3);
+    const h = heros();
+    for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { caster: h });
+    expect(h.advantage).toBe(2);
+    applyOps(h, [{ op: 'gainAdvantage', amount: 5 }], { caster: h });
+    expect(h.advantage).toBe(3);
+  });
+
+  it('`topUpAdvantage` COMPLÈTE jusqu’à `amount`, sans jamais retirer (MDG 16 l.11)', () => {
+    const h = heros();
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
+    expect(h.advantage).toBe(2);
+    h.advantage = 4;
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
+    expect(h.advantage).toBe(4);
+  });
+
+  it('`spendAdvantage` sans `amount` fait perdre TOUS les Avantages (LDB 14 l.219)', () => {
+    const h = heros();
+    h.advantage = 4;
+    applyOps(h, [{ op: 'spendAdvantage' }], { caster: h });
+    expect(h.advantage).toBe(0);
+  });
+});
+
+describe('avantageDeCampSansFiche — l’Avantage d’un camp sans fiche (#2333)', () => {
+  it('lit le vocabulaire d’Avantage par les primitives : gain plafonné, perte totale ou de 1, plancher 0', () => {
+    expect(avantageDeCampSansFiche(1, [{ op: 'gainAdvantage', amount: 1 }], 3)).toBe(2);
+    expect(avantageDeCampSansFiche(2, [{ op: 'gainAdvantage', amount: 5 }], 3), 'plafond').toBe(3);
+    expect(avantageDeCampSansFiche(3, [{ op: 'spendAdvantage' }], 3), 'tout').toBe(0);
+    expect(avantageDeCampSansFiche(2, [{ op: 'spendAdvantage', amount: 1 }], 3)).toBe(1);
+    expect(avantageDeCampSansFiche(0, [{ op: 'spendAdvantage', amount: 1 }], 3), 'plancher').toBe(0);
+  });
+
+  it('une op hors du vocabulaire d’Avantage LÈVE, nommée', () => {
+    expect(() => avantageDeCampSansFiche(0, [{ op: 'topUpAdvantage', amount: 1 }], 3)).toThrow(/topUpAdvantage/);
+  });
+
+  it('chaque `roundOps.winner` des jeux de taverne est lisible par lui', () => {
+    for (const g of TAVERN_GAMES) {
+      if (!g.roundOps?.winner) continue;
+      expect(() => avantageDeCampSansFiche(0, g.roundOps!.winner!, 10), g.id).not.toThrow();
+    }
   });
 });

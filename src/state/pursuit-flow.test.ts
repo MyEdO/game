@@ -11,11 +11,11 @@ import { applyEffects } from './combatFlow';
 import { EFFECT_HANDLERS } from './combatEffects';
 import { findCreatureById } from '../data';
 import {
-  startGroundPursuit, pursuitAbandon, pursuitBands, pursuitOf, PURSUIT_POLICY_DEFAUT,
+  startGroundPursuit, pursuitBands, pursuitOf, PURSUIT_POLICY_DEFAUT,
   type PursuitPayload,
 } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
+import { closeSequenceRound, sequenceAbandonOf, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { startCascade } from './cascade';
 import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { combatStakeRef } from '../data';
@@ -27,6 +27,7 @@ import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { CascadeStep } from './pendings';
 import { avanceEtapeCascade } from './cascadeTestKit';
+import { setCadence, resetCadence } from '../engine/cadence';
 
 function heroes() {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
@@ -224,10 +225,84 @@ describe('Poursuite terrestre (#95)', () => {
 
   it('abandon : le groupe renonce et la poursuite se ferme', () => {
     heroes();
-    useGame.setState({ sequence: pursuitSeq({ partyRole: 'pursuing', distance: 5, foes: [{ label: 'Voleur', movement: 4, skill: 40 }] }) });
-    pursuitAbandon(useGame.getState, useGame.setState);
+    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+    useGame.getState().sequenceAbandon();
     expect(pursuitOf(useGame.getState())).toBeNull();
     expect(useGame.getState().journal.some((l) => l.includes('abandonne'))).toBe(true);
+  });
+
+  it.each(['manuel', 'auto'] as const)('abandon d’une poursuite ouverte PAR-DESSUS une cascade hôte (%s) : la cascade parquée reprend — l’abandon immédiat sort par la même queue de clôture que l’abandon demandé', (mode) => {
+    setCadence(mode);
+    try {
+      heroes();
+      useGame.setState({ suspendedCascades: [] });
+      startCascade(useGame.getState, useGame.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: 'reveal', label: fixtureText('Une ombre'), worldOwner: true })] });
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      expect(useGame.getState().suspendedCascades.map((c) => c.purpose), 'la cascade hôte est parquée sous la poursuite').toEqual(['test']);
+      useGame.getState().sequenceAbandon();
+      expect(pursuitOf(useGame.getState())).toBeNull();
+      expect(useGame.getState().pendingCascade?.purpose, 'la cascade hôte reprend').toBe('test');
+      expect(useGame.getState().suspendedCascades, 'plus rien de parqué').toEqual([]);
+    } finally { resetCadence(); }
+  });
+
+  it('abandon : libellé et titre suivent le rôle du groupe et la rencontre', () => {
+    heroes();
+    const libelles = (p: { partyRole: 'fleeing' | 'pursuing'; encounter?: string }) => {
+      useGame.setState({ sequence: null, pendingCascade: null });
+      startGroundPursuit(useGame.getState, useGame.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }], ...p });
+      const a = sequenceAbandonOf(useGame.getState)!;
+      return [a.label, a.title, a.outcome];
+    };
+    expect(libelles({ partyRole: 'pursuing' })).toEqual(['Abandonner la poursuite', 'Le groupe renonce à traquer sa proie — la poursuite est perdue.', 'abandon']);
+    expect(libelles({ partyRole: 'fleeing', encounter: 'embuscade' })).toEqual(['Abandonner la fuite', 'Le groupe cesse de fuir et fait face — les poursuivants fondent sur lui.', 'abandon']);
+    expect(libelles({ partyRole: 'fleeing' })).toEqual(['Abandonner la fuite', 'Le groupe cesse de fuir et fait face.', 'abandon']);
+  });
+
+  it('cadence AUTO : la bande naît tirée, l’abandon DEMANDÉ clôt la manche par le chemin du joueur (manche appliquée) puis finit la poursuite (LDB 12 l.176)', () => {
+    setCadence('auto');
+    try {
+      heroes();
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      const bande = useGame.getState().pendingCascade!.participants[0].participants!;
+      expect(bande.every((r) => r.interactive === false && r.result), 'toutes les rangées tirées à l’ouverture').toBe(true);
+      expect(sequenceAbandonOf(useGame.getState), 'manche résolue : abandon offert').not.toBeNull();
+      useGame.getState().sequenceAbandon();
+      const journal = useGame.getState().journal;
+      const manche = journal.findIndex((l) => l.startsWith('Manche 1 :'));
+      const renonce = journal.indexOf('Le groupe cesse de fuir et fait face.');
+      expect(manche, 'la manche tirée est appliquée').toBeGreaterThanOrEqual(0);
+      expect(renonce, 'puis le groupe renonce').toBeGreaterThan(manche);
+      expect(pursuitOf(useGame.getState())).toBeNull();
+      expect(useGame.getState().pendingCascade).toBeNull();
+    } finally { resetCadence(); }
+  });
+
+  it('cadence AUTO : la clôture menée par l’abandon passe par le dénouement générique — un groupe anéanti est vaincu, il n’abandonne pas', () => {
+    setCadence('auto');
+    try {
+      const [a, b] = heroes();
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      expect(sequenceAbandonOf(useGame.getState), 'manche résolue : abandon offert').not.toBeNull();
+      useGame.setState({ partyWiped: false, party: [{ ...a, dead: true }, { ...b, dead: true }] });
+      useGame.getState().sequenceAbandon();
+      expect(useGame.getState().partyWiped, 'checkPartyWiped constate la défaite').toBe(true);
+      expect(pursuitOf(useGame.getState())).toBeNull();
+      expect(useGame.getState().journal.includes('Le groupe cesse de fuir et fait face.'), 'aucun abandon raconté').toBe(false);
+    } finally { resetCadence(); useGame.setState({ partyWiped: false }); }
+  });
+
+  it('manche MANUELLE à jet posé mais incomplète : ni offert, ni accepté', () => {
+    heroes();
+    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+    const bande = () => useGame.getState().pendingCascade!.participants[0].participants!;
+    const jouables = bande().filter((r) => r.interactive !== false);
+    expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
+    useGame.getState().cascadeBatchRoll(jouables[0].id);
+    expect(sequenceAbandonOf(useGame.getState)).toBeNull();
+    useGame.getState().sequenceAbandon();
+    expect(pursuitOf(useGame.getState()), 'la poursuite continue').not.toBeNull();
+    expect(bande().find((r) => r.id === jouables[0].id)!.result, 'le jet posé reste à résoudre').toBeTruthy();
   });
 
   it('poursuite JOUÉE de bout en bout via les bandes (rangées influençables) atteint une issue terminale', () => {

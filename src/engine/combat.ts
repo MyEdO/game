@@ -989,7 +989,7 @@ function defenseTestChar(mode: DefenseMode): CharKey | null {
  *  (`baseTestModLines`, ci-dessous) et par tout Test HORS arène que la règle dit « approprié »
  *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
  *  Réutiliser ; ne jamais réécrire `c.advantage * 10`. */
-export function advantageModLine(c: Combatant): ModLine | null {
+export function advantageModLine(c: Pick<Combatant, 'advantage'>): ModLine | null {
   const adv = (c.advantage ?? 0) * 10;
   // Avantage HORS table de Difficulté (comme `attackModifiers`/`defenseModifiers`) → `famille: 'jet'`.
   return adv ? { label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage } : null;

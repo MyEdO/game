@@ -1216,7 +1216,7 @@ export const STRUCTURES_OPS = [
   { op: "fall", signature: "hauteur,op", dataset: "ship-criticals.json", occurrences: 5, lot: "L1c #1468", date: "2026-08-23" }, // NEUF (#1657 B3-2b-c) : les 5 rangées du gréement font TOMBER (MDG 13 l.678-688) ; la hauteur est une réf `{id}` de table, jamais un nombre authoré
   { op: "freeReroll", signature: "op", dataset: "spells.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
   { op: "gainAdvantage", signature: "amount,op", dataset: "tavernGames.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "gainAdvantage", signature: "amount,feedOpposingPool,op", dataset: "traits.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "topUpAdvantage", signature: "amount,feedOpposingPool,op", dataset: "traits.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "gainResource", signature: "amount,op,perSL,resource,temporary", dataset: "spells.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
   { op: "gainResource", signature: "amount,op,perSL,resource", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "gainResource", signature: "amount,op,resource", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },

@@ -194,7 +194,7 @@ const HELPFUL_TARGET_OPS = new Set<string>([
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
   'gainResource', 'arrowWard', 'attackWardFM', 'castWard', 'domeWard', 'weatherWard', 'mitigateIncoming',
   'ignoreStatePenalties', 'noBreath', 'noHunger', 'preventInfection', 'reduceDiseaseDays', 'diseaseTestMod', 'suppressSymptom', 'skillDRBonus',
-  'martyr', 'endPsych', 'removePsychTrait', 'suppressPsych', 'gainAdvantage', 'critTwice',
+  'martyr', 'endPsych', 'removePsychTrait', 'suppressPsych', 'gainAdvantage', 'topUpAdvantage', 'critTwice',
   'grantCareerSkill', 'grantCareerTalent',
 ]);
 

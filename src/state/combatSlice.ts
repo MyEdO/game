@@ -121,8 +121,7 @@ import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
 import { bus, EVT } from './bus';
 import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from './cascade';
-import { pursuitAbandon } from './pursuitFlow';
-import { closeSequenceRound } from './sequenceCore';
+import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS } from './rollFlowSpecs';
 import { actionsAuthorees } from './usable';
@@ -3418,7 +3417,16 @@ export function createCombatSlice(get: Get, set: Set) {
     // son dénouement passe alors par le MÊME routage que `cascadeNext`/`cascadeFinish`.
     cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(done); },
     cascadeFinish: () => dispatchCascadeDone(finalizeCascade(get, set)),
-    pursuitAbandon: () => pursuitAbandon(get, set), // poursuite terrestre : le groupe renonce (state/pursuitFlow)
+    // Le joueur renonce à la séquence en cours (state/sequenceCore) : l'abandon est DEMANDÉ, et la manche
+    // se clôt par les gestes du joueur (« Suivant », « Terminer ») jusqu'à la clôture, qui le joue — ou
+    // jusqu'à une étape due, que le joueur joue avant. Une manche sans jet posé se ferme d'emblée.
+    sequenceAbandon: () => {
+      abandonSequence(get, set);
+      for (let pas = pasVersLAbandon(get); pas; pas = pasVersLAbandon(get)) {
+        if (pas === 'terminer') get().cascadeFinish();
+        else get().cascadeNext();
+      }
+    },
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).

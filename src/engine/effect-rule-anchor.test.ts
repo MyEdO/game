@@ -153,11 +153,10 @@ const BASELINE: string[] = [
   'state/travelPostes.ts | [op] | ', // Exténué du Test de résistance de traversée (État : ancré par son condId)
   // #1279 S1 — EFFETS PAR MANCHE d'une séquence : les ops viennent de la DONNÉE de l'entrée qui joue
   // (`SequenceParams.rounds`), pas du socle, qui ne peut donc pas les ancrer lui-même. Aujourd'hui
-  // seule la taverne en déclare (+1 Avantage au vainqueur de manche, +1 Exténué d'attrition — NADJ 16
-  // l.34) : aucune ne pose d'`ActiveEffect`, et l'État est ancré par son `condId`. L'ancrage propre
-  // est une DÉCLARATION à ajouter à l'entrée de données (les jeux de taverne n'ont pas d'entrée Codex
+  // seule la taverne en déclare (NADJ 16 l.34, LDB 14 l.219) : aucune ne pose d'`ActiveEffect`, et
+  // l'État est ancré par son `condId`. L'ancrage propre est une DÉCLARATION à ajouter à l'entrée de données (les jeux de taverne n'ont pas d'entrée Codex
   // à viser à ce jour) — les deux lignes s'ôtent d'ici le jour où elle existe.
-  'state/sequenceCore.ts | [...decl.winner] | { caster: c }', // ops de manche au vainqueur de la manche
+  'state/sequenceCore.ts | [...ops] | { caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
   'state/sequenceCore.ts | [...decl.attrition] | { caster: c }', // ops d'attrition d'intervalle
   'state/zones.ts | z.onCross | { caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
   'state/zones.ts | z.perRound | { caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet

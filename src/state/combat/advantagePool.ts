@@ -6,8 +6,9 @@
  * (défaut), tout ce module délègue au primitif per-combattant `gainAdvantage` (comportement INCHANGÉ).
  */
 import type { Combatant } from '../../engine/types';
+import type { OpsCtx } from '../../engine/ops';
 import type { Get } from '../flowTypes';
-import { gainAdvantage } from '../../engine/advantage';
+import { gainAdvantage, avantageApresPerte } from '../../engine/advantage';
 import { isOutOfAction } from '../../engine/conditions';
 import {
   groupAdvantage, advantageCampOf, emptyPools, addToPool, mirrorPools, dominationTransfer,
@@ -69,10 +70,16 @@ export function campSpend(get: Get, c: Combatant, n: number): void {
   mirrorPools(pools, battle.combatants);
 }
 
+/** Fournisseur des hooks d'Avantage d'`OpsCtx` (`engine/ops.ts`) : l'op `gainAdvantage` gagne par
+ *  `campGain`. */
+export function campAdvantageHooks(get: Get): Required<Pick<OpsCtx, 'onGainAdvantage'>> {
+  return { onGainAdvantage: (c, n) => campGain(get, c, n) };
+}
+
 /** Avantage que `c` lira APRÈS `campSpend(get, c, n)` — le solde que le débit pose, SOURCE UNIQUE du
  *  débit et de l'aperçu d'un geste qui le paie (le jet se tire sur l'Avantage restant). */
 export function avantageApresDepense(get: Get, c: Combatant, n: number): number {
-  return Math.max(0, spendableAdvantage(get, c) - Math.max(0, n));
+  return avantageApresPerte(spendableAdvantage(get, c), Math.max(0, n));
 }
 
 /**
@@ -116,9 +123,8 @@ export function reversalStealOne(get: Get, thief: Combatant, victim: Combatant):
 
 /**
  * Réconcilie la réserve du camp de `c` avec son Avantage individuel après qu'un OP a écrit DIRECTEMENT sur
- * la projection `c.advantage` sans passer par `campGain`/`campSpend` : `gainAdvantage` (Redoutable,
- * MDG 16 l.11 : complète jusqu'à l'Indice) RELÈVE la réserve du camp ; `spendAdvantage` (un futur effet dépensant de
- * l'Avantage par op) l'ABAISSE. On reporte l'ÉCART (`c.advantage − réserve du camp`) sur la réserve puis on
+ * la projection `c.advantage` sans passer par `campGain`/`campSpend` : `topUpAdvantage` (Redoutable,
+ * MDG 16 l.11 : complète jusqu'à l'Indice) RELÈVE la réserve du camp. On reporte l'ÉCART (`c.advantage − réserve du camp`) sur la réserve puis on
  * re-projette — la réserve reste la source de vérité. No-op hors mode groupe (l'op a déjà tout fait). Idempotent
  * (après re-projection `c.advantage == réserve`, un 2ᵉ appel ne bouge rien).
  */
@@ -138,7 +144,7 @@ export function reconcileAdvantageToPool(get: Get, c: Combatant): void {
  * clause d'Avantage de groupe (AA) du Trait *Redoutable* (`MDG 16 l.13`) : « la créature génère un nombre
  * d'Avantages égal à son Indice dans le Trait *Redoutable* pour la réserve d'Avantages des adversaires. »
  * Branché par `turnHooks.fireTurnEdgeTriggers` sur le trigger `onTurnStart` ; appelé par l'op
- * `gainAdvantage{feedOpposingPool:true}` (traits.json `redoutable`) SEULEMENT quand elle S'EXÉCUTE — le
+ * `topUpAdvantage{feedOpposingPool:true}` (traits.json `redoutable`) SEULEMENT quand elle S'EXÉCUTE — le
  * garde-fou Empêtré/Inconscient/Surpris (MDG 16 l.11, même effet) vit dans le nœud `if` englobant de la
  * donnée, jamais reproduit ici (KIND-AGNOSTIQUE : aucun scan de Traits, aucun proxy sur `c.advantage`).
  * `n` = l'Indice PLEIN déjà résolu par l'op appelante. Crédite la réserve du camp OPPOSÉ de `c`, re-projette,

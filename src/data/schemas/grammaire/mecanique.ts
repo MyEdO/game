@@ -168,6 +168,9 @@ const DECLARATIONS_D_OPS = {
    *  dénomination chiffrable est `brass`, l'unité de compte de `engine/money.ts`. */
   money: nommerChamps(z.strictObject({ op: z.literal('money'), montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }) }), { op: { label: "opération"  }, montant: { label: "montant" } }),
   healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  gainAdvantage: nommerChamps(z.strictObject({ op: z.literal('gainAdvantage'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
+  spendAdvantage: nommerChamps(z.strictObject({ op: z.literal('spendAdvantage'), amount: z.number().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" } }),
   kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération"  } }),
   loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération"  }, what: { label: "objet"  } }),
   noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération"  } }),
@@ -409,20 +412,19 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
  * DÉCROISSANTE, lot de mort `L1c #1468` (qui remplit les payloads restants et fait mourir le repli
  * `looseObject` de `gameOpSchema`). C'est l'INVENTAIRE des payloads non encore déclarés, pas un
- * constat d'obstacle : une seule entrée porte une mesure PROPRE — `gainAdvantage`, dont `traits.json`
- * écrit `amount: "$indice"` (chaîne) hors de `formulaSchema`. Les autres attendent leur mesure en L1c.
+ * constat d'obstacle : chacune attend sa mesure en L1c.
  * Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
   'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
-  'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
+  'endPsych', 'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
   'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
-  'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'spendAdvantage', 'statusMod', 'suppressPsych', 'teamCommander',
+  'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'statusMod', 'suppressPsych', 'teamCommander',
   'teleport', 'weaponDamageMod', 'weaponRollMod', 'weatherWard', 'wounds',
 ];
 

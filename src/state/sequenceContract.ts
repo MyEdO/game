@@ -85,6 +85,8 @@ export interface SequenceParams {
   drBonus?: CharKey;
   /** (4) Effets par manche. */
   rounds?: SequenceRoundOps;
+  /** La séquence admet l'Avantage (LDB 14 l.219) — `sequenceRoundOps`. */
+  avantage?: boolean;
   /** (6) Phases (mi-temps). */
   phases?: SequencePhases;
   /** Seuil de score d'un ACQUIS de manche (Middenball NADJ 16 l.119 : but à 25 DR d'équipe). */
@@ -113,6 +115,10 @@ export interface SequenceState<P = unknown> {
   cum: Record<string, number>;
   params: SequenceParams;
   payload: P;
+  /** ABANDON DEMANDÉ (`abandonSequence`) : l'ISSUE que `closeSequenceRound` joue à la clôture de la
+   *  manche, après ses étapes dues — une manche sans jet posé se ferme sans être jouée. LDB 12 l.176,
+   *  NADJ 16 l.111. */
+  abandon?: string;
 }
 
 /** REGISTRE DES FAMILLES au type : id de définition → charge utile. Chaque famille l'augmente à côté de
@@ -179,6 +185,8 @@ export type SequenceVerdict<P> =
 export interface SequenceRoundActors {
   /** Vainqueur(s) de la MANCHE (pas de la partie) — `winner` leur est appliqué. */
   winners?: readonly string[];
+  /** Perdant(s) de la MANCHE — ils perdent leur Avantage sous `SequenceParams.avantage`. Aucun sur une égalité. */
+  losers?: readonly string[];
   /** Tous les porteurs de la manche — `attrition` s'applique à ceux dont l'intervalle échoit. */
   all?: readonly string[];
 }
@@ -239,10 +247,25 @@ export interface SequenceDef<P = unknown> {
   round: (get: Get, seq: SequenceState<P>, rng: RNG) => SequenceRound<P> | undefined;
   /** RÉDUCTEUR de clôture : lit les rangées closes, rend le verdict. Ne mute RIEN du store. */
   close: (ctx: SequenceCloseCtx<P>) => SequenceVerdict<P>;
-  /** DÉNOUEMENT terminal (bourse, combat, modale de résultat) — appelé APRÈS le retrait de l'état. */
+  /** DÉNOUEMENT terminal (bourse, combat, modale de résultat) — appelé APRÈS le retrait de l'état.
+   *  `seq.round` y est la DERNIÈRE manche JOUÉE : un abandon entre deux Tests rend la manche ouverte
+   *  et non jouée (`abandonSequence`). */
   settle?: (get: Get, set: Set, seq: SequenceState<P>, outcome: string) => void;
   /** TABLEAU DE MARQUE (affichage seul, PUR) — le système NOMME ses camps ; l'UI ne dérive rien. Il les
    *  nomme VIA LE CATALOGUE (fabriques t()-backed) : le littéral FR inline au flux est proscrit, avec
    *  l'angle mort et la limite v1 dits plus haut (#1318 V8b). */
   board?: (get: Get, seq: SequenceState<P>) => SequenceBoard | undefined;
+  /** ABANDON que la séquence OFFRE au joueur — libellé court, info-bulle, et l'ISSUE que `settle`
+   *  joue. Absent : la séquence ne s'abandonne pas. */
+  abandon?: (seq: SequenceState<P>) => SequenceAbandon;
+}
+
+/** Ce qu'une séquence déclare de son abandon (`SequenceDef.abandon`) — servi par la fenêtre de toute
+ *  étape de la séquence. `refus` : l'abandon est FERMÉ, pour la raison dite — posé par le domaine
+ *  (ce que seule sa charge utile sait), ou par le socle (`sequenceAbandonEtatOf`). */
+export interface SequenceAbandon {
+  label: PlayerText;
+  title: PlayerText;
+  outcome: string;
+  refus?: PlayerText;
 }

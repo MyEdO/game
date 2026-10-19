@@ -45,7 +45,7 @@ import {
   PURSUIT_ESCAPE_DISTANCE, type PursuitFoe, type PursuitPolicy, type PursuitRunner,
 } from '../engine/pursuit';
 import {
-  registerSequence, startSequence, abandonSequence, sequenceScoreOf,
+  registerSequence, startSequence, sequenceScoreOf,
   SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict, type MancheClose,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
@@ -516,7 +516,7 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
   if (outcome === SEQUENCE_BORNE) { get().log(t('pursuit.exhausted')); return; }
   if (outcome === 'abandon') {
     if (p.partyRole === 'pursuing') { get().log(t('pursuit.giveUpChase')); return; }
-    // Renoncer à fuir = se laisser rattraper (l.94) : combat si une rencontre est fournie.
+    // Fuite abandonnée : combat si une rencontre est fournie.
     get().log(t('pursuit.giveUpFlight'));
     if (p.encounter) get().startCombat(p.encounter);
     return;
@@ -530,10 +530,11 @@ registerSequence(PURSUIT_SEQUENCE, {
   round: (get, seq) => pursuitRoundFactory(get, seq),
   close: (ctx) => pursuitClose(ctx),
   settle: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),
+  // `pursuitSettle` joue l'issue `abandon`.
+  abandon: (seq) => ({
+    label: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuite' : 'pursuit.abandonFuite'),
+    title: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuiteTitre'
+      : seq.payload.encounter ? 'pursuit.abandonFuiteCombatTitre' : 'pursuit.abandonFuiteTitre'),
+    outcome: 'abandon',
+  }),
 });
-
-/** Abandon de la poursuite (le groupe renonce à courir/traquer) — dénoue sans manche supplémentaire. */
-export function pursuitAbandon(get: Get, set: Set): void {
-  if (!pursuitOf(get())) return;
-  abandonSequence(get, set, 'abandon');
-}
