@@ -5,11 +5,13 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, renameSync, 
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawn } from 'node:child_process'
-import { ajouterWorktree, depotDe, retirerWorktree, reussi, worktreesDe, etatDeLArbre } from './gitPorte.mjs'
+import { ajouterWorktree, commitDe, depotDe, retirerWorktree, reussi, worktreesDe, etatDeLArbre } from './gitPorte.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
-import { ignoresAuthores, mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
+import { ignoresAuthores, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS, mesurerProcessusWorktrees, porteeProcessus } from './processusWorktrees.mjs'
 import { prefixeDeRefus } from './categorieDeRefus.mjs'
+import { listerDossier } from './lister.mjs'
+import { lancerGit } from '../../test/gitDeBanc.mjs'
 
 const snapshot = { portee: 'banc', processus: [] }
 function terrain(t) {
@@ -106,7 +108,7 @@ test('#2795 exclusion bornée : cwd absent et toutes les causes de lecture en pe
     assert.ok(vu.indeterminees.some((d) => d.startsWith(prefixeDeRefus(categorie))), vu.indeterminees.join('\n'))
   }
   assert.equal(vue([refuse('cwd'), refuse('commande')], { cwd: '' }).ok, false)
-  assert.match(vue([refuse('cwd'), refuse('commande')], { image: join(b.arbre, 'eleve.exe') }).refus.join(' '), /^\[métier · non retentable\] processus liés \(1\) : PID 704 élevé — .* — image /)
+  assert.match(vue([refuse('cwd'), refuse('commande')], { image: join(b.arbre, 'eleve.exe') }).refus.join(' '), /^\[métier · non retentable\] processus liés \(1\) : PID 704 élevé — .* — image[ …]/)
 })
 
 test('canonisation refusée de cwd lisible : indéterminée quel que soit le propriétaire', (t) => {
@@ -181,6 +183,164 @@ test('cache Python ignoré réel : reconstruction à profondeur arbitraire, inco
   mkdirSync(join(b.arbre, 'node_modules/.cache/publication/__pycache__'), { recursive: true })
   writeFileSync(join(b.arbre, 'node_modules/.cache/publication/__pycache__/run.pyc'), 'authoré')
   assert.match(mesurer(b.arbre).refus.join(' '), /publication\/__pycache__\/run.pyc/)
+})
+
+test('#2795 un dossier ignoré VIDE n’est pas authoré, son premier fichier l’est', (t) => {
+  const b = terrain(t)
+  mkdirSync(join(b.arbre, 'node_modules/.cache/publication'), { recursive: true })
+  mkdirSync(join(b.arbre, '.superpowers'))
+  assert.deepEqual(ignoresAuthores(b.arbre, ['node_modules', '.superpowers']), [])
+  assert.equal(mesurer(b.arbre).ok, true)
+  writeFileSync(join(b.arbre, '.superpowers/x.md'), 'authoré')
+  assert.deepEqual(ignoresAuthores(b.arbre, ['node_modules', '.superpowers']), ['.superpowers/x.md'])
+})
+
+test('#2795 sans fichier .git, l’arbre se mesure par SON dossier d’administration, jamais par le dépôt PARENT', (t) => {
+  const b = terrain(t)
+  const commun = join(b.racine, '.git')
+  const mesurerDemi = (chemin) => mesurerProtectionWorktree(chemin, { snapshot, commun })
+  writeFileSync(join(b.racine, 'non-suivi-du-principal.txt'), 'au principal')
+  writeFileSync(join(b.arbre, 'suivi-de-l-arbre.txt'), 'que l’index du principal ignore')
+  writeFileSync(join(b.arbre, '.gitignore'), 'node_modules/\nnotes/\n*.log\ndist/*\n')
+  mkdirSync(join(b.arbre, 'sous'))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '!garde.log\n')
+  mkdirSync(join(b.arbre, 'outils'))
+  writeFileSync(join(b.arbre, 'outils', '.gitignore'), '*.tmp\n')
+  assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['suivi-de-l-arbre.txt', '.gitignore', 'sous/.gitignore', 'outils/.gitignore'] })))
+  rmSync(join(b.arbre, '.git'))
+  const validation = prefixeDeRefus('validation') + ' mesure indéterminée : '
+  assert.deepEqual(mesurer(b.arbre).refus, [validation + 'fichier .git absent de ' + b.arbre + ' : git y lirait le dépôt parent'])
+  const etranger = join(b.racine, 'etranger')
+  mkdirSync(etranger)
+  assert.deepEqual(mesurerDemi(etranger).refus, [validation + 'fichier .git absent de ' + etranger + ' : git y lirait le dépôt parent, et aucun dossier unique de ' + join(commun, 'worktrees') + ' ne le nomme'])
+  mkdirSync(join(b.arbre, 'node_modules', 'paquet'), { recursive: true })
+  writeFileSync(join(b.arbre, 'node_modules', 'paquet', 'index.js'), 'reconstructible')
+  rmSync(join(b.arbre, '.gitignore'))
+  rmSync(join(b.arbre, 'outils', '.gitignore'))
+  const temporaire = mkdtempSync(join(tmpdir(), 'temp-du-banc-'))
+  const variables = ['TEMP', 'TMP', 'TMPDIR'].map((v) => [v, process.env[v]])
+  for (const [v] of variables) process.env[v] = temporaire
+  let propre
+  try {
+    propre = mesurerDemi(b.arbre)
+  } finally {
+    for (const [v, valeur] of variables) if (valeur === undefined) delete process.env[v]; else process.env[v] = valeur
+  }
+  assert.equal(propre.ok, true, 'ses suivis supprimés ne comptent pas, ce qu’ignoraient ses .gitignore supprimés non plus, le non-suivi du principal non plus, ses propres suivis restent suivis : ' + propre.refus.join(' ; '))
+  assert.deepEqual(listerDossier(temporaire), [], 'la copie des règles est effacée')
+  rmSync(temporaire, { recursive: true })
+  mkdirSync(join(b.arbre, 'notes'))
+  writeFileSync(join(b.arbre, 'notes', 'note.md'), 'authoré sous un motif du .gitignore supprimé')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : notes/note.md'], 'ignoré par la règle de l’index, il se juge comme tout ignoré')
+  rmSync(join(b.arbre, 'notes'), { recursive: true })
+  writeFileSync(join(b.arbre, 'outils', 'cache.tmp'), 'authoré sous le motif du .gitignore imbriqué supprimé')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : outils/cache.tmp'], 'la règle imbriquée supprimée se lit à l’index comme la racine')
+  rmSync(join(b.arbre, 'outils', 'cache.tmp'))
+  writeFileSync(join(b.arbre, 'sous', 'garde.log'), 'authoré, réinclus par le .gitignore resté')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : sous/garde.log'], 'la règle restée sur le disque prime sur celle de l’index')
+  rmSync(join(b.arbre, 'sous', 'garde.log'))
+  mkdirSync(join(b.arbre, 'dist'))
+  writeFileSync(join(b.arbre, 'dist', '.gitignore'), '!travail.txt\n')
+  writeFileSync(join(b.arbre, 'dist', 'travail.txt'), 'authoré, réinclus par un .gitignore non suivi')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : dist/travail.txt'], 'un .gitignore non suivi resté sur le disque compte aussi')
+  rmSync(join(b.arbre, 'dist'), { recursive: true })
+  writeFileSync(join(b.arbre, 'intrus.txt'), 'authoré')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : intrus.txt'])
+  rmSync(join(b.arbre, 'intrus.txt'))
+  writeFileSync(join(b.racine, '.git', 'info', 'exclude'), 'build/\n')
+  mkdirSync(join(b.arbre, 'build'))
+  writeFileSync(join(b.arbre, 'build', 'notes.md'), 'authoré, ignoré')
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' ignoré authoré (1) : build/notes.md'])
+  assert.equal(existsSync(join(b.arbre, '.git')), false, 'la mesure n’écrit rien')
+})
+
+test('#2795 sans fichier .git, un .gitignore indexé puis supprimé du disque reste un refus métier, jamais une règle lue', (t) => {
+  const b = terrain(t)
+  const mesurerDemi = (chemin) => mesurerProtectionWorktree(chemin, { snapshot, commun: join(b.racine, '.git') })
+  mkdirSync(join(b.arbre, 'sous'))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.a\n')
+  assert.ok(reussi(commitDe(depotDe(b.arbre), { message: 'arbre', chemins: ['sous/.gitignore'] })))
+  writeFileSync(join(b.arbre, 'sous', '.gitignore'), '*.b\n')
+  lancerGit(['add', '--', 'sous/.gitignore'], { cwd: b.arbre })
+  rmSync(join(b.arbre, 'sous', '.gitignore'))
+  mkdirSync(join(b.arbre, 'node_modules'))
+  writeFileSync(join(b.arbre, 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
+  rmSync(join(b.arbre, '.git'))
+  rmSync(join(b.arbre, '.gitignore'))
+  assert.deepEqual(mesurerDemi(b.arbre).refus, [prefixeDeRefus('métier') + ' modifications non commitées (1) : sous/.gitignore'])
+})
+
+test('#2795 relierFichierGit : SON dossier d’administration seul, en création exclusive, sinon null', (t) => {
+  const b = terrain(t)
+  const commun = join(b.racine, '.git')
+  const avant = fs.readFileSync(join(b.arbre, '.git'), 'utf8')
+  rmSync(join(b.arbre, '.git'))
+  assert.equal(relierFichierGit(b.arbre, commun), 'arbre')
+  assert.equal(fs.readFileSync(join(b.arbre, '.git'), 'utf8'), avant)
+  assert.throws(() => relierFichierGit(b.arbre, commun), (e) => e.code === 'EEXIST')
+  const etranger = join(b.racine, 'etranger')
+  mkdirSync(etranger)
+  assert.equal(relierFichierGit(etranger, commun), null)
+  assert.equal(existsSync(join(etranger, '.git')), false)
+})
+
+test('#2795 retrait d’un arbre À DEMI RETIRÉ : relié, suivis supprimés restaurés, retiré ; un intrus refuse et reste', (t) => {
+  const mesurerBanc = (chemin, options) => mesurerProtectionWorktree(chemin, { ...options, snapshot })
+  const b = terrain(t)
+  writeFileSync(join(b.racine, 'non-suivi-du-principal.txt'), 'au principal')
+  mkdirSync(join(b.arbre, 'node_modules'))
+  writeFileSync(join(b.arbre, 'node_modules', 'x'), 'ignoré par le .gitignore supprimé')
+  rmSync(join(b.arbre, '.git'))
+  rmSync(join(b.arbre, '.gitignore'))
+  const retire = retirerWorktree(b.depot, b.arbre, { mesurer: mesurerBanc })
+  assert.ok(reussi(retire), JSON.stringify(retire))
+  assert.equal(existsSync(b.arbre), false)
+  assert.ok(existsSync(join(b.racine, 'non-suivi-du-principal.txt')), 'le non-suivi du principal ne lui est pas attribué')
+
+  const c = terrain(t)
+  rmSync(join(c.arbre, '.git'))
+  writeFileSync(join(c.arbre, 'intrus.txt'), 'authoré')
+  const refuse = retirerWorktree(c.depot, c.arbre, { mesurer: mesurerBanc })
+  assert.equal(reussi(refuse), false)
+  assert.match(refuse.raison, /modifications non commitées \(1\) : intrus\.txt/)
+  assert.ok(existsSync(join(c.arbre, 'intrus.txt')))
+  assert.equal(existsSync(join(c.arbre, '.git')), false, 'mesuré avant reliure : rien n’y est écrit')
+})
+
+test('#2795 reliure d’un arbre À DEMI RETIRÉ : chaque refus laisse l’arbre et dit pourquoi', (t) => {
+  const tente = (b, mesurerAvant) => retirerWorktree(b.depot, b.arbre, { mesurer: (chemin, options) => options?.commun ? mesurerAvant(chemin) : mesurerProtectionWorktree(chemin, { ...options, snapshot }) })
+  const ok = () => ({ ok: true, refus: [] })
+
+  const protege = terrain(t)
+  rmSync(join(protege.arbre, '.git'))
+  const vivant = tente(protege, () => ({ ok: false, refus: ['PID 7 vivant'] }))
+  assert.deepEqual([reussi(vivant), vivant.raison], [false, 'PID 7 vivant'])
+  assert.equal(existsSync(join(protege.arbre, '.git')), false, 'protégé : jamais relié')
+
+  const course = terrain(t)
+  rmSync(join(course.arbre, '.git'))
+  const pris = tente(course, (chemin) => { writeFileSync(join(chemin, '.git'), 'posé entre-temps\n'); return ok() })
+  assert.match(pris.raison, /^arbre à demi retiré non relié : .* — EEXIST$/)
+  assert.equal(fs.readFileSync(join(course.arbre, '.git'), 'utf8'), 'posé entre-temps\n')
+
+  const orphelin = terrain(t)
+  rmSync(join(orphelin.arbre, '.git'))
+  rmSync(join(orphelin.racine, '.git', 'worktrees', 'arbre', 'gitdir'))
+  assert.match(tente(orphelin, ok).raison, /^arbre à demi retiré non relié : aucun dossier unique de .*\/worktrees ne nomme /)
+  assert.equal(existsSync(join(orphelin.arbre, '.git')), false)
+
+  const ailleurs = terrain(t)
+  const autre = terrain(t)
+  rmSync(join(ailleurs.arbre, '.git'))
+  writeFileSync(join(ailleurs.racine, '.git', 'worktrees', 'arbre', 'commondir'), join(autre.racine, '.git') + '\n')
+  assert.match(tente(ailleurs, ok).raison, /^arbre à demi retiré relié à arbre, mais git n’y lit pas /)
+  assert.ok(existsSync(ailleurs.arbre))
+
+  const tardif = terrain(t)
+  rmSync(join(tardif.arbre, '.git'))
+  writeFileSync(join(tardif.arbre, 'intrus.txt'), 'apparu après la mesure')
+  assert.match(tente(tardif, ok).raison, /^arbre à demi retiré relié, mais modifié hors suppressions : \?\? intrus\.txt$/)
+  assert.deepEqual(etatDeLArbre(depotDe(tardif.arbre)).map((e) => e.etat + ' ' + e.chemins[0]), ['?? intrus.txt'], 'relié, il se mesure comme les autres')
 })
 
 test('ignoré : canon généré, node_modules reconstructible, unknown et publication protégés', (t) => {

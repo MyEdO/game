@@ -665,7 +665,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
 });
 
 /* `mediaBlock` / `baseSection` : UNE définition, partagée (`scripts/guards/lib/cssCouches.mjs`) —
-   `src/ui/CombatConsole.test.tsx` lit les mêmes tranches avec les mêmes fonctions.
+   `src/ui/console/CombatConsole.test.tsx` lit les mêmes tranches avec les mêmes fonctions.
    CE QUI SE JUGE ICI : la PRÉSENCE d'une règle de STRUCTURE dans sa tranche. Un contrat de RENDU
    (« défile », « ne recouvre pas », « reçoit son clic », « tient sur une ligne ») ne se lit dans
    AUCUNE déclaration : jsdom ne met rien en page et n'applique aucune tranche. Il se MESURE au
@@ -774,7 +774,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
       ['skin-tole', 'ExplorationDock.tsx', 'worldmap-btn'],
       ['skin-tole', 'CampaignView.tsx', 'worldmap-btn'],
       ['skin-bois', 'CampaignView.tsx', 'hud-rail'],
-      ['skin-bois', 'CombatConsole.tsx', 'cc-phase'],
+      ['skin-bois', 'console/CombatConsole.tsx', 'cc-phase'],
     ];
     for (const [peau, f, classe] of BOITES) {
       const code = readFileSync(join(UI, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');

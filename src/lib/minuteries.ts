@@ -1,7 +1,7 @@
 /**
- * Registre des timers RÉELS tracés (`state/`) : beats de cadence de COMBAT (IA/enchaînement de
- * tour/auto-résolution) ET timers de FLUX hors combat (cascade différée portFlow/tavernFlow, coop
- * netFlow). `combatFlow`/`combatDirector`/`combatAuto` chorégraphient leurs beats (TEMPO) via de
+ * Registre des timers RÉELS tracés de `state/` et `lib/` : beats de cadence de COMBAT
+ * (IA/enchaînement de tour/auto-résolution) ET timers hors combat (cascade différée
+ * portFlow/tavernFlow, coop netFlow, délai d'ouverture IndexedDB). `combatFlow`/`combatDirector`/`combatAuto` chorégraphient leurs beats (TEMPO) via de
  * VRAIS `setTimeout` qui mutent `battle` (et tirent `battleRng`) à leur échéance. Un test SYNCHRONE
  * qui arme un tel timer sans laisser le temps réel s'écouler le laisse EN VOL ; sous `isolate:false`
  * (module partagé entre fichiers du même worker) le timer se déclenche pendant un test ultérieur et
@@ -11,8 +11,7 @@
  * un beat de combat ou un timer de flux ; `clearTrackedTimers` (appelé par `src/test-setup.ts` en
  * `afterEach`) annule tout timer encore en vol au sortir d'un test (#405, #415).
  *
- * SOURCE UNIQUE : un `setTimeout` nu dans `src/state` (hors ce fichier) est INTERDIT — garde
- * `naked-timer-guard.test.ts`.
+ * SOURCE UNIQUE : mur `murs/minuteries` (`oxlint.config.mjs`, #415).
  */
 const pending = new Set<ReturnType<typeof setTimeout>>();
 
@@ -28,7 +27,8 @@ function track(fn: () => void, delay: number): ReturnType<typeof setTimeout> {
 /** Beat de cadence de COMBAT (IA/enchaînement de tour/auto-résolution). */
 export const scheduleCombatTimer = track;
 
-/** Timer de FLUX hors combat (ouverture de cascade différée portFlow/tavernFlow, coop netFlow). */
+/** Timer hors combat (ouverture de cascade différée portFlow/tavernFlow, coop netFlow, délai
+ *  d'ouverture IndexedDB). */
 export const scheduleFlowTimer = track;
 
 /** Annule tout timer tracé encore en vol (teardown de test). */

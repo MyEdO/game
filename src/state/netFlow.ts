@@ -30,7 +30,7 @@ import type { NetMessage } from '../net/protocol';
 import type { Scene } from './scene';
 import { intentEluLocalement } from './targetingModes';
 import { bus, EVT } from './bus';
-import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
+import { scheduleFlowTimer, clearTrackedTimer } from '../lib/minuteries';
 
 import type { Get, RemplacerLEtat, Set } from './flowTypes';
 import { t } from '../i18n';

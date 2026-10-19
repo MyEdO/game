@@ -20,7 +20,7 @@ import { runBindingById } from '../state/keybindings';
 import { endTurnArmed } from '../state/endTurnGuard';
 import { emptyScene } from '../state/scene';
 import type { Combatant } from '../engine/types';
-import { CombatConsole } from './CombatConsole';
+import { CombatConsole } from './console/CombatConsole';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

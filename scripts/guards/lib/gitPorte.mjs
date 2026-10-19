@@ -37,7 +37,7 @@
 // ou joue un geste (`commitDe`, `pousser`…) ; la sous-commande, ses drapeaux et sa forme restent ici.
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
-import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
+import { etatDuDemiRetire, mesurerProtectionWorktree, relierFichierGit, retirerResiduelVide } from './protectionWorktree.mjs'
 import { natureDuChemin } from './natureDuChemin.mjs'
 import { MARQUE_RACINE_MESUREE, normaliserRequeteMesuree, porteUnControle, verifierRequeteMesuree } from './requeteMesuree.mjs'
 import { Buffer } from 'node:buffer'
@@ -2037,8 +2037,42 @@ export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = fals
   return ecrire(depot, ['worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
 }
 
-/** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */
+/**
+ * Le worktree À DEMI RETIRÉ `chemin` (dossier présent, fichier `.git` parti : un `worktree remove`
+ * interrompu), mesuré par son dossier d'administration, RELIÉ (`relierFichierGit`), puis ses seuls
+ * suivis SUPPRIMÉS restaurés (`checkout-index -u --stdin`, sans `-f` : rien d'existant n'est écrasé ;
+ * `-u` y réinscrit leur stat, `git help checkout-index` : sans lui l'index garde la taille d'avant la
+ * perte, et une conversion d'extraction autre que celle de la création, `core.autocrlf` système
+ * absent alors, la fait mentir : git le dit modifié sans relire son contenu).
+ * Une modification que l'index ne restaure pas (`etatDuDemiRetire`), apparue après la mesure, refuse encore une fois relié. Rend
+ * `null` relié, sinon le refus.
+ * @param {Depot} depot @param {string} chemin
+ */
+function relierArbreADemiRetire(depot, chemin, mesurer) {
+  const commun = dossierGitCommun(depot)
+  if (!commun.disponible) return commun
+  const avant = mesurer(chemin, { commun: commun.valeur })
+  if (!avant.ok) return indisponible(avant.refus.join(' ; '), { issue: 'refus' })
+  let id
+  try { id = relierFichierGit(chemin, commun.valeur) } catch (e) { return indisponible('arbre à demi retiré non relié : ' + chemin + ' — ' + (e.code ?? e.message), { issue: 'refus' }) }
+  if (id === null) return indisponible('arbre à demi retiré non relié : aucun dossier unique de ' + commun.valeur + '/worktrees ne nomme ' + chemin + '/.git', { issue: 'refus' })
+  const relie = dossierGitCommun(depotDe(chemin))
+  if (relie.valeur !== commun.valeur) return indisponible('arbre à demi retiré relié à ' + id + ', mais git n’y lit pas ' + commun.valeur + ' — ' + (relie.raison ?? relie.valeur), { issue: 'refus' })
+  const arbre = depotDe(chemin)
+  const etat = etatDeLArbre(arbre, { strict: true })
+  const autres = etatDuDemiRetire(chemin, commun.valeur, etat).filter((e) => e.etat !== '!!')
+  if (autres.length) return indisponible('arbre à demi retiré relié, mais modifié hors suppressions : ' + autres.map((e) => e.etat + ' ' + e.chemins[0]).slice(0, 5).join(', '), { issue: 'refus' })
+  const supprimes = etat.filter((e) => e.etat === ' D')
+  if (!supprimes.length) return null
+  const restaure = ecrire(arbre, ['checkout-index', '-u', '--stdin', '-z'], { entree: supprimes.map((e) => e.chemins[0] + '\0').join('') })
+  return reussi(restaure) ? null : restaure
+}
+
+/** Le worktree `chemin`, retiré sans forcer (`worktree remove`) ; À DEMI RETIRÉ, il est relié
+ *  d'abord (`relierArbreADemiRetire`). @param {Depot} depot @param {string} chemin */
 export function retirerWorktree(depot, chemin, { mesurer = mesurerProtectionWorktree, residu = retirerResiduelVide } = {}) {
+  const refusDeReliure = existsSync(chemin) && !existsSync(join(chemin, '.git')) ? relierArbreADemiRetire(depot, chemin, mesurer) : null
+  if (refusDeReliure) return refusDeReliure
   const protection = mesurer(chemin)
   if (!protection.ok) return indisponible(protection.refus.join(' ; '), { issue: 'refus' })
   const vu = ecrire(depot, ['worktree', 'remove', '--', chemin])

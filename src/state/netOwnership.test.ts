@@ -3,7 +3,7 @@
  * le combattant concerné — modale ouverte → son concerné seul ('*' = tous) ; sinon le tour actif.
  */
 import { describe, it, expect } from 'vitest';
-import { intentAllowedFor, modalOwnerOf, seatOwns, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocally, rolledLocally } from './netOwnership';
+import { intentAllowedFor, modalOwnerOf, seatOwns, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally } from './netOwnership';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
@@ -23,9 +23,9 @@ const base = (over: Partial<GameState>): GameState =>
 describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base du masque de présentation', () => {
   const solo = () => base({ net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<GameState>);
 
-  it('SOLO : `ownsLocally` est vrai pour TOUS — seul `rolledLocally` distingue mon jet de celui de l’IA', () => {
+  it('SOLO : `ownsLocal` est vrai pour TOUS — seul `rolledLocally` distingue mon jet de celui de l’IA', () => {
     const s = solo();
-    expect(ownsLocally(s, 'e1'), 'le masque bâti sur ownsLocally serait mort en solo').toBe(true);
+    expect(ownsLocal(s, 'e1'), 'le masque bâti sur ownsLocal serait mort en solo').toBe(true);
     expect(rolledLocally(s, 'e1'), 'l’ennemi IA n’a rien roulé à ce siège').toBe(false);
     expect(rolledLocally(s, 'h1'), 'mon héros : je ne me masque jamais mon propre dé').toBe(true);
   });

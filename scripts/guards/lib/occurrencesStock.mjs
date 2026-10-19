@@ -8,6 +8,8 @@ import { analyserTexte, typescript } from './dialecte.mjs'
 import { CHAMP_D_OCCURRENCE, ecartsDeStock, refusDeCroissance } from './stock.mjs'
 import { MOTIF_DECROISSANT } from './stockDeSites.mjs'
 import { ciblesDuSite } from '../../docs/lib/structures-lexique.mts'
+import { SOURCE_FORMAT } from '../../raw/check-source-format.mjs'
+import { PORTEURS } from './porteursDesComptes.mjs'
 
 export const siteDeForme = (f) => `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`
 export const siteDeSlot = (s) => `${s.dataset} | ${s.champ}`
@@ -19,9 +21,6 @@ const siteDeRedeclaration = (r) => `${r.def} | ${r.champ} | ${r.concept} | ${r.s
 
 /** Le compte d'une entrée de collection à compte. */
 export const occurrencesDe = (e) => e.occurrences
-
-const STRUCTURES = 'scripts/guards/lib/structuresStock.mjs'
-const SLOTS = 'scripts/guards/lib/slotsStock.mjs'
 
 /** La commande qui écrit les BAISSES mesurées. */
 export const COMMANDE_D_ECRITURE = 'node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write'
@@ -59,30 +58,37 @@ function redeclarationsComptees(redeclarations) {
  * compte et hors pilotage ; `cible` la phrase de la voie qui solde une hausse de ce site.
  */
 export const COLLECTIONS_A_COMPTE = Object.freeze([
-  { porteur: STRUCTURES, nom: 'STRUCTURES_FORMES', site: siteDeForme, cible: cibleDeForme,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_FORMES', site: siteDeForme, cible: cibleDeForme,
     mesure: ({ scan }) => scan.formes.filter((f) => f.statut === 'historique' || f.statut === 'divergente') },
-  { porteur: STRUCTURES, nom: 'STRUCTURES_OPS', site: (o) => `${o.op} | ${o.signature} | ${o.dataset}`,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_OPS', site: (o) => `${o.op} | ${o.signature} | ${o.dataset}`,
     cible: () => 'Migrer la signature vers la cible L1c : union discriminée d’`OP_DEFS`, refs EMBOÎTÉES (`gameOpSchema`, src/data/schemas/grammaire/mecanique.ts).',
     mesure: ({ scan, typage }) => scan.ops.filter((o) => estDetteDOp(o, typage)) },
-  { porteur: STRUCTURES, nom: 'STRUCTURES_HOMONYMES', site: (h) => h.cle,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_HOMONYMES', site: (h) => h.cle,
     cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2), la valeur hors concept change de clé.',
     mesure: ({ scan }) => scan.homonymes.map((h) => ({ cle: h.cle, classes: h.classes, occurrences: h.total })) },
-  { porteur: STRUCTURES, nom: 'STRUCTURES_ENVELOPPE', site: siteDEnveloppe,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_ENVELOPPE', site: siteDEnveloppe,
     cible: () => 'Migrer : l’enveloppe porte sa clé CIBLE (`ROLES_ENVELOPPE`, scripts/docs/lib/structures-lexique.mts) — L1b #1467, L1d #1469.',
     mesure: ({ scan }) => scan.enveloppe.map((e) => ({ ...e, occurrences: e.entrees })) },
-  { porteur: STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
     cible: (_cle, r) => `Migrer : composer ${r.commun ? `\`${r.commun}\`` : 'le nœud commun'} de la grammaire (src/data/schemas/grammaire/) au lieu de le re-taper.`,
     mesure: ({ redeclarations }) => redeclarationsComptees(redeclarations) },
-  { porteur: STRUCTURES, nom: 'STRUCTURES_ORPHELINES', site: (o) => `${o.dataset} | ${o.champ} | ${o.signature}`,
+  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_ORPHELINES', site: (o) => `${o.dataset} | ${o.champ} | ${o.signature}`,
     cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2) — la clé qui annonce une référence porte une référence qui résout, ou change de nom.',
     mesure: ({ scan }) => scan.orphelines },
-  { porteur: SLOTS, nom: 'SLOTS_SANS_DECLARATION', site: siteDeSlot,
+  { porteur: PORTEURS.SLOTS, nom: 'SLOTS_SANS_DECLARATION', site: siteDeSlot,
     cible: () => 'Migrer : adopter la fabrique `ref`/`refs`/`specRef`/`pick` (`idDe`) sur le schéma du champ.',
     mesure: ({ sansSlot }) => sansSlot },
-  { porteur: SLOTS, nom: 'SLOTS_INATTEIGNABLES', site: siteDeSlot,
+  { porteur: PORTEURS.SLOTS, nom: 'SLOTS_INATTEIGNABLES', site: siteDeSlot,
     cible: () => 'Migrer : la référence se pose en chaîne, pour qu’une case de l’occurrence la porte (`ANGLES_MORTS_SLOTS`).',
     mesure: ({ inatteignables }) => inatteignables },
 ].map((c) => Object.freeze(c)))
+
+/**
+ * Tout ce que juge la PORTE DES COMPTES (`jugerLesComptes`, `scripts/guards/lib/corpusDesComptes.mts`) : les collections
+ * à compte, comptées par `occurrencesDe`, et le volet `SOURCE_FORMAT` (`scripts/raw/check-source-format.mjs`). Chaque
+ * porteur est l'un de `PORTEURS_SOUS_LA_PORTE` (`porteursDesComptes.mjs`).
+ */
+export const SOUS_LA_PORTE = Object.freeze([...COLLECTIONS_A_COMPTE.map((c) => Object.freeze({ ...c, nombre: occurrencesDe })), SOURCE_FORMAT])
 
 /** Les collections à compte par nom. */
 export const COLLECTIONS_A_COMPTE_PAR_NOM = Object.freeze(Object.fromEntries(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c])))

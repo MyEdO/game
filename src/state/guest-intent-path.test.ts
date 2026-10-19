@@ -6,7 +6,7 @@
  * clique, l'hôte ACCEPTE l'intent… et rien ne se passe, sans journal ni erreur. La cause n'était pas
  * la route de possession (elle rendait `true`) mais la garde INTERNE de l'action : `battleBattement`
  * (comme les ~30 autres gestes de tour de `combatSlice`) exige `controlsCombatant`, bâti sur
- * `ownsLocally` — donc sur `net.mySeat`, qui vaut l'HÔTE pendant qu'il applique l'intent d'un AUTRE
+ * `ownsLocal` — donc sur `net.mySeat`, qui vaut l'HÔTE pendant qu'il applique l'intent d'un AUTRE
  * siège. L'action refusait le geste d'un invité sur son PROPRE héros.
  *
  * Ce test exerce la chaîne telle que `netFlow.applyIntent` l'exécute (`withActingSeat`), sur DEUX

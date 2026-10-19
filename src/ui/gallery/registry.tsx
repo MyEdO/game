@@ -52,7 +52,7 @@ import { InitiativeStrip } from '../InitiativeStrip';
 import { PartyDock } from '../PartyDock';
 import { ObjectiveBanner } from '../ObjectiveBanner';
 import { ViewControls } from '../ViewControls';
-import { ConsoleArch, ConsoleCell, PhaseBanner } from '../CombatConsole';
+import { ConsoleArch, ConsoleCell, PhaseBanner } from '../console/CombatConsole';
 import { DrBar } from '../DrBar';
 import { Coins } from '../Coins';
 import { LifeBar } from '../LifeBar';
@@ -1789,7 +1789,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'logdrawer', label: 'LogDrawer', file: 'src/ui/LogDrawer.tsx', category: 'Combat', render: LogDrawerDemo },
   { id: 'initiativestrip', label: 'InitiativeStrip', file: 'src/ui/InitiativeStrip.tsx', category: 'Combat', render: InitiativeStripDemo },
   { id: 'partydock', label: 'PartyDock', file: 'src/ui/PartyDock.tsx', category: 'Combat', render: PartyDockDemo },
-  { id: 'combatconsole', label: 'CombatConsole', file: 'src/ui/CombatConsole.tsx', category: 'Combat', note: 'maquette statique montée des sous-composants réels du pont (ConsoleCell, PhaseBanner, ConsoleArch) sur des données d’exemple — le composant de tête n’a aucune prop et lit le store de la partie ; l’amorcer depuis la galerie, qui est un écran de l’application en cours, y injecterait un combat factice. La vignette montre la composition de BUREAU : le pont se dimensionne sur la fenêtre, sa composition compacte (≤560) s’observe en recette (scripts/recette/console-pont-formes.mjs), pas ici', render: CombatConsoleMock },
+  { id: 'combatconsole', label: 'CombatConsole', file: 'src/ui/console/CombatConsole.tsx', category: 'Combat', note: 'maquette statique montée des sous-composants réels du pont (ConsoleCell, PhaseBanner, ConsoleArch) sur des données d’exemple — le composant de tête n’a aucune prop et lit le store de la partie ; l’amorcer depuis la galerie, qui est un écran de l’application en cours, y injecterait un combat factice. La vignette montre la composition de BUREAU : le pont se dimensionne sur la fenêtre, sa composition compacte (≤560) s’observe en recette (scripts/recette/console-pont-formes.mjs), pas ici', render: CombatConsoleMock },
   { id: 'viewcontrols', label: 'ViewControls', file: 'src/ui/ViewControls.tsx', category: 'Combat', render: ViewControlsDemo },
   { id: 'objectivebanner', label: 'ObjectiveBanner', file: 'src/ui/ObjectiveBanner.tsx', category: 'Écrans & layout', render: ObjectiveBannerDemo },
   { id: 'statechips', label: 'StateChips', file: 'src/ui/StateChips.tsx', category: 'Personnages', render: StateChipsDemo },

@@ -17,7 +17,7 @@ import { conditionLabel, findActionById } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { actionGate } from '../state/actionRegistry';
 import { emptyScene } from '../state/scene';
-import { CombatConsole } from './CombatConsole';
+import { CombatConsole } from './console/CombatConsole';
 import type { Combatant } from '../engine/types';
 
 const BASE_CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

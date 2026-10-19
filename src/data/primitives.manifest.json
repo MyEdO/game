@@ -2,9 +2,9 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "label": "mesurerArbreProcessus/gardienDisparu/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "inspection des identités PID et création et chaîne des ancêtres validée par dates et protégée des cycles",
+    "concept": "inspection des identités PID et création, disparition d’un gardien jugée sur la vue ou, vue en échec, sur son PID daté, et chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "protection Git et supervision des hooks, publication isolée ; inspection sans autorité de clôture",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
@@ -172,7 +172,7 @@
     "css": "src/ui/styles/option-chooser.css",
     "poseurs": [
       "src/ui/CastModal.tsx",
-      "src/ui/PortraitPicker.tsx",
+      "src/ui/console/PortraitPicker.tsx",
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
@@ -380,7 +380,7 @@
   {
     "id": "netOwnership",
     "type": "primitives.manifest",
-    "label": "ownsLocally/pilotedByHuman/aiDriven/siegesRequis",
+    "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
     "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
@@ -1132,12 +1132,12 @@
     "id": "combatConsole",
     "type": "primitives.manifest",
     "label": "CombatConsole",
-    "fichier": "src/ui/CombatConsole.tsx",
+    "fichier": "src/ui/console/CombatConsole.tsx",
     "css": "src/ui/styles/combat-console.css",
     "nature": "organisme",
     "concept": "LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte",
     "perimetre": "HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette",
-    "verrou": "src/ui/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
+    "verrou": "src/ui/console/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
   },
   {
     "id": "combatStartSplash",
@@ -1613,6 +1613,15 @@
     "verrou": "cle-de-site-guard.test.ts, stock.test.mjs, stock-primitive.test.ts"
   },
   {
+    "id": "porteDesComptes",
+    "type": "primitives.manifest",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "fichier": "scripts/guards/lib/corpusDesComptes.mts",
+    "concept": "porte des comptes : les collections à compte et le volet SOURCE_FORMAT qu'elle juge, leurs fichiers porteurs, et le verdict d'une plage dont chaque borne est mesurée dans son image par deux détecteurs constants — aucun compte ne monte, aucun site ne naît, aucun `CLIQUET:` ne l'admet",
+    "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
+    "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
+  },
+  {
     "id": "stockDeSites",
     "type": "primitives.manifest",
     "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/MOTIF_DECROISSANT/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
@@ -1707,7 +1716,7 @@
     "type": "primitives.manifest",
     "label": "clesCanoniques",
     "fichier": "scripts/guards/lib/clesCanoniques.mjs",
-    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé et DAG cyclique refusés par une erreur nommée)",
+    "concept": "clés canoniques de l'évaluateur de racines balayées : clé d'une valeur, des arguments d'un appel (DAG partagé, coupes, cycles par distance, formes d'argument) et d'une composition, texte de clé, dédoublonnage par clé et table des formes d'argument qu'elles lisent ; régime textuel ou à cellules structurelles, et régime fermé (références privées, forme associée après clé refusée par FORME_PRIVEE_ASSOCIEE_APRES_CLE) ; toute surface refuse une valeur hors domaine JSON par CLE_DOMAINE_JSON, l'erreur native en cause ; cellules, preuves et mémos vivent avec l'instance",
     "perimetre": "toute clé de mémo ou de dédoublonnage d'une valeur de l'évaluateur de racines balayées",
     "verrou": "racinesBalayees.test.mjs"
   },
@@ -1889,7 +1898,7 @@
     "fichier": "src/lib/stockageWeb.ts",
     "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
+    "verrou": "src/lib/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/lib/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",
@@ -1959,9 +1968,27 @@
     "type": "primitives.manifest",
     "label": "spawnBorne/tuerArbre/diagnosticDuLancement/diagnosticArret",
     "fichier": "scripts/guards/lib/processusBorne.mjs",
-    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe",
+    "concept": "adaptateur de capture bornée en octets et journal immédiat autour de la fabrique asynchrone commune ; limite, annulation et demandes d’arrêt par le contrôle natif, attente de sa fin et restitution du statut cible ; projection causale sans certification de graphe ; diagnostic d’arrêt qui imprime chaque message une seule fois",
     "perimetre": "tout lancement asynchrone borné avec capture de sortie et tout diagnostic causal de sa clôture",
     "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "arretNatif",
+    "type": "primitives.manifest",
+    "label": "arretIndetermine/texteDeCause",
+    "fichier": "scripts/guards/lib/arretNatif.mjs",
+    "concept": "arrêt `indetermine` d'une opération sur un PID, nommé par le code et le texte de sa cause gardée entière ; texte total d’une cause quelconque (message, marque d’objet ou primitive) qui ne lève jamais ; partagé par le superviseur natif, l'adaptateur borné et le lanceur des gates",
+    "perimetre": "tout arrêt de processus non prouvé mort",
+    "verrou": "processusBorne.test.mjs"
+  },
+  {
+    "id": "fileBornee",
+    "type": "primitives.manifest",
+    "label": "enFileBornee",
+    "fichier": "scripts/guards/lib/fileBornee.mjs",
+    "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },
   {
     "id": "codesDeSortie",

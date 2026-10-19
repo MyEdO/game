@@ -12,7 +12,7 @@
  *    vous pouvez choisir de laisser votre armure être endommagée de 1 PA ») — et que les deux chemins
  *    JUMEAUX (Critique opposé, projectile magique) n'ont jamais porté ce filtre.
  *
- * En SOLO les deux prédicats coïncident (`ownsLocally` vrai pour tous) : ces régressions y sont
+ * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) : ces régressions y sont
  * INVISIBLES — d'où le harnais à deux sièges (#1262 B7).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

@@ -17,7 +17,7 @@ import { createHero } from '../engine/character';
 import { navalTraitsDe } from '../engine/navalTraits';
 import { crewRoles, shipStations } from '../data';
 import { exposedCrew } from '../engine/shipCritical';
-import { manoeuvreCrew } from './ShipSheet';
+import { manoeuvreCrew } from './console/ShipSheet';
 import { shipDefaultRoles } from '../state/shipCrew';
 import { activitiesFor } from '../engine/activities';
 import type { Combatant } from '../engine/types';

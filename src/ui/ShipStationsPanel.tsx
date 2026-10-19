@@ -3,7 +3,7 @@ import { shipStations, findShipStation, findNavalTrait } from '../data';
 import { stationAsPoste } from '../state/poste';
 import { shipStationOuverte } from '../engine/shipCritical';
 import type { NavalTraitRef } from '../engine/types';
-import { PostesRoster } from './PostesRoster';
+import { PostesRoster } from './console/PostesRoster';
 
 /**
  * Wrapper store des STATIONS à bord (`MDG 13 l.680/l.714/l.730/l.751`, `MSRC 07 l.78/l.82/l.94`) :

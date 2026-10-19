@@ -230,7 +230,7 @@ describe('cliquet composeur — CONTENU des conséquences : re-print roll/target
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
  * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
  * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
- * `ownsLocally`), borné à `src/state` — la couche qui décidait — et MESURÉ ici sur la config RÉELLE
+ * `ownsLocal`), borné à `src/state` — la couche qui décidait — et MESURÉ ici sur la config RÉELLE
  * (lanceur Oxlint, jamais une copie de règle : une regex maison laissait passer les guillemets doubles).
  *
  * Deux goulots exemptés, nommés, et RIEN d'autre : la DÉCLARATION d'issue d'un flux à fenêtre

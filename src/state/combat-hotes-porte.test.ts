@@ -8,7 +8,7 @@ import {
 } from './combatFlow';
 import { stakeAtTableRow } from './cascade';
 import { combatStakeRef } from '../data';
-import { modalOwnerOf, seatOwns, ownsLocally } from './netOwnership';
+import { modalOwnerOf, seatOwns, ownsLocal } from './netOwnership';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resolveCritique } from '../engine/critical';
 import { testScene } from '../scenes/test-fixture';
@@ -84,7 +84,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
     maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero);
     expect(modalOwnerOf(useGame.getState())).toBe(hero.id);
     expect(seatOwns(useGame.getState(), 1, hero.id), 'le siège 1 tient le défenseur').toBe(true);
-    expect(ownsLocally(useGame.getState(), hero.id), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
+    expect(ownsLocal(useGame.getState(), hero.id), 'chez l’hôte, la fenêtre n’est pas à lui').toBe(false);
   });
 
   it('tir réactif (Bout Portant) : même mint, même possession', () => {

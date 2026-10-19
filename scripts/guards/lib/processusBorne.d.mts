@@ -18,7 +18,8 @@ export interface ArretProcessus {
 export interface ResultatCible {
   status: number | null;
   signal: NodeJS.Signals | null;
-  error?: { code: string; message: string };
+  /** Sur `EMESURE`, le code, la catégorie et la cause de la mesure en échec (#2795). */
+  error?: Pick<ErreurArret, 'code' | 'message'> & { codeMesure?: string; categorie?: string; cause?: { code?: string; categorie?: string; message?: string } };
   pid?: number;
 }
 export interface ProcessusNatif {
@@ -37,6 +38,7 @@ export interface ControleSupervision {
   readonly pid: number | null;
   readonly phase: 'demarrage' | 'execution' | 'cloture' | 'termine';
   estFermeture(cause: unknown): boolean;
+  /** Réglée au plus tard quand `fin` se résout (#2586). */
   pret: Promise<{ pidCible: number; instanceCible: string }>;
   fin: Promise<{ resultatCible: ResultatCible; arret: ArretProcessus }>;
   finPhysique: Promise<void>;
@@ -56,7 +58,6 @@ export interface FabriqueSupervision {
   (commande: string, argv: readonly string[], options: OptionsSupervision): Promise<{ hote: ChildProcess; controle: ControleSupervision }>;
   optionsEffectives?: (commande: string, argv: readonly string[], options: OptionsSupervision) => { args: readonly string[]; options: OptionsSupervision } | null;
 }
-export const DELAI_ARRET_MS: number;
 export function tuerArbre(controle: ControleSupervision, cause?: Error | string): Promise<ArretProcessus>;
 export interface ResultatProcessusBorne {
   code: number;

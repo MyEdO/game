@@ -16,7 +16,7 @@ import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
-import { scheduleCombatTimer } from './combatTimers';
+import { scheduleCombatTimer } from '../lib/minuteries';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';

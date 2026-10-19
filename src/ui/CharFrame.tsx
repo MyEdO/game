@@ -19,7 +19,7 @@ export function CharFrame({ c, nom, ...rest }: {
   onClick?: () => void;
   /** NOM ACCESSIBLE de la tuile (« Retirer Hilda de Pont ») — porté par `PortraitTile` en `aria-label`
    *  ET en infobulle. Nommé `nom` et non `title` : un attribut `title` écrit chez un APPELANT est une
-   *  info qui ne vit que dans l'infobulle native (garde `console-no-title-only`) ; ici la valeur
+   *  info qui ne vit que dans l'infobulle native (mur `murs/console-sans-title`) ; ici la valeur
    *  traverse la primitive, qui la pose dans l'arbre d'accessibilité. */
   nom?: string;
   /** Tuile DÉCORATIVE (cf. `PortraitTile.decoratif`) : `<span>` muet dans un contrôle englobant. */

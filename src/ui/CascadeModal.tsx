@@ -144,15 +144,15 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const fumbleProps = useFumbleJetProps(); // étape-jet de Maladresse : Tableau des Oups ! dans la MÊME fenêtre
   const testProps = useTestJetProps(); // étape-jet de Test de scène : même coquille, une seule fenêtre
   const extendedProps = useExtendedTestJetProps(); // étape-jet de Test étendu (Rounds cumulés)
-  // COOP : une rangée n'est pilotable que par le siège qui possède son acteur — porte UI UNIQUE
-  // (`ui/ownership`), lue jamais redécidée ; hook AVANT tout retour anticipé.
+  // COOP : une rangée n'est pilotable que par le siège qui possède son acteur — couture
+  // `netOwnership.ownsLocal` vue par `useOwns`, lue jamais redécidée ; hook AVANT tout retour anticipé.
   const owns = useOwns();
 
   // AUTO-FERMETURE d'une étape d'AFFICHAGE (#942 L8) : l'étape qui DÉCLARE `autoCloseMs` (gravité de
   // sa révélation) enchaîne d'elle-même passé le délai — « Continuer » reste servi et ferme avant. Le
   // minuteur est réarmé PAR ÉTAPE (clé = son id) ; il n'a rien à voir avec la Cadence de combat (une
   // cadence MANUELLE auto-ferme aussi : c'était le comportement de la révélation témoin). COOP : seul
-  // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `ui/ownership`) — deux
+  // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `netOwnership.ownsLocal`) — deux
   // sièges qui tirent `cascadeNext` avanceraient de deux crans.
   const autoStep = p ? p.participants[p.cursor] : undefined;
   // Prêt-à-valider de l'étape COURANTE, abonné : une étape hôte dépend de son slot (`stepReady`, #1765).

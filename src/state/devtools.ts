@@ -135,7 +135,7 @@ import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
 import { actionsDe } from './usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
-import { scheduleFlowTimer } from './combatTimers';
+import { scheduleFlowTimer } from '../lib/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../lib/stockageWeb';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';

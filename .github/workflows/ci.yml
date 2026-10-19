@@ -62,8 +62,6 @@ jobs:
           fetch-depth: 0
       - id: prologue
         uses: ./.github/actions/prologue
-      # Chaque dérivé de `GENERATORS` (scripts/docs/build-all.mjs) PRODUIT : les cibles pures ne sont pas
-      # commitées (#2203 A2), un MIXTE périmé laisse un diff que `Arbre inchangé`, dans ce job, refuse.
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run docs:build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -88,8 +86,6 @@ jobs:
         run: npm run raw:check-source-puces
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-renvois
-      # Filet des écrivains par nature (`docs:build`, `genererCode` de `build`) : aucun step ne laisse
-      # l'arbre du runner différent du commit — un MIXTE périmé y est rouge. Classé `CI_SEULEMENT` (scripts/gates/gatesDeCi.mjs).
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

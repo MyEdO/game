@@ -181,7 +181,7 @@ export function decidingSeat(s: GameState): number {
  * Pendant l'application d'un intent, « local » = le siège AGISSANT (cf. `withActingSeat`) — c'est ce
  * qui permet aux gardes d'action de `combatSlice` de servir l'invité sans une ligne de code par flux.
  */
-export function ownsLocally(state: GameState, combatantId: string | undefined): boolean {
+export function ownsLocal(state: GameState, combatantId: string | undefined): boolean {
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
   if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
@@ -198,7 +198,7 @@ export function ownsLocally(state: GameState, combatantId: string | undefined): 
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
  *
  * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
- * fenêtre (`ui/ownership`, qui le ré-expose en hook) et les raccourcis `dialogue-choice-N`
+ * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-choice-N`
  * (`state/keybindings`) — `src/state` ne peut pas lire `src/ui`.
  *
  * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
@@ -206,7 +206,7 @@ export function ownsLocally(state: GameState, combatantId: string | undefined): 
  * la route. `ui/ownership.test.tsx` verrouille cette égalité sur les 3 intents du jeton, siège par siège.
  */
 export function ownsGroupDecision(s: GameState): boolean {
-  return ownsLocally(s, WORLD_STEP_OWNER);
+  return ownsLocal(s, WORLD_STEP_OWNER);
 }
 
 /**
@@ -285,7 +285,7 @@ export function defenseSurfaced(s: GameState, defender: Combatant): boolean {
  * (qui a la main ICI) ; le SURFAÇAGE d'une défense, lui, passe par `defenseSurfaced` ci-dessus.
  */
 export function pilotedByHuman(s: GameState, c: Combatant): boolean {
-  if (c.kind === 'hero') return !c.aiControlled && ownsLocally(s, c.id);
+  if (c.kind === 'hero') return !c.aiControlled && ownsLocal(s, c.id);
   if (c.kind === 'enemy') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
   return false;
 }
@@ -293,7 +293,7 @@ export function pilotedByHuman(s: GameState, c: Combatant): boolean {
 /**
  * Ce siège a-t-il produit CE jet lui-même ? — prédicat de PRÉSENTATION (#990) : un siège ne se masque
  * jamais son propre dé. COMPOSE l'existant : contrôle humain LOCAL (`pilotedByHuman`, qui encode déjà
- * l'affordance de siège) ET possession locale (`ownsLocally`). Distinct de `ownsLocally` seul (vrai
+ * l'affordance de siège) ET possession locale (`ownsLocal`). Distinct de `ownsLocal` seul (vrai
  * pour TOUS en solo — un masque bâti dessus serait mort en solo) et de `controlsCombatant` (faux pour
  * mon propre héros en Auto-combat — son jet reste le mien). `ownerId` absent = adversaire ABSTRAIT
  * (table de taverne, aucun Combatant) : jamais produit par ce siège.
@@ -301,7 +301,7 @@ export function pilotedByHuman(s: GameState, c: Combatant): boolean {
 export function rolledLocally(s: GameState, ownerId: string | undefined): boolean {
   if (!ownerId) return false;
   const c = porteurParId(s, ownerId);
-  return !!c && pilotedByHuman(s, c) && ownsLocally(s, c.id);
+  return !!c && pilotedByHuman(s, c) && ownsLocal(s, c.id);
 }
 
 /**
@@ -315,9 +315,9 @@ export function rolledLocally(s: GameState, ownerId: string | undefined): boolea
 export function aiDriven(s: GameState, c: Combatant): boolean {
   if (c.kind === 'enemy') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
   // PNJ allié IA (`Combatant.aiControlled`, ex. défenseur de siège) : agit SEUL même en jeu MANUEL — sans
-  // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocally`).
-  if (c.kind === 'hero' && c.aiControlled) return ownsLocally(s, c.id);
-  return c.kind === 'hero' && cadenceAutoCombat() && ownsLocally(s, c.id);
+  // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocal`).
+  if (c.kind === 'hero' && c.aiControlled) return ownsLocal(s, c.id);
+  return c.kind === 'hero' && cadenceAutoCombat() && ownsLocal(s, c.id);
 }
 
 /**
@@ -328,7 +328,7 @@ export function aiDriven(s: GameState, c: Combatant): boolean {
  */
 export function controlsCombatant(s: GameState, c: Combatant): boolean {
   if (!pilotedByHuman(s, c) || aiDriven(s, c)) return false;
-  if (c.kind === 'hero') return true; // `pilotedByHuman` encode déjà `ownsLocally` (siège-aware)
+  if (c.kind === 'hero') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
   // Ennemi/monde conduit par le MJ : seul le siège MJ le pilote — comparé au siège qui DÉCIDE
   // maintenant (le siège local, ou le siège AGISSANT pendant l'application de son intent).
   return s.net.mode === 'local' || s.net.gmSeat === decidingSeat(s);
@@ -370,9 +370,9 @@ export function seatInfluences(s: GameState, seat: number, ownerId: string | und
 
 /**
  * Le siège LOCAL peut-il influencer ce jet ? Vue au siège local de `seatInfluences` ci-dessus (source
- * unique). Distinct de `ownsLocally` (vrai pour TOUS en solo : un gate bâti dessus laisse le joueur
+ * unique). Distinct de `ownsLocal` (vrai pour TOUS en solo : un gate bâti dessus laisse le joueur
  * dépenser la Résilience d'un ENNEMI) et de `rolledLocally` (calendrier de MASQUAGE, #990).
- * « Local » = le siège qui DÉCIDE maintenant (`decidingSeat`, patron `ownsLocally`) : pendant
+ * « Local » = le siège qui DÉCIDE maintenant (`decidingSeat`, patron `ownsLocal`) : pendant
  * l'application d'un intent, c'est le siège AGISSANT. Sans cela, une action de store bâtie dessus
  * (`rollAllOwnedRows` : les verbes NULLAIRES « tout lancer » du Contre-sort et de l'opposition)
  * roulait, chez l'hôte, SES rangées à lui au lieu de celles de l'invité émetteur — l'intent accepté
@@ -410,8 +410,7 @@ export function controlsActive(state: GameState): boolean {
     return state.net.mode === 'local' || state.net.gmSeat === decidingSeat(state);
   }
   if (aiDriven(state, active)) return false; // Auto-combat : l'IA pilote ce héros → pas d'affordance joueur
-  if (state.net.mode === 'local') return true;
-  return ownsLocally(state, activeId);
+  return ownsLocal(state, activeId);
 }
 
 /** Emplacements de groupe encore à remplir par ce siège : slots attribués − héros possédés.
