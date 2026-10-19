@@ -126,7 +126,7 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
-      'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
+      'arbreProcessus.test.mjs crée un SystemRoot vide (mkdtempSync de os.tmpdir()) sans y écrire ; son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrit pilote et script PowerShell dans mkdtempSync de os.tmpdir(), l’hôte y créant le témoin d’armement ; tous deux rmSync en t.after ; ' +
       'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
@@ -313,7 +313,8 @@ export const ECRIT_LU = {
       '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
       'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
       '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
-      '`mkdtempSync` d’os.tmpdir() des bancs)',
+      '`mkdtempSync` d’os.tmpdir() des bancs) ; +1 le 2026-10-19 (#2586) : `identiteMesuree.test.mjs` joue sa mesure échue sous le suspendeur ' +
+      '(scripts/test/suspendeurDeMesure.mjs), qui écrit pilote et script PowerShell dans mkdtempSync de os.tmpdir(), l’hôte y créant le témoin d’armement, puis rmSync en t.after',
   },
   'test:docs': {
     ecrit: [],

@@ -4,10 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mesurerArbreProcessus, ancetresValidesDe } from './arbreProcessus.mjs'
-import { jouerSousSuspendeur } from '../../test/suspendeurDeMesure.mjs'
-
-// La mesure Windows est un `powershell.exe` enfant du mesurant, borné par `DELAI_MESURE_PROCESSUS_MS`, qui lit `SystemRoot` à chaque appel (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc dans le processus lui-même.
-const MESURE_WINDOWS = { skip: process.platform !== 'win32' && 'mesure Linux sans mesureur distinct à suspendre ni SystemRoot à retirer', timeout: 60000 }
+import { MESURE_WINDOWS, jouerSousSuspendeur } from '../../test/suspendeurDeMesure.mjs'
 
 const MODULE = JSON.stringify(new URL('./arbreProcessus.mjs', import.meta.url).href)
 

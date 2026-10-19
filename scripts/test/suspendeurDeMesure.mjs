@@ -5,6 +5,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+/** Options `node:test` d'un test de la mesure Windows : un `powershell.exe` enfant du mesurant, borné par son échéance, qui
+ *  lit `SystemRoot` à chaque appel (processusWorktrees.mjs, mesurerProcessusWorktrees) ; la mesure Linux lit /proc dans le
+ *  processus lui-même. */
+export const MESURE_WINDOWS = Object.freeze({ skip: process.platform !== 'win32' && 'mesure Linux sans mesureur distinct à suspendre ni SystemRoot à retirer', timeout: 60000 })
+
 /** Suspend (NtSuspendProcess) chaque `powershell.exe` enfant du PID `-Cible`, `-Max` au plus (0 : tous), jusqu'à la sortie
  *  de ce PID ; un processus s'identifie par son PID ET sa date de création (GetProcessTimes), qu'un PID réutilisé ne
  *  partage pas. Imprime le PID de chaque suspendu, et crée `-Pret` une fois armé. */

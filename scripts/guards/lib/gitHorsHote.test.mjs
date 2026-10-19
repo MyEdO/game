@@ -53,6 +53,15 @@ test('lanceur : git passé comme exécutable, ou en tête d’une ligne de comma
   assert.deepEqual(formes("// execFileSync('git', args)\n/* spawnSync('git') */"), [], 'un commentaire ne lance rien')
 })
 
+test('lanceur : une méthode de chaîne compare un texte, un appel par accès membre qui n’en est pas une lance git', () => {
+  assert.deepEqual(formes("if (mode.startsWith('git')) x()"), [], '`.startsWith` est une méthode de chaîne')
+  assert.deepEqual(formes('const ok = nom?.includes("git") || nom\n  .endsWith(`git`)'), [], '`?.` et un `.` en fin de ligne aussi')
+  assert.deepEqual(formes(`const x = 1\ncp.${'execFileSync'}('git', ['status'])`), [[2, 'lanceur']], 'un module importé en espace de noms lance git')
+  assert.deepEqual(formes(`outils.${'run'}("git", args)`), [[1, 'lanceur']], 'un nom hors de `String.prototype` reste un lanceur')
+  assert.deepEqual(formes(`${'startsWith'}('git', args)`), [[1, 'lanceur']], 'une fonction libre au nom de méthode n’est pas une méthode de chaîne')
+  assert.deepEqual(formes(`f(...${'concat'}('git'))`), [[1, 'lanceur']], 'le `...` d’un étalement n’est pas un accès membre')
+})
+
 test('découpe : un split sur NUL hors de l’hôte', () => {
   assert.deepEqual(formes("sortie.split('\\0')"), [[1, 'decoupe']])
   assert.deepEqual(formes('sortie.split("\\u0000").filter(Boolean)'), [[1, 'decoupe']])

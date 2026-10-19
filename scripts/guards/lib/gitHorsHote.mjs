@@ -22,11 +22,16 @@
 // `publier.test.mjs:1527`. Ils relaient le binaire que l'HÔTE leur passe pour observer ses argv : c'est
 // la couture `spawn` qu'ils testent, et la fermer interdirait ce test. La garde ne les ferme donc pas ;
 // une résolution de valeur (variable → `'git'`) lui demanderait une analyse de flux qu'elle n'a pas.
+// Ni un lanceur appelé par accès membre sous un nom de `String.prototype` (`outil.concat('git', a)`,
+// `outil.search('git')`) : la garde lit le NOM et l'accès membre, pas le type du receveur, et tient
+// tout appel de cette forme pour une méthode de chaîne ; le distinguer demanderait une résolution de type.
 //
 // TROIS FORMES, chacune un site :
 //   · `lanceur`  — un appel dont le premier argument est l'exécutable `git` (`execFileSync('git', …)`,
 //     `run('git', …)`), ou un `exec`/`execSync` dont la ligne de commande commence par `git ` : git
-//     lancé sans l'hôte ;
+//     lancé sans l'hôte. N'en est pas un l'appel par accès membre (`.` ou `?.`, jamais le `...` d'un
+//     étalement) d'un nom de `String.prototype` (`.startsWith('git')`, `?.includes('git')`) : la garde le
+//     tient pour une méthode de chaîne, qui lit ou transforme un texte sans rien lancer ;
 //   · `decoupe`  — un `split` sur NUL hors lecture de donnée FS prouvée ;
 //     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
@@ -52,7 +57,10 @@ export const DOSSIERS_DES_PORTES = Object.freeze(['scripts/guards', 'scripts/hoo
 export const HOTE = 'scripts/guards/lib/gitPorte.mjs'
 
 const MODULE = /\.(?:mjs|cjs|mts|cts|ts|js)$/
-const LANCEUR = /[\w$]\s*\(\s*(['"`])git\1|\bexec(?:Sync)?\(\s*(['"`])git\s/g
+const LANCEUR = /([\w$]+)\s*\(\s*(['"`])git\2|\bexec(?:Sync)?\(\s*(['"`])git\s/g
+const METHODES_DE_CHAINE = new Set(Object.getOwnPropertyNames(String.prototype).filter((nom) => typeof String.prototype[nom] === 'function'))
+/** L'appel `m` de `LANCEUR` est une méthode de chaîne : un nom de `String.prototype` derrière un `.` ou un `?.`, pas un `...`. */
+const methodeDeChaine = (code, m) => METHODES_DE_CHAINE.has(m[1]) && /(?<!\.)\.\s*$/.test(code.slice(0, m.index))
 const CANDIDAT_DECOUPE = /\bsplit\s*\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1/
 const FORME = /(['"`])(--name-only|--name-status|--numstat|ls-files|ls-tree|-z)\1/g
 
@@ -81,7 +89,7 @@ export function sitesHorsHote(chemin, texte) {
   const lignes = texte.split('\n')
   const sites = []
   const noter = (forme, i) => sites.push({ chemin, ligne: ligneDe(i), forme, extrait: lignes[ligneDe(i) - 1].trim().slice(0, 120) })
-  for (const m of code.matchAll(LANCEUR)) noter('lanceur', m.index)
+  for (const m of code.matchAll(LANCEUR)) if (!methodeDeChaine(code, m)) noter('lanceur', m.index)
   if (CANDIDAT_DECOUPE.test(code)) for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
     const ts = typescript()
     if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)

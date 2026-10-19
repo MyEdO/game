@@ -47,8 +47,9 @@ const ATTENDU = {
     // #2626
     'scripts/guards/lib/superviserProcessus.test.mjs',
     'scripts/guards/lib/superviserProcessus.mjs',
-    // +2 le 2026-10-19 (#2586) : le suspendeur de mesure et le banc d'`arbreProcessus` écrivent pilote, script
-    // PowerShell et témoin d'armement sous un `mkdtempSync` d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
+    // +2 le 2026-10-19 (#2586), chacun sous un `mkdtempSync` d'os.tmpdir() retiré par `rmSync` en `t.after` ; l'arbre
+    // n'est jamais écrit. Le banc d'`arbreProcessus` crée un `SystemRoot` vide (`2741-systemroot-`) et n'y écrit rien ;
+    // le suspendeur de mesure (`2586-suspendeur-`) y écrit le pilote et le script PowerShell, dont l'hôte crée le témoin d'armement.
     'scripts/guards/lib/arbreProcessus.test.mjs',
     'scripts/test/suspendeurDeMesure.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
@@ -536,6 +537,10 @@ const ATTENDU = {
     // (`node_modules/.vitest-split/`) et sa capture (`node_modules/.cache/vitest-run-<pid>.txt`) sous sa `racine`,
     // que le banc pose sous un `mkdtempSync` d'os.tmpdir() retiré par `t.after`. L'arbre n'est jamais écrit.
     'scripts/test/run.mjs',
+    // +1 le 2026-10-19 (#2586) : `identiteMesuree.test.mjs` joue sa mesure échue sous le suspendeur de mesure, qui écrit
+    // le pilote et le script PowerShell sous un `mkdtempSync` d'os.tmpdir() (`2586-suspendeur-`), l'hôte y créant le
+    // témoin d'armement, retiré par `rmSync` en `t.after`. L'arbre n'est jamais écrit.
+    'scripts/test/suspendeurDeMesure.mjs',
   ],
   'test:docs': [
     // +1 le 2026-10-17 (#2586) : le banc de `check-doc-refs.mjs` forge ses racines (cibles, porteurs) sous un

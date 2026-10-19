@@ -3,23 +3,21 @@
 import { mesurerProcessusWorktrees, toleranceDeMesure } from '../guards/lib/processusWorktrees.mjs'
 
 /** Borne d'une mesure de création ; son échéance vaut indéterminé. */
-const BORNE_DE_MESURE_MS = 10_000
+export const BORNE_DE_MESURE_MS = 10_000
 
 /**
  * La date de création (ms epoch) du processus `pid`, mesurée par `mesurerProcessusWorktrees` sous
- * `BORNE_DE_MESURE_MS` ; `null` si elle est INDÉTERMINÉE (échéance, erreur, processus absent).
+ * `BORNE_DE_MESURE_MS` ; `null` si elle est INDÉTERMINÉE (échéance, dont la vue ne porte aucun processus, erreur, processus absent).
  * @param {number} pid
- * @param {{ mesurer?: typeof mesurerProcessusWorktrees }} [injections]
  * @returns {number | null}
  */
-export function creationMesuree(pid, { mesurer = mesurerProcessusWorktrees } = {}) {
+export function creationMesuree(pid) {
   let vue
   try {
-    vue = mesurer({ pids: [pid], timeout: BORNE_DE_MESURE_MS })
+    vue = mesurerProcessusWorktrees({ pids: [pid], timeout: BORNE_DE_MESURE_MS })
   } catch {
     return null
   }
-  if (vue.indeterminee) return null
   const creation = Date.parse(vue.processus.find((p) => p.pid === pid)?.creation ?? '')
   return Number.isFinite(creation) ? creation : null
 }

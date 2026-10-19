@@ -156,7 +156,7 @@ else if (role === 'i') {
   publier(sortie, JSON.stringify({ vu, temoins, pid: process.pid, naissance }))
 }
 `)
-  if (mode === 'git' || mode.startsWith('git-')) {
+  if (mode.startsWith('git')) {
     const node = process.execPath.replaceAll('\\', '/')
     const git = gitEnFond(['-c', `alias.wfrp-hook=!"${node}" "${hook.replaceAll('\\', '/')}" p ${mode} "${sortie.replaceAll('\\', '/')}"`, 'wfrp-hook'], { cwd: b.dossier })
     let ferme = false
