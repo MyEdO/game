@@ -690,6 +690,19 @@ export const CONCEPTS: readonly Concept[] = [
     noyauMin: 1,
     coPresence: ['flat', 'literal'],
   },
+  // Porte : `specialSchema` (`src/data/schemas/defs/tavernGames.ts`). Champ MESURÉ sur les 2 racines
+  // (2026-10-17) : `specials` ne vit que dans `tavernGames.json`. NADJ 16 l.82.
+  {
+    id: 'special-de-jeu',
+    label: 'Spécial d’un jeu de taverne (Talent → Difficulté des Tests du jeu)',
+    strate: 'Valeur',
+    champs: ['specials'],
+    datasets: ['tavernGames.json'],
+    signatures: [
+      { sig: 'effet,hasTalent,source,steps', statut: 'cible', note: '`effet: cran` — `hasTalent`/`steps` composés de `facilitationSchema`' },
+      { sig: 'difficulty,effet,hasTalent,source', statut: 'cible', note: '`effet: difficulte` (le `superRefine` exige l’un OU l’autre)' },
+    ],
+  },
   // DERNIER concept de la strate, et le RANG décide (patron `bornes` avant `plage`) : `difficulty`
   // est une VALEUR de Difficulté (`difficultySchema`, `src/data/schemas/grammaire/valeurs.ts`) qu'un
   // porteur pose À CÔTÉ d'autre chose aussi souvent qu'un jet la porte. Deux discriminants :
